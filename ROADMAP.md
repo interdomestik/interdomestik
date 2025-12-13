@@ -726,6 +726,8 @@ Month 6: AI & Expansion
 10. **Feature flags/experimentation**: plan GrowthBook (MIT) rollout for controlled rollouts and A/B tests.
 11. **Search**: plan Meilisearch (MIT) for fast search (claims, knowledge base, company directory).
 12. **Analytics (self-host)**: plan PostHog/OpenTelemetry stack for product events without external PII leakage.
+13. **Performance & mobile polish**: route-level Suspense/streaming, skeletons, image audit (Next/Image, AVIF/WebP), bundle diet (code-splitting/dynamic imports), mobile-first nav (bottom/tab), touch targets, offline-lite cache for shell/claims list/detail, pagination/infinite scroll on claims list, Supabase indexes (status/category/userId), and hydration-safe UI patterns for Radix (mount-gated portals).
+14. **Web Vitals & observability**: report FCP/LCP/CLS to monitoring (e.g., Sentry) and add synthetic smoke (Playwright mobile viewport) for login/claim create/list/detail.
 
 ---
 
