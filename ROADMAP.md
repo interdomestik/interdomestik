@@ -723,6 +723,9 @@ Month 6: AI & Expansion
 7. **Performance budgets**: bundle-size budget, image optimization, and Lighthouse/AXE passes during Phase 4 optimization.
 8. **Error monitoring**: integrate Sentry (Next.js SDK server/client, source maps, tunnel/CSP as needed) with env wiring.
 9. **Database security**: enforce RLS across app tables (claims, messages, documents, subscriptions, users), role-based policies, and server-only service-role usage.
+10. **Feature flags/experimentation**: plan GrowthBook (MIT) rollout for controlled rollouts and A/B tests.
+11. **Search**: plan Meilisearch (MIT) for fast search (claims, knowledge base, company directory).
+12. **Analytics (self-host)**: plan PostHog/OpenTelemetry stack for product events without external PII leakage.
 
 ---
 
