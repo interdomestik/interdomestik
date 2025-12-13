@@ -677,7 +677,7 @@ Month 6: AI & Expansion
 
 | Layer             | Technology              | Rationale                              |
 | ----------------- | ----------------------- | -------------------------------------- |
-| **Frontend**      | Next.js 15 (App Router) | Best ecosystem, SSR/SSG, Vercel native |
+| **Frontend**      | Next.js 16 (App Router) | Best ecosystem, SSR/SSG, Vercel native |
 | **Data Fetching** | TanStack Query          | Enterprise-grade caching & sync        |
 | **State**         | Zustand                 | Lightweight global state               |
 | **Tables**        | TanStack Table          | Headless UI for complex data tables    |
@@ -693,7 +693,7 @@ Month 6: AI & Expansion
 | **Automation**    | n8n                     | Self-host, visual workflows            |
 | **Email**         | Resend + React Email    | Developer-friendly, beautiful emails   |
 | **Hosting**       | Vercel                  | Edge network, easy deploys             |
-| **i18n**          | next-intl               | Best Next.js i18n solution             |
+| **i18n**          | next-intl 4             | Best Next.js i18n solution             |
 | **Monorepo**      | Turborepo               | Fast builds, code sharing              |
 
 ---
@@ -719,14 +719,14 @@ Month 6: AI & Expansion
 
 ## 🚀 Next Steps
 
-1. **Create the Interdomestik repository** with Turborepo structure
-2. **Design the Supabase database schema**
-3. **Set up Stripe account** and define subscription products
-4. **Port EcoHub UI components** to shared packages
-5. **Begin Phase 0: Foundation** development
+1. **Stabilize upgraded stack** (Next.js 16, React 19, next-intl 4, Stripe 20, tailwind-merge 3) with ongoing smoke tests.
+2. **Finalize Stripe product IDs** in env/`PLANS` and wire subscription flows (checkout + portal).
+3. **Lock navigation/auth/i18n** with locale-safe layouts to prevent hydration drift.
+4. **Begin Phase 1: Core MVP** — claim creation wizard, dashboard shell, and claim detail views.
+5. **Set up Novu and transactional emails** ahead of messaging/notifications work in Phase 2.
 
 ---
 
-_Document Version: 1.0_
-_Last Updated: December 13, 2024_
+_Document Version: 1.1_
+_Last Updated: December 13, 2025_
 _Author: Gemini CLI / Arben Lila_
