@@ -361,6 +361,9 @@
 | **Encryption**         | Data at rest and in transit     | P0       |
 | **Audit Logs**         | All actions logged              | P0       |
 | **CAPTCHA**            | Bot protection on forms         | P1       |
+| **CSP**                | Content Security Policy         | P1       |
+| **Rate Limiting**      | Protect auth/forms              | P1       |
+| **Secrets Management** | Centralized env/secrets policy   | P1       |
 
 #### 11.2 Compliance
 
@@ -401,6 +404,8 @@ Core setup done: monorepo, Next.js, Supabase config, i18n, lint/TS strict, auth/
 - Claim detail: ✅ Done
 - Profile page: ⏳ Todo
 - Settings page: ⏳ Todo
+
+**Quality gates (ongoing):** lint + unit + Playwright smoke (claim create/list/detail/dashboard) + a11y/perf spot-check.
 
 ---
 
@@ -481,6 +486,8 @@ Week 8: Notifications (Novu Integration)
 ├── Notification preferences
 ├── Status change triggers
 ├── Assignment notifications
+├── Delivery observability (logs/dlq) and channel fallback strategy
+└── Template versioning and testing
 └── Test all notification flows
 
 Week 9: Stripe Integration
@@ -488,7 +495,7 @@ Week 9: Stripe Integration
 ├── Define subscription plans (Basic, Premium)
 ├── Checkout flow for new members
 ├── Customer portal for managing subscription
-├── Webhook handlers for subscription events
+├── Webhook handlers for subscription events (signature verify + idempotency keys)
 ├── Invoice history
 ├── Payment failure handling
 └── Promo code support
@@ -517,7 +524,8 @@ Week 11: Document Management
 ├── Document download with logging
 ├── Claim documents tab
 ├── Member document vault
-└── Secure storage with Supabase Storage
+├── Secure storage with Supabase Storage
+└── Virus/mime validation and signed URLs for PII-handling documents
 
 Week 12: E-Signatures (Documenso)
 ├── Documenso integration
@@ -569,7 +577,8 @@ Week 16: Analytics & Reporting
 └── Custom date ranges
 
 Week 17: Optimization & Testing
-├── Performance optimization (Core Web Vitals)
+├── Performance optimization (Core Web Vitals) with bundle-size budget
+├── Image optimization review
 ├── Accessibility audit (WCAG 2.1)
 ├── Security audit
 ├── Load testing
@@ -705,11 +714,15 @@ Month 6: AI & Expansion
 
 ## 🚀 Next Steps
 
-1. **Stabilize upgraded stack** (Next.js 16, React 19, next-intl 4, Stripe 20, tailwind-merge 3) with ongoing smoke tests.
-2. **Finalize Stripe product IDs** in env/`PLANS` and wire subscription flows (checkout + portal).
-3. **Lock navigation/auth/i18n** with locale-safe layouts to prevent hydration drift.
-4. **Begin Phase 1: Core MVP** — claim creation wizard, dashboard shell, and claim detail views.
-5. **Set up Novu and transactional emails** ahead of messaging/notifications work in Phase 2.
+1. **Quality gates per phase**: lint + unit + Playwright smoke (claim create/list/detail/dashboard) + a11y/perf spot-check before closing milestones.
+2. **Stripe v20 hardening**: finalize product IDs in env/`PLANS`, webhook signature verification + idempotency keys, and customer portal smoke tests.
+3. **Auth/route safety**: verify protected routes (app/[locale]/(app) vs (auth)), role guards for admin/agent, and session handling.
+4. **i18n robustness**: locale-safe hydration (avoid drift), translation completeness checks per release with next-intl 4.
+5. **Storage/PII hygiene**: signed URLs, mime/virus validation on uploads, data classification for documents.
+6. **Notifications (Novu)**: delivery observability/logs, template versioning, and channel fallback strategy.
+7. **Performance budgets**: bundle-size budget, image optimization, and Lighthouse/AXE passes during Phase 4 optimization.
+8. **Error monitoring**: integrate Sentry (Next.js SDK server/client, source maps, tunnel/CSP as needed) with env wiring.
+9. **Database security**: enforce RLS across app tables (claims, messages, documents, subscriptions, users), role-based policies, and server-only service-role usage.
 
 ---
 
