@@ -4,18 +4,7 @@ import '@interdomestik/ui/globals.css';
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { Inter, Space_Grotesk } from 'next/font/google';
 import { notFound } from 'next/navigation';
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-display',
-});
 
 export function generateStaticParams() {
   return routing.locales.map(locale => ({ locale }));

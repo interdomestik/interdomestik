@@ -36,7 +36,7 @@ const claimSchema = z.object({
   companyName: z.string().min(2, 'Company name is required'),
   description: z.string().min(20, 'Please provide more details (min 20 characters)'),
   claimAmount: z.string().optional(),
-  currency: z.string().default('EUR'),
+  currency: z.string(),
 });
 
 type ClaimFormValues = z.infer<typeof claimSchema>;
