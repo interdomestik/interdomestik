@@ -16,7 +16,8 @@
     "db:generate": "turbo db:generate",
     "db:push": "pnpm --filter @interdomestik/database db:push",
     "db:studio": "pnpm --filter @interdomestik/database db:studio",
-    "qa": "pnpm --filter @interdomestik/qa check"
+    "qa": "pnpm --filter @interdomestik/qa check",
+    "smoke-test": "node scripts/smoke-test.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.19.2",

@@ -30,8 +30,8 @@ const claimSchema = z.object({
   description: z.string().optional(),
   category: z.string().min(1, 'Please select a category'),
   companyName: z.string().min(1, 'Company name is required'),
-  claimAmount: z.string().optional(), // We'll let server handle transform or do it here
-  currency: z.string().default('EUR'), // Default makes it actually optional in input but required in output
+  claimAmount: z.string().optional(),
+  currency: z.string(),
 });
 
 // Use inferred type for RHF to handle defaults correctly
