@@ -72,6 +72,51 @@ export async function createClaim(prevState: unknown, formData: FormData) {
   return { success: true };
 }
 
+// Simplified action for the wizard component with typed data
+export async function submitClaimAction(data: {
+  title: string;
+  description: string;
+  category: string;
+  companyName: string;
+  claimAmount?: string;
+  currency?: string;
+}) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    throw new Error('Unauthorized');
+  }
+
+  const result = claimSchema.safeParse(data);
+
+  if (!result.success) {
+    throw new Error('Validation failed');
+  }
+
+  const { title, description, category, companyName, claimAmount, currency } = result.data;
+
+  try {
+    await db.insert(claims).values({
+      id: nanoid(),
+      userId: session.user.id,
+      title,
+      description,
+      category,
+      companyName,
+      claimAmount: claimAmount || undefined,
+      currency: currency || 'EUR',
+      status: 'draft',
+    });
+  } catch (error) {
+    console.error('Failed to create claim:', error);
+    throw new Error('Failed to create claim. Please try again.');
+  }
+
+  return { success: true };
+}
+
 import { eq } from 'drizzle-orm'; // Need to import eq
 import { revalidatePath } from 'next/cache';
 
