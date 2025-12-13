@@ -390,31 +390,17 @@
 
 ## 📅 Development Roadmap
 
-### Phase 0: Foundation (Weeks 1-2)
+### Phase 0: Foundation (Weeks 1-2) — ✅ Complete
 
-**Goal**: Project setup and infrastructure
+Core setup done: monorepo, Next.js, Supabase config, i18n, lint/TS strict, auth/pages, design system scaffolding, staging deploy.
 
-```
-Week 1: Project Initialization
-├── Create Turborepo monorepo structure
-├── Set up Next.js 15 with App Router
-├── Configure Supabase project (EU region)
-├── Set up Vercel deployment
-├── Configure environment variables
-├── Initialize i18n (Albanian, English)
-├── Set up ESLint, Prettier, TypeScript strict
-├── Create CONTRIBUTING.md, README
-└── Set up CI/CD pipeline
+### Phase 1: Core MVP (Weeks 3-4) — ✅ ~80% Complete
 
-Week 2: Design System & Database
-├── Port EcoHub UI components to packages/ui
-├── Create design tokens (colors, typography)
-├── Set up Drizzle ORM & Kit
-├── Design database schema (Drizzle)
-├── Configure Better Auth (GitHub, Email)
-├── Implement Auth pages (Login, Register)
-└── Deploy staging environment
-```
+- Claim wizard: ✅ Done
+- Claims list: ✅ Done
+- Claim detail: ✅ Done
+- Profile page: ⏳ Todo
+- Settings page: ⏳ Todo
 
 ---
 
