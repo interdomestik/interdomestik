@@ -22,19 +22,23 @@
     "type-check": "tsc --noEmit"
   },
   "peerDependencies": {
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
-    "@types/react": "^18.3.20",
-    "@types/react-dom": "^18.3.7",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.49.0",
     "@typescript-eslint/parser": "^8.49.0",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "^15.5.0",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "^16.0.10",
     "eslint-config-prettier": "^9.1.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.0",
+    "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.25.0"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
@@ -54,7 +58,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.511.0",
-    "tailwind-merge": "^2.6.0"
+    "lucide-react": "^0.561.0",
+    "tailwind-merge": "^3.4.0"
   }
 }

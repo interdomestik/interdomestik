@@ -17,6 +17,7 @@ import {
 import { createAuthClient } from 'better-auth/react';
 import { LogOut, Settings, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 // Create a client instance safely
 const authClient = createAuthClient({
@@ -25,6 +26,11 @@ const authClient = createAuthClient({
 
 export function UserNav() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // In a real app we'd use a hook to get the session
   // const { data: session } = authClient.useSession()
@@ -40,6 +46,18 @@ export function UserNav() {
     await authClient.signOut();
     router.push('/login');
   };
+
+  // Avoid SSR/CSR id mismatches from Radix by rendering menu only after mount.
+  if (!mounted) {
+    return (
+      <Button variant="ghost" className="relative h-9 w-9 rounded-full" disabled>
+        <Avatar className="h-9 w-9">
+          <AvatarImage src={user.image} alt={user.name} />
+          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+        </Avatar>
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>

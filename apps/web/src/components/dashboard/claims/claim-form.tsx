@@ -34,8 +34,8 @@ const claimSchema = z.object({
   currency: z.string().default('EUR'), // Default makes it actually optional in input but required in output
 });
 
-// Use output type for RHF to handle defaults correctly
-type FormValues = z.input<typeof claimSchema>;
+// Use inferred type for RHF to handle defaults correctly
+type FormValues = z.infer<typeof claimSchema>;
 
 const CATEGORIES = [
   { value: 'retail', label: 'Retail & Shopping' },
