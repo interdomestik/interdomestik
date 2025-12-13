@@ -1,0 +1,34 @@
+{
+  "repoContext": {
+    "allowList": [
+      "apps/**",
+      "packages/**",
+      "supabase/**"
+    ],
+    "excludePatterns": [
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/dist/**",
+      "**/.turbo/**"
+    ]
+  },
+  "qa": {
+    "buildHealth": [
+      "npm run lint",
+      "npm run type-check",
+      "npm run build"
+    ],
+    "testSuites": {
+      "smoke": "npx playwright test e2e/smoke.spec.ts",
+      "unit": "npm test",
+      "e2e": "npx playwright test"
+    },
+    "navigationAudit": "npx playwright test e2e/navigation.spec.ts"
+  },
+  "e2e": {
+    "baseUrl": "http://localhost:3000",
+    "defaultLocale": "sq",
+    "locales": ["sq", "en"],
+    "localePrefix": "always"
+  }
+}

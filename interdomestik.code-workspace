@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "name": "Interdomestik V2",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true
+  }
+}

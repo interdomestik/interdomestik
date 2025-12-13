@@ -1,0 +1,199 @@
+'use client';
+
+import { createClaim } from '@/actions/claims';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+} from '@interdomestik/ui';
+import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation'; // Using next/navigation for client-side redirect
+import { useActionState, useState } from 'react';
+import { SubmitHandler, useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+// Schema must match server action validation
+const claimSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters').max(100),
+  description: z.string().optional(),
+  category: z.string().min(1, 'Please select a category'),
+  companyName: z.string().min(1, 'Company name is required'),
+  claimAmount: z.string().optional(), // We'll let server handle transform or do it here
+  currency: z.string().default('EUR'), // Default makes it actually optional in input but required in output
+});
+
+// Use output type for RHF to handle defaults correctly
+type FormValues = z.input<typeof claimSchema>;
+
+const CATEGORIES = [
+  { value: 'retail', label: 'Retail & Shopping' },
+  { value: 'services', label: 'Services (Telekom, Energy, etc.)' },
+  { value: 'travel', label: 'Travel & Transport' },
+  { value: 'online', label: 'Online Shopping' },
+  { value: 'financial', label: 'Financial Services' },
+  { value: 'other', label: 'Other' },
+];
+
+export function ClaimForm() {
+  const router = useRouter();
+  const [state, formAction, isPending] = useActionState(createClaim, null);
+  const [clientError, setClientError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(claimSchema),
+    defaultValues: {
+      currency: 'EUR',
+    },
+  });
+
+  // Sync action state errors to local state or toast if needed
+  // In a real app we might useEffect to show toasts based on state.error or state.success
+
+  const onSubmit: SubmitHandler<FormValues> = async data => {
+    setClientError(null);
+    const formData = new FormData();
+    formData.append('title', data.title);
+    if (data.description) formData.append('description', data.description);
+    formData.append('category', data.category);
+    formData.append('companyName', data.companyName);
+    if (data.claimAmount) formData.append('claimAmount', data.claimAmount);
+    if (data.currency) formData.append('currency', data.currency);
+
+    // We can call startTransition or just let the action handler do work?
+    // useActionState gives us a 'formAction' we can pass to <form action={formAction}>
+    // BUT integrating with React Hook Form means we usually call the action MANUALLY inside handleSubmit.
+    // Let's use startTransition which useActionState wraps? No, useActionState returns a wrapper.
+
+    // HYBRID APPROACH:
+    // We construct FormData and call formAction(formData).
+
+    formAction(formData);
+  };
+
+  // Watch for success
+  if (state?.success) {
+    // Redirect client-side
+    router.push('/dashboard/claims');
+    router.refresh();
+  }
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>File a new complaint</CardTitle>
+        <CardDescription>Provide details about your consumer issue.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Access server-side general error */}
+          {(state?.error || clientError) && (
+            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+              {state?.error || clientError}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="title">Complaint Title</Label>
+            <Input
+              id="title"
+              placeholder="e.g. Broken Laptop from Electronics Store"
+              {...register('title')}
+            />
+            {errors.title && <p className="text-sm text-red-500">{errors.title.message}</p>}
+            {state?.issues?.title && <p className="text-sm text-red-500">{state.issues.title}</p>}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Company Name</Label>
+              <Input id="companyName" placeholder="Business Name" {...register('companyName')} />
+              {errors.companyName && (
+                <p className="text-sm text-red-500">{errors.companyName.message}</p>
+              )}
+              {state?.issues?.companyName && (
+                <p className="text-sm text-red-500">{state.issues.companyName}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select onValueChange={val => setValue('category', val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(cat => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* Hidden input for RHF validation tracking if needed, 
+                                but here we set value manually. RHF check: */}
+              <input type="hidden" {...register('category')} />
+              {errors.category && <p className="text-sm text-red-500">{errors.category.message}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="claimAmount">Amount (Optional)</Label>
+              <Input
+                id="claimAmount"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                {...register('claimAmount')}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currency">Currency</Label>
+              <Input id="currency" disabled value="EUR" {...register('currency')} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              placeholder="Describe what happened in detail..."
+              className="min-h-[120px]"
+              {...register('description')}
+            />
+            {errors.description && (
+              <p className="text-sm text-red-500">{errors.description.message}</p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" type="button" onClick={() => router.back()}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Submit Complaint
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

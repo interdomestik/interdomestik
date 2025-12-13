@@ -1,0 +1,205 @@
+{
+  "metadata": {
+    "title": "Interdomestik - Mbrojtja e Konsumatorit",
+    "description": "Platforma #1 për mbrojtjen e konsumatorit dhe menaxhimin e ankesave në Ballkan"
+  },
+  "common": {
+    "appName": "Interdomestik",
+    "loading": "Duke u ngarkuar...",
+    "save": "Ruaj",
+    "cancel": "Anulo",
+    "submit": "Dërgo",
+    "delete": "Fshij",
+    "edit": "Redakto",
+    "view": "Shiko",
+    "back": "Kthehu",
+    "next": "Vazhdo",
+    "previous": "Prapa",
+    "search": "Kërko",
+    "filter": "Filtro",
+    "all": "Të gjitha",
+    "none": "Asnjë",
+    "yes": "Po",
+    "no": "Jo",
+    "or": "ose",
+    "and": "dhe"
+  },
+  "nav": {
+    "home": "Ballina",
+    "dashboard": "Paneli",
+    "claims": "Ankesat",
+    "newClaim": "Ankesë e Re",
+    "documents": "Dokumentet",
+    "messages": "Mesazhet",
+    "settings": "Cilësimet",
+    "profile": "Profili",
+    "logout": "Dil",
+    "login": "Hyr",
+    "register": "Regjistrohu",
+    "pricing": "Çmimet",
+    "about": "Rreth Nesh",
+    "contact": "Kontakti",
+    "help": "Ndihmë"
+  },
+  "hero": {
+    "title": "Mbroni të Drejtat Tuaja si Konsumator",
+    "subtitle": "Platforma e vetme që ju ndihmon të zgjidhni mosmarrëveshjet me kompani, pronarë, sigurime dhe të tjerë - nga fillimi deri në përfundim.",
+    "cta": "Filloni Tani",
+    "secondaryCta": "Shikoni Çmimet",
+    "trustedBy": "Besuar nga qytetarë në të gjithë Ballkanin"
+  },
+  "features": {
+    "title": "Gjithçka që ju nevojitet për të mbrojtur të drejtat tuaja",
+    "claimManagement": {
+      "title": "Menaxhimi i Ankesave",
+      "description": "Krijoni dhe ndiqni ankesat tuaja nga fillimi deri në përfundim me statusin në kohë reale."
+    },
+    "professionalSupport": {
+      "title": "Mbështetje Profesionale",
+      "description": "Agjentët tanë ekspertë do t'ju ndihmojnë në çdo hap të procesit."
+    },
+    "documentManagement": {
+      "title": "Menaxhimi i Dokumenteve",
+      "description": "Ngarkoni dhe organizoni të gjitha dokumentet tuaja në një vend të sigurt."
+    },
+    "messaging": {
+      "title": "Komunikim i Sigurt",
+      "description": "Komunikoni me agjentët dhe ndiqni të gjitha bisedat në një vend."
+    }
+  },
+  "pricing": {
+    "title": "Çmime të Përballueshme",
+    "subtitle": "Zgjidhni planin që i përshtatet nevojave tuaja",
+    "monthly": "Mujore",
+    "yearly": "Vjetore",
+    "basic": {
+      "name": "Bazik",
+      "price": "€5",
+      "period": "/muaj",
+      "description": "Për përdorim personal të rastësishëm",
+      "features": [
+        "3 ankesa në vit",
+        "Mbështetje me email",
+        "Ngarkim dokumentesh",
+        "Ndjekje e statusit"
+      ]
+    },
+    "standard": {
+      "name": "Standard",
+      "price": "€10",
+      "period": "/muaj",
+      "description": "Për përdorim të rregullt",
+      "features": [
+        "10 ankesa në vit",
+        "Mbështetje prioritare",
+        "Chat i drejtpërdrejtë",
+        "Ndjekje e avancuar"
+      ],
+      "popular": "Më Popullorja"
+    },
+    "premium": {
+      "name": "Premium",
+      "price": "€15",
+      "period": "/muaj",
+      "description": "Për mbrojtje të plotë",
+      "features": [
+        "Ankesa të pakufizuara",
+        "Mbështetje VIP",
+        "Thirrje telefonike",
+        "Nënshkrim elektronik",
+        "Përfaqësim ligjor"
+      ]
+    },
+    "cta": "Zgjidh Planin"
+  },
+  "auth": {
+    "login": {
+      "title": "Mirësevini Përsëri",
+      "subtitle": "Hyni në llogarinë tuaj për të vazhduar",
+      "email": "Adresa e Email-it",
+      "password": "Fjalëkalimi",
+      "rememberMe": "Më mbaj në mend",
+      "forgotPassword": "Keni harruar fjalëkalimin?",
+      "submit": "Hyr",
+      "noAccount": "Nuk keni llogari?",
+      "registerLink": "Regjistrohuni tani"
+    },
+    "register": {
+      "title": "Krijoni Llogari",
+      "subtitle": "Filloni të mbroni të drejtat tuaja sot",
+      "fullName": "Emri i Plotë",
+      "email": "Adresa e Email-it",
+      "password": "Fjalëkalimi",
+      "confirmPassword": "Konfirmoni Fjalëkalimin",
+      "terms": "Pranoj Kushtet e Shërbimit dhe Politikën e Privatësisë",
+      "submit": "Regjistrohu",
+      "hasAccount": "Keni tashmë llogari?",
+      "loginLink": "Hyni këtu"
+    }
+  },
+  "claims": {
+    "title": "Ankesat e Mia",
+    "new": "Ankesë e Re",
+    "empty": {
+      "title": "Nuk keni ankesa ende",
+      "description": "Filloni duke krijuar ankesën tuaj të parë"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Dorëzuar",
+      "assigned": "Caktuar",
+      "investigating": "Në Hetim",
+      "contacting": "Duke Kontaktuar",
+      "negotiating": "Në Negociata",
+      "mediation": "Ndërmjetësim",
+      "resolved": "Zgjidhur",
+      "closed": "Mbyllur"
+    },
+    "category": {
+      "consumer": "Konsumator",
+      "housing": "Strehim",
+      "insurance": "Sigurim",
+      "employment": "Punësim",
+      "contracts": "Kontrata",
+      "utilities": "Shërbime Komunale"
+    },
+    "priority": {
+      "low": "I Ulët",
+      "normal": "Normal",
+      "high": "I Lartë",
+      "urgent": "Urgjent"
+    },
+    "wizard": {
+      "step1": "Kategoria",
+      "step2": "Detajet",
+      "step3": "Dokumentet",
+      "step4": "Përfundimi"
+    }
+  },
+  "dashboard": {
+    "welcome": "Mirësevini, {name}!",
+    "overview": "Përmbledhje",
+    "activeClaims": "Ankesa Aktive",
+    "resolvedClaims": "Ankesa të Zgjidhura",
+    "pendingActions": "Veprime në Pritje",
+    "recentActivity": "Aktiviteti i Fundit",
+    "quickActions": "Veprime të Shpejta"
+  },
+  "footer": {
+    "description": "Platforma #1 për mbrojtjen e konsumatorit në Ballkan. Ndihmojmë qytetarët të zgjidhin mosmarrëveshjet me kompani dhe institucione.",
+    "company": "Kompania",
+    "about": "Rreth Nesh",
+    "careers": "Karriera",
+    "press": "Shtypi",
+    "legal": "Ligjore",
+    "privacy": "Privatësia",
+    "terms": "Kushtet",
+    "cookies": "Cookies",
+    "support": "Mbështetje",
+    "help": "Qendra e Ndihmës",
+    "contact": "Na Kontaktoni",
+    "faq": "FAQ",
+    "social": "Na Ndiqni",
+    "copyright": "© {year} Interdomestik. Të gjitha të drejtat e rezervuara."
+  }
+}

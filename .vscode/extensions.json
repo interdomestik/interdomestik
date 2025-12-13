@@ -1,0 +1,20 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "formulahendry.auto-rename-tag",
+    "usernamehw.errorlens",
+    "dsznajder.es7-react-js-snippets",
+    "christian-kohler.path-intellisense",
+    "prisma.prisma",
+    "mikestead.dotenv",
+    "eamodio.gitlens",
+    "yoavbls.pretty-ts-errors",
+    "streetsidesoftware.code-spell-checker",
+    "orta.vscode-jest",
+    "ms-playwright.playwright",
+    "lokalise.i18n-ally",
+    "gruntfuggly.todo-tree"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["apps/web/src/*"],
+      "@interdomestik/ui": ["packages/ui/src"],
+      "@interdomestik/ui/*": ["packages/ui/src/*"],
+      "@interdomestik/database": ["packages/database/src"],
+      "@interdomestik/database/*": ["packages/database/src/*"]
+    }
+  },
+  "include": [
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+    "*.ts",
+    "*.js"
+  ],
+  "exclude": ["node_modules", "**/node_modules", "**/.next", "**/dist", "**/.turbo"]
+}

@@ -1,0 +1,43 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "interdomestik",
+    "supabase",
+    "tailwindcss",
+    "radix",
+    "lucide",
+    "clsx",
+    "postcss",
+    "autoprefixer",
+    "pnpm",
+    "turbo",
+    "turborepo",
+    "nextjs",
+    "intl",
+    "pathname",
+    "middleware",
+    "ssr",
+    "vercel",
+    "monorepo",
+    "tsx",
+    "shadcn",
+    "popover",
+    "dropdown",
+    "tooltip",
+    "whsec",
+    "Novu",
+    "Documenso",
+    "Emri",
+    "Mbiemri",
+    "Ballkan"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "pnpm-lock.yaml",
+    ".next",
+    "dist",
+    ".turbo",
+    "apps/web/src/messages/**"
+  ]
+}

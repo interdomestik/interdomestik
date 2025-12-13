@@ -1,0 +1,31 @@
+{
+  "name": "interdomestik",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "type-check": "turbo type-check",
+    "clean": "turbo clean && rm -rf node_modules",
+    "db:generate": "turbo db:generate",
+    "db:push": "pnpm --filter @interdomestik/database db:push",
+    "db:studio": "pnpm --filter @interdomestik/database db:studio",
+    "qa": "pnpm --filter @interdomestik/qa check"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "prettier": "^3.5.0",
+    "turbo": "^2.6.0",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "pnpm@10.25.0"
+}

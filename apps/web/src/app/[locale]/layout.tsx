@@ -1,0 +1,75 @@
+import { LocaleHtmlUpdater } from '@/components/locale-html';
+import { routing } from '@/i18n/routing';
+import '@interdomestik/ui/globals.css';
+import type { Metadata } from 'next';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, setRequestLocale } from 'next-intl/server';
+import { Inter, Space_Grotesk } from 'next/font/google';
+import { notFound } from 'next/navigation';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-sans',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-display',
+});
+
+export function generateStaticParams() {
+  return routing.locales.map(locale => ({ locale }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const messages = (await import(`@/messages/${locale}.json`)).default;
+
+  return {
+    title: {
+      default: messages.metadata?.title || 'Interdomestik',
+      template: `%s | Interdomestik`,
+    },
+    description: messages.metadata?.description || 'Consumer Protection Platform',
+    keywords: ['consumer protection', 'claims', 'disputes', 'balkans', 'kosovo', 'albania'],
+    authors: [{ name: 'Interdomestik' }],
+    openGraph: {
+      type: 'website',
+      locale: locale === 'sq' ? 'sq_AL' : 'en_US',
+      siteName: 'Interdomestik',
+    },
+  };
+}
+
+type Props = {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+};
+
+export default async function RootLayout({ children, params }: Props) {
+  const { locale } = await params;
+
+  // Ensure that the incoming locale is valid
+  if (!routing.locales.includes(locale as (typeof routing.locales)[number])) {
+    notFound();
+  }
+
+  // Enable static rendering
+  setRequestLocale(locale);
+
+  // Fetch messages for the locale
+  const messages = await getMessages();
+
+  return (
+    <>
+      <LocaleHtmlUpdater locale={locale} />
+      <NextIntlClientProvider messages={messages} locale={locale}>
+        {children}
+      </NextIntlClientProvider>
+    </>
+  );
+}

@@ -1,0 +1,205 @@
+{
+  "metadata": {
+    "title": "Interdomestik - Consumer Protection",
+    "description": "The #1 consumer protection and claims management platform in the Balkans"
+  },
+  "common": {
+    "appName": "Interdomestik",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "all": "All",
+    "none": "None",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and"
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "claims": "Claims",
+    "newClaim": "New Claim",
+    "documents": "Documents",
+    "messages": "Messages",
+    "settings": "Settings",
+    "profile": "Profile",
+    "logout": "Logout",
+    "login": "Login",
+    "register": "Sign Up",
+    "pricing": "Pricing",
+    "about": "About Us",
+    "contact": "Contact",
+    "help": "Help"
+  },
+  "hero": {
+    "title": "Protect Your Consumer Rights",
+    "subtitle": "The only platform that helps you resolve disputes with companies, landlords, insurers, and others - from start to finish.",
+    "cta": "Get Started",
+    "secondaryCta": "View Pricing",
+    "trustedBy": "Trusted by citizens across the Balkans"
+  },
+  "features": {
+    "title": "Everything you need to protect your rights",
+    "claimManagement": {
+      "title": "Claim Management",
+      "description": "Create and track your claims from start to finish with real-time status updates."
+    },
+    "professionalSupport": {
+      "title": "Professional Support",
+      "description": "Our expert agents will help you at every step of the process."
+    },
+    "documentManagement": {
+      "title": "Document Management",
+      "description": "Upload and organize all your documents in one secure place."
+    },
+    "messaging": {
+      "title": "Secure Communication",
+      "description": "Communicate with agents and track all conversations in one place."
+    }
+  },
+  "pricing": {
+    "title": "Affordable Pricing",
+    "subtitle": "Choose the plan that fits your needs",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "basic": {
+      "name": "Basic",
+      "price": "€5",
+      "period": "/month",
+      "description": "For occasional personal use",
+      "features": [
+        "3 claims per year",
+        "Email support",
+        "Document upload",
+        "Status tracking"
+      ]
+    },
+    "standard": {
+      "name": "Standard",
+      "price": "€10",
+      "period": "/month",
+      "description": "For regular use",
+      "features": [
+        "10 claims per year",
+        "Priority support",
+        "Live chat",
+        "Advanced tracking"
+      ],
+      "popular": "Most Popular"
+    },
+    "premium": {
+      "name": "Premium",
+      "price": "€15",
+      "period": "/month",
+      "description": "For complete protection",
+      "features": [
+        "Unlimited claims",
+        "VIP support",
+        "Phone calls",
+        "E-signatures",
+        "Legal representation"
+      ]
+    },
+    "cta": "Choose Plan"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "subtitle": "Log in to your account to continue",
+      "email": "Email Address",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Log In",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Sign up now"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Start protecting your rights today",
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "terms": "I agree to the Terms of Service and Privacy Policy",
+      "submit": "Sign Up",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Log in here"
+    }
+  },
+  "claims": {
+    "title": "My Claims",
+    "new": "New Claim",
+    "empty": {
+      "title": "No claims yet",
+      "description": "Start by creating your first claim"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "assigned": "Assigned",
+      "investigating": "Investigating",
+      "contacting": "Contacting",
+      "negotiating": "Negotiating",
+      "mediation": "Mediation",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "category": {
+      "consumer": "Consumer",
+      "housing": "Housing",
+      "insurance": "Insurance",
+      "employment": "Employment",
+      "contracts": "Contracts",
+      "utilities": "Utilities"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "wizard": {
+      "step1": "Category",
+      "step2": "Details",
+      "step3": "Documents",
+      "step4": "Finish"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome, {name}!",
+    "overview": "Overview",
+    "activeClaims": "Active Claims",
+    "resolvedClaims": "Resolved Claims",
+    "pendingActions": "Pending Actions",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions"
+  },
+  "footer": {
+    "description": "The #1 consumer protection platform in the Balkans. We help citizens resolve disputes with companies and institutions.",
+    "company": "Company",
+    "about": "About Us",
+    "careers": "Careers",
+    "press": "Press",
+    "legal": "Legal",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies",
+    "support": "Support",
+    "help": "Help Center",
+    "contact": "Contact Us",
+    "faq": "FAQ",
+    "social": "Follow Us",
+    "copyright": "© {year} Interdomestik. All rights reserved."
+  }
+}
