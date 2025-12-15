@@ -1,8 +1,7 @@
 import { updateClaimStatus } from '@/actions/claims';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import { claims } from '@interdomestik/database/schema';
+import { claims, db, eq } from '@interdomestik/database';
 import {
   Button,
   Card,
@@ -15,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@interdomestik/ui';
-import { eq } from 'drizzle-orm';
 import { ArrowLeft } from 'lucide-react';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';

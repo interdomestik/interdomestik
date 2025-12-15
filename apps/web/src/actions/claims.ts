@@ -1,8 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import { claims } from '@interdomestik/database/schema';
+import { claims, db, eq } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
 import { z } from 'zod';
@@ -114,7 +113,6 @@ export async function submitClaim(data: CreateClaimValues) {
   return { success: true };
 }
 
-import { eq } from 'drizzle-orm'; // Need to import eq
 import { revalidatePath } from 'next/cache';
 
 export async function updateClaimStatus(claimId: string, newStatus: string) {

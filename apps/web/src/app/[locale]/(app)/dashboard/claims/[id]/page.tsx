@@ -1,12 +1,10 @@
 import { ClaimTimeline } from '@/components/dashboard/claims/claim-timeline';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import { claims } from '@interdomestik/database/schema';
+import { claims, db, eq } from '@interdomestik/database';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
-import { eq } from 'drizzle-orm';
 import { ArrowLeft, Download } from 'lucide-react';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';

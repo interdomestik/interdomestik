@@ -2,8 +2,7 @@ import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-bad
 import { ClaimsFilters } from '@/components/dashboard/claims/claims-filters';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import { claims } from '@interdomestik/database/schema';
+import { and, claims, db, desc, eq, ilike, or } from '@interdomestik/database';
 import {
   Button,
   Card,
@@ -15,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '@interdomestik/ui';
-import { and, desc, eq, ilike, or } from 'drizzle-orm';
 import { FileText, Plus } from 'lucide-react';
 import { headers } from 'next/headers';
 

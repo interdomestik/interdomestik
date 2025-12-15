@@ -810,6 +810,7 @@ print_summary() {
     echo "   1. Review and fill in the task file details"
     echo "   2. Ask the Agent to read the task file"
     echo "   3. Follow: Explore → Plan → Execute → Verify"
+    echo "   4. Commit when DoD is green (lint/typecheck/tests passing, no unrelated changes)"
     echo ""
 }
 
