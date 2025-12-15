@@ -198,6 +198,7 @@
     "contact": "Contact Us",
     "faq": "FAQ",
     "social": "Follow Us",
+    "hours": "Hours: {hours}",
     "copyright": "© {year} Interdomestik. All rights reserved.",
     "disclaimer": "Claims assistance service. Not a law firm. We are not emergency services."
   },

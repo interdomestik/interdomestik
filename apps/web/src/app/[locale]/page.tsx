@@ -1,5 +1,6 @@
 import { Link } from '@/i18n/routing';
 import { flags } from '@/lib/flags';
+import { contactInfo } from '@/lib/contact';
 import { Button } from '@interdomestik/ui';
 import {
   ArrowRight,
@@ -465,6 +466,7 @@ function CTASection() {
 function Footer() {
   const t = useTranslations('footer');
   const common = useTranslations('common');
+  const { phone, whatsapp, address, hours } = contactInfo;
 
   return (
     <footer className="bg-[hsl(var(--muted-900))] text-white py-12">
@@ -478,20 +480,31 @@ function Footer() {
             <p className="text-sm text-white/70 mb-4">{t('description')}</p>
             {/* Contact info */}
             <div className="space-y-2 text-sm">
-              <a
-                href="tel:+38349900600"
-                className="flex items-center gap-2 text-white hover:text-[hsl(var(--primary))] transition-colors"
-              >
-                <Phone className="h-4 w-4" />
-                049 900 600
-              </a>
-              <a
-                href="https://wa.me/38349900600"
-                className="flex items-center gap-2 text-white hover:text-[hsl(var(--success))] transition-colors"
-              >
-                <MessageCircle className="h-4 w-4" />
-                WhatsApp
-              </a>
+              {phone && (
+                <a
+                  href={`tel:${phone.replace(/\\s+/g, '')}`}
+                  className="flex items-center gap-2 text-white hover:text-[hsl(var(--primary))] transition-colors"
+                >
+                  <Phone className="h-4 w-4" />
+                  {phone}
+                </a>
+              )}
+              {whatsapp && (
+                <a
+                  href={whatsapp}
+                  className="flex items-center gap-2 text-white hover:text-[hsl(var(--success))] transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </a>
+              )}
+              {address && (
+                <p className="flex items-center gap-2 text-white/80">
+                  <Shield className="h-4 w-4" />
+                  {address}
+                </p>
+              )}
+              {hours && <p className="text-white/60 text-xs">{t('hours', { hours })}</p>}
             </div>
           </div>
           <div>

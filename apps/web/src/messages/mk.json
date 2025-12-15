@@ -42,9 +42,11 @@
     "help": "Help"
   },
   "hero": {
+    "badge": "Trusted Claims Assistant",
     "title": "Protect Your Consumer Rights",
     "subtitle": "We are claim adjusters (not emergency services). We help you resolve disputes with companies, landlords, insurers, and others - from start to finish.",
     "cta": "Get Started",
+    "callNow": "Call Us Now",
     "secondaryCta": "View Pricing",
     "trustedBy": "Trusted by citizens across the Balkans",
     "claimAdjuster": "Claim adjuster (no emergency services)",
@@ -202,6 +204,7 @@
     "contact": "Contact Us",
     "faq": "FAQ",
     "social": "Follow Us",
+    "hours": "Hours: {hours}",
     "copyright": "© {year} Interdomestik. All rights reserved."
   },
   "services": {
