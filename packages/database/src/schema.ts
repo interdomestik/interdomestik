@@ -1,11 +1,15 @@
 import { boolean, decimal, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
+// Based on technical description: Submission -> Verification -> Evaluation -> Negotiation -> Court -> Final
 export const statusEnum = pgEnum('status', [
   'draft',
-  'submitted',
-  'processing',
-  'resolved',
-  'rejected',
+  'submitted', // Phase 1: Submission
+  'verification', // Phase 2: Information Verification
+  'evaluation', // Phase 3: Damages Evaluation
+  'negotiation', // Phase 4: Offer & Negotiation
+  'court', // Phase 5: Judicial Process (if needed)
+  'resolved', // Phase 6: Final Resolution (Success)
+  'rejected', // Phase 6: Final Resolution (Failure)
 ]);
 
 export const user = pgTable('user', {
@@ -71,6 +75,16 @@ export const claims = pgTable('claim', {
   companyName: text('companyName').notNull(),
   claimAmount: decimal('amount', { precision: 10, scale: 2 }),
   currency: text('currency').default('EUR'),
+  createdAt: timestamp('createdAt').defaultNow(),
+  updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
+});
+
+export const leads = pgTable('leads', {
+  id: text('id').primaryKey(), // We'll use nanoid/uuid in the action or db default
+  name: text('name').notNull(),
+  phone: text('phone').notNull(),
+  category: text('category').notNull(),
+  status: text('status').default('new'), // new, contacted, converted, closed
   createdAt: timestamp('createdAt').defaultNow(),
   updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
 });

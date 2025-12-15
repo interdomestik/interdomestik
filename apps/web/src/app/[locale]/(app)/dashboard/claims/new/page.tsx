@@ -1,18 +1,29 @@
-import { ClaimWizard } from '@/components/dashboard/claims/claim-wizard';
+import { ClaimWizard } from '@/components/claims/claim-wizard';
+import { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
+
+export async function generateMetadata(props: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const params = await props.params;
+  const { locale } = params;
+  const t = await getTranslations({ locale, namespace: 'Metadata' });
+  return {
+    title: `New Claim | Interdomestik`,
+  };
+}
 
 export default function NewClaimPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">File a New Claim</h2>
-          <p className="text-muted-foreground mt-1">
-            Follow the steps below to submit your consumer protection claim
-          </p>
+    <div className="flex flex-col h-full">
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-16 items-center px-6">
+          <h1 className="text-lg font-semibold">New Claim</h1>
         </div>
       </div>
-
-      <ClaimWizard />
+      <div className="flex-1 p-6">
+        <ClaimWizard />
+      </div>
     </div>
   );
 }

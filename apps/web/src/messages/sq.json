@@ -201,5 +201,18 @@
     "faq": "FAQ",
     "social": "Na Ndiqni",
     "copyright": "© {year} Interdomestik. Të gjitha të drejtat e rezervuara."
+  },
+  "services": {
+    "speed": {
+      "title": "Garancia e Shpejtësisë",
+      "desc": "Ne shqyrtojmë të gjitha ankesat e reja brenda <bold>24 orëve të punës</bold>. Nuk do të mbeteni duke pritur."
+    },
+    "safety": {
+      "title": "Pa fitim, pa pagesë",
+      "desc": "Nuk paguani asgjë paraprakisht. Tarifa jonë e shërbimit zbritet vetëm nga kompensimi përfundimtar."
+    }
+  },
+  "evidence": {
+    "tooltip": "Dëshmia e qartë rrit mundësinë tuaj për sukses me 40%. Përfshini çdo Raport Policie ose Faturë Mjekësore."
   }
 }

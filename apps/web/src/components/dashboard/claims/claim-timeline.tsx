@@ -1,96 +1,162 @@
-import { Badge, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { Calendar, CheckCircle2, Circle, Clock } from 'lucide-react';
+'use client';
 
-type TimelineEvent = {
-  id: string;
-  type: 'status_change' | 'document_upload' | 'message' | 'created';
-  title: string;
-  description?: string;
-  timestamp: Date;
-  status?: string;
-};
+import { cn } from '@interdomestik/ui/lib/utils';
+import {
+  CheckCircle2,
+  Clock,
+  FileCheck,
+  FileText,
+  Gavel,
+  History,
+  Scale,
+  XCircle,
+} from 'lucide-react';
 
-export function ClaimTimeline({ claimCreatedAt }: { claimCreatedAt: Date }) {
-  // Mock timeline for now - in the future this will come from claim_timeline table
-  const events: TimelineEvent[] = [
-    {
-      id: '1',
-      type: 'created',
-      title: 'Claim Created',
-      description: 'Your claim has been successfully submitted',
-      timestamp: claimCreatedAt,
-      status: 'draft',
-    },
-  ];
+type ClaimStatus =
+  | 'draft'
+  | 'submitted'
+  | 'verification'
+  | 'evaluation'
+  | 'negotiation'
+  | 'court'
+  | 'resolved'
+  | 'rejected';
+
+interface ClaimTimelineProps {
+  status: ClaimStatus;
+  updatedAt: Date;
+}
+
+const PHASES = [
+  {
+    id: 'submitted',
+    label: 'Submission',
+    description: 'Claim received',
+    icon: FileText,
+  },
+  {
+    id: 'verification',
+    label: 'Verification',
+    description: 'Checking details',
+    icon: FileCheck,
+  },
+  {
+    id: 'evaluation',
+    label: 'Evaluation',
+    description: 'Assessing value',
+    icon: Scale,
+  },
+  {
+    id: 'negotiation',
+    label: 'Negotiation',
+    description: 'Offer sent',
+    icon: History, // Or Handshake if available? using History as placeholder for "process"
+  },
+  {
+    id: 'court',
+    label: 'Court',
+    description: 'Legal proceedings',
+    icon: Gavel,
+    optional: true, // This step might be skipped
+  },
+  {
+    id: 'resolved',
+    label: 'Resolution',
+    description: 'Final decision',
+    icon: CheckCircle2,
+  },
+];
+
+export function ClaimTimeline({ status, updatedAt }: ClaimTimelineProps) {
+  // If rejected, we show a special state but map it to 'resolved' visually or distinct
+  const isRejected = status === 'rejected';
+
+  // Find current phase index
+  // Note: 'draft' is before submission (-1)
+  let currentIndex = PHASES.findIndex(p => p.id === status);
+  if (status === 'draft') currentIndex = -1;
+  if (isRejected) currentIndex = PHASES.length - 1; // Show formatted as final but red
+
+  // Handle distinct "Court" skipping logic later if needed
+  // For now, linear progress
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Timeline
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {events.map((event, index) => (
-            <div key={event.id} className="flex gap-4">
-              {/* Timeline line */}
-              <div className="flex flex-col items-center">
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                    index === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                  }`}
-                >
-                  {index === 0 ? (
-                    <CheckCircle2 className="h-4 w-4" />
-                  ) : (
-                    <Circle className="h-4 w-4" />
-                  )}
-                </div>
-                {index < events.length - 1 && (
-                  <div className="w-px flex-1 bg-border mt-2 min-h-[40px]" />
+    <div className="relative">
+      <div className="absolute left-4 top-0 h-full w-0.5 bg-[hsl(var(--muted))]" />
+
+      <div className="space-y-8">
+        {PHASES.map((phase, index) => {
+          const Icon = phase.icon;
+          const isCompleted = index < currentIndex;
+          const isCurrent = index === currentIndex;
+
+          let stateColor = 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]';
+          let lineColor = 'border-[hsl(var(--muted))]';
+
+          if (isCompleted) {
+            stateColor = 'bg-[hsl(var(--primary))] text-white';
+            lineColor = 'border-[hsl(var(--primary))]';
+          } else if (isCurrent) {
+            stateColor = isRejected
+              ? 'bg-[hsl(var(--destructive))] text-white'
+              : 'bg-[hsl(var(--primary))] text-white';
+            lineColor = isRejected
+              ? 'border-[hsl(var(--destructive))]'
+              : 'border-[hsl(var(--primary))]';
+          }
+
+          return (
+            <div key={phase.id} className="relative flex gap-6">
+              {/* Connector Line Cover (for clean segments) */}
+
+              {/* Icon Marker */}
+              <div
+                className={cn(
+                  'relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300',
+                  isCompleted || isCurrent
+                    ? 'border-transparent'
+                    : 'border-[hsl(var(--muted-foreground))]/20 bg-[hsl(var(--background))]',
+                  stateColor
+                )}
+              >
+                {isCompleted ? (
+                  <CheckCircle2 className="h-5 w-5" />
+                ) : isCurrent && isRejected ? (
+                  <XCircle className="h-5 w-5" />
+                ) : (
+                  <Icon className="h-4 w-4" />
                 )}
               </div>
 
-              {/* Event content */}
-              <div className="flex-1 pb-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold text-sm">{event.title}</h4>
-                    {event.description && (
-                      <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
-                    )}
-                    {event.status && (
-                      <Badge variant="outline" className="mt-2 capitalize">
-                        {event.status}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    <time suppressHydrationWarning>
-                      {event.timestamp.toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </time>
-                  </div>
-                </div>
+              {/* Content */}
+              <div
+                className={cn(
+                  'flex flex-col pt-1 transition-opacity duration-300',
+                  index > currentIndex + 1 ? 'opacity-50' : 'opacity-100'
+                )}
+              >
+                <span
+                  className={cn(
+                    'text-sm font-medium leading-none',
+                    isCurrent && 'text-[hsl(var(--primary))]'
+                  )}
+                >
+                  {phase.label}
+                </span>
+                <span className="text-sm text-[hsl(var(--muted-foreground))]">
+                  {phase.description}
+                </span>
+                {isCurrent && (
+                  <span className="mt-1 flex items-center text-xs text-[hsl(var(--muted-foreground))]">
+                    <Clock className="mr-1 h-3 w-3" />
+                    Last updated: {updatedAt.toLocaleDateString()}
+                  </span>
+                )}
               </div>
             </div>
-          ))}
-        </div>
-
-        {events.length === 1 && (
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-dashed">
-            <p className="text-sm text-muted-foreground text-center">
-              📋 Your claim is being reviewed. Updates will appear here.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 }

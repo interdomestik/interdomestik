@@ -39,11 +39,31 @@ export default async function ClaimsPage({
   // Build where conditions
   const conditions = [eq(claims.userId, session.user.id)];
 
-  if (statusFilter && statusFilter !== 'all') {
+  // Validate status filter against schema enum
+  const validStatuses = [
+    'draft',
+    'submitted',
+    'verification',
+    'evaluation',
+    'negotiation',
+    'court',
+    'resolved',
+    'rejected',
+  ];
+
+  if (statusFilter && validStatuses.includes(statusFilter)) {
     conditions.push(
       eq(
         claims.status,
-        statusFilter as 'draft' | 'submitted' | 'processing' | 'resolved' | 'rejected'
+        statusFilter as
+          | 'draft'
+          | 'submitted'
+          | 'verification'
+          | 'evaluation'
+          | 'negotiation'
+          | 'court'
+          | 'resolved'
+          | 'rejected'
       )
     );
   }

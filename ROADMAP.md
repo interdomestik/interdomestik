@@ -363,7 +363,7 @@
 | **CAPTCHA**            | Bot protection on forms         | P1       |
 | **CSP**                | Content Security Policy         | P1       |
 | **Rate Limiting**      | Protect auth/forms              | P1       |
-| **Secrets Management** | Centralized env/secrets policy   | P1       |
+| **Secrets Management** | Centralized env/secrets policy  | P1       |
 
 #### 11.2 Compliance
 
@@ -402,7 +402,7 @@ Core setup done: monorepo, Next.js, Supabase config, i18n, lint/TS strict, auth/
 - Claim wizard: ✅ Done
 - Claims list: ✅ Done
 - Claim detail: ✅ Done
-- Profile page: ⏳ Todo
+- Profile page: ✅ Done
 - Settings page: ⏳ Todo
 
 **Quality gates (ongoing):** lint + unit + Playwright smoke (claim create/list/detail/dashboard) + a11y/perf spot-check.
@@ -416,7 +416,7 @@ Core setup done: monorepo, Next.js, Supabase config, i18n, lint/TS strict, auth/
 ```
 Week 3: Member Portal Basics
 ├── Member dashboard layout
-├── Profile management
+├── Profile management (✅ Done)
 ├── Navigation and routing
 ├── Responsive design
 ├── Basic settings page
@@ -728,6 +728,25 @@ Month 6: AI & Expansion
 12. **Analytics (self-host)**: plan PostHog/OpenTelemetry stack for product events without external PII leakage.
 13. **Performance & mobile polish**: route-level Suspense/streaming, skeletons, image audit (Next/Image, AVIF/WebP), bundle diet (code-splitting/dynamic imports), mobile-first nav (bottom/tab), touch targets, offline-lite cache for shell/claims list/detail, pagination/infinite scroll on claims list, Supabase indexes (status/category/userId), and hydration-safe UI patterns for Radix (mount-gated portals).
 14. **Web Vitals & observability**: report FCP/LCP/CLS to monitoring (e.g., Sentry) and add synthetic smoke (Playwright mobile viewport) for login/claim create/list/detail.
+
+---
+
+### Prime Claims Experience (Q-next, UX/Marketing uplift)
+- Homepage trust/conversion: hero (“Start your claim in minutes”), claim-specific services grid (vehicle/property/injury), trust strip, 24/7 contact.
+- Footer safety net: tap-to-call, WhatsApp, address/hours, reassurance line.
+- Guided wizard: category tooltips, evidence prompts (photos/docs), privacy badge, SLA microcopy.
+- `/services` page: What we solve → How it works → What you get → FAQ → Contact; “Speed & Safety” panel (intake <5 min, response <24h, secure uploads, escalation path).
+- Experiments (flagged): flight-delay tile; “call me now” microform for high-intent accident/property traffic.
+
+---
+
+### Regionalization Track (Kosovo-first, then Balkans)
+- Kosovo hardening: sq/en, local contact (phone/WhatsApp/address/hours), consent/privacy copy aligned; keep No Win/No Fee and <24h response where upheld.
+- i18n completeness: add sr/mk locales; enforce translation completeness checks per release.
+- Market flags/config: per-country eligibility text, SLAs, and optional category toggles (e.g., flight delay) via feature flags.
+- Trust anchors per market: publish local contact points; clarify “claim adjuster (no emergency services)”.
+- Data/PII hygiene: signed URLs, mime/virus scan, secure uploads standard across markets.
+- Analytics by locale: segment funnels and completion to tune prompts/copy per country.
 
 ---
 

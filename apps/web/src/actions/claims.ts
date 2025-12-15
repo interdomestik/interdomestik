@@ -73,14 +73,10 @@ export async function createClaim(prevState: unknown, formData: FormData) {
 }
 
 // Simplified action for the wizard component with typed data
-export async function submitClaimAction(data: {
-  title: string;
-  description: string;
-  category: string;
-  companyName: string;
-  claimAmount?: string;
-  currency?: string;
-}) {
+import { createClaimSchema, type CreateClaimValues } from '@/lib/validators/claims';
+
+// Simplified action for the wizard component with typed data
+export async function submitClaim(data: CreateClaimValues) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -89,7 +85,7 @@ export async function submitClaimAction(data: {
     throw new Error('Unauthorized');
   }
 
-  const result = claimSchema.safeParse(data);
+  const result = createClaimSchema.safeParse(data);
 
   if (!result.success) {
     throw new Error('Validation failed');
@@ -102,18 +98,19 @@ export async function submitClaimAction(data: {
       id: nanoid(),
       userId: session.user.id,
       title,
-      description,
+      description: description || undefined,
       category,
       companyName,
       claimAmount: claimAmount || undefined,
       currency: currency || 'EUR',
-      status: 'draft',
+      status: 'submitted', // Auto submit from wizard
     });
   } catch (error) {
     console.error('Failed to create claim:', error);
     throw new Error('Failed to create claim. Please try again.');
   }
 
+  revalidatePath('/dashboard/claims');
   return { success: true };
 }
 
@@ -130,7 +127,16 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
   }
 
   // Validate status against enum
-  const validStatuses = ['draft', 'submitted', 'processing', 'resolved', 'rejected'];
+  const validStatuses = [
+    'draft',
+    'submitted',
+    'verification',
+    'evaluation',
+    'negotiation',
+    'court',
+    'resolved',
+    'rejected',
+  ];
   if (!validStatuses.includes(newStatus)) {
     return { error: 'Invalid status' };
   }

@@ -3,11 +3,19 @@
 # start-10x-task.sh
 # Enhanced Interactive CLI for "10x Coding" tasks with structured context,
 # testing requirements, QA baselines, and professional workflow.
-
-set -e
+#
+# Usage: ./scripts/start-10x-task.sh [task_name] [related_files...]
+# Env vars:
+#   SKIP_BASELINE=1  Skip QA baseline capture (for exploration tasks)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CONFIGURATION
+# STRICT MODE (with controlled error handling)
+# ═══════════════════════════════════════════════════════════════════════════════
+set -uo pipefail
+# Note: We don't use -e because we handle errors manually for baseline captures
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIGURATION - Customize these for your repo
 # ═══════════════════════════════════════════════════════════════════════════════
 TASK_DIR=".agent/tasks"
 TASK_FILE="$TASK_DIR/current_task.md"
@@ -15,12 +23,22 @@ ARCHIVE_DIR="$TASK_DIR/archive"
 MCP_ALIASES_SCRIPT="./scripts/generate-mcp-aliases.sh"
 CONSTRAINTS_FILE=".agent/constraints.md"
 
-# Colors for output
+# Commands - customize per repo
+LINT_CMD="pnpm lint"
+TYPECHECK_CMD="pnpm type-check"
+TEST_CMD="pnpm --filter @interdomestik/web test:unit --run"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COLORS
+# ═══════════════════════════════════════════════════════════════════════════════
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+DIM='\033[2m'
 NC='\033[0m' # No Color
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -28,57 +46,101 @@ NC='\033[0m' # No Color
 # ═══════════════════════════════════════════════════════════════════════════════
 print_header() {
     echo ""
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}  🚀 10x CODING TASK INITIALIZER${NC}"
-    echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║${NC}  ${BOLD}🚀 10x CODING TASK INITIALIZER${NC}                              ${CYAN}║${NC}"
+    echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
 
 print_step() {
-    echo -e "${BLUE}▸ $1${NC}"
+    echo -e "${BLUE}▸${NC} $1"
 }
 
 print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
+    echo -e "${GREEN}✓${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠ $1${NC}"
+    echo -e "${YELLOW}⚠${NC} $1"
 }
 
 print_error() {
-    echo -e "${RED}✖ $1${NC}"
+    echo -e "${RED}✖${NC} $1"
+}
+
+print_info() {
+    echo -e "${DIM}ℹ${NC} $1"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PRE-FLIGHT CHECKS
+# PREFLIGHT CHECKS
 # ═══════════════════════════════════════════════════════════════════════════════
 preflight_checks() {
-    print_step "Running pre-flight checks..."
+    print_step "Running preflight checks..."
     
-    # 1. Check git status
-    if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
-        echo ""
-        print_warning "You have uncommitted changes:"
-        git status --short
-        echo ""
-        echo -n -e "${YELLOW}Continue anyway? [y/N]: ${NC}"
-        read CONTINUE
-        if [[ "$CONTINUE" != "y" && "$CONTINUE" != "Y" ]]; then
-            print_error "Aborted. Please commit or stash your changes first."
-            exit 1
-        fi
+    # 1. Check for pnpm
+    if ! command -v pnpm &> /dev/null; then
+        print_error "pnpm is not installed or not in PATH"
+        echo -e "   ${DIM}Install it with: npm install -g pnpm${NC}"
+        exit 1
+    fi
+    print_success "pnpm found: $(pnpm --version)"
+    
+    # 2. Check git status
+    if ! command -v git &> /dev/null; then
+        print_warning "git not found - skipping git checks"
     else
-        print_success "Git working directory clean"
+        CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+        
+        if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
+            echo ""
+            print_warning "You're on the ${BOLD}$CURRENT_BRANCH${NC}${YELLOW} branch!${NC}"
+            echo -n -e "   ${YELLOW}Create a feature branch? [y/N]: ${NC}"
+            read CREATE_BRANCH
+            if [[ "$CREATE_BRANCH" == "y" || "$CREATE_BRANCH" == "Y" ]]; then
+                echo -n -e "   ${CYAN}Branch name (e.g., feat/my-feature): ${NC}"
+                read NEW_BRANCH
+                if [[ -n "$NEW_BRANCH" ]]; then
+                    git checkout -b "$NEW_BRANCH"
+                    CURRENT_BRANCH="$NEW_BRANCH"
+                    print_success "Switched to branch: $NEW_BRANCH"
+                fi
+            fi
+        fi
+        
+        if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
+            echo ""
+            print_warning "You have uncommitted changes:"
+            git status --short | head -10
+            UNCOMMITTED_COUNT=$(git status --porcelain | wc -l | tr -d ' ')
+            if [[ $UNCOMMITTED_COUNT -gt 10 ]]; then
+                echo -e "   ${DIM}... and $((UNCOMMITTED_COUNT - 10)) more files${NC}"
+            fi
+            echo ""
+            echo -n -e "   ${YELLOW}Continue anyway? [y/N]: ${NC}"
+            read CONTINUE
+            if [[ "$CONTINUE" != "y" && "$CONTINUE" != "Y" ]]; then
+                print_error "Aborted. Please commit or stash your changes first."
+                exit 1
+            fi
+        else
+            print_success "Git working directory clean"
+        fi
     fi
     
-    # 2. Check MCP servers reminder
+    # 3. Check MCP servers reminder
     if [ -f "$MCP_ALIASES_SCRIPT" ]; then
-        print_success "MCP aliases script found"
-        echo -e "   ${CYAN}Tip: source $MCP_ALIASES_SCRIPT${NC}"
+        print_info "MCP aliases available: ${CYAN}source $MCP_ALIASES_SCRIPT${NC}"
     fi
     
-    # 3. Create directories
+    # 4. Check constraints file
+    if [ -f "$CONSTRAINTS_FILE" ]; then
+        echo ""
+        print_warning "Remember to review project constraints!"
+        echo -e "   ${DIM}File: $CONSTRAINTS_FILE${NC}"
+    fi
+    
+    # 5. Create directories
     mkdir -p "$TASK_DIR" "$ARCHIVE_DIR"
     print_success "Task directories ready"
 }
@@ -91,7 +153,7 @@ archive_previous_task() {
         TIMESTAMP=$(date +%Y%m%d_%H%M%S)
         ARCHIVED_FILE="$ARCHIVE_DIR/task_${TIMESTAMP}.md"
         mv "$TASK_FILE" "$ARCHIVED_FILE"
-        print_success "Archived previous task to: $ARCHIVED_FILE"
+        print_success "Archived previous task → ${DIM}$ARCHIVED_FILE${NC}"
     fi
 }
 
@@ -99,46 +161,129 @@ archive_previous_task() {
 # CAPTURE QA BASELINE
 # ═══════════════════════════════════════════════════════════════════════════════
 capture_qa_baseline() {
-    print_step "Capturing QA baseline..."
-    
-    local BASELINE_FILE="$TASK_DIR/.qa_baseline"
-    
-    # Capture lint errors count
-    LINT_ERRORS=$(pnpm lint 2>&1 | grep -c "error" || echo "0")
-    
-    # Capture typecheck status
-    if pnpm type-check --quiet 2>/dev/null; then
-        TYPECHECK_STATUS="pass"
-    else
-        TYPECHECK_STATUS="fail"
+    # Check if baseline should be skipped
+    if [[ "${SKIP_BASELINE:-0}" == "1" ]]; then
+        print_info "Skipping QA baseline (SKIP_BASELINE=1)"
+        BASELINE_LINT="skipped"
+        BASELINE_TYPECHECK="skipped"
+        BASELINE_TESTS="skipped"
+        return
     fi
     
-    # Capture test status
-    TEST_PASS=$(pnpm --filter @interdomestik/web test:unit --run 2>&1 | grep -c "passed" || echo "0")
+    print_step "Capturing QA baseline (this may take a moment)..."
+    echo ""
     
-    echo "lint_errors=$LINT_ERRORS" > "$BASELINE_FILE"
-    echo "typecheck=$TYPECHECK_STATUS" >> "$BASELINE_FILE"
-    echo "tests_passed=$TEST_PASS" >> "$BASELINE_FILE"
-    echo "timestamp=$(date -Iseconds)" >> "$BASELINE_FILE"
+    local BASELINE_FILE="$TASK_DIR/.qa_baseline"
+    local TEMP_OUTPUT=$(mktemp)
     
-    print_success "Baseline captured: $LINT_ERRORS lint errors, typecheck=$TYPECHECK_STATUS"
+    # ─────────────────────────────────────────────────────────────────────────
+    # Lint
+    # ─────────────────────────────────────────────────────────────────────────
+    echo -n -e "   ${DIM}Lint...${NC} "
+    set +e
+    $LINT_CMD > "$TEMP_OUTPUT" 2>&1
+    LINT_EXIT=$?
+    set -e
+    
+    if [[ $LINT_EXIT -eq 0 ]]; then
+        BASELINE_LINT="pass"
+        echo -e "${GREEN}✓ pass${NC}"
+    else
+        BASELINE_LINT="fail (exit $LINT_EXIT)"
+        LINT_ERROR_COUNT=$(grep -c -E "(error|Error)" "$TEMP_OUTPUT" 2>/dev/null || echo "?")
+        echo -e "${YELLOW}⚠ fail${NC} ${DIM}(~$LINT_ERROR_COUNT issues)${NC}"
+    fi
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # Type Check
+    # ─────────────────────────────────────────────────────────────────────────
+    echo -n -e "   ${DIM}Type check...${NC} "
+    set +e
+    # Try type-check first, fall back to typecheck
+    if pnpm run type-check --help > /dev/null 2>&1; then
+        $TYPECHECK_CMD > "$TEMP_OUTPUT" 2>&1
+        TYPECHECK_EXIT=$?
+    elif pnpm run typecheck --help > /dev/null 2>&1; then
+        pnpm typecheck > "$TEMP_OUTPUT" 2>&1
+        TYPECHECK_EXIT=$?
+    else
+        TYPECHECK_EXIT=127
+    fi
+    set -e
+    
+    if [[ $TYPECHECK_EXIT -eq 0 ]]; then
+        BASELINE_TYPECHECK="pass"
+        echo -e "${GREEN}✓ pass${NC}"
+    elif [[ $TYPECHECK_EXIT -eq 127 ]]; then
+        BASELINE_TYPECHECK="not configured"
+        echo -e "${DIM}⊘ not configured${NC}"
+    else
+        BASELINE_TYPECHECK="fail (exit $TYPECHECK_EXIT)"
+        echo -e "${YELLOW}⚠ fail${NC}"
+    fi
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # Tests
+    # ─────────────────────────────────────────────────────────────────────────
+    echo -n -e "   ${DIM}Unit tests...${NC} "
+    set +e
+    $TEST_CMD > "$TEMP_OUTPUT" 2>&1
+    TEST_EXIT=$?
+    set -e
+    
+    if [[ $TEST_EXIT -eq 0 ]]; then
+        BASELINE_TESTS="pass"
+        PASS_COUNT=$(grep -oE "[0-9]+ passed" "$TEMP_OUTPUT" | head -1 || echo "")
+        echo -e "${GREEN}✓ pass${NC} ${DIM}($PASS_COUNT)${NC}"
+    else
+        BASELINE_TESTS="fail (exit $TEST_EXIT)"
+        echo -e "${YELLOW}⚠ fail${NC}"
+    fi
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # Write baseline file
+    # ─────────────────────────────────────────────────────────────────────────
+    cat > "$BASELINE_FILE" << EOF
+# QA Baseline - $(date)
+lint=$BASELINE_LINT
+typecheck=$BASELINE_TYPECHECK
+tests=$BASELINE_TESTS
+timestamp=$(date -Iseconds)
+EOF
+    
+    rm -f "$TEMP_OUTPUT"
+    echo ""
+    
+    # Warn if baseline has failures
+    if [[ "$BASELINE_LINT" == fail* ]] || [[ "$BASELINE_TYPECHECK" == fail* ]] || [[ "$BASELINE_TESTS" == fail* ]]; then
+        print_warning "Baseline has failures - consider fixing before starting new work"
+    fi
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # GATHER TASK INPUTS
 # ═══════════════════════════════════════════════════════════════════════════════
 gather_inputs() {
-    # Task Name
-    if [ -z "$1" ]; then
+    # Task Name (from arg or prompt)
+    if [ -n "${1:-}" ]; then
+        TASK_NAME="$1"
+        shift
+    else
         echo -n -e "${CYAN}📝 Enter Task Name: ${NC}"
         read TASK_NAME
-    else
-        TASK_NAME="$1"
+    fi
+    
+    # Manual file hints from remaining args
+    MANUAL_FILES=""
+    if [ $# -gt 0 ]; then
+        MANUAL_FILES="$*"
     fi
     
     echo ""
     
+    # ─────────────────────────────────────────────────────────────────────────
     # Task Type
+    # ─────────────────────────────────────────────────────────────────────────
     echo -e "${CYAN}🎯 Task Type:${NC}"
     echo "  1) Feature Implementation (New capabilities)"
     echo "  2) Bug Fix (Reproduction & Resolution)"
@@ -194,7 +339,9 @@ gather_inputs() {
     
     echo ""
     
+    # ─────────────────────────────────────────────────────────────────────────
     # Priority
+    # ─────────────────────────────────────────────────────────────────────────
     echo -e "${CYAN}📊 Priority:${NC}"
     echo "  1) P0 - Critical (blocking release)"
     echo "  2) P1 - High (important for milestone)"
@@ -212,14 +359,18 @@ gather_inputs() {
     
     echo ""
     
+    # ─────────────────────────────────────────────────────────────────────────
     # Estimate
+    # ─────────────────────────────────────────────────────────────────────────
     echo -n -e "${CYAN}⏱️  Estimated Effort (e.g., '2h', '1d', '3d'): ${NC}"
     read ESTIMATE
     ESTIMATE=${ESTIMATE:-"TBD"}
     
     echo ""
     
+    # ─────────────────────────────────────────────────────────────────────────
     # Testing Requirements
+    # ─────────────────────────────────────────────────────────────────────────
     echo -e "${CYAN}🧪 Testing Requirements:${NC}"
     echo "  1) No tests required (exploration/docs)"
     echo "  2) Unit tests only"
@@ -237,8 +388,10 @@ gather_inputs() {
     
     echo ""
     
+    # ─────────────────────────────────────────────────────────────────────────
     # Roadmap Reference (optional)
-    echo -n -e "${CYAN}🗺️  Roadmap Reference (e.g., 'Phase 2, Week 7' or press Enter to skip): ${NC}"
+    # ─────────────────────────────────────────────────────────────────────────
+    echo -n -e "${CYAN}🗺️  Roadmap Reference (e.g., 'Phase 2, Week 7' or Enter to skip): ${NC}"
     read ROADMAP_REF
 }
 
@@ -249,27 +402,102 @@ detect_related_files() {
     RELATED_FILES=""
     TASK_LOWER=$(echo "$TASK_NAME" | tr '[:upper:]' '[:lower:]')
     
+    # ─────────────────────────────────────────────────────────────────────────
+    # Category detection with path hints
+    # ─────────────────────────────────────────────────────────────────────────
+    
     if [[ "$TASK_LOWER" == *"claim"* ]]; then
         RELATED_FILES="- apps/web/src/components/claims/
 - apps/web/src/actions/claims.ts
 - apps/web/src/lib/validators/claims.ts
-- packages/database/src/schema.ts (claims table)"
-    elif [[ "$TASK_LOWER" == *"auth"* ]] || [[ "$TASK_LOWER" == *"login"* ]] || [[ "$TASK_LOWER" == *"register"* ]]; then
-        RELATED_FILES="- apps/web/src/lib/auth.ts
+- packages/database/src/schema.ts (claims table)
+- e2e/claims.spec.ts"
+    fi
+    
+    if [[ "$TASK_LOWER" == *"auth"* ]] || [[ "$TASK_LOWER" == *"login"* ]] || [[ "$TASK_LOWER" == *"register"* ]] || [[ "$TASK_LOWER" == *"password"* ]]; then
+        RELATED_FILES="$RELATED_FILES
+- apps/web/src/lib/auth.ts
 - apps/web/src/lib/auth-client.ts
 - apps/web/src/app/api/auth/[...all]/route.ts
-- apps/web/src/components/auth/"
-    elif [[ "$TASK_LOWER" == *"stripe"* ]] || [[ "$TASK_LOWER" == *"payment"* ]] || [[ "$TASK_LOWER" == *"subscription"* ]]; then
-        RELATED_FILES="- apps/web/src/app/api/webhooks/stripe/
+- apps/web/src/components/auth/
+- e2e/auth.spec.ts"
+    fi
+    
+    if [[ "$TASK_LOWER" == *"stripe"* ]] || [[ "$TASK_LOWER" == *"payment"* ]] || [[ "$TASK_LOWER" == *"subscription"* ]] || [[ "$TASK_LOWER" == *"billing"* ]]; then
+        RELATED_FILES="$RELATED_FILES
+- apps/web/src/app/api/webhooks/stripe/
 - packages/database/src/schema.ts (subscription fields)
 - .env (STRIPE_* variables)"
-    elif [[ "$TASK_LOWER" == *"i18n"* ]] || [[ "$TASK_LOWER" == *"translation"* ]] || [[ "$TASK_LOWER" == *"locale"* ]]; then
-        RELATED_FILES="- apps/web/src/messages/*.json
+    fi
+    
+    if [[ "$TASK_LOWER" == *"i18n"* ]] || [[ "$TASK_LOWER" == *"translation"* ]] || [[ "$TASK_LOWER" == *"locale"* ]] || [[ "$TASK_LOWER" == *"language"* ]]; then
+        RELATED_FILES="$RELATED_FILES
+- apps/web/src/messages/*.json
 - apps/web/src/i18n/routing.ts
 - apps/web/src/middleware.ts"
-    elif [[ "$TASK_LOWER" == *"dashboard"* ]]; then
-        RELATED_FILES="- apps/web/src/app/[locale]/(app)/dashboard/
+    fi
+    
+    if [[ "$TASK_LOWER" == *"dashboard"* ]]; then
+        RELATED_FILES="$RELATED_FILES
+- apps/web/src/app/[locale]/(app)/dashboard/
 - apps/web/src/components/dashboard/"
+    fi
+    
+    if [[ "$TASK_LOWER" == *"footer"* ]] || [[ "$TASK_LOWER" == *"header"* ]] || [[ "$TASK_LOWER" == *"nav"* ]]; then
+        RELATED_FILES="$RELATED_FILES
+- apps/web/src/components/layout/
+- apps/web/src/app/[locale]/(site)/layout.tsx"
+    fi
+    
+    if [[ "$TASK_LOWER" == *"wizard"* ]]; then
+        RELATED_FILES="$RELATED_FILES
+- apps/web/src/components/claims/claim-wizard.tsx
+- apps/web/src/components/claims/wizard-*.tsx
+- apps/web/src/lib/validators/claims.ts"
+    fi
+    
+    if [[ "$TASK_LOWER" == *"services"* ]] || [[ "$TASK_LOWER" == *"landing"* ]] || [[ "$TASK_LOWER" == *"homepage"* ]]; then
+        RELATED_FILES="$RELATED_FILES
+- apps/web/src/app/[locale]/(site)/services/
+- apps/web/src/app/[locale]/page.tsx"
+    fi
+    
+    if [[ "$TASK_LOWER" == *"database"* ]] || [[ "$TASK_LOWER" == *"schema"* ]] || [[ "$TASK_LOWER" == *"migration"* ]]; then
+        RELATED_FILES="$RELATED_FILES
+- packages/database/src/schema.ts
+- packages/database/src/index.ts
+- supabase/migrations/"
+    fi
+    
+    if [[ "$TASK_LOWER" == *"api"* ]] || [[ "$TASK_LOWER" == *"endpoint"* ]]; then
+        RELATED_FILES="$RELATED_FILES
+- apps/web/src/app/api/
+- apps/web/src/actions/"
+    fi
+    
+    if [[ "$TASK_LOWER" == *"test"* ]]; then
+        RELATED_FILES="$RELATED_FILES
+- apps/web/src/test/
+- apps/web/e2e/
+- apps/web/vitest.config.ts
+- apps/web/playwright.config.ts"
+    fi
+    
+    # Trim leading newlines
+    RELATED_FILES=$(echo "$RELATED_FILES" | sed '/^$/d')
+    
+    # ─────────────────────────────────────────────────────────────────────────
+    # Add manual file hints if provided
+    # ─────────────────────────────────────────────────────────────────────────
+    if [[ -n "$MANUAL_FILES" ]]; then
+        if [[ -n "$RELATED_FILES" ]]; then
+            RELATED_FILES="$RELATED_FILES
+            
+### Manual additions:
+$MANUAL_FILES"
+        else
+            RELATED_FILES="$MANUAL_FILES"
+        fi
     fi
 }
 
@@ -281,6 +509,9 @@ generate_task_file() {
     
     detect_related_files
     
+    # Get current branch
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+    
     cat > "$TASK_FILE" << EOF
 ---
 task_name: "$TASK_NAME"
@@ -289,7 +520,12 @@ priority: "$PRIORITY"
 estimate: "$ESTIMATE"
 test_level: "$TEST_LEVEL"
 roadmap_ref: "$ROADMAP_REF"
+branch: "$CURRENT_BRANCH"
 start_time: "$(date)"
+baseline:
+  lint: "$BASELINE_LINT"
+  typecheck: "$BASELINE_TYPECHECK"
+  tests: "$BASELINE_TESTS"
 ---
 
 # 🚀 Current Task: $TASK_NAME
@@ -303,6 +539,7 @@ Copy the block below to your Agent to start with maximum context:
   <type>$TASK_TYPE</type>
   <priority>$PRIORITY</priority>
   <estimate>$ESTIMATE</estimate>
+  <branch>$CURRENT_BRANCH</branch>
   <constraints>
     - Use @interdomestik/ui components
     - Follow 10x-coding rules (Explore → Plan → Execute)
@@ -314,6 +551,23 @@ Copy the block below to your Agent to start with maximum context:
 
 $TEMPLATE
 \`\`\`
+EOF
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Add Project Constraints (if file exists)
+    # ─────────────────────────────────────────────────────────────────────────
+    if [ -f "$CONSTRAINTS_FILE" ]; then
+        cat >> "$TASK_FILE" << EOF
+
+## 📜 Project Constraints
+$(cat "$CONSTRAINTS_FILE")
+EOF
+    fi
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Status Tracker
+    # ─────────────────────────────────────────────────────────────────────────
+    cat >> "$TASK_FILE" << EOF
 
 ## 🏗️ Status Tracker
 - [ ] **Exploration**: Identify files using \`project_map\` and \`read_files\`
@@ -360,7 +614,25 @@ EOF
             ;;
     esac
 
-    # Add related files section
+    # ─────────────────────────────────────────────────────────────────────────
+    # Definition of Done
+    # ─────────────────────────────────────────────────────────────────────────
+    cat >> "$TASK_FILE" << EOF
+
+## ✅ Definition of Done
+- [ ] All acceptance criteria met
+- [ ] Tests pass at required level ($TEST_LEVEL)
+- [ ] \`pnpm lint\` passes (or no new errors)
+- [ ] \`pnpm type-check\` passes
+- [ ] No regressions from baseline
+- [ ] Screenshots added for UI changes (if applicable)
+- [ ] Documentation updated (if applicable)
+- [ ] Code reviewed / self-reviewed
+EOF
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Related Files section
+    # ─────────────────────────────────────────────────────────────────────────
     cat >> "$TASK_FILE" << EOF
 
 ## 🔗 Related Files
@@ -372,14 +644,23 @@ EOF
         echo "<!-- Add discovered file paths here -->" >> "$TASK_FILE"
     fi
 
-    # Add active context section
+    # ─────────────────────────────────────────────────────────────────────────
+    # Additional Sections
+    # ─────────────────────────────────────────────────────────────────────────
     cat >> "$TASK_FILE" << EOF
 
 ## 📂 Active Context
 <!-- Paste file paths or code snippets here as you discover them -->
 
-## 📝 Notes
-<!-- Add implementation notes, decisions, blockers here -->
+## 📝 Implementation Notes
+<!-- Add decisions, trade-offs, blockers here -->
+
+## 🔬 QA Baseline (at task start)
+| Metric | Status |
+|--------|--------|
+| Lint | $BASELINE_LINT |
+| Type Check | $BASELINE_TYPECHECK |
+| Unit Tests | $BASELINE_TESTS |
 
 ---
 
@@ -402,10 +683,46 @@ $ROADMAP_REF
 
 ## Screenshots (if UI changes)
 <!-- Add screenshots here -->
+
+## Notes to Reviewer
+<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
+
 \`\`\`
 EOF
 
     print_success "Task file created: $TASK_FILE"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FINAL SUMMARY
+# ═══════════════════════════════════════════════════════════════════════════════
+print_summary() {
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+    
+    echo ""
+    echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║${NC}  ${BOLD}✅ TASK INITIALIZED SUCCESSFULLY${NC}                            ${GREEN}║${NC}"
+    echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "  ${BOLD}Task:${NC}      $TASK_NAME"
+    echo -e "  ${BOLD}Type:${NC}      $TASK_TYPE"
+    echo -e "  ${BOLD}Priority:${NC}  $PRIORITY"
+    echo -e "  ${BOLD}Estimate:${NC}  $ESTIMATE"
+    echo -e "  ${BOLD}Tests:${NC}     $TEST_LEVEL"
+    echo -e "  ${BOLD}Branch:${NC}    $CURRENT_BRANCH"
+    echo ""
+    echo -e "  ${BOLD}Baseline:${NC}"
+    echo -e "    Lint:      $(if [[ "$BASELINE_LINT" == "pass" ]]; then echo -e "${GREEN}$BASELINE_LINT${NC}"; elif [[ "$BASELINE_LINT" == "skipped" ]]; then echo -e "${DIM}$BASELINE_LINT${NC}"; else echo -e "${YELLOW}$BASELINE_LINT${NC}"; fi)"
+    echo -e "    Typecheck: $(if [[ "$BASELINE_TYPECHECK" == "pass" ]]; then echo -e "${GREEN}$BASELINE_TYPECHECK${NC}"; elif [[ "$BASELINE_TYPECHECK" == "skipped" ]] || [[ "$BASELINE_TYPECHECK" == "not configured" ]]; then echo -e "${DIM}$BASELINE_TYPECHECK${NC}"; else echo -e "${YELLOW}$BASELINE_TYPECHECK${NC}"; fi)"
+    echo -e "    Tests:     $(if [[ "$BASELINE_TESTS" == "pass" ]]; then echo -e "${GREEN}$BASELINE_TESTS${NC}"; elif [[ "$BASELINE_TESTS" == "skipped" ]]; then echo -e "${DIM}$BASELINE_TESTS${NC}"; else echo -e "${YELLOW}$BASELINE_TESTS${NC}"; fi)"
+    echo ""
+    echo -e "  ${BOLD}File:${NC}      ${CYAN}$TASK_FILE${NC}"
+    echo ""
+    echo -e "${YELLOW}💡 Next Steps:${NC}"
+    echo "   1. Review and fill in the task file details"
+    echo "   2. Ask the Agent to read the task file"
+    echo "   3. Follow: Explore → Plan → Execute → Verify"
+    echo ""
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -415,27 +732,13 @@ main() {
     print_header
     preflight_checks
     archive_previous_task
-    gather_inputs "$1"
+    gather_inputs "$@"
     capture_qa_baseline
     generate_task_file
-    
-    echo ""
-    echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}  ✅ TASK INITIALIZED SUCCESSFULLY${NC}"
-    echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
-    echo ""
-    echo -e "📄 Task File: ${CYAN}$TASK_FILE${NC}"
-    echo -e "📊 Priority:  ${CYAN}$PRIORITY${NC}"
-    echo -e "🧪 Tests:     ${CYAN}$TEST_LEVEL${NC}"
-    echo ""
-    echo -e "${YELLOW}💡 Next Steps:${NC}"
-    echo "   1. Review and fill in the task file details"
-    echo "   2. Ask the Agent to read the task file"
-    echo "   3. Follow the 10x workflow: Explore → Plan → Execute → Verify"
-    echo ""
+    print_summary
     
     # Try to open in VS Code
-    code "$TASK_FILE" 2>/dev/null || echo "   (Open $TASK_FILE in your editor)"
+    code "$TASK_FILE" 2>/dev/null || true
 }
 
-main "$1"
+main "$@"

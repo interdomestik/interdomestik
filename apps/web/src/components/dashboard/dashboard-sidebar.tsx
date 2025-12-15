@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@interdomestik/ui';
-import { FileText, LayoutDashboard, Settings, Shield } from 'lucide-react';
+import { FilePlus, FileText, LayoutDashboard, Phone, Settings, Shield } from 'lucide-react';
 
 const sidebarItems = [
   {
@@ -27,6 +27,11 @@ const sidebarItems = [
     icon: FileText,
   },
   {
+    title: 'New Claim',
+    href: '/dashboard/claims/new',
+    icon: FilePlus,
+  },
+  {
     title: 'Consumer Rights',
     href: '/dashboard/rights',
     icon: Shield,
@@ -35,6 +40,11 @@ const sidebarItems = [
     title: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
+  },
+  {
+    title: 'Need Help?',
+    href: '/dashboard/help',
+    icon: Phone,
   },
 ];
 

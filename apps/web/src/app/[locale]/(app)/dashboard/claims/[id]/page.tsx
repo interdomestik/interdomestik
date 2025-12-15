@@ -1,154 +1,146 @@
-import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { ClaimTimeline } from '@/components/dashboard/claims/claim-timeline';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { db } from '@interdomestik/database/db';
 import { claims } from '@interdomestik/database/schema';
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@interdomestik/ui';
+import { Badge } from '@interdomestik/ui/components/badge';
+import { Button } from '@interdomestik/ui/components/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { eq } from 'drizzle-orm';
-import { ArrowLeft, Building2, Calendar, FileText, Tag, Wallet } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-export default async function ClaimDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+interface PageProps {
+  params: {
+    locale: string;
+    id: string;
+  };
+}
+
+export default async function ClaimDetailsPage({ params: { id } }: PageProps) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) return notFound();
 
-  const claim = await db.query.claims.findFirst({
-    where: eq(claims.id, id),
-  });
+  const [claim] = await db.select().from(claims).where(eq(claims.id, id)).limit(1);
 
-  if (!claim || claim.userId !== session.user.id) {
+  if (!claim) return notFound();
+
+  // Security check: simple ownership or admin
+  if (claim.userId !== session.user.id && session.user.role !== 'admin') {
     return notFound();
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full space-y-8 p-8 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/dashboard/claims">
-            <ArrowLeft className="h-4 w-4" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <Link
+            href="/dashboard/claims"
+            className="text-sm text-muted-foreground hover:text-foreground flex items-center mb-2 transition-colors"
+          >
+            <ArrowLeft className="mr-1 h-3 w-3" /> Back to My Claims
           </Link>
-        </Button>
-        <div className="flex-1">
-          <h2 className="text-3xl font-bold tracking-tight">{claim.title}</h2>
-          <p className="text-sm text-muted-foreground mt-1">Claim ID: {claim.id}</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">{claim.title}</h1>
+            <Badge
+              variant={claim.status === 'draft' ? 'outline' : 'default'}
+              className="uppercase text-xs"
+            >
+              {claim.status}
+            </Badge>
+          </div>
+          <p className="text-muted-foreground mt-1">
+            Case ID: <span className="font-mono text-foreground">{claim.id}</span> • Created{' '}
+            {claim.createdAt?.toLocaleDateString() || 'N/A'}
+          </p>
         </div>
-        <ClaimStatusBadge status={claim.status} />
+
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="mr-2 h-4 w-4" />
+            Export PDF
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column - Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content: Info & Evidence */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Claim Details Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Claim Information</CardTitle>
-              <CardDescription>Details about your consumer protection claim</CardDescription>
+              <CardTitle>Case Details</CardTitle>
             </CardHeader>
-            <CardContent>
-              <dl className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <dt className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Building2 className="h-4 w-4" />
-                    Company
-                  </dt>
-                  <dd className="text-sm font-semibold">{claim.companyName}</dd>
-                </div>
-
-                <div className="space-y-1">
-                  <dt className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Tag className="h-4 w-4" />
-                    Category
-                  </dt>
-                  <dd className="text-sm font-semibold capitalize">{claim.category}</dd>
-                </div>
-
-                <div className="space-y-1">
-                  <dt className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Wallet className="h-4 w-4" />
-                    Claim Amount
-                  </dt>
-                  <dd className="text-sm font-semibold">
-                    {claim.claimAmount ? (
-                      <span className="text-lg">€{parseFloat(claim.claimAmount).toFixed(2)}</span>
-                    ) : (
-                      <span className="text-muted-foreground">Not specified</span>
-                    )}
-                  </dd>
-                </div>
-
-                <div className="space-y-1">
-                  <dt className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    Submitted
-                  </dt>
-                  <dd className="text-sm font-semibold" suppressHydrationWarning>
-                    {claim.createdAt
-                      ? new Date(claim.createdAt).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })
-                      : 'N/A'}
-                  </dd>
-                </div>
-              </dl>
-            </CardContent>
-          </Card>
-
-          {/* Description Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Description
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="prose prose-sm max-w-none">
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-medium text-sm text-muted-foreground mb-1">Description</h3>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">
                   {claim.description || 'No description provided.'}
                 </p>
               </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground mb-1">
+                    Company Involved
+                  </h3>
+                  <p className="font-medium">{claim.companyName || 'N/A'}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground mb-1">Claim Amount</h3>
+                  <p className="font-medium">
+                    {claim.claimAmount ? `${claim.claimAmount} ${claim.currency}` : 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground mb-1">Category</h3>
+                  <p className="capitalize">{claim.category?.replace('_', ' ') || 'General'}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Documents Card - Placeholder for future */}
           <Card>
             <CardHeader>
-              <CardTitle>Documents</CardTitle>
-              <CardDescription>Evidence and supporting files</CardDescription>
+              <CardTitle>Attached Evidence</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="rounded-full bg-muted p-4 mb-3">
-                  <FileText className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <p className="text-sm text-muted-foreground">No documents uploaded yet</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Document upload feature coming soon
-                </p>
+              <div className="text-sm text-muted-foreground italic bg-muted/30 p-4 rounded-lg border border-dashed text-center">
+                No files attached yet. (Storage Integration Pending)
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column - Timeline */}
+        {/* Sidebar: Timeline */}
         <div className="lg:col-span-1">
-          {claim.createdAt && <ClaimTimeline claimCreatedAt={new Date(claim.createdAt)} />}
+          <Card>
+            <CardHeader>
+              <CardTitle>Case Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ClaimTimeline
+                status={claim.status as any}
+                updatedAt={claim.updatedAt || new Date()}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Admin Debug Tools (Client-side would be better but this is handy for MVP) */}
+          {session.user.role === 'admin' && (
+            <Card className="mt-4 border-dashed border-yellow-500/50 bg-yellow-500/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-yellow-600">Admin Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs text-muted-foreground">
+                Manual status overrides would go here.
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

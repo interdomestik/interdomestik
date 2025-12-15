@@ -1,6 +1,6 @@
 'use client';
 
-import { submitClaimAction } from '@/actions/claims';
+import { submitClaim } from '@/actions/claims';
 import { useRouter } from '@/i18n/routing';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -89,7 +89,7 @@ export function ClaimWizard() {
 
   const onSubmit = form.handleSubmit((data: ClaimFormValues) => {
     startTransition(async () => {
-      await submitClaimAction({
+      await submitClaim({
         ...data,
         claimAmount: data.claimAmount || undefined,
       });

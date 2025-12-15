@@ -4,8 +4,11 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { exec } from 'child_process';
+import * as dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import * as pg from 'pg';
+import Stripe from 'stripe';
 import { promisify } from 'util';
 
 import { fileURLToPath } from 'url';
@@ -19,6 +22,8 @@ const __dirname = path.dirname(__filename);
 // We want to go up 3 levels: src -> qa -> packages -> root
 const REPO_ROOT = path.resolve(__dirname, '../../../');
 const WEB_APP = path.join(REPO_ROOT, 'apps/web');
+
+dotenv.config({ path: path.join(REPO_ROOT, '.env') });
 
 const server = new Server(
   {
@@ -134,6 +139,35 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: 'read_files',
+        description: 'Read contents of multiple files',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            files: { type: 'array', items: { type: 'string' } },
+          },
+          required: ['files'],
+        },
+      },
+      {
+        name: 'git_status',
+        description: 'Get git status of the repository',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+        },
+      },
+      {
+        name: 'git_diff',
+        description: 'Get git diff of the repository',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            cached: { type: 'boolean', description: 'Show staged changes' },
+          },
+        },
+      },
+      {
         name: 'code_search',
         description: 'Search for text in code files',
         inputSchema: {
@@ -143,6 +177,33 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             filePattern: { type: 'string', description: 'Optional glob pattern' },
           },
           required: ['query'],
+        },
+      },
+      {
+        name: 'query_db',
+        description: 'Execute read-only SQL query against local Postgres',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            text: { type: 'string', description: 'SQL query text' },
+            params: { type: 'array', items: { type: 'string' }, description: 'Query parameters' },
+          },
+          required: ['text'],
+        },
+      },
+      {
+        name: 'get_stripe_resource',
+        description: 'Fetch a resource from Stripe (customer, price, etc)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            resource: {
+              type: 'string',
+              enum: ['customers', 'products', 'prices', 'paymentIntents'],
+            },
+            id: { type: 'string', description: 'ID of the resource to fetch' },
+          },
+          required: ['resource', 'id'],
         },
       },
     ],
@@ -168,6 +229,45 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
       };
     } catch (e: any) {
       return { content: [{ type: 'text', text: `Error generating map: ${e.message}` }] };
+    }
+  }
+
+  if (name === 'read_files') {
+    const args = request.params.arguments as { files: string[] };
+    const results = [];
+    for (const file of args.files) {
+      try {
+        const filePath = path.join(REPO_ROOT, file);
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, 'utf-8');
+          results.push(`--- ${file} ---\n${content}\n`);
+        } else {
+          results.push(`--- ${file} ---\n(File not found)\n`);
+        }
+      } catch (e: any) {
+        results.push(`--- ${file} ---\n(Error reading file: ${e.message})\n`);
+      }
+    }
+    return { content: [{ type: 'text', text: results.join('\n') }] };
+  }
+
+  if (name === 'git_status') {
+    try {
+      const { stdout } = await execAsync('git status', { cwd: REPO_ROOT });
+      return { content: [{ type: 'text', text: stdout }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: `Error running git status: ${e.message}` }] };
+    }
+  }
+
+  if (name === 'git_diff') {
+    const args = request.params.arguments as { cached?: boolean };
+    try {
+      const command = args?.cached ? 'git diff --cached' : 'git diff';
+      const { stdout } = await execAsync(command, { cwd: REPO_ROOT });
+      return { content: [{ type: 'text', text: stdout || '(No changes)' }] };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: `Error running git diff: ${e.message}` }] };
     }
   }
 
@@ -561,7 +661,52 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
     }
   }
 
-  throw new Error('Tool not found');
+  if (name === 'query_db') {
+    const { text, params } = request.params.arguments as { text: string; params?: any[] };
+    if (!process.env.DATABASE_URL) {
+      return { content: [{ type: 'text', text: 'Error: DATABASE_URL not set' }] };
+    }
+    const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+    try {
+      await client.connect();
+      const res = await client.query(text, params);
+      await client.end();
+      return {
+        content: [{ type: 'text', text: JSON.stringify(res.rows, null, 2) }],
+      };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: `Database Error: ${e.message}` }] };
+    }
+  }
+
+  if (name === 'get_stripe_resource') {
+    const { resource, id } = request.params.arguments as { resource: string; id: string };
+    const secretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
+
+    if (secretKey === 'sk_test_placeholder') {
+      return { content: [{ type: 'text', text: 'Error: STRIPE_SECRET_KEY not set in .env' }] };
+    }
+
+    const stripe = new Stripe(secretKey, { apiVersion: '2024-12-18.acacia' as any }); // Cast to any to avoid strict version mismatch in dev tool
+
+    try {
+      let result;
+      // Simple dynamic access using 'any' to avoid heavy type guards for this MVP
+      if (resource === 'customers') result = await stripe.customers.retrieve(id);
+      else if (resource === 'products') result = await stripe.products.retrieve(id);
+      else if (resource === 'prices') result = await stripe.prices.retrieve(id);
+      else if (resource === 'paymentIntents') result = await stripe.paymentIntents.retrieve(id);
+      else throw new Error(`Resource ${resource} not supported yet`);
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    } catch (e: any) {
+      return { content: [{ type: 'text', text: `Stripe Error: ${e.message}` }] };
+    }
+  }
+
+  throw new Error(`Tool ${name} not found`);
 });
 
 const transport = new StdioServerTransport();

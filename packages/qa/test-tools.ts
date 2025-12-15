@@ -65,6 +65,39 @@ setTimeout(() => {
     100
   );
 
+  // Test Run: Database (Fast check)
+  setTimeout(() => {
+    console.log('\n--- TESTING DATABASE via MCP ---\n');
+    sendRequest(
+      'tools/call',
+      {
+        name: 'query_db',
+        arguments: { text: "SELECT 'connected' as status" },
+      },
+      102
+    );
+  }, 500);
+
+  // Test Run: Stripe (Fast check)
+  setTimeout(() => {
+    console.log('\n--- TESTING STRIPE via MCP ---\n');
+    sendRequest(
+      'tools/call',
+      {
+        name: 'get_stripe_resource',
+        arguments: { resource: 'customers', id: 'cus_invalid_test_id' },
+      },
+      103
+    );
+  }, 1000);
+
+  // Test Run: Context Tools (Fast check)
+  setTimeout(() => {
+    console.log('\n--- TESTING CONTEXT TOOLS via MCP ---\n');
+    sendRequest('tools/call', { name: 'git_status', arguments: {} }, 104);
+    sendRequest('tools/call', { name: 'read_files', arguments: { files: ['package.json'] } }, 105);
+  }, 1500);
+
   // Test Run: E2E Tests (Delayed to let Unit tests finish likely)
   setTimeout(() => {
     console.log('\n--- STARTING E2E TESTS via MCP ---\n');
