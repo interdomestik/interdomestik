@@ -42,11 +42,18 @@
     "help": "Help"
   },
   "hero": {
-    "title": "Protect Your Consumer Rights",
-    "subtitle": "The only platform that helps you resolve disputes with companies, landlords, insurers, and others - from start to finish.",
-    "cta": "Get Started",
+    "badge": "Trusted Claims Assistant",
+    "title": "Start Your Claim in Minutes",
+    "subtitle": "We handle your damage claims professionally — from first contact to final payout. Vehicle accidents, property damage, personal injury, and more.",
+    "cta": "Start Your Claim",
+    "callNow": "Call Us Now",
     "secondaryCta": "View Pricing",
-    "trustedBy": "Trusted by citizens across the Balkans"
+    "trustedBy": "Trusted by citizens across the Balkans",
+    "responseTime": "Response in <24h",
+    "noWinNoFee": "No Win, No Fee",
+    "rating": "4.9★ Rating",
+    "ctaTitle": "Ready to Get Your Compensation?",
+    "ctaSubtitle": "Join thousands of satisfied clients who trusted us with their claims. Start today and let us fight for your rights."
   },
   "features": {
     "title": "Everything you need to protect your rights",
@@ -190,7 +197,8 @@
     "contact": "Contact Us",
     "faq": "FAQ",
     "social": "Follow Us",
-    "copyright": "© {year} Interdomestik. All rights reserved."
+    "copyright": "© {year} Interdomestik. All rights reserved.",
+    "disclaimer": "Claims assistance service. Not a law firm. We are not emergency services."
   },
   "services": {
     "speed": {
@@ -255,6 +263,57 @@
         "all": "All notifications",
         "allHint": "Show all notifications in the app's notification center."
       }
+    }
+  },
+  "trust": {
+    "claimsProcessed": "Claims Processed",
+    "compensationWon": "Compensation Won",
+    "successRate": "Success Rate",
+    "responseTime": "First Response"
+  },
+  "claimCategories": {
+    "title": "What Can We Help You With?",
+    "subtitle": "Select your claim type to get started. Our experts specialize in each category.",
+    "startClaim": "Start Claim",
+    "vehicle": {
+      "title": "Vehicle Damage",
+      "description": "Car accidents, collision damage, theft, and vandalism claims.",
+      "examples": "e.g., Traffic accidents, hit-and-run, parking damage"
+    },
+    "property": {
+      "title": "Property Damage",
+      "description": "Home, apartment, and building damage claims.",
+      "examples": "e.g., Water damage, fire, storm, burglary"
+    },
+    "injury": {
+      "title": "Personal Injury",
+      "description": "Medical expenses, rehabilitation, and compensation for injuries.",
+      "examples": "e.g., Workplace injuries, accidents, medical malpractice"
+    },
+    "travel": {
+      "title": "Travel & Flight",
+      "description": "Flight delays, cancellations, and lost baggage claims.",
+      "examples": "e.g., EU261 compensation up to €600"
+    }
+  },
+  "howItWorks": {
+    "title": "How It Works",
+    "subtitle": "Simple 4-step process to get your compensation",
+    "step1": {
+      "title": "Submit Your Claim",
+      "description": "Fill out our simple form with your incident details and upload any evidence."
+    },
+    "step2": {
+      "title": "Free Evaluation",
+      "description": "Our experts review your case within 24 hours and assess your chances."
+    },
+    "step3": {
+      "title": "We Handle Everything",
+      "description": "We negotiate with insurers and opposing parties on your behalf."
+    },
+    "step4": {
+      "title": "Get Compensated",
+      "description": "Receive your payout. We only charge if you win — No Win, No Fee."
     }
   }
 }

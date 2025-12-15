@@ -42,11 +42,18 @@
     "help": "Ndihmë"
   },
   "hero": {
-    "title": "Mbroni të Drejtat Tuaja si Konsumator",
-    "subtitle": "Platforma e vetme që ju ndihmon të zgjidhni mosmarrëveshjet me kompani, pronarë, sigurime dhe të tjerë - nga fillimi deri në përfundim.",
-    "cta": "Filloni Tani",
+    "badge": "Asistenti Juaj i Besuar",
+    "title": "Filloni Ankesën Tuaj në Minuta",
+    "subtitle": "Ne trajtojmë ankesat tuaja për dëme me profesionalizëm — nga kontakti i parë deri në pagesën finale. Aksidente automjetesh, dëme prone, lëndime personale, dhe më shumë.",
+    "cta": "Filloni Ankesën",
+    "callNow": "Na Telefononi Tani",
     "secondaryCta": "Shikoni Çmimet",
-    "trustedBy": "Besuar nga qytetarë në të gjithë Ballkanin"
+    "trustedBy": "Besuar nga qytetarë në të gjithë Ballkanin",
+    "responseTime": "Përgjigje brenda <24h",
+    "noWinNoFee": "Pa Fitim, Pa Pagesë",
+    "rating": "4.9★ Vlerësim",
+    "ctaTitle": "Gati për të Marrë Kompensimin Tuaj?",
+    "ctaSubtitle": "Bashkohuni me mijëra klientë të kënaqur që na besuan me ankesat e tyre. Filloni sot dhe na lini të luftojmë për të drejtat tuaja."
   },
   "features": {
     "title": "Gjithçka që ju nevojitet për të mbrojtur të drejtat tuaja",
@@ -200,7 +207,8 @@
     "contact": "Na Kontaktoni",
     "faq": "FAQ",
     "social": "Na Ndiqni",
-    "copyright": "© {year} Interdomestik. Të gjitha të drejtat e rezervuara."
+    "copyright": "© {year} Interdomestik. Të gjitha të drejtat e rezervuara.",
+    "disclaimer": "Shërbim i asistencës për ankesa. Nuk jemi zyrë avokatie. Nuk jemi shërbime emergjente."
   },
   "services": {
     "speed": {
@@ -265,6 +273,57 @@
         "all": "Të gjitha njoftimet",
         "allHint": "Shfaq të gjitha njoftimet në qendrën e njoftimeve."
       }
+    }
+  },
+  "trust": {
+    "claimsProcessed": "Ankesa të Përpunuara",
+    "compensationWon": "Kompensim i Fituar",
+    "successRate": "Shkalla e Suksesit",
+    "responseTime": "Përgjigja e Parë"
+  },
+  "claimCategories": {
+    "title": "Me Çfarë Mund t'Ju Ndihmojmë?",
+    "subtitle": "Zgjidhni llojin e ankesës tuaj për të filluar. Ekspertët tanë specializohen në çdo kategori.",
+    "startClaim": "Filloni Ankesën",
+    "vehicle": {
+      "title": "Dëme Automjetesh",
+      "description": "Aksidente makinash, dëme nga përplasjet, vjedhje dhe vandalizëm.",
+      "examples": "p.sh., Aksidente trafiku, goditje-dhe-ikje, dëme parkimi"
+    },
+    "property": {
+      "title": "Dëme Pronash",
+      "description": "Ankesa për dëme në shtëpi, apartament dhe ndërtesa.",
+      "examples": "p.sh., Dëme nga uji, zjarri, stuhia, vjedhja"
+    },
+    "injury": {
+      "title": "Lëndime Personale",
+      "description": "Shpenzime mjekësore, rehabilitim dhe kompensim për lëndimet.",
+      "examples": "p.sh., Lëndime në punë, aksidente, keqpërdorim mjekësor"
+    },
+    "travel": {
+      "title": "Udhëtime & Fluturime",
+      "description": "Vonesa fluturimesh, anulime dhe bagazhe të humbura.",
+      "examples": "p.sh., Kompensim EU261 deri në €600"
+    }
+  },
+  "howItWorks": {
+    "title": "Si Funksionon",
+    "subtitle": "Proces i thjeshtë me 4 hapa për të marrë kompensimin tuaj",
+    "step1": {
+      "title": "Dorëzoni Ankesën",
+      "description": "Plotësoni formularin tonë të thjeshtë me detajet e incidentit dhe ngarkoni dëshmitë."
+    },
+    "step2": {
+      "title": "Vlerësim Falas",
+      "description": "Ekspertët tanë shqyrtojnë rastin tuaj brenda 24 orëve dhe vlerësojnë shanset tuaja."
+    },
+    "step3": {
+      "title": "Ne Meremi me Gjithçka",
+      "description": "Negociojmë me siguruesit dhe palët e kundërta në emrin tuaj."
+    },
+    "step4": {
+      "title": "Merrni Kompensimin",
+      "description": "Merrni pagesën tuaj. Ne ngarkojmë vetëm nëse fitoni — Pa Fitim, Pa Pagesë."
     }
   }
 }
