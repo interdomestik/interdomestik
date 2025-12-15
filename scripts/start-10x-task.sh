@@ -9,10 +9,9 @@
 #   SKIP_BASELINE=1  Skip QA baseline capture (for exploration tasks)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# STRICT MODE (with controlled error handling)
+# STRICT MODE (with controlled error handling for baseline captures)
 # ═══════════════════════════════════════════════════════════════════════════════
-set -uo pipefail
-# Note: We don't use -e because we handle errors manually for baseline captures
+set -euo pipefail
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION - Customize these for your repo
@@ -26,6 +25,7 @@ CONSTRAINTS_FILE=".agent/constraints.md"
 # Commands - customize per repo
 LINT_CMD="pnpm lint"
 TYPECHECK_CMD="pnpm type-check"
+TYPECHECK_FALLBACK_CMD="pnpm typecheck"
 TEST_CMD="pnpm --filter @interdomestik/web test:unit --run"
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -72,6 +72,22 @@ print_info() {
     echo -e "${DIM}ℹ${NC} $1"
 }
 
+# Handle command not found (exit 127) with user prompt
+handle_command_not_found() {
+    local cmd_name="$1"
+    local cmd_string="$2"
+    
+    echo -e "${RED}✖ command not found${NC}"
+    echo ""
+    print_error "$cmd_name command not configured: ${DIM}$cmd_string${NC}"
+    echo -n -e "   ${YELLOW}Continue without $cmd_name baseline? [Y/n]: ${NC}"
+    read CONTINUE_WITHOUT
+    if [[ "$CONTINUE_WITHOUT" == "n" || "$CONTINUE_WITHOUT" == "N" ]]; then
+        print_error "Aborted. Please configure the $cmd_name command in the script."
+        exit 1
+    fi
+}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PREFLIGHT CHECKS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -108,6 +124,7 @@ preflight_checks() {
             fi
         fi
         
+        set +e  # Disable exit on error for git status check
         if [[ -n $(git status --porcelain 2>/dev/null) ]]; then
             echo ""
             print_warning "You have uncommitted changes:"
@@ -126,6 +143,7 @@ preflight_checks() {
         else
             print_success "Git working directory clean"
         fi
+        set -e  # Re-enable exit on error
     fi
     
     # 3. Check MCP servers reminder
@@ -180,14 +198,17 @@ capture_qa_baseline() {
     # Lint
     # ─────────────────────────────────────────────────────────────────────────
     echo -n -e "   ${DIM}Lint...${NC} "
-    set +e
+    set +e  # Disable exit on error for baseline capture
     $LINT_CMD > "$TEMP_OUTPUT" 2>&1
     LINT_EXIT=$?
-    set -e
+    set -e  # Re-enable exit on error
     
     if [[ $LINT_EXIT -eq 0 ]]; then
         BASELINE_LINT="pass"
         echo -e "${GREEN}✓ pass${NC}"
+    elif [[ $LINT_EXIT -eq 127 ]]; then
+        BASELINE_LINT="not configured"
+        handle_command_not_found "Lint" "$LINT_CMD"
     else
         BASELINE_LINT="fail (exit $LINT_EXIT)"
         LINT_ERROR_COUNT=$(grep -c -E "(error|Error)" "$TEMP_OUTPUT" 2>/dev/null || echo "?")
@@ -195,21 +216,30 @@ capture_qa_baseline() {
     fi
     
     # ─────────────────────────────────────────────────────────────────────────
-    # Type Check
+    # Type Check (with clear fallback logic)
     # ─────────────────────────────────────────────────────────────────────────
     echo -n -e "   ${DIM}Type check...${NC} "
-    set +e
-    # Try type-check first, fall back to typecheck
-    if pnpm run type-check --help > /dev/null 2>&1; then
+    set +e  # Disable exit on error for baseline capture
+    
+    # Step 1: Check if primary type-check script exists
+    if pnpm run --silent type-check --help > /dev/null 2>&1; then
+        # Primary command exists, run it
         $TYPECHECK_CMD > "$TEMP_OUTPUT" 2>&1
         TYPECHECK_EXIT=$?
-    elif pnpm run typecheck --help > /dev/null 2>&1; then
-        pnpm typecheck > "$TEMP_OUTPUT" 2>&1
+    # Step 2: Try fallback 'typecheck' (no hyphen)
+    elif pnpm run --silent typecheck --help > /dev/null 2>&1; then
+        # Fallback exists, run it
+        $TYPECHECK_FALLBACK_CMD > "$TEMP_OUTPUT" 2>&1
+        TYPECHECK_EXIT=$?
+    # Step 3: Try tsc directly
+    elif command -v tsc &> /dev/null; then
+        tsc --noEmit > "$TEMP_OUTPUT" 2>&1
         TYPECHECK_EXIT=$?
     else
+        # No type checking available
         TYPECHECK_EXIT=127
     fi
-    set -e
+    set -e  # Re-enable exit on error
     
     if [[ $TYPECHECK_EXIT -eq 0 ]]; then
         BASELINE_TYPECHECK="pass"
@@ -217,6 +247,7 @@ capture_qa_baseline() {
     elif [[ $TYPECHECK_EXIT -eq 127 ]]; then
         BASELINE_TYPECHECK="not configured"
         echo -e "${DIM}⊘ not configured${NC}"
+        echo -e "      ${DIM}(tried: $TYPECHECK_CMD, $TYPECHECK_FALLBACK_CMD, tsc --noEmit)${NC}"
     else
         BASELINE_TYPECHECK="fail (exit $TYPECHECK_EXIT)"
         echo -e "${YELLOW}⚠ fail${NC}"
@@ -226,18 +257,26 @@ capture_qa_baseline() {
     # Tests
     # ─────────────────────────────────────────────────────────────────────────
     echo -n -e "   ${DIM}Unit tests...${NC} "
-    set +e
+    set +e  # Disable exit on error for baseline capture
     $TEST_CMD > "$TEMP_OUTPUT" 2>&1
     TEST_EXIT=$?
-    set -e
+    set -e  # Re-enable exit on error
     
     if [[ $TEST_EXIT -eq 0 ]]; then
         BASELINE_TESTS="pass"
         PASS_COUNT=$(grep -oE "[0-9]+ passed" "$TEMP_OUTPUT" | head -1 || echo "")
         echo -e "${GREEN}✓ pass${NC} ${DIM}($PASS_COUNT)${NC}"
+    elif [[ $TEST_EXIT -eq 127 ]]; then
+        BASELINE_TESTS="not configured"
+        handle_command_not_found "Tests" "$TEST_CMD"
     else
         BASELINE_TESTS="fail (exit $TEST_EXIT)"
-        echo -e "${YELLOW}⚠ fail${NC}"
+        FAIL_INFO=$(grep -oE "[0-9]+ failed" "$TEMP_OUTPUT" | head -1 || echo "")
+        if [[ -n "$FAIL_INFO" ]]; then
+            echo -e "${YELLOW}⚠ fail${NC} ${DIM}($FAIL_INFO)${NC}"
+        else
+            echo -e "${YELLOW}⚠ fail${NC}"
+        fi
     fi
     
     # ─────────────────────────────────────────────────────────────────────────
