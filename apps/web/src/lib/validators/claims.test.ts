@@ -135,6 +135,16 @@ describe('Claim Validators', () => {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('claimEvidenceSchema', () => {
+    const sampleFile = {
+      id: 'file-1',
+      name: 'receipt.pdf',
+      path: 'pii/claims/user123/receipt.pdf',
+      type: 'application/pdf',
+      size: 1024,
+      bucket: 'claim-evidence',
+      classification: 'pii',
+    };
+
     it('should accept empty files array', () => {
       const result = claimEvidenceSchema.safeParse({ files: [] });
       expect(result.success).toBe(true);
@@ -142,7 +152,7 @@ describe('Claim Validators', () => {
 
     it('should accept files array with items', () => {
       const result = claimEvidenceSchema.safeParse({
-        files: [{ name: 'receipt.pdf' }],
+        files: [sampleFile],
       });
       expect(result.success).toBe(true);
     });
@@ -150,6 +160,13 @@ describe('Claim Validators', () => {
     it('should accept missing files field', () => {
       const result = claimEvidenceSchema.safeParse({});
       expect(result.success).toBe(true);
+    });
+
+    it('should reject files missing required metadata', () => {
+      const result = claimEvidenceSchema.safeParse({
+        files: [{ name: 'bad.pdf' }],
+      });
+      expect(result.success).toBe(false);
     });
   });
 
@@ -165,6 +182,17 @@ describe('Claim Validators', () => {
       description: 'I purchased a product that was defective and want a refund.',
       claimAmount: '250.00',
       currency: 'EUR',
+      files: [
+        {
+          id: 'file-1',
+          name: 'receipt.pdf',
+          path: 'pii/claims/user123/receipt.pdf',
+          type: 'application/pdf',
+          size: 1024,
+          bucket: 'claim-evidence',
+          classification: 'pii',
+        },
+      ],
     };
 
     it('should accept a valid complete claim', () => {

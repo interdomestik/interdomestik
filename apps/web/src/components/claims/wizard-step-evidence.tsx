@@ -1,11 +1,13 @@
 'use client';
 
-import type { CreateClaimValues } from '@/lib/validators/claims';
+import type { CreateClaimValues, EvidenceFile } from '@/lib/validators/claims';
+import { createClient } from '@interdomestik/database';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card } from '@interdomestik/ui/components/card';
 import { FormField, FormItem, FormLabel, FormMessage } from '@interdomestik/ui/components/form';
-import { FileText, Trash2, UploadCloud } from 'lucide-react';
-import { useState } from 'react';
+import { Badge } from '@interdomestik/ui/components/badge';
+import { FileText, Loader2, ShieldCheck, Trash2, UploadCloud } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 
 import {
@@ -16,16 +18,111 @@ import {
 } from '@interdomestik/ui/components/tooltip';
 import { useTranslations } from 'next-intl';
 
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
+function formatSize(bytes: number) {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
 export function WizardStepEvidence() {
   const t = useTranslations('evidence');
   const form = useFormContext<CreateClaimValues>();
-  const [mockFiles, setMockFiles] = useState<string[]>([]);
+  const supabase = useMemo(() => createClient(), []);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const files = form.watch('files') ?? [];
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    if (!selectedFiles.length) return;
+
+    setError(null);
+    setIsUploading(true);
+
+    for (const file of selectedFiles) {
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        setError('Only PDF, JPG, or PNG files are allowed.');
+        continue;
+      }
+
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        setError('Files must be 10MB or smaller.');
+        continue;
+      }
+
+      const response = await fetch('/api/uploads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type || 'application/octet-stream',
+          fileSize: file.size,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setError(payload?.error || 'Failed to prepare upload. Please try again.');
+        continue;
+      }
+
+      const payload = (await response.json()) as {
+        upload: { path: string; token: string; bucket: string };
+        classification?: string;
+      };
+      const upload = payload.upload;
+
+      const { error: uploadError } = await supabase.storage
+        .from(upload.bucket)
+        .uploadToSignedUrl(upload.path, upload.token, file, {
+          contentType: file.type || 'application/octet-stream',
+          upsert: true,
+          cacheControl: '3600',
+        });
+
+      if (uploadError) {
+        console.error('Upload failed', uploadError);
+        setError('Upload failed. Please try again.');
+        continue;
+      }
+
+      const evidenceFile: EvidenceFile = {
+        id: upload.path,
+        name: file.name,
+        path: upload.path,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        bucket: upload.bucket,
+        classification: payload.classification || 'pii',
+      };
+
+      const currentFiles = form.getValues('files') ?? [];
+      form.setValue('files', [...currentFiles, evidenceFile], {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
+
+    setIsUploading(false);
+    event.target.value = '';
+  };
+
+  const removeFile = (id: string) => {
+    const updatedFiles = files.filter(file => file.id !== id);
+    form.setValue('files', updatedFiles, { shouldDirty: true, shouldValidate: true });
+  };
 
   const handleMockUpload = () => {
-    setMockFiles([...mockFiles, `evidence_${mockFiles.length + 1}.pdf`]);
-    // In a real app, we would handle the file upload here
-    // For now, we update the form with a dummy array to pass validation if needed
-    form.setValue('files', [...mockFiles, 'new_file']);
+    fileInputRef.current?.click();
   };
 
   return (
@@ -61,26 +158,54 @@ export function WizardStepEvidence() {
           <p className="font-medium">Click to upload files</p>
           <p className="text-sm text-muted-foreground">PDF, JPG, or PNG up to 10MB</p>
         </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 text-[hsl(var(--primary))]" />
+          <span>Signed URL uploads · PII-tagged storage</span>
+        </div>
+        {isUploading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Uploading securely…</span>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ALLOWED_MIME_TYPES.join(',')}
+          multiple
+          onChange={handleFileChange}
+          className="hidden"
+        />
       </Card>
 
-      {mockFiles.length > 0 && (
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {files.length > 0 && (
         <div className="space-y-2">
           <FormLabel>Attached Files</FormLabel>
-          {mockFiles.map((file, idx) => (
+          {files.map(file => (
             <div
-              key={idx}
-              className="flex items-center justify-between p-3 border rounded-lg bg-card"
+              key={file.id}
+              className="flex items-center justify-between p-3 border rounded-lg bg-card gap-3"
             >
               <div className="flex items-center gap-3">
                 <FileText className="h-4 w-4 text-[hsl(var(--primary))]" />
-                <span className="text-sm font-medium">{file}</span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">{file.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatSize(file.size)} · {file.type}
+                  </span>
+                  <Badge variant="secondary" className="w-fit mt-1 text-[10px]">
+                    {file.classification?.toUpperCase() || 'PII'}
+                  </Badge>
+                </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={e => {
                   e.stopPropagation();
-                  setMockFiles(mockFiles.filter((_, i) => i !== idx));
+                  removeFile(file.id);
                 }}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />

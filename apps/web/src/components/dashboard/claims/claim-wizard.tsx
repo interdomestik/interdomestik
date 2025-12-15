@@ -92,6 +92,7 @@ export function ClaimWizard() {
       await submitClaim({
         ...data,
         claimAmount: data.claimAmount || undefined,
+        files: [],
       });
       router.push('/dashboard/claims');
     });

@@ -50,7 +50,7 @@ export function WizardReview() {
 
           <div>
             <p className="text-muted-foreground text-sm mb-1">Evidence</p>
-            <p className="text-sm">{(values.files as any[])?.length || 0} files attached</p>
+            <p className="text-sm">{Array.isArray(values.files) ? values.files.length : 0} files attached</p>
           </div>
         </CardContent>
       </Card>

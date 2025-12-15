@@ -1,5 +1,15 @@
 import { z } from 'zod';
 
+export const evidenceFileSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  path: z.string(),
+  type: z.string(),
+  size: z.number().nonnegative(),
+  bucket: z.string(),
+  classification: z.string().default('pii'),
+});
+
 export const claimCategorySchema = z.object({
   category: z.string().min(1, 'Category is required'),
 });
@@ -19,10 +29,7 @@ export const claimDetailsSchema = z.object({
 });
 
 export const claimEvidenceSchema = z.object({
-  // specific schema for File objects isn't directly possibly in server actions payload easily without FormData
-  // For the wizard state, we might verify we have at least 1 file if required.
-  // For now, optional as it handles uploads separately
-  files: z.array(z.any()).optional(),
+  files: z.array(evidenceFileSchema).default([]),
 });
 
 // Merged schema for final submission
@@ -32,4 +39,5 @@ export const createClaimSchema = claimCategorySchema
 
 export type ClaimCategoryValues = z.infer<typeof claimCategorySchema>;
 export type ClaimDetailsValues = z.infer<typeof claimDetailsSchema>;
+export type EvidenceFile = z.infer<typeof evidenceFileSchema>;
 export type CreateClaimValues = z.infer<typeof createClaimSchema>;
