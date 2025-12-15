@@ -1,7 +1,7 @@
 'use client';
 
 import type { CreateClaimValues, EvidenceFile } from '@/lib/validators/claims';
-import { createClient } from '@interdomestik/database';
+import { createClient } from '@interdomestik/database/client';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card } from '@interdomestik/ui/components/card';
 import { FormField, FormItem, FormLabel, FormMessage } from '@interdomestik/ui/components/form';
