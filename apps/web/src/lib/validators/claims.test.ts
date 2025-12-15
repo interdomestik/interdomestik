@@ -168,6 +168,25 @@ describe('Claim Validators', () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it('should default classification to pii when omitted', () => {
+      const result = claimEvidenceSchema.safeParse({
+        files: [
+          {
+            id: 'file-1',
+            name: 'photo.jpg',
+            path: 'pii/claims/user/photo.jpg',
+            type: 'image/jpeg',
+            size: 2048,
+            bucket: 'claim-evidence',
+          },
+        ],
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.files[0].classification).toBe('pii');
+      }
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════

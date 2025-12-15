@@ -150,5 +150,22 @@ describe('Claim Actions', () => {
         ])
       );
     });
+
+    it('should insert claim without documents when files are empty', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+
+      await submitClaim({ ...validPayload, files: [] } as any);
+
+      // First insert is claim
+      expect(mockDbInsert).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          userId: 'user-123',
+          status: 'submitted',
+        })
+      );
+      // No second insert call for documents
+      expect(mockDbInsert).toHaveBeenCalledTimes(1);
+    });
   });
 });
