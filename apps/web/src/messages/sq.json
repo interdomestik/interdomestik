@@ -44,7 +44,7 @@
   "hero": {
     "badge": "Asistenti Juaj i Besuar",
     "title": "Filloni Ankesën Tuaj në Minuta",
-    "subtitle": "Ne trajtojmë ankesat tuaja për dëme me profesionalizëm — nga kontakti i parë deri në pagesën finale. Aksidente automjetesh, dëme prone, lëndime personale, dhe më shumë.",
+    "subtitle": "Ne jemi ndërmjetës dëmesh (jo shërbim emergjent). Trajtojmë ankesat me profesionalizëm — nga kontakti i parë deri në pagesën finale. Aksidente automjetesh, dëme prone, lëndime personale, dhe më shumë.",
     "cta": "Filloni Ankesën",
     "callNow": "Na Telefononi Tani",
     "secondaryCta": "Shikoni Çmimet",
@@ -52,6 +52,7 @@
     "responseTime": "Përgjigje brenda <24h",
     "noWinNoFee": "Pa Fitim, Pa Pagesë",
     "rating": "4.9★ Vlerësim",
+    "claimAdjuster": "Ndërmjetës dëmesh (jo shërbim emergjent)",
     "ctaTitle": "Gati për të Marrë Kompensimin Tuaj?",
     "ctaSubtitle": "Bashkohuni me mijëra klientë të kënaqur që na besuan me ankesat e tyre. Filloni sot dhe na lini të luftojmë për të drejtat tuaja."
   },

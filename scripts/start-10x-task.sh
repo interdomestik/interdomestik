@@ -27,6 +27,9 @@ LINT_CMD="pnpm lint"
 TYPECHECK_CMD="pnpm type-check"
 TYPECHECK_FALLBACK_CMD="pnpm typecheck"
 TEST_CMD="pnpm --filter @interdomestik/web test:unit --run"
+E2E_SMOKE_CMD="pnpm --filter @interdomestik/web test:e2e -- --grep smoke"
+BUILD_CMD="pnpm build"
+FULL_CHECK_CMD="pnpm qa:full"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # COLORS
@@ -70,6 +73,51 @@ print_error() {
 
 print_info() {
     echo -e "${DIM}ℹ${NC} $1"
+}
+
+run_optional_full_checks() {
+    echo -n -e "${CYAN}Run full checks now? (lint/typecheck/unit/smoke/build) [y/N]: ${NC}"
+    read RUN_FULL
+    if [[ "$RUN_FULL" != "y" && "$RUN_FULL" != "Y" ]]; then
+        return
+    fi
+
+    echo ""
+    print_step "Running full checks..."
+    local ALL_OK=1
+
+    set +e
+    echo -n -e "   ${DIM}Lint...${NC} "
+    $LINT_CMD >/dev/null 2>&1
+    LINT_EXIT=$?
+    [[ $LINT_EXIT -eq 0 ]] && echo -e "${GREEN}✓${NC}" || { echo -e "${YELLOW}⚠${NC} (exit $LINT_EXIT)"; ALL_OK=0; }
+
+    echo -n -e "   ${DIM}Typecheck...${NC} "
+    $TYPECHECK_CMD >/dev/null 2>&1
+    TC_EXIT=$?
+    [[ $TC_EXIT -eq 0 ]] && echo -e "${GREEN}✓${NC}" || { echo -e "${YELLOW}⚠${NC} (exit $TC_EXIT)"; ALL_OK=0; }
+
+    echo -n -e "   ${DIM}Unit tests...${NC} "
+    $TEST_CMD >/dev/null 2>&1
+    UT_EXIT=$?
+    [[ $UT_EXIT -eq 0 ]] && echo -e "${GREEN}✓${NC}" || { echo -e "${YELLOW}⚠${NC} (exit $UT_EXIT)"; ALL_OK=0; }
+
+    echo -n -e "   ${DIM}Smoke E2E...${NC} "
+    $E2E_SMOKE_CMD >/dev/null 2>&1
+    E2E_EXIT=$?
+    [[ $E2E_EXIT -eq 0 ]] && echo -e "${GREEN}✓${NC}" || { echo -e "${YELLOW}⚠${NC} (exit $E2E_EXIT)"; ALL_OK=0; }
+
+    echo -n -e "   ${DIM}Build...${NC} "
+    $BUILD_CMD >/dev/null 2>&1
+    BUILD_EXIT=$?
+    [[ $BUILD_EXIT -eq 0 ]] && echo -e "${GREEN}✓${NC}" || { echo -e "${YELLOW}⚠${NC} (exit $BUILD_EXIT)"; ALL_OK=0; }
+    set -e
+
+    if [[ $ALL_OK -eq 1 ]]; then
+        print_success "Full checks passed"
+    else
+        print_warning "Full checks reported issues; see above."
+    fi
 }
 
 # Handle command not found (exit 127) with user prompt
@@ -664,6 +712,7 @@ EOF
 - [ ] \`pnpm lint\` passes (or no new errors)
 - [ ] \`pnpm type-check\` passes
 - [ ] No regressions from baseline
+- [ ] (Recommended) \`pnpm qa:full\` or full checks executed before PR
 - [ ] Screenshots added for UI changes (if applicable)
 - [ ] Documentation updated (if applicable)
 - [ ] Code reviewed / self-reviewed
@@ -774,6 +823,7 @@ main() {
     gather_inputs "$@"
     capture_qa_baseline
     generate_task_file
+    run_optional_full_checks
     print_summary
     
     # Try to open in VS Code

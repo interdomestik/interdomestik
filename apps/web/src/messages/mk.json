@@ -43,10 +43,22 @@
   },
   "hero": {
     "title": "Protect Your Consumer Rights",
-    "subtitle": "The only platform that helps you resolve disputes with companies, landlords, insurers, and others - from start to finish.",
+    "subtitle": "We are claim adjusters (not emergency services). We help you resolve disputes with companies, landlords, insurers, and others - from start to finish.",
     "cta": "Get Started",
     "secondaryCta": "View Pricing",
-    "trustedBy": "Trusted by citizens across the Balkans"
+    "trustedBy": "Trusted by citizens across the Balkans",
+    "claimAdjuster": "Claim adjuster (no emergency services)",
+    "responseTime": "Response in <24h",
+    "noWinNoFee": "No Win, No Fee",
+    "rating": "4.9★ Rating",
+    "ctaTitle": "Ready to Get Your Compensation?",
+    "ctaSubtitle": "Join thousands of satisfied clients who trusted us with their claims. Start today and let us fight for your rights."
+  },
+  "trust": {
+    "claimsProcessed": "Claims processed",
+    "compensationWon": "Compensation won",
+    "successRate": "Success rate",
+    "responseTime": "Response in <24h"
   },
   "features": {
     "title": "Everything you need to protect your rights",

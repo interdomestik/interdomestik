@@ -1,4 +1,5 @@
 import { Link } from '@/i18n/routing';
+import { flags } from '@/lib/flags';
 import { Button } from '@interdomestik/ui';
 import {
   ArrowRight,
@@ -117,6 +118,7 @@ function Header() {
 
 function HeroSection() {
   const t = useTranslations('hero');
+  const slaEnabled = flags.responseSla;
 
   return (
     <section className="relative py-16 lg:py-28 overflow-hidden">
@@ -165,10 +167,12 @@ function HeroSection() {
             className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-[hsl(var(--muted-400))] animate-fade-in"
             style={{ animationDelay: '0.3s' }}
           >
-            <span className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4" />
-              {t('responseTime')}
-            </span>
+            {slaEnabled && (
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4" />
+                {t('responseTime')}
+              </span>
+            )}
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="h-4 w-4" />
               {t('noWinNoFee')}
@@ -176,6 +180,10 @@ function HeroSection() {
             <span className="flex items-center gap-1.5">
               <Star className="h-4 w-4" />
               {t('rating')}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Shield className="h-4 w-4" />
+              {t('claimAdjuster')}
             </span>
           </div>
         </div>
@@ -186,12 +194,13 @@ function HeroSection() {
 
 function TrustStrip() {
   const t = useTranslations('trust');
+  const slaEnabled = flags.responseSla;
 
   const stats = [
     { value: '1,200+', label: t('claimsProcessed') },
     { value: '€850K+', label: t('compensationWon') },
     { value: '94%', label: t('successRate') },
-    { value: '<24h', label: t('responseTime') },
+    ...(slaEnabled ? [{ value: '<24h', label: t('responseTime') }] : []),
   ];
 
   return (
