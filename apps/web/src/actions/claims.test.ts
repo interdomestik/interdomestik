@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createClaim, updateClaimStatus } from './claims';
+import { createClaim, submitClaim, updateClaimStatus } from './claims';
 
 // Mocks
 const mockGetSession = vi.fn();
@@ -96,6 +96,59 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
       const result = await updateClaimStatus('claim-1', 'super-resolved');
       expect(result).toEqual({ error: 'Invalid status' });
+    });
+  });
+
+  describe('submitClaim', () => {
+    const validPayload = {
+      title: 'Valid title here',
+      description: 'This description is long enough to pass validation',
+      companyName: 'Company',
+      category: 'consumer',
+      claimAmount: '100.00',
+      currency: 'EUR',
+      files: [
+        {
+          id: 'file-1',
+          name: 'receipt.pdf',
+          path: 'pii/claims/user-123/unassigned/file-1',
+          type: 'application/pdf',
+          size: 1024,
+          bucket: 'claim-evidence',
+          classification: 'pii',
+        },
+      ],
+    };
+
+    it('should throw if unauthenticated', async () => {
+      mockGetSession.mockResolvedValue(null);
+
+      await expect(submitClaim(validPayload as any)).rejects.toThrow('Unauthorized');
+    });
+
+    it('should insert claim and documents when payload is valid', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+
+      await submitClaim(validPayload as any);
+
+      expect(mockDbInsert).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          title: 'Valid title here',
+          userId: 'user-123',
+          status: 'submitted',
+        })
+      );
+
+      expect(mockDbInsert).toHaveBeenNthCalledWith(
+        2,
+        expect.arrayContaining([
+          expect.objectContaining({
+            filePath: validPayload.files[0].path,
+            uploadedBy: 'user-123',
+          }),
+        ])
+      );
     });
   });
 });

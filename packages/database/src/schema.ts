@@ -1,4 +1,4 @@
-import { boolean, decimal, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, decimal, integer, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 // Based on technical description: Submission -> Verification -> Evaluation -> Negotiation -> Court -> Final
 export const statusEnum = pgEnum('status', [
@@ -10,6 +10,14 @@ export const statusEnum = pgEnum('status', [
   'court', // Phase 5: Judicial Process (if needed)
   'resolved', // Phase 6: Final Resolution (Success)
   'rejected', // Phase 6: Final Resolution (Failure)
+]);
+
+export const documentCategoryEnum = pgEnum('document_category', [
+  'evidence',
+  'correspondence',
+  'contract',
+  'receipt',
+  'other',
 ]);
 
 export const user = pgTable('user', {
@@ -77,6 +85,24 @@ export const claims = pgTable('claim', {
   currency: text('currency').default('EUR'),
   createdAt: timestamp('createdAt').defaultNow(),
   updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
+});
+
+export const claimDocuments = pgTable('claim_documents', {
+  id: text('id').primaryKey(),
+  claimId: text('claim_id')
+    .notNull()
+    .references(() => claims.id),
+  name: text('name').notNull(),
+  filePath: text('file_path').notNull(),
+  fileType: text('file_type').notNull(),
+  fileSize: integer('file_size').notNull(),
+  bucket: text('bucket').notNull().default('claim-evidence'),
+  classification: text('classification').notNull().default('pii'),
+  category: documentCategoryEnum('category').default('evidence').notNull(),
+  uploadedBy: text('uploaded_by')
+    .notNull()
+    .references(() => user.id),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 export const leads = pgTable('leads', {

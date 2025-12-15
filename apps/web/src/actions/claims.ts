@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { claims, db, eq } from '@interdomestik/database';
+import { claimDocuments, claims, db, eq } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
 import { z } from 'zod';
@@ -90,11 +90,12 @@ export async function submitClaim(data: CreateClaimValues) {
     throw new Error('Validation failed');
   }
 
-  const { title, description, category, companyName, claimAmount, currency } = result.data;
+  const { title, description, category, companyName, claimAmount, currency, files } = result.data;
+  const claimId = nanoid();
 
   try {
     await db.insert(claims).values({
-      id: nanoid(),
+      id: claimId,
       userId: session.user.id,
       title,
       description: description || undefined,
@@ -104,6 +105,23 @@ export async function submitClaim(data: CreateClaimValues) {
       currency: currency || 'EUR',
       status: 'submitted', // Auto submit from wizard
     });
+
+    if (files?.length) {
+      const documentRows = files.map(file => ({
+        id: nanoid(),
+        claimId,
+        name: file.name,
+        filePath: file.path,
+        fileType: file.type,
+        fileSize: file.size,
+        bucket: file.bucket,
+        classification: file.classification || 'pii',
+        category: 'evidence' as const,
+        uploadedBy: session.user.id,
+      }));
+
+      await db.insert(claimDocuments).values(documentRows);
+    }
   } catch (error) {
     console.error('Failed to create claim:', error);
     throw new Error('Failed to create claim. Please try again.');
