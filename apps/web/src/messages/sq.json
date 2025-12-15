@@ -214,5 +214,57 @@
   },
   "evidence": {
     "tooltip": "Dëshmia e qartë rrit mundësinë tuaj për sukses me 40%. Përfshini çdo Raport Policie ose Faturë Mjekësore."
+  },
+  "settings": {
+    "title": "Cilësimet",
+    "description": "Menaxhoni cilësimet e llogarisë dhe preferencat tuaja.",
+    "profile": {
+      "sectionTitle": "Informacioni i Profilit",
+      "title": "Profili",
+      "description": "Përditësoni informacionin tuaj personal."
+    },
+    "security": {
+      "sectionTitle": "Siguria",
+      "title": "Ndrysho Fjalëkalimin",
+      "description": "Siguroni llogarinë tuaj."
+    },
+    "language": {
+      "sectionTitle": "Gjuha & Rajoni",
+      "title": "Gjuha",
+      "description": "Zgjidhni gjuhën tuaj të preferuar për ndërfaqen.",
+      "selectLabel": "Zgjidh Gjuhën",
+      "selectPlaceholder": "Zgjidhni një gjuhë",
+      "hint": "Kjo do të ndryshojë gjuhën në të gjithë aplikacionin."
+    },
+    "notifications": {
+      "sectionTitle": "Njoftimet",
+      "title": "Preferencat e Njoftimeve",
+      "description": "Zgjidhni si dëshironi të merrni përditësime.",
+      "save": "Ruaj Preferencat",
+      "saving": "Duke ruajtur...",
+      "saved": "Preferencat u ruajtën",
+      "savedDescription": "Preferencat tuaja të njoftimeve u përditësuan.",
+      "email": {
+        "title": "Njoftimet me Email",
+        "claimUpdates": "Përditësimet e ankesave",
+        "claimUpdatesHint": "Merrni njoftime me email kur ndryshon statusi i ankesës.",
+        "newsletter": "Buletini",
+        "newsletterHint": "Merrni këshilla dhe përditësime rreth të drejtave të konsumatorit.",
+        "marketing": "Email promovuese",
+        "marketingHint": "Merrni oferta speciale dhe promocione."
+      },
+      "push": {
+        "title": "Njoftimet Push",
+        "claimUpdates": "Përditësimet e ankesave",
+        "claimUpdatesHint": "Merrni njoftime të menjëhershme për përditësime të rëndësishme.",
+        "messages": "Mesazhe të reja",
+        "messagesHint": "Njoftohuni kur një agjent ju dërgon mesazh."
+      },
+      "inApp": {
+        "title": "Njoftimet në Aplikacion",
+        "all": "Të gjitha njoftimet",
+        "allHint": "Shfaq të gjitha njoftimet në qendrën e njoftimeve."
+      }
+    }
   }
 }

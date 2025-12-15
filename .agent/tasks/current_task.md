@@ -1,42 +1,115 @@
+---
+task_name: "Complete Settings Page with Profile, Notifications, and Language Selection"
+task_type: "Feature"
+priority: "P1-High"
+estimate: "2h"
+test_level: "component"
+roadmap_ref: "Phase 1, Week 6"
+branch: "main"
+start_time: "Mon Dec 15 22:15:19 CET 2025"
+baseline:
+  lint: "pass"
+  typecheck: "fail (exit 2)"
+  tests: "pass"
+---
+
+# 🚀 Current Task: Complete Settings Page with Profile, Notifications, and Language Selection
+
+## 📋 10x Context Prompt
+Copy the block below to your Agent to start with maximum context:
+
+```xml
+<task_definition>
+  <objective>Complete Settings Page with Profile, Notifications, and Language Selection</objective>
+  <type>Feature</type>
+  <priority>P1-High</priority>
+  <estimate>2h</estimate>
+  <branch>main</branch>
+  <constraints>
+    - Use @interdomestik/ui components
+    - Follow 10x-coding rules (Explore → Plan → Execute)
+    - Mobile-first approach
+    - Use next-intl for i18n
+    - Write tests as specified in testing checklist
+  </constraints>
+</task_definition>
+
+<user_story>
+  As a [user type], I want to [action]
+  so that I can [benefit].
+</user_story>
+<acceptance_criteria>
+  - [ ] Criterion 1
+  - [ ] Criterion 2
+  - [ ] Criterion 3
+</acceptance_criteria>
 ```
----
-task_name: 'Implement Feature Flagged Experiments'
-task_type: 'Feature'
-start_time: 'Mon Dec 15 20:20:39 CET 2025'
----
-
-# 🚀 Current Task: Productionize & Regionalize (Master Plan)
-
-## 📋 Context
-The user has outlined a 4-point roadmap to move from "experiments" to "production-ready regional platform".
-
-1.  **Productionize Experiments**: Real analytics structure, PII safety, Ops routing for "Call Me Now", flags off in prod.
-2.  **Regionalization**: Kosovo hardening (sq/en), local consent, prepare for sr/mk.
-3.  **Prime Claims**: Evidence tooltips, "Speed & Safety" panel on `/services`.
-4.  **Quality Gates**: Continuous Testing.
 
 ## 🏗️ Status Tracker
+- [ ] **Exploration**: Identify files using `project_map` and `read_files`
+- [ ] **Planning**: Create a step-by-step implementation plan
+- [ ] **Implementation**: Execute code changes
+- [ ] **Verification**: Run `pnpm qa` or relevant tests
+- [ ] **Documentation**: Update relevant docs if needed
 
-### Phase 1: Productionize Experiments (Current Focus)
-- [x] **Analytics**: Refactor `analytics.ts` for PII separation and provider adapters.
-- [x] **Ops Routing**: Create `Leads` table in DB and Server Action for "Call Me Now" form.
-- [x] **Flags**: Ensure `flags.ts` defaults to `false` if env is missing.
+## 🧪 Testing Checklist
+- [ ] Unit tests added: `src/**/*.test.ts`
+- [ ] Component tests added: `src/**/*.test.tsx`
+- [ ] Tests use factories from `src/test/factories.ts`
+- [ ] Run: `pnpm test:unit`
+- [ ] All tests pass
 
-### Phase 2: Prime Claims Features
-- [x] **Services Page**: Add "Speed & Safety" panel with SLA copy.
-- [x] **Evidence**: Add tooltips/prompts for file uploads.
+## ✅ Definition of Done
+- [ ] All acceptance criteria met
+- [ ] Tests pass at required level (component)
+- [ ] `pnpm lint` passes (or no new errors)
+- [ ] `pnpm type-check` passes
+- [ ] No regressions from baseline
+- [ ] Screenshots added for UI changes (if applicable)
+- [ ] Documentation updated (if applicable)
+- [ ] Code reviewed / self-reviewed
 
-### Phase 3: Regionalization
-- [x] **Kosovo**: Audit `sq` translations and add local contact details/consent.
-- [x] **i18n**: scaffolding for `sr`/`mk`.
+## 🔗 Related Files
+- apps/web/src/messages/*.json
+- apps/web/src/i18n/routing.ts
+- apps/web/src/middleware.ts
 
 ## 📂 Active Context
-- `apps/web/src/lib/flags.ts`
-- `apps/web/src/lib/analytics.ts`
-- `apps/web/src/components/claims/call-me-now-dialog.tsx`
-
-
-## 📂 Active Context
-
 <!-- Paste file paths or code snippets here as you discover them -->
+
+## 📝 Implementation Notes
+<!-- Add decisions, trade-offs, blockers here -->
+
+## 🔬 QA Baseline (at task start)
+| Metric | Status |
+|--------|--------|
+| Lint | pass |
+| Type Check | fail (exit 2) |
+| Unit Tests | pass |
+
+---
+
+## 📝 PR Template (Copy when done)
+```markdown
+## What
+Complete Settings Page with Profile, Notifications, and Language Selection
+
+## Why
+Phase 1, Week 6
+
+## How
+<!-- Implementation approach -->
+
+## Testing
+- [ ] Unit tests pass (`pnpm test:unit`)
+- [ ] E2E tests pass (`pnpm test:e2e`)  
+- [ ] Manual QA completed
+- [ ] No regressions in existing functionality
+
+## Screenshots (if UI changes)
+<!-- Add screenshots here -->
+
+## Notes to Reviewer
+<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
+
 ```
