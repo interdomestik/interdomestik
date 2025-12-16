@@ -6,7 +6,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { Card } from '@interdomestik/ui/components/card';
 import { FormField, FormItem, FormLabel, FormMessage } from '@interdomestik/ui/components/form';
 import { Badge } from '@interdomestik/ui/components/badge';
-import { FileText, Loader2, ShieldCheck, Trash2, UploadCloud } from 'lucide-react';
+import { AlertTriangle, FileText, Loader2, ShieldCheck, Trash2, UploadCloud } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 
@@ -20,6 +20,18 @@ import { useTranslations } from 'next-intl';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
+const CATEGORY_PROMPTS: Record<string, string[]> = {
+  flight_delay: [
+    'Boarding pass or ticket',
+    'Airline delay/cancellation notice',
+    'Receipts for meals/hotels/transport',
+  ],
+  damaged_goods: ['Photos of damage', 'Purchase receipt or invoice', 'Repair/assessment estimate'],
+  service_issue: ['Contract/invoice', 'Chat/email screenshots', 'Bills or cancellation notice'],
+  travel: ['Itinerary and tickets', 'Photos/videos of incident', 'Receipts for expenses'],
+  default: ['Photos or screenshots', 'Receipts/invoices', 'Any official correspondence'],
+};
 
 function formatSize(bytes: number) {
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -40,6 +52,10 @@ export function WizardStepEvidence() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const files = form.watch('files') ?? [];
+  const category = form.watch('category') || 'default';
+  const promptConfig = (t.raw('prompts') as Record<string, string[]>) || {};
+  const promptList =
+    promptConfig[category] || promptConfig.default || CATEGORY_PROMPTS[category] || CATEGORY_PROMPTS.default;
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files ?? []);
@@ -50,12 +66,12 @@ export function WizardStepEvidence() {
 
     for (const file of selectedFiles) {
       if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-        setError('Only PDF, JPG, or PNG files are allowed.');
+        setError(t('validation.mime'));
         continue;
       }
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        setError('Files must be 10MB or smaller.');
+        setError(t('validation.size'));
         continue;
       }
 
@@ -71,7 +87,7 @@ export function WizardStepEvidence() {
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        setError(payload?.error || 'Failed to prepare upload. Please try again.');
+        setError(payload?.error || t('validation.prepare'));
         continue;
       }
 
@@ -91,7 +107,7 @@ export function WizardStepEvidence() {
 
       if (uploadError) {
         console.error('Upload failed', uploadError);
-        setError('Upload failed. Please try again.');
+        setError(t('validation.upload'));
         continue;
       }
 
@@ -147,6 +163,20 @@ export function WizardStepEvidence() {
         </div>
       </div>
 
+      {promptList?.length ? (
+        <Card className="border border-[hsl(var(--muted))] bg-[hsl(var(--muted))/20]">
+          <div className="p-4 text-left space-y-2">
+            <p className="text-sm font-semibold">{t('promptTitle')}</p>
+            <p className="text-xs text-muted-foreground">{t('promptDescription')}</p>
+            <ul className="text-sm text-muted-foreground list-disc list-inside grid grid-cols-1 sm:grid-cols-2 gap-y-1">
+              {promptList.map(item => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </Card>
+      ) : null}
+
       <Card
         className="border-dashed border-2 p-8 flex flex-col items-center justify-center gap-4 hover:bg-[hsl(var(--muted))]/50 transition-colors cursor-pointer"
         onClick={handleMockUpload}
@@ -177,6 +207,16 @@ export function WizardStepEvidence() {
           className="hidden"
         />
       </Card>
+
+      {files.length === 0 && (
+        <div className="rounded-lg border border-dashed border-[hsl(var(--warning-foreground))]/40 bg-[hsl(var(--warning))]/10 p-3 text-sm text-[hsl(var(--warning-foreground))] flex gap-2">
+          <AlertTriangle className="h-4 w-4 mt-0.5" />
+          <div>
+            <p className="font-medium">{t('emptyWarning.title')}</p>
+            <p className="text-xs text-muted-foreground">{t('emptyWarning.body')}</p>
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

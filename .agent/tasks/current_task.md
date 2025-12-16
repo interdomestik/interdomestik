@@ -1,29 +1,29 @@
 ---
-task_name: "Add tests for evidence uploads"
+task_name: "Prime Claims Experience"
 task_type: "Feature"
 priority: "P1-High"
-estimate: "1d"
+estimate: "3d"
 test_level: "full"
-roadmap_ref: "Storage/PII hygiene"
+roadmap_ref: "Prime Claims Experience"
 branch: "feat/storage-pii-hygiene"
-start_time: "Tue Dec 16 00:05:47 CET 2025"
+start_time: "Tue Dec 16 12:39:21 CET 2025"
 baseline:
   lint: "pass"
   typecheck: "pass"
   tests: "pass"
 ---
 
-# 🚀 Current Task: Add tests for evidence uploads
+# 🚀 Current Task: Prime Claims Experience
 
 ## 📋 10x Context Prompt
 Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>Add tests for evidence uploads</objective>
+  <objective>Prime Claims Experience</objective>
   <type>Feature</type>
   <priority>P1-High</priority>
-  <estimate>1d</estimate>
+  <estimate>3d</estimate>
   <branch>feat/storage-pii-hygiene</branch>
   <constraints>
     - Use @interdomestik/ui components
@@ -35,61 +35,65 @@ Copy the block below to your Agent to start with maximum context:
 </task_definition>
 
 <user_story>
-  As a member uploading evidence, I want the flow covered by automated tests
-  so that secure uploads and claim persistence stay reliable.
+  As a [user type], I want to [action]
+  so that I can [benefit].
 </user_story>
 <acceptance_criteria>
-  - [x] Unit tests cover evidence validator schema and claim action for inserting documents
-  - [x] Playwright E2E exercises claim wizard evidence step (happy path, blocked mime/size)
-  - [x] Tests assert no regression to submission without evidence
+  - [ ] Homepage/hero + footer expose trust strip and tap-to-call/WhatsApp CTAs on mobile/desktop with compliant copy (response <24h, languages, optional “no win, no fee” if approved)
+  - [ ] Claim wizard: category tooltips, evidence prompts by category, client/server mime+size enforcement, privacy badge + SLA message on review/submit, empty-evidence allowed with warning
+  - [ ] /services page explains what/how/benefits/FAQ/contact; contact CTAs functional; flight-delay tile behind feature flag
+  - [ ] Member timeline shows status + next SLA badge; agent view surfaces breached/at-risk items (minimal placeholder if full agent queue not ready)
+  - [ ] Experiment hooks (hero A/B, flight-delay tile, “call me now” microform) gated behind flags without regressions when disabled
 </acceptance_criteria>
 ```
 
 ## 🏗️ Status Tracker
 - [x] **Exploration**: Identify files using `project_map` and `read_files`
 - [x] **Planning**: Create a step-by-step implementation plan
-- [x] **Implementation**: Execute code changes
-- [x] **Verification**: Ran `pnpm --filter @interdomestik/web test:unit --run`, `pnpm type-check`, and `pnpm lint` (Playwright e2e still blocked by Next webserver/pg deps)
+- [ ] **Implementation**: Execute code changes (in progress: hero/footer CTAs, evidence prompts/privacy, services page, SLA badge)
+- [x] **Verification**: Run `pnpm qa` or relevant tests (lint run; existing warnings in unrelated files)
 - [ ] **Documentation**: Update relevant docs if needed
 
 ## 🧪 Testing Checklist
-- [x] Unit tests added: `src/**/*.test.ts`
+- [ ] Unit tests added: `src/**/*.test.ts`
 - [ ] Component tests added: `src/**/*.test.tsx`
-- [x] E2E tests added: `e2e/*.spec.ts`
+- [ ] E2E tests added: `e2e/*.spec.ts`
 - [ ] Tests use factories from `src/test/factories.ts`
-- [x] E2E uses fixtures from `e2e/fixtures/`
-- [ ] Run: `pnpm qa` (includes all)
-- [ ] All tests pass (unit/lint/type-check pass; e2e currently blocked by Next webserver failing to start in Playwright)
+- [ ] E2E uses fixtures from `e2e/fixtures/`
+- [x] Run: `pnpm qa` (QA_SKIP_E2E=true; Stripe check now passes with QA_STRIPE_CUSTOMER_ID)
+- [ ] All tests pass (unit pass; e2e skipped)
 
 ## ✅ Definition of Done
-- [x] All acceptance criteria met
+- [ ] All acceptance criteria met
 - [ ] Tests pass at required level (full)
-- [x] `pnpm lint` passes (or no new errors)
-- [x] `pnpm type-check` passes
-- [x] No regressions from baseline
+- [ ] `pnpm lint` passes (or no new errors)
+- [ ] `pnpm type-check` passes
+- [ ] No regressions from baseline
 - [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
 - [ ] Screenshots added for UI changes (if applicable)
 - [ ] Documentation updated (if applicable)
 - [ ] Code reviewed / self-reviewed
 
 ## 🔗 Related Files
-- apps/web/src/test/
-- apps/web/e2e/
-- apps/web/vitest.config.ts
-- apps/web/playwright.config.ts
-- apps/web/src/lib/validators/claims.test.ts
-- apps/web/src/actions/claims.test.ts
-- apps/web/e2e/evidence.spec.ts
+- apps/web/src/components/claims/
+- apps/web/src/actions/claims.ts
+- apps/web/src/lib/validators/claims.ts
+- packages/database/src/schema.ts (claims table)
+- e2e/claims.spec.ts
+            
+### Manual additions:
+ROADMAP.md PROPOSAL_V2_ENHANCEMENTS.md project-documentation/product-manager-output.md
 
 ## 📂 Active Context
-- apps/web/e2e/evidence.spec.ts
-- apps/web/src/actions/claims.test.ts
-- apps/web/src/lib/validators/claims.test.ts
-- apps/web/e2e/fixtures/auth.fixture.ts
+<!-- Paste file paths or code snippets here as you discover them -->
 
 ## 📝 Implementation Notes
-- E2E attempt (`pnpm --filter @interdomestik/web test:e2e -- --grep Evidence`) failed because Next webserver could not start in Playwright env (Better Auth test users missing + postgres/node built-in modules not bundled for client). Tests remain in repo but are skipped when auth is absent; rerun when env supports Next server with db deps.
-- Latest test run: `pnpm --filter @interdomestik/web test:unit --run`, `pnpm type-check`, `pnpm lint` (lint reports existing warnings in unrelated files; new tests are clean).
+- Implemented contact-rich hero/CTA/footer using `contactInfo` phone/WhatsApp with translations; added trust CTAs.
+- Wizard evidence step now has per-category prompts (t.raw) with mime/size errors localized, empty-evidence warning; review step shows privacy badge + SLA note + consent string.
+- Added `/[locale]/(site)/services/page.tsx` with services breakdown, steps, benefits, FAQ, and contact CTAs; flight-delay tile behind flag.
+- Timeline shows next-SLA badge and at-risk indicator (if >48h since last update) with translations.
+- Lint run: only pre-existing warnings in unrelated files.
+- QA: database ok; Stripe check passes using QA_STRIPE_CUSTOMER_ID; E2E skipped via QA_SKIP_E2E=true to avoid Playwright server timeout.
 
 ## 🔬 QA Baseline (at task start)
 | Metric | Status |
@@ -103,10 +107,10 @@ Copy the block below to your Agent to start with maximum context:
 ## 📝 PR Template (Copy when done)
 ```markdown
 ## What
-Add tests for evidence uploads
+Prime Claims Experience
 
 ## Why
-Storage/PII hygiene
+Prime Claims Experience
 
 ## How
 <!-- Implementation approach -->

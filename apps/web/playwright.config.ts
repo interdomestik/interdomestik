@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 3000;
-const BASE_URL = `http://localhost:${PORT}`;
+const HOST = process.env.PLAYWRIGHT_HOST ?? '127.0.0.1';
+const BASE_URL = `http://${HOST}:${PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
@@ -29,7 +30,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev',
+    // Use webpack dev server (more stable for Playwright) instead of Turbopack default
+    command: 'pnpm exec next dev --webpack --hostname 0.0.0.0 --port 3000',
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

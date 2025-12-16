@@ -47,6 +47,7 @@
     "subtitle": "Ne jemi ndërmjetës dëmesh (jo shërbim emergjent). Trajtojmë ankesat me profesionalizëm — nga kontakti i parë deri në pagesën finale. Aksidente automjetesh, dëme prone, lëndime personale, dhe më shumë.",
     "cta": "Filloni Ankesën",
     "callNow": "Na Telefononi Tani",
+    "whatsappCta": "Chat në WhatsApp",
     "secondaryCta": "Shikoni Çmimet",
     "trustedBy": "Besuar nga qytetarë në të gjithë Ballkanin",
     "responseTime": "Përgjigje brenda <24h",
@@ -222,8 +223,93 @@
       "desc": "Nuk paguani asgjë paraprakisht. Tarifa jonë e shërbimit zbritet vetëm nga kompensimi përfundimtar."
     }
   },
+  "servicesPage": {
+    "badge": "Eksperienca Prime e Ankesave",
+    "title": "Shihni çfarë zgjidhim dhe si punojmë",
+    "subtitle": "Aksidente automjetesh, dëme prone, probleme shërbimesh, mosmarrëveshje punësimi/konsumatori — ekspertë lokalë në shqip/anglisht, përgjigje e shpejtë dhe ruajtje e sigurt e provave.",
+    "startClaim": "Fillo ankesën",
+    "whatsapp": "Chat në WhatsApp",
+    "whatWeSolve": "Çfarë zgjidhim",
+    "casesTitle": "Rastet kryesore që trajtojmë",
+    "casesSubtitle": "Zgjidh kategorinë; ne të udhëzojmë me provat e sakta dhe hapat në vijim.",
+    "cases": [
+      { "title": "Automjete & Trafik", "description": "Përplasje, dëme nga palë të treta, goditje-dhe-ikje, mosmarrëveshje me qira." },
+      { "title": "Prona & Banesa", "description": "Zjarri/përmbytje/vjedhje, mosmarrëveshje me qiradhënësit, garancia e depozitës." },
+      { "title": "Shërbime & Komunale", "description": "Fatura ISP/telekom, ndërprerje, cilësia e shërbimit apo kontraktorëve." },
+      { "title": "Punësim & Konsumator", "description": "Pagat e papaguara, çështje kontrate, mallra me defekt, rimbursime/kthime." }
+    ],
+    "flightDelay": {
+      "title": "Vonesa Fluturimi (EU261)",
+      "description": "E drejtë deri në €600 kompensim për vonesa/anulime.",
+      "cta": "Fillo ankesën e fluturimit"
+    },
+    "howItWorks": "Si funksionon",
+    "stepsTitle": "Shpejtësi & siguri në katër hapa",
+    "steps": [
+      { "title": "Tregona bazat", "description": "Zgjidh kategorinë dhe shto detajet e shpejta." },
+      { "title": "Shto prova", "description": "Ngarko foto/fatura; ne kontrollojmë mime/masë dhe i etikojmë si PII." },
+      { "title": "Rishikim nën 24h", "description": "Sheh statusin + badge SLA në timeline." },
+      { "title": "Ne negociojmë për ty", "description": "Merr përditësime dhe rezultate në aplikacion." }
+    ],
+    "benefits": "Pse të na besoni",
+    "benefitsTitle": "Shpejtësi, siguri, mbështetje",
+    "benefit": {
+      "speed": { "title": "Përgjigje e shpejtë", "description": "Rishikim nën 24h për ankesat e reja; SLA e dukshme në timeline." },
+      "safety": { "title": "Ngarkime të sigurta", "description": "URL të nënshkruara, kontroll mime/masash, ruajtje me shenjë PII, njoftim privatësie në rishikim." },
+      "people": { "title": "Ekspertë vendorë", "description": "Ndërmjetës dëmesh nga Ballkani me mbështetje shqip/anglisht dhe opsione kontakti të qarta." }
+    },
+    "faqTitle": "Pyetje të shpeshta",
+    "faq": [
+      { "question": "A duhet patjetër provë për të nisur?", "answer": "Mund të dërgoni pa prova, por rezultati është më i shpejtë me fatura/foto. Shtoji tani ose më vonë." },
+      { "question": "Sa shpejt përgjigjeni?", "answer": "Synojmë nën 24h për ankesat e reja. SLA shfaqet në timeline." },
+      { "question": "A janë të sigurta të dhënat e mia?", "answer": "Po. URL të nënshkruara, kontrolle mime/masash, ruajtje me shenjë PII dhe njoftim privatësie në rishikim." },
+      { "question": "A ofroni pa fitim, pa pagesë?", "answer": "Kur është e zbatueshme dhe në përputhje. Shih hero/footer dhe çmimet për ofertat aktuale." }
+    ],
+    "contactTitle": "Preferoni të flisni?",
+    "contactSubtitle": "Telefononi ose shkruani në WhatsApp, ose nisni ankesën online dhe ne ju kontaktojmë."
+  },
   "evidence": {
-    "tooltip": "Dëshmia e qartë rrit mundësinë tuaj për sukses me 40%. Përfshini çdo Raport Policie ose Faturë Mjekësore."
+    "tooltip": "Dëshmia e qartë rrit mundësinë tuaj për sukses me 40%. Përfshini çdo raport policie ose faturë mjekësore.",
+    "promptTitle": "Shto këto për përgjigje më të shpejtë",
+    "promptDescription": "Zgjidh disa nga këto dokumente për ta nisur shpejt.",
+    "prompts": {
+      "flight_delay": [
+        "Bileta ose boarding pass",
+        "Njoftimi i vonesës/anulimit nga linja",
+        "Fatura për ushqim/hotel/transport"
+      ],
+      "damaged_goods": [
+        "Foto të dëmit",
+        "Faturë ose kupon blerjeje",
+        "Vlerësim ose preventiv riparimi"
+      ],
+      "service_issue": [
+        "Kontratë ose faturë",
+        "Screenshote bisedash/email",
+        "Fatura ose njoftim anulimi"
+      ],
+      "travel": [
+        "Itinerari dhe biletat",
+        "Foto/video të incidentit",
+        "Fatura për shpenzime"
+      ],
+      "default": ["Foto ose screenshote", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
+    },
+    "validation": {
+      "mime": "Lejohen vetëm PDF, JPG ose PNG.",
+      "size": "Skedarët duhet të jenë 10MB ose më pak.",
+      "prepare": "Dështoi përgatitja e ngarkimit. Provo sërish.",
+      "upload": "Ngarkimi dështoi. Provo sërish."
+    },
+    "emptyWarning": {
+      "title": "Mund të dërgoni pa dëshmi",
+      "body": "Por ankesa lëviz më shpejt me fatura apo foto. Shtoji tani ose më vonë."
+    },
+    "privacyBadgeTitle": "Të dhënat tuaja mbeten private",
+    "privacyBadge": "Skedarë me shenjë PII, URL të nënshkruara, të enkriptuara në transit.",
+    "slaTitle": "SLA e përgjigjes",
+    "slaCopy": "Përgjigjemi brenda 24h për kërkesat e reja.",
+    "consent": "Duke dërguar, pranoni Kushtet e Shërbimit dhe Politikën e Privatësisë."
   },
   "settings": {
     "title": "Cilësimet",
@@ -282,6 +368,11 @@
     "compensationWon": "Kompensim i Fituar",
     "successRate": "Shkalla e Suksesit",
     "responseTime": "Përgjigja e Parë"
+  },
+  "timeline": {
+    "nextSla": "SLA tjetër: {target}",
+    "atRisk": "Kërkon vëmendje",
+    "updatedAt": "Përditësuar: {date}"
   },
   "claimCategories": {
     "title": "Me Çfarë Mund t'Ju Ndihmojmë?",

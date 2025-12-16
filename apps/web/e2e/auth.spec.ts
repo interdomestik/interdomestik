@@ -100,7 +100,7 @@ test.describe('Authentication', () => {
       await page.waitForTimeout(1000);
 
       // Should be redirected to login or home
-      expect(page.url()).toMatch(/(login|\/en\/?$|\/sq\/?$)/);
+      expect(page.url()).toMatch(/(login|auth\/sign-in|\/en\/?$|\/sq\/?$)/);
     });
   });
 
@@ -113,7 +113,7 @@ test.describe('Authentication', () => {
 
       if (currentUrl.includes('register')) {
         await expect(page.locator('input[name="email"], input[type="email"]')).toBeVisible();
-        await expect(page.locator('input[name="password"], input[type="password"]')).toBeVisible();
+        await expect(page.locator('input[name="password"], input[type="password"]').first()).toBeVisible();
         await expect(page.locator('button[type="submit"]')).toBeVisible();
       }
     });

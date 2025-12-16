@@ -11,6 +11,7 @@ import {
   Scale,
   XCircle,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type ClaimStatus =
   | 'draft'
@@ -68,8 +69,10 @@ const PHASES = [
 ];
 
 export function ClaimTimeline({ status, updatedAt }: ClaimTimelineProps) {
+  const t = useTranslations('timeline');
   // If rejected, we show a special state but map it to 'resolved' visually or distinct
   const isRejected = status === 'rejected';
+  const updatedAtDate = updatedAt instanceof Date ? updatedAt : new Date(updatedAt);
 
   // Find current phase index
   // Note: 'draft' is before submission (-1)
@@ -77,11 +80,26 @@ export function ClaimTimeline({ status, updatedAt }: ClaimTimelineProps) {
   if (status === 'draft') currentIndex = -1;
   if (isRejected) currentIndex = PHASES.length - 1; // Show formatted as final but red
 
+  // SLA placeholder: mark at-risk if last update older than 48h and not resolved/rejected
+  const hoursSinceUpdate = (Date.now() - updatedAtDate.getTime()) / (1000 * 60 * 60);
+  const isAtRisk = hoursSinceUpdate > 48 && !['resolved', 'rejected'].includes(status);
+
   // Handle distinct "Court" skipping logic later if needed
   // For now, linear progress
 
   return (
     <div className="relative">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
+          <Clock className="h-4 w-4 text-[hsl(var(--primary))]" />
+          <span>{t('nextSla', { target: '<24h' })}</span>
+        </div>
+        {isAtRisk && (
+          <span className="text-xs px-2 py-1 rounded-full bg-[hsl(var(--destructive))]/10 text-[hsl(var(--destructive))]">
+            {t('atRisk')}
+          </span>
+        )}
+      </div>
       <div className="absolute left-4 top-0 h-full w-0.5 bg-[hsl(var(--muted))]" />
 
       <div className="space-y-8">
@@ -91,18 +109,13 @@ export function ClaimTimeline({ status, updatedAt }: ClaimTimelineProps) {
           const isCurrent = index === currentIndex;
 
           let stateColor = 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]';
-          let lineColor = 'border-[hsl(var(--muted))]';
 
           if (isCompleted) {
             stateColor = 'bg-[hsl(var(--primary))] text-white';
-            lineColor = 'border-[hsl(var(--primary))]';
           } else if (isCurrent) {
             stateColor = isRejected
               ? 'bg-[hsl(var(--destructive))] text-white'
               : 'bg-[hsl(var(--primary))] text-white';
-            lineColor = isRejected
-              ? 'border-[hsl(var(--destructive))]'
-              : 'border-[hsl(var(--primary))]';
           }
 
           return (
@@ -149,7 +162,7 @@ export function ClaimTimeline({ status, updatedAt }: ClaimTimelineProps) {
                 {isCurrent && (
                   <span className="mt-1 flex items-center text-xs text-[hsl(var(--muted-foreground))]">
                     <Clock className="mr-1 h-3 w-3" />
-                    Last updated: {updatedAt.toLocaleDateString()}
+                    {t('updatedAt', { date: updatedAtDate.toLocaleDateString() })}
                   </span>
                 )}
               </div>

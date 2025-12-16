@@ -1,9 +1,12 @@
 import { spawn } from 'child_process';
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const REPO_ROOT = path.resolve(__dirname, '..', '..');
+dotenv.config({ path: path.join(REPO_ROOT, '.env') });
 
 const serverPath = path.resolve(__dirname, 'src/index.ts');
 const server = spawn('npx', ['tsx', serverPath], {
@@ -78,14 +81,19 @@ setTimeout(() => {
     );
   }, 500);
 
-  // Test Run: Stripe (Fast check)
+  // Test Run: Stripe (Fast check) - optional
   setTimeout(() => {
+    const stripeCustomer = process.env.QA_STRIPE_CUSTOMER_ID || process.env.STRIPE_TEST_CUSTOMER_ID;
+    if (!stripeCustomer) {
+      console.log('\n--- TESTING STRIPE via MCP (skipped: set QA_STRIPE_CUSTOMER_ID) ---\n');
+      return;
+    }
     console.log('\n--- TESTING STRIPE via MCP ---\n');
     sendRequest(
       'tools/call',
       {
         name: 'get_stripe_resource',
-        arguments: { resource: 'customers', id: 'cus_invalid_test_id' },
+        arguments: { resource: 'customers', id: stripeCustomer },
       },
       103
     );
@@ -98,8 +106,17 @@ setTimeout(() => {
     sendRequest('tools/call', { name: 'read_files', arguments: { files: ['package.json'] } }, 105);
   }, 1500);
 
-  // Test Run: E2E Tests (Delayed to let Unit tests finish likely)
+  // Test Run: E2E Tests (Delayed to let Unit tests finish likely) - optional
   setTimeout(() => {
+    if (process.env.QA_SKIP_E2E === 'true') {
+      console.log('\n--- STARTING E2E TESTS via MCP (skipped: QA_SKIP_E2E=true) ---\n');
+      return;
+    }
+    const shouldRunE2E = process.env.QA_RUN_E2E === 'true';
+    if (!shouldRunE2E) {
+      console.log('\n--- STARTING E2E TESTS via MCP (skipped: set QA_RUN_E2E=true to run) ---\n');
+      return;
+    }
     console.log('\n--- STARTING E2E TESTS via MCP ---\n');
     sendRequest(
       'tools/call',

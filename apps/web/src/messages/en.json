@@ -47,6 +47,7 @@
     "subtitle": "We are claim adjusters (not emergency services). We handle your damage claims professionally—from first contact to final payout. Vehicle accidents, property damage, personal injury, and more.",
     "cta": "Start Your Claim",
     "callNow": "Call Us Now",
+    "whatsappCta": "Chat on WhatsApp",
     "secondaryCta": "View Pricing",
     "trustedBy": "Trusted by citizens across the Balkans",
     "responseTime": "Response in <24h",
@@ -212,8 +213,93 @@
       "desc": "You pay nothing upfront. Our service fee is deducted only from the final compensation."
     }
   },
+  "servicesPage": {
+    "badge": "Prime Claims Experience",
+    "title": "See exactly what we solve and how we work",
+    "subtitle": "Vehicle accidents, property damage, service issues, employment/consumer disputes — local experts in Albanian/English, fast response, and secure evidence handling.",
+    "startClaim": "Start your claim",
+    "whatsapp": "Chat on WhatsApp",
+    "whatWeSolve": "What we solve",
+    "casesTitle": "Top cases we handle",
+    "casesSubtitle": "Pick your category; we’ll guide you with the right evidence and next steps.",
+    "cases": [
+      { "title": "Vehicle & Traffic", "description": "Collisions, third-party damage, hit-and-run, rental disputes." },
+      { "title": "Property & Housing", "description": "Fire/flood/theft damage, landlord disputes, deposit issues." },
+      { "title": "Services & Utilities", "description": "Telecom/ISP billing, utilities outages, contractor/service quality issues." },
+      { "title": "Employment & Consumer", "description": "Unpaid wages, contract issues, defective goods, refunds/returns." }
+    ],
+    "flightDelay": {
+      "title": "Flight Delay (EU261)",
+      "description": "Eligible for up to €600 compensation on delays/cancellations.",
+      "cta": "Start flight delay claim"
+    },
+    "howItWorks": "How it works",
+    "stepsTitle": "Speed & safety in four steps",
+    "steps": [
+      { "title": "Tell us the basics", "description": "Pick a category and add quick details." },
+      { "title": "Add evidence", "description": "Upload photos/receipts; we validate mime/size and tag PII." },
+      { "title": "We review in <24h", "description": "You see status + SLA badge on your timeline." },
+      { "title": "We negotiate for you", "description": "You get updates and outcomes in-app." }
+    ],
+    "benefits": "Why trust us",
+    "benefitsTitle": "Speed, safety, support",
+    "benefit": {
+      "speed": { "title": "Fast response", "description": "Under-24h review on new submissions; SLA visible in your timeline." },
+      "safety": { "title": "PII-safe uploads", "description": "Signed URLs, allowed mime/size, PII-tagged storage, privacy badge in review." },
+      "people": { "title": "Local experts", "description": "Balkan claim adjusters with Albanian/English support and clear contact options." }
+    },
+    "faqTitle": "FAQs",
+    "faq": [
+      { "question": "Do I need evidence to start?", "answer": "You can submit without evidence, but outcomes are faster with receipts/photos. Add now or later." },
+      { "question": "How fast do you respond?", "answer": "We target under 24h for new claims. SLA appears in your timeline." },
+      { "question": "Is my data safe?", "answer": "Yes. Signed URLs, mime/size checks, PII-tagged storage, and privacy notice in review." },
+      { "question": "Do you offer no win, no fee?", "answer": "Where applicable and compliant. Check the hero/footer and pricing for current offers." }
+    ],
+    "contactTitle": "Prefer to talk?",
+    "contactSubtitle": "Call or WhatsApp us, or start the claim online and we’ll follow up."
+  },
   "evidence": {
-    "tooltip": "Clear evidence increases your chance of success by 40%. Include any Police Reports or Medical Invoices."
+    "tooltip": "Clear evidence increases your chance of success by 40%. Include any Police Reports or Medical Invoices.",
+    "promptTitle": "Add these for faster results",
+    "promptDescription": "Pick a couple of items below so we can start quickly.",
+    "prompts": {
+      "flight_delay": [
+        "Boarding pass or ticket",
+        "Airline delay/cancellation notice",
+        "Receipts for meals/hotels/transport"
+      ],
+      "damaged_goods": [
+        "Photos of damage",
+        "Purchase receipt or invoice",
+        "Repair/assessment estimate"
+      ],
+      "service_issue": [
+        "Contract or invoice",
+        "Chat/email screenshots",
+        "Bills or cancellation notice"
+      ],
+      "travel": [
+        "Itinerary and tickets",
+        "Photos/videos of incident",
+        "Receipts for expenses"
+      ],
+      "default": ["Photos or screenshots", "Receipts/invoices", "Any official correspondence"]
+    },
+    "validation": {
+      "mime": "Only PDF, JPG, or PNG files are allowed.",
+      "size": "Files must be 10MB or smaller.",
+      "prepare": "Failed to prepare upload. Please try again.",
+      "upload": "Upload failed. Please try again."
+    },
+    "emptyWarning": {
+      "title": "You can submit without evidence",
+      "body": "But your claim moves faster with receipts or photos. Add them now or later."
+    },
+    "privacyBadgeTitle": "Your data stays private",
+    "privacyBadge": "PII-tagged files, signed URLs, encrypted in transit.",
+    "slaTitle": "Response SLA",
+    "slaCopy": "We respond in under 24h on new submissions.",
+    "consent": "By submitting, you agree to our Terms of Service and Privacy Policy."
   },
   "settings": {
     "title": "Settings",
@@ -272,6 +358,11 @@
     "compensationWon": "Compensation Won",
     "successRate": "Success Rate",
     "responseTime": "First Response"
+  },
+  "timeline": {
+    "nextSla": "Next SLA: {target}",
+    "atRisk": "Needs attention",
+    "updatedAt": "Last updated: {date}"
   },
   "claimCategories": {
     "title": "What Can We Help You With?",

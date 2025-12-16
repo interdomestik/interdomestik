@@ -1,6 +1,6 @@
 import { Link } from '@/i18n/routing';
-import { flags } from '@/lib/flags';
 import { contactInfo } from '@/lib/contact';
+import { flags } from '@/lib/flags';
 import { Button } from '@interdomestik/ui';
 import {
   ArrowRight,
@@ -59,6 +59,8 @@ export default async function HomePage({ params }: Props) {
 function Header() {
   const t = useTranslations('nav');
   const common = useTranslations('common');
+  const { phone, whatsapp } = contactInfo;
+  const telHref = phone ? `tel:${phone.replace(/\\s+/g, '')}` : undefined;
 
   return (
     <header className="sticky top-0 z-50 glass-card border-b">
@@ -96,13 +98,25 @@ function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {/* Mobile Call Button */}
-          <a
-            href="tel:+38349900600"
-            className="md:hidden flex items-center justify-center h-9 w-9 rounded-full bg-[hsl(var(--success))] text-white"
-          >
-            <Phone className="h-4 w-4" />
-          </a>
+          {/* Mobile Contact Buttons */}
+          {telHref && (
+            <a
+              href={telHref}
+              className="md:hidden flex items-center justify-center h-9 w-9 rounded-full bg-[hsl(var(--success))] text-white"
+            >
+              <Phone className="h-4 w-4" />
+              <span className="sr-only">{phone}</span>
+            </a>
+          )}
+          {whatsapp && (
+            <a
+              href={whatsapp}
+              className="md:hidden flex items-center justify-center h-9 w-9 rounded-full bg-[hsl(var(--primary))] text-white"
+            >
+              <MessageCircle className="h-4 w-4" />
+              <span className="sr-only">WhatsApp</span>
+            </a>
+          )}
           <Link href="/login">
             <Button variant="ghost" size="sm">
               {t('login')}
@@ -120,6 +134,8 @@ function Header() {
 function HeroSection() {
   const t = useTranslations('hero');
   const slaEnabled = flags.responseSla;
+  const { phone, whatsapp } = contactInfo;
+  const telHref = phone ? `tel:${phone.replace(/\\s+/g, '')}` : undefined;
 
   return (
     <section className="relative py-16 lg:py-28 overflow-hidden">
@@ -155,12 +171,22 @@ function HeroSection() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <a href="tel:+38349900600">
-              <Button variant="outline" size="xl" className="w-full sm:w-auto gap-2">
-                <Phone className="h-5 w-5" />
-                {t('callNow')}
-              </Button>
-            </a>
+            {whatsapp && (
+              <a href={whatsapp} className="w-full sm:w-auto">
+                <Button variant="secondary" size="xl" className="w-full sm:w-auto gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  {t('whatsappCta')}
+                </Button>
+              </a>
+            )}
+            {telHref && (
+              <a href={telHref} className="w-full sm:w-auto">
+                <Button variant="outline" size="xl" className="w-full sm:w-auto gap-2">
+                  <Phone className="h-5 w-5" />
+                  {phone}
+                </Button>
+              </a>
+            )}
           </div>
 
           {/* Trust indicators */}
@@ -428,6 +454,8 @@ function PricingSection() {
 
 function CTASection() {
   const t = useTranslations('hero');
+  const { phone, whatsapp } = contactInfo;
+  const telHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
 
   return (
     <section className="py-20 brand-gradient">
@@ -447,16 +475,30 @@ function CTASection() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
-          <a href="tel:+38349900600">
-            <Button
-              size="xl"
-              variant="outline"
-              className="border-white text-white hover:bg-white/10"
-            >
-              <Phone className="mr-2 h-5 w-5" />
-              049 900 600
-            </Button>
-          </a>
+          {whatsapp && (
+            <a href={whatsapp}>
+              <Button
+                size="xl"
+                variant="secondary"
+                className="bg-white text-[hsl(var(--primary))] hover:bg-white/90 border-white gap-2"
+              >
+                <MessageCircle className="h-5 w-5" />
+                {t('whatsappCta')}
+              </Button>
+            </a>
+          )}
+          {telHref && (
+            <a href={telHref}>
+              <Button
+                size="xl"
+                variant="outline"
+                className="border-white text-white hover:bg-white/10 gap-2"
+              >
+                <Phone className="mr-2 h-5 w-5" />
+                {phone}
+              </Button>
+            </a>
+          )}
         </div>
       </div>
     </section>

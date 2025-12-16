@@ -3,10 +3,12 @@
 import type { CreateClaimValues } from '@/lib/validators/claims';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Separator } from '@interdomestik/ui/components/separator';
-import { ShieldCheck } from 'lucide-react';
+import { Clock, ShieldCheck } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useFormContext } from 'react-hook-form';
 
 export function WizardReview() {
+  const t = useTranslations('evidence');
   const form = useFormContext<CreateClaimValues>();
   const values = form.getValues();
 
@@ -55,14 +57,24 @@ export function WizardReview() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
-        <ShieldCheck className="h-4 w-4" />
-        <span>Your data is encrypted and securely processed.</span>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="flex items-start gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm">
+          <ShieldCheck className="h-4 w-4 mt-0.5" />
+          <div>
+            <p className="font-semibold text-[hsl(var(--primary))]">{t('privacyBadgeTitle')}</p>
+            <p className="text-xs text-[hsl(var(--muted-600))]">{t('privacyBadge')}</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2 p-3 bg-[hsl(var(--muted))]/30 text-[hsl(var(--muted-900))] rounded-lg text-sm">
+          <Clock className="h-4 w-4 mt-0.5" />
+          <div>
+            <p className="font-semibold">{t('slaTitle')}</p>
+            <p className="text-xs text-[hsl(var(--muted-600))]">{t('slaCopy')}</p>
+          </div>
+        </div>
       </div>
 
-      <p className="text-xs text-muted-foreground text-center">
-        By submitting, you agree to our Terms of Service and Privacy Policy.
-      </p>
+      <p className="text-xs text-muted-foreground text-center">{t('consent')}</p>
     </div>
   );
 }
