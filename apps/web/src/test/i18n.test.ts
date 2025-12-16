@@ -12,7 +12,13 @@ import { describe, expect, it } from 'vitest';
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type TranslationValue = string | string[] | { [key: string]: TranslationValue };
+type TranslationValue =
+  | string
+  | number
+  | boolean
+  | null
+  | TranslationValue[]
+  | { [key: string]: TranslationValue };
 type TranslationObject = { [key: string]: TranslationValue };
 
 /**

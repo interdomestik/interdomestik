@@ -4,7 +4,7 @@
  * End-to-end tests for authentication flows including login, logout, and registration.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, isLoggedIn, test } from './fixtures/auth.fixture';
 
 test.describe('Authentication', () => {
   test.describe('Login Page', () => {
@@ -102,6 +102,16 @@ test.describe('Authentication', () => {
       // Should be redirected to login or home
       expect(page.url()).toMatch(/(login|auth\/sign-in|\/en\/?$|\/sq\/?$)/);
     });
+
+    test('should allow dashboard when authenticated fixture is used', async ({
+      authenticatedPage,
+    }) => {
+      await authenticatedPage.goto('/dashboard');
+      await authenticatedPage.waitForTimeout(500);
+      expect(authenticatedPage.url()).not.toMatch(/login/);
+      const loggedIn = await isLoggedIn(authenticatedPage);
+      expect(loggedIn).toBeTruthy();
+    });
   });
 
   test.describe('Register Page', () => {
@@ -113,7 +123,9 @@ test.describe('Authentication', () => {
 
       if (currentUrl.includes('register')) {
         await expect(page.locator('input[name="email"], input[type="email"]')).toBeVisible();
-        await expect(page.locator('input[name="password"], input[type="password"]').first()).toBeVisible();
+        await expect(
+          page.locator('input[name="password"], input[type="password"]').first()
+        ).toBeVisible();
         await expect(page.locator('button[type="submit"]')).toBeVisible();
       }
     });

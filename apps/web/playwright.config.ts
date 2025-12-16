@@ -1,11 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 3000;
-const HOST = process.env.PLAYWRIGHT_HOST ?? '127.0.0.1';
+const HOST = process.env.PLAYWRIGHT_HOST ?? 'localhost';
 const BASE_URL = `http://${HOST}:${PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

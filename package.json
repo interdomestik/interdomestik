@@ -16,12 +16,16 @@
     "db:generate": "turbo db:generate",
     "db:push": "pnpm --filter @interdomestik/database db:push",
     "db:studio": "pnpm --filter @interdomestik/database db:studio",
+    "e2e:seed": "node scripts/seed-e2e-users.mjs",
     "qa": "pnpm --filter @interdomestik/qa check",
     "qa:full": "pnpm lint && pnpm type-check && pnpm --filter @interdomestik/web test:unit --run && pnpm --filter @interdomestik/web test:e2e -- --grep smoke",
     "i18n:check": "node scripts/check-i18n.mjs",
     "smoke-test": "node scripts/smoke-test.mjs"
   },
   "devDependencies": {
+    "oslo": "^1.0.0",
+    "postgres": "^3.4.3",
+    "bcryptjs": "^2.4.3",
     "@types/node": "^22.19.2",
     "prettier": "^3.5.0",
     "turbo": "^2.6.0",

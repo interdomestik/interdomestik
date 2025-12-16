@@ -18,8 +18,8 @@ const nextConfig = {
       },
     ],
   },
-  // Silence Next.js dev origin warning when Playwright hits 127.0.0.1
-  allowedDevOrigins: ['http://127.0.0.1:3000'],
+  // Silence Next.js dev origin warning for local dev and Playwright
+  allowedDevOrigins: ['http://127.0.0.1:3000', 'http://localhost:3000'],
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',

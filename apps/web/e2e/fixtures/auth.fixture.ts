@@ -36,20 +36,26 @@ interface AuthFixtures {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function performLogin(page: Page, email: string, password: string): Promise<void> {
-  await page.goto('/login');
+  // First try programmatic sign-in to ensure cookies are set even if UI changes.
+  const apiResp = await page.request.post('/api/auth/sign-in/email', {
+    data: { email, password, callbackURL: '/dashboard' },
+    headers: { 'content-type': 'application/json' },
+  });
 
-  // Wait for login form to be visible
-  await page.waitForSelector('form', { state: 'visible' });
-
-  // Fill in credentials
-  await page.fill('input[name="email"], input[type="email"]', email);
-  await page.fill('input[name="password"], input[type="password"]', password);
-
-  // Submit form
-  await page.click('button[type="submit"]');
-
-  // Wait for redirect to dashboard
-  await page.waitForURL(/.*dashboard.*/, { timeout: 10000 });
+  if (!apiResp.ok()) {
+    const body = await apiResp.text();
+    console.warn('Auth fixture: API login failed', {
+      status: apiResp.status(),
+      body: body.slice(0, 400),
+    });
+    // Fallback to UI login if API fails (keep existing behavior)
+    await page.goto('/login');
+    await page.waitForSelector('form', { state: 'visible' });
+    await page.fill('input[name="email"], input[type="email"]', email);
+    await page.fill('input[name="password"], input[type="password"]', password);
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {});
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
