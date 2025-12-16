@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CreateClaimValues } from '@/lib/validators/claims';
 import { createClaim, submitClaim, updateClaimStatus } from './claims';
 
 // Mocks
@@ -100,7 +101,7 @@ describe('Claim Actions', () => {
   });
 
   describe('submitClaim', () => {
-    const validPayload = {
+    const validPayload: CreateClaimValues = {
       title: 'Valid title here',
       description: 'This description is long enough to pass validation',
       companyName: 'Company',
@@ -123,13 +124,13 @@ describe('Claim Actions', () => {
     it('should throw if unauthenticated', async () => {
       mockGetSession.mockResolvedValue(null);
 
-      await expect(submitClaim(validPayload as any)).rejects.toThrow('Unauthorized');
+      await expect(submitClaim(validPayload)).rejects.toThrow('Unauthorized');
     });
 
     it('should insert claim and documents when payload is valid', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
 
-      await submitClaim(validPayload as any);
+      await submitClaim(validPayload);
 
       expect(mockDbInsert).toHaveBeenNthCalledWith(
         1,
@@ -154,7 +155,9 @@ describe('Claim Actions', () => {
     it('should insert claim without documents when files are empty', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
 
-      await submitClaim({ ...validPayload, files: [] } as any);
+      const payloadWithoutFiles: CreateClaimValues = { ...validPayload, files: [] };
+
+      await submitClaim(payloadWithoutFiles);
 
       // First insert is claim
       expect(mockDbInsert).toHaveBeenNthCalledWith(

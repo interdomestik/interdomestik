@@ -73,8 +73,8 @@ export const test = base.extend<AuthFixtures>({
       await performLogin(page, TEST_USER.email, TEST_USER.password);
       await use(page);
     } catch (error) {
-      // If login fails, still provide the page but log warning
-      console.warn('Auth fixture: Login failed, providing unauthenticated page');
+      // If login fails, still provide the page but log warning with the error for diagnostics
+      console.warn('Auth fixture: Login failed, providing unauthenticated page', error);
       await use(page);
     }
   },
@@ -95,7 +95,7 @@ export const test = base.extend<AuthFixtures>({
       await performLogin(page, TEST_ADMIN.email, TEST_ADMIN.password);
       await use(page);
     } catch (error) {
-      console.warn('Auth fixture: Admin login failed, providing unauthenticated page');
+      console.warn('Auth fixture: Admin login failed, providing unauthenticated page', error);
       await use(page);
     }
   },

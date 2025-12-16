@@ -49,7 +49,7 @@ Copy the block below to your Agent to start with maximum context:
 - [x] **Exploration**: Identify files using `project_map` and `read_files`
 - [x] **Planning**: Create a step-by-step implementation plan
 - [x] **Implementation**: Execute code changes
-- [ ] **Verification**: Run `pnpm qa` or relevant tests (e2e blocked by Next webserver/pg deps)
+- [x] **Verification**: Ran `pnpm --filter @interdomestik/web test:unit --run`, `pnpm type-check`, and `pnpm lint` (Playwright e2e still blocked by Next webserver/pg deps)
 - [ ] **Documentation**: Update relevant docs if needed
 
 ## 🧪 Testing Checklist
@@ -59,14 +59,14 @@ Copy the block below to your Agent to start with maximum context:
 - [ ] Tests use factories from `src/test/factories.ts`
 - [x] E2E uses fixtures from `e2e/fixtures/`
 - [ ] Run: `pnpm qa` (includes all)
-- [ ] All tests pass (e2e currently blocked by Next webserver failing to start in Playwright)
+- [ ] All tests pass (unit/lint/type-check pass; e2e currently blocked by Next webserver failing to start in Playwright)
 
 ## ✅ Definition of Done
-- [ ] All acceptance criteria met
+- [x] All acceptance criteria met
 - [ ] Tests pass at required level (full)
-- [ ] `pnpm lint` passes (or no new errors)
-- [ ] `pnpm type-check` passes
-- [ ] No regressions from baseline
+- [x] `pnpm lint` passes (or no new errors)
+- [x] `pnpm type-check` passes
+- [x] No regressions from baseline
 - [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
 - [ ] Screenshots added for UI changes (if applicable)
 - [ ] Documentation updated (if applicable)
@@ -89,6 +89,7 @@ Copy the block below to your Agent to start with maximum context:
 
 ## 📝 Implementation Notes
 - E2E attempt (`pnpm --filter @interdomestik/web test:e2e -- --grep Evidence`) failed because Next webserver could not start in Playwright env (Better Auth test users missing + postgres/node built-in modules not bundled for client). Tests remain in repo but are skipped when auth is absent; rerun when env supports Next server with db deps.
+- Latest test run: `pnpm --filter @interdomestik/web test:unit --run`, `pnpm type-check`, `pnpm lint` (lint reports existing warnings in unrelated files; new tests are clean).
 
 ## 🔬 QA Baseline (at task start)
 | Metric | Status |

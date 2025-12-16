@@ -32,6 +32,17 @@
 
 ## 🎯 Complete Feature Breakdown
 
+### 🚀 Near-Term Workstream: Prime Claims Experience (P0/P1)
+- **Goal:** Increase trust and completion for claim intake by modernizing the landing experience, evidence guidance, and SLA transparency.
+- **Scope (initial slice):**
+  - Trust-centered hero and footer safety net (call/WhatsApp CTAs, proof chips, “no win, no fee” where compliant, response <24h).
+  - Guided claim wizard improvements: category tooltips, evidence prompts, mime/size enforcement, privacy badge, SLA statement on review/submit.
+  - `/services` page for clarity and contact (what/how/benefits/FAQ/contact), feature flag for flight-delay tile.
+  - SLA timeline signals in member view (current status + next SLA badge) and agent visibility for breached/at-risk items.
+  - Experiment hooks (hero headline A/B, flight-delay tile flag, “call me now” microform) behind feature flags.
+- **KPIs:** Landing→wizard start rate (+20%), wizard completion (+25%), evidence upload success (>95%), time-to-first-response <24h, CTA interactions (call/WhatsApp) (+15%).
+- **Dependencies:** Legal approval for “no win, no fee” and SLA copy; confirmed phone/WhatsApp; translations (sq/en); storage PII paths and signed URL enforcement; analytics and flagging ready.
+
 ### 1. Core Platform Features
 
 #### 1.1 Member Portal
