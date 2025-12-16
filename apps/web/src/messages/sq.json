@@ -508,21 +508,28 @@
   },
   "wizard": {
     "categories": {
+      "title": "Çfarë lloj ankese është kjo?",
+      "subtitle": "Zgjidhni kategorinë që i përshtatet më mirë çështjes suaj.",
+      "freeConsultation": "✨ Konsultim Falas i Përfshirë",
       "flight_delay": {
         "label": "Vonesë Fluturimi",
-        "description": "Kompensim EU261 deri në €600"
+        "description": "Kompensim EU261 deri në €600",
+        "examples": "Vonesë ose anulim i fluturimit, probleme me bagazhet"
       },
       "damaged_goods": {
         "label": "Mallra të Dëmtuara",
-        "description": "Artikujt mbërritën të thyer ose jo siç përshkruhen"
+        "description": "Artikujt mbërritën të thyer ose jo siç përshkruhen",
+        "examples": "Paketime të dëmtuara, produkte me defekt, dërgesa të gabuara"
       },
       "service_issue": {
         "label": "Problem me Shërbimin",
-        "description": "Shërbim i dobët nga shërbimet komunale, telekomi, etj."
+        "description": "Shërbim i dobët nga shërbimet komunale, telekomi, etj.",
+        "examples": "Ndërprerje interneti, faturim i gabuar, shërbim i pakënaqshëm"
       },
       "other": {
         "label": "Tjetër",
-        "description": "Çdo mosmarrëveshje tjetër e konsumatorit"
+        "description": "Çdo mosmarrëveshje tjetër e konsumatorit",
+        "examples": "Mosmarrëveshje kontraktuale, çështje punësimi, sigurime"
       }
     },
     "details": {

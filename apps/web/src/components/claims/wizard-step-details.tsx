@@ -21,7 +21,7 @@ export function WizardStepDetails() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-      <div className="text-center">
+      <div className="text-center fade-in slide-in-from-right-4 duration-500">
         <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
         <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
       </div>

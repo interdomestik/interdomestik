@@ -524,20 +524,27 @@
     "categories": {
       "flight_delay": {
         "label": "Flight Delay",
-        "description": "EU261 Compensation up to €600"
+        "description": "EU261 Compensation up to €600",
+        "examples": "Vonesë ose anulim i fluturimit, probleme me bagazhet"
       },
       "damaged_goods": {
         "label": "Damaged Goods",
-        "description": "Items arrived broken or not as described"
+        "description": "Items arrived broken or not as described",
+        "examples": "Paketime të dëmtuara, produkte me defekt, dërgesa të gabuara"
       },
       "service_issue": {
         "label": "Service Issue",
-        "description": "Poor service from utilities, telecom, etc."
+        "description": "Poor service from utilities, telecom, etc.",
+        "examples": "Ndërprerje interneti, faturim i gabuar, shërbim i pakënaqshëm"
       },
       "other": {
         "label": "Other",
-        "description": "Any other consumer dispute"
-      }
+        "description": "Any other consumer dispute",
+        "examples": "Mosmarrëveshje kontraktuale, çështje punësimi, sigurime"
+      },
+      "title": "Çfarë lloj ankese është kjo?",
+      "subtitle": "Zgjidhni kategorinë që i përshtatet më mirë çështjes suaj.",
+      "freeConsultation": "✨ Konsultim Falas i Përfshirë"
     },
     "details": {
       "title": "Tell us what happened",

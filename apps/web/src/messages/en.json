@@ -522,21 +522,28 @@
   },
   "wizard": {
     "categories": {
+      "title": "What type of claim is this?",
+      "subtitle": "Select the category that best fits your issue.",
+      "freeConsultation": "✨ Free Consultation Included",
       "flight_delay": {
         "label": "Flight Delay",
-        "description": "EU261 Compensation up to €600"
+        "description": "EU261 Compensation up to €600",
+        "examples": "Flight delay or cancellation, lost baggage"
       },
       "damaged_goods": {
         "label": "Damaged Goods",
-        "description": "Items arrived broken or not as described"
+        "description": "Items arrived broken or not as described",
+        "examples": "Damaged packaging, defective products, wrong item"
       },
       "service_issue": {
         "label": "Service Issue",
-        "description": "Poor service from utilities, telecom, etc."
+        "description": "Poor service from utilities, telecom, etc.",
+        "examples": "Internet outage, billing errors, rude service"
       },
       "other": {
         "label": "Other",
-        "description": "Any other consumer dispute"
+        "description": "Any other consumer dispute",
+        "examples": "Contract disputes, employment issues, insurance"
       }
     },
     "details": {
