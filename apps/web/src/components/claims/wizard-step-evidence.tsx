@@ -2,10 +2,10 @@
 
 import type { CreateClaimValues, EvidenceFile } from '@/lib/validators/claims';
 import { createClient } from '@interdomestik/database/client';
+import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card } from '@interdomestik/ui/components/card';
 import { FormField, FormItem, FormLabel, FormMessage } from '@interdomestik/ui/components/form';
-import { Badge } from '@interdomestik/ui/components/badge';
 import { AlertTriangle, FileText, Loader2, ShieldCheck, Trash2, UploadCloud } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
@@ -55,7 +55,10 @@ export function WizardStepEvidence() {
   const category = form.watch('category') || 'default';
   const promptConfig = (t.raw('prompts') as Record<string, string[]>) || {};
   const promptList =
-    promptConfig[category] || promptConfig.default || CATEGORY_PROMPTS[category] || CATEGORY_PROMPTS.default;
+    promptConfig[category] ||
+    promptConfig.default ||
+    CATEGORY_PROMPTS[category] ||
+    CATEGORY_PROMPTS.default;
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files ?? []);
@@ -144,9 +147,9 @@ export function WizardStepEvidence() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight">Add Evidence</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
         <div className="flex items-center justify-center gap-2 mt-2">
-          <p className="text-muted-foreground">Upload receipts, tickets, or photos.</p>
+          <p className="text-muted-foreground">{t('subtitle')}</p>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
@@ -185,12 +188,12 @@ export function WizardStepEvidence() {
           <UploadCloud className="h-8 w-8 text-[hsl(var(--muted-foreground))]" />
         </div>
         <div className="text-center">
-          <p className="font-medium">Click to upload files</p>
-          <p className="text-sm text-muted-foreground">PDF, JPG, or PNG up to 10MB</p>
+          <p className="font-medium">{t('upload.cta')}</p>
+          <p className="text-sm text-muted-foreground">{t('upload.sub')}</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <ShieldCheck className="h-4 w-4 text-[hsl(var(--primary))]" />
-          <span>Signed URL uploads · PII-tagged storage</span>
+          <span>{t('upload.secure')}</span>
         </div>
         {isUploading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

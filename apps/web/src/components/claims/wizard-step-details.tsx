@@ -13,14 +13,17 @@ import { Input } from '@interdomestik/ui/components/input';
 import { Textarea } from '@interdomestik/ui/components/textarea';
 import { useFormContext } from 'react-hook-form';
 
+import { useTranslations } from 'next-intl';
+
 export function WizardStepDetails() {
   const form = useFormContext<CreateClaimValues>();
+  const t = useTranslations('wizard.details');
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight">Tell us what happened</h2>
-        <p className="text-muted-foreground mt-2">Details help us process your claim faster.</p>
+        <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
+        <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
       </div>
 
       <div className="grid gap-6">
@@ -29,11 +32,11 @@ export function WizardStepDetails() {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Claim Title</FormLabel>
+              <FormLabel>{t('claim_title')}</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Flight delay to Berlin" {...field} />
+                <Input placeholder={t('claim_title_placeholder')} {...field} />
               </FormControl>
-              <FormDescription>A short summary of the issue.</FormDescription>
+              <FormDescription>{t('claim_title_desc')}</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -44,9 +47,9 @@ export function WizardStepDetails() {
           name="companyName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Company Name</FormLabel>
+              <FormLabel>{t('company')}</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Lufthansa, Zara, VK Egnatia" {...field} />
+                <Input placeholder={t('company_placeholder')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -59,7 +62,7 @@ export function WizardStepDetails() {
             name="claimAmount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Amount (Optional)</FormLabel>
+                <FormLabel>{t('amount')}</FormLabel>
                 <FormControl>
                   <Input type="number" placeholder="200" {...field} />
                 </FormControl>
@@ -72,7 +75,7 @@ export function WizardStepDetails() {
             name="currency"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Currency</FormLabel>
+                <FormLabel>{t('currency')}</FormLabel>
                 <FormControl>
                   <Input placeholder="EUR" disabled {...field} />
                 </FormControl>
@@ -87,7 +90,7 @@ export function WizardStepDetails() {
           name="incidentDate"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Date of Incident</FormLabel>
+              <FormLabel>{t('date')}</FormLabel>
               <FormControl>
                 <Input type="date" {...field} />
               </FormControl>
@@ -101,10 +104,10 @@ export function WizardStepDetails() {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t('description')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Describe exactly what happened..."
+                  placeholder={t('description_placeholder')}
                   className="min-h-[120px]"
                   {...field}
                 />

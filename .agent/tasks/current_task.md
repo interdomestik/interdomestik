@@ -21,7 +21,17 @@ Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>Build Agent Workspace MVP</objective>
+  <objective>Fix Database Schema & Complete Regionalization</objective>
+  <status>In Progress</status>
+  <type>Chore</type>
+  <priority>P1-High</priority>
+  <acceptance_criteria>
+    - drizzle-kit push runs successfully without errors
+    - Schema is fully synced with database
+    - Agent workspace is fully translated in Albanian (sq.json)
+    - Re-enable document fetching in Agent Detail page
+  </acceptance_criteria>
+</task_definition>
   <type>Feature</type>
   <priority>P1-High</priority>
   <estimate>3d</estimate>

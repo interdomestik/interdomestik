@@ -7,5 +7,5 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL!,
   },
-  tablesFilter: ['user', 'session', 'account', 'verification', 'claim'],
+  tablesFilter: ['user', 'session', 'account', 'verification', 'claim', 'claim_documents', 'leads'],
 });

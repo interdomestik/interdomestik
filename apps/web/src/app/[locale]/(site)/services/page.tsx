@@ -4,8 +4,7 @@ import { flags } from '@/lib/flags';
 import { Button } from '@interdomestik/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { MessageCircle, Phone, ShieldCheck } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -14,7 +13,7 @@ type Props = {
 export default async function ServicesPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = useTranslations('servicesPage');
+  const t = await getTranslations('servicesPage');
   const { phone, whatsapp } = contactInfo;
   const telHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
 
@@ -48,7 +47,11 @@ export default async function ServicesPage({ params }: Props) {
             )}
             {telHref && (
               <a href={telHref}>
-                <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2 text-white border-white">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto gap-2 text-white border-white"
+                >
                   <Phone className="h-4 w-4" />
                   {phone}
                 </Button>
@@ -65,7 +68,9 @@ export default async function ServicesPage({ params }: Props) {
               {t('whatWeSolve')}
             </p>
             <h2 className="text-3xl font-display font-bold mt-2">{t('casesTitle')}</h2>
-            <p className="text-[hsl(var(--muted-500))] max-w-2xl mx-auto mt-2">{t('casesSubtitle')}</p>
+            <p className="text-[hsl(var(--muted-500))] max-w-2xl mx-auto mt-2">
+              {t('casesSubtitle')}
+            </p>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             {cases.map(item => (

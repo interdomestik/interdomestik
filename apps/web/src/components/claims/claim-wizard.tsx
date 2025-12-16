@@ -114,18 +114,24 @@ export function ClaimWizard() {
               onClick={prevStep}
               disabled={currentStep === 0 || isSubmitting}
               className={currentStep === 0 ? 'invisible' : ''}
+              data-testid="wizard-back"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
 
             {currentStep < STEPS.length - 1 ? (
-              <Button type="button" onClick={nextStep}>
+              <Button type="button" onClick={nextStep} data-testid="wizard-next">
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button type="submit" disabled={isSubmitting} className="min-w-[140px]">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="min-w-[140px]"
+                data-testid="wizard-submit"
+              >
                 {isSubmitting ? (
                   <>Processing...</>
                 ) : (

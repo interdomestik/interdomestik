@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/comp
 import { FormControl, FormField, FormItem, FormMessage } from '@interdomestik/ui/components/form';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { Package, Plane, RefreshCw, Wrench } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { CallMeNowDialog } from './call-me-now-dialog';
@@ -45,17 +46,19 @@ export function WizardStepCategory() {
     }
   }, []);
 
+  const t = useTranslations('wizard.categories');
+
   const visibleCategories = categories.filter(cat => {
     if (cat.id === 'flight_delay') return flags.flightDelay;
     return true;
   });
 
-  const handleSelect = (id: string) => {
+  const handleSelect = (id: (typeof categories)[number]['id']) => {
     analytics.track('claim_category_selected', { category: id });
     if (id === 'flight_delay') {
       analytics.track('flight_delay_tile_clicked');
     }
-    form.setValue('category', id as any);
+    form.setValue('category', id);
   };
 
   return (
@@ -78,14 +81,17 @@ export function WizardStepCategory() {
                 {visibleCategories.map(category => {
                   const Icon = category.icon;
                   const isSelected = field.value === category.id;
-                  // Show Call Me Now for Accident (Service Issue generic map?) or Property (Damaged Goods)
                   const showCallMe =
                     flags.callMeNow &&
                     (category.id === 'damaged_goods' || category.id === 'service_issue');
 
+                  const label = t(`${category.id}.label`);
+                  const description = t(`${category.id}.description`);
+
                   return (
                     <Card
                       key={category.id}
+                      data-testid={`category-${category.id}`}
                       className={cn(
                         'cursor-pointer transition-all hover:border-[hsl(var(--primary))] hover:shadow-md interactive-press',
                         isSelected
@@ -105,10 +111,10 @@ export function WizardStepCategory() {
                         >
                           <Icon className="h-5 w-5" />
                         </div>
-                        <CardTitle className="text-base">{category.label}</CardTitle>
+                        <CardTitle className="text-base">{label}</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-muted-foreground mb-2">{category.description}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{description}</p>
                         {showCallMe && <CallMeNowDialog category={category.id} />}
                       </CardContent>
                     </Card>

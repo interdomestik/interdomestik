@@ -233,10 +233,22 @@
     "casesTitle": "Rastet kryesore që trajtojmë",
     "casesSubtitle": "Zgjidh kategorinë; ne të udhëzojmë me provat e sakta dhe hapat në vijim.",
     "cases": [
-      { "title": "Automjete & Trafik", "description": "Përplasje, dëme nga palë të treta, goditje-dhe-ikje, mosmarrëveshje me qira." },
-      { "title": "Prona & Banesa", "description": "Zjarri/përmbytje/vjedhje, mosmarrëveshje me qiradhënësit, garancia e depozitës." },
-      { "title": "Shërbime & Komunale", "description": "Fatura ISP/telekom, ndërprerje, cilësia e shërbimit apo kontraktorëve." },
-      { "title": "Punësim & Konsumator", "description": "Pagat e papaguara, çështje kontrate, mallra me defekt, rimbursime/kthime." }
+      {
+        "title": "Automjete & Trafik",
+        "description": "Përplasje, dëme nga palë të treta, goditje-dhe-ikje, mosmarrëveshje me qira."
+      },
+      {
+        "title": "Prona & Banesa",
+        "description": "Zjarri/përmbytje/vjedhje, mosmarrëveshje me qiradhënësit, garancia e depozitës."
+      },
+      {
+        "title": "Shërbime & Komunale",
+        "description": "Fatura ISP/telekom, ndërprerje, cilësia e shërbimit apo kontraktorëve."
+      },
+      {
+        "title": "Punësim & Konsumator",
+        "description": "Pagat e papaguara, çështje kontrate, mallra me defekt, rimbursime/kthime."
+      }
     ],
     "flightDelay": {
       "title": "Vonesa Fluturimi (EU261)",
@@ -247,28 +259,62 @@
     "stepsTitle": "Shpejtësi & siguri në katër hapa",
     "steps": [
       { "title": "Tregona bazat", "description": "Zgjidh kategorinë dhe shto detajet e shpejta." },
-      { "title": "Shto prova", "description": "Ngarko foto/fatura; ne kontrollojmë mime/masë dhe i etikojmë si PII." },
+      {
+        "title": "Shto prova",
+        "description": "Ngarko foto/fatura; ne kontrollojmë mime/masë dhe i etikojmë si PII."
+      },
       { "title": "Rishikim nën 24h", "description": "Sheh statusin + badge SLA në timeline." },
-      { "title": "Ne negociojmë për ty", "description": "Merr përditësime dhe rezultate në aplikacion." }
+      {
+        "title": "Ne negociojmë për ty",
+        "description": "Merr përditësime dhe rezultate në aplikacion."
+      }
     ],
     "benefits": "Pse të na besoni",
     "benefitsTitle": "Shpejtësi, siguri, mbështetje",
     "benefit": {
-      "speed": { "title": "Përgjigje e shpejtë", "description": "Rishikim nën 24h për ankesat e reja; SLA e dukshme në timeline." },
-      "safety": { "title": "Ngarkime të sigurta", "description": "URL të nënshkruara, kontroll mime/masash, ruajtje me shenjë PII, njoftim privatësie në rishikim." },
-      "people": { "title": "Ekspertë vendorë", "description": "Ndërmjetës dëmesh nga Ballkani me mbështetje shqip/anglisht dhe opsione kontakti të qarta." }
+      "speed": {
+        "title": "Përgjigje e shpejtë",
+        "description": "Rishikim nën 24h për ankesat e reja; SLA e dukshme në timeline."
+      },
+      "safety": {
+        "title": "Ngarkime të sigurta",
+        "description": "URL të nënshkruara, kontroll mime/masash, ruajtje me shenjë PII, njoftim privatësie në rishikim."
+      },
+      "people": {
+        "title": "Ekspertë vendorë",
+        "description": "Ndërmjetës dëmesh nga Ballkani me mbështetje shqip/anglisht dhe opsione kontakti të qarta."
+      }
     },
     "faqTitle": "Pyetje të shpeshta",
     "faq": [
-      { "question": "A duhet patjetër provë për të nisur?", "answer": "Mund të dërgoni pa prova, por rezultati është më i shpejtë me fatura/foto. Shtoji tani ose më vonë." },
-      { "question": "Sa shpejt përgjigjeni?", "answer": "Synojmë nën 24h për ankesat e reja. SLA shfaqet në timeline." },
-      { "question": "A janë të sigurta të dhënat e mia?", "answer": "Po. URL të nënshkruara, kontrolle mime/masash, ruajtje me shenjë PII dhe njoftim privatësie në rishikim." },
-      { "question": "A ofroni pa fitim, pa pagesë?", "answer": "Kur është e zbatueshme dhe në përputhje. Shih hero/footer dhe çmimet për ofertat aktuale." }
+      {
+        "question": "A duhet patjetër provë për të nisur?",
+        "answer": "Mund të dërgoni pa prova, por rezultati është më i shpejtë me fatura/foto. Shtoji tani ose më vonë."
+      },
+      {
+        "question": "Sa shpejt përgjigjeni?",
+        "answer": "Synojmë nën 24h për ankesat e reja. SLA shfaqet në timeline."
+      },
+      {
+        "question": "A janë të sigurta të dhënat e mia?",
+        "answer": "Po. URL të nënshkruara, kontrolle mime/masash, ruajtje me shenjë PII dhe njoftim privatësie në rishikim."
+      },
+      {
+        "question": "A ofroni pa fitim, pa pagesë?",
+        "answer": "Kur është e zbatueshme dhe në përputhje. Shih hero/footer dhe çmimet për ofertat aktuale."
+      }
     ],
     "contactTitle": "Preferoni të flisni?",
     "contactSubtitle": "Telefononi ose shkruani në WhatsApp, ose nisni ankesën online dhe ne ju kontaktojmë."
   },
   "evidence": {
+    "title": "Shto Dëshmi",
+    "subtitle": "Ngarkoni fatura, bileta ose foto.",
+    "upload": {
+      "cta": "Klikoni për të ngarkuar skedarë",
+      "sub": "PDF, JPG ose PNG deri në 10MB",
+      "secure": "URL të nënshkruara · Ruajtje PII"
+    },
     "tooltip": "Dëshmia e qartë rrit mundësinë tuaj për sukses me 40%. Përfshini çdo raport policie ose faturë mjekësore.",
     "promptTitle": "Shto këto për përgjigje më të shpejtë",
     "promptDescription": "Zgjidh disa nga këto dokumente për ta nisur shpejt.",
@@ -288,11 +334,7 @@
         "Screenshote bisedash/email",
         "Fatura ose njoftim anulimi"
       ],
-      "travel": [
-        "Itinerari dhe biletat",
-        "Foto/video të incidentit",
-        "Fatura për shpenzime"
-      ],
+      "travel": ["Itinerari dhe biletat", "Foto/video të incidentit", "Fatura për shpenzime"],
       "default": ["Foto ose screenshote", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
     },
     "validation": {
@@ -417,6 +459,98 @@
     "step4": {
       "title": "Merrni Kompensimin",
       "description": "Merrni pagesën tuaj. Ne ngarkojmë vetëm nëse fitoni — Pa Fitim, Pa Pagesë."
+    }
+  },
+  "agent": {
+    "title": "Hapësira e Agjentit",
+    "dashboard": "Paneli",
+    "claims": "Ankesat",
+    "stats": {
+      "total": "Gjithsej Ankesa",
+      "new": "Të Reja",
+      "verification": "Në Verifikim",
+      "closed": "Të Mbyllura"
+    },
+    "table": {
+      "claimant": "Ankuesi",
+      "status": "Statusi",
+      "date": "Data",
+      "actions": "Veprime",
+      "triage": "Vlerësim"
+    },
+    "actions": {
+      "approve": "Aprovo",
+      "reject": "Refuzo",
+      "requestInfo": "Kërko Info",
+      "review": "Rishiko Rastin"
+    },
+    "details": {
+      "title": "Detajet e Ankesës",
+      "claimantInfo": "Informacioni i Kërkuesit",
+      "name": "Emri",
+      "email": "Email",
+      "description": "Përshkrimi",
+      "amount": "Shuma",
+      "company": "Subjekti / Kompania",
+      "evidence": "Dosjet e Dëshmive",
+      "noEvidence": "Nuk ka dokumente të ngarkuara.",
+      "notes": "Shënime të Brendshme",
+      "notesPlaceholder": "Opsioni i shënimeve private të agjentit vjen së shpejti."
+    },
+    "triage": {
+      "title": "Veprimet e Vlerësimit",
+      "changeStatus": "Ndrysho Statusin",
+      "selectStatus": "Zgjidh statusin",
+      "verify": "Verifiko Info",
+      "reject": "Refuzo Ankesën",
+      "notice": "Ndryshimi i statusit përditëson menjëherë kohështrirjen e përdoruesit."
+    }
+  },
+  "wizard": {
+    "categories": {
+      "flight_delay": {
+        "label": "Vonesë Fluturimi",
+        "description": "Kompensim EU261 deri në €600"
+      },
+      "damaged_goods": {
+        "label": "Mallra të Dëmtuara",
+        "description": "Artikujt mbërritën të thyer ose jo siç përshkruhen"
+      },
+      "service_issue": {
+        "label": "Problem me Shërbimin",
+        "description": "Shërbim i dobët nga shërbimet komunale, telekomi, etj."
+      },
+      "other": {
+        "label": "Tjetër",
+        "description": "Çdo mosmarrëveshje tjetër e konsumatorit"
+      }
+    },
+    "details": {
+      "title": "Na tregoni çfarë ndodhi",
+      "subtitle": "Detajet na ndihmojnë ta përpunojmë rastin më shpejt.",
+      "claim_title": "Titulli i Ankesës",
+      "claim_title_placeholder": "p.sh. Vonesë fluturimi për në Berlin",
+      "claim_title_desc": "Një përmbledhje e shkurtër e problemit.",
+      "company": "Emri i Kompanisë",
+      "company_placeholder": "p.sh. Lufthansa, Zara, VK Egnatia",
+      "amount": "Shuma (Opsionale)",
+      "currency": "Monedha",
+      "date": "Data e Incidentit",
+      "description": "Përshkrimi",
+      "description_placeholder": "Përshkruani saktësisht çfarë ndodhi..."
+    },
+    "review": {
+      "title": "Rishiko & Dërgo",
+      "subtitle": "Ju lutemi kontrolloni detajet para dërgimit.",
+      "summary": "Përmbledhja e Ankesës",
+      "category": "Kategoria",
+      "date": "Data",
+      "company": "Kompania",
+      "claim_title": "Titulli",
+      "description": "Përshkrimi",
+      "evidence": "Dëshmi",
+      "amount": "Shuma e Kërkuar",
+      "files_attached": "{count} skedarë bashkangjitur"
     }
   }
 }

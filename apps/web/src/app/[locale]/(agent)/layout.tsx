@@ -16,11 +16,13 @@ export default async function AgentLayout({ children, params }: Props) {
 
   if (!session) {
     redirect({ href: '/login', locale });
+    return null;
   }
 
   // RBAC: Allow 'agent' and 'admin'
   if (session.user.role !== 'agent' && session.user.role !== 'admin') {
     redirect({ href: '/dashboard', locale });
+    return null;
   }
 
   return (

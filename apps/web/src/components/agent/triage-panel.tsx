@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@interdomestik/ui';
+import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 
 const STATUSES = [
@@ -40,28 +41,31 @@ export function TriagePanel({
     });
   };
 
+  const t = useTranslations('agent.triage');
+  const tStatus = useTranslations('claims.status');
+
   return (
     <Card className="border-l-4 border-l-primary">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <span>🛠️ Triage Actions</span>
+          <span>{t('title')}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-muted-foreground">Change Status</label>
+          <label className="text-sm font-medium text-muted-foreground">{t('changeStatus')}</label>
           <Select
             defaultValue={currentStatus}
             onValueChange={handleStatusChange}
             disabled={isPending}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select status" />
+              <SelectValue placeholder={t('selectStatus')} />
             </SelectTrigger>
             <SelectContent>
               {STATUSES.map(status => (
                 <SelectItem key={status} value={status} className="capitalize">
-                  {status}
+                  {tStatus(status)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -75,7 +79,7 @@ export function TriagePanel({
             onClick={() => handleStatusChange('verification')}
             disabled={isPending || currentStatus === 'verification'}
           >
-            Verify Info
+            {t('verify')}
           </Button>
           <Button
             variant="destructive"
@@ -83,13 +87,11 @@ export function TriagePanel({
             onClick={() => handleStatusChange('rejected')}
             disabled={isPending || currentStatus === 'rejected'}
           >
-            Reject Claim
+            {t('reject')}
           </Button>
         </div>
 
-        <div className="text-xs text-muted-foreground mt-4">
-          Changing status updates the user's timeline immediately.
-        </div>
+        <div className="text-xs text-muted-foreground mt-4">{t('notice')}</div>
       </CardContent>
     </Card>
   );

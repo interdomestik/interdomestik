@@ -1,15 +1,26 @@
 import nextPlugin from '@next/eslint-plugin-next';
+import { dirname } from 'path';
 import tseslint from 'typescript-eslint';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default tseslint.config(
   {
-    ignores: ['.next/**', 'node_modules/**', 'dist/**'],
+    ignores: ['.next/**', 'node_modules/**', 'dist/**', 'eslint.config.mjs'],
   },
   ...tseslint.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
       '@next/next': nextPlugin,
+    },
+    languageOptions: {
+      parserOptions: {
+        project: './tsconfig.json',
+        tsconfigRootDir: __dirname,
+      },
     },
     rules: {
       ...nextPlugin.configs.recommended.rules,

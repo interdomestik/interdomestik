@@ -1,8 +1,9 @@
 import { TriagePanel } from '@/components/agent/triage-panel';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
-import { claims, db, user } from '@interdomestik/database';
+import { claimDocuments, claims, db, user } from '@interdomestik/database';
 import { Badge, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { eq } from 'drizzle-orm';
+import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
 type Props = {
@@ -35,16 +36,15 @@ export default async function AgentClaimDetailPage({ params }: Props) {
   if (!claim) notFound();
 
   // Fetch documents (Disabled for MVP until schema sync is stable)
-  // const documents = await db
-  //   .select()
-  //   .from(claimDocuments)
-  //   .where(eq(claimDocuments.claimId, id));
-  const documents: any[] = [];
+  const documents = await db.select().from(claimDocuments).where(eq(claimDocuments.claimId, id));
+
+  const t = await getTranslations('agent.details');
+  const tClaims = await getTranslations('claims');
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Claim Details</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -52,15 +52,15 @@ export default async function AgentClaimDetailPage({ params }: Props) {
           {/* Claimant Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Claimant Information</CardTitle>
+              <CardTitle>{t('claimantInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div>
-                <div className="text-sm text-muted-foreground">Name</div>
+                <div className="text-sm text-muted-foreground">{t('name')}</div>
                 <div className="font-medium">{claim.userName || 'Unknown'}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Email</div>
+                <div className="text-sm text-muted-foreground">{t('email')}</div>
                 <div className="font-medium">{claim.userEmail || 'No email'}</div>
               </div>
             </CardContent>
@@ -70,7 +70,7 @@ export default async function AgentClaimDetailPage({ params }: Props) {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Claim Details</CardTitle>
+                <CardTitle>{t('title')}</CardTitle>
                 <ClaimStatusBadge status={claim.status} />
               </div>
             </CardHeader>
@@ -80,30 +80,30 @@ export default async function AgentClaimDetailPage({ params }: Props) {
                 <div className="text-lg font-medium">{claim.title}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Description</div>
+                <div className="text-sm text-muted-foreground">{t('description')}</div>
                 <div className="whitespace-pre-wrap">{claim.description || '-'}</div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-sm text-muted-foreground">Category</div>
                   <Badge variant="outline" className="capitalize">
-                    {claim.category}
+                    {tClaims(`category.${claim.category}`)}
                   </Badge>
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground">Status</div>
-                  <div className="capitalize">{claim.status}</div>
+                  <div className="capitalize">{tClaims(`status.${claim.status}`)}</div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm text-muted-foreground">Amount</div>
+                  <div className="text-sm text-muted-foreground">{t('amount')}</div>
                   <div className="text-lg font-bold">
                     {claim.amount ? `${claim.amount} ${claim.currency || 'EUR'}` : '-'}
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-muted-foreground">Subject / Company</div>
+                  <div className="text-sm text-muted-foreground">{t('company')}</div>
                   <div>{claim.company}</div>
                 </div>
               </div>
@@ -113,11 +113,11 @@ export default async function AgentClaimDetailPage({ params }: Props) {
           {/* Evidence */}
           <Card>
             <CardHeader>
-              <CardTitle>Evidence Files</CardTitle>
+              <CardTitle>{t('evidence')}</CardTitle>
             </CardHeader>
             <CardContent>
               {documents.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No documents uploaded.</p>
+                <p className="text-sm text-muted-foreground">{t('noEvidence')}</p>
               ) : (
                 <ul className="list-disc space-y-2 pl-4">
                   {documents.map(doc => (
@@ -140,12 +140,10 @@ export default async function AgentClaimDetailPage({ params }: Props) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Internal Notes</CardTitle>
+              <CardTitle>{t('notes')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Private agent notes feature coming soon.
-              </p>
+              <p className="text-xs text-muted-foreground">{t('notesPlaceholder')}</p>
             </CardContent>
           </Card>
         </div>

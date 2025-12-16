@@ -47,7 +47,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">{claim.title}</h1>
             <Badge
-              variant={claim.status === 'draft' ? 'outline' : 'default'}
+              variant={(claim.status || 'draft') === 'draft' ? 'outline' : 'default'}
               className="uppercase text-xs"
             >
               {claim.status}
@@ -123,7 +123,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
             </CardHeader>
             <CardContent>
               <ClaimTimeline
-                status={claim.status as any}
+                status={claim.status || 'draft'}
                 updatedAt={claim.updatedAt || new Date()}
               />
             </CardContent>

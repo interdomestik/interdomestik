@@ -86,14 +86,24 @@
       "price": "€5",
       "period": "/month",
       "description": "For occasional personal use",
-      "features": ["3 claims per year", "Email support", "Document upload", "Status tracking"]
+      "features": [
+        "3 ankesa në vit",
+        "Mbështetje me email",
+        "Ngarkim dokumentesh",
+        "Ndjekje e statusit"
+      ]
     },
     "standard": {
       "name": "Standard",
       "price": "€10",
       "period": "/month",
       "description": "For regular use",
-      "features": ["10 claims per year", "Priority support", "Live chat", "Advanced tracking"],
+      "features": [
+        "10 ankesa në vit",
+        "Mbështetje prioritare",
+        "Chat i drejtpërdrejtë",
+        "Ndjekje e avancuar"
+      ],
       "popular": "Most Popular"
     },
     "premium": {
@@ -102,11 +112,11 @@
       "period": "/month",
       "description": "For complete protection",
       "features": [
-        "Unlimited claims",
-        "VIP support",
-        "Phone calls",
-        "E-signatures",
-        "Legal representation"
+        "Ankesa të pakufizuara",
+        "Mbështetje VIP",
+        "Thirrje telefonike",
+        "Nënshkrim elektronik",
+        "Përfaqësim ligjor"
       ]
     },
     "cta": "Choose Plan"
@@ -224,20 +234,20 @@
     "casesSubtitle": "Pick your category; we’ll guide you with the right evidence and next steps.",
     "cases": [
       {
-        "title": "Vehicle & Traffic",
-        "description": "Collisions, third-party damage, hit-and-run, rental disputes."
+        "title": "Automjete & Trafik",
+        "description": "Përplasje, dëme nga palë të treta, goditje-dhe-ikje, mosmarrëveshje me qira."
       },
       {
-        "title": "Property & Housing",
-        "description": "Fire/flood/theft damage, landlord disputes, deposit issues."
+        "title": "Prona & Banesa",
+        "description": "Zjarri/përmbytje/vjedhje, mosmarrëveshje me qiradhënësit, garancia e depozitës."
       },
       {
-        "title": "Services & Utilities",
-        "description": "Telecom/ISP billing, utilities outages, contractor/service quality issues."
+        "title": "Shërbime & Komunale",
+        "description": "Fatura ISP/telekom, ndërprerje, cilësia e shërbimit apo kontraktorëve."
       },
       {
-        "title": "Employment & Consumer",
-        "description": "Unpaid wages, contract issues, defective goods, refunds/returns."
+        "title": "Punësim & Konsumator",
+        "description": "Pagat e papaguara, çështje kontrate, mallra me defekt, rimbursime/kthime."
       }
     ],
     "flightDelay": {
@@ -248,16 +258,22 @@
     "howItWorks": "How it works",
     "stepsTitle": "Speed & safety in four steps",
     "steps": [
-      { "title": "Tell us the basics", "description": "Pick a category and add quick details." },
       {
-        "title": "Add evidence",
-        "description": "Upload photos/receipts; we validate mime/size and tag PII."
+        "title": "Tregona bazat",
+        "description": "Zgjidh kategorinë dhe shto detajet e shpejta."
       },
       {
-        "title": "We review in <24h",
-        "description": "You see status + SLA badge on your timeline."
+        "title": "Shto prova",
+        "description": "Ngarko foto/fatura; ne kontrollojmë mime/masë dhe i etikojmë si PII."
       },
-      { "title": "We negotiate for you", "description": "You get updates and outcomes in-app." }
+      {
+        "title": "Rishikim nën 24h",
+        "description": "Sheh statusin + badge SLA në timeline."
+      },
+      {
+        "title": "Ne negociojmë për ty",
+        "description": "Merr përditësime dhe rezultate në aplikacion."
+      }
     ],
     "benefits": "Why trust us",
     "benefitsTitle": "Speed, safety, support",
@@ -278,47 +294,62 @@
     "faqTitle": "FAQs",
     "faq": [
       {
-        "question": "Do I need evidence to start?",
-        "answer": "You can submit without evidence, but outcomes are faster with receipts/photos. Add now or later."
+        "question": "A duhet patjetër provë për të nisur?",
+        "answer": "Mund të dërgoni pa prova, por rezultati është më i shpejtë me fatura/foto. Shtoji tani ose më vonë."
       },
       {
-        "question": "How fast do you respond?",
-        "answer": "We target under 24h for new claims. SLA appears in your timeline."
+        "question": "Sa shpejt përgjigjeni?",
+        "answer": "Synojmë nën 24h për ankesat e reja. SLA shfaqet në timeline."
       },
       {
-        "question": "Is my data safe?",
-        "answer": "Yes. Signed URLs, mime/size checks, PII-tagged storage, and privacy notice in review."
+        "question": "A janë të sigurta të dhënat e mia?",
+        "answer": "Po. URL të nënshkruara, kontrolle mime/masash, ruajtje me shenjë PII dhe njoftim privatësie në rishikim."
       },
       {
-        "question": "Do you offer no win, no fee?",
-        "answer": "Where applicable and compliant. Check the hero/footer and pricing for current offers."
+        "question": "A ofroni pa fitim, pa pagesë?",
+        "answer": "Kur është e zbatueshme dhe në përputhje. Shih hero/footer dhe çmimet për ofertat aktuale."
       }
     ],
     "contactTitle": "Prefer to talk?",
     "contactSubtitle": "Call or WhatsApp us, or start the claim online and we’ll follow up."
   },
   "evidence": {
-    "tooltip": "Clear evidence increases your chance of success by 40%. Include any Police Reports or Medical Invoices.",
+    "title": "Add Evidence",
+    "subtitle": "Upload receipts, tickets, or photos.",
+    "upload": {
+      "cta": "Click to upload files",
+      "sub": "PDF, JPG, or PNG up to 10MB",
+      "secure": "Signed URL uploads · PII-tagged storage"
+    },
+    "tooltip": "Clear evidence increases your chance of success by 40%. Include any police reports or medical bills.",
     "promptTitle": "Add these for faster results",
     "promptDescription": "Pick a couple of items below so we can start quickly.",
     "prompts": {
       "flight_delay": [
-        "Boarding pass or ticket",
-        "Airline delay/cancellation notice",
-        "Receipts for meals/hotels/transport"
+        "Bileta ose boarding pass",
+        "Njoftimi i vonesës/anulimit nga linja",
+        "Fatura për ushqim/hotel/transport"
       ],
       "damaged_goods": [
-        "Photos of damage",
-        "Purchase receipt or invoice",
-        "Repair/assessment estimate"
+        "Foto të dëmit",
+        "Faturë ose kupon blerjeje",
+        "Vlerësim ose preventiv riparimi"
       ],
       "service_issue": [
-        "Contract or invoice",
-        "Chat/email screenshots",
-        "Bills or cancellation notice"
+        "Kontratë ose faturë",
+        "Screenshote bisedash/email",
+        "Fatura ose njoftim anulimi"
       ],
-      "travel": ["Itinerary and tickets", "Photos/videos of incident", "Receipts for expenses"],
-      "default": ["Photos or screenshots", "Receipts/invoices", "Any official correspondence"]
+      "travel": [
+        "Itinerari dhe biletat",
+        "Foto/video të incidentit",
+        "Fatura për shpenzime"
+      ],
+      "default": [
+        "Foto ose screenshote",
+        "Fatura/kupona",
+        "Çdo korrespondencë zyrtare"
+      ]
     },
     "validation": {
       "mime": "Only PDF, JPG, or PNG files are allowed.",
@@ -466,6 +497,74 @@
       "reject": "Reject",
       "requestInfo": "Request Info",
       "review": "Review Case"
+    },
+    "details": {
+      "title": "Claim Details",
+      "claimantInfo": "Claimant Information",
+      "name": "Name",
+      "email": "Email",
+      "description": "Description",
+      "amount": "Amount",
+      "company": "Subject / Company",
+      "evidence": "Evidence Files",
+      "noEvidence": "No documents uploaded.",
+      "notes": "Internal Notes",
+      "notesPlaceholder": "Private agent notes feature coming soon."
+    },
+    "triage": {
+      "title": "Triage Actions",
+      "changeStatus": "Change Status",
+      "selectStatus": "Select status",
+      "verify": "Verify Info",
+      "reject": "Reject Claim",
+      "notice": "Changing status updates the user's timeline immediately."
+    }
+  },
+  "wizard": {
+    "categories": {
+      "flight_delay": {
+        "label": "Flight Delay",
+        "description": "EU261 Compensation up to €600"
+      },
+      "damaged_goods": {
+        "label": "Damaged Goods",
+        "description": "Items arrived broken or not as described"
+      },
+      "service_issue": {
+        "label": "Service Issue",
+        "description": "Poor service from utilities, telecom, etc."
+      },
+      "other": {
+        "label": "Other",
+        "description": "Any other consumer dispute"
+      }
+    },
+    "details": {
+      "title": "Tell us what happened",
+      "subtitle": "Details help us process your claim faster.",
+      "claim_title": "Claim Title",
+      "claim_title_placeholder": "e.g. Flight delay to Berlin",
+      "claim_title_desc": "A short summary of the issue.",
+      "company": "Company Name",
+      "company_placeholder": "e.g. Lufthansa, Zara, VK Egnatia",
+      "amount": "Amount (Optional)",
+      "currency": "Currency",
+      "date": "Date of Incident",
+      "description": "Description",
+      "description_placeholder": "Describe exactly what happened..."
+    },
+    "review": {
+      "title": "Review & Submit",
+      "subtitle": "Please check your details before submitting.",
+      "summary": "Claim Summary",
+      "category": "Category",
+      "date": "Date",
+      "company": "Company",
+      "claim_title": "Title",
+      "description": "Description",
+      "evidence": "Evidence",
+      "amount": "Claim Amount",
+      "files_attached": "{count} files attached"
     }
   }
 }

@@ -127,6 +127,7 @@ async function upsertUser({ id, name, email, role, password }) {
 
   // Clean existing rows for deterministic state
   await sql`delete from account where "userId" = ${id};`;
+  await sql`delete from claim where "userId" = ${id};`;
   await sql`delete from "user" where id = ${id};`;
 
   await sql`
