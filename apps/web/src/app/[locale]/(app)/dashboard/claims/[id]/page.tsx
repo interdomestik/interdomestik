@@ -1,4 +1,5 @@
 import { ClaimTimeline } from '@/components/dashboard/claims/claim-timeline';
+import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { claims, db, eq } from '@interdomestik/database';
@@ -113,10 +114,15 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Messaging Panel for desktop (full width in main column) */}
+          <div className="hidden lg:block">
+            <MessagingPanel claimId={claim.id} currentUserId={session.user.id} isAgent={false} />
+          </div>
         </div>
 
         {/* Sidebar: Timeline */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Case Progress</CardTitle>
@@ -129,9 +135,14 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
+          {/* Messaging Panel for mobile (in sidebar) */}
+          <div className="lg:hidden">
+            <MessagingPanel claimId={claim.id} currentUserId={session.user.id} isAgent={false} />
+          </div>
+
           {/* Admin Debug Tools (Client-side would be better but this is handy for MVP) */}
           {session.user.role === 'admin' && (
-            <Card className="mt-4 border-dashed border-yellow-500/50 bg-yellow-500/5">
+            <Card className="border-dashed border-yellow-500/50 bg-yellow-500/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm text-yellow-600">Admin Actions</CardTitle>
               </CardHeader>

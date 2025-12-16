@@ -1,19 +1,19 @@
 ---
-task_name: 'refine Claim Wizard'
-task_type: 'Refactor'
+task_name: 'Messaging/Chat'
+task_type: 'Feature'
 priority: 'P1-High'
-estimate: '2h'
-test_level: 'unit'
-roadmap_ref: 'Phase 1'
-branch: 'y'
-start_time: 'Tue Dec 16 23:27:09 CET 2025'
+estimate: '3d'
+test_level: 'component'
+roadmap_ref: 'Phase 2'
+branch: 'feat/messaging-system'
+start_time: 'Tue Dec 16 23:35:11 CET 2025'
 baseline:
   lint: 'pass'
   typecheck: 'pass'
   tests: 'pass'
 ---
 
-# 🚀 Current Task: refine Claim Wizard
+# 🚀 Current Task: Messaging/Chat
 
 ## 📋 10x Context Prompt
 
@@ -21,11 +21,11 @@ Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>refine Claim Wizard</objective>
-  <type>Refactor</type>
+  <objective>Messaging/Chat</objective>
+  <type>Feature</type>
   <priority>P1-High</priority>
-  <estimate>2h</estimate>
-  <branch>y</branch>
+  <estimate>3d</estimate>
+  <branch>feat/messaging-system</branch>
   <constraints>
     - Use @interdomestik/ui components
     - Follow 10x-coding rules (Explore → Plan → Execute)
@@ -35,15 +35,24 @@ Copy the block below to your Agent to start with maximum context:
   </constraints>
 </task_definition>
 
-<current_limitations>
-  - Performance issue with...
-  - Code duplication in...
-</current_limitations>
-<goals>
-  - Improve performance by...
-  - Clean up code structure
-  - Maintain backwards compatibility
-</goals>
+<user_story>
+  As a claimant, I want to communicate with my assigned agent via in-app messaging
+  so that I can ask questions and receive updates without leaving the platform.
+
+  As an agent, I want to send and receive messages on claims I manage
+  so that I can provide timely support and document all communication.
+</user_story>
+<acceptance_criteria>
+  - [x] DB: Add `claimMessages` table to Drizzle schema mirroring Supabase `claim_messages`.
+  - [x] Actions: Create `sendMessage` and `getMessages` server actions.
+  - [x] UI: Create `MessageThread` component showing conversation history.
+  - [x] UI: Create `MessageInput` component for sending messages.
+  - [x] Integration: Add messaging panel to claim detail page (member view).
+  - [x] Integration: Add messaging panel to agent claim detail page.
+  - [x] Realtime: (Optional) Use Supabase Realtime for live updates OR polling fallback.
+  - [x] i18n: All UI strings localized (en, sq).
+  - [ ] Tests: Unit tests for actions, component tests for UI.
+</acceptance_criteria>
 ```
 
 ## 🏗️ Status Tracker
@@ -52,37 +61,37 @@ Copy the block below to your Agent to start with maximum context:
 - [x] **Planning**: Create a step-by-step implementation plan
 - [x] **Implementation**: Execute code changes
 - [x] **Verification**: Run `pnpm qa` or relevant tests
-- [x] **Documentation**: Update relevant docs if needed
+- [ ] **Documentation**: Update relevant docs if needed
 
 ## 🧪 Testing Checklist
 
-- [x] Unit tests added: `src/**/*.test.ts` (N/A - Component logic verified by existing tests)
+- [ ] Unit tests added: `src/**/*.test.ts`
+- [ ] Component tests added: `src/**/*.test.tsx`
 - [x] Tests use factories from `src/test/factories.ts`
 - [x] Run: `pnpm test:unit`
-- [x] All tests pass
+- [x] All tests pass (60/60)
 
 ## ✅ Definition of Done
 
-- [x] All acceptance criteria met
-- [x] Tests pass at required level (unit)
-- [x] `pnpm lint` passes (or no new errors)
-- [x] `pnpm type-check` passes
-- [x] No regressions from baseline
-- [x] (Recommended) `pnpm qa:full` or full checks executed before PR
-- [x] Screenshots added for UI changes (if applicable)
-- [x] Documentation updated (if applicable)
-- [x] Code reviewed / self-reviewed
+- [ ] All acceptance criteria met
+- [ ] Tests pass at required level (component)
+- [ ] `pnpm lint` passes (or no new errors)
+- [ ] `pnpm type-check` passes
+- [ ] No regressions from baseline
+- [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
+- [ ] Screenshots added for UI changes (if applicable)
+- [ ] Documentation updated (if applicable)
+- [ ] Code reviewed / self-reviewed
 
 ## 🔗 Related Files
 
-- apps/web/src/components/claims/
-- apps/web/src/actions/claims.ts
-- apps/web/src/lib/validators/claims.ts
-- packages/database/src/schema.ts (claims table)
-- e2e/claims.spec.ts
-- apps/web/src/components/claims/claim-wizard.tsx
-- apps/web/src/components/claims/wizard-\*.tsx
-- apps/web/src/lib/validators/claims.ts
+- packages/database/src/schema.ts (add claimMessages table)
+- apps/web/src/actions/messages.ts (new: sendMessage, getMessages)
+- apps/web/src/components/messaging/message-thread.tsx (new)
+- apps/web/src/components/messaging/message-input.tsx (new)
+- apps/web/src/app/[locale]/(app)/dashboard/claims/[id]/page.tsx (integrate)
+- apps/web/src/app/[locale]/(agent)/agent/claims/[id]/page.tsx (integrate)
+- packages/database/src/types.ts (claim_messages already exists)
 
 ## 📂 Active Context
 
@@ -107,29 +116,22 @@ Copy the block below to your Agent to start with maximum context:
 ```markdown
 ## What
 
-Refined Claim Wizard UX and i18n:
-
-- **Category Step**: Added category-specific tooltips with examples (flight delay, etc.), regionalized title/subtitle, and added "Free Consultation" badge.
-- **Evidence Step**: Verified prompts logic.
-- **Details Step**: Added consistent animations.
-- **i18n**: Synced new keys to `en` and `sq` (and partial `sr`/`mk`).
+Messaging/Chat
 
 ## Why
 
-Phase 1 Polish: To provide a guided, helpful experience ("Prime Claims Experience") where users know exactly what to upload and selecting categories is clear.
+Phase 2
 
 ## How
 
-- Modified `wizard-step-category.tsx` to use `Tooltip` and `Info` icon.
-- Modified `wizard-step-details.tsx` for animation.
-- Updated `sq.json` and `en.json` with `examples`.
+<!-- Implementation approach -->
 
 ## Testing
 
-- [x] Unit tests pass (`pnpm test:unit`)
-- [x] E2E tests pass (`pnpm test:e2e` - Build Verified)
-- [x] Manual QA completed
-- [x] No regressions in existing functionality
+- [ ] Unit tests pass (`pnpm test:unit`)
+- [ ] E2E tests pass (`pnpm test:e2e`)
+- [ ] Manual QA completed
+- [ ] No regressions in existing functionality
 
 ## Screenshots (if UI changes)
 
@@ -137,5 +139,5 @@ Phase 1 Polish: To provide a guided, helpful experience ("Prime Claims Experienc
 
 ## Notes to Reviewer
 
-N/A
+<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
 ```

@@ -1,9 +1,12 @@
 import { TriagePanel } from '@/components/agent/triage-panel';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
+import { MessagingPanel } from '@/components/messaging/messaging-panel';
+import { auth } from '@/lib/auth';
 import { claimDocuments, claims, db, user } from '@interdomestik/database';
 import { Badge, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 type Props = {
@@ -12,6 +15,12 @@ type Props = {
 
 export default async function AgentClaimDetailPage({ params }: Props) {
   const { id } = await params;
+
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) return notFound();
 
   const [claim] = await db
     .select({
@@ -133,6 +142,9 @@ export default async function AgentClaimDetailPage({ params }: Props) {
               )}
             </CardContent>
           </Card>
+
+          {/* Messaging Panel for agents (with internal notes) */}
+          <MessagingPanel claimId={claim.id} currentUserId={session.user.id} isAgent={true} />
         </div>
 
         <div className="space-y-6">

@@ -105,6 +105,20 @@ export const claimDocuments = pgTable('claim_documents', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const claimMessages = pgTable('claim_messages', {
+  id: text('id').primaryKey(),
+  claimId: text('claim_id')
+    .notNull()
+    .references(() => claims.id),
+  senderId: text('sender_id')
+    .notNull()
+    .references(() => user.id),
+  content: text('content').notNull(),
+  isInternal: boolean('is_internal').default(false), // Agent-only internal notes
+  readAt: timestamp('read_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const leads = pgTable('leads', {
   id: text('id').primaryKey(), // We'll use nanoid/uuid in the action or db default
   name: text('name').notNull(),
