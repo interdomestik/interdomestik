@@ -22,6 +22,12 @@ export const TEST_ADMIN = {
   name: 'Admin User',
 };
 
+export const TEST_AGENT = {
+  email: 'agent@interdomestik.com',
+  password: 'AgentPassword123!',
+  name: 'Agent User',
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // FIXTURE TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -29,6 +35,7 @@ export const TEST_ADMIN = {
 interface AuthFixtures {
   authenticatedPage: Page;
   adminPage: Page;
+  agentPage: Page;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -102,6 +109,19 @@ export const test = base.extend<AuthFixtures>({
       await use(page);
     } catch (error) {
       console.warn('Auth fixture: Admin login failed, providing unauthenticated page', error);
+      await use(page);
+    }
+  },
+
+  /**
+   * Provides a page that is authenticated as an agent user.
+   */
+  agentPage: async ({ page }, use) => {
+    try {
+      await performLogin(page, TEST_AGENT.email, TEST_AGENT.password);
+      await use(page);
+    } catch (error) {
+      console.warn('Auth fixture: Agent login failed, providing unauthenticated page', error);
       await use(page);
     }
   },

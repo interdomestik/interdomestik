@@ -223,10 +223,22 @@
     "casesTitle": "Top cases we handle",
     "casesSubtitle": "Pick your category; we’ll guide you with the right evidence and next steps.",
     "cases": [
-      { "title": "Vehicle & Traffic", "description": "Collisions, third-party damage, hit-and-run, rental disputes." },
-      { "title": "Property & Housing", "description": "Fire/flood/theft damage, landlord disputes, deposit issues." },
-      { "title": "Services & Utilities", "description": "Telecom/ISP billing, utilities outages, contractor/service quality issues." },
-      { "title": "Employment & Consumer", "description": "Unpaid wages, contract issues, defective goods, refunds/returns." }
+      {
+        "title": "Vehicle & Traffic",
+        "description": "Collisions, third-party damage, hit-and-run, rental disputes."
+      },
+      {
+        "title": "Property & Housing",
+        "description": "Fire/flood/theft damage, landlord disputes, deposit issues."
+      },
+      {
+        "title": "Services & Utilities",
+        "description": "Telecom/ISP billing, utilities outages, contractor/service quality issues."
+      },
+      {
+        "title": "Employment & Consumer",
+        "description": "Unpaid wages, contract issues, defective goods, refunds/returns."
+      }
     ],
     "flightDelay": {
       "title": "Flight Delay (EU261)",
@@ -237,23 +249,50 @@
     "stepsTitle": "Speed & safety in four steps",
     "steps": [
       { "title": "Tell us the basics", "description": "Pick a category and add quick details." },
-      { "title": "Add evidence", "description": "Upload photos/receipts; we validate mime/size and tag PII." },
-      { "title": "We review in <24h", "description": "You see status + SLA badge on your timeline." },
+      {
+        "title": "Add evidence",
+        "description": "Upload photos/receipts; we validate mime/size and tag PII."
+      },
+      {
+        "title": "We review in <24h",
+        "description": "You see status + SLA badge on your timeline."
+      },
       { "title": "We negotiate for you", "description": "You get updates and outcomes in-app." }
     ],
     "benefits": "Why trust us",
     "benefitsTitle": "Speed, safety, support",
     "benefit": {
-      "speed": { "title": "Fast response", "description": "Under-24h review on new submissions; SLA visible in your timeline." },
-      "safety": { "title": "PII-safe uploads", "description": "Signed URLs, allowed mime/size, PII-tagged storage, privacy badge in review." },
-      "people": { "title": "Local experts", "description": "Balkan claim adjusters with Albanian/English support and clear contact options." }
+      "speed": {
+        "title": "Fast response",
+        "description": "Under-24h review on new submissions; SLA visible in your timeline."
+      },
+      "safety": {
+        "title": "PII-safe uploads",
+        "description": "Signed URLs, allowed mime/size, PII-tagged storage, privacy badge in review."
+      },
+      "people": {
+        "title": "Local experts",
+        "description": "Balkan claim adjusters with Albanian/English support and clear contact options."
+      }
     },
     "faqTitle": "FAQs",
     "faq": [
-      { "question": "Do I need evidence to start?", "answer": "You can submit without evidence, but outcomes are faster with receipts/photos. Add now or later." },
-      { "question": "How fast do you respond?", "answer": "We target under 24h for new claims. SLA appears in your timeline." },
-      { "question": "Is my data safe?", "answer": "Yes. Signed URLs, mime/size checks, PII-tagged storage, and privacy notice in review." },
-      { "question": "Do you offer no win, no fee?", "answer": "Where applicable and compliant. Check the hero/footer and pricing for current offers." }
+      {
+        "question": "Do I need evidence to start?",
+        "answer": "You can submit without evidence, but outcomes are faster with receipts/photos. Add now or later."
+      },
+      {
+        "question": "How fast do you respond?",
+        "answer": "We target under 24h for new claims. SLA appears in your timeline."
+      },
+      {
+        "question": "Is my data safe?",
+        "answer": "Yes. Signed URLs, mime/size checks, PII-tagged storage, and privacy notice in review."
+      },
+      {
+        "question": "Do you offer no win, no fee?",
+        "answer": "Where applicable and compliant. Check the hero/footer and pricing for current offers."
+      }
     ],
     "contactTitle": "Prefer to talk?",
     "contactSubtitle": "Call or WhatsApp us, or start the claim online and we’ll follow up."
@@ -278,11 +317,7 @@
         "Chat/email screenshots",
         "Bills or cancellation notice"
       ],
-      "travel": [
-        "Itinerary and tickets",
-        "Photos/videos of incident",
-        "Receipts for expenses"
-      ],
+      "travel": ["Itinerary and tickets", "Photos/videos of incident", "Receipts for expenses"],
       "default": ["Photos or screenshots", "Receipts/invoices", "Any official correspondence"]
     },
     "validation": {
@@ -407,6 +442,30 @@
     "step4": {
       "title": "Get Compensated",
       "description": "Receive your payout. We only charge if you win — No Win, No Fee."
+    }
+  },
+  "agent": {
+    "title": "Agent Workspace",
+    "dashboard": "Dashboard",
+    "claims": "Claims",
+    "stats": {
+      "total": "Total Claims",
+      "new": "New (Submitted)",
+      "verification": "In Verification",
+      "closed": "Resolved / Rejected"
+    },
+    "table": {
+      "claimant": "Claimant",
+      "status": "Status",
+      "date": "Date",
+      "actions": "Actions",
+      "triage": "Triage"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "requestInfo": "Request Info",
+      "review": "Review Case"
     }
   }
 }
