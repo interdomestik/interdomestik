@@ -10,13 +10,14 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     locale: string;
     id: string;
-  };
+  }>;
 }
 
-export default async function ClaimDetailsPage({ params: { id } }: PageProps) {
+export default async function ClaimDetailsPage({ params }: PageProps) {
+  const { id } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
