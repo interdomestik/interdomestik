@@ -3,12 +3,14 @@ import { contactInfo } from '@/lib/contact';
 import { flags } from '@/lib/flags';
 import { Button } from '@interdomestik/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
-import { MessageCircle, Phone, ShieldCheck } from 'lucide-react';
+import { Briefcase, Car, Home, MessageCircle, Phone, Plug, ShieldCheck } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 type Props = {
   params: Promise<{ locale: string }>;
 };
+
+const CASE_ICONS = [Car, Home, Plug, Briefcase];
 
 export default async function ServicesPage({ params }: Props) {
   const { locale } = await params;
@@ -73,16 +75,22 @@ export default async function ServicesPage({ params }: Props) {
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
-            {cases.map(item => (
-              <Card key={item.title} className="h-full">
-                <CardHeader>
-                  <CardTitle className="text-lg">{item.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-[hsl(var(--muted-600))]">
-                  {item.description}
-                </CardContent>
-              </Card>
-            ))}
+            {cases.map((item, index) => {
+              const Icon = CASE_ICONS[index % CASE_ICONS.length];
+              return (
+                <Card key={item.title} className="h-full">
+                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                    <div className="h-10 w-10 rounded-lg bg-[hsl(var(--primary))/0.1] flex items-center justify-center text-[hsl(var(--primary))]">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <CardTitle className="text-lg">{item.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-[hsl(var(--muted-600))] pl-[4.5rem]">
+                    {item.description}
+                  </CardContent>
+                </Card>
+              );
+            })}
             {flags.flightDelay && (
               <Card className="border-[hsl(var(--primary))] bg-[hsl(var(--primary))]/5">
                 <CardHeader>

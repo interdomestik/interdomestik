@@ -508,6 +508,7 @@ function CTASection() {
 function Footer() {
   const t = useTranslations('footer');
   const common = useTranslations('common');
+  const hero = useTranslations('hero');
   const { phone, whatsapp, address, hours } = contactInfo;
 
   return (
@@ -520,11 +521,18 @@ function Footer() {
               <span className="font-display font-bold">{common('appName')}</span>
             </div>
             <p className="text-sm text-white/70 mb-4">{t('description')}</p>
+
+            {/* Safety Net Trust Signal */}
+            <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsl(var(--primary))/0.15] border border-[hsl(var(--primary))/0.3] text-[hsl(var(--primary-foreground))] text-xs font-medium">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              {hero('noWinNoFee')}
+            </div>
+
             {/* Contact info */}
             <div className="space-y-2 text-sm">
               {phone && (
                 <a
-                  href={`tel:${phone.replace(/\\s+/g, '')}`}
+                  href={`tel:${phone.replace(/\s+/g, '')}`}
                   className="flex items-center gap-2 text-white hover:text-[hsl(var(--primary))] transition-colors"
                 >
                   <Phone className="h-4 w-4" />
