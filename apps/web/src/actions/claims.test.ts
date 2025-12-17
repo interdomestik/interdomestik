@@ -271,4 +271,83 @@ describe('Claim Actions', () => {
       }
     });
   });
+
+  describe('submitClaim - optional fields coverage', () => {
+    it('should handle empty description as minimal value', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+
+      const payload: CreateClaimValues = {
+        title: 'Valid title here',
+        description: 'A description that is exactly the minimum required length',
+        companyName: 'Company',
+        category: 'consumer',
+        claimAmount: '', // Empty string for optional
+        currency: 'EUR',
+        files: [],
+      };
+
+      await submitClaim(payload);
+
+      expect(mockDbInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currency: 'EUR',
+        })
+      );
+    });
+
+    it('should handle file with explicit classification', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+
+      const payload: CreateClaimValues = {
+        title: 'Valid title here',
+        description: 'A description that is exactly the minimum required length',
+        companyName: 'Company',
+        category: 'consumer',
+        claimAmount: '500',
+        currency: 'USD',
+        files: [
+          {
+            id: 'file-1',
+            name: 'doc.pdf',
+            path: 'path/to/file',
+            type: 'application/pdf',
+            size: 1024,
+            bucket: 'test-bucket',
+            classification: 'public',
+          },
+        ],
+      };
+
+      await submitClaim(payload);
+
+      expect(mockDbInsert).toHaveBeenNthCalledWith(
+        2,
+        expect.arrayContaining([
+          expect.objectContaining({
+            classification: 'public',
+          }),
+        ])
+      );
+    });
+  });
+
+  describe('createClaim - claimAmount transform coverage', () => {
+    it('should transform truthy claimAmount value', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+
+      const formData = new FormData();
+      formData.append('title', 'Test Claim');
+      formData.append('companyName', 'Bad Company');
+      formData.append('category', 'retail');
+      formData.append('claimAmount', '999.99');
+
+      await createClaim({}, formData);
+
+      expect(mockDbInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          claimAmount: '999.99',
+        })
+      );
+    });
+  });
 });

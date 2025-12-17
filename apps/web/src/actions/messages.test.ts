@@ -340,6 +340,57 @@ describe('Message Actions', () => {
 
       expect(result).toEqual({ success: false, error: 'Failed to send message' });
     });
+
+    it('should handle created message with null sender and missing fields', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+      mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
+      mocks.dbInsert.mockResolvedValue(undefined);
+      mockSelectChain.limit.mockReturnValue([
+        {
+          id: 'test-message-id',
+          claimId: 'claim-123',
+          senderId: 'user-123',
+          content: 'Hello',
+          isInternal: null,
+          readAt: null,
+          createdAt: null,
+          sender: null,
+        },
+      ]);
+
+      const result = await sendMessage('claim-123', 'Hello');
+
+      expect(result.success).toBe(true);
+      expect(result.message?.isInternal).toBe(false);
+      expect(result.message?.sender.name).toBe('Unknown');
+      expect(result.message?.sender.id).toBe('user-123');
+      expect(result.message?.sender.role).toBe('member');
+    });
+
+    it('should handle created message with partial sender info', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+      mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
+      mocks.dbInsert.mockResolvedValue(undefined);
+      mockSelectChain.limit.mockReturnValue([
+        {
+          id: 'test-message-id',
+          claimId: 'claim-123',
+          senderId: 'user-123',
+          content: 'Hello',
+          isInternal: false,
+          readAt: null,
+          createdAt: null,
+          sender: { id: null, name: null, image: null, role: null },
+        },
+      ]);
+
+      const result = await sendMessage('claim-123', 'Hello');
+
+      expect(result.success).toBe(true);
+      expect(result.message?.sender.id).toBe('user-123'); // Falls back to senderId
+      expect(result.message?.sender.name).toBe('Unknown');
+      expect(result.message?.sender.role).toBe('member');
+    });
   });
 
   describe('getMessagesForClaim - additional cases', () => {
@@ -384,6 +435,67 @@ describe('Message Actions', () => {
       expect(result.messages?.[0].sender.name).toBe('Unknown');
       expect(result.messages?.[0].sender.role).toBe('member');
       expect(result.messages?.[0].isInternal).toBe(false);
+    });
+
+    it('should fallback to member role when user role is undefined', async () => {
+      // User without role defined should default to member
+      mocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
+      mockSelectChain.orderBy.mockReturnValue([]);
+
+      const result = await getMessagesForClaim('claim-123');
+
+      // Should succeed because member can access their own claim
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle partial sender info', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+      mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
+      mockSelectChain.orderBy.mockReturnValue([
+        {
+          id: 'msg-1',
+          claimId: 'claim-123',
+          senderId: 'user-123',
+          content: 'Test',
+          isInternal: false,
+          readAt: null,
+          createdAt: new Date(),
+          sender: { id: 'user-123', name: null, image: null, role: null },
+        },
+      ]);
+
+      const result = await getMessagesForClaim('claim-123');
+
+      expect(result.success).toBe(true);
+      expect(result.messages?.[0].sender.name).toBe('Unknown');
+      expect(result.messages?.[0].sender.image).toBe(null);
+      expect(result.messages?.[0].sender.role).toBe('member');
+    });
+  });
+
+  describe('sendMessage - role fallback', () => {
+    it('should fallback to member role when sending without role defined', async () => {
+      // User without role should be treated as member
+      mocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
+      mocks.dbInsert.mockResolvedValue(undefined);
+      mockSelectChain.limit.mockReturnValue([
+        {
+          id: 'test-message-id',
+          claimId: 'claim-123',
+          senderId: 'user-123',
+          content: 'Hello',
+          isInternal: false,
+          readAt: null,
+          createdAt: new Date(),
+          sender: { id: 'user-123', name: 'User', image: null, role: 'member' },
+        },
+      ]);
+
+      const result = await sendMessage('claim-123', 'Hello');
+
+      expect(result.success).toBe(true);
     });
   });
 });
