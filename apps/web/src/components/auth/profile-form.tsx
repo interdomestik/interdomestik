@@ -21,6 +21,7 @@ import {
   FormMessage,
 } from '@interdomestik/ui/components/form';
 import { Input } from '@interdomestik/ui/components/input';
+import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -34,6 +35,7 @@ interface ProfileFormProps {
 
 export function ProfileForm({ user }: ProfileFormProps) {
   const router = useRouter();
+  const t = useTranslations('settings.profile');
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<ProfileFormValues>({
@@ -52,14 +54,14 @@ export function ProfileForm({ user }: ProfileFormProps) {
       });
 
       if (error) {
-        toast.error('Failed to update profile', {
+        toast.error(t('error'), {
           description: error.message,
         });
         return;
       }
 
-      toast.success('Profile updated', {
-        description: 'Your changes have been saved successfully.',
+      toast.success(t('success'), {
+        description: t('successDescription'),
       });
       router.refresh();
     });
@@ -68,8 +70,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profile</CardTitle>
-        <CardDescription>Update your personal information.</CardDescription>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -79,9 +81,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>{t('fullName')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder={t('fullNamePlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -92,7 +94,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
             <div className="flex justify-end">
               <Button type="submit" disabled={isPending}>
-                {isPending ? 'Saving...' : 'Save Changes'}
+                {isPending ? t('saving') : t('saveChanges')}
               </Button>
             </div>
           </form>

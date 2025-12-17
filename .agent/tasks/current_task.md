@@ -1,99 +1,126 @@
 ---
-task_name: 'Fix i18n missing keys'
-task_type: 'Bug Fix'
-priority: 'P0-Critical'
-estimate: '2h'
-test_level: 'unit'
-roadmap_ref: 'Phase 1'
-branch: 'fix/i18n-config'
-start_time: 'Wed Dec 17 14:07:00 CET 2025'
-end_time: 'Wed Dec 17 14:20:00 CET 2025'
+task_name: "Complete Settings page"
+task_type: "Feature"
+priority: "P0-Critical"
+estimate: "4h"
+test_level: "unit"
+roadmap_ref: ""
+branch: "fix/i18n-config"
+start_time: "Wed Dec 17 14:14:47 CET 2025"
 baseline:
-  lint: 'pass'
-  typecheck: 'pass'
-  tests: 'pass'
+  lint: "pass"
+  typecheck: "fail (exit 254)"
+  tests: "pass"
+  format: "fail (exit 1)"
+  log: "/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251217_141443.log"
 ---
 
-# 🚀 Task: Fix i18n Missing Keys
+# 🚀 Current Task: Complete Settings page
 
-## 📋 Problem Statement
+## 📋 10x Context Prompt
+Copy the block below to your Agent to start with maximum context:
 
-E2E tests were logging "MISSING_MESSAGE" errors for translation keys:
+```xml
+<task_definition>
+  <objective>Complete Settings page</objective>
+  <type>Feature</type>
+  <priority>P0-Critical</priority>
+  <estimate>4h</estimate>
+  <branch>fix/i18n-config</branch>
+  <constraints>
+    - Use @interdomestik/ui components
+    - Follow 10x-coding rules (Explore → Plan → Execute)
+    - Mobile-first approach
+    - Use next-intl for i18n
+    - Write tests as specified in testing checklist
+  </constraints>
+</task_definition>
 
-- `claims.category.auto`
-- `claims.category.service_issue`
-- `claims.category.travel`
-- `claims.category.retail`
-- `claims.category.real_estate`
-- `claims.status.verification`
-- `claims.status.evaluation`
-- `claims.status.negotiation`
-- `claims.status.court`
-- `claims.status.rejected`
-
-## ✅ Solution
-
-Added all missing translation keys to all 4 locale files:
-
-- `en.json` (English)
-- `sq.json` (Albanian)
-- `mk.json` (Macedonian)
-- `sr.json` (Serbian)
+<user_story>
+  As a [user type], I want to [action]
+  so that I can [benefit].
+</user_story>
+<acceptance_criteria>
+  - [ ] Criterion 1
+  - [ ] Criterion 2
+  - [ ] Criterion 3
+</acceptance_criteria>
+```
 
 ## 🏗️ Status Tracker
-
-- [x] **Exploration**: Identified missing keys from E2E logs
-- [x] **Root Cause Analysis**: Seed data uses categories/statuses not in translations
-- [x] **Implementation**: Added 14 status keys + 8 category keys per locale
-- [x] **Verification**: E2E test passes without MISSING_MESSAGE errors
-- [x] **Documentation**: Task file complete
+- [ ] **Exploration**: Identify files using `project_map` and `read_files`
+- [ ] **Planning**: Create a step-by-step implementation plan
+- [ ] **Implementation**: Execute code changes
+- [ ] **Verification**: Run `pnpm qa` or relevant tests
+- [ ] **Documentation**: Update relevant docs if needed
 
 ## 🧪 Testing Checklist
-
-- [x] Type check passes
-- [x] Lint passes (13 warnings, 0 errors)
-- [x] E2E test passes without i18n errors
+- [ ] Unit tests added: `src/**/*.test.ts`
+- [ ] Tests use factories from `src/test/factories.ts`
+- [ ] Run: `pnpm test:unit`
+- [ ] All tests pass
 
 ## ✅ Definition of Done
+- [ ] All acceptance criteria met
+- [ ] Tests pass at required level (unit)
+- [ ] `pnpm lint` passes (or no new errors)
+- [ ] Formatter/Prettier check passes
+- [ ] `pnpm type-check` passes
+- [ ] No regressions from baseline
+- [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
+- [ ] Screenshots added for UI changes (if applicable)
+- [ ] Documentation updated (if applicable)
+- [ ] Code reviewed / self-reviewed
 
-- [x] All acceptance criteria met
-- [x] Tests pass at required level: ✅
-- [x] `pnpm lint` passes: ✅
-- [x] `pnpm type-check` passes: ✅
-- [x] No regressions from baseline: ✅
+## 🧠 Senior Checklist
+- [ ] Risks identified (perf, reliability, UX, security, data)
+- [ ] Rollback/mitigation plan documented
+- [ ] Monitoring/logging impact considered
+- [ ] Migrations include up/down and backfill strategy (if applicable)
+- [ ] Accessibility checks for UI changes
+- [ ] Removed debug artifacts (console.log/debugger/TODO left behind)
 
-## 🔗 Files Modified
+## 🔗 Related Files
+<!-- Add discovered file paths here -->
 
-- `apps/web/src/messages/en.json`
-- `apps/web/src/messages/sq.json`
-- `apps/web/src/messages/mk.json`
-- `apps/web/src/messages/sr.json`
+## 📂 Active Context
+<!-- Paste file paths or code snippets here as you discover them -->
 
-## � Keys Added
+## 📝 Implementation Notes
+<!-- Add decisions, trade-offs, blockers here -->
 
-### Status Keys
+## 🔬 QA Baseline (at task start)
+| Metric | Status |
+|--------|--------|
+| Lint | pass |
+| Type Check | fail (exit 254) |
+| Unit Tests | pass |
+| Format | fail (exit 1) |
+| Log | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251217_141443.log |
 
-| Key          | EN           | SQ        |
-| ------------ | ------------ | --------- |
-| verification | Verification | Verifikim |
-| evaluation   | Evaluation   | Vlerësim  |
-| negotiation  | Negotiation  | Negociata |
-| court        | Court        | Gjyq      |
-| rejected     | Rejected     | Refuzuar  |
+---
 
-### Category Keys
+## 📝 PR Template (Copy when done)
+```markdown
+## What
+Complete Settings page
 
-| Key           | EN            | SQ                   |
-| ------------- | ------------- | -------------------- |
-| auto          | Vehicle       | Automjet             |
-| travel        | Travel        | Udhëtim              |
-| retail        | Retail        | Retail               |
-| real_estate   | Real Estate   | Pasuri e Paluajtshme |
-| flight_delay  | Flight Delay  | Vonesë Fluturimi     |
-| damaged_goods | Damaged Goods | Mallra të Dëmtuara   |
-| service_issue | Service Issue | Problem Shërbimi     |
-| other         | Other         | Tjetër               |
+## Why
 
-## Commits
 
-- `7b787f8` - fix(i18n): add missing status and category translation keys
+## How
+<!-- Implementation approach -->
+
+## Testing
+- [ ] Unit tests pass (`pnpm test:unit`)
+- [ ] E2E tests pass (`pnpm test:e2e`)  
+- [ ] Manual QA completed
+- [ ] No regressions in existing functionality
+
+## Screenshots (if UI changes)
+<!-- Add screenshots here -->
+
+## Notes to Reviewer
+<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
+
+```

@@ -372,12 +372,27 @@
     "profile": {
       "sectionTitle": "Informacioni i Profilit",
       "title": "Profili",
-      "description": "Përditësoni informacionin tuaj personal."
+      "description": "Përditësoni informacionin tuaj personal.",
+      "fullName": "Emri i Plotë",
+      "fullNamePlaceholder": "Filan Fisteku",
+      "saveChanges": "Ruaj Ndryshimet",
+      "saving": "Duke ruajtur...",
+      "success": "Profili u përditësua",
+      "successDescription": "Ndryshimet tuaja u ruajtën me sukses.",
+      "error": "Dështoi përditësimi i profilit"
     },
     "security": {
       "sectionTitle": "Siguria",
       "title": "Ndrysho Fjalëkalimin",
-      "description": "Siguroni llogarinë tuaj."
+      "description": "Siguroni llogarinë tuaj duke përdorur një fjalëkalim të fortë.",
+      "currentPassword": "Fjalëkalimi Aktual",
+      "newPassword": "Fjalëkalimi i Ri",
+      "confirmPassword": "Konfirmo Fjalëkalimin",
+      "updatePassword": "Përditëso Fjalëkalimin",
+      "updating": "Duke përditësuar...",
+      "success": "Fjalëkalimi u përditësua",
+      "successDescription": "Fjalëkalimi juaj u ndryshua me sukses.",
+      "error": "Dështoi ndryshimi i fjalëkalimit"
     },
     "language": {
       "sectionTitle": "Gjuha & Rajoni",
@@ -387,6 +402,7 @@
       "selectPlaceholder": "Zgjidhni një gjuhë",
       "hint": "Kjo do të ndryshojë gjuhën në të gjithë aplikacionin."
     },
+
     "notifications": {
       "sectionTitle": "Njoftimet",
       "title": "Preferencat e Njoftimeve",

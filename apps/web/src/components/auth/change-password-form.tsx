@@ -21,12 +21,14 @@ import {
   FormMessage,
 } from '@interdomestik/ui/components/form';
 import { Input } from '@interdomestik/ui/components/input';
+import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 export function ChangePasswordForm() {
   const router = useRouter();
+  const t = useTranslations('settings.security');
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<ChangePasswordFormValues>({
@@ -47,14 +49,14 @@ export function ChangePasswordForm() {
       });
 
       if (error) {
-        toast.error('Failed to change password', {
+        toast.error(t('error'), {
           description: error.message,
         });
         return;
       }
 
-      toast.success('Password updated', {
-        description: 'Your password has been changed successfully.',
+      toast.success(t('success'), {
+        description: t('successDescription'),
       });
       form.reset();
       router.refresh();
@@ -64,8 +66,8 @@ export function ChangePasswordForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Change Password</CardTitle>
-        <CardDescription>Ensure your account is secure by using a strong password.</CardDescription>
+        <CardTitle>{t('title')}</CardTitle>
+        <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -75,7 +77,7 @@ export function ChangePasswordForm() {
               name="currentPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Current Password</FormLabel>
+                  <FormLabel>{t('currentPassword')}</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="***" {...field} />
                   </FormControl>
@@ -88,7 +90,7 @@ export function ChangePasswordForm() {
               name="newPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>New Password</FormLabel>
+                  <FormLabel>{t('newPassword')}</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="***" {...field} />
                   </FormControl>
@@ -101,7 +103,7 @@ export function ChangePasswordForm() {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
+                  <FormLabel>{t('confirmPassword')}</FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="***" {...field} />
                   </FormControl>
@@ -112,7 +114,7 @@ export function ChangePasswordForm() {
 
             <div className="flex justify-end">
               <Button type="submit" disabled={isPending}>
-                {isPending ? 'Updating...' : 'Update Password'}
+                {isPending ? t('updating') : t('updatePassword')}
               </Button>
             </div>
           </form>

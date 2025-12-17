@@ -378,12 +378,27 @@
     "profile": {
       "sectionTitle": "Profile Information",
       "title": "Profile",
-      "description": "Update your personal information."
+      "description": "Update your personal information.",
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "John Doe",
+      "saveChanges": "Save Changes",
+      "saving": "Saving...",
+      "success": "Profile updated",
+      "successDescription": "Your changes have been saved successfully.",
+      "error": "Failed to update profile"
     },
     "security": {
       "sectionTitle": "Security",
       "title": "Change Password",
-      "description": "Ensure your account is secure."
+      "description": "Ensure your account is secure by using a strong password.",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "updatePassword": "Update Password",
+      "updating": "Updating...",
+      "success": "Password updated",
+      "successDescription": "Your password has been changed successfully.",
+      "error": "Failed to change password"
     },
     "language": {
       "sectionTitle": "Language & Region",
@@ -393,6 +408,7 @@
       "selectPlaceholder": "Select a language",
       "hint": "This will change the language throughout the application."
     },
+
     "notifications": {
       "sectionTitle": "Notifications",
       "title": "Notification Preferences",
