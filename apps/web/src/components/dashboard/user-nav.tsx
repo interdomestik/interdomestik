@@ -1,6 +1,7 @@
 'use client';
 
 import { Link, useRouter } from '@/i18n/routing';
+import { authClient } from '@/lib/auth-client';
 import {
   Avatar,
   AvatarFallback,
@@ -15,32 +16,17 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@interdomestik/ui';
-import { createAuthClient } from 'better-auth/react';
-import { LogOut, Settings, User } from 'lucide-react';
+import { Briefcase, LayoutTemplate, LogOut, Settings, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
-// Create a client instance safely
-const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-});
 
 export function UserNav() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const { data: session } = authClient.useSession();
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // In a real app we'd use a hook to get the session
-  // const { data: session } = authClient.useSession()
-
-  // Mock user for now if session fetching isn't ready
-  const user = {
-    name: 'Arben Lila', // Replace with session data
-    email: 'arben@example.com',
-    image: '',
-  };
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -48,24 +34,27 @@ export function UserNav() {
   };
 
   // Avoid SSR/CSR id mismatches from Radix by rendering menu only after mount.
-  if (!mounted) {
+  if (!mounted || !session) {
     return (
       <Button variant="ghost" className="relative h-9 w-9 rounded-full" disabled>
         <Avatar className="h-9 w-9">
-          <AvatarImage src={user.image} alt={user.name} />
-          <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+          <AvatarFallback>...</AvatarFallback>
         </Avatar>
       </Button>
     );
   }
+
+  const { user } = session;
+  // Define role type safely if not inferred
+  const role = (user as any).role as string | undefined;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.image} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={user.image || ''} alt={user.name} />
+            <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -92,6 +81,22 @@ export function UserNav() {
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
+          {role === 'admin' && (
+            <DropdownMenuItem asChild>
+              <Link href="/admin/claims" className="w-full cursor-pointer">
+                <LayoutTemplate className="mr-2 h-4 w-4" />
+                <span>Admin Dashboard</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {role === 'agent' && (
+            <DropdownMenuItem asChild>
+              <Link href="/agent/claims" className="w-full cursor-pointer">
+                <Briefcase className="mr-2 h-4 w-4" />
+                <span>Agent Workspace</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">

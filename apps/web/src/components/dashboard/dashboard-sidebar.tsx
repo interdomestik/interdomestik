@@ -1,6 +1,7 @@
 'use client';
 
 import { Link, usePathname } from '@/i18n/routing';
+import { authClient } from '@/lib/auth-client';
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +14,16 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@interdomestik/ui';
-import { FilePlus, FileText, LayoutDashboard, Phone, Settings, Shield } from 'lucide-react';
+import {
+  Briefcase,
+  FilePlus,
+  FileText,
+  LayoutDashboard,
+  LayoutTemplate,
+  Phone,
+  Settings,
+  Shield,
+} from 'lucide-react';
 
 const sidebarItems = [
   {
@@ -50,8 +60,26 @@ const sidebarItems = [
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  // We can access state here if needed
-  // const { state } = useSidebar()
+  const { data: session } = authClient.useSession();
+  const role = (session?.user as any)?.role;
+
+  const items = [...sidebarItems];
+
+  if (role === 'admin') {
+    items.push({
+      title: 'Admin Dashboard',
+      href: '/admin/claims',
+      icon: LayoutTemplate,
+    });
+  }
+
+  if (role === 'agent') {
+    items.push({
+      title: 'Agent Workspace',
+      href: '/agent/claims',
+      icon: Briefcase,
+    });
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -66,7 +94,7 @@ export function DashboardSidebar() {
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sidebarItems.map(item => (
+              {items.map(item => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.title}>
                     <Link href={item.href}>
