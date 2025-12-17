@@ -6,8 +6,8 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 VALUES ('claim-evidence', 'claim-evidence', false, 10485760, ARRAY['image/jpeg', 'image/png', 'application/pdf'])
 ON CONFLICT (id) DO NOTHING;
 
--- Ensure RLS is enabled on objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Ensure RLS is enabled on objects (redundant/restricted in newer Supabase versions)
+-- ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- Service role can manage everything
 CREATE POLICY "Service role full access (claim-evidence)" ON storage.objects

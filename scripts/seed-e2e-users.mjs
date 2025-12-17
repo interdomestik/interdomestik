@@ -127,7 +127,7 @@ async function upsertUser({ id, name, email, role, password }) {
 
   // Clean existing rows for deterministic state
   await sql`delete from account where "userId" = ${id};`;
-  await sql`delete from claim where "userId" = ${id};`;
+  await sql`delete from claims where "userId" = ${id};`;
   await sql`delete from "user" where id = ${id};`;
 
   await sql`
@@ -155,7 +155,7 @@ async function upsertClaim(claim) {
   const now = new Date();
   // We use upsert on ID
   await sql`
-    insert into claim (id, "userId", title, description, status, category, "companyName", amount, currency, "createdAt", "updatedAt")
+    insert into claims (id, "userId", title, description, status, category, "companyName", amount, currency, "createdAt", "updatedAt")
     values (${claim.id}, ${claim.userId}, ${claim.title}, ${claim.description}, ${claim.status}, ${claim.category}, ${claim.companyName}, ${claim.amount}, ${claim.currency}, ${claim.createdAt}, ${now})
     on conflict (id) do update set
       title = excluded.title,
@@ -173,7 +173,7 @@ async function main() {
   await sql`delete from session;`;
 
   // 2. Clear old test claims (optional, but good for cleanup)
-  await sql`delete from claim where id in ${sql(claims.map(c => c.id))};`;
+  await sql`delete from claims where id in ${sql(claims.map(c => c.id))};`;
 
   // 3. Upsert Users
   for (const user of users) {
