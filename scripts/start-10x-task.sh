@@ -7,33 +7,49 @@
 # Usage: ./scripts/start-10x-task.sh [task_name] [related_files...]
 # Env vars:
 #   SKIP_BASELINE=1  Skip QA baseline capture (for exploration tasks)
+#   NON_INTERACTIVE=1  Run with defaults, no prompts (or use --non-interactive flag)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # STRICT MODE (with controlled error handling for baseline captures)
 # ═══════════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
+# Resolve script directory for consistent paths (works from any cwd)
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Detect non-interactive/CI mode (can be forced with NON_INTERACTIVE=1)
+if [[ -n "${CI:-}" || ! -t 0 || -n "${NON_INTERACTIVE:-}" ]]; then
+    NON_INTERACTIVE=1
+else
+    NON_INTERACTIVE="${NON_INTERACTIVE:-}"
+fi
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION - Customize these for your repo
 # ═══════════════════════════════════════════════════════════════════════════════
-TASK_DIR=".agent/tasks"
+TASK_DIR="$REPO_ROOT/.agent/tasks"
 TASK_FILE="$TASK_DIR/current_task.md"
 ARCHIVE_DIR="$TASK_DIR/archive"
-MCP_ALIASES_SCRIPT="./scripts/generate-mcp-aliases.sh"
-CONSTRAINTS_FILE=".agent/constraints.md"
+LOG_DIR="$TASK_DIR/logs"
+MCP_ALIASES_SCRIPT="$REPO_ROOT/scripts/generate-mcp-aliases.sh"
+CONSTRAINTS_FILE="$REPO_ROOT/.agent/constraints.md"
 
-# Commands - customize per repo
-LINT_CMD="pnpm lint"
-TYPECHECK_CMD="pnpm type-check"
-TYPECHECK_FALLBACK_CMD="pnpm typecheck"
-TEST_CMD="pnpm --filter @interdomestik/web test:unit --run"
-E2E_SMOKE_CMD="pnpm --filter @interdomestik/web test:e2e -- --grep smoke"
-BUILD_CMD="pnpm build"
-FULL_CHECK_CMD="pnpm qa:full"
+# Commands - customize per repo (override via env)
+LINT_CMD="${LINT_CMD:-pnpm lint}"
+TYPECHECK_CMD="${TYPECHECK_CMD:-pnpm type-check}"
+TYPECHECK_FALLBACK_CMD="${TYPECHECK_FALLBACK_CMD:-pnpm typecheck}"
+TEST_CMD="${TEST_CMD:-pnpm --filter @interdomestik/web test:unit --run}"
+E2E_SMOKE_CMD="${E2E_SMOKE_CMD:-pnpm --filter @interdomestik/web test:e2e -- --grep smoke}"
+BUILD_CMD="${BUILD_CMD:-pnpm build}"
+FULL_CHECK_CMD="${FULL_CHECK_CMD:-pnpm qa:full}"
+FORMAT_CMD="${FORMAT_CMD:-pnpm prettier --check}"
+PARSED_ARGS=()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # COLORS
 # ═══════════════════════════════════════════════════════════════════════════════
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -43,10 +59,49 @@ MAGENTA='\033[0;35m'
 BOLD='\033[1m'
 DIM='\033[2m'
 NC='\033[0m' # No Color
+else
+RED=''; GREEN=''; YELLOW=''; BLUE=''; CYAN=''; MAGENTA=''; BOLD=''; DIM=''; NC='';
+fi
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # HELPER FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
+prompt_with_default() {
+    # Usage: prompt_with_default VAR "Prompt" "default"
+    local __var_name="$1"; shift
+    local __prompt="$1"; shift
+    local __default="$1"
+
+    if [[ -n "${NON_INTERACTIVE:-}" ]]; then
+        printf -v "$__var_name" "%s" "$__default"
+        return
+    fi
+
+    echo -n -e "$__prompt"
+    read "$__var_name"
+    if [[ -z "${!__var_name:-}" ]]; then
+        printf -v "$__var_name" "%s" "$__default"
+    fi
+}
+
+escape_yaml() {
+    local value="$1"
+    value="${value//\\/\\\\}"
+    value="${value//\"/\\\"}"
+    echo "$value"
+}
+
+print_snippet() {
+    # Print a small snippet from a log file for quick context
+    local file="$1"
+    local lines="${2:-10}"
+    if [[ -s "$file" ]]; then
+        echo -e "      ${DIM}--- snippet ---${NC}"
+        head -n "$lines" "$file" | sed 's/^/      /'
+        echo -e "      ${DIM}---------------${NC}"
+    fi
+}
+
 print_header() {
     echo ""
     echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════╗${NC}"
@@ -75,9 +130,32 @@ print_info() {
     echo -e "${DIM}ℹ${NC} $1"
 }
 
+parse_args() {
+    local args=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --no-baseline) SKIP_BASELINE=1; shift ;;
+            --run-full-checks) RUN_FULL_CHECKS="Y"; shift ;;
+            --no-full-checks) RUN_FULL_CHECKS="N"; shift ;;
+            --non-interactive|--yes|--y) NON_INTERACTIVE=1; shift ;;
+            --allow-dirty) ALLOW_DIRTY=1; shift ;;
+            -h|--help)
+                echo "Usage: ./scripts/start-10x-task.sh [--non-interactive] [--allow-dirty] [--no-baseline] [--run-full-checks|--no-full-checks] [task_name] [related_files...]"
+                exit 0
+                ;;
+            --) shift; args+=("$@"); break ;;
+            *) args+=("$1"); shift ;;
+        esac
+    done
+    PARSED_ARGS=("${args[@]}")
+}
+
 run_optional_full_checks() {
-    echo -n -e "${CYAN}Run full checks now? (lint/typecheck/unit/smoke/build) [y/N]: ${NC}"
-    read RUN_FULL
+    if [[ -n "${RUN_FULL_CHECKS:-}" ]]; then
+        RUN_FULL="$RUN_FULL_CHECKS"
+    else
+        prompt_with_default RUN_FULL "${CYAN}Run full checks now? (lint/format/typecheck/unit/smoke/build) [y/N]: ${NC}" "N"
+    fi
     if [[ "$RUN_FULL" != "y" && "$RUN_FULL" != "Y" ]]; then
         return
     fi
@@ -91,6 +169,11 @@ run_optional_full_checks() {
     $LINT_CMD >/dev/null 2>&1
     LINT_EXIT=$?
     [[ $LINT_EXIT -eq 0 ]] && echo -e "${GREEN}✓${NC}" || { echo -e "${YELLOW}⚠${NC} (exit $LINT_EXIT)"; ALL_OK=0; }
+
+    echo -n -e "   ${DIM}Format...${NC} "
+    $FORMAT_CMD >/dev/null 2>&1
+    FORMAT_EXIT=$?
+    [[ $FORMAT_EXIT -eq 0 ]] && echo -e "${GREEN}✓${NC}" || { echo -e "${YELLOW}⚠${NC} (exit $FORMAT_EXIT)"; ALL_OK=0; }
 
     echo -n -e "   ${DIM}Typecheck...${NC} "
     $TYPECHECK_CMD >/dev/null 2>&1
@@ -128,8 +211,7 @@ handle_command_not_found() {
     echo -e "${RED}✖ command not found${NC}"
     echo ""
     print_error "$cmd_name command not configured: ${DIM}$cmd_string${NC}"
-    echo -n -e "   ${YELLOW}Continue without $cmd_name baseline? [Y/n]: ${NC}"
-    read CONTINUE_WITHOUT
+    prompt_with_default CONTINUE_WITHOUT "   ${YELLOW}Continue without $cmd_name baseline? [Y/n]: ${NC}" "Y"
     if [[ "$CONTINUE_WITHOUT" == "n" || "$CONTINUE_WITHOUT" == "N" ]]; then
         print_error "Aborted. Please configure the $cmd_name command in the script."
         exit 1
@@ -149,6 +231,12 @@ preflight_checks() {
         exit 1
     fi
     print_success "pnpm found: $(pnpm --version)"
+
+    # 1b. Check for node
+    if ! command -v node &> /dev/null; then
+        print_error "node is not installed or not in PATH"
+        exit 1
+    fi
     
     # 2. Check git status
     if ! command -v git &> /dev/null; then
@@ -159,11 +247,15 @@ preflight_checks() {
         if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
             echo ""
             print_warning "You're on the ${BOLD}$CURRENT_BRANCH${NC}${YELLOW} branch!${NC}"
-            echo -n -e "   ${YELLOW}Create a feature branch? [y/N]: ${NC}"
-            read CREATE_BRANCH
+            prompt_with_default CREATE_BRANCH "   ${YELLOW}Create a feature branch? [y/N]: ${NC}" "N"
             if [[ "$CREATE_BRANCH" == "y" || "$CREATE_BRANCH" == "Y" ]]; then
                 echo -n -e "   ${CYAN}Branch name (e.g., feat/my-feature): ${NC}"
-                read NEW_BRANCH
+                if [[ -n "${NON_INTERACTIVE:-}" ]]; then
+                    NEW_BRANCH="auto/$(date +%s)"
+                    echo "$NEW_BRANCH"
+                else
+                    read NEW_BRANCH
+                fi
                 if [[ -n "$NEW_BRANCH" ]]; then
                     git checkout -b "$NEW_BRANCH"
                     CURRENT_BRANCH="$NEW_BRANCH"
@@ -182,11 +274,14 @@ preflight_checks() {
                 echo -e "   ${DIM}... and $((UNCOMMITTED_COUNT - 10)) more files${NC}"
             fi
             echo ""
-            echo -n -e "   ${YELLOW}Continue anyway? [y/N]: ${NC}"
-            read CONTINUE
-            if [[ "$CONTINUE" != "y" && "$CONTINUE" != "Y" ]]; then
-                print_error "Aborted. Please commit or stash your changes first."
-                exit 1
+            if [[ "${ALLOW_DIRTY:-0}" == "1" ]]; then
+                print_warning "Continuing with dirty working tree (ALLOW_DIRTY=1)"
+            else
+                prompt_with_default CONTINUE "   ${YELLOW}Continue anyway? [y/N]: ${NC}" "N"
+                if [[ "$CONTINUE" != "y" && "$CONTINUE" != "Y" ]]; then
+                    print_error "Aborted. Please commit or stash your changes first."
+                    exit 1
+                fi
             fi
         else
             print_success "Git working directory clean"
@@ -207,8 +302,13 @@ preflight_checks() {
     fi
     
     # 5. Create directories
-    mkdir -p "$TASK_DIR" "$ARCHIVE_DIR"
+    mkdir -p "$TASK_DIR" "$ARCHIVE_DIR" "$LOG_DIR"
     print_success "Task directories ready"
+
+    # 6. Env hints
+    if [ -f "$REPO_ROOT/.env.local" ]; then
+        print_info ".env.local detected; ensure required vars are set"
+    fi
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -233,6 +333,8 @@ capture_qa_baseline() {
         BASELINE_LINT="skipped"
         BASELINE_TYPECHECK="skipped"
         BASELINE_TESTS="skipped"
+        BASELINE_FORMAT="skipped"
+        BASELINE_LOG="skipped"
         return
     fi
     
@@ -240,7 +342,11 @@ capture_qa_baseline() {
     echo ""
     
     local BASELINE_FILE="$TASK_DIR/.qa_baseline"
-    local TEMP_OUTPUT=$(mktemp)
+    local TEMP_OUTPUT
+    TEMP_OUTPUT=$(mktemp)
+    trap '[[ -f "$TEMP_OUTPUT" ]] && rm -f "$TEMP_OUTPUT"' EXIT
+    BASELINE_LOG="$LOG_DIR/qa_baseline_$(date +%Y%m%d_%H%M%S).log"
+    echo "# QA Baseline Log $(date -Iseconds)" > "$BASELINE_LOG"
     
     # ─────────────────────────────────────────────────────────────────────────
     # Lint
@@ -250,6 +356,7 @@ capture_qa_baseline() {
     $LINT_CMD > "$TEMP_OUTPUT" 2>&1
     LINT_EXIT=$?
     set -e  # Re-enable exit on error
+    { echo "### Lint ($LINT_CMD)"; cat "$TEMP_OUTPUT"; echo ""; } >> "$BASELINE_LOG"
     
     if [[ $LINT_EXIT -eq 0 ]]; then
         BASELINE_LINT="pass"
@@ -261,6 +368,7 @@ capture_qa_baseline() {
         BASELINE_LINT="fail (exit $LINT_EXIT)"
         LINT_ERROR_COUNT=$(grep -c -E "(error|Error)" "$TEMP_OUTPUT" 2>/dev/null || echo "?")
         echo -e "${YELLOW}⚠ fail${NC} ${DIM}(~$LINT_ERROR_COUNT issues)${NC}"
+        print_snippet "$TEMP_OUTPUT"
     fi
     
     # ─────────────────────────────────────────────────────────────────────────
@@ -269,14 +377,12 @@ capture_qa_baseline() {
     echo -n -e "   ${DIM}Type check...${NC} "
     set +e  # Disable exit on error for baseline capture
     
-    # Step 1: Check if primary type-check script exists
-    if pnpm run --silent type-check --help > /dev/null 2>&1; then
-        # Primary command exists, run it
+    # Step 1: Check if primary type-check script exists in package.json
+    if node -e "process.exit(!(require('./package.json').scripts||{})['type-check'] ? 0 : 1)" 2>/dev/null; then
         $TYPECHECK_CMD > "$TEMP_OUTPUT" 2>&1
         TYPECHECK_EXIT=$?
     # Step 2: Try fallback 'typecheck' (no hyphen)
-    elif pnpm run --silent typecheck --help > /dev/null 2>&1; then
-        # Fallback exists, run it
+    elif node -e "process.exit(!(require('./package.json').scripts||{})['typecheck'] ? 0 : 1)" 2>/dev/null; then
         $TYPECHECK_FALLBACK_CMD > "$TEMP_OUTPUT" 2>&1
         TYPECHECK_EXIT=$?
     # Step 3: Try tsc directly
@@ -288,6 +394,7 @@ capture_qa_baseline() {
         TYPECHECK_EXIT=127
     fi
     set -e  # Re-enable exit on error
+    { echo "### Typecheck (fallback aware)"; cat "$TEMP_OUTPUT"; echo ""; } >> "$BASELINE_LOG"
     
     if [[ $TYPECHECK_EXIT -eq 0 ]]; then
         BASELINE_TYPECHECK="pass"
@@ -299,6 +406,7 @@ capture_qa_baseline() {
     else
         BASELINE_TYPECHECK="fail (exit $TYPECHECK_EXIT)"
         echo -e "${YELLOW}⚠ fail${NC}"
+        print_snippet "$TEMP_OUTPUT"
     fi
     
     # ─────────────────────────────────────────────────────────────────────────
@@ -309,6 +417,7 @@ capture_qa_baseline() {
     $TEST_CMD > "$TEMP_OUTPUT" 2>&1
     TEST_EXIT=$?
     set -e  # Re-enable exit on error
+    { echo "### Unit Tests ($TEST_CMD)"; cat "$TEMP_OUTPUT"; echo ""; } >> "$BASELINE_LOG"
     
     if [[ $TEST_EXIT -eq 0 ]]; then
         BASELINE_TESTS="pass"
@@ -325,6 +434,29 @@ capture_qa_baseline() {
         else
             echo -e "${YELLOW}⚠ fail${NC}"
         fi
+        print_snippet "$TEMP_OUTPUT"
+    fi
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Format (best-effort)
+    # ─────────────────────────────────────────────────────────────────────────
+    echo -n -e "   ${DIM}Format check...${NC} "
+    set +e
+    $FORMAT_CMD > "$TEMP_OUTPUT" 2>&1
+    FORMAT_EXIT=$?
+    set -e
+    { echo "### Format ($FORMAT_CMD)"; cat "$TEMP_OUTPUT"; echo ""; } >> "$BASELINE_LOG"
+
+    if [[ $FORMAT_EXIT -eq 0 ]]; then
+        BASELINE_FORMAT="pass"
+        echo -e "${GREEN}✓ pass${NC}"
+    elif [[ $FORMAT_EXIT -eq 127 ]]; then
+        BASELINE_FORMAT="not configured"
+        echo -e "${DIM}⊘ not configured${NC}"
+    else
+        BASELINE_FORMAT="fail (exit $FORMAT_EXIT)"
+        echo -e "${YELLOW}⚠ fail${NC}"
+        print_snippet "$TEMP_OUTPUT"
     fi
     
     # ─────────────────────────────────────────────────────────────────────────
@@ -335,15 +467,19 @@ capture_qa_baseline() {
 lint=$BASELINE_LINT
 typecheck=$BASELINE_TYPECHECK
 tests=$BASELINE_TESTS
+format=$BASELINE_FORMAT
 timestamp=$(date -Iseconds)
+log=$BASELINE_LOG
 EOF
     
     rm -f "$TEMP_OUTPUT"
+    trap - EXIT
     echo ""
     
     # Warn if baseline has failures
-    if [[ "$BASELINE_LINT" == fail* ]] || [[ "$BASELINE_TYPECHECK" == fail* ]] || [[ "$BASELINE_TESTS" == fail* ]]; then
+    if [[ "$BASELINE_LINT" == fail* ]] || [[ "$BASELINE_TYPECHECK" == fail* ]] || [[ "$BASELINE_TESTS" == fail* ]] || [[ "$BASELINE_FORMAT" == fail* ]]; then
         print_warning "Baseline has failures - consider fixing before starting new work"
+        print_info "Full log: $BASELINE_LOG"
     fi
 }
 
@@ -356,8 +492,12 @@ gather_inputs() {
         TASK_NAME="$1"
         shift
     else
-        echo -n -e "${CYAN}📝 Enter Task Name: ${NC}"
-        read TASK_NAME
+        prompt_with_default TASK_NAME "${CYAN}📝 Enter Task Name: ${NC}" ""
+    fi
+
+    if [[ -z "${TASK_NAME// }" ]]; then
+        print_error "Task name is required."
+        exit 1
     fi
     
     # Manual file hints from remaining args
@@ -376,8 +516,7 @@ gather_inputs() {
     echo "  2) Bug Fix (Reproduction & Resolution)"
     echo "  3) Refactor/Optimization (Cleanup & Perf)"
     echo "  4) Documentation/Exploration (Analysis)"
-    echo -n "Select [1-4] (default 1): "
-    read TYPE_SEL
+    prompt_with_default TYPE_SEL "Select [1-4] (default 1): " "1"
 
     case $TYPE_SEL in
         2) TASK_TYPE="Bug Fix"
@@ -434,8 +573,7 @@ gather_inputs() {
     echo "  2) P1 - High (important for milestone)"
     echo "  3) P2 - Medium (nice to have)"
     echo "  4) P3 - Low (backlog)"
-    echo -n "Select [1-4] (default 2): "
-    read PRIORITY_SEL
+    prompt_with_default PRIORITY_SEL "Select [1-4] (default 2): " "2"
     
     case $PRIORITY_SEL in
         1) PRIORITY="P0-Critical" ;;
@@ -449,8 +587,7 @@ gather_inputs() {
     # ─────────────────────────────────────────────────────────────────────────
     # Estimate
     # ─────────────────────────────────────────────────────────────────────────
-    echo -n -e "${CYAN}⏱️  Estimated Effort (e.g., '2h', '1d', '3d'): ${NC}"
-    read ESTIMATE
+    prompt_with_default ESTIMATE "${CYAN}⏱️  Estimated Effort (e.g., '2h', '1d', '3d'): ${NC}" "TBD"
     ESTIMATE=${ESTIMATE:-"TBD"}
     
     echo ""
@@ -463,8 +600,7 @@ gather_inputs() {
     echo "  2) Unit tests only"
     echo "  3) Unit + Component tests"
     echo "  4) Full coverage (Unit + Component + E2E)"
-    echo -n "Select [1-4] (default 2): "
-    read TEST_REQ
+    prompt_with_default TEST_REQ "Select [1-4] (default 2): " "2"
 
     case $TEST_REQ in
         1) TEST_LEVEL="none" ;;
@@ -478,8 +614,7 @@ gather_inputs() {
     # ─────────────────────────────────────────────────────────────────────────
     # Roadmap Reference (optional)
     # ─────────────────────────────────────────────────────────────────────────
-    echo -n -e "${CYAN}🗺️  Roadmap Reference (e.g., 'Phase 2, Week 7' or Enter to skip): ${NC}"
-    read ROADMAP_REF
+    prompt_with_default ROADMAP_REF "${CYAN}🗺️  Roadmap Reference (e.g., 'Phase 2, Week 7' or Enter to skip): ${NC}" ""
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -598,21 +733,27 @@ generate_task_file() {
     
     # Get current branch
     CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+    local TASK_NAME_ESC
+    local ROADMAP_ESC
+    TASK_NAME_ESC=$(escape_yaml "$TASK_NAME")
+    ROADMAP_ESC=$(escape_yaml "$ROADMAP_REF")
     
     cat > "$TASK_FILE" << EOF
 ---
-task_name: "$TASK_NAME"
+task_name: "$TASK_NAME_ESC"
 task_type: "$TASK_TYPE"
 priority: "$PRIORITY"
 estimate: "$ESTIMATE"
 test_level: "$TEST_LEVEL"
-roadmap_ref: "$ROADMAP_REF"
+roadmap_ref: "$ROADMAP_ESC"
 branch: "$CURRENT_BRANCH"
 start_time: "$(date)"
 baseline:
   lint: "$BASELINE_LINT"
   typecheck: "$BASELINE_TYPECHECK"
   tests: "$BASELINE_TESTS"
+  format: "${BASELINE_FORMAT:-n/a}"
+  log: "${BASELINE_LOG:-n/a}"
 ---
 
 # 🚀 Current Task: $TASK_NAME
@@ -710,12 +851,21 @@ EOF
 - [ ] All acceptance criteria met
 - [ ] Tests pass at required level ($TEST_LEVEL)
 - [ ] \`pnpm lint\` passes (or no new errors)
+- [ ] Formatter/Prettier check passes
 - [ ] \`pnpm type-check\` passes
 - [ ] No regressions from baseline
 - [ ] (Recommended) \`pnpm qa:full\` or full checks executed before PR
 - [ ] Screenshots added for UI changes (if applicable)
 - [ ] Documentation updated (if applicable)
 - [ ] Code reviewed / self-reviewed
+
+## 🧠 Senior Checklist
+- [ ] Risks identified (perf, reliability, UX, security, data)
+- [ ] Rollback/mitigation plan documented
+- [ ] Monitoring/logging impact considered
+- [ ] Migrations include up/down and backfill strategy (if applicable)
+- [ ] Accessibility checks for UI changes
+- [ ] Removed debug artifacts (console.log/debugger/TODO left behind)
 EOF
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -749,6 +899,8 @@ EOF
 | Lint | $BASELINE_LINT |
 | Type Check | $BASELINE_TYPECHECK |
 | Unit Tests | $BASELINE_TESTS |
+| Format | ${BASELINE_FORMAT:-n/a} |
+| Log | ${BASELINE_LOG:-n/a} |
 
 ---
 
@@ -803,6 +955,8 @@ print_summary() {
     echo -e "    Lint:      $(if [[ "$BASELINE_LINT" == "pass" ]]; then echo -e "${GREEN}$BASELINE_LINT${NC}"; elif [[ "$BASELINE_LINT" == "skipped" ]]; then echo -e "${DIM}$BASELINE_LINT${NC}"; else echo -e "${YELLOW}$BASELINE_LINT${NC}"; fi)"
     echo -e "    Typecheck: $(if [[ "$BASELINE_TYPECHECK" == "pass" ]]; then echo -e "${GREEN}$BASELINE_TYPECHECK${NC}"; elif [[ "$BASELINE_TYPECHECK" == "skipped" ]] || [[ "$BASELINE_TYPECHECK" == "not configured" ]]; then echo -e "${DIM}$BASELINE_TYPECHECK${NC}"; else echo -e "${YELLOW}$BASELINE_TYPECHECK${NC}"; fi)"
     echo -e "    Tests:     $(if [[ "$BASELINE_TESTS" == "pass" ]]; then echo -e "${GREEN}$BASELINE_TESTS${NC}"; elif [[ "$BASELINE_TESTS" == "skipped" ]]; then echo -e "${DIM}$BASELINE_TESTS${NC}"; else echo -e "${YELLOW}$BASELINE_TESTS${NC}"; fi)"
+    echo -e "    Format:    $(if [[ "${BASELINE_FORMAT:-}" == "pass" ]]; then echo -e "${GREEN}$BASELINE_FORMAT${NC}"; elif [[ "${BASELINE_FORMAT:-}" == "skipped" ]] || [[ "${BASELINE_FORMAT:-}" == "not configured" ]]; then echo -e "${DIM}${BASELINE_FORMAT:-n/a}${NC}"; else echo -e "${YELLOW}${BASELINE_FORMAT:-n/a}${NC}"; fi)"
+    echo -e "    Log:       ${BASELINE_LOG:-n/a}"
     echo ""
     echo -e "  ${BOLD}File:${NC}      ${CYAN}$TASK_FILE${NC}"
     echo ""
@@ -819,16 +973,19 @@ print_summary() {
 # ═══════════════════════════════════════════════════════════════════════════════
 main() {
     print_header
+    parse_args "$@"
     preflight_checks
     archive_previous_task
-    gather_inputs "$@"
+    gather_inputs "${PARSED_ARGS[@]}"
     capture_qa_baseline
     generate_task_file
     run_optional_full_checks
     print_summary
     
     # Try to open in VS Code
-    code "$TASK_FILE" 2>/dev/null || true
+    if command -v code >/dev/null 2>&1; then
+        code "$TASK_FILE" 2>/dev/null || true
+    fi
 }
 
 main "$@"
