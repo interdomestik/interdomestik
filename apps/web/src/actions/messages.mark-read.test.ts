@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
 import './messages.test.base';
-import { mocks, resetMocks } from './messages.test.base';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { markMessagesAsRead } from './messages';
+import { mocks, resetMocks } from './messages.test.base';
 
 describe('markMessagesAsRead', () => {
   beforeEach(() => {

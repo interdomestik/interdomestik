@@ -43,19 +43,24 @@ interface AuthFixtures {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function performLogin(page: Page, email: string, password: string): Promise<void> {
-  // First try programmatic sign-in to ensure cookies are set even if UI changes.
-  const apiResp = await page.request.post('/api/auth/sign-in/email', {
-    data: { email, password, callbackURL: '/dashboard' },
-    headers: { 'content-type': 'application/json' },
-  });
-
-  if (!apiResp.ok()) {
-    const body = await apiResp.text();
-    console.warn('Auth fixture: API login failed', {
-      status: apiResp.status(),
-      body: body.slice(0, 400),
+  try {
+    // First try programmatic sign-in to ensure cookies are set even if UI changes.
+    const apiResp = await page.request.post('/api/auth/sign-in/email', {
+      data: { email, password, callbackURL: '/dashboard' },
+      headers: { 'content-type': 'application/json' },
     });
-    // Fallback to UI login if API fails (keep existing behavior)
+
+    if (!apiResp.ok()) {
+      const body = await apiResp.text();
+      console.warn('Auth fixture: API login failed', {
+        status: apiResp.status(),
+        body: body.slice(0, 400),
+      });
+      throw new Error(`API login failed with status ${apiResp.status()}`);
+    }
+  } catch (error) {
+    // Fallback to UI login if API fails or request errors (e.g., ECONNRESET)
+    console.warn('Auth fixture: API login errored, falling back to UI', error);
     await page.goto('/login');
     await page.waitForSelector('form', { state: 'visible' });
     await page.fill('input[name="email"], input[type="email"]', email);

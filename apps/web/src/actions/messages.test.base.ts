@@ -1,13 +1,15 @@
 import { vi } from 'vitest';
 
 // Hoisted mocks must be defined before vi.mock calls
-export const mocks = vi.hoisted(() => ({
+const hoistedMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   dbQuery: vi.fn(),
   dbUserQuery: vi.fn(),
   dbInsert: vi.fn(),
   dbUpdate: vi.fn(),
 }));
+
+export const mocks = hoistedMocks;
 
 export const mockSelectChain = {
   from: vi.fn().mockReturnThis(),
@@ -20,7 +22,7 @@ export const mockSelectChain = {
 vi.mock('@/lib/auth', () => ({
   auth: {
     api: {
-      getSession: () => mocks.getSession(),
+      getSession: hoistedMocks.getSession,
     },
   },
 }));
@@ -39,14 +41,14 @@ vi.mock('@interdomestik/database', () => ({
   user: { id: 'id', name: 'name', image: 'image', role: 'role' },
   db: {
     select: () => mockSelectChain,
-    insert: () => ({ values: mocks.dbInsert }),
-    update: () => ({ set: () => ({ where: mocks.dbUpdate }) }),
+    insert: () => ({ values: hoistedMocks.dbInsert }),
+    update: () => ({ set: () => ({ where: hoistedMocks.dbUpdate }) }),
     query: {
       claims: {
-        findFirst: () => mocks.dbQuery(),
+        findFirst: () => hoistedMocks.dbQuery(),
       },
       user: {
-        findFirst: () => mocks.dbUserQuery(),
+        findFirst: () => hoistedMocks.dbUserQuery(),
       },
     },
   },
