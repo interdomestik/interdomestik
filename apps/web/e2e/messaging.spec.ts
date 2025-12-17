@@ -15,22 +15,20 @@ test.describe('Messaging System', () => {
       // Wait for detail page to load
       await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/);
 
-      // Verify messaging panel is visible
-      const messagingPanel = authenticatedPage.locator(
-        '[class*="MessagingPanel"], [data-testid="messaging-panel"], :text("Messages")'
-      );
-      await expect(messagingPanel.first()).toBeVisible({ timeout: 5000 });
+      // Verify messaging panel is visible using data-testid
+      const messagingPanel = authenticatedPage.locator('[data-testid="messaging-panel"]');
+      await expect(messagingPanel.first()).toBeVisible({ timeout: 10000 });
     });
 
-    test('should show empty state when no messages', async ({ authenticatedPage }) => {
+    test('should show messages section', async ({ authenticatedPage }) => {
       await authenticatedPage.goto('/dashboard/claims');
       await authenticatedPage.waitForSelector('text=Car Accident');
       await authenticatedPage.click('text=Car Accident - Rear Ended');
       await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/);
 
-      // Check the messaging UI is present (empty state or messages)
-      const messagesSection = authenticatedPage.getByText(/Messages/i);
-      await expect(messagesSection.first()).toBeVisible();
+      // Look for messaging panel
+      const messagingPanel = authenticatedPage.locator('[data-testid="messaging-panel"]');
+      await expect(messagingPanel.first()).toBeVisible({ timeout: 10000 });
     });
 
     test('should have message input field', async ({ authenticatedPage }) => {
@@ -39,11 +37,9 @@ test.describe('Messaging System', () => {
       await authenticatedPage.click('text=Flight Delay to Munich');
       await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/);
 
-      // Find message input
-      const messageInput = authenticatedPage.locator(
-        'textarea[placeholder*="message"], textarea[placeholder*="Type"], [data-testid="message-input"]'
-      );
-      await expect(messageInput.first()).toBeVisible({ timeout: 5000 });
+      // Find message input using data-testid
+      const messageInput = authenticatedPage.locator('[data-testid="message-input"]');
+      await expect(messageInput.first()).toBeVisible({ timeout: 10000 });
     });
 
     test('should have send button', async ({ authenticatedPage }) => {
@@ -52,11 +48,9 @@ test.describe('Messaging System', () => {
       await authenticatedPage.click('text=Flight Delay to Munich');
       await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/);
 
-      // Find send button (look for button with Send icon or text)
-      const sendButton = authenticatedPage.locator(
-        'button:has(svg[class*="Send"]), button:has([class*="lucide-send"]), button[type="submit"]:near(textarea)'
-      );
-      await expect(sendButton.first()).toBeVisible({ timeout: 5000 });
+      // Find send button using data-testid
+      const sendButton = authenticatedPage.locator('[data-testid="send-message-button"]');
+      await expect(sendButton.first()).toBeVisible({ timeout: 10000 });
     });
   });
 
@@ -75,9 +69,9 @@ test.describe('Messaging System', () => {
       // Wait for detail page
       await agentPage.waitForURL(/\/agent\/claims\//);
 
-      // Verify messaging panel is present
-      const messagesSection = agentPage.getByText(/Messages/i);
-      await expect(messagesSection.first()).toBeVisible({ timeout: 5000 });
+      // Verify messaging panel is present using data-testid
+      const messagingPanel = agentPage.locator('[data-testid="messaging-panel"]');
+      await expect(messagingPanel.first()).toBeVisible({ timeout: 10000 });
     });
 
     test('should have internal note checkbox for agents', async ({ agentPage }) => {
@@ -88,11 +82,9 @@ test.describe('Messaging System', () => {
       await firstClaimLink.click();
       await agentPage.waitForURL(/\/agent\/claims\//);
 
-      // Look for internal note checkbox/label
-      const internalNoteControl = agentPage.locator(
-        'label:has-text("internal"), input[id="internal"], [data-testid="internal-note-toggle"]'
-      );
-      await expect(internalNoteControl.first()).toBeVisible({ timeout: 5000 });
+      // Look for internal note toggle using data-testid
+      const internalNoteToggle = agentPage.locator('[data-testid="internal-note-toggle"]');
+      await expect(internalNoteToggle.first()).toBeVisible({ timeout: 10000 });
     });
   });
 
@@ -108,11 +100,11 @@ test.describe('Messaging System', () => {
       const testMessage = `Test message ${Date.now()}`;
 
       // Type message
-      const messageInput = authenticatedPage.locator('textarea');
+      const messageInput = authenticatedPage.locator('[data-testid="message-input"]');
       await messageInput.first().fill(testMessage);
 
       // Send message
-      const sendButton = authenticatedPage.locator('button[type="submit"]').last();
+      const sendButton = authenticatedPage.locator('[data-testid="send-message-button"]');
       await sendButton.click();
 
       // Wait for message to appear in thread

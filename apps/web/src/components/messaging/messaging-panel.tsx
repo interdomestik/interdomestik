@@ -70,7 +70,7 @@ export function MessagingPanel({
   };
 
   return (
-    <Card className="flex flex-col h-[500px]">
+    <Card className="flex flex-col h-[500px]" data-testid="messaging-panel">
       <CardHeader className="flex flex-row items-center justify-between py-3 px-4 border-b">
         <CardTitle className="text-base flex items-center gap-2">
           <MessageSquare className="h-4 w-4" />

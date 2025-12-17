@@ -53,6 +53,7 @@ export function MessageInput({ claimId, isAgent = false, onMessageSent }: Messag
     <form onSubmit={handleSubmit} className="border-t p-4 space-y-3">
       <div className="relative">
         <Textarea
+          data-testid="message-input"
           value={content}
           onChange={e => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -65,6 +66,7 @@ export function MessageInput({ claimId, isAgent = false, onMessageSent }: Messag
           size="icon"
           className="absolute bottom-2 right-2"
           disabled={isPending || !content.trim()}
+          data-testid="send-message-button"
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
@@ -74,6 +76,7 @@ export function MessageInput({ claimId, isAgent = false, onMessageSent }: Messag
         <div className="flex items-center gap-2">
           <Checkbox
             id="internal"
+            data-testid="internal-note-toggle"
             checked={isInternal}
             onCheckedChange={checked => setIsInternal(checked === true)}
           />
