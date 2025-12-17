@@ -1,15 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { analytics } from './analytics';
 
+type Spy = ReturnType<typeof vi.spyOn>;
+
 describe('Analytics Utils', () => {
-  let consoleGroupSpy: any;
-  let consoleLogSpy: any;
-  let consoleGroupEndSpy: any;
+  let consoleGroupSpy: Spy;
+  let consoleLogSpy: Spy;
 
   beforeEach(() => {
     consoleGroupSpy = vi.spyOn(console, 'group').mockImplementation(() => {});
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    consoleGroupEndSpy = vi.spyOn(console, 'groupEnd').mockImplementation(() => {});
+    vi.spyOn(console, 'groupEnd').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -34,9 +35,9 @@ describe('Analytics Utils', () => {
     });
 
     // Ensure PII keys are NOT present in the logged object
-    const loggedProps = consoleLogSpy.mock.calls.find(
-      (call: any[]) => call[0] === 'Safe Properties:'
-    )?.[1];
+    const loggedProps = consoleLogSpy.mock.calls.find((call: unknown[]) => {
+      return Array.isArray(call) && call[0] === 'Safe Properties:';
+    })?.[1] as Record<string, unknown> | undefined;
 
     expect(loggedProps).toBeDefined();
     expect(loggedProps).not.toHaveProperty('name');

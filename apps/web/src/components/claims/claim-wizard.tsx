@@ -12,20 +12,24 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { WizardReview } from './wizard-review';
 import { WizardStepCategory } from './wizard-step-category';
 import { WizardStepDetails } from './wizard-step-details';
 import { WizardStepEvidence } from './wizard-step-evidence';
 
-const STEPS = [
-  { id: 'category', title: 'Category' },
-  { id: 'details', title: 'Details' },
-  { id: 'evidence', title: 'Evidence' },
-  { id: 'review', title: 'Review' },
-];
-
 export function ClaimWizard() {
   const router = useRouter();
+  const t = useTranslations('claims.wizard');
+  const tCommon = useTranslations('common');
+
+  const steps = [
+    { id: 'category', title: t('step1') },
+    { id: 'details', title: t('step2') },
+    { id: 'evidence', title: t('step3') },
+    { id: 'review', title: t('step4') },
+  ];
+
   const [currentStep, setCurrentStep] = React.useState(0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -45,7 +49,7 @@ export function ClaimWizard() {
   });
 
   // Calculate progress
-  const progress = ((currentStep + 1) / STEPS.length) * 100;
+  const progress = ((currentStep + 1) / steps.length) * 100;
 
   const nextStep = async () => {
     // Validate current step fields before moving
@@ -56,7 +60,7 @@ export function ClaimWizard() {
     if (currentStep === 2) valid = true; // Evidence optional
 
     if (valid) {
-      setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
+      setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
     }
   };
 
@@ -89,9 +93,9 @@ export function ClaimWizard() {
       <div className="mb-8 space-y-2">
         <div className="flex justify-between text-sm font-medium text-muted-foreground">
           <span>
-            Step {currentStep + 1} of {STEPS.length}
+            Step {currentStep + 1} of {steps.length}
           </span>
-          <span>{STEPS[currentStep].title}</span>
+          <span>{steps[currentStep].title}</span>
         </div>
         <Progress value={progress} className="h-2" />
       </div>
@@ -117,12 +121,12 @@ export function ClaimWizard() {
               data-testid="wizard-back"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
+              {tCommon('back')}
             </Button>
 
-            {currentStep < STEPS.length - 1 ? (
+            {currentStep < steps.length - 1 ? (
               <Button type="button" onClick={nextStep} data-testid="wizard-next">
-                Next
+                {tCommon('next')}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
@@ -133,10 +137,10 @@ export function ClaimWizard() {
                 data-testid="wizard-submit"
               >
                 {isSubmitting ? (
-                  <>Processing...</>
+                  <>{tCommon('processing')}</>
                 ) : (
                   <>
-                    Submit Claim
+                    {t('submitClaim')}
                     <Check className="ml-2 h-4 w-4" />
                   </>
                 )}

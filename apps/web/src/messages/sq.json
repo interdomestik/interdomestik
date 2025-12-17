@@ -6,6 +6,7 @@
   "common": {
     "appName": "Interdomestik",
     "loading": "Duke u ngarkuar...",
+    "processing": "Duke procesuar...",
     "save": "Ruaj",
     "cancel": "Anulo",
     "submit": "Dërgo",
@@ -194,8 +195,9 @@
     "wizard": {
       "step1": "Kategoria",
       "step2": "Detajet",
-      "step3": "Dokumentet",
-      "step4": "Përfundimi"
+      "step3": "Dëshmi",
+      "step4": "Rishiko",
+      "submitClaim": "Dërgo Ankesën"
     }
   },
   "dashboard": {
@@ -628,5 +630,10 @@
       "newMessage": "Mesazh i Ri",
       "slaWarning": "Paralajmërim SLA"
     }
+  },
+  "about": {
+    "title": "Rreth Nesh",
+    "subtitle": "Forcimi i Mbrojtjes së Konsumatorit në Kosovë",
+    "content": "Objektivi i kësaj detyre është të mbështesë projektin në vlerësimin dhe përmirësimin e shkallëzueshmërisë së platformës ECO HUB KOSOVO (Interdomestik), duke siguruar që ajo mund të përballojë në mënyrë efektive rritjen e trafikut të përdoruesve, vëllimin e të dhënave dhe zgjerimin e veçorive duke ruajtur performancën dhe besueshmërinë. Konsulenti do të angazhohet me 15–20 pjesëmarrës të trajnuar për të testuar funksionalitetin, përdorshmërinë dhe performancën e platformës. Bazuar në gjetjet, Konsulenti do të ofrojë rekomandime vepruese për optimizim dhe shkallëzim."
   }
 }

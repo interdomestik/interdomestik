@@ -61,7 +61,7 @@ const sidebarItems = [
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { data: session } = authClient.useSession();
-  const role = (session?.user as any)?.role;
+  const role = (session?.user as { role?: string } | undefined)?.role;
 
   const items = [...sidebarItems];
 

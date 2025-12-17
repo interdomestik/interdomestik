@@ -11,6 +11,7 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "typecheck": "pnpm type-check",
     "type-check": "turbo type-check",
     "clean": "turbo clean && rm -rf node_modules",
     "db:generate": "turbo db:generate",

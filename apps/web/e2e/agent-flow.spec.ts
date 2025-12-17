@@ -1,6 +1,8 @@
 import { expect, test } from './fixtures/auth.fixture';
 
 test.describe('Agent Workspace', () => {
+  test.setTimeout(60000);
+
   test('should access agent dashboard and view stats', async ({ agentPage }) => {
     await agentPage.goto('/agent');
     await expect(agentPage.locator('h1')).toContainText('Agent Workspace');
@@ -10,23 +12,30 @@ test.describe('Agent Workspace', () => {
     await expect(agentPage.getByText('New (Submitted)')).toBeVisible();
   });
 
-  test('should list claims and allow triage', async ({ agentPage }) => {
+  test('should list claims and allow triage', async ({ agentPage }, testInfo) => {
     // Navigate to Agent Claims (Force English to match assertions)
     await agentPage.goto('/en/agent/claims');
     await agentPage.waitForLoadState('networkidle');
     await expect(agentPage.locator('h1')).toContainText('Claims Queue', { timeout: 10000 });
 
     // Find a specific claim to triage
-    // Use the first claim in the list
-    const firstRow = agentPage.locator('tbody tr').first();
-    const claimTitle = await firstRow.locator('td').nth(1).locator('.font-medium').textContent();
+    // Use worker-specific claim to avoid conflicts
+    const workerIndex = testInfo.workerIndex;
+    // Fallback to generic title if worker index is high (or legacy run)
+    const targetText =
+      workerIndex < 10 && workerIndex >= 0
+        ? `Car Accident - Rear Ended (Worker ${workerIndex})`
+        : 'Car Accident - Rear Ended'; // fallback
+
+    // Wait for the specific claim row to ensure it's loaded
+    const targetRow = agentPage.locator('tr', { hasText: targetText }).first();
+    await expect(targetRow).toBeVisible({ timeout: 10000 });
+
+    const claimTitle = await targetRow.locator('td').nth(1).locator('.font-medium').textContent();
+    expect(claimTitle).toBeTruthy();
 
     // Click Review and wait for navigation
-    expect(claimTitle).toBeTruthy();
-    // Click Review and wait for navigation
-    expect(claimTitle).toBeTruthy();
-
-    const reviewLink = firstRow.getByRole('link', { name: 'Review' });
+    const reviewLink = targetRow.getByRole('link', { name: 'Review' });
     const href = await reviewLink.getAttribute('href');
     await agentPage.goto(href!);
     await agentPage.waitForLoadState('domcontentloaded');

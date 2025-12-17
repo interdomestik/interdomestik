@@ -32,34 +32,11 @@ if (!DATABASE_URL) {
 
 const sql = postgres(DATABASE_URL);
 
-const users = [
-  {
-    id: 'test-user',
-    name: 'Test Member',
-    email: 'test@interdomestik.com',
-    password: 'TestPassword123!',
-    role: 'user',
-  },
-  {
-    id: 'admin-user',
-    name: 'Admin User',
-    email: 'admin@interdomestik.com',
-    password: 'AdminPassword123!',
-    role: 'admin',
-  },
-  {
-    id: 'agent-user',
-    name: 'Support Agent',
-    email: 'agent@interdomestik.com',
-    password: 'AgentPassword123!',
-    role: 'agent',
-  },
-];
+const WORKER_COUNT = 10; // Support up to 10 parallel workers
 
-const claims = [
+const baseClaims = [
   {
-    id: 'claim-1',
-    userId: 'test-user',
+    originalId: 'claim-1',
     title: 'Car Accident - Rear Ended',
     description:
       'I was rear-ended at a red light on George Bush Blvd. The other driver admitted fault.',
@@ -68,11 +45,10 @@ const claims = [
     companyName: 'Sigal',
     amount: '1200.00',
     currency: 'EUR',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 days ago
+    createdAtOffsetDays: 2,
   },
   {
-    id: 'claim-2',
-    userId: 'test-user',
+    originalId: 'claim-2',
     title: 'Flight Delay to Munich',
     description: 'My flight to Munich was delayed by 6 hours without explanation.',
     status: 'verification',
@@ -80,11 +56,10 @@ const claims = [
     companyName: 'Austrian Airlines',
     amount: '600.00',
     currency: 'EUR',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), // 5 days ago
+    createdAtOffsetDays: 5,
   },
   {
-    id: 'claim-3',
-    userId: 'test-user',
+    originalId: 'claim-3',
     title: 'Defective Laptop',
     description:
       'The laptop screen started flickering one week after purchase. Vendor refuses warranty.',
@@ -93,11 +68,10 @@ const claims = [
     companyName: 'TechnoMarket',
     amount: '850.00',
     currency: 'EUR',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10), // 10 days ago
+    createdAtOffsetDays: 10,
   },
   {
-    id: 'claim-4',
-    userId: 'test-user',
+    originalId: 'claim-4',
     title: 'Water Damage in Apartment',
     description: 'Upstairs neighbor had a leak that damaged my ceiling and hardwood floor.',
     status: 'negotiation',
@@ -105,11 +79,10 @@ const claims = [
     companyName: 'Building Mgmt',
     amount: '2500.00',
     currency: 'EUR',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20), // 20 days ago
+    createdAtOffsetDays: 20,
   },
   {
-    id: 'claim-5',
-    userId: 'test-user',
+    originalId: 'claim-5',
     title: 'Rejected Insurance Claim',
     description: 'Insurance denied coverage for storm damage citing a clause I cannot find.',
     status: 'rejected',
@@ -117,9 +90,82 @@ const claims = [
     companyName: 'Illyria',
     amount: '5000.00',
     currency: 'EUR',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30), // 30 days ago
+    createdAtOffsetDays: 30,
   },
 ];
+
+const users = [];
+const claims = [];
+
+// 1. Generate Worker-Specific Users/Agents/Claims
+for (let i = 0; i < WORKER_COUNT; i++) {
+  // Member
+  const userId = `test-user-${i}`;
+  users.push({
+    id: userId,
+    name: `Test Member ${i}`,
+    email: `test-worker${i}@interdomestik.com`,
+    password: 'TestPassword123!',
+    role: 'user',
+  });
+
+  // Agent
+  users.push({
+    id: `agent-user-${i}`,
+    name: `Support Agent ${i}`,
+    email: `agent-worker${i}@interdomestik.com`,
+    password: 'AgentPassword123!',
+    role: 'agent',
+  });
+
+  // Claims for this user
+  for (const c of baseClaims) {
+    claims.push({
+      id: `${c.originalId}-worker${i}`,
+      userId: userId,
+      title: `${c.title} (Worker ${i})`,
+      description: c.description,
+
+      status: c.status,
+      category: c.category,
+      companyName: c.companyName,
+      amount: c.amount,
+      currency: c.currency,
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * c.createdAtOffsetDays),
+    });
+  }
+}
+
+// 2. Global Users (backward compatibility or shared resources)
+users.push({
+  id: 'test-user', // Legacy fallback
+  name: 'Test Member Legacy',
+  email: 'test@interdomestik.com',
+  password: 'TestPassword123!',
+  role: 'user',
+});
+users.push({
+  id: 'admin-user',
+  name: 'Admin User',
+  email: 'admin@interdomestik.com',
+  password: 'AdminPassword123!',
+  role: 'admin',
+});
+// Add original claims for legacy user
+for (const c of baseClaims) {
+  claims.push({
+    id: c.originalId,
+    userId: 'test-user',
+    title: c.title,
+    description: c.description,
+    status: c.status,
+    category: c.category,
+    companyName: c.companyName,
+    amount: c.amount,
+    currency: c.currency,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * c.createdAtOffsetDays),
+  });
+}
 
 async function upsertUser({ id, name, email, role, password }) {
   const now = new Date();

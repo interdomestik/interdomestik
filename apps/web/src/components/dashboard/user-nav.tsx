@@ -45,8 +45,7 @@ export function UserNav() {
   }
 
   const { user } = session;
-  // Define role type safely if not inferred
-  const role = (user as any).role as string | undefined;
+  const role = (user as { role?: string }).role;
 
   return (
     <DropdownMenu>

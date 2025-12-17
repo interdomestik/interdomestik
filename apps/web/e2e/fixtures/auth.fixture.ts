@@ -81,12 +81,21 @@ export const test = base.extend<AuthFixtures>({
    * });
    * ```
    */
-  authenticatedPage: async ({ page }, use) => {
+  /**
+   * Provides a page that is already authenticated as a regular user.
+   * Uses worker-specific accounts to allow parallel execution.
+   */
+  authenticatedPage: async ({ page }, use, testInfo) => {
     try {
-      await performLogin(page, TEST_USER.email, TEST_USER.password);
+      // Use worker-specific user if available (0-9 seeded)
+      // Fallback to legacy test-user if index >= 10 (though seed script supports 10)
+      const workerIndex = testInfo.workerIndex;
+      const email =
+        workerIndex < 10 ? `test-worker${workerIndex}@interdomestik.com` : TEST_USER.email;
+
+      await performLogin(page, email, TEST_USER.password);
       await use(page);
     } catch (error) {
-      // If login fails, still provide the page but log warning with the error for diagnostics
       console.warn('Auth fixture: Login failed, providing unauthenticated page', error);
       await use(page);
     }
@@ -94,14 +103,7 @@ export const test = base.extend<AuthFixtures>({
 
   /**
    * Provides a page that is authenticated as an admin user.
-   *
-   * @example
-   * ```ts
-   * test('admin can access admin panel', async ({ adminPage }) => {
-   *   await adminPage.goto('/admin');
-   *   await expect(adminPage.locator('h1')).toContainText('Admin');
-   * });
-   * ```
+   * Admin is shared (single user), so tests modifying admin data might still conflict.
    */
   adminPage: async ({ page }, use) => {
     try {
@@ -115,10 +117,15 @@ export const test = base.extend<AuthFixtures>({
 
   /**
    * Provides a page that is authenticated as an agent user.
+   * Uses worker-specific accounts.
    */
-  agentPage: async ({ page }, use) => {
+  agentPage: async ({ page }, use, testInfo) => {
     try {
-      await performLogin(page, TEST_AGENT.email, TEST_AGENT.password);
+      const workerIndex = testInfo.workerIndex;
+      const email =
+        workerIndex < 10 ? `agent-worker${workerIndex}@interdomestik.com` : TEST_AGENT.email;
+
+      await performLogin(page, email, TEST_AGENT.password);
       await use(page);
     } catch (error) {
       console.warn('Auth fixture: Agent login failed, providing unauthenticated page', error);

@@ -45,11 +45,6 @@ test.describe('Authentication', () => {
       await page.waitForTimeout(500);
 
       // Check for error state
-      const hasEmailError = await page
-        .locator('text=/invalid|email|format/i')
-        .isVisible()
-        .catch(() => false);
-
       // Either shows error message or stays on login page
       const currentUrl = page.url();
       expect(currentUrl).toContain('login');

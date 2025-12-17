@@ -8,7 +8,14 @@ const __dirname = dirname(__filename);
 
 export default tseslint.config(
   {
-    ignores: ['.next/**', 'node_modules/**', 'dist/**', 'eslint.config.mjs'],
+    ignores: [
+      '.next/**',
+      'node_modules/**',
+      'dist/**',
+      'eslint.config.mjs',
+      'coverage/**',
+      'playwright-report/**',
+    ],
   },
   ...tseslint.configs.recommended,
   {

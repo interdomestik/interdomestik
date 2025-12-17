@@ -40,8 +40,16 @@ test.describe('Claim Creation Wizard', () => {
 
     // Submit
     await authenticatedPage.waitForTimeout(1000); // Allow for enter animations
+
+    // Explicitly verify we are on Review step
+    await expect(authenticatedPage.getByRole('heading', { name: 'Review & Submit' })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(authenticatedPage.getByTestId('wizard-next')).not.toBeVisible();
+
     const submitButton = authenticatedPage.getByTestId('wizard-submit');
 
+    await expect(submitButton).toBeVisible();
     await expect(submitButton).toBeEnabled();
     await expect(submitButton).toHaveText(/Submit Claim/);
     await submitButton.click();

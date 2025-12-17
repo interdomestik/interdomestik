@@ -132,17 +132,6 @@ const CLAIM_CATEGORIES: ClaimCategory[] = [
   'other',
 ];
 
-const CLAIM_STATUSES: ClaimStatus[] = [
-  'draft',
-  'submitted',
-  'verification',
-  'evaluation',
-  'negotiation',
-  'court',
-  'resolved',
-  'rejected',
-];
-
 const SAMPLE_COMPANIES = [
   'TechCorp Ltd',
   'Retail Giants',

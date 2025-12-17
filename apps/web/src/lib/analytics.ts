@@ -11,9 +11,10 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 // List of properties that should strictly be stripped before sending to a 3rd party
 const PII_KEYS = ['name', 'phone', 'email', 'address'];
+type EventProps = Record<string, unknown>;
 
 export const analytics = {
-  track: (event: EventName, properties?: Record<string, any>) => {
+  track: (event: EventName, properties?: EventProps) => {
     // 1. Strip PII for external providers
     const safeProps = properties ? { ...properties } : {};
     PII_KEYS.forEach(key => {

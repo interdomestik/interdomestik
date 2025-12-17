@@ -44,6 +44,10 @@ E2E_SMOKE_CMD="${E2E_SMOKE_CMD:-pnpm --filter @interdomestik/web test:e2e -- --g
 BUILD_CMD="${BUILD_CMD:-pnpm build}"
 FULL_CHECK_CMD="${FULL_CHECK_CMD:-pnpm qa:full}"
 FORMAT_CMD="${FORMAT_CMD:-pnpm prettier --check}"
+MAX_FILE_BYTES="${MAX_FILE_BYTES:-15000}"
+MAX_FILE_LINES="${MAX_FILE_LINES:-400}"
+SIZE_SCAN_DIRS="${SIZE_SCAN_DIRS:-apps packages}"
+ENFORCE_SIZE="${ENFORCE_SIZE:-0}"
 PARSED_ARGS=()
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -91,6 +95,15 @@ escape_yaml() {
     echo "$value"
 }
 
+get_file_size_bytes() {
+    local file="$1"
+    if stat -f%z "$file" >/dev/null 2>&1; then
+        stat -f%z "$file"
+    else
+        stat -c%s "$file"
+    fi
+}
+
 print_snippet() {
     # Print a small snippet from a log file for quick context
     local file="$1"
@@ -128,6 +141,37 @@ print_error() {
 
 print_info() {
     echo -e "${DIM}ℹ${NC} $1"
+}
+
+check_file_sizes() {
+    print_step "Checking for oversized files..."
+    SIZE_WARNINGS=""
+    local oversize_count=0
+    local dirs=($SIZE_SCAN_DIRS)
+    for dir in "${dirs[@]}"; do
+        [[ -d "$REPO_ROOT/$dir" ]] || continue
+        while IFS= read -r -d '' file; do
+            local bytes lines rel
+            bytes=$(get_file_size_bytes "$file" 2>/dev/null || echo 0)
+            lines=$(wc -l < "$file" 2>/dev/null || echo 0)
+            if [[ $bytes -gt $MAX_FILE_BYTES || $lines -gt $MAX_FILE_LINES ]]; then
+                rel="${file#$REPO_ROOT/}"
+                SIZE_WARNINGS+="- $rel (${lines} lines, ${bytes} bytes)\n"
+                ((oversize_count++))
+            fi
+        done < <(find "$REPO_ROOT/$dir" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) ! -path '*/node_modules/*' ! -path '*/.next/*' ! -path '*/dist/*' -print0)
+    done
+
+    if [[ -z "$SIZE_WARNINGS" ]]; then
+        print_success "No oversized files (>${MAX_FILE_LINES} lines or >${MAX_FILE_BYTES} bytes) detected"
+    else
+        print_warning "Oversized files detected (>${MAX_FILE_LINES} lines or >${MAX_FILE_BYTES} bytes):"
+        echo -e "${SIZE_WARNINGS%\\n}"
+        if [[ "$ENFORCE_SIZE" == "1" ]]; then
+            print_error "ENFORCE_SIZE=1 set; aborting due to oversized files."
+            exit 1
+        fi
+    fi
 }
 
 parse_args() {
@@ -902,6 +946,17 @@ EOF
 | Format | ${BASELINE_FORMAT:-n/a} |
 | Log | ${BASELINE_LOG:-n/a} |
 
+## 📏 Oversized Files (>${MAX_FILE_LINES} lines or >${MAX_FILE_BYTES} bytes)
+EOF
+
+    if [[ -n "${SIZE_WARNINGS:-}" ]]; then
+        echo -e "${SIZE_WARNINGS%\\n}" >> "$TASK_FILE"
+    else
+        echo "None detected" >> "$TASK_FILE"
+    fi
+
+    cat >> "$TASK_FILE" << EOF
+
 ---
 
 ## 📝 PR Template (Copy when done)
@@ -978,6 +1033,7 @@ main() {
     archive_previous_task
     gather_inputs "${PARSED_ARGS[@]}"
     capture_qa_baseline
+    check_file_sizes
     generate_task_file
     run_optional_full_checks
     print_summary

@@ -1,60 +1,130 @@
 ---
-task_name: 'Run full E2E test suite until all tests pass'
-task_type: 'Bug Fix'
-priority: 'P0-Critical'
-estimate: '2h'
-test_level: 'full'
-roadmap_ref: 'Test Stabilization'
-branch: 'fix/i18n-config'
-start_time: 'Wed Dec 17 14:24:00 CET 2025'
-end_time: 'Wed Dec 17 16:35:00 CET 2025'
+task_name: "Create About Us page"
+task_type: "Feature"
+priority: "P1-High"
+estimate: "TBD"
+test_level: "unit"
+roadmap_ref: ""
+branch: "fix/i18n-config"
+start_time: "Wed Dec 17 21:27:23 CET 2025"
 baseline:
-  lint: 'pass'
-  typecheck: 'pass'
-  tests: 'pass'
-  build: 'pass'
+  lint: "pass"
+  typecheck: "pass"
+  tests: "fail (exit 1)"
+  format: "fail (exit 1)"
+  log: "/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251217_212713.log"
 ---
 
-# 🚀 Task: Run full E2E test suite
+# 🚀 Current Task: Create About Us page
 
-## 📋 Problem Statement
+## 📋 10x Context Prompt
+Copy the block below to your Agent to start with maximum context:
 
-E2E tests were failing due to flakiness, timeouts, and parallel execution issues when running the full suite.
+```xml
+<task_definition>
+  <objective>Create About Us page</objective>
+  <type>Feature</type>
+  <priority>P1-High</priority>
+  <estimate>TBD</estimate>
+  <branch>fix/i18n-config</branch>
+  <constraints>
+    - Use @interdomestik/ui components
+    - Follow 10x-coding rules (Explore → Plan → Execute)
+    - Mobile-first approach
+    - Use next-intl for i18n
+    - Write tests as specified in testing checklist
+  </constraints>
+</task_definition>
 
-## ✅ Solution
-
-1. **Stabilized `messaging.spec.ts`**: Replaced fragile `click` navigations with robust `href` attribute extraction and `page.goto()`.
-2. **Fixed `claim-submission.spec.ts`**: Added proper waiting for submit button state and processing delays.
-3. **Fixed `agent-flow.spec.ts`**: Improved dropdown selection reliability and navigation.
-4. **Improved `auth.spec.ts`**: Added form visibility checks to avoid failures during slow loads.
-5. **Addressed Parallelism**: Identified that tests sharing the same seeded users must run in series (1 worker).
+<user_story>
+  As a [user type], I want to [action]
+  so that I can [benefit].
+</user_story>
+<acceptance_criteria>
+  - [ ] Criterion 1
+  - [ ] Criterion 2
+  - [ ] Criterion 3
+</acceptance_criteria>
+```
 
 ## 🏗️ Status Tracker
-
-- [x] **Analysis**: Identified failing tests (messaging, auth, agent-flow)
-- [x] **Fixes**:
-  - `messaging.spec.ts`: timeouts
-  - `auth.spec.ts`: element not found
-  - `agent-flow.spec.ts`: detached elements
-- [x] **Verification**: Ran full suite with 1 worker -> 34 passed, 0 failed.
+- [ ] **Exploration**: Identify files using `project_map` and `read_files`
+- [ ] **Planning**: Create a step-by-step implementation plan
+- [ ] **Implementation**: Execute code changes
+- [ ] **Verification**: Run `pnpm qa` or relevant tests
+- [ ] **Documentation**: Update relevant docs if needed
 
 ## 🧪 Testing Checklist
-
-- [x] `pnpm test:e2e` (Chromium) - Pass (Single Worker)
+- [ ] Unit tests added: `src/**/*.test.ts`
+- [ ] Tests use factories from `src/test/factories.ts`
+- [ ] Run: `pnpm test:unit`
+- [ ] All tests pass
 
 ## ✅ Definition of Done
+- [ ] All acceptance criteria met
+- [ ] Tests pass at required level (unit)
+- [ ] `pnpm lint` passes (or no new errors)
+- [ ] Formatter/Prettier check passes
+- [ ] `pnpm type-check` passes
+- [ ] No regressions from baseline
+- [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
+- [ ] Screenshots added for UI changes (if applicable)
+- [ ] Documentation updated (if applicable)
+- [ ] Code reviewed / self-reviewed
 
-- [x] All 57 tests (excluding skips) pass
-- [x] Flakiness reduced
-- [x] Code committed
+## 🧠 Senior Checklist
+- [ ] Risks identified (perf, reliability, UX, security, data)
+- [ ] Rollback/mitigation plan documented
+- [ ] Monitoring/logging impact considered
+- [ ] Migrations include up/down and backfill strategy (if applicable)
+- [ ] Accessibility checks for UI changes
+- [ ] Removed debug artifacts (console.log/debugger/TODO left behind)
 
-## 🔗 Files Modified
+## 🔗 Related Files
+<!-- Add discovered file paths here -->
 
-- `apps/web/e2e/messaging.spec.ts`
-- `apps/web/e2e/auth.spec.ts`
-- `apps/web/e2e/agent-flow.spec.ts`
-- `apps/web/e2e/claim-submission.spec.ts`
+## 📂 Active Context
+<!-- Paste file paths or code snippets here as you discover them -->
 
-## Commits
+## 📝 Implementation Notes
+<!-- Add decisions, trade-offs, blockers here -->
 
-- `6439bf4` - test(e2e): stabilize suite by improving selectors and reducing parallelism
+## 🔬 QA Baseline (at task start)
+| Metric | Status |
+|--------|--------|
+| Lint | pass |
+| Type Check | pass |
+| Unit Tests | fail (exit 1) |
+| Format | fail (exit 1) |
+| Log | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251217_212713.log |
+
+## 📏 Oversized Files (>400 lines or >15000 bytes)
+- apps/web/coverage/prettify.js (       2 lines, 17590 bytes)
+- packages/database/src/types.ts (     587 lines, 16408 bytes)
+
+---
+
+## 📝 PR Template (Copy when done)
+```markdown
+## What
+Create About Us page
+
+## Why
+
+
+## How
+<!-- Implementation approach -->
+
+## Testing
+- [ ] Unit tests pass (`pnpm test:unit`)
+- [ ] E2E tests pass (`pnpm test:e2e`)  
+- [ ] Manual QA completed
+- [ ] No regressions in existing functionality
+
+## Screenshots (if UI changes)
+<!-- Add screenshots here -->
+
+## Notes to Reviewer
+<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
+
+```

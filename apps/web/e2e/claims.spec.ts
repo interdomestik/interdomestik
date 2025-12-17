@@ -132,11 +132,6 @@ test.describe('Claims Flow', () => {
         await page.goto('/dashboard/claims/new');
 
         // Look for category option
-        const categoryOption = page.locator(
-          `[data-value="${category}"], [data-testid="category-${category}"], text=/${category}/i`
-        );
-
-        // Should have this category option (or similar)
         const content = await page.content();
         // Just verify page loaded - specific categories may have different display names
         expect(content.length).toBeGreaterThan(0);
