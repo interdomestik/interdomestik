@@ -156,12 +156,17 @@
     "status": {
       "draft": "Draft",
       "submitted": "Dorëzuar",
+      "verification": "Verifikim",
+      "evaluation": "Vlerësim",
+      "negotiation": "Negociata",
+      "court": "Gjyq",
+      "resolved": "Zgjidhur",
+      "rejected": "Refuzuar",
       "assigned": "Caktuar",
       "investigating": "Në Hetim",
       "contacting": "Duke Kontaktuar",
       "negotiating": "Në Negociata",
       "mediation": "Ndërmjetësim",
-      "resolved": "Zgjidhur",
       "closed": "Mbyllur"
     },
     "category": {
@@ -170,7 +175,15 @@
       "insurance": "Sigurim",
       "employment": "Punësim",
       "contracts": "Kontrata",
-      "utilities": "Shërbime Komunale"
+      "utilities": "Shërbime Komunale",
+      "auto": "Automjet",
+      "travel": "Udhëtim",
+      "retail": "Retail",
+      "real_estate": "Pasuri e Paluajtshme",
+      "flight_delay": "Vonesë Fluturimi",
+      "damaged_goods": "Mallra të Dëmtuara",
+      "service_issue": "Problem Shërbimi",
+      "other": "Tjetër"
     },
     "priority": {
       "low": "I Ulët",
