@@ -19,6 +19,22 @@ vi.mock('@interdomestik/database/db', () => ({
   db: {
     insert: () => ({ values: mockDbInsert }),
     update: () => ({ set: () => ({ where: mockDbUpdate }) }),
+    query: {
+      claims: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'claim-1',
+          userId: 'user-123',
+          title: 'Test Claim',
+          status: 'submitted',
+        }),
+      },
+      user: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'user-123',
+          email: 'user@example.com',
+        }),
+      },
+    },
   },
 }));
 
@@ -34,6 +50,12 @@ vi.mock('next/cache', () => ({
 
 vi.mock('next/headers', () => ({
   headers: vi.fn(),
+}));
+
+// Mock notifications (prevents Novu SDK initialization)
+vi.mock('@/lib/notifications', () => ({
+  notifyClaimSubmitted: vi.fn().mockResolvedValue({ success: true }),
+  notifyStatusChanged: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 describe('Claim Actions', () => {

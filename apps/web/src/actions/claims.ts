@@ -1,7 +1,8 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { notifyClaimSubmitted, notifyStatusChanged } from '@/lib/notifications';
+import { claimDocuments, claims, db, eq, user } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
 import { z } from 'zod';
@@ -127,6 +128,13 @@ export async function submitClaim(data: CreateClaimValues) {
     throw new Error('Failed to create claim. Please try again.');
   }
 
+  // Send notification (fire and forget - don't block the response)
+  notifyClaimSubmitted(session.user.id, session.user.email || '', {
+    id: claimId,
+    title,
+    category,
+  }).catch((err: Error) => console.error('Failed to send claim submitted notification:', err));
+
   revalidatePath('/dashboard/claims');
   return { success: true };
 }
@@ -158,6 +166,18 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
   }
 
   try {
+    // Fetch claim and owner info for notification
+    const claim = await db.query.claims.findFirst({
+      where: eq(claims.id, claimId),
+    });
+
+    if (!claim) {
+      return { error: 'Claim not found' };
+    }
+
+    const oldStatus = claim.status;
+
+    // Update the status
     await db
       .update(claims)
       .set({
@@ -166,6 +186,23 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
         updatedAt: new Date(),
       })
       .where(eq(claims.id, claimId));
+
+    // Send notification to claim owner (fire and forget)
+    if (claim.userId && oldStatus !== newStatus) {
+      const claimOwner = await db.query.user.findFirst({
+        where: eq(user.id, claim.userId),
+      });
+
+      if (claimOwner?.email) {
+        notifyStatusChanged(
+          claim.userId,
+          claimOwner.email,
+          { id: claimId, title: claim.title },
+          oldStatus ?? 'unknown',
+          newStatus
+        ).catch((err: Error) => console.error('Failed to send status change notification:', err));
+      }
+    }
 
     revalidatePath('/admin/claims');
     revalidatePath(`/admin/claims/${claimId}`);
