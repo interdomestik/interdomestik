@@ -1,29 +1,30 @@
 ---
-task_name: "commit merge"
-task_type: "Feature"
-priority: "P0-Critical"
-estimate: "1h"
-test_level: "none"
-roadmap_ref: ""
-branch: "fix/i18n-config"
-start_time: "Wed Dec 17 12:26:14 CET 2025"
+task_name: 'Polish and E2E Test Claim Wizard'
+task_type: 'Feature'
+priority: 'P1-High'
+estimate: '2h'
+test_level: 'full'
+roadmap_ref: ''
+branch: 'fix/i18n-config'
+start_time: 'Wed Dec 17 12:28:23 CET 2025'
 baseline:
-  lint: "pass"
-  typecheck: "pass"
-  tests: "pass"
+  lint: 'pass'
+  typecheck: 'pass'
+  tests: 'pass'
 ---
 
-# 🚀 Current Task: commit merge
+# 🚀 Current Task: Polish and E2E Test Claim Wizard
 
 ## 📋 10x Context Prompt
+
 Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>commit merge</objective>
+  <objective>Polish and E2E Test Claim Wizard</objective>
   <type>Feature</type>
-  <priority>P0-Critical</priority>
-  <estimate>1h</estimate>
+  <priority>P1-High</priority>
+  <estimate>2h</estimate>
   <branch>fix/i18n-config</branch>
   <constraints>
     - Use @interdomestik/ui components
@@ -46,65 +47,84 @@ Copy the block below to your Agent to start with maximum context:
 ```
 
 ## 🏗️ Status Tracker
-- [ ] **Exploration**: Identify files using `project_map` and `read_files`
-- [ ] **Planning**: Create a step-by-step implementation plan
-- [ ] **Implementation**: Execute code changes
-- [ ] **Verification**: Run `pnpm qa` or relevant tests
-- [ ] **Documentation**: Update relevant docs if needed
+
+- [ ] **Exploration**: Identify existing E2E tests (`e2e/claims.spec.ts`, `e2e/claim-submission.spec.ts`) and wizard components.
+- [ ] **Fix**: Ensure E2E tests use `data-testid` and resilient selectors.
+- [ ] **Fix**: Verify "Create Claim" flow manually and via test (Uploads, Steps).
+- [ ] **Polish**: Ensure translations are correct in the wizard.
+- [ ] **Verification**: Run `pnpm test:e2e` and confirm pass.
 
 ## 🧪 Testing Checklist
-- [ ] No tests required for this task
+
+- [ ] `apps/web/e2e/claim-submission.spec.ts` passes
+- [ ] Upload functionality works in test environment
 
 ## ✅ Definition of Done
-- [ ] All acceptance criteria met
-- [ ] Tests pass at required level (none)
-- [ ] `pnpm lint` passes (or no new errors)
+
+- [ ] E2E tests pass (`pnpm test:e2e`)
+- [ ] Wizard UI is polished (no missing translations)
+- [ ] `pnpm lint` passes
 - [ ] `pnpm type-check` passes
 - [ ] No regressions from baseline
-- [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
-- [ ] Screenshots added for UI changes (if applicable)
-- [ ] Documentation updated (if applicable)
-- [ ] Code reviewed / self-reviewed
 
 ## 🔗 Related Files
-<!-- Add discovered file paths here -->
+
+- apps/web/src/components/claims/
+- apps/web/src/actions/claims.ts
+- apps/web/src/lib/validators/claims.ts
+- packages/database/src/schema.ts (claims table)
+- e2e/claims.spec.ts
+- apps/web/src/components/claims/claim-wizard.tsx
+- apps/web/src/components/claims/wizard-\*.tsx
+- apps/web/src/lib/validators/claims.ts
+- apps/web/src/test/
+- apps/web/e2e/
+- apps/web/vitest.config.ts
+- apps/web/playwright.config.ts
 
 ## 📂 Active Context
+
 <!-- Paste file paths or code snippets here as you discover them -->
 
 ## 📝 Implementation Notes
+
 <!-- Add decisions, trade-offs, blockers here -->
 
 ## 🔬 QA Baseline (at task start)
-| Metric | Status |
-|--------|--------|
-| Lint | pass |
-| Type Check | pass |
-| Unit Tests | pass |
+
+| Metric     | Status |
+| ---------- | ------ |
+| Lint       | pass   |
+| Type Check | pass   |
+| Unit Tests | pass   |
 
 ---
 
 ## 📝 PR Template (Copy when done)
+
 ```markdown
 ## What
-commit merge
+
+Polish and E2E Test Claim Wizard
 
 ## Why
 
-
 ## How
+
 <!-- Implementation approach -->
 
 ## Testing
+
 - [ ] Unit tests pass (`pnpm test:unit`)
-- [ ] E2E tests pass (`pnpm test:e2e`)  
+- [ ] E2E tests pass (`pnpm test:e2e`)
 - [ ] Manual QA completed
 - [ ] No regressions in existing functionality
 
 ## Screenshots (if UI changes)
+
 <!-- Add screenshots here -->
 
 ## Notes to Reviewer
-<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
 
+<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
 ```
