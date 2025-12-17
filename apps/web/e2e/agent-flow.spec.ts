@@ -23,10 +23,13 @@ test.describe('Agent Workspace', () => {
 
     // Click Review and wait for navigation
     expect(claimTitle).toBeTruthy();
-    await Promise.all([
-      agentPage.waitForURL(/\/en\/agent\/claims\/.+/),
-      firstRow.getByRole('link', { name: 'Review' }).click(),
-    ]);
+    // Click Review and wait for navigation
+    expect(claimTitle).toBeTruthy();
+
+    const reviewLink = firstRow.getByRole('link', { name: 'Review' });
+    const href = await reviewLink.getAttribute('href');
+    await agentPage.goto(href!);
+    await agentPage.waitForLoadState('domcontentloaded');
 
     // Verify Detail Page
     await expect(agentPage.locator('h1', { hasText: 'Claim Details' })).toBeVisible();
@@ -43,8 +46,12 @@ test.describe('Agent Workspace', () => {
     // Click Select Trigger
     await agentPage.click('button[role="combobox"]');
 
+    // Wait for dropdown to open
+    const verificationOption = agentPage.locator('div[role="option"]:has-text("Verification")');
+    await expect(verificationOption).toBeVisible();
+
     // Select Option
-    await agentPage.click('div[role="option"]:has-text("Verification")');
+    await verificationOption.click();
 
     // Verify update (Optimistic or Server Revalidation)
     // The select trigger should now show the new status

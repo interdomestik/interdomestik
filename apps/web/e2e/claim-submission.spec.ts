@@ -39,9 +39,15 @@ test.describe('Claim Creation Wizard', () => {
     await expect(authenticatedPage.getByText('600 EUR')).toBeVisible();
 
     // Submit
-    await authenticatedPage.getByTestId('wizard-submit').click();
+    await authenticatedPage.waitForTimeout(1000); // Allow for enter animations
+    const submitButton = authenticatedPage.getByTestId('wizard-submit');
+
+    await expect(submitButton).toBeEnabled();
+    await expect(submitButton).toHaveText(/Submit Claim/);
+    await submitButton.click();
 
     // 6. Verify Redirection
+
     await expect(authenticatedPage).toHaveURL(/\/dashboard\/claims/);
 
     // 7. Verify Data in List

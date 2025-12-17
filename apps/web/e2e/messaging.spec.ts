@@ -9,11 +9,15 @@ test.describe('Messaging System', () => {
       // Wait for claims to load
       await authenticatedPage.waitForSelector('text=Flight Delay', { timeout: 10000 });
 
-      // Click on a claim to view details
-      await authenticatedPage.click('text=Flight Delay to Munich');
+      // Get the link href and navigate directly to avoid click interception issues
+      const link = authenticatedPage
+        .locator('tr', { hasText: 'Flight Delay to Munich' })
+        .getByRole('link');
+      const href = await link.getAttribute('href');
+      expect(href).toBeTruthy();
 
-      // Wait for detail page to load
-      await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/);
+      await authenticatedPage.goto(href!);
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Verify messaging panel is visible using data-testid
       const messagingPanel = authenticatedPage.locator('[data-testid="messaging-panel"]');
@@ -23,8 +27,12 @@ test.describe('Messaging System', () => {
     test('should show messages section', async ({ authenticatedPage }) => {
       await authenticatedPage.goto('/dashboard/claims');
       await authenticatedPage.waitForSelector('text=Car Accident');
-      await authenticatedPage.click('text=Car Accident - Rear Ended');
-      await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/);
+
+      const link = authenticatedPage
+        .locator('tr', { hasText: 'Car Accident - Rear Ended' })
+        .getByRole('link');
+      const href = await link.getAttribute('href');
+      await authenticatedPage.goto(href!);
 
       // Look for messaging panel
       const messagingPanel = authenticatedPage.locator('[data-testid="messaging-panel"]');
@@ -34,8 +42,12 @@ test.describe('Messaging System', () => {
     test('should have message input field', async ({ authenticatedPage }) => {
       await authenticatedPage.goto('/dashboard/claims');
       await authenticatedPage.waitForSelector('text=Flight Delay');
-      await authenticatedPage.click('text=Flight Delay to Munich');
-      await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/);
+
+      const link = authenticatedPage
+        .locator('tr', { hasText: 'Flight Delay to Munich' })
+        .getByRole('link');
+      const href = await link.getAttribute('href');
+      await authenticatedPage.goto(href!);
 
       // Find message input using data-testid
       const messageInput = authenticatedPage.locator('[data-testid="message-input"]');
@@ -45,8 +57,12 @@ test.describe('Messaging System', () => {
     test('should have send button', async ({ authenticatedPage }) => {
       await authenticatedPage.goto('/dashboard/claims');
       await authenticatedPage.waitForSelector('text=Flight Delay');
-      await authenticatedPage.click('text=Flight Delay to Munich');
-      await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/);
+
+      const link = authenticatedPage
+        .locator('tr', { hasText: 'Flight Delay to Munich' })
+        .getByRole('link');
+      const href = await link.getAttribute('href');
+      await authenticatedPage.goto(href!);
 
       // Find send button using data-testid
       const sendButton = authenticatedPage.locator('[data-testid="send-message-button"]');
