@@ -1,7 +1,25 @@
 import { Novu } from '@novu/node';
 
-// Initialize Novu client - only on server side
-const novu = new Novu(process.env.NOVU_API_KEY || '');
+// Lazy-initialize Novu client to avoid throwing on module load
+let novu: Novu | null = null;
+
+function getNovuClient(): Novu | null {
+  if (novu) return novu;
+
+  const apiKey = process.env.NOVU_API_KEY || process.env.NOVU_SECRET_KEY;
+  if (!apiKey) {
+    console.warn('Novu API key not configured. Notifications will be skipped.');
+    return null;
+  }
+
+  try {
+    novu = new Novu(apiKey);
+    return novu;
+  } catch (error) {
+    console.warn('Failed to initialize Novu client:', error);
+    return null;
+  }
+}
 
 // Notification event types
 export type NotificationEvent =
@@ -26,10 +44,18 @@ export async function sendNotification(
     locale?: string;
   }
 ) {
+  const client = getNovuClient();
+
+  // Skip notification if Novu is not configured
+  if (!client) {
+    console.debug(`Skipping notification [${event}] - Novu not configured`);
+    return { success: false, error: 'Novu not configured' };
+  }
+
   try {
     // First, identify/update the subscriber
     if (options?.email || options?.firstName) {
-      await novu.subscribers.identify(subscriberId, {
+      await client.subscribers.identify(subscriberId, {
         email: options.email,
         firstName: options.firstName,
         lastName: options.lastName,
@@ -38,7 +64,7 @@ export async function sendNotification(
     }
 
     // Trigger the notification workflow
-    const response = await novu.trigger(event, {
+    const response = await client.trigger(event, {
       to: {
         subscriberId,
         email: options?.email,

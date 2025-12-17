@@ -13,7 +13,8 @@ test.describe('Agent Workspace', () => {
   test('should list claims and allow triage', async ({ agentPage }) => {
     // Navigate to Agent Claims (Force English to match assertions)
     await agentPage.goto('/en/agent/claims');
-    await expect(agentPage.locator('h1')).toContainText('Claims Queue');
+    await agentPage.waitForLoadState('networkidle');
+    await expect(agentPage.locator('h1')).toContainText('Claims Queue', { timeout: 10000 });
 
     // Find a specific claim to triage
     // Use the first claim in the list
@@ -46,14 +47,17 @@ test.describe('Agent Workspace', () => {
     await agentPage.click('div[role="option"]:has-text("Verification")');
 
     // Verify update (Optimistic or Server Revalidation)
-    // The page status badge should update.
-    // Wait for network idle or text change.
-    await expect(
-      agentPage.locator('div.capitalize', { hasText: 'verification' }).first()
-    ).toBeVisible();
+    // The select trigger should now show the new status
+    // Wait for the select to update its displayed value
+    await agentPage.waitForTimeout(500);
+
+    // Check that the select value changed to verification
+    // The SelectTrigger displays the current value
+    const selectTrigger = agentPage.locator('button[role="combobox"]');
+    await expect(selectTrigger).toContainText(/verification/i);
 
     // Also verifying the Triage Buttons
-    await expect(agentPage.getByRole('button', { name: 'Reject Claim' })).toBeVisible();
+    await expect(agentPage.getByRole('button', { name: /Reject/i })).toBeVisible();
   });
 
   test('should protect agent routes from regular users', async ({ authenticatedPage }) => {

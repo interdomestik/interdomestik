@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Mock the environment variable BEFORE any module imports
+vi.stubEnv('NOVU_API_KEY', 'test-api-key');
 
 // Mock Novu SDK using vi.hoisted for proper hoisting
 const mocks = vi.hoisted(() => ({
@@ -30,6 +33,11 @@ describe('Notifications Service', () => {
       data: { data: { transactionId: 'txn-123' } },
     });
     mocks.identify.mockResolvedValue({});
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.stubEnv('NOVU_API_KEY', 'test-api-key');
   });
 
   describe('sendNotification', () => {
