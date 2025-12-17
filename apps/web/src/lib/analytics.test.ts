@@ -51,4 +51,21 @@ describe('Analytics Utils', () => {
     expect(consoleGroupSpy).toHaveBeenCalledWith('[Analytics] call_me_now_clicked');
     expect(consoleLogSpy).toHaveBeenCalledWith('Safe Properties:', {});
   });
+
+  it('should not log in production mode', async () => {
+    // Use stubEnv to mock production environment
+    vi.stubEnv('NODE_ENV', 'production');
+
+    // Reset modules to pick up new env
+    vi.resetModules();
+    const { analytics: prodAnalytics } = await import('./analytics');
+
+    prodAnalytics.track('claim_intake_viewed', { claimId: '123' });
+
+    // In production, console.group should not be called
+    expect(consoleGroupSpy).not.toHaveBeenCalled();
+
+    // Restore env
+    vi.unstubAllEnvs();
+  });
 });
