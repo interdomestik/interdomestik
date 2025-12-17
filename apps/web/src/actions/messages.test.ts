@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // vi.mock is hoisted, so we use vi.hoisted to define mocks
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
-  dbQuery: vi.fn(),
+  dbQuery: vi.fn(), // for claims
+  dbUserQuery: vi.fn(), // for users
   dbInsert: vi.fn(),
   dbUpdate: vi.fn(),
 }));
@@ -46,6 +47,9 @@ vi.mock('@interdomestik/database', () => ({
       claims: {
         findFirst: () => mocks.dbQuery(),
       },
+      user: {
+        findFirst: () => mocks.dbUserQuery(),
+      },
     },
   },
 }));
@@ -56,6 +60,15 @@ vi.mock('nanoid', () => ({
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
+}));
+
+vi.mock('next/headers', () => ({
+  headers: vi.fn(),
+}));
+
+// Mock notifications (prevents Novu SDK initialization)
+vi.mock('@/lib/notifications', () => ({
+  notifyNewMessage: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 vi.mock('next/headers', () => ({

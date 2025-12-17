@@ -1,6 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
+import { notifyNewMessage } from '@/lib/notifications';
 import { claimMessages, claims, db, user } from '@interdomestik/database';
 import { and, eq, isNull, or } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -192,6 +193,23 @@ export async function sendMessage(
     // Revalidate the claim pages to show updated message count
     revalidatePath(`/dashboard/claims/${claimId}`);
     revalidatePath(`/agent/claims/${claimId}`);
+
+    // Send notification (fire and forget)
+    if (!isInternal && isAgent) {
+      const claimOwner = await db.query.user.findFirst({
+        where: eq(user.id, claim.userId),
+      });
+
+      if (claimOwner?.email) {
+        notifyNewMessage(
+          claim.userId,
+          claimOwner.email,
+          { id: claimId, title: claim.title },
+          session.user.name || 'Agent',
+          content
+        ).catch((err: Error) => console.error('Failed to send message notification:', err));
+      }
+    }
 
     return {
       success: true,
