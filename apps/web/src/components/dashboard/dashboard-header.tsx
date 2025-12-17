@@ -1,3 +1,4 @@
+import { NotificationBell } from '@/components/notifications';
 import { Separator, SidebarTrigger } from '@interdomestik/ui';
 import { UserNav } from './user-nav';
 
@@ -11,7 +12,10 @@ export function DashboardHeader() {
 
       <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
         <div className="w-full flex-1 md:w-auto md:flex-none">{/* Breadcrumbs or Search */}</div>
-        <UserNav />
+        <div className="flex items-center gap-4">
+          <NotificationBell />
+          <UserNav />
+        </div>
       </div>
     </header>
   );
