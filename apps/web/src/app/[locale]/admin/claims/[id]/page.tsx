@@ -1,7 +1,8 @@
 import { updateClaimStatus } from '@/actions/admin-claims';
+import { DocumentList } from '@/components/documents/document-list';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
+import { claimDocuments, db } from '@interdomestik/database';
 import { claims } from '@interdomestik/database/schema';
 import {
   Badge,
@@ -76,6 +77,9 @@ export default async function AdminClaimDetailsPage({
   if (!claim) {
     notFound();
   }
+
+  // Fetch documents for this claim
+  const documents = await db.select().from(claimDocuments).where(eq(claimDocuments.claimId, id));
 
   return (
     <div className="space-y-6">
@@ -185,6 +189,24 @@ export default async function AdminClaimDetailsPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Evidence Documents */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Evidence & Documents</CardTitle>
+          <CardDescription>Files attached to this claim</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DocumentList
+            documents={documents.map(doc => ({
+              id: doc.id,
+              name: doc.name,
+              fileSize: doc.fileSize,
+              fileType: doc.fileType,
+            }))}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

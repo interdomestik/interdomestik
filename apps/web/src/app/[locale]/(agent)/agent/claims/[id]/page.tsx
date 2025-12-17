@@ -1,5 +1,6 @@
 import { TriagePanel } from '@/components/agent/triage-panel';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
+import { DocumentList } from '@/components/documents/document-list';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { auth } from '@/lib/auth';
 import { claimDocuments, claims, db, user } from '@interdomestik/database';
@@ -44,7 +45,7 @@ export default async function AgentClaimDetailPage({ params }: Props) {
 
   if (!claim) notFound();
 
-  // Fetch documents (Disabled for MVP until schema sync is stable)
+  // Fetch documents
   const documents = await db.select().from(claimDocuments).where(eq(claimDocuments.claimId, id));
 
   const t = await getTranslations('agent.details');
@@ -119,27 +120,20 @@ export default async function AgentClaimDetailPage({ params }: Props) {
             </CardContent>
           </Card>
 
-          {/* Evidence */}
+          {/* Evidence - Now with View/Download buttons */}
           <Card>
             <CardHeader>
               <CardTitle>{t('evidence')}</CardTitle>
             </CardHeader>
             <CardContent>
-              {documents.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('noEvidence')}</p>
-              ) : (
-                <ul className="list-disc space-y-2 pl-4">
-                  {documents.map(doc => (
-                    <li key={doc.id} className="text-sm">
-                      <span className="font-medium">{doc.name}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        ({(doc.fileSize / 1024).toFixed(1)} KB)
-                      </span>
-                      {/* View/Download link logic requires signing URLs - skipping for MVP list */}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <DocumentList
+                documents={documents.map(doc => ({
+                  id: doc.id,
+                  name: doc.name,
+                  fileSize: doc.fileSize,
+                  fileType: doc.fileType,
+                }))}
+              />
             </CardContent>
           </Card>
 
