@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/mcp-specification/main/schema/mcp.schema.json",
+  "mcpServers": {
+    "context": {
+      "command": "node",
+      "args": ["/Users/arbenlila/development/mcp-context-server/dist/server.js"],
+      "description": "Project mapping, code search, file reading, and git status"
+    },
+    "repo-context": {
+      "command": "node",
+      "args": [
+        "/Users/arbenlila/development/mcp-toolkit/servers/repo-context-server/src/index.mjs"
+      ],
+      "description": "Repository context server with project_map, code_search, read_files"
+    },
+    "repo-qa": {
+      "command": "/Users/arbenlila/development/interdomestikv2/scripts/start-repo-qa.sh",
+      "args": [],
+      "description": "QA server for build_health, test_runner, navigation_audit"
+    },
+    "e2e-test-generator": {
+      "command": "node",
+      "args": ["/Users/arbenlila/development/e2e-test-generator-mcp/build/index.js"],
+      "description": "Generate Playwright E2E tests from natural language descriptions"
+    },
+    "interdomestik-qa": {
+      "command": "/Users/arbenlila/development/interdomestikv2/scripts/start-interdomestik-qa.sh",
+      "args": [],
+      "description": "Local project QA tools including Database Query and Stripe Access (Custom)"
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+      ],
+      "description": "Query and manage the local Supabase PostgreSQL database (Official)"
+    },
+    "stripe": {
+      "command": "npx",
+      "args": ["-y", "@stripe/mcp"],
+      "env": {
+        "STRIPE_SECRET_KEY": "STRIPE_KEY_NEEDED_HERE"
+      },
+      "description": "Interact with Stripe API (Official) - Requires Valid STRIPE_SECRET_KEY in args or env"
+    }
+  }
+}

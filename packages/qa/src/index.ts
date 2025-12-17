@@ -20,7 +20,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // index.ts is in packages/qa/src
 // We want to go up 3 levels: src -> qa -> packages -> root
-const REPO_ROOT = path.resolve(__dirname, '../../../');
+const REPO_ROOT = process.env.MCP_REPO_ROOT || path.resolve(__dirname, '../../../');
 const WEB_APP = path.join(REPO_ROOT, 'apps/web');
 
 dotenv.config({ path: path.join(REPO_ROOT, '.env') });
