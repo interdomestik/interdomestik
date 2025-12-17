@@ -1,8 +1,9 @@
 'use client';
 
+import { useRouter } from '@/i18n/routing';
 import { Badge, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 export function ClaimsFilters() {
   const router = useRouter();

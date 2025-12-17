@@ -2,12 +2,12 @@ import { ChangePasswordForm } from '@/components/auth/change-password-form';
 import { ProfileForm } from '@/components/auth/profile-form';
 import { LanguageSettings } from '@/components/settings/language-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
+import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 function SettingsSkeleton() {
@@ -18,13 +18,18 @@ function SettingsSkeleton() {
   );
 }
 
-export default async function SettingsPage() {
+interface SettingsPageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function SettingsPage({ params }: SettingsPageProps) {
+  const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) {
-    redirect('/auth/sign-in');
+    redirect({ href: '/auth/sign-in', locale });
   }
 
   const t = await getTranslations('settings');
@@ -48,8 +53,8 @@ export default async function SettingsPage() {
             <Suspense fallback={<SettingsSkeleton />}>
               <ProfileForm
                 user={{
-                  name: session.user.name || '',
-                  image: session.user.image,
+                  name: session!.user.name || '',
+                  image: session!.user.image,
                 }}
               />
             </Suspense>

@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname, useRouter } from '@/i18n/routing';
 import {
   Card,
   CardContent,
@@ -17,7 +18,6 @@ import {
 } from '@interdomestik/ui/components/select';
 import { Check, Globe } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { usePathname, useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 
 const SUPPORTED_LOCALES = [
@@ -36,17 +36,9 @@ export function LanguageSettings() {
 
   const handleLocaleChange = (newLocale: string) => {
     startTransition(() => {
-      // Replace the current locale in the path with the new one
-      const segments = pathname.split('/');
-      // The locale is typically the first segment after the initial /
-      if (segments[1] && SUPPORTED_LOCALES.some(l => l.code === segments[1])) {
-        segments[1] = newLocale;
-      } else {
-        // If no locale in path, prepend it
-        segments.splice(1, 0, newLocale);
-      }
-      const newPath = segments.join('/');
-      router.push(newPath);
+      // usePathname from @/i18n/routing returns the path WITHOUT the locale prefix
+      // useRouter from @/i18n/routing handles adding the new locale prefix automatically
+      router.replace(pathname, { locale: newLocale });
     });
   };
 

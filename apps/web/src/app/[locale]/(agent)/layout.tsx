@@ -1,7 +1,6 @@
-import { redirect } from '@/i18n/routing';
+import { Link, redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import Link from 'next/link';
 
 type Props = {
   children: React.ReactNode;

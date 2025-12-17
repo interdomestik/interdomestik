@@ -1,16 +1,21 @@
 import { ProfileForm } from '@/components/auth/profile-form';
+import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 
-export default async function ProfilePage() {
+interface ProfilePageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export default async function ProfilePage({ params }: ProfilePageProps) {
+  const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) {
-    redirect('/auth/sign-in');
+    redirect({ href: '/auth/sign-in', locale });
   }
 
   return (
@@ -25,8 +30,8 @@ export default async function ProfilePage() {
       <div className="max-w-xl">
         <ProfileForm
           user={{
-            name: session.user.name,
-            image: session.user.image,
+            name: session!.user.name,
+            image: session!.user.image,
           }}
         />
       </div>

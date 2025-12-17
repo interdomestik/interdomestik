@@ -1,6 +1,6 @@
 'use client';
 
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import {
   Avatar,
   AvatarFallback,
@@ -17,7 +17,6 @@ import {
 } from '@interdomestik/ui';
 import { createAuthClient } from 'better-auth/react';
 import { LogOut, Settings, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 // Create a client instance safely

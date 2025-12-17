@@ -1,12 +1,12 @@
 'use client';
 
 import { submitClaim } from '@/actions/claims';
+import { useRouter } from '@/i18n/routing';
 import { createClaimSchema, type CreateClaimValues } from '@/lib/validators/claims';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@interdomestik/ui/components/button';
 import { Form } from '@interdomestik/ui/components/form';
 import { Progress } from '@interdomestik/ui/components/progress';
-import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';

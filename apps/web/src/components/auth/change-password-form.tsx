@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { changePasswordSchema, type ChangePasswordFormValues } from '@/lib/validators/auth';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,7 +21,6 @@ import {
   FormMessage,
 } from '@interdomestik/ui/components/form';
 import { Input } from '@interdomestik/ui/components/input';
-import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
