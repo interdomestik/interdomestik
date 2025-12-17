@@ -575,5 +575,29 @@
       "title": "Nuk ka mesazhe ende",
       "description": "Filloni një bisedë me agjentin tuaj të caktuar. Ai do të përgjigjet brenda 24 orëve."
     }
+  },
+  "notifications": {
+    "title": "Njoftimet",
+    "empty": "Nuk ka njoftime ende",
+    "markAllRead": "Shëno të gjitha si të lexuara",
+    "viewAll": "Shiko të gjitha njoftimet",
+    "settings": "Cilësimet e Njoftimeve",
+    "preferences": {
+      "title": "Preferencat e Njoftimeve",
+      "description": "Zgjidhni si dhe kur dëshironi të merrni njoftime",
+      "email": "Njoftimet me email",
+      "emailDescription": "Merrni përditësime përmes emailit",
+      "inApp": "Njoftimet në aplikacion",
+      "inAppDescription": "Merrni njoftime brenda aplikacionit",
+      "push": "Njoftimet push",
+      "pushDescription": "Merrni njoftime push në pajisjen tuaj"
+    },
+    "types": {
+      "claimSubmitted": "Kërkesa e Dorëzuar",
+      "claimAssigned": "Kërkesa e Caktuar",
+      "statusChanged": "Statusi Ndryshoi",
+      "newMessage": "Mesazh i Ri",
+      "slaWarning": "Paralajmërim SLA"
+    }
   }
 }
