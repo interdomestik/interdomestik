@@ -8,6 +8,13 @@
       "when": 1765629323840,
       "tag": "0000_puzzling_karnak",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1765955863715,
+      "tag": "0001_futuristic_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }

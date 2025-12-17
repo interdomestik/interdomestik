@@ -1,19 +1,19 @@
 ---
-task_name: 'Notifications (Novu)'
+task_name: 'refine Novu'
 task_type: 'Feature'
-priority: 'P0-Critical'
-estimate: '3d'
-test_level: 'component'
+priority: 'P1-High'
+estimate: '2h'
+test_level: 'unit'
 roadmap_ref: 'Phase 2, Week 8'
-branch: 'feat/notifications-novu'
-start_time: 'Wed Dec 17 07:48:48 CET 2025'
+branch: 'feat/refine-novu'
+start_time: 'Wed Dec 17 08:15:46 CET 2025'
 baseline:
   lint: 'pass'
   typecheck: 'pass'
   tests: 'pass'
 ---
 
-# 🚀 Current Task: Notifications (Novu)
+# 🚀 Current Task: refine Novu
 
 ## 📋 10x Context Prompt
 
@@ -21,11 +21,11 @@ Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>Notifications (Novu)</objective>
+  <objective>refine Novu</objective>
   <type>Feature</type>
-  <priority>P0-Critical</priority>
-  <estimate>3d</estimate>
-  <branch>feat/notifications-novu</branch>
+  <priority>P1-High</priority>
+  <estimate>2h</estimate>
+  <branch>feat/refine-novu</branch>
   <constraints>
     - Use @interdomestik/ui components
     - Follow 10x-coding rules (Explore → Plan → Execute)
@@ -36,46 +36,39 @@ Copy the block below to your Agent to start with maximum context:
 </task_definition>
 
 <user_story>
-  As a member, I want to receive notifications when my claim status changes
-  so that I stay informed about my case progress.
-
-  As an agent, I want to be notified when a new claim is assigned to me
-  so that I can respond quickly and meet SLA deadlines.
-
-  As a user, I want to control my notification preferences
-  so that I only receive updates through my preferred channels.
+  As an admin/agent, I want to be able to assign claims to agents
+  so that the assignee is notified and responsible for the claim.
 </user_story>
 <acceptance_criteria>
-  - [x] Novu SDK integrated and configured
-  - [x] In-app notification center with bell icon and unread count
-  - [ ] Email notifications for critical events (requires Novu dashboard setup)
-  - [x] Notification triggers implemented for: claim_submitted, claim_assigned, status_changed, new_message
-  - [ ] Notification preferences page in user settings (future)
-  - [x] Multi-language notification templates (sq, en)
-  - [x] Unit tests for notification service
+  - [ ] Add `agentId` to `claims` table in database schema
+  - [ ] Implement `assignClaim` server action
+  - [ ] Trigger `claim_assigned` notification on assignment
+  - [ ] (Refinement) Ensure email field is correctly passed for notifications
+  - [ ] (Refinement) Check if `preferences` page skeleton can be added
 </acceptance_criteria>
 ```
 
 ## 🏗️ Status Tracker
 
-- [x] **Exploration**: Identify files using `project_map` and `read_files`
-- [x] **Planning**: Create a step-by-step implementation plan
-- [x] **Implementation**: Execute code changes
-- [x] **Verification**: Run `pnpm qa` or relevant tests
-- [x] **Documentation**: Update relevant docs if needed (Added docs/NOVU_INTEGRATION.md)
+## 🏗️ Status Tracker
+
+- [ ] **Exploration**: Identify assignment logic (missing)
+- [ ] **Database**: Update schema to include `agentId`
+- [ ] **Migration**: Run `db:generate` / `db:push` (local)
+- [ ] **Implementation**: Implement `assignClaim` action + Notification
+- [ ] **Verification**: Add unit tests for assignment
 
 ## 🧪 Testing Checklist
 
-- [x] Unit tests added: `src/**/*.test.ts`
-- [ ] Component tests added: `src/**/*.test.tsx`
-- [x] Tests use factories from `src/test/factories.ts`
-- [x] Run: `pnpm test:unit`
-- [x] All tests pass (130 tests)
+- [ ] Unit tests added: `src/**/*.test.ts`
+- [ ] Tests use factories from `src/test/factories.ts`
+- [ ] Run: `pnpm test:unit`
+- [ ] All tests pass
 
 ## ✅ Definition of Done
 
 - [ ] All acceptance criteria met
-- [ ] Tests pass at required level (component)
+- [ ] Tests pass at required level (unit)
 - [ ] `pnpm lint` passes (or no new errors)
 - [ ] `pnpm type-check` passes
 - [ ] No regressions from baseline
@@ -86,11 +79,7 @@ Copy the block below to your Agent to start with maximum context:
 
 ## 🔗 Related Files
 
-- apps/web/src/lib/notifications.ts (to create)
-- apps/web/src/components/notifications/ (to create)
-- apps/web/src/app/[locale]/(app)/settings/page.tsx (preferences)
-- apps/web/src/actions/claims.ts (add triggers)
-- apps/web/src/actions/messages.ts (add triggers)
+<!-- Add discovered file paths here -->
 
 ## 📂 Active Context
 
@@ -115,40 +104,38 @@ Copy the block below to your Agent to start with maximum context:
 ```markdown
 ## What
 
-Notifications (Novu)
+refine Novu
 
 ## Why
 
-Phase 2, Week 8 - Enable multi-channel notifications for claims and messaging.
+Phase 2, Week 8
 
 ## How
 
-- Integrated @novu/nextjs and @novu/node SDKs
-- Created `lib/notifications.ts` service with typed triggers
-- Added `NotificationCenter` and `NotificationBell` components
-- Added notification triggers to `claims.ts` (submission, status change)
-- Added notification triggers to `messages.ts` (new message)
-- Added environment variables for Novu
-- Documented workflows in `docs/NOVU_INTEGRATION.md`
+<!-- Implementation approach -->
 
 ## Testing
 
-- [x] Unit tests pass (`pnpm test:unit`) 130 tests
-- [x] Manual QA completed (verified imports and mocks)
-- [x] No regressions in existing functionality
+- [ ] Unit tests pass (`pnpm test:unit`)
+- [ ] E2E tests pass (`pnpm test:e2e`)
+- [ ] Manual QA completed
+- [ ] No regressions in existing functionality
+
+## Screenshots (if UI changes)
+
+<!-- Add screenshots here -->
 
 ## Notes to Reviewer
 
-- Requires `NOVU_API_KEY` and `NEXT_PUBLIC_NOVU_APP_ID` in `.env`
-- configure workflows in Novu Dashboard as per `docs/NOVU_INTEGRATION.md`
+<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
 ```
 
 ---
 
 ## 📊 Task Completion
-- **End Time**: Wed Dec 17 08:11:11 CET 2025
+- **End Time**: Wed Dec 17 08:20:14 CET 2025
 - **Outcome**: Completed ✅
-- **Summary**: Implemented Novu notifications with triggers for claims and messages.
+- **Summary**: Added agentId to schema and implemented assignClaim action with notifications.
 
 ### Final QA Status
 - Lint Errors: 2

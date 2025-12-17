@@ -76,6 +76,7 @@ export const claims = pgTable('claim', {
   userId: text('userId')
     .notNull()
     .references(() => user.id),
+  agentId: text('agentId').references(() => user.id),
   title: text('title').notNull(),
   description: text('description'),
   status: statusEnum('status').default('draft'),

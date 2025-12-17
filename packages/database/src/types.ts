@@ -90,11 +90,63 @@ export type Database = {
           },
         ]
       }
+      claim: {
+        Row: {
+          amount: number | null
+          category: string
+          companyName: string
+          createdAt: string | null
+          currency: string | null
+          description: string | null
+          id: string
+          status: Database["public"]["Enums"]["status"] | null
+          title: string
+          updatedAt: string | null
+          userId: string
+        }
+        Insert: {
+          amount?: number | null
+          category: string
+          companyName: string
+          createdAt?: string | null
+          currency?: string | null
+          description?: string | null
+          id: string
+          status?: Database["public"]["Enums"]["status"] | null
+          title: string
+          updatedAt?: string | null
+          userId: string
+        }
+        Update: {
+          amount?: number | null
+          category?: string
+          companyName?: string
+          createdAt?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["status"] | null
+          title?: string
+          updatedAt?: string | null
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_userId_user_id_fk"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claim_documents: {
         Row: {
+          bucket: string
           category: Database["public"]["Enums"]["document_category"]
           claim_id: string
-          created_at: string
+          classification: string
+          created_at: string | null
           file_path: string
           file_size: number
           file_type: string
@@ -103,20 +155,24 @@ export type Database = {
           uploaded_by: string
         }
         Insert: {
+          bucket?: string
           category?: Database["public"]["Enums"]["document_category"]
           claim_id: string
-          created_at?: string
+          classification?: string
+          created_at?: string | null
           file_path: string
           file_size: number
           file_type: string
-          id?: string
+          id: string
           name: string
           uploaded_by: string
         }
         Update: {
+          bucket?: string
           category?: Database["public"]["Enums"]["document_category"]
           claim_id?: string
-          created_at?: string
+          classification?: string
+          created_at?: string | null
           file_path?: string
           file_size?: number
           file_type?: string
@@ -126,207 +182,50 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "claim_documents_claim_id_fkey"
+            foreignKeyName: "claim_documents_claim_id_claim_id_fk"
             columns: ["claim_id"]
             isOneToOne: false
-            referencedRelation: "claims"
+            referencedRelation: "claim"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "claim_documents_uploaded_by_fkey"
+            foreignKeyName: "claim_documents_uploaded_by_user_id_fk"
             columns: ["uploaded_by"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "user"
             referencedColumns: ["id"]
           },
         ]
       }
-      claim_messages: {
+      leads: {
         Row: {
-          claim_id: string
-          content: string
-          created_at: string
+          category: string
+          createdAt: string | null
           id: string
-          is_internal: boolean | null
-          read_at: string | null
-          sender_id: string
+          name: string
+          phone: string
+          status: string | null
+          updatedAt: string | null
         }
         Insert: {
-          claim_id: string
-          content: string
-          created_at?: string
-          id?: string
-          is_internal?: boolean | null
-          read_at?: string | null
-          sender_id: string
-        }
-        Update: {
-          claim_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-          is_internal?: boolean | null
-          read_at?: string | null
-          sender_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "claim_messages_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "claim_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      claim_timeline: {
-        Row: {
-          actor_id: string | null
-          claim_id: string
-          created_at: string
-          description: string
-          event_type: string
+          category: string
+          createdAt?: string | null
           id: string
-          is_public: boolean | null
-          metadata: Json | null
-        }
-        Insert: {
-          actor_id?: string | null
-          claim_id: string
-          created_at?: string
-          description: string
-          event_type: string
-          id?: string
-          is_public?: boolean | null
-          metadata?: Json | null
+          name: string
+          phone: string
+          status?: string | null
+          updatedAt?: string | null
         }
         Update: {
-          actor_id?: string | null
-          claim_id?: string
-          created_at?: string
-          description?: string
-          event_type?: string
+          category?: string
+          createdAt?: string | null
           id?: string
-          is_public?: boolean | null
-          metadata?: Json | null
+          name?: string
+          phone?: string
+          status?: string | null
+          updatedAt?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "claim_timeline_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "claim_timeline_claim_id_fkey"
-            columns: ["claim_id"]
-            isOneToOne: false
-            referencedRelation: "claims"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      claims: {
-        Row: {
-          amount_claimed: number | null
-          amount_recovered: number | null
-          assigned_agent_id: string | null
-          category: Database["public"]["Enums"]["claim_category"]
-          closed_at: string | null
-          created_at: string
-          description: string
-          id: string
-          internal_notes: string | null
-          opposing_party_address: string | null
-          opposing_party_contact: string | null
-          opposing_party_name: string | null
-          priority: Database["public"]["Enums"]["claim_priority"]
-          resolution_type: Database["public"]["Enums"]["resolution_type"] | null
-          resolved_at: string | null
-          sla_deadline: string | null
-          status: Database["public"]["Enums"]["claim_status"]
-          subcategory: string | null
-          submitted_at: string | null
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          amount_claimed?: number | null
-          amount_recovered?: number | null
-          assigned_agent_id?: string | null
-          category: Database["public"]["Enums"]["claim_category"]
-          closed_at?: string | null
-          created_at?: string
-          description: string
-          id?: string
-          internal_notes?: string | null
-          opposing_party_address?: string | null
-          opposing_party_contact?: string | null
-          opposing_party_name?: string | null
-          priority?: Database["public"]["Enums"]["claim_priority"]
-          resolution_type?:
-            | Database["public"]["Enums"]["resolution_type"]
-            | null
-          resolved_at?: string | null
-          sla_deadline?: string | null
-          status?: Database["public"]["Enums"]["claim_status"]
-          subcategory?: string | null
-          submitted_at?: string | null
-          title: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          amount_claimed?: number | null
-          amount_recovered?: number | null
-          assigned_agent_id?: string | null
-          category?: Database["public"]["Enums"]["claim_category"]
-          closed_at?: string | null
-          created_at?: string
-          description?: string
-          id?: string
-          internal_notes?: string | null
-          opposing_party_address?: string | null
-          opposing_party_contact?: string | null
-          opposing_party_name?: string | null
-          priority?: Database["public"]["Enums"]["claim_priority"]
-          resolution_type?:
-            | Database["public"]["Enums"]["resolution_type"]
-            | null
-          resolved_at?: string | null
-          sla_deadline?: string | null
-          status?: Database["public"]["Enums"]["claim_status"]
-          subcategory?: string | null
-          submitted_at?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "claims_assigned_agent_id_fkey"
-            columns: ["assigned_agent_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "claims_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       session: {
         Row: {
@@ -377,8 +276,6 @@ export type Database = {
           current_period_end: string | null
           current_period_start: string | null
           id: string
-          plan: Database["public"]["Enums"]["subscription_plan"]
-          status: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           updated_at: string
@@ -391,8 +288,6 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"]
-          status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string
@@ -405,8 +300,6 @@ export type Database = {
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
-          plan?: Database["public"]["Enums"]["subscription_plan"]
-          status?: Database["public"]["Enums"]["subscription_status"]
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string
@@ -430,6 +323,7 @@ export type Database = {
           id: string
           image: string | null
           name: string
+          role: string
           updatedAt: string
         }
         Insert: {
@@ -439,6 +333,7 @@ export type Database = {
           id: string
           image?: string | null
           name: string
+          role?: string
           updatedAt: string
         }
         Update: {
@@ -448,6 +343,7 @@ export type Database = {
           id?: string
           image?: string | null
           name?: string
+          role?: string
           updatedAt?: string
         }
         Relationships: []
@@ -462,7 +358,6 @@ export type Database = {
           locale: string
           onboarding_completed: boolean | null
           phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
@@ -474,7 +369,6 @@ export type Database = {
           locale?: string
           onboarding_completed?: boolean | null
           phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
@@ -486,7 +380,6 @@ export type Database = {
           locale?: string
           onboarding_completed?: boolean | null
           phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Relationships: []
@@ -526,39 +419,21 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      claim_category:
-        | "consumer"
-        | "housing"
-        | "insurance"
-        | "employment"
-        | "contracts"
-        | "utilities"
-      claim_priority: "low" | "normal" | "high" | "urgent"
-      claim_status:
-        | "draft"
-        | "submitted"
-        | "assigned"
-        | "investigating"
-        | "contacting"
-        | "negotiating"
-        | "mediation"
-        | "resolved"
-        | "closed"
       document_category:
         | "evidence"
         | "correspondence"
         | "contract"
         | "receipt"
         | "other"
-      resolution_type: "won" | "partial" | "lost" | "settled" | "withdrawn"
-      subscription_plan: "basic" | "standard" | "premium" | "family"
-      subscription_status:
-        | "active"
-        | "canceled"
-        | "past_due"
-        | "expired"
-        | "trialing"
-      user_role: "member" | "agent" | "supervisor" | "admin"
+      status:
+        | "draft"
+        | "submitted"
+        | "verification"
+        | "evaluation"
+        | "negotiation"
+        | "court"
+        | "resolved"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -689,26 +564,6 @@ export const Constants = {
   },
   public: {
     Enums: {
-      claim_category: [
-        "consumer",
-        "housing",
-        "insurance",
-        "employment",
-        "contracts",
-        "utilities",
-      ],
-      claim_priority: ["low", "normal", "high", "urgent"],
-      claim_status: [
-        "draft",
-        "submitted",
-        "assigned",
-        "investigating",
-        "contacting",
-        "negotiating",
-        "mediation",
-        "resolved",
-        "closed",
-      ],
       document_category: [
         "evidence",
         "correspondence",
@@ -716,16 +571,16 @@ export const Constants = {
         "receipt",
         "other",
       ],
-      resolution_type: ["won", "partial", "lost", "settled", "withdrawn"],
-      subscription_plan: ["basic", "standard", "premium", "family"],
-      subscription_status: [
-        "active",
-        "canceled",
-        "past_due",
-        "expired",
-        "trialing",
+      status: [
+        "draft",
+        "submitted",
+        "verification",
+        "evaluation",
+        "negotiation",
+        "court",
+        "resolved",
+        "rejected",
       ],
-      user_role: ["member", "agent", "supervisor", "admin"],
     },
   },
 } as const
