@@ -274,5 +274,116 @@ describe('Message Actions', () => {
       expect(result).toEqual({ success: true });
       expect(mocks.dbUpdate).toHaveBeenCalledTimes(2);
     });
+
+    it('should handle database errors gracefully', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mocks.dbUpdate.mockRejectedValue(new Error('DB Error'));
+
+      const result = await markMessagesAsRead(['msg-1']);
+
+      expect(result).toEqual({ success: false, error: 'Failed to mark messages as read' });
+    });
+  });
+
+  describe('sendMessage - additional cases', () => {
+    it('should allow supervisor to send messages on any claim', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'supervisor-1', role: 'supervisor' } });
+      mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
+      mocks.dbInsert.mockResolvedValue(undefined);
+      mockSelectChain.limit.mockReturnValue([
+        {
+          id: 'test-message-id',
+          claimId: 'claim-123',
+          senderId: 'supervisor-1',
+          content: 'Supervisor message',
+          isInternal: false,
+          readAt: null,
+          createdAt: new Date(),
+          sender: { id: 'supervisor-1', name: 'Supervisor', image: null, role: 'supervisor' },
+        },
+      ]);
+
+      const result = await sendMessage('claim-123', 'Supervisor message');
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should allow admin to send internal messages', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+      mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
+      mocks.dbInsert.mockResolvedValue(undefined);
+      mockSelectChain.limit.mockReturnValue([
+        {
+          id: 'test-message-id',
+          claimId: 'claim-123',
+          senderId: 'admin-1',
+          content: 'Admin note',
+          isInternal: true,
+          readAt: null,
+          createdAt: new Date(),
+          sender: { id: 'admin-1', name: 'Admin', image: null, role: 'admin' },
+        },
+      ]);
+
+      const result = await sendMessage('claim-123', 'Admin note', true);
+
+      expect(result.success).toBe(true);
+      expect(result.message?.isInternal).toBe(true);
+    });
+
+    it('should handle database errors during message insert', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+      mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
+      mocks.dbInsert.mockRejectedValue(new Error('DB Error'));
+
+      const result = await sendMessage('claim-123', 'Hello');
+
+      expect(result).toEqual({ success: false, error: 'Failed to send message' });
+    });
+  });
+
+  describe('getMessagesForClaim - additional cases', () => {
+    it('should allow supervisor to access any claim', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'supervisor-1', role: 'supervisor' } });
+      mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
+      mockSelectChain.orderBy.mockReturnValue([]);
+
+      const result = await getMessagesForClaim('claim-123');
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle database errors gracefully', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+      mocks.dbQuery.mockRejectedValue(new Error('DB Error'));
+
+      const result = await getMessagesForClaim('claim-123');
+
+      expect(result).toEqual({ success: false, error: 'Failed to fetch messages' });
+    });
+
+    it('should handle null sender info gracefully', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+      mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
+      mockSelectChain.orderBy.mockReturnValue([
+        {
+          id: 'msg-1',
+          claimId: 'claim-123',
+          senderId: 'user-123',
+          content: 'Test',
+          isInternal: null,
+          readAt: null,
+          createdAt: null,
+          sender: null,
+        },
+      ]);
+
+      const result = await getMessagesForClaim('claim-123');
+
+      expect(result.success).toBe(true);
+      expect(result.messages?.[0].sender.name).toBe('Unknown');
+      expect(result.messages?.[0].sender.role).toBe('member');
+      expect(result.messages?.[0].isInternal).toBe(false);
+    });
   });
 });

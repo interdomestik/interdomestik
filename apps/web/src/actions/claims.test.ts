@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CreateClaimValues } from '@/lib/validators/claims';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClaim, submitClaim, updateClaimStatus } from './claims';
 
 // Mocks
@@ -169,6 +169,106 @@ describe('Claim Actions', () => {
       );
       // No second insert call for documents
       expect(mockDbInsert).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw on validation error', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+
+      const invalidPayload = {
+        title: 'AB', // Too short - needs min 5 chars
+        description: 'Test',
+        companyName: 'Company',
+        category: 'consumer',
+        claimAmount: '100.00',
+        currency: 'EUR',
+        files: [],
+      };
+
+      await expect(submitClaim(invalidPayload as CreateClaimValues)).rejects.toThrow(
+        'Validation failed'
+      );
+    });
+
+    it('should throw on database error during claim insert', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockDbInsert.mockRejectedValueOnce(new Error('DB Error'));
+
+      await expect(submitClaim(validPayload)).rejects.toThrow(
+        'Failed to create claim. Please try again.'
+      );
+    });
+  });
+
+  describe('createClaim - error handling', () => {
+    it('should handle database errors gracefully', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockDbInsert.mockRejectedValueOnce(new Error('DB Error'));
+
+      const formData = new FormData();
+      formData.append('title', 'Test Claim');
+      formData.append('companyName', 'Bad Company');
+      formData.append('category', 'retail');
+
+      const result = await createClaim({}, formData);
+
+      expect(result).toEqual({ error: 'Failed to create claim. Please try again.' });
+    });
+
+    it('should handle optional claimAmount as empty string', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+
+      const formData = new FormData();
+      formData.append('title', 'Test Claim');
+      formData.append('companyName', 'Bad Company');
+      formData.append('category', 'retail');
+      formData.append('claimAmount', '');
+
+      await createClaim({}, formData);
+
+      expect(mockDbInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Test Claim',
+          claimAmount: undefined,
+        })
+      );
+    });
+  });
+
+  describe('updateClaimStatus - additional cases', () => {
+    it('should deny unauthenticated users', async () => {
+      mockGetSession.mockResolvedValue(null);
+      const result = await updateClaimStatus('claim-1', 'resolved');
+      expect(result).toEqual({ error: 'Unauthorized' });
+    });
+
+    it('should handle database errors during status update', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+      mockDbUpdate.mockRejectedValueOnce(new Error('DB Error'));
+
+      const result = await updateClaimStatus('claim-1', 'resolved');
+
+      expect(result).toEqual({ error: 'Failed to update status' });
+    });
+
+    it('should accept all valid status values', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+      mockDbUpdate.mockResolvedValue(undefined);
+
+      const validStatuses = [
+        'draft',
+        'submitted',
+        'verification',
+        'evaluation',
+        'negotiation',
+        'court',
+        'resolved',
+        'rejected',
+      ];
+
+      for (const status of validStatuses) {
+        const result = await updateClaimStatus('claim-1', status);
+        expect(result).toEqual({ success: true });
+      }
     });
   });
 });
