@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   dbUpdate: vi.fn(),
+  dbSelect: vi.fn(),
   dbQueryUser: vi.fn(),
   dbQueryClaims: vi.fn(),
 }));
@@ -18,12 +19,20 @@ vi.mock('@/lib/auth', () => ({
 
 vi.mock('@/lib/notifications', () => ({
   notifyClaimAssigned: vi.fn().mockResolvedValue({ success: true }),
+  notifyStatusChanged: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  claims: { id: 'id', status: 'status', userId: 'userId' },
-  user: { id: 'id' },
+  claims: { id: 'id', status: 'status', userId: 'userId', title: 'title' },
+  user: { id: 'id', email: 'email' },
   db: {
+    select: () => ({
+      from: () => ({
+        leftJoin: () => ({
+          where: () => mocks.dbSelect(),
+        }),
+      }),
+    }),
     update: () => ({
       set: () => ({ where: mocks.dbUpdate }),
     }),
@@ -73,6 +82,15 @@ describe('Agent Claims Actions', () => {
 
     it('should allow agent to update claim status', async () => {
       mocks.getSession.mockResolvedValue({ user: { id: 'agent-1', role: 'agent' } });
+      mocks.dbSelect.mockResolvedValue([
+        {
+          id: 'claim-1',
+          title: 'Test Claim',
+          status: 'submitted',
+          userId: 'user-1',
+          userEmail: 'user@test.com',
+        },
+      ]);
       mocks.dbUpdate.mockResolvedValue(undefined);
 
       await updateClaimStatus('claim-1', 'verification');
@@ -82,6 +100,15 @@ describe('Agent Claims Actions', () => {
 
     it('should allow admin to update claim status', async () => {
       mocks.getSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+      mocks.dbSelect.mockResolvedValue([
+        {
+          id: 'claim-1',
+          title: 'Test Claim',
+          status: 'submitted',
+          userId: 'user-1',
+          userEmail: 'user@test.com',
+        },
+      ]);
       mocks.dbUpdate.mockResolvedValue(undefined);
 
       await updateClaimStatus('claim-1', 'resolved');
