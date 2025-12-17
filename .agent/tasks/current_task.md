@@ -1,31 +1,30 @@
 ---
-task_name: 'refine Novu'
-task_type: 'Feature'
-priority: 'P1-High'
-estimate: '2h'
-test_level: 'unit'
-roadmap_ref: 'Phase 2, Week 8'
-branch: 'feat/refine-novu'
-start_time: 'Wed Dec 17 08:15:46 CET 2025'
+task_name: "i18n: next-intl config check and fix"
+task_type: "Refactor"
+priority: "P1-High"
+estimate: "1h"
+test_level: "none"
+roadmap_ref: "Foundation"
+branch: "fix/i18n-config"
+start_time: "Wed Dec 17 11:28:36 CET 2025"
 baseline:
-  lint: 'pass'
-  typecheck: 'pass'
-  tests: 'pass'
+  lint: "pass"
+  typecheck: "pass"
+  tests: "pass"
 ---
 
-# 🚀 Current Task: refine Novu
+# 🚀 Current Task: i18n: next-intl config check and fix
 
 ## 📋 10x Context Prompt
-
 Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>refine Novu</objective>
-  <type>Feature</type>
+  <objective>i18n: next-intl config check and fix</objective>
+  <type>Refactor</type>
   <priority>P1-High</priority>
-  <estimate>2h</estimate>
-  <branch>feat/refine-novu</branch>
+  <estimate>1h</estimate>
+  <branch>fix/i18n-config</branch>
   <constraints>
     - Use @interdomestik/ui components
     - Follow 10x-coding rules (Explore → Plan → Execute)
@@ -35,40 +34,30 @@ Copy the block below to your Agent to start with maximum context:
   </constraints>
 </task_definition>
 
-<user_story>
-  As an admin/agent, I want to be able to assign claims to agents
-  so that the assignee is notified and responsible for the claim.
-</user_story>
-<acceptance_criteria>
-  - [ ] Add `agentId` to `claims` table in database schema
-  - [ ] Implement `assignClaim` server action
-  - [ ] Trigger `claim_assigned` notification on assignment
-  - [ ] (Refinement) Ensure email field is correctly passed for notifications
-  - [ ] (Refinement) Check if `preferences` page skeleton can be added
-</acceptance_criteria>
+<current_limitations>
+  - Performance issue with...
+  - Code duplication in...
+</current_limitations>
+<goals>
+  - Improve performance by...
+  - Clean up code structure
+  - Maintain backwards compatibility
+</goals>
 ```
 
 ## 🏗️ Status Tracker
-
-## 🏗️ Status Tracker
-
-- [ ] **Exploration**: Identify assignment logic (missing)
-- [ ] **Database**: Update schema to include `agentId`
-- [ ] **Migration**: Run `db:generate` / `db:push` (local)
-- [ ] **Implementation**: Implement `assignClaim` action + Notification
-- [ ] **Verification**: Add unit tests for assignment
+- [ ] **Exploration**: Identify files using `project_map` and `read_files`
+- [ ] **Planning**: Create a step-by-step implementation plan
+- [ ] **Implementation**: Execute code changes
+- [ ] **Verification**: Run `pnpm qa` or relevant tests
+- [ ] **Documentation**: Update relevant docs if needed
 
 ## 🧪 Testing Checklist
-
-- [ ] Unit tests added: `src/**/*.test.ts`
-- [ ] Tests use factories from `src/test/factories.ts`
-- [ ] Run: `pnpm test:unit`
-- [ ] All tests pass
+- [ ] No tests required for this task
 
 ## ✅ Definition of Done
-
 - [ ] All acceptance criteria met
-- [ ] Tests pass at required level (unit)
+- [ ] Tests pass at required level (none)
 - [ ] `pnpm lint` passes (or no new errors)
 - [ ] `pnpm type-check` passes
 - [ ] No regressions from baseline
@@ -78,66 +67,46 @@ Copy the block below to your Agent to start with maximum context:
 - [ ] Code reviewed / self-reviewed
 
 ## 🔗 Related Files
-
-<!-- Add discovered file paths here -->
+- apps/web/src/messages/*.json
+- apps/web/src/i18n/routing.ts
+- apps/web/src/middleware.ts
 
 ## 📂 Active Context
-
 <!-- Paste file paths or code snippets here as you discover them -->
 
 ## 📝 Implementation Notes
-
 <!-- Add decisions, trade-offs, blockers here -->
 
 ## 🔬 QA Baseline (at task start)
-
-| Metric     | Status |
-| ---------- | ------ |
-| Lint       | pass   |
-| Type Check | pass   |
-| Unit Tests | pass   |
+| Metric | Status |
+|--------|--------|
+| Lint | pass |
+| Type Check | pass |
+| Unit Tests | pass |
 
 ---
 
 ## 📝 PR Template (Copy when done)
-
 ```markdown
 ## What
-
-refine Novu
+i18n: next-intl config check and fix
 
 ## Why
-
-Phase 2, Week 8
+Foundation
 
 ## How
-
 <!-- Implementation approach -->
 
 ## Testing
-
 - [ ] Unit tests pass (`pnpm test:unit`)
-- [ ] E2E tests pass (`pnpm test:e2e`)
+- [ ] E2E tests pass (`pnpm test:e2e`)  
 - [ ] Manual QA completed
 - [ ] No regressions in existing functionality
 
 ## Screenshots (if UI changes)
-
 <!-- Add screenshots here -->
 
 ## Notes to Reviewer
-
 <!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
+
 ```
-
----
-
-## 📊 Task Completion
-- **End Time**: Wed Dec 17 08:20:14 CET 2025
-- **Outcome**: Completed ✅
-- **Summary**: Added agentId to schema and implemented assignClaim action with notifications.
-
-### Final QA Status
-- Lint Errors: 2
-- Type Check: fail
-- Unit Tests: pass

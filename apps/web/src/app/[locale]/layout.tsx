@@ -1,4 +1,3 @@
-import { LocaleHtmlUpdater } from '@/components/locale-html';
 import { routing } from '@/i18n/routing';
 import '@interdomestik/ui/globals.css';
 import type { Metadata } from 'next';
@@ -54,11 +53,12 @@ export default async function RootLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   return (
-    <>
-      <LocaleHtmlUpdater locale={locale} />
-      <NextIntlClientProvider messages={messages} locale={locale}>
-        {children}
-      </NextIntlClientProvider>
-    </>
+    <html lang={locale} suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>
+        <NextIntlClientProvider messages={messages} locale={locale}>
+          {children}
+        </NextIntlClientProvider>
+      </body>
+    </html>
   );
 }
