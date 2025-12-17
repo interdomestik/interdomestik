@@ -214,6 +214,88 @@ export const createMockLead = (overrides: Partial<MockLead> = {}): MockLead => (
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// MESSAGE FACTORY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface MockMessage {
+  id: string;
+  claimId: string;
+  senderId: string;
+  content: string;
+  isInternal: boolean;
+  readAt: Date | null;
+  createdAt: Date;
+  sender: {
+    id: string;
+    name: string;
+    image: string | null;
+    role: string;
+  };
+}
+
+const SAMPLE_MESSAGES = [
+  'Hello, I have a question about my claim.',
+  'Can you provide more details about the incident?',
+  'I have attached the requested documents.',
+  'Thank you for your patience.',
+  'We are reviewing your case.',
+];
+
+export const createMockMessage = (overrides: Partial<MockMessage> = {}): MockMessage => {
+  const senderId = overrides.senderId || generateId('user');
+  return {
+    id: generateId('msg'),
+    claimId: generateId('claim'),
+    senderId,
+    content: randomElement(SAMPLE_MESSAGES),
+    isInternal: false,
+    readAt: null,
+    createdAt: randomDate(),
+    sender: {
+      id: senderId,
+      name: `User ${idCounter}`,
+      image: null,
+      role: 'member',
+    },
+    ...overrides,
+  };
+};
+
+export const createMockAgentMessage = (overrides: Partial<MockMessage> = {}): MockMessage => {
+  const senderId = overrides.senderId || generateId('agent');
+  return createMockMessage({
+    senderId,
+    sender: {
+      id: senderId,
+      name: `Agent ${idCounter}`,
+      image: null,
+      role: 'agent',
+    },
+    ...overrides,
+  });
+};
+
+export const createMockInternalNote = (overrides: Partial<MockMessage> = {}): MockMessage =>
+  createMockAgentMessage({
+    isInternal: true,
+    content: 'Internal note for agents only.',
+    ...overrides,
+  });
+
+export const createMockMessageThread = (
+  count: number,
+  claimId: string,
+  overrides: Partial<MockMessage> = {}
+): MockMessage[] =>
+  Array.from({ length: count }, (_, i) =>
+    createMockMessage({
+      claimId,
+      createdAt: new Date(Date.now() - (count - i) * 60000), // 1 min apart
+      ...overrides,
+    })
+  );
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // FORM DATA FACTORY
 // ═══════════════════════════════════════════════════════════════════════════════
 
