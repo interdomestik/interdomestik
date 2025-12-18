@@ -31,8 +31,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // Use webpack dev server (more stable for Playwright) instead of Turbopack default
-    command: 'pnpm exec next dev --webpack --hostname 0.0.0.0 --port 3000',
+    // Use Turbopack for faster dev server startup
+    command: 'pnpm exec next dev --turbopack --hostname 0.0.0.0 --port 3000',
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the environment variable BEFORE any module imports
 vi.stubEnv('NOVU_API_KEY', 'test-api-key');
