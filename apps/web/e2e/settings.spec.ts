@@ -9,7 +9,7 @@ import { expect, test } from './fixtures/auth.fixture';
 test.describe('Settings Page', () => {
   test.describe('Navigation', () => {
     test('should redirect to login when not authenticated', async ({ page }) => {
-      await page.goto('/en/settings');
+      await page.goto('/en/dashboard/settings');
 
       // Should be redirected to login
       await page.waitForURL(/.*login.*|.*auth\/sign-in.*/);
@@ -17,7 +17,7 @@ test.describe('Settings Page', () => {
     });
 
     test('should display settings page when authenticated', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/settings');
+      await authenticatedPage.goto('/en/dashboard/settings');
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Check for settings page title
@@ -27,11 +27,11 @@ test.describe('Settings Page', () => {
 
   test.describe('Profile Settings', () => {
     test('should display profile form', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/settings');
+      await authenticatedPage.goto('/en/dashboard/settings');
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Check for profile section
-      await expect(authenticatedPage.locator('h3:has-text("Profile")')).toBeVisible();
+      await expect(authenticatedPage.locator('h3:has-text("Profile")').first()).toBeVisible();
 
       // Check for name input
       const nameInput = authenticatedPage.locator('input[name="name"], input[id*="name"]');
@@ -41,29 +41,29 @@ test.describe('Settings Page', () => {
 
   test.describe('Password Settings', () => {
     test('should display password change form', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/settings');
+      await authenticatedPage.goto('/en/dashboard/settings');
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Check for security section
       await expect(
-        authenticatedPage.locator('h3:has-text("Security"), h3:has-text("Change Password")')
+        authenticatedPage.locator('h3:has-text("Security"), h3:has-text("Change Password")').first()
       ).toBeVisible();
 
       // Check for password inputs (may not be visible until user interacts)
       const passwordSection = authenticatedPage.locator(
         'section:has(h3:has-text("Security"), h3:has-text("Change Password"))'
       );
-      await expect(passwordSection).toBeVisible();
+      await expect(passwordSection.first()).toBeVisible();
     });
   });
 
   test.describe('Language Settings', () => {
     test('should display language selector', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/settings');
+      await authenticatedPage.goto('/en/dashboard/settings');
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Check for language section
-      await expect(authenticatedPage.locator('h3:has-text("Language")')).toBeVisible();
+      await expect(authenticatedPage.locator('h3:has-text("Language")').first()).toBeVisible();
 
       // Check for language select
       const languageSelect = authenticatedPage
@@ -74,7 +74,7 @@ test.describe('Settings Page', () => {
 
     test('should switch language', async ({ authenticatedPage }) => {
       // Start on English settings page
-      await authenticatedPage.goto('/en/settings');
+      await authenticatedPage.goto('/en/dashboard/settings');
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Find and click language selector
@@ -100,14 +100,14 @@ test.describe('Settings Page', () => {
 
   test.describe('Notification Settings', () => {
     test('should display notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/settings');
+      await authenticatedPage.goto('/en/dashboard/settings');
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Wait for notification section to load
       await authenticatedPage.waitForTimeout(1000);
 
       // Check for notification section
-      await expect(authenticatedPage.locator('h3:has-text("Notification")')).toBeVisible({
+      await expect(authenticatedPage.locator('h3:has-text("Notification")').first()).toBeVisible({
         timeout: 10000,
       });
 
@@ -122,7 +122,7 @@ test.describe('Settings Page', () => {
     });
 
     test('should toggle notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/settings');
+      await authenticatedPage.goto('/en/dashboard/settings');
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Wait for notification section to load
@@ -148,7 +148,7 @@ test.describe('Settings Page', () => {
     });
 
     test('should save notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/settings');
+      await authenticatedPage.goto('/en/dashboard/settings');
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Wait for notification section to load
@@ -194,7 +194,7 @@ test.describe('Settings Page', () => {
     test('should handle save errors gracefully', async ({ authenticatedPage }) => {
       // This test would require mocking the API to return an error
       // For now, we'll just verify the UI is present
-      await authenticatedPage.goto('/en/settings');
+      await authenticatedPage.goto('/en/dashboard/settings');
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Wait for notification section
@@ -212,7 +212,7 @@ test.describe('Settings Page', () => {
       // Set mobile viewport
       await authenticatedPage.setViewportSize({ width: 375, height: 667 });
 
-      await authenticatedPage.goto('/en/settings');
+      await authenticatedPage.goto('/en/dashboard/settings');
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Check that settings page is visible
