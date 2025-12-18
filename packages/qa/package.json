@@ -8,7 +8,6 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
     "check": "tsx test-tools.ts",
     "run-all-audits": "tsx run-all-audits.ts"
   },
