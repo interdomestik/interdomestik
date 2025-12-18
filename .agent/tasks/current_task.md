@@ -1,21 +1,21 @@
 ---
-task_name: 'Create Services Page'
+task_name: 'Implement Transactional Notifications'
 task_type: 'Feature'
 priority: 'P1-High'
 estimate: 'TBD'
 test_level: 'unit'
 roadmap_ref: ''
 branch: 'feat/consumer-rights-page'
-start_time: 'Thu Dec 18 18:13:55 CET 2025'
+start_time: 'Thu Dec 18 18:23:25 CET 2025'
 baseline:
   lint: 'pass'
   typecheck: 'pass'
   tests: 'pass'
   format: 'fail (exit 1)'
-  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_181347.log'
+  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_182318.log'
 ---
 
-# 🚀 Current Task: Create Services Page
+# 🚀 Current Task: Implement Transactional Notifications
 
 ## 📋 10x Context Prompt
 
@@ -23,7 +23,7 @@ Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>Create Services Page</objective>
+  <objective>Implement Transactional Notifications</objective>
   <type>Feature</type>
   <priority>P1-High</priority>
   <estimate>TBD</estimate>
@@ -38,19 +38,15 @@ Copy the block below to your Agent to start with maximum context:
 </task_definition>
 
 <user_story>
-  As a potential member/customer, I want to view a dedicated Services page
-  so that I can understand exactly what claims Interdomestik handles, how the process works, and feel confident in the speed and safety of the service.
+  As a user or admin, I want to receive real-time notifications (email/in-app) when critical events occur (claim submitted, status changed, new message)
+  so that I can stay informed and take timely action.
 </user_story>
 <acceptance_criteria>
-  - [ ] Page exists at `/services` (localized).
-  - [ ] Hero section clearly states the value proposition.
-  - [ ] "What We Solve" section lists key categories (Vehicle, Property, Injury, Flight Delay).
-  - [ ] "How It Works" section explains the process simple steps.
-  - [ ] "Speed & Safety" panel highlights <5min intake, <24h response, secure uploads.
-  - [ ] FAQ section addresses common concerns.
-  - [ ] Strong CTA to start a claim or contact support.
-  - [ ] Fully responsive and matches "Prime" design aesthetic.
-  - [ ] Uses `next-intl` for all text.
+  - [ ] `notifyClaimSubmitted` sends an email to the user (and admin).
+  - [ ] `updateClaimStatus` triggers `notifyStatusChanged` which sends an email.
+  - [ ] Notification logic handles missing keys gracefully (logs but doesn't crash).
+  - [ ] Unit tests verify the `sendNotification` payload structure.
+  - [ ] (Optional) Integration with Novu dashboard workflows (if keys provided).
 </acceptance_criteria>
 ```
 
@@ -93,10 +89,7 @@ Copy the block below to your Agent to start with maximum context:
 
 ## 🔗 Related Files
 
-- apps/web/src/app/[locale]/(site)/services/
-- apps/web/src/app/[locale]/page.tsx
-- apps/web/src/messages/en.json
-- apps/web/src/messages/sq.json
+<!-- Add discovered file paths here -->
 
 ## 📂 Active Context
 
@@ -114,7 +107,7 @@ Copy the block below to your Agent to start with maximum context:
 | Type Check | pass                                                                                           |
 | Unit Tests | pass                                                                                           |
 | Format     | fail (exit 1)                                                                                  |
-| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_181347.log |
+| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_182318.log |
 
 ## 📏 Oversized Files (>400 lines or >15000 bytes)
 
@@ -129,25 +122,20 @@ Copy the block below to your Agent to start with maximum context:
 ```markdown
 ## What
 
-Create Services Page
+Implement Transactional Notifications
 
 ## Why
 
-To increase trust and help potential members understand the specific services and value Interdomestik provides (Vehicle, Property, Injury, Flight Delay), aligned with the "Prime Claims Experience" P1 initiative.
-
 ## How
 
-- Created `apps/web/src/app/[locale]/(site)/services/page.tsx` with a modern, responsive layout.
-- Added English and Albanian translations for the page content.
-- Implemented "Speed & Safety" panel and FAQ section using `@interdomestik/ui` components (Card, Button).
-- Added unit test `apps/web/src/app/[locale]/(site)/services/page.test.tsx` ensuring 100% render coverage.
+<!-- Implementation approach -->
 
 ## Testing
 
-- [x] Unit tests pass (`pnpm test:unit`)
+- [ ] Unit tests pass (`pnpm test:unit`)
 - [ ] E2E tests pass (`pnpm test:e2e`)
-- [x] Manual QA completed
-- [x] No regressions in existing functionality
+- [ ] Manual QA completed
+- [ ] No regressions in existing functionality
 
 ## Screenshots (if UI changes)
 
@@ -155,6 +143,5 @@ To increase trust and help potential members understand the specific services an
 
 ## Notes to Reviewer
 
-- The page uses `next-intl` for full localization.
-- "Flight Delay" is included but can be feature-flagged later if needed (currently visible).
+<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
 ```
