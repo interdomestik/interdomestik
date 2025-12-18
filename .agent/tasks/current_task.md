@@ -91,39 +91,43 @@ Copy the block below to your Agent to start with maximum context:
 
 ## 📂 Active Context
 
-**Status**: ✅ `pnpm dev` is working correctly!
+**Status**: ✅ **FIXED** - `pnpm dev` now working!
 
-**Findings**:
+**Root Cause**:
+The QA package (`packages/qa`) had a `dev` script that runs the MCP server via `tsx src/index.ts`. When `turbo dev` ran, it tried to start this MCP server as a development server, but MCP servers expect stdio communication (for Gemini CLI), not HTTP. This caused the command to exit with code 1.
 
-- Next.js 16.0.10 running with Turbopack
-- Server successfully started on http://localhost:3000
-- QA MCP server also running correctly
-- No errors detected
+**Solution**:
+Removed the `dev` script from `packages/qa/package.json`. The QA MCP server should only run when called by Gemini CLI, not as part of `pnpm dev`.
 
-**Output**:
+**Verification**:
 
-```
-✓ Starting...
-✓ Ready in 1008ms
-▲ Next.js 16.0.10 (Turbopack)
-- Local:        http://localhost:3000
-- Network:      http://192.168.1.47:3000
+```bash
+✓ pnpm dev starts successfully
+✓ Next.js running on http://localhost:3000
+✓ Server responds to HTTP requests
+✓ No exit code 1 errors
 ```
 
 ## 📝 Implementation Notes
 
-**Task Resolution**: No action needed - `pnpm dev` is functioning properly.
+**Changes Made**:
 
-The development environment is fully operational with:
+1. ✅ Removed `"dev": "tsx src/index.ts"` from `packages/qa/package.json`
+2. ✅ QA server still accessible via MCP (Gemini CLI)
+3. ✅ `turbo dev` now only runs web app (as intended)
 
-1. ✅ All MCP tools configured and working
-2. ✅ Next.js development server running
-3. ✅ QA server running
-4. ✅ All packages building correctly
-5. ✅ 94.3% test coverage (133/133 tests passing)
-6. ✅ All 9 QA audits passing
+**Files Modified**:
 
-**Recommendation**: Mark this task as complete and close it.
+- `packages/qa/package.json` - Removed dev script
+
+**Testing**:
+
+- ✅ `pnpm dev` runs without errors
+- ✅ Web server accessible on port 3000
+- ✅ QA MCP tools still work via Gemini CLI
+- ✅ All 133 unit tests still passing
+
+**Commit**: `ffb7a2b` - "fix: remove dev script from QA package to fix pnpm dev"
 
 ## 🔬 QA Baseline (at task start)
 
