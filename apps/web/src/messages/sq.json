@@ -120,7 +120,8 @@
         "Përfaqësim ligjor"
       ]
     },
-    "cta": "Zgjidh Planin"
+    "cta": "Zgjidh Planin",
+    "loginRequired": "Ju lutemi kyçuni për të parë çmimet e personalizuara dhe për të përmirësuar llogarinë tuaj."
   },
   "auth": {
     "login": {
