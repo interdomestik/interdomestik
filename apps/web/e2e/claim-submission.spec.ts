@@ -7,6 +7,8 @@ test.describe('Claim Creation Wizard', () => {
     await expect(authenticatedPage.locator('h1')).toContainText('New Claim');
 
     // 2. Step 1: Category
+    // Wait for page to be fully loaded (WebKit needs this)
+    await authenticatedPage.waitForLoadState('networkidle');
     // Select a category (e.g., Service Issue)
     await authenticatedPage.getByTestId('category-service_issue').click();
     // Wait for animation (500ms in CSS)
@@ -14,8 +16,10 @@ test.describe('Claim Creation Wizard', () => {
     await authenticatedPage.getByTestId('wizard-next').click();
 
     // 3. Step 2: Details
-    // Fill required fields
-    await authenticatedPage.getByLabel('Claim Title').fill('Flight Delay Test');
+    // Wait for form to be ready (WebKit needs extra time)
+    await authenticatedPage.waitForLoadState('domcontentloaded');
+    // Fill required fields with increased timeout
+    await authenticatedPage.getByLabel('Claim Title').fill('Flight Delay Test', { timeout: 15000 });
     await authenticatedPage.getByLabel('Company Name').fill('Air Albania');
     await authenticatedPage.getByLabel('Description').fill('Flight was delayed by 5 hours.');
     await authenticatedPage.getByLabel('Amount (Optional)').fill('600');

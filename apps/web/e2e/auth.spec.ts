@@ -102,7 +102,9 @@ test.describe('Authentication', () => {
       authenticatedPage,
     }) => {
       await authenticatedPage.goto('/dashboard');
-      await authenticatedPage.waitForTimeout(500);
+      // Wait for page to fully load (WebKit needs this for auth state)
+      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.waitForTimeout(1000);
       expect(authenticatedPage.url()).not.toMatch(/login/);
       const loggedIn = await isLoggedIn(authenticatedPage);
       expect(loggedIn).toBeTruthy();
