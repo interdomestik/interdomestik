@@ -150,3 +150,16 @@ export const userNotificationPreferences = pgTable('user_notification_preference
     .$onUpdate(() => new Date())
     .notNull(),
 });
+
+export const subscriptions = pgTable('subscriptions', {
+  id: text('id').primaryKey(), // Paddle Subscription ID
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id),
+  status: text('status').notNull(), // active, past_due, paused, canceled
+  planId: text('plan_id').notNull(), // Paddle Price ID
+  currentPeriodEnd: timestamp('current_period_end'),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+});

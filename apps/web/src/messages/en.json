@@ -120,7 +120,8 @@
         "Përfaqësim ligjor"
       ]
     },
-    "cta": "Choose Plan"
+    "cta": "Choose Plan",
+    "loginRequired": "Please log in to view customized pricing and upgrade your account."
   },
   "auth": {
     "login": {

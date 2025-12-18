@@ -18,6 +18,8 @@
     "@interdomestik/ui": "workspace:*",
     "@novu/nextjs": "^3.11.0",
     "@novu/node": "^2.6.6",
+    "@paddle/paddle-js": "^1.6.1",
+    "@paddle/paddle-node-sdk": "^3.5.0",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.4",
     "@stripe/stripe-js": "^8.5.3",
