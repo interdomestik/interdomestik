@@ -353,8 +353,16 @@
         "Screenshote bisedash/email",
         "Fatura ose njoftim anulimi"
       ],
-      "travel": ["Itinerari dhe biletat", "Foto/video të incidentit", "Fatura për shpenzime"],
-      "default": ["Foto ose screenshote", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
+      "travel": [
+        "Itinerari dhe biletat",
+        "Foto/video të incidentit",
+        "Fatura për shpenzime"
+      ],
+      "default": [
+        "Foto ose screenshote",
+        "Fatura/kupona",
+        "Çdo korrespondencë zyrtare"
+      ]
     },
     "validation": {
       "mime": "Only PDF, JPG, or PNG files are allowed.",
@@ -421,7 +429,9 @@
         "title": "In-App Notifications",
         "all": "All notifications",
         "allHint": "Show all notifications in the app's notification center."
-      }
+      },
+      "loadError": "Неуспешно учитавање подешавања",
+      "saveError": "Неуспешно чување подешавања"
     }
   },
   "trust": {

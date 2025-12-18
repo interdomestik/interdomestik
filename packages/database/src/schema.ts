@@ -129,3 +129,24 @@ export const leads = pgTable('leads', {
   createdAt: timestamp('createdAt').defaultNow(),
   updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
 });
+
+export const userNotificationPreferences = pgTable('user_notification_preferences', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  // Email notifications
+  emailClaimUpdates: boolean('email_claim_updates').default(true).notNull(),
+  emailMarketing: boolean('email_marketing').default(false).notNull(),
+  emailNewsletter: boolean('email_newsletter').default(true).notNull(),
+  // Push notifications
+  pushClaimUpdates: boolean('push_claim_updates').default(true).notNull(),
+  pushMessages: boolean('push_messages').default(true).notNull(),
+  // In-app notifications
+  inAppAll: boolean('in_app_all').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .$onUpdate(() => new Date())
+    .notNull(),
+});

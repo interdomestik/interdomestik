@@ -13,7 +13,7 @@ import { Label } from '@interdomestik/ui/components/label';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { Bell, Mail, MessageSquare, Smartphone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 interface NotificationPreferences {
@@ -41,10 +41,31 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 export function NotificationSettings({ initialPreferences }: NotificationSettingsProps) {
   const t = useTranslations('settings');
   const [isPending, startTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(true);
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     ...DEFAULT_PREFERENCES,
     ...initialPreferences,
   });
+
+  // Load preferences on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const response = await fetch('/api/settings/notifications');
+        if (response.ok) {
+          const data = await response.json();
+          setPreferences(prev => ({ ...prev, ...data }));
+        }
+      } catch (error) {
+        console.error('Failed to load preferences:', error);
+        toast.error(t('notifications.loadError'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPreferences();
+  }, [t]);
 
   const handleToggle = (key: keyof NotificationPreferences) => {
     setPreferences(prev => ({
@@ -55,15 +76,49 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
 
   const handleSave = () => {
     startTransition(async () => {
-      // TODO: Implement actual save to backend
-      // For now, simulate an API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      try {
+        const response = await fetch('/api/settings/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(preferences),
+        });
 
-      toast.success(t('notifications.saved'), {
-        description: t('notifications.savedDescription'),
-      });
+        if (!response.ok) {
+          throw new Error('Failed to save preferences');
+        }
+
+        toast.success(t('notifications.saved'), {
+          description: t('notifications.savedDescription'),
+        });
+      } catch (error) {
+        console.error('Failed to save preferences:', error);
+        toast.error(t('notifications.saveError'));
+      }
     });
   };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{t('notifications.title')}</CardTitle>
+          </div>
+          <CardDescription>{t('notifications.description')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="h-20 bg-muted animate-pulse rounded" />
+            <div className="h-20 bg-muted animate-pulse rounded" />
+            <div className="h-20 bg-muted animate-pulse rounded" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

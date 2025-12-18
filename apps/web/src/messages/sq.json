@@ -273,12 +273,18 @@
     "howItWorks": "Si funksionon",
     "stepsTitle": "Shpejtësi & siguri në katër hapa",
     "steps": [
-      { "title": "Tregona bazat", "description": "Zgjidh kategorinë dhe shto detajet e shpejta." },
+      {
+        "title": "Tregona bazat",
+        "description": "Zgjidh kategorinë dhe shto detajet e shpejta."
+      },
       {
         "title": "Shto prova",
         "description": "Ngarko foto/fatura; ne kontrollojmë mime/masë dhe i etikojmë si PII."
       },
-      { "title": "Rishikim nën 24h", "description": "Sheh statusin + badge SLA në timeline." },
+      {
+        "title": "Rishikim nën 24h",
+        "description": "Sheh statusin + badge SLA në timeline."
+      },
       {
         "title": "Ne negociojmë për ty",
         "description": "Merr përditësime dhe rezultate në aplikacion."
@@ -349,8 +355,16 @@
         "Screenshote bisedash/email",
         "Fatura ose njoftim anulimi"
       ],
-      "travel": ["Itinerari dhe biletat", "Foto/video të incidentit", "Fatura për shpenzime"],
-      "default": ["Foto ose screenshote", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
+      "travel": [
+        "Itinerari dhe biletat",
+        "Foto/video të incidentit",
+        "Fatura për shpenzime"
+      ],
+      "default": [
+        "Foto ose screenshote",
+        "Fatura/kupona",
+        "Çdo korrespondencë zyrtare"
+      ]
     },
     "validation": {
       "mime": "Lejohen vetëm PDF, JPG ose PNG.",
@@ -404,7 +418,6 @@
       "selectPlaceholder": "Zgjidhni një gjuhë",
       "hint": "Kjo do të ndryshojë gjuhën në të gjithë aplikacionin."
     },
-
     "notifications": {
       "sectionTitle": "Njoftimet",
       "title": "Preferencat e Njoftimeve",
@@ -433,7 +446,9 @@
         "title": "Njoftimet në Aplikacion",
         "all": "Të gjitha njoftimet",
         "allHint": "Shfaq të gjitha njoftimet në qendrën e njoftimeve."
-      }
+      },
+      "loadError": "Dështoi ngarkimi i preferencave",
+      "saveError": "Dështoi ruajtja e preferencave"
     }
   },
   "trust": {
