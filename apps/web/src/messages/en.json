@@ -121,7 +121,11 @@
       ]
     },
     "cta": "Choose Plan",
-    "loginRequired": "Please log in to view customized pricing and upgrade your account."
+    "loginRequired": "Please log in to view customized pricing and upgrade your account.",
+    "meta": {
+      "title": "Pricing - Interdomestik",
+      "description": "Choose the right plan for your consumer protection needs."
+    }
   },
   "auth": {
     "login": {

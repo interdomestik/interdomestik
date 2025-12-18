@@ -121,7 +121,11 @@
       ]
     },
     "cta": "Zgjidh Planin",
-    "loginRequired": "Ju lutemi kyçuni për të parë çmimet e personalizuara dhe për të përmirësuar llogarinë tuaj."
+    "loginRequired": "Ju lutemi kyçuni për të parë çmimet e personalizuara dhe për të përmirësuar llogarinë tuaj.",
+    "meta": {
+      "title": "Çmimet - Interdomestik",
+      "description": "Zgjidhni planin e duhur për nevojat tuaja të mbrojtjes së konsumatorit."
+    }
   },
   "auth": {
     "login": {
