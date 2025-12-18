@@ -30,6 +30,11 @@ export const tools = [
     inputSchema: { type: 'object', properties: {} },
   },
   {
+    name: 'run_coverage',
+    description: 'Run unit tests with coverage for the web application',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
     name: 'run_e2e_tests',
     description: 'Run E2E tests for the web application using Playwright',
     inputSchema: { type: 'object', properties: {} },

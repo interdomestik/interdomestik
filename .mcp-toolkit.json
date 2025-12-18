@@ -14,16 +14,17 @@
   },
   "qa": {
     "buildHealth": [
-      "npm run lint",
-      "npm run type-check",
-      "npm run build"
+      "pnpm lint",
+      "pnpm type-check",
+      "pnpm build"
     ],
     "testSuites": {
-      "smoke": "npx playwright test e2e/smoke.spec.ts",
-      "unit": "npm test",
-      "e2e": "npx playwright test"
+      "smoke": "pnpm --filter @interdomestik/web test:e2e -- --grep smoke",
+      "unit": "pnpm --filter @interdomestik/web test:unit --run",
+      "coverage": "pnpm --filter @interdomestik/web test:unit -- --coverage",
+      "e2e": "pnpm --filter @interdomestik/web test:e2e"
     },
-    "navigationAudit": "npx playwright test e2e/navigation.spec.ts"
+    "navigationAudit": "pnpm --filter @interdomestik/web test:e2e -- --grep smoke"
   },
   "e2e": {
     "baseUrl": "http://localhost:3000",

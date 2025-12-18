@@ -18,10 +18,15 @@
     "db:push": "pnpm --filter @interdomestik/database db:push",
     "db:studio": "pnpm --filter @interdomestik/database db:studio",
     "e2e:seed": "node scripts/seed-e2e-users.mjs",
+    "mcp:setup": "./scripts/setup-mcp.sh",
+    "mcp:audit": "pnpm --filter @interdomestik/qa run-all-audits",
+    "mcp:test": "pnpm mcp:audit && pnpm test",
     "qa": "pnpm --filter @interdomestik/qa check",
     "qa:full": "pnpm lint && pnpm type-check && pnpm --filter @interdomestik/web test:unit --run && pnpm --filter @interdomestik/web test:e2e -- --grep smoke",
     "i18n:check": "node scripts/check-i18n.mjs",
-    "smoke-test": "node scripts/smoke-test.mjs"
+    "smoke-test": "node scripts/smoke-test.mjs",
+    "test": "pnpm --filter @interdomestik/web test:unit --run",
+    "test:e2e": "pnpm --filter @interdomestik/web test:e2e"
   },
   "devDependencies": {
     "oslo": "^1.0.0",

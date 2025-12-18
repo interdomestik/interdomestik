@@ -36,3 +36,21 @@ export async function runE2ETests() {
     };
   }
 }
+
+export async function runCoverage() {
+  try {
+    const { stdout, stderr } = await execAsync('pnpm test:unit -- --coverage', { cwd: WEB_APP });
+    return { content: [{ type: 'text', text: `✅ COVERAGE RUN PASSED\n\n${stdout}\n${stderr}` }] };
+  } catch (error: any) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `❌ COVERAGE RUN FAILED\n\nError: ${error.message}\n\nOutput: ${error.stdout || ''}\n${
+            error.stderr || ''
+          }`,
+        },
+      ],
+    };
+  }
+}

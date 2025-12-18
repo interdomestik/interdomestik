@@ -10,10 +10,16 @@ export async function auditDependencies() {
   }
 
   if (!fs.existsSync(packageJsonPath)) {
-    return { content: [{ type: 'text', text: `❌ Critical: Root package.json missing at ${packageJsonPath}` }] };
+    return {
+      content: [
+        { type: 'text', text: `❌ Critical: Root package.json missing at ${packageJsonPath}` },
+      ],
+    };
   }
 
-  await execAsync('git branch --show-current', { cwd: REPO_ROOT }).catch(() => ({ stdout: 'unknown' }));
+  await execAsync('git branch --show-current', { cwd: REPO_ROOT }).catch(() => ({
+    stdout: 'unknown',
+  }));
   const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
   const checks: string[] = [];
   if (pkg.workspaces) checks.push('✅ Workspaces configured');
@@ -29,9 +35,15 @@ export async function auditDependencies() {
 export async function auditSupabase() {
   const configPath = path.join(REPO_ROOT, 'supabase/config.toml');
   if (fs.existsSync(configPath)) {
-    return { content: [{ type: 'text', text: 'SUPABASE AUDIT: SUCCESS\n\n✅ supabase/config.toml exists' }] };
+    return {
+      content: [
+        { type: 'text', text: 'SUPABASE AUDIT: SUCCESS\n\n✅ supabase/config.toml exists' },
+      ],
+    };
   }
-  return { content: [{ type: 'text', text: 'SUPABASE AUDIT: WARNING\n\n❌ supabase/config.toml missing' }] };
+  return {
+    content: [{ type: 'text', text: 'SUPABASE AUDIT: WARNING\n\n❌ supabase/config.toml missing' }],
+  };
 }
 
 export async function auditAccessibility() {
@@ -127,22 +139,39 @@ export async function auditNavigation() {
   const issues: string[] = [];
   const checks: string[] = [];
 
-  if (fs.existsSync(path.join(WEB_APP, 'src/app/layout.tsx'))) {
-    checks.push('✅ Root Layout (src/app/layout.tsx) exists');
-  } else {
-    issues.push('❌ Missing Root Layout (src/app/layout.tsx)');
-  }
+  const hasRootLayout = fs.existsSync(path.join(WEB_APP, 'src/app/layout.tsx'));
+  const hasLocaleLayout = fs.existsSync(path.join(WEB_APP, 'src/app/[locale]/layout.tsx'));
+  const hasRoutingConfig = fs.existsSync(path.join(WEB_APP, 'src/i18n/routing.ts'));
 
-  if (fs.existsSync(path.join(WEB_APP, 'src/app/[locale]/layout.tsx'))) {
+  // Check for i18n pattern (locale layout without root layout is valid)
+  if (hasLocaleLayout && hasRoutingConfig) {
     checks.push('✅ Locale Layout (src/app/[locale]/layout.tsx) exists');
-  } else {
-    issues.push('❌ Missing Locale Layout (src/app/[locale]/layout.tsx)');
-  }
-
-  if (fs.existsSync(path.join(WEB_APP, 'src/i18n/routing.ts'))) {
     checks.push('✅ Routing Config (src/i18n/routing.ts) exists');
+
+    if (hasRootLayout) {
+      checks.push('✅ Root Layout (src/app/layout.tsx) exists');
+    } else {
+      checks.push('ℹ️  Root Layout not present (using i18n locale-based routing pattern)');
+    }
   } else {
-    issues.push('❌ Missing Routing Config (src/i18n/routing.ts)');
+    // Traditional pattern - root layout is required
+    if (hasRootLayout) {
+      checks.push('✅ Root Layout (src/app/layout.tsx) exists');
+    } else {
+      issues.push('❌ Missing Root Layout (src/app/layout.tsx)');
+    }
+
+    if (hasLocaleLayout) {
+      checks.push('✅ Locale Layout (src/app/[locale]/layout.tsx) exists');
+    } else {
+      issues.push('❌ Missing Locale Layout (src/app/[locale]/layout.tsx)');
+    }
+
+    if (hasRoutingConfig) {
+      checks.push('✅ Routing Config (src/i18n/routing.ts) exists');
+    } else {
+      issues.push('❌ Missing Routing Config (src/i18n/routing.ts)');
+    }
   }
 
   if (fs.existsSync(path.join(WEB_APP, 'src/i18n/navigation.ts'))) {
