@@ -68,14 +68,15 @@ export function ProfileForm({ user }: ProfileFormProps) {
   }
 
   return (
-    <Card>
+    <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-premium relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
+        <CardTitle className="text-xl font-semibold">{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="relative">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="name"
@@ -83,7 +84,11 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 <FormItem>
                   <FormLabel>{t('fullName')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('fullNamePlaceholder')} {...field} />
+                    <Input
+                      placeholder={t('fullNamePlaceholder')}
+                      {...field}
+                      className="bg-background/50 border-border/50 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -97,15 +102,23 @@ export function ProfileForm({ user }: ProfileFormProps) {
                 <FormItem>
                   <FormLabel>{t('profileImage')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('profileImagePlaceholder')} {...field} />
+                    <Input
+                      placeholder={t('profileImagePlaceholder')}
+                      {...field}
+                      className="bg-background/50 border-border/50 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isPending}>
+            <div className="flex justify-end pt-4">
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="shadow-lg hover:shadow-primary/25 transition-all duration-300"
+              >
                 {isPending ? t('saving') : t('saveChanges')}
               </Button>
             </div>
