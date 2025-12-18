@@ -126,16 +126,21 @@ Implement Transactional Notifications
 
 ## Why
 
+To keep users and admins informed about critical claim events (Submission, Status Change, New Message).
+
 ## How
 
-<!-- Implementation approach -->
+- Implemented `sendNotification` utility wrapping Novu SDK.
+- Added triggers in `src/actions/claims.ts` and `src/actions/admin-claims.ts`.
+- Configured Environment Variables for Novu.
+- Added comprehensive unit tests in `src/lib/notifications.test.ts`.
 
 ## Testing
 
-- [ ] Unit tests pass (`pnpm test:unit`)
+- [x] Unit tests pass (`pnpm test:unit`)
 - [ ] E2E tests pass (`pnpm test:e2e`)
-- [ ] Manual QA completed
-- [ ] No regressions in existing functionality
+- [x] Manual verification (Connectivity verified)
+- [x] No regressions in existing functionality
 
 ## Screenshots (if UI changes)
 
@@ -143,5 +148,6 @@ Implement Transactional Notifications
 
 ## Notes to Reviewer
 
-<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
+- Requires `NOVU_API_KEY` and `NEXT_PUBLIC_NOVU_APP_ID` in environment.
+- Workflows (`claim_submitted`, `claim_status_changed`, `new_message`) must be created in Novu Dashboard.
 ```
