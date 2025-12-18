@@ -642,5 +642,37 @@
     "title": "Rreth Nesh",
     "subtitle": "Forcimi i Mbrojtjes së Konsumatorit në Kosovë",
     "content": "Objektivi i kësaj detyre është të mbështesë projektin në vlerësimin dhe përmirësimin e shkallëzueshmërisë së platformës ECO HUB KOSOVO (Interdomestik), duke siguruar që ajo mund të përballojë në mënyrë efektive rritjen e trafikut të përdoruesve, vëllimin e të dhënave dhe zgjerimin e veçorive duke ruajtur performancën dhe besueshmërinë. Konsulenti do të angazhohet me 15–20 pjesëmarrës të trajnuar për të testuar funksionalitetin, përdorshmërinë dhe performancën e platformës. Bazuar në gjetjet, Konsulenti do të ofrojë rekomandime vepruese për optimizim dhe shkallëzim."
+  },
+  "consumerRights": {
+    "title": "Të Drejtat e Konsumatorit",
+    "intro": "Njihni të drejtat tuaja sipas Ligjit për Mbrojtjen e Konsumatorit në Kosovë (Nr. 06/L-034).",
+    "rights": {
+      "safety": {
+        "title": "E Drejta për Siguri",
+        "description": "Mbrojtje nga produktet dhe shërbimet që janë të rrezikshme për jetën dhe shëndetin."
+      },
+      "information": {
+        "title": "E Drejta për Informim",
+        "description": "Qasje në informacione të qarta, të sakta dhe të vërteta për mallrat dhe shërbimet."
+      },
+      "redress": {
+        "title": "E Drejta për Dëmshpërblim",
+        "description": "Kompensim për mallra me defekt, përfshirë riparimin, zëvendësimin ose rimbursimin."
+      },
+      "representation": {
+        "title": "E Drejta për Përfaqësim",
+        "description": "E drejta për të formuar dhe bashkuar shoqata konsumatorësh për të mbrojtur interesat kolektive."
+      },
+      "choice": {
+        "title": "E Drejta për Zgjedhje",
+        "description": "Mundësia për të zgjedhur nga një gamë e gjerë produktesh dhe shërbimesh me çmime konkurruese."
+      },
+      "education": {
+        "title": "E Drejta për Edukim",
+        "description": "Qasje në programe dhe informacione që ju ndihmojnë të merrni vendime të informuara."
+      }
+    },
+    "cta": "Fillo Ankesën",
+    "learnMore": "Mëso Më Shumë"
   }
 }

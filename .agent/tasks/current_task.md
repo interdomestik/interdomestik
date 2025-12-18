@@ -1,21 +1,21 @@
 ---
-task_name: 'finish the stabilization of the Settings Page E2E tests to ensure the Core MVP is 100% verified.'
-task_type: 'Bug Fix'
+task_name: 'build a standard page according to the Kosovo laws on the consumer rights and connect it to the dashboard sidebar'
+task_type: 'Feature'
 priority: 'P1-High'
-estimate: '1h'
+estimate: '2h'
 test_level: 'full'
 roadmap_ref: 'Phase 1'
 branch: 'feat/fix-tests-proxy-arch'
-start_time: 'Thu Dec 18 13:12:32 CET 2025'
+start_time: 'Thu Dec 18 13:50:44 CET 2025'
 baseline:
   lint: 'pass'
-  typecheck: 'fail (exit 2)'
-  tests: 'fail (exit 1)'
+  typecheck: 'pass'
+  tests: 'pass'
   format: 'fail (exit 1)'
-  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_131225.log'
+  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_135032.log'
 ---
 
-# 🚀 Current Task: finish the stabilization of the Settings Page E2E tests to ensure the Core MVP is 100% verified.
+# 🚀 Current Task: build a standard page according to the Kosovo laws on the consumer rights and connect it to the dashboard sidebar
 
 ## 📋 10x Context Prompt
 
@@ -23,11 +23,11 @@ Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>finish the stabilization of the Settings Page E2E tests to ensure the Core MVP is 100% verified.</objective>
-  <type>Bug Fix</type>
+  <objective>build a standard page according to the Kosovo laws on the consumer rights and connect it to the dashboard sidebar</objective>
+  <type>Feature</type>
   <priority>P1-High</priority>
-  <estimate>1h</estimate>
-  <branch>feat/fix-tests-proxy-arch</branch>
+  <estimate>2h</estimate>
+  <branch>feat/consumer-rights-page</branch>
   <constraints>
     - Use @interdomestik/ui components
     - Follow 10x-coding rules (Explore → Plan → Execute)
@@ -37,17 +37,15 @@ Copy the block below to your Agent to start with maximum context:
   </constraints>
 </task_definition>
 
-<reproduction_steps>
-  1. Navigate to...
-  2. Click on...
-  3. Observe...
-</reproduction_steps>
-<expected_behavior>
-  The expected result is...
-</expected_behavior>
-<actual_behavior>
-  Instead, what happens is...
-</actual_behavior>
+<user_story>
+  As a [user type], I want to [action]
+  so that I can [benefit].
+</user_story>
+<acceptance_criteria>
+  - [ ] Criterion 1
+  - [ ] Criterion 2
+  - [ ] Criterion 3
+</acceptance_criteria>
 ```
 
 ## 🏗️ Status Tracker
@@ -62,9 +60,9 @@ Copy the block below to your Agent to start with maximum context:
 
 - [x] Unit tests added: `src/**/*.test.ts`
 - [x] Component tests added: `src/**/*.test.tsx`
-- [x] E2E tests added: `e2e/*.spec.ts`
+- [ ] E2E tests added: `e2e/*.spec.ts`
 - [ ] Tests use factories from `src/test/factories.ts`
-- [x] E2E uses fixtures from `e2e/fixtures/`
+- [ ] E2E uses fixtures from `e2e/fixtures/`
 - [x] Run: `pnpm qa` (includes all)
 - [x] All tests pass
 
@@ -74,28 +72,26 @@ Copy the block below to your Agent to start with maximum context:
 - [x] Tests pass at required level (full)
 - [x] `pnpm lint` passes (or no new errors)
 - [x] Formatter/Prettier check passes
-- [x] `pnpm type-check` passes
-- [x] No regressions from baseline
-- [x] (Recommended) `pnpm qa:full` or full checks executed before PR
-- [x] Screenshots added for UI changes (if applicable)
-- [x] Documentation updated (if applicable)
-- [x] Code reviewed / self-reviewed
+- [ ] `pnpm type-check` passes
+- [ ] No regressions from baseline
+- [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
+- [ ] Screenshots added for UI changes (if applicable)
+- [ ] Documentation updated (if applicable)
+- [ ] Code reviewed / self-reviewed
 
 ## 🧠 Senior Checklist
 
-- [x] Risks identified (perf, reliability, UX, security, data)
-- [x] Rollback/mitigation plan documented
-- [x] Monitoring/logging impact considered
-- [x] Migrations include up/down and backfill strategy (if applicable)
-- [x] Accessibility checks for UI changes
-- [x] Removed debug artifacts (console.log/debugger/TODO left behind)
+- [ ] Risks identified (perf, reliability, UX, security, data)
+- [ ] Rollback/mitigation plan documented
+- [ ] Monitoring/logging impact considered
+- [ ] Migrations include up/down and backfill strategy (if applicable)
+- [ ] Accessibility checks for UI changes
+- [ ] Removed debug artifacts (console.log/debugger/TODO left behind)
 
 ## 🔗 Related Files
 
-- apps/web/src/test/
-- apps/web/e2e/
-- apps/web/vitest.config.ts
-- apps/web/playwright.config.ts
+- apps/web/src/app/[locale]/(app)/dashboard/
+- apps/web/src/components/dashboard/
 
 ## 📂 Active Context
 
@@ -110,16 +106,16 @@ Copy the block below to your Agent to start with maximum context:
 | Metric     | Status                                                                                         |
 | ---------- | ---------------------------------------------------------------------------------------------- |
 | Lint       | pass                                                                                           |
-| Type Check | fail (exit 2)                                                                                  |
-| Unit Tests | fail (exit 1)                                                                                  |
+| Type Check | pass                                                                                           |
+| Unit Tests | pass                                                                                           |
 | Format     | fail (exit 1)                                                                                  |
-| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_131225.log |
+| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_135032.log |
 
 ## 📏 Oversized Files (>400 lines or >15000 bytes)
 
 - apps/web/coverage/prettify.js ( 2 lines, 17590 bytes)
-- apps/web/src/components/settings/notification-settings.test.tsx ( 450 lines, 13857 bytes)
-- packages/database/src/types.ts ( 587 lines, 16408 bytes)
+- apps/web/src/components/settings/notification-settings.test.tsx ( 457 lines, 13949 bytes)
+- packages/database/src/types.ts ( 567 lines, 16664 bytes)
 
 ---
 
@@ -128,7 +124,7 @@ Copy the block below to your Agent to start with maximum context:
 ```markdown
 ## What
 
-finish the stabilization of the Settings Page E2E tests to ensure the Core MVP is 100% verified.
+build a standard page according to the Kosovo laws on the consumer rights and connect it to the dashboard sidebar
 
 ## Why
 
@@ -136,14 +132,14 @@ Phase 1
 
 ## How
 
-Implemented robust locators for Radix UI-based Settings components (Language & Notifications). Standardized auth redirection logic to use `/login` and aligned E2E test data with the local database seeding script. Stabilized unit tests by fixing mock hoisting issues and stabilizing `next-intl` mock references.
+<!-- Implementation approach -->
 
 ## Testing
 
-- [x] Unit tests pass (`pnpm test:unit`)
-- [x] E2E tests pass (`pnpm test:e2e`)
-- [x] Manual QA completed
-- [x] No regressions in existing functionality
+- [ ] Unit tests pass (`pnpm test:unit`)
+- [ ] E2E tests pass (`pnpm test:e2e`)
+- [ ] Manual QA completed
+- [ ] No regressions in existing functionality
 
 ## Screenshots (if UI changes)
 

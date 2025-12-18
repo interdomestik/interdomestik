@@ -642,5 +642,37 @@
     "title": "About Us",
     "subtitle": "Strengthening Consumer Protection in Kosovo",
     "content": "The objective of this assignment is to support the project in assessing and enhancing the scalability of the ECO HUB KOSOVO platform (Interdomestik), ensuring it can effectively handle increased user traffic, data volume, and feature expansion while maintaining performance and reliability. The Consultant shall engage with 15–20 trained participants to test the platform's functionality, usability, and performance. Based on the findings, the Consultant will provide actionable recommendations for optimization and scalability."
+  },
+  "consumerRights": {
+    "title": "Your Consumer Rights",
+    "intro": "Know your rights under the Law on Consumer Protection in Kosovo (No. 06/L-034).",
+    "rights": {
+      "safety": {
+        "title": "Right to Safety",
+        "description": "Protection against products and services that are hazardous to life and health."
+      },
+      "information": {
+        "title": "Right to Information",
+        "description": "Access to clear, accurate, and truthful information about goods and services."
+      },
+      "redress": {
+        "title": "Right to Redress",
+        "description": "Compensation for faulty goods, including repair, replacement, or refund."
+      },
+      "representation": {
+        "title": "Right to Representation",
+        "description": "The right to form and join consumer associations to protect collective interests."
+      },
+      "choice": {
+        "title": "Right to Choice",
+        "description": "The ability to choose from a range of products and services at competitive prices."
+      },
+      "education": {
+        "title": "Right to Education",
+        "description": "Access to programs and information that help you make informed decisions."
+      }
+    },
+    "cta": "Start a Claim",
+    "learnMore": "Learn More"
   }
 }
