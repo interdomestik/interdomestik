@@ -1,23 +1,10 @@
 {
   "repoContext": {
-    "allowList": [
-      "apps/**",
-      "packages/**",
-      "supabase/**"
-    ],
-    "excludePatterns": [
-      "**/node_modules/**",
-      "**/.next/**",
-      "**/dist/**",
-      "**/.turbo/**"
-    ]
+    "allowList": ["apps/**", "packages/**", "supabase/**"],
+    "excludePatterns": ["**/node_modules/**", "**/.next/**", "**/dist/**", "**/.turbo/**"]
   },
   "qa": {
-    "buildHealth": [
-      "pnpm lint",
-      "pnpm type-check",
-      "pnpm build"
-    ],
+    "buildHealth": ["pnpm lint", "pnpm type-check", "pnpm build"],
     "testSuites": {
       "smoke": "pnpm --filter @interdomestik/web test:e2e -- --grep smoke",
       "unit": "pnpm --filter @interdomestik/web test:unit --run",

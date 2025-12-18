@@ -35,7 +35,9 @@ export function ClaimCategoriesSection() {
               <p className="text-[hsl(var(--muted-500))] text-sm mb-3">
                 {t(`${category.key}.description`)}
               </p>
-              <p className="text-xs text-[hsl(var(--muted-400))]">{t(`${category.key}.examples`)}</p>
+              <p className="text-xs text-[hsl(var(--muted-400))]">
+                {t(`${category.key}.examples`)}
+              </p>
               <div className="mt-4 flex items-center text-sm font-medium text-[hsl(var(--primary))] group-hover:gap-2 transition-all">
                 {t('startClaim')}
                 <ArrowRight className="h-4 w-4 ml-1" />

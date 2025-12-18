@@ -130,20 +130,21 @@ test.describe('Settings Page', () => {
 
       // Find email claim updates checkbox
       const emailClaimUpdatesCheckbox = authenticatedPage.locator(
-        'input[type="checkbox"]#email-claim-updates'
+        'button[role="checkbox"]#email-claim-updates'
       );
 
       // Wait for checkbox to be visible
       await expect(emailClaimUpdatesCheckbox).toBeVisible({ timeout: 10000 });
 
       // Get initial state
-      const initialState = await emailClaimUpdatesCheckbox.isChecked();
+      const initialState =
+        (await emailClaimUpdatesCheckbox.getAttribute('data-state')) === 'checked';
 
       // Toggle the checkbox
       await emailClaimUpdatesCheckbox.click();
 
       // Verify state changed
-      const newState = await emailClaimUpdatesCheckbox.isChecked();
+      const newState = (await emailClaimUpdatesCheckbox.getAttribute('data-state')) === 'checked';
       expect(newState).toBe(!initialState);
     });
 
@@ -155,10 +156,12 @@ test.describe('Settings Page', () => {
       await authenticatedPage.waitForTimeout(1500);
 
       // Find and toggle a preference
-      const marketingCheckbox = authenticatedPage.locator('input[type="checkbox"]#email-marketing');
+      const marketingCheckbox = authenticatedPage.locator(
+        'button[role="checkbox"]#email-marketing'
+      );
       await expect(marketingCheckbox).toBeVisible({ timeout: 10000 });
 
-      const initialState = await marketingCheckbox.isChecked();
+      const initialState = (await marketingCheckbox.getAttribute('data-state')) === 'checked';
       await marketingCheckbox.click();
 
       // Find and click save button
@@ -169,13 +172,6 @@ test.describe('Settings Page', () => {
       // Wait for save to complete
       await authenticatedPage.waitForTimeout(1000);
 
-      // Should show success toast (if implemented)
-      // Note: Toast might disappear quickly, so we use a short timeout
-      const successToast = authenticatedPage.locator('text=/saved|success/i');
-      if (await successToast.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await expect(successToast).toBeVisible();
-      }
-
       // Refresh page and verify preference persisted
       await authenticatedPage.reload();
       await authenticatedPage.waitForLoadState('networkidle');
@@ -183,11 +179,12 @@ test.describe('Settings Page', () => {
 
       // Check if the preference persisted
       const marketingCheckboxAfterReload = authenticatedPage.locator(
-        'input[type="checkbox"]#email-marketing'
+        'button[role="checkbox"]#email-marketing'
       );
       await expect(marketingCheckboxAfterReload).toBeVisible({ timeout: 10000 });
 
-      const stateAfterReload = await marketingCheckboxAfterReload.isChecked();
+      const stateAfterReload =
+        (await marketingCheckboxAfterReload.getAttribute('data-state')) === 'checked';
       expect(stateAfterReload).toBe(!initialState);
     });
 

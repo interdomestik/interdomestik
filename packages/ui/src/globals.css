@@ -8,13 +8,13 @@
     --primary: 200 85% 45%;
     --primary-foreground: 0 0% 100%;
     --primary-soft: 200 65% 92%;
-    
+
     --secondary: 220 70% 50%;
     --secondary-foreground: 0 0% 100%;
-    
+
     --accent: 175 70% 42%;
     --accent-foreground: 0 0% 100%;
-    
+
     /* Neutrals */
     --foreground: 220 15% 14%;
     --muted-900: 220 15% 14%;
@@ -24,24 +24,24 @@
     --muted-300: 220 10% 70%;
     --muted-200: 220 20% 82%;
     --muted-100: 220 30% 94%;
-    
+
     /* Backgrounds */
     --background: 210 33% 98%;
     --surface: 0 0% 100%;
     --surface-strong: 220 25% 96%;
-    
+
     /* Card/Popover */
     --card: var(--surface);
     --card-foreground: var(--foreground);
     --popover: var(--surface);
     --popover-foreground: var(--foreground);
-    
+
     /* Borders */
     --border: 220 20% 88%;
     --border-strong: 220 20% 75%;
     --input: var(--border);
     --ring: var(--primary);
-    
+
     /* Semantic Colors */
     --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
@@ -51,14 +51,25 @@
     --destructive-foreground: 0 0% 100%;
     --info: 200 85% 50%;
     --info-foreground: 0 0% 100%;
-    
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 15% 14%;
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: 220 25% 96%;
+    --sidebar-accent-foreground: var(--foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
+
     /* Radius */
     --radius: 0.75rem;
-    
+
     /* Typography */
-    --font-display: "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif;
-    --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-    
+    --font-display: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-serif: 'Instrument Serif', serif;
+
     /* Font Sizes */
     --fs-12: 0.75rem;
     --fs-14: 0.875rem;
@@ -69,7 +80,7 @@
     --fs-32: 2rem;
     --fs-40: 2.5rem;
     --fs-56: 3.5rem;
-    
+
     /* Line Heights */
     --lh-tight: 1.1;
     --lh-snug: 1.25;
@@ -80,23 +91,23 @@
   .dark {
     --background: 220 20% 8%;
     --foreground: 0 0% 98%;
-    
+
     --card: 220 15% 12%;
     --card-foreground: 0 0% 98%;
-    
+
     --popover: 220 15% 12%;
     --popover-foreground: 0 0% 98%;
-    
+
     --primary: 200 80% 50%;
     --primary-foreground: 0 0% 100%;
     --primary-soft: 200 40% 20%;
-    
+
     --secondary: 220 60% 55%;
     --secondary-foreground: 0 0% 100%;
-    
+
     --accent: 175 65% 45%;
     --accent-foreground: 0 0% 100%;
-    
+
     --muted-900: 220 12% 10%;
     --muted-700: 220 10% 26%;
     --muted-500: 220 12% 44%;
@@ -104,19 +115,29 @@
     --muted-300: 220 15% 62%;
     --muted-200: 220 15% 72%;
     --muted-100: 220 20% 82%;
-    
+
     --surface: 220 15% 12%;
     --surface-strong: 220 18% 18%;
-    
+
     --border: 220 12% 24%;
     --border-strong: 220 15% 36%;
     --input: var(--border);
     --ring: var(--primary);
-    
+
     --success: 142 65% 40%;
     --warning: 38 85% 45%;
     --destructive: 0 70% 46%;
     --info: 200 75% 45%;
+
+    /* Sidebar Dark */
+    --sidebar-background: 220 15% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: 220 12% 16%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 220 12% 20%;
+    --sidebar-ring: var(--ring);
   }
 }
 
@@ -124,28 +145,45 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-[hsl(var(--background))] text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
     font-family: var(--font-sans);
   }
-  
-  h1, h2, h3, h4 {
+
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     font-weight: 700;
     line-height: var(--lh-tight);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
-  
-  h1 { font-size: var(--fs-56); }
-  h2 { font-size: var(--fs-40); }
-  h3 { font-size: var(--fs-32); }
-  h4 { font-size: var(--fs-24); }
-  
-  p, span, li, input, button {
+
+  h1 {
+    font-size: var(--fs-40);
+  } /* Adjusted for better dashboard feel */
+  h2 {
+    font-size: var(--fs-32);
+  }
+  h3 {
+    font-size: var(--fs-24);
+  }
+  h4 {
+    font-size: var(--fs-20);
+  }
+
+  p,
+  span,
+  li,
+  input,
+  button {
     line-height: var(--lh-base);
-    font-size: var(--fs-16);
+    font-size: var(--fs-14); /* Standard UI size is usually 14px */
   }
 
   /* Accessibility: Focus visible styles */
@@ -167,6 +205,39 @@
   }
 }
 
+@layer utilities {
+  .bg-mesh {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(at 0% 0%, hsla(200, 85%, 45%, 0.15) 0, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(220, 70%, 50%, 0.1) 0, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(175, 70%, 42%, 0.1) 0, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(200, 85%, 45%, 0.05) 0, transparent 50%);
+  }
+
+  .shadow-premium {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.03),
+      0 2px 4px rgba(0, 0, 0, 0.05),
+      0 12px 24px rgba(0, 0, 0, 0.05);
+  }
+
+  .shadow-premium-hover {
+    box-shadow:
+      0 0 0 1px hsla(200, 85%, 45%, 0.1),
+      0 10px 20px rgba(0, 0, 0, 0.08),
+      0 20px 40px rgba(0, 0, 0, 0.06);
+  }
+
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20;
+  }
+
+  .dark .glass {
+    @apply bg-black/40 backdrop-blur-md border border-white/10;
+  }
+}
+
 @layer components {
   /* Glass Card Effect */
   .glass-card {
@@ -177,11 +248,15 @@
   .brand-gradient {
     background: linear-gradient(135deg, hsl(200, 85%, 45%) 0%, hsl(220, 70%, 50%) 100%);
   }
-  
+
   .brand-gradient-light {
-    background: linear-gradient(135deg, hsla(200, 85%, 45%, 0.12) 0%, hsla(220, 70%, 50%, 0.12) 100%);
+    background: linear-gradient(
+      135deg,
+      hsla(200, 85%, 45%, 0.12) 0%,
+      hsla(220, 70%, 50%, 0.12) 100%
+    );
   }
-  
+
   .accent-gradient {
     background: linear-gradient(135deg, hsl(175, 70%, 42%) 0%, hsl(200, 85%, 45%) 100%);
   }
@@ -202,7 +277,7 @@
   .animate-slide-in-right {
     animation: slideInRight 0.8s ease-out forwards;
   }
-  
+
   .animate-pulse-soft {
     animation: pulseSoft 2s ease-in-out infinite;
   }
@@ -210,28 +285,57 @@
 
 /* Keyframes */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(40px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-40px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(40px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pulseSoft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* Interactive Micro-animations */
@@ -241,11 +345,15 @@
 
 .hover-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .interactive-press {
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
   will-change: transform;
 }
 
@@ -255,7 +363,9 @@
 }
 
 .badge-glow {
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .badge-glow:hover {
@@ -264,7 +374,9 @@
 }
 
 .card-lift {
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .card-lift:hover {
@@ -273,7 +385,9 @@
 }
 
 .cta-press {
-  transition: transform 0.2s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease;
 }
 
 .cta-press:hover {
@@ -287,7 +401,15 @@
 }
 
 /* Status Colors */
-.status-pending { @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300; }
-.status-active { @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300; }
-.status-resolved { @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300; }
-.status-closed { @apply bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300; }
+.status-pending {
+  @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300;
+}
+.status-active {
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300;
+}
+.status-resolved {
+  @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300;
+}
+.status-closed {
+  @apply bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300;
+}

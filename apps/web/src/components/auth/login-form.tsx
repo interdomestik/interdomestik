@@ -114,7 +114,12 @@ export function LoginForm() {
             </Label>
           </div>
           <div className="pt-2">
-            <Button type="submit" className="w-full font-semibold" size="lg" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full font-semibold brand-gradient shadow-lg hover:opacity-90 transition-all border-none"
+              size="lg"
+              disabled={loading}
+            >
               {loading ? (
                 <div className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

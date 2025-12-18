@@ -84,7 +84,10 @@ export const tools = [
   {
     name: 'git_diff',
     description: 'Get git diff of the repository',
-    inputSchema: { type: 'object', properties: { cached: { type: 'boolean', description: 'Show staged changes' } } },
+    inputSchema: {
+      type: 'object',
+      properties: { cached: { type: 'boolean', description: 'Show staged changes' } },
+    },
   },
   {
     name: 'code_search',

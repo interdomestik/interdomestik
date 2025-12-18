@@ -29,7 +29,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   });
 
   if (!session) {
-    redirect({ href: '/auth/sign-in', locale });
+    redirect({ href: '/login', locale });
   }
 
   const t = await getTranslations('settings');

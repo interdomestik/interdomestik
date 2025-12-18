@@ -33,13 +33,11 @@ export default async function DashboardLayout({
   // Standard pattern is: SidebarProvider -> [AppSidebar, SidebarInset -> [Header, Main]]
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <DashboardSidebar />
-      <SidebarInset>
-        <div className="flex flex-col min-h-screen">
-          <DashboardHeader />
-          <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
-        </div>
+      <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+        <DashboardHeader />
+        <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -1,6 +1,7 @@
 # Prime Claims Experience – Product Plan
 
 ## Executive Summary
+
 - **Elevator Pitch:** Help Balkan consumers start and trust their damage claims in minutes with a guided, mobile-first flow that proves safety, speed, and local expertise.
 - **Problem Statement:** Visitors doubt safety and speed of handing over PII/evidence, leading to drop-off in the claim wizard and weak uptake of services.
 - **Target Audience:** Mobile-first consumers in the Balkans (18–55) facing disputes (vehicle, property, employment, consumer goods); low legal literacy, prefer Albanian/English, expect WhatsApp/phone reachability.
@@ -10,6 +11,7 @@
 ## Feature Specifications
 
 ### Feature: Trust-Centered Hero & Footer Safety Net
+
 - **User Story:** As a claimant, I want immediate signals of trust and human help (call/WhatsApp), so I feel safe starting my claim.
 - **Acceptance Criteria:**
   - Given the homepage loads, when a user views the hero, then they see proof points (response <24h, languages, “no win, no fee”) and primary CTA to start claim.
@@ -21,6 +23,7 @@
 - **UX Considerations:** Prominent trust strip; accessibility for CTA buttons; concise proof chips.
 
 ### Feature: Guided Claim Wizard with Evidence Prompts & Privacy Badge
+
 - **User Story:** As a claimant, I want guided category/tooltips and evidence prompts so I know what to provide and trust data handling.
 - **Acceptance Criteria:**
   - Given a user picks a category, when on the evidence step, then they see tailored suggestions (photos, receipts, reports) and allowed file types/sizes.
@@ -33,6 +36,7 @@
 - **UX Considerations:** Inline hints, progress clarity, non-blocking prompts, privacy badge near submit.
 
 ### Feature: Services Page (/services) for Clarity & Contact
+
 - **User Story:** As a visitor, I want to understand what Interdomestik handles and how it works, so I can choose to start or contact.
 - **Acceptance Criteria:**
   - Given /services loads, when viewed, then it lists key categories (vehicle, property, injury, consumer) with “What we solve → How it works → What you get → FAQ → Contact” sections.
@@ -44,6 +48,7 @@
 - **UX Considerations:** Skimmable cards, sticky contact CTA, reassure on safety/PII.
 
 ### Feature: SLA Timeline Signals (Member & Agent Views)
+
 - **User Story:** As a member, I want to see my claim status and SLA timers, so I trust progress; as an agent, I want SLA cues to prioritize work.
 - **Acceptance Criteria:**
   - Given a submitted claim, when viewed, then the timeline shows current status and next SLA with due time.
@@ -55,6 +60,7 @@
 - **UX Considerations:** Clear badges, color with sufficient contrast, avoid anxiety copy.
 
 ### Feature: Experiment Hooks (Hero A/B, Flight Delay Tile, “Call Me Now” Microform)
+
 - **User Story:** As a PM, I want controlled experiments to improve conversion, so we learn what messaging and offers work.
 - **Acceptance Criteria:**
   - Given feature flags, when enabled, then hero headline variants render and are attributable in analytics.
@@ -68,6 +74,7 @@
 ## Requirements Documentation Structure
 
 ### 1. Functional Requirements
+
 - **User Flows:** Landing → hero CTA → claim wizard (category → details → evidence → review) → submit; alternate: landing → /services → contact or start claim.
 - **Decision Points:** Category selection drives evidence prompts and SLA template; evidence step allows skip with warning; paywall (future) after first onboarding chat not in this scope.
 - **State Management:** Claim draft persisted; files tracked with status (selected, validated, uploaded, failed); SLA state per claim.
@@ -75,18 +82,21 @@
 - **Integration Points:** Supabase auth/session; Supabase storage signed URLs; feature flag service; analytics events; i18n.
 
 ### 2. Non-Functional Requirements
+
 - **Performance:** LCP <2.5s on mobile hero; wizard interactions <150ms; uploads resumable where possible.
 - **Scalability:** Handle concurrent uploads; flag evaluation cached; timelines incremental revalidation.
 - **Security:** Auth required past login; signed URLs scoped; PII paths; enforce mime/size server-side; no secrets in client.
 - **Accessibility:** WCAG AA; keyboard/focusable CTAs; descriptive errors; high-contrast badges.
 
 ### 3. User Experience Requirements
+
 - **Information Architecture:** Clear primary CTA; services page structured “what/how/benefits/FAQ/contact”; wizard steps linear with progress.
 - **Progressive Disclosure:** Evidence prompts contextually shown per category; SLA details shown on review/timeline, not in hero.
 - **Error Prevention:** Client + server validation for uploads; disable submit until required fields valid; confirm navigation away from draft.
 - **Feedback Patterns:** Inline validation; toast for upload success/fail; SLA badges; trust strip always visible.
 
 ## Critical Questions Checklist
+
 - [ ] Are there existing solutions we're improving upon? (Baseline current hero/wizard conversion and evidence error rates.)
 - [ ] What's the minimum viable version? (Hero + trust strip + evidence prompts + mime/size enforcement + privacy badge.)
 - [ ] What are the potential risks or unintended consequences? (Overpromising SLA, compliance on “no win, no fee”, upload storage costs.)

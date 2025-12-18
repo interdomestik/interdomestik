@@ -1,21 +1,35 @@
 'use client';
 
 import { Slot } from '@radix-ui/react-slot';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../tooltip';
 import * as React from 'react';
 import { cn } from '../../lib/utils';
 import { Button } from '../button';
 import { Skeleton } from '../skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../tooltip';
 import { useSidebar } from './context';
 
-const SidebarMenu = React.forwardRef<HTMLUListElement, React.ComponentProps<'ul'>>(({ className, ...props }, ref) => (
-  <ul ref={ref} data-sidebar="menu" className={cn('flex w-full min-w-0 flex-col gap-1', className)} {...props} />
-));
+const SidebarMenu = React.forwardRef<HTMLUListElement, React.ComponentProps<'ul'>>(
+  ({ className, ...props }, ref) => (
+    <ul
+      ref={ref}
+      data-sidebar="menu"
+      className={cn('flex w-full min-w-0 flex-col gap-1', className)}
+      {...props}
+    />
+  )
+);
 SidebarMenu.displayName = 'SidebarMenu';
 
-const SidebarMenuItem = React.forwardRef<HTMLLIElement, React.ComponentProps<'li'>>(({ className, ...props }, ref) => (
-  <li ref={ref} data-sidebar="menu-item" className={cn('group/menu-item relative', className)} {...props} />
-));
+const SidebarMenuItem = React.forwardRef<HTMLLIElement, React.ComponentProps<'li'>>(
+  ({ className, ...props }, ref) => (
+    <li
+      ref={ref}
+      data-sidebar="menu-item"
+      className={cn('group/menu-item relative', className)}
+      {...props}
+    />
+  )
+);
 SidebarMenuItem.displayName = 'SidebarMenuItem';
 
 type SidebarMenuButtonProps = React.ComponentProps<'button'> & {
@@ -27,7 +41,18 @@ type SidebarMenuButtonProps = React.ComponentProps<'button'> & {
 };
 
 const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenuButtonProps>(
-  ({ asChild = false, isActive = false, variant = 'default', size = 'default', tooltip, className, ...props }, ref) => {
+  (
+    {
+      asChild = false,
+      isActive = false,
+      variant = 'default',
+      size = 'default',
+      tooltip,
+      className,
+      ...props
+    },
+    ref
+  ) => {
     const Comp = asChild ? Slot : 'button';
     const { isMobile, state } = useSidebar();
 
@@ -47,7 +72,7 @@ const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenuButtonP
                 size === 'default' && 'h-9 text-sm [&>svg]:size-5',
                 size === 'lg' && 'h-10 text-base [&>svg]:size-5',
                 'data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground',
-                'group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0',
+                'group-data-[state=collapsed]:h-9 group-data-[state=collapsed]:w-9 group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:p-0',
                 className
               )}
               {...props}
@@ -73,7 +98,7 @@ const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenuButtonP
           size === 'default' && 'h-9 text-sm [&>svg]:size-5',
           size === 'lg' && 'h-10 text-base [&>svg]:size-5',
           'data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground',
-          'group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0',
+          'group-data-[state=collapsed]:h-9 group-data-[state=collapsed]:w-9 group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:p-0',
           className
         )}
         {...props}
@@ -94,7 +119,7 @@ const SidebarMenuAction = React.forwardRef<HTMLButtonElement, React.ComponentPro
         size="icon"
         className={cn(
           'h-7 w-7 text-sidebar-foreground hover:text-sidebar-accent-foreground',
-          'group-data-[collapsible=icon]:hidden',
+          'group-data-[state=collapsed]:hidden',
           className
         )}
         {...props}
@@ -111,7 +136,7 @@ const SidebarMenuBadge = React.forwardRef<HTMLDivElement, React.ComponentProps<'
       data-sidebar="menu-badge"
       className={cn(
         'ml-auto flex h-6 items-center justify-center rounded-md bg-sidebar-accent px-1.5 text-xs text-sidebar-accent-foreground',
-        'group-data-[collapsible=icon]:hidden',
+        'group-data-[state=collapsed]:hidden',
         className
       )}
       {...props}
@@ -122,7 +147,12 @@ SidebarMenuBadge.displayName = 'SidebarMenuBadge';
 
 const SidebarMenuSkeleton = React.forwardRef<HTMLDivElement, React.ComponentProps<'div'>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} data-sidebar="menu-skeleton" className={cn('flex flex-col gap-2', className)} {...props}>
+    <div
+      ref={ref}
+      data-sidebar="menu-skeleton"
+      className={cn('flex flex-col gap-2', className)}
+      {...props}
+    >
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="h-4 w-1/2" />
       <Skeleton className="h-4 w-2/3" />
@@ -138,7 +168,7 @@ const SidebarMenuSub = React.forwardRef<HTMLUListElement, React.ComponentProps<'
       data-sidebar="menu-sub"
       className={cn(
         'mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5',
-        'group-data-[collapsible=icon]:hidden',
+        'group-data-[state=collapsed]:hidden',
         className
       )}
       {...props}
@@ -147,9 +177,9 @@ const SidebarMenuSub = React.forwardRef<HTMLUListElement, React.ComponentProps<'
 );
 SidebarMenuSub.displayName = 'SidebarMenuSub';
 
-const SidebarMenuSubItem = React.forwardRef<HTMLLIElement, React.ComponentProps<'li'>>((props, ref) => (
-  <li ref={ref} {...props} />
-));
+const SidebarMenuSubItem = React.forwardRef<HTMLLIElement, React.ComponentProps<'li'>>(
+  (props, ref) => <li ref={ref} {...props} />
+);
 SidebarMenuSubItem.displayName = 'SidebarMenuSubItem';
 
 const SidebarMenuSubButton = React.forwardRef<
@@ -168,7 +198,7 @@ const SidebarMenuSubButton = React.forwardRef<
         'data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground',
         size === 'sm' && 'text-xs',
         size === 'md' && 'text-sm',
-        'group-data-[collapsible=icon]:hidden',
+        'group-data-[state=collapsed]:hidden',
         className
       )}
       {...props}
@@ -179,12 +209,12 @@ SidebarMenuSubButton.displayName = 'SidebarMenuSubButton';
 
 export {
   SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
   SidebarMenuAction,
   SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarMenuSkeleton,
   SidebarMenuSub,
-  SidebarMenuSubItem,
   SidebarMenuSubButton,
+  SidebarMenuSubItem,
 };

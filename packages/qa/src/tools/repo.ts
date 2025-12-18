@@ -45,7 +45,11 @@ export async function codeSearch(args: { query: string; filePattern?: string }) 
   try {
     const { stdout } = await execAsync(command, { cwd: REPO_ROOT });
     if (!stdout) return { content: [{ type: 'text', text: 'No matches found.' }] };
-    return { content: [{ type: 'text', text: `SEARCH RESULTS for "${query}":\n\n${stdout.slice(0, 10000)}` }] };
+    return {
+      content: [
+        { type: 'text', text: `SEARCH RESULTS for "${query}":\n\n${stdout.slice(0, 10000)}` },
+      ],
+    };
   } catch (e: any) {
     if (e.code === 1) return { content: [{ type: 'text', text: 'No matches found.' }] };
     return { content: [{ type: 'text', text: `Error searching: ${e.message}` }] };

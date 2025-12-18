@@ -355,16 +355,8 @@
         "Screenshote bisedash/email",
         "Fatura ose njoftim anulimi"
       ],
-      "travel": [
-        "Itinerari dhe biletat",
-        "Foto/video të incidentit",
-        "Fatura për shpenzime"
-      ],
-      "default": [
-        "Foto ose screenshote",
-        "Fatura/kupona",
-        "Çdo korrespondencë zyrtare"
-      ]
+      "travel": ["Itinerari dhe biletat", "Foto/video të incidentit", "Fatura për shpenzime"],
+      "default": ["Foto ose screenshote", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
     },
     "validation": {
       "mime": "Lejohen vetëm PDF, JPG ose PNG.",

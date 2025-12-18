@@ -50,7 +50,7 @@ export function PricingSection() {
           <p className="text-[hsl(var(--muted-500))]">{t('subtitle')}</p>
         </div>
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {plans.map((plan) => (
+          {plans.map(plan => (
             <div
               key={plan.name}
               className={`glass-card rounded-2xl p-6 relative card-lift ${
@@ -73,7 +73,7 @@ export function PricingSection() {
                 <p className="text-sm text-[hsl(var(--muted-500))] mt-2">{plan.description}</p>
               </div>
               <ul className="space-y-3 mb-6">
-                {plan.features.map((feature) => (
+                {plan.features.map(feature => (
                   <li key={feature} className="flex items-center gap-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-[hsl(var(--success))]" />
                     {feature}

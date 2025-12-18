@@ -8,16 +8,16 @@ Interdomestik is a subscription-based consumer protection service that helps mem
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| **Monorepo** | Turborepo |
-| **Frontend** | Next.js 15 (App Router) |
-| **UI** | Custom Design System + Radix UI + Tailwind CSS |
-| **Database** | Supabase (PostgreSQL) |
-| **Auth** | Supabase Auth |
-| **Payments** | Stripe |
-| **i18n** | next-intl (Albanian/English) |
-| **Deployment** | Vercel |
+| Layer          | Technology                                     |
+| -------------- | ---------------------------------------------- |
+| **Monorepo**   | Turborepo                                      |
+| **Frontend**   | Next.js 15 (App Router)                        |
+| **UI**         | Custom Design System + Radix UI + Tailwind CSS |
+| **Database**   | Supabase (PostgreSQL)                          |
+| **Auth**       | Supabase Auth                                  |
+| **Payments**   | Stripe                                         |
+| **i18n**       | next-intl (Albanian/English)                   |
+| **Deployment** | Vercel                                         |
 
 ## 📁 Project Structure
 
@@ -163,16 +163,16 @@ The database includes:
 
 ## 📦 Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start all apps in development |
-| `npm run build` | Build all apps |
-| `npm run lint` | Lint all apps |
-| `npm run type-check` | Type check all apps |
-| `npm run format` | Format code with Prettier |
-| `npm run db:generate` | Generate Supabase types |
-| `npm run db:push` | Push database migrations |
-| `npm run db:studio` | Open Supabase Studio |
+| Script                | Description                   |
+| --------------------- | ----------------------------- |
+| `npm run dev`         | Start all apps in development |
+| `npm run build`       | Build all apps                |
+| `npm run lint`        | Lint all apps                 |
+| `npm run type-check`  | Type check all apps           |
+| `npm run format`      | Format code with Prettier     |
+| `npm run db:generate` | Generate Supabase types       |
+| `npm run db:push`     | Push database migrations      |
+| `npm run db:studio`   | Open Supabase Studio          |
 
 ## 🎨 Design System
 

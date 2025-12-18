@@ -5,7 +5,7 @@
  * user interactions, API integration, and error handling.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationSettings } from './notification-settings';
@@ -29,11 +29,12 @@ vi.mock('@interdomestik/ui/components/card', () => ({
 
 vi.mock('@interdomestik/ui/components/checkbox', () => ({
   Checkbox: ({ id, checked, onCheckedChange, ...props }: any) => (
-    <input
-      type="checkbox"
+    <button
+      type="button"
+      role="checkbox"
       id={id}
-      checked={checked}
-      onChange={e => onCheckedChange?.(e.target.checked)}
+      aria-checked={checked}
+      onClick={() => onCheckedChange?.(!checked)}
       {...props}
     />
   ),
@@ -59,43 +60,46 @@ vi.mock('lucide-react', () => ({
 }));
 
 // Mock next-intl
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    const translations: Record<string, string> = {
-      'notifications.title': 'Notification Preferences',
-      'notifications.description': 'Choose how you want to receive updates.',
-      'notifications.save': 'Save Preferences',
-      'notifications.saving': 'Saving...',
-      'notifications.saved': 'Preferences saved',
-      'notifications.savedDescription': 'Your notification preferences have been updated.',
-      'notifications.loadError': 'Failed to load preferences',
-      'notifications.saveError': 'Failed to save preferences',
-      'notifications.email.title': 'Email Notifications',
-      'notifications.email.claimUpdates': 'Claim updates',
-      'notifications.email.claimUpdatesHint':
-        'Receive email notifications when your claim status changes.',
-      'notifications.email.newsletter': 'Newsletter',
-      'notifications.email.newsletterHint': 'Receive tips and updates about consumer rights.',
-      'notifications.email.marketing': 'Promotional emails',
-      'notifications.email.marketingHint': 'Receive special offers and promotions.',
-      'notifications.push.title': 'Push Notifications',
-      'notifications.push.claimUpdates': 'Claim updates',
-      'notifications.push.claimUpdatesHint': 'Get instant notifications for important updates.',
-      'notifications.push.messages': 'New messages',
-      'notifications.push.messagesHint': 'Be notified when an agent sends you a message.',
-      'notifications.inApp.title': 'In-App Notifications',
-      'notifications.inApp.all': 'All notifications',
-      'notifications.inApp.allHint': "Show all notifications in the app's notification center.",
-    };
-    return translations[key] || key;
-  },
-}));
+vi.mock('next-intl', () => {
+  const translations: Record<string, string> = {
+    'notifications.title': 'Notification Preferences',
+    'notifications.description': 'Choose how you want to receive updates.',
+    'notifications.save': 'Save Preferences',
+    'notifications.saving': 'Saving...',
+    'notifications.saved': 'Preferences saved',
+    'notifications.savedDescription': 'Your notification preferences have been updated.',
+    'notifications.loadError': 'Failed to load preferences',
+    'notifications.saveError': 'Failed to save preferences',
+    'notifications.email.title': 'Email Notifications',
+    'notifications.email.claimUpdates': 'Claim updates',
+    'notifications.email.claimUpdatesHint':
+      'Receive email notifications when your claim status changes.',
+    'notifications.email.newsletter': 'Newsletter',
+    'notifications.email.newsletterHint': 'Receive tips and updates about consumer rights.',
+    'notifications.email.marketing': 'Promotional emails',
+    'notifications.email.marketingHint': 'Receive special offers and promotions.',
+    'notifications.push.title': 'Push Notifications',
+    'notifications.push.claimUpdates': 'Claim updates',
+    'notifications.push.claimUpdatesHint': 'Get instant notifications for important updates.',
+    'notifications.push.messages': 'New messages',
+    'notifications.push.messagesHint': 'Be notified when an agent sends you a message.',
+    'notifications.inApp.title': 'In-App Notifications',
+    'notifications.inApp.all': 'All notifications',
+    'notifications.inApp.allHint': "Show all notifications in the app's notification center.",
+  };
+  const t = (key: string) => translations[key] || key;
+  return {
+    useTranslations: () => t,
+  };
+});
 
 // Mock sonner toast
-const mockToast = {
-  success: vi.fn(),
-  error: vi.fn(),
-};
+const { mockToast } = vi.hoisted(() => ({
+  mockToast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 vi.mock('sonner', () => ({
   toast: mockToast,
@@ -192,10 +196,10 @@ describe('NotificationSettings', () => {
 
       // Check that checkboxes have correct default states
       const emailClaimUpdates = screen.getByLabelText('Claim updates', {
-        selector: 'input[type="checkbox"]#email-claim-updates',
+        selector: 'button[role="checkbox"]#email-claim-updates',
       });
       const emailMarketing = screen.getByLabelText('Promotional emails', {
-        selector: 'input[type="checkbox"]#email-marketing',
+        selector: 'button[role="checkbox"]#email-marketing',
       });
 
       expect(emailClaimUpdates).toBeChecked();
@@ -205,8 +209,6 @@ describe('NotificationSettings', () => {
 
   describe('User Interactions', () => {
     it('should toggle checkbox when clicked', async () => {
-      const user = userEvent.setup();
-
       (global.fetch as any).mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -226,14 +228,16 @@ describe('NotificationSettings', () => {
       });
 
       const marketingCheckbox = screen.getByLabelText('Promotional emails', {
-        selector: 'input[type="checkbox"]#email-marketing',
+        selector: 'button[role="checkbox"]#email-marketing',
       });
 
       expect(marketingCheckbox).not.toBeChecked();
 
-      await user.click(marketingCheckbox);
+      fireEvent.click(marketingCheckbox);
 
-      expect(marketingCheckbox).toBeChecked();
+      await waitFor(() => {
+        expect(marketingCheckbox).toBeChecked();
+      });
     });
 
     it('should enable save button after changes', async () => {
@@ -261,7 +265,7 @@ describe('NotificationSettings', () => {
       expect(saveButton).toBeEnabled();
 
       const marketingCheckbox = screen.getByLabelText('Promotional emails', {
-        selector: 'input[type="checkbox"]#email-marketing',
+        selector: 'button[role="checkbox"]#email-marketing',
       });
       await user.click(marketingCheckbox);
 
@@ -271,8 +275,6 @@ describe('NotificationSettings', () => {
 
   describe('Save Functionality', () => {
     it('should save preferences when save button is clicked', async () => {
-      const user = userEvent.setup();
-
       (global.fetch as any)
         .mockResolvedValueOnce({
           ok: true,
@@ -297,12 +299,17 @@ describe('NotificationSettings', () => {
       });
 
       const marketingCheckbox = screen.getByLabelText('Promotional emails', {
-        selector: 'input[type="checkbox"]#email-marketing',
+        selector: 'button[role="checkbox"]#email-marketing',
       });
-      await user.click(marketingCheckbox);
+
+      fireEvent.click(marketingCheckbox);
+
+      await waitFor(() => {
+        expect(marketingCheckbox).toBeChecked();
+      });
 
       const saveButton = screen.getByText('Save Preferences');
-      await user.click(saveButton);
+      fireEvent.click(saveButton);
 
       await waitFor(() => {
         expect(mockToast.success).toHaveBeenCalledWith('Preferences saved', {
@@ -441,7 +448,7 @@ describe('NotificationSettings', () => {
       // Should eventually load from API and override initial preferences
       await waitFor(() => {
         const marketingCheckbox = screen.getByLabelText('Promotional emails', {
-          selector: 'input[type="checkbox"]#email-marketing',
+          selector: 'button[role="checkbox"]#email-marketing',
         });
         expect(marketingCheckbox).toBeChecked();
       });
