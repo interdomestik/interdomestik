@@ -90,7 +90,19 @@ export function ProfileForm({ user }: ProfileFormProps) {
               )}
             />
 
-            {/* Future: Add Avatar Upload/Preview here */}
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('profileImage')}</FormLabel>
+                  <FormControl>
+                    <Input placeholder={t('profileImagePlaceholder')} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex justify-end">
               <Button type="submit" disabled={isPending}>

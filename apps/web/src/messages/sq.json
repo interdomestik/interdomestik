@@ -383,6 +383,8 @@
       "description": "Përditësoni informacionin tuaj personal.",
       "fullName": "Emri i Plotë",
       "fullNamePlaceholder": "Filan Fisteku",
+      "profileImage": "URL e Fotos së Profilit",
+      "profileImagePlaceholder": "https://shembull.com/avatar.jpg",
       "saveChanges": "Ruaj Ndryshimet",
       "saving": "Duke ruajtur...",
       "success": "Profili u përditësua",

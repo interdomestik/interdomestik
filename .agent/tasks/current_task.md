@@ -1,21 +1,21 @@
 ---
-task_name: 'build a standard page according to the Kosovo laws on the consumer rights and connect it to the dashboard sidebar'
+task_name: 'Fix the profile component at settings'
 task_type: 'Feature'
 priority: 'P1-High'
-estimate: '2h'
-test_level: 'full'
-roadmap_ref: 'Phase 1'
-branch: 'feat/fix-tests-proxy-arch'
-start_time: 'Thu Dec 18 13:50:44 CET 2025'
+estimate: 'TBD'
+test_level: 'unit'
+roadmap_ref: ''
+branch: 'feat/consumer-rights-page'
+start_time: 'Thu Dec 18 14:53:37 CET 2025'
 baseline:
   lint: 'pass'
   typecheck: 'pass'
   tests: 'pass'
   format: 'fail (exit 1)'
-  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_135032.log'
+  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_145329.log'
 ---
 
-# 🚀 Current Task: build a standard page according to the Kosovo laws on the consumer rights and connect it to the dashboard sidebar
+# 🚀 Current Task: Fix the profile component at settings
 
 ## 📋 10x Context Prompt
 
@@ -23,10 +23,10 @@ Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>build a standard page according to the Kosovo laws on the consumer rights and connect it to the dashboard sidebar</objective>
+  <objective>Fix the profile component at settings</objective>
   <type>Feature</type>
   <priority>P1-High</priority>
-  <estimate>2h</estimate>
+  <estimate>TBD</estimate>
   <branch>feat/consumer-rights-page</branch>
   <constraints>
     - Use @interdomestik/ui components
@@ -59,20 +59,17 @@ Copy the block below to your Agent to start with maximum context:
 ## 🧪 Testing Checklist
 
 - [x] Unit tests added: `src/**/*.test.ts`
-- [x] Component tests added: `src/**/*.test.tsx`
-- [ ] E2E tests added: `e2e/*.spec.ts`
 - [ ] Tests use factories from `src/test/factories.ts`
-- [ ] E2E uses fixtures from `e2e/fixtures/`
-- [x] Run: `pnpm qa` (includes all)
+- [x] Run: `pnpm test:unit`
 - [x] All tests pass
 
 ## ✅ Definition of Done
 
 - [x] All acceptance criteria met
-- [x] Tests pass at required level (full)
+- [x] Tests pass at required level (unit)
 - [x] `pnpm lint` passes (or no new errors)
 - [x] Formatter/Prettier check passes
-- [ ] `pnpm type-check` passes
+- [x] `pnpm type-check` passes
 - [ ] No regressions from baseline
 - [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
 - [ ] Screenshots added for UI changes (if applicable)
@@ -90,8 +87,7 @@ Copy the block below to your Agent to start with maximum context:
 
 ## 🔗 Related Files
 
-- apps/web/src/app/[locale]/(app)/dashboard/
-- apps/web/src/components/dashboard/
+<!-- Add discovered file paths here -->
 
 ## 📂 Active Context
 
@@ -109,7 +105,7 @@ Copy the block below to your Agent to start with maximum context:
 | Type Check | pass                                                                                           |
 | Unit Tests | pass                                                                                           |
 | Format     | fail (exit 1)                                                                                  |
-| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_135032.log |
+| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251218_145329.log |
 
 ## 📏 Oversized Files (>400 lines or >15000 bytes)
 
@@ -124,11 +120,9 @@ Copy the block below to your Agent to start with maximum context:
 ```markdown
 ## What
 
-build a standard page according to the Kosovo laws on the consumer rights and connect it to the dashboard sidebar
+Fix the profile component at settings
 
 ## Why
-
-Phase 1
 
 ## How
 

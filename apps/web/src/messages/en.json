@@ -383,6 +383,8 @@
       "description": "Update your personal information.",
       "fullName": "Full Name",
       "fullNamePlaceholder": "John Doe",
+      "profileImage": "Profile Image URL",
+      "profileImagePlaceholder": "https://example.com/avatar.jpg",
       "saveChanges": "Save Changes",
       "saving": "Saving...",
       "success": "Profile updated",
