@@ -1,216 +1,217 @@
 import { Link } from '@/i18n/routing';
-import { contactInfo } from '@/lib/contact';
-import { flags } from '@/lib/flags';
-import { Button } from '@interdomestik/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
-import { Briefcase, Car, Home, MessageCircle, Phone, Plug, ShieldCheck } from 'lucide-react';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@interdomestik/ui';
+import {
+  ArrowRight,
+  Car,
+  ChevronDown,
+  Clock,
+  Home,
+  Lock,
+  Plane,
+  ShieldCheck,
+  Stethoscope,
+} from 'lucide-react';
+import { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 
-type Props = {
+interface ServicesPageProps {
   params: Promise<{ locale: string }>;
-};
+}
 
-const CASE_ICONS = [Car, Home, Plug, Briefcase];
-
-export default async function ServicesPage({ params }: Props) {
+export async function generateMetadata({ params }: ServicesPageProps): Promise<Metadata> {
   const { locale } = await params;
-  setRequestLocale(locale);
-  const t = await getTranslations('servicesPage');
-  const { phone, whatsapp } = contactInfo;
-  const telHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
+  const t = await getTranslations({ locale, namespace: 'services.meta' });
 
-  const cases = (t.raw('cases') as { title: string; description: string }[]) || [];
-  const steps = (t.raw('steps') as { title: string; description: string }[]) || [];
-  const faqs = (t.raw('faq') as { question: string; answer: string }[]) || [];
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
+
+export default async function ServicesPage({ params }: ServicesPageProps) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'services' });
 
   return (
-    <main className="min-h-screen bg-[hsl(var(--background))]">
-      <section className="py-16 lg:py-24 brand-gradient text-white">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-sm mb-4">
-            <ShieldCheck className="h-4 w-4" />
-            {t('badge')}
-          </div>
-          <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">{t('title')}</h1>
-          <p className="text-white/80 text-lg md:text-xl mb-8">{t('subtitle')}</p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link href="/dashboard/claims/new">
-              <Button size="lg" className="w-full sm:w-auto">
-                {t('startClaim')}
-              </Button>
-            </Link>
-            {whatsapp && (
-              <a href={whatsapp}>
-                <Button variant="secondary" size="lg" className="w-full sm:w-auto gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  {t('whatsapp')}
-                </Button>
-              </a>
-            )}
-            {telHref && (
-              <a href={telHref}>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full sm:w-auto gap-2 text-white border-white"
-                >
-                  <Phone className="h-4 w-4" />
-                  {phone}
-                </Button>
-              </a>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-14">
-        <div className="container mx-auto px-4">
-          <div className="mb-8 text-center">
-            <p className="text-sm uppercase tracking-wide text-[hsl(var(--muted-500))]">
-              {t('whatWeSolve')}
+    <div className="flex flex-col min-h-screen">
+      {/* Hero Section */}
+      <section className="relative py-20 lg:py-32 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+        <div className="container px-4 md:px-6 relative z-10">
+          <div className="flex flex-col items-center text-center space-y-4 max-w-3xl mx-auto">
+            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+              {t('hero.title')}
+            </h1>
+            <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+              {t('hero.subtitle')}
             </p>
-            <h2 className="text-3xl font-display font-bold mt-2">{t('casesTitle')}</h2>
-            <p className="text-[hsl(var(--muted-500))] max-w-2xl mx-auto mt-2">
-              {t('casesSubtitle')}
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            {cases.map((item, index) => {
-              const Icon = CASE_ICONS[index % CASE_ICONS.length];
-              return (
-                <Card key={item.title} className="h-full">
-                  <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                    <div className="h-10 w-10 rounded-lg bg-[hsl(var(--primary))/0.1] flex items-center justify-center text-[hsl(var(--primary))]">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <CardTitle className="text-lg">{item.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-[hsl(var(--muted-600))] pl-[4.5rem]">
-                    {item.description}
-                  </CardContent>
-                </Card>
-              );
-            })}
-            {flags.flightDelay && (
-              <Card className="border-[hsl(var(--primary))] bg-[hsl(var(--primary))]/5">
-                <CardHeader>
-                  <CardTitle className="text-lg">{t('flightDelay.title')}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-[hsl(var(--muted-700))] space-y-2">
-                  <p>{t('flightDelay.description')}</p>
-                  <Link href="/dashboard/claims/new?category=flight_delay">
-                    <Button variant="link" className="px-0">
-                      {t('flightDelay.cta')}
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-14 bg-[hsl(var(--surface-strong))] border-y">
-        <div className="container mx-auto px-4">
-          <div className="mb-8 text-center">
-            <p className="text-sm uppercase tracking-wide text-[hsl(var(--muted-500))]">
-              {t('howItWorks')}
-            </p>
-            <h2 className="text-3xl font-display font-bold mt-2">{t('stepsTitle')}</h2>
-          </div>
-          <div className="grid md:grid-cols-4 gap-6">
-            {steps.map((step, idx) => (
-              <Card key={step.title} className="h-full">
-                <CardHeader className="pb-2 flex flex-row items-center gap-3">
-                  <div className="h-10 w-10 rounded-full brand-gradient text-white flex items-center justify-center text-sm font-semibold">
-                    {idx + 1}
-                  </div>
-                  <CardTitle className="text-base">{step.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-[hsl(var(--muted-600))]">
-                  {step.description}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-14">
-        <div className="container mx-auto px-4">
-          <div className="mb-8 text-center">
-            <p className="text-sm uppercase tracking-wide text-[hsl(var(--muted-500))]">
-              {t('benefits')}
-            </p>
-            <h2 className="text-3xl font-display font-bold mt-2">{t('benefitsTitle')}</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {['speed', 'safety', 'people'].map(key => (
-              <Card key={key}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">{t(`benefit.${key}.title`)}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-[hsl(var(--muted-600))]">
-                  {t(`benefit.${key}.description`)}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-14 bg-[hsl(var(--surface-strong))] border-t">
-        <div className="container mx-auto px-4">
-          <div className="mb-6 text-center">
-            <p className="text-sm uppercase tracking-wide text-[hsl(var(--muted-500))]">FAQ</p>
-            <h2 className="text-2xl font-display font-bold mt-2">{t('faqTitle')}</h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            {faqs.map(item => (
-              <Card key={item.question}>
-                <CardHeader>
-                  <CardTitle className="text-base">{item.question}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-[hsl(var(--muted-600))]">
-                  {item.answer}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-14">
-        <div className="container mx-auto px-4">
-          <div className="glass-card p-6 md:p-8 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-2xl font-display font-bold mb-2">{t('contactTitle')}</h3>
-              <p className="text-[hsl(var(--muted-600))] max-w-xl">{t('contactSubtitle')}</p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="pt-4">
               <Link href="/dashboard/claims/new">
-                <Button className="w-full sm:w-auto">{t('startClaim')}</Button>
+                <Button size="lg" className="rounded-full shadow-lg hover:shadow-primary/25">
+                  {t('hero.cta')}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </Link>
-              {whatsapp && (
-                <a href={whatsapp} className="w-full sm:w-auto">
-                  <Button variant="secondary" className="w-full sm:w-auto gap-2">
-                    <MessageCircle className="h-4 w-4" />
-                    {t('whatsapp')}
-                  </Button>
-                </a>
-              )}
-              {telHref && (
-                <a href={telHref} className="w-full sm:w-auto">
-                  <Button variant="outline" className="w-full sm:w-auto gap-2">
-                    <Phone className="h-4 w-4" />
-                    {phone}
-                  </Button>
-                </a>
-              )}
             </div>
           </div>
         </div>
       </section>
-    </main>
+
+      {/* Solutions Grid */}
+      <section className="py-16 bg-muted/30">
+        <div className="container px-4 md:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight">{t('solutions.title')}</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <ServiceCard
+              icon={<Car className="h-8 w-8 text-primary" />}
+              title={t('solutions.vehicle.title')}
+              description={t('solutions.vehicle.description')}
+            />
+            <ServiceCard
+              icon={<Home className="h-8 w-8 text-primary" />}
+              title={t('solutions.property.title')}
+              description={t('solutions.property.description')}
+            />
+            <ServiceCard
+              icon={<Stethoscope className="h-8 w-8 text-primary" />}
+              title={t('solutions.injury.title')}
+              description={t('solutions.injury.description')}
+            />
+            <ServiceCard
+              icon={<Plane className="h-8 w-8 text-primary" />}
+              title={t('solutions.flight.title')}
+              description={t('solutions.flight.description')}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-16">
+        <div className="container px-4 md:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight">{t('process.title')}</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">
+                1
+              </div>
+              <h3 className="text-xl font-semibold">{t('process.step1.title')}</h3>
+              <p className="text-muted-foreground">{t('process.step1.description')}</p>
+            </div>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">
+                2
+              </div>
+              <h3 className="text-xl font-semibold">{t('process.step2.title')}</h3>
+              <p className="text-muted-foreground">{t('process.step2.description')}</p>
+            </div>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">
+                3
+              </div>
+              <h3 className="text-xl font-semibold">{t('process.step3.title')}</h3>
+              <p className="text-muted-foreground">{t('process.step3.description')}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Speed & Safety Panel */}
+      <section className="py-16 bg-primary text-primary-foreground">
+        <div className="container px-4 md:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight text-white">{t('safety.title')}</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex flex-col items-center text-center space-y-2 p-6 rounded-lg bg-white/10 backdrop-blur-sm">
+              <Clock className="h-10 w-10 mb-2 text-white" />
+              <h3 className="text-xl font-bold text-white">{t('safety.speed.title')}</h3>
+              <p className="text-blue-100">{t('safety.speed.description')}</p>
+            </div>
+            <div className="flex flex-col items-center text-center space-y-2 p-6 rounded-lg bg-white/10 backdrop-blur-sm">
+              <ShieldCheck className="h-10 w-10 mb-2 text-white" />
+              <h3 className="text-xl font-bold text-white">{t('safety.response.title')}</h3>
+              <p className="text-blue-100">{t('safety.response.description')}</p>
+            </div>
+            <div className="flex flex-col items-center text-center space-y-2 p-6 rounded-lg bg-white/10 backdrop-blur-sm">
+              <Lock className="h-10 w-10 mb-2 text-white" />
+              <h3 className="text-xl font-bold text-white">{t('safety.secure.title')}</h3>
+              <p className="text-blue-100">{t('safety.secure.description')}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-16">
+        <div className="container px-4 md:px-6 max-w-3xl border border-border/50 rounded-2xl bg-card shadow-sm p-8 md:p-12">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold tracking-tight">{t('faq.title')}</h2>
+          </div>
+          <div className="space-y-4">
+            <details className="group border-b border-border/50 pb-4">
+              <summary className="flex cursor-pointer items-center justify-between font-medium text-lg list-none outline-none">
+                {t('faq.q1')}
+                <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="mt-2 text-muted-foreground">{t('faq.a1')}</p>
+            </details>
+            <details className="group border-b border-border/50 pb-4">
+              <summary className="flex cursor-pointer items-center justify-between font-medium text-lg list-none outline-none">
+                {t('faq.q2')}
+                <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="mt-2 text-muted-foreground">{t('faq.a2')}</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-20 bg-muted/30">
+        <div className="container px-4 md:px-6 text-center">
+          <h2 className="text-3xl font-bold tracking-tight mb-6">{t('finalCta.title')}</h2>
+          <Link href="/dashboard/claims/new">
+            <Button size="lg" className="rounded-full h-12 px-8 text-base">
+              {t('finalCta.btn')}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ServiceCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Card className="border-border/50 shadow-sm hover:shadow-md transition-all duration-300">
+      <CardHeader>
+        <div className="mb-4">{icon}</div>
+        <CardTitle className="text-xl">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <CardDescription className="text-base">{description}</CardDescription>
+      </CardContent>
+    </Card>
   );
 }
