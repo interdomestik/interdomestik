@@ -82,7 +82,7 @@ export function DashboardSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="none">
       <SidebarHeader className="h-14 flex items-center justify-center border-b">
         <div className="flex items-center gap-2 font-bold text-xl px-2 w-full group-data-[collapsible=icon]:justify-center">
           <Shield className="h-6 w-6 text-primary shrink-0" />
