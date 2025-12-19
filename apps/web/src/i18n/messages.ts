@@ -47,6 +47,7 @@ export const APP_NAMESPACES = [
   'nav',
   'dashboard',
   'claims',
+  'claimCategories',
   'wizard',
   'evidence',
   'help',
