@@ -8,8 +8,14 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function NewClaimPage() {
+type Props = {
+  searchParams: Promise<{ category?: string }>;
+};
+
+export default async function NewClaimPage({ searchParams }: Props) {
   const t = await getTranslations('claims');
+  const params = await searchParams;
+  const preselectedCategory = params.category;
 
   return (
     <div className="flex flex-col h-full">
@@ -19,7 +25,7 @@ export default async function NewClaimPage() {
         </div>
       </div>
       <div className="flex-1 p-6">
-        <ClaimWizard />
+        <ClaimWizard initialCategory={preselectedCategory} />
       </div>
     </div>
   );

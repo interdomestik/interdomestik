@@ -18,7 +18,11 @@ import { WizardStepCategory } from './wizard-step-category';
 import { WizardStepDetails } from './wizard-step-details';
 import { WizardStepEvidence } from './wizard-step-evidence';
 
-export function ClaimWizard() {
+type ClaimWizardProps = {
+  initialCategory?: string;
+};
+
+export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
   const router = useRouter();
   const t = useTranslations('claims.wizard');
   const tCommon = useTranslations('common');
@@ -30,7 +34,7 @@ export function ClaimWizard() {
     { id: 'review', title: t('step4') },
   ];
 
-  const [currentStep, setCurrentStep] = React.useState(0);
+  const [currentStep, setCurrentStep] = React.useState(initialCategory ? 1 : 0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm({
@@ -44,6 +48,7 @@ export function ClaimWizard() {
       description: '',
       claimAmount: '',
       incidentDate: '',
+      ...(initialCategory && { category: initialCategory }),
     },
     mode: 'onChange',
   });
