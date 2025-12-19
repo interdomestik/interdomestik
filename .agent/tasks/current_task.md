@@ -1,130 +1,46 @@
 ---
-task_name: "Create About Us page"
-task_type: "Feature"
-priority: "P1-High"
-estimate: "TBD"
-test_level: "unit"
-roadmap_ref: ""
-branch: "fix/i18n-config"
-start_time: "Wed Dec 17 21:27:23 CET 2025"
+task_name: 'UI Exports and Dependency Alignment'
+task_type: 'Chore/Fix'
+priority: 'P1-High'
+estimate: '1h'
+test_level: 'full'
+branch: 'fix/ui-exports-and-deps'
+start_time: 'Fri Dec 19 18:20:00 CET 2025'
 baseline:
-  lint: "pass"
-  typecheck: "pass"
-  tests: "fail (exit 1)"
-  format: "fail (exit 1)"
-  log: "/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251217_212713.log"
+  lint: 'pass'
+  typecheck: 'pass'
+  tests: 'pass'
 ---
 
-# 🚀 Current Task: Create About Us page
+# 🔧 Current Task: UI Exports and Dependency Alignment
 
-## 📋 10x Context Prompt
-Copy the block below to your Agent to start with maximum context:
+## 📋 Context
 
-```xml
-<task_definition>
-  <objective>Create About Us page</objective>
-  <type>Feature</type>
-  <priority>P1-High</priority>
-  <estimate>TBD</estimate>
-  <branch>fix/i18n-config</branch>
-  <constraints>
-    - Use @interdomestik/ui components
-    - Follow 10x-coding rules (Explore → Plan → Execute)
-    - Mobile-first approach
-    - Use next-intl for i18n
-    - Write tests as specified in testing checklist
-  </constraints>
-</task_definition>
+An audit revealed that `packages/ui` has incomplete exports (forcing consumers to use root imports) and there are version mismatches for `next` and `@types/node` across the monorepo.
 
-<user_story>
-  As a [user type], I want to [action]
-  so that I can [benefit].
-</user_story>
-<acceptance_criteria>
-  - [ ] Criterion 1
-  - [ ] Criterion 2
-  - [ ] Criterion 3
-</acceptance_criteria>
-```
+## 🎯 Objectives
 
-## 🏗️ Status Tracker
-- [ ] **Exploration**: Identify files using `project_map` and `read_files`
-- [ ] **Planning**: Create a step-by-step implementation plan
-- [ ] **Implementation**: Execute code changes
-- [ ] **Verification**: Run `pnpm qa` or relevant tests
-- [ ] **Documentation**: Update relevant docs if needed
+1.  **Fix UI Exports**: Update `packages/ui/package.json` to export all 19+ components found in `src/components`.
+2.  **Align Dependencies**:
+    - Update `packages/ui` peerDependency for `next` to allow `^16.0.0`.
+    - Update all `package.json` files to use `@types/node@^22.19.2`.
 
-## 🧪 Testing Checklist
-- [ ] Unit tests added: `src/**/*.test.ts`
-- [ ] Tests use factories from `src/test/factories.ts`
-- [ ] Run: `pnpm test:unit`
-- [ ] All tests pass
+## 🏗️ Implementation Plan
+
+- [x] **Dependency Alignment**:
+  - [x] Update `packages/ui/package.json` (peerDeps `next`, devDeps `@types/node`).
+  - [x] Update `package.json` (root devDeps `@types/node`).
+  - [x] Update `packages/qa/package.json` (devDeps `@types/node`).
+  - [x] Run `pnpm install` to deduplicate lockfile.
+- [x] **UI Exports**:
+  - [x] List all files in `packages/ui/src/components`.
+  - [x] Generate comprehensive `exports` map in `packages/ui/package.json`.
+- [x] **Verification**:
+  - [x] Run `pnpm build` to ensure UI builds with new exports and types.
+  - [x] Run `pnpm lint`.
 
 ## ✅ Definition of Done
-- [ ] All acceptance criteria met
-- [ ] Tests pass at required level (unit)
-- [ ] `pnpm lint` passes (or no new errors)
-- [ ] Formatter/Prettier check passes
-- [ ] `pnpm type-check` passes
-- [ ] No regressions from baseline
-- [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
-- [ ] Screenshots added for UI changes (if applicable)
-- [ ] Documentation updated (if applicable)
-- [ ] Code reviewed / self-reviewed
 
-## 🧠 Senior Checklist
-- [ ] Risks identified (perf, reliability, UX, security, data)
-- [ ] Rollback/mitigation plan documented
-- [ ] Monitoring/logging impact considered
-- [ ] Migrations include up/down and backfill strategy (if applicable)
-- [ ] Accessibility checks for UI changes
-- [ ] Removed debug artifacts (console.log/debugger/TODO left behind)
-
-## 🔗 Related Files
-<!-- Add discovered file paths here -->
-
-## 📂 Active Context
-<!-- Paste file paths or code snippets here as you discover them -->
-
-## 📝 Implementation Notes
-<!-- Add decisions, trade-offs, blockers here -->
-
-## 🔬 QA Baseline (at task start)
-| Metric | Status |
-|--------|--------|
-| Lint | pass |
-| Type Check | pass |
-| Unit Tests | fail (exit 1) |
-| Format | fail (exit 1) |
-| Log | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251217_212713.log |
-
-## 📏 Oversized Files (>400 lines or >15000 bytes)
-- apps/web/coverage/prettify.js (       2 lines, 17590 bytes)
-- packages/database/src/types.ts (     587 lines, 16408 bytes)
-
----
-
-## 📝 PR Template (Copy when done)
-```markdown
-## What
-Create About Us page
-
-## Why
-
-
-## How
-<!-- Implementation approach -->
-
-## Testing
-- [ ] Unit tests pass (`pnpm test:unit`)
-- [ ] E2E tests pass (`pnpm test:e2e`)  
-- [ ] Manual QA completed
-- [ ] No regressions in existing functionality
-
-## Screenshots (if UI changes)
-<!-- Add screenshots here -->
-
-## Notes to Reviewer
-<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
-
-```
+- [x] `packages/ui` exports all components correctly.
+- [x] `pnpm list @types/node -r` shows consistent versions.
+- [x] `pnpm build` passes.

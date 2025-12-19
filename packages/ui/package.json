@@ -15,6 +15,16 @@
     "./progress": "./src/components/progress.tsx",
     "./skeleton": "./src/components/skeleton.tsx",
     "./checkbox": "./src/components/checkbox.tsx",
+    "./dialog": "./src/components/dialog.tsx",
+    "./dropdown-menu": "./src/components/dropdown-menu.tsx",
+    "./form": "./src/components/form.tsx",
+    "./select": "./src/components/select.tsx",
+    "./separator": "./src/components/separator.tsx",
+    "./sheet": "./src/components/sheet.tsx",
+    "./sidebar": "./src/components/sidebar/index.ts",
+    "./table": "./src/components/table.tsx",
+    "./textarea": "./src/components/textarea.tsx",
+    "./tooltip": "./src/components/tooltip.tsx",
     "./styles": "./src/styles.css"
   },
   "scripts": {
@@ -26,6 +36,7 @@
     "react-dom": "^19.2.3"
   },
   "devDependencies": {
+    "@types/node": "^22.19.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.49.0",

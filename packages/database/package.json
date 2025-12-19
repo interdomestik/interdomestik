@@ -32,6 +32,7 @@
     "next": ">=14.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.19.2",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.8",
     "supabase": "^2.67.0",
