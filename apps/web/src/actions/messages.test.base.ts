@@ -1,13 +1,15 @@
 import { vi } from 'vitest';
 
 // Hoisted mocks must be defined before vi.mock calls
-export const mocks = vi.hoisted(() => ({
+const hoistedMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   dbQuery: vi.fn(),
   dbUserQuery: vi.fn(),
   dbInsert: vi.fn(),
   dbUpdate: vi.fn(),
 }));
+
+export const mocks = hoistedMocks;
 
 export const mockSelectChain = {
   from: vi.fn().mockReturnThis(),

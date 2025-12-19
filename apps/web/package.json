@@ -34,7 +34,7 @@
     "sonner": "^2.0.7",
     "stripe": "^20.0.0",
     "tailwind-merge": "^3.4.0",
-    "zod": "^4.1.13"
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@axe-core/react": "^4.11.0",
