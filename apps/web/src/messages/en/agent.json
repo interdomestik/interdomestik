@@ -48,7 +48,12 @@
       "no_messages": "No interaction history yet.",
       "message_placeholder": "Type a message or internal note...",
       "internal_note": "Internal Note",
-      "send_message": "Send Message"
+      "send_message": "Send Message",
+      "incident_date": "Incident Date",
+      "messages": "Messages",
+      "documents": "Documents",
+      "no_documents": "No documents uploaded",
+      "unknown_date": "Unknown date"
     },
     "triage": {
       "title": "Triage Actions",

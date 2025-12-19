@@ -16,14 +16,14 @@ export function ClaimMessagesPane({ claimId, messages, currentUserId, t }: Claim
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
-          {t('messages', { defaultValue: 'Messages' })}
+          {t('details.messages')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {messages.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No messages yet
+              {t('details.no_messages')}
             </p>
           ) : (
             messages.map(msg => (

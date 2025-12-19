@@ -48,7 +48,12 @@
       "no_messages": "Nuk ka ende histori ndërveprimesh.",
       "message_placeholder": "Shkruani një mesazh ose shënim të brendshëm...",
       "internal_note": "Shënim i Brendshëm",
-      "send_message": "Dërgo Mesazh"
+      "send_message": "Dërgo Mesazh",
+      "incident_date": "Data e Incidentit",
+      "messages": "Mesazhet",
+      "documents": "Dokumentet",
+      "no_documents": "Nuk ka dokumente të ngarkuara",
+      "unknown_date": "Datë e panjohur"
     },
     "triage": {
       "title": "Veprimet e Vlerësimit",

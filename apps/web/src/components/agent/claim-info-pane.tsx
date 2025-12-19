@@ -1,9 +1,18 @@
 'use client';
 
 import { AgentStatusSelect } from '@/components/agent/agent-status-select';
-import { Avatar, AvatarFallback, AvatarImage, Card, CardContent, CardHeader, CardTitle, Separator } from '@interdomestik/ui';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Separator,
+} from '@interdomestik/ui';
 import { format } from 'date-fns';
-import { Building2, Calendar, DollarSign, Mail, User } from 'lucide-react';
+import { Building2, Calendar, DollarSign } from 'lucide-react';
 
 interface ClaimInfoPaneProps {
   claim: any;
@@ -14,16 +23,14 @@ export function ClaimInfoPane({ claim, t }: ClaimInfoPaneProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('claim_details', { defaultValue: 'Claim Details' })}</CardTitle>
+        <CardTitle>{t('details.title')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Claimant Info */}
         <div className="flex items-center gap-3">
           <Avatar>
             <AvatarImage src={claim.user?.image || undefined} />
-            <AvatarFallback>
-              {claim.user?.name?.charAt(0) || 'U'}
-            </AvatarFallback>
+            <AvatarFallback>{claim.user?.name?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">{claim.user?.name || 'Unknown'}</p>
@@ -38,7 +45,7 @@ export function ClaimInfoPane({ claim, t }: ClaimInfoPaneProps) {
           <div className="flex items-start gap-2">
             <Building2 className="h-4 w-4 mt-0.5 text-muted-foreground" />
             <div className="flex-1">
-              <p className="text-sm font-medium">Company</p>
+              <p className="text-sm font-medium">{t('details.company')}</p>
               <p className="text-sm text-muted-foreground">{claim.companyName || 'N/A'}</p>
             </div>
           </div>
@@ -46,7 +53,7 @@ export function ClaimInfoPane({ claim, t }: ClaimInfoPaneProps) {
           <div className="flex items-start gap-2">
             <DollarSign className="h-4 w-4 mt-0.5 text-muted-foreground" />
             <div className="flex-1">
-              <p className="text-sm font-medium">Amount</p>
+              <p className="text-sm font-medium">{t('details.amount')}</p>
               <p className="text-sm text-muted-foreground">
                 {claim.claimAmount} {claim.currency || 'EUR'}
               </p>
@@ -56,7 +63,7 @@ export function ClaimInfoPane({ claim, t }: ClaimInfoPaneProps) {
           <div className="flex items-start gap-2">
             <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground" />
             <div className="flex-1">
-              <p className="text-sm font-medium">Incident Date</p>
+              <p className="text-sm font-medium">{t('details.incident_date')}</p>
               <p className="text-sm text-muted-foreground">
                 {claim.incidentDate ? format(new Date(claim.incidentDate), 'PPP') : 'N/A'}
               </p>
@@ -68,13 +75,13 @@ export function ClaimInfoPane({ claim, t }: ClaimInfoPaneProps) {
 
         {/* Status */}
         <div>
-          <p className="text-sm font-medium mb-2">Status</p>
+          <p className="text-sm font-medium mb-2">{t('details.status_label')}</p>
           <AgentStatusSelect claimId={claim.id} currentStatus={claim.status} />
         </div>
 
         {/* Description */}
         <div>
-          <p className="text-sm font-medium mb-2">Description</p>
+          <p className="text-sm font-medium mb-2">{t('details.description')}</p>
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">{claim.description}</p>
         </div>
       </CardContent>

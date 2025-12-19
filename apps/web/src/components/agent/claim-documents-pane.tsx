@@ -15,13 +15,15 @@ export function ClaimDocumentsPane({ documents, t }: ClaimDocumentsPaneProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          {t('documents', { defaultValue: 'Documents' })}
+          {t('details.documents')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {documents.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No documents uploaded</p>
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {t('details.no_documents')}
+            </p>
           ) : (
             documents.map(doc => (
               <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
