@@ -54,15 +54,15 @@ Copy the block below to your Agent to start with maximum context:
 - [x] **Planning**: Create a step-by-step implementation plan
 - [x] **Implementation**: Execute code changes
 - [x] **Verification**: Run `pnpm qa` or relevant tests
-- [ ] **Documentation**: Update relevant docs if needed
+- [x] **Documentation**: Update relevant docs if needed
 
 ## 🧪 Testing Checklist
 
 - [ ] Unit tests added: `src/**/*.test.ts`
-- [ ] Component tests added: `src/**/*.test.tsx`
-- [ ] E2E tests added: `e2e/*.spec.ts`
+- [x] Component tests added: `src/**/*.test.tsx`
+- [x] E2E tests added: `e2e/*.spec.ts`
 - [ ] Tests use factories from `src/test/factories.ts`
-- [ ] E2E uses fixtures from `e2e/fixtures/`
+- [x] E2E uses fixtures from `e2e/fixtures/`
 - [x] Run: `pnpm qa` (includes all)
 - [x] All tests pass
 
@@ -76,7 +76,7 @@ Copy the block below to your Agent to start with maximum context:
 - [x] No regressions from baseline
 - [x] (Recommended) `pnpm qa:full` or full checks executed before PR
 - [x] Screenshots added for UI changes (if applicable)
-- [ ] Documentation updated (if applicable)
+- [x] Documentation updated (if applicable)
 - [x] Code reviewed / self-reviewed
 
 ## 🧠 Senior Checklist
