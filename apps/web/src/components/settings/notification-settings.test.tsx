@@ -7,12 +7,24 @@
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ComponentPropsWithoutRef, PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationSettings } from './notification-settings';
 
+type ButtonProps = PropsWithChildren<ComponentPropsWithoutRef<'button'>>;
+type DivProps = PropsWithChildren<ComponentPropsWithoutRef<'div'>>;
+type HeadingProps = PropsWithChildren<ComponentPropsWithoutRef<'h3'>>;
+type ParagraphProps = PropsWithChildren<ComponentPropsWithoutRef<'p'>>;
+type LabelProps = PropsWithChildren<ComponentPropsWithoutRef<'label'>>;
+type CheckboxProps = ComponentPropsWithoutRef<'button'> & {
+  id?: string;
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+};
+
 // Mock UI components
 vi.mock('@interdomestik/ui/components/button', () => ({
-  Button: ({ children, onClick, disabled, ...props }: any) => (
+  Button: ({ children, onClick, disabled, ...props }: ButtonProps) => (
     <button onClick={onClick} disabled={disabled} {...props}>
       {children}
     </button>
@@ -20,28 +32,28 @@ vi.mock('@interdomestik/ui/components/button', () => ({
 }));
 
 vi.mock('@interdomestik/ui/components/card', () => ({
-  Card: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  CardHeader: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  CardTitle: ({ children, ...props }: any) => <h3 {...props}>{children}</h3>,
-  CardDescription: ({ children, ...props }: any) => <p {...props}>{children}</p>,
-  CardContent: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  Card: ({ children, ...props }: DivProps) => <div {...props}>{children}</div>,
+  CardHeader: ({ children, ...props }: DivProps) => <div {...props}>{children}</div>,
+  CardTitle: ({ children, ...props }: HeadingProps) => <h3 {...props}>{children}</h3>,
+  CardDescription: ({ children, ...props }: ParagraphProps) => <p {...props}>{children}</p>,
+  CardContent: ({ children, ...props }: DivProps) => <div {...props}>{children}</div>,
 }));
 
 vi.mock('@interdomestik/ui/components/checkbox', () => ({
-  Checkbox: ({ id, checked, onCheckedChange, ...props }: any) => (
+  Checkbox: ({ id, checked, onCheckedChange, ...props }: CheckboxProps) => (
     <button
       type="button"
       role="checkbox"
       id={id}
-      aria-checked={checked}
-      onClick={() => onCheckedChange?.(!checked)}
+      aria-checked={checked ?? false}
+      onClick={() => onCheckedChange?.(!(checked ?? false))}
       {...props}
     />
   ),
 }));
 
 vi.mock('@interdomestik/ui/components/label', () => ({
-  Label: ({ children, htmlFor, ...props }: any) => (
+  Label: ({ children, htmlFor, ...props }: LabelProps) => (
     <label htmlFor={htmlFor} {...props}>
       {children}
     </label>
@@ -106,18 +118,29 @@ vi.mock('sonner', () => ({
 }));
 
 // Mock fetch
-global.fetch = vi.fn();
+type MockFetchResponse = {
+  ok: boolean;
+  json: () => Promise<unknown>;
+};
+
+const fetchMock = vi.fn<Promise<MockFetchResponse>, [RequestInfo | URL, RequestInit?]>();
+const createMockResponse = (data: unknown, ok = true): MockFetchResponse => ({
+  ok,
+  json: async () => data,
+});
+
+global.fetch = fetchMock as unknown as typeof fetch;
 
 describe('NotificationSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as any).mockClear();
+    fetchMock.mockReset();
   });
 
   describe('Loading State', () => {
     it('should show loading skeleton while fetching preferences', async () => {
       // Mock fetch to delay response
-      (global.fetch as any).mockImplementation(
+      fetchMock.mockImplementation(
         () =>
           new Promise(resolve =>
             setTimeout(
@@ -148,17 +171,16 @@ describe('NotificationSettings', () => {
     });
 
     it('should hide loading skeleton after preferences load', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => ({
+      fetchMock.mockResolvedValue(
+        createMockResponse({
           emailClaimUpdates: true,
           emailMarketing: false,
           emailNewsletter: true,
           pushClaimUpdates: true,
           pushMessages: true,
           inAppAll: true,
-        }),
-      });
+        })
+      );
 
       render(<NotificationSettings />);
 
@@ -176,17 +198,16 @@ describe('NotificationSettings', () => {
 
   describe('Default Preferences', () => {
     it('should load and display default preferences', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => ({
+      fetchMock.mockResolvedValue(
+        createMockResponse({
           emailClaimUpdates: true,
           emailMarketing: false,
           emailNewsletter: true,
           pushClaimUpdates: true,
           pushMessages: true,
           inAppAll: true,
-        }),
-      });
+        })
+      );
 
       render(<NotificationSettings />);
 
@@ -209,17 +230,16 @@ describe('NotificationSettings', () => {
 
   describe('User Interactions', () => {
     it('should toggle checkbox when clicked', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => ({
+      fetchMock.mockResolvedValue(
+        createMockResponse({
           emailClaimUpdates: true,
           emailMarketing: false,
           emailNewsletter: true,
           pushClaimUpdates: true,
           pushMessages: true,
           inAppAll: true,
-        }),
-      });
+        })
+      );
 
       render(<NotificationSettings />);
 
@@ -243,17 +263,16 @@ describe('NotificationSettings', () => {
     it('should enable save button after changes', async () => {
       const user = userEvent.setup();
 
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => ({
+      fetchMock.mockResolvedValue(
+        createMockResponse({
           emailClaimUpdates: true,
           emailMarketing: false,
           emailNewsletter: true,
           pushClaimUpdates: true,
           pushMessages: true,
           inAppAll: true,
-        }),
-      });
+        })
+      );
 
       render(<NotificationSettings />);
 
@@ -275,22 +294,18 @@ describe('NotificationSettings', () => {
 
   describe('Save Functionality', () => {
     it('should save preferences when save button is clicked', async () => {
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
+      fetchMock
+        .mockResolvedValueOnce(
+          createMockResponse({
             emailClaimUpdates: true,
             emailMarketing: false,
             emailNewsletter: true,
             pushClaimUpdates: true,
             pushMessages: true,
             inAppAll: true,
-          }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ success: true }),
-        });
+          })
+        )
+        .mockResolvedValueOnce(createMockResponse({ success: true }));
 
       render(<NotificationSettings />);
 
@@ -332,27 +347,22 @@ describe('NotificationSettings', () => {
     it('should show saving state while saving', async () => {
       const user = userEvent.setup();
 
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
+      fetchMock
+        .mockResolvedValueOnce(
+          createMockResponse({
             emailClaimUpdates: true,
             emailMarketing: false,
             emailNewsletter: true,
             pushClaimUpdates: true,
             pushMessages: true,
             inAppAll: true,
-          }),
-        })
+          })
+        )
         .mockImplementation(
           () =>
             new Promise(resolve =>
               setTimeout(
-                () =>
-                  resolve({
-                    ok: true,
-                    json: async () => ({ success: true }),
-                  }),
+                () => resolve(createMockResponse({ success: true })),
                 100
               )
             )
@@ -374,7 +384,7 @@ describe('NotificationSettings', () => {
 
   describe('Error Handling', () => {
     it('should show error toast when loading fails', async () => {
-      (global.fetch as any).mockRejectedValue(new Error('Network error'));
+      fetchMock.mockRejectedValue(new Error('Network error'));
 
       render(<NotificationSettings />);
 
@@ -386,22 +396,18 @@ describe('NotificationSettings', () => {
     it('should show error toast when save fails', async () => {
       const user = userEvent.setup();
 
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
+      fetchMock
+        .mockResolvedValueOnce(
+          createMockResponse({
             emailClaimUpdates: true,
             emailMarketing: false,
             emailNewsletter: true,
             pushClaimUpdates: true,
             pushMessages: true,
             inAppAll: true,
-          }),
-        })
-        .mockResolvedValueOnce({
-          ok: false,
-          json: async () => ({ error: 'Failed to save' }),
-        });
+          })
+        )
+        .mockResolvedValueOnce(createMockResponse({ error: 'Failed to save' }, false));
 
       render(<NotificationSettings />);
 
@@ -420,17 +426,16 @@ describe('NotificationSettings', () => {
 
   describe('Initial Preferences Prop', () => {
     it('should use initial preferences if provided', async () => {
-      (global.fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => ({
+      fetchMock.mockResolvedValue(
+        createMockResponse({
           emailClaimUpdates: false,
           emailMarketing: true,
           emailNewsletter: false,
           pushClaimUpdates: false,
           pushMessages: false,
           inAppAll: false,
-        }),
-      });
+        })
+      );
 
       render(
         <NotificationSettings

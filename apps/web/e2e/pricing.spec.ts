@@ -50,11 +50,22 @@ test.describe('Pricing Page', () => {
 
     // Mock the global Paddle object to verify it is called
     await authenticatedPage.evaluate(() => {
-      (window as any).Paddle = {
+      type PaddleCheckoutArgs = unknown;
+      type PaddleApi = {
         Checkout: {
-          open: (args: unknown) => {
+          open: (args: PaddleCheckoutArgs) => void;
+        };
+      };
+      const windowWithPaddle = window as Window & {
+        Paddle?: PaddleApi;
+        paddleOpenCalled?: PaddleCheckoutArgs;
+      };
+
+      windowWithPaddle.Paddle = {
+        Checkout: {
+          open: (args: PaddleCheckoutArgs) => {
             console.log('Paddle.Checkout.open called', args);
-            (window as any).paddleOpenCalled = args;
+            windowWithPaddle.paddleOpenCalled = args;
           },
         },
       };

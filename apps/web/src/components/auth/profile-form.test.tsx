@@ -62,7 +62,9 @@ describe('ProfileForm', () => {
   });
 
   it('submits valid data', async () => {
-    vi.mocked(authClient.updateUser).mockResolvedValue({ error: null, data: null } as any);
+    type UpdateUserResult = Awaited<ReturnType<typeof authClient.updateUser>>;
+    const updateUserResult = { error: null, data: null } as unknown as UpdateUserResult;
+    vi.mocked(authClient.updateUser).mockResolvedValue(updateUserResult);
 
     render(<ProfileForm user={{ name: 'Test User', image: null }} />);
 
