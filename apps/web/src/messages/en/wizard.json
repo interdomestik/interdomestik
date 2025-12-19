@@ -25,6 +25,14 @@
         "examples": "Contract disputes, employment issues, insurance"
       }
     },
+    "quickTags": {
+      "flight_delay": "Flight Delay",
+      "car_accident": "Car Accident",
+      "water_damage": "Water Damage",
+      "workplace_injury": "Workplace Injury",
+      "theft": "Theft",
+      "medical_malpractice": "Medical Malpractice"
+    },
     "details": {
       "title": "Tell us what happened",
       "subtitle": "Details help us process your claim faster.",

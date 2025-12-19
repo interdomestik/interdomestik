@@ -25,6 +25,14 @@
         "examples": "Mosmarrëveshje kontraktuale, çështje punësimi, sigurime"
       }
     },
+    "quickTags": {
+      "flight_delay": "Vonesë Fluturimi",
+      "car_accident": "Aksident Makinash",
+      "water_damage": "Dëme nga Uji",
+      "workplace_injury": "Lëndim në Punë",
+      "theft": "Vjedhje",
+      "medical_malpractice": "Keqpërdorim Mjekësor"
+    },
     "details": {
       "title": "Na tregoni çfarë ndodhi",
       "subtitle": "Detajet na ndihmojnë ta përpunojmë rastin më shpejt.",
