@@ -1,0 +1,30 @@
+{
+  "help": {
+    "title": "Ndihmë & Mbështetje",
+    "description": "Keni nevojë për ndihmë me ankesën tuaj ose keni pyetje rreth shërbimeve tona? Kontaktoni ekipin tonë.",
+    "contact": {
+      "title": "Kontakto Mbështetjen",
+      "description": "Ekipi ynë është i disponueshëm të Hënën deri të Premten, 9:00 - 17:00.",
+      "callUs": "Na Telefono",
+      "emailUs": "Na Dërgo Email",
+      "whatsapp": "WhatsApp",
+      "chatWithUs": "Bisedo me ne"
+    },
+    "faq": {
+      "title": "Pyetje të Shpeshta",
+      "q1": {
+        "question": "Sa kohë zgjat një ankesë?",
+        "answer": "Zakonisht 2-4 javë për vlerësimin fillestar."
+      },
+      "q2": {
+        "question": "Çfarë dokumentesh më duhen?",
+        "answer": "Dëshmi e blerjes, foto të dëmtimit, dhe raport i incidentit."
+      }
+    },
+    "legal": {
+      "title": "Burime Ligjore",
+      "consumerRights": "Udhëzuesi i të Drejtave të Konsumatorit",
+      "consumerRightsDesc": "Mësoni rreth të drejtave tuaja sipas ligjeve aktuale të mbrojtjes së konsumatorit."
+    }
+  }
+}
