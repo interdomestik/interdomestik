@@ -998,6 +998,12 @@ EOF
 - [ ] i18n keys added for any new UI strings
 - [ ] Accessibility verified (labels/roles/focus)
 - [ ] Imported shared styles/components (@interdomestik/ui) where applicable
+
+## 🚦 Completion Gate (must be TRUE before declaring Done)
+- [ ] All checkboxes above are checked (DoD, Senior, New Components)
+- [ ] Required tests/QA in this task file have been executed and are green
+- [ ] No unchecked items remain in this file (if not applicable, explicitly mark N/A)
+- [ ] current_task is only marked complete after verifying every required checkbox
 EOF
 
     # ─────────────────────────────────────────────────────────────────────────

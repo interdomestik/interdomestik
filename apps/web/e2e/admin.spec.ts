@@ -30,4 +30,12 @@ test.describe('Admin Panel', () => {
     // Should redirect to dashboard
     await expect(page).toHaveURL(/.*\/dashboard/);
   });
+
+  test('Admin can view placeholder pages', async ({ adminPage: page }) => {
+    const routes = ['/admin/users', '/admin/analytics', '/admin/settings'];
+    for (const route of routes) {
+      await page.goto(`/en${route}`);
+      await expect(page.getByText('Under Construction')).toBeVisible();
+    }
+  });
 });
