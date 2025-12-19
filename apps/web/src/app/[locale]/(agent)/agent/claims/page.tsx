@@ -11,9 +11,12 @@ import {
   TableRow,
 } from '@interdomestik/ui';
 import { desc, eq } from 'drizzle-orm';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-export default async function AgentClaimsPage() {
+export default async function AgentClaimsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   const t = await getTranslations('agent');
 
   const allClaims = await db

@@ -20,7 +20,8 @@
       "actions": "Actions",
       "triage": "Triage",
       "no_claims": "No claims found.",
-      "no_claims_ready": "Claim List Component Coming Soon"
+      "no_claims_ready": "Claim List Component Coming Soon",
+      "recent_activity": "Recent Activity"
     },
     "actions": {
       "approve": "Approve",
@@ -42,7 +43,12 @@
       "evidence": "Evidence Files",
       "noEvidence": "No documents uploaded.",
       "notes": "Internal Notes",
-      "notesPlaceholder": "Private agent notes feature coming soon."
+      "notesPlaceholder": "Private agent notes feature coming soon.",
+      "timeline": "Case Timeline",
+      "no_messages": "No interaction history yet.",
+      "message_placeholder": "Type a message or internal note...",
+      "internal_note": "Internal Note",
+      "send_message": "Send Message"
     },
     "triage": {
       "title": "Triage Actions",

@@ -20,7 +20,8 @@
       "actions": "Veprime",
       "triage": "Vlerësim",
       "no_claims": "Nuk u gjet asnjë ankesë.",
-      "no_claims_ready": "Lista e ankesave vjen së shpejti"
+      "no_claims_ready": "Lista e ankesave vjen së shpejti",
+      "recent_activity": "Aktiviteti i Fundit"
     },
     "actions": {
       "approve": "Aprovo",
@@ -42,7 +43,12 @@
       "evidence": "Dosjet e Dëshmive",
       "noEvidence": "Nuk ka dokumente të ngarkuara.",
       "notes": "Shënime të Brendshme",
-      "notesPlaceholder": "Opsioni i shënimeve private të agjentit vjen së shpejti."
+      "notesPlaceholder": "Opsioni i shënimeve private të agjentit vjen së shpejti.",
+      "timeline": "Kronologjia e Rastit",
+      "no_messages": "Nuk ka ende histori ndërveprimesh.",
+      "message_placeholder": "Shkruani një mesazh ose shënim të brendshëm...",
+      "internal_note": "Shënim i Brendshëm",
+      "send_message": "Dërgo Mesazh"
     },
     "triage": {
       "title": "Veprimet e Vlerësimit",

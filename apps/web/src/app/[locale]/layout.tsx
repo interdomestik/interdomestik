@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { Toaster } from 'sonner';
 
 export function generateStaticParams() {
   return routing.locales.map(locale => ({ locale }));
@@ -59,6 +60,7 @@ export default async function RootLayout({ children, params }: Props) {
       <body className="antialiased" suppressHydrationWarning>
         <NextIntlClientProvider messages={messages} locale={locale}>
           {children}
+          <Toaster position="top-right" richColors />
         </NextIntlClientProvider>
       </body>
     </html>
