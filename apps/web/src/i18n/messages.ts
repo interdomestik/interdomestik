@@ -43,6 +43,7 @@ export const HOME_NAMESPACES = [
 export const SITE_NAMESPACES = ['about', 'pricing', 'services'] as const;
 export const AUTH_NAMESPACES = ['auth'] as const;
 export const APP_NAMESPACES = [
+  'nav',
   'dashboard',
   'claims',
   'wizard',
@@ -78,9 +79,8 @@ function mergeMessages(fallback: MessageValue, overrides: MessageValue): Message
     const merged: Record<string, MessageValue> = {};
 
     for (const key of Object.keys(fallbackObj)) {
-      merged[key] = key in overrideObj
-        ? mergeMessages(fallbackObj[key], overrideObj[key])
-        : fallbackObj[key];
+      merged[key] =
+        key in overrideObj ? mergeMessages(fallbackObj[key], overrideObj[key]) : fallbackObj[key];
     }
 
     for (const key of Object.keys(overrideObj)) {
@@ -103,14 +103,10 @@ export async function loadAllMessages(locale: string) {
         if (locale === routing.defaultLocale) {
           return mod.default;
         }
-        const fallback = await import(
-          `../messages/${routing.defaultLocale}/${namespace}.json`
-        );
+        const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
         return mergeMessages(fallback.default, mod.default);
       } catch (error) {
-        const fallback = await import(
-          `../messages/${routing.defaultLocale}/${namespace}.json`
-        );
+        const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
         if (locale === routing.defaultLocale) {
           throw error;
         }

@@ -14,6 +14,11 @@
     "pricing": "Çmimet",
     "about": "Rreth Nesh",
     "contact": "Kontakti",
-    "help": "Ndihmë"
+    "help": "Ndihmë",
+    "menu": "Menu",
+    "overview": "Përmbledhje",
+    "consumerRights": "Të Drejtat e Konsumatorit",
+    "agentWorkspace": "Hapësira e Agjentit",
+    "adminDashboard": "Paneli i Adminit"
   }
 }

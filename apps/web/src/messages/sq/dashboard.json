@@ -1,10 +1,17 @@
 {
   "dashboard": {
-    "welcome": "Mirësevini, {name}!",
-    "overview": "Përmbledhje",
+    "welcome_back": "Mirësevini përsëri! Këtu është një përmbledhje e ankesave tuaja sot.",
+    "overview": "Përmbledhje e Panelit",
     "activeClaims": "Ankesa Aktive",
+    "activeClaimsDesc": "Mosmarrëveshjet tuaja në vijim",
     "resolvedClaims": "Ankesa të Zgjidhura",
-    "pendingActions": "Veprime në Pritje",
+    "totalSaved": "Gjithsej të Kursyera",
+    "moneyRecovered": "Para të rikuperuara",
+    "lifetimeTotal": "Shuma totale",
+    "actionItems": "Veprime për t'u kryer",
+    "pendingTasks": "Detyrat në pritje",
+    "needsAttention": "Kërkon vëmendje",
+    "noChange": "Pa ndryshim",
     "recentActivity": "Aktiviteti i Fundit",
     "quickActions": "Veprime të Shpejta"
   }

@@ -17,12 +17,14 @@ import {
   DropdownMenuTrigger,
 } from '@interdomestik/ui';
 import { Briefcase, LayoutTemplate, LogOut, Settings, User } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 export function UserNav() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const { data: session } = authClient.useSession();
+  const t = useTranslations('nav');
 
   useEffect(() => {
     setMounted(true);
@@ -52,8 +54,8 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full" data-testid="user-nav">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={user.image || ''} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarImage src={user.image || ''} alt={user.name || 'User'} />
+            <AvatarFallback>{user.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
@@ -69,14 +71,14 @@ export function UserNav() {
           <DropdownMenuItem asChild>
             <Link href="/profile" className="w-full cursor-pointer">
               <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
+              <span>{t('profile')}</span>
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings" className="w-full cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
+              <span>{t('settings')}</span>
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
@@ -84,7 +86,7 @@ export function UserNav() {
             <DropdownMenuItem asChild>
               <Link href="/admin/claims" className="w-full cursor-pointer">
                 <LayoutTemplate className="mr-2 h-4 w-4" />
-                <span>Admin Dashboard</span>
+                <span>{t('adminDashboard')}</span>
               </Link>
             </DropdownMenuItem>
           )}
@@ -92,7 +94,7 @@ export function UserNav() {
             <DropdownMenuItem asChild>
               <Link href="/agent/claims" className="w-full cursor-pointer">
                 <Briefcase className="mr-2 h-4 w-4" />
-                <span>Agent Workspace</span>
+                <span>{t('agentWorkspace')}</span>
               </Link>
             </DropdownMenuItem>
           )}
@@ -100,7 +102,7 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>{t('logout')}</span>
           <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>

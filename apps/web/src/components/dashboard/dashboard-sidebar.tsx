@@ -24,50 +24,52 @@ import {
   Settings,
   Shield,
 } from 'lucide-react';
-
-const sidebarItems = [
-  {
-    title: 'Overview',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'My Claims',
-    href: '/dashboard/claims',
-    icon: FileText,
-  },
-  {
-    title: 'New Claim',
-    href: '/dashboard/claims/new',
-    icon: FilePlus,
-  },
-  {
-    title: 'Consumer Rights',
-    href: '/dashboard/rights',
-    icon: Shield,
-  },
-  {
-    title: 'Settings',
-    href: '/dashboard/settings',
-    icon: Settings,
-  },
-  {
-    title: 'Need Help?',
-    href: '/dashboard/help',
-    icon: Phone,
-  },
-];
+import { useTranslations } from 'next-intl';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const t = useTranslations('nav');
   const { data: session } = authClient.useSession();
   const role = (session?.user as { role?: string } | undefined)?.role;
+
+  const sidebarItems = [
+    {
+      title: t('overview'),
+      href: '/dashboard',
+      icon: LayoutDashboard,
+    },
+    {
+      title: t('claims'),
+      href: '/dashboard/claims',
+      icon: FileText,
+    },
+    {
+      title: t('newClaim'),
+      href: '/dashboard/claims/new',
+      icon: FilePlus,
+    },
+    {
+      title: t('consumerRights'),
+      href: '/dashboard/rights',
+      icon: Shield,
+    },
+    {
+      title: t('settings'),
+      href: '/dashboard/settings',
+      icon: Settings,
+    },
+    {
+      title: t('help'),
+      href: '/dashboard/help',
+      icon: Phone,
+    },
+  ];
 
   const items = [...sidebarItems];
 
   if (role === 'admin') {
     items.push({
-      title: 'Admin Dashboard',
+      title: t('adminDashboard'),
       href: '/admin/claims',
       icon: LayoutTemplate,
     });
@@ -75,7 +77,7 @@ export function DashboardSidebar() {
 
   if (role === 'agent') {
     items.push({
-      title: 'Agent Workspace',
+      title: t('agentWorkspace'),
       href: '/agent/claims',
       icon: Briefcase,
     });
@@ -91,7 +93,7 @@ export function DashboardSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('menu')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map(item => (

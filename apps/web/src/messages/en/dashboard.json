@@ -1,10 +1,17 @@
 {
   "dashboard": {
-    "welcome": "Welcome, {name}!",
-    "overview": "Overview",
+    "welcome_back": "Welcome back! Here's what's happening with your claims today.",
+    "overview": "Dashboard Overview",
     "activeClaims": "Active Claims",
+    "activeClaimsDesc": "Your ongoing disputes",
     "resolvedClaims": "Resolved Claims",
-    "pendingActions": "Pending Actions",
+    "totalSaved": "Total Saved",
+    "moneyRecovered": "Money recovered",
+    "lifetimeTotal": "Lifetime total",
+    "actionItems": "Action Items",
+    "pendingTasks": "Pending tasks",
+    "needsAttention": "Needs attention",
+    "noChange": "No change",
     "recentActivity": "Recent Activity",
     "quickActions": "Quick Actions"
   }
