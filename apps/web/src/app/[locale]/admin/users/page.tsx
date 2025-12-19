@@ -1,28 +1,19 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
-import { Construction } from 'lucide-react';
+import { getAgents, getUsers } from '@/actions/admin-users';
+import { UsersTable } from '@/components/admin/users-table';
+import { getTranslations } from 'next-intl/server';
 
-export default function AdminUsersPage() {
+export default async function AdminUsersPage() {
+  const users = await getUsers();
+  const agents = await getAgents();
+  const t = await getTranslations('admin.users_page');
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-        <p className="text-muted-foreground">Manage platform users and roles.</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+        <p className="text-muted-foreground">{t('description')}</p>
       </div>
-
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Construction className="h-5 w-5 text-yellow-500" />
-            Under Construction
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            User management features (Role assignment, Ban/Unban) will be available in the next
-            release.
-          </p>
-        </CardContent>
-      </Card>
+      <UsersTable users={users} agents={agents} />
     </div>
   );
 }

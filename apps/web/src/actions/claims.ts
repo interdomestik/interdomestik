@@ -51,9 +51,18 @@ export async function createClaim(prevState: unknown, formData: FormData) {
   const { title, description, category, companyName, claimAmount, currency } = result.data;
 
   try {
+    // Check if user has an assigned agent
+    const userProfile = await db.query.user.findFirst({
+      where: eq(user.id, session.user.id),
+      columns: {
+        agentId: true,
+      },
+    });
+
     await db.insert(claims).values({
       id: nanoid(),
       userId: session.user.id,
+      agentId: userProfile?.agentId || null,
       title,
       description,
       category,

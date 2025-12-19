@@ -6,6 +6,22 @@
       "users": "Users",
       "analytics": "Analytics",
       "settings": "Settings"
+    },
+    "users_page": {
+      "title": "User Management",
+      "description": "Manage platform users and role assignments."
+    },
+    "users_table": {
+      "headers": {
+        "user": "User",
+        "role": "Role",
+        "assigned_agent": "Assigned Agent",
+        "joined": "Joined"
+      },
+      "select_agent": "Select Agent",
+      "unassigned": "Unassigned",
+      "no_users": "No users found",
+      "success_message": "User assigned successfully"
     }
   }
 }

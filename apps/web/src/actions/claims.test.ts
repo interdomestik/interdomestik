@@ -1,4 +1,5 @@
 import type { CreateClaimValues } from '@/lib/validators/claims';
+import { db } from '@interdomestik/database/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClaim, submitClaim, updateClaimStatus } from './claims';
 
@@ -32,6 +33,7 @@ vi.mock('@interdomestik/database/db', () => ({
         findFirst: vi.fn().mockResolvedValue({
           id: 'user-123',
           email: 'user@example.com',
+          agentId: 'agent-123',
         }),
       },
     },
@@ -95,6 +97,27 @@ describe('Claim Actions', () => {
           companyName: 'Bad Company',
           userId: 'user-123',
           status: 'draft',
+          agentId: 'agent-123', // Verify auto-assignment
+        })
+      );
+    });
+
+    it('should assign claim to user assigned agent', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      // Mock user with agent
+      const mockUserQuery = vi.fn().mockResolvedValue({ agentId: 'agent-999' });
+      db.query.user.findFirst = mockUserQuery;
+
+      const formData = new FormData();
+      formData.append('title', 'Agent Claim');
+      formData.append('companyName', 'Company');
+      formData.append('category', 'retail');
+
+      await createClaim({}, formData);
+
+      expect(mockDbInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agentId: 'agent-999',
         })
       );
     });

@@ -48,14 +48,16 @@ async function runAllAudits() {
       console.log(text);
 
       // Determine status based on output
+      const hasSuccess = text.includes('✅') || text.toLowerCase().includes('success');
+
       const hasError =
-        text.toLowerCase().includes('❌') ||
-        text.toLowerCase().includes('error') ||
-        text.toLowerCase().includes('failed');
+        !hasSuccess &&
+        (text.includes('❌') ||
+          text.toLowerCase().includes('error') ||
+          text.toLowerCase().includes('failed'));
+
       const hasWarning =
-        text.toLowerCase().includes('⚠️') || text.toLowerCase().includes('warning');
-      const hasSuccess =
-        text.toLowerCase().includes('✅') || text.toLowerCase().includes('success');
+        !hasSuccess && !hasError && (text.includes('⚠️') || text.toLowerCase().includes('warning'));
 
       let status: 'pass' | 'fail' | 'warning';
       if (hasError) {

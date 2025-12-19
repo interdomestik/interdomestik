@@ -68,7 +68,7 @@ test.describe('Pricing Page', () => {
             windowWithPaddle.paddleOpenCalled = args;
           },
         },
-      };
+      } as any;
     });
 
     await authenticatedPage.goto('/pricing');

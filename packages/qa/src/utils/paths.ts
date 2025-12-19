@@ -29,21 +29,13 @@ function findRepoRoot(currentDir: string): string {
 
 function isWithin(childPath: string, parentPath: string): boolean {
   const relativePath = path.relative(parentPath, childPath);
-  return (
-    relativePath === '' ||
-    (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
-  );
+  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
 }
 
 const cwdRoot = findRepoRoot(process.cwd());
-const envRoot = process.env.MCP_REPO_ROOT
-  ? path.resolve(process.env.MCP_REPO_ROOT)
-  : null;
+const envRoot = process.env.MCP_REPO_ROOT ? path.resolve(process.env.MCP_REPO_ROOT) : null;
 
-const resolvedEnvRoot =
-  envRoot && isRepoRoot(envRoot) && isWithin(cwdRoot, envRoot)
-    ? envRoot
-    : null;
+const resolvedEnvRoot = envRoot && isRepoRoot(envRoot) ? envRoot : null;
 
 export const REPO_ROOT = resolvedEnvRoot ?? cwdRoot;
 

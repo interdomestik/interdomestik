@@ -14,7 +14,19 @@ import { format } from 'date-fns';
 import { desc, eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
+
 async function getClaims() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) return [];
+
+  const whereClause =
+    session.user.role === 'agent' ? eq(claims.agentId, session.user.id) : undefined;
+
   return await db
     .select({
       id: claims.id,
@@ -32,6 +44,7 @@ async function getClaims() {
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
+    .where(whereClause)
     .orderBy(desc(claims.createdAt));
 }
 

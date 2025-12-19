@@ -123,7 +123,8 @@ type MockFetchResponse = {
   json: () => Promise<unknown>;
 };
 
-const fetchMock = vi.fn<Promise<MockFetchResponse>, [RequestInfo | URL, RequestInit?]>();
+const fetchMock =
+  vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<MockFetchResponse>>();
 const createMockResponse = (data: unknown, ok = true): MockFetchResponse => ({
   ok,
   json: async () => data,
@@ -361,10 +362,7 @@ describe('NotificationSettings', () => {
         .mockImplementation(
           () =>
             new Promise(resolve =>
-              setTimeout(
-                () => resolve(createMockResponse({ success: true })),
-                100
-              )
+              setTimeout(() => resolve(createMockResponse({ success: true })), 100)
             )
         );
 

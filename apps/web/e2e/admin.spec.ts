@@ -32,10 +32,20 @@ test.describe('Admin Panel', () => {
   });
 
   test('Admin can view placeholder pages', async ({ adminPage: page }) => {
-    const routes = ['/admin/users', '/admin/analytics', '/admin/settings'];
+    const routes = ['/admin/analytics', '/admin/settings'];
     for (const route of routes) {
       await page.goto(`/en${route}`);
       await expect(page.getByText('Under Construction')).toBeVisible();
     }
+  });
+
+  test('Admin can view Users management page', async ({ adminPage: page }) => {
+    await page.goto('/en/admin/users');
+    await expect(page.getByRole('heading', { name: 'User Management' })).toBeVisible();
+    await expect(page.getByRole('table')).toBeVisible();
+
+    // Headers
+    await expect(page.getByRole('columnheader', { name: 'User', exact: true })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Assigned Agent' })).toBeVisible();
   });
 });

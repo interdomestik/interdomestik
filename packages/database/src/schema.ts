@@ -30,6 +30,7 @@ export const user = pgTable('user', {
   role: text('role').notNull().default('user'),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
+  agentId: text('agentId'), // Reference to the Agent managing this user
 });
 
 export const session = pgTable('session', {
@@ -165,8 +166,16 @@ export const subscriptions = pgTable('subscriptions', {
   updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
 });
 
-export const userRelations = relations(user, ({ many }) => ({
+export const userRelations = relations(user, ({ many, one }) => ({
   claims: many(claims),
+  agent: one(user, {
+    fields: [user.agentId],
+    references: [user.id],
+    relationName: 'user_agent',
+  }),
+  clients: many(user, {
+    relationName: 'user_agent',
+  }),
 }));
 
 export const claimsRelations = relations(claims, ({ one, many }) => ({
