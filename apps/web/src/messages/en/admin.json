@@ -23,6 +23,14 @@
       "no_users": "No users found",
       "success_message": "User assigned successfully"
     },
+    "claims_page": {
+      "title": "Claims Management",
+      "description": "View and manage all user claims.",
+      "table": {
+        "title": "Title",
+        "amount": "Amount"
+      }
+    },
     "dashboard": {
       "title": "Admin Dashboard",
       "recent_activity": "Recent Activity",

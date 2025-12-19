@@ -57,6 +57,12 @@
       "verify": "Verify Info",
       "reject": "Reject Claim",
       "notice": "Changing status updates the user's timeline immediately."
+    },
+    "notes": {
+      "title": "Agent Notes",
+      "description": "Quick reminders and private workspace notes.",
+      "priority": "Priority Triage",
+      "deadline": "Upcoming Deadline"
     }
   }
 }

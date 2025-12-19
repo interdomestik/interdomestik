@@ -23,6 +23,14 @@
       "no_users": "Nuk u gjetën përdorues",
       "success_message": "Përdoruesi u caktua me sukses"
     },
+    "claims_page": {
+      "title": "Menaxhimi i Ankesave",
+      "description": "Shiko dhe menaxho të gjitha ankesat e përdoruesve.",
+      "table": {
+        "title": "Titulli",
+        "amount": "Shuma"
+      }
+    },
     "dashboard": {
       "title": "Paneli i Adminit",
       "recent_activity": "Aktiviteti i Fundit",

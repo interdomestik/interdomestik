@@ -99,13 +99,13 @@ export default async function AgentDashboardPage({
           <CardContent>
             <div className="space-y-4">
               <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-900 text-sm">
-                <p className="font-semibold mb-1">Priority Triage</p>
+                <p className="font-semibold mb-1">{t('notes.priority')}</p>
                 <p className="opacity-80">
                   All claims from Interdomestik Insurance need to be verified within 24 hours.
                 </p>
               </div>
               <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-sm">
-                <p className="font-semibold mb-1">Upcoming Deadline</p>
+                <p className="font-semibold mb-1">{t('notes.deadline')}</p>
                 <p className="opacity-80">
                   End of quarter reporting starts on Monday. Ensure all resolved cases are
                   documented.

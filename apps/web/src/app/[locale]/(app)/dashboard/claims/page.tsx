@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@interdomestik/ui';
 import { FileText, Plus } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 
 export default async function ClaimsPage({
@@ -78,20 +79,20 @@ export default async function ClaimsPage({
     .where(and(...conditions))
     .orderBy(desc(claims.createdAt));
 
+  const t = await getTranslations('claims');
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">My Claims</h2>
-          <p className="text-muted-foreground mt-1">
-            Manage your consumer complaints and track their status.
-          </p>
+          <h2 className="text-3xl font-bold tracking-tight">{t('title')}</h2>
+          <p className="text-muted-foreground mt-1">{t('description')}</p>
         </div>
         <Button asChild>
           <Link href="/dashboard/claims/new">
             <Plus className="mr-2 h-4 w-4" />
-            New Claim
+            {t('new')}
           </Link>
         </Button>
       </div>
@@ -106,17 +107,15 @@ export default async function ClaimsPage({
             <div className="rounded-full bg-muted p-6 mb-4">
               <FileText className="h-12 w-12 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">No claims found</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('empty.title')}</h3>
             <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-              {searchQuery || statusFilter
-                ? 'Try adjusting your filters or search query.'
-                : "You haven't filed any claims yet. Start by creating your first claim."}
+              {searchQuery || statusFilter ? t('empty.filtered') : t('empty.description')}
             </p>
             {!searchQuery && !statusFilter && (
               <Button asChild>
                 <Link href="/dashboard/claims/new">
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Your First Claim
+                  {t('empty.createFirst')}
                 </Link>
               </Button>
             )}
@@ -127,12 +126,12 @@ export default async function ClaimsPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead className="text-right">Created</TableHead>
+                <TableHead>{t('table.title')}</TableHead>
+                <TableHead>{t('table.company')}</TableHead>
+                <TableHead>{t('table.category')}</TableHead>
+                <TableHead>{t('table.status')}</TableHead>
+                <TableHead>{t('table.amount')}</TableHead>
+                <TableHead className="text-right">{t('table.created')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -175,7 +174,7 @@ export default async function ClaimsPage({
       {/* Results count */}
       {myClaims.length > 0 && (
         <p className="text-sm text-muted-foreground">
-          Showing {myClaims.length} {myClaims.length === 1 ? 'claim' : 'claims'}
+          {t('showing')} {myClaims.length} {myClaims.length === 1 ? t('claim') : t('claimsPlural')}
         </p>
       )}
     </div>

@@ -57,6 +57,12 @@
       "verify": "Verifiko Info",
       "reject": "Refuzo Ankesën",
       "notice": "Ndryshimi i statusit përditëson menjëherë kohështrirjen e përdoruesit."
+    },
+    "notes": {
+      "title": "Shënime të Agjentit",
+      "description": "Kujtues të shpejtë dhe shënime private të hapësirës së punës.",
+      "priority": "Triage Prioritare",
+      "deadline": "Afati i Ardhshëm"
     }
   }
 }

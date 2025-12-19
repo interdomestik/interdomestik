@@ -1,11 +1,25 @@
 {
   "claims": {
     "title": "Ankesat e Mia",
+    "description": "Menaxhoni ankesat tuaja të konsumatorit dhe ndiqni statusin e tyre.",
     "new": "Ankesë e Re",
     "empty": {
-      "title": "Nuk keni ankesa ende",
-      "description": "Filloni duke krijuar ankesën tuaj të parë"
+      "title": "Nuk u gjetën ankesa",
+      "description": "Nuk keni paraqitur ende asnjë ankesë. Filloni duke krijuar ankesën tuaj të parë.",
+      "filtered": "Provoni të rregulloni filtrat ose kërkimin tuaj.",
+      "createFirst": "Krijo Ankesën e Parë"
     },
+    "table": {
+      "title": "Titulli",
+      "company": "Kompania",
+      "category": "Kategoria",
+      "status": "Statusi",
+      "amount": "Shuma",
+      "created": "Krijuar"
+    },
+    "showing": "Duke shfaqur",
+    "claim": "ankesë",
+    "claimsPlural": "ankesa",
     "status": {
       "draft": "Draft",
       "submitted": "Dorëzuar",
@@ -50,6 +64,12 @@
       "step3": "Dëshmi",
       "step4": "Rishiko",
       "submitClaim": "Dërgo Ankesën"
+    },
+    "detail": {
+      "caseDetails": "Detajet e Rastit",
+      "description": "Përshkrimi",
+      "claimAmount": "Shuma e Ankesës",
+      "category": "Kategoria"
     }
   }
 }

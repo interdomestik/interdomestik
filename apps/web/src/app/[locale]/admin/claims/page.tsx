@@ -71,8 +71,8 @@ export default async function AdminClaimsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Claims Management</h1>
-        <p className="text-muted-foreground">View and manage all user claims.</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('claims_page.title')}</h1>
+        <p className="text-muted-foreground">{t('claims_page.description')}</p>
       </div>
 
       <div className="rounded-md border">
@@ -80,9 +80,9 @@ export default async function AdminClaimsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>{t('claimant')}</TableHead>
-              <TableHead>Title</TableHead>
+              <TableHead>{t('claims_page.table.title')}</TableHead>
               <TableHead>{t('status')}</TableHead>
-              <TableHead>Amount</TableHead>
+              <TableHead>{t('claims_page.table.amount')}</TableHead>
               <TableHead>{t('date')}</TableHead>
               <TableHead className="text-right">{t('actions')}</TableHead>
             </TableRow>
