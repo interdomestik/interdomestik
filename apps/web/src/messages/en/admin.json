@@ -33,6 +33,42 @@
       "no_unassigned_claims": "All claims have been assigned",
       "create_user": "Create User",
       "invite_agent": "Invite Agent"
+    },
+    "analytics": {
+      "title": "Analytics Overview",
+      "description": "Platform performance and claim distribution metrics.",
+      "metrics": {
+        "total_value": "Total Claim Value",
+        "avg_value": "Average Claim Amount",
+        "success_rate": "Resolution Rate",
+        "active_users": "Active Claimants"
+      },
+      "status_distribution": "Distribution by Status",
+      "category_distribution": "Distribution by Category",
+      "no_data": "Insufficient data for visualization"
+    },
+    "settings_page": {
+      "title": "Admin Settings",
+      "description": "Configure system-wide parameters and platform behavior.",
+      "sections": {
+        "general": {
+          "title": "General",
+          "app_name": "Application Name",
+          "support_email": "Support Email"
+        },
+        "claims": {
+          "title": "Claims Processing",
+          "auto_assignment": "Auto-assignment of agents",
+          "default_expiry": "Default claim expiry (days)"
+        },
+        "system": {
+          "title": "System",
+          "maintenance_mode": "Maintenance Mode",
+          "verbose_logging": "Verbose Logging"
+        }
+      },
+      "save_changes": "Save Changes",
+      "success_message": "Settings updated successfully"
     }
   }
 }

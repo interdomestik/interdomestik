@@ -33,6 +33,42 @@
       "no_unassigned_claims": "Të gjitha ankesat janë caktuar",
       "create_user": "Krijo Përdorues",
       "invite_agent": "Fto Agjent"
+    },
+    "analytics": {
+      "title": "Përmbledhja e Analitikës",
+      "description": "Performanca e platformës dhe metrikat e shpërndarjes së ankesave.",
+      "metrics": {
+        "total_value": "Vlera Totale e Ankesave",
+        "avg_value": "Shuma Mesatare e Ankesës",
+        "success_rate": "Shkalla e Zgjidhjes",
+        "active_users": "Ankuesit Aktivë"
+      },
+      "status_distribution": "Shpërndarja sipas Statusit",
+      "category_distribution": "Shpërndarja sipas Kategorisë",
+      "no_data": "Nuk ka të dhëna të mjaftueshme për vizualizim"
+    },
+    "settings_page": {
+      "title": "Cilësimet e Adminit",
+      "description": "Konfiguro parametrat e sistemit dhe sjelljen e platformës.",
+      "sections": {
+        "general": {
+          "title": "Të Përgjithshme",
+          "app_name": "Emri i Aplikacionit",
+          "support_email": "Email-i i Mbështetjes"
+        },
+        "claims": {
+          "title": "Procesimi i Ankesave",
+          "auto_assignment": "Caktimi automatik i agjentëve",
+          "default_expiry": "Skadimi parazgjedhur i ankesës (ditë)"
+        },
+        "system": {
+          "title": "Sistemi",
+          "maintenance_mode": "Mënyra e Mirëmbajtjes",
+          "verbose_logging": "Gjurmimi i Detajuar (Logs)"
+        }
+      },
+      "save_changes": "Ruaj Ndryshimet",
+      "success_message": "Cilësimet u përditësuan me sukses"
     }
   }
 }
