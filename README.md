@@ -161,6 +161,26 @@ The database includes:
 - **claim_messages** - Communication threads
 - **claim_timeline** - Activity log
 
+## 🛡️ Admin Panel
+
+The **Admin Panel** ("Cockpit") is a P0 critical feature for managing claims efficiently.
+
+### Features
+
+- **Role-Based Access**: Restricted to `admin` and `agent` roles.
+- **Cockpit Interface**: A 3-pane layout for processing claims without switching tabs.
+- **Live Dashboard**: Real-time stats on new and resolved claims.
+- **Claim Management**:
+  - Filter/Sort claims.
+  - View claimant details.
+  - Review evidence/documents.
+  - Send messages (internal/external).
+  - Update claim status.
+
+### Access
+
+Navigate to `/admin` (requires login as Admin/Agent).
+
 ## 📦 Available Scripts
 
 | Script                | Description                   |
