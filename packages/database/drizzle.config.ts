@@ -17,5 +17,6 @@ export default defineConfig({
     'claim_messages',
     'leads',
     'user_notification_preferences',
+    'subscription',
   ],
 });
