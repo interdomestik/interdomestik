@@ -1,11 +1,60 @@
+import { auth } from '@/lib/auth';
+import { and, claims, db, eq } from '@interdomestik/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@interdomestik/ui';
+import { count, sql, sum } from 'drizzle-orm';
 import { AlertCircle, ArrowUpRight, FileText, TrendingUp } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
 
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('dashboard');
+
+  // Get current user session
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    return null;
+  }
+
+  // Fetch claim statistics
+  const userId = session.user.id;
+
+  // Count claims by status
+  const [totalClaims] = await db
+    .select({ count: count() })
+    .from(claims)
+    .where(eq(claims.userId, userId));
+
+  const [activeClaims] = await db
+    .select({ count: count() })
+    .from(claims)
+    .where(
+      and(
+        eq(claims.userId, userId),
+        sql`${claims.status} IN ('submitted', 'verification', 'evaluation', 'negotiation', 'court')`
+      )
+    );
+
+  const [resolvedClaims] = await db
+    .select({ count: count() })
+    .from(claims)
+    .where(and(eq(claims.userId, userId), eq(claims.status, 'resolved')));
+
+  const [totalRecovered] = await db
+    .select({ total: sum(claims.claimAmount) })
+    .from(claims)
+    .where(and(eq(claims.userId, userId), eq(claims.status, 'resolved')));
+
+  const stats = {
+    total: totalClaims?.count || 0,
+    active: activeClaims?.count || 0,
+    resolved: resolvedClaims?.count || 0,
+    recovered: Number(totalRecovered?.total || 0),
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -27,7 +76,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold">0</p>
+              <p className="text-3xl font-bold">{stats.active}</p>
               <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
                 <TrendingUp className="h-3 w-3 text-success" />
                 {t('noChange')}
@@ -48,7 +97,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold">€0.00</p>
+              <p className="text-3xl font-bold">€{stats.recovered.toFixed(2)}</p>
               <span className="text-xs text-muted-foreground font-medium">
                 {t('lifetimeTotal')}
               </span>
@@ -68,7 +117,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-bold">0</p>
+              <p className="text-3xl font-bold">{stats.active}</p>
               <span className="text-xs text-destructive font-medium">{t('needsAttention')}</span>
             </div>
           </CardContent>
