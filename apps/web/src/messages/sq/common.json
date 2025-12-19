@@ -20,6 +20,15 @@
     "no": "Jo",
     "or": "ose",
     "and": "dhe",
-    "admin": "Admin"
+    "admin": "Admin",
+    "roles": {
+      "admin": "Administrator",
+      "agent": "Agjent",
+      "user": "Përdorues"
+    },
+    "errors": {
+      "generic": "Diçka shkoi keq. Ju lutemi provoni përsëri.",
+      "unauthorized": "I paautorizuar"
+    }
   }
 }

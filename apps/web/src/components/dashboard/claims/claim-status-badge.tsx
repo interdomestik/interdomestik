@@ -1,27 +1,24 @@
 import { Badge } from '@interdomestik/ui';
+import { useTranslations } from 'next-intl';
 
-type ClaimStatus = 'draft' | 'submitted' | 'processing' | 'resolved' | 'rejected';
-
-const statusConfig: Record<
-  ClaimStatus,
-  { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }
-> = {
-  draft: { label: 'Draft', variant: 'outline' },
-  submitted: { label: 'Submitted', variant: 'secondary' },
-  processing: { label: 'Processing', variant: 'default' },
-  resolved: { label: 'Resolved', variant: 'default' },
-  rejected: { label: 'Rejected', variant: 'destructive' },
+const statusVariants: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  draft: 'outline',
+  submitted: 'secondary',
+  verification: 'secondary',
+  evaluation: 'default',
+  processing: 'default',
+  negotiation: 'default',
+  court: 'default',
+  resolved: 'default',
+  rejected: 'destructive',
 };
 
 export function ClaimStatusBadge({ status }: { status: string | null }) {
-  if (!status) return <Badge variant="outline">Unknown</Badge>;
+  const t = useTranslations('claims.status');
 
-  const config = statusConfig[status as ClaimStatus];
-  if (!config) return <Badge variant="outline">{status}</Badge>;
+  if (!status) return <Badge variant="outline">{t('unknown', { defaultValue: 'Unknown' })}</Badge>;
 
-  return (
-    <Badge variant={config.variant} className="capitalize">
-      {config.label}
-    </Badge>
-  );
+  const variant = statusVariants[status] || 'outline';
+
+  return <Badge variant={variant}>{t(status)}</Badge>;
 }

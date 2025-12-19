@@ -44,7 +44,7 @@ export default function AdminSettingsPage() {
               <Settings2 className="h-5 w-5 text-blue-500" />
               <CardTitle>{t('sections.general.title')}</CardTitle>
             </div>
-            <CardDescription>Basic platform identification and contact info.</CardDescription>
+            <CardDescription>{t('sections.general.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-2">
@@ -65,14 +65,14 @@ export default function AdminSettingsPage() {
               <Zap className="h-5 w-5 text-yellow-500" />
               <CardTitle>{t('sections.claims.title')}</CardTitle>
             </div>
-            <CardDescription>Rules and automation for claim processing.</CardDescription>
+            <CardDescription>{t('sections.claims.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="auto-assign" className="flex flex-col space-y-1">
                 <span>{t('sections.claims.auto_assignment')}</span>
                 <span className="font-normal text-xs text-muted-foreground">
-                  Automatically assign new claims to available agents.
+                  {t('sections.claims.auto_assignment_desc')}
                 </span>
               </Label>
               <Checkbox id="auto-assign" defaultChecked />
@@ -92,14 +92,14 @@ export default function AdminSettingsPage() {
               <ShieldCheck className="h-5 w-5 text-red-500" />
               <CardTitle>{t('sections.system.title')}</CardTitle>
             </div>
-            <CardDescription>System health and maintenance controls.</CardDescription>
+            <CardDescription>{t('sections.system.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="maintenance" className="flex flex-col space-y-1">
                 <span>{t('sections.system.maintenance_mode')}</span>
                 <span className="font-normal text-xs text-muted-foreground">
-                  Prevent user access while performing updates.
+                  {t('sections.system.maintenance_mode_desc')}
                 </span>
               </Label>
               <Checkbox id="maintenance" />
@@ -109,7 +109,7 @@ export default function AdminSettingsPage() {
               <Label htmlFor="logging" className="flex flex-col space-y-1">
                 <span>{t('sections.system.verbose_logging')}</span>
                 <span className="font-normal text-xs text-muted-foreground">
-                  Enable detailed logs for debugging purposes.
+                  {t('sections.system.verbose_logging_desc')}
                 </span>
               </Label>
               <Checkbox id="logging" defaultChecked />

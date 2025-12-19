@@ -20,6 +20,15 @@
     "no": "No",
     "or": "or",
     "and": "and",
-    "admin": "Admin"
+    "admin": "Admin",
+    "roles": {
+      "admin": "Administrator",
+      "agent": "Agent",
+      "user": "User"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "unauthorized": "Unauthorized"
+    }
   }
 }

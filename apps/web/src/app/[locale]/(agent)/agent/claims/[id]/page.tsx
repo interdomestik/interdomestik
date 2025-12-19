@@ -86,7 +86,7 @@ export default async function AgentClaimDetailPage({ params }: Props) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <div className="text-sm text-muted-foreground">Title</div>
+                <div className="text-sm text-muted-foreground">{t('title_label')}</div>
                 <div className="text-lg font-medium">{claim.title}</div>
               </div>
               <div>
@@ -95,13 +95,13 @@ export default async function AgentClaimDetailPage({ params }: Props) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm text-muted-foreground">Category</div>
+                  <div className="text-sm text-muted-foreground">{t('category_label')}</div>
                   <Badge variant="outline" className="capitalize">
                     {tClaims(`category.${claim.category}`)}
                   </Badge>
                 </div>
                 <div>
-                  <div className="text-sm text-muted-foreground">Status</div>
+                  <div className="text-sm text-muted-foreground">{t('status_label')}</div>
                   <div className="capitalize">{tClaims(`status.${claim.status}`)}</div>
                 </div>
               </div>

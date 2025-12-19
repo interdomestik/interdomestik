@@ -1,8 +1,8 @@
+import { AGENT_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { Link, redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { AGENT_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 
 type Props = {
@@ -27,6 +27,7 @@ export default async function AgentLayout({ children, params }: Props) {
     return null;
   }
 
+  const t = await getTranslations('agent');
   const allMessages = await getMessages();
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),
@@ -41,7 +42,7 @@ export default async function AgentLayout({ children, params }: Props) {
             <div className="mr-4 hidden md:flex">
               <Link href="/" className="mr-6 flex items-center space-x-2">
                 <span className="hidden font-bold sm:inline-block">
-                  Interdomestik <span className="text-primary">Agent</span>
+                  Interdomestik <span className="text-primary">{t('title')}</span>
                 </span>
               </Link>
               <nav className="flex items-center space-x-6 text-sm font-medium">
@@ -49,22 +50,21 @@ export default async function AgentLayout({ children, params }: Props) {
                   href="/agent"
                   className="transition-colors hover:text-foreground/80 text-foreground"
                 >
-                  Dashboard
+                  {t('dashboard')}
                 </Link>
                 <Link
                   href="/agent/claims"
                   className="transition-colors hover:text-foreground/80 text-foreground/60"
                 >
-                  Claims
+                  {t('claims')}
                 </Link>
               </nav>
             </div>
             <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-              <div className="w-full flex-1 md:w-auto md:flex-none">
-                {/* Search placeholder */}
-              </div>
-              <div className="text-xs text-muted-foreground mr-4">
-                {session.user.email} ({session.user.role})
+              <div className="w-full flex-1 md:w-auto md:flex-none">{/* Search placeholder */}</div>
+              <div className="text-xs text-muted-foreground mr-4 text-right">
+                <div>{session.user.email}</div>
+                <div className="capitalize font-medium text-primary/80">{session.user.role}</div>
               </div>
             </div>
           </div>

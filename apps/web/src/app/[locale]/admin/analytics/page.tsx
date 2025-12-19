@@ -51,6 +51,8 @@ async function getAnalyticsData() {
 
 export default async function AdminAnalyticsPage() {
   const t = await getTranslations('admin.analytics');
+  const tStatus = await getTranslations('claims.status');
+  const tCategory = await getTranslations('claims.category');
   const { totals, statusDistribution, categoryDistribution, activeClaimants, successRate } =
     await getAnalyticsData();
 
@@ -123,7 +125,7 @@ export default async function AdminAnalyticsPage() {
               statusDistribution.map(item => (
                 <div key={item.status || 'unknown'} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="capitalize">{item.status || 'Draft'}</span>
+                    <span>{tStatus(item.status || 'draft')}</span>
                     <span className="font-medium">{item.count}</span>
                   </div>
                   <Progress value={(item.count / totals.count) * 100} className="h-2" />
@@ -144,7 +146,7 @@ export default async function AdminAnalyticsPage() {
               categoryDistribution.map(item => (
                 <div key={item.category} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="capitalize">{item.category}</span>
+                    <span>{tCategory(item.category)}</span>
                     <span className="font-medium">{item.count}</span>
                   </div>
                   <Progress value={(item.count / totals.count) * 100} className="h-2" />

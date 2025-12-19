@@ -48,6 +48,7 @@ interface UsersTableProps {
 
 export function UsersTable({ users, agents }: UsersTableProps) {
   const t = useTranslations('admin.users_table');
+  const tCommon = useTranslations('common');
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const handleAgentChange = async (userId: string, agentId: string) => {
@@ -60,7 +61,7 @@ export function UsersTable({ users, agents }: UsersTableProps) {
         toast.success(t('success_message'));
       }
     } catch {
-      toast.error('Failed to update agent');
+      toast.error(tCommon('errors.generic'));
     } finally {
       setLoadingId(null);
     }
@@ -93,9 +94,7 @@ export function UsersTable({ users, agents }: UsersTableProps) {
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant="outline" className="capitalize">
-                  {user.role}
-                </Badge>
+                <Badge variant="outline">{tCommon(`roles.${user.role}`)}</Badge>
               </TableCell>
               <TableCell>
                 <Select
@@ -116,7 +115,9 @@ export function UsersTable({ users, agents }: UsersTableProps) {
                   </SelectContent>
                 </Select>
               </TableCell>
-              <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+              <TableCell className="text-sm">
+                {new Date(user.createdAt).toLocaleDateString()}
+              </TableCell>
             </TableRow>
           ))}
           {users.length === 0 && (

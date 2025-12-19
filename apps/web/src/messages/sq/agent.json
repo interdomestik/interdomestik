@@ -9,12 +9,18 @@
       "verification": "Në Verifikim",
       "closed": "Të Mbyllura"
     },
+    "claims_queue": "Radha e Ankesave",
+    "manage_triage": "Menaxho dhe vlerëso të gjitha ankesat e dorëzuara.",
     "table": {
       "claimant": "Ankuesi",
+      "claim": "Ankesa",
       "status": "Statusi",
+      "amount": "Shuma",
       "date": "Data",
       "actions": "Veprime",
-      "triage": "Vlerësim"
+      "triage": "Vlerësim",
+      "no_claims": "Nuk u gjet asnjë ankesë.",
+      "no_claims_ready": "Lista e ankesave vjen së shpejti"
     },
     "actions": {
       "approve": "Aprovo",
@@ -30,6 +36,9 @@
       "description": "Përshkrimi",
       "amount": "Shuma",
       "company": "Subjekti / Kompania",
+      "title_label": "Titulli",
+      "category_label": "Kategoria",
+      "status_label": "Statusi",
       "evidence": "Dosjet e Dëshmive",
       "noEvidence": "Nuk ka dokumente të ngarkuara.",
       "notes": "Shënime të Brendshme",

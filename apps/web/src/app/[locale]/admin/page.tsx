@@ -1,3 +1,4 @@
+import { Link } from '@/i18n/routing';
 import { db } from '@interdomestik/database/db';
 import { claims, user } from '@interdomestik/database/schema';
 import { Badge } from '@interdomestik/ui/components/badge';
@@ -12,7 +13,6 @@ import {
 import { count, desc, eq, isNull } from 'drizzle-orm';
 import { AlertCircle, CheckCircle, FileText, Plus, UserPlus, Users } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import Link from 'next/link';
 
 async function getDashboardData() {
   const [totalClaimsRes] = await db.select({ count: count() }).from(claims);
@@ -61,6 +61,7 @@ async function getDashboardData() {
 export default async function AdminDashboardPage() {
   const t = await getTranslations('agent');
   const tAdmin = await getTranslations('admin.dashboard');
+  const tClaims = await getTranslations('claims.status');
   const { stats, recentClaims, unassignedClaims } = await getDashboardData();
 
   return (
@@ -158,7 +159,7 @@ export default async function AdminDashboardPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={claim.status === 'resolved' ? 'default' : 'secondary'}>
-                      {claim.status}
+                      {tClaims(claim.status || 'draft')}
                     </Badge>
                     <Button asChild variant="ghost" size="icon">
                       <Link href={`/admin/claims/${claim.id}`}>

@@ -53,18 +53,24 @@
       "sections": {
         "general": {
           "title": "General",
+          "description": "Basic platform identification and contact info.",
           "app_name": "Application Name",
           "support_email": "Support Email"
         },
         "claims": {
           "title": "Claims Processing",
+          "description": "Rules and automation for claim processing.",
           "auto_assignment": "Auto-assignment of agents",
+          "auto_assignment_desc": "Automatically assign new claims to available agents.",
           "default_expiry": "Default claim expiry (days)"
         },
         "system": {
           "title": "System",
+          "description": "System health and maintenance controls.",
           "maintenance_mode": "Maintenance Mode",
-          "verbose_logging": "Verbose Logging"
+          "maintenance_mode_desc": "Prevent user access while performing updates.",
+          "verbose_logging": "Verbose Logging",
+          "verbose_logging_desc": "Enable detailed logs for debugging purposes."
         }
       },
       "save_changes": "Save Changes",
