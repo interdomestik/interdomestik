@@ -18,12 +18,26 @@ import { useTranslations } from 'next-intl';
 export function WizardStepDetails() {
   const form = useFormContext<CreateClaimValues>();
   const t = useTranslations('wizard.details');
+  const tInstructions = useTranslations('wizard.categoryInstructions');
+
+  const category = form.watch('category');
+  const hasCategory = category && ['vehicle', 'property', 'injury', 'travel'].includes(category);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="text-center fade-in slide-in-from-right-4 duration-500">
-        <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
-        <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
+        <h2 className="text-2xl font-bold tracking-tight">
+          {hasCategory ? tInstructions(`${category}.title`) : t('title')}
+        </h2>
+        <p className="text-muted-foreground mt-2">
+          {hasCategory ? tInstructions(`${category}.subtitle`) : t('subtitle')}
+        </p>
+        {hasCategory && (
+          <div className="mt-4 p-4 bg-[hsl(var(--primary))]/5 border border-[hsl(var(--primary))]/20 rounded-lg text-sm text-left">
+            <p className="font-medium text-[hsl(var(--primary))] mb-1">💡 Helpful Tips:</p>
+            <p className="text-muted-foreground">{tInstructions(`${category}.tips`)}</p>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6">

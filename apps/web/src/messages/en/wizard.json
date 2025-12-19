@@ -47,6 +47,28 @@
       "description": "Description",
       "description_placeholder": "Describe exactly what happened..."
     },
+    "categoryInstructions": {
+      "vehicle": {
+        "title": "Vehicle Damage Claim Details",
+        "subtitle": "Provide details about the accident or damage to your vehicle.",
+        "tips": "Include: date and time of incident, location, other parties involved, police report number if applicable, and description of damage."
+      },
+      "property": {
+        "title": "Property Damage Claim Details",
+        "subtitle": "Describe the damage to your property and how it occurred.",
+        "tips": "Include: type of property, cause of damage (fire, water, storm, etc.), extent of damage, and any emergency repairs made."
+      },
+      "injury": {
+        "title": "Personal Injury Claim Details",
+        "subtitle": "Provide information about your injury and medical treatment.",
+        "tips": "Include: nature of injury, where and how it occurred, medical treatment received, healthcare providers, and ongoing symptoms or limitations."
+      },
+      "travel": {
+        "title": "Travel & Flight Claim Details",
+        "subtitle": "Provide your flight or travel booking information.",
+        "tips": "Include: booking reference, flight number, departure/arrival airports, scheduled vs actual times, and reason for delay/cancellation if known."
+      }
+    },
     "review": {
       "title": "Review & Submit",
       "subtitle": "Please check your details before submitting.",
