@@ -1,0 +1,8 @@
+{
+  "trust": {
+    "claimsProcessed": "Claims Processed",
+    "compensationWon": "Compensation Won",
+    "successRate": "Success Rate",
+    "responseTime": "First Response"
+  }
+}

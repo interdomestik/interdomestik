@@ -44,10 +44,12 @@ E2E_SMOKE_CMD="${E2E_SMOKE_CMD:-pnpm --filter @interdomestik/web test:e2e -- --g
 BUILD_CMD="${BUILD_CMD:-pnpm build}"
 FULL_CHECK_CMD="${FULL_CHECK_CMD:-pnpm qa:full}"
 FORMAT_CMD="${FORMAT_CMD:-pnpm prettier --check}"
+COVERAGE_CMD="${COVERAGE_CMD:-pnpm --filter @interdomestik/web test:unit -- --coverage}"
 MAX_FILE_BYTES="${MAX_FILE_BYTES:-15000}"
 MAX_FILE_LINES="${MAX_FILE_LINES:-400}"
 SIZE_SCAN_DIRS="${SIZE_SCAN_DIRS:-apps packages}"
 ENFORCE_SIZE="${ENFORCE_SIZE:-0}"
+COVERAGE_BASELINE="${COVERAGE_BASELINE:-0}"
 PARSED_ARGS=()
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -174,6 +176,47 @@ check_file_sizes() {
     fi
 }
 
+check_changed_file_sizes() {
+    # Focus on new/modified files to enforce small-file discipline
+    [[ -z "$(command -v git)" ]] && return
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        return
+    fi
+
+    print_step "Checking changed files for size limits..."
+    CHANGED_SIZE_WARNINGS=""
+    local files
+    files=$(git status --porcelain | awk '{print $2}' | grep -E '\.(ts|tsx|js|jsx)$' || true)
+
+    if [[ -z "$files" ]]; then
+        print_info "No changed JS/TS files to check"
+        return
+    fi
+
+    while IFS= read -r file; do
+        [[ -z "$file" ]] && continue
+        local abs="$REPO_ROOT/$file"
+        [[ -f "$abs" ]] || continue
+        local bytes lines
+        bytes=$(get_file_size_bytes "$abs" 2>/dev/null || echo 0)
+        lines=$(wc -l < "$abs" 2>/dev/null || echo 0)
+        if [[ $bytes -gt $MAX_FILE_BYTES || $lines -gt $MAX_FILE_LINES ]]; then
+            CHANGED_SIZE_WARNINGS+="- $file (${lines} lines, ${bytes} bytes)\n"
+        fi
+    done <<< "$files"
+
+    if [[ -n "$CHANGED_SIZE_WARNINGS" ]]; then
+        print_warning "Changed files exceeding limits (>${MAX_FILE_LINES} lines or >${MAX_FILE_BYTES} bytes):"
+        echo -e "${CHANGED_SIZE_WARNINGS%\\n}"
+        if [[ "$ENFORCE_SIZE" == "1" ]]; then
+            print_error "ENFORCE_SIZE=1 set; aborting due to oversized changed files."
+            exit 1
+        fi
+    else
+        print_success "No changed files exceed size limits"
+    fi
+}
+
 parse_args() {
     local args=()
     while [[ $# -gt 0 ]]; do
@@ -183,6 +226,8 @@ parse_args() {
             --no-full-checks) RUN_FULL_CHECKS="N"; shift ;;
             --non-interactive|--yes|--y) NON_INTERACTIVE=1; shift ;;
             --allow-dirty) ALLOW_DIRTY=1; shift ;;
+            --coverage-baseline) COVERAGE_BASELINE=1; shift ;;
+            --no-coverage-baseline) COVERAGE_BASELINE=0; shift ;;
             -h|--help)
                 echo "Usage: ./scripts/start-10x-task.sh [--non-interactive] [--allow-dirty] [--no-baseline] [--run-full-checks|--no-full-checks] [task_name] [related_files...]"
                 exit 0
@@ -198,7 +243,12 @@ run_optional_full_checks() {
     if [[ -n "${RUN_FULL_CHECKS:-}" ]]; then
         RUN_FULL="$RUN_FULL_CHECKS"
     else
-        prompt_with_default RUN_FULL "${CYAN}Run full checks now? (lint/format/typecheck/unit/smoke/build) [y/N]: ${NC}" "N"
+        # Default to Yes in non-interactive mode to mimic CI strictness
+        local default_choice="N"
+        if [[ -n "${NON_INTERACTIVE:-}" ]]; then
+            default_choice="Y"
+        fi
+        prompt_with_default RUN_FULL "${CYAN}Run full checks now? (lint/format/typecheck/unit/smoke/build) [y/N]: ${NC}" "$default_choice"
     fi
     if [[ "$RUN_FULL" != "y" && "$RUN_FULL" != "Y" ]]; then
         return
@@ -502,7 +552,33 @@ capture_qa_baseline() {
         echo -e "${YELLOW}⚠ fail${NC}"
         print_snippet "$TEMP_OUTPUT"
     fi
-    
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Coverage (opt-in)
+    # ─────────────────────────────────────────────────────────────────────────
+    if [[ "$COVERAGE_BASELINE" == "1" ]]; then
+        echo -n -e "   ${DIM}Coverage...${NC} "
+        set +e
+        $COVERAGE_CMD > "$TEMP_OUTPUT" 2>&1
+        COVERAGE_EXIT=$?
+        set -e
+        { echo "### Coverage ($COVERAGE_CMD)"; cat "$TEMP_OUTPUT"; echo ""; } >> "$BASELINE_LOG"
+
+        if [[ $COVERAGE_EXIT -eq 0 ]]; then
+            BASELINE_COVERAGE="pass"
+            echo -e "${GREEN}✓ pass${NC}"
+        elif [[ $COVERAGE_EXIT -eq 127 ]]; then
+            BASELINE_COVERAGE="not configured"
+            echo -e "${DIM}⊘ not configured${NC}"
+        else
+            BASELINE_COVERAGE="fail (exit $COVERAGE_EXIT)"
+            echo -e "${YELLOW}⚠ fail${NC}"
+            print_snippet "$TEMP_OUTPUT"
+        fi
+    else
+        BASELINE_COVERAGE="skipped"
+    fi
+
     # ─────────────────────────────────────────────────────────────────────────
     # Write baseline file
     # ─────────────────────────────────────────────────────────────────────────
@@ -512,6 +588,7 @@ lint=$BASELINE_LINT
 typecheck=$BASELINE_TYPECHECK
 tests=$BASELINE_TESTS
 format=$BASELINE_FORMAT
+COVERAGE=${BASELINE_COVERAGE:-skipped}
 timestamp=$(date -Iseconds)
 log=$BASELINE_LOG
 EOF
@@ -659,6 +736,7 @@ gather_inputs() {
     # Roadmap Reference (optional)
     # ─────────────────────────────────────────────────────────────────────────
     prompt_with_default ROADMAP_REF "${CYAN}🗺️  Roadmap Reference (e.g., 'Phase 2, Week 7' or Enter to skip): ${NC}" ""
+    print_info "If adding UI text, update locale messages and run: pnpm i18n:check"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -700,7 +778,7 @@ detect_related_files() {
         RELATED_FILES="$RELATED_FILES
 - apps/web/src/messages/*.json
 - apps/web/src/i18n/routing.ts
-- apps/web/src/middleware.ts"
+- apps/web/src/proxy.ts"
     fi
     
     if [[ "$TASK_LOWER" == *"dashboard"* ]]; then
@@ -910,6 +988,22 @@ EOF
 - [ ] Migrations include up/down and backfill strategy (if applicable)
 - [ ] Accessibility checks for UI changes
 - [ ] Removed debug artifacts (console.log/debugger/TODO left behind)
+- [ ] New/updated strings added to locales and \`pnpm i18n:check\` run (if applicable)
+- [ ] New components kept small; split view vs hooks/logic; co-located tests/stories added
+- [ ] Oversized file remediation noted (if any)
+
+## 🧩 New Components & Files Checklist
+- [ ] File size under limits (soft 250 lines, hard ${MAX_FILE_LINES}); split view vs logic/hooks if larger
+- [ ] Co-located test (\`*.test.tsx\`) and story/demo (if using Storybook/MDX)
+- [ ] i18n keys added for any new UI strings
+- [ ] Accessibility verified (labels/roles/focus)
+- [ ] Imported shared styles/components (@interdomestik/ui) where applicable
+
+## 🚦 Completion Gate (must be TRUE before declaring Done)
+- [ ] All checkboxes above are checked (DoD, Senior, New Components)
+- [ ] Required tests/QA in this task file have been executed and are green
+- [ ] No unchecked items remain in this file (if not applicable, explicitly mark N/A)
+- [ ] current_task is only marked complete after verifying every required checkbox
 EOF
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -944,6 +1038,7 @@ EOF
 | Type Check | $BASELINE_TYPECHECK |
 | Unit Tests | $BASELINE_TESTS |
 | Format | ${BASELINE_FORMAT:-n/a} |
+| Coverage | ${BASELINE_COVERAGE:-skipped} |
 | Log | ${BASELINE_LOG:-n/a} |
 
 ## 📏 Oversized Files (>${MAX_FILE_LINES} lines or >${MAX_FILE_BYTES} bytes)
@@ -953,6 +1048,17 @@ EOF
         echo -e "${SIZE_WARNINGS%\\n}" >> "$TASK_FILE"
     else
         echo "None detected" >> "$TASK_FILE"
+    fi
+
+    cat >> "$TASK_FILE" << EOF
+
+## 📏 Changed Files Size Check (>${MAX_FILE_LINES} lines or >${MAX_FILE_BYTES} bytes)
+EOF
+
+    if [[ -n "${CHANGED_SIZE_WARNINGS:-}" ]]; then
+        echo -e "${CHANGED_SIZE_WARNINGS%\\n}" >> "$TASK_FILE"
+    else
+        echo "Changed files are within limits" >> "$TASK_FILE"
     fi
 
     cat >> "$TASK_FILE" << EOF
@@ -1011,6 +1117,9 @@ print_summary() {
     echo -e "    Typecheck: $(if [[ "$BASELINE_TYPECHECK" == "pass" ]]; then echo -e "${GREEN}$BASELINE_TYPECHECK${NC}"; elif [[ "$BASELINE_TYPECHECK" == "skipped" ]] || [[ "$BASELINE_TYPECHECK" == "not configured" ]]; then echo -e "${DIM}$BASELINE_TYPECHECK${NC}"; else echo -e "${YELLOW}$BASELINE_TYPECHECK${NC}"; fi)"
     echo -e "    Tests:     $(if [[ "$BASELINE_TESTS" == "pass" ]]; then echo -e "${GREEN}$BASELINE_TESTS${NC}"; elif [[ "$BASELINE_TESTS" == "skipped" ]]; then echo -e "${DIM}$BASELINE_TESTS${NC}"; else echo -e "${YELLOW}$BASELINE_TESTS${NC}"; fi)"
     echo -e "    Format:    $(if [[ "${BASELINE_FORMAT:-}" == "pass" ]]; then echo -e "${GREEN}$BASELINE_FORMAT${NC}"; elif [[ "${BASELINE_FORMAT:-}" == "skipped" ]] || [[ "${BASELINE_FORMAT:-}" == "not configured" ]]; then echo -e "${DIM}${BASELINE_FORMAT:-n/a}${NC}"; else echo -e "${YELLOW}${BASELINE_FORMAT:-n/a}${NC}"; fi)"
+    if [[ -n "${BASELINE_COVERAGE:-}" ]]; then
+        echo -e "    Coverage:  $(if [[ "${BASELINE_COVERAGE:-}" == "pass" ]]; then echo -e "${GREEN}${BASELINE_COVERAGE}${NC}"; elif [[ "${BASELINE_COVERAGE:-}" == "skipped" ]] || [[ "${BASELINE_COVERAGE:-}" == "not configured" ]]; then echo -e "${DIM}${BASELINE_COVERAGE}${NC}"; else echo -e "${YELLOW}${BASELINE_COVERAGE}${NC}"; fi)"
+    fi
     echo -e "    Log:       ${BASELINE_LOG:-n/a}"
     echo ""
     echo -e "  ${BOLD}File:${NC}      ${CYAN}$TASK_FILE${NC}"
@@ -1034,6 +1143,7 @@ main() {
     gather_inputs "${PARSED_ARGS[@]}"
     capture_qa_baseline
     check_file_sizes
+    check_changed_file_sizes
     generate_task_file
     run_optional_full_checks
     print_summary

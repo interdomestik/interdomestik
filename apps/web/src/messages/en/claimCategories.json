@@ -1,0 +1,27 @@
+{
+  "claimCategories": {
+    "title": "What Can We Help You With?",
+    "subtitle": "Select your claim type to get started. Our experts specialize in each category.",
+    "startClaim": "Start Claim",
+    "vehicle": {
+      "title": "Vehicle Damage",
+      "description": "Car accidents, collision damage, theft, and vandalism claims.",
+      "examples": "e.g., Traffic accidents, hit-and-run, parking damage"
+    },
+    "property": {
+      "title": "Property Damage",
+      "description": "Home, apartment, and building damage claims.",
+      "examples": "e.g., Water damage, fire, storm, burglary"
+    },
+    "injury": {
+      "title": "Personal Injury",
+      "description": "Medical expenses, rehabilitation, and compensation for injuries.",
+      "examples": "e.g., Workplace injuries, accidents, medical malpractice"
+    },
+    "travel": {
+      "title": "Travel & Flight",
+      "description": "Flight delays, cancellations, and lost baggage claims.",
+      "examples": "e.g., EU261 compensation up to €600"
+    }
+  }
+}

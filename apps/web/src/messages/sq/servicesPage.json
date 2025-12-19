@@ -1,0 +1,92 @@
+{
+  "servicesPage": {
+    "badge": "Eksperienca Prime e Ankesave",
+    "title": "Shihni çfarë zgjidhim dhe si punojmë",
+    "subtitle": "Aksidente automjetesh, dëme prone, probleme shërbimesh, mosmarrëveshje punësimi/konsumatori — ekspertë lokalë në shqip/anglisht, përgjigje e shpejtë dhe ruajtje e sigurt e provave.",
+    "startClaim": "Fillo ankesën",
+    "whatsapp": "Chat në WhatsApp",
+    "whatWeSolve": "Çfarë zgjidhim",
+    "casesTitle": "Rastet kryesore që trajtojmë",
+    "casesSubtitle": "Zgjidh kategorinë; ne të udhëzojmë me provat e sakta dhe hapat në vijim.",
+    "cases": [
+      {
+        "title": "Automjete & Trafik",
+        "description": "Përplasje, dëme nga palë të treta, goditje-dhe-ikje, mosmarrëveshje me qira."
+      },
+      {
+        "title": "Prona & Banesa",
+        "description": "Zjarri/përmbytje/vjedhje, mosmarrëveshje me qiradhënësit, garancia e depozitës."
+      },
+      {
+        "title": "Shërbime & Komunale",
+        "description": "Fatura ISP/telekom, ndërprerje, cilësia e shërbimit apo kontraktorëve."
+      },
+      {
+        "title": "Punësim & Konsumator",
+        "description": "Pagat e papaguara, çështje kontrate, mallra me defekt, rimbursime/kthime."
+      }
+    ],
+    "flightDelay": {
+      "title": "Vonesa Fluturimi (EU261)",
+      "description": "E drejtë deri në €600 kompensim për vonesa/anulime.",
+      "cta": "Fillo ankesën e fluturimit"
+    },
+    "howItWorks": "Si funksionon",
+    "stepsTitle": "Shpejtësi & siguri në katër hapa",
+    "steps": [
+      {
+        "title": "Tregona bazat",
+        "description": "Zgjidh kategorinë dhe shto detajet e shpejta."
+      },
+      {
+        "title": "Shto prova",
+        "description": "Ngarko foto/fatura; ne kontrollojmë mime/masë dhe i etikojmë si PII."
+      },
+      {
+        "title": "Rishikim nën 24h",
+        "description": "Sheh statusin + badge SLA në timeline."
+      },
+      {
+        "title": "Ne negociojmë për ty",
+        "description": "Merr përditësime dhe rezultate në aplikacion."
+      }
+    ],
+    "benefits": "Pse të na besoni",
+    "benefitsTitle": "Shpejtësi, siguri, mbështetje",
+    "benefit": {
+      "speed": {
+        "title": "Përgjigje e shpejtë",
+        "description": "Rishikim nën 24h për ankesat e reja; SLA e dukshme në timeline."
+      },
+      "safety": {
+        "title": "Ngarkime të sigurta",
+        "description": "URL të nënshkruara, kontroll mime/masash, ruajtje me shenjë PII, njoftim privatësie në rishikim."
+      },
+      "people": {
+        "title": "Ekspertë vendorë",
+        "description": "Ndërmjetës dëmesh nga Ballkani me mbështetje shqip/anglisht dhe opsione kontakti të qarta."
+      }
+    },
+    "faqTitle": "Pyetje të shpeshta",
+    "faq": [
+      {
+        "question": "A duhet patjetër provë për të nisur?",
+        "answer": "Mund të dërgoni pa prova, por rezultati është më i shpejtë me fatura/foto. Shtoji tani ose më vonë."
+      },
+      {
+        "question": "Sa shpejt përgjigjeni?",
+        "answer": "Synojmë nën 24h për ankesat e reja. SLA shfaqet në timeline."
+      },
+      {
+        "question": "A janë të sigurta të dhënat e mia?",
+        "answer": "Po. URL të nënshkruara, kontrolle mime/masash, ruajtje me shenjë PII dhe njoftim privatësie në rishikim."
+      },
+      {
+        "question": "A ofroni pa fitim, pa pagesë?",
+        "answer": "Kur është e zbatueshme dhe në përputhje. Shih hero/footer dhe çmimet për ofertat aktuale."
+      }
+    ],
+    "contactTitle": "Preferoni të flisni?",
+    "contactSubtitle": "Telefononi ose shkruani në WhatsApp, ose nisni ankesën online dhe ne ju kontaktojmë."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "claims": "Claims",
+    "newClaim": "New Claim",
+    "documents": "Documents",
+    "messages": "Messages",
+    "settings": "Settings",
+    "profile": "Profile",
+    "logout": "Logout",
+    "login": "Login",
+    "register": "Sign Up",
+    "pricing": "Pricing",
+    "about": "About Us",
+    "contact": "Contact",
+    "help": "Help"
+  }
+}

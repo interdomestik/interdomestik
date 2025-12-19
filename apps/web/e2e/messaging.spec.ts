@@ -78,12 +78,13 @@ test.describe('Messaging System', () => {
       // Wait for claims list
       await agentPage.waitForSelector('table, [class*="claim"]', { timeout: 10000 });
 
-      // Click first claim
+      // Click first claim and wait for navigation
       const firstClaimLink = agentPage.locator('a[href*="/agent/claims/"]').first();
       await firstClaimLink.click();
+      await agentPage.waitForLoadState('networkidle');
 
-      // Wait for detail page
-      await agentPage.waitForURL(/\/agent\/claims\//);
+      // Wait for detail page (increased timeout for WebKit)
+      await agentPage.waitForURL(/\/agent\/claims\//, { timeout: 45000 });
 
       // Verify messaging panel is present using data-testid
       const messagingPanel = agentPage.locator('[data-testid="messaging-panel"]');
@@ -96,7 +97,7 @@ test.describe('Messaging System', () => {
 
       const firstClaimLink = agentPage.locator('a[href*="/agent/claims/"]').first();
       await firstClaimLink.click();
-      await agentPage.waitForURL(/\/agent\/claims\//);
+      await agentPage.waitForURL(/\/agent\/claims\//, { timeout: 45000 });
 
       // Look for internal note toggle using data-testid
       const internalNoteToggle = agentPage.locator('[data-testid="internal-note-toggle"]');

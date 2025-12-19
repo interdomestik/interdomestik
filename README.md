@@ -8,16 +8,16 @@ Interdomestik is a subscription-based consumer protection service that helps mem
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| **Monorepo** | Turborepo |
-| **Frontend** | Next.js 15 (App Router) |
-| **UI** | Custom Design System + Radix UI + Tailwind CSS |
-| **Database** | Supabase (PostgreSQL) |
-| **Auth** | Supabase Auth |
-| **Payments** | Stripe |
-| **i18n** | next-intl (Albanian/English) |
-| **Deployment** | Vercel |
+| Layer          | Technology                                     |
+| -------------- | ---------------------------------------------- |
+| **Monorepo**   | Turborepo                                      |
+| **Frontend**   | Next.js 15 (App Router)                        |
+| **UI**         | Custom Design System + Radix UI + Tailwind CSS |
+| **Database**   | Supabase (PostgreSQL)                          |
+| **Auth**       | Supabase Auth                                  |
+| **Payments**   | Stripe                                         |
+| **i18n**       | next-intl (Albanian/English)                   |
+| **Deployment** | Vercel                                         |
 
 ## 📁 Project Structure
 
@@ -30,7 +30,7 @@ interdomestikv2/
 │       │   │   └── [locale]/   # i18n routing
 │       │   ├── i18n/           # i18n configuration
 │       │   ├── lib/            # Utilities (Stripe, etc.)
-│       │   └── messages/       # Translation JSON files
+│       │   └── messages/       # Translation JSON files by locale/namespace
 │       ├── next.config.mjs
 │       ├── tailwind.config.js
 │       └── package.json
@@ -108,12 +108,13 @@ The app supports:
 - 🇦🇱 **Albanian (sq)** - Default language
 - 🇬🇧 **English (en)**
 
-Translation files are located in `apps/web/src/messages/`.
+Translation files are located in `apps/web/src/messages/{locale}/`.
 
 ### Adding a new language
 
-1. Create a new JSON file: `apps/web/src/messages/{locale}.json`
-2. Add the locale to `apps/web/src/i18n/routing.ts`
+1. Create a locale folder: `apps/web/src/messages/{locale}/`
+2. Copy namespace files from an existing locale (e.g. `en`) and translate
+3. Add the locale to `apps/web/src/i18n/routing.ts`
 
 ## 💳 Stripe Setup
 
@@ -161,18 +162,38 @@ The database includes:
 - **claim_messages** - Communication threads
 - **claim_timeline** - Activity log
 
+## 🛡️ Admin Panel
+
+The **Admin Panel** ("Cockpit") is a P0 critical feature for managing claims efficiently.
+
+### Features
+
+- **Role-Based Access**: Restricted to `admin` and `agent` roles.
+- **Cockpit Interface**: A 3-pane layout for processing claims without switching tabs.
+- **Live Dashboard**: Real-time stats on new and resolved claims.
+- **Claim Management**:
+  - Filter/Sort claims.
+  - View claimant details.
+  - Review evidence/documents.
+  - Send messages (internal/external).
+  - Update claim status.
+
+### Access
+
+Navigate to `/admin` (requires login as Admin/Agent).
+
 ## 📦 Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start all apps in development |
-| `npm run build` | Build all apps |
-| `npm run lint` | Lint all apps |
-| `npm run type-check` | Type check all apps |
-| `npm run format` | Format code with Prettier |
-| `npm run db:generate` | Generate Supabase types |
-| `npm run db:push` | Push database migrations |
-| `npm run db:studio` | Open Supabase Studio |
+| Script                | Description                   |
+| --------------------- | ----------------------------- |
+| `npm run dev`         | Start all apps in development |
+| `npm run build`       | Build all apps                |
+| `npm run lint`        | Lint all apps                 |
+| `npm run type-check`  | Type check all apps           |
+| `npm run format`      | Format code with Prettier     |
+| `npm run db:generate` | Generate Supabase types       |
+| `npm run db:push`     | Push database migrations      |
+| `npm run db:studio`   | Open Supabase Studio          |
 
 ## 🎨 Design System
 

@@ -88,11 +88,13 @@ test.describe('Authentication', () => {
       expect(page.url()).toMatch(/login/);
     });
 
-    test('should redirect /settings to login when not authenticated', async ({ page }) => {
-      await page.goto('/settings');
+    test('should redirect /dashboard/settings to login when not authenticated', async ({
+      page,
+    }) => {
+      await page.goto('/dashboard/settings');
 
       // Wait for redirect
-      await page.waitForTimeout(1000);
+      await page.waitForURL(/.*(login|auth\/sign-in|\/en\/?$|\/sq\/?$).*/, { timeout: 10000 });
 
       // Should be redirected to login or home
       expect(page.url()).toMatch(/(login|auth\/sign-in|\/en\/?$|\/sq\/?$)/);
@@ -102,7 +104,9 @@ test.describe('Authentication', () => {
       authenticatedPage,
     }) => {
       await authenticatedPage.goto('/dashboard');
-      await authenticatedPage.waitForTimeout(500);
+      // Wait for page to fully load (WebKit needs this for auth state)
+      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.waitForTimeout(1000);
       expect(authenticatedPage.url()).not.toMatch(/login/);
       const loggedIn = await isLoggedIn(authenticatedPage);
       expect(loggedIn).toBeTruthy();
@@ -148,8 +152,8 @@ test.describe('Authentication', () => {
       await page.goto('/sq/login');
 
       // Fill form and submit
-      await page.fill('input[name="email"], input[type="email"]', 'test@example.com');
-      await page.fill('input[name="password"], input[type="password"]', 'password');
+      await page.fill('input[name="email"], input[type="email"]', 'test@interdomestik.com');
+      await page.fill('input[name="password"], input[type="password"]', 'TestPassword123!');
       await page.click('button[type="submit"]');
 
       // Wait for response

@@ -1,0 +1,27 @@
+{
+  "claimCategories": {
+    "title": "Me Çfarë Mund t'Ju Ndihmojmë?",
+    "subtitle": "Zgjidhni llojin e ankesës tuaj për të filluar. Ekspertët tanë specializohen në çdo kategori.",
+    "startClaim": "Filloni Ankesën",
+    "vehicle": {
+      "title": "Dëme Automjetesh",
+      "description": "Aksidente makinash, dëme nga përplasjet, vjedhje dhe vandalizëm.",
+      "examples": "p.sh., Aksidente trafiku, goditje-dhe-ikje, dëme parkimi"
+    },
+    "property": {
+      "title": "Dëme Pronash",
+      "description": "Ankesa për dëme në shtëpi, apartament dhe ndërtesa.",
+      "examples": "p.sh., Dëme nga uji, zjarri, stuhia, vjedhja"
+    },
+    "injury": {
+      "title": "Lëndime Personale",
+      "description": "Shpenzime mjekësore, rehabilitim dhe kompensim për lëndimet.",
+      "examples": "p.sh., Lëndime në punë, aksidente, keqpërdorim mjekësor"
+    },
+    "travel": {
+      "title": "Udhëtime & Fluturime",
+      "description": "Vonesa fluturimesh, anulime dhe bagazhe të humbura.",
+      "examples": "p.sh., Kompensim EU261 deri në €600"
+    }
+  }
+}

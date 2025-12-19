@@ -3,11 +3,7 @@
   // Force reload
   "compilerOptions": {
     "target": "ES2022",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "esModuleInterop": true,
@@ -27,21 +23,11 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@interdomestik/ui": [
-        "../../packages/ui/src"
-      ],
-      "@interdomestik/ui/*": [
-        "../../packages/ui/src/*"
-      ],
-      "@interdomestik/database": [
-        "../../packages/database/src"
-      ],
-      "@interdomestik/database/*": [
-        "../../packages/database/src/*"
-      ]
+      "@/*": ["./src/*"],
+      "@interdomestik/ui": ["../../packages/ui/src"],
+      "@interdomestik/ui/*": ["../../packages/ui/src/*"],
+      "@interdomestik/database": ["../../packages/database/src"],
+      "@interdomestik/database/*": ["../../packages/database/src/*"]
     }
   },
   "include": [
@@ -54,7 +40,5 @@
     "../../packages/database/src/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

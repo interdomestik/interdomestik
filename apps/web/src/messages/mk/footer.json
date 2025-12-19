@@ -1,0 +1,21 @@
+{
+  "footer": {
+    "description": "The #1 consumer protection platform in the Balkans. We help citizens resolve disputes with companies and institutions.",
+    "company": "Company",
+    "about": "About Us",
+    "careers": "Careers",
+    "press": "Press",
+    "legal": "Legal",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies",
+    "support": "Support",
+    "help": "Help Center",
+    "contact": "Contact Us",
+    "faq": "FAQ",
+    "social": "Follow Us",
+    "hours": "Hours: {hours}",
+    "copyright": "© {year} Interdomestik. All rights reserved.",
+    "disclaimer": "Claims assistance service. Not a law firm. We are not emergency services."
+  }
+}

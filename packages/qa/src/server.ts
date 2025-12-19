@@ -9,10 +9,9 @@ import { REPO_ROOT } from './utils/paths.js';
 
 dotenv.config({ path: path.join(REPO_ROOT, '.env') });
 
-const server = new Server(
-  { name: 'interdomestik-qa', version: '1.0.0' },
-  { capabilities: { tools: {} } }
-);
+// Server name defaults to interdomestik-qa; override with MCP_SERVER_NAME if needed.
+const serverName = process.env.MCP_SERVER_NAME || 'interdomestik-qa';
+const server = new Server({ name: serverName, version: '1.0.0' }, { capabilities: { tools: {} } });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
 
@@ -23,4 +22,4 @@ server.setRequestHandler(CallToolRequestSchema, async request => {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error('Interdomestik QA Server running on stdio');
+console.error(`Interdomestik QA Server running on stdio (name=${serverName})`);

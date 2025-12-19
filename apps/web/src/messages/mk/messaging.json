@@ -1,0 +1,18 @@
+{
+  "messaging": {
+    "title": "Mesazhet",
+    "placeholder": "Shkruani mesazhin tuaj...",
+    "sent": "Mesazhi u dërgua",
+    "sendError": "Dështoi dërgimi i mesazhit",
+    "shortcut": "Shtypni Ctrl+Enter për të dërguar",
+    "agentBadge": "Agjent",
+    "internalNote": "Shënim i Brendshëm",
+    "internalNoteLabel": "Dërgo si shënim të brendshëm (vetëm agjentët)",
+    "today": "Sot",
+    "yesterday": "Dje",
+    "empty": {
+      "title": "Nuk ka mesazhe ende",
+      "description": "Filloni një bisedë me agjentin tuaj të caktuar. Ai do të përgjigjet brenda 24 orëve."
+    }
+  }
+}

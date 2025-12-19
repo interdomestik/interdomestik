@@ -22,7 +22,7 @@ export const mockSelectChain = {
 vi.mock('@/lib/auth', () => ({
   auth: {
     api: {
-      getSession: () => mocks.getSession(),
+      getSession: hoistedMocks.getSession,
     },
   },
 }));
@@ -41,14 +41,14 @@ vi.mock('@interdomestik/database', () => ({
   user: { id: 'id', name: 'name', image: 'image', role: 'role' },
   db: {
     select: () => mockSelectChain,
-    insert: () => ({ values: mocks.dbInsert }),
-    update: () => ({ set: () => ({ where: mocks.dbUpdate }) }),
+    insert: () => ({ values: hoistedMocks.dbInsert }),
+    update: () => ({ set: () => ({ where: hoistedMocks.dbUpdate }) }),
     query: {
       claims: {
-        findFirst: () => mocks.dbQuery(),
+        findFirst: () => hoistedMocks.dbQuery(),
       },
       user: {
-        findFirst: () => mocks.dbUserQuery(),
+        findFirst: () => hoistedMocks.dbUserQuery(),
       },
     },
   },

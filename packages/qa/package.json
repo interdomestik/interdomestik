@@ -8,11 +8,11 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
-    "check": "tsx test-tools.ts"
+    "check": "tsx test-tools.ts",
+    "run-all-audits": "tsx run-all-audits.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.6.0",
+    "@modelcontextprotocol/sdk": "^1.25.1",
     "chalk": "^5.3.0",
     "dotenv": "^17.2.3",
     "zod": "^4.2.1"

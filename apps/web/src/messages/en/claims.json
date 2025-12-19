@@ -1,0 +1,55 @@
+{
+  "claims": {
+    "title": "My Claims",
+    "new": "New Claim",
+    "empty": {
+      "title": "No claims yet",
+      "description": "Start by creating your first claim"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "verification": "Verification",
+      "evaluation": "Evaluation",
+      "negotiation": "Negotiation",
+      "court": "Court",
+      "resolved": "Resolved",
+      "rejected": "Rejected",
+      "assigned": "Assigned",
+      "investigating": "Investigating",
+      "contacting": "Contacting",
+      "negotiating": "Negotiating",
+      "mediation": "Mediation",
+      "closed": "Closed"
+    },
+    "category": {
+      "consumer": "Consumer",
+      "housing": "Housing",
+      "insurance": "Insurance",
+      "employment": "Employment",
+      "contracts": "Contracts",
+      "utilities": "Utilities",
+      "auto": "Vehicle",
+      "travel": "Travel",
+      "retail": "Retail",
+      "real_estate": "Real Estate",
+      "flight_delay": "Flight Delay",
+      "damaged_goods": "Damaged Goods",
+      "service_issue": "Service Issue",
+      "other": "Other"
+    },
+    "priority": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "wizard": {
+      "step1": "Category",
+      "step2": "Details",
+      "step3": "Evidence",
+      "step4": "Review",
+      "submitClaim": "Submit Claim"
+    }
+  }
+}

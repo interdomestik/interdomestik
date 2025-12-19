@@ -4,9 +4,10 @@
  * Ensures all translation files have consistent keys across all locales.
  */
 
-import en from '@/messages/en.json';
-import sq from '@/messages/sq.json';
+import fs from 'fs';
+import path from 'path';
 import { describe, expect, it } from 'vitest';
+import { fileURLToPath } from 'url';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
@@ -20,6 +21,23 @@ type TranslationValue =
   | TranslationValue[]
   | { [key: string]: TranslationValue };
 type TranslationObject = { [key: string]: TranslationValue };
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const MESSAGES_DIR = path.resolve(__dirname, '../messages');
+
+function loadLocale(locale: string): TranslationObject {
+  const localeDir = path.join(MESSAGES_DIR, locale);
+  const files = fs.readdirSync(localeDir).filter(file => file.endsWith('.json'));
+
+  return files.reduce<TranslationObject>((acc, file) => {
+    const data = JSON.parse(fs.readFileSync(path.join(localeDir, file), 'utf8'));
+    return { ...acc, ...data };
+  }, {});
+}
+
+const en = loadLocale('en');
+const sq = loadLocale('sq');
 
 /**
  * Recursively extract all keys from a nested object.

@@ -17,6 +17,8 @@ export default defineConfig({
     },
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@interdomestik/ui': path.resolve(__dirname, '../../packages/ui/src'),
+      '@interdomestik/database': path.resolve(__dirname, '../../packages/database/src'),
     },
   },
 });

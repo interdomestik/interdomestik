@@ -1,0 +1,21 @@
+{
+  "features": {
+    "title": "Gjithçka që ju nevojitet për të mbrojtur të drejtat tuaja",
+    "claimManagement": {
+      "title": "Menaxhimi i Ankesave",
+      "description": "Krijoni dhe ndiqni ankesat tuaja nga fillimi deri në përfundim me statusin në kohë reale."
+    },
+    "professionalSupport": {
+      "title": "Mbështetje Profesionale",
+      "description": "Agjentët tanë ekspertë do t'ju ndihmojnë në çdo hap të procesit."
+    },
+    "documentManagement": {
+      "title": "Menaxhimi i Dokumenteve",
+      "description": "Ngarkoni dhe organizoni të gjitha dokumentet tuaja në një vend të sigurt."
+    },
+    "messaging": {
+      "title": "Komunikim i Sigurt",
+      "description": "Komunikoni me agjentët dhe ndiqni të gjitha bisedat në një vend."
+    }
+  }
+}

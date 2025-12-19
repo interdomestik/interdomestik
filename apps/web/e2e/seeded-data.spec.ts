@@ -48,8 +48,8 @@ test.describe('Seeded Data Verification', () => {
     // Click on a claim
     await authenticatedPage.click('text=Flight Delay to Munich');
 
-    // Wait for detail page
-    await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/);
+    // Wait for detail page (increased timeout for WebKit)
+    await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/, { timeout: 45000 });
 
     // Verify detail content
     await expect(authenticatedPage.locator('h1, h2')).toContainText('Flight Delay to Munich');

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the environment variable BEFORE any module imports
 vi.stubEnv('NOVU_API_KEY', 'test-api-key');
@@ -27,6 +27,9 @@ import {
 } from './notifications';
 
 describe('Notifications Service', () => {
+  // Silence expected error logs during failure-path tests
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.trigger.mockResolvedValue({
@@ -38,6 +41,10 @@ describe('Notifications Service', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.stubEnv('NOVU_API_KEY', 'test-api-key');
+  });
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   describe('sendNotification', () => {

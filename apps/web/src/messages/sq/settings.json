@@ -1,0 +1,73 @@
+{
+  "settings": {
+    "title": "Cilësimet",
+    "description": "Menaxhoni cilësimet e llogarisë dhe preferencat tuaja.",
+    "profile": {
+      "sectionTitle": "Informacioni i Profilit",
+      "title": "Profili",
+      "description": "Përditësoni informacionin tuaj personal.",
+      "fullName": "Emri i Plotë",
+      "fullNamePlaceholder": "Filan Fisteku",
+      "profileImage": "URL e Fotos së Profilit",
+      "profileImagePlaceholder": "https://shembull.com/avatar.jpg",
+      "saveChanges": "Ruaj Ndryshimet",
+      "saving": "Duke ruajtur...",
+      "success": "Profili u përditësua",
+      "successDescription": "Ndryshimet tuaja u ruajtën me sukses.",
+      "error": "Dështoi përditësimi i profilit"
+    },
+    "security": {
+      "sectionTitle": "Siguria",
+      "title": "Ndrysho Fjalëkalimin",
+      "description": "Siguroni llogarinë tuaj duke përdorur një fjalëkalim të fortë.",
+      "currentPassword": "Fjalëkalimi Aktual",
+      "newPassword": "Fjalëkalimi i Ri",
+      "confirmPassword": "Konfirmo Fjalëkalimin",
+      "updatePassword": "Përditëso Fjalëkalimin",
+      "updating": "Duke përditësuar...",
+      "success": "Fjalëkalimi u përditësua",
+      "successDescription": "Fjalëkalimi juaj u ndryshua me sukses.",
+      "error": "Dështoi ndryshimi i fjalëkalimit"
+    },
+    "language": {
+      "sectionTitle": "Gjuha & Rajoni",
+      "title": "Gjuha",
+      "description": "Zgjidhni gjuhën tuaj të preferuar për ndërfaqen.",
+      "selectLabel": "Zgjidh Gjuhën",
+      "selectPlaceholder": "Zgjidhni një gjuhë",
+      "hint": "Kjo do të ndryshojë gjuhën në të gjithë aplikacionin."
+    },
+    "notifications": {
+      "sectionTitle": "Njoftimet",
+      "title": "Preferencat e Njoftimeve",
+      "description": "Zgjidhni si dëshironi të merrni përditësime.",
+      "save": "Ruaj Preferencat",
+      "saving": "Duke ruajtur...",
+      "saved": "Preferencat u ruajtën",
+      "savedDescription": "Preferencat tuaja të njoftimeve u përditësuan.",
+      "email": {
+        "title": "Njoftimet me Email",
+        "claimUpdates": "Përditësimet e ankesave",
+        "claimUpdatesHint": "Merrni njoftime me email kur ndryshon statusi i ankesës.",
+        "newsletter": "Buletini",
+        "newsletterHint": "Merrni këshilla dhe përditësime rreth të drejtave të konsumatorit.",
+        "marketing": "Email promovuese",
+        "marketingHint": "Merrni oferta speciale dhe promocione."
+      },
+      "push": {
+        "title": "Njoftimet Push",
+        "claimUpdates": "Përditësimet e ankesave",
+        "claimUpdatesHint": "Merrni njoftime të menjëhershme për përditësime të rëndësishme.",
+        "messages": "Mesazhe të reja",
+        "messagesHint": "Njoftohuni kur një agjent ju dërgon mesazh."
+      },
+      "inApp": {
+        "title": "Njoftimet në Aplikacion",
+        "all": "Të gjitha njoftimet",
+        "allHint": "Shfaq të gjitha njoftimet në qendrën e njoftimeve."
+      },
+      "loadError": "Dështoi ngarkimi i preferencave",
+      "saveError": "Dështoi ruajtja e preferencave"
+    }
+  }
+}

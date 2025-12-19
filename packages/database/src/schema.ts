@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm';
 import { boolean, decimal, integer, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 // Based on technical description: Submission -> Verification -> Evaluation -> Negotiation -> Court -> Final
@@ -29,6 +30,7 @@ export const user = pgTable('user', {
   role: text('role').notNull().default('user'),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
+  agentId: text('agentId'), // Reference to the Agent managing this user
 });
 
 export const session = pgTable('session', {
@@ -129,3 +131,76 @@ export const leads = pgTable('leads', {
   createdAt: timestamp('createdAt').defaultNow(),
   updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
 });
+
+export const userNotificationPreferences = pgTable('user_notification_preferences', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  // Email notifications
+  emailClaimUpdates: boolean('email_claim_updates').default(true).notNull(),
+  emailMarketing: boolean('email_marketing').default(false).notNull(),
+  emailNewsletter: boolean('email_newsletter').default(true).notNull(),
+  // Push notifications
+  pushClaimUpdates: boolean('push_claim_updates').default(true).notNull(),
+  pushMessages: boolean('push_messages').default(true).notNull(),
+  // In-app notifications
+  inAppAll: boolean('in_app_all').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+export const subscriptions = pgTable('subscriptions', {
+  id: text('id').primaryKey(), // Paddle Subscription ID
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id),
+  status: text('status').notNull(), // active, past_due, paused, canceled
+  planId: text('plan_id').notNull(), // Paddle Price ID
+  currentPeriodEnd: timestamp('current_period_end'),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+});
+
+export const userRelations = relations(user, ({ many, one }) => ({
+  claims: many(claims),
+  agent: one(user, {
+    fields: [user.agentId],
+    references: [user.id],
+    relationName: 'user_agent',
+  }),
+  clients: many(user, {
+    relationName: 'user_agent',
+  }),
+}));
+
+export const claimsRelations = relations(claims, ({ one, many }) => ({
+  user: one(user, {
+    fields: [claims.userId],
+    references: [user.id],
+  }),
+  documents: many(claimDocuments),
+  messages: many(claimMessages),
+}));
+
+export const claimDocumentsRelations = relations(claimDocuments, ({ one }) => ({
+  claim: one(claims, {
+    fields: [claimDocuments.claimId],
+    references: [claims.id],
+  }),
+}));
+
+export const claimMessagesRelations = relations(claimMessages, ({ one }) => ({
+  claim: one(claims, {
+    fields: [claimMessages.claimId],
+    references: [claims.id],
+  }),
+  sender: one(user, {
+    fields: [claimMessages.senderId],
+    references: [user.id],
+  }),
+}));

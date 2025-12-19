@@ -1,0 +1,56 @@
+{
+  "wizard": {
+    "categories": {
+      "flight_delay": {
+        "label": "Flight Delay",
+        "description": "EU261 Compensation up to €600",
+        "examples": "Vonesë ose anulim i fluturimit, probleme me bagazhet"
+      },
+      "damaged_goods": {
+        "label": "Damaged Goods",
+        "description": "Items arrived broken or not as described",
+        "examples": "Paketime të dëmtuara, produkte me defekt, dërgesa të gabuara"
+      },
+      "service_issue": {
+        "label": "Service Issue",
+        "description": "Poor service from utilities, telecom, etc.",
+        "examples": "Ndërprerje interneti, faturim i gabuar, shërbim i pakënaqshëm"
+      },
+      "other": {
+        "label": "Other",
+        "description": "Any other consumer dispute",
+        "examples": "Mosmarrëveshje kontraktuale, çështje punësimi, sigurime"
+      },
+      "title": "Çfarë lloj ankese është kjo?",
+      "subtitle": "Zgjidhni kategorinë që i përshtatet më mirë çështjes suaj.",
+      "freeConsultation": "✨ Konsultim Falas i Përfshirë"
+    },
+    "details": {
+      "title": "Tell us what happened",
+      "subtitle": "Details help us process your claim faster.",
+      "claim_title": "Claim Title",
+      "claim_title_placeholder": "e.g. Flight delay to Berlin",
+      "claim_title_desc": "A short summary of the issue.",
+      "company": "Company Name",
+      "company_placeholder": "e.g. Lufthansa, Zara, VK Egnatia",
+      "amount": "Amount (Optional)",
+      "currency": "Currency",
+      "date": "Date of Incident",
+      "description": "Description",
+      "description_placeholder": "Describe exactly what happened..."
+    },
+    "review": {
+      "title": "Rishiko & Dërgo",
+      "subtitle": "Ju lutemi kontrolloni detajet para dërgimit.",
+      "summary": "Përmbledhja e Ankesës",
+      "category": "Kategoria",
+      "date": "Data",
+      "company": "Kompania",
+      "claim_title": "Titulli",
+      "description": "Përshkrimi",
+      "evidence": "Dëshmi",
+      "amount": "Shuma e Kërkuar",
+      "files_attached": "{count} skedarë bashkangjitur"
+    }
+  }
+}

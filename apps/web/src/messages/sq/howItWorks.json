@@ -1,0 +1,22 @@
+{
+  "howItWorks": {
+    "title": "Si Funksionon",
+    "subtitle": "Proces i thjeshtë me 4 hapa për të marrë kompensimin tuaj",
+    "step1": {
+      "title": "Dorëzoni Ankesën",
+      "description": "Plotësoni formularin tonë të thjeshtë me detajet e incidentit dhe ngarkoni dëshmitë."
+    },
+    "step2": {
+      "title": "Vlerësim Falas",
+      "description": "Ekspertët tanë shqyrtojnë rastin tuaj brenda 24 orëve dhe vlerësojnë shanset tuaja."
+    },
+    "step3": {
+      "title": "Ne Meremi me Gjithçka",
+      "description": "Negociojmë me siguruesit dhe palët e kundërta në emrin tuaj."
+    },
+    "step4": {
+      "title": "Merrni Kompensimin",
+      "description": "Merrni pagesën tuaj. Ne ngarkojmë vetëm nëse fitoni — Pa Fitim, Pa Pagesë."
+    }
+  }
+}

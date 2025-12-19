@@ -7,13 +7,15 @@ description: Development workflow for the Interdomestik project
 ## Quick Start
 
 // turbo
+
 1. Install dependencies
+
 ```bash
 npm install
 ```
 
-// turbo
-2. Start the development server
+// turbo 2. Start the development server
+
 ```bash
 npm run dev
 ```
@@ -22,13 +24,13 @@ npm run dev
 
 ## Available Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start all apps in development mode |
-| `npm run build` | Build all apps |
-| `npm run lint` | Lint all apps |
-| `npm run type-check` | Type check all apps |
-| `npm run format` | Format code with Prettier |
+| Script               | Description                        |
+| -------------------- | ---------------------------------- |
+| `npm run dev`        | Start all apps in development mode |
+| `npm run build`      | Build all apps                     |
+| `npm run lint`       | Lint all apps                      |
+| `npm run type-check` | Type check all apps                |
+| `npm run format`     | Format code with Prettier          |
 
 ## Project Structure
 
@@ -48,12 +50,14 @@ npm run dev
 
 // turbo
 Run type check:
+
 ```bash
 npm run type-check
 ```
 
 // turbo
 Run lint:
+
 ```bash
 npm run lint
 ```

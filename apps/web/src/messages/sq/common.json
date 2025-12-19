@@ -1,0 +1,25 @@
+{
+  "common": {
+    "appName": "Interdomestik",
+    "loading": "Duke u ngarkuar...",
+    "processing": "Duke procesuar...",
+    "save": "Ruaj",
+    "cancel": "Anulo",
+    "submit": "Dërgo",
+    "delete": "Fshij",
+    "edit": "Redakto",
+    "view": "Shiko",
+    "back": "Kthehu",
+    "next": "Vazhdo",
+    "previous": "Prapa",
+    "search": "Kërko",
+    "filter": "Filtro",
+    "all": "Të gjitha",
+    "none": "Asnjë",
+    "yes": "Po",
+    "no": "Jo",
+    "or": "ose",
+    "and": "dhe",
+    "admin": "Admin"
+  }
+}

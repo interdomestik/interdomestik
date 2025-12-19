@@ -1,8 +1,9 @@
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
+import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
+import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 import { headers } from 'next/headers';
 
 export default async function AdminLayout({
@@ -13,31 +14,41 @@ export default async function AdminLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) {
-    redirect({ href: '/login', locale });
-    return null;
+    redirect({ href: '/auth/sign-in', locale });
   }
 
-  // Enforce Admin Role
-  if (session.user.role !== 'admin') {
+  // Strict Role Check
+  if (session!.user.role !== 'admin' && session!.user.role !== 'agent') {
+    // Redirect unauthorized users back to their dashboard (or 403 page)
     redirect({ href: '/dashboard', locale });
-    return null;
   }
+
+  const allMessages = await getMessages();
+  const messages = {
+    ...pickMessages(allMessages, BASE_NAMESPACES),
+    ...pickMessages(allMessages, ADMIN_NAMESPACES),
+  };
 
   return (
-    <SidebarProvider>
-      <DashboardSidebar />
-      <SidebarInset>
-        <div className="flex flex-col min-h-screen">
-          <DashboardHeader />
-          <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <NextIntlClientProvider messages={messages} locale={locale}>
+      <div className="flex min-h-screen">
+        <AdminSidebar
+          className="w-64 hidden md:flex"
+          user={{
+            name: session!.user.name || 'Admin',
+            email: session!.user.email,
+            role: session!.user.role,
+          }}
+        />
+        <main className="flex-1 overflow-y-auto bg-background">
+          <div className="container mx-auto p-8">{children}</div>
+        </main>
+      </div>
+    </NextIntlClientProvider>
   );
 }

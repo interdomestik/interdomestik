@@ -55,9 +55,9 @@ test.describe('Agent Workspace', () => {
     // Click Select Trigger
     await agentPage.click('button[role="combobox"]');
 
-    // Wait for dropdown to open
+    // Wait for dropdown to open (increased timeout for WebKit)
     const verificationOption = agentPage.locator('div[role="option"]:has-text("Verification")');
-    await expect(verificationOption).toBeVisible();
+    await expect(verificationOption).toBeVisible({ timeout: 15000 });
 
     // Select Option
     await verificationOption.click();

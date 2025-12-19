@@ -1,0 +1,11 @@
+{
+  "dashboard": {
+    "welcome": "Mirësevini, {name}!",
+    "overview": "Përmbledhje",
+    "activeClaims": "Ankesa Aktive",
+    "resolvedClaims": "Ankesa të Zgjidhura",
+    "pendingActions": "Veprime në Pritje",
+    "recentActivity": "Aktiviteti i Fundit",
+    "quickActions": "Veprime të Shpejta"
+  }
+}

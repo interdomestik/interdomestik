@@ -30,6 +30,11 @@ export const tools = [
     inputSchema: { type: 'object', properties: {} },
   },
   {
+    name: 'run_coverage',
+    description: 'Run unit tests with coverage for the web application',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
     name: 'run_e2e_tests',
     description: 'Run E2E tests for the web application using Playwright',
     inputSchema: { type: 'object', properties: {} },
@@ -79,7 +84,10 @@ export const tools = [
   {
     name: 'git_diff',
     description: 'Get git diff of the repository',
-    inputSchema: { type: 'object', properties: { cached: { type: 'boolean', description: 'Show staged changes' } } },
+    inputSchema: {
+      type: 'object',
+      properties: { cached: { type: 'boolean', description: 'Show staged changes' } },
+    },
   },
   {
     name: 'code_search',

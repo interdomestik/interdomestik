@@ -1,0 +1,27 @@
+{
+  "admin": {
+    "sidebar": {
+      "dashboard": "Paneli",
+      "claims": "Ankesat",
+      "users": "Përdoruesit",
+      "analytics": "Analitika",
+      "settings": "Cilësimet"
+    },
+    "users_page": {
+      "title": "Menaxhimi i Përdoruesve",
+      "description": "Menaxho përdoruesit e platformës dhe rolet."
+    },
+    "users_table": {
+      "headers": {
+        "user": "Përdoruesi",
+        "role": "Roli",
+        "assigned_agent": "Agjenti i Caktuar",
+        "joined": "Regjistruar"
+      },
+      "select_agent": "Zgjidh Agjentin",
+      "unassigned": "I Pacaktuar",
+      "no_users": "Nuk u gjetën përdorues",
+      "success_message": "Përdoruesi u caktua me sukses"
+    }
+  }
+}

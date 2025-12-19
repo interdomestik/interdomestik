@@ -33,6 +33,7 @@
 ## 🎯 Complete Feature Breakdown
 
 ### 🚀 Near-Term Workstream: Prime Claims Experience (P0/P1)
+
 - **Goal:** Increase trust and completion for claim intake by modernizing the landing experience, evidence guidance, and SLA transparency.
 - **Scope (initial slice):**
   - Trust-centered hero and footer safety net (call/WhatsApp CTAs, proof chips, “no win, no fee” where compliant, response <24h).
@@ -743,6 +744,7 @@ Month 6: AI & Expansion
 ---
 
 ### Prime Claims Experience (Q-next, UX/Marketing uplift)
+
 - Homepage trust/conversion: hero (“Start your claim in minutes”), claim-specific services grid (vehicle/property/injury), trust strip, 24/7 contact.
 - Footer safety net: tap-to-call, WhatsApp, address/hours, reassurance line.
 - Guided wizard: category tooltips, evidence prompts (photos/docs), privacy badge, SLA microcopy.
@@ -752,6 +754,7 @@ Month 6: AI & Expansion
 ---
 
 ### Regionalization Track (Kosovo-first, then Balkans)
+
 - Kosovo hardening: sq/en, local contact (phone/WhatsApp/address/hours), consent/privacy copy aligned; keep No Win/No Fee and <24h response where upheld.
 - i18n completeness: add sr/mk locales; enforce translation completeness checks per release.
 - Market flags/config: per-country eligibility text, SLAs, and optional category toggles (e.g., flight delay) via feature flags.

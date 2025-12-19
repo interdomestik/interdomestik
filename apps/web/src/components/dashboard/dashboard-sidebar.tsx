@@ -83,10 +83,10 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="h-14 flex items-center justify-center border-b">
-        <div className="flex items-center gap-2 font-bold text-xl px-2 w-full group-data-[collapsible=icon]:justify-center">
+      <SidebarHeader className="h-16 flex items-center justify-center border-b">
+        <div className="flex items-center gap-2 font-bold text-xl px-2 w-full group-data-[state=collapsed]:justify-center">
           <Shield className="h-6 w-6 text-primary shrink-0" />
-          <span className="group-data-[collapsible=icon]:hidden">Interdomestik</span>
+          <span className="group-data-[state=collapsed]:hidden">Interdomestik</span>
         </div>
       </SidebarHeader>
       <SidebarContent>

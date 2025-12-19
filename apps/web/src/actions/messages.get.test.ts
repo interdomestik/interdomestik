@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
 import './messages.test.base';
-import { mocks, mockSelectChain, resetMocks } from './messages.test.base';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { getMessagesForClaim } from './messages';
+import { mocks, mockSelectChain, resetMocks } from './messages.test.base';
 
 describe('getMessagesForClaim', () => {
   beforeEach(() => {

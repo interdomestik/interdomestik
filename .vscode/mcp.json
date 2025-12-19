@@ -28,6 +28,11 @@
       "args": [],
       "description": "Local project QA tools including Database Query and Stripe Access (Custom)"
     },
+    "ecohub-qa": {
+      "command": "/Users/arbenlila/development/interdomestikv2/scripts/start-ecohub-qa.sh",
+      "args": [],
+      "description": "Interdomestik QA tools running as ecohub-qa"
+    },
     "postgres": {
       "command": "npx",
       "args": [

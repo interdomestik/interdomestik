@@ -1,0 +1,11 @@
+{
+  "dashboard": {
+    "welcome": "Welcome, {name}!",
+    "overview": "Overview",
+    "activeClaims": "Active Claims",
+    "resolvedClaims": "Resolved Claims",
+    "pendingActions": "Pending Actions",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions"
+  }
+}

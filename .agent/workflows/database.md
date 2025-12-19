@@ -7,17 +7,21 @@ description: Database setup and migration workflow
 ## Local Development Setup
 
 // turbo
+
 1. Install Supabase CLI (if not already installed)
+
 ```bash
 npm install -g supabase
 ```
 
 2. Start Supabase locally
+
 ```bash
 npx supabase start
 ```
 
 3. Get local credentials
+
 ```bash
 npx supabase status
 ```
@@ -28,18 +32,21 @@ npx supabase status
 
 // turbo
 Apply migrations to local database:
+
 ```bash
 npx supabase db push
 ```
 
 // turbo
 Generate TypeScript types from database:
+
 ```bash
 npm run db:generate
 ```
 
 // turbo
 Open Supabase Studio:
+
 ```bash
 npm run db:studio
 ```
@@ -54,6 +61,7 @@ npm run db:studio
 ## RLS Policies
 
 All tables have Row Level Security enabled:
+
 - `users` - Users can read/update own profile
 - `subscriptions` - Users can view own subscription
 - `claims` - Members can CRUD own claims, agents can view/update assigned

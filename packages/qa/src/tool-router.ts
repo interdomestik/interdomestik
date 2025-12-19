@@ -10,7 +10,7 @@ import {
 } from './tools/audits.js';
 import { codeSearch, gitDiff, gitStatus, projectMap, readFiles } from './tools/repo.js';
 import { checkHealth } from './tools/health.js';
-import { runE2ETests, runUnitTests } from './tools/tests.js';
+import { runCoverage, runE2ETests, runUnitTests } from './tools/tests.js';
 import { queryDb } from './tools/db.js';
 import { getStripeResource } from './tools/stripe.js';
 
@@ -32,6 +32,7 @@ const handlers: Record<string, Handler> = {
   audit_env: () => auditEnv(),
   check_health: () => checkHealth(),
   run_unit_tests: () => runUnitTests(),
+  run_coverage: () => runCoverage(),
   run_e2e_tests: () => runE2ETests(),
   query_db: args => queryDb(args),
   get_stripe_resource: args => getStripeResource(args),
