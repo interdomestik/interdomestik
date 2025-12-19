@@ -1,0 +1,11 @@
+{
+  "admin": {
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "claims": "Claims",
+      "users": "Users",
+      "analytics": "Analytics",
+      "settings": "Settings"
+    }
+  }
+}

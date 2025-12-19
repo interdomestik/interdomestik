@@ -9,14 +9,16 @@ const LOCALES_DIR = path.resolve(__dirname, '../apps/web/src/messages');
 const LOCALES = ['sq', 'en', 'sr', 'mk'];
 const CANONICAL_LOCALE = 'sq'; // User has been updating sq.json most recently
 
-function readJsonResult(locale) {
-  const filePath = path.join(LOCALES_DIR, `${locale}.json`);
+function readJsonResult(locale, namespaceFile) {
+  const filePath = path.join(LOCALES_DIR, locale, namespaceFile);
   if (!fs.existsSync(filePath)) return {};
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
-function writeJsonResult(locale, data) {
-  const filePath = path.join(LOCALES_DIR, `${locale}.json`);
+function writeJsonResult(locale, namespaceFile, data) {
+  const localeDir = path.join(LOCALES_DIR, locale);
+  fs.mkdirSync(localeDir, { recursive: true });
+  const filePath = path.join(localeDir, namespaceFile);
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
 }
 
@@ -69,19 +71,21 @@ function syncKeys(source, target) {
 
 function main() {
   console.log(`Using ${CANONICAL_LOCALE} as the canonical source.`);
-  const sourceData = readJsonResult(CANONICAL_LOCALE);
+  const canonicalDir = path.join(LOCALES_DIR, CANONICAL_LOCALE);
+  const namespaceFiles = fs
+    .readdirSync(canonicalDir)
+    .filter(file => file.endsWith('.json'));
 
   LOCALES.forEach(locale => {
     if (locale === CANONICAL_LOCALE) return;
 
     console.log(`Syncing ${locale}...`);
-    const targetData = readJsonResult(locale);
-
-    // We need to compare specific keys that might have been corrupted (cases, steps, faq)
-    // or just run full sync which now handles type mismatches.
-    const syncedData = syncKeys(sourceData, targetData);
-
-    writeJsonResult(locale, syncedData);
+    namespaceFiles.forEach(namespaceFile => {
+      const sourceData = readJsonResult(CANONICAL_LOCALE, namespaceFile);
+      const targetData = readJsonResult(locale, namespaceFile);
+      const syncedData = syncKeys(sourceData, targetData);
+      writeJsonResult(locale, namespaceFile, syncedData);
+    });
   });
 
   console.log('Locale synchronization complete.');

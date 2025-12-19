@@ -1,0 +1,92 @@
+{
+  "servicesPage": {
+    "badge": "Prime Claims Experience",
+    "title": "See exactly what we solve and how we work",
+    "subtitle": "Vehicle accidents, property damage, service issues, employment/consumer disputes — local experts in Albanian/English, fast response, and secure evidence handling.",
+    "startClaim": "Start your claim",
+    "whatsapp": "Chat on WhatsApp",
+    "whatWeSolve": "What we solve",
+    "casesTitle": "Top cases we handle",
+    "casesSubtitle": "Pick your category; we’ll guide you with the right evidence and next steps.",
+    "cases": [
+      {
+        "title": "Automjete & Trafik",
+        "description": "Përplasje, dëme nga palë të treta, goditje-dhe-ikje, mosmarrëveshje me qira."
+      },
+      {
+        "title": "Prona & Banesa",
+        "description": "Zjarri/përmbytje/vjedhje, mosmarrëveshje me qiradhënësit, garancia e depozitës."
+      },
+      {
+        "title": "Shërbime & Komunale",
+        "description": "Fatura ISP/telekom, ndërprerje, cilësia e shërbimit apo kontraktorëve."
+      },
+      {
+        "title": "Punësim & Konsumator",
+        "description": "Pagat e papaguara, çështje kontrate, mallra me defekt, rimbursime/kthime."
+      }
+    ],
+    "flightDelay": {
+      "title": "Flight Delay (EU261)",
+      "description": "Eligible for up to €600 compensation on delays/cancellations.",
+      "cta": "Start flight delay claim"
+    },
+    "howItWorks": "How it works",
+    "stepsTitle": "Speed & safety in four steps",
+    "steps": [
+      {
+        "title": "Tregona bazat",
+        "description": "Zgjidh kategorinë dhe shto detajet e shpejta."
+      },
+      {
+        "title": "Shto prova",
+        "description": "Ngarko foto/fatura; ne kontrollojmë mime/masë dhe i etikojmë si PII."
+      },
+      {
+        "title": "Rishikim nën 24h",
+        "description": "Sheh statusin + badge SLA në timeline."
+      },
+      {
+        "title": "Ne negociojmë për ty",
+        "description": "Merr përditësime dhe rezultate në aplikacion."
+      }
+    ],
+    "benefits": "Why trust us",
+    "benefitsTitle": "Speed, safety, support",
+    "benefit": {
+      "speed": {
+        "title": "Fast response",
+        "description": "Under-24h review on new submissions; SLA visible in your timeline."
+      },
+      "safety": {
+        "title": "PII-safe uploads",
+        "description": "Signed URLs, allowed mime/size, PII-tagged storage, privacy badge in review."
+      },
+      "people": {
+        "title": "Local experts",
+        "description": "Balkan claim adjusters with Albanian/English support and clear contact options."
+      }
+    },
+    "faqTitle": "FAQs",
+    "faq": [
+      {
+        "question": "A duhet patjetër provë për të nisur?",
+        "answer": "Mund të dërgoni pa prova, por rezultati është më i shpejtë me fatura/foto. Shtoji tani ose më vonë."
+      },
+      {
+        "question": "Sa shpejt përgjigjeni?",
+        "answer": "Synojmë nën 24h për ankesat e reja. SLA shfaqet në timeline."
+      },
+      {
+        "question": "A janë të sigurta të dhënat e mia?",
+        "answer": "Po. URL të nënshkruara, kontrolle mime/masash, ruajtje me shenjë PII dhe njoftim privatësie në rishikim."
+      },
+      {
+        "question": "A ofroni pa fitim, pa pagesë?",
+        "answer": "Kur është e zbatueshme dhe në përputhje. Shih hero/footer dhe çmimet për ofertat aktuale."
+      }
+    ],
+    "contactTitle": "Prefer to talk?",
+    "contactSubtitle": "Call or WhatsApp us, or start the claim online and we’ll follow up."
+  }
+}

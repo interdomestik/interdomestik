@@ -1,0 +1,7 @@
+{
+  "timeline": {
+    "nextSla": "SLA tjetër: {target}",
+    "atRisk": "Kërkon vëmendje",
+    "updatedAt": "Përditësuar: {date}"
+  }
+}

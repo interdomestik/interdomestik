@@ -1,0 +1,73 @@
+{
+  "services": {
+    "meta": {
+      "title": "Shërbimet Prime | Interdomestik",
+      "description": "Trajtim i shpejtë, i sigurt dhe profesional i ankesave për dëme automjetesh, çështje pronësore dhe lëndime personale."
+    },
+    "hero": {
+      "title": "Shërbim Profesional për Zgjidhjen e Ankesave",
+      "subtitle": "Ne menaxhojmë kompleksitetin e ankesave në mënyrë që ju të merrni kompensimin që meritoni. Shpejt, sigurt dhe transparente.",
+      "cta": "Fillo Ankesën Tënde"
+    },
+    "solutions": {
+      "title": "Çfarë Zgjidhim",
+      "vehicle": {
+        "title": "Automjete & Trafik",
+        "description": "Dëme nga aksidentet, përgjegjësi ndaj palëve të treta dhe incidente goditje-largim."
+      },
+      "property": {
+        "title": "Dëme Pronësore",
+        "description": "Zjarr, përmbytje, vjedhje ose dëmtime në shtëpinë apo biznesin tuaj."
+      },
+      "injury": {
+        "title": "Lëndime Personale",
+        "description": "Kompensim për lëndimet e pësuara për shkak të aksidenteve ose neglizhencës."
+      },
+      "flight": {
+        "title": "Vonesa Fluturimesh",
+        "description": "Deri në 600€ kompensim për fluturime të vonuara ose të anuluara (EU261)."
+      }
+    },
+    "process": {
+      "title": "Si Funksionon",
+      "step1": {
+        "title": "1. Fillo Ankesën",
+        "description": "Plotëso formularin tonë të thjeshtë brenda 5 minutash."
+      },
+      "step2": {
+        "title": "2. Ne e Shqyrtojmë",
+        "description": "Ekspertët tanë analizojnë rastin dhe dëshmitë tuaja brenda 24 orëve."
+      },
+      "step3": {
+        "title": "3. Zgjidhja",
+        "description": "Ne negociojmë me palën tjetër për të siguruar kompensimin tuaj."
+      }
+    },
+    "safety": {
+      "title": "Shpejtësi & Siguri",
+      "speed": {
+        "title": "Regjistrim i Shpejtë",
+        "description": "Duhen më pak se 5 minuta për të dërguar."
+      },
+      "response": {
+        "title": "Përgjigje në 24h",
+        "description": "Ne shqyrtojmë çdo ankesë të re brenda 24 orëve."
+      },
+      "secure": {
+        "title": "Të Dhëna të Sigurta",
+        "description": "Dokumentet tuaja janë të enkriptuara dhe të mbrojtura."
+      }
+    },
+    "faq": {
+      "title": "Pyetjet e Shpeshta",
+      "q1": "Sa kushton?",
+      "a1": "Ne operojmë në bazë të 'Pa Fitore, Pa Pagesë' për shumicën e ankesave. Paguani vetëm një përqindje të vogël nëse kemi sukses.",
+      "q2": "Sa kohë merr?",
+      "a2": "Ankesat e thjeshta zgjidhen në javë. Rastet komplekse mund të marrin më shumë kohë, por ne ju mbajmë të informuar."
+    },
+    "finalCta": {
+      "title": "Gati për të filluar?",
+      "btn": "Hap Një Ankesë Tani"
+    }
+  }
+}

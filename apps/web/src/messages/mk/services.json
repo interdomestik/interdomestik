@@ -1,0 +1,12 @@
+{
+  "services": {
+    "speed": {
+      "title": "Speed Guarantee",
+      "desc": "We review all new claims within <bold>24 business hours</bold>. You won't be left wondering."
+    },
+    "safety": {
+      "title": "No Win, No Fee",
+      "desc": "You pay nothing upfront. Our service fee is deducted only from the final compensation."
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account settings and preferences.",
+    "profile": {
+      "sectionTitle": "Profile Information",
+      "title": "Profile",
+      "description": "Update your personal information."
+    },
+    "security": {
+      "sectionTitle": "Security",
+      "title": "Change Password",
+      "description": "Ensure your account is secure."
+    },
+    "language": {
+      "sectionTitle": "Language & Region",
+      "title": "Language",
+      "description": "Choose your preferred language for the interface.",
+      "selectLabel": "Select Language",
+      "selectPlaceholder": "Select a language",
+      "hint": "This will change the language throughout the application."
+    },
+    "notifications": {
+      "sectionTitle": "Notifications",
+      "title": "Notification Preferences",
+      "description": "Choose how you want to receive updates.",
+      "save": "Save Preferences",
+      "saving": "Saving...",
+      "saved": "Preferences saved",
+      "savedDescription": "Your notification preferences have been updated.",
+      "email": {
+        "title": "Email Notifications",
+        "claimUpdates": "Claim updates",
+        "claimUpdatesHint": "Receive email notifications when your claim status changes.",
+        "newsletter": "Newsletter",
+        "newsletterHint": "Receive tips and updates about consumer rights.",
+        "marketing": "Promotional emails",
+        "marketingHint": "Receive special offers and promotions."
+      },
+      "push": {
+        "title": "Push Notifications",
+        "claimUpdates": "Claim updates",
+        "claimUpdatesHint": "Get instant notifications for important updates.",
+        "messages": "New messages",
+        "messagesHint": "Be notified when an agent sends you a message."
+      },
+      "inApp": {
+        "title": "In-App Notifications",
+        "all": "All notifications",
+        "allHint": "Show all notifications in the app's notification center."
+      },
+      "loadError": "Неуспешно учитавање подешавања",
+      "saveError": "Неуспешно чување подешавања"
+    }
+  }
+}

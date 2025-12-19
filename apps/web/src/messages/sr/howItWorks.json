@@ -1,0 +1,22 @@
+{
+  "howItWorks": {
+    "title": "How It Works",
+    "subtitle": "Simple 4-step process to get your compensation",
+    "step1": {
+      "title": "Submit Your Claim",
+      "description": "Fill out our simple form with your incident details and upload any evidence."
+    },
+    "step2": {
+      "title": "Free Evaluation",
+      "description": "Our experts review your case within 24 hours and assess your chances."
+    },
+    "step3": {
+      "title": "We Handle Everything",
+      "description": "We negotiate with insurers and opposing parties on your behalf."
+    },
+    "step4": {
+      "title": "Get Compensated",
+      "description": "Receive your payout. We only charge if you win — No Win, No Fee."
+    }
+  }
+}

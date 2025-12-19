@@ -1,0 +1,56 @@
+{
+  "evidence": {
+    "title": "Add Evidence",
+    "subtitle": "Upload receipts, tickets, or photos.",
+    "upload": {
+      "cta": "Click to upload files",
+      "sub": "PDF, JPG, or PNG up to 10MB",
+      "secure": "Signed URL uploads · PII-tagged storage"
+    },
+    "tooltip": "Clear evidence increases your chance of success by 40%. Include any police reports or medical bills.",
+    "promptTitle": "Add these for faster results",
+    "promptDescription": "Pick a couple of items below so we can start quickly.",
+    "prompts": {
+      "flight_delay": [
+        "Bileta ose boarding pass",
+        "Njoftimi i vonesës/anulimit nga linja",
+        "Fatura për ushqim/hotel/transport"
+      ],
+      "damaged_goods": [
+        "Foto të dëmit",
+        "Faturë ose kupon blerjeje",
+        "Vlerësim ose preventiv riparimi"
+      ],
+      "service_issue": [
+        "Kontratë ose faturë",
+        "Screenshote bisedash/email",
+        "Fatura ose njoftim anulimi"
+      ],
+      "travel": [
+        "Itinerari dhe biletat",
+        "Foto/video të incidentit",
+        "Fatura për shpenzime"
+      ],
+      "default": [
+        "Foto ose screenshote",
+        "Fatura/kupona",
+        "Çdo korrespondencë zyrtare"
+      ]
+    },
+    "validation": {
+      "mime": "Only PDF, JPG, or PNG files are allowed.",
+      "size": "Files must be 10MB or smaller.",
+      "prepare": "Failed to prepare upload. Please try again.",
+      "upload": "Upload failed. Please try again."
+    },
+    "emptyWarning": {
+      "title": "You can submit without evidence",
+      "body": "But your claim moves faster with receipts or photos. Add them now or later."
+    },
+    "privacyBadgeTitle": "Your data stays private",
+    "privacyBadge": "PII-tagged files, signed URLs, encrypted in transit.",
+    "slaTitle": "Response SLA",
+    "slaCopy": "We respond in under 24h on new submissions.",
+    "consent": "By submitting, you agree to our Terms of Service and Privacy Policy."
+  }
+}

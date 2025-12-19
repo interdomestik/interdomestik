@@ -1,5 +1,8 @@
+'use client';
+
 import { Link } from '@/i18n/routing';
 import { BarChart, FileText, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface AdminSidebarProps {
   className?: string;
@@ -10,37 +13,42 @@ interface AdminSidebarProps {
   };
 }
 
-const sidebarItems = [
-  {
-    title: 'Dashboard',
-    href: '/admin',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'Claims',
-    href: '/admin/claims',
-    icon: FileText,
-  },
-  {
-    title: 'Users',
-    href: '/admin/users',
-    icon: Users,
-  },
-  {
-    title: 'Analytics',
-    href: '/admin/analytics',
-    icon: BarChart,
-  },
-  {
-    title: 'Settings',
-    href: '/admin/settings',
-    icon: Settings,
-  },
-];
-
 export function AdminSidebar({ className, user }: AdminSidebarProps) {
+  const t = useTranslations('admin.sidebar');
+  const containerClassName = ['flex flex-col h-screen border-r bg-muted/30', className]
+    .filter(Boolean)
+    .join(' ');
+
+  const sidebarItems = [
+    {
+      title: 'dashboard',
+      href: '/admin',
+      icon: LayoutDashboard,
+    },
+    {
+      title: 'claims',
+      href: '/admin/claims',
+      icon: FileText,
+    },
+    {
+      title: 'users',
+      href: '/admin/users',
+      icon: Users,
+    },
+    {
+      title: 'analytics',
+      href: '/admin/analytics',
+      icon: BarChart,
+    },
+    {
+      title: 'settings',
+      href: '/admin/settings',
+      icon: Settings,
+    },
+  ];
+
   return (
-    <div className={`flex flex-col h-screen border-r bg-muted/30 ${className}`}>
+    <div className={containerClassName}>
       <div className="p-6 border-b">
         <Link href="/admin" className="flex items-center gap-2 font-bold text-xl">
           <span className="text-primary">Admin</span>
@@ -57,7 +65,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-muted"
             >
               <item.icon className="h-4 w-4" />
-              <span>{item.title}</span>
+              <span>{t(item.title)}</span>
             </Link>
           ))}
         </nav>

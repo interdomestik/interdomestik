@@ -1,0 +1,47 @@
+{
+  "agent": {
+    "title": "Hapësira e Agjentit",
+    "dashboard": "Paneli",
+    "claims": "Ankesat",
+    "stats": {
+      "total": "Gjithsej Ankesa",
+      "new": "Të Reja",
+      "verification": "Në Verifikim",
+      "closed": "Të Mbyllura"
+    },
+    "table": {
+      "claimant": "Ankuesi",
+      "status": "Statusi",
+      "date": "Data",
+      "actions": "Veprime",
+      "triage": "Vlerësim"
+    },
+    "actions": {
+      "approve": "Aprovo",
+      "reject": "Refuzo",
+      "requestInfo": "Kërko Info",
+      "review": "Rishiko Rastin"
+    },
+    "details": {
+      "title": "Detajet e Ankesës",
+      "claimantInfo": "Informacioni i Kërkuesit",
+      "name": "Emri",
+      "email": "Email",
+      "description": "Përshkrimi",
+      "amount": "Shuma",
+      "company": "Subjekti / Kompania",
+      "evidence": "Dosjet e Dëshmive",
+      "noEvidence": "Nuk ka dokumente të ngarkuara.",
+      "notes": "Shënime të Brendshme",
+      "notesPlaceholder": "Opsioni i shënimeve private të agjentit vjen së shpejti."
+    },
+    "triage": {
+      "title": "Veprimet e Vlerësimit",
+      "changeStatus": "Ndrysho Statusin",
+      "selectStatus": "Zgjidh statusin",
+      "verify": "Verifiko Info",
+      "reject": "Refuzo Ankesën",
+      "notice": "Ndryshimi i statusit përditëson menjëherë kohështrirjen e përdoruesit."
+    }
+  }
+}

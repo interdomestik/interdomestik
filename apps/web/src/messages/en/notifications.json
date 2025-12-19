@@ -1,0 +1,26 @@
+{
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet",
+    "markAllRead": "Mark all as read",
+    "viewAll": "View all notifications",
+    "settings": "Notification Settings",
+    "preferences": {
+      "title": "Notification Preferences",
+      "description": "Choose how and when you want to receive notifications",
+      "email": "Email notifications",
+      "emailDescription": "Receive updates via email",
+      "inApp": "In-app notifications",
+      "inAppDescription": "Receive notifications in the app",
+      "push": "Push notifications",
+      "pushDescription": "Receive push notifications on your device"
+    },
+    "types": {
+      "claimSubmitted": "Claim Submitted",
+      "claimAssigned": "Claim Assigned",
+      "statusChanged": "Status Changed",
+      "newMessage": "New Message",
+      "slaWarning": "SLA Warning"
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "wizard": {
+    "categories": {
+      "title": "What type of claim is this?",
+      "subtitle": "Select the category that best fits your issue.",
+      "freeConsultation": "✨ Free Consultation Included",
+      "flight_delay": {
+        "label": "Flight Delay",
+        "description": "EU261 Compensation up to €600",
+        "examples": "Flight delay or cancellation, lost baggage"
+      },
+      "damaged_goods": {
+        "label": "Damaged Goods",
+        "description": "Items arrived broken or not as described",
+        "examples": "Damaged packaging, defective products, wrong item"
+      },
+      "service_issue": {
+        "label": "Service Issue",
+        "description": "Poor service from utilities, telecom, etc.",
+        "examples": "Internet outage, billing errors, rude service"
+      },
+      "other": {
+        "label": "Other",
+        "description": "Any other consumer dispute",
+        "examples": "Contract disputes, employment issues, insurance"
+      }
+    },
+    "details": {
+      "title": "Tell us what happened",
+      "subtitle": "Details help us process your claim faster.",
+      "claim_title": "Claim Title",
+      "claim_title_placeholder": "e.g. Flight delay to Berlin",
+      "claim_title_desc": "A short summary of the issue.",
+      "company": "Company Name",
+      "company_placeholder": "e.g. Lufthansa, Zara, VK Egnatia",
+      "amount": "Amount (Optional)",
+      "currency": "Currency",
+      "date": "Date of Incident",
+      "description": "Description",
+      "description_placeholder": "Describe exactly what happened..."
+    },
+    "review": {
+      "title": "Review & Submit",
+      "subtitle": "Please check your details before submitting.",
+      "summary": "Claim Summary",
+      "category": "Category",
+      "date": "Date",
+      "company": "Company",
+      "claim_title": "Title",
+      "description": "Description",
+      "evidence": "Evidence",
+      "amount": "Claim Amount",
+      "files_attached": "{count} files attached"
+    }
+  }
+}

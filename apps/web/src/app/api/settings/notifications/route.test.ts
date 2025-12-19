@@ -57,6 +57,7 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
+  relations: vi.fn(),
 }));
 
 vi.mock('nanoid', () => ({
@@ -324,7 +325,7 @@ describe('POST /api/settings/notifications', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(data).toEqual({ error: 'Failed to save preferences' });
+    expect(response.status).toBe(400);
+    expect(data).toEqual({ error: 'Invalid JSON' });
   });
 });

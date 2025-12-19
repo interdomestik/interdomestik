@@ -1,0 +1,19 @@
+{
+  "nav": {
+    "home": "Ballina",
+    "dashboard": "Paneli",
+    "claims": "Ankesat",
+    "newClaim": "Ankesë e Re",
+    "documents": "Dokumentet",
+    "messages": "Mesazhet",
+    "settings": "Cilësimet",
+    "profile": "Profili",
+    "logout": "Dil",
+    "login": "Hyr",
+    "register": "Regjistrohu",
+    "pricing": "Çmimet",
+    "about": "Rreth Nesh",
+    "contact": "Kontakti",
+    "help": "Ndihmë"
+  }
+}

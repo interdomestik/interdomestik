@@ -1,0 +1,47 @@
+{
+  "agent": {
+    "title": "Agent Workspace",
+    "dashboard": "Dashboard",
+    "claims": "Claims",
+    "stats": {
+      "total": "Total Claims",
+      "new": "New (Submitted)",
+      "verification": "In Verification",
+      "closed": "Resolved / Rejected"
+    },
+    "table": {
+      "claimant": "Claimant",
+      "status": "Status",
+      "date": "Date",
+      "actions": "Actions",
+      "triage": "Triage"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "requestInfo": "Request Info",
+      "review": "Review Case"
+    },
+    "details": {
+      "title": "Claim Details",
+      "claimantInfo": "Claimant Information",
+      "name": "Name",
+      "email": "Email",
+      "description": "Description",
+      "amount": "Amount",
+      "company": "Subject / Company",
+      "evidence": "Evidence Files",
+      "noEvidence": "No documents uploaded.",
+      "notes": "Internal Notes",
+      "notesPlaceholder": "Private agent notes feature coming soon."
+    },
+    "triage": {
+      "title": "Triage Actions",
+      "changeStatus": "Change Status",
+      "selectStatus": "Select status",
+      "verify": "Verify Info",
+      "reject": "Reject Claim",
+      "notice": "Changing status updates the user's timeline immediately."
+    }
+  }
+}

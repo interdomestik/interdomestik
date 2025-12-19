@@ -1,0 +1,56 @@
+{
+  "wizard": {
+    "categories": {
+      "title": "Çfarë lloj ankese është kjo?",
+      "subtitle": "Zgjidhni kategorinë që i përshtatet më mirë çështjes suaj.",
+      "freeConsultation": "✨ Konsultim Falas i Përfshirë",
+      "flight_delay": {
+        "label": "Vonesë Fluturimi",
+        "description": "Kompensim EU261 deri në €600",
+        "examples": "Vonesë ose anulim i fluturimit, probleme me bagazhet"
+      },
+      "damaged_goods": {
+        "label": "Mallra të Dëmtuara",
+        "description": "Artikujt mbërritën të thyer ose jo siç përshkruhen",
+        "examples": "Paketime të dëmtuara, produkte me defekt, dërgesa të gabuara"
+      },
+      "service_issue": {
+        "label": "Problem me Shërbimin",
+        "description": "Shërbim i dobët nga shërbimet komunale, telekomi, etj.",
+        "examples": "Ndërprerje interneti, faturim i gabuar, shërbim i pakënaqshëm"
+      },
+      "other": {
+        "label": "Tjetër",
+        "description": "Çdo mosmarrëveshje tjetër e konsumatorit",
+        "examples": "Mosmarrëveshje kontraktuale, çështje punësimi, sigurime"
+      }
+    },
+    "details": {
+      "title": "Na tregoni çfarë ndodhi",
+      "subtitle": "Detajet na ndihmojnë ta përpunojmë rastin më shpejt.",
+      "claim_title": "Titulli i Ankesës",
+      "claim_title_placeholder": "p.sh. Vonesë fluturimi për në Berlin",
+      "claim_title_desc": "Një përmbledhje e shkurtër e problemit.",
+      "company": "Emri i Kompanisë",
+      "company_placeholder": "p.sh. Lufthansa, Zara, VK Egnatia",
+      "amount": "Shuma (Opsionale)",
+      "currency": "Monedha",
+      "date": "Data e Incidentit",
+      "description": "Përshkrimi",
+      "description_placeholder": "Përshkruani saktësisht çfarë ndodhi..."
+    },
+    "review": {
+      "title": "Rishiko & Dërgo",
+      "subtitle": "Ju lutemi kontrolloni detajet para dërgimit.",
+      "summary": "Përmbledhja e Ankesës",
+      "category": "Kategoria",
+      "date": "Data",
+      "company": "Kompania",
+      "claim_title": "Titulli",
+      "description": "Përshkrimi",
+      "evidence": "Dëshmi",
+      "amount": "Shuma e Kërkuar",
+      "files_attached": "{count} skedarë bashkangjitur"
+    }
+  }
+}

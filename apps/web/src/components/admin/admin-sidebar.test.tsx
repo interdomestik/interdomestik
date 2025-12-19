@@ -28,7 +28,6 @@ describe('AdminSidebar', () => {
     );
 
     expect(screen.getByText('Admin User')).toBeDefined();
-    expect(screen.getByText('admin@example.com')).toBeDefined();
     expect(screen.getByText('admin')).toBeDefined();
   });
 

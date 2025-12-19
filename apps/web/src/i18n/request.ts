@@ -1,5 +1,6 @@
 import { getRequestConfig } from 'next-intl/server';
 import { routing } from './routing';
+import { loadAllMessages } from './messages';
 
 export default getRequestConfig(async ({ requestLocale }) => {
   // Get the locale from the request
@@ -12,6 +13,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
+    messages: await loadAllMessages(locale),
   };
 });

@@ -7,7 +7,8 @@ import path from 'path';
 const ROOT = process.cwd();
 const locales = ['en', 'sq', 'sr', 'mk'];
 const namespaces = ['hero', 'trust', 'nav'];
-const fileFor = locale => path.join(ROOT, 'apps/web/src/messages', `${locale}.json`);
+const fileFor = (locale, namespace) =>
+  path.join(ROOT, 'apps/web/src/messages', locale, `${namespace}.json`);
 
 function readJson(file) {
   try {
@@ -29,10 +30,10 @@ function flatten(obj, prefix = '') {
   }, []);
 }
 
-const base = readJson(fileFor('en'));
 let failures = [];
 
 for (const ns of namespaces) {
+  const base = readJson(fileFor('en', ns));
   const baseSection = base[ns];
   if (!baseSection) {
     failures.push(`Base locale missing namespace: ${ns}`);
@@ -41,7 +42,7 @@ for (const ns of namespaces) {
   const baseKeys = flatten(baseSection, ns);
 
   for (const locale of locales.filter(l => l !== 'en')) {
-    const data = readJson(fileFor(locale));
+    const data = readJson(fileFor(locale, ns));
     const section = data[ns];
     if (!section) {
       failures.push(`[${locale}] missing namespace: ${ns}`);

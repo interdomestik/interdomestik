@@ -1,0 +1,11 @@
+{
+  "admin": {
+    "sidebar": {
+      "dashboard": "Paneli",
+      "claims": "Ankesat",
+      "users": "Përdoruesit",
+      "analytics": "Analitika",
+      "settings": "Cilësimet"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "pricing": {
+    "title": "Çmime të Përballueshme",
+    "subtitle": "Zgjidhni planin që i përshtatet nevojave tuaja",
+    "monthly": "Mujore",
+    "yearly": "Vjetore",
+    "basic": {
+      "name": "Bazik",
+      "price": "€5",
+      "period": "/muaj",
+      "description": "Për përdorim personal të rastësishëm",
+      "features": [
+        "3 ankesa në vit",
+        "Mbështetje me email",
+        "Ngarkim dokumentesh",
+        "Ndjekje e statusit"
+      ]
+    },
+    "standard": {
+      "name": "Standard",
+      "price": "€10",
+      "period": "/muaj",
+      "description": "Për përdorim të rregullt",
+      "features": [
+        "10 ankesa në vit",
+        "Mbështetje prioritare",
+        "Chat i drejtpërdrejtë",
+        "Ndjekje e avancuar"
+      ],
+      "popular": "Më Popullorja"
+    },
+    "premium": {
+      "name": "Premium",
+      "price": "€15",
+      "period": "/muaj",
+      "description": "Për mbrojtje të plotë",
+      "features": [
+        "Ankesa të pakufizuara",
+        "Mbështetje VIP",
+        "Thirrje telefonike",
+        "Nënshkrim elektronik",
+        "Përfaqësim ligjor"
+      ]
+    },
+    "cta": "Zgjidh Planin",
+    "loginRequired": "Ju lutemi kyçuni për të parë çmimet e personalizuara dhe për të përmirësuar llogarinë tuaj.",
+    "meta": {
+      "title": "Çmimet - Interdomestik",
+      "description": "Zgjidhni planin e duhur për nevojat tuaja të mbrojtjes së konsumatorit."
+    }
+  }
+}

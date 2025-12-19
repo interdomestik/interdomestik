@@ -1,3 +1,4 @@
+import { BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { routing } from '@/i18n/routing';
 import '@interdomestik/ui/globals.css';
 import type { Metadata } from 'next';
@@ -15,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const messages = (await import(`@/messages/${locale}.json`)).default;
+  const messages = (await import(`@/messages/${locale}/metadata.json`)).default;
 
   return {
     title: {
@@ -50,7 +51,8 @@ export default async function RootLayout({ children, params }: Props) {
   setRequestLocale(locale);
 
   // Fetch messages for the locale
-  const messages = await getMessages();
+  const allMessages = await getMessages();
+  const messages = pickMessages(allMessages, BASE_NAMESPACES);
 
   return (
     <html lang={locale} suppressHydrationWarning>

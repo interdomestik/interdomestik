@@ -30,7 +30,7 @@ interdomestikv2/
 │       │   │   └── [locale]/   # i18n routing
 │       │   ├── i18n/           # i18n configuration
 │       │   ├── lib/            # Utilities (Stripe, etc.)
-│       │   └── messages/       # Translation JSON files
+│       │   └── messages/       # Translation JSON files by locale/namespace
 │       ├── next.config.mjs
 │       ├── tailwind.config.js
 │       └── package.json
@@ -108,12 +108,13 @@ The app supports:
 - 🇦🇱 **Albanian (sq)** - Default language
 - 🇬🇧 **English (en)**
 
-Translation files are located in `apps/web/src/messages/`.
+Translation files are located in `apps/web/src/messages/{locale}/`.
 
 ### Adding a new language
 
-1. Create a new JSON file: `apps/web/src/messages/{locale}.json`
-2. Add the locale to `apps/web/src/i18n/routing.ts`
+1. Create a locale folder: `apps/web/src/messages/{locale}/`
+2. Copy namespace files from an existing locale (e.g. `en`) and translate
+3. Add the locale to `apps/web/src/i18n/routing.ts`
 
 ## 💳 Stripe Setup
 

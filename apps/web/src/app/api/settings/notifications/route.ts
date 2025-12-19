@@ -59,7 +59,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body: {
+      emailClaimUpdates: boolean;
+      emailMarketing: boolean;
+      emailNewsletter: boolean;
+      pushClaimUpdates: boolean;
+      pushMessages: boolean;
+      inAppAll: boolean;
+    };
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
 
     // Validate the request body
     const {

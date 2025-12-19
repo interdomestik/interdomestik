@@ -1,0 +1,56 @@
+{
+  "evidence": {
+    "title": "Shto Dëshmi",
+    "subtitle": "Ngarkoni fatura, bileta ose foto.",
+    "upload": {
+      "cta": "Klikoni për të ngarkuar skedarë",
+      "sub": "PDF, JPG ose PNG deri në 10MB",
+      "secure": "URL të nënshkruara · Ruajtje PII"
+    },
+    "tooltip": "Dëshmia e qartë rrit mundësinë tuaj për sukses me 40%. Përfshini çdo raport policie ose faturë mjekësore.",
+    "promptTitle": "Shto këto për përgjigje më të shpejtë",
+    "promptDescription": "Zgjidh disa nga këto dokumente për ta nisur shpejt.",
+    "prompts": {
+      "flight_delay": [
+        "Bileta ose boarding pass",
+        "Njoftimi i vonesës/anulimit nga linja",
+        "Fatura për ushqim/hotel/transport"
+      ],
+      "damaged_goods": [
+        "Foto të dëmit",
+        "Faturë ose kupon blerjeje",
+        "Vlerësim ose preventiv riparimi"
+      ],
+      "service_issue": [
+        "Kontratë ose faturë",
+        "Screenshote bisedash/email",
+        "Fatura ose njoftim anulimi"
+      ],
+      "travel": [
+        "Itinerari dhe biletat",
+        "Foto/video të incidentit",
+        "Fatura për shpenzime"
+      ],
+      "default": [
+        "Foto ose screenshote",
+        "Fatura/kupona",
+        "Çdo korrespondencë zyrtare"
+      ]
+    },
+    "validation": {
+      "mime": "Lejohen vetëm PDF, JPG ose PNG.",
+      "size": "Skedarët duhet të jenë 10MB ose më pak.",
+      "prepare": "Dështoi përgatitja e ngarkimit. Provo sërish.",
+      "upload": "Ngarkimi dështoi. Provo sërish."
+    },
+    "emptyWarning": {
+      "title": "Mund të dërgoni pa dëshmi",
+      "body": "Por ankesa lëviz më shpejt me fatura apo foto. Shtoji tani ose më vonë."
+    },
+    "privacyBadgeTitle": "Të dhënat tuaja mbeten private",
+    "privacyBadge": "Skedarë me shenjë PII, URL të nënshkruara, të enkriptuara në transit.",
+    "slaTitle": "SLA e përgjigjes",
+    "slaCopy": "Përgjigjemi brenda 24h për kërkesat e reja.",
+    "consent": "Duke dërguar, pranoni Kushtet e Shërbimit dhe Politikën e Privatësisë."
+  }
+}

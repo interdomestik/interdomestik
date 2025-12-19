@@ -1,0 +1,21 @@
+{
+  "features": {
+    "title": "Everything you need to protect your rights",
+    "claimManagement": {
+      "title": "Claim Management",
+      "description": "Create and track your claims from start to finish with real-time status updates."
+    },
+    "professionalSupport": {
+      "title": "Professional Support",
+      "description": "Our expert agents will help you at every step of the process."
+    },
+    "documentManagement": {
+      "title": "Document Management",
+      "description": "Upload and organize all your documents in one secure place."
+    },
+    "messaging": {
+      "title": "Secure Communication",
+      "description": "Communicate with agents and track all conversations in one place."
+    }
+  }
+}
