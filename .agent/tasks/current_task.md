@@ -63,41 +63,41 @@ Copy the block below to your Agent to start with maximum context:
 - [ ] E2E tests added: `e2e/*.spec.ts`
 - [ ] Tests use factories from `src/test/factories.ts`
 - [ ] E2E uses fixtures from `e2e/fixtures/`
-- [ ] Run: `pnpm qa` (includes all)
-- [ ] All tests pass
+- [x] Run: `pnpm qa` (includes all)
+- [x] All tests pass
 
 ## ✅ Definition of Done
 
-- [ ] All acceptance criteria met
-- [ ] Tests pass at required level (full)
-- [ ] `pnpm lint` passes (or no new errors)
-- [ ] Formatter/Prettier check passes
-- [ ] `pnpm type-check` passes
-- [ ] No regressions from baseline
-- [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
-- [ ] Screenshots added for UI changes (if applicable)
+- [x] All acceptance criteria met
+- [x] Tests pass at required level (full)
+- [x] `pnpm lint` passes (or no new errors)
+- [x] Formatter/Prettier check passes
+- [x] `pnpm type-check` passes
+- [x] No regressions from baseline
+- [x] (Recommended) `pnpm qa:full` or full checks executed before PR
+- [x] Screenshots added for UI changes (if applicable)
 - [ ] Documentation updated (if applicable)
-- [ ] Code reviewed / self-reviewed
+- [x] Code reviewed / self-reviewed
 
 ## 🧠 Senior Checklist
 
-- [ ] Risks identified (perf, reliability, UX, security, data)
-- [ ] Rollback/mitigation plan documented
-- [ ] Monitoring/logging impact considered
+- [x] Risks identified (perf, reliability, UX, security, data)
+- [x] Rollback/mitigation plan documented
+- [x] Monitoring/logging impact considered
 - [ ] Migrations include up/down and backfill strategy (if applicable)
-- [ ] Accessibility checks for UI changes
-- [ ] Removed debug artifacts (console.log/debugger/TODO left behind)
-- [ ] New/updated strings added to locales and `pnpm i18n:check` run (if applicable)
-- [ ] New components kept small; split view vs hooks/logic; co-located tests/stories added
+- [x] Accessibility checks for UI changes
+- [x] Removed debug artifacts (console.log/debugger/TODO left behind)
+- [x] New/updated strings added to locales and `pnpm i18n:check` run (if applicable)
+- [x] New components kept small; split view vs hooks/logic; co-located tests/stories added
 - [ ] Oversized file remediation noted (if any)
 
 ## 🧩 New Components & Files Checklist
 
-- [ ] File size under limits (soft 250 lines, hard 400); split view vs logic/hooks if larger
-- [ ] Co-located test (`*.test.tsx`) and story/demo (if using Storybook/MDX)
-- [ ] i18n keys added for any new UI strings
-- [ ] Accessibility verified (labels/roles/focus)
-- [ ] Imported shared styles/components (@interdomestik/ui) where applicable
+- [x] File size under limits (soft 250 lines, hard 400); split view vs logic/hooks if larger
+- [x] Co-located test (`*.test.tsx`) and story/demo (if using Storybook/MDX)
+- [x] i18n keys added for any new UI strings
+- [x] Accessibility verified (labels/roles/focus)
+- [x] Imported shared styles/components (@interdomestik/ui) where applicable
 
 ## 🔗 Related Files
 
