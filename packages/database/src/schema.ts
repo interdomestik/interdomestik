@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm';
 import { boolean, decimal, integer, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 // Based on technical description: Submission -> Verification -> Evaluation -> Negotiation -> Court -> Final
@@ -163,3 +164,34 @@ export const subscriptions = pgTable('subscriptions', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
 });
+
+export const userRelations = relations(user, ({ many }) => ({
+  claims: many(claims),
+}));
+
+export const claimsRelations = relations(claims, ({ one, many }) => ({
+  user: one(user, {
+    fields: [claims.userId],
+    references: [user.id],
+  }),
+  documents: many(claimDocuments),
+  messages: many(claimMessages),
+}));
+
+export const claimDocumentsRelations = relations(claimDocuments, ({ one }) => ({
+  claim: one(claims, {
+    fields: [claimDocuments.claimId],
+    references: [claims.id],
+  }),
+}));
+
+export const claimMessagesRelations = relations(claimMessages, ({ one }) => ({
+  claim: one(claims, {
+    fields: [claimMessages.claimId],
+    references: [claims.id],
+  }),
+  sender: one(user, {
+    fields: [claimMessages.senderId],
+    references: [user.id],
+  }),
+}));

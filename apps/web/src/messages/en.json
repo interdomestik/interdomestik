@@ -23,7 +23,8 @@
     "yes": "Yes",
     "no": "No",
     "or": "or",
-    "and": "and"
+    "and": "and",
+    "admin": "Admin"
   },
   "nav": {
     "home": "Home",
