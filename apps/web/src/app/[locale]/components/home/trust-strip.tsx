@@ -15,13 +15,17 @@ export function TrustStrip() {
   return (
     <section className="py-8 bg-[hsl(var(--surface-strong))] border-y">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+        <div
+          className={`flex flex-wrap justify-center items-center gap-8 md:gap-12 lg:gap-16 ${
+            stats.length === 3 ? 'max-w-4xl mx-auto' : 'max-w-5xl mx-auto'
+          }`}
+        >
           {stats.map((stat, index) => (
-            <div key={index} className="text-center">
+            <div key={index} className="text-center min-w-[140px]">
               <div className="text-2xl md:text-3xl font-bold text-[hsl(var(--primary))]">
                 {stat.value}
               </div>
-              <div className="text-sm text-[hsl(var(--muted-500))]">{stat.label}</div>
+              <div className="text-sm text-[hsl(var(--muted-500))] mt-1">{stat.label}</div>
             </div>
           ))}
         </div>
