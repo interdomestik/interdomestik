@@ -47,6 +47,32 @@
       "description": "Përshkrimi",
       "description_placeholder": "Përshkruani saktësisht çfarë ndodhi..."
     },
+    "categoryFields": {
+      "vehicle": {
+        "titlePlaceholder": "p.sh., Aksident makinash në autostradë",
+        "titleDesc": "Përmbledhje e shkurtër e incidentit të automjetit",
+        "companyPlaceholder": "p.sh., Kompania e sigurimit, Sigurimi i shoferit tjetër",
+        "descriptionPlaceholder": "Përshkruani aksidentin: çfarë ndodhi, ku, kush ishte i përfshirë, shkalla e dëmtimit të automjetit tuaj..."
+      },
+      "property": {
+        "titlePlaceholder": "p.sh., Dëmtim nga uji në apartament",
+        "titleDesc": "Përmbledhje e shkurtër e dëmtimit të pronës",
+        "companyPlaceholder": "p.sh., Menaxhimi i pronës, Kompania e sigurimit",
+        "descriptionPlaceholder": "Përshkruani dëmtimin: çfarë e shkaktoi, cilat zona janë të prekura, kur e zbuluat, çfarë veprimesh urgjente u morën..."
+      },
+      "injury": {
+        "titlePlaceholder": "p.sh., Lëndim në punë - shtrëngim i shpinës",
+        "titleDesc": "Përmbledhje e shkurtër e lëndimit",
+        "companyPlaceholder": "p.sh., Punëdhënësi, Spitali, Kompania e sigurimit",
+        "descriptionPlaceholder": "Përshkruani lëndimin: si ndodhi, cilat pjesë të trupit janë të prekura, trajtimi mjekësor i marrë, simptomat aktuale..."
+      },
+      "travel": {
+        "titlePlaceholder": "p.sh., Vonesë fluturimi për në Berlin",
+        "titleDesc": "Përmbledhje e shkurtër e problemit të udhëtimit",
+        "companyPlaceholder": "p.sh., Lufthansa, Ryanair, Booking.com",
+        "descriptionPlaceholder": "Përshkruani çfarë ndodhi: detajet e fluturimit, oraret e planifikuara kundrejt atyre aktuale, arsyeja e vonesës/anulimit nëse dihet, kompensimi i kërkuar..."
+      }
+    },
     "categoryInstructions": {
       "vehicle": {
         "title": "Detajet e Ankesës për Dëme Automjeti",

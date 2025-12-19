@@ -19,6 +19,7 @@ export function WizardStepDetails() {
   const form = useFormContext<CreateClaimValues>();
   const t = useTranslations('wizard.details');
   const tInstructions = useTranslations('wizard.categoryInstructions');
+  const tFields = useTranslations('wizard.categoryFields');
 
   const category = form.watch('category');
   const hasCategory = category && ['vehicle', 'property', 'injury', 'travel'].includes(category);
@@ -48,9 +49,18 @@ export function WizardStepDetails() {
             <FormItem>
               <FormLabel>{t('claim_title')}</FormLabel>
               <FormControl>
-                <Input placeholder={t('claim_title_placeholder')} {...field} />
+                <Input
+                  placeholder={
+                    hasCategory
+                      ? tFields(`${category}.titlePlaceholder`)
+                      : t('claim_title_placeholder')
+                  }
+                  {...field}
+                />
               </FormControl>
-              <FormDescription>{t('claim_title_desc')}</FormDescription>
+              <FormDescription>
+                {hasCategory ? tFields(`${category}.titleDesc`) : t('claim_title_desc')}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -63,7 +73,14 @@ export function WizardStepDetails() {
             <FormItem>
               <FormLabel>{t('company')}</FormLabel>
               <FormControl>
-                <Input placeholder={t('company_placeholder')} {...field} />
+                <Input
+                  placeholder={
+                    hasCategory
+                      ? tFields(`${category}.companyPlaceholder`)
+                      : t('company_placeholder')
+                  }
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -121,7 +138,11 @@ export function WizardStepDetails() {
               <FormLabel>{t('description')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder={t('description_placeholder')}
+                  placeholder={
+                    hasCategory
+                      ? tFields(`${category}.descriptionPlaceholder`)
+                      : t('description_placeholder')
+                  }
                   className="min-h-[120px]"
                   {...field}
                 />
