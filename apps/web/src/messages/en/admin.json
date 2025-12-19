@@ -32,7 +32,14 @@
       "no_recent_activity": "No recent activity found",
       "no_unassigned_claims": "All claims have been assigned",
       "create_user": "Create User",
-      "invite_agent": "Invite Agent"
+      "invite_agent": "Invite Agent",
+      "assign": "Assign",
+      "timeline": "Timeline",
+      "status_label": "Status",
+      "no_messages": "No interaction history yet.",
+      "message_placeholder": "Type a message or internal note...",
+      "internal_note": "Internal Note",
+      "send_message": "Send Message"
     },
     "analytics": {
       "title": "Analytics Overview",

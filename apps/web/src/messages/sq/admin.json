@@ -32,7 +32,14 @@
       "no_recent_activity": "Nuk u gjet asnjë aktivitet i fundit",
       "no_unassigned_claims": "Të gjitha ankesat janë caktuar",
       "create_user": "Krijo Përdorues",
-      "invite_agent": "Fto Agjent"
+      "invite_agent": "Fto Agjent",
+      "assign": "Cakto",
+      "timeline": "Kohëshënimet",
+      "status_label": "Statusi",
+      "no_messages": "Nuk ka ende histori ndërveprimesh.",
+      "message_placeholder": "Shkruani një mesazh ose shënim të brendshëm...",
+      "internal_note": "Shënim i Brendshëm",
+      "send_message": "Dërgo Mesazh"
     },
     "analytics": {
       "title": "Përmbledhja e Analitikës",
