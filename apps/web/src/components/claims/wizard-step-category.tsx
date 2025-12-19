@@ -155,7 +155,7 @@ export function WizardStepCategory() {
                 {/* Quick Select Tags */}
                 <div className="mt-6">
                   <p className="text-sm font-medium text-muted-foreground mb-3">
-                    Or select a specific claim type:
+                    {t('quickSelectLabel')}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {quickSelectTags.map(tag => (

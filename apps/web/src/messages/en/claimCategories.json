@@ -3,6 +3,7 @@
     "title": "What Can We Help You With?",
     "subtitle": "Select your claim type to get started. Our experts specialize in each category.",
     "startClaim": "Start Claim",
+    "quickSelectLabel": "Or select a specific claim type:",
     "vehicle": {
       "title": "Vehicle Damage",
       "description": "Car accidents, collision damage, theft, and vandalism claims.",
