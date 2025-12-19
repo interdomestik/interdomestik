@@ -13,7 +13,7 @@
     "./schema": "./src/schema.ts"
   },
   "scripts": {
-    "db:generate": "supabase gen types typescript --local > src/types.ts",
+    "db:generate": "echo 'Skipping supabase gen types (using Drizzle)' && exit 0",
     "db:push": "supabase db push",
     "db:studio": "supabase studio",
     "migrate": "tsx src/migrate.ts",
