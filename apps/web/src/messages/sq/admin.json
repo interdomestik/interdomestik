@@ -22,6 +22,17 @@
       "unassigned": "I Pacaktuar",
       "no_users": "Nuk u gjetën përdorues",
       "success_message": "Përdoruesi u caktua me sukses"
+    },
+    "dashboard": {
+      "title": "Paneli i Adminit",
+      "recent_activity": "Aktiviteti i Fundit",
+      "unassigned_claims": "Ankesat e Pacaktuara",
+      "quick_actions": "Veprime të Shpejta",
+      "view_all": "Shiko të Gjitha",
+      "no_recent_activity": "Nuk u gjet asnjë aktivitet i fundit",
+      "no_unassigned_claims": "Të gjitha ankesat janë caktuar",
+      "create_user": "Krijo Përdorues",
+      "invite_agent": "Fto Agjent"
     }
   }
 }

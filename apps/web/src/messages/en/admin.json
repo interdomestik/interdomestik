@@ -22,6 +22,17 @@
       "unassigned": "Unassigned",
       "no_users": "No users found",
       "success_message": "User assigned successfully"
+    },
+    "dashboard": {
+      "title": "Admin Dashboard",
+      "recent_activity": "Recent Activity",
+      "unassigned_claims": "Unassigned Claims",
+      "quick_actions": "Quick Actions",
+      "view_all": "View All",
+      "no_recent_activity": "No recent activity found",
+      "no_unassigned_claims": "All claims have been assigned",
+      "create_user": "Create User",
+      "invite_agent": "Invite Agent"
     }
   }
 }
