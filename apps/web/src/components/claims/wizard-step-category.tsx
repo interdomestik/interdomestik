@@ -87,7 +87,7 @@ export function WizardStepCategory() {
         render={({ field }) => (
           <FormItem className="space-y-6">
             <FormControl>
-              <>
+              <div className="space-y-6">
                 {/* Main Category Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {mainCategories.map(category => {
@@ -153,7 +153,7 @@ export function WizardStepCategory() {
                 </div>
 
                 {/* Quick Select Tags */}
-                <div className="mt-6">
+                <div>
                   <p className="text-sm font-medium text-muted-foreground mb-3">
                     {t('quickSelectLabel')}
                   </p>
@@ -174,7 +174,7 @@ export function WizardStepCategory() {
                     ))}
                   </div>
                 </div>
-              </>
+              </div>
             </FormControl>
             <FormMessage />
           </FormItem>
