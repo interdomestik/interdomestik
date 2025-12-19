@@ -45,7 +45,8 @@
       "currency": "Monedha",
       "date": "Data e Incidentit",
       "description": "Përshkrimi",
-      "description_placeholder": "Përshkruani saktësisht çfarë ndodhi..."
+      "description_placeholder": "Përshkruani saktësisht çfarë ndodhi...",
+      "helpfulTips": "💡 Këshilla të Dobishme:"
     },
     "categoryFields": {
       "vehicle": {

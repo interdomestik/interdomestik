@@ -45,7 +45,8 @@
       "currency": "Currency",
       "date": "Date of Incident",
       "description": "Description",
-      "description_placeholder": "Describe exactly what happened..."
+      "description_placeholder": "Describe exactly what happened...",
+      "helpfulTips": "💡 Helpful Tips:"
     },
     "categoryFields": {
       "vehicle": {
