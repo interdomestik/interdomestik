@@ -64,9 +64,10 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <Card>
+    <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-premium relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
       <CardHeader>
-        <CardTitle>{t('title')}</CardTitle>
+        <CardTitle className="text-xl font-semibold">{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -79,7 +80,12 @@ export function ChangePasswordForm() {
                 <FormItem>
                   <FormLabel>{t('currentPassword')}</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="***" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="***"
+                      {...field}
+                      className="bg-background/50 border-border/50 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -92,7 +98,12 @@ export function ChangePasswordForm() {
                 <FormItem>
                   <FormLabel>{t('newPassword')}</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="***" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="***"
+                      {...field}
+                      className="bg-background/50 border-border/50 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -105,15 +116,24 @@ export function ChangePasswordForm() {
                 <FormItem>
                   <FormLabel>{t('confirmPassword')}</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="***" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="***"
+                      {...field}
+                      className="bg-background/50 border-border/50 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isPending}>
+            <div className="flex justify-end pt-4">
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="shadow-lg hover:shadow-primary/25 transition-all duration-300"
+              >
                 {isPending ? t('updating') : t('updatePassword')}
               </Button>
             </div>
