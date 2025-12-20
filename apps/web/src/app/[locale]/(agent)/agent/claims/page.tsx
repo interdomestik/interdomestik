@@ -5,11 +5,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-export default async function AgentClaimsPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
+export default async function AgentClaimsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
@@ -17,7 +13,12 @@ export default async function AgentClaimsPage({
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session) return notFound();
-  if (session.user.role !== 'staff' && session.user.role !== 'admin') return notFound();
+  if (
+    session.user.role !== 'staff' &&
+    session.user.role !== 'admin' &&
+    session.user.role !== 'agent'
+  )
+    return notFound();
 
   return (
     <div className="space-y-6">
@@ -29,7 +30,7 @@ export default async function AgentClaimsPage({
       </div>
 
       <AgentClaimsFilters />
-      <AgentClaimsTable />
+      <AgentClaimsTable userRole={session.user.role} />
     </div>
   );
 }

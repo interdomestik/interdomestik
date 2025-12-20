@@ -8,10 +8,10 @@ const BASE_URL = `http://${HOST}:${PORT}`;
 export default defineConfig({
   testDir: './e2e',
   globalSetup: './e2e/global-setup.mjs',
-  fullyParallel: false,
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1,
+  workers: process.env.CI ? 1 : 5,
   reporter: 'html',
   use: {
     baseURL: BASE_URL,

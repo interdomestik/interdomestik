@@ -15,6 +15,7 @@ import {
   SidebarRail,
 } from '@interdomestik/ui';
 import {
+  BarChart3,
   Briefcase,
   FilePlus,
   FileText,
@@ -24,6 +25,7 @@ import {
   Phone,
   Settings,
   Shield,
+  Users,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -33,7 +35,8 @@ export function DashboardSidebar() {
   const { data: session } = authClient.useSession();
   const role = (session?.user as { role?: string } | undefined)?.role;
 
-  const sidebarItems = [
+  /* Define menus per role */
+  const memberItems = [
     {
       title: t('overview'),
       href: '/dashboard',
@@ -71,21 +74,48 @@ export function DashboardSidebar() {
     },
   ];
 
-  const items = [...sidebarItems];
+  const agentItems = [
+    {
+      title: t('agentCrm'),
+      href: '/agent/crm',
+      icon: BarChart3,
+    },
+    {
+      title: t('agentLeads'),
+      href: '/agent/leads',
+      icon: Users,
+    },
+    {
+      title: t('agentWorkspace'), // mapped to 'Claims' in translations usually, or "Agent Workspace" is the claims queue?
+      // t('claims') might be better if it's just status list.
+      // But /agent/claims is the route.
+      href: '/agent/claims',
+      icon: Briefcase,
+    },
+    {
+      title: t('settings'),
+      href: '/dashboard/settings',
+      icon: Settings,
+    },
+    {
+      title: t('help'),
+      href: '/dashboard/help',
+      icon: Phone,
+    },
+  ];
 
-  if (role === 'admin') {
+  let items = [...memberItems];
+
+  if (role === 'agent') {
+    items = agentItems;
+  } else if (role === 'admin') {
+    // Admin sees member items + admin dashboard? Or just Admin dashboard?
+    // Usually Admin needs access to everything or a specific Admin sidebar.
+    // For now, appending Admin Dashboard to member items as before.
     items.push({
       title: t('adminDashboard'),
       href: '/admin/claims',
       icon: LayoutTemplate,
-    });
-  }
-
-  if (role === 'agent') {
-    items.push({
-      title: t('agentWorkspace'),
-      href: '/agent/claims',
-      icon: Briefcase,
     });
   }
 

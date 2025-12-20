@@ -16,10 +16,25 @@ import { Building2, Calendar, DollarSign } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface ClaimInfoPaneProps {
-  claim: any;
+  claim: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: string | null;
+    companyName: string | null;
+    claimAmount: string | null;
+    currency: string | null;
+    incidentDate?: string | Date | null;
+    user?: {
+      name: string | null;
+      email: string | null;
+      image: string | null;
+    } | null;
+  };
+  readOnly?: boolean;
 }
 
-export function ClaimInfoPane({ claim }: ClaimInfoPaneProps) {
+export function ClaimInfoPane({ claim, readOnly }: ClaimInfoPaneProps) {
   const t = useTranslations('agent');
 
   return (
@@ -78,7 +93,11 @@ export function ClaimInfoPane({ claim }: ClaimInfoPaneProps) {
         {/* Status */}
         <div>
           <p className="text-sm font-medium mb-2">{t('details.status_label')}</p>
-          <AgentStatusSelect claimId={claim.id} currentStatus={claim.status} />
+          <AgentStatusSelect
+            claimId={claim.id}
+            currentStatus={claim.status || 'submitted'}
+            disabled={readOnly}
+          />
         </div>
 
         {/* Description */}

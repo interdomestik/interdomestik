@@ -1,7 +1,7 @@
 'use server';
 
-import { auth } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
+import { auth } from '@/lib/auth';
 import { notifyClaimSubmitted, notifyStatusChanged } from '@/lib/notifications';
 import { claimDocuments, claims, db, eq, user } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
@@ -103,6 +103,21 @@ export async function submitClaim(data: CreateClaimValues) {
 
   if (!session) {
     throw new Error('Unauthorized');
+  }
+
+  // MEMBERSHIP GATE
+  const activeSub = await db.query.subscriptions.findFirst({
+    where: (subs, { eq, or, and }) =>
+      and(
+        eq(subs.userId, session.user.id),
+        or(eq(subs.status, 'active'), eq(subs.status, 'trialing'))
+      ),
+  });
+
+  if (!activeSub) {
+    // Allow fallback for legacy users or admin bypass if needed?
+    // For now, strict gate.
+    throw new Error('Membership required to file a claim.');
   }
 
   const result = createClaimSchema.safeParse(data);

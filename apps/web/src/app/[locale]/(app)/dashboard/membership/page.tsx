@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { db, eq, subscriptions } from '@interdomestik/database';
 import {
   Button,
   Card,
@@ -8,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui';
-import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -22,10 +22,9 @@ export default async function MembershipPage() {
     redirect('/login');
   }
 
-  const t = await getTranslations('pricing');
-
-  // Placeholder for real subscription check
-  const subscription = null;
+  const subscription = await db.query.subscriptions.findFirst({
+    where: eq(subscriptions.userId, session.user.id),
+  });
 
   return (
     <div className="space-y-6">
@@ -41,8 +40,22 @@ export default async function MembershipPage() {
             <CardDescription>Your active protection tier</CardDescription>
           </CardHeader>
           <CardContent>
-            {subscription ? (
-              <div className="text-2xl font-bold text-primary">Standard</div>
+            {subscription &&
+            (subscription.status === 'active' || subscription.status === 'trialing') ? (
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-primary capitalize">
+                  {subscription.planId}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Status: <span className="capitalize">{subscription.status}</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Renews:{' '}
+                  {subscription.currentPeriodEnd
+                    ? subscription.currentPeriodEnd.toLocaleDateString()
+                    : 'N/A'}
+                </p>
+              </div>
             ) : (
               <div className="text-muted-foreground">No active membership</div>
             )}

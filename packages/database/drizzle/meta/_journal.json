@@ -8,6 +8,13 @@
       "when": 1766044468466,
       "tag": "0000_watery_rawhide_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1766267981929,
+      "tag": "0001_long_shaman",
+      "breakpoints": true
     }
   ]
 }

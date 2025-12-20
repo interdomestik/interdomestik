@@ -1,7 +1,10 @@
 {
   "agent": {
     "title": "Agent Workspace",
+    "crm": "CRM Overview",
     "dashboard": "Dashboard",
+    "leads": "Leads",
+    "deals": "Deals",
     "claims": "Claims",
     "members": "Members",
     "stats": {
@@ -148,6 +151,35 @@
       "view_claims": "View claims",
       "message_alert": "New message ({count})",
       "no_users": "No members found."
+    },
+    "crm_dashboard": {
+      "title": "Sales Overview",
+      "subtitle": "Track your performance and pipeline.",
+      "stats": {
+        "leads_new": "New Leads",
+        "leads_contacted": "Contacted",
+        "deals_won": "Deals Won",
+        "commission": "Commission"
+      }
+    },
+    "leads_page": {
+      "title": "Lead Management",
+      "subtitle": "Manage and convert your potential members.",
+      "table": {
+        "name": "Name",
+        "stage": "Stage",
+        "source": "Source",
+        "last_contact": "Last Contact",
+        "actions": "Actions"
+      },
+      "stages": {
+        "new": "New",
+        "contacted": "Contacted",
+        "qualified": "Qualified",
+        "proposal": "Proposal",
+        "won": "Won",
+        "lost": "Lost"
+      }
     }
   }
 }

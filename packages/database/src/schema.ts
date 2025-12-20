@@ -1,5 +1,14 @@
 import { relations } from 'drizzle-orm';
-import { boolean, decimal, integer, jsonb, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  decimal,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 
 // Based on technical description: Submission -> Verification -> Evaluation -> Negotiation -> Court -> Final
 export const statusEnum = pgEnum('status', [
@@ -30,7 +39,12 @@ export const subscriptionStatusEnum = pgEnum('subscription_status', [
   'expired',
 ]);
 
-export const membershipTierEnum = pgEnum('membership_tier', ['basic', 'standard', 'family', 'business']);
+export const membershipTierEnum = pgEnum('membership_tier', [
+  'basic',
+  'standard',
+  'family',
+  'business',
+]);
 
 export const commissionStatusEnum = pgEnum('commission_status', [
   'pending',
@@ -53,6 +67,9 @@ export const user = pgTable('user', {
   emailVerified: boolean('emailVerified').notNull(),
   image: text('image'),
   role: text('role').notNull().default('user'),
+  marketingOptIn: boolean('marketing_opt_in').default(false),
+  referralCode: text('referral_code').unique(),
+  consentAt: timestamp('consent_at'),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
   agentId: text('agentId'), // Sales agent who referred this member (legacy mapping)
@@ -185,6 +202,61 @@ export const leads = pgTable('leads', {
   updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
 });
 
+export const crmLeads = pgTable('crm_leads', {
+  id: text('id').primaryKey(),
+  agentId: text('agent_id')
+    .notNull()
+    .references(() => user.id),
+  type: text('type').notNull(), // 'individual', 'business'
+  fullName: text('full_name'),
+  companyName: text('company_name'),
+  phone: text('phone'),
+  email: text('email'),
+  source: text('source'),
+  stage: text('stage').notNull(), // 'new', 'contacted', 'qualified', 'proposal', 'won', 'lost'
+  score: integer('score').default(0),
+  notes: text('notes'),
+  lastContactedAt: timestamp('last_contacted_at'),
+  utmSource: text('utm_source'),
+  utmMedium: text('utm_medium'),
+  utmCampaign: text('utm_campaign'),
+  utmContent: text('utm_content'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+});
+
+export const crmActivities = pgTable('crm_activities', {
+  id: text('id').primaryKey(),
+  leadId: text('lead_id')
+    .notNull()
+    .references(() => crmLeads.id),
+  agentId: text('agent_id')
+    .notNull()
+    .references(() => user.id),
+  type: text('type').notNull(), // 'call', 'meeting', 'email', 'note'
+  summary: text('summary').notNull(),
+  scheduledAt: timestamp('scheduled_at'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const crmDeals = pgTable('crm_deals', {
+  id: text('id').primaryKey(),
+  leadId: text('lead_id')
+    .notNull()
+    .references(() => crmLeads.id),
+  agentId: text('agent_id')
+    .notNull()
+    .references(() => user.id),
+  membershipPlanId: text('membership_plan_id').references(() => membershipPlans.id),
+  valueCents: integer('value_cents').default(0),
+  stage: text('stage').notNull(), // 'proposal', 'negotiation', 'closed_won', 'closed_lost'
+  status: text('status').default('open'),
+  closedAt: timestamp('closed_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+});
+
 export const membershipPlans = pgTable('membership_plans', {
   id: text('id').primaryKey(), // standard, family
   name: text('name').notNull(),
@@ -246,8 +318,27 @@ export const subscriptions = pgTable('subscriptions', {
   gracePeriodEndsAt: timestamp('grace_period_ends_at'),
   dunningAttemptCount: integer('dunning_attempt_count').default(0),
   lastDunningAt: timestamp('last_dunning_at'),
+  referredByAgentId: text('referred_by_agent_id').references(() => user.id),
+  referredByMemberId: text('referred_by_member_id').references(() => user.id),
+  referralCode: text('referral_code').unique(),
+  acquisitionSource: text('acquisition_source'), // 'agent', 'referral', 'organic', 'partner'
+  utmSource: text('utm_source'),
+  utmMedium: text('utm_medium'),
+  utmCampaign: text('utm_campaign'),
+  utmContent: text('utm_content'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+});
+
+export const membershipFamilyMembers = pgTable('membership_family_members', {
+  id: text('id').primaryKey(),
+  subscriptionId: text('subscription_id')
+    .notNull()
+    .references(() => subscriptions.id),
+  userId: text('user_id').references(() => user.id), // Optional, if they have an account
+  name: text('name').notNull(),
+  relationship: text('relationship'),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 export const agentClients = pgTable('agent_clients', {
@@ -279,6 +370,70 @@ export const agentCommissions = pgTable('agent_commissions', {
   metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
 });
 
+export const referrals = pgTable('referrals', {
+  id: text('id').primaryKey(),
+  referrerId: text('referrer_id')
+    .notNull()
+    .references(() => user.id),
+  referredId: text('referred_id')
+    .notNull()
+    .references(() => user.id),
+  referralCode: text('referral_code').notNull(),
+  status: text('status').default('pending'), // 'pending', 'converted', 'paid'
+  referrerRewardCents: integer('referrer_reward_cents'),
+  referredRewardCents: integer('referred_reward_cents'),
+  rewardedAt: timestamp('rewarded_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const serviceUsage = pgTable('service_usage', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id),
+  subscriptionId: text('subscription_id')
+    .notNull()
+    .references(() => subscriptions.id),
+  serviceCode: text('service_code').notNull(), // 'legal_consult', 'injury_cat', 'hotline'
+  usedAt: timestamp('used_at').defaultNow(),
+});
+
+export const serviceRequests = pgTable('service_requests', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id),
+  subscriptionId: text('subscription_id').references(() => subscriptions.id),
+  serviceCode: text('service_code').notNull(),
+  status: text('status').default('open'), // 'open', 'in_progress', 'closed'
+  handledById: text('handled_by_id').references(() => user.id),
+  requestedAt: timestamp('requested_at').defaultNow(),
+  closedAt: timestamp('closed_at'),
+  notes: text('notes'),
+});
+
+export const partnerDiscountUsage = pgTable('partner_discount_usage', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id),
+  partnerName: text('partner_name').notNull(),
+  estimatedSavingsCents: integer('estimated_savings_cents'),
+  usedAt: timestamp('used_at').defaultNow(),
+});
+
+export const leadDownloads = pgTable('lead_downloads', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull(),
+  resourceCode: text('resource_code').notNull(),
+  utmSource: text('utm_source'),
+  utmMedium: text('utm_medium'),
+  utmCampaign: text('utm_campaign'),
+  marketingOptIn: boolean('marketing_opt_in').default(false),
+  convertedToMember: boolean('converted_to_member').default(false),
+  downloadedAt: timestamp('downloaded_at').defaultNow(),
+});
+
 export const userRelations = relations(user, ({ many, one }) => ({
   claims: many(claims),
   staffClaims: many(claims, { relationName: 'claim_staff' }),
@@ -295,6 +450,15 @@ export const userRelations = relations(user, ({ many, one }) => ({
   clients: many(user, {
     relationName: 'user_agent',
   }),
+  crmLeads: many(crmLeads),
+  crmActivities: many(crmActivities),
+  crmDeals: many(crmDeals),
+  referralsSent: many(referrals, { relationName: 'referrer' }),
+  referralsReceived: many(referrals, { relationName: 'referred' }),
+  serviceUsage: many(serviceUsage),
+  serviceRequests: many(serviceRequests),
+  handledServiceRequests: many(serviceRequests, { relationName: 'service_request_handler' }),
+  partnerDiscountUsage: many(partnerDiscountUsage),
 }));
 
 export const claimsRelations = relations(claims, ({ one, many }) => ({
@@ -352,7 +516,7 @@ export const membershipPlansRelations = relations(membershipPlans, ({ many }) =>
   subscriptions: many(subscriptions),
 }));
 
-export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+export const subscriptionsRelations = relations(subscriptions, ({ one, many }) => ({
   user: one(user, {
     fields: [subscriptions.userId],
     references: [user.id],
@@ -360,6 +524,108 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   plan: one(membershipPlans, {
     fields: [subscriptions.planKey],
     references: [membershipPlans.id],
+  }),
+  familyMembers: many(membershipFamilyMembers),
+  referredByAgent: one(user, {
+    fields: [subscriptions.referredByAgentId],
+    references: [user.id],
+  }),
+  referredByMember: one(user, {
+    fields: [subscriptions.referredByMemberId],
+    references: [user.id],
+  }),
+}));
+
+export const membershipFamilyMembersRelations = relations(membershipFamilyMembers, ({ one }) => ({
+  subscription: one(subscriptions, {
+    fields: [membershipFamilyMembers.subscriptionId],
+    references: [subscriptions.id],
+  }),
+  user: one(user, {
+    fields: [membershipFamilyMembers.userId],
+    references: [user.id],
+  }),
+}));
+
+export const crmLeadsRelations = relations(crmLeads, ({ one, many }) => ({
+  agent: one(user, {
+    fields: [crmLeads.agentId],
+    references: [user.id],
+  }),
+  activities: many(crmActivities),
+  deals: many(crmDeals),
+}));
+
+export const crmActivitiesRelations = relations(crmActivities, ({ one }) => ({
+  lead: one(crmLeads, {
+    fields: [crmActivities.leadId],
+    references: [crmLeads.id],
+  }),
+  agent: one(user, {
+    fields: [crmActivities.agentId],
+    references: [user.id],
+  }),
+}));
+
+export const crmDealsRelations = relations(crmDeals, ({ one }) => ({
+  lead: one(crmLeads, {
+    fields: [crmDeals.leadId],
+    references: [crmLeads.id],
+  }),
+  agent: one(user, {
+    fields: [crmDeals.agentId],
+    references: [user.id],
+  }),
+  plan: one(membershipPlans, {
+    fields: [crmDeals.membershipPlanId],
+    references: [membershipPlans.id],
+  }),
+}));
+
+export const referralsRelations = relations(referrals, ({ one }) => ({
+  referrer: one(user, {
+    fields: [referrals.referrerId],
+    references: [user.id],
+    relationName: 'referrer',
+  }),
+  referred: one(user, {
+    fields: [referrals.referredId],
+    references: [user.id],
+    relationName: 'referred',
+  }),
+}));
+
+export const serviceUsageRelations = relations(serviceUsage, ({ one }) => ({
+  user: one(user, {
+    fields: [serviceUsage.userId],
+    references: [user.id],
+  }),
+  subscription: one(subscriptions, {
+    fields: [serviceUsage.subscriptionId],
+    references: [subscriptions.id],
+  }),
+}));
+
+export const serviceRequestsRelations = relations(serviceRequests, ({ one }) => ({
+  user: one(user, {
+    fields: [serviceRequests.userId],
+    references: [user.id],
+  }),
+  subscription: one(subscriptions, {
+    fields: [serviceRequests.subscriptionId],
+    references: [subscriptions.id],
+  }),
+  handledBy: one(user, {
+    fields: [serviceRequests.handledById],
+    references: [user.id],
+    relationName: 'service_request_handler',
+  }),
+}));
+
+export const partnerDiscountUsageRelations = relations(partnerDiscountUsage, ({ one }) => ({
+  user: one(user, {
+    fields: [partnerDiscountUsage.userId],
+    references: [user.id],
   }),
 }));
 

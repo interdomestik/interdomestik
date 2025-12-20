@@ -17,6 +17,7 @@ export const MESSAGE_NAMESPACES = [
   'help',
   'hero',
   'howItWorks',
+  'legal',
   'messaging',
   'metadata',
   'nav',
@@ -42,7 +43,7 @@ export const HOME_NAMESPACES = [
   'pricing',
   'footer',
 ] as const;
-export const SITE_NAMESPACES = ['about', 'pricing', 'services'] as const;
+export const SITE_NAMESPACES = ['about', 'pricing', 'services', 'legal'] as const;
 export const AUTH_NAMESPACES = ['auth'] as const;
 export const APP_NAMESPACES = [
   'nav',

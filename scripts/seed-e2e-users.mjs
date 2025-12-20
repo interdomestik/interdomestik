@@ -101,17 +101,21 @@ const claims = [];
 for (let i = 0; i < WORKER_COUNT; i++) {
   // Member
   const userId = `test-user-${i}`;
+  // Link member to the corresponding agent (e.g. Member 0 -> Agent 0)
+  const agentId = `agent-user-${i}`;
+
   users.push({
     id: userId,
     name: `Test Member ${i}`,
     email: `test-worker${i}@interdomestik.com`,
     password: 'TestPassword123!',
     role: 'user',
+    agentId: agentId,
   });
 
   // Agent
   users.push({
-    id: `agent-user-${i}`,
+    id: agentId,
     name: `Support Agent ${i}`,
     email: `agent-worker${i}@interdomestik.com`,
     password: 'AgentPassword123!',
@@ -158,6 +162,13 @@ users.push({
   password: 'StaffPassword123!',
   role: 'staff',
 });
+users.push({
+  id: 'agent-user',
+  name: 'Agent User',
+  email: 'agent@interdomestik.com',
+  password: 'AgentPassword123!',
+  role: 'agent',
+});
 // Add original claims for legacy user
 for (const c of baseClaims) {
   claims.push({
@@ -174,21 +185,27 @@ for (const c of baseClaims) {
   });
 }
 
-async function upsertUser({ id, name, email, role, password }) {
+async function upsertUser({ id, name, email, role, password, agentId }) {
   const now = new Date();
   const hash = await new Scrypt().hash(password);
 
   // Clean existing rows for deterministic state
+  // Delete referencing tables first
+  await sql`delete from session where "userId" = ${id};`;
+  await sql`delete from subscriptions where "user_id" = ${id};`;
+  await sql`delete from audit_log where "actor_id" = ${id};`;
+
   await sql`delete from account where "userId" = ${id};`;
   await sql`delete from claim where "userId" = ${id};`;
   await sql`delete from "user" where id = ${id};`;
 
   await sql`
-    insert into "user" (id, name, email, "emailVerified", image, role, "createdAt", "updatedAt")
-    values (${id}, ${name}, ${email}, ${true}, ${null}, ${role}, ${now}, ${now})
+    insert into "user" (id, name, email, "emailVerified", image, role, "agentId", "createdAt", "updatedAt")
+    values (${id}, ${name}, ${email}, ${true}, ${null}, ${role}, ${agentId || null}, ${now}, ${now})
     on conflict (email) do update set
       name = excluded.name,
       role = excluded.role,
+      "agentId" = excluded."agentId",
       "updatedAt" = excluded."updatedAt";
   `;
 
@@ -225,8 +242,22 @@ async function main() {
   // 1. Clear sessions for deterministic logins
   await sql`delete from session;`;
 
-  // 2. Clear old test claims (optional, but good for cleanup)
-  await sql`delete from claim where id in ${sql(claims.map(c => c.id))};`;
+  // 2. Clear old test claims (dependents first)
+  const claimIds = claims.map(c => c.id);
+  if (claimIds.length > 0) {
+    const ids = sql(claimIds);
+    await sql`delete from claim_messages where "claim_id" in ${ids};`;
+    await sql`delete from claim_documents where "claim_id" in ${ids};`;
+    await sql`delete from claim_stage_history where "claim_id" in ${ids};`;
+    await sql`delete from claim where id in ${ids};`;
+  }
+
+  // Clear audit reference for these users (optional but cleaner)
+  const userIds = users.map(u => u.id);
+  if (userIds.length > 0) {
+    const uIds = sql(userIds);
+    await sql`delete from audit_log where "actor_id" in ${uIds};`;
+  }
 
   // 3. Upsert Users
   for (const user of users) {
@@ -234,7 +265,16 @@ async function main() {
     console.log(`👤 Seeded user: ${user.email}`);
   }
 
-  // 4. Upsert Claims
+  // 4. Upsert Subscriptions for Test Users (to pass Membership Gate)
+  for (const user of users) {
+    await sql`
+      INSERT INTO subscriptions (id, user_id, status, plan_id, current_period_end)
+      VALUES (${'sub-' + user.id}, ${user.id}, 'active', 'standard', ${new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()})
+      ON CONFLICT (id) DO UPDATE SET status = 'active';
+    `;
+  }
+
+  // 5. Upsert Claims
   for (const claim of claims) {
     await upsertClaim(claim);
     console.log(`📄 Seeded claim: ${claim.title} (${claim.status})`);

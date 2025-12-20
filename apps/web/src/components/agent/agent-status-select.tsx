@@ -19,13 +19,16 @@ const STATUSES = [
 export function AgentStatusSelect({
   claimId,
   currentStatus,
+  disabled = false,
 }: {
   claimId: string;
   currentStatus: string;
+  disabled?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
 
   const handleStatusChange = (value: string) => {
+    if (disabled) return;
     startTransition(async () => {
       try {
         await updateClaimStatus(claimId, value);
@@ -45,7 +48,11 @@ export function AgentStatusSelect({
       <span className="text-sm font-medium text-muted-foreground mr-1">
         {tDetails('status_label')}:
       </span>
-      <Select defaultValue={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
+      <Select
+        defaultValue={currentStatus}
+        onValueChange={handleStatusChange}
+        disabled={isPending || disabled}
+      >
         <SelectTrigger className="w-[180px] h-9">
           <SelectValue placeholder="Status" />
         </SelectTrigger>

@@ -1,8 +1,8 @@
 'use client';
 
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
-import { fetchClaims } from '@/lib/api/claims';
 import { Link } from '@/i18n/routing';
+import { fetchClaims } from '@/lib/api/claims';
 import {
   Button,
   Table,
@@ -13,16 +13,21 @@ import {
   TableRow,
 } from '@interdomestik/ui';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 
 const PER_PAGE = 20;
 
-export function AgentClaimsTable() {
+export function AgentClaimsTable({ userRole }: { userRole?: string }) {
   const t = useTranslations('agent');
   const tCommon = useTranslations('common');
   const searchParams = useSearchParams();
 
+  const isAgent = userRole === 'agent';
+
+  // ... (omitted)
+
+  // inside return
   const statusFilter = searchParams.get('status') || undefined;
   const searchQuery = searchParams.get('search') || undefined;
   const page = Math.max(1, Number(searchParams.get('page') || 1));
@@ -107,7 +112,10 @@ export function AgentClaimsTable() {
                   <div className="font-medium text-sm truncate" title={claim.title}>
                     {claim.title}
                   </div>
-                  <div className="text-xs text-muted-foreground truncate" title={claim.companyName || ''}>
+                  <div
+                    className="text-xs text-muted-foreground truncate"
+                    title={claim.companyName || ''}
+                  >
                     {claim.companyName}
                   </div>
                 </TableCell>
@@ -115,31 +123,35 @@ export function AgentClaimsTable() {
                   <ClaimStatusBadge status={claim.status} />
                 </TableCell>
                 <TableCell className="text-sm font-medium">
-                  {claim.claimAmount
-                    ? `${claim.claimAmount} ${claim.currency || 'EUR'}`
-                    : '-'}
+                  {claim.claimAmount ? `${claim.claimAmount} ${claim.currency || 'EUR'}` : '-'}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : '-'}
                 </TableCell>
                 <TableCell className="text-right">
-                  {claim.unreadCount ? (
-                    <Button
-                      asChild
-                      size="sm"
-                      className="gap-2 animate-pulse bg-amber-500 text-white hover:bg-amber-600"
-                    >
-                      <Link href={`/agent/claims/${claim.id}`}>
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-                        </span>
-                        {t('table.message_alert', { count: claim.unreadCount })}
-                      </Link>
-                    </Button>
+                  {!isAgent ? (
+                    claim.unreadCount ? (
+                      <Button
+                        asChild
+                        size="sm"
+                        className="gap-2 animate-pulse bg-amber-500 text-white hover:bg-amber-600"
+                      >
+                        <Link href={`/agent/claims/${claim.id}`}>
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                          </span>
+                          {t('table.message_alert', { count: claim.unreadCount })}
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/agent/claims/${claim.id}`}>{t('actions.review')}</Link>
+                      </Button>
+                    )
                   ) : (
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/agent/claims/${claim.id}`}>{t('actions.review')}</Link>
+                    <Button asChild size="sm" variant="ghost">
+                      <Link href={`/agent/claims/${claim.id}`}>View Status</Link>
                     </Button>
                   )}
                 </TableCell>

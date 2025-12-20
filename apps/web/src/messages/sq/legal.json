@@ -1,0 +1,19 @@
+{
+  "legal": {
+    "terms": {
+      "title": "Kushtet e Shërbimit",
+      "intro": "Mirësevini në Interdomestik Asistenca. Këto kushte rregullojnë anëtarësimin tuaj.",
+      "sections": {
+        "membership": "Anëtarësimi është i vlefshëm për 1 vit nga data e blerjes. Përfshin qasje në rrjetin tonë të mbrojtjes dhe zbritje në ndërmjetësim.",
+        "services": "Ne ofrojmë asistencë në trajtimin e dëmeve, konsultime ligjore dhe vlerësim dëmi.",
+        "fees": "Tarifat e anëtarësimit janë të pakthyeshme pas periudhës së garancisë 30-ditore. Tarifat e suksesit aplikohen vetëm pas rikuperimit të suksesshëm të dëmit."
+      }
+    },
+    "privacy": {
+      "title": "Politika e Privatësisë"
+    },
+    "refund": {
+      "title": "Politika e Rimbursimit"
+    }
+  }
+}

@@ -55,16 +55,22 @@ export async function GET(request: Request) {
   const role = session.user.role || 'user';
   const isAdmin = role === 'admin';
   const isStaff = role === 'staff';
+  const isAgent = role === 'agent';
 
-  let scope: 'member' | 'admin' | 'staff_queue' = 'member';
+  let scope: 'member' | 'admin' | 'staff_queue' | 'agent_queue' = 'member';
   if (scopeParam === 'admin') scope = 'admin';
-  if (scopeParam === 'agent_queue' || scopeParam === 'staff_queue') scope = 'staff_queue';
+  if (scopeParam === 'staff_queue') scope = 'staff_queue';
+  if (scopeParam === 'agent_queue') scope = 'agent_queue';
 
   if (scope === 'admin' && !isAdmin) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
   }
 
   if (scope === 'staff_queue' && !isAdmin && !isStaff) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+  }
+
+  if (scope === 'agent_queue' && !isAgent && !isAdmin) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -76,6 +82,16 @@ export async function GET(request: Request) {
 
   if (scope === 'staff_queue' && isStaff) {
     conditions.push(eq(claims.staffId, session.user.id));
+  }
+
+  if (scope === 'agent_queue') {
+    if (isAgent) {
+      // Agents only see claims from users they manage
+      conditions.push(eq(user.agentId, session.user.id));
+    }
+    // Admins can see all in agent queue if they want, or we restrict them too?
+    // Usually admins see everything. But if they request agent_queue without being an agent, it's weird.
+    // Let's assume admins can see all or debugging.
   }
 
   if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {
@@ -142,7 +158,10 @@ export async function GET(request: Request) {
       .innerJoin(claims, eq(claimMessages.claimId, claims.id))
       .where(
         and(
-          inArray(claimMessages.claimId, rows.map(row => row.id)),
+          inArray(
+            claimMessages.claimId,
+            rows.map(row => row.id)
+          ),
           isNull(claimMessages.readAt),
           eq(claimMessages.senderId, claims.userId)
         )

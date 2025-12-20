@@ -2,7 +2,7 @@ import { expect, test } from './fixtures/auth.fixture';
 
 test.describe('Claim Creation Wizard', () => {
   test('should allow user to complete the claim wizard', async ({ authenticatedPage }) => {
-    // 1. Navigate to New Claim
+    // 1. Navigate to New Claim (Force English)
     await authenticatedPage.goto('/en/dashboard/claims/new');
     await expect(authenticatedPage.locator('h1')).toContainText('New Claim');
 

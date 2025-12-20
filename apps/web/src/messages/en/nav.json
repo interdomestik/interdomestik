@@ -19,6 +19,8 @@
     "overview": "Overview",
     "consumerRights": "Consumer Rights",
     "agentWorkspace": "Agent Workspace",
+    "agentCrm": "CRM Dashboard",
+    "agentLeads": "Leads",
     "adminDashboard": "Admin Dashboard"
   }
 }

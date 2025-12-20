@@ -15,7 +15,7 @@ test.describe('Admin Panel Robustness', () => {
     // User Management
     await page.goto('/en/admin/users');
     await expect(page.getByRole('heading', { name: 'User Management' })).toBeVisible();
-    await expect(page.getByRole('table')).toBeVisible();
+    await expect(page.locator('table').first()).toBeVisible();
 
     // Analytics
     await page.goto('/en/admin/analytics');
@@ -42,6 +42,19 @@ test.describe('Admin Panel Robustness', () => {
       // Middleware should redirect non-admins
       await expect(page).toHaveURL(/.*\/dashboard/);
     }
+  });
+
+  test('Agent and Staff are denied access to sensitive admin routes', async ({
+    agentPage,
+    staffPage,
+  }) => {
+    // Agents shouldn't see Admin Dashboard at all
+    await agentPage.goto('/en/admin');
+    await expect(agentPage).toHaveURL(/.*\/dashboard/); // Or agent workspace
+
+    // Staff might see Claims (via /agent/claims) but NOT /admin/users
+    await staffPage.goto('/en/admin/users');
+    await expect(staffPage).toHaveURL(/.*\/dashboard/); // Or staff workspace
   });
 
   test('Admin can navigate via Sidebar', async ({ adminPage: page }) => {

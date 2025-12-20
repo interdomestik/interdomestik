@@ -28,6 +28,12 @@ export const TEST_AGENT = {
   name: 'Agent User',
 };
 
+export const TEST_STAFF = {
+  email: 'staff@interdomestik.com',
+  password: 'StaffPassword123!',
+  name: 'Staff User',
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // FIXTURE TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -36,6 +42,7 @@ interface AuthFixtures {
   authenticatedPage: Page;
   adminPage: Page;
   agentPage: Page;
+  staffPage: Page;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -134,6 +141,21 @@ export const test = base.extend<AuthFixtures>({
       await use(page);
     } catch (error) {
       console.warn('Auth fixture: Agent login failed, providing unauthenticated page', error);
+      await use(page);
+    }
+  },
+
+  /**
+   * Provides a page that is authenticated as a staff user.
+   * Uses shared staff credentials for now (since we don't have worker-specific staff in seed yet, or we can add them).
+   * Actually, let's use the static staff user from seed: staff-user / StaffPassword123!
+   */
+  staffPage: async ({ page }, use) => {
+    try {
+      await performLogin(page, TEST_STAFF.email, TEST_STAFF.password);
+      await use(page);
+    } catch (error) {
+      console.warn('Auth fixture: Staff login failed', error);
       await use(page);
     }
   },
