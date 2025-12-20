@@ -1,5 +1,6 @@
 import { BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { routing } from '@/i18n/routing';
+import { QueryProvider } from '@/components/providers/query-provider';
 import '@interdomestik/ui/globals.css';
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
@@ -59,8 +60,10 @@ export default async function RootLayout({ children, params }: Props) {
     <html lang={locale} suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
         <NextIntlClientProvider messages={messages} locale={locale}>
-          {children}
-          <Toaster position="top-right" richColors />
+          <QueryProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+          </QueryProvider>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -1,13 +1,15 @@
 'use server';
 
 import { auth } from '@/lib/auth';
+import { logAuditEvent } from '@/lib/audit';
 import { notifyClaimAssigned, notifyStatusChanged } from '@/lib/notifications';
 import { claims, db, eq, user } from '@interdomestik/database';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
 export async function updateClaimStatus(claimId: string, newStatus: string) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({ headers: requestHeaders });
 
   if (!session || (session.user.role !== 'agent' && session.user.role !== 'admin')) {
     throw new Error('Unauthorized');
@@ -38,6 +40,19 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
     .set({ status: newStatus as typeof oldStatus })
     .where(eq(claims.id, claimId));
 
+  await logAuditEvent({
+    actorId: session.user.id,
+    actorRole: session.user.role,
+    action: 'claim.status_changed',
+    entityType: 'claim',
+    entityId: claimId,
+    metadata: {
+      oldStatus,
+      newStatus,
+    },
+    headers: requestHeaders,
+  });
+
   // Send notification to claim owner (fire-and-forget)
   if (claimWithUser.userId && claimWithUser.userEmail && oldStatus !== newStatus) {
     notifyStatusChanged(
@@ -56,17 +71,13 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
   revalidatePath(`/dashboard/claims/${claimId}`);
 }
 
-export async function assignClaim(claimId: string, agentId: string) {
-  const session = await auth.api.getSession({ headers: await headers() });
+export async function assignClaim(claimId: string, agentId: string | null) {
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({ headers: requestHeaders });
 
   if (!session || (session.user.role !== 'agent' && session.user.role !== 'admin')) {
     throw new Error('Unauthorized');
   }
-
-  // Get agent details for notification
-  const agent = await db.query.user.findFirst({
-    where: eq(user.id, agentId),
-  });
 
   // Get claim details
   const claim = await db.query.claims.findFirst({
@@ -74,20 +85,43 @@ export async function assignClaim(claimId: string, agentId: string) {
   });
 
   if (!claim) throw new Error('Claim not found');
-  if (!agent) throw new Error('Agent not found');
 
   await db.update(claims).set({ agentId }).where(eq(claims.id, claimId));
 
-  // Notify the assigned agent
-  if (agent.email) {
-    notifyClaimAssigned(
-      agent.id,
-      agent.email,
-      { id: claim.id, title: claim.title },
-      agent.name || 'Agent'
-    ).catch(err => console.error('Failed to notify assignment:', err));
+  await logAuditEvent({
+    actorId: session.user.id,
+    actorRole: session.user.role,
+    action: agentId ? 'claim.assigned' : 'claim.unassigned',
+    entityType: 'claim',
+    entityId: claimId,
+    metadata: {
+      previousAgentId: claim.agentId || null,
+      newAgentId: agentId,
+    },
+    headers: requestHeaders,
+  });
+
+  if (agentId) {
+    // Get agent details for notification
+    const agent = await db.query.user.findFirst({
+      where: eq(user.id, agentId),
+    });
+
+    if (!agent) throw new Error('Agent not found');
+
+    // Notify the assigned agent
+    if (agent.email) {
+      notifyClaimAssigned(
+        agent.id,
+        agent.email,
+        { id: claim.id, title: claim.title },
+        agent.name || 'Agent'
+      ).catch(err => console.error('Failed to notify assignment:', err));
+    }
   }
 
   revalidatePath('/agent/claims');
   revalidatePath(`/agent/claims/${claimId}`);
+  revalidatePath('/admin/claims');
+  revalidatePath(`/admin/claims/${claimId}`);
 }

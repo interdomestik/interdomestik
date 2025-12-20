@@ -1,7 +1,7 @@
 {
   "wizard": {
     "categories": {
-      "title": "Çfarë lloj ankese është kjo?",
+      "title": "Çfarë lloj kërkese për dëmshpërblim është kjo?",
       "subtitle": "Zgjidhni kategorinë që i përshtatet më mirë çështjes suaj.",
       "freeConsultation": "✨ Konsultim Falas i Përfshirë",
       "flight_delay": {
@@ -36,7 +36,7 @@
     "details": {
       "title": "Na tregoni çfarë ndodhi",
       "subtitle": "Detajet na ndihmojnë ta përpunojmë rastin më shpejt.",
-      "claim_title": "Titulli i Ankesës",
+      "claim_title": "Titulli i Kërkesës për Dëmshpërblim",
       "claim_title_placeholder": "p.sh. Vonesë fluturimi për në Berlin",
       "claim_title_desc": "Një përmbledhje e shkurtër e problemit.",
       "company": "Emri i Kompanisë",
@@ -76,22 +76,22 @@
     },
     "categoryInstructions": {
       "vehicle": {
-        "title": "Detajet e Ankesës për Dëme Automjeti",
+        "title": "Detajet e Kërkesës për Dëmshpërblim për Dëme Automjeti",
         "subtitle": "Jepni detaje rreth aksidentit ose dëmtimit të automjetit tuaj.",
         "tips": "Përfshini: datën dhe orën e incidentit, vendndodhjen, palët e tjera të përfshira, numrin e raportit policor nëse ka, dhe përshkrimin e dëmit."
       },
       "property": {
-        "title": "Detajet e Ankesës për Dëme Prone",
+        "title": "Detajet e Kërkesës për Dëmshpërblim për Dëme Prone",
         "subtitle": "Përshkruani dëmtimin e pronës suaj dhe si ndodhi.",
         "tips": "Përfshini: llojin e pronës, shkakun e dëmit (zjarr, ujë, stuhi, etj.), shkallën e dëmit, dhe çdo riparim urgjent të bërë."
       },
       "injury": {
-        "title": "Detajet e Ankesës për Lëndim Personal",
+        "title": "Detajet e Kërkesës për Dëmshpërblim për Lëndim Personal",
         "subtitle": "Jepni informacion rreth lëndimit dhe trajtimit mjekësor.",
         "tips": "Përfshini: natyrën e lëndimit, ku dhe si ndodhi, trajtimin mjekësor të marrë, ofruesit e kujdesit shëndetësor, dhe simptomat ose kufizimet aktuale."
       },
       "travel": {
-        "title": "Detajet e Ankesës për Udhëtim & Fluturim",
+        "title": "Detajet e Kërkesës për Dëmshpërblim për Udhëtim & Fluturim",
         "subtitle": "Jepni informacionin e rezervimit të fluturimit ose udhëtimit.",
         "tips": "Përfshini: referencën e rezervimit, numrin e fluturimit, aeroportet e nisjes/mbërritjes, oraret e planifikuara kundrejt atyre aktuale, dhe arsyen e vonesës/anulimit nëse dihet."
       }
@@ -99,7 +99,7 @@
     "review": {
       "title": "Rishiko & Dërgo",
       "subtitle": "Ju lutemi kontrolloni detajet para dërgimit.",
-      "summary": "Përmbledhja e Ankesës",
+      "summary": "Përmbledhja e Kërkesës për Dëmshpërblim",
       "category": "Kategoria",
       "date": "Data",
       "company": "Kompania",

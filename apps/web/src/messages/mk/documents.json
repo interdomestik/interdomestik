@@ -1,0 +1,18 @@
+{
+  "documents": {
+    "title": "Documents",
+    "subtitle": "All documents attached to your claims.",
+    "empty": "No documents uploaded yet.",
+    "filesCount": "Files: {count}",
+    "viewClaim": "View claim",
+    "emptyList": "No documents attached.",
+    "actions": {
+      "view": "View",
+      "download": "Download"
+    },
+    "errors": {
+      "view": "Failed to load document. Please try again.",
+      "download": "Failed to download document. Please try again."
+    }
+  }
+}

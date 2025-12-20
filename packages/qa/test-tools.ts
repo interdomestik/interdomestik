@@ -10,6 +10,12 @@ dotenv.config({ path: path.join(REPO_ROOT, '.env') });
 
 const serverPath = path.resolve(__dirname, 'src/index.ts');
 const server = spawn('npx', ['tsx', serverPath], {
+  cwd: REPO_ROOT,
+  env: {
+    ...process.env,
+    MCP_REPO_ROOT: REPO_ROOT,
+    MCP_SERVER_NAME: 'interdomestik-qa',
+  },
   stdio: ['pipe', 'pipe', 'inherit'],
 });
 

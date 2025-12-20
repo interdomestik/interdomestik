@@ -29,13 +29,13 @@
     "test:e2e": "pnpm --filter @interdomestik/web test:e2e"
   },
   "devDependencies": {
-    "@types/node": "^22.19.2",
+    "@types/node": "^22.19.3",
     "bcryptjs": "^3.0.3",
-    "oslo": "^1.0.0",
-    "postgres": "^3.4.3",
-    "prettier": "^3.5.0",
-    "turbo": "^2.6.0",
-    "typescript": "^5.8.0"
+    "oslo": "^1.2.1",
+    "postgres": "^3.4.7",
+    "prettier": "^3.7.4",
+    "turbo": "^2.7.0",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20.0.0"

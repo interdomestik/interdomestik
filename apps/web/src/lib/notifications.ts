@@ -1,4 +1,10 @@
 import { Novu } from '@novu/node';
+import {
+  sendClaimAssignedEmail,
+  sendClaimSubmittedEmail,
+  sendNewMessageEmail,
+  sendStatusChangedEmail,
+} from '@/lib/email';
 
 // Lazy-initialize Novu client to avoid throwing on module load
 let novu: Novu | null = null;
@@ -87,6 +93,10 @@ export async function notifyClaimSubmitted(
   userEmail: string,
   claim: { id: string; title: string; category: string }
 ) {
+  sendClaimSubmittedEmail(userEmail, claim).catch(error =>
+    console.error('Failed to send claim submitted email:', error)
+  );
+
   return sendNotification(
     userId,
     'claim_submitted',
@@ -108,6 +118,10 @@ export async function notifyClaimAssigned(
   claim: { id: string; title: string },
   agentName: string
 ) {
+  sendClaimAssignedEmail(agentEmail, claim, agentName).catch(error =>
+    console.error('Failed to send claim assigned email:', error)
+  );
+
   return sendNotification(
     agentId,
     'claim_assigned',
@@ -130,6 +144,10 @@ export async function notifyStatusChanged(
   oldStatus: string,
   newStatus: string
 ) {
+  sendStatusChangedEmail(userEmail, claim, oldStatus, newStatus).catch(error =>
+    console.error('Failed to send status change email:', error)
+  );
+
   return sendNotification(
     userId,
     'claim_status_changed',
@@ -153,6 +171,10 @@ export async function notifyNewMessage(
   senderName: string,
   messagePreview: string
 ) {
+  sendNewMessageEmail(recipientEmail, claim, senderName, messagePreview).catch(error =>
+    console.error('Failed to send new message email:', error)
+  );
+
   return sendNotification(
     recipientId,
     'new_message',

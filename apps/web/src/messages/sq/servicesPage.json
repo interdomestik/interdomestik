@@ -1,9 +1,9 @@
 {
   "servicesPage": {
-    "badge": "Eksperienca Prime e Ankesave",
+    "badge": "Eksperienca Prime e Kërkesave për Dëmshpërblim",
     "title": "Shihni çfarë zgjidhim dhe si punojmë",
     "subtitle": "Aksidente automjetesh, dëme prone, probleme shërbimesh, mosmarrëveshje punësimi/konsumatori — ekspertë lokalë në shqip/anglisht, përgjigje e shpejtë dhe ruajtje e sigurt e provave.",
-    "startClaim": "Fillo ankesën",
+    "startClaim": "Fillo kërkesën për dëmshpërblim",
     "whatsapp": "Chat në WhatsApp",
     "whatWeSolve": "Çfarë zgjidhim",
     "casesTitle": "Rastet kryesore që trajtojmë",
@@ -29,7 +29,7 @@
     "flightDelay": {
       "title": "Vonesa Fluturimi (EU261)",
       "description": "E drejtë deri në €600 kompensim për vonesa/anulime.",
-      "cta": "Fillo ankesën e fluturimit"
+      "cta": "Fillo kërkesën e fluturimit për dëmshpërblim"
     },
     "howItWorks": "Si funksionon",
     "stepsTitle": "Shpejtësi & siguri në katër hapa",
@@ -56,7 +56,7 @@
     "benefit": {
       "speed": {
         "title": "Përgjigje e shpejtë",
-        "description": "Rishikim nën 24h për ankesat e reja; SLA e dukshme në timeline."
+        "description": "Rishikim nën 24h për kërkesat e reja për dëmshpërblim; SLA e dukshme në timeline."
       },
       "safety": {
         "title": "Ngarkime të sigurta",
@@ -75,7 +75,7 @@
       },
       {
         "question": "Sa shpejt përgjigjeni?",
-        "answer": "Synojmë nën 24h për ankesat e reja. SLA shfaqet në timeline."
+        "answer": "Synojmë nën 24h për kërkesat e reja për dëmshpërblim. SLA shfaqet në timeline."
       },
       {
         "question": "A janë të sigurta të dhënat e mia?",
@@ -87,6 +87,6 @@
       }
     ],
     "contactTitle": "Preferoni të flisni?",
-    "contactSubtitle": "Telefononi ose shkruani në WhatsApp, ose nisni ankesën online dhe ne ju kontaktojmë."
+    "contactSubtitle": "Telefononi ose shkruani në WhatsApp, ose nisni kërkesën për dëmshpërblim online dhe ne ju kontaktojmë."
   }
 }

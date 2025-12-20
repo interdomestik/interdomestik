@@ -70,6 +70,10 @@ vi.mock('@/lib/notifications', () => ({
   notifyNewMessage: vi.fn().mockResolvedValue({ success: true }),
 }));
 
+vi.mock('@/lib/audit', () => ({
+  logAuditEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
   and: vi.fn(),

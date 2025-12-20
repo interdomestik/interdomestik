@@ -2,6 +2,7 @@
 
 import { Button } from '@interdomestik/ui/components/button';
 import { Download, Eye, FileText, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 type Document = {
@@ -17,6 +18,7 @@ type Props = {
 
 export function DocumentList({ documents }: Props) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const t = useTranslations('documents');
 
   const handleView = async (docId: string) => {
     setLoadingId(docId);
@@ -30,7 +32,7 @@ export function DocumentList({ documents }: Props) {
       window.open(data.url, '_blank');
     } catch (error) {
       console.error('Error fetching document:', error);
-      alert('Failed to load document. Please try again.');
+      alert(t('errors.view'));
     } finally {
       setLoadingId(null);
     }
@@ -59,7 +61,7 @@ export function DocumentList({ documents }: Props) {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading document:', error);
-      alert('Failed to download document. Please try again.');
+      alert(t('errors.download'));
     } finally {
       setLoadingId(null);
     }
@@ -72,7 +74,7 @@ export function DocumentList({ documents }: Props) {
   };
 
   if (documents.length === 0) {
-    return <p className="text-sm text-muted-foreground">No documents attached.</p>;
+    return <p className="text-sm text-muted-foreground">{t('emptyList')}</p>;
   }
 
   return (
@@ -103,7 +105,7 @@ export function DocumentList({ documents }: Props) {
               ) : (
                 <Eye className="h-4 w-4" />
               )}
-              <span className="ml-1 hidden sm:inline">View</span>
+              <span className="ml-1 hidden sm:inline">{t('actions.view')}</span>
             </Button>
             <Button
               variant="outline"
@@ -112,7 +114,7 @@ export function DocumentList({ documents }: Props) {
               disabled={loadingId === doc.id}
             >
               <Download className="h-4 w-4" />
-              <span className="ml-1 hidden sm:inline">Download</span>
+              <span className="ml-1 hidden sm:inline">{t('actions.download')}</span>
             </Button>
           </div>
         </div>

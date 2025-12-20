@@ -1,7 +1,7 @@
 import { ClaimDetailHeader } from '@/components/agent/claim-detail-header';
 import { ClaimDocumentsPane } from '@/components/agent/claim-documents-pane';
 import { ClaimInfoPane } from '@/components/agent/claim-info-pane';
-import { ClaimMessagesPane } from '@/components/agent/claim-messages-pane';
+import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { auth } from '@/lib/auth';
 import { claimDocuments, claimMessages, claims, db } from '@interdomestik/database';
 import { desc, eq } from 'drizzle-orm';
@@ -56,7 +56,26 @@ export default async function AgentClaimDetailPage({
       {/* 3-Pane Cockpit Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
         <ClaimInfoPane claim={data} t={t} />
-        <ClaimMessagesPane claimId={id} messages={messages} currentUserId={session.user.id} t={t} />
+        <MessagingPanel
+          claimId={id}
+          currentUserId={session.user.id}
+          isAgent={true}
+          initialMessages={messages.map(message => ({
+            id: message.id,
+            claimId: message.claimId,
+            senderId: message.senderId,
+            content: message.content,
+            isInternal: message.isInternal ?? false,
+            readAt: message.readAt,
+            createdAt: message.createdAt ?? new Date(),
+            sender: {
+              id: message.sender?.id ?? message.senderId,
+              name: message.sender?.name ?? 'Unknown',
+              image: message.sender?.image ?? null,
+              role: message.sender?.role ?? 'member',
+            },
+          }))}
+        />
         <ClaimDocumentsPane documents={documents} t={t} />
       </div>
     </div>

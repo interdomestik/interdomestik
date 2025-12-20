@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
@@ -5,17 +6,24 @@ import { db } from './src/index';
 
 async function applyMigration() {
   try {
-    console.log('📦 Applying notification preferences migration...');
+    const migrationsDir = path.join(__dirname, 'migrations');
+    const migrationFiles = fs
+      .readdirSync(migrationsDir)
+      .filter(file => file.endsWith('.sql'))
+      .sort();
 
-    const migrationSQL = fs.readFileSync(
-      path.join(__dirname, 'migrations', 'add-notification-preferences.sql'),
-      'utf-8'
-    );
+    if (migrationFiles.length === 0) {
+      console.log('ℹ️  No migrations found.');
+      process.exit(0);
+    }
 
-    // Execute the migration
-    await db.execute(sql.raw(migrationSQL));
+    for (const file of migrationFiles) {
+      console.log(`📦 Applying migration: ${file}`);
+      const migrationSQL = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+      await db.execute(sql.raw(migrationSQL));
+    }
 
-    console.log('✅ Migration applied successfully!');
+    console.log('✅ Migrations applied successfully!');
     process.exit(0);
   } catch (error) {
     console.error('❌ Migration failed:', error);

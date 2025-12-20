@@ -1,6 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
+import { logAuditEvent } from '@/lib/audit';
 import { notifyStatusChanged } from '@/lib/notifications';
 import { claims, db, user } from '@interdomestik/database';
 
@@ -20,8 +21,9 @@ type ClaimStatus =
   | 'rejected';
 
 export async function updateClaimStatus(formData: FormData) {
+  const requestHeaders = await headers();
   const session = await auth.api.getSession({
-    headers: await headers(),
+    headers: requestHeaders,
   });
 
   if (!session || session.user.role !== 'admin') {
@@ -79,6 +81,19 @@ export async function updateClaimStatus(formData: FormData) {
       updatedAt: new Date(),
     })
     .where(eq(claims.id, claimId));
+
+  await logAuditEvent({
+    actorId: session.user.id,
+    actorRole: session.user.role,
+    action: 'claim.status_changed',
+    entityType: 'claim',
+    entityId: claimId,
+    metadata: {
+      oldStatus,
+      newStatus,
+    },
+    headers: requestHeaders,
+  });
 
   // Send notification to claim owner (fire-and-forget)
   if (claimWithUser.userId && claimWithUser.userEmail && oldStatus !== newStatus) {

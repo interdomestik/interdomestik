@@ -409,13 +409,16 @@
 
 Core setup done: monorepo, Next.js, Supabase config, i18n, lint/TS strict, auth/pages, design system scaffolding, staging deploy.
 
-### Phase 1: Core MVP (Weeks 3-4) — ✅ ~80% Complete
+### Phase 1: Core MVP (Weeks 3-4) — ✅ ~95% Complete
 
 - Claim wizard: ✅ Done
 - Claims list: ✅ Done
 - Claim detail: ✅ Done
 - Profile page: ✅ Done
-- Settings page: ⏳ Todo
+- Settings page: ✅ Done
+- Document vault + evidence downloads: ✅ Done
+- Draft edit/cancel + 404/error pages: ✅ Done
+- Remaining: E2E happy path
 
 **Quality gates (ongoing):** lint + unit + Playwright smoke (claim create/list/detail/dashboard) + a11y/perf spot-check.
 
@@ -427,53 +430,53 @@ Core setup done: monorepo, Next.js, Supabase config, i18n, lint/TS strict, auth/
 
 ```
 Week 3: Member Portal Basics
-├── Member dashboard layout
+├── Member dashboard layout (✅ Done)
 ├── Profile management (✅ Done)
-├── Navigation and routing
-├── Responsive design
-├── Basic settings page
-└── 404 and error pages
+├── Navigation and routing (✅ Done)
+├── Responsive design (⏳ Ongoing)
+├── Basic settings page (✅ Done)
+└── 404 and error pages (✅ Done)
 
 Week 4: Claim Creation Flow
-├── Claim creation wizard (multi-step form)
-├── Category selection with guidance
-├── Evidence upload (files, photos)
-├── Opposing party input
-├── Claim preview and submission
+├── Claim creation wizard (multi-step form) (✅ Done)
+├── Category selection with guidance (✅ Done)
+├── Evidence upload (files, photos) (✅ Done)
+├── Opposing party input (✅ Done)
+├── Claim preview and submission (✅ Done)
 Week 3: Core MVP Features
-├── Create Claim submission forms (multi-step)
-├── Implement Dashboard layout (Shell, Nav)
-├── Set up TanStack Query for data fetching
-├── Build reusable Data Table component (TanStack Table)
-├── Implement Audit Logging system (Pino + Drizzle)
-├── Create "My Claims" list view
-└── Build Claim detail view (Timeline, Status)
+├── Create Claim submission forms (multi-step) (✅ Done)
+├── Implement Dashboard layout (Shell, Nav) (✅ Done)
+├── Set up TanStack Query for data fetching (✅ Done)
+├── Build reusable Data Table component (TanStack Table) (⏳ Todo)
+├── Implement Audit Logging system (Drizzle audit_log) (✅ Done)
+├── Create "My Claims" list view (✅ Done)
+└── Build Claim detail view (Timeline, Status) (✅ Done)
 
 Week 4: Admin & Communication
-├── Build Admin Dashboard
-├── Admin Claim Management (Status updates)
-├── Implement internal messaging system
-├── Set up transactional emails (Resend)
-└── End-to-end testing (Happy path)
+├── Build Admin Dashboard (✅ Done)
+├── Admin Claim Management (Status updates) (✅ Done)
+├── Implement internal messaging system (✅ Done)
+├── Set up transactional emails (Resend) (✅ Done)
+└── End-to-end testing (Happy path) (⏳ Ongoing)
 
 Week 5: Claim Tracking & Detail
-├── Claim list view with filters
-├── Claim detail page
-├── Timeline component
-├── Document list and preview
-├── Status display and history
-├── Edit draft claims
-└── Cancel claim flow
+├── Claim list view with filters (✅ Done)
+├── Claim detail page (✅ Done)
+├── Timeline component (✅ Done)
+├── Document list and preview (✅ Done)
+├── Status display and history (✅ Done)
+├── Edit draft claims (✅ Done)
+└── Cancel claim flow (✅ Done)
 
 Week 6: Agent Workspace MVP
-├── Agent dashboard
-├── Claim queue with filters
-├── Claim assignment system
-├── Agent claim detail view
-├── Status transition actions
-├── Internal notes (agent-only)
-├── Basic activity logging
-└── Agent profile
+├── Agent dashboard (✅ Done)
+├── Claim queue with filters (✅ Done)
+├── Claim assignment system (✅ Done)
+├── Agent claim detail view (✅ Done)
+├── Status transition actions (✅ Done)
+├── Internal notes (agent-only) (✅ Done)
+├── Basic activity logging (⏳ Todo)
+└── Agent profile (⏳ Todo)
 ```
 
 ---

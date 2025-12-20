@@ -2,12 +2,12 @@
   "services": {
     "meta": {
       "title": "Shërbimet Prime | Interdomestik",
-      "description": "Trajtim i shpejtë, i sigurt dhe profesional i ankesave për dëme automjetesh, çështje pronësore dhe lëndime personale."
+      "description": "Trajtim i shpejtë, i sigurt dhe profesional i kërkesave për dëmshpërblim për dëme automjetesh, çështje pronësore dhe lëndime personale."
     },
     "hero": {
-      "title": "Shërbim Profesional për Zgjidhjen e Ankesave",
-      "subtitle": "Ne menaxhojmë kompleksitetin e ankesave në mënyrë që ju të merrni kompensimin që meritoni. Shpejt, sigurt dhe transparente.",
-      "cta": "Fillo Ankesën Tënde"
+      "title": "Shërbim Profesional për Zgjidhjen e Kërkesave për Dëmshpërblim",
+      "subtitle": "Ne menaxhojmë kompleksitetin e kërkesave për dëmshpërblim në mënyrë që ju të merrni kompensimin që meritoni. Shpejt, sigurt dhe transparente.",
+      "cta": "Fillo Kërkesën Tënde për Dëmshpërblim"
     },
     "solutions": {
       "title": "Çfarë Zgjidhim",
@@ -31,7 +31,7 @@
     "process": {
       "title": "Si Funksionon",
       "step1": {
-        "title": "1. Fillo Ankesën",
+        "title": "1. Fillo Kërkesën për Dëmshpërblim",
         "description": "Plotëso formularin tonë të thjeshtë brenda 5 minutash."
       },
       "step2": {
@@ -51,7 +51,7 @@
       },
       "response": {
         "title": "Përgjigje në 24h",
-        "description": "Ne shqyrtojmë çdo ankesë të re brenda 24 orëve."
+        "description": "Ne shqyrtojmë çdo kërkesë të re për dëmshpërblim brenda 24 orëve."
       },
       "secure": {
         "title": "Të Dhëna të Sigurta",
@@ -61,13 +61,13 @@
     "faq": {
       "title": "Pyetjet e Shpeshta",
       "q1": "Sa kushton?",
-      "a1": "Ne operojmë në bazë të 'Pa Fitore, Pa Pagesë' për shumicën e ankesave. Paguani vetëm një përqindje të vogël nëse kemi sukses.",
+      "a1": "Ne operojmë në bazë të 'Pa Fitore, Pa Pagesë' për shumicën e kërkesave për dëmshpërblim. Paguani vetëm një përqindje të vogël nëse kemi sukses.",
       "q2": "Sa kohë merr?",
-      "a2": "Ankesat e thjeshta zgjidhen në javë. Rastet komplekse mund të marrin më shumë kohë, por ne ju mbajmë të informuar."
+      "a2": "Kërkesat e thjeshta për Dëmshpërblim zgjidhen në javë. Rastet komplekse mund të marrin më shumë kohë, por ne ju mbajmë të informuar."
     },
     "finalCta": {
       "title": "Gati për të filluar?",
-      "btn": "Hap Një Ankesë Tani"
+      "btn": "Hap Një Kërkesë për Dëmshpërblim Tani"
     }
   }
 }

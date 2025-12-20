@@ -15,6 +15,7 @@ export default defineConfig({
     'claim',
     'claim_documents',
     'claim_messages',
+    'audit_log',
     'leads',
     'user_notification_preferences',
     'subscriptions',

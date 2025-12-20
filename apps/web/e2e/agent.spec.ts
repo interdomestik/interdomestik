@@ -32,7 +32,7 @@ test.describe('Agent Workspace Flow', () => {
     await expect(firstReviewButton).toBeVisible();
   });
 
-  test('Agent can view claim details and update status', async ({ agentPage: page }) => {
+  test('Agent can view claim details with new component structure', async ({ agentPage: page }) => {
     await page.goto('/en/agent/claims');
     await page.waitForLoadState('networkidle');
 
@@ -42,20 +42,38 @@ test.describe('Agent Workspace Flow', () => {
 
     await page.waitForLoadState('networkidle');
 
-    // Check detail sections
-    await expect(page.getByText('Claimant Information')).toBeVisible();
-    await expect(page.getByText('Case Timeline')).toBeVisible();
-    await expect(page.getByText('Evidence Files')).toBeVisible();
+    // Check new detail pane structure
+    await expect(page.getByText('Claim Details')).toBeVisible();
+    await expect(page.getByText('Messages')).toBeVisible();
+    await expect(page.getByText('Documents')).toBeVisible();
 
-    // Check detail status select
+    // Check claim info fields
+    await expect(page.getByText('Company')).toBeVisible();
+    await expect(page.getByText('Amount')).toBeVisible();
+    await expect(page.getByText('Incident Date')).toBeVisible();
+    await expect(page.getByText('Status')).toBeVisible();
+    await expect(page.getByText('Description')).toBeVisible();
+
+    // Check status select exists
     const statusSelect = page.getByRole('combobox').first();
     await expect(statusSelect).toBeVisible();
+  });
+
+  test('Agent can update claim status', async ({ agentPage: page }) => {
+    await page.goto('/en/agent/claims');
+    await page.waitForLoadState('networkidle');
+
+    // Click on the first claim
+    const reviewLink = page.getByRole('link', { name: /Review Case/i }).first();
+    await reviewLink.click();
+    await page.waitForLoadState('networkidle');
 
     // Update status to Verification
+    const statusSelect = page.getByRole('combobox').first();
     await statusSelect.click();
     await page.getByRole('option', { name: /verification/i }).click();
 
-    // Verify toast or updated status (if possible)
+    // Verify toast or updated status
     await expect(page.getByText('Status updated successfully')).toBeVisible();
   });
 });

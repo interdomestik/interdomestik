@@ -65,11 +65,25 @@
       "step4": "Review",
       "submitClaim": "Submit Claim"
     },
+    "actions": {
+      "editDraft": "Edit draft",
+      "cancelClaim": "Cancel claim",
+      "cancelConfirm": "Cancel this claim? You can’t undo this.",
+      "cancelled": "Claim cancelled",
+      "cancelFailed": "Failed to cancel claim"
+    },
+    "edit": {
+      "title": "Edit draft",
+      "description": "Update the information before submitting your claim.",
+      "updated": "Draft updated",
+      "failed": "Failed to update claim"
+    },
     "detail": {
       "caseDetails": "Case Details",
       "description": "Description",
       "claimAmount": "Claim Amount",
-      "category": "Category"
+      "category": "Category",
+      "evidence": "Attached Evidence"
     }
   }
 }

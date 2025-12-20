@@ -1,0 +1,169 @@
+'use client';
+
+import { fetchClaims } from '@/lib/api/claims';
+import { Link } from '@/i18n/routing';
+import { Badge } from '@interdomestik/ui/components/badge';
+import { Button } from '@interdomestik/ui/components/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@interdomestik/ui/components/table';
+import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+
+const PER_PAGE = 20;
+
+export function AdminClaimsTable() {
+  const searchParams = useSearchParams();
+  const tAdmin = useTranslations('admin.claims_page');
+  const tTable = useTranslations('agent.table');
+  const tStatus = useTranslations('claims.status');
+  const tCommon = useTranslations('common');
+
+  const page = Math.max(1, Number(searchParams.get('page') || 1));
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['claims', 'admin', { page }],
+    queryFn: ({ signal }) =>
+      fetchClaims({
+        scope: 'admin',
+        page,
+        perPage: PER_PAGE,
+        signal,
+      }),
+  });
+
+  const buildPageLink = (targetPage: number) => {
+    const query = new URLSearchParams(searchParams.toString());
+    if (targetPage > 1) {
+      query.set('page', String(targetPage));
+    } else {
+      query.delete('page');
+    }
+    const queryString = query.toString();
+    return queryString ? `?${queryString}` : '';
+  };
+
+  const getStatusColor = (status: string | null) => {
+    switch (status) {
+      case 'submitted':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      case 'resolved':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
+      case 'draft':
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      default:
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="rounded-md border bg-background p-6 text-sm text-muted-foreground">
+        {tCommon('loading')}
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="rounded-md border bg-background p-6 text-sm text-muted-foreground">
+        <div>{tCommon('errors.generic')}</div>
+        <Button className="mt-4" variant="outline" onClick={() => refetch()}>
+          {tCommon('tryAgain')}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{tTable('claimant')}</TableHead>
+              <TableHead>{tAdmin('table.title')}</TableHead>
+              <TableHead>{tTable('status')}</TableHead>
+              <TableHead>{tAdmin('table.amount')}</TableHead>
+              <TableHead>{tTable('date')}</TableHead>
+              <TableHead className="text-right">{tTable('actions')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.claims.map(claim => (
+              <TableRow key={claim.id}>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{claim.claimantName || 'Unknown'}</span>
+                    <span className="text-xs text-muted-foreground">{claim.claimantEmail}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-medium max-w-[240px]">
+                  <div className="truncate" title={claim.title}>
+                    {claim.title}
+                  </div>
+                  <div
+                    className="text-xs text-muted-foreground capitalize truncate"
+                    title={claim.category || ''}
+                  >
+                    {claim.category}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge className={getStatusColor(claim.status)} variant="secondary">
+                    {tStatus(claim.status || 'draft')}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {claim.claimAmount
+                    ? `${parseFloat(claim.claimAmount).toFixed(2)} ${claim.currency || 'EUR'}`
+                    : '-'}
+                </TableCell>
+                <TableCell>
+                  {claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : '-'}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Link
+                    href={`/admin/claims/${claim.id}`}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    {tCommon('view')}
+                  </Link>
+                </TableCell>
+              </TableRow>
+            ))}
+            {data.claims.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  {tTable('no_claims')}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {data.totalPages > 1 && (
+        <div className="flex items-center justify-end gap-2">
+          <Button asChild variant="outline" size="sm" disabled={page <= 1}>
+            <Link href={buildPageLink(page - 1)}>{tCommon('previous')}</Link>
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {tCommon('pagination.pageOf', { page, total: data.totalPages })}
+          </span>
+          <Button asChild variant="outline" size="sm" disabled={page >= data.totalPages}>
+            <Link href={buildPageLink(page + 1)}>{tCommon('next')}</Link>
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

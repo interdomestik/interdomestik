@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 3000;
 const HOST = process.env.PLAYWRIGHT_HOST ?? 'localhost';
+const BIND_HOST = process.env.PLAYWRIGHT_BIND_HOST ?? HOST;
 const BASE_URL = `http://${HOST}:${PORT}`;
 
 export default defineConfig({
@@ -40,7 +41,7 @@ export default defineConfig({
   ],
   webServer: {
     // Use Turbopack for faster dev server startup
-    command: 'pnpm exec next dev --turbopack --hostname 0.0.0.0 --port 3000',
+    command: `pnpm exec next dev --turbopack --hostname ${BIND_HOST} --port ${PORT}`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

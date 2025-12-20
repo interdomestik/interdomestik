@@ -1,16 +1,20 @@
+import { ClaimAssignmentForm } from '@/components/admin/claims/claim-assignment-form';
 import { ClaimStatusForm } from '@/components/admin/claims/claim-status-form';
+import { MessagingPanel } from '@/components/messaging/messaging-panel';
+import { getAgents } from '@/actions/admin-users';
+import { auth } from '@/lib/auth';
 import { db } from '@interdomestik/database/db';
-import { claimDocuments, claimMessages, claims } from '@interdomestik/database/schema';
+import { claimDocuments, claims } from '@interdomestik/database/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Separator } from '@interdomestik/ui/components/separator';
-import { Textarea } from '@interdomestik/ui/components/textarea';
 import { format } from 'date-fns';
 import { desc, eq } from 'drizzle-orm';
-import { AlertTriangle, Clock, Download, FileText, MessageSquare, Send } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 async function getClaimDetails(id: string) {
@@ -24,13 +28,7 @@ async function getClaimDetails(id: string) {
   if (!claim) return null;
 
   const docs = await db.select().from(claimDocuments).where(eq(claimDocuments.claimId, id));
-  const messages = await db
-    .select()
-    .from(claimMessages)
-    .where(eq(claimMessages.claimId, id))
-    .orderBy(desc(claimMessages.createdAt));
-
-  return { ...claim, docs, messages };
+  return { ...claim, docs };
 }
 
 export default async function AdminClaimDetailPage({
@@ -41,10 +39,15 @@ export default async function AdminClaimDetailPage({
   const { id, locale } = await params;
   setRequestLocale(locale);
 
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return notFound();
+
   const data = await getClaimDetails(id);
   const t = await getTranslations('agent.details');
   const tAdmin = await getTranslations('admin.dashboard');
   const tCategory = await getTranslations('claims.category');
+  const tUsers = await getTranslations('admin.users_table');
+  const agents = await getAgents();
 
   if (!data) return notFound();
 
@@ -64,14 +67,26 @@ export default async function AdminClaimDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-muted-foreground">
-            {tAdmin('status_label')}:
-          </span>
-          <ClaimStatusForm
-            claimId={data.id}
-            currentStatus={data.status || 'draft'}
-            locale={locale}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">
+              {tAdmin('status_label')}:
+            </span>
+            <ClaimStatusForm
+              claimId={data.id}
+              currentStatus={data.status || 'draft'}
+              locale={locale}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">
+              {tUsers('headers.assigned_agent')}:
+            </span>
+            <ClaimAssignmentForm
+              claimId={data.id}
+              currentAgentId={data.agentId || null}
+              agents={agents}
+            />
+          </div>
         </div>
       </div>
 
@@ -120,70 +135,13 @@ export default async function AdminClaimDetailPage({
           </Card>
         </div>
 
-        {/* Middle Pane: Unified Timeline & Messages */}
+        {/* Middle Pane: Messaging */}
         <div className="col-span-12 lg:col-span-6 flex flex-col gap-4 bg-muted/20 rounded-xl p-4 h-full border border-muted-foreground/10">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" /> {tAdmin('timeline')}
-            </h3>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2 min-h-[300px]">
-            {data.messages.length === 0 && (
-              <div className="flex flex-col gap-2 opacity-50 text-center py-10">
-                <Clock className="w-8 h-8 mx-auto mb-2" />
-                <p className="text-sm">{tAdmin('no_messages')}</p>
-              </div>
-            )}
-
-            {data.messages.map(msg => (
-              <div
-                key={msg.id}
-                className={`flex gap-3 ${msg.senderId === data.userId ? 'justify-start' : 'justify-end'}`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-2xl p-4 text-sm shadow-sm ${
-                    msg.isInternal
-                      ? 'bg-amber-50 border-amber-200 border text-amber-900'
-                      : msg.senderId === data.userId
-                        ? 'bg-white border text-foreground'
-                        : 'bg-primary text-primary-foreground'
-                  }`}
-                >
-                  {msg.isInternal && (
-                    <div className="text-[10px] font-bold mb-1 uppercase tracking-wider opacity-60">
-                      Internal Note
-                    </div>
-                  )}
-                  {msg.content}
-                  <div className="text-[10px] opacity-70 mt-2 text-right font-medium">
-                    {format(new Date(msg.createdAt!), 'p')}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-auto pt-4 border-t border-muted-foreground/10 space-y-3">
-            <Textarea
-              placeholder={tAdmin('message_placeholder')}
-              className="min-h-[100px] bg-background resize-none focus-visible:ring-1"
-            />
-            <div className="flex justify-between items-center">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-8 px-3 text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200"
-                >
-                  <AlertTriangle className="mr-2 h-3.5 w-3.5" /> {tAdmin('internal_note')}
-                </Button>
-              </div>
-              <Button size="sm" className="px-4">
-                <Send className="mr-2 h-3.5 w-3.5" /> {tAdmin('send_message')}
-              </Button>
-            </div>
-          </div>
+          <MessagingPanel
+            claimId={data.id}
+            currentUserId={session.user.id}
+            isAgent={true}
+          />
         </div>
 
         {/* Right Pane: Documents */}
