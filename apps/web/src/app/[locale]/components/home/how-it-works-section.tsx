@@ -19,17 +19,19 @@ export function HowItWorksSection() {
           <p className="text-[hsl(var(--muted-500))]">{t('subtitle')}</p>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-4 gap-12 max-w-6xl mx-auto">
           {steps.map((step, index) => (
-            <div key={step.number} className="relative text-center">
+            <div key={step.number} className="relative text-center group">
               {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-8 left-[60%] w-full h-0.5 bg-[hsl(var(--border))]" />
+                <div className="hidden md:block absolute top-10 left-[70%] w-full h-[2px] bg-slate-200" />
               )}
-              <div className="relative inline-flex items-center justify-center h-16 w-16 rounded-full brand-gradient text-white text-xl font-bold mb-4">
+              <div className="relative inline-flex items-center justify-center h-20 w-20 rounded-full bg-primary text-white text-2xl font-black mb-6 shadow-lg shadow-primary/20 transition-transform group-hover:scale-110 duration-300">
                 {step.number}
               </div>
-              <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-              <p className="text-sm text-[hsl(var(--muted-500))]">{step.description}</p>
+              <h3 className="text-xl font-bold mb-3 text-slate-900 leading-tight">{step.title}</h3>
+              <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                {step.description}
+              </p>
             </div>
           ))}
         </div>

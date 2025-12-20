@@ -20,27 +20,29 @@ export function ClaimCategoriesSection() {
           <p className="text-[hsl(var(--muted-500))] max-w-2xl mx-auto">{t('subtitle')}</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {categoriesConfig.map((category, index) => (
             <Link
               key={category.key}
               href={category.href}
-              className="group glass-card rounded-xl p-6 card-lift animate-fade-in hover:ring-2 hover:ring-[hsl(var(--primary))] transition-all"
+              className="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 flex flex-col h-full"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className="h-14 w-14 rounded-xl brand-gradient flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <category.icon className="h-7 w-7 text-white" />
+              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <category.icon className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">{t(`${category.key}.title`)}</h3>
-              <p className="text-[hsl(var(--muted-500))] text-sm mb-3">
+              <h3 className="text-xl font-bold mb-3 text-slate-900">
+                {t(`${category.key}.title`)}
+              </h3>
+              <p className="text-slate-500 text-sm mb-4 leading-relaxed">
                 {t(`${category.key}.description`)}
               </p>
-              <p className="text-xs text-[hsl(var(--muted-400))]">
+              <p className="text-xs font-medium text-slate-400 mt-auto">
                 {t(`${category.key}.examples`)}
               </p>
-              <div className="mt-4 flex items-center text-sm font-medium text-[hsl(var(--primary))] group-hover:gap-2 transition-all">
+              <div className="mt-6 flex items-center text-sm font-bold text-primary group-hover:translate-x-1 transition-transform">
                 {t('startClaim')}
-                <ArrowRight className="h-4 w-4 ml-1" />
+                <ArrowRight className="h-4 w-4 ml-2" />
               </div>
             </Link>
           ))}

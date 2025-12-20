@@ -54,39 +54,52 @@ export function PricingSection() {
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">{t('title')}</h2>
           <p className="text-[hsl(var(--muted-500))]">{t('subtitle')}</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {plans.map(plan => (
             <div
               key={plan.name}
-              className={`glass-card rounded-2xl p-6 relative card-lift ${
-                plan.popular ? 'ring-2 ring-[hsl(var(--primary))]' : ''
+              className={`bg-white rounded-3xl p-10 relative transition-all duration-300 border-2 ${
+                plan.popular
+                  ? 'border-primary shadow-2xl shadow-primary/10 scale-105 z-10'
+                  : 'border-slate-100 shadow-xl'
               }`}
             >
               {plan.popular && plan.popularLabel && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="brand-gradient text-white text-xs font-semibold px-3 py-1 rounded-full">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
+                  <span className="bg-primary text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-lg">
                     {plan.popularLabel}
                   </span>
                 </div>
               )}
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-semibold mb-2">{plan.name}</h3>
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-black mb-3 text-slate-900">{plan.name}</h3>
                 <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-4xl font-bold">{plan.price}</span>
-                  <span className="text-[hsl(var(--muted-500))]">{plan.period}</span>
+                  <span className="text-5xl font-black text-slate-900 tracking-tighter">
+                    {plan.price}
+                  </span>
+                  <span className="text-slate-400 font-bold">{plan.period}</span>
                 </div>
-                <p className="text-sm text-[hsl(var(--muted-500))] mt-2">{plan.description}</p>
+                <p className="text-sm font-semibold text-slate-500 mt-3">{plan.description}</p>
               </div>
-              <ul className="space-y-3 mb-6">
+              <ul className="space-y-4 mb-10">
                 {plan.features.map(feature => (
-                  <li key={feature} className="flex items-center gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-[hsl(var(--success))]" />
+                  <li
+                    key={feature}
+                    className="flex items-center gap-3 text-[15px] font-medium text-slate-600"
+                  >
+                    <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
                     {feature}
                   </li>
                 ))}
               </ul>
               <Link href="/register" className="block">
-                <Button variant={plan.popular ? 'default' : 'outline'} className="w-full">
+                <Button
+                  size="xl"
+                  variant={plan.popular ? 'default' : 'outline'}
+                  className={`w-full h-14 text-lg font-bold rounded-2xl ${
+                    plan.popular ? 'shadow-lg shadow-primary/30' : ''
+                  }`}
+                >
                   {t('cta')}
                 </Button>
               </Link>
