@@ -1,6 +1,6 @@
 import { Link } from '@/i18n/routing';
 import { contactInfo } from '@/lib/contact';
-import { MessageCircle, Phone, Shield, ShieldCheck } from 'lucide-react';
+import { Mail, MapPin, MessageCircle, Phone, Shield, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export function Footer() {
@@ -10,115 +10,196 @@ export function Footer() {
   const { phone, whatsapp, address, hours } = contactInfo;
 
   return (
-    <footer className="bg-[hsl(var(--muted-900))] text-white py-12">
-      <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="h-6 w-6 text-[hsl(var(--primary))]" />
-              <span className="font-display font-bold">{common('appName')}</span>
+    <footer className="bg-slate-900 text-white">
+      {/* Main Footer Content */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-12">
+          {/* Brand Column */}
+          <div className="lg:col-span-2">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                <Shield className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <span className="font-display font-black text-xl">{common('appName')}</span>
+                <p className="text-xs text-slate-400 font-medium">Membership Protection Club</p>
+              </div>
             </div>
-            <p className="text-sm text-white/70 mb-4">{t('description')}</p>
+            <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-sm">
+              {t('description')}
+            </p>
 
-            <div className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsl(var(--primary))/0.15] border border-[hsl(var(--primary))/0.3] text-[hsl(var(--primary-foreground))] text-xs font-medium">
-              <ShieldCheck className="h-3.5 w-3.5" />
+            {/* Trust Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold mb-8">
+              <ShieldCheck className="h-4 w-4" />
               {hero('noWinNoFee')}
             </div>
 
-            <div className="space-y-2 text-sm">
+            {/* Contact Info */}
+            <div className="space-y-3">
               {phone && (
                 <a
                   href={`tel:${phone.replace(/\s+/g, '')}`}
-                  className="flex items-center gap-2 text-white hover:text-[hsl(var(--primary))] transition-colors"
+                  className="flex items-center gap-3 text-white hover:text-primary transition-colors group"
                 >
-                  <Phone className="h-4 w-4" />
-                  {phone}
+                  <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <Phone className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold">{phone}</p>
+                    <p className="text-xs text-slate-500">24/7 Hotline</p>
+                  </div>
                 </a>
               )}
               {whatsapp && (
                 <a
                   href={whatsapp}
-                  className="flex items-center gap-2 text-white hover:text-[hsl(var(--success))] transition-colors"
+                  className="flex items-center gap-3 text-white hover:text-green-400 transition-colors group"
                 >
-                  <MessageCircle className="h-4 w-4" />
-                  WhatsApp
+                  <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center group-hover:bg-green-500/10 transition-colors">
+                    <MessageCircle className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="font-bold">WhatsApp</p>
+                    <p className="text-xs text-slate-500">Chat with us</p>
+                  </div>
                 </a>
               )}
               {address && (
-                <p className="flex items-center gap-2 text-white/80">
-                  <Shield className="h-4 w-4" />
-                  {address}
-                </p>
+                <div className="flex items-center gap-3 text-slate-400">
+                  <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">{address}</p>
+                    {hours && <p className="text-xs text-slate-500">{hours}</p>}
+                  </div>
+                </div>
               )}
-              {hours && <p className="text-white/60 text-xs">{t('hours', { hours })}</p>}
             </div>
           </div>
+
+          {/* Membership Links */}
           <div>
-            <h4 className="font-semibold mb-4">{t('company')}</h4>
-            <ul className="space-y-2 text-sm text-white/70">
+            <h4 className="font-display font-bold text-sm uppercase tracking-wider text-slate-300 mb-6">
+              Membership
+            </h4>
+            <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/about" className="hover:text-white transition-colors">
+                <Link
+                  href="/pricing"
+                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                >
+                  Plans & Pricing
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/register"
+                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                >
+                  Join the Club
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/login"
+                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                >
+                  Member Login
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/about"
+                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                >
                   {t('about')}
-                </Link>
-              </li>
-              <li>
-                <Link href="/services" className="hover:text-white transition-colors">
-                  Services
-                </Link>
-              </li>
-              <li>
-                <Link href="/careers" className="hover:text-white transition-colors">
-                  {t('careers')}
                 </Link>
               </li>
             </ul>
           </div>
+
+          {/* Legal Links */}
           <div>
-            <h4 className="font-semibold mb-4">{t('legal')}</h4>
-            <ul className="space-y-2 text-sm text-white/70">
+            <h4 className="font-display font-bold text-sm uppercase tracking-wider text-slate-300 mb-6">
+              {t('legal')}
+            </h4>
+            <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/privacy" className="hover:text-white transition-colors">
+                <Link
+                  href="/legal/privacy"
+                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                >
                   {t('privacy')}
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-white transition-colors">
+                <Link
+                  href="/legal/terms"
+                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                >
                   {t('terms')}
                 </Link>
               </li>
               <li>
-                <Link href="/cookies" className="hover:text-white transition-colors">
+                <Link
+                  href="/legal/cookies"
+                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                >
                   {t('cookies')}
                 </Link>
               </li>
             </ul>
           </div>
+
+          {/* Support Links */}
           <div>
-            <h4 className="font-semibold mb-4">{t('support')}</h4>
-            <ul className="space-y-2 text-sm text-white/70">
+            <h4 className="font-display font-bold text-sm uppercase tracking-wider text-slate-300 mb-6">
+              {t('support')}
+            </h4>
+            <ul className="space-y-3 text-sm">
               <li>
-                <Link href="/help" className="hover:text-white transition-colors">
+                <Link
+                  href="/help"
+                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                >
                   {t('help')}
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="hover:text-white transition-colors">
-                  {t('contact')}
+                <Link
+                  href="/faq"
+                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                >
+                  {t('faq')}
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="hover:text-white transition-colors">
-                  {t('faq')}
-                </Link>
+                <a
+                  href={`mailto:support@interdomestik.com`}
+                  className="text-slate-400 hover:text-white transition-colors font-medium flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Email Us
+                </a>
               </li>
             </ul>
           </div>
         </div>
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-white/60">
-            {t('copyright', { year: new Date().getFullYear() })}
-          </p>
-          <p className="text-xs text-white/40">{t('disclaimer')}</p>
+      </div>
+
+      {/* Bottom Bar */}
+      <div className="border-t border-slate-800">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-slate-500">
+              {t('copyright', { year: new Date().getFullYear() })}
+            </p>
+            <p className="text-xs text-slate-600 text-center md:text-right max-w-lg">
+              {t('disclaimer')}
+            </p>
+          </div>
         </div>
       </div>
     </footer>
