@@ -52,19 +52,19 @@ export async function GET(request: Request) {
   const page = clampPage(Number(url.searchParams.get('page') || 1));
   const perPage = clampPerPage(Number(url.searchParams.get('perPage') || 10), 10);
 
-  const role = session.user.role || 'member';
+  const role = session.user.role || 'user';
   const isAdmin = role === 'admin';
-  const isAgent = role === 'agent' || role === 'supervisor';
+  const isStaff = role === 'staff';
 
-  let scope: 'member' | 'admin' | 'agent_queue' = 'member';
+  let scope: 'member' | 'admin' | 'staff_queue' = 'member';
   if (scopeParam === 'admin') scope = 'admin';
-  if (scopeParam === 'agent_queue') scope = 'agent_queue';
+  if (scopeParam === 'agent_queue' || scopeParam === 'staff_queue') scope = 'staff_queue';
 
-  if (scope === 'admin' && !isAdmin && !isAgent) {
+  if (scope === 'admin' && !isAdmin) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
   }
 
-  if (scope === 'agent_queue' && !isAdmin && !isAgent) {
+  if (scope === 'staff_queue' && !isAdmin && !isStaff) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -74,8 +74,8 @@ export async function GET(request: Request) {
     conditions.push(eq(claims.userId, session.user.id));
   }
 
-  if (scope === 'admin' && isAgent && !isAdmin) {
-    conditions.push(eq(claims.agentId, session.user.id));
+  if (scope === 'staff_queue' && isStaff) {
+    conditions.push(eq(claims.staffId, session.user.id));
   }
 
   if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {

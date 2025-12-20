@@ -15,16 +15,27 @@ export interface AgentStats {
 export async function getAgentDashboardData() {
   const session = await auth.api.getSession({ headers: await headers() });
 
-  if (!session || (session.user.role !== 'agent' && session.user.role !== 'admin')) {
+  if (!session) {
     throw new Error('Unauthorized');
   }
 
-  const agentId = session.user.id;
-  const isAgent = session.user.role === 'agent';
+  if (session.user.role === 'agent') {
+    return {
+      stats: { total: 0, new: 0, inProgress: 0, completed: 0 },
+      recentClaims: [],
+    };
+  }
 
-  // Base query filter: if role is 'agent', only show their assigned claims
+  if (session.user.role !== 'staff' && session.user.role !== 'admin') {
+    throw new Error('Unauthorized');
+  }
+
+  const staffId = session.user.id;
+  const isStaff = session.user.role === 'staff';
+
+  // Base query filter: if role is 'staff', only show their assigned claims
   // If 'admin', show everything for now (or maybe just general overview)
-  const whereClause = isAgent ? eq(claims.agentId, agentId) : sql`1=1`;
+  const whereClause = isStaff ? eq(claims.staffId, staffId) : sql`1=1`;
 
   // Fetch stats
   const [totalRes] = await db.select({ count: count() }).from(claims).where(whereClause);

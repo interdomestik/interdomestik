@@ -1,52 +1,42 @@
 {
   "pricing": {
-    "title": "Çmime të Përballueshme",
-    "subtitle": "Zgjidhni planin që i përshtatet nevojave tuaja",
+    "title": "Mbrojtja e Anëtarësisë",
+    "subtitle": "Zgjidhni planin që ju përshtatet",
     "monthly": "Mujore",
     "yearly": "Vjetore",
-    "basic": {
-      "name": "Bazik",
-      "price": "€5",
-      "period": "/muaj",
-      "description": "Për përdorim personal të rastësishëm",
-      "features": [
-        "3 kërkesa për dëmshpërblim në vit",
-        "Mbështetje me email",
-        "Ngarkim dokumentesh",
-        "Ndjekje e statusit"
-      ]
-    },
+    "switchLabel": "Kurse 17% me pagesë vjetore",
     "standard": {
       "name": "Standard",
-      "price": "€10",
-      "period": "/muaj",
-      "description": "Për përdorim të rregullt",
+      "price": "€20",
+      "period": "/vit",
+      "description": "Mbrojtje e plotë për individë",
       "features": [
-        "10 kërkesa për dëmshpërblim në vit",
-        "Mbështetje prioritare",
-        "Chat i drejtpërdrejtë",
-        "Ndjekje e avancuar"
+        "Linja Emergjente 24/7",
+        "Konsulta Ligjore pa kufi",
+        "Qasje në Kalkulatorin e Dëmit",
+        "Udhëzues & Lista Kontrolli",
+        "50% Zbritje në Ndërmjetësim",
+        "Kompania Avanson Kostot"
       ],
-      "popular": "Më Popullorja"
+      "popular": "Më e zgjedhura"
     },
-    "premium": {
-      "name": "Premium",
-      "price": "€15",
-      "period": "/muaj",
-      "description": "Për mbrojtje të plotë",
+    "family": {
+      "name": "Familja",
+      "price": "€35",
+      "period": "/vit",
+      "description": "Mbrojtje për gjithë shtëpinë",
       "features": [
-        "Kërkesa të pakufizuara për Dëmshpërblim",
-        "Mbështetje VIP",
-        "Thirrje telefonike",
-        "Nënshkrim elektronik",
-        "Përfaqësim ligjor"
+        "Gjithçka në Standard",
+        "Mbulon deri në 5 anëtarë",
+        "Karta Digjitale për të gjithë",
+        "Dashboard i përbashkët"
       ]
     },
-    "cta": "Zgjidh Planin",
-    "loginRequired": "Ju lutemi kyçuni për të parë çmimet e personalizuara dhe për të përmirësuar llogarinë tuaj.",
+    "cta": "Bëhu Anëtar",
+    "loginRequired": "Kyçuni për të bërë upgrade",
     "meta": {
-      "title": "Çmimet - Interdomestik",
-      "description": "Zgjidhni planin e duhur për nevojat tuaja të mbrojtjes së konsumatorit."
+      "title": "Planet e Anëtarësisë - Interdomestik",
+      "description": "Bëhuni pjesë e klubit të mbrojtjes. Planet Standard dhe Familja në dispozicion."
     }
   }
 }

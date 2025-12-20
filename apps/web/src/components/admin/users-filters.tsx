@@ -20,6 +20,7 @@ export function UsersFilters() {
     { value: 'all', label: t('roles.all') },
     { value: 'user', label: t('roles.user') },
     { value: 'agent', label: t('roles.agent') },
+    { value: 'staff', label: t('roles.staff') },
     { value: 'admin', label: t('roles.admin') },
   ];
 

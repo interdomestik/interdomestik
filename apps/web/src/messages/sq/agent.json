@@ -3,6 +3,7 @@
     "title": "Hapësira e Agjentit",
     "dashboard": "Paneli",
     "claims": "Kërkesat për Dëmshpërblim",
+    "members": "Anëtarë",
     "stats": {
       "total": "Gjithsej Kërkesa për Dëmshpërblim",
       "new": "Të Reja",
@@ -69,6 +70,84 @@
       "description": "Kujtues të shpejtë dhe shënime private të hapësirës së punës.",
       "priority": "Triage Prioritare",
       "deadline": "Afati i Ardhshëm"
+    },
+    "members_page": {
+      "title": "Anëtarë",
+      "description": "Anëtarët tuaj të caktuar dhe bisedat aktive."
+    },
+    "members_panel": {
+      "title": "Anëtarët e Mi",
+      "description": "Anëtarët që kërkojnë vëmendjen tuaj tani.",
+      "empty": "Nuk ka ende anëtarë të caktuar.",
+      "view_all": "Shiko të gjithë anëtarët"
+    },
+    "member_profile": {
+      "actions": {
+        "back": "Kthehu te anëtarët",
+        "view_claim": "Shiko kërkesën"
+      },
+      "sections": {
+        "membership": "Anëtarësimi",
+        "agent": "Agjenti i caktuar",
+        "preferences": "Preferencat e njoftimeve",
+        "claims_overview": "Përmbledhja e kërkesave për dëmshpërblim",
+        "recent_claims": "Kërkesat e fundit për dëmshpërblim"
+      },
+      "labels": {
+        "member_id": "ID i anëtarit",
+        "joined": "Regjistruar",
+        "email_verified_yes": "Email i verifikuar",
+        "email_verified_no": "Email i paverifikuar",
+        "status": "Statusi",
+        "plan": "Plani",
+        "period_end": "Fundi i periudhës",
+        "cancel_at_period_end": "Anulim në fund të periudhës",
+        "no_agent": "Nuk ka agjent të caktuar",
+        "preferences_unset": "Preferencat nuk janë vendosur",
+        "no_claims": "Nuk ka ende kërkesa për dëmshpërblim",
+        "unknown": "E panjohur",
+        "not_set": "Nuk është vendosur"
+      },
+      "status": {
+        "active": "Aktive",
+        "past_due": "Me vonesë",
+        "paused": "Pezull",
+        "canceled": "Anuluar",
+        "none": "Pa anëtarësim"
+      },
+      "preferences": {
+        "email_claims": "Email përditësime të kërkesave",
+        "email_newsletter": "Email buletini",
+        "email_marketing": "Email marketing",
+        "push_claims": "Njoftime push për kërkesat",
+        "push_messages": "Njoftime push për mesazhe",
+        "in_app": "Njoftime në aplikacion"
+      },
+      "claims": {
+        "total": "Kërkesa gjithsej",
+        "open": "Kërkesa të hapura",
+        "resolved": "Të zgjidhura",
+        "rejected": "Të refuzuara"
+      }
+    },
+    "users_filters": {
+      "search_placeholder": "Kërko sipas emrit ose email-it"
+    },
+    "users_table": {
+      "sections": {
+        "attention": "Kërkon vëmendje",
+        "all": "Të gjithë anëtarët"
+      },
+      "headers": {
+        "user": "Anëtari",
+        "assigned_agent": "Agjenti i caktuar",
+        "joined": "Regjistruar",
+        "actions": "Veprime"
+      },
+      "view_profile": "Shiko profilin",
+      "view_claims": "Shiko kërkesat",
+      "message_alert": "Mesazh i ri ({count})",
+      "no_users": "Nuk u gjetën anëtarë."
     }
   }
 }

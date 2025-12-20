@@ -44,6 +44,7 @@
       "contracts": "Contracts",
       "utilities": "Utilities",
       "auto": "Vehicle",
+      "vehicle": "Vehicle",
       "travel": "Travel",
       "retail": "Retail",
       "real_estate": "Real Estate",

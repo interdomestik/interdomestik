@@ -32,7 +32,8 @@
     "roles": {
       "admin": "Administrator",
       "agent": "Agjent",
-      "user": "Përdorues"
+      "staff": "Staf",
+      "user": "Anëtar"
     },
     "errors": {
       "title": "Gabim",

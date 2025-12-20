@@ -21,6 +21,7 @@
         "all": "Të gjitha rolet",
         "user": "Anëtarë",
         "agent": "Agjentë",
+        "staff": "Staf",
         "admin": "Administratorë"
       },
       "assignments": {
@@ -33,6 +34,7 @@
       "sections": {
         "members": "Anëtarë",
         "agents": "Agjentë",
+        "staff": "Staf",
         "unassigned": "Të pacaktuar"
       },
       "headers": {
@@ -51,6 +53,12 @@
     "claims_page": {
       "title": "Menaxhimi i Kërkesave për Dëmshpërblim",
       "description": "Shiko dhe menaxho të gjitha kërkesat e përdoruesve për dëmshpërblim.",
+      "assignment": {
+        "label": "Stafi i caktuar",
+        "placeholder": "Zgjidh stafin",
+        "unassigned": "I Pacaktuar",
+        "success_message": "Kërkesa u caktua me sukses"
+      },
       "sections": {
         "active": "Aktive",
         "draft": "Skica",

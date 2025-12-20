@@ -13,13 +13,15 @@ import {
 } from '@interdomestik/ui';
 import { format } from 'date-fns';
 import { Building2, Calendar, DollarSign } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface ClaimInfoPaneProps {
   claim: any;
-  t: any;
 }
 
-export function ClaimInfoPane({ claim, t }: ClaimInfoPaneProps) {
+export function ClaimInfoPane({ claim }: ClaimInfoPaneProps) {
+  const t = useTranslations('agent');
+
   return (
     <Card>
       <CardHeader>

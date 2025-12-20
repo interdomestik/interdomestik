@@ -1,7 +1,19 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { and, claimMessages, claims, db, eq, ilike, or, user } from '@interdomestik/database';
+import {
+  agentClients,
+  and,
+  claimMessages,
+  claims,
+  db,
+  eq,
+  ilike,
+  inArray,
+  or,
+  user,
+} from '@interdomestik/database';
+import { randomUUID } from 'crypto';
 import { desc, isNotNull, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
@@ -16,7 +28,30 @@ export async function updateUserAgent(userId: string, agentId: string | null) {
   }
 
   try {
-    await db.update(user).set({ agentId }).where(eq(user.id, userId));
+    await db.transaction(async tx => {
+      await tx.update(user).set({ agentId }).where(eq(user.id, userId));
+
+      await tx
+        .update(agentClients)
+        .set({ status: 'inactive' })
+        .where(eq(agentClients.memberId, userId));
+
+      if (agentId) {
+        await tx
+          .insert(agentClients)
+          .values({
+            id: randomUUID(),
+            agentId,
+            memberId: userId,
+            status: 'active',
+            joinedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: [agentClients.agentId, agentClients.memberId],
+            set: { status: 'active', joinedAt: new Date() },
+          });
+      }
+    });
 
     revalidatePath('/admin/users');
     return { success: true };
@@ -124,4 +159,21 @@ export async function getAgents() {
   });
 
   return agents;
+}
+
+export async function getStaff() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session || session.user.role !== 'admin') {
+    throw new Error('Unauthorized');
+  }
+
+  const staff = await db.query.user.findMany({
+    where: inArray(user.role, ['staff', 'admin']),
+    orderBy: (users, { asc }) => [asc(users.name)],
+  });
+
+  return staff;
 }

@@ -151,6 +151,13 @@ users.push({
   password: 'AdminPassword123!',
   role: 'admin',
 });
+users.push({
+  id: 'staff-user',
+  name: 'Staff User',
+  email: 'staff@interdomestik.com',
+  password: 'StaffPassword123!',
+  role: 'staff',
+});
 // Add original claims for legacy user
 for (const c of baseClaims) {
   claims.push({

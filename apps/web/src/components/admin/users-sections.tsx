@@ -73,7 +73,8 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
   const members = users.filter(user => user.role === 'user');
   const assignedMembers = members.filter(member => member.agentId);
   const unassignedMembers = members.filter(member => !member.agentId);
-  const agentsOnly = users.filter(user => user.role === 'agent' || user.role === 'admin');
+  const agentsOnly = users.filter(user => user.role === 'agent');
+  const staffMembers = users.filter(user => user.role === 'staff' || user.role === 'admin');
 
   return (
     <div className="space-y-6">
@@ -90,6 +91,11 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
       {agentsOnly.length > 0 && (
         <Section title={t('sections.agents')} count={agentsOnly.length}>
           <UsersTable users={agentsOnly} agents={agents} showEmptyState={false} showContainer={false} />
+        </Section>
+      )}
+      {staffMembers.length > 0 && (
+        <Section title={t('sections.staff')} count={staffMembers.length}>
+          <UsersTable users={staffMembers} agents={agents} showEmptyState={false} showContainer={false} />
         </Section>
       )}
     </div>

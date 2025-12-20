@@ -4,15 +4,15 @@ import { execAsync } from '../utils/exec.js';
 import { REPO_ROOT, WEB_APP } from '../utils/paths.js';
 
 export async function auditDependencies() {
-  let packageJsonPath = path.join(REPO_ROOT, 'package.json');
-  if (!fs.existsSync(packageJsonPath)) {
-    packageJsonPath = path.join(process.cwd(), 'package.json');
-  }
+  const packageJsonPath = path.join(REPO_ROOT, 'package.json');
 
   if (!fs.existsSync(packageJsonPath)) {
     return {
       content: [
-        { type: 'text', text: `❌ Critical: Root package.json missing at ${packageJsonPath}` },
+        {
+          type: 'text',
+          text: `❌ Critical: Root package.json missing at ${packageJsonPath}\nResolved repo root: ${REPO_ROOT}`,
+        },
       ],
     };
   }
@@ -28,7 +28,14 @@ export async function auditDependencies() {
   if (pkg.scripts?.lint) checks.push("✅ 'lint' script present");
 
   return {
-    content: [{ type: 'text', text: `DEPENDENCY AUDIT: SUCCESS\n\nCHECKS:\n${checks.join('\n')}` }],
+    content: [
+      {
+        type: 'text',
+        text: `DEPENDENCY AUDIT: SUCCESS\n\nTARGET: ${REPO_ROOT}\nPACKAGE: ${
+          pkg.name || 'unknown'
+        }\n\nCHECKS:\n${checks.join('\n')}`,
+      },
+    ],
   };
 }
 
@@ -77,19 +84,24 @@ export async function auditAccessibility() {
 }
 
 export async function auditCsp() {
-  const middlewarePath = path.join(WEB_APP, 'src/proxy.ts');
+  const proxyPath = path.join(WEB_APP, 'src/proxy.ts');
+  const middlewarePath = path.join(WEB_APP, 'src/middleware.ts');
+  const targetPath = fs.existsSync(middlewarePath) ? middlewarePath : proxyPath;
+
   const checks: string[] = [];
   const issues: string[] = [];
 
-  if (fs.existsSync(middlewarePath)) {
-    const content = fs.readFileSync(middlewarePath, 'utf-8');
+  if (fs.existsSync(targetPath)) {
+    const filename = path.basename(targetPath);
+    checks.push(`✅ ${filename} exists`);
+    const content = fs.readFileSync(targetPath, 'utf-8');
     if (content.includes('Content-Security-Policy') || content.includes('csp:')) {
-      checks.push('✅ CSP found in proxy.ts');
+      checks.push(`✅ CSP found in ${filename}`);
     } else {
-      issues.push('⚠️ CSP header not explicitly set in proxy.ts');
+      issues.push(`⚠️ CSP header not explicitly set in ${filename}`);
     }
   } else {
-    issues.push('❌ proxy.ts missing');
+    issues.push('❌ Security entry point (middleware.ts or proxy.ts) missing');
   }
 
   const status = issues.length === 0 ? 'SUCCESS' : 'WARNING';
@@ -207,10 +219,14 @@ export async function auditAuth() {
     issues.push('❌ Missing src/lib/auth-client.ts (Client Config)');
   }
 
-  if (fs.existsSync(path.join(WEB_APP, 'src/proxy.ts'))) {
-    checks.push('✅ src/proxy.ts exists');
+  const proxyPath = path.join(WEB_APP, 'src/proxy.ts');
+  const middlewarePath = path.join(WEB_APP, 'src/middleware.ts');
+  const targetPath = fs.existsSync(middlewarePath) ? middlewarePath : proxyPath;
+
+  if (fs.existsSync(targetPath)) {
+    checks.push(`✅ ${path.basename(targetPath)} exists`);
   } else {
-    issues.push('❌ Missing src/proxy.ts (Route Protection)');
+    issues.push('❌ Missing src/middleware.ts or src/proxy.ts (Route Protection)');
   }
 
   const envPath = path.join(REPO_ROOT, '.env');

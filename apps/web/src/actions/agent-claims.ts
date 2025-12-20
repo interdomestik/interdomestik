@@ -11,7 +11,7 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
 
-  if (!session || (session.user.role !== 'agent' && session.user.role !== 'admin')) {
+  if (!session || (session.user.role !== 'staff' && session.user.role !== 'admin')) {
     throw new Error('Unauthorized');
   }
 
@@ -21,6 +21,7 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
       id: claims.id,
       title: claims.title,
       status: claims.status,
+      staffId: claims.staffId,
       userId: claims.userId,
       userEmail: user.email,
     })
@@ -30,6 +31,10 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
 
   if (!claimWithUser) {
     throw new Error('Claim not found');
+  }
+
+  if (session.user.role === 'staff' && claimWithUser.staffId !== session.user.id) {
+    throw new Error('Access denied');
   }
 
   const oldStatus = claimWithUser.status || 'draft';
@@ -75,8 +80,12 @@ export async function assignClaim(claimId: string, agentId: string | null) {
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
 
-  if (!session || (session.user.role !== 'agent' && session.user.role !== 'admin')) {
+  if (!session || (session.user.role !== 'staff' && session.user.role !== 'admin')) {
     throw new Error('Unauthorized');
+  }
+
+  if (session.user.role === 'staff' && agentId && agentId !== session.user.id) {
+    throw new Error('Access denied');
   }
 
   // Get claim details
@@ -86,7 +95,7 @@ export async function assignClaim(claimId: string, agentId: string | null) {
 
   if (!claim) throw new Error('Claim not found');
 
-  await db.update(claims).set({ agentId }).where(eq(claims.id, claimId));
+  await db.update(claims).set({ staffId: agentId }).where(eq(claims.id, claimId));
 
   await logAuditEvent({
     actorId: session.user.id,
@@ -95,27 +104,27 @@ export async function assignClaim(claimId: string, agentId: string | null) {
     entityType: 'claim',
     entityId: claimId,
     metadata: {
-      previousAgentId: claim.agentId || null,
-      newAgentId: agentId,
+      previousStaffId: claim.staffId || null,
+      newStaffId: agentId,
     },
     headers: requestHeaders,
   });
 
   if (agentId) {
-    // Get agent details for notification
-    const agent = await db.query.user.findFirst({
+    // Get staff details for notification
+    const staffMember = await db.query.user.findFirst({
       where: eq(user.id, agentId),
     });
 
-    if (!agent) throw new Error('Agent not found');
+    if (!staffMember) throw new Error('Staff member not found');
 
-    // Notify the assigned agent
-    if (agent.email) {
+    // Notify the assigned staff member
+    if (staffMember.email) {
       notifyClaimAssigned(
-        agent.id,
-        agent.email,
+        staffMember.id,
+        staffMember.email,
         { id: claim.id, title: claim.title },
-        agent.name || 'Agent'
+        staffMember.name || 'Staff'
       ).catch(err => console.error('Failed to notify assignment:', err));
     }
   }

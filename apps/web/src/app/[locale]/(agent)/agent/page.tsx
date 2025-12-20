@@ -1,3 +1,4 @@
+import { getAgentUsers } from '@/actions/agent-users';
 import { getAgentDashboardData } from '@/actions/agent-dashboard';
 import { AgentStatsCards } from '@/components/agent/agent-stats-cards';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
@@ -9,8 +10,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@interdomestik/ui';
-import { Activity, ArrowRight, FileText } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
+import { Activity, ArrowRight, FileText, Users } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 export default async function AgentDashboardPage({
@@ -22,7 +25,14 @@ export default async function AgentDashboardPage({
   setRequestLocale(locale);
 
   const t = await getTranslations('agent');
+  const tMembers = await getTranslations('agent.members_panel');
+  const tUsers = await getTranslations('agent.users_table');
   const { stats, recentClaims } = await getAgentDashboardData();
+  const members = await getAgentUsers();
+
+  const attentionMembers = members.filter(member => member.unreadCount);
+  const highlightedMembers = attentionMembers.length > 0 ? attentionMembers : members;
+  const displayedMembers = highlightedMembers.slice(0, 5);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -48,8 +58,8 @@ export default async function AgentDashboardPage({
 
       <AgentStatsCards stats={stats} />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      <div className="grid gap-4 lg:grid-cols-12">
+        <Card className="lg:col-span-7">
           <CardHeader>
             <CardTitle>{t('table.recent_activity', { defaultValue: 'Recent Activity' })}</CardTitle>
             <CardDescription>
@@ -91,7 +101,62 @@ export default async function AgentDashboardPage({
           </CardContent>
         </Card>
 
-        <Card className="col-span-3">
+        <Card className="lg:col-span-5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              {tMembers('title')}
+            </CardTitle>
+            <CardDescription>{tMembers('description')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {displayedMembers.map(member => (
+                <div key={member.id} className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={member.image || ''} />
+                    <AvatarFallback>{member.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{member.name || 'Unknown'}</p>
+                    <p className="text-xs text-muted-foreground">{member.email}</p>
+                  </div>
+                  {member.unreadCount && member.alertLink ? (
+                    <Button
+                      asChild
+                      size="sm"
+                      className="gap-2 animate-pulse bg-amber-500 text-white hover:bg-amber-600"
+                    >
+                      <Link href={member.alertLink}>
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                        </span>
+                        {tUsers('message_alert', { count: member.unreadCount })}
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/agent/users/${member.id}`}>{tUsers('view_profile')}</Link>
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {displayedMembers.length === 0 && (
+                <div className="py-10 text-center text-muted-foreground opacity-70">
+                  <p>{tMembers('empty')}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/agent/users">{tMembers('view_all')}</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <Card className="lg:col-span-12">
           <CardHeader>
             <CardTitle>{t('details.notes', { defaultValue: 'Workspace Notes' })}</CardTitle>
             <CardDescription>Quick reminders and private workspace notes.</CardDescription>

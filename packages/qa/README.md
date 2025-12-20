@@ -40,6 +40,7 @@ pnpm run-all-audits
 - `run_unit_tests` - Execute Vitest tests
 - `run_coverage` - Run tests with coverage
 - `run_e2e_tests` - Execute Playwright tests
+- `tests_orchestrator` - Run unit/e2e/smoke suites (alias: `test_runner`)
 
 ### Development Tools
 
@@ -52,7 +53,7 @@ pnpm run-all-audits
 ### Integration Tools
 
 - `query_db` - Query local PostgreSQL database
-- `get_stripe_resource` - Fetch Stripe resources
+- `get_paddle_resource` - Fetch Paddle resources
 
 ## Usage
 
@@ -95,7 +96,7 @@ packages/qa/
 │   │   ├── tests.ts      # Testing tools
 │   │   ├── repo.ts       # Repository tools
 │   │   ├── db.ts         # Database tools
-│   │   └── stripe.ts     # Stripe tools
+│   │   └── paddle.ts     # Paddle tools
 │   └── utils/            # Utilities
 │       ├── paths.ts      # Path resolution
 │       └── exec.ts       # Command execution

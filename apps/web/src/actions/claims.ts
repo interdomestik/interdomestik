@@ -55,18 +55,9 @@ export async function createClaim(prevState: unknown, formData: FormData) {
   const claimId = nanoid();
 
   try {
-    // Check if user has an assigned agent
-    const userProfile = await db.query.user.findFirst({
-      where: eq(user.id, session.user.id),
-      columns: {
-        agentId: true,
-      },
-    });
-
     await db.insert(claims).values({
       id: claimId,
       userId: session.user.id,
-      agentId: userProfile?.agentId || null,
       title,
       description,
       category,
@@ -87,7 +78,6 @@ export async function createClaim(prevState: unknown, formData: FormData) {
         category,
         companyName,
         claimAmount: claimAmount || null,
-        agentId: userProfile?.agentId || null,
       },
       headers: requestHeaders,
     });
@@ -341,7 +331,7 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
     headers: requestHeaders,
   });
 
-  if (!session || session.user.role !== 'admin') {
+  if (!session || (session.user.role !== 'admin' && session.user.role !== 'staff')) {
     return { error: 'Unauthorized' };
   }
 

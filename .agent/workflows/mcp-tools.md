@@ -40,14 +40,13 @@ Use for:
 
 ### 4. E2E Test Generator (`e2e-test-generator-mcp`)
 
-**Tools:** `generate_basic_test`, `generate_page_object`, `generate_auth_test`, `generate_api_test`, `generate_marketplace_flow`
+**Tools:** `generate_basic_test`, `generate_page_object`, `generate_auth_test`, `generate_api_test`
 
 Use for:
 
 - Creating Playwright tests from descriptions
 - Generating page object models
 - Building auth flow tests
-- Creating marketplace-specific test flows
 
 ## Example Usage
 

@@ -29,7 +29,7 @@ export interface MockUser {
   email: string;
   emailVerified: boolean;
   image: string | null;
-  role: 'user' | 'admin' | 'agent';
+  role: 'user' | 'admin' | 'agent' | 'staff';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,6 +51,9 @@ export const createMockAdmin = (overrides: Partial<MockUser> = {}): MockUser =>
 
 export const createMockAgent = (overrides: Partial<MockUser> = {}): MockUser =>
   createMockUser({ role: 'agent', name: `Agent ${idCounter}`, ...overrides });
+
+export const createMockStaff = (overrides: Partial<MockUser> = {}): MockUser =>
+  createMockUser({ role: 'staff', name: `Staff ${idCounter}`, ...overrides });
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SESSION FACTORY
@@ -244,7 +247,7 @@ export const createMockMessage = (overrides: Partial<MockMessage> = {}): MockMes
       id: senderId,
       name: `User ${idCounter}`,
       image: null,
-      role: 'member',
+      role: 'user',
     },
     ...overrides,
   };

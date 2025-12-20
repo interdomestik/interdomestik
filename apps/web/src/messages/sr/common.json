@@ -2,6 +2,7 @@
   "common": {
     "appName": "Interdomestik",
     "loading": "Loading...",
+    "processing": "Processing...",
     "save": "Save",
     "cancel": "Cancel",
     "submit": "Submit",
@@ -18,6 +19,27 @@
     "yes": "Yes",
     "no": "No",
     "or": "or",
-    "and": "and"
+    "and": "and",
+    "tryAgain": "Try again",
+    "admin": "Admin",
+    "pagination": {
+      "pageOf": "Page {page} of {total}"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "Sorry, we could not find the page you were looking for."
+    },
+    "roles": {
+      "admin": "Administrator",
+      "agent": "Agent",
+      "staff": "Staff",
+      "user": "Member"
+    },
+    "errors": {
+      "title": "Error",
+      "generic": "Something went wrong. Please try again.",
+      "retry": "Please try again. If the problem persists, contact support.",
+      "unauthorized": "Unauthorized"
+    }
   }
 }

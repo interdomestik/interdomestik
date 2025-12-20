@@ -18,27 +18,32 @@ export function PricingSection() {
 
   const plans: Plan[] = [
     {
-      name: t('basic.name'),
-      price: t('basic.price'),
-      period: t('basic.period'),
-      description: t('basic.description'),
-      features: t.raw('basic.features') as string[],
-    },
-    {
       name: t('standard.name'),
       price: t('standard.price'),
       period: t('standard.period'),
       description: t('standard.description'),
-      features: t.raw('standard.features') as string[],
+      features: [
+        t('standard.features.0'),
+        t('standard.features.1'),
+        t('standard.features.2'),
+        t('standard.features.3'),
+        t('standard.features.4'),
+        t('standard.features.5'),
+      ],
       popular: true,
       popularLabel: t('standard.popular'),
     },
     {
-      name: t('premium.name'),
-      price: t('premium.price'),
-      period: t('premium.period'),
-      description: t('premium.description'),
-      features: t.raw('premium.features') as string[],
+      name: t('family.name'),
+      price: t('family.price'),
+      period: t('family.period'),
+      description: t('family.description'),
+      features: [
+        t('family.features.0'),
+        t('family.features.1'),
+        t('family.features.2'),
+        t('family.features.3'),
+      ],
     },
   ];
 

@@ -17,7 +17,7 @@ describe('sendMessage', () => {
   });
 
   it('should fail with empty message content', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
 
     const result = await sendMessage('claim-123', '   ');
 
@@ -25,7 +25,7 @@ describe('sendMessage', () => {
   });
 
   it('should fail if claim is not found', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue(null);
 
     const result = await sendMessage('claim-123', 'Hello');
@@ -34,7 +34,7 @@ describe('sendMessage', () => {
   });
 
   it("should fail if member tries to message on another user's claim", async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
 
     const result = await sendMessage('claim-123', 'Hello');
@@ -43,16 +43,16 @@ describe('sendMessage', () => {
   });
 
   it('should fail if member tries to send internal message', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
 
     const result = await sendMessage('claim-123', 'Internal note', true);
 
-    expect(result).toEqual({ success: false, error: 'Only agents can send internal messages' });
+    expect(result).toEqual({ success: false, error: 'Only staff can send internal messages' });
   });
 
   it('should insert message successfully for claim owner', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mocks.dbInsert.mockResolvedValue(undefined);
     mockSelectChain.limit.mockReturnValue([
@@ -64,7 +64,7 @@ describe('sendMessage', () => {
         isInternal: false,
         readAt: null,
         createdAt: new Date(),
-        sender: { id: 'user-123', name: 'Test User', image: null, role: 'member' },
+        sender: { id: 'user-123', name: 'Test User', image: null, role: 'user' },
       },
     ]);
 
@@ -83,48 +83,48 @@ describe('sendMessage', () => {
     expect(result.message?.content).toBe('Hello');
   });
 
-  it('should allow agents to send internal messages', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'agent-1', role: 'agent' } });
+  it('should allow staff to send internal messages', async () => {
+    mocks.getSession.mockResolvedValue({ user: { id: 'staff-1', role: 'staff' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mocks.dbInsert.mockResolvedValue(undefined);
     mockSelectChain.limit.mockReturnValue([
       {
         id: 'test-message-id',
         claimId: 'claim-123',
-        senderId: 'agent-1',
-        content: 'Agent note',
+        senderId: 'staff-1',
+        content: 'Staff note',
         isInternal: true,
         readAt: null,
         createdAt: new Date(),
-        sender: { id: 'agent-1', name: 'Agent', image: null, role: 'agent' },
+        sender: { id: 'staff-1', name: 'Staff', image: null, role: 'staff' },
       },
     ]);
 
-    const result = await sendMessage('claim-123', 'Agent note', true);
+    const result = await sendMessage('claim-123', 'Staff note', true);
 
     expect(mocks.dbInsert).toHaveBeenCalledWith(expect.objectContaining({ isInternal: true }));
     expect(result.success).toBe(true);
     expect(result.message?.isInternal).toBe(true);
   });
 
-  it('should allow supervisor to send messages on any claim', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'supervisor-1', role: 'supervisor' } });
+  it('should allow staff to send messages on any claim', async () => {
+    mocks.getSession.mockResolvedValue({ user: { id: 'staff-2', role: 'staff' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
     mocks.dbInsert.mockResolvedValue(undefined);
     mockSelectChain.limit.mockReturnValue([
       {
         id: 'test-message-id',
         claimId: 'claim-123',
-        senderId: 'supervisor-1',
-        content: 'Supervisor message',
+        senderId: 'staff-2',
+        content: 'Staff message',
         isInternal: false,
         readAt: null,
         createdAt: new Date(),
-        sender: { id: 'supervisor-1', name: 'Supervisor', image: null, role: 'supervisor' },
+        sender: { id: 'staff-2', name: 'Staff', image: null, role: 'staff' },
       },
     ]);
 
-    const result = await sendMessage('claim-123', 'Supervisor message');
+    const result = await sendMessage('claim-123', 'Staff message');
 
     expect(result.success).toBe(true);
   });
@@ -153,7 +153,7 @@ describe('sendMessage', () => {
   });
 
   it('should handle database errors during message insert', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mocks.dbInsert.mockRejectedValue(new Error('DB Error'));
 
@@ -163,7 +163,7 @@ describe('sendMessage', () => {
   });
 
   it('should handle created message with null sender and missing fields', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mocks.dbInsert.mockResolvedValue(undefined);
     mockSelectChain.limit.mockReturnValue([
@@ -185,11 +185,11 @@ describe('sendMessage', () => {
     expect(result.message?.isInternal).toBe(false);
     expect(result.message?.sender.name).toBe('Unknown');
     expect(result.message?.sender.id).toBe('user-123');
-    expect(result.message?.sender.role).toBe('member');
+    expect(result.message?.sender.role).toBe('user');
   });
 
   it('should handle created message with partial sender info', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mocks.dbInsert.mockResolvedValue(undefined);
     mockSelectChain.limit.mockReturnValue([
@@ -210,10 +210,10 @@ describe('sendMessage', () => {
     expect(result.success).toBe(true);
     expect(result.message?.sender.id).toBe('user-123');
     expect(result.message?.sender.name).toBe('Unknown');
-    expect(result.message?.sender.role).toBe('member');
+    expect(result.message?.sender.role).toBe('user');
   });
 
-  it('should fallback to member role when sending without role defined', async () => {
+  it('should fallback to user role when sending without role defined', async () => {
     mocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mocks.dbInsert.mockResolvedValue(undefined);
@@ -226,7 +226,7 @@ describe('sendMessage', () => {
         isInternal: false,
         readAt: null,
         createdAt: new Date(),
-        sender: { id: 'user-123', name: 'User', image: null, role: 'member' },
+        sender: { id: 'user-123', name: 'User', image: null, role: 'user' },
       },
     ]);
 

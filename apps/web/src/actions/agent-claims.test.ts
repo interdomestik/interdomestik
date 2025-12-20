@@ -63,7 +63,7 @@ vi.mock('next/headers', () => ({
 import { notifyClaimAssigned } from '@/lib/notifications';
 import { assignClaim, updateClaimStatus } from './agent-claims';
 
-describe('Agent Claims Actions', () => {
+describe('Staff Claims Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -75,22 +75,28 @@ describe('Agent Claims Actions', () => {
     });
 
     it('should throw if user is a regular member', async () => {
-      mocks.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'member' } });
-      await expect(updateClaimStatus('claim-1', 'resolved')).rejects.toThrow('Unauthorized');
-    });
-
-    it('should throw if user role is user (not agent/admin)', async () => {
       mocks.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
       await expect(updateClaimStatus('claim-1', 'resolved')).rejects.toThrow('Unauthorized');
     });
 
-    it('should allow agent to update claim status', async () => {
+    it('should throw if user role is user (not staff/admin)', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+      await expect(updateClaimStatus('claim-1', 'resolved')).rejects.toThrow('Unauthorized');
+    });
+
+    it('should throw if user role is agent (sales only)', async () => {
       mocks.getSession.mockResolvedValue({ user: { id: 'agent-1', role: 'agent' } });
+      await expect(updateClaimStatus('claim-1', 'resolved')).rejects.toThrow('Unauthorized');
+    });
+
+    it('should allow staff to update claim status', async () => {
+      mocks.getSession.mockResolvedValue({ user: { id: 'staff-1', role: 'staff' } });
       mocks.dbSelect.mockResolvedValue([
         {
           id: 'claim-1',
           title: 'Test Claim',
           status: 'submitted',
+          staffId: 'staff-1',
           userId: 'user-1',
           userEmail: 'user@test.com',
         },
@@ -135,32 +141,32 @@ describe('Agent Claims Actions', () => {
       await expect(assignClaim('claim-1', 'agent-2')).rejects.toThrow('Claim not found');
     });
 
-    it('should throw if agent does not exist', async () => {
+    it('should throw if staff member does not exist', async () => {
       mocks.getSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
       mocks.dbQueryClaims.mockResolvedValue({ id: 'claim-1', title: 'Test Claim' });
       mocks.dbQueryUser.mockResolvedValue(null); // No agent
 
-      await expect(assignClaim('claim-1', 'agent-2')).rejects.toThrow('Agent not found');
+      await expect(assignClaim('claim-1', 'agent-2')).rejects.toThrow('Staff member not found');
     });
 
-    it('should update agentId and notify agent', async () => {
+    it('should update staffId and notify staff', async () => {
       mocks.getSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
       mocks.dbQueryClaims.mockResolvedValue({ id: 'claim-1', title: 'Test Claim' });
       mocks.dbQueryUser.mockResolvedValue({
-        id: 'agent-2',
-        email: 'agent@test.com',
-        name: 'Agent Smith',
+        id: 'staff-2',
+        email: 'staff@test.com',
+        name: 'Staff Smith',
       });
       mocks.dbUpdate.mockResolvedValue(undefined);
 
-      await assignClaim('claim-1', 'agent-2');
+      await assignClaim('claim-1', 'staff-2');
 
       expect(mocks.dbUpdate).toHaveBeenCalled();
       expect(notifyClaimAssigned).toHaveBeenCalledWith(
-        'agent-2',
-        'agent@test.com',
+        'staff-2',
+        'staff@test.com',
         { id: 'claim-1', title: 'Test Claim' },
-        'Agent Smith'
+        'Staff Smith'
       );
     });
   });

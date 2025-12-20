@@ -13,7 +13,7 @@ import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 
-type AgentOption = {
+type StaffOption = {
   id: string;
   name: string | null;
   email: string | null;
@@ -21,26 +21,26 @@ type AgentOption = {
 
 type ClaimAssignmentFormProps = {
   claimId: string;
-  currentAgentId: string | null;
-  agents: AgentOption[];
+  currentStaffId: string | null;
+  staff: StaffOption[];
 };
 
 export function ClaimAssignmentForm({
   claimId,
-  currentAgentId,
-  agents,
+  currentStaffId,
+  staff,
 }: ClaimAssignmentFormProps) {
-  const tUsers = useTranslations('admin.users_table');
   const tCommon = useTranslations('common');
+  const tClaims = useTranslations('admin.claims_page');
   const [isPending, startTransition] = useTransition();
 
   const handleAssign = (value: string) => {
-    const nextAgentId = value === 'unassigned' ? null : value;
+    const nextStaffId = value === 'unassigned' ? null : value;
 
     startTransition(async () => {
       try {
-        await assignClaim(claimId, nextAgentId);
-        toast.success(tUsers('success_message'));
+        await assignClaim(claimId, nextStaffId);
+        toast.success(tClaims('assignment.success_message'));
       } catch (error) {
         toast.error(tCommon('errors.generic'));
         console.error(error);
@@ -48,19 +48,19 @@ export function ClaimAssignmentForm({
     });
   };
 
-  const currentValue = currentAgentId || 'unassigned';
+  const currentValue = currentStaffId || 'unassigned';
 
   return (
     <div className="flex items-center gap-2">
       <Select value={currentValue} onValueChange={handleAssign} disabled={isPending}>
         <SelectTrigger className="w-[220px]">
-          <SelectValue placeholder={tUsers('select_agent')} />
+          <SelectValue placeholder={tClaims('assignment.placeholder')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="unassigned">{tUsers('unassigned')}</SelectItem>
-          {agents.map(agent => (
-            <SelectItem key={agent.id} value={agent.id}>
-              {agent.name || agent.email || agent.id}
+          <SelectItem value="unassigned">{tClaims('assignment.unassigned')}</SelectItem>
+          {staff.map(member => (
+            <SelectItem key={member.id} value={member.id}>
+              {member.name || member.email || member.id}
             </SelectItem>
           ))}
         </SelectContent>

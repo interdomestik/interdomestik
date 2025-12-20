@@ -15,9 +15,13 @@ export default defineConfig({
     'claim',
     'claim_documents',
     'claim_messages',
+    'claim_stage_history',
     'audit_log',
     'leads',
+    'membership_plans',
     'user_notification_preferences',
     'subscriptions',
+    'agent_clients',
+    'agent_commissions',
   ],
 });

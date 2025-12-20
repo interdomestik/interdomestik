@@ -30,14 +30,11 @@ export default async function PricingPage({ params }: PricingPageProps) {
         <p className="text-xl text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      {session ? (
-        <PricingTable userId={session.user.id} email={session.user.email} />
-      ) : (
-        <div className="text-center p-12 bg-muted/50 rounded-lg">
-          <p className="mb-4">{t('loginRequired')}</p>
-          {/* We could add a login button here, but global nav usually has it */}
-        </div>
-      )}
+      <PricingTable userId={session?.user?.id} email={session?.user?.email} />
+
+      <div className="mt-20 text-center">
+        <p className="text-sm text-muted-foreground">30-Day Money-Back Guarantee</p>
+      </div>
     </div>
   );
 }

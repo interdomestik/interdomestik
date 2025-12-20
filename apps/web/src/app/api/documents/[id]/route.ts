@@ -24,9 +24,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   // TODO: Add proper RBAC check
-  // For now, allow if user is admin/agent OR is the document owner
+  // For now, allow if user is admin/staff OR is the document owner
   const userRole = session.user.role as string | undefined;
-  const isPrivileged = userRole === 'admin' || userRole === 'agent';
+  const isPrivileged = userRole === 'admin' || userRole === 'staff';
   const isOwner = doc.uploadedBy === session.user.id;
 
   if (!isPrivileged && !isOwner) {

@@ -6,7 +6,7 @@ import path from 'path';
 
 const ROOT = process.cwd();
 const locales = ['en', 'sq', 'sr', 'mk'];
-const namespaces = ['hero', 'trust', 'nav'];
+const namespaces = ['hero', 'trust', 'nav', 'admin', 'agent', 'common'];
 const fileFor = (locale, namespace) =>
   path.join(ROOT, 'apps/web/src/messages', locale, `${namespace}.json`);
 

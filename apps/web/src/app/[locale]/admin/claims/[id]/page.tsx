@@ -1,7 +1,7 @@
 import { ClaimAssignmentForm } from '@/components/admin/claims/claim-assignment-form';
 import { ClaimStatusForm } from '@/components/admin/claims/claim-status-form';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
-import { getAgents } from '@/actions/admin-users';
+import { getStaff } from '@/actions/admin-users';
 import { auth } from '@/lib/auth';
 import { db } from '@interdomestik/database/db';
 import { claimDocuments, claims } from '@interdomestik/database/schema';
@@ -45,9 +45,9 @@ export default async function AdminClaimDetailPage({
   const data = await getClaimDetails(id);
   const t = await getTranslations('agent.details');
   const tAdmin = await getTranslations('admin.dashboard');
+  const tClaimsAdmin = await getTranslations('admin.claims_page');
   const tCategory = await getTranslations('claims.category');
-  const tUsers = await getTranslations('admin.users_table');
-  const agents = await getAgents();
+  const staff = await getStaff();
 
   if (!data) return notFound();
 
@@ -79,12 +79,12 @@ export default async function AdminClaimDetailPage({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">
-              {tUsers('headers.assigned_agent')}:
+              {tClaimsAdmin('assignment.label')}:
             </span>
             <ClaimAssignmentForm
               claimId={data.id}
-              currentAgentId={data.agentId || null}
-              agents={agents}
+              currentStaffId={data.staffId || null}
+              staff={staff}
             />
           </div>
         </div>

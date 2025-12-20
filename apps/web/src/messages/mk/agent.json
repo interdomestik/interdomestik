@@ -3,18 +3,27 @@
     "title": "Agent Workspace",
     "dashboard": "Dashboard",
     "claims": "Claims",
+    "members": "Members",
     "stats": {
       "total": "Total Claims",
       "new": "New (Submitted)",
       "verification": "In Verification",
       "closed": "Resolved / Rejected"
     },
+    "claims_queue": "Claims Queue",
+    "manage_triage": "Manage and triage all submitted claims.",
     "table": {
       "claimant": "Claimant",
+      "claim": "Claim",
       "status": "Status",
+      "amount": "Amount",
       "date": "Date",
       "actions": "Actions",
-      "triage": "Triage"
+      "triage": "Triage",
+      "message_alert": "New message ({count})",
+      "no_claims": "No claims found.",
+      "no_claims_ready": "Claim List Component Coming Soon",
+      "recent_activity": "Recent Activity"
     },
     "actions": {
       "approve": "Approve",
@@ -30,10 +39,23 @@
       "description": "Description",
       "amount": "Amount",
       "company": "Subject / Company",
+      "title_label": "Title",
+      "category_label": "Category",
+      "status_label": "Status",
       "evidence": "Evidence Files",
       "noEvidence": "No documents uploaded.",
       "notes": "Internal Notes",
-      "notesPlaceholder": "Private agent notes feature coming soon."
+      "notesPlaceholder": "Private agent notes feature coming soon.",
+      "timeline": "Case Timeline",
+      "no_messages": "No interaction history yet.",
+      "message_placeholder": "Type a message or internal note...",
+      "internal_note": "Internal Note",
+      "send_message": "Send Message",
+      "incident_date": "Incident Date",
+      "messages": "Messages",
+      "documents": "Documents",
+      "no_documents": "No documents uploaded",
+      "unknown_date": "Unknown date"
     },
     "triage": {
       "title": "Triage Actions",
@@ -42,6 +64,90 @@
       "verify": "Verify Info",
       "reject": "Reject Claim",
       "notice": "Changing status updates the user's timeline immediately."
+    },
+    "notes": {
+      "title": "Agent Notes",
+      "description": "Quick reminders and private workspace notes.",
+      "priority": "Priority Triage",
+      "deadline": "Upcoming Deadline"
+    },
+    "members_page": {
+      "title": "Members",
+      "description": "Your assigned members and active conversations."
+    },
+    "members_panel": {
+      "title": "My Members",
+      "description": "Members who need your attention right now.",
+      "empty": "No assigned members yet.",
+      "view_all": "View all members"
+    },
+    "member_profile": {
+      "actions": {
+        "back": "Back to members",
+        "view_claim": "View claim"
+      },
+      "sections": {
+        "membership": "Membership",
+        "agent": "Assigned agent",
+        "preferences": "Notification preferences",
+        "claims_overview": "Claims overview",
+        "recent_claims": "Recent claims"
+      },
+      "labels": {
+        "member_id": "Member ID",
+        "joined": "Joined",
+        "email_verified_yes": "Email verified",
+        "email_verified_no": "Email not verified",
+        "status": "Status",
+        "plan": "Plan",
+        "period_end": "Period end",
+        "cancel_at_period_end": "Cancel at period end",
+        "no_agent": "No agent assigned",
+        "preferences_unset": "Preferences not set",
+        "no_claims": "No claims yet",
+        "unknown": "Unknown",
+        "not_set": "Not set"
+      },
+      "status": {
+        "active": "Active",
+        "past_due": "Past due",
+        "paused": "Paused",
+        "canceled": "Canceled",
+        "none": "Not subscribed"
+      },
+      "preferences": {
+        "email_claims": "Email claim updates",
+        "email_newsletter": "Email newsletter",
+        "email_marketing": "Email marketing",
+        "push_claims": "Push claim updates",
+        "push_messages": "Push messages",
+        "in_app": "In-app notifications"
+      },
+      "claims": {
+        "total": "Total claims",
+        "open": "Open claims",
+        "resolved": "Resolved",
+        "rejected": "Rejected"
+      }
+    },
+    "users_filters": {
+      "search_placeholder": "Search by name or email"
+    },
+    "users_table": {
+      "sections": {
+        "attention": "Needs attention",
+        "all": "All members"
+      },
+      "headers": {
+        "user": "Member",
+        "assigned_agent": "Assigned agent",
+        "joined": "Joined",
+        "actions": "Actions"
+      },
+      "view_profile": "View profile",
+      "view_claims": "View claims",
+      "message_alert": "New message ({count})",
+      "no_users": "No members found."
     }
   }
 }

@@ -55,7 +55,7 @@ export async function getUnassignedClaims(limit = 5) {
     with: {
       user: true,
     },
-    where: isNull(claims.agentId),
+    where: isNull(claims.staffId),
     limit,
     orderBy: [desc(claims.createdAt)],
   });

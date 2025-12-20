@@ -32,7 +32,8 @@
     "roles": {
       "admin": "Administrator",
       "agent": "Agent",
-      "user": "User"
+      "staff": "Staff",
+      "user": "Member"
     },
     "errors": {
       "title": "Error",

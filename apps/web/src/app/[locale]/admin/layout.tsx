@@ -23,9 +23,9 @@ export default async function AdminLayout({
   }
 
   // Strict Role Check
-  if (session!.user.role !== 'admin' && session!.user.role !== 'agent') {
-    // Redirect unauthorized users back to their dashboard (or 403 page)
-    redirect({ href: '/dashboard', locale });
+  if (session!.user.role !== 'admin') {
+    const fallback = session!.user.role === 'agent' ? '/agent' : '/dashboard';
+    redirect({ href: fallback, locale });
   }
 
   const allMessages = await getMessages();

@@ -20,6 +20,11 @@ export const tools = [
     inputSchema: { type: 'object', properties: {} },
   },
   {
+    name: 'dependency_audit',
+    description: 'Alias for audit_dependencies',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
     name: 'audit_supabase',
     description: 'Verify Supabase Environment & Connectivity (env vars only)',
     inputSchema: { type: 'object', properties: {} },
@@ -38,6 +43,28 @@ export const tools = [
     name: 'run_e2e_tests',
     description: 'Run E2E tests for the web application using Playwright',
     inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'tests_orchestrator',
+    description: 'Run project test suites (unit/e2e/smoke)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        suite: { type: 'string', description: 'unit | e2e | smoke | full' },
+        useHyperExecute: { type: 'boolean', description: 'Not supported; runs locally' },
+      },
+    },
+  },
+  {
+    name: 'test_runner',
+    description: 'Alias for tests_orchestrator',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        suite: { type: 'string', description: 'unit | e2e | smoke | full' },
+        useHyperExecute: { type: 'boolean', description: 'Not supported; runs locally' },
+      },
+    },
   },
   {
     name: 'audit_accessibility',
@@ -114,12 +141,12 @@ export const tools = [
     },
   },
   {
-    name: 'get_stripe_resource',
-    description: 'Fetch a resource from Stripe (customer, price, etc)',
+    name: 'get_paddle_resource',
+    description: 'Fetch a resource from Paddle (subscription, customer, etc)',
     inputSchema: {
       type: 'object',
       properties: {
-        resource: { type: 'string', enum: ['customers', 'products', 'prices', 'paymentIntents'] },
+        resource: { type: 'string', enum: ['subscriptions', 'customers', 'products', 'prices'] },
         id: { type: 'string', description: 'ID of the resource to fetch' },
       },
       required: ['resource', 'id'],

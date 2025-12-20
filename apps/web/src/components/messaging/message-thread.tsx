@@ -84,7 +84,7 @@ export function MessageThread({ messages, currentUserId, isAgent = false }: Mess
             <div className="space-y-4">
               {dateMessages.map(message => {
                 const isOwn = message.senderId === currentUserId;
-                const isAgentMessage = message.sender.role !== 'member';
+                const isAgentMessage = message.sender.role !== 'user';
 
                 return (
                   <div

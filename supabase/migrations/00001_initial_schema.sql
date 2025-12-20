@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ENUMS
 -- ===========================================
 
-CREATE TYPE user_role AS ENUM ('member', 'agent', 'supervisor', 'admin');
+CREATE TYPE user_role AS ENUM ('user', 'agent', 'staff', 'admin');
 CREATE TYPE subscription_plan AS ENUM ('basic', 'standard', 'premium', 'family');
 CREATE TYPE subscription_status AS ENUM ('active', 'canceled', 'past_due', 'expired', 'trialing');
 CREATE TYPE claim_category AS ENUM ('consumer', 'housing', 'insurance', 'employment', 'contracts', 'utilities');
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
   full_name TEXT,
   phone TEXT,
   avatar_url TEXT,
-  role user_role DEFAULT 'member' NOT NULL,
+  role user_role DEFAULT 'user' NOT NULL,
   locale TEXT DEFAULT 'sq' NOT NULL,
   onboarding_completed BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -49,7 +49,7 @@ CREATE POLICY "Users can update own profile" ON users
 CREATE POLICY "Staff can view all users" ON users
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('agent', 'supervisor', 'admin')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('agent', 'staff', 'admin')
     )
   );
 
@@ -144,7 +144,7 @@ CREATE POLICY "Agents can view assigned claims" ON claims
   FOR SELECT USING (
     assigned_agent_id = auth.uid() OR
     EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('supervisor', 'admin')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('staff', 'admin')
     )
   );
 
@@ -153,7 +153,7 @@ CREATE POLICY "Agents can update assigned claims" ON claims
   FOR UPDATE USING (
     assigned_agent_id = auth.uid() OR
     EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('supervisor', 'admin')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('staff', 'admin')
     )
   );
 
@@ -199,7 +199,7 @@ CREATE POLICY "Users can upload claim documents" ON claim_documents
 CREATE POLICY "Staff can view all documents" ON claim_documents
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('agent', 'supervisor', 'admin')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('agent', 'staff', 'admin')
     )
   );
 
@@ -244,7 +244,7 @@ CREATE POLICY "Users can send claim messages" ON claim_messages
 CREATE POLICY "Staff can view all messages" ON claim_messages
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('agent', 'supervisor', 'admin')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('agent', 'staff', 'admin')
     )
   );
 
@@ -252,7 +252,7 @@ CREATE POLICY "Staff can view all messages" ON claim_messages
 CREATE POLICY "Staff can send messages" ON claim_messages
   FOR INSERT WITH CHECK (
     EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('agent', 'supervisor', 'admin')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('agent', 'staff', 'admin')
     )
   );
 
@@ -290,7 +290,7 @@ CREATE POLICY "Users can view own claim timeline" ON claim_timeline
 CREATE POLICY "Staff can view all timeline" ON claim_timeline
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('agent', 'supervisor', 'admin')
+      SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('agent', 'staff', 'admin')
     )
   );
 

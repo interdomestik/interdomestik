@@ -43,13 +43,14 @@ The MCP servers start automatically when you launch Gemini CLI. No manual setup 
 - `run_unit_tests` - Execute Vitest tests
 - `run_coverage` - Run tests with coverage
 - `run_e2e_tests` - Execute Playwright tests
+- `tests_orchestrator` - Run unit/e2e/smoke suites (alias: `test_runner`)
 - `project_map` - Generate project structure
 - `read_files` - Read file contents
 - `git_status` - Get git status
 - `git_diff` - View git changes
 - `code_search` - Search codebase
 - `query_db` - Query local database
-- `get_stripe_resource` - Fetch Stripe data
+- `get_paddle_resource` - Fetch Paddle data
 
 **Usage Examples**:
 
@@ -78,7 +79,6 @@ The MCP servers start automatically when you launch Gemini CLI. No manual setup 
 - `generate_page_object` - Generate page objects
 - `generate_auth_test` - Create auth flow tests
 - `generate_api_test` - Generate API tests
-- `generate_marketplace_test` - Create marketplace tests
 
 ---
 

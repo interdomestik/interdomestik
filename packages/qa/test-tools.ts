@@ -87,19 +87,22 @@ setTimeout(() => {
     );
   }, 500);
 
-  // Test Run: Stripe (Fast check) - optional
+  // Test Run: Paddle (Fast check) - optional
   setTimeout(() => {
-    const stripeCustomer = process.env.QA_STRIPE_CUSTOMER_ID || process.env.STRIPE_TEST_CUSTOMER_ID;
-    if (!stripeCustomer) {
-      console.log('\n--- TESTING STRIPE via MCP (skipped: set QA_STRIPE_CUSTOMER_ID) ---\n');
+    const paddleSubscription =
+      process.env.QA_PADDLE_SUBSCRIPTION_ID || process.env.PADDLE_TEST_SUBSCRIPTION_ID;
+    if (!paddleSubscription) {
+      console.log(
+        '\n--- TESTING PADDLE via MCP (skipped: set QA_PADDLE_SUBSCRIPTION_ID) ---\n'
+      );
       return;
     }
-    console.log('\n--- TESTING STRIPE via MCP ---\n');
+    console.log('\n--- TESTING PADDLE via MCP ---\n');
     sendRequest(
       'tools/call',
       {
-        name: 'get_stripe_resource',
-        arguments: { resource: 'customers', id: stripeCustomer },
+        name: 'get_paddle_resource',
+        arguments: { resource: 'subscriptions', id: paddleSubscription },
       },
       103
     );

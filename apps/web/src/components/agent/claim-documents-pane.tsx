@@ -3,13 +3,15 @@
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { format } from 'date-fns';
 import { Download, FileText } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface ClaimDocumentsPaneProps {
   documents: any[];
-  t: any;
 }
 
-export function ClaimDocumentsPane({ documents, t }: ClaimDocumentsPaneProps) {
+export function ClaimDocumentsPane({ documents }: ClaimDocumentsPaneProps) {
+  const t = useTranslations('agent');
+
   return (
     <Card>
       <CardHeader>

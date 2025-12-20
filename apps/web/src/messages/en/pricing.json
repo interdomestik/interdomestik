@@ -1,52 +1,42 @@
 {
   "pricing": {
-    "title": "Affordable Pricing",
+    "title": "Membership Protection",
     "subtitle": "Choose the plan that fits your needs",
     "monthly": "Monthly",
     "yearly": "Yearly",
-    "basic": {
-      "name": "Basic",
-      "price": "€5",
-      "period": "/month",
-      "description": "For occasional personal use",
-      "features": [
-        "3 Kërkesa për Dëmshpërblim në vit",
-        "Mbështetje me email",
-        "Ngarkim dokumentesh",
-        "Ndjekje e statusit"
-      ]
-    },
+    "switchLabel": "Save 17% with Yearly",
     "standard": {
       "name": "Standard",
-      "price": "€10",
-      "period": "/month",
-      "description": "For regular use",
+      "price": "€20",
+      "period": "/year",
+      "description": "Complete protection for individuals",
       "features": [
-        "10 Kërkesa për Dëmshpërblim në vit",
-        "Mbështetje prioritare",
-        "Chat i drejtpërdrejtë",
-        "Ndjekje e avancuar"
+        "24/7 Emergency Hotline",
+        "Unlimited Legal Consultations",
+        "Damage Calculator Access",
+        "Expert Guides & Checklists",
+        "50% Mediation Fee Discount",
+        "Company Advances Costs"
       ],
       "popular": "Most Popular"
     },
-    "premium": {
-      "name": "Premium",
-      "price": "€15",
-      "period": "/month",
-      "description": "For complete protection",
+    "family": {
+      "name": "Family",
+      "price": "€35",
+      "period": "/year",
+      "description": "Protection for the whole household",
       "features": [
-        "Kërkesa për Dëmshpërblim të pakufizuara",
-        "Mbështetje VIP",
-        "Thirrje telefonike",
-        "Nënshkrim elektronik",
-        "Përfaqësim ligjor"
+        "Everything in Standard",
+        "Covers up to 5 family members",
+        "Digital Cards for all members",
+        "Shared Dashboard"
       ]
     },
-    "cta": "Choose Plan",
-    "loginRequired": "Please log in to view customized pricing and upgrade your account.",
+    "cta": "Join Now",
+    "loginRequired": "Log in to upgrade",
     "meta": {
-      "title": "Pricing - Interdomestik",
-      "description": "Choose the right plan for your consumer protection needs."
+      "title": "Membership Plans - Interdomestik",
+      "description": "Join the protection club. Standard and Family plans available."
     }
   }
 }

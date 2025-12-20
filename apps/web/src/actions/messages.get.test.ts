@@ -17,7 +17,7 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should fail if claim is not found', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue(null);
 
     const result = await getMessagesForClaim('claim-123');
@@ -26,7 +26,7 @@ describe('getMessagesForClaim', () => {
   });
 
   it("should fail if member tries to access another user's claim", async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
 
     const result = await getMessagesForClaim('claim-123');
@@ -35,7 +35,7 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should return messages for claim owner', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mockSelectChain.orderBy.mockReturnValue([]);
 
@@ -54,8 +54,8 @@ describe('getMessagesForClaim', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should allow supervisor to access any claim', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'supervisor-1', role: 'supervisor' } });
+  it('should allow staff to access any claim', async () => {
+    mocks.getSession.mockResolvedValue({ user: { id: 'staff-1', role: 'staff' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
     mockSelectChain.orderBy.mockReturnValue([]);
 
@@ -65,7 +65,7 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockRejectedValue(new Error('DB Error'));
 
     const result = await getMessagesForClaim('claim-123');
@@ -74,7 +74,7 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should handle null sender info gracefully', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mockSelectChain.orderBy.mockReturnValue([
       {
@@ -93,11 +93,11 @@ describe('getMessagesForClaim', () => {
 
     expect(result.success).toBe(true);
     expect(result.messages?.[0].sender.name).toBe('Unknown');
-    expect(result.messages?.[0].sender.role).toBe('member');
+    expect(result.messages?.[0].sender.role).toBe('user');
     expect(result.messages?.[0].isInternal).toBe(false);
   });
 
-  it('should fallback to member role when user role is undefined', async () => {
+  it('should fallback to user role when user role is undefined', async () => {
     mocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mockSelectChain.orderBy.mockReturnValue([]);
@@ -108,7 +108,7 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should handle partial sender info', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'member' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mockSelectChain.orderBy.mockReturnValue([
       {
@@ -128,6 +128,6 @@ describe('getMessagesForClaim', () => {
     expect(result.success).toBe(true);
     expect(result.messages?.[0].sender.name).toBe('Unknown');
     expect(result.messages?.[0].sender.image).toBe(null);
-    expect(result.messages?.[0].sender.role).toBe('member');
+    expect(result.messages?.[0].sender.role).toBe('user');
   });
 });

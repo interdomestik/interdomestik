@@ -28,7 +28,7 @@ export type MessageWithSender = {
 /**
  * Get messages for a claim.
  * - Members can only see non-internal messages.
- * - Agents/Admins can see all messages including internal notes.
+ * - Staff/Admins can see all messages including internal notes.
  */
 export async function getMessagesForClaim(claimId: string): Promise<{
   success: boolean;
@@ -42,7 +42,7 @@ export async function getMessagesForClaim(claimId: string): Promise<{
     }
 
     const userId = session.user.id;
-    const userRole = session.user.role || 'member';
+    const userRole = session.user.role || 'user';
 
     // Verify user has access to this claim
     const claim = await db.query.claims.findFirst({
@@ -54,8 +54,8 @@ export async function getMessagesForClaim(claimId: string): Promise<{
     }
 
     // Members can only access their own claims
-    const isAgent = userRole === 'agent' || userRole === 'admin' || userRole === 'supervisor';
-    if (!isAgent && claim.userId !== userId) {
+    const isStaff = userRole === 'staff' || userRole === 'admin';
+    if (!isStaff && claim.userId !== userId) {
       return { success: false, error: 'Access denied' };
     }
 
@@ -82,7 +82,7 @@ export async function getMessagesForClaim(claimId: string): Promise<{
         and(
           eq(claimMessages.claimId, claimId),
           // If not an agent, filter out internal messages
-          isAgent
+          isStaff
             ? undefined
             : or(eq(claimMessages.isInternal, false), eq(claimMessages.senderId, userId))
         )
@@ -103,7 +103,7 @@ export async function getMessagesForClaim(claimId: string): Promise<{
           id: m.sender?.id ?? m.senderId,
           name: m.sender?.name ?? 'Unknown',
           image: m.sender?.image ?? null,
-          role: m.sender?.role ?? 'member',
+          role: m.sender?.role ?? 'user',
         },
       })),
     };
@@ -116,7 +116,7 @@ export async function getMessagesForClaim(claimId: string): Promise<{
 /**
  * Send a message on a claim.
  * - Members can send regular messages.
- * - Agents can send both regular and internal messages.
+ * - Staff can send both regular and internal messages.
  */
 export async function sendMessage(
   claimId: string,
@@ -131,7 +131,7 @@ export async function sendMessage(
     }
 
     const userId = session.user.id;
-    const userRole = session.user.role || 'member';
+    const userRole = session.user.role || 'user';
 
     if (!content.trim()) {
       return { success: false, error: 'Message cannot be empty' };
@@ -146,16 +146,16 @@ export async function sendMessage(
       return { success: false, error: 'Claim not found' };
     }
 
-    const isAgent = userRole === 'agent' || userRole === 'admin' || userRole === 'supervisor';
+    const isStaff = userRole === 'staff' || userRole === 'admin';
 
     // Members can only send on their own claims
-    if (!isAgent && claim.userId !== userId) {
+    if (!isStaff && claim.userId !== userId) {
       return { success: false, error: 'Access denied' };
     }
 
-    // Only agents can send internal messages
-    if (isInternal && !isAgent) {
-      return { success: false, error: 'Only agents can send internal messages' };
+    // Only staff can send internal messages
+    if (isInternal && !isStaff) {
+      return { success: false, error: 'Only staff can send internal messages' };
     }
 
     const messageId = nanoid();
@@ -210,7 +210,7 @@ export async function sendMessage(
     revalidatePath(`/agent/claims/${claimId}`);
 
     // Send notification (fire and forget)
-    if (!isInternal && isAgent) {
+    if (!isInternal && isStaff) {
       const claimOwner = await db.query.user.findFirst({
         where: eq(user.id, claim.userId),
       });
@@ -240,7 +240,7 @@ export async function sendMessage(
           id: createdMessage.sender?.id ?? createdMessage.senderId,
           name: createdMessage.sender?.name ?? 'Unknown',
           image: createdMessage.sender?.image ?? null,
-          role: createdMessage.sender?.role ?? 'member',
+          role: createdMessage.sender?.role ?? 'user',
         },
       },
     };

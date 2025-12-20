@@ -5,7 +5,7 @@ import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { auth } from '@/lib/auth';
 import { claimDocuments, claimMessages, claims, db } from '@interdomestik/database';
 import { desc, eq } from 'drizzle-orm';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
@@ -28,9 +28,11 @@ export default async function AgentClaimDetailPage({
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return notFound();
+  if (session.user.role !== 'staff' && session.user.role !== 'admin') return notFound();
 
   const data = await getClaimDetails(id);
   if (!data) return notFound();
+  if (session.user.role === 'staff' && data.staffId !== session.user.id) return notFound();
 
   // Fetch messages
   const messages = await db.query.claimMessages.findMany({
@@ -45,17 +47,13 @@ export default async function AgentClaimDetailPage({
     orderBy: [desc(claimDocuments.createdAt)],
   });
 
-  const t = await getTranslations('agent');
-  const tCategory = await getTranslations('claimCategories');
-  const tCommon = await getTranslations('common');
-
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      <ClaimDetailHeader claim={data} tCategory={tCategory} tCommon={tCommon} />
+      <ClaimDetailHeader claim={data} />
 
       {/* 3-Pane Cockpit Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <ClaimInfoPane claim={data} t={t} />
+        <ClaimInfoPane claim={data} />
         <MessagingPanel
           claimId={id}
           currentUserId={session.user.id}
@@ -72,11 +70,11 @@ export default async function AgentClaimDetailPage({
               id: message.sender?.id ?? message.senderId,
               name: message.sender?.name ?? 'Unknown',
               image: message.sender?.image ?? null,
-              role: message.sender?.role ?? 'member',
+              role: message.sender?.role ?? 'user',
             },
           }))}
         />
-        <ClaimDocumentsPane documents={documents} t={t} />
+        <ClaimDocumentsPane documents={documents} />
       </div>
     </div>
   );

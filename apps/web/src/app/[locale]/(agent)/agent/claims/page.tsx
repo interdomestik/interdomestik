@@ -1,6 +1,9 @@
 import { AgentClaimsFilters } from '@/components/agent/agent-claims-filters';
 import { AgentClaimsTable } from '@/components/agent/agent-claims-table';
+import { auth } from '@/lib/auth';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 
 export default async function AgentClaimsPage({
   params,
@@ -11,6 +14,10 @@ export default async function AgentClaimsPage({
   setRequestLocale(locale);
 
   const t = await getTranslations('agent');
+  const session = await auth.api.getSession({ headers: await headers() });
+
+  if (!session) return notFound();
+  if (session.user.role !== 'staff' && session.user.role !== 'admin') return notFound();
 
   return (
     <div className="space-y-6">

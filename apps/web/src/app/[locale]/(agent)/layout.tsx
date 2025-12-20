@@ -21,8 +21,12 @@ export default async function AgentLayout({ children, params }: Props) {
     return null;
   }
 
-  // RBAC: Allow 'agent' and 'admin'
-  if (session.user.role !== 'agent' && session.user.role !== 'admin') {
+  // RBAC: Allow agent workspace (agent, staff, admin)
+  if (
+    session.user.role !== 'agent' &&
+    session.user.role !== 'staff' &&
+    session.user.role !== 'admin'
+  ) {
     redirect({ href: '/dashboard', locale });
     return null;
   }
@@ -57,6 +61,12 @@ export default async function AgentLayout({ children, params }: Props) {
                   className="transition-colors hover:text-foreground/80 text-foreground/60"
                 >
                   {t('claims')}
+                </Link>
+                <Link
+                  href="/agent/users"
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  {t('members')}
                 </Link>
               </nav>
             </div>
