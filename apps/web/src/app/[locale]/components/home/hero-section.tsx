@@ -2,7 +2,7 @@ import { Link } from '@/i18n/routing';
 import { contactInfo } from '@/lib/contact';
 import { flags } from '@/lib/flags';
 import { Button } from '@interdomestik/ui';
-import { ArrowRight, Clock, MessageCircle, Phone, ShieldCheck, Star, Shield } from 'lucide-react';
+import { ArrowRight, Clock, MessageCircle, Phone, ShieldCheck, Star, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export function HeroSection() {
@@ -12,74 +12,96 @@ export function HeroSection() {
   const telHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
 
   return (
-    <section className="relative py-16 lg:py-28 overflow-hidden">
-      <div className="absolute inset-0 brand-gradient-light" />
+    <section className="relative py-20 lg:py-32 overflow-hidden bg-mesh">
+      {/* Decorative background elements */}
+      <div className="absolute top-1/4 -left-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl animate-pulse-soft" />
+      <div
+        className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse-soft"
+        style={{ animationDelay: '1s' }}
+      />
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[hsl(var(--primary)/0.1)] text-[hsl(var(--primary))] text-sm font-medium mb-6 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 backdrop-blur-sm border shadow-sm text-primary text-sm font-bold mb-8 animate-fade-in badge-glow cursor-default">
             <ShieldCheck className="h-4 w-4" />
             {t('badge')}
           </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-6 animate-fade-in">
-            {t('title')}
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-black mb-8 animate-fade-in tracking-tighter leading-[1.1]">
+            {t('title').split(' ').slice(0, -1).join(' ')}{' '}
+            <span className="text-primary text-[length:inherit]">
+              {t('title').split(' ').pop()}
+            </span>
           </h1>
+
           <p
-            className="text-lg md:text-xl text-[hsl(var(--muted-500))] mb-8 max-w-2xl mx-auto animate-slide-up"
+            className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto animate-slide-up font-medium"
             style={{ animationDelay: '0.1s' }}
           >
             {t('subtitle')}
           </p>
 
           <div
-            className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up"
+            className="flex flex-col sm:flex-row gap-5 justify-center animate-slide-up"
             style={{ animationDelay: '0.2s' }}
           >
             <Link href="/register">
-              <Button size="xl" className="w-full sm:w-auto">
+              <Button
+                size="xl"
+                className="w-full sm:w-auto h-14 px-10 text-lg shadow-xl cta-press group"
+              >
                 {t('cta')}
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
             {whatsapp && (
               <a href={whatsapp} className="w-full sm:w-auto">
-                <Button variant="secondary" size="xl" className="w-full sm:w-auto gap-2">
-                  <MessageCircle className="h-5 w-5" />
+                <Button
+                  variant="secondary"
+                  size="xl"
+                  className="w-full sm:w-auto h-14 px-8 gap-2 bg-white/80 backdrop-blur-sm border shadow-sm hover:bg-white interactive-press"
+                >
+                  <MessageCircle className="h-5 w-5 text-green-600" />
                   {t('whatsappCta')}
                 </Button>
               </a>
             )}
             {telHref && (
               <a href={telHref} className="w-full sm:w-auto">
-                <Button variant="outline" size="xl" className="w-full sm:w-auto gap-2">
-                  <Phone className="h-5 w-5" />
-                  {phone}
+                <Button
+                  variant="outline"
+                  size="xl"
+                  className="w-full sm:w-auto h-14 px-8 gap-2 bg-white/40 backdrop-blur-sm border-white/40 hover:bg-white/60 interactive-press"
+                >
+                  <Phone className="h-5 w-5 text-primary" />
+                  <span className="font-bold">{phone}</span>
                 </Button>
               </a>
             )}
           </div>
 
           <div
-            className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-[hsl(var(--muted-400))] animate-fade-in"
+            className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm font-semibold text-muted-foreground animate-fade-in"
             style={{ animationDelay: '0.3s' }}
           >
             {slaEnabled && (
-              <span className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4" />
-                {t('responseTime')}
+              <span className="flex items-center gap-2 group cursor-default">
+                <div className="p-1 px-2 rounded-md bg-amber-50 text-amber-700 transition-colors group-hover:bg-amber-100">
+                  <Clock className="h-3.5 w-3.5 inline mr-1" />
+                  {t('responseTime')}
+                </div>
               </span>
             )}
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-4 w-4" />
+            <span className="flex items-center gap-2 border-l pl-8 first:border-l-0 first:pl-0">
+              <ShieldCheck className="h-4 w-4 text-green-600" />
               {t('noWinNoFee')}
             </span>
-            <span className="flex items-center gap-1.5">
-              <Star className="h-4 w-4" />
+            <span className="flex items-center gap-2 border-l pl-8">
+              <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
               {t('rating')}
             </span>
-            <span className="flex items-center gap-1.5">
-              <Shield className="h-4 w-4" />
+            <span className="flex items-center gap-2 border-l pl-8">
+              <Zap className="h-4 w-4 text-primary" />
               {t('claimAdjuster')}
             </span>
           </div>

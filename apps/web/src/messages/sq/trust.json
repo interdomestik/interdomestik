@@ -1,8 +1,12 @@
 {
   "trust": {
-    "claimsProcessed": "Kërkesat e Përpunuara për Dëmshpërblim",
+    "claimsProcessed": "Kërkesat e Përpunuara",
+    "claimsProcessedValue": "1,200+",
     "compensationWon": "Kompensim i Fituar",
+    "compensationWonValue": "€850K+",
     "successRate": "Shkalla e Suksesit",
-    "responseTime": "Përgjigja e Parë"
+    "successRateValue": "94%",
+    "responseTime": "Koha e Përgjigjes",
+    "responseTimeValue": "<24h"
   }
 }

@@ -11,7 +11,7 @@ export function Header() {
   const telHref = phone ? `tel:${phone.replace(/\s+/g, '')}` : undefined;
 
   return (
-    <header className="sticky top-0 z-50 glass-card border-b">
+    <header className="sticky top-0 z-50 glass">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <Shield className="h-8 w-8 text-[hsl(var(--primary))]" />

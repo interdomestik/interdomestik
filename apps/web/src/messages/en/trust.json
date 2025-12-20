@@ -1,8 +1,12 @@
 {
   "trust": {
     "claimsProcessed": "Claims Processed",
+    "claimsProcessedValue": "1,200+",
     "compensationWon": "Compensation Won",
+    "compensationWonValue": "€850K+",
     "successRate": "Success Rate",
-    "responseTime": "First Response"
+    "successRateValue": "94%",
+    "responseTime": "Response Time",
+    "responseTimeValue": "<24h"
   }
 }

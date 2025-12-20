@@ -6,26 +6,31 @@ export function TrustStrip() {
   const slaEnabled = flags.responseSla;
 
   const stats = [
-    { value: '1,200+', label: t('claimsProcessed') },
-    { value: '€850K+', label: t('compensationWon') },
-    { value: '94%', label: t('successRate') },
-    ...(slaEnabled ? [{ value: '<24h', label: t('responseTime') }] : []),
+    { value: t('claimsProcessedValue'), label: t('claimsProcessed') },
+    { value: t('compensationWonValue'), label: t('compensationWon') },
+    { value: t('successRateValue'), label: t('successRate') },
+    ...(slaEnabled ? [{ value: t('responseTimeValue'), label: t('responseTime') }] : []),
   ];
 
   return (
-    <section className="py-8 bg-[hsl(var(--surface-strong))] border-y">
+    <section className="relative z-20 -mt-10 pb-12">
       <div className="container mx-auto px-4">
         <div
-          className={`flex flex-wrap justify-center items-center gap-8 md:gap-12 lg:gap-16 ${
+          className={`glass shadow-premium rounded-3xl py-10 px-6 sm:px-12 flex flex-wrap justify-center items-center gap-y-12 gap-x-8 md:gap-x-20 lg:gap-32 ${
             stats.length === 3 ? 'max-w-4xl mx-auto' : 'max-w-5xl mx-auto'
           }`}
         >
           {stats.map((stat, index) => (
-            <div key={index} className="text-center min-w-[140px]">
-              <div className="text-2xl md:text-3xl font-bold text-[hsl(var(--primary))]">
+            <div
+              key={index}
+              className="text-center min-w-[140px] group transition-transform hover:-translate-y-1 duration-300"
+            >
+              <div className="text-4xl md:text-5xl font-black text-primary tracking-tighter mb-2">
                 {stat.value}
               </div>
-              <div className="text-sm text-[hsl(var(--muted-500))] mt-1">{stat.label}</div>
+              <div className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground/80 group-hover:text-primary transition-colors duration-300">
+                {stat.label}
+              </div>
             </div>
           ))}
         </div>
