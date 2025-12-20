@@ -6,10 +6,10 @@ export function TrustStrip() {
   const slaEnabled = flags.responseSla;
 
   const stats = [
-    { value: t('claimsProcessedValue'), label: t('claimsProcessed') },
-    { value: t('compensationWonValue'), label: t('compensationWon') },
+    { value: t('activeMembersValue'), label: t('activeMembers') },
+    { value: t('memberSavingsValue'), label: t('memberSavings') },
     { value: t('successRateValue'), label: t('successRate') },
-    ...(slaEnabled ? [{ value: t('responseTimeValue'), label: t('responseTime') }] : []),
+    ...(slaEnabled ? [{ value: t('hotlineResponseValue'), label: t('hotlineResponse') }] : []),
   ];
 
   return (

@@ -1,12 +1,12 @@
 {
   "trust": {
-    "claimsProcessed": "Kërkesat e Përpunuara",
-    "claimsProcessedValue": "1,200+",
-    "compensationWon": "Kompensim i Fituar",
-    "compensationWonValue": "€850K+",
+    "activeMembers": "Anëtarë Aktivë",
+    "activeMembersValue": "8,500+",
+    "memberSavings": "Kursimet e Anëtarëve",
+    "memberSavingsValue": "€150K+",
     "successRate": "Shkalla e Suksesit",
     "successRateValue": "94%",
-    "responseTime": "Koha e Përgjigjes",
-    "responseTimeValue": "<24h"
+    "hotlineResponse": "Përgjigja në Linjë",
+    "hotlineResponseValue": "<60s"
   }
 }

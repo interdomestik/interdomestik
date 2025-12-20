@@ -1,18 +1,18 @@
 {
   "hero": {
     "badge": "Membership Protection Club",
-    "title": "Your Private Protection Against Damages",
-    "subtitle": "Join the club for €20/year. We handle your claims, provide legal protection, and advance repair costs. Accidents happen—be prepared.",
-    "cta": "Become a Member",
-    "callNow": "24/7 Hotline",
-    "whatsappCta": "Chat on WhatsApp",
-    "secondaryCta": "View Plans",
-    "trustedBy": "Trusted by families across the Balkans",
-    "responseTime": "24/7 Response",
-    "noWinNoFee": "No Win No Fee",
+    "title": "Your Private Membership Protection Club",
+    "subtitle": "Join thousands of members for €20/year. Get 24/7 emergency support, expert legal mediation, and total peace of mind for every incident.",
+    "cta": "Join the Club",
+    "callNow": "Emergency Hotline",
+    "whatsappCta": "Chat with an Expert",
+    "secondaryCta": "Compare Plans",
+    "trustedBy": "Trusted by 8,500+ active members",
+    "emergencyHotline": "24/7 Hotline",
+    "voiceClaims": "Voice Claims",
     "rating": "4.9★ Rating",
-    "claimAdjuster": "Private Advocacy Network",
-    "ctaTitle": "Ready to Get Protected?",
-    "ctaSubtitle": "Don't face insurance companies alone. Join Interdomestik Asistenca today for peace of mind."
+    "legalMediation": "Expert Mediation",
+    "ctaTitle": "Secure Your Protection Today",
+    "ctaSubtitle": "Don't wait for an accident to happen. Join the Interdomestik Membership Club and be prepared for anything."
   }
 }

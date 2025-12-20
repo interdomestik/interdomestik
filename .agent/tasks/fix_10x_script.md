@@ -36,6 +36,6 @@ The objective is to fix the `start-10x-task.sh` script to ensure it runs reliabl
 
 **Done Criteria**:
 
-- [ ] `start-10x-task.sh` completes without hanging or crashing.
-- [ ] `claims.test.ts` passes.
-- [ ] Baseline capture in the script reports "pass" for all sections.
+- [x] `start-10x-task.sh` completes without hanging or crashing.
+- [x] `claims.test.ts` passes.
+- [x] Baseline capture in the script reports "pass" for all sections.

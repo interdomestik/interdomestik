@@ -2,7 +2,7 @@ import { Link } from '@/i18n/routing';
 import { contactInfo } from '@/lib/contact';
 import { flags } from '@/lib/flags';
 import { Button } from '@interdomestik/ui';
-import { ArrowRight, Clock, MessageCircle, Phone, ShieldCheck, Star, Zap } from 'lucide-react';
+import { ArrowRight, MessageCircle, Phone, Scale, ShieldCheck, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export function HeroSection() {
@@ -85,24 +85,24 @@ export function HeroSection() {
             style={{ animationDelay: '0.3s' }}
           >
             {slaEnabled && (
-              <span className="flex items-center gap-2 group cursor-default">
+              <span className="flex items-center gap-2 group cursor-default first:border-l-0 first:pl-0">
                 <div className="p-1 px-2 rounded-md bg-amber-50 text-amber-700 transition-colors group-hover:bg-amber-100">
-                  <Clock className="h-3.5 w-3.5 inline mr-1" />
-                  {t('responseTime')}
+                  <Phone className="h-3.5 w-3.5 inline mr-1" />
+                  {t('emergencyHotline')}
                 </div>
               </span>
             )}
             <span className="flex items-center gap-2 border-l pl-8 first:border-l-0 first:pl-0">
-              <ShieldCheck className="h-4 w-4 text-green-600" />
-              {t('noWinNoFee')}
+              <MessageCircle className="h-4 w-4 text-green-600" />
+              {t('voiceClaims')}
             </span>
             <span className="flex items-center gap-2 border-l pl-8">
               <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
               {t('rating')}
             </span>
             <span className="flex items-center gap-2 border-l pl-8">
-              <Zap className="h-4 w-4 text-primary" />
-              {t('claimAdjuster')}
+              <Scale className="h-4 w-4 text-primary" />
+              {t('legalMediation')}
             </span>
           </div>
         </div>

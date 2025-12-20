@@ -1,12 +1,12 @@
 {
   "trust": {
-    "claimsProcessed": "Claims Processed",
-    "claimsProcessedValue": "1,200+",
-    "compensationWon": "Compensation Won",
-    "compensationWonValue": "€850K+",
+    "activeMembers": "Active Members",
+    "activeMembersValue": "8,500+",
+    "memberSavings": "Member Savings",
+    "memberSavingsValue": "€150K+",
     "successRate": "Success Rate",
     "successRateValue": "94%",
-    "responseTime": "Response Time",
-    "responseTimeValue": "<24h"
+    "hotlineResponse": "Hotline Response",
+    "hotlineResponseValue": "<60s"
   }
 }
