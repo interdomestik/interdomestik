@@ -5,6 +5,19 @@
     "monthly": "Mujore",
     "yearly": "Vjetore",
     "switchLabel": "Kurse 17% me pagesë vjetore",
+    "basic": {
+      "name": "Bazik",
+      "price": "€15",
+      "period": "/viti",
+      "description": "Mbrojtje bazë për individë",
+      "features": [
+        "Linja e Urgjencës 24/7",
+        "2 Konsulta Ligjore në vit",
+        "Qasje në Kalkulatorin e Dëmit",
+        "Udhëzues & Checklists",
+        "25% Zbritje në Tarifat e Ndërmjetësimit"
+      ]
+    },
     "standard": {
       "name": "Standard",
       "price": "€20",

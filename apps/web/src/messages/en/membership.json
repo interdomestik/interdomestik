@@ -1,0 +1,21 @@
+{
+  "membership": {
+    "success": {
+      "title": "Welcome to Interdomestik!",
+      "subtitle": "Your protection is now active. You are officially part of our club.",
+      "hotline_label": "24/7 EMERGENCY HOTLINE",
+      "hotline_number": "+383 49 123 456",
+      "hotline_hint": "Save this number to your phone now",
+      "card_label": "Your Digital Protection Card",
+      "card_id_prefix": "MEMBER ID:",
+      "cta_wallet": "Add to Apple/Google Wallet",
+      "cta_save_contact": "Save Hotline to Contacts",
+      "cta_dashboard": "Go to Dashboard",
+      "benefits_title": "Getting Started",
+      "benefits_1": "Access legal consultations anytime",
+      "benefits_2": "Calculate damages in 60 seconds",
+      "benefits_3": "Download accident checklists",
+      "benefits_4": "One-call voice claim filing"
+    }
+  }
+}

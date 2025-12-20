@@ -16,6 +16,9 @@ vi.mock('@interdomestik/ui', () => ({
   CardDescription: ({ children }: { children: ReactNode }) => <p>{children}</p>,
   CardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CardFooter: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Badge: ({ children, className }: { children: ReactNode; className?: string }) => (
+    <span className={className}>{children}</span>
+  ),
   Button: ({
     children,
     onClick,
@@ -34,6 +37,8 @@ vi.mock('@interdomestik/ui', () => ({
 vi.mock('lucide-react', () => ({
   Check: () => <span>✓</span>,
   Loader2: () => <span>...</span>,
+  ShieldCheck: () => <span>🛡️</span>,
+  Users: () => <span>👥</span>,
 }));
 
 describe('PricingTable', () => {
@@ -53,22 +58,23 @@ describe('PricingTable', () => {
   it('renders plans correctly', () => {
     render(<PricingTable userId="user-123" email="test@example.com" />);
 
-    expect(screen.getByText('Basic')).toBeDefined();
-    expect(screen.getByText('Pro')).toBeDefined();
-    expect(screen.getByText('€9.99/mo')).toBeDefined();
+    expect(screen.getByText('basic.name')).toBeDefined();
+    expect(screen.getByText('standard.name')).toBeDefined();
+    expect(screen.getByText('family.name')).toBeDefined();
+    expect(screen.getAllByText('€20').length).toBeGreaterThan(0);
   });
 
   it('initiates checkout on button click', async () => {
     render(<PricingTable userId="user-123" email="test@example.com" />);
 
-    // Find the upgrade button (Pro plan)
-    const upgradeBtn = screen.getByText('Upgrade to Pro');
-    fireEvent.click(upgradeBtn);
+    // Find the Join Now button for standard plan (which is the 2nd one or first popular one)
+    const joinButtons = screen.getAllByText('cta');
+    fireEvent.click(joinButtons[1]); // Standard plan
 
     await waitFor(() => {
       expect(mockPaddle.Checkout.open).toHaveBeenCalledWith(
         expect.objectContaining({
-          items: expect.arrayContaining([{ priceId: 'pri_01jk_placeholder_pro', quantity: 1 }]),
+          items: expect.arrayContaining([{ priceId: 'pri_standard_year', quantity: 1 }]),
           customer: { email: 'test@example.com' },
           customData: { userId: 'user-123' },
         })
@@ -83,7 +89,8 @@ describe('PricingTable', () => {
 
     render(<PricingTable userId="user-123" email="test@example.com" />);
 
-    fireEvent.click(screen.getByText('Upgrade to Pro'));
+    const joinButtons = screen.getAllByText('cta');
+    fireEvent.click(joinButtons[0]);
 
     await waitFor(() => {
       expect(alertMock).toHaveBeenCalledWith(

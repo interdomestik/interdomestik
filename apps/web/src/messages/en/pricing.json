@@ -5,6 +5,19 @@
     "monthly": "Monthly",
     "yearly": "Yearly",
     "switchLabel": "Save 17% with Yearly",
+    "basic": {
+      "name": "Bazik",
+      "price": "€15",
+      "period": "/year",
+      "description": "Essential protection for individuals",
+      "features": [
+        "24/7 Emergency Hotline",
+        "2 Legal Consultations per year",
+        "Damage Calculator Access",
+        "Expert Guides & Checklists",
+        "25% Mediation Fee Discount"
+      ]
+    },
     "standard": {
       "name": "Standard",
       "price": "€20",

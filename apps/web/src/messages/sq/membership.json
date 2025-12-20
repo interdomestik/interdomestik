@@ -1,0 +1,21 @@
+{
+  "membership": {
+    "success": {
+      "title": "Mirë se vini në Interdomestik!",
+      "subtitle": "Mbrojtja juaj tani është aktive. Ju jeni zyrtarisht pjesë e klubit tonë.",
+      "hotline_label": "LINJA EMERGJENTE 24/7",
+      "hotline_number": "+383 49 123 456",
+      "hotline_hint": "Ruajeni këtë numër në telefonin tuaj tani",
+      "card_label": "Karta juaj Digjitale",
+      "card_id_prefix": "ID ANËTARI:",
+      "cta_wallet": "Shto në Apple/Google Wallet",
+      "cta_save_contact": "Ruaj numrin në kontakte",
+      "cta_dashboard": "Shko në Dashboard",
+      "benefits_title": "Filloni tani",
+      "benefits_1": "Konsulta ligjore në çdo kohë",
+      "benefits_2": "Kalkulimi i dëmit në 60 sekonda",
+      "benefits_3": "Shkarko checklists për aksidente",
+      "benefits_4": "Hapja e rastit vetëm me një thirrje"
+    }
+  }
+}
