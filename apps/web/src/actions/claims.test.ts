@@ -1,5 +1,4 @@
 import type { CreateClaimValues } from '@/lib/validators/claims';
-import { db } from '@interdomestik/database/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClaim, submitClaim, updateClaimStatus } from './claims';
 
@@ -21,6 +20,13 @@ vi.mock('@interdomestik/database/db', () => ({
     insert: () => ({ values: mockDbInsert }),
     update: () => ({ set: () => ({ where: mockDbUpdate }) }),
     query: {
+      subscriptions: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'sub-1',
+          userId: 'user-123',
+          status: 'active',
+        }),
+      },
       claims: {
         findFirst: vi.fn().mockResolvedValue({
           id: 'claim-1',
