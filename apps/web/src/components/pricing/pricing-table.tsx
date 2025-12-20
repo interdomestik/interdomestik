@@ -2,7 +2,7 @@
 
 import { getPaddleInstance } from '@/lib/paddle';
 import { Badge, Button } from '@interdomestik/ui';
-import { Check, Loader2, ShieldCheck, Users } from 'lucide-react';
+import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -54,6 +54,24 @@ export function PricingTable({ userId, email }: PricingTableProps) {
       popular: false,
       icon: Users,
       color: 'purple',
+    },
+    {
+      id: 'business',
+      priceId: isYearly ? 'pri_business_year' : 'pri_business_month',
+      name: t('business.name'),
+      price: isYearly ? '€95' : '€10',
+      period: isYearly ? t('business.period') : '/month',
+      description: t('business.description'),
+      features: [
+        t('business.features.0'),
+        t('business.features.1'),
+        t('business.features.2'),
+        t('business.features.3'),
+        t('business.features.4'),
+      ],
+      popular: false,
+      icon: Building2,
+      color: 'blue',
     },
   ];
 
@@ -118,7 +136,7 @@ export function PricingTable({ userId, email }: PricingTableProps) {
         </Badge>
       </div>
 
-      <div className="grid gap-10 grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto px-4">
+      <div className="grid gap-10 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-7xl mx-auto px-4">
         {PLANS.map(plan => (
           <div
             key={plan.id}

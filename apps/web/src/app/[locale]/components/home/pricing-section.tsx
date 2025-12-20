@@ -45,6 +45,19 @@ export function PricingSection() {
         t('family.features.3'),
       ],
     },
+    {
+      name: t('business.name'),
+      price: t('business.price'),
+      period: t('business.period'),
+      description: t('business.description'),
+      features: [
+        t('business.features.0'),
+        t('business.features.1'),
+        t('business.features.2'),
+        t('business.features.3'),
+        t('business.features.4'),
+      ],
+    },
   ];
 
   return (
@@ -54,7 +67,7 @@ export function PricingSection() {
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">{t('title')}</h2>
           <p className="text-[hsl(var(--muted-500))]">{t('subtitle')}</p>
         </div>
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map(plan => (
             <div
               key={plan.name}

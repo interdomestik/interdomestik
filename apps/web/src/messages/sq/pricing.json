@@ -45,6 +45,19 @@
         "Dashboard i përbashkët"
       ]
     },
+    "business": {
+      "name": "Biznesi",
+      "price": "€95",
+      "period": "/vit",
+      "description": "Mbrojtje profesionale për bizneset",
+      "features": [
+        "Gjithçka në Familja",
+        "Deri në 10 Automjete/Prona",
+        "Menaxher i Dedikuar",
+        "Ndërmjetësim Ligjor Komercial",
+        "Trajnim për Punonjësit"
+      ]
+    },
     "cta": "Bëhu Anëtar",
     "loginRequired": "Kyçuni për të bërë upgrade",
     "meta": {

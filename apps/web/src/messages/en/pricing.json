@@ -45,6 +45,19 @@
         "Shared Dashboard"
       ]
     },
+    "business": {
+      "name": "Business",
+      "price": "€95",
+      "period": "/year",
+      "description": "Professional protection for businesses",
+      "features": [
+        "Everything in Family",
+        "Up to 10 Vehicles/Properties",
+        "Dedicated Account Manager",
+        "Commercial Legal Mediation",
+        "Employee Onboarding"
+      ]
+    },
     "cta": "Join Now",
     "loginRequired": "Log in to upgrade",
     "meta": {
