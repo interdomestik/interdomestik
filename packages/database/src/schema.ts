@@ -21,6 +21,31 @@ export const documentCategoryEnum = pgEnum('document_category', [
   'other',
 ]);
 
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'active',
+  'past_due',
+  'paused',
+  'canceled',
+  'trialing',
+  'expired',
+]);
+
+export const membershipTierEnum = pgEnum('membership_tier', ['basic', 'standard', 'family', 'business']);
+
+export const commissionStatusEnum = pgEnum('commission_status', [
+  'pending',
+  'approved',
+  'paid',
+  'void',
+]);
+
+export const commissionTypeEnum = pgEnum('commission_type', [
+  'new_membership',
+  'renewal',
+  'upgrade',
+  'b2b',
+]);
+
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -30,7 +55,7 @@ export const user = pgTable('user', {
   role: text('role').notNull().default('user'),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
-  agentId: text('agentId'), // Reference to the Agent managing this user
+  agentId: text('agentId'), // Sales agent who referred this member (legacy mapping)
 });
 
 export const session = pgTable('session', {
@@ -78,7 +103,10 @@ export const claims = pgTable('claim', {
   userId: text('userId')
     .notNull()
     .references(() => user.id),
-  agentId: text('agentId').references(() => user.id),
+  agentId: text('agentId').references(() => user.id), // Deprecated: use staffId for claim handling
+  staffId: text('staffId').references(() => user.id),
+  assignedAt: timestamp('assignedAt'),
+  assignedById: text('assignedById').references(() => user.id),
   title: text('title').notNull(),
   description: text('description'),
   status: statusEnum('status').default('draft'),
@@ -122,6 +150,20 @@ export const claimMessages = pgTable('claim_messages', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const claimStageHistory = pgTable('claim_stage_history', {
+  id: text('id').primaryKey(),
+  claimId: text('claim_id')
+    .notNull()
+    .references(() => claims.id),
+  fromStatus: statusEnum('from_status'),
+  toStatus: statusEnum('to_status').notNull(),
+  changedById: text('changed_by_id').references(() => user.id),
+  changedByRole: text('changed_by_role'),
+  note: text('note'),
+  isPublic: boolean('is_public').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const auditLog = pgTable('audit_log', {
   id: text('id').primaryKey(),
   actorId: text('actor_id').references(() => user.id),
@@ -141,6 +183,28 @@ export const leads = pgTable('leads', {
   status: text('status').default('new'), // new, contacted, converted, closed
   createdAt: timestamp('createdAt').defaultNow(),
   updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
+});
+
+export const membershipPlans = pgTable('membership_plans', {
+  id: text('id').primaryKey(), // standard, family
+  name: text('name').notNull(),
+  description: text('description'),
+  tier: membershipTierEnum('tier').notNull(),
+  interval: text('interval').default('year').notNull(),
+  price: decimal('price', { precision: 8, scale: 2 }).notNull(),
+  currency: text('currency').default('EUR').notNull(),
+  membersIncluded: integer('members_included').default(1).notNull(),
+  legalConsultationsPerYear: integer('legal_consultations_per_year'),
+  mediationDiscountPercent: integer('mediation_discount_percent').default(0).notNull(),
+  successFeePercent: integer('success_fee_percent').default(15).notNull(),
+  paddlePriceId: text('paddle_price_id'),
+  paddleProductId: text('paddle_product_id'),
+  features: jsonb('features').$type<string[]>().notNull().default([]),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .$onUpdate(() => new Date())
+    .notNull(),
 });
 
 export const userNotificationPreferences = pgTable('user_notification_preferences', {
@@ -169,17 +233,60 @@ export const subscriptions = pgTable('subscriptions', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id),
-  status: text('status').notNull(), // active, past_due, paused, canceled
+  status: subscriptionStatusEnum('status').notNull().default('active'),
   planId: text('plan_id').notNull(), // Paddle Price ID
+  planKey: text('plan_key').references(() => membershipPlans.id),
+  provider: text('provider').default('paddle'),
+  providerCustomerId: text('provider_customer_id'),
+  currentPeriodStart: timestamp('current_period_start'),
   currentPeriodEnd: timestamp('current_period_end'),
   cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+  canceledAt: timestamp('canceled_at'),
+  pastDueAt: timestamp('past_due_at'),
+  gracePeriodEndsAt: timestamp('grace_period_ends_at'),
+  dunningAttemptCount: integer('dunning_attempt_count').default(0),
+  lastDunningAt: timestamp('last_dunning_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
 });
 
+export const agentClients = pgTable('agent_clients', {
+  id: text('id').primaryKey(),
+  agentId: text('agent_id')
+    .notNull()
+    .references(() => user.id),
+  memberId: text('member_id')
+    .notNull()
+    .references(() => user.id),
+  status: text('status').default('active').notNull(),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const agentCommissions = pgTable('agent_commissions', {
+  id: text('id').primaryKey(),
+  agentId: text('agent_id')
+    .notNull()
+    .references(() => user.id),
+  memberId: text('member_id').references(() => user.id),
+  subscriptionId: text('subscription_id').references(() => subscriptions.id),
+  type: commissionTypeEnum('type').notNull(),
+  status: commissionStatusEnum('status').default('pending').notNull(),
+  amount: decimal('amount', { precision: 8, scale: 2 }).notNull(),
+  currency: text('currency').default('EUR').notNull(),
+  earnedAt: timestamp('earned_at').defaultNow(),
+  paidAt: timestamp('paid_at'),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+});
+
 export const userRelations = relations(user, ({ many, one }) => ({
   claims: many(claims),
+  staffClaims: many(claims, { relationName: 'claim_staff' }),
   auditLogs: many(auditLog),
+  subscriptions: many(subscriptions),
+  agentClients: many(agentClients, { relationName: 'agent_clients_agent' }),
+  memberAgents: many(agentClients, { relationName: 'agent_clients_member' }),
+  commissions: many(agentCommissions),
   agent: one(user, {
     fields: [user.agentId],
     references: [user.id],
@@ -195,8 +302,14 @@ export const claimsRelations = relations(claims, ({ one, many }) => ({
     fields: [claims.userId],
     references: [user.id],
   }),
+  staff: one(user, {
+    fields: [claims.staffId],
+    references: [user.id],
+    relationName: 'claim_staff',
+  }),
   documents: many(claimDocuments),
   messages: many(claimMessages),
+  stageHistory: many(claimStageHistory),
 }));
 
 export const claimDocumentsRelations = relations(claimDocuments, ({ one }) => ({
@@ -217,9 +330,63 @@ export const claimMessagesRelations = relations(claimMessages, ({ one }) => ({
   }),
 }));
 
+export const claimStageHistoryRelations = relations(claimStageHistory, ({ one }) => ({
+  claim: one(claims, {
+    fields: [claimStageHistory.claimId],
+    references: [claims.id],
+  }),
+  changedBy: one(user, {
+    fields: [claimStageHistory.changedById],
+    references: [user.id],
+  }),
+}));
+
 export const auditLogRelations = relations(auditLog, ({ one }) => ({
   actor: one(user, {
     fields: [auditLog.actorId],
     references: [user.id],
+  }),
+}));
+
+export const membershipPlansRelations = relations(membershipPlans, ({ many }) => ({
+  subscriptions: many(subscriptions),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(user, {
+    fields: [subscriptions.userId],
+    references: [user.id],
+  }),
+  plan: one(membershipPlans, {
+    fields: [subscriptions.planKey],
+    references: [membershipPlans.id],
+  }),
+}));
+
+export const agentClientsRelations = relations(agentClients, ({ one }) => ({
+  agent: one(user, {
+    fields: [agentClients.agentId],
+    references: [user.id],
+    relationName: 'agent_clients_agent',
+  }),
+  member: one(user, {
+    fields: [agentClients.memberId],
+    references: [user.id],
+    relationName: 'agent_clients_member',
+  }),
+}));
+
+export const agentCommissionsRelations = relations(agentCommissions, ({ one }) => ({
+  agent: one(user, {
+    fields: [agentCommissions.agentId],
+    references: [user.id],
+  }),
+  member: one(user, {
+    fields: [agentCommissions.memberId],
+    references: [user.id],
+  }),
+  subscription: one(subscriptions, {
+    fields: [agentCommissions.subscriptionId],
+    references: [subscriptions.id],
   }),
 }));
