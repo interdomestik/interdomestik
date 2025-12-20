@@ -59,7 +59,7 @@ export function HeroSection() {
                 <Button
                   variant="secondary"
                   size="xl"
-                  className="w-full sm:w-auto h-14 px-8 gap-2 bg-white/80 backdrop-blur-sm border shadow-sm hover:bg-white interactive-press"
+                  className="w-full sm:w-auto h-14 px-8 gap-2 bg-white/80 backdrop-blur-sm border shadow-sm hover:bg-white interactive-press text-slate-700"
                 >
                   <MessageCircle className="h-5 w-5 text-green-600" />
                   {t('whatsappCta')}
