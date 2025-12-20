@@ -1,29 +1,28 @@
 ---
-task_name: 'Membership Prime Home Page Redesign'
-task_type: 'Feature'
-priority: 'P1-High'
-estimate: 'TBD'
-test_level: 'unit'
-roadmap_ref: ''
-branch: 'main'
-start_time: 'Sun Dec 21 00:15:12 CET 2025'
+task_name: "Hero Refinement: 100% Plan Alignment"
+task_type: "Feature"
+priority: "P1-High"
+estimate: "TBD"
+test_level: "unit"
+roadmap_ref: ""
+branch: "main"
+start_time: "Sun Dec 21 00:32:48 CET 2025"
 baseline:
-  lint: 'pass'
-  typecheck: 'pass'
-  tests: 'pass'
-  format: 'fail (exit 1)'
-  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_001459.log'
+  lint: "pass"
+  typecheck: "pass"
+  tests: "fail (exit 1)"
+  format: "fail (exit 1)"
+  log: "/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_003235.log"
 ---
 
-# 🚀 Current Task: Membership Prime Home Page Redesign
+# 🚀 Current Task: Hero Refinement: 100% Plan Alignment
 
 ## 📋 10x Context Prompt
-
 Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>Membership Prime Home Page Redesign</objective>
+  <objective>Hero Refinement: 100% Plan Alignment</objective>
   <type>Feature</type>
   <priority>P1-High</priority>
   <estimate>TBD</estimate>
@@ -49,35 +48,31 @@ Copy the block below to your Agent to start with maximum context:
 ```
 
 ## 🏗️ Status Tracker
-
-- [x] **Exploration**: Identify files using `project_map` and `read_files`
-- [x] **Planning**: Create a step-by-step implementation plan
-- [x] **Implementation**: Execute code changes
-- [x] **Verification**: Run `pnpm qa` or relevant tests
-- [x] **Documentation**: Update relevant docs if needed
+- [ ] **Exploration**: Identify files using `project_map` and `read_files`
+- [ ] **Planning**: Create a step-by-step implementation plan
+- [ ] **Implementation**: Execute code changes
+- [ ] **Verification**: Run `pnpm qa` or relevant tests
+- [ ] **Documentation**: Update relevant docs if needed
 
 ## 🧪 Testing Checklist
-
-- [x] Unit tests added: `src/**/*.test.ts`
-- [x] Tests use factories from `src/test/factories.ts`
-- [x] Run: `pnpm test:unit`
-- [x] All tests pass
+- [ ] Unit tests added: `src/**/*.test.ts`
+- [ ] Tests use factories from `src/test/factories.ts`
+- [ ] Run: `pnpm test:unit`
+- [ ] All tests pass
 
 ## ✅ Definition of Done
-
-- [x] All acceptance criteria met
-- [x] Tests pass at required level (unit)
-- [x] `pnpm lint` passes (or no new errors)
-- [x] Formatter/Prettier check passes
-- [x] `pnpm type-check` passes
-- [x] No regressions from baseline
-- [x] (Recommended) `pnpm qa:full` or full checks executed before PR
-- [x] Screenshots added for UI changes (if applicable)
-- [x] Documentation updated (if applicable)
-- [x] Code reviewed / self-reviewed
+- [ ] All acceptance criteria met
+- [ ] Tests pass at required level (unit)
+- [ ] `pnpm lint` passes (or no new errors)
+- [ ] Formatter/Prettier check passes
+- [ ] `pnpm type-check` passes
+- [ ] No regressions from baseline
+- [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
+- [ ] Screenshots added for UI changes (if applicable)
+- [ ] Documentation updated (if applicable)
+- [ ] Code reviewed / self-reviewed
 
 ## 🧠 Senior Checklist
-
 - [ ] Risks identified (perf, reliability, UX, security, data)
 - [ ] Rollback/mitigation plan documented
 - [ ] Monitoring/logging impact considered
@@ -89,7 +84,6 @@ Copy the block below to your Agent to start with maximum context:
 - [ ] Oversized file remediation noted (if any)
 
 ## 🧩 New Components & Files Checklist
-
 - [ ] File size under limits (soft 250 lines, hard 400); split view vs logic/hooks if larger
 - [ ] Co-located test (`*.test.tsx`) and story/demo (if using Storybook/MDX)
 - [ ] i18n keys added for any new UI strings
@@ -97,74 +91,63 @@ Copy the block below to your Agent to start with maximum context:
 - [ ] Imported shared styles/components (@interdomestik/ui) where applicable
 
 ## 🚦 Completion Gate (must be TRUE before declaring Done)
-
 - [ ] All checkboxes above are checked (DoD, Senior, New Components)
 - [ ] Required tests/QA in this task file have been executed and are green
 - [ ] No unchecked items remain in this file (if not applicable, explicitly mark N/A)
 - [ ] current_task is only marked complete after verifying every required checkbox
 
 ## 🔗 Related Files
-
-<!-- Add discovered file paths here -->
+Refine the Hero section subtitle to incorporate daily cost framing (€0.05/day), advocacy hooks (working for the member, not insurer), and immediate value (digital cards) as per v3.0 plan.
 
 ## 📂 Active Context
-
 <!-- Paste file paths or code snippets here as you discover them -->
 
 ## 📝 Implementation Notes
-
 <!-- Add decisions, trade-offs, blockers here -->
 
 ## 🔬 QA Baseline (at task start)
-
-| Metric     | Status                                                                                         |
-| ---------- | ---------------------------------------------------------------------------------------------- |
-| Lint       | pass                                                                                           |
-| Type Check | pass                                                                                           |
-| Unit Tests | pass                                                                                           |
-| Format     | fail (exit 1)                                                                                  |
-| Coverage   | skipped                                                                                        |
-| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_001459.log |
+| Metric | Status |
+|--------|--------|
+| Lint | pass |
+| Type Check | pass |
+| Unit Tests | fail (exit 1) |
+| Format | fail (exit 1) |
+| Coverage | skipped |
+| Log | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_003235.log |
 
 ## 📏 Oversized Files (>400 lines or >15000 bytes)
-
-- apps/web/coverage/prettify.js ( 937 lines, 26696 bytes)
-- apps/web/src/app/[locale]/admin/users/[id]/page.tsx ( 365 lines, 15299 bytes)
-- apps/web/src/app/[locale]/(agent)/agent/users/[id]/page.tsx ( 376 lines, 15605 bytes)
-- apps/web/src/actions/claims.ts ( 429 lines, 11738 bytes)
-- packages/database/src/schema.ts ( 658 lines, 22091 bytes)
+- apps/web/coverage/prettify.js (     937 lines, 26696 bytes)
+- apps/web/src/app/[locale]/admin/users/[id]/page.tsx (     365 lines, 15299 bytes)
+- apps/web/src/app/[locale]/(agent)/agent/users/[id]/page.tsx (     376 lines, 15605 bytes)
+- apps/web/src/actions/claims.ts (     429 lines, 11738 bytes)
+- packages/database/src/schema.ts (     658 lines, 22091 bytes)
 
 ## 📏 Changed Files Size Check (>400 lines or >15000 bytes)
-
 Changed files are within limits
 
 ---
 
 ## 📝 PR Template (Copy when done)
-
 ```markdown
 ## What
-
-Membership Prime Home Page Redesign
+Hero Refinement: 100% Plan Alignment
 
 ## Why
 
-## How
 
+## How
 <!-- Implementation approach -->
 
 ## Testing
-
 - [ ] Unit tests pass (`pnpm test:unit`)
-- [ ] E2E tests pass (`pnpm test:e2e`)
+- [ ] E2E tests pass (`pnpm test:e2e`)  
 - [ ] Manual QA completed
 - [ ] No regressions in existing functionality
 
 ## Screenshots (if UI changes)
-
 <!-- Add screenshots here -->
 
 ## Notes to Reviewer
-
 <!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
+
 ```

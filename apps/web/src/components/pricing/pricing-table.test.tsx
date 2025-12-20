@@ -39,6 +39,7 @@ vi.mock('lucide-react', () => ({
   Loader2: () => <span>...</span>,
   ShieldCheck: () => <span>🛡️</span>,
   Users: () => <span>👥</span>,
+  Building2: () => <span>🏢</span>,
 }));
 
 describe('PricingTable', () => {
@@ -58,18 +59,20 @@ describe('PricingTable', () => {
   it('renders plans correctly', () => {
     render(<PricingTable userId="user-123" email="test@example.com" />);
 
-    expect(screen.getByText('basic.name')).toBeDefined();
+    expect(screen.queryByText('basic.name')).toBeNull();
     expect(screen.getByText('standard.name')).toBeDefined();
     expect(screen.getByText('family.name')).toBeDefined();
+    expect(screen.getByText('business.name')).toBeDefined();
     expect(screen.getAllByText('€20').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('€95').length).toBeGreaterThan(0);
   });
 
   it('initiates checkout on button click', async () => {
     render(<PricingTable userId="user-123" email="test@example.com" />);
 
-    // Find the Join Now button for standard plan (which is the 2nd one or first popular one)
+    // Find the Join Now button for standard plan (now at index 0)
     const joinButtons = screen.getAllByText('cta');
-    fireEvent.click(joinButtons[1]); // Standard plan
+    fireEvent.click(joinButtons[0]); // Standard plan
 
     await waitFor(() => {
       expect(mockPaddle.Checkout.open).toHaveBeenCalledWith(
