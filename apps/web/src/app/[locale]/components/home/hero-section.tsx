@@ -105,6 +105,23 @@ export function HeroSection() {
               {t('legalMediation')}
             </span>
           </div>
+
+          {/* Trust badges row */}
+          <div
+            className="mt-8 flex flex-wrap items-center justify-center gap-4 animate-fade-in"
+            style={{ animationDelay: '0.4s' }}
+          >
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              {t('guarantee')}
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
+              {t('slaBadge')}
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50 text-purple-700 text-xs font-bold border border-purple-100">
+              {t('priceAnchor')}
+            </span>
+          </div>
         </div>
       </div>
     </section>
