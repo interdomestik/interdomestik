@@ -1,16 +1,16 @@
-import {
-  CTASection,
-  ClaimCategoriesSection,
-  Footer,
-  Header,
-  HeroSection,
-  HowItWorksSection,
-  PricingSection,
-  TrustStrip,
-} from './components/home';
 import { BASE_NAMESPACES, HOME_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
+import {
+  CTASection,
+  Footer,
+  Header,
+  HeroSection,
+  HowMembershipWorksSection,
+  MemberBenefitsSection,
+  PricingSection,
+  TrustStrip,
+} from './components/home';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -32,8 +32,8 @@ export default async function HomePage({ params }: Props) {
         <Header />
         <HeroSection />
         <TrustStrip />
-        <ClaimCategoriesSection />
-        <HowItWorksSection />
+        <MemberBenefitsSection />
+        <HowMembershipWorksSection />
         <PricingSection />
         <CTASection />
         <Footer />

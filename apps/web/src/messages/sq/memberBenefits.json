@@ -1,0 +1,36 @@
+{
+  "memberBenefits": {
+    "title": "Përfitimet e Anëtarësisë",
+    "subtitle": "Çfarë përfitoni si anëtar i klubit tonë të mbrojtjes",
+    "hotline": {
+      "title": "Linja Emergjente 24/7",
+      "description": "Telefononi në çdo kohë, ditë apo natë. Ekspertët tanë janë gjithmonë gati.",
+      "highlight": "Pa Pritje"
+    },
+    "voiceClaim": {
+      "title": "Kërkesa me Zë",
+      "description": "Paraqisni kërkesën tuaj me telefon në 60 sekonda. Pa formularë, pa stres.",
+      "highlight": "60 Sekonda"
+    },
+    "legalConsult": {
+      "title": "Konsulta Ligjore",
+      "description": "Konsultime të pakufizuara me ekspertë ligjorë për çdo çështje.",
+      "highlight": "E Pakufizuar"
+    },
+    "calculator": {
+      "title": "Kalkulatori i Dëmit",
+      "description": "Llogarisni vlerën e dëmit tuaj menjëherë me mjetet tona.",
+      "highlight": "Falas"
+    },
+    "partnerDiscounts": {
+      "title": "Zbritje Partnerësh",
+      "description": "10-20% zbritje në servise, klinika dhe shërbime ligjore.",
+      "highlight": "Deri 20%"
+    },
+    "guides": {
+      "title": "Udhëzues Ekspertësh",
+      "description": "Checklists dhe udhëzues për çdo lloj aksidenti dhe situate.",
+      "highlight": "Të Gatshëm"
+    }
+  }
+}
