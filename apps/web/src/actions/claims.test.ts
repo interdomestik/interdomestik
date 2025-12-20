@@ -60,6 +60,10 @@ vi.mock('@/lib/notifications', () => ({
   notifyStatusChanged: vi.fn().mockResolvedValue({ success: true }),
 }));
 
+vi.mock('@/lib/audit', () => ({
+  logAuditEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe('Claim Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -2,25 +2,26 @@
   "agent": {
     "title": "Hapësira e Agjentit",
     "dashboard": "Paneli",
-    "claims": "Ankesat",
+    "claims": "Kërkesat për Dëmshpërblim",
     "stats": {
-      "total": "Gjithsej Ankesa",
+      "total": "Gjithsej Kërkesa për Dëmshpërblim",
       "new": "Të Reja",
       "verification": "Në Verifikim",
       "closed": "Të Mbyllura"
     },
-    "claims_queue": "Radha e Ankesave",
-    "manage_triage": "Menaxho dhe vlerëso të gjitha ankesat e dorëzuara.",
+    "claims_queue": "Radha e Kërkesave për Dëmshpërblim",
+    "manage_triage": "Menaxho dhe vlerëso të gjitha kërkesat e dorëzuara për dëmshpërblim.",
     "table": {
       "claimant": "Ankuesi",
-      "claim": "Ankesa",
+      "claim": "Kërkesa për Dëmshpërblim",
       "status": "Statusi",
       "amount": "Shuma",
       "date": "Data",
       "actions": "Veprime",
       "triage": "Vlerësim",
-      "no_claims": "Nuk u gjet asnjë ankesë.",
-      "no_claims_ready": "Lista e ankesave vjen së shpejti"
+      "no_claims": "Nuk u gjet asnjë kërkesë për dëmshpërblim.",
+      "no_claims_ready": "Lista e kërkesave për dëmshpërblim vjen së shpejti",
+      "recent_activity": "Aktiviteti i Fundit"
     },
     "actions": {
       "approve": "Aprovo",
@@ -29,7 +30,7 @@
       "review": "Rishiko Rastin"
     },
     "details": {
-      "title": "Detajet e Ankesës",
+      "title": "Detajet e Kërkesës për Dëmshpërblim",
       "claimantInfo": "Informacioni i Kërkuesit",
       "name": "Emri",
       "email": "Email",
@@ -42,15 +43,31 @@
       "evidence": "Dosjet e Dëshmive",
       "noEvidence": "Nuk ka dokumente të ngarkuara.",
       "notes": "Shënime të Brendshme",
-      "notesPlaceholder": "Opsioni i shënimeve private të agjentit vjen së shpejti."
+      "notesPlaceholder": "Opsioni i shënimeve private të agjentit vjen së shpejti.",
+      "timeline": "Kronologjia e Rastit",
+      "no_messages": "Nuk ka ende histori ndërveprimesh.",
+      "message_placeholder": "Shkruani një mesazh ose shënim të brendshëm...",
+      "internal_note": "Shënim i Brendshëm",
+      "send_message": "Dërgo Mesazh",
+      "incident_date": "Data e Incidentit",
+      "messages": "Mesazhet",
+      "documents": "Dokumentet",
+      "no_documents": "Nuk ka dokumente të ngarkuara",
+      "unknown_date": "Datë e panjohur"
     },
     "triage": {
       "title": "Veprimet e Vlerësimit",
       "changeStatus": "Ndrysho Statusin",
       "selectStatus": "Zgjidh statusin",
       "verify": "Verifiko Info",
-      "reject": "Refuzo Ankesën",
+      "reject": "Refuzo Kërkesën për Dëmshpërblim",
       "notice": "Ndryshimi i statusit përditëson menjëherë kohështrirjen e përdoruesit."
+    },
+    "notes": {
+      "title": "Shënime të Agjentit",
+      "description": "Kujtues të shpejtë dhe shënime private të hapësirës së punës.",
+      "priority": "Triage Prioritare",
+      "deadline": "Afati i Ardhshëm"
     }
   }
 }

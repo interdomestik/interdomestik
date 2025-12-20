@@ -20,14 +20,24 @@
     "no": "No",
     "or": "or",
     "and": "and",
+    "tryAgain": "Try again",
     "admin": "Admin",
+    "pagination": {
+      "pageOf": "Page {page} of {total}"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "Sorry, we could not find the page you were looking for."
+    },
     "roles": {
       "admin": "Administrator",
       "agent": "Agent",
       "user": "User"
     },
     "errors": {
+      "title": "Error",
       "generic": "Something went wrong. Please try again.",
+      "retry": "Please try again. If the problem persists, contact support.",
       "unauthorized": "Unauthorized"
     }
   }

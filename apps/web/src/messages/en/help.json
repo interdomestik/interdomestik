@@ -1,0 +1,30 @@
+{
+  "help": {
+    "title": "Help & Support",
+    "description": "Need assistance with your claim or have questions about our services? Reach out to our team.",
+    "contact": {
+      "title": "Contact Support",
+      "description": "Our team is available Monday to Friday, 9:00 - 17:00.",
+      "callUs": "Call Us",
+      "emailUs": "Email Us",
+      "whatsapp": "WhatsApp",
+      "chatWithUs": "Chat with us"
+    },
+    "faq": {
+      "title": "Common Questions",
+      "q1": {
+        "question": "How long does a claim take?",
+        "answer": "Typically 2-4 weeks for initial assessment."
+      },
+      "q2": {
+        "question": "What documents do I need?",
+        "answer": "Proof of purchase, photos of damage, and incident report."
+      }
+    },
+    "legal": {
+      "title": "Legal Resources",
+      "consumerRights": "Consumer Rights Guide",
+      "consumerRightsDesc": "Learn about your rights under current consumer protection laws."
+    }
+  }
+}

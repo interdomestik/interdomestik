@@ -16,14 +16,11 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
-interface NotificationPreferences {
-  emailClaimUpdates: boolean;
-  emailMarketing: boolean;
-  emailNewsletter: boolean;
-  pushClaimUpdates: boolean;
-  pushMessages: boolean;
-  inAppAll: boolean;
-}
+import {
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  type NotificationPreferences,
+} from '@/actions/user-settings';
 
 interface NotificationSettingsProps {
   initialPreferences?: Partial<NotificationPreferences>;
@@ -41,31 +38,28 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 export function NotificationSettings({ initialPreferences }: NotificationSettingsProps) {
   const t = useTranslations('settings');
   const [isPending, startTransition] = useTransition();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialPreferences);
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     ...DEFAULT_PREFERENCES,
     ...initialPreferences,
   });
 
-  // Load preferences on mount
+  // Load preferences on mount if not provided as props
   useEffect(() => {
+    if (initialPreferences) return;
+
     const loadPreferences = async () => {
-      try {
-        const response = await fetch('/api/settings/notifications');
-        if (response.ok) {
-          const data = await response.json();
-          setPreferences(prev => ({ ...prev, ...data }));
-        }
-      } catch (error) {
-        console.error('Failed to load preferences:', error);
+      const result = await getNotificationPreferences();
+      if (result.success && result.preferences) {
+        setPreferences(result.preferences);
+      } else if (result.error) {
         toast.error(t('notifications.loadError'));
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
 
     loadPreferences();
-  }, [t]);
+  }, [t, initialPreferences]);
 
   const handleToggle = (key: keyof NotificationPreferences) => {
     setPreferences(prev => ({
@@ -76,24 +70,13 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
 
   const handleSave = () => {
     startTransition(async () => {
-      try {
-        const response = await fetch('/api/settings/notifications', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(preferences),
-        });
+      const result = await updateNotificationPreferences(preferences);
 
-        if (!response.ok) {
-          throw new Error('Failed to save preferences');
-        }
-
+      if (result.success) {
         toast.success(t('notifications.saved'), {
           description: t('notifications.savedDescription'),
         });
-      } catch (error) {
-        console.error('Failed to save preferences:', error);
+      } else {
         toast.error(t('notifications.saveError'));
       }
     });
@@ -101,19 +84,20 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-premium relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
         <CardHeader>
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{t('notifications.title')}</CardTitle>
+            <CardTitle className="text-xl font-semibold">{t('notifications.title')}</CardTitle>
           </div>
           <CardDescription>{t('notifications.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="h-20 bg-muted animate-pulse rounded" />
-            <div className="h-20 bg-muted animate-pulse rounded" />
-            <div className="h-20 bg-muted animate-pulse rounded" />
+            <div className="h-20 bg-muted/20 animate-pulse rounded" />
+            <div className="h-20 bg-muted/20 animate-pulse rounded" />
+            <div className="h-20 bg-muted/20 animate-pulse rounded" />
           </div>
         </CardContent>
       </Card>
@@ -121,11 +105,12 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
   }
 
   return (
-    <Card>
+    <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-premium relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
       <CardHeader>
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-muted-foreground" />
-          <CardTitle>{t('notifications.title')}</CardTitle>
+          <CardTitle className="text-xl font-semibold">{t('notifications.title')}</CardTitle>
         </div>
         <CardDescription>{t('notifications.description')}</CardDescription>
       </CardHeader>
@@ -260,7 +245,11 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
 
         {/* Save Button */}
         <div className="flex justify-end pt-4">
-          <Button onClick={handleSave} disabled={isPending}>
+          <Button
+            onClick={handleSave}
+            disabled={isPending}
+            className="shadow-lg hover:shadow-primary/25 transition-all duration-300"
+          >
             {isPending ? t('notifications.saving') : t('notifications.save')}
           </Button>
         </div>

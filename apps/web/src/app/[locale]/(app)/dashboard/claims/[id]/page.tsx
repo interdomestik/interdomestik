@@ -1,12 +1,15 @@
+import { ClaimDraftActions } from '@/components/claims/claim-draft-actions';
 import { ClaimTimeline } from '@/components/dashboard/claims/claim-timeline';
+import { DocumentList } from '@/components/documents/document-list';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { claims, db, eq } from '@interdomestik/database';
+import { claimDocuments, claims, db, eq } from '@interdomestik/database';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { ArrowLeft, Download } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
@@ -27,12 +30,24 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
 
   const [claim] = await db.select().from(claims).where(eq(claims.id, id)).limit(1);
 
+  const documents = await db
+    .select({
+      id: claimDocuments.id,
+      name: claimDocuments.name,
+      fileSize: claimDocuments.fileSize,
+      fileType: claimDocuments.fileType,
+    })
+    .from(claimDocuments)
+    .where(eq(claimDocuments.claimId, id));
+
   if (!claim) return notFound();
 
   // Security check: simple ownership or admin
   if (claim.userId !== session.user.id && session.user.role !== 'admin') {
     return notFound();
   }
+
+  const tClaims = await getTranslations('claims');
 
   return (
     <div className="flex flex-col h-full space-y-8 p-8 max-w-5xl mx-auto">
@@ -60,7 +75,8 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {claim.status === 'draft' && <ClaimDraftActions claimId={claim.id} />}
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
             Export PDF
@@ -106,12 +122,10 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Attached Evidence</CardTitle>
+              <CardTitle>{tClaims('detail.evidence')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-muted-foreground italic bg-muted/30 p-4 rounded-lg border border-dashed text-center">
-                No files attached yet. (Storage Integration Pending)
-              </div>
+              <DocumentList documents={documents} />
             </CardContent>
           </Card>
 

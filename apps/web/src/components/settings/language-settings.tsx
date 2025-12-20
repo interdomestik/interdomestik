@@ -45,11 +45,12 @@ export function LanguageSettings() {
   const currentLocale = SUPPORTED_LOCALES.find(l => l.code === locale);
 
   return (
-    <Card>
+    <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-premium relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
       <CardHeader>
         <div className="flex items-center gap-2">
           <Globe className="h-5 w-5 text-muted-foreground" />
-          <CardTitle>{t('language.title')}</CardTitle>
+          <CardTitle className="text-xl font-semibold">{t('language.title')}</CardTitle>
         </div>
         <CardDescription>{t('language.description')}</CardDescription>
       </CardHeader>
@@ -57,7 +58,10 @@ export function LanguageSettings() {
         <div className="space-y-2">
           <Label htmlFor="language-select">{t('language.selectLabel')}</Label>
           <Select value={locale} onValueChange={handleLocaleChange} disabled={isPending}>
-            <SelectTrigger id="language-select" className="w-full max-w-xs">
+            <SelectTrigger
+              id="language-select"
+              className="w-full max-w-xs bg-background/50 border-border/50 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
+            >
               <SelectValue>
                 {currentLocale ? (
                   <span className="flex items-center gap-2">

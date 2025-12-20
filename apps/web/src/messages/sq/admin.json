@@ -2,7 +2,7 @@
   "admin": {
     "sidebar": {
       "dashboard": "Paneli",
-      "claims": "Ankesat",
+      "claims": "Kërkesat për Dëmshpërblim",
       "users": "Përdoruesit",
       "analytics": "Analitika",
       "settings": "Cilësimet"
@@ -23,23 +23,38 @@
       "no_users": "Nuk u gjetën përdorues",
       "success_message": "Përdoruesi u caktua me sukses"
     },
+    "claims_page": {
+      "title": "Menaxhimi i Kërkesave për Dëmshpërblim",
+      "description": "Shiko dhe menaxho të gjitha kërkesat e përdoruesve për dëmshpërblim.",
+      "table": {
+        "title": "Titulli",
+        "amount": "Shuma"
+      }
+    },
     "dashboard": {
       "title": "Paneli i Adminit",
       "recent_activity": "Aktiviteti i Fundit",
-      "unassigned_claims": "Ankesat e Pacaktuara",
+      "unassigned_claims": "Kërkesat e Pacaktuara për Dëmshpërblim",
       "quick_actions": "Veprime të Shpejta",
       "view_all": "Shiko të Gjitha",
       "no_recent_activity": "Nuk u gjet asnjë aktivitet i fundit",
-      "no_unassigned_claims": "Të gjitha ankesat janë caktuar",
+      "no_unassigned_claims": "Të gjitha kërkesat për dëmshpërblim janë caktuar",
       "create_user": "Krijo Përdorues",
-      "invite_agent": "Fto Agjent"
+      "invite_agent": "Fto Agjent",
+      "assign": "Cakto",
+      "timeline": "Kohëshënimet",
+      "status_label": "Statusi",
+      "no_messages": "Nuk ka ende histori ndërveprimesh.",
+      "message_placeholder": "Shkruani një mesazh ose shënim të brendshëm...",
+      "internal_note": "Shënim i Brendshëm",
+      "send_message": "Dërgo Mesazh"
     },
     "analytics": {
       "title": "Përmbledhja e Analitikës",
-      "description": "Performanca e platformës dhe metrikat e shpërndarjes së ankesave.",
+      "description": "Performanca e platformës dhe metrikat e shpërndarjes së kërkesave për dëmshpërblim.",
       "metrics": {
-        "total_value": "Vlera Totale e Ankesave",
-        "avg_value": "Shuma Mesatare e Ankesës",
+        "total_value": "Vlera Totale e Kërkesave për Dëmshpërblim",
+        "avg_value": "Shuma Mesatare e Kërkesës për Dëmshpërblim",
         "success_rate": "Shkalla e Zgjidhjes",
         "active_users": "Ankuesit Aktivë"
       },
@@ -58,11 +73,11 @@
           "support_email": "Email-i i Mbështetjes"
         },
         "claims": {
-          "title": "Procesimi i Ankesave",
-          "description": "Rregullat dhe automatizimi për procesimin e ankesave.",
+          "title": "Procesimi i Kërkesave për Dëmshpërblim",
+          "description": "Rregullat dhe automatizimi për procesimin e kërkesave për dëmshpërblim.",
           "auto_assignment": "Caktimi automatik i agjentëve",
-          "auto_assignment_desc": "Cakto automatikisht ankesat e reja te agjentët e disponueshëm.",
-          "default_expiry": "Skadimi parazgjedhur i ankesës (ditë)"
+          "auto_assignment_desc": "Cakto automatikisht kërkesat e reja për dëmshpërblim te agjentët e disponueshëm.",
+          "default_expiry": "Skadimi parazgjedhur i kërkesës për dëmshpërblim (ditë)"
         },
         "system": {
           "title": "Sistemi",

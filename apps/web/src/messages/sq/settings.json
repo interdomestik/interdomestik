@@ -47,8 +47,8 @@
       "savedDescription": "Preferencat tuaja të njoftimeve u përditësuan.",
       "email": {
         "title": "Njoftimet me Email",
-        "claimUpdates": "Përditësimet e ankesave",
-        "claimUpdatesHint": "Merrni njoftime me email kur ndryshon statusi i ankesës.",
+        "claimUpdates": "Përditësimet e kërkesave për dëmshpërblim",
+        "claimUpdatesHint": "Merrni njoftime me email kur ndryshon statusi i kërkesës për dëmshpërblim.",
         "newsletter": "Buletini",
         "newsletterHint": "Merrni këshilla dhe përditësime rreth të drejtave të konsumatorit.",
         "marketing": "Email promovuese",
@@ -56,7 +56,7 @@
       },
       "push": {
         "title": "Njoftimet Push",
-        "claimUpdates": "Përditësimet e ankesave",
+        "claimUpdates": "Përditësimet e kërkesave për dëmshpërblim",
         "claimUpdatesHint": "Merrni njoftime të menjëhershme për përditësime të rëndësishme.",
         "messages": "Mesazhe të reja",
         "messagesHint": "Njoftohuni kur një agjent ju dërgon mesazh."

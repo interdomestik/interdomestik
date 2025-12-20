@@ -1,7 +1,7 @@
 {
   "wizard": {
     "categories": {
-      "title": "Çfarë lloj ankese është kjo?",
+      "title": "Çfarë lloj kërkese për dëmshpërblim është kjo?",
       "subtitle": "Zgjidhni kategorinë që i përshtatet më mirë çështjes suaj.",
       "freeConsultation": "✨ Konsultim Falas i Përfshirë",
       "flight_delay": {
@@ -25,10 +25,18 @@
         "examples": "Mosmarrëveshje kontraktuale, çështje punësimi, sigurime"
       }
     },
+    "quickTags": {
+      "flight_delay": "Vonesë Fluturimi",
+      "car_accident": "Aksident Makinash",
+      "water_damage": "Dëme nga Uji",
+      "workplace_injury": "Lëndim në Punë",
+      "theft": "Vjedhje",
+      "medical_malpractice": "Keqpërdorim Mjekësor"
+    },
     "details": {
       "title": "Na tregoni çfarë ndodhi",
       "subtitle": "Detajet na ndihmojnë ta përpunojmë rastin më shpejt.",
-      "claim_title": "Titulli i Ankesës",
+      "claim_title": "Titulli i Kërkesës për Dëmshpërblim",
       "claim_title_placeholder": "p.sh. Vonesë fluturimi për në Berlin",
       "claim_title_desc": "Një përmbledhje e shkurtër e problemit.",
       "company": "Emri i Kompanisë",
@@ -37,12 +45,61 @@
       "currency": "Monedha",
       "date": "Data e Incidentit",
       "description": "Përshkrimi",
-      "description_placeholder": "Përshkruani saktësisht çfarë ndodhi..."
+      "description_placeholder": "Përshkruani saktësisht çfarë ndodhi...",
+      "helpfulTips": "💡 Këshilla të Dobishme:"
+    },
+    "categoryFields": {
+      "vehicle": {
+        "titlePlaceholder": "p.sh., Aksident makinash në autostradë",
+        "titleDesc": "Përmbledhje e shkurtër e incidentit të automjetit",
+        "companyPlaceholder": "p.sh., Kompania e sigurimit, Sigurimi i shoferit tjetër",
+        "descriptionPlaceholder": "Përshkruani aksidentin: çfarë ndodhi, ku, kush ishte i përfshirë, shkalla e dëmtimit të automjetit tuaj..."
+      },
+      "property": {
+        "titlePlaceholder": "p.sh., Dëmtim nga uji në apartament",
+        "titleDesc": "Përmbledhje e shkurtër e dëmtimit të pronës",
+        "companyPlaceholder": "p.sh., Menaxhimi i pronës, Kompania e sigurimit",
+        "descriptionPlaceholder": "Përshkruani dëmtimin: çfarë e shkaktoi, cilat zona janë të prekura, kur e zbuluat, çfarë veprimesh urgjente u morën..."
+      },
+      "injury": {
+        "titlePlaceholder": "p.sh., Lëndim në punë - shtrëngim i shpinës",
+        "titleDesc": "Përmbledhje e shkurtër e lëndimit",
+        "companyPlaceholder": "p.sh., Punëdhënësi, Spitali, Kompania e sigurimit",
+        "descriptionPlaceholder": "Përshkruani lëndimin: si ndodhi, cilat pjesë të trupit janë të prekura, trajtimi mjekësor i marrë, simptomat aktuale..."
+      },
+      "travel": {
+        "titlePlaceholder": "p.sh., Vonesë fluturimi për në Berlin",
+        "titleDesc": "Përmbledhje e shkurtër e problemit të udhëtimit",
+        "companyPlaceholder": "p.sh., Lufthansa, Ryanair, Booking.com",
+        "descriptionPlaceholder": "Përshkruani çfarë ndodhi: detajet e fluturimit, oraret e planifikuara kundrejt atyre aktuale, arsyeja e vonesës/anulimit nëse dihet, kompensimi i kërkuar..."
+      }
+    },
+    "categoryInstructions": {
+      "vehicle": {
+        "title": "Detajet e Kërkesës për Dëmshpërblim për Dëme Automjeti",
+        "subtitle": "Jepni detaje rreth aksidentit ose dëmtimit të automjetit tuaj.",
+        "tips": "Përfshini: datën dhe orën e incidentit, vendndodhjen, palët e tjera të përfshira, numrin e raportit policor nëse ka, dhe përshkrimin e dëmit."
+      },
+      "property": {
+        "title": "Detajet e Kërkesës për Dëmshpërblim për Dëme Prone",
+        "subtitle": "Përshkruani dëmtimin e pronës suaj dhe si ndodhi.",
+        "tips": "Përfshini: llojin e pronës, shkakun e dëmit (zjarr, ujë, stuhi, etj.), shkallën e dëmit, dhe çdo riparim urgjent të bërë."
+      },
+      "injury": {
+        "title": "Detajet e Kërkesës për Dëmshpërblim për Lëndim Personal",
+        "subtitle": "Jepni informacion rreth lëndimit dhe trajtimit mjekësor.",
+        "tips": "Përfshini: natyrën e lëndimit, ku dhe si ndodhi, trajtimin mjekësor të marrë, ofruesit e kujdesit shëndetësor, dhe simptomat ose kufizimet aktuale."
+      },
+      "travel": {
+        "title": "Detajet e Kërkesës për Dëmshpërblim për Udhëtim & Fluturim",
+        "subtitle": "Jepni informacionin e rezervimit të fluturimit ose udhëtimit.",
+        "tips": "Përfshini: referencën e rezervimit, numrin e fluturimit, aeroportet e nisjes/mbërritjes, oraret e planifikuara kundrejt atyre aktuale, dhe arsyen e vonesës/anulimit nëse dihet."
+      }
     },
     "review": {
       "title": "Rishiko & Dërgo",
       "subtitle": "Ju lutemi kontrolloni detajet para dërgimit.",
-      "summary": "Përmbledhja e Ankesës",
+      "summary": "Përmbledhja e Kërkesës për Dëmshpërblim",
       "category": "Kategoria",
       "date": "Data",
       "company": "Kompania",

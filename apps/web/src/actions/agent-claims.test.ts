@@ -22,6 +22,10 @@ vi.mock('@/lib/notifications', () => ({
   notifyStatusChanged: vi.fn().mockResolvedValue({ success: true }),
 }));
 
+vi.mock('@/lib/audit', () => ({
+  logAuditEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@interdomestik/database', () => ({
   claims: { id: 'id', status: 'status', userId: 'userId', title: 'title' },
   user: { id: 'id', email: 'email' },

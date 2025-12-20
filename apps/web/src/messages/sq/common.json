@@ -20,14 +20,24 @@
     "no": "Jo",
     "or": "ose",
     "and": "dhe",
+    "tryAgain": "Provo përsëri",
     "admin": "Admin",
+    "pagination": {
+      "pageOf": "Faqja {page} nga {total}"
+    },
+    "notFound": {
+      "title": "Faqja nuk u gjet",
+      "description": "Na vjen keq, nuk e gjetëm faqen që kërkuat."
+    },
     "roles": {
       "admin": "Administrator",
       "agent": "Agjent",
       "user": "Përdorues"
     },
     "errors": {
+      "title": "Gabim",
       "generic": "Diçka shkoi keq. Ju lutemi provoni përsëri.",
+      "retry": "Ju lutemi provoni përsëri. Nëse problemi vazhdon, kontaktoni mbështetjen.",
       "unauthorized": "I paautorizuar"
     }
   }

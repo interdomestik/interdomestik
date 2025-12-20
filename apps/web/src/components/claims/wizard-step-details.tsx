@@ -18,12 +18,30 @@ import { useTranslations } from 'next-intl';
 export function WizardStepDetails() {
   const form = useFormContext<CreateClaimValues>();
   const t = useTranslations('wizard.details');
+  const tInstructions = useTranslations('wizard.categoryInstructions');
+  const tFields = useTranslations('wizard.categoryFields');
+
+  const category = form.watch('category');
+  const validCategories = ['vehicle', 'property', 'injury', 'travel'] as const;
+  type ValidCategory = (typeof validCategories)[number];
+  const hasCategory = category && validCategories.includes(category as ValidCategory);
+  const safeCategory = hasCategory ? (category as ValidCategory) : null;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="text-center fade-in slide-in-from-right-4 duration-500">
-        <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
-        <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
+        <h2 className="text-2xl font-bold tracking-tight">
+          {hasCategory ? tInstructions(`${safeCategory}.title`) : t('title')}
+        </h2>
+        <p className="text-muted-foreground mt-2">
+          {hasCategory ? tInstructions(`${safeCategory}.subtitle`) : t('subtitle')}
+        </p>
+        {hasCategory && (
+          <div className="mt-4 p-4 bg-[hsl(var(--primary))]/5 border border-[hsl(var(--primary))]/20 rounded-lg text-sm text-left">
+            <p className="font-medium text-[hsl(var(--primary))] mb-1">{t('helpfulTips')}</p>
+            <p className="text-muted-foreground">{tInstructions(`${safeCategory}.tips`)}</p>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6">
@@ -34,9 +52,18 @@ export function WizardStepDetails() {
             <FormItem>
               <FormLabel>{t('claim_title')}</FormLabel>
               <FormControl>
-                <Input placeholder={t('claim_title_placeholder')} {...field} />
+                <Input
+                  placeholder={
+                    hasCategory
+                      ? tFields(`${safeCategory}.titlePlaceholder`)
+                      : t('claim_title_placeholder')
+                  }
+                  {...field}
+                />
               </FormControl>
-              <FormDescription>{t('claim_title_desc')}</FormDescription>
+              <FormDescription>
+                {hasCategory ? tFields(`${safeCategory}.titleDesc`) : t('claim_title_desc')}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -49,7 +76,14 @@ export function WizardStepDetails() {
             <FormItem>
               <FormLabel>{t('company')}</FormLabel>
               <FormControl>
-                <Input placeholder={t('company_placeholder')} {...field} />
+                <Input
+                  placeholder={
+                    hasCategory
+                      ? tFields(`${safeCategory}.companyPlaceholder`)
+                      : t('company_placeholder')
+                  }
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -107,7 +141,11 @@ export function WizardStepDetails() {
               <FormLabel>{t('description')}</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder={t('description_placeholder')}
+                  placeholder={
+                    hasCategory
+                      ? tFields(`${safeCategory}.descriptionPlaceholder`)
+                      : t('description_placeholder')
+                  }
                   className="min-h-[120px]"
                   {...field}
                 />

@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { boolean, decimal, integer, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, decimal, integer, jsonb, pgEnum, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 // Based on technical description: Submission -> Verification -> Evaluation -> Negotiation -> Court -> Final
 export const statusEnum = pgEnum('status', [
@@ -122,6 +122,17 @@ export const claimMessages = pgTable('claim_messages', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const auditLog = pgTable('audit_log', {
+  id: text('id').primaryKey(),
+  actorId: text('actor_id').references(() => user.id),
+  actorRole: text('actor_role'),
+  action: text('action').notNull(),
+  entityType: text('entity_type').notNull(),
+  entityId: text('entity_id'),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const leads = pgTable('leads', {
   id: text('id').primaryKey(), // We'll use nanoid/uuid in the action or db default
   name: text('name').notNull(),
@@ -168,6 +179,7 @@ export const subscriptions = pgTable('subscriptions', {
 
 export const userRelations = relations(user, ({ many, one }) => ({
   claims: many(claims),
+  auditLogs: many(auditLog),
   agent: one(user, {
     fields: [user.agentId],
     references: [user.id],
@@ -201,6 +213,13 @@ export const claimMessagesRelations = relations(claimMessages, ({ one }) => ({
   }),
   sender: one(user, {
     fields: [claimMessages.senderId],
+    references: [user.id],
+  }),
+}));
+
+export const auditLogRelations = relations(auditLog, ({ one }) => ({
+  actor: one(user, {
+    fields: [auditLog.actorId],
     references: [user.id],
   }),
 }));

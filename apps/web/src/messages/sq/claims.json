@@ -1,11 +1,25 @@
 {
   "claims": {
-    "title": "Ankesat e Mia",
-    "new": "Ankesë e Re",
+    "title": "Kërkesat e Mia për Dëmshpërblim",
+    "description": "Menaxhoni kërkesat tuaja për dëmshpërblim të konsumatorit dhe ndiqni statusin e tyre.",
+    "new": "Kërkesë e Re për Dëmshpërblim",
     "empty": {
-      "title": "Nuk keni ankesa ende",
-      "description": "Filloni duke krijuar ankesën tuaj të parë"
+      "title": "Nuk u gjetën kërkesa për dëmshpërblim",
+      "description": "Nuk keni paraqitur ende asnjë kërkesë për dëmshpërblim. Filloni duke krijuar kërkesën tuaj të parë për dëmshpërblim.",
+      "filtered": "Provoni të rregulloni filtrat ose kërkimin tuaj.",
+      "createFirst": "Krijo Kërkesën e Parë për Dëmshpërblim"
     },
+    "table": {
+      "title": "Titulli",
+      "company": "Kompania",
+      "category": "Kategoria",
+      "status": "Statusi",
+      "amount": "Shuma",
+      "created": "Krijuar"
+    },
+    "showing": "Duke shfaqur",
+    "claim": "kërkesë për dëmshpërblim",
+    "claimsPlural": "kërkesa për dëmshpërblim",
     "status": {
       "draft": "Draft",
       "submitted": "Dorëzuar",
@@ -49,7 +63,27 @@
       "step2": "Detajet",
       "step3": "Dëshmi",
       "step4": "Rishiko",
-      "submitClaim": "Dërgo Ankesën"
+      "submitClaim": "Dërgo Kërkesën për Dëmshpërblim"
+    },
+    "actions": {
+      "editDraft": "Redakto draftin",
+      "cancelClaim": "Anulo kërkesën për dëmshpërblim",
+      "cancelConfirm": "Të anulohet kjo kërkesë për dëmshpërblim? Nuk mund të zhbëhet.",
+      "cancelled": "Kërkesa për dëmshpërblim u anulua",
+      "cancelFailed": "Dështoi anulimi i kërkesës për dëmshpërblim"
+    },
+    "edit": {
+      "title": "Redakto draftin",
+      "description": "Përditësoni informacionin para se të dorëzoni kërkesën për dëmshpërblim.",
+      "updated": "Drafti u përditësua",
+      "failed": "Dështoi përditësimi i kërkesës për dëmshpërblim"
+    },
+    "detail": {
+      "caseDetails": "Detajet e Rastit",
+      "description": "Përshkrimi",
+      "claimAmount": "Shuma e Kërkesës për Dëmshpërblim",
+      "category": "Kategoria",
+      "evidence": "Dëshmi të bashkëngjitura"
     }
   }
 }

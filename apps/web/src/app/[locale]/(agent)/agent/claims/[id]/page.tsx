@@ -1,158 +1,82 @@
-import { TriagePanel } from '@/components/agent/triage-panel';
-import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
-import { DocumentList } from '@/components/documents/document-list';
+import { ClaimDetailHeader } from '@/components/agent/claim-detail-header';
+import { ClaimDocumentsPane } from '@/components/agent/claim-documents-pane';
+import { ClaimInfoPane } from '@/components/agent/claim-info-pane';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { auth } from '@/lib/auth';
-import { claimDocuments, claims, db, user } from '@interdomestik/database';
-import { Badge, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { eq } from 'drizzle-orm';
-import { getTranslations } from 'next-intl/server';
+import { claimDocuments, claimMessages, claims, db } from '@interdomestik/database';
+import { desc, eq } from 'drizzle-orm';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-type Props = {
-  params: Promise<{ id: string }>;
-};
-
-export default async function AgentClaimDetailPage({ params }: Props) {
-  const { id } = await params;
-
-  const session = await auth.api.getSession({
-    headers: await headers(),
+async function getClaimDetails(id: string) {
+  return await db.query.claims.findFirst({
+    where: eq(claims.id, id),
+    with: {
+      user: true,
+    },
   });
+}
 
+export default async function AgentClaimDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string; locale: string }>;
+}) {
+  const { id, locale } = await params;
+  setRequestLocale(locale);
+
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return notFound();
 
-  const [claim] = await db
-    .select({
-      id: claims.id,
-      title: claims.title,
-      description: claims.description,
-      status: claims.status,
-      category: claims.category,
-      amount: claims.claimAmount,
-      currency: claims.currency,
-      company: claims.companyName,
-      createdAt: claims.createdAt,
-      // User Info
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
-    })
-    .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id))
-    .where(eq(claims.id, id));
+  const data = await getClaimDetails(id);
+  if (!data) return notFound();
 
-  if (!claim) notFound();
+  // Fetch messages
+  const messages = await db.query.claimMessages.findMany({
+    where: eq(claimMessages.claimId, id),
+    orderBy: [desc(claimMessages.createdAt)],
+    with: { sender: true },
+  });
 
   // Fetch documents
-  const documents = await db.select().from(claimDocuments).where(eq(claimDocuments.claimId, id));
+  const documents = await db.query.claimDocuments.findMany({
+    where: eq(claimDocuments.claimId, id),
+    orderBy: [desc(claimDocuments.createdAt)],
+  });
 
-  const t = await getTranslations('agent.details');
-  const tClaims = await getTranslations('claims');
+  const t = await getTranslations('agent');
+  const tCategory = await getTranslations('claimCategories');
+  const tCommon = await getTranslations('common');
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-      </div>
+    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+      <ClaimDetailHeader claim={data} tCategory={tCategory} tCommon={tCommon} />
 
+      {/* 3-Pane Cockpit Layout */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          {/* Claimant Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('claimantInfo')}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <div className="text-sm text-muted-foreground">{t('name')}</div>
-                <div className="font-medium">{claim.userName || 'Unknown'}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">{t('email')}</div>
-                <div className="font-medium">{claim.userEmail || 'No email'}</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Claim Details */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{t('title')}</CardTitle>
-                <ClaimStatusBadge status={claim.status} />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="text-sm text-muted-foreground">{t('title_label')}</div>
-                <div className="text-lg font-medium">{claim.title}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">{t('description')}</div>
-                <div className="whitespace-pre-wrap">{claim.description || '-'}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">{t('category_label')}</div>
-                  <Badge variant="outline" className="capitalize">
-                    {tClaims(`category.${claim.category}`)}
-                  </Badge>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">{t('status_label')}</div>
-                  <div className="capitalize">{tClaims(`status.${claim.status}`)}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">{t('amount')}</div>
-                  <div className="text-lg font-bold">
-                    {claim.amount ? `${claim.amount} ${claim.currency || 'EUR'}` : '-'}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">{t('company')}</div>
-                  <div>{claim.company}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Evidence - Now with View/Download buttons */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('evidence')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DocumentList
-                documents={documents.map(doc => ({
-                  id: doc.id,
-                  name: doc.name,
-                  fileSize: doc.fileSize,
-                  fileType: doc.fileType,
-                }))}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Messaging Panel for agents (with internal notes) */}
-          <MessagingPanel claimId={claim.id} currentUserId={session.user.id} isAgent={true} />
-        </div>
-
-        <div className="space-y-6">
-          <TriagePanel claimId={claim.id} currentStatus={claim.status || 'draft'} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('notes')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">{t('notesPlaceholder')}</p>
-            </CardContent>
-          </Card>
-        </div>
+        <ClaimInfoPane claim={data} t={t} />
+        <MessagingPanel
+          claimId={id}
+          currentUserId={session.user.id}
+          isAgent={true}
+          initialMessages={messages.map(message => ({
+            id: message.id,
+            claimId: message.claimId,
+            senderId: message.senderId,
+            content: message.content,
+            isInternal: message.isInternal ?? false,
+            readAt: message.readAt,
+            createdAt: message.createdAt ?? new Date(),
+            sender: {
+              id: message.sender?.id ?? message.senderId,
+              name: message.sender?.name ?? 'Unknown',
+              image: message.sender?.image ?? null,
+              role: message.sender?.role ?? 'member',
+            },
+          }))}
+        />
+        <ClaimDocumentsPane documents={documents} t={t} />
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 {
   "claimCategories": {
     "title": "Me Çfarë Mund t'Ju Ndihmojmë?",
-    "subtitle": "Zgjidhni llojin e ankesës tuaj për të filluar. Ekspertët tanë specializohen në çdo kategori.",
-    "startClaim": "Filloni Ankesën",
+    "subtitle": "Zgjidhni llojin e kërkesës për dëmshpërblim tuaj për të filluar. Ekspertët tanë specializohen në çdo kategori.",
+    "startClaim": "Filloni Kërkesën për Dëmshpërblim",
+    "quickSelectLabel": "Ose zgjidhni një lloj specifik kërkese për dëmshpërblim:",
     "vehicle": {
       "title": "Dëme Automjetesh",
       "description": "Aksidente makinash, dëme nga përplasjet, vjedhje dhe vandalizëm.",
@@ -10,7 +11,7 @@
     },
     "property": {
       "title": "Dëme Pronash",
-      "description": "Ankesa për dëme në shtëpi, apartament dhe ndërtesa.",
+      "description": "Kërkesa për Dëmshpërblim për dëme në shtëpi, apartament dhe ndërtesa.",
       "examples": "p.sh., Dëme nga uji, zjarri, stuhia, vjedhja"
     },
     "injury": {

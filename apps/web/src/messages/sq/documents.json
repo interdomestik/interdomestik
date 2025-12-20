@@ -1,0 +1,18 @@
+{
+  "documents": {
+    "title": "Dokumentet",
+    "subtitle": "Të gjitha dokumentet e bashkangjitura me kërkesat për dëmshpërblim tuaja.",
+    "empty": "Nuk ka dokumente të ngarkuara ende.",
+    "filesCount": "Skedarë: {count}",
+    "viewClaim": "Shiko kërkesën për dëmshpërblim",
+    "emptyList": "Nuk ka dokumente të bashkangjitura.",
+    "actions": {
+      "view": "Shiko",
+      "download": "Shkarko"
+    },
+    "errors": {
+      "view": "Nuk u arrit të ngarkohet dokumenti. Ju lutemi provoni përsëri.",
+      "download": "Nuk u arrit të shkarkohet dokumenti. Ju lutemi provoni përsëri."
+    }
+  }
+}

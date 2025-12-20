@@ -1,6 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
+import { logAuditEvent } from '@/lib/audit';
 import { notifyNewMessage } from '@/lib/notifications';
 import { claimMessages, claims, db, user } from '@interdomestik/database';
 import { and, eq, isNull, or } from 'drizzle-orm';
@@ -123,7 +124,8 @@ export async function sendMessage(
   isInternal: boolean = false
 ): Promise<{ success: boolean; message?: MessageWithSender; error?: string }> {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
+    const requestHeaders = await headers();
+    const session = await auth.api.getSession({ headers: requestHeaders });
     if (!session?.user) {
       return { success: false, error: 'Unauthorized' };
     }
@@ -164,6 +166,19 @@ export async function sendMessage(
       senderId: userId,
       content: content.trim(),
       isInternal,
+    });
+
+    await logAuditEvent({
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      action: 'claim.message_sent',
+      entityType: 'claim',
+      entityId: claimId,
+      metadata: {
+        internal: isInternal,
+        length: content.trim().length,
+      },
+      headers: requestHeaders,
     });
 
     // Fetch the created message with sender info

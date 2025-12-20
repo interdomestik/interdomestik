@@ -18,6 +18,7 @@ import {
   Briefcase,
   FilePlus,
   FileText,
+  FolderOpen,
   LayoutDashboard,
   LayoutTemplate,
   Phone,
@@ -42,6 +43,11 @@ export function DashboardSidebar() {
       title: t('claims'),
       href: '/dashboard/claims',
       icon: FileText,
+    },
+    {
+      title: t('documents'),
+      href: '/dashboard/documents',
+      icon: FolderOpen,
     },
     {
       title: t('newClaim'),

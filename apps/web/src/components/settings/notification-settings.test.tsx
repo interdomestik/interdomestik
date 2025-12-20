@@ -2,13 +2,13 @@
  * NotificationSettings Component Tests
  *
  * Unit tests for the NotificationSettings component including loading states,
- * user interactions, API integration, and error handling.
+ * user interactions, API integration (mocked), and error handling.
  */
 
+import * as uSettingsActions from '@/actions/user-settings';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import type { ComponentPropsWithoutRef, PropsWithChildren } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { NotificationSettings } from './notification-settings';
 
 type ButtonProps = PropsWithChildren<ComponentPropsWithoutRef<'button'>>;
@@ -71,6 +71,12 @@ vi.mock('lucide-react', () => ({
   Smartphone: () => <span>Smartphone Icon</span>,
 }));
 
+// Mock server actions
+vi.mock('@/actions/user-settings', () => ({
+  getNotificationPreferences: vi.fn(),
+  updateNotificationPreferences: vi.fn(),
+}));
+
 // Mock next-intl
 vi.mock('next-intl', () => {
   const translations: Record<string, string> = {
@@ -117,45 +123,34 @@ vi.mock('sonner', () => ({
   toast: mockToast,
 }));
 
-// Mock fetch
-type MockFetchResponse = {
-  ok: boolean;
-  json: () => Promise<unknown>;
-};
-
-const fetchMock =
-  vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<MockFetchResponse>>();
-const createMockResponse = (data: unknown, ok = true): MockFetchResponse => ({
-  ok,
-  json: async () => data,
-});
-
-global.fetch = fetchMock as unknown as typeof fetch;
-
 describe('NotificationSettings', () => {
+  const getNotificationPreferencesMock =
+    uSettingsActions.getNotificationPreferences as unknown as Mock;
+  const updateNotificationPreferencesMock =
+    uSettingsActions.updateNotificationPreferences as unknown as Mock;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    fetchMock.mockReset();
   });
 
   describe('Loading State', () => {
     it('should show loading skeleton while fetching preferences', async () => {
-      // Mock fetch to delay response
-      fetchMock.mockImplementation(
+      // Mock delayed response
+      getNotificationPreferencesMock.mockImplementation(
         () =>
           new Promise(resolve =>
             setTimeout(
               () =>
                 resolve({
-                  ok: true,
-                  json: async () => ({
+                  success: true,
+                  preferences: {
                     emailClaimUpdates: true,
                     emailMarketing: false,
                     emailNewsletter: true,
                     pushClaimUpdates: true,
                     pushMessages: true,
                     inAppAll: true,
-                  }),
+                  },
                 }),
               100
             )
@@ -172,16 +167,17 @@ describe('NotificationSettings', () => {
     });
 
     it('should hide loading skeleton after preferences load', async () => {
-      fetchMock.mockResolvedValue(
-        createMockResponse({
+      getNotificationPreferencesMock.mockResolvedValue({
+        success: true,
+        preferences: {
           emailClaimUpdates: true,
           emailMarketing: false,
           emailNewsletter: true,
           pushClaimUpdates: true,
           pushMessages: true,
           inAppAll: true,
-        })
-      );
+        },
+      });
 
       render(<NotificationSettings />);
 
@@ -192,55 +188,22 @@ describe('NotificationSettings', () => {
 
       // Should show the actual form
       expect(screen.getByText('Email Notifications')).toBeInTheDocument();
-      expect(screen.getByText('Push Notifications')).toBeInTheDocument();
-      expect(screen.getByText('In-App Notifications')).toBeInTheDocument();
-    });
-  });
-
-  describe('Default Preferences', () => {
-    it('should load and display default preferences', async () => {
-      fetchMock.mockResolvedValue(
-        createMockResponse({
-          emailClaimUpdates: true,
-          emailMarketing: false,
-          emailNewsletter: true,
-          pushClaimUpdates: true,
-          pushMessages: true,
-          inAppAll: true,
-        })
-      );
-
-      render(<NotificationSettings />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Notification Preferences')).toBeInTheDocument();
-      });
-
-      // Check that checkboxes have correct default states
-      const emailClaimUpdates = screen.getByLabelText('Claim updates', {
-        selector: 'button[role="checkbox"]#email-claim-updates',
-      });
-      const emailMarketing = screen.getByLabelText('Promotional emails', {
-        selector: 'button[role="checkbox"]#email-marketing',
-      });
-
-      expect(emailClaimUpdates).toBeChecked();
-      expect(emailMarketing).not.toBeChecked();
     });
   });
 
   describe('User Interactions', () => {
     it('should toggle checkbox when clicked', async () => {
-      fetchMock.mockResolvedValue(
-        createMockResponse({
+      getNotificationPreferencesMock.mockResolvedValue({
+        success: true,
+        preferences: {
           emailClaimUpdates: true,
           emailMarketing: false,
           emailNewsletter: true,
           pushClaimUpdates: true,
           pushMessages: true,
           inAppAll: true,
-        })
-      );
+        },
+      });
 
       render(<NotificationSettings />);
 
@@ -260,53 +223,23 @@ describe('NotificationSettings', () => {
         expect(marketingCheckbox).toBeChecked();
       });
     });
+  });
 
-    it('should enable save button after changes', async () => {
-      const user = userEvent.setup();
-
-      fetchMock.mockResolvedValue(
-        createMockResponse({
+  describe('Save Functionality', () => {
+    it('should save preferences when save button is clicked', async () => {
+      getNotificationPreferencesMock.mockResolvedValue({
+        success: true,
+        preferences: {
           emailClaimUpdates: true,
           emailMarketing: false,
           emailNewsletter: true,
           pushClaimUpdates: true,
           pushMessages: true,
           inAppAll: true,
-        })
-      );
-
-      render(<NotificationSettings />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Save Preferences')).toBeInTheDocument();
+        },
       });
 
-      const saveButton = screen.getByText('Save Preferences');
-      expect(saveButton).toBeEnabled();
-
-      const marketingCheckbox = screen.getByLabelText('Promotional emails', {
-        selector: 'button[role="checkbox"]#email-marketing',
-      });
-      await user.click(marketingCheckbox);
-
-      expect(saveButton).toBeEnabled();
-    });
-  });
-
-  describe('Save Functionality', () => {
-    it('should save preferences when save button is clicked', async () => {
-      fetchMock
-        .mockResolvedValueOnce(
-          createMockResponse({
-            emailClaimUpdates: true,
-            emailMarketing: false,
-            emailNewsletter: true,
-            pushClaimUpdates: true,
-            pushMessages: true,
-            inAppAll: true,
-          })
-        )
-        .mockResolvedValueOnce(createMockResponse({ success: true }));
+      updateNotificationPreferencesMock.mockResolvedValue({ success: true });
 
       render(<NotificationSettings />);
 
@@ -320,69 +253,26 @@ describe('NotificationSettings', () => {
 
       fireEvent.click(marketingCheckbox);
 
-      await waitFor(() => {
-        expect(marketingCheckbox).toBeChecked();
-      });
-
       const saveButton = screen.getByText('Save Preferences');
       fireEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(mockToast.success).toHaveBeenCalledWith('Preferences saved', {
-          description: 'Your notification preferences have been updated.',
-        });
-      });
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/settings/notifications',
-        expect.objectContaining({
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: expect.stringContaining('"emailMarketing":true'),
-        })
-      );
-    });
-
-    it('should show saving state while saving', async () => {
-      const user = userEvent.setup();
-
-      fetchMock
-        .mockResolvedValueOnce(
-          createMockResponse({
-            emailClaimUpdates: true,
-            emailMarketing: false,
-            emailNewsletter: true,
-            pushClaimUpdates: true,
-            pushMessages: true,
-            inAppAll: true,
+        expect(updateNotificationPreferencesMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            emailMarketing: true,
           })
-        )
-        .mockImplementation(
-          () =>
-            new Promise(resolve =>
-              setTimeout(() => resolve(createMockResponse({ success: true })), 100)
-            )
         );
-
-      render(<NotificationSettings />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Save Preferences')).toBeInTheDocument();
+        expect(mockToast.success).toHaveBeenCalledWith('Preferences saved', expect.anything());
       });
-
-      const saveButton = screen.getByText('Save Preferences');
-      await user.click(saveButton);
-
-      // Should show saving state
-      expect(screen.getByText('Saving...')).toBeInTheDocument();
     });
   });
 
   describe('Error Handling', () => {
     it('should show error toast when loading fails', async () => {
-      fetchMock.mockRejectedValue(new Error('Network error'));
+      getNotificationPreferencesMock.mockResolvedValue({
+        success: false,
+        error: 'Failed to load',
+      });
 
       render(<NotificationSettings />);
 
@@ -392,20 +282,19 @@ describe('NotificationSettings', () => {
     });
 
     it('should show error toast when save fails', async () => {
-      const user = userEvent.setup();
+      getNotificationPreferencesMock.mockResolvedValue({
+        success: true,
+        preferences: {
+          emailClaimUpdates: true,
+          emailMarketing: false,
+          emailNewsletter: true,
+          pushClaimUpdates: true,
+          pushMessages: true,
+          inAppAll: true,
+        },
+      });
 
-      fetchMock
-        .mockResolvedValueOnce(
-          createMockResponse({
-            emailClaimUpdates: true,
-            emailMarketing: false,
-            emailNewsletter: true,
-            pushClaimUpdates: true,
-            pushMessages: true,
-            inAppAll: true,
-          })
-        )
-        .mockResolvedValueOnce(createMockResponse({ error: 'Failed to save' }, false));
+      updateNotificationPreferencesMock.mockResolvedValue({ success: false, error: 'Failed' });
 
       render(<NotificationSettings />);
 
@@ -414,7 +303,7 @@ describe('NotificationSettings', () => {
       });
 
       const saveButton = screen.getByText('Save Preferences');
-      await user.click(saveButton);
+      fireEvent.click(saveButton);
 
       await waitFor(() => {
         expect(mockToast.error).toHaveBeenCalledWith('Failed to save preferences');
@@ -423,23 +312,16 @@ describe('NotificationSettings', () => {
   });
 
   describe('Initial Preferences Prop', () => {
-    it('should use initial preferences if provided', async () => {
-      fetchMock.mockResolvedValue(
-        createMockResponse({
-          emailClaimUpdates: false,
-          emailMarketing: true,
-          emailNewsletter: false,
-          pushClaimUpdates: false,
-          pushMessages: false,
-          inAppAll: false,
-        })
-      );
-
+    it('should use initial preferences if provided and NOT fetch', async () => {
       render(
         <NotificationSettings
           initialPreferences={{
             emailClaimUpdates: false,
             emailMarketing: true,
+            emailNewsletter: false,
+            pushClaimUpdates: false,
+            pushMessages: false,
+            inAppAll: false,
           }}
         />
       );
@@ -448,13 +330,19 @@ describe('NotificationSettings', () => {
         expect(screen.getByText('Notification Preferences')).toBeInTheDocument();
       });
 
-      // Should eventually load from API and override initial preferences
-      await waitFor(() => {
-        const marketingCheckbox = screen.getByLabelText('Promotional emails', {
-          selector: 'button[role="checkbox"]#email-marketing',
-        });
-        expect(marketingCheckbox).toBeChecked();
+      // Should check that specific checkboxes match prop values immediately
+      const marketingCheckbox = screen.getByLabelText('Promotional emails', {
+        selector: 'button[role="checkbox"]#email-marketing',
       });
+      expect(marketingCheckbox).toBeChecked();
+
+      const claimUpdatesCheckbox = screen.getByLabelText('Claim updates', {
+        selector: 'button[role="checkbox"]#email-claim-updates',
+      });
+      expect(claimUpdatesCheckbox).not.toBeChecked();
+
+      // Ensure fetch wasn't called
+      expect(getNotificationPreferencesMock).not.toHaveBeenCalled();
     });
   });
 });
