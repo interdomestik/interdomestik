@@ -19,6 +19,7 @@
       "date": "Data",
       "actions": "Veprime",
       "triage": "Vlerësim",
+      "message_alert": "Mesazh i ri ({count})",
       "no_claims": "Nuk u gjet asnjë kërkesë për dëmshpërblim.",
       "no_claims_ready": "Lista e kërkesave për dëmshpërblim vjen së shpejti",
       "recent_activity": "Aktiviteti i Fundit"

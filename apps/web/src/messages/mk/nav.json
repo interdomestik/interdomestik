@@ -14,6 +14,11 @@
     "pricing": "Pricing",
     "about": "About Us",
     "contact": "Contact",
-    "help": "Help"
+    "help": "Help",
+    "menu": "Мени",
+    "overview": "Преглед",
+    "consumerRights": "Права на потрошувачите",
+    "agentWorkspace": "Работен простор на агент",
+    "adminDashboard": "Админ контролна табла"
   }
 }

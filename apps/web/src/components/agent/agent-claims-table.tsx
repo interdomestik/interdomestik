@@ -86,7 +86,12 @@ export function AgentClaimsTable() {
           </TableHeader>
           <TableBody>
             {data.claims.map(claim => (
-              <TableRow key={claim.id} className="hover:bg-muted/50">
+              <TableRow
+                key={claim.id}
+                className={
+                  claim.unreadCount ? 'bg-amber-50/40 hover:bg-amber-50/60' : 'hover:bg-muted/50'
+                }
+              >
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-medium text-sm">{claim.claimantName || 'Unknown'}</span>
@@ -118,9 +123,25 @@ export function AgentClaimsTable() {
                   {claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : '-'}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/agent/claims/${claim.id}`}>{t('actions.review')}</Link>
-                  </Button>
+                  {claim.unreadCount ? (
+                    <Button
+                      asChild
+                      size="sm"
+                      className="gap-2 animate-pulse bg-amber-500 text-white hover:bg-amber-600"
+                    >
+                      <Link href={`/agent/claims/${claim.id}`}>
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                        </span>
+                        {t('table.message_alert', { count: claim.unreadCount })}
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/agent/claims/${claim.id}`}>{t('actions.review')}</Link>
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

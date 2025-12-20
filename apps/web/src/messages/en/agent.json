@@ -19,6 +19,7 @@
       "date": "Date",
       "actions": "Actions",
       "triage": "Triage",
+      "message_alert": "New message ({count})",
       "no_claims": "No claims found.",
       "no_claims_ready": "Claim List Component Coming Soon",
       "recent_activity": "Recent Activity"

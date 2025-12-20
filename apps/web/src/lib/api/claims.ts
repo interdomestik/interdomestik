@@ -11,6 +11,7 @@ export type ClaimsListItem = {
   category: string | null;
   claimantName?: string | null;
   claimantEmail?: string | null;
+  unreadCount?: number;
 };
 
 export type ClaimsListResponse = {

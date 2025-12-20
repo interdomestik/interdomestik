@@ -1,3 +1,4 @@
+import { AdminClaimsFilters } from '@/components/admin/claims/claims-filters';
 import { AdminClaimsTable } from '@/components/admin/admin-claims-table';
 import { getTranslations } from 'next-intl/server';
 
@@ -11,6 +12,7 @@ export default async function AdminClaimsPage() {
         <p className="text-muted-foreground">{tAdmin('description')}</p>
       </div>
 
+      <AdminClaimsFilters />
       <AdminClaimsTable />
     </div>
   );

@@ -21,7 +21,7 @@
         "description": "Any other consumer dispute",
         "examples": "Mosmarrëveshje kontraktuale, çështje punësimi, sigurime"
       },
-      "title": "Çfarë lloj ankese është kjo?",
+      "title": "Çfarë lloj Kërkese për Dëmshpërblim është kjo?",
       "subtitle": "Zgjidhni kategorinë që i përshtatet më mirë çështjes suaj.",
       "freeConsultation": "✨ Konsultim Falas i Përfshirë"
     },
@@ -42,7 +42,7 @@
     "review": {
       "title": "Rishiko & Dërgo",
       "subtitle": "Ju lutemi kontrolloni detajet para dërgimit.",
-      "summary": "Përmbledhja e Ankesës",
+      "summary": "Përmbledhja e Kërkesës për Dëmshpërblim",
       "category": "Kategoria",
       "date": "Data",
       "company": "Kompania",

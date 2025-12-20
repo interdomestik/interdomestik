@@ -11,21 +11,52 @@
       "title": "User Management",
       "description": "Manage platform users and role assignments."
     },
+    "users_filters": {
+      "search_placeholder": "Search by name or email",
+      "labels": {
+        "role": "Role",
+        "assignment": "Assignment"
+      },
+      "roles": {
+        "all": "All roles",
+        "user": "Members",
+        "agent": "Agents",
+        "admin": "Admins"
+      },
+      "assignments": {
+        "all": "All assignments",
+        "assigned": "Assigned",
+        "unassigned": "Unassigned"
+      }
+    },
     "users_table": {
+      "sections": {
+        "members": "Members",
+        "agents": "Agents",
+        "unassigned": "Unassigned"
+      },
       "headers": {
         "user": "User",
         "role": "Role",
         "assigned_agent": "Assigned Agent",
         "joined": "Joined"
       },
+      "message_alert": "New message ({count})",
       "select_agent": "Select Agent",
       "unassigned": "Unassigned",
       "no_users": "No users found",
-      "success_message": "User assigned successfully"
+      "success_message": "User assigned successfully",
+      "view_profile": "View profile"
     },
     "claims_page": {
       "title": "Claims Management",
       "description": "View and manage all user claims.",
+      "sections": {
+        "active": "Active",
+        "draft": "Drafts",
+        "resolved": "Resolved"
+      },
+      "message_alert": "New message ({count})",
       "table": {
         "title": "Title",
         "amount": "Amount"
@@ -90,6 +121,55 @@
       },
       "save_changes": "Save Changes",
       "success_message": "Settings updated successfully"
+    },
+    "member_profile": {
+      "actions": {
+        "back": "Back to users",
+        "view_claim": "View claim"
+      },
+      "sections": {
+        "membership": "Membership",
+        "agent": "Assigned agent",
+        "preferences": "Notification preferences",
+        "claims_overview": "Claims overview",
+        "recent_claims": "Recent claims"
+      },
+      "labels": {
+        "member_id": "Member ID",
+        "joined": "Joined",
+        "email_verified_yes": "Email verified",
+        "email_verified_no": "Email not verified",
+        "status": "Status",
+        "plan": "Plan",
+        "period_end": "Period end",
+        "cancel_at_period_end": "Cancel at period end",
+        "no_agent": "No agent assigned",
+        "preferences_unset": "Preferences not set",
+        "no_claims": "No claims yet",
+        "unknown": "Unknown",
+        "not_set": "Not set"
+      },
+      "status": {
+        "active": "Active",
+        "past_due": "Past due",
+        "paused": "Paused",
+        "canceled": "Canceled",
+        "none": "Not subscribed"
+      },
+      "preferences": {
+        "email_claims": "Email claim updates",
+        "email_newsletter": "Email newsletter",
+        "email_marketing": "Email marketing",
+        "push_claims": "Push claim updates",
+        "push_messages": "Push messages",
+        "in_app": "In-app notifications"
+      },
+      "claims": {
+        "total": "Total claims",
+        "open": "Open claims",
+        "resolved": "Resolved",
+        "rejected": "Rejected"
+      }
     }
   }
 }

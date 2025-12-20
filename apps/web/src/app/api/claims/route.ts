@@ -1,6 +1,16 @@
 import { auth } from '@/lib/auth';
-import { and, claims, db, eq, ilike, or, user } from '@interdomestik/database';
-import { count, desc } from 'drizzle-orm';
+import {
+  and,
+  claimMessages,
+  claims,
+  db,
+  eq,
+  ilike,
+  inArray,
+  or,
+  user,
+} from '@interdomestik/database';
+import { count, desc, isNull } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -120,6 +130,30 @@ export async function GET(request: Request) {
     .limit(perPage)
     .offset(offset);
 
+  const unreadCounts = new Map<string, number>();
+
+  if (scope !== 'member' && rows.length > 0) {
+    const unreadRows = await db
+      .select({
+        claimId: claimMessages.claimId,
+        total: count(),
+      })
+      .from(claimMessages)
+      .innerJoin(claims, eq(claimMessages.claimId, claims.id))
+      .where(
+        and(
+          inArray(claimMessages.claimId, rows.map(row => row.id)),
+          isNull(claimMessages.readAt),
+          eq(claimMessages.senderId, claims.userId)
+        )
+      )
+      .groupBy(claimMessages.claimId);
+
+    for (const row of unreadRows) {
+      unreadCounts.set(row.claimId, Number(row.total || 0));
+    }
+  }
+
   return NextResponse.json({
     success: true,
     claims: rows.map(row => ({
@@ -133,6 +167,7 @@ export async function GET(request: Request) {
       category: row.category,
       claimantName: row.claimantName,
       claimantEmail: row.claimantEmail,
+      unreadCount: scope === 'member' ? 0 : unreadCounts.get(row.id) || 0,
     })),
     page,
     perPage,

@@ -11,21 +11,52 @@
       "title": "Menaxhimi i Përdoruesve",
       "description": "Menaxho përdoruesit e platformës dhe rolet."
     },
+    "users_filters": {
+      "search_placeholder": "Kërko sipas emrit ose email-it",
+      "labels": {
+        "role": "Roli",
+        "assignment": "Caktimi"
+      },
+      "roles": {
+        "all": "Të gjitha rolet",
+        "user": "Anëtarë",
+        "agent": "Agjentë",
+        "admin": "Administratorë"
+      },
+      "assignments": {
+        "all": "Të gjitha caktimet",
+        "assigned": "Të caktuar",
+        "unassigned": "Të pacaktuar"
+      }
+    },
     "users_table": {
+      "sections": {
+        "members": "Anëtarë",
+        "agents": "Agjentë",
+        "unassigned": "Të pacaktuar"
+      },
       "headers": {
         "user": "Përdoruesi",
         "role": "Roli",
         "assigned_agent": "Agjenti i Caktuar",
         "joined": "Regjistruar"
       },
+      "message_alert": "Mesazh i ri ({count})",
       "select_agent": "Zgjidh Agjentin",
       "unassigned": "I Pacaktuar",
       "no_users": "Nuk u gjetën përdorues",
-      "success_message": "Përdoruesi u caktua me sukses"
+      "success_message": "Përdoruesi u caktua me sukses",
+      "view_profile": "Shiko profilin"
     },
     "claims_page": {
       "title": "Menaxhimi i Kërkesave për Dëmshpërblim",
       "description": "Shiko dhe menaxho të gjitha kërkesat e përdoruesve për dëmshpërblim.",
+      "sections": {
+        "active": "Aktive",
+        "draft": "Skica",
+        "resolved": "Të Zgjidhura"
+      },
+      "message_alert": "Mesazh i ri ({count})",
       "table": {
         "title": "Titulli",
         "amount": "Shuma"
@@ -90,6 +121,55 @@
       },
       "save_changes": "Ruaj Ndryshimet",
       "success_message": "Cilësimet u përditësuan me sukses"
+    },
+    "member_profile": {
+      "actions": {
+        "back": "Kthehu te përdoruesit",
+        "view_claim": "Shiko kërkesën"
+      },
+      "sections": {
+        "membership": "Anëtarësimi",
+        "agent": "Agjenti i caktuar",
+        "preferences": "Preferencat e njoftimeve",
+        "claims_overview": "Përmbledhja e kërkesave për dëmshpërblim",
+        "recent_claims": "Kërkesat e fundit për dëmshpërblim"
+      },
+      "labels": {
+        "member_id": "ID i anëtarit",
+        "joined": "Regjistruar",
+        "email_verified_yes": "Email i verifikuar",
+        "email_verified_no": "Email i paverifikuar",
+        "status": "Statusi",
+        "plan": "Plani",
+        "period_end": "Fundi i periudhës",
+        "cancel_at_period_end": "Anulim në fund të periudhës",
+        "no_agent": "Nuk ka agjent të caktuar",
+        "preferences_unset": "Preferencat nuk janë vendosur",
+        "no_claims": "Nuk ka ende kërkesa për dëmshpërblim",
+        "unknown": "E panjohur",
+        "not_set": "Nuk është vendosur"
+      },
+      "status": {
+        "active": "Aktive",
+        "past_due": "Me vonesë",
+        "paused": "Pezull",
+        "canceled": "Anuluar",
+        "none": "Pa anëtarësim"
+      },
+      "preferences": {
+        "email_claims": "Email përditësime të kërkesave",
+        "email_newsletter": "Email buletini",
+        "email_marketing": "Email marketing",
+        "push_claims": "Njoftime push për kërkesat",
+        "push_messages": "Njoftime push për mesazhe",
+        "in_app": "Njoftime në aplikacion"
+      },
+      "claims": {
+        "total": "Kërkesa gjithsej",
+        "open": "Kërkesa të hapura",
+        "resolved": "Të zgjidhura",
+        "rejected": "Të refuzuara"
+      }
     }
   }
 }
