@@ -35,8 +35,13 @@ function isWithin(childPath: string, parentPath: string): boolean {
 const cwdRoot = findRepoRoot(process.cwd());
 const envRoot = process.env.MCP_REPO_ROOT ? path.resolve(process.env.MCP_REPO_ROOT) : null;
 
-const resolvedEnvRoot = envRoot && isRepoRoot(envRoot) ? envRoot : null;
+// Fallback: Resolve root relative to this file (dist/utils/paths.js -> ../../../..)
+// src/utils/paths.ts -> dist/utils/paths.js
+const relativeRoot = path.resolve(__dirname, '../../../..');
 
-export const REPO_ROOT = resolvedEnvRoot ?? cwdRoot;
+const resolvedEnvRoot = envRoot && isRepoRoot(envRoot) ? envRoot : null;
+const resolvedRelativeRoot = isRepoRoot(relativeRoot) ? relativeRoot : null;
+
+export const REPO_ROOT = resolvedEnvRoot ?? resolvedRelativeRoot ?? cwdRoot;
 
 export const WEB_APP = path.join(REPO_ROOT, 'apps/web');

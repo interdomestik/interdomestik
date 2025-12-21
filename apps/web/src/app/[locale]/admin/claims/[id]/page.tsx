@@ -1,7 +1,7 @@
+import { getStaff } from '@/actions/admin-users';
 import { ClaimAssignmentForm } from '@/components/admin/claims/claim-assignment-form';
 import { ClaimStatusForm } from '@/components/admin/claims/claim-status-form';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
-import { getStaff } from '@/actions/admin-users';
 import { auth } from '@/lib/auth';
 import { db } from '@interdomestik/database/db';
 import { claimDocuments, claims } from '@interdomestik/database/schema';
@@ -11,7 +11,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { format } from 'date-fns';
-import { desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { Download, FileText } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -137,11 +137,7 @@ export default async function AdminClaimDetailPage({
 
         {/* Middle Pane: Messaging */}
         <div className="col-span-12 lg:col-span-6 flex flex-col gap-4 bg-muted/20 rounded-xl p-4 h-full border border-muted-foreground/10">
-          <MessagingPanel
-            claimId={data.id}
-            currentUserId={session.user.id}
-            isAgent={true}
-          />
+          <MessagingPanel claimId={data.id} currentUserId={session.user.id} isAgent={true} />
         </div>
 
         {/* Right Pane: Documents */}

@@ -5,12 +5,17 @@ import { MessageSquare } from 'lucide-react';
 
 interface ClaimMessagesPaneProps {
   claimId: string;
-  messages: any[];
+  messages: { id: string; content: string; sender?: { name?: string | null } | null }[];
   currentUserId: string;
-  t: any;
+  t: (key: string) => string;
 }
 
-export function ClaimMessagesPane({ claimId, messages, currentUserId, t }: ClaimMessagesPaneProps) {
+export function ClaimMessagesPane({
+  claimId: _claimId,
+  messages,
+  currentUserId: _currentUserId,
+  t,
+}: ClaimMessagesPaneProps) {
   return (
     <Card className="lg:col-span-1">
       <CardHeader>

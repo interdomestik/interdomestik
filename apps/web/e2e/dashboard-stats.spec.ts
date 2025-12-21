@@ -35,8 +35,8 @@ test.describe('User Dashboard Statistics', () => {
     await page.waitForLoadState('networkidle');
 
     // Count actual claims in the table
-    const claimRows = page.getByRole('row');
-    const rowCount = await claimRows.count();
+    // const claimRows = page.getByRole('row');
+    // const rowCount = await claimRows.count();
 
     // Go back to dashboard
     await page.goto('/en/dashboard');

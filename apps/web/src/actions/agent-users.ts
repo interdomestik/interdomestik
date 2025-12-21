@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { agentClients, db, eq, ilike, inArray, or, user } from '@interdomestik/database';
-import { and, desc } from 'drizzle-orm';
+import { and, type SQL } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
 export async function getAgentUsers(filters?: { search?: string }) {
@@ -14,25 +14,20 @@ export async function getAgentUsers(filters?: { search?: string }) {
     throw new Error('Unauthorized');
   }
 
-  const conditions: any[] = [eq(user.role, 'user')];
+  const conditions: SQL[] = [eq(user.role, 'user')];
 
   if (session.user.role === 'agent') {
     const links = await db
       .select({ memberId: agentClients.memberId })
       .from(agentClients)
-      .where(
-        and(
-          eq(agentClients.agentId, session.user.id),
-          eq(agentClients.status, 'active')
-        )
-      );
+      .where(and(eq(agentClients.agentId, session.user.id), eq(agentClients.status, 'active')));
     const memberIds = links.map(link => link.memberId);
 
     if (memberIds.length === 0) {
       return [];
     }
 
-    conditions.push(inArray(user.id, memberIds));
+    conditions.push(inArray(user.id, memberIds) as SQL);
   }
 
   if (filters?.search) {
