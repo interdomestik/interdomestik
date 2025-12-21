@@ -1,8 +1,8 @@
-# QA Baseline - Sun Dec 21 01:26:25 CET 2025
+# QA Baseline - Sun Dec 21 08:08:30 CET 2025
 lint=pass
-typecheck=pass
-tests=pass
+typecheck=fail (exit 2)
+tests=fail (exit 1)
 format=fail (exit 1)
 COVERAGE=skipped
-timestamp=2025-12-21T01:26:25+01:00
-log=/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_012612.log
+timestamp=2025-12-21T08:08:30+01:00
+log=/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_080818.log

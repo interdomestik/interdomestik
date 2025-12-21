@@ -221,7 +221,11 @@ export function AdminClaimsTable() {
           </ClaimsSection>
         )}
         {draftClaims.length > 0 && (
-          <ClaimsSection title={tAdmin('sections.draft')} count={draftClaims.length} defaultOpen={false}>
+          <ClaimsSection
+            title={tAdmin('sections.draft')}
+            count={draftClaims.length}
+            defaultOpen={false}
+          >
             {renderTable(draftClaims)}
           </ClaimsSection>
         )}

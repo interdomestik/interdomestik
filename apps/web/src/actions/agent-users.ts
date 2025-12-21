@@ -32,7 +32,7 @@ export async function getAgentUsers(filters?: { search?: string }) {
 
   if (filters?.search) {
     const term = `%${filters.search}%`;
-    conditions.push(or(ilike(user.name, term), ilike(user.email, term)));
+    conditions.push(or(ilike(user.name, term), ilike(user.email, term)) as SQL);
   }
 
   const users = await db.query.user.findMany({

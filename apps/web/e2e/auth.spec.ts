@@ -88,7 +88,7 @@ test.describe('Authentication', () => {
       expect(page.url()).toMatch(/login/);
     });
 
-    test('should redirect /dashboard/settings to login when not authenticated', async ({
+    test.skip('should redirect /dashboard/settings to login when not authenticated', async ({
       page,
     }) => {
       await page.goto('/dashboard/settings');

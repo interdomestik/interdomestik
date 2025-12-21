@@ -25,11 +25,7 @@ type ClaimAssignmentFormProps = {
   staff: StaffOption[];
 };
 
-export function ClaimAssignmentForm({
-  claimId,
-  currentStaffId,
-  staff,
-}: ClaimAssignmentFormProps) {
+export function ClaimAssignmentForm({ claimId, currentStaffId, staff }: ClaimAssignmentFormProps) {
   const tCommon = useTranslations('common');
   const tClaims = useTranslations('admin.claims_page');
   const [isPending, startTransition] = useTransition();

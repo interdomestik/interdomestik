@@ -118,8 +118,7 @@ export default async function AgentMemberProfilePage({
   }
 
   const rawStatus = subscription?.status;
-  const membershipStatus =
-    rawStatus && membershipStatusStyles[rawStatus] ? rawStatus : 'none';
+  const membershipStatus = rawStatus && membershipStatusStyles[rawStatus] ? rawStatus : 'none';
   const membershipBadgeClass = membershipStatusStyles[membershipStatus];
 
   return (
@@ -157,7 +156,9 @@ export default async function AgentMemberProfilePage({
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <BadgeCheck className="h-4 w-4" />
-                  {member.emailVerified ? t('labels.email_verified_yes') : t('labels.email_verified_no')}
+                  {member.emailVerified
+                    ? t('labels.email_verified_yes')
+                    : t('labels.email_verified_no')}
                 </span>
               </div>
             </div>

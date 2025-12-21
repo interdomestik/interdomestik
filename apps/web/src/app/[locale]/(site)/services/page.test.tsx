@@ -19,20 +19,19 @@ describe('ServicesPage', () => {
     expect(screen.getByText('hero.title')).toBeInTheDocument();
     expect(screen.getByText('hero.subtitle')).toBeInTheDocument();
 
-    // Solutions
-    expect(screen.getByText('solutions.title')).toBeInTheDocument();
-    expect(screen.getByText('solutions.vehicle.title')).toBeInTheDocument();
-    expect(screen.getByText('solutions.property.title')).toBeInTheDocument();
+    // Consultation
+    expect(screen.getByText('categories.consultation.title')).toBeInTheDocument();
+    expect(screen.getByText('categories.consultation.subtitle')).toBeInTheDocument();
 
-    // Process
-    expect(screen.getByText('process.title')).toBeInTheDocument();
-    expect(screen.getByText('process.step1.title')).toBeInTheDocument();
+    // Expertise
+    expect(screen.getByText('categories.expertise.title')).toBeInTheDocument();
+    expect(screen.getByText('categories.expertise.subtitle')).toBeInTheDocument();
 
-    // Safety
-    expect(screen.getByText('safety.title')).toBeInTheDocument();
-    expect(screen.getByText('safety.speed.title')).toBeInTheDocument();
+    // Legal
+    expect(screen.getByText('categories.legal.title')).toBeInTheDocument();
+    expect(screen.getByText('categories.legal.subtitle')).toBeInTheDocument();
 
-    // FAQ
-    expect(screen.getByText('faq.title')).toBeInTheDocument();
+    // Experts
+    expect(screen.getByText('experts.title')).toBeInTheDocument();
   });
 });

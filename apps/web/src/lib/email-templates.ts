@@ -47,7 +47,14 @@ function joinUrl(baseUrl: string, path: string) {
   return `${trimmedBase}/${trimmedPath}`;
 }
 
-function buildEmailTemplate({ title, intro, details, ctaLabel, ctaUrl, footer }: TemplateOptions): EmailTemplate {
+function buildEmailTemplate({
+  title,
+  intro,
+  details,
+  ctaLabel,
+  ctaUrl,
+  footer,
+}: TemplateOptions): EmailTemplate {
   const safeTitle = escapeHtml(title);
   const safeIntro = escapeHtml(intro);
   const safeCtaLabel = escapeHtml(ctaLabel);
@@ -108,7 +115,11 @@ export function renderClaimSubmittedEmail(params: {
   });
 }
 
-export function renderClaimAssignedEmail(params: { claimId: string; claimTitle: string; agentName: string }) {
+export function renderClaimAssignedEmail(params: {
+  claimId: string;
+  claimTitle: string;
+  agentName: string;
+}) {
   const claimUrl = joinUrl(DEFAULT_APP_URL, `/agent/claims/${params.claimId}`);
   return buildEmailTemplate({
     title: 'A new claim was assigned to you',

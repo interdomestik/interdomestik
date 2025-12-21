@@ -29,7 +29,7 @@ test.describe('Agent Claims Access', () => {
     if (!(await noClaims.isVisible())) {
       const firstRow = rows.first();
       if (await firstRow.isVisible()) {
-        await expect(firstRow).toContainText('View Only');
+        await expect(firstRow).toContainText('View Status');
       }
     }
   });

@@ -106,12 +106,7 @@ export function AgentUsersSections({ users }: UsersSectionsProps) {
                 <div className="flex flex-col">
                   <span className="font-medium">{member.name}</span>
                   <span className="text-xs text-muted-foreground">{member.email}</span>
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="outline"
-                    className="mt-2 h-7 px-2 text-xs"
-                  >
+                  <Button asChild size="sm" variant="outline" className="mt-2 h-7 px-2 text-xs">
                     <Link href={`/agent/users/${member.id}`}>{t('view_profile')}</Link>
                   </Button>
                 </div>

@@ -72,9 +72,7 @@ function syncKeys(source, target) {
 function main() {
   console.log(`Using ${CANONICAL_LOCALE} as the canonical source.`);
   const canonicalDir = path.join(LOCALES_DIR, CANONICAL_LOCALE);
-  const namespaceFiles = fs
-    .readdirSync(canonicalDir)
-    .filter(file => file.endsWith('.json'));
+  const namespaceFiles = fs.readdirSync(canonicalDir).filter(file => file.endsWith('.json'));
 
   LOCALES.forEach(locale => {
     if (locale === CANONICAL_LOCALE) return;

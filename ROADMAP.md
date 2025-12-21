@@ -3,14 +3,17 @@
 Full implementation plan: `.agent/tasks/implementation_membership_model.md`
 
 ## Vision
+
 Build the leading membership-based damage assistance service in the Balkans. Members pay a low yearly fee and receive expert legal and technical help when accidents happen. The company handles claims end-to-end. Agents sell memberships only.
 
 ---
 
 ## Executive Summary
+
 Interdomestik Asistenca is a membership protection club with annual pricing and success-based mediation fees only when members win claims. The product focuses on fast response, expert handling, and clear value for members.
 
 Key principles:
+
 - Annual memberships (Standard + Familja at launch)
 - Company handles claims; agents are sales only
 - 24h response SLA and 30-day money-back guarantee
@@ -19,6 +22,7 @@ Key principles:
 ---
 
 ## Business Model (Final)
+
 - Pricing: Standard (EUR 20/year), Familja (EUR 35/year)
 - Success fee: 15% of recovered amount (discounts per tier)
 - Guarantee: 30-day money-back
@@ -26,12 +30,14 @@ Key principles:
 - Payment provider: Paddle
 
 Launch tier strategy:
+
 - Phase 1 launch: Standard + Familja only
 - Future additions: Bazik (retention offer), Biznes (after 5 manual B2B deals)
 
 ---
 
 ## Role Model
+
 - Member: subscribes, uses services, files claims, tracks status
 - Agent: sells memberships, manages leads/deals, sees claim stage only
 - Staff: internal claim handling, full workflow control
@@ -40,6 +46,7 @@ Launch tier strategy:
 ---
 
 ## Services Covered
+
 - Traffic accidents
 - Workplace accidents
 - Property damage
@@ -48,6 +55,7 @@ Launch tier strategy:
 - Subrogation/regression
 
 Core services:
+
 - Legal basis identification
 - Compensation procedures guidance
 - Injury categorization (certified doctors)
@@ -58,6 +66,7 @@ Core services:
 ---
 
 ## Claims Lifecycle (Member Visible)
+
 Filed -> Intake -> Verification -> Assessment -> Negotiation -> Resolution -> Closed/Rejected
 
 Agents see stage and last update only. Staff controls workflow and internal notes.
@@ -67,6 +76,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 ## Roadmap (Aligned to Implementation Plan)
 
 ### Phase 0: Pre-Launch Validation (Week 0)
+
 - Legal templates (terms, privacy, refund, success fee)
 - Operations playbook
 - Financial model
@@ -79,6 +89,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 - 3-month content calendar + 10 short videos
 
 ### Phase 1: Membership Infrastructure (Weeks 1-2)
+
 - Membership tables + Paddle integration
 - Webhooks, dunning flow, grace enforcement, downgrade lock
 - Pricing page, FAQ, case studies
@@ -88,6 +99,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 - Claim filing gate for active membership
 
 ### Phase 2: Agent Sales System (Weeks 3-4)
+
 - CRM leads/deals/activities
 - Agent dashboard + pipeline views
 - Deal-to-membership conversion
@@ -96,6 +108,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 - RLS for agent data isolation
 
 ### Phase 3: Referral and Engagement (Week 5)
+
 - Member referral system + shareable card
 - WhatsApp bot (v1 routing)
 - Public stats page (verified only)
@@ -104,6 +117,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 - Influencer outreach + UGC submission
 
 ### Phase 4: Staff Operations (Weeks 6-7)
+
 - Staff role and permissions
 - Claim queue + assignment
 - Claim stage history + member tracker
@@ -111,6 +125,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 - Member-staff messaging
 
 ### Phase 5: Engagement and Retention (Week 8)
+
 - Full lifecycle email sequence
 - Annual Protection Report
 - NPS automation
@@ -118,6 +133,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 - Asistenca Wrapped (annual summary)
 
 ### Phase 6: Analytics and Scale (Weeks 9-10)
+
 - Admin analytics
 - Revenue tracking
 - Conversion funnel reporting
@@ -126,6 +142,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 ---
 
 ## Metrics (Targets)
+
 - Landing page CVR: 4%+
 - Checkout completion: 70%+
 - CAC: EUR 5-10
@@ -137,6 +154,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 ---
 
 ## Dependencies and Risk Controls
+
 - Paddle approval for Apple/Google Pay
 - Verified stats for public claims
 - Hotline staffing before SLA promise
@@ -144,6 +162,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 - Document security + consent for AI features
 
 ## Release Strategy
+
 - Feature flags for membership, agent CRM, staff claims, referrals, WhatsApp
 - Rollout order: internal staff -> agents -> public
 - Rollback: disable flags to revert to legacy flows
@@ -152,4 +171,5 @@ Agents see stage and last update only. Staff controls workflow and internal note
 ---
 
 ## Next Step
+
 Run Phase 0 validation, then begin Phase 1 development.

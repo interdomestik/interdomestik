@@ -92,9 +92,7 @@ setTimeout(() => {
     const paddleSubscription =
       process.env.QA_PADDLE_SUBSCRIPTION_ID || process.env.PADDLE_TEST_SUBSCRIPTION_ID;
     if (!paddleSubscription) {
-      console.log(
-        '\n--- TESTING PADDLE via MCP (skipped: set QA_PADDLE_SUBSCRIPTION_ID) ---\n'
-      );
+      console.log('\n--- TESTING PADDLE via MCP (skipped: set QA_PADDLE_SUBSCRIPTION_ID) ---\n');
       return;
     }
     console.log('\n--- TESTING PADDLE via MCP ---\n');

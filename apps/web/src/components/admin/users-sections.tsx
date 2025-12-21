@@ -80,22 +80,42 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
     <div className="space-y-6">
       {assignedMembers.length > 0 && (
         <Section title={t('sections.members')} count={assignedMembers.length}>
-          <UsersTable users={assignedMembers} agents={agents} showEmptyState={false} showContainer={false} />
+          <UsersTable
+            users={assignedMembers}
+            agents={agents}
+            showEmptyState={false}
+            showContainer={false}
+          />
         </Section>
       )}
       {unassignedMembers.length > 0 && (
         <Section title={t('sections.unassigned')} count={unassignedMembers.length}>
-          <UsersTable users={unassignedMembers} agents={agents} showEmptyState={false} showContainer={false} />
+          <UsersTable
+            users={unassignedMembers}
+            agents={agents}
+            showEmptyState={false}
+            showContainer={false}
+          />
         </Section>
       )}
       {agentsOnly.length > 0 && (
         <Section title={t('sections.agents')} count={agentsOnly.length}>
-          <UsersTable users={agentsOnly} agents={agents} showEmptyState={false} showContainer={false} />
+          <UsersTable
+            users={agentsOnly}
+            agents={agents}
+            showEmptyState={false}
+            showContainer={false}
+          />
         </Section>
       )}
       {staffMembers.length > 0 && (
         <Section title={t('sections.staff')} count={staffMembers.length}>
-          <UsersTable users={staffMembers} agents={agents} showEmptyState={false} showContainer={false} />
+          <UsersTable
+            users={staffMembers}
+            agents={agents}
+            showEmptyState={false}
+            showContainer={false}
+          />
         </Section>
       )}
     </div>

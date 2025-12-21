@@ -121,12 +121,7 @@ export function UsersTable({
                   <span className="font-medium">{user.name}</span>
                   <span className="text-xs text-muted-foreground">{user.email}</span>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      className="h-7 px-2 text-xs"
-                    >
+                    <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
                       <Link href={`/admin/users/${user.id}`}>{t('view_profile')}</Link>
                     </Button>
                     {!!user.unreadCount && user.alertLink && (

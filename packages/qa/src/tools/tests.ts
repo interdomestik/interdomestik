@@ -148,7 +148,10 @@ export async function runTestsOrchestrator(args: OrchestratorArgs = {}) {
 
   const summary = formatSummary(results);
   const details = results
-    .map(result => `\n\n${result.name} (${result.status.toUpperCase()}):\n${result.output || '(no output)'}`)
+    .map(
+      result =>
+        `\n\n${result.name} (${result.status.toUpperCase()}):\n${result.output || '(no output)'}`
+    )
     .join('');
 
   return {

@@ -136,9 +136,7 @@ export function MemberClaimsTable() {
                 </TableCell>
                 <TableCell>
                   {claim.claimAmount ? (
-                    <span className="font-medium">
-                      €{parseFloat(claim.claimAmount).toFixed(2)}
-                    </span>
+                    <span className="font-medium">€{parseFloat(claim.claimAmount).toFixed(2)}</span>
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
@@ -154,7 +152,8 @@ export function MemberClaimsTable() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          {t('showing')} {data.claims.length} {data.claims.length === 1 ? t('claim') : t('claimsPlural')}
+          {t('showing')} {data.claims.length}{' '}
+          {data.claims.length === 1 ? t('claim') : t('claimsPlural')}
         </p>
         {data.totalPages > 1 && (
           <div className="flex items-center gap-2">
