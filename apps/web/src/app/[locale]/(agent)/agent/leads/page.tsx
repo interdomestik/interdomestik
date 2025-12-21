@@ -32,7 +32,6 @@ export default async function LeadsPage() {
           <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
         <Button asChild>
-          {/* Note: /agent/leads/new page needs to be created next */}
           <Link href="/agent/leads/new">Add Lead</Link>
         </Button>
       </div>
@@ -72,8 +71,7 @@ export default async function LeadsPage() {
                     <td className="p-4 align-middle font-medium">{lead.fullName || 'Unknown'}</td>
                     <td className="p-4 align-middle">
                       <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {t(`stages.${lead.stage}` as any)}
+                        {t(`stages.${lead.stage}` as 'stages.new')}
                       </span>
                     </td>
                     <td className="p-4 align-middle">{lead.source}</td>

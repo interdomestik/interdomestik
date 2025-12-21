@@ -1,146 +1,154 @@
 ---
-task_name: 'Subscription logic (Paddle)'
-task_type: 'Feature'
-priority: 'P1-High'
-estimate: '2h'
-test_level: 'unit'
-roadmap_ref: 'Phase 1: Membership'
-branch: 'feat/paddle-subscription-integration'
-start_time: 'Sun Dec 21 15:22:55 CET 2025'
+task_name: "Agent CRM: Lead Management"
+task_type: "Feature"
+priority: "P1-High"
+estimate: "3h"
+test_level: "unit"
+roadmap_ref: "Phase 2: Agent Sales System"
+branch: "feat/paddle-subscription-integration"
+start_time: "Sun Dec 21 15:34:30 CET 2025"
 baseline:
-  lint: 'pass'
-  typecheck: 'pass'
-  tests: 'pass'
-  format: 'fail (exit 1)'
-  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_152255.log'
+  lint: "pass"
+  typecheck: "pass"
+  tests: "pass"
+  format: "fail (exit 1)"
+  log: "/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_153417.log"
 ---
 
-# 🚀 Current Task: Subscription logic (Paddle)
+# 🚀 Current Task: Agent CRM: Lead Management
 
 ## 📋 10x Context Prompt
-
 Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>Implement Manage Subscription flow (Cancel, Update Payment)</objective>
+  <objective>Agent CRM: Lead Management</objective>
   <type>Feature</type>
   <priority>P1-High</priority>
-  <estimate>2h</estimate>
+  <estimate>3h</estimate>
   <branch>feat/paddle-subscription-integration</branch>
   <constraints>
     - Use @interdomestik/ui components
-    - Use Paddle API via server actions
-    - i18n support
+    - Follow 10x-coding rules (Explore → Plan → Execute)
+    - Mobile-first approach
+    - Use next-intl for i18n
+    - Write tests as specified in testing checklist
   </constraints>
 </task_definition>
 
 <user_story>
-  As a member, I want to manage my subscription (cancel/update payment)
-  so that I have control over my billing.
+  As a [user type], I want to [action]
+  so that I can [benefit].
 </user_story>
-
 <acceptance_criteria>
-  - [x] Create `cancelSubscription` server action
-  - [x] Create `ManageSubscriptionButton` dropdown component
-  - [x] Integrate into Membership Page
-  - [x] Add translations (Cancel, Confirmations)
+  - [ ] Criterion 1
+  - [ ] Criterion 2
+  - [ ] Criterion 3
 </acceptance_criteria>
 ```
 
 ## 🏗️ Status Tracker
-
-- [x] **Exploration**: Review Membership Page and Paddle capabilities
-- [x] **Planning**: Design cancel action and Manage dropdown
-- [x] **Implementation**: Server action, Client Component, i18n
-- [x] **Verification**: Unit tests for action
-- [x] **Documentation**: Self-documenting code
+- [ ] **Exploration**: Identify files using `project_map` and `read_files`
+- [ ] **Planning**: Create a step-by-step implementation plan
+- [ ] **Implementation**: Execute code changes
+- [ ] **Verification**: Run `pnpm qa` or relevant tests
+- [ ] **Documentation**: Update relevant docs if needed
 
 ## 🧪 Testing Checklist
-
-- [x] Unit tests added: `src/actions/subscription.test.ts`
-- [x] Run: `pnpm test:unit`
-- [x] All tests pass
+- [ ] Unit tests added: `src/**/*.test.ts`
+- [ ] Tests use factories from `src/test/factories.ts`
+- [ ] Run: `pnpm test:unit`
+- [ ] All tests pass
 
 ## ✅ Definition of Done
-
-- [x] All acceptance criteria met
-- [x] Tests pass at required level (unit)
-- [x] `pnpm lint` passes
-- [x] Formatter/Prettier check passes
-- [x] `pnpm type-check` passes
-- [x] No regressions from baseline
-- [x] Screenshots added (N/A)
-- [x] Documentation updated (N/A)
-- [x] Code reviewed / self-reviewed
+- [ ] All acceptance criteria met
+- [ ] Tests pass at required level (unit)
+- [ ] `pnpm lint` passes (or no new errors)
+- [ ] Formatter/Prettier check passes
+- [ ] `pnpm type-check` passes
+- [ ] No regressions from baseline
+- [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
+- [ ] Screenshots added for UI changes (if applicable)
+- [ ] Documentation updated (if applicable)
+- [ ] Code reviewed / self-reviewed
 
 ## 🧠 Senior Checklist
-
-- [x] Risks identified (Cancellation logic needs careful billing period handling - set activeFrom next_period)
-- [x] Rollback/mitigation plan documented
-- [x] Monitoring/logging impact considered (Logs cancellation errors)
-- [x] New/updated strings added to locales
+- [ ] Risks identified (perf, reliability, UX, security, data)
+- [ ] Rollback/mitigation plan documented
+- [ ] Monitoring/logging impact considered
+- [ ] Migrations include up/down and backfill strategy (if applicable)
+- [ ] Accessibility checks for UI changes
+- [ ] Removed debug artifacts (console.log/debugger/TODO left behind)
+- [ ] New/updated strings added to locales and `pnpm i18n:check` run (if applicable)
+- [ ] New components kept small; split view vs hooks/logic; co-located tests/stories added
+- [ ] Oversized file remediation noted (if any)
 
 ## 🧩 New Components & Files Checklist
-
-- [x] File size under limits
-- [x] Co-located test added
-- [x] i18n keys added
+- [ ] File size under limits (soft 250 lines, hard 400); split view vs logic/hooks if larger
+- [ ] Co-located test (`*.test.tsx`) and story/demo (if using Storybook/MDX)
+- [ ] i18n keys added for any new UI strings
+- [ ] Accessibility verified (labels/roles/focus)
+- [ ] Imported shared styles/components (@interdomestik/ui) where applicable
 
 ## 🚦 Completion Gate (must be TRUE before declaring Done)
-
-- [x] All checkboxes above are checked
-- [x] Required tests/QA in this task file have been executed and are green
-- [x] No unchecked items remain in this file
-- [x] current_task is only marked complete after verifying every required checkbox
+- [ ] All checkboxes above are checked (DoD, Senior, New Components)
+- [ ] Required tests/QA in this task file have been executed and are green
+- [ ] No unchecked items remain in this file (if not applicable, explicitly mark N/A)
+- [ ] current_task is only marked complete after verifying every required checkbox
 
 ## 🔗 Related Files
-
-- apps/web/src/actions/subscription.ts
-- apps/web/src/app/[locale]/(app)/dashboard/membership/components/manage-subscription-button.tsx
-- apps/web/src/app/[locale]/(app)/dashboard/membership/page.tsx
+<!-- Add discovered file paths here -->
 
 ## 📂 Active Context
-
 <!-- Paste file paths or code snippets here as you discover them -->
 
 ## 📝 Implementation Notes
-
-- Implemented `cancelSubscription` action using `paddle.subscriptions.cancel`.
-- Created `ManageSubscriptionButton` dropdown to consolidate actions.
-- Added i18n strings for Cancellation flow.
+<!-- Add decisions, trade-offs, blockers here -->
 
 ## 🔬 QA Baseline (at task start)
+| Metric | Status |
+|--------|--------|
+| Lint | pass |
+| Type Check | pass |
+| Unit Tests | pass |
+| Format | fail (exit 1) |
+| Coverage | skipped |
+| Log | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_153417.log |
 
-| Metric     | Status                                                                                         |
-| ---------- | ---------------------------------------------------------------------------------------------- |
-| Lint       | pass                                                                                           |
-| Type Check | pass                                                                                           |
-| Unit Tests | pass                                                                                           |
-| Format     | fail (exit 1)                                                                                  |
-| Coverage   | skipped                                                                                        |
-| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_152255.log |
+## 📏 Oversized Files (>400 lines or >15000 bytes)
+- apps/web/coverage/prettify.js (     937 lines, 26696 bytes)
+- apps/web/src/app/[locale]/admin/users/[id]/page.tsx (     366 lines, 15335 bytes)
+- apps/web/src/app/[locale]/(agent)/agent/users/[id]/page.tsx (     377 lines, 15641 bytes)
+- apps/web/src/actions/claims.test.ts (     418 lines, 12877 bytes)
+- apps/web/src/actions/claims.ts (     429 lines, 11779 bytes)
+- packages/database/src/schema.ts (     658 lines, 22091 bytes)
+
+## 📏 Changed Files Size Check (>400 lines or >15000 bytes)
+Changed files are within limits
 
 ---
 
 ## 📝 PR Template (Copy when done)
-
 ```markdown
 ## What
-
-Implement Manage Subscription flow (Cancel, Update Payment)
+Agent CRM: Lead Management
 
 ## Why
-
-Phase 1: Membership
+Phase 2: Agent Sales System
 
 ## How
-
-- Added `cancelSubscription` server action
-- Added `ManageSubscriptionButton`
-- Updated Membership page
+<!-- Implementation approach -->
 
 ## Testing
+- [ ] Unit tests pass (`pnpm test:unit`)
+- [ ] E2E tests pass (`pnpm test:e2e`)  
+- [ ] Manual QA completed
+- [ ] No regressions in existing functionality
 
-- [x] Unit tests pass (`src/actions/subscription.test.ts`)
+## Screenshots (if UI changes)
+<!-- Add screenshots here -->
+
+## Notes to Reviewer
+<!-- Highlight areas needing careful review, known limitations, or follow-up tasks -->
+
 ```
