@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl';
 export function Footer() {
   const t = useTranslations('footer');
   const common = useTranslations('common');
-  const hero = useTranslations('hero');
   const { phone, whatsapp, address, hours } = contactInfo;
 
   return (
@@ -32,7 +31,7 @@ export function Footer() {
             {/* Trust Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold mb-8">
               <ShieldCheck className="h-4 w-4" />
-              {hero('noWinNoFee')}
+              {t('noWinNoFee')}
             </div>
 
             {/* Contact Info */}
