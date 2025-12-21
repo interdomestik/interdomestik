@@ -1,92 +1,107 @@
 {
   "servicesPage": {
-    "badge": "Eksperienca Prime e Kërkesave për Dëmshpërblim",
-    "title": "Shihni çfarë zgjidhim dhe si punojmë",
-    "subtitle": "Aksidente automjetesh, dëme prone, probleme shërbimesh, mosmarrëveshje punësimi/konsumatori — ekspertë lokalë në shqip/anglisht, përgjigje e shpejtë dhe ruajtje e sigurt e provave.",
-    "startClaim": "Fillo kërkesën për dëmshpërblim",
-    "whatsapp": "Chat në WhatsApp",
-    "whatWeSolve": "Çfarë zgjidhim",
-    "casesTitle": "Rastet kryesore që trajtojmë",
-    "casesSubtitle": "Zgjidh kategorinë; ne të udhëzojmë me provat e sakta dhe hapat në vijim.",
-    "cases": [
-      {
-        "title": "Automjete & Trafik",
-        "description": "Përplasje, dëme nga palë të treta, goditje-dhe-ikje, mosmarrëveshje me qira."
-      },
-      {
-        "title": "Prona & Banesa",
-        "description": "Zjarri/përmbytje/vjedhje, mosmarrëveshje me qiradhënësit, garancia e depozitës."
-      },
-      {
-        "title": "Shërbime & Komunale",
-        "description": "Fatura ISP/telekom, ndërprerje, cilësia e shërbimit apo kontraktorëve."
-      },
-      {
-        "title": "Punësim & Konsumator",
-        "description": "Pagat e papaguara, çështje kontrate, mallra me defekt, rimbursime/kthime."
-      }
-    ],
-    "flightDelay": {
-      "title": "Vonesa Fluturimi (EU261)",
-      "description": "E drejtë deri në €600 kompensim për vonesa/anulime.",
-      "cta": "Fillo kërkesën e fluturimit për dëmshpërblim"
+    "meta": {
+      "title": "Shërbimet - Asistenca",
+      "description": "10 shërbime profesionale për dëmshpërblim. Konsultime falas, ekspertizë mjekësore dhe ligjore, përfaqësim gjyqësor."
     },
-    "howItWorks": "Si funksionon",
-    "stepsTitle": "Shpejtësi & siguri në katër hapa",
-    "steps": [
-      {
-        "title": "Tregona bazat",
-        "description": "Zgjidh kategorinë dhe shto detajet e shpejta."
+    "hero": {
+      "badge": "10 Shërbime Profesionale",
+      "title": "Asistencë për Çdo Situatë",
+      "subtitle": "Nga konsultimi i parë falas deri te përfaqësimi gjyqësor — ekipi ynë i ekspertëve ju mbështet në çdo hap të procesit të dëmshpërblimit."
+    },
+    "categories": {
+      "consultation": {
+        "title": "Konsultime Falas",
+        "subtitle": "6 shërbime pa kosto që ju ndihmojnë të kuptoni të drejtat tuaja",
+        "services": [
+          {
+            "title": "Baza Ligjore për Kompensim",
+            "description": "Konsultime falas për përcaktimin e bazës ligjore për kompensimin e të gjitha llojeve të dëmeve.",
+            "badge": "FALAS"
+          },
+          {
+            "title": "Procedurat për Kompensim",
+            "description": "Konsultime mbi procedurat e kërkuara për të marrë kompensim nga kompanitë e sigurimeve.",
+            "badge": "FALAS"
+          },
+          {
+            "title": "Kategorizimi i Lëndimeve",
+            "description": "Kategorizim i lëndimeve të marra në çfarëdo lloji aksidenti nga mjeku censor i specializuar.",
+            "badge": "FALAS"
+          },
+          {
+            "title": "Përllogaritja e Dëmit Material",
+            "description": "Përllogaritje alternative për dëmet materiale në raport me ato të realizuara nga kompanitë e sigurimeve.",
+            "badge": "FALAS"
+          },
+          {
+            "title": "Koeficienti i Invaliditetit",
+            "description": "Përcaktimi i koeficientit të aftësisë së kufizuar në rast aksidenti - koeficienti i invaliditetit.",
+            "badge": "FALAS"
+          },
+          {
+            "title": "Asistencë në Vend-Ngjarje",
+            "description": "Si të veproni në vend-ngjarje të aksidentit? Konsultime falas nga ora 08:00-20:00.",
+            "badge": "FALAS"
+          }
+        ]
       },
-      {
-        "title": "Shto prova",
-        "description": "Ngarko foto/fatura; ne kontrollojmë mime/masë dhe i etikojmë si PII."
+      "expertise": {
+        "title": "Ekspertizë & Vlerësim",
+        "subtitle": "Ekip i specializuar ekspertësh për të realizuar dëmshpërblimin maksimal",
+        "services": [
+          {
+            "title": "Ekspertizë Paragjyqësore",
+            "description": "Avancojmë kostot e të gjitha shpenzimeve për përgatitjen e ekspertizave për dëmet në procese paragjyqësore.",
+            "badge": "NE AVANCOJMË"
+          },
+          {
+            "title": "Ndërmjetësim në Dëmshpërblim",
+            "description": "Shërbim i plotë në procedurën e kompensimit të dëmeve me zbritje ekskluzive për anëtarët.",
+            "badge": "50% ZBRITJE"
+          }
+        ]
       },
-      {
-        "title": "Rishikim nën 24h",
-        "description": "Sheh statusin + badge SLA në timeline."
-      },
-      {
-        "title": "Ne negociojmë për ty",
-        "description": "Merr përditësime dhe rezultate në aplikacion."
-      }
-    ],
-    "benefits": "Pse të na besoni",
-    "benefitsTitle": "Shpejtësi, siguri, mbështetje",
-    "benefit": {
-      "speed": {
-        "title": "Përgjigje e shpejtë",
-        "description": "Rishikim nën 24h për kërkesat e reja për dëmshpërblim; SLA e dukshme në timeline."
-      },
-      "safety": {
-        "title": "Ngarkime të sigurta",
-        "description": "URL të nënshkruara, kontroll mime/masash, ruajtje me shenjë PII, njoftim privatësie në rishikim."
-      },
-      "people": {
-        "title": "Ekspertë vendorë",
-        "description": "Ndërmjetës dëmesh nga Ballkani me mbështetje shqip/anglisht dhe opsione kontakti të qarta."
+      "legal": {
+        "title": "Përfaqësim Ligjor",
+        "subtitle": "Organizojmë rrugën gjyqësore për të realizuar dëmshpërblimin maksimal",
+        "services": [
+          {
+            "title": "Ekspertizë Gjyqësore",
+            "description": "Avancojmë kostot për përfaqësim ligjor, për avokat dhe për ekspertizë gjyqësore.",
+            "badge": "NE AVANCOJMË"
+          },
+          {
+            "title": "Organizim Gjyqësor i Plotë",
+            "description": "Organizojmë pagesën e dëmit në procedurë gjyqësore, në rast të ofertës jo-korekte për dëmshpërblim.",
+            "badge": "MBULIM KOSTOT"
+          }
+        ]
       }
     },
-    "faqTitle": "Pyetje të shpeshta",
-    "faq": [
-      {
-        "question": "A duhet patjetër provë për të nisur?",
-        "answer": "Mund të dërgoni pa prova, por rezultati është më i shpejtë me fatura/foto. Shtoji tani ose më vonë."
-      },
-      {
-        "question": "Sa shpejt përgjigjeni?",
-        "answer": "Synojmë nën 24h për kërkesat e reja për dëmshpërblim. SLA shfaqet në timeline."
-      },
-      {
-        "question": "A janë të sigurta të dhënat e mia?",
-        "answer": "Po. URL të nënshkruara, kontrolle mime/masash, ruajtje me shenjë PII dhe njoftim privatësie në rishikim."
-      },
-      {
-        "question": "A ofroni pa fitim, pa pagesë?",
-        "answer": "Kur është e zbatueshme dhe në përputhje. Shih hero/footer dhe çmimet për ofertat aktuale."
-      }
-    ],
-    "contactTitle": "Preferoni të flisni?",
-    "contactSubtitle": "Telefononi ose shkruani në WhatsApp, ose nisni kërkesën për dëmshpërblim online dhe ne ju kontaktojmë."
+    "experts": {
+      "title": "Ekipi Ynë i Ekspertëve",
+      "subtitle": "Profesionistë të specializuar në fushat e tyre",
+      "list": [
+        {
+          "title": "Ekspertë të Komunikacionit",
+          "description": "Analiza e detajuar e aksidenteve rrugore"
+        },
+        {
+          "title": "Mjekë Censorë",
+          "description": "Vlerësim profesional i lëndimeve"
+        },
+        {
+          "title": "Zyrë Juridike",
+          "description": "Përfaqësim ligjor i plotë"
+        }
+      ]
+    },
+    "cta": {
+      "title": "Gati për të filluar?",
+      "subtitle": "Kontaktoni për konsultim falas ose bëhuni anëtar për qasje të plotë në të gjitha shërbimet.",
+      "primary": "Bëhu Anëtar",
+      "secondary": "Konsultim Falas"
+    }
   }
 }
