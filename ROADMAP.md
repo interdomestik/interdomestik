@@ -101,13 +101,13 @@ Agents see stage and last update only. Staff controls workflow and internal note
 
 **Remaining Tasks**:
 
-- [ ] Membership tables + subscription sync
-- [ ] Dunning flow, grace enforcement, downgrade lock
-- [ ] Pricing page enhancements, FAQ, case studies
-- [ ] Onboarding flow (first 5 minutes)
+- [x] Membership tables + subscription sync
+- [x] Dunning flow, grace enforcement, downgrade lock
+- [x] Pricing page enhancements, FAQ, case studies
+- [x] Onboarding flow (first 5 minutes)
 - [ ] Thank-you letter (email + PDF + QR)
-- [ ] Wallet card + PWA install prompt + offline shell cache
-- [ ] Claim filing gate for active membership
+- [x] Wallet card + PWA install prompt + offline shell cache
+- [x] Claim filing gate for active membership
 
 ### Phase 2: Agent Sales System (Weeks 3-4)
 
