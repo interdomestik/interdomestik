@@ -50,4 +50,7 @@ supabase/.branches
 
 # TypeScript
 *.tsbuildinfo
-next-env.d.ts
+# Agent Task Management
+.agent/tasks/archive/
+.agent/tasks/logs/
+.agent/tasks/.qa_baseline
