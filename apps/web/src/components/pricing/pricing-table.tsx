@@ -1,5 +1,6 @@
 'use client';
 
+import { PADDLE_PRICES } from '@/config/paddle';
 import { getPaddleInstance } from '@/lib/paddle';
 import { Badge, Button } from '@interdomestik/ui';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
@@ -21,7 +22,7 @@ export function PricingTable({ userId, email }: PricingTableProps) {
   const PLANS = [
     {
       id: 'standard',
-      priceId: isYearly ? 'pri_standard_year' : 'pri_standard_month',
+      priceId: isYearly ? PADDLE_PRICES.standard.yearly : PADDLE_PRICES.standard.monthly,
       name: t('standard.name'),
       price: isYearly ? '€20' : '€3',
       period: isYearly ? t('standard.period') : '/month',
@@ -40,7 +41,7 @@ export function PricingTable({ userId, email }: PricingTableProps) {
     },
     {
       id: 'family',
-      priceId: isYearly ? 'pri_family_year' : 'pri_family_month',
+      priceId: isYearly ? PADDLE_PRICES.family.yearly : PADDLE_PRICES.family.monthly,
       name: t('family.name'),
       price: isYearly ? '€35' : '€5',
       period: isYearly ? t('family.period') : '/month',
@@ -57,7 +58,7 @@ export function PricingTable({ userId, email }: PricingTableProps) {
     },
     {
       id: 'business',
-      priceId: isYearly ? 'pri_business_year' : 'pri_business_month',
+      priceId: isYearly ? PADDLE_PRICES.business.yearly : PADDLE_PRICES.business.monthly,
       name: t('business.name'),
       price: isYearly ? '€95' : '€10',
       period: isYearly ? t('business.period') : '/month',
@@ -93,6 +94,7 @@ export function PricingTable({ userId, email }: PricingTableProps) {
             displayMode: 'overlay',
             theme: 'light',
             locale: 'en',
+            successUrl: `${window.location.origin}/dashboard/membership/success`,
           },
         });
       } else {
