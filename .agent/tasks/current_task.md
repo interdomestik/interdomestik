@@ -1,21 +1,21 @@
 ---
-task_name: "Paddle customer portal link (for 'Update Payment Method' button)"
+task_name: 'Membership gate on claim filing (Restrict access if not active)'
 task_type: 'Feature'
 priority: 'P1-High'
 estimate: '2h'
 test_level: 'unit'
 roadmap_ref: 'Phase 1: Membership'
 branch: 'feat/paddle-subscription-integration'
-start_time: 'Sun Dec 21 14:05:09 CET 2025'
+start_time: 'Sun Dec 21 14:10:59 CET 2025'
 baseline:
   lint: 'pass'
   typecheck: 'pass'
   tests: 'pass'
   format: 'fail (exit 1)'
-  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_140456.log'
+  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_141046.log'
 ---
 
-# 🚀 Current Task: Paddle customer portal link (for 'Update Payment Method' button)
+# 🚀 Current Task: Membership gate on claim filing (Restrict access if not active)
 
 ## 📋 10x Context Prompt
 
@@ -23,7 +23,7 @@ Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>Paddle customer portal link (for 'Update Payment Method' button)</objective>
+  <objective>Membership gate on claim filing (Restrict access if not active)</objective>
   <type>Feature</type>
   <priority>P1-High</priority>
   <estimate>2h</estimate>
@@ -38,30 +38,32 @@ Copy the block below to your Agent to start with maximum context:
 </task_definition>
 
 <user_story>
-  As a member with a failed payment or expired card, I want to click "Update Payment Method"
-  so that I can easily update my billing details via Paddle's secure portal.
+  As a business owner, I want to ensure only active members can file claims
+  so that the service is exclusive to paying customers.
 </user_story>
 
 <acceptance_criteria>
-  - [ ] Implement Server Action to get/generate payment update URL for a subscription
-  - [ ] Connect "Update Payment Method" button on Membership page to this action
-  - [ ] Connect "Update Payment" button in Email Templates (if dynamic links supported) or redirect to dashboard
-  - [ ] Handle errors gracefully (e.g., if link generation fails)
+  - [ ] Identify Claim Wizard page/route
+  - [ ] Implement membership check logic (Active, Trialing, Past Due + Grace Period = Allowed)
+  - [ ] Redirect non-members to `/pricing` with a message or show a "Membership Required" empty state
+  - [ ] Protect `submitClaim` server action to prevent API bypass
+  - [ ] Display "Active Membership Required" warning if blocked
 </acceptance_criteria>
 
 <technical_context>
-  - Paddle Node SDK: Use `paddle.subscriptions.get()` or similar to retrieve `management_urls` if available
-  - Or generate a transaction for updating payment method
-  - Alternative: Use `paddle.subscriptions.getPaymentMethodChangeTransaction(subscriptionId)`
+  - Subscription table: `status`, `gracePeriodEndsAt`
+  - Allowed statuses: 'active', 'trialing'
+  - Conditional allowed: 'past_due' IF `now < gracePeriodEndsAt`
+  - Blocked: 'paused', 'canceled', 'past_due' (expired), or null
 </technical_context>
 ```
 
 ## 🏗️ Status Tracker
 
-- [ ] **Exploration**: specific Paddle API for payment update
-- [ ] **Planning**: Design the Server Action
-- [ ] **Implementation**: Server Action + UI integration
-- [ ] **Verification**: Manual test
+- [ ] **Exploration**: Locate wizard page and submit action
+- [ ] **Planning**: Define `hasActiveMembership` helper
+- [ ] **Implementation**: Add gate to page and action
+- [ ] **Verification**: Verify protection
 - [ ] **Documentation**: Update docs
 
 ## 🧪 Testing Checklist
@@ -113,10 +115,10 @@ Copy the block below to your Agent to start with maximum context:
 
 ## 🔗 Related Files
 
-- apps/web/src/app/[locale]/(app)/dashboard/membership/page.tsx
-- apps/web/src/actions/subscription.ts (to be created/updated)
-- apps/web/src/app/api/webhooks/paddle/route.ts
+- apps/web/src/app/[locale]/(app)/dashboard/claims/new/page.tsx (or similar)
+- apps/web/src/actions/claims.ts
 - packages/database/src/schema.ts
+- apps/web/src/lib/subscription.ts (helper to be created?)
 
 ## 📂 Active Context
 
@@ -125,9 +127,6 @@ Copy the block below to your Agent to start with maximum context:
 ## 📝 Implementation Notes
 
 <!-- Add decisions, trade-offs, blockers here -->
-
-Paddle Billing API: `paddle.subscriptions.getPaymentMethodChangeTransaction(subscriptionId)` creates a transaction object that can be used to render a checkout for updating payment details.
-OR `management_urls` on subscription object (legacy?). Paddle Billing usually prefers the transaction approach.
 
 ## 🔬 QA Baseline (at task start)
 
@@ -138,7 +137,7 @@ OR `management_urls` on subscription object (legacy?). Paddle Billing usually pr
 | Unit Tests | pass                                                                                           |
 | Format     | fail (exit 1)                                                                                  |
 | Coverage   | skipped                                                                                        |
-| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_140456.log |
+| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_141046.log |
 
 ## 📏 Oversized Files (>400 lines or >15000 bytes)
 
@@ -159,7 +158,7 @@ Changed files are within limits
 ```markdown
 ## What
 
-Paddle customer portal link (for 'Update Payment Method' button)
+Membership gate on claim filing (Restrict access if not active)
 
 ## Why
 

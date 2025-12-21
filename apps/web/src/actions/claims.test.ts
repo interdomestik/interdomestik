@@ -6,6 +6,11 @@ import { createClaim, submitClaim, updateClaimStatus } from './claims';
 const mockGetSession = vi.fn();
 const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
+const mockHasActiveMembership = vi.fn();
+
+vi.mock('@/lib/subscription', () => ({
+  hasActiveMembership: () => mockHasActiveMembership(),
+}));
 
 vi.mock('@/lib/auth', () => ({
   auth: {
@@ -72,9 +77,19 @@ vi.mock('@/lib/audit', () => ({
 describe('Claim Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockHasActiveMembership.mockResolvedValue(true);
   });
 
   describe('createClaim', () => {
+    it('should fail if user has no active membership', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockHasActiveMembership.mockResolvedValue(false);
+
+      const formData = new FormData();
+      const result = await createClaim({}, formData);
+      expect(result).toEqual({ error: 'Membership required to create a claim.' });
+    });
+
     it('should fail if user is not authenticated', async () => {
       mockGetSession.mockResolvedValue(null);
       const formData = new FormData();
@@ -166,6 +181,15 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue(null);
 
       await expect(submitClaim(validPayload)).rejects.toThrow('Unauthorized');
+    });
+
+    it('should throw if user has no active membership', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockHasActiveMembership.mockResolvedValue(false);
+
+      await expect(submitClaim(validPayload)).rejects.toThrow(
+        'Membership required to file a claim.'
+      );
     });
 
     it('should insert claim and documents when payload is valid', async () => {

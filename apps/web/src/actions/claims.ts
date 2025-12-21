@@ -3,6 +3,7 @@
 import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { notifyClaimSubmitted, notifyStatusChanged } from '@/lib/notifications';
+import { hasActiveMembership } from '@/lib/subscription';
 import { claimDocuments, claims, db, eq, user } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
@@ -28,6 +29,11 @@ export async function createClaim(prevState: unknown, formData: FormData) {
 
   if (!session) {
     return { error: 'Unauthorized' };
+  }
+
+  const hasAccess = await hasActiveMembership(session.user.id);
+  if (!hasAccess) {
+    return { error: 'Membership required to create a claim.' };
   }
 
   const result = claimSchema.safeParse(Object.fromEntries(formData));
@@ -106,15 +112,9 @@ export async function submitClaim(data: CreateClaimValues) {
   }
 
   // MEMBERSHIP GATE
-  const activeSub = await db.query.subscriptions.findFirst({
-    where: (subs, { eq, or, and }) =>
-      and(
-        eq(subs.userId, session.user.id),
-        or(eq(subs.status, 'active'), eq(subs.status, 'trialing'))
-      ),
-  });
+  const hasAccess = await hasActiveMembership(session.user.id);
 
-  if (!activeSub) {
+  if (!hasAccess) {
     // Allow fallback for legacy users or admin bypass if needed?
     // For now, strict gate.
     throw new Error('Membership required to file a claim.');
