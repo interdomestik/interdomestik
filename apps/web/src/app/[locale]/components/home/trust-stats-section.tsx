@@ -1,5 +1,6 @@
 import { Award, Clock, Shield, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 export function TrustStatsSection() {
   const t = useTranslations('trustStats');
@@ -11,12 +12,28 @@ export function TrustStatsSection() {
     { value: t('response'), label: t('responseLabel'), icon: Clock, color: 'text-amber-500' },
   ];
 
-  // Placeholder partner logos
+  // Partner logos - real partners and placeholders
   const partners = [
-    { name: 'Klinika Mjekësore', initial: 'KM' },
-    { name: 'Auto Service Pro', initial: 'AS' },
-    { name: 'Ligji Partners', initial: 'LP' },
-    { name: 'Siguria Plus', initial: 'SP' },
+    {
+      name: 'Mint Fintech Group',
+      logo: '/partners/mint-fintech.png',
+      url: 'https://mint.com.mk/',
+    },
+    {
+      name: 'Auto Service Partner',
+      initial: 'AS',
+      placeholder: true,
+    },
+    {
+      name: 'Medical Center',
+      initial: 'MC',
+      placeholder: true,
+    },
+    {
+      name: 'Legal Partners',
+      initial: 'LP',
+      placeholder: true,
+    },
   ];
 
   return (
@@ -46,12 +63,31 @@ export function TrustStatsSection() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
             {partners.map((partner, index) => (
-              <div
-                key={index}
-                className="h-12 w-24 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-sm hover:bg-slate-700 transition-colors"
-                title={partner.name}
-              >
-                {partner.initial}
+              <div key={index} className="group">
+                {partner.placeholder ? (
+                  <div
+                    className="h-12 w-28 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500 font-bold text-sm"
+                    title={partner.name}
+                  >
+                    {partner.initial}
+                  </div>
+                ) : (
+                  <a
+                    href={partner.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block h-12 w-28 rounded-lg bg-white/10 p-2 hover:bg-white/20 transition-colors"
+                    title={partner.name}
+                  >
+                    <Image
+                      src={partner.logo!}
+                      alt={partner.name}
+                      width={112}
+                      height={48}
+                      className="h-full w-full object-contain filter brightness-0 invert opacity-70 group-hover:opacity-100 transition-opacity"
+                    />
+                  </a>
+                )}
               </div>
             ))}
           </div>
