@@ -5,12 +5,29 @@
     "profile": {
       "sectionTitle": "Profile Information",
       "title": "Profile",
-      "description": "Update your personal information."
+      "description": "Update your personal information.",
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "John Doe",
+      "profileImage": "Profile Image URL",
+      "profileImagePlaceholder": "https://example.com/avatar.jpg",
+      "saveChanges": "Save Changes",
+      "saving": "Saving...",
+      "success": "Profile updated",
+      "successDescription": "Your changes have been saved successfully.",
+      "error": "Failed to update profile"
     },
     "security": {
       "sectionTitle": "Security",
       "title": "Change Password",
-      "description": "Ensure your account is secure."
+      "description": "Ensure your account is secure.",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "updatePassword": "Update Password",
+      "updating": "Updating...",
+      "success": "Password updated",
+      "successDescription": "Your password has been changed successfully.",
+      "error": "Failed to change password"
     },
     "language": {
       "sectionTitle": "Language & Region",

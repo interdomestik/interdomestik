@@ -19,6 +19,9 @@
     "overview": "Преглед",
     "consumerRights": "Права на потрошувачите",
     "agentWorkspace": "Работен простор на агент",
-    "adminDashboard": "Админ контролна табла"
+    "adminDashboard": "Админ контролна табла",
+    "services": "Services",
+    "agentCrm": "CRM Dashboard",
+    "agentLeads": "Leads"
   }
 }

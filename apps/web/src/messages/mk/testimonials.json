@@ -1,0 +1,36 @@
+{
+  "testimonials": {
+    "title": "Success Stories",
+    "subtitle": "What our members say",
+    "stories": [
+      {
+        "quote": "After the accident I didn't know what to do. Interdomestik helped me recover €3,200 in just 3 weeks.",
+        "name": "Arben M.",
+        "role": "Standard Member",
+        "amount": "€3,200",
+        "time": "3 weeks"
+      },
+      {
+        "quote": "The insurer offered me only €800. With Interdomestik's experts, I got €2,100.",
+        "name": "Flutura K.",
+        "role": "Family Member",
+        "amount": "€2,100",
+        "time": "5 weeks"
+      },
+      {
+        "quote": "The process was so simple. One phone call and they handled everything.",
+        "name": "Besnik H.",
+        "role": "Standard Member",
+        "amount": "€1,850",
+        "time": "4 weeks"
+      },
+      {
+        "quote": "As a business, we needed a reliable partner. Interdomestik protects our 10 vehicles.",
+        "name": "Albana S.",
+        "role": "Business Member",
+        "amount": "€5,400",
+        "time": "6 weeks"
+      }
+    ]
+  }
+}

@@ -87,6 +87,109 @@
       }
     ],
     "contactTitle": "Prefer to talk?",
-    "contactSubtitle": "Call or WhatsApp us, or start the claim online and we’ll follow up."
+    "contactSubtitle": "Call or WhatsApp us, or start the claim online and we’ll follow up.",
+    "meta": {
+      "title": "Services - Asistenca",
+      "description": "10 professional services for compensation claims. Free consultations, medical and legal expertise, court representation."
+    },
+    "hero": {
+      "badge": "10 Professional Services",
+      "title": "Assistance for Every Situation",
+      "subtitle": "From the first free consultation to court representation — our team of experts supports you at every step of the compensation process."
+    },
+    "categories": {
+      "consultation": {
+        "title": "Free Consultations",
+        "subtitle": "6 no-cost services to help you understand your rights",
+        "services": [
+          {
+            "title": "Legal Basis for Compensation",
+            "description": "Free consultation to determine the legal basis for compensation of all types of damages.",
+            "badge": "FREE"
+          },
+          {
+            "title": "Compensation Procedures",
+            "description": "Consultation on the required procedures to obtain compensation from insurance companies.",
+            "badge": "FREE"
+          },
+          {
+            "title": "Injury Categorization",
+            "description": "Categorization of injuries sustained in any type of accident by a specialized medical censor.",
+            "badge": "FREE"
+          },
+          {
+            "title": "Material Damage Calculation",
+            "description": "Alternative calculation for material damages compared to those made by insurance companies.",
+            "badge": "FREE"
+          },
+          {
+            "title": "Disability Coefficient",
+            "description": "Determination of the limited ability coefficient in case of accident - disability coefficient.",
+            "badge": "FREE"
+          },
+          {
+            "title": "On-Scene Assistance",
+            "description": "How to act at the accident scene? Free consultations from 08:00-20:00.",
+            "badge": "FREE"
+          }
+        ]
+      },
+      "expertise": {
+        "title": "Expertise & Assessment",
+        "subtitle": "Specialized team of experts to achieve maximum compensation",
+        "services": [
+          {
+            "title": "Pre-Court Expertise",
+            "description": "We advance all costs for preparing expert reports for damages in pre-court processes.",
+            "badge": "WE ADVANCE"
+          },
+          {
+            "title": "Compensation Mediation",
+            "description": "Complete service in the damage compensation procedure with exclusive member discounts.",
+            "badge": "50% OFF"
+          }
+        ]
+      },
+      "legal": {
+        "title": "Legal Representation",
+        "subtitle": "We organize the judicial route to achieve maximum compensation",
+        "services": [
+          {
+            "title": "Court Expertise",
+            "description": "We advance costs for legal representation, lawyer fees, and court expertise.",
+            "badge": "WE ADVANCE"
+          },
+          {
+            "title": "Full Court Organization",
+            "description": "We organize damage payment through court procedure in case of incorrect compensation offer.",
+            "badge": "WE COVER COSTS"
+          }
+        ]
+      }
+    },
+    "experts": {
+      "title": "Our Expert Team",
+      "subtitle": "Professionals specialized in their fields",
+      "list": [
+        {
+          "title": "Traffic Experts",
+          "description": "Detailed analysis of road accidents"
+        },
+        {
+          "title": "Medical Censors",
+          "description": "Professional injury assessment"
+        },
+        {
+          "title": "Legal Office",
+          "description": "Complete legal representation"
+        }
+      ]
+    },
+    "cta": {
+      "title": "Ready to get started?",
+      "subtitle": "Contact us for a free consultation or become a member for full access to all services.",
+      "primary": "Become a Member",
+      "secondary": "Free Consultation"
+    }
   }
 }

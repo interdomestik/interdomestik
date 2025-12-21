@@ -6,6 +6,15 @@
     "resolvedClaims": "Resolved Claims",
     "pendingActions": "Pending Actions",
     "recentActivity": "Recent Activity",
-    "quickActions": "Quick Actions"
+    "quickActions": "Quick Actions",
+    "welcome_back": "Welcome back! Here's what's happening with your claims today.",
+    "activeClaimsDesc": "Your ongoing disputes",
+    "totalSaved": "Total Saved",
+    "moneyRecovered": "Money recovered",
+    "lifetimeTotal": "Lifetime total",
+    "actionItems": "Action Items",
+    "pendingTasks": "Pending tasks",
+    "needsAttention": "Needs attention",
+    "noChange": "No change"
   }
 }

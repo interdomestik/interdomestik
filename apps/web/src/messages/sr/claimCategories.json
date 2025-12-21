@@ -22,6 +22,7 @@
       "title": "Travel & Flight",
       "description": "Flight delays, cancellations, and lost baggage claims.",
       "examples": "e.g., EU261 compensation up to €600"
-    }
+    },
+    "quickSelectLabel": "Or select a specific claim type:"
   }
 }

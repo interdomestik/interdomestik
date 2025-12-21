@@ -40,6 +40,8 @@
       "generic": "Something went wrong. Please try again.",
       "retry": "Please try again. If the problem persists, contact support.",
       "unauthorized": "Unauthorized"
-    }
+    },
+    "companyName": "Interdomestik",
+    "tagline": "There when you need us"
   }
 }

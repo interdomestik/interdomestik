@@ -4,7 +4,9 @@
     "new": "New Claim",
     "empty": {
       "title": "No claims yet",
-      "description": "Start by creating your first claim"
+      "description": "Start by creating your first claim",
+      "filtered": "Try adjusting your filters or search query.",
+      "createFirst": "Create Your First Claim"
     },
     "status": {
       "draft": "Draft",
@@ -49,7 +51,40 @@
       "step1": "Category",
       "step2": "Details",
       "step3": "Documents",
-      "step4": "Finish"
+      "step4": "Finish",
+      "submitClaim": "Submit Claim"
+    },
+    "description": "Manage your consumer complaints and track their status.",
+    "table": {
+      "title": "Title",
+      "company": "Company",
+      "category": "Category",
+      "status": "Status",
+      "amount": "Amount",
+      "created": "Created"
+    },
+    "showing": "Showing",
+    "claim": "claim",
+    "claimsPlural": "claims",
+    "actions": {
+      "editDraft": "Edit draft",
+      "cancelClaim": "Cancel claim",
+      "cancelConfirm": "Cancel this claim? You can’t undo this.",
+      "cancelled": "Claim cancelled",
+      "cancelFailed": "Failed to cancel claim"
+    },
+    "edit": {
+      "title": "Edit draft",
+      "description": "Update the information before submitting your claim.",
+      "updated": "Draft updated",
+      "failed": "Failed to update claim"
+    },
+    "detail": {
+      "caseDetails": "Case Details",
+      "description": "Description",
+      "claimAmount": "Claim Amount",
+      "category": "Category",
+      "evidence": "Attached Evidence"
     }
   }
 }

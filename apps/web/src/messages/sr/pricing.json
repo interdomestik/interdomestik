@@ -42,6 +42,38 @@
         "Përfaqësim ligjor"
       ]
     },
-    "cta": "Choose Plan"
+    "cta": "Choose Plan",
+    "switchLabel": "Save 17% with Yearly",
+    "yearlySaving": "Save 17% with yearly billing",
+    "family": {
+      "name": "Asistenca+",
+      "price": "€35",
+      "period": "/year",
+      "description": "Protection for the whole household",
+      "features": [
+        "Everything in Asistenca",
+        "Covers up to 5 family members",
+        "Asistenca Cards for all members",
+        "Shared Dashboard"
+      ]
+    },
+    "business": {
+      "name": "Business",
+      "price": "€95",
+      "period": "/year",
+      "description": "Professional protection for businesses",
+      "features": [
+        "Everything in Family",
+        "Up to 10 Vehicles/Properties",
+        "Dedicated Account Manager",
+        "Commercial Legal Mediation",
+        "Employee Onboarding"
+      ]
+    },
+    "loginRequired": "Log in to upgrade",
+    "meta": {
+      "title": "Membership Plans - Interdomestik",
+      "description": "Join the protection club. Standard and Family plans available."
+    }
   }
 }

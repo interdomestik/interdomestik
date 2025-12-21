@@ -3,6 +3,13 @@
     "claimsProcessed": "Claims Processed",
     "compensationWon": "Compensation Won",
     "successRate": "Success Rate",
-    "responseTime": "First Response"
+    "responseTime": "First Response",
+    "activeMembers": "Active Members",
+    "activeMembersValue": "8,500+",
+    "memberSavings": "Member Savings",
+    "memberSavingsValue": "€150K+",
+    "successRateValue": "94%",
+    "hotlineResponse": "Hotline Response",
+    "hotlineResponseValue": "<60s"
   }
 }

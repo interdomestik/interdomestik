@@ -1,0 +1,22 @@
+{
+  "howMembershipWorks": {
+    "title": "How Membership Works",
+    "subtitle": "4 simple steps to become a protected member",
+    "step1": {
+      "title": "Join the Club",
+      "description": "Choose your plan and become a member in just 2 minutes."
+    },
+    "step2": {
+      "title": "Get Your Digital Card",
+      "description": "Receive your card instantly via email and Apple/Google Wallet."
+    },
+    "step3": {
+      "title": "Access Your Benefits",
+      "description": "Use the 24/7 hotline, damage calculator, and partner discounts."
+    },
+    "step4": {
+      "title": "Get Help When Needed",
+      "description": "When an accident happens, call us and we handle everything."
+    }
+  }
+}

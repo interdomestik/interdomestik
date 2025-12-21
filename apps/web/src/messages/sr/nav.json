@@ -19,6 +19,9 @@
     "overview": "Pregled",
     "consumerRights": "Prava potrošača",
     "agentWorkspace": "Radni prostor agenta",
-    "adminDashboard": "Admin kontrolna tabla"
+    "adminDashboard": "Admin kontrolna tabla",
+    "services": "Services",
+    "agentCrm": "CRM Dashboard",
+    "agentLeads": "Leads"
   }
 }

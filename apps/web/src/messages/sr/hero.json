@@ -13,6 +13,12 @@
     "rating": "4.9★ Rating",
     "claimAdjuster": "Claim adjuster (no emergency services)",
     "ctaTitle": "Ready to Get Your Compensation?",
-    "ctaSubtitle": "Join thousands of satisfied clients who trusted us with their claims. Start today and let us fight for your rights."
+    "ctaSubtitle": "Join thousands of satisfied clients who trusted us with their claims. Start today and let us fight for your rights.",
+    "emergencyHotline": "24/7 Hotline",
+    "voiceClaims": "Voice Claims",
+    "legalMediation": "Expert Mediation",
+    "priceAnchor": "Average claim value: €1,500–€5,000",
+    "guarantee": "30-day money-back guarantee",
+    "slaBadge": "Your case opens within 24 hours"
   }
 }

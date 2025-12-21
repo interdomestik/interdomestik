@@ -21,6 +21,7 @@ export const MESSAGE_NAMESPACES = [
   'howMembershipWorks',
   'legal',
   'memberBenefits',
+  'membership',
   'messaging',
   'metadata',
   'nav',
@@ -58,6 +59,7 @@ export const AUTH_NAMESPACES = ['auth'] as const;
 export const APP_NAMESPACES = [
   'nav',
   'dashboard',
+  'membership',
   'claims',
   'claimCategories',
   'wizard',

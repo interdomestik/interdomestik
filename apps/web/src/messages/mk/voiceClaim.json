@@ -1,0 +1,18 @@
+{
+  "voiceClaim": {
+    "badge": "The fastest way",
+    "title": "One Call. That's It.",
+    "subtitle": "File your claim by phone in 60 seconds. No forms, no stress, no waiting.",
+    "step1": "Call our 24/7 hotline",
+    "step2": "Describe the accident",
+    "step3": "We handle everything",
+    "cta": "Call Now",
+    "whatsappCta": "Send WhatsApp",
+    "stats": {
+      "time": "60 sec",
+      "timeLabel": "to file a claim",
+      "noForms": "0",
+      "noFormsLabel": "forms to fill out"
+    }
+  }
+}
