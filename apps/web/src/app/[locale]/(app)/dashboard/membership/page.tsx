@@ -9,11 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui';
-import { AlertTriangle, CheckCircle, CreditCard, Shield, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Shield, XCircle } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+
+import { UpdatePaymentButton } from './components/update-payment-button';
 
 // Helper to calculate days remaining in grace period
 function getDaysRemaining(endDate: Date | null): number {
@@ -76,10 +78,11 @@ export default async function MembershipPage() {
                   date: subscription?.gracePeriodEndsAt?.toLocaleDateString() || '',
                 })}
               </p>
-              <Button className="mt-4 bg-orange-600 hover:bg-orange-700">
-                <CreditCard className="h-4 w-4 mr-2" />
-                {t('dunning.update_payment_button')}
-              </Button>
+              <UpdatePaymentButton
+                subscriptionId={subscription.id}
+                label={t('dunning.update_payment_button')}
+                className="mt-4 bg-orange-600 hover:bg-orange-700"
+              />
             </div>
           </div>
         </div>
@@ -98,10 +101,10 @@ export default async function MembershipPage() {
                 {t('dunning.suspended_message')}
               </p>
               <div className="mt-4 flex gap-2">
-                <Button variant="default">
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  {t('dunning.update_payment_button')}
-                </Button>
+                <UpdatePaymentButton
+                  subscriptionId={subscription.id}
+                  label={t('dunning.update_payment_button')}
+                />
                 <Button variant="outline" asChild>
                   <Link href="/pricing">{t('plan.view_plans_button')}</Link>
                 </Button>
