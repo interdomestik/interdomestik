@@ -1,6 +1,7 @@
 {
   "nav": {
     "home": "Home",
+    "services": "Services",
     "dashboard": "Dashboard",
     "claims": "Claims",
     "newClaim": "New Claim",
