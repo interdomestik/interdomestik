@@ -84,6 +84,12 @@ export function PricingTable({ userId, email }: PricingTableProps) {
 
     setLoading(priceId);
     try {
+      console.log('🏷️ Opening Paddle checkout with Price ID:', priceId);
+      console.log('📦 Environment check:', {
+        STANDARD_YEAR: process.env.NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR,
+        CLIENT_TOKEN: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
+      });
+
       const paddle = await getPaddleInstance();
       if (paddle) {
         paddle.Checkout.open({

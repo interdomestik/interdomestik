@@ -90,13 +90,24 @@ Agents see stage and last update only. Staff controls workflow and internal note
 
 ### Phase 1: Membership Infrastructure (Weeks 1-2)
 
-- Membership tables + Paddle integration
-- Webhooks, dunning flow, grace enforcement, downgrade lock
-- Pricing page, FAQ, case studies
-- Onboarding flow (first 5 minutes)
-- Thank-you letter (email + PDF + QR)
-- Wallet card + PWA install prompt + offline shell cache
-- Claim filing gate for active membership
+**Payment Integration** ✅ COMPLETE (Dec 21, 2025)
+
+- ✅ Paddle integration (Sandbox tested, production ready)
+- ✅ Checkout flow with overlay
+- ✅ Webhook handler for subscription events
+- ✅ Test payments successful
+- ✅ CSP configured for Paddle domains
+- 📄 Documentation: `docs/PADDLE_SETUP.md`
+
+**Remaining Tasks**:
+
+- [ ] Membership tables + subscription sync
+- [ ] Dunning flow, grace enforcement, downgrade lock
+- [ ] Pricing page enhancements, FAQ, case studies
+- [ ] Onboarding flow (first 5 minutes)
+- [ ] Thank-you letter (email + PDF + QR)
+- [ ] Wallet card + PWA install prompt + offline shell cache
+- [ ] Claim filing gate for active membership
 
 ### Phase 2: Agent Sales System (Weeks 3-4)
 
