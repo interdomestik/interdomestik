@@ -1,21 +1,21 @@
 ---
-task_name: 'Member onboarding flow'
+task_name: 'Subscription logic (Paddle)'
 task_type: 'Feature'
 priority: 'P1-High'
 estimate: '2h'
 test_level: 'unit'
 roadmap_ref: 'Phase 1: Membership'
 branch: 'feat/paddle-subscription-integration'
-start_time: 'Sun Dec 21 15:15:19 CET 2025'
+start_time: 'Sun Dec 21 15:22:55 CET 2025'
 baseline:
   lint: 'pass'
   typecheck: 'pass'
-  tests: 'fail (exit 1)'
+  tests: 'pass'
   format: 'fail (exit 1)'
-  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_151519.log'
+  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_152255.log'
 ---
 
-# 🚀 Current Task: Member onboarding flow
+# 🚀 Current Task: Subscription logic (Paddle)
 
 ## 📋 10x Context Prompt
 
@@ -23,44 +23,42 @@ Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>Enhance member onboarding with PWA install prompt and improved success page</objective>
+  <objective>Implement Manage Subscription flow (Cancel, Update Payment)</objective>
   <type>Feature</type>
   <priority>P1-High</priority>
   <estimate>2h</estimate>
   <branch>feat/paddle-subscription-integration</branch>
   <constraints>
     - Use @interdomestik/ui components
-    - Follow 10x-coding rules
-    - Mobile-first PWA flow
+    - Use Paddle API via server actions
     - i18n support
   </constraints>
 </task_definition>
 
 <user_story>
-  As a new member, I want to be prompted to install the app
-  so that I can easily access my benefits later.
+  As a member, I want to manage my subscription (cancel/update payment)
+  so that I have control over my billing.
 </user_story>
 
 <acceptance_criteria>
-  - [x] Create PWA Install Button component
-  - [x] Detect `beforeinstallprompt` event (Android/Chrome)
-  - [x] Show iOS installation instructions if on iPhone
-  - [x] Add PWA prompt to Membership Success Page
-  - [x] Add translations for install CTA
+  - [x] Create `cancelSubscription` server action
+  - [x] Create `ManageSubscriptionButton` dropdown component
+  - [x] Integrate into Membership Page
+  - [x] Add translations (Cancel, Confirmations)
 </acceptance_criteria>
 ```
 
 ## 🏗️ Status Tracker
 
-- [x] **Exploration**: Review Success Page and PWA requirements
-- [x] **Planning**: Design `install-button` component
-- [x] **Implementation**: Create component, add to page, update locales
-- [x] **Verification**: Unit tests for component
+- [x] **Exploration**: Review Membership Page and Paddle capabilities
+- [x] **Planning**: Design cancel action and Manage dropdown
+- [x] **Implementation**: Server action, Client Component, i18n
+- [x] **Verification**: Unit tests for action
 - [x] **Documentation**: Self-documenting code
 
 ## 🧪 Testing Checklist
 
-- [x] Unit tests added: `src/components/pwa/install-button.test.tsx`
+- [x] Unit tests added: `src/actions/subscription.test.ts`
 - [x] Run: `pnpm test:unit`
 - [x] All tests pass
 
@@ -78,19 +76,16 @@ Copy the block below to your Agent to start with maximum context:
 
 ## 🧠 Senior Checklist
 
-- [x] Risks identified (Browser support varies)
-- [x] Rollback/mitigation plan documented (Component handles graceful degradation)
-- [x] Accessibility checks (Button labeling)
+- [x] Risks identified (Cancellation logic needs careful billing period handling - set activeFrom next_period)
+- [x] Rollback/mitigation plan documented
+- [x] Monitoring/logging impact considered (Logs cancellation errors)
 - [x] New/updated strings added to locales
-- [x] New components kept small
 
 ## 🧩 New Components & Files Checklist
 
 - [x] File size under limits
 - [x] Co-located test added
 - [x] i18n keys added
-- [x] Accessibility verified
-- [x] Imported shared styles
 
 ## 🚦 Completion Gate (must be TRUE before declaring Done)
 
@@ -101,8 +96,9 @@ Copy the block below to your Agent to start with maximum context:
 
 ## 🔗 Related Files
 
-- apps/web/src/components/pwa/install-button.tsx
-- apps/web/src/app/[locale]/(app)/dashboard/membership/success/page.tsx
+- apps/web/src/actions/subscription.ts
+- apps/web/src/app/[locale]/(app)/dashboard/membership/components/manage-subscription-button.tsx
+- apps/web/src/app/[locale]/(app)/dashboard/membership/page.tsx
 
 ## 📂 Active Context
 
@@ -110,10 +106,9 @@ Copy the block below to your Agent to start with maximum context:
 
 ## 📝 Implementation Notes
 
-- Created `PwaInstallButton` that listens to `beforeinstallprompt`.
-- Handles iOS detection via User Agent (fallback instructions).
-- Integrated into Membership Success Page.
-- Fixed baseline issue in `sq/claims.json`.
+- Implemented `cancelSubscription` action using `paddle.subscriptions.cancel`.
+- Created `ManageSubscriptionButton` dropdown to consolidate actions.
+- Added i18n strings for Cancellation flow.
 
 ## 🔬 QA Baseline (at task start)
 
@@ -121,10 +116,10 @@ Copy the block below to your Agent to start with maximum context:
 | ---------- | ---------------------------------------------------------------------------------------------- |
 | Lint       | pass                                                                                           |
 | Type Check | pass                                                                                           |
-| Unit Tests | fail (exit 1)                                                                                  |
+| Unit Tests | pass                                                                                           |
 | Format     | fail (exit 1)                                                                                  |
 | Coverage   | skipped                                                                                        |
-| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_151519.log |
+| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251221_152255.log |
 
 ---
 
@@ -133,7 +128,7 @@ Copy the block below to your Agent to start with maximum context:
 ```markdown
 ## What
 
-Enhance member onboarding with PWA install flow
+Implement Manage Subscription flow (Cancel, Update Payment)
 
 ## Why
 
@@ -141,12 +136,11 @@ Phase 1: Membership
 
 ## How
 
-- Added `PwaInstallButton` component
-- Integrated into Success Page
-- Added iOS specific instructions
+- Added `cancelSubscription` server action
+- Added `ManageSubscriptionButton`
+- Updated Membership page
 
 ## Testing
 
-- [x] Unit tests pass
-- [x] Manual QA (simulated events)
+- [x] Unit tests pass (`src/actions/subscription.test.ts`)
 ```

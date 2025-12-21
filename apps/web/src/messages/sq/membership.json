@@ -14,6 +14,8 @@
       "na": "N/A",
       "no_membership": "Nuk ka anëtarësi aktive",
       "manage_button": "Menaxho Abonimin",
+      "cancel_button": "Anulo Abonimin",
+      "cancel_confirm": "A jeni i sigurt që dëshironi të anuloni? Do të humbni aksesin në fund të periudhës së faturimit.",
       "view_plans_button": "Shiko Planet"
     },
     "benefits": {

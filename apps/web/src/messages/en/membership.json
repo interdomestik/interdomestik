@@ -14,6 +14,8 @@
       "na": "N/A",
       "no_membership": "No active membership",
       "manage_button": "Manage Subscription",
+      "cancel_button": "Cancel Subscription",
+      "cancel_confirm": "Are you sure you want to cancel? You will lose access at the end of the billing period.",
       "view_plans_button": "View Plans"
     },
     "benefits": {

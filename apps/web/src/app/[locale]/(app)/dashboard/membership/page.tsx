@@ -15,6 +15,7 @@ import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { ManageSubscriptionButton } from './components/manage-subscription-button';
 import { UpdatePaymentButton } from './components/update-payment-button';
 
 // Helper to calculate days remaining in grace period
@@ -174,7 +175,15 @@ export default async function MembershipPage() {
           </CardContent>
           <CardFooter>
             {subscription ? (
-              <Button variant="outline">{t('plan.manage_button')}</Button>
+              <ManageSubscriptionButton
+                subscriptionId={subscription.id}
+                labels={{
+                  manage: t('plan.manage_button'),
+                  updatePayment: t('dunning.update_payment_button'),
+                  cancel: t('plan.cancel_button'),
+                  cancelConfirm: t('plan.cancel_confirm'),
+                }}
+              />
             ) : (
               <Button asChild>
                 <Link href="/pricing">{t('plan.view_plans_button')}</Link>
