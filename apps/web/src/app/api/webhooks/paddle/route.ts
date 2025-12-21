@@ -1,46 +1,13 @@
-import { db, subscriptions } from '@interdomestik/database';
+import { db, subscriptions, user } from '@interdomestik/database';
 import { Environment, EventName, Paddle } from '@paddle/paddle-node-sdk';
-import { createHmac } from 'crypto';
+import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+
+import { sendPaymentFailedEmail } from '@/lib/email';
 
 const paddle = new Paddle(process.env.PADDLE_API_KEY || 'placeholder', {
   environment: (process.env.NEXT_PUBLIC_PADDLE_ENV as Environment) || Environment.sandbox,
 });
-
-// Verify Paddle webhook signature
-function verifyPaddleSignature(body: string, signature: string, secret: string): boolean {
-  try {
-    // Paddle signature format: "ts=timestamp;h1=signature"
-    const parts = signature.split(';');
-    const timestamp = parts.find(p => p.startsWith('ts='))?.split('=')[1];
-    const hash = parts.find(p => p.startsWith('h1='))?.split('=')[1];
-
-    if (!timestamp || !hash) {
-      console.error('[Webhook] Invalid signature format');
-      return false;
-    }
-
-    // Create the signed payload: timestamp + ':' + body
-    const signedPayload = `${timestamp}:${body}`;
-
-    // Compute HMAC SHA256
-    const expectedHash = createHmac('sha256', secret).update(signedPayload).digest('hex');
-
-    // Compare hashes
-    const isValid = hash === expectedHash;
-
-    if (!isValid) {
-      console.error('[Webhook] Signature mismatch');
-      console.error('[Webhook] Expected:', expectedHash);
-      console.error('[Webhook] Received:', hash);
-    }
-
-    return isValid;
-  } catch (error) {
-    console.error('[Webhook] Signature verification error:', error);
-    return false;
-  }
-}
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get('paddle-signature');
@@ -259,8 +226,31 @@ export async function POST(req: NextRequest) {
         );
         console.log(`[Webhook] Grace period ends: ${gracePeriodEnd.toISOString()}`);
 
-        // TODO: Send dunning notification email
-        // await sendDunningEmail(userId, newDunningCount, gracePeriodEnd);
+        // Send Day 0 dunning email (only on first attempt)
+        if (newDunningCount === 1) {
+          try {
+            // Fetch user email
+            const userRecord = await db.query.user.findFirst({
+              where: eq(user.id, userId),
+            });
+
+            if (userRecord?.email) {
+              const planName = sub.items?.[0]?.price?.description || 'Membership';
+              await sendPaymentFailedEmail(userRecord.email, {
+                memberName: userRecord.name || 'Member',
+                planName,
+                gracePeriodDays,
+                gracePeriodEndDate: gracePeriodEnd.toLocaleDateString(),
+              });
+              console.log(`[Webhook] ✉️ Day 0 dunning email sent to ${userRecord.email}`);
+            } else {
+              console.warn(`[Webhook] No email found for user ${userId}`);
+            }
+          } catch (emailError) {
+            console.error('[Webhook] Failed to send dunning email:', emailError);
+            // Don't fail the webhook if email fails
+          }
+        }
 
         break;
       }

@@ -3,6 +3,9 @@ import {
   renderClaimAssignedEmail,
   renderClaimSubmittedEmail,
   renderNewMessageEmail,
+  renderPaymentFailedEmail,
+  renderPaymentFinalWarningEmail,
+  renderPaymentReminderEmail,
   renderStatusChangedEmail,
 } from './email-templates';
 
@@ -122,4 +125,58 @@ export async function sendNewMessageEmail(
       messagePreview,
     })
   );
+}
+
+// ============================================================================
+// DUNNING EMAILS
+// ============================================================================
+
+/**
+ * Day 0: Send when payment fails (subscription.past_due)
+ */
+export async function sendPaymentFailedEmail(
+  to: string,
+  params: {
+    memberName: string;
+    planName: string;
+    gracePeriodDays: number;
+    gracePeriodEndDate: string;
+  }
+) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  console.log(`[Dunning] Sending Day 0 email to ${to}`);
+  return sendEmail(to, renderPaymentFailedEmail(params));
+}
+
+/**
+ * Day 7: Send reminder (7 days remaining)
+ */
+export async function sendPaymentReminderEmail(
+  to: string,
+  params: {
+    memberName: string;
+    planName: string;
+    daysRemaining: number;
+    gracePeriodEndDate: string;
+  }
+) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  console.log(`[Dunning] Sending Day 7 reminder to ${to}`);
+  return sendEmail(to, renderPaymentReminderEmail(params));
+}
+
+/**
+ * Day 13: Send final warning (1 day remaining)
+ */
+export async function sendPaymentFinalWarningEmail(
+  to: string,
+  params: {
+    memberName: string;
+    planName: string;
+    gracePeriodEndDate: string;
+  }
+) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  console.log(`[Dunning] Sending Day 13 FINAL WARNING to ${to}`);
+  return sendEmail(to, renderPaymentFinalWarningEmail(params));
 }
