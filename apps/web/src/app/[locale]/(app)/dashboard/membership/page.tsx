@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '@interdomestik/ui';
 import { AlertTriangle, CheckCircle, CreditCard, Shield, XCircle } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -37,6 +38,8 @@ export default async function MembershipPage() {
     redirect('/login');
   }
 
+  const t = await getTranslations('membership');
+
   const subscription = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, session.user.id),
   });
@@ -52,8 +55,8 @@ export default async function MembershipPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Membership</h1>
-        <p className="text-muted-foreground">Manage your subscription and plan details.</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('page.title')}</h1>
+        <p className="text-muted-foreground">{t('page.description')}</p>
       </div>
 
       {/* DUNNING: Grace Period Warning Banner */}
@@ -63,18 +66,19 @@ export default async function MembershipPage() {
             <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-200">
-                Payment Failed - {daysRemaining} days remaining
+                {t('dunning.payment_failed_title', { daysRemaining })}
               </h3>
               <p className="mt-2 text-orange-700 dark:text-orange-300">
-                Your last payment was unsuccessful. Please update your payment method to avoid
-                losing access to your membership benefits.
+                {t('dunning.payment_failed_message')}
               </p>
               <p className="mt-2 text-sm text-orange-600">
-                Grace period ends: {subscription?.gracePeriodEndsAt?.toLocaleDateString()}
+                {t('dunning.grace_period_ends', {
+                  date: subscription?.gracePeriodEndsAt?.toLocaleDateString() || '',
+                })}
               </p>
               <Button className="mt-4 bg-orange-600 hover:bg-orange-700">
                 <CreditCard className="h-4 w-4 mr-2" />
-                Update Payment Method
+                {t('dunning.update_payment_button')}
               </Button>
             </div>
           </div>
@@ -88,19 +92,18 @@ export default async function MembershipPage() {
             <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
-                Membership Suspended
+                {t('dunning.suspended_title')}
               </h3>
               <p className="mt-2 text-red-700 dark:text-red-300">
-                Your grace period has expired and your membership is now suspended. Please update
-                your payment method to restore access.
+                {t('dunning.suspended_message')}
               </p>
               <div className="mt-4 flex gap-2">
                 <Button variant="default">
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Update Payment Method
+                  {t('dunning.update_payment_button')}
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href="/pricing">View Plans</Link>
+                  <Link href="/pricing">{t('plan.view_plans_button')}</Link>
                 </Button>
               </div>
             </div>
@@ -113,9 +116,9 @@ export default async function MembershipPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
-              Current Plan
+              {t('plan.title')}
             </CardTitle>
-            <CardDescription>Your protection tier</CardDescription>
+            <CardDescription>{t('plan.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {subscription &&
@@ -123,51 +126,55 @@ export default async function MembershipPage() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-2xl font-bold text-primary">Active</span>
+                  <span className="text-2xl font-bold text-primary">{t('plan.active')}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Plan: <span className="font-medium">{subscription.planId}</span>
+                  {t('plan.plan_label')}: <span className="font-medium">{subscription.planId}</span>
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Status: <span className="capitalize font-medium">{subscription.status}</span>
+                  {t('plan.status_label')}:{' '}
+                  <span className="capitalize font-medium">{subscription.status}</span>
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Renews:{' '}
+                  {t('plan.renews_label')}:{' '}
                   {subscription.currentPeriodEnd
                     ? subscription.currentPeriodEnd.toLocaleDateString()
-                    : 'N/A'}
+                    : t('plan.na')}
                 </p>
               </div>
             ) : isPastDue ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-orange-500" />
-                  <span className="text-2xl font-bold text-orange-600">Payment Issue</span>
+                  <span className="text-2xl font-bold text-orange-600">
+                    {t('dunning.payment_issue')}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Plan: <span className="font-medium">{subscription?.planId}</span>
+                  {t('plan.plan_label')}:{' '}
+                  <span className="font-medium">{subscription?.planId}</span>
                 </p>
                 {isInGracePeriod && (
                   <p className="text-sm text-orange-600 font-medium">
-                    ⏳ {daysRemaining} days to update payment
+                    {t('dunning.days_to_update', { daysRemaining })}
                   </p>
                 )}
                 {subscription?.dunningAttemptCount && subscription.dunningAttemptCount > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Payment attempts: {subscription.dunningAttemptCount}
+                    {t('dunning.payment_attempts', { count: subscription.dunningAttemptCount })}
                   </p>
                 )}
               </div>
             ) : (
-              <div className="text-muted-foreground">No active membership</div>
+              <div className="text-muted-foreground">{t('plan.no_membership')}</div>
             )}
           </CardContent>
           <CardFooter>
             {subscription ? (
-              <Button variant="outline">Manage Subscription</Button>
+              <Button variant="outline">{t('plan.manage_button')}</Button>
             ) : (
               <Button asChild>
-                <Link href="/pricing">View Plans</Link>
+                <Link href="/pricing">{t('plan.view_plans_button')}</Link>
               </Button>
             )}
           </CardFooter>
@@ -176,11 +183,11 @@ export default async function MembershipPage() {
         {/* Usage & Benefits Card */}
         <Card className={!subscription || isGraceExpired ? 'opacity-50' : ''}>
           <CardHeader>
-            <CardTitle>Usage &amp; Benefits</CardTitle>
+            <CardTitle>{t('benefits.title')}</CardTitle>
             <CardDescription>
               {subscription && !isGraceExpired
-                ? 'Your membership benefits'
-                : 'Join to access benefits'}
+                ? t('benefits.description_active')
+                : t('benefits.description_inactive')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -188,26 +195,24 @@ export default async function MembershipPage() {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  24/7 Emergency Hotline
+                  {t('benefits.hotline')}
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  Voice Claim Filing
+                  {t('benefits.voice_claim')}
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  Legal Consultations
+                  {t('benefits.legal')}
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  Partner Discounts
+                  {t('benefits.discounts')}
                 </li>
               </ul>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {isGraceExpired
-                  ? 'Update your payment to restore access to benefits.'
-                  : 'Use the pricing page to activate your protection.'}
+                {isGraceExpired ? t('benefits.restore_message') : t('benefits.activate_message')}
               </p>
             )}
           </CardContent>

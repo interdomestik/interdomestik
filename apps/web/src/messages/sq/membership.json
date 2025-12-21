@@ -1,5 +1,43 @@
 {
   "membership": {
+    "page": {
+      "title": "Anëtarësia",
+      "description": "Menaxho abonimin dhe detajet e planit."
+    },
+    "plan": {
+      "title": "Plani Aktual",
+      "description": "Niveli i mbrojtjes",
+      "active": "Aktiv",
+      "plan_label": "Plani",
+      "status_label": "Statusi",
+      "renews_label": "Rinovohet",
+      "na": "N/A",
+      "no_membership": "Nuk ka anëtarësi aktive",
+      "manage_button": "Menaxho Abonimin",
+      "view_plans_button": "Shiko Planet"
+    },
+    "benefits": {
+      "title": "Përdorimi & Përfitimet",
+      "description_active": "Përfitimet e anëtarësisë",
+      "description_inactive": "Bashkohu për të pasur qasje",
+      "hotline": "Linja Emergjente 24/7",
+      "voice_claim": "Hapja e Rastit me Zë",
+      "legal": "Konsulta Ligjore",
+      "discounts": "Zbritje Partnerësh",
+      "restore_message": "Përditëso pagesën për të rikthyer qasjen në përfitime.",
+      "activate_message": "Përdor faqen e çmimeve për të aktivizuar mbrojtjen."
+    },
+    "dunning": {
+      "payment_failed_title": "Pagesa Dështoi - {daysRemaining} ditë të mbetura",
+      "payment_failed_message": "Pagesa juaj e fundit nuk u krye me sukses. Ju lutem përditësoni metodën e pagesës për të shmangur humbjen e qasjes në përfitimet e anëtarësisë.",
+      "grace_period_ends": "Periudha e tolerancës përfundon: {date}",
+      "update_payment_button": "Përditëso Metodën e Pagesës",
+      "suspended_title": "Anëtarësia e Pezulluar",
+      "suspended_message": "Periudha e tolerancës ka përfunduar dhe anëtarësia juaj është pezulluar. Ju lutem përditësoni metodën e pagesës për të rikthyer qasjen.",
+      "payment_issue": "Problem me Pagesën",
+      "days_to_update": "⏳ {daysRemaining} ditë për të përditësuar pagesën",
+      "payment_attempts": "Përpjekje pagese: {count}"
+    },
     "success": {
       "title": "Mirë se vini në Interdomestik!",
       "subtitle": "Mbrojtja juaj tani është aktive. Ju jeni zyrtarisht pjesë e klubit tonë.",

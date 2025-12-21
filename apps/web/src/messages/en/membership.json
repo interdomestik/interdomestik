@@ -1,5 +1,43 @@
 {
   "membership": {
+    "page": {
+      "title": "Membership",
+      "description": "Manage your subscription and plan details."
+    },
+    "plan": {
+      "title": "Current Plan",
+      "description": "Your protection tier",
+      "active": "Active",
+      "plan_label": "Plan",
+      "status_label": "Status",
+      "renews_label": "Renews",
+      "na": "N/A",
+      "no_membership": "No active membership",
+      "manage_button": "Manage Subscription",
+      "view_plans_button": "View Plans"
+    },
+    "benefits": {
+      "title": "Usage & Benefits",
+      "description_active": "Your membership benefits",
+      "description_inactive": "Join to access benefits",
+      "hotline": "24/7 Emergency Hotline",
+      "voice_claim": "Voice Claim Filing",
+      "legal": "Legal Consultations",
+      "discounts": "Partner Discounts",
+      "restore_message": "Update your payment to restore access to benefits.",
+      "activate_message": "Use the pricing page to activate your protection."
+    },
+    "dunning": {
+      "payment_failed_title": "Payment Failed - {daysRemaining} days remaining",
+      "payment_failed_message": "Your last payment was unsuccessful. Please update your payment method to avoid losing access to your membership benefits.",
+      "grace_period_ends": "Grace period ends: {date}",
+      "update_payment_button": "Update Payment Method",
+      "suspended_title": "Membership Suspended",
+      "suspended_message": "Your grace period has expired and your membership is now suspended. Please update your payment method to restore access.",
+      "payment_issue": "Payment Issue",
+      "days_to_update": "⏳ {daysRemaining} days to update payment",
+      "payment_attempts": "Payment attempts: {count}"
+    },
     "success": {
       "title": "Welcome to Interdomestik!",
       "subtitle": "Your protection is now active. You are officially part of our club.",
