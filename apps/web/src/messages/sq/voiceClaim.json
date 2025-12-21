@@ -1,0 +1,18 @@
+{
+  "voiceClaim": {
+    "badge": "Mënyra më e shpejtë",
+    "title": "Një Thirrje. Kaq.",
+    "subtitle": "Paraqisni kërkesën tuaj me telefon në 60 sekonda. Pa formularë, pa stres, pa pritje.",
+    "step1": "Telefononi linjën 24/7",
+    "step2": "Përshkruani aksidentin",
+    "step3": "Ne merremi me gjithçka",
+    "cta": "Thirr Tani",
+    "whatsappCta": "Dërgo WhatsApp",
+    "stats": {
+      "time": "60 sek",
+      "timeLabel": "për të paraqitur kërkesën",
+      "noForms": "0",
+      "noFormsLabel": "formularë për të plotësuar"
+    }
+  }
+}

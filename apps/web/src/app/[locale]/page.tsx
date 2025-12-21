@@ -3,13 +3,18 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import {
   CTASection,
+  FAQSection,
   Footer,
   Header,
   HeroSection,
   HowMembershipWorksSection,
   MemberBenefitsSection,
   PricingSection,
+  StickyMobileCTA,
+  TestimonialsSection,
+  TrustStatsSection,
   TrustStrip,
+  VoiceClaimSection,
 } from './components/home';
 
 type Props = {
@@ -32,11 +37,16 @@ export default async function HomePage({ params }: Props) {
         <Header />
         <HeroSection />
         <TrustStrip />
+        <TrustStatsSection />
         <MemberBenefitsSection />
+        <VoiceClaimSection />
         <HowMembershipWorksSection />
+        <TestimonialsSection />
         <PricingSection />
+        <FAQSection />
         <CTASection />
         <Footer />
+        <StickyMobileCTA />
       </main>
     </NextIntlClientProvider>
   );

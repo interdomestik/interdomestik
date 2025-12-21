@@ -1,0 +1,36 @@
+{
+  "testimonials": {
+    "title": "Histori Suksesi",
+    "subtitle": "Çfarë thonë anëtarët tanë",
+    "stories": [
+      {
+        "quote": "Pas aksidentit nuk dija çfarë të bëja. Interdomestik më ndihmoi të rikuperoj €3,200 brenda 3 javëve.",
+        "name": "Arben M.",
+        "role": "Anëtar Standard",
+        "amount": "€3,200",
+        "time": "3 javë"
+      },
+      {
+        "quote": "Siguruesi më ofronte vetëm €800. Me ndihmën e ekspertëve të Interdomestik, mora €2,100.",
+        "name": "Flutura K.",
+        "role": "Anëtare Familja",
+        "amount": "€2,100",
+        "time": "5 javë"
+      },
+      {
+        "quote": "Procesi ishte shumë i thjeshtë. Një telefonatë dhe ata u morën me gjithçka.",
+        "name": "Besnik H.",
+        "role": "Anëtar Standard",
+        "amount": "€1,850",
+        "time": "4 javë"
+      },
+      {
+        "quote": "Si biznes, na duhej një partner i besueshëm. Interdomestik na mbron 10 automjetet tona.",
+        "name": "Albana S.",
+        "role": "Anëtare Biznesi",
+        "amount": "€5,400",
+        "time": "6 javë"
+      }
+    ]
+  }
+}

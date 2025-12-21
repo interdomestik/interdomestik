@@ -12,6 +12,7 @@ export const MESSAGE_NAMESPACES = [
   'dashboard',
   'documents',
   'evidence',
+  'faq',
   'features',
   'footer',
   'help',
@@ -28,8 +29,11 @@ export const MESSAGE_NAMESPACES = [
   'services',
   'servicesPage',
   'settings',
+  'testimonials',
   'timeline',
   'trust',
+  'trustStats',
+  'voiceClaim',
   'wizard',
 ] as const;
 
@@ -40,9 +44,13 @@ export const HOME_NAMESPACES = [
   'nav',
   'hero',
   'trust',
+  'trustStats',
   'memberBenefits',
   'howMembershipWorks',
+  'voiceClaim',
+  'testimonials',
   'pricing',
+  'faq',
   'footer',
 ] as const;
 export const SITE_NAMESPACES = ['about', 'pricing', 'services', 'legal'] as const;

@@ -1,0 +1,28 @@
+{
+  "faq": {
+    "title": "Pyetjet e Shpeshta",
+    "subtitle": "Gjithçka që duhet të dini për anëtarësinë",
+    "questions": [
+      {
+        "question": "Çfarë ndodh nëse nuk kam nevojë për ndihmë gjatë vitit?",
+        "answer": "Anëtarësia juaj mbetet aktive dhe e gatshme kur të keni nevojë. Plus, keni qasje në kalkulatorin e dëmit, udhëzuesit dhe zbritjet e partnerëve gjatë gjithë vitit."
+      },
+      {
+        "question": "Si ndryshon Interdomestik nga sigurimi?",
+        "answer": "Ne nuk jemi sigurim. Ne jemi klubi juaj i mbrojtjes - ekspertë ligjorë dhe teknikë që punojnë për ju, jo për siguruesin. Paguani vetëm €20/vit dhe tarifa suksesi vetëm kur fitoni."
+      },
+      {
+        "question": "Sa shpejt mund të paraqes një kërkesë?",
+        "answer": "Brenda 60 sekondave! Telefononi linjën tonë 24/7 ose dërgoni një mesazh WhatsApp. Pa formularë, pa pritje."
+      },
+      {
+        "question": "Çfarë ndodh nëse nuk fitoj kërkesën?",
+        "answer": "Nëse nuk rikuperojmë para për ju, nuk paguani tarifë suksesi. Pa Fitim, Pa Pagesë."
+      },
+      {
+        "question": "A mund të anuloj anëtarësinë?",
+        "answer": "Po! Keni garanci 30-ditëshe për kthimin e parave. Nëse nuk jeni të kënaqur, merrni paratë mbrapa. Pas kësaj, mund të anuloni para rinovimit."
+      }
+    ]
+  }
+}
