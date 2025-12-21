@@ -22,9 +22,15 @@ export function HeroSection() {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 backdrop-blur-sm border shadow-sm text-primary text-sm font-bold mb-8 animate-fade-in badge-glow cursor-default">
-            <ShieldCheck className="h-4 w-4" />
-            {t('badge')}
+          {/* Bold Statement Badge */}
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary via-purple-600 to-primary text-white text-base font-black mb-10 animate-fade-in shadow-2xl shadow-primary/40 border border-primary/50 cursor-default hover:scale-105 transition-transform">
+            <div className="relative">
+              <ShieldCheck className="h-6 w-6" />
+              <div className="absolute -top-1 -right-1 h-3 w-3 bg-amber-400 rounded-full animate-ping" />
+              <div className="absolute -top-1 -right-1 h-3 w-3 bg-amber-400 rounded-full" />
+            </div>
+            <span className="tracking-wide uppercase">{t('badge')}</span>
+            <Star className="h-5 w-5 text-amber-300 fill-amber-300" />
           </div>
 
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-black mb-8 animate-fade-in tracking-tighter leading-[1.1]">
