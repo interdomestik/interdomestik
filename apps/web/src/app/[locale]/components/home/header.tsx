@@ -34,7 +34,7 @@ export function Header() {
               <span className="font-display text-lg font-black text-slate-900">
                 {common('appName')}
               </span>
-              <p className="text-[10px] text-slate-400 font-medium -mt-0.5">Protection Club</p>
+              <p className="text-[10px] text-slate-400 font-medium -mt-0.5">{common('tagline')}</p>
             </div>
           </Link>
 

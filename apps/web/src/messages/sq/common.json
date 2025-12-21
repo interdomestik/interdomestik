@@ -1,6 +1,8 @@
 {
   "common": {
-    "appName": "Interdomestik",
+    "appName": "Asistenca",
+    "companyName": "Interdomestik",
+    "tagline": "Pranë jush kur duhet",
     "loading": "Duke u ngarkuar...",
     "processing": "Duke procesuar...",
     "save": "Ruaj",

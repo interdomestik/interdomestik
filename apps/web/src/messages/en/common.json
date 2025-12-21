@@ -1,6 +1,8 @@
 {
   "common": {
-    "appName": "Interdomestik",
+    "appName": "Asistenca",
+    "companyName": "Interdomestik",
+    "tagline": "There when you need us",
     "loading": "Loading...",
     "processing": "Processing...",
     "save": "Save",

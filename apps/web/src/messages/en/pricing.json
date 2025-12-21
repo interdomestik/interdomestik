@@ -20,7 +20,7 @@
       ]
     },
     "standard": {
-      "name": "Standard",
+      "name": "Asistenca",
       "price": "€20",
       "period": "/year",
       "description": "Complete protection for individuals",
@@ -35,14 +35,14 @@
       "popular": "Most Popular"
     },
     "family": {
-      "name": "Family",
+      "name": "Asistenca+",
       "price": "€35",
       "period": "/year",
       "description": "Protection for the whole household",
       "features": [
-        "Everything in Standard",
+        "Everything in Asistenca",
         "Covers up to 5 family members",
-        "Digital Cards for all members",
+        "Asistenca Cards for all members",
         "Shared Dashboard"
       ]
     },

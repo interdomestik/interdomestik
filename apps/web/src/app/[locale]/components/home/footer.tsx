@@ -22,7 +22,7 @@ export function Footer() {
               </div>
               <div>
                 <span className="font-display font-black text-xl">{common('appName')}</span>
-                <p className="text-xs text-slate-400 font-medium">Membership Protection Club</p>
+                <p className="text-xs text-slate-400 font-medium">{common('tagline')}</p>
               </div>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-sm">

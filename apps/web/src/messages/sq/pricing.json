@@ -20,7 +20,7 @@
       ]
     },
     "standard": {
-      "name": "Standard",
+      "name": "Asistenca",
       "price": "€20",
       "period": "/vit",
       "description": "Mbrojtje e plotë për individë",
@@ -35,14 +35,14 @@
       "popular": "Më e zgjedhura"
     },
     "family": {
-      "name": "Familja",
+      "name": "Asistenca+",
       "price": "€35",
       "period": "/vit",
       "description": "Mbrojtje për gjithë shtëpinë",
       "features": [
-        "Gjithçka në Standard",
+        "Gjithçka në Asistenca",
         "Mbulon deri në 5 anëtarë",
-        "Karta Digjitale për të gjithë",
+        "Karta Asistenca për të gjithë",
         "Dashboard i përbashkët"
       ]
     },
