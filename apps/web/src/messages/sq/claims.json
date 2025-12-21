@@ -79,6 +79,11 @@
       "updated": "Drafti u përditësua",
       "failed": "Dështoi përditësimi i kërkesës për dëmshpërblim"
     },
+    "gate": {
+      "membership_required_title": "Kërkohet Anëtarësim Aktiv",
+      "membership_required_message": "Ju duhet një plan anëtarësimi aktiv për të paraqitur kërkesa të reja. Ju lutemi të merrni një plan për të aksesuar shërbimet tona të mbrojtjes ligjore.",
+      "view_plans": "Shiko Planet"
+    },
     "detail": {
       "caseDetails": "Detajet e Rastit",
       "description": "Përshkrimi",

@@ -1,3 +1,4 @@
+import { PwaInstallButton } from '@/components/pwa/install-button';
 import { auth } from '@/lib/auth';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { CheckCircle2, Phone, QrCode, Smartphone, Wallet } from 'lucide-react';
@@ -94,6 +95,7 @@ export default async function MembershipSuccessPage({ params }: SuccessPageProps
                 <Wallet className="mr-2 h-5 w-5" />
                 {t('cta_wallet')}
               </Button>
+              <PwaInstallButton label={t('cta_install')} className="mt-3 font-bold" />
             </div>
           </CardContent>
         </Card>
