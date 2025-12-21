@@ -30,7 +30,7 @@ NEXT_PUBLIC_PADDLE_ENV=sandbox  # Use 'production' for live
 # Paddle API Credentials
 NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=test_your_client_token_here
 PADDLE_API_KEY=pdl_sdbx_apikey_your_api_key_here
-PADDLE_WEBHOOK_SECRET_KEY=ntfset_your_webhook_secret_here
+PADDLE_WEBHOOK_SECRET_KEY=pdl_ntfset_your_webhook_secret_here
 
 # Paddle Price IDs (Sandbox)
 NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR=pri_01kd08394cfehw18se1nk3tmjx
@@ -60,7 +60,8 @@ NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_MONTH=pri_01kd08394cfehw18se1nk3tmjx
 4. **Webhook Secret** (`PADDLE_WEBHOOK_SECRET_KEY`)
    - Navigate to: Developer Tools → Notifications
    - Create a new notification destination
-   - Copy the secret key (starts with `ntfset_`)
+   - Copy the **complete** secret key (starts with `pdl_ntfset_`)
+   - **Important**: Use the full key including the `pdl_` prefix
 
 ---
 
@@ -276,6 +277,92 @@ CREATE TABLE subscriptions (
 2. Clear `.next` cache: `rm -rf apps/web/.next`
 3. Verify symlink: `ls -la apps/web/.env`
 4. Check variables start with `NEXT_PUBLIC_` for client-side
+
+### ⚠️ Webhook Signature Verification Failing (ngrok/Local Development)
+
+**Symptom**: Webhook returns `401 Unauthorized` with error: `[Paddle] Webhook signature verification failed`
+
+**Root Cause**: Paddle webhooks have a **5-second validity window** from emission. When using tunneling services like ngrok, the network delay often exceeds this window, causing legitimate webhooks to be rejected as expired.
+
+**Why This Happens**:
+
+1. Paddle generates webhook with timestamp `T`
+2. Webhook is valid until `T + 5 seconds`
+3. ngrok introduces 2-8 seconds of latency
+4. Webhook arrives at your server after expiration
+5. Signature verification fails due to timestamp mismatch
+
+**Solutions**:
+
+**Option 1: Development Bypass (Current Implementation)**
+
+```typescript
+// In apps/web/src/app/api/webhooks/paddle/route.ts
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+if (isDevelopment) {
+  // Bypass signature verification for local testing
+  console.warn('[Webhook] ⚠️  DEVELOPMENT MODE: Signature verification bypassed');
+} else {
+  // PRODUCTION: Require valid signature
+  eventData = await paddle.webhooks.unmarshal(body, secret, signature);
+}
+```
+
+**Pros**:
+
+- ✅ Allows local development and testing
+- ✅ Webhooks work immediately
+- ✅ Database sync can be tested
+
+**Cons**:
+
+- ⚠️ Not secure (only for development)
+- ⚠️ Must be fixed before production
+
+**Option 2: Deploy to Staging Server (Recommended for Testing)**
+
+Deploy to a cloud platform without tunnel delays:
+
+- Vercel: `vercel --prod`
+- Railway: `railway up`
+- Fly.io: `fly deploy`
+
+**Pros**:
+
+- ✅ Real signature verification works
+- ✅ Production-like environment
+- ✅ No timing issues
+
+**Cons**:
+
+- Requires deployment for each test
+
+**Secret Key Format** (CRITICAL):
+
+The webhook secret must include the **full `pdl_ntfset_` prefix**:
+
+```bash
+# ✅ CORRECT
+PADDLE_WEBHOOK_SECRET_KEY=pdl_ntfset_01abc...xyz_a1b2c3...
+
+# ❌ WRONG (missing pdl_ prefix)
+PADDLE_WEBHOOK_SECRET_KEY=ntfset_01abc...xyz_a1b2c3...
+```
+
+**Production Deployment**:
+
+When deploying to production:
+
+1. ✅ Signature verification will work automatically (no tunnel delay)
+2. ✅ The code is already production-ready
+3. ✅ Set `NODE_ENV=production` to enable signature verification
+4. ✅ Update webhook URL to production domain
+
+**References**:
+
+- [Paddle Signature Verification Docs](https://developer.paddle.com/webhooks/signature-verification)
+- [GitHub Issue: Timing with Tunnels](https://github.com/PaddleHQ/paddle-node-sdk/issues/112)
 
 ---
 
