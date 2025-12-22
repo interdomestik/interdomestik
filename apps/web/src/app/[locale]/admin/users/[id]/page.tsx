@@ -4,8 +4,8 @@ import { db } from '@interdomestik/database/db';
 import {
   claims,
   subscriptions,
-  user as userTable,
   userNotificationPreferences,
+  user as userTable,
 } from '@interdomestik/database/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
@@ -23,6 +23,8 @@ import { count, desc, eq } from 'drizzle-orm';
 import { ArrowLeft, BadgeCheck, Mail, User } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+
+import { ResendWelcomeEmailButton } from './resend-welcome-button';
 
 const RECENT_CLAIMS_LIMIT = 6;
 
@@ -112,13 +114,14 @@ export default async function MemberProfilePage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+      <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
         <Button asChild variant="ghost" size="sm">
           <Link href="/admin/users">
             <ArrowLeft className="h-4 w-4" />
             {t('actions.back')}
           </Link>
         </Button>
+        <ResendWelcomeEmailButton userId={member.id} />
       </div>
 
       <div className="rounded-2xl border bg-muted/20 p-6">
