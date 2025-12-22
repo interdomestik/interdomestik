@@ -3,7 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/comp
 import { User } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
-export async function AgentInfoCard({ agent }: { agent: any }) {
+type Agent = {
+  name: string | null;
+  email: string;
+  image: string | null;
+};
+
+export async function AgentInfoCard({ agent }: { agent: Agent | null | undefined }) {
   const t = await getTranslations('admin.member_profile');
 
   return (
