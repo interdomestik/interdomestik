@@ -31,7 +31,14 @@ import { useTranslations } from 'next-intl';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations('nav');
+
+  const handleSignOut = async () => {
+    await authClient.signOut();
+    router.push('/login');
+  };
+
   const { data: session } = authClient.useSession();
   const role = (session?.user as { role?: string } | undefined)?.role;
 
@@ -189,6 +196,73 @@ export function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-2 border-t border-white/10">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-xl hover:bg-muted/50 transition-colors"
+                >
+                  <Avatar className="h-8 w-8 rounded-lg bg-primary/10 text-primary">
+                    <AvatarImage src={session?.user?.image || ''} alt={session?.user?.name || ''} />
+                    <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold">
+                      {session?.user?.name?.[0]?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">{session?.user?.name}</span>
+                    <span className="truncate text-xs text-muted-foreground capitalize">
+                      {role}
+                    </span>
+                  </div>
+                  <ChevronUp className="ml-auto size-4 text-muted-foreground" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                side="bottom"
+                align="end"
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarImage
+                        src={session?.user?.image || ''}
+                        alt={session?.user?.name || ''}
+                      />
+                      <AvatarFallback className="rounded-lg">
+                        {session?.user?.name?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{session?.user?.name}</span>
+                      <span className="truncate text-xs">{session?.user?.email}</span>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/" className="cursor-pointer">
+                    <Home className="mr-2 h-4 w-4" />
+                    Back to Website
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="text-red-500 focus:text-red-500 cursor-pointer"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

@@ -1,11 +1,23 @@
 'use client';
 
-import { Link, usePathname } from '@/i18n/routing';
+import { Link, usePathname, useRouter } from '@/i18n/routing';
+import { authClient } from '@/lib/auth-client';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@interdomestik/ui';
 import {
   BarChart,
   Briefcase,
+  ChevronUp,
   FileText,
+  Home,
   LayoutDashboard,
+  LogOut,
   Settings,
   Shield,
   Users,
@@ -24,6 +36,12 @@ interface AdminSidebarProps {
 export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const t = useTranslations('admin.sidebar');
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await authClient.signOut();
+    router.push('/login');
+  };
 
   const containerClassName = [
     'flex flex-col h-screen border-r border-white/10 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60',
@@ -121,18 +139,38 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
       </div>
 
       <div className="p-4 border-t border-white/10 bg-muted/20 backdrop-blur-md m-4 rounded-2xl">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-primary to-primary/50 text-white flex items-center justify-center font-bold shadow-md">
-            {user.name?.[0]?.toUpperCase() || 'A'}
-          </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-sm font-semibold truncate">{user.name}</span>
-            <span className="text-xs text-muted-foreground truncate capitalize flex items-center gap-1">
-              <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-              {user.role}
-            </span>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center gap-3 w-full outline-none group cursor-pointer">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-primary to-primary/50 text-white flex items-center justify-center font-bold shadow-md transition-transform group-hover:scale-105">
+              {user.name?.[0]?.toUpperCase() || 'A'}
+            </div>
+            <div className="flex flex-col overflow-hidden text-left flex-1">
+              <span className="text-sm font-semibold truncate">{user.name}</span>
+              <span className="text-xs text-muted-foreground truncate capitalize flex items-center gap-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                {user.role}
+              </span>
+            </div>
+            <ChevronUp className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56" side="top" sideOffset={8}>
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/" className="cursor-pointer font-medium">
+                <Home className="mr-2 h-4 w-4" />
+                Back to Website
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleSignOut}
+              className="cursor-pointer text-red-500 focus:text-red-500 font-medium"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Log Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
