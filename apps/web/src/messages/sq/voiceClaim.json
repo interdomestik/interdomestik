@@ -13,6 +13,9 @@
       "timeLabel": "për të paraqitur aksidentin/dëmin",
       "noForms": "0",
       "noFormsLabel": "formularë për të plotësuar"
-    }
+    },
+    "noStress": "Pa stres",
+    "noWaiting": "Pa pritje",
+    "noForms": "Pa formularë"
   }
 }

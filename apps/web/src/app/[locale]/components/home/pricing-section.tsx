@@ -91,10 +91,10 @@ export function PricingSection() {
           </div>
           <h2 className="font-display font-black mb-12 text-slate-900 tracking-tight leading-[0.9] animate-fade-in uppercase">
             <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 opacity-60">
-              Zgjidhni mbrojtjen
+              {t('mainHeading1')}
             </span>
             <span className="text-5xl md:text-6xl lg:text-7xl block leading-[0.85] tracking-[-0.05em] text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
-              që ju përshtatet.
+              {t('mainHeading2')}
             </span>
           </h2>
           <p className="text-slate-500 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed opacity-60">
@@ -218,7 +218,7 @@ export function PricingSection() {
                 <div className="mt-6 flex items-center justify-center gap-2 opacity-30 grayscale group-hover:opacity-60 transition-all">
                   <ShieldCheck className="h-4 w-4" />
                   <span className="text-[10px] font-black uppercase tracking-widest">
-                    Bashkohu me siguri
+                    {t('joinSecurely')}
                   </span>
                 </div>
               </div>

@@ -13,6 +13,9 @@
       "timeLabel": "to file an accident/damage",
       "noForms": "0",
       "noFormsLabel": "forms to fill out"
-    }
+    },
+    "noStress": "No stress",
+    "noWaiting": "No waiting",
+    "noForms": "No forms"
   }
 }

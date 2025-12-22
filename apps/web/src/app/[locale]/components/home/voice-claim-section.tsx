@@ -38,7 +38,7 @@ export function VoiceClaimSection() {
               {t('title').split('.')[0]}.
             </span>
             <span className="text-5xl md:text-6xl lg:text-7xl block leading-[0.85] tracking-[-0.05em] text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-200 filter drop-shadow-2xl">
-              {t('title').split('.')[1]?.trim() || 'Kaq.'}
+              {t('title').split('.')[1]?.trim() || ''}
             </span>
           </h2>
 
@@ -125,15 +125,15 @@ export function VoiceClaimSection() {
           <div className="mt-20 flex flex-wrap justify-center gap-8 text-white/40 font-bold uppercase tracking-widest text-[10px]">
             <div className="flex items-center gap-2 group">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 group-hover:scale-125 transition-transform" />
-              <span>Pa stres</span>
+              <span>{t('noStress')}</span>
             </div>
             <div className="flex items-center gap-2 group">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 group-hover:scale-125 transition-transform" />
-              <span>Pa pritje</span>
+              <span>{t('noWaiting')}</span>
             </div>
             <div className="flex items-center gap-2 group">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 group-hover:scale-125 transition-transform" />
-              <span>Pa formularë</span>
+              <span>{t('noForms')}</span>
             </div>
           </div>
         </div>

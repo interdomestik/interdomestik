@@ -1,18 +1,21 @@
 {
   "voiceClaim": {
-    "badge": "The fastest way",
-    "title": "One Call. That's It.",
-    "subtitle": "File your claim by phone in 60 seconds. No forms, no stress, no waiting.",
-    "step1": "Call our 24/7 hotline",
-    "step2": "Describe the accident",
-    "step3": "We handle everything",
-    "cta": "Call Now",
-    "whatsappCta": "Send WhatsApp",
+    "badge": "Најбрзиот начин",
+    "title": "Еден повик. Тоа е сè.",
+    "subtitle": "Поднесете барање преку телефон за 60 секунди. Без формулари, без стрес, без чекање.",
+    "step1": "Јавете се на 24/7 линијата",
+    "step2": "Опишете ја несреќата",
+    "step3": "Ние преземаме сè",
+    "cta": "Јавете се",
+    "whatsappCta": "Испратете WhatsApp",
     "stats": {
-      "time": "60 sec",
-      "timeLabel": "to file a claim",
+      "time": "60 сек",
+      "timeLabel": "за поднесување",
       "noForms": "0",
-      "noFormsLabel": "forms to fill out"
-    }
+      "noFormsLabel": "формулари за пополнување"
+    },
+    "noStress": "Без стрес",
+    "noWaiting": "Без чекање",
+    "noForms": "Без формулари"
   }
 }
