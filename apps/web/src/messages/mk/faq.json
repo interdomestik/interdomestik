@@ -1,27 +1,23 @@
 {
   "faq": {
-    "title": "Frequently Asked Questions",
-    "subtitle": "Everything you need to know about membership",
+    "title": "Често поставувани прашања",
+    "subtitle": "Сè што треба да знаете за Интердомеstik",
     "questions": [
       {
-        "question": "What if I don't need help during the year?",
-        "answer": "Your membership stays active and ready when you need it. Plus, you have access to the damage calculator, guides, and partner discounts all year."
+        "question": "Како се разликувате од осигурување?",
+        "answer": "Ние не сме осигурување. Ние сме вашиот клуб за заштита - правни и технички експерти кои работат за вас, а не за осигурителот. Плаќате само €20/годишно, плус провизија само кога ќе добиете."
       },
       {
-        "question": "How is Interdomestik different from insurance?",
-        "answer": "We're not insurance. We're your protection club - legal and technical experts who work for you, not the insurer. Pay just €20/year plus success fee only when you win."
+        "question": "Колку брзо можам да поднесам барање?",
+        "answer": "За 60 секунди! Јавете се на нашата 24/7 итна линија или испратете порака на WhatsApp. Без формулари, без чекање."
       },
       {
-        "question": "How fast can I file a claim?",
-        "answer": "In 60 seconds! Call our 24/7 hotline or send a WhatsApp message. No forms, no waiting."
+        "question": "Што ако не го добијам случајот?",
+        "answer": "Ако не наплатиме пари за вас, не плаќате провизија. Без успех, без надомест."
       },
       {
-        "question": "What if I don't win the claim?",
-        "answer": "If we don't recover money for you, you don't pay a success fee. No Win, No Fee."
-      },
-      {
-        "question": "Can I cancel my membership?",
-        "answer": "Yes! You have a 30-day money-back guarantee. If you're not satisfied, get your money back. After that, you can cancel before renewal."
+        "question": "Може ли да го откажам членството?",
+        "answer": "Да! Имате 30-дневна гаранција за поврат на парите. Ако не сте задоволни, ги добивате парите назад. После тоа, можете да откажете пред обновувањето."
       }
     ]
   }

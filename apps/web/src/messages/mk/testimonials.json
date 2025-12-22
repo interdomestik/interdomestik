@@ -1,35 +1,35 @@
 {
   "testimonials": {
-    "title": "Success Stories",
-    "subtitle": "What our members say",
+    "title": "Успешни приказни",
+    "subtitle": "Што велат нашите членови",
     "stories": [
       {
-        "quote": "After the accident I didn't know what to do. Interdomestik helped me recover €3,200 in just 3 weeks.",
+        "quote": "По несреќата не знаев што да правам. Интердомеstik ми помогна да наплатам €3,200 за само 3 недели.",
         "name": "Arben M.",
-        "role": "Standard Member",
+        "role": "Стандард Член",
         "amount": "€3,200",
-        "time": "3 weeks"
+        "time": "3 недели"
       },
       {
-        "quote": "The insurer offered me only €800. With Interdomestik's experts, I got €2,100.",
+        "quote": "Осигурителот ми понуди само €800. Со експертите на Интердомеstik, добив €2,100.",
         "name": "Flutura K.",
-        "role": "Family Member",
+        "role": "Семеен Член",
         "amount": "€2,100",
-        "time": "5 weeks"
+        "time": "5 недели"
       },
       {
-        "quote": "The process was so simple. One phone call and they handled everything.",
+        "quote": "Процесот беше толку едноставен. Еден телефонски повик и тие се погрижија за сè.",
         "name": "Besnik H.",
-        "role": "Standard Member",
+        "role": "Стандард Член",
         "amount": "€1,850",
-        "time": "4 weeks"
+        "time": "4 недели"
       },
       {
-        "quote": "As a business, we needed a reliable partner. Interdomestik protects our 10 vehicles.",
-        "name": "Albana S.",
-        "role": "Business Member",
-        "amount": "€5,400",
-        "time": "6 weeks"
+        "quote": "Како бизнис, ни требаше сигурен партнер за нашиот возен парк. Ова е најдобрата инвестиција што ја направивме.",
+        "name": "Driton L.",
+        "role": "Бизнис Член",
+        "amount": "€15,000+",
+        "time": "Тековно"
       }
     ]
   }

@@ -1,13 +1,13 @@
 {
   "trustStats": {
     "recovered": "€2.5M",
-    "recoveredLabel": "recovered",
+    "recoveredLabel": "наплатени",
     "cases": "5,000+",
-    "casesLabel": "cases supported",
+    "casesLabel": "поддржани случаи",
     "members": "8,500+",
-    "membersLabel": "active members",
-    "response": "24h",
-    "responseLabel": "response time",
-    "partnersTitle": "Trusted by our partners"
+    "membersLabel": "активни членови",
+    "response": "24ч",
+    "responseLabel": "време на одговор",
+    "partnersTitle": "Им веруваат нашите партнери"
   }
 }

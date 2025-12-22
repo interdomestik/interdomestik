@@ -1,21 +1,21 @@
 {
   "features": {
-    "title": "Everything you need to protect your rights",
+    "title": "Сè што ви треба за да ги заштитите вашите права",
     "claimManagement": {
-      "title": "Claim Management",
-      "description": "Create and track your claims from start to finish with real-time status updates."
+      "title": "Управување со барања",
+      "description": "Креирајте и следете ги вашите барања од почеток до крај со ажурирања на статусот во реално време."
     },
     "professionalSupport": {
-      "title": "Professional Support",
-      "description": "Our expert agents will help you at every step of the process."
+      "title": "Професионална поддршка",
+      "description": "Нашите стручни агенти ќе ви помогнат во секој чекор од процесот."
     },
     "documentManagement": {
-      "title": "Document Management",
-      "description": "Upload and organize all your documents in one secure place."
+      "title": "Управување со документи",
+      "description": "Прикачете ги и организирајте ги сите ваши документи на едно безбедно место."
     },
     "messaging": {
-      "title": "Secure Communication",
-      "description": "Communicate with agents and track all conversations in one place."
+      "title": "Безбедна комуникација",
+      "description": "Комуницирајте со агентите и следете ги сите разговори на едно место."
     }
   }
 }

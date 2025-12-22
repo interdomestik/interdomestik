@@ -1,36 +1,36 @@
 {
   "memberBenefits": {
-    "title": "Membership Benefits",
-    "subtitle": "What you get as a member of our protection club",
+    "title": "Поволности за членови",
+    "subtitle": "Што добивате како член на нашиот клуб за заштита",
     "hotline": {
-      "title": "24/7 Emergency Hotline",
-      "description": "Call anytime, day or night. Our experts are always ready.",
-      "highlight": "No Waiting"
+      "title": "24/7 Итна линија",
+      "description": "Јавете се во секое време, дење или ноќе. Нашите експерти се секогаш подготвени.",
+      "highlight": "Без чекање"
     },
     "voiceClaim": {
-      "title": "Voice Claims",
-      "description": "File your claim by phone in 60 seconds. No forms, no stress.",
-      "highlight": "60 Seconds"
+      "title": "Гласовни барања",
+      "description": "Поднесете барање преку телефон за 60 секунди. Без формулари, без стрес.",
+      "highlight": "60 секунди"
     },
     "legalConsult": {
-      "title": "Legal Consultations",
-      "description": "Unlimited consultations with legal experts for any issue.",
-      "highlight": "Unlimited"
+      "title": "Правни консултации",
+      "description": "Неограничени консултации со правни експерти за секој проблем.",
+      "highlight": "Неограничено"
     },
     "calculator": {
-      "title": "Damage Calculator",
-      "description": "Calculate your damage value instantly with our tools.",
-      "highlight": "Free"
+      "title": "Калкулатор за штета",
+      "description": "Пресметајте ја вредноста на вашата штета веднаш со нашите алатки.",
+      "highlight": "Бесплатно"
     },
     "partnerDiscounts": {
-      "title": "Partner Discounts",
-      "description": "10-20% off at car services, clinics, and legal offices.",
-      "highlight": "Up to 20%"
+      "title": "Партнерски попусти",
+      "description": "10-20% попуст во автосервиси, клиники и адвокатски канцеларии.",
+      "highlight": "До 20%"
     },
     "guides": {
-      "title": "Expert Guides",
-      "description": "Checklists and guides for every type of accident and situation.",
-      "highlight": "Ready-to-Use"
+      "title": "Експертски водичи",
+      "description": "Списоци за проверка и водичи за секој тип на несреќа и ситуација.",
+      "highlight": "Подготвени за употреба"
     }
   }
 }
