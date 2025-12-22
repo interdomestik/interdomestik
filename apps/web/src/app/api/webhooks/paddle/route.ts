@@ -195,6 +195,37 @@ export async function POST(req: NextRequest) {
               `[Webhook] 💰 Commission created: €${commissionAmount} for agent ${agentId}${customRates ? ' (custom rates)' : ''}`
             );
           }
+
+          // Send Thank-you Letter to new member
+          try {
+            const userData = await db.query.user?.findFirst({
+              where: (u, { eq }) => eq(u.id, userId),
+            });
+            if (userData) {
+              const { sendThankYouLetter } = await import('@/actions/thank-you-letter');
+              const planPrice = sub.items?.[0]?.price?.unitPrice?.amount
+                ? (parseFloat(sub.items[0].price.unitPrice.amount) / 100).toFixed(2)
+                : '20.00';
+              const periodEnd = sub.currentBillingPeriod?.endsAt
+                ? new Date(sub.currentBillingPeriod.endsAt)
+                : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+              await sendThankYouLetter({
+                email: userData.email,
+                memberName: userData.name,
+                memberNumber: userData.memberNumber || `M-${userId.slice(0, 8).toUpperCase()}`,
+                planName: priceId || 'Standard',
+                planPrice: `€${planPrice}`,
+                planInterval: 'year',
+                memberSince: new Date(),
+                expiresAt: periodEnd,
+                locale: 'en',
+              });
+              console.log(`[Webhook] 📧 Thank-you Letter sent to ${userData.email}`);
+            }
+          } catch (emailError) {
+            console.error('[Webhook] Failed to send Thank-you Letter:', emailError);
+          }
         }
         break;
       }

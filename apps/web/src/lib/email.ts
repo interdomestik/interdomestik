@@ -39,7 +39,11 @@ function getSenderAddress() {
   );
 }
 
-async function sendEmail(to: string, template: { subject: string; html: string; text: string }) {
+export async function sendEmail(
+  to: string,
+  template: { subject: string; html: string; text: string },
+  options: { attachments?: { filename: string; content: Buffer | string }[] } = {}
+) {
   const client = getResendClient();
   if (!client) {
     return { success: false, error: 'Resend not configured' };
@@ -52,6 +56,7 @@ async function sendEmail(to: string, template: { subject: string; html: string; 
       subject: template.subject,
       html: template.html,
       text: template.text,
+      attachments: options.attachments,
     });
 
     return { success: true, id: response.data?.id };
