@@ -20,11 +20,12 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   });
   const agents = await getAgents();
   const t = await getTranslations('admin.users_page');
+  const tSidebar = await getTranslations('admin.sidebar');
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Members</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{tSidebar('members')}</h1>
         <p className="text-muted-foreground">{t('description')}</p>
       </div>
       <UsersFilters hideRole />
