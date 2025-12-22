@@ -1,7 +1,15 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
-import { BarChart, FileText, LayoutDashboard, Settings, Users } from 'lucide-react';
+import {
+  BarChart,
+  Briefcase,
+  FileText,
+  LayoutDashboard,
+  Settings,
+  Shield,
+  Users,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface AdminSidebarProps {
@@ -31,9 +39,19 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
       icon: FileText,
     },
     {
-      title: 'users',
+      title: 'members', // Renamed from users
       href: '/admin/users',
       icon: Users,
+    },
+    {
+      title: 'agents',
+      href: '/admin/agents',
+      icon: Briefcase,
+    },
+    {
+      title: 'staff',
+      href: '/admin/staff',
+      icon: Shield,
     },
     {
       title: 'analytics',

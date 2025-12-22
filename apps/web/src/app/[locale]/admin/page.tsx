@@ -46,7 +46,7 @@ export default async function AdminDashboardPage({
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="/admin/users">
+            <Link href="/admin/agents">
               <UserPlus className="mr-2 h-4 w-4" />
               {tAdmin('invite_agent')}
             </Link>

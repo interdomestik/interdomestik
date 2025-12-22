@@ -78,7 +78,11 @@ export async function getUsers(filters?: { search?: string; role?: string; assig
     filters?.assignment && filters.assignment !== 'all' ? filters.assignment : null;
 
   if (roleFilter) {
-    conditions.push(eq(user.role, roleFilter));
+    if (roleFilter.includes(',')) {
+      conditions.push(inArray(user.role, roleFilter.split(',')));
+    } else {
+      conditions.push(eq(user.role, roleFilter));
+    }
   }
 
   if (assignmentFilter === 'assigned') {

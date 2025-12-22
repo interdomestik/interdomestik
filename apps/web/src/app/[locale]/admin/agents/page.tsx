@@ -1,31 +1,26 @@
 import { getAgents, getUsers } from '@/actions/admin-users';
 import { UsersFilters } from '@/components/admin/users-filters';
 import { UsersSections } from '@/components/admin/users-sections';
-import { getTranslations } from 'next-intl/server';
 
 type Props = {
   searchParams: Promise<{
     search?: string;
-    role?: string;
-    assignment?: string;
   }>;
 };
 
-export default async function AdminUsersPage({ searchParams }: Props) {
+export default async function AdminAgentsPage({ searchParams }: Props) {
   const params = await searchParams;
   const users = await getUsers({
     search: params.search,
-    role: 'user',
-    assignment: params.assignment,
+    role: 'agent',
   });
   const agents = await getAgents();
-  const t = await getTranslations('admin.users_page');
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Members</h1>
-        <p className="text-muted-foreground">{t('description')}</p>
+        <h1 className="text-3xl font-bold tracking-tight">Agents</h1>
+        <p className="text-muted-foreground">Manage authorized sales agents</p>
       </div>
       <UsersFilters hideRole />
       <UsersSections users={users} agents={agents} />

@@ -3,10 +3,10 @@
 import { useRouter } from '@/i18n/routing';
 import { Badge, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 
-export function UsersFilters() {
+export function UsersFilters({ hideRole = false }: { hideRole?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations('admin.users_filters');
@@ -65,24 +65,26 @@ export function UsersFilters() {
       </div>
 
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t('labels.role')}
-          </span>
-          {roleOptions.map(option => {
-            const isActive = currentRole === option.value;
-            return (
-              <Badge
-                key={option.value}
-                variant={isActive ? 'default' : 'outline'}
-                className="cursor-pointer hover:bg-primary/10 transition-colors"
-                onClick={() => updateParams('role', option.value)}
-              >
-                {option.label}
-              </Badge>
-            );
-          })}
-        </div>
+        {!hideRole && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {t('labels.role')}
+            </span>
+            {roleOptions.map(option => {
+              const isActive = currentRole === option.value;
+              return (
+                <Badge
+                  key={option.value}
+                  variant={isActive ? 'default' : 'outline'}
+                  className="cursor-pointer hover:bg-primary/10 transition-colors"
+                  onClick={() => updateParams('role', option.value)}
+                >
+                  {option.label}
+                </Badge>
+              );
+            })}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
