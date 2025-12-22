@@ -169,6 +169,26 @@ users.push({
   password: 'AgentPassword123!',
   role: 'agent',
 });
+
+// 3. Additional Staff Users for comprehensive testing
+for (let i = 0; i < 3; i++) {
+  users.push({
+    id: `staff-user-${i}`,
+    name: `Staff Member ${i}`,
+    email: `staff-worker${i}@interdomestik.com`,
+    password: 'StaffPassword123!',
+    role: 'staff',
+  });
+}
+
+// 4. Additional Admin Users for testing
+users.push({
+  id: 'admin-user-2',
+  name: 'Admin User 2',
+  email: 'admin2@interdomestik.com',
+  password: 'AdminPassword123!',
+  role: 'admin',
+});
 // Add original claims for legacy user
 for (const c of baseClaims) {
   claims.push({
@@ -190,10 +210,11 @@ async function upsertUser({ id, name, email, role, password, agentId }) {
   const hash = await new Scrypt().hash(password);
 
   // Clean existing rows for deterministic state
-  // Delete referencing tables first
+  // Delete referencing tables first (order matters for FK constraints)
   await sql`delete from session where "userId" = ${id};`;
   await sql`delete from subscriptions where "user_id" = ${id};`;
   await sql`delete from audit_log where "actor_id" = ${id};`;
+  await sql`delete from agent_clients where agent_id = ${id} OR member_id = ${id};`;
 
   await sql`delete from account where "userId" = ${id};`;
   await sql`delete from claim where "userId" = ${id};`;
