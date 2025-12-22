@@ -44,9 +44,14 @@ vi.mock('next/headers', () => ({
   headers: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock('nanoid', () => ({
-  nanoid: () => 'test-id',
-}));
+vi.mock('nanoid', async importOriginal => {
+  const actual = await importOriginal<typeof import('nanoid')>();
+  return {
+    ...actual,
+    nanoid: () => 'test-id',
+    customAlphabet: () => () => 'ABCD',
+  };
+});
 
 describe('agent actions', () => {
   beforeEach(() => {
