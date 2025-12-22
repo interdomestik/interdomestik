@@ -1,168 +1,35 @@
 'use client';
 
-import { Link, usePathname, useRouter } from '@/i18n/routing';
-import { authClient } from '@/lib/auth-client';
+import { useDashboardNavigation } from '@/hooks/use-dashboard-navigation';
+import { Link, usePathname } from '@/i18n/routing';
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from '@interdomestik/ui';
-import {
-  BarChart3,
-  Briefcase,
-  ChevronUp,
-  FilePlus,
-  FileText,
-  FolderOpen,
-  Home,
-  LayoutDashboard,
-  LayoutTemplate,
-  LogOut,
-  Phone,
-  Settings,
-  Shield,
-  Users,
-} from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { SidebarBrand } from './sidebar-brand';
+import { SidebarUserMenu } from './sidebar-user-menu';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const t = useTranslations('nav');
-  const locale = useLocale();
-
-  const handleSignOut = async () => {
-    await authClient.signOut();
-    router.push('/login');
-  };
-
-  const { data: session } = authClient.useSession();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-
-  /* Define menus per role */
-  const memberItems = [
-    {
-      title: t('overview'),
-      href: '/dashboard',
-      icon: LayoutDashboard,
-    },
-    {
-      title: t('claims'),
-      href: '/dashboard/claims',
-      icon: FileText,
-    },
-    {
-      title: t('documents'),
-      href: '/dashboard/documents',
-      icon: FolderOpen,
-    },
-    {
-      title: t('newClaim'),
-      href: '/dashboard/claims/new',
-      icon: FilePlus,
-    },
-    {
-      title: t('consumerRights'),
-      href: '/dashboard/rights',
-      icon: Shield,
-    },
-    {
-      title: t('settings'),
-      href: '/dashboard/settings',
-      icon: Settings,
-    },
-    {
-      title: t('help'),
-      href: '/dashboard/help',
-      icon: Phone,
-    },
-  ];
-
-  const agentItems = [
-    {
-      title: t('agentCrm'),
-      href: '/agent/crm',
-      icon: BarChart3,
-    },
-    {
-      title: t('agentLeads'),
-      href: '/agent/leads',
-      icon: Users,
-    },
-    {
-      title: t('agentWorkspace'), // mapped to 'Claims' in translations usually, or "Agent Workspace" is the claims queue?
-      // t('claims') might be better if it's just status list.
-      // But /agent/claims is the route.
-      href: '/agent/claims',
-      icon: Briefcase,
-    },
-    {
-      title: t('settings'),
-      href: '/dashboard/settings',
-      icon: Settings,
-    },
-    {
-      title: t('help'),
-      href: '/dashboard/help',
-      icon: Phone,
-    },
-  ];
-
-  let items = [...memberItems];
-
-  if (role === 'agent') {
-    items = agentItems;
-  } else if (role === 'admin') {
-    // Admin sees member items + admin dashboard? Or just Admin dashboard?
-    // Usually Admin needs access to everything or a specific Admin sidebar.
-    // For now, appending Admin Dashboard to member items as before.
-    items.push({
-      title: t('adminDashboard'),
-      href: '/admin',
-      icon: LayoutTemplate,
-    });
-  }
+  const { items, role } = useDashboardNavigation();
 
   return (
     <Sidebar
       collapsible="icon"
       className="border-r border-white/10 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60"
     >
-      <SidebarHeader className="h-20 flex items-center justify-center border-b border-white/10">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-3 font-bold text-xl px-2 w-full group-data-[state=collapsed]:justify-center group hover:opacity-90 transition-opacity"
-        >
-          <div className="h-10 w-10 rounded-xl brand-gradient flex items-center justify-center text-white shadow-lg shadow-primary/25 transition-transform group-hover:scale-105 shrink-0">
-            <Shield className="h-6 w-6" />
-          </div>
-          <div className="flex flex-col group-data-[state=collapsed]:hidden animate-in fade-in duration-300">
-            <span className="leading-none bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 tracking-tight">
-              Interdomestik
-            </span>
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1">
-              {role === 'agent' ? 'Agent Portal' : 'Member Portal'}
-            </span>
-          </div>
-        </Link>
-      </SidebarHeader>
+      <SidebarBrand role={role} />
+
       <SidebarContent className="px-3 py-4">
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-widest px-4 mb-2">
@@ -210,111 +77,9 @@ export function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter className="p-2 border-t border-white/10">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-xl hover:bg-muted/50 transition-colors"
-                >
-                  <Avatar className="h-8 w-8 rounded-lg bg-primary/10 text-primary">
-                    <AvatarImage src={session?.user?.image || ''} alt={session?.user?.name || ''} />
-                    <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold">
-                      {session?.user?.name?.[0]?.toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{session?.user?.name}</span>
-                    <span className="truncate text-xs text-muted-foreground capitalize">
-                      {role}
-                    </span>
-                  </div>
-                  <ChevronUp className="ml-auto size-4 text-muted-foreground" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                side="bottom"
-                align="end"
-                sideOffset={4}
-              >
-                <DropdownMenuLabel className="p-0 font-normal">
-                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage
-                        src={session?.user?.image || ''}
-                        alt={session?.user?.name || ''}
-                      />
-                      <AvatarFallback className="rounded-lg">
-                        {session?.user?.name?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">{session?.user?.name}</span>
-                      <span className="truncate text-xs">{session?.user?.email}</span>
-                    </div>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/" className="cursor-pointer">
-                    <Home className="mr-2 h-4 w-4" />
-                    Back to Website
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer">
-                    <Globe className="mr-2 h-4 w-4" />
-                    <span>Language</span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem
-                        onClick={() => router.replace(pathname, { locale: 'en' })}
-                        className="cursor-pointer"
-                      >
-                        <span className="mr-2">🇬🇧</span> English
-                        {locale === 'en' && <Check className="ml-auto h-4 w-4" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => router.replace(pathname, { locale: 'sq' })}
-                        className="cursor-pointer"
-                      >
-                        <span className="mr-2">🇦🇱</span> Shqip
-                        {locale === 'sq' && <Check className="ml-auto h-4 w-4" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => router.replace(pathname, { locale: 'mk' })}
-                        className="cursor-pointer"
-                      >
-                        <span className="mr-2">🇲🇰</span> Македонски
-                        {locale === 'mk' && <Check className="ml-auto h-4 w-4" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => router.replace(pathname, { locale: 'sr' })}
-                        className="cursor-pointer"
-                      >
-                        <span className="mr-2">🇷🇸</span> Srpski
-                        {locale === 'sr' && <Check className="ml-auto h-4 w-4" />}
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleSignOut}
-                  className="text-red-500 focus:text-red-500 cursor-pointer"
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <SidebarUserMenu />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
