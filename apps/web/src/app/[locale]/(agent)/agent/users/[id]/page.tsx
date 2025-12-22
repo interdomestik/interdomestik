@@ -1,3 +1,4 @@
+import { MemberNotesCard } from '@/components/agent/member-notes-card';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
@@ -5,8 +6,8 @@ import { db } from '@interdomestik/database/db';
 import {
   claims,
   subscriptions,
-  user as userTable,
   userNotificationPreferences,
+  user as userTable,
 } from '@interdomestik/database/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
@@ -56,7 +57,7 @@ export default async function AgentMemberProfilePage({
     return notFound();
   }
 
-  const t = await getTranslations('agent.member_profile');
+  const t = await getTranslations('agent-members.members.profile');
   const tCommon = await getTranslations('common');
   const tClaims = await getTranslations('claims');
 
@@ -166,7 +167,9 @@ export default async function AgentMemberProfilePage({
           <div className="grid gap-2 text-sm text-muted-foreground">
             <div>
               <span className="font-medium text-foreground">{t('labels.member_id')}:</span>{' '}
-              {member.id}
+              <span className="font-mono">
+                {member.memberNumber || `ID-${member.id.slice(0, 8).toUpperCase()}`}
+              </span>
             </div>
             <div>
               <span className="font-medium text-foreground">{t('labels.joined')}:</span>{' '}
@@ -372,6 +375,9 @@ export default async function AgentMemberProfilePage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Member Notes Section */}
+      <MemberNotesCard memberId={member.id} memberName={member.name || t('labels.unknown')} />
     </div>
   );
 }
