@@ -74,87 +74,124 @@ export async function generateThankYouPDF(params: ThankYouLetterParams): Promise
   });
   yPosition -= 40;
 
-  // Membership Details Box
+  // Digital Member Card Visual
+  // Standard Credit Card Size: 85.6mm x 53.98mm -> ~243pt x 153pt
+  const cardWidth = 280;
+  const cardHeight = 170;
+  const cardX = margin;
+  const cardY = yPosition - cardHeight - 10;
+
+  // Card Background (Dark Slate)
   page.drawRectangle({
-    x: margin,
-    y: yPosition - 100,
-    width: width - margin * 2,
-    height: 100,
-    color: rgb(0.97, 0.98, 0.99),
-    borderColor: rgb(0.9, 0.9, 0.9),
+    x: cardX,
+    y: cardY,
+    width: cardWidth,
+    height: cardHeight,
+    color: rgb(0.1, 0.1, 0.15), // Dark background
+    borderColor: rgb(0.2, 0.2, 0.3),
     borderWidth: 1,
+    // Note: pdf-lib drawRectangle doesn't support rounded corners directly in this version
+    // but the aesthetic will be clean dark card
   });
 
-  const detailX = margin + 20;
-  let detailY = yPosition - 30;
-
-  // Row 1
-  page.drawText(params.locale === 'sq' ? 'NUMRI I ANËTARIT' : 'MEMBER NUMBER', {
-    x: detailX,
-    y: detailY,
-    size: 9,
+  // Card Header: Asistenca + Logo
+  page.drawText('Asistenca', {
+    x: cardX + 20,
+    y: cardY + cardHeight - 35,
+    size: 18,
     font: boldFont,
-    color: rgb(0.5, 0.5, 0.5),
+    color: rgb(1, 1, 1),
+  });
+
+  const activeLabel = params.locale === 'sq' ? 'AKTIV' : 'ACTIVE';
+  // Active Badge
+  page.drawRectangle({
+    x: cardX + cardWidth - 70,
+    y: cardY + cardHeight - 35,
+    width: 50,
+    height: 18,
+    color: rgb(1, 1, 1),
+  });
+  page.drawText(activeLabel, {
+    x: cardX + cardWidth - 65,
+    y: cardY + cardHeight - 31,
+    size: 10,
+    font: boldFont,
+    color: rgb(0.06, 0.46, 0.43), // Brand green text
+  });
+
+  // Member Name
+  page.drawText(params.memberName, {
+    x: cardX + 20,
+    y: cardY + 45,
+    size: 16,
+    font: boldFont,
+    color: rgb(1, 1, 1),
+  });
+
+  // Member ID Label & Value
+  page.drawText('ID:', {
+    x: cardX + 20,
+    y: cardY + 80,
+    size: 9,
+    font: font,
+    color: rgb(0.7, 0.7, 0.7),
   });
   page.drawText(params.memberNumber, {
-    x: detailX,
-    y: detailY - 15,
-    size: 14,
-    font: boldFont,
-    color: rgb(0.06, 0.46, 0.43),
-  });
-
-  // Row 2
-  const rightColX = detailX + 250;
-
-  page.drawText(params.locale === 'sq' ? 'PLANI' : 'PLAN', {
-    x: rightColX,
-    y: detailY,
-    size: 9,
-    font: boldFont,
-    color: rgb(0.5, 0.5, 0.5),
-  });
-  page.drawText(`${params.planName}`, {
-    x: rightColX,
-    y: detailY - 15,
+    x: cardX + 20,
+    y: cardY + 65,
     size: 12,
-    font: font,
-    color: rgb(0.1, 0.1, 0.1),
+    font: font, // Monospace-like if available, or Helvetica
+    color: rgb(1, 1, 1),
   });
 
-  detailY -= 50;
-
-  page.drawText(params.locale === 'sq' ? 'E VLEFSHME NGA' : 'VALID FROM', {
-    x: detailX,
-    y: detailY,
-    size: 9,
+  // Plan & Expiry
+  page.drawText(params.planName.toUpperCase(), {
+    x: cardX + 20,
+    y: cardY + 110, // Higher up
+    size: 10,
     font: boldFont,
-    color: rgb(0.5, 0.5, 0.5),
-  });
-  page.drawText(params.memberSince, {
-    x: detailX,
-    y: detailY - 15,
-    size: 12,
-    font: font,
-    color: rgb(0.1, 0.1, 0.1),
+    color: rgb(0.6, 0.8, 1), // Light blue tint
   });
 
-  page.drawText(params.locale === 'sq' ? 'SKADON MË' : 'EXPIRES AT', {
-    x: rightColX,
-    y: detailY,
+  page.drawText(`${params.locale === 'sq' ? 'Skadon' : 'Exp'}: ${params.expiresAt}`, {
+    x: cardX + 20,
+    y: cardY + 20,
     size: 9,
-    font: boldFont,
-    color: rgb(0.5, 0.5, 0.5),
-  });
-  page.drawText(params.expiresAt, {
-    x: rightColX,
-    y: detailY - 15,
-    size: 12,
     font: font,
-    color: rgb(0.1, 0.1, 0.1),
+    color: rgb(0.7, 0.7, 0.7),
   });
 
-  yPosition -= 140;
+  yPosition = cardY; // Update cursor
+
+  // Embed QR code ON the card
+  if (params.qrCodeDataUrl) {
+    try {
+      const qrImageBytes = Buffer.from(params.qrCodeDataUrl.split(',')[1], 'base64');
+      const qrImage = await pdfDoc.embedPng(qrImageBytes);
+      const qrDims = qrImage.scale(0.4); // Smaller for card
+
+      // Draw white background for QR
+      page.drawRectangle({
+        x: cardX + cardWidth - qrDims.width - 20 - 2,
+        y: cardY + 20 - 2,
+        width: qrDims.width + 4,
+        height: qrDims.height + 4,
+        color: rgb(1, 1, 1),
+      });
+
+      page.drawImage(qrImage, {
+        x: cardX + cardWidth - qrDims.width - 20,
+        y: cardY + 20,
+        width: qrDims.width,
+        height: qrDims.height,
+      });
+    } catch {
+      // Ignore
+    }
+  }
+
+  yPosition -= 40; // Space below card
 
   // Benefits
   page.drawText(params.locale === 'sq' ? 'PËRFITIMET KRYESORE' : 'KEY BENEFITS', {
@@ -205,24 +242,6 @@ export async function generateThankYouPDF(params: ThankYouLetterParams): Promise
     font: font,
     color: rgb(0.5, 0.5, 0.5),
   });
-
-  // Embed QR code if available
-  if (params.qrCodeDataUrl) {
-    try {
-      const qrImageBytes = Buffer.from(params.qrCodeDataUrl.split(',')[1], 'base64');
-      const qrImage = await pdfDoc.embedPng(qrImageBytes);
-      const qrDims = qrImage.scale(0.5);
-
-      page.drawImage(qrImage, {
-        x: width - margin - qrDims.width,
-        y: height - 135, // Position in header area
-        width: qrDims.width,
-        height: qrDims.height,
-      });
-    } catch {
-      // Ignore QR embedding error
-    }
-  }
 
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
