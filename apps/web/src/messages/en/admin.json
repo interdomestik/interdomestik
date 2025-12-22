@@ -2,8 +2,11 @@
   "admin": {
     "sidebar": {
       "dashboard": "Dashboard",
-      "claims": "Claims",
+      "claims": "Case Management",
       "users": "Users",
+      "members": "Members",
+      "agents": "Agents",
+      "staff": "Staff",
       "analytics": "Analytics",
       "settings": "Settings"
     },

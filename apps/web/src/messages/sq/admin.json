@@ -2,8 +2,11 @@
   "admin": {
     "sidebar": {
       "dashboard": "Paneli",
-      "claims": "Kërkesat për Dëmshpërblim",
+      "claims": "Menaxhimi i Rastit",
       "users": "Përdoruesit",
+      "members": "Anëtarë",
+      "agents": "Agjentë",
+      "staff": "Staf",
       "analytics": "Analitika",
       "settings": "Cilësimet"
     },
