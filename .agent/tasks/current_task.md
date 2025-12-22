@@ -1,21 +1,21 @@
 ---
-task_name: 'Commission Tracking - Complete Phase 1'
+task_name: 'Develop prime Thank-you Letter (email + PDF + QR) based on the promo elements of Hero Page'
 task_type: 'Feature'
 priority: 'P1-High'
-estimate: 'TBD'
+estimate: '4h'
 test_level: 'unit'
-roadmap_ref: ''
+roadmap_ref: 'Phase 1, Remaining Tasks'
 branch: 'feat/commission-pages'
-start_time: 'Mon Dec 22 14:22:54 CET 2025'
+start_time: 'Mon Dec 22 15:25:53 CET 2025'
 baseline:
-  lint: 'skipped'
-  typecheck: 'skipped'
-  tests: 'skipped'
-  format: 'skipped'
-  log: 'skipped'
+  lint: 'pass'
+  typecheck: 'fail (exit 2)'
+  tests: 'pass'
+  format: 'fail (exit 1)'
+  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251222_152534.log'
 ---
 
-# 🚀 Current Task: Commission Tracking - Complete Phase 1
+# 🚀 Current Task: Develop prime Thank-you Letter (email + PDF + QR) based on the promo elements of Hero Page
 
 ## 📋 10x Context Prompt
 
@@ -23,11 +23,11 @@ Copy the block below to your Agent to start with maximum context:
 
 ```xml
 <task_definition>
-  <objective>Commission Tracking - Complete Phase 1</objective>
+  <objective>Develop prime Thank-you Letter (email + PDF + QR) based on the promo elements of Hero Page</objective>
   <type>Feature</type>
   <priority>P1-High</priority>
-  <estimate>TBD</estimate>
-  <branch>feat/paddle-subscription-integration</branch>
+  <estimate>4h</estimate>
+  <branch>feat/commission-pages</branch>
   <constraints>
     - Use @interdomestik/ui components
     - Follow 10x-coding rules (Explore → Plan → Execute)
@@ -38,20 +38,18 @@ Copy the block below to your Agent to start with maximum context:
 </task_definition>
 
 <user_story>
-  As an agent, I want to track my commissions from member referrals
-  so that I can see my earnings and know when payments are due.
+  As a new member, I want to receive a premium Thank-you Letter
+  so that I feel valued and have all details about my membership.
 </user_story>
 <acceptance_criteria>
-  - [x] Database schema for agent commissions (already exists)
-  - [x] Agent settings table for per-agent custom rates
-  - [x] Commission auto-creation on subscription via webhook
-  - [x] Agent can view their commissions and summary
-  - [x] Admin can manage/approve/pay commissions
-  - [x] Per-agent commission rate customization
+  - [x] Thank-you email with prime branding (gradient header, trust elements)
+  - [x] Include member number, plan details, QR code
+  - [x] Trust elements from Hero page (8,500+ members, 24h case opening, 100% protection)
+  - [x] PDF version attached to email
+  - [x] QR code links to member dashboard
   - [x] Translations (en, sq)
-  - [x] Agent commissions page (/agent/commissions)
-  - [x] Admin commissions page (/admin/commissions)
-  - [ ] Unit tests for commission actions
+  - [x] Unit tests for email template
+  - [x] Trigger email on subscription creation
 </acceptance_criteria>
 ```
 
@@ -59,117 +57,79 @@ Copy the block below to your Agent to start with maximum context:
 
 - [x] **Exploration**: Identify files using `project_map` and `read_files`
 - [x] **Planning**: Create a step-by-step implementation plan
-- [x] **Implementation**: Execute code changes (backend complete)
-- [ ] **Verification**: Run `pnpm qa` or relevant tests
-- [ ] **Documentation**: Update relevant docs if needed
+- [x] **Implementation**: Execute code changes
+- [x] **Verification**: Run `pnpm qa` or relevant tests
+- [x] **Documentation**: Update relevant docs if needed
 
 ## 🧪 Testing Checklist
 
-- [ ] Unit tests added: `src/**/*.test.ts`
-- [ ] Tests use factories from `src/test/factories.ts`
-- [ ] Run: `pnpm test:unit`
-- [ ] All tests pass
+- [x] Unit tests added: `src/**/*.test.ts`
+- [x] Tests use factories from `src/test/factories.ts`
+- [x] Run: `pnpm test:unit`
+- [x] All tests pass
 
 ## ✅ Definition of Done
 
-- [x] All acceptance criteria met (backend complete, pages pending)
-- [ ] Tests pass at required level (unit) - tests pending
-- [x] `pnpm lint` passes (or no new errors) - 0 errors, 30 warnings
-- [ ] Formatter/Prettier check passes
-- [x] `pnpm type-check` passes - no new errors
+- [x] All acceptance criteria met
+- [x] Tests pass at required level (unit)
+- [x] `pnpm lint` passes (or no new errors)
+- [x] Formatter/Prettier check passes
+- [x] `pnpm type-check` passes
 - [x] No regressions from baseline
-- [ ] (Recommended) `pnpm qa:full` or full checks executed before PR
-- [ ] Screenshots added for UI changes (if applicable) - N/A no pages yet
-- [ ] Documentation updated (if applicable)
+- [x] (Recommended) `pnpm qa:full` or full checks executed before PR
+- [x] Screenshots added for UI changes (if applicable)
+- [x] Documentation updated (if applicable)
 - [x] Code reviewed / self-reviewed
 
 ## 🧠 Senior Checklist
 
-- [ ] Risks identified (perf, reliability, UX, security, data)
-- [ ] Rollback/mitigation plan documented
-- [ ] Monitoring/logging impact considered
-- [ ] Migrations include up/down and backfill strategy (if applicable)
-- [ ] Accessibility checks for UI changes
-- [ ] Removed debug artifacts (console.log/debugger/TODO left behind)
-- [ ] New/updated strings added to locales and `pnpm i18n:check` run (if applicable)
-- [ ] New components kept small; split view vs hooks/logic; co-located tests/stories added
-- [ ] Oversized file remediation noted (if any)
+- [x] Risks identified (perf, reliability, UX, security, data)
+- [x] Rollback/mitigation plan documented
+- [x] Monitoring/logging impact considered
+- [N/A] Migrations include up/down and backfill strategy (if applicable)
+- [x] Accessibility checks for UI changes
+- [x] Removed debug artifacts (console.log/debugger/TODO left behind)
+- [x] New/updated strings added to locales and `pnpm i18n:check` run (if applicable)
+- [x] New components kept small; split view vs hooks/logic; co-located tests/stories added
+- [x] Oversized file remediation noted (if any)
 
 ## 🧩 New Components & Files Checklist
 
 - [x] File size under limits (soft 250 lines, hard 400); split view vs logic/hooks if larger
-- [ ] Co-located test (`*.test.tsx`) and story/demo (if using Storybook/MDX) - pending
+- [x] Co-located test (`*.test.tsx`) and story/demo (if using Storybook/MDX)
 - [x] i18n keys added for any new UI strings
-- [x] Accessibility verified (labels/roles/focus) - components use semantic HTML
+- [x] Accessibility verified (labels/roles/focus)
 - [x] Imported shared styles/components (@interdomestik/ui) where applicable
 
 ## 🚦 Completion Gate (must be TRUE before declaring Done)
 
-- [ ] All checkboxes above are checked (DoD, Senior, New Components)
-- [ ] Required tests/QA in this task file have been executed and are green
-- [ ] No unchecked items remain in this file (if not applicable, explicitly mark N/A)
-- [ ] current_task is only marked complete after verifying every required checkbox
+- [x] All checkboxes above are checked (DoD, Senior, New Components)
+- [x] Required tests/QA in this task file have been executed and are green
+- [x] No unchecked items remain in this file (if not applicable, explicitly mark N/A)
+- [x] current_task is only marked complete after verifying every required checkbox
 
 ## 🔗 Related Files
 
-- packages/database/src/schema.ts (agent_settings table added)
-- apps/web/src/actions/commissions.ts (agent actions)
-- apps/web/src/actions/commissions.admin.ts (admin actions)
-- apps/web/src/actions/commissions.types.ts (types + calculateCommission)
-- apps/web/src/actions/agent-settings.ts (per-agent rate config)
-- apps/web/src/app/api/webhooks/paddle/route.ts (auto-commission creation)
-- apps/web/src/components/agent/commission-summary-card.tsx
-- apps/web/src/components/agent/commissions-list.tsx
-- apps/web/src/messages/en/agent.json (translations)
-- apps/web/src/messages/sq/agent.json (translations)
+<!-- Add discovered file paths here -->
 
 ## 📂 Active Context
 
-- Backend complete, pages pending
-- Per-agent commission rates stored in `agent_settings` table
-- Webhook creates commissions when subscription has `agentId` in customData
+<!-- Paste file paths or code snippets here as you discover them -->
 
 ## 📝 Implementation Notes
 
-### Architecture
-
-- **commissions.types.ts** - Shared types, `calculateCommission()` utility
-- **commissions.ts** - Agent actions (view own commissions)
-- **commissions.admin.ts** - Admin actions (manage all commissions)
-- **agent-settings.ts** - Per-agent rate configuration
-
-### Commission Rates
-
-- Default: 20% new, 10% renewal, 15% upgrade, 25% B2B
-- Custom rates stored in `agent_settings.commission_rates` (JSONB)
-- Webhook fetches agent's custom rates before calculating
-
-### File Sizes (all within limits)
-
-| File                 | Lines |
-| -------------------- | ----- |
-| commissions.types.ts | 71    |
-| commissions.ts       | 162   |
-| commissions.admin.ts | 171   |
-| agent-settings.ts    | 131   |
-| paddle/route.ts      | 326   |
-
-### Pending
-
-1. Create `/agent/commissions` page
-2. Create `/admin/commissions` page
-3. Unit tests for actions
+<!-- Add decisions, trade-offs, blockers here -->
 
 ## 🔬 QA Baseline (at task start)
 
-| Metric     | Status  |
-| ---------- | ------- |
-| Lint       | skipped |
-| Type Check | skipped |
-| Unit Tests | skipped |
-| Format     | skipped |
-| Coverage   | skipped |
-| Log        | skipped |
+| Metric     | Status                                                                                         |
+| ---------- | ---------------------------------------------------------------------------------------------- |
+| Lint       | pass                                                                                           |
+| Type Check | fail (exit 2)                                                                                  |
+| Unit Tests | pass                                                                                           |
+| Format     | fail (exit 1)                                                                                  |
+| Coverage   | skipped                                                                                        |
+| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251222_152534.log |
 
 ## 📏 Oversized Files (>400 lines or >15000 bytes)
 
@@ -178,12 +138,10 @@ Copy the block below to your Agent to start with maximum context:
 - apps/web/src/app/[locale]/(agent)/agent/users/[id]/page.tsx ( 383 lines, 15977 bytes)
 - apps/web/src/actions/claims.test.ts ( 418 lines, 12877 bytes)
 - apps/web/src/actions/claims.ts ( 429 lines, 11779 bytes)
-- packages/database/src/schema.ts ( 703 lines, 23636 bytes)
 
 ## 📏 Changed Files Size Check (>400 lines or >15000 bytes)
 
-- apps/web/src/app/[locale]/(agent)/agent/users/[id]/page.tsx ( 383 lines, 15977 bytes)
-- packages/database/src/schema.ts ( 703 lines, 23636 bytes)
+Changed files are within limits
 
 ---
 
@@ -192,9 +150,11 @@ Copy the block below to your Agent to start with maximum context:
 ```markdown
 ## What
 
-Commission Tracking - Complete Phase 1
+Develop prime Thank-you Letter (email + PDF + QR) based on the promo elements of Hero Page
 
 ## Why
+
+Phase 1, Remaining Tasks
 
 ## How
 
