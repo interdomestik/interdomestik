@@ -1,0 +1,61 @@
+{
+  "agent-claims": {
+    "claims": {
+      "queue": "Claims Queue",
+      "manage_triage": "Manage and triage all submitted claims.",
+      "table": {
+        "claimant": "Claimant",
+        "claim": "Claim",
+        "status": "Status",
+        "amount": "Amount",
+        "date": "Date",
+        "actions": "Actions",
+        "triage": "Triage",
+        "message_alert": "New message ({count})",
+        "no_claims": "No claims found.",
+        "no_claims_ready": "Claim List Component Coming Soon",
+        "recent_activity": "Recent Activity"
+      },
+      "actions": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "requestInfo": "Request Info",
+        "review": "Review Case"
+      },
+      "details": {
+        "title": "Claim Details",
+        "claimantInfo": "Claimant Information",
+        "name": "Name",
+        "email": "Email",
+        "description": "Description",
+        "amount": "Amount",
+        "company": "Subject / Company",
+        "title_label": "Title",
+        "category_label": "Category",
+        "status_label": "Status",
+        "evidence": "Evidence Files",
+        "noEvidence": "No documents uploaded.",
+        "notes": "Internal Notes",
+        "notesPlaceholder": "Private agent notes feature coming soon.",
+        "timeline": "Case Timeline",
+        "no_messages": "No interaction history yet.",
+        "message_placeholder": "Type a message or internal note...",
+        "internal_note": "Internal Note",
+        "send_message": "Send Message",
+        "incident_date": "Incident Date",
+        "messages": "Messages",
+        "documents": "Documents",
+        "no_documents": "No documents uploaded",
+        "unknown_date": "Unknown date"
+      },
+      "triage": {
+        "title": "Triage Actions",
+        "changeStatus": "Change Status",
+        "selectStatus": "Select status",
+        "verify": "Verify Info",
+        "reject": "Reject Claim",
+        "notice": "Changing status updates the user's timeline immediately."
+      }
+    }
+  }
+}

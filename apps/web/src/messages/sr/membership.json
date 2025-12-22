@@ -1,21 +1,71 @@
 {
   "membership": {
+    "page": {
+      "title": "Članstvo",
+      "description": "Upravljajte pretplatom i detaljima plana."
+    },
+    "plan": {
+      "title": "Trenutni plan",
+      "description": "Vaš nivo zaštite",
+      "active": "Aktivan",
+      "plan_label": "Plan",
+      "status_label": "Status",
+      "renews_label": "Obnavlja se",
+      "na": "N/A",
+      "no_membership": "Nema aktivnog članstva",
+      "manage_button": "Upravljaj pretplatom",
+      "cancel_button": "Otkaži pretplatu",
+      "cancel_confirm": "Da li ste sigurni da želite da otkažete? Izgubit ćete pristup na kraju perioda naplate.",
+      "view_plans_button": "Pogledaj planove"
+    },
+    "benefits": {
+      "title": "Korišćenje i pogodnosti",
+      "description_active": "Pogodnosti vašeg članstva",
+      "description_inactive": "Pridružite se za pristup pogodnostima",
+      "hotline": "24/7 Hitna linija",
+      "voice_claim": "Glasovno podnošenje zahteva",
+      "legal": "Pravne konsultacije",
+      "discounts": "Partnerski popusti",
+      "restore_message": "Ažurirajte plaćanje za vraćanje pristupa pogodnostima.",
+      "activate_message": "Koristite stranicu sa cenama za aktivaciju zaštite."
+    },
+    "dunning": {
+      "payment_failed_title": "Plaćanje neuspešno - {daysRemaining} dana preostalo",
+      "payment_failed_message": "Vaše poslednje plaćanje nije uspelo. Ažurirajte način plaćanja da biste izbegli gubitak pogodnosti članstva.",
+      "grace_period_ends": "Grejs period završava: {date}",
+      "update_payment_button": "Ažuriraj način plaćanja",
+      "suspended_title": "Članstvo suspendovano",
+      "suspended_message": "Vaš grejs period je istekao i članstvo je sada suspendovano. Ažurirajte način plaćanja za vraćanje pristupa.",
+      "payment_issue": "Problem sa plaćanjem",
+      "days_to_update": "⏳ {daysRemaining} dana za ažuriranje plaćanja",
+      "payment_attempts": "Pokušaji plaćanja: {count}"
+    },
     "success": {
-      "title": "Welcome to Interdomestik!",
-      "subtitle": "Your protection is now active. You are officially part of our club.",
-      "hotline_label": "24/7 EMERGENCY HOTLINE",
+      "title": "Dobrodošli u Interdomestik!",
+      "subtitle": "Vaša zaštita je sada aktivna. Zvanično ste deo našeg kluba.",
+      "hotline_label": "24/7 HITNA LINIJA",
       "hotline_number": "+383 49 123 456",
-      "hotline_hint": "Save this number to your phone now",
-      "card_label": "Your Digital Protection Card",
-      "card_id_prefix": "MEMBER ID:",
-      "cta_wallet": "Add to Apple/Google Wallet",
-      "cta_save_contact": "Save Hotline to Contacts",
-      "cta_dashboard": "Go to Dashboard",
-      "benefits_title": "Getting Started",
-      "benefits_1": "Access legal consultations anytime",
-      "benefits_2": "Calculate damages in 60 seconds",
-      "benefits_3": "Download accident checklists",
-      "benefits_4": "One-call voice claim filing"
+      "hotline_hint": "Sačuvajte ovaj broj u telefonu sada",
+      "card_label": "Vaša digitalna kartica zaštite",
+      "card_id_prefix": "ID ČLANA:",
+      "cta_wallet": "Dodaj u Apple/Google Wallet",
+      "cta_install": "Instaliraj aplikaciju",
+      "cta_save_contact": "Sačuvaj liniju u kontaktima",
+      "cta_dashboard": "Idi na kontrolnu tablu",
+      "benefits_title": "Početak",
+      "benefits_1": "Pristup pravnim konsultacijama bilo kada",
+      "benefits_2": "Izračunaj štetu za 60 sekundi",
+      "benefits_3": "Preuzmi kontrolne liste za nesreće",
+      "benefits_4": "Podnošenje zahteva jednim pozivom"
+    },
+    "card": {
+      "title": "Digitalna ID kartica",
+      "subtitle": "Vaš članski identitet",
+      "description": "Pokažite ovu karticu za verifikaciju tokom hitnih slučajeva ili na partnerskim lokacijama.",
+      "member_since": "Član od",
+      "valid_thru": "Važi do",
+      "emergency_hotline": "Hitna linija",
+      "back_to_dashboard": "Nazad na kontrolnu tablu"
     }
   }
 }

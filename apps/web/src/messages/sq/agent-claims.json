@@ -1,0 +1,61 @@
+{
+  "agent-claims": {
+    "claims": {
+      "queue": "Radha e Kërkesave për Dëmshpërblim",
+      "manage_triage": "Menaxho dhe vlerëso të gjitha kërkesat e dorëzuara për dëmshpërblim.",
+      "table": {
+        "claimant": "Ankuesi",
+        "claim": "Kërkesa për Dëmshpërblim",
+        "status": "Statusi",
+        "amount": "Shuma",
+        "date": "Data",
+        "actions": "Veprime",
+        "triage": "Vlerësim",
+        "message_alert": "Mesazh i ri ({count})",
+        "no_claims": "Nuk u gjet asnjë kërkesë për dëmshpërblim.",
+        "no_claims_ready": "Lista e kërkesave për dëmshpërblim vjen së shpejti",
+        "recent_activity": "Aktiviteti i Fundit"
+      },
+      "actions": {
+        "approve": "Aprovo",
+        "reject": "Refuzo",
+        "requestInfo": "Kërko Info",
+        "review": "Rishiko Rastin"
+      },
+      "details": {
+        "title": "Detajet e Kërkesës për Dëmshpërblim",
+        "claimantInfo": "Informacioni i Kërkuesit",
+        "name": "Emri",
+        "email": "Email",
+        "description": "Përshkrimi",
+        "amount": "Shuma",
+        "company": "Subjekti / Kompania",
+        "title_label": "Titulli",
+        "category_label": "Kategoria",
+        "status_label": "Statusi",
+        "evidence": "Dosjet e Dëshmive",
+        "noEvidence": "Nuk ka dokumente të ngarkuara.",
+        "notes": "Shënime të Brendshme",
+        "notesPlaceholder": "Opsioni i shënimeve private të agjentit vjen së shpejti.",
+        "timeline": "Kronologjia e Rastit",
+        "no_messages": "Nuk ka ende histori ndërveprimesh.",
+        "message_placeholder": "Shkruani një mesazh ose shënim të brendshëm...",
+        "internal_note": "Shënim i Brendshëm",
+        "send_message": "Dërgo Mesazh",
+        "incident_date": "Data e Incidentit",
+        "messages": "Mesazhet",
+        "documents": "Dokumentet",
+        "no_documents": "Nuk ka dokumente të ngarkuara",
+        "unknown_date": "Datë e panjohur"
+      },
+      "triage": {
+        "title": "Veprimet e Vlerësimit",
+        "changeStatus": "Ndrysho Statusin",
+        "selectStatus": "Zgjidh statusin",
+        "verify": "Verifiko Info",
+        "reject": "Refuzo Kërkesën për Dëmshpërblim",
+        "notice": "Ndryshimi i statusit përditëson menjëherë kohështrirjen e përdoruesit."
+      }
+    }
+  }
+}

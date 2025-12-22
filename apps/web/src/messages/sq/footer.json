@@ -16,7 +16,14 @@
     "faq": "FAQ",
     "social": "Na Ndiqni",
     "hours": "Orari: {hours}",
-    "copyright": "© {year} Interdomestik. Të gjitha të drejtat e rezervuara.",
-    "disclaimer": "Shërbim i asistencës për kërkesa për dëmshpërblim. Nuk jemi zyrë avokatie. Nuk jemi shërbime emergjente."
+    "copyright": "© {year} {appName}. Të gjitha të drejtat e rezervuara.",
+    "disclaimer": "Shërbim i asistencës për kërkesa për dëmshpërblim. Nuk jemi zyrë avokatie. Nuk jemi shërbime emergjente.",
+    "hotlineLabel": "Linja 24/7",
+    "chatWithUs": "Bisedo me ne",
+    "emailUs": "Na dërgoni email",
+    "membership": "Anëtarësimi",
+    "plansPricing": "Planet & Çmimet",
+    "joinClub": "Bashkohu me ne",
+    "memberLogin": "Kyçja e Anëtarëve"
   }
 }

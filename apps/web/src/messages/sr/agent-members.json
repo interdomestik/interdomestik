@@ -1,0 +1,108 @@
+{
+  "agent-members": {
+    "members": {
+      "page": {
+        "title": "Članovi",
+        "description": "Vaši dodeljeni članovi i aktivni razgovori.",
+        "register_member": "Registruj člana"
+      },
+      "register": {
+        "title": "Registruj novog člana",
+        "description": "Ručno registrujte člana i aktivirajte njegovo članstvo.",
+        "form": {
+          "full_name": "Puno ime",
+          "full_name_placeholder": "npr. Marko Marković",
+          "email": "Email",
+          "email_placeholder": "marko@example.com",
+          "phone": "Telefon",
+          "phone_placeholder": "+381 63 ...",
+          "plan": "Plan članstva",
+          "select_plan": "Izaberi plan",
+          "notes": "Beleške",
+          "notes_placeholder": "Dodatni detalji...",
+          "cancel": "Otkaži",
+          "submit": "Registruj člana"
+        },
+        "plans": {
+          "standard": "Standard (€ 20/godišnje)",
+          "family": "Porodični (€ 35/godišnje)"
+        }
+      },
+      "panel": {
+        "title": "Moji članovi",
+        "description": "Članovi kojima je potrebna vaša pažnja sada.",
+        "empty": "Još nema dodeljenih članova.",
+        "view_all": "Pogledaj sve članove"
+      },
+      "profile": {
+        "actions": {
+          "back": "Nazad na članove",
+          "view_claim": "Pogledaj zahtev"
+        },
+        "sections": {
+          "membership": "Članstvo",
+          "agent": "Dodeljeni agent",
+          "preferences": "Podešavanja notifikacija",
+          "claims_overview": "Pregled zahteva",
+          "recent_claims": "Nedavni zahtevi"
+        },
+        "labels": {
+          "member_id": "ID člana",
+          "joined": "Pridružen",
+          "email_verified_yes": "Email verifikovan",
+          "email_verified_no": "Email nije verifikovan",
+          "status": "Status",
+          "plan": "Plan",
+          "period_end": "Kraj perioda",
+          "cancel_at_period_end": "Otkaži na kraju perioda",
+          "no_agent": "Nema dodeljenog agenta",
+          "preferences_unset": "Podešavanja nisu postavljena",
+          "no_claims": "Još nema zahteva",
+          "unknown": "Nepoznato",
+          "not_set": "Nije postavljeno"
+        },
+        "status": {
+          "active": "Aktivan",
+          "past_due": "Dospeo",
+          "paused": "Pauziran",
+          "canceled": "Otkazan",
+          "none": "Bez pretplate"
+        },
+        "preferences": {
+          "email_claims": "Email ažuriranja zahteva",
+          "email_newsletter": "Email bilten",
+          "email_marketing": "Email marketing",
+          "push_claims": "Push ažuriranja zahteva",
+          "push_messages": "Push poruke",
+          "in_app": "Notifikacije u aplikaciji"
+        },
+        "claims": {
+          "total": "Ukupno zahteva",
+          "open": "Otvoreni zahtevi",
+          "resolved": "Rešeni",
+          "rejected": "Odbijeni"
+        }
+      },
+      "filters": {
+        "search_placeholder": "Pretraži po imenu ili emailu"
+      },
+      "table": {
+        "sections": {
+          "attention": "Potrebna pažnja",
+          "all": "Svi članovi"
+        },
+        "headers": {
+          "user": "Član",
+          "status": "Status",
+          "plan": "Plan",
+          "period_end": "Ističe",
+          "actions": "Radnje"
+        },
+        "view_profile": "Pogledaj profil",
+        "view_claims": "Pogledaj zahteve",
+        "message_alert": "Nova poruka ({count})",
+        "no_users": "Članovi nisu pronađeni."
+      }
+    }
+  }
+}

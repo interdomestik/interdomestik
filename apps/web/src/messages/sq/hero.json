@@ -12,11 +12,21 @@
     "voiceClaims": "Kërkesa me Zë",
     "rating": "4.9★ Vlerësim",
     "legalMediation": "Ndërmjetësim Ekspert",
+    "activeMembersLabel": "Anëtarë Aktivë",
+    "activeMembersValue": "8,500+",
+    "legalProtectionLabel": "Mbrojtje Juridike",
+    "legalProtectionValue": "100%",
+    "caseOpeningLabel": "Hapja e Dosjes",
+    "caseOpeningValue": "24h",
     "ctaTitle": "Siguro Mbrojtjen Tënde Sot",
     "ctaSubtitle": "Mos prit derisa të ndodhë një aksident. Bashkohu në Asistenca dhe bëhu gati për çdo gjë.",
     "priceAnchor": "Vlera mesatare e kërkesave: €1,500–€5,000",
     "guarantee": "Garanci 30-ditëshe për kthimin e parave",
     "slaBadge": "Çështja juaj hapet brenda 24 orëve",
-    "noWinNoFee": "Pa Fitim, Pa Pagesë"
+    "noWinNoFee": "Pa Fitim, Pa Pagesë",
+    "trustBadgeSecurity": "SIGURI E CERTIFIKUAR",
+    "trustBadgeSupport": "MBËSHTETJE E NIVELIT LARTË",
+    "trustBadgeService": "SHËRBIM I GARANTUAR",
+    "digitalCardSticky": "Merr Kartën Digjitale Sot"
   }
 }

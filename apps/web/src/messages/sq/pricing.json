@@ -6,6 +6,10 @@
     "yearly": "Vjetore",
     "switchLabel": "Kurse 17% me pagesë vjetore",
     "yearlySaving": "Kurse 17% me pagesë vjetore",
+    "perYear": "/vit",
+    "perMonth": "/muaj",
+    "billedAnnually": "Faturuar çdo vit",
+    "billedMonthly": "Faturuar çdo muaj",
     "basic": {
       "name": "Bazik",
       "price": "€15",
@@ -22,6 +26,7 @@
     "standard": {
       "name": "Asistenca",
       "price": "€20",
+      "monthlyPrice": "€2",
       "period": "/vit",
       "description": "Mbrojtje e plotë për individë",
       "features": [
@@ -37,6 +42,7 @@
     "family": {
       "name": "Asistenca+",
       "price": "€35",
+      "monthlyPrice": "€4",
       "period": "/vit",
       "description": "Mbrojtje për gjithë shtëpinë",
       "features": [
@@ -49,6 +55,7 @@
     "business": {
       "name": "Biznesi",
       "price": "€95",
+      "monthlyPrice": "€10",
       "period": "/vit",
       "description": "Mbrojtje profesionale për bizneset",
       "features": [

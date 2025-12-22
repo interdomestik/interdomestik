@@ -15,8 +15,15 @@
     "faq": "FAQ",
     "social": "Follow Us",
     "hours": "Hours: {hours}",
-    "copyright": "© {year} Interdomestik. All rights reserved.",
+    "copyright": "© {year} {appName}. All rights reserved.",
     "disclaimer": "Claims assistance service. Not a law firm. We are not emergency services.",
-    "noWinNoFee": "No Win, No Fee"
+    "noWinNoFee": "No Win, No Fee",
+    "hotlineLabel": "24/7 Hotline",
+    "chatWithUs": "Chat with us",
+    "emailUs": "Email Us",
+    "membership": "Membership",
+    "plansPricing": "Plans & Pricing",
+    "joinClub": "Join the Club",
+    "memberLogin": "Member Login"
   }
 }

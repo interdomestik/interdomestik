@@ -1,0 +1,35 @@
+{
+  "agent-crm": {
+    "crm": {
+      "dashboard": {
+        "title": "Pasqyra e Shitjeve",
+        "subtitle": "Ndiqni performancën dhe linjën tuaj.",
+        "stats": {
+          "leads_new": "Lead-e të reja",
+          "leads_contacted": "Të kontaktuar",
+          "deals_won": "Të fituara",
+          "commission": "Komisione"
+        }
+      },
+      "leads": {
+        "title": "Menaxhimi i Lead-eve",
+        "subtitle": "Menaxhoni dhe konvertoni anëtarët potencialë.",
+        "table": {
+          "name": "Emri",
+          "stage": "Faza",
+          "source": "Burimi",
+          "last_contact": "Kontakti i fundit",
+          "actions": "Veprime"
+        },
+        "stages": {
+          "new": "E re",
+          "contacted": "Kontaktuar",
+          "qualified": "Kualifikuar",
+          "proposal": "Propozim",
+          "won": "Fituar",
+          "lost": "Humbur"
+        }
+      }
+    }
+  }
+}

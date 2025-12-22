@@ -57,6 +57,15 @@
       "benefits_2": "Calculate damages in 60 seconds",
       "benefits_3": "Download accident checklists",
       "benefits_4": "One-call voice claim filing"
+    },
+    "card": {
+      "title": "Digital ID Card",
+      "subtitle": "Your Membership Identity",
+      "description": "Present this card for verification during emergencies or at our partner locations.",
+      "member_since": "Member since",
+      "valid_thru": "Valid thru",
+      "emergency_hotline": "Emergency Hotline",
+      "back_to_dashboard": "Back to Dashboard"
     }
   }
 }

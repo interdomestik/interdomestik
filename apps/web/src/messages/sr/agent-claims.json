@@ -1,0 +1,61 @@
+{
+  "agent-claims": {
+    "claims": {
+      "queue": "Red zahteva",
+      "manage_triage": "Upravljajte i trijaživajte sve podnete zahteve.",
+      "table": {
+        "claimant": "Podnosilac",
+        "claim": "Zahtev",
+        "status": "Status",
+        "amount": "Iznos",
+        "date": "Datum",
+        "actions": "Radnje",
+        "triage": "Trijaža",
+        "message_alert": "Nova poruka ({count})",
+        "no_claims": "Nema pronađenih zahteva.",
+        "no_claims_ready": "Komponenta liste zahteva uskoro dolazi",
+        "recent_activity": "Nedavna aktivnost"
+      },
+      "actions": {
+        "approve": "Odobri",
+        "reject": "Odbij",
+        "requestInfo": "Zatraži info",
+        "review": "Pregledaj slučaj"
+      },
+      "details": {
+        "title": "Detalji zahteva",
+        "claimantInfo": "Informacije o podnosiocu",
+        "name": "Ime",
+        "email": "Email",
+        "description": "Opis",
+        "amount": "Iznos",
+        "company": "Predmet / Kompanija",
+        "title_label": "Naslov",
+        "category_label": "Kategorija",
+        "status_label": "Status",
+        "evidence": "Dokazni fajlovi",
+        "noEvidence": "Nema otpremljenih dokumenata.",
+        "notes": "Interne beleške",
+        "notesPlaceholder": "Funkcija privatnih beleški agenta uskoro dolazi.",
+        "timeline": "Vremenska linija slučaja",
+        "no_messages": "Još nema istorije interakcije.",
+        "message_placeholder": "Upišite poruku ili internu belešku...",
+        "internal_note": "Interna beleška",
+        "send_message": "Pošalji poruku",
+        "incident_date": "Datum incidenta",
+        "messages": "Poruke",
+        "documents": "Dokumenti",
+        "no_documents": "Nema otpremljenih dokumenata",
+        "unknown_date": "Nepoznat datum"
+      },
+      "triage": {
+        "title": "Trijaža radnje",
+        "changeStatus": "Promeni status",
+        "selectStatus": "Izaberi status",
+        "verify": "Verifikuj info",
+        "reject": "Odbij zahtev",
+        "notice": "Promena statusa odmah ažurira korisnikovu vremensku liniju."
+      }
+    }
+  }
+}

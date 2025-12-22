@@ -6,6 +6,10 @@
     "yearly": "Yearly",
     "switchLabel": "Save 17% with Yearly",
     "yearlySaving": "Save 17% with yearly billing",
+    "perYear": "/year",
+    "perMonth": "/month",
+    "billedAnnually": "Billed annually",
+    "billedMonthly": "Billed monthly",
     "basic": {
       "name": "Bazik",
       "price": "€15",
@@ -22,6 +26,7 @@
     "standard": {
       "name": "Asistenca",
       "price": "€20",
+      "monthlyPrice": "€2",
       "period": "/year",
       "description": "Complete protection for individuals",
       "features": [
@@ -37,6 +42,7 @@
     "family": {
       "name": "Asistenca+",
       "price": "€35",
+      "monthlyPrice": "€4",
       "period": "/year",
       "description": "Protection for the whole household",
       "features": [
@@ -49,6 +55,7 @@
     "business": {
       "name": "Business",
       "price": "€95",
+      "monthlyPrice": "€10",
       "period": "/year",
       "description": "Professional protection for businesses",
       "features": [

@@ -1,79 +1,76 @@
 {
   "pricing": {
-    "title": "Affordable Pricing",
-    "subtitle": "Choose the plan that fits your needs",
-    "monthly": "Monthly",
-    "yearly": "Yearly",
+    "title": "Помош за секоја ситуација",
+    "subtitle": "Изберете план што одговара на вашите потреби",
+    "monthly": "Месечно",
+    "yearly": "Годишно",
+    "switchLabel": "Заштедете 17% со годишен план",
+    "yearlySaving": "Заштедете 17% со годишна наплата",
+    "perYear": "/годишно",
+    "perMonth": "/месечно",
+    "billedAnnually": "Се наплаќа годишно",
+    "billedMonthly": "Се наплаќа месечно",
     "basic": {
-      "name": "Basic",
-      "price": "€5",
-      "period": "/month",
-      "description": "For occasional personal use",
+      "name": "Базик",
+      "price": "€15",
+      "period": "/годишно",
+      "description": "Основна заштита за поединци",
       "features": [
-        "3 Kërkesa për Dëmshpërblim në vit",
-        "Mbështetje me email",
-        "Ngarkim dokumentesh",
-        "Ndjekje e statusit"
+        "24/7 Итна линија",
+        "2 правни консултации годишно",
+        "Пристап до калкулатор за штета",
+        "Стручни водичи и контролни листи",
+        "25% попуст на медијација"
       ]
     },
     "standard": {
-      "name": "Standard",
-      "price": "€10",
-      "period": "/month",
-      "description": "For regular use",
+      "name": "Асистенца",
+      "price": "€20",
+      "monthlyPrice": "€2",
+      "period": "/годишно",
+      "description": "Комплетна заштита за поединци",
       "features": [
-        "10 Kërkesa për Dëmshpërblim në vit",
-        "Mbështetje prioritare",
-        "Chat i drejtpërdrejtë",
-        "Ndjekje e avancuar"
+        "24/7 Итна линија",
+        "Неограничени правни консултации",
+        "Пристап до калкулатор за штета",
+        "Стручни водичи и контролни листи",
+        "50% попуст на медијација",
+        "Компанијата авансира трошоци"
       ],
-      "popular": "Most Popular"
+      "popular": "Најпопуларно"
     },
-    "premium": {
-      "name": "Premium",
-      "price": "€15",
-      "period": "/month",
-      "description": "For complete protection",
-      "features": [
-        "Kërkesa për Dëmshpërblim të pakufizuara",
-        "Mbështetje VIP",
-        "Thirrje telefonike",
-        "Nënshkrim elektronik",
-        "Përfaqësim ligjor"
-      ]
-    },
-    "cta": "Choose Plan",
-    "switchLabel": "Save 17% with Yearly",
-    "yearlySaving": "Save 17% with yearly billing",
     "family": {
-      "name": "Asistenca+",
+      "name": "Асистенца+",
       "price": "€35",
-      "period": "/year",
-      "description": "Protection for the whole household",
+      "monthlyPrice": "€4",
+      "period": "/годишно",
+      "description": "Заштита за целото домаќинство",
       "features": [
-        "Everything in Asistenca",
-        "Covers up to 5 family members",
-        "Asistenca Cards for all members",
-        "Shared Dashboard"
+        "Сè од Асистенца",
+        "Покрива до 5 членови на семејството",
+        "Асистенца картички за сите членови",
+        "Заедничка контролна табла"
       ]
     },
     "business": {
-      "name": "Business",
+      "name": "Бизнис",
       "price": "€95",
-      "period": "/year",
-      "description": "Professional protection for businesses",
+      "monthlyPrice": "€10",
+      "period": "/годишно",
+      "description": "Професионална заштита за фирми",
       "features": [
-        "Everything in Family",
-        "Up to 10 Vehicles/Properties",
-        "Dedicated Account Manager",
-        "Commercial Legal Mediation",
-        "Employee Onboarding"
+        "Сè од Семејниот план",
+        "До 10 возила/недвижности",
+        "Посветен менаџер на сметка",
+        "Комерцијална правна медијација",
+        "Onboarding на вработени"
       ]
     },
-    "loginRequired": "Log in to upgrade",
+    "cta": "Приклучете се",
+    "loginRequired": "Најавете се за надградба",
     "meta": {
-      "title": "Membership Plans - Interdomestik",
-      "description": "Join the protection club. Standard and Family plans available."
+      "title": "Планови за членство - Интердомеstik",
+      "description": "Приклучете се на клубот за заштита. Достапни Стандард и Семејни планови."
     }
   }
 }

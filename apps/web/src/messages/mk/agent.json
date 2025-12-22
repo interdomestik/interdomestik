@@ -69,7 +69,9 @@
       "title": "Agent Notes",
       "description": "Quick reminders and private workspace notes.",
       "priority": "Priority Triage",
-      "deadline": "Upcoming Deadline"
+      "priority_text": "All claims from Interdomestik Insurance need to be verified within 24 hours.",
+      "deadline": "Upcoming Deadline",
+      "deadline_text": "End of quarter reporting starts on Monday. Ensure all resolved cases are documented."
     },
     "members_page": {
       "title": "Members",

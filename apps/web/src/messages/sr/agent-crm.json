@@ -1,0 +1,35 @@
+{
+  "agent-crm": {
+    "crm": {
+      "dashboard": {
+        "title": "Pregled prodaje",
+        "subtitle": "Pratite svoje performanse i pipeline.",
+        "stats": {
+          "leads_new": "Novi lidovi",
+          "leads_contacted": "Kontaktirani",
+          "deals_won": "Dobijeni poslovi",
+          "commission": "Provizija"
+        }
+      },
+      "leads": {
+        "title": "Upravljanje lidovima",
+        "subtitle": "Upravljajte i konvertujte potencijalne članove.",
+        "table": {
+          "name": "Ime",
+          "stage": "Faza",
+          "source": "Izvor",
+          "last_contact": "Poslednji kontakt",
+          "actions": "Radnje"
+        },
+        "stages": {
+          "new": "Novi",
+          "contacted": "Kontaktiran",
+          "qualified": "Kvalifikovan",
+          "proposal": "Ponuda",
+          "won": "Dobijen",
+          "lost": "Izgubljen"
+        }
+      }
+    }
+  }
+}

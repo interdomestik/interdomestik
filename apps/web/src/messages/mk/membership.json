@@ -1,21 +1,71 @@
 {
   "membership": {
+    "page": {
+      "title": "Членство",
+      "description": "Управувајте со претплатата и деталите за планот."
+    },
+    "plan": {
+      "title": "Тековен план",
+      "description": "Вашето ниво на заштита",
+      "active": "Активен",
+      "plan_label": "План",
+      "status_label": "Статус",
+      "renews_label": "Се обновува",
+      "na": "Н/А",
+      "no_membership": "Нема активно членство",
+      "manage_button": "Управувај претплата",
+      "cancel_button": "Откажи претплата",
+      "cancel_confirm": "Дали сте сигурни дека сакате да откажете? Ќе го изгубите пристапот на крајот од периодот на наплата.",
+      "view_plans_button": "Погледни планови"
+    },
+    "benefits": {
+      "title": "Користење и поволности",
+      "description_active": "Поволностите на вашето членство",
+      "description_inactive": "Придружете се за пристап до поволности",
+      "hotline": "24/7 Итна линија",
+      "voice_claim": "Гласовно поднесување барање",
+      "legal": "Правни консултации",
+      "discounts": "Партнерски попусти",
+      "restore_message": "Ажурирајте го плаќањето за враќање на пристапот до поволностите.",
+      "activate_message": "Користете ја страницата со цени за активирање на заштитата."
+    },
+    "dunning": {
+      "payment_failed_title": "Неуспешно плаќање - {daysRemaining} дена преостануваат",
+      "payment_failed_message": "Вашето последно плаќање не успеа. Ажурирајте го начинот на плаќање за да избегнете губење на поволностите.",
+      "grace_period_ends": "Грејс периодот завршува: {date}",
+      "update_payment_button": "Ажурирај начин на плаќање",
+      "suspended_title": "Членството е суспендирано",
+      "suspended_message": "Вашиот грејс период истече и членството сега е суспендирано. Ажурирајте го начинот на плаќање за враќање на пристапот.",
+      "payment_issue": "Проблем со плаќање",
+      "days_to_update": "⏳ {daysRemaining} дена за ажурирање на плаќањето",
+      "payment_attempts": "Обиди за плаќање: {count}"
+    },
     "success": {
-      "title": "Welcome to Interdomestik!",
-      "subtitle": "Your protection is now active. You are officially part of our club.",
-      "hotline_label": "24/7 EMERGENCY HOTLINE",
+      "title": "Добредојдовте во Интердомеstik!",
+      "subtitle": "Вашата заштита сега е активна. Официјално сте дел од нашиот клуб.",
+      "hotline_label": "24/7 ИТНА ЛИНИЈА",
       "hotline_number": "+383 49 123 456",
-      "hotline_hint": "Save this number to your phone now",
-      "card_label": "Your Digital Protection Card",
-      "card_id_prefix": "MEMBER ID:",
-      "cta_wallet": "Add to Apple/Google Wallet",
-      "cta_save_contact": "Save Hotline to Contacts",
-      "cta_dashboard": "Go to Dashboard",
-      "benefits_title": "Getting Started",
-      "benefits_1": "Access legal consultations anytime",
-      "benefits_2": "Calculate damages in 60 seconds",
-      "benefits_3": "Download accident checklists",
-      "benefits_4": "One-call voice claim filing"
+      "hotline_hint": "Зачувајте го овој број во телефонот сега",
+      "card_label": "Вашата дигитална картичка за заштита",
+      "card_id_prefix": "ID НА ЧЛЕН:",
+      "cta_wallet": "Додај во Apple/Google Wallet",
+      "cta_install": "Инсталирај апликација",
+      "cta_save_contact": "Зачувај линија во контакти",
+      "cta_dashboard": "Оди на контролна табла",
+      "benefits_title": "Почеток",
+      "benefits_1": "Пристап до правни консултации било кога",
+      "benefits_2": "Пресметај штета за 60 секунди",
+      "benefits_3": "Преземи контролни листи за несреќи",
+      "benefits_4": "Поднесување барање со еден повик"
+    },
+    "card": {
+      "title": "Дигитална ID картичка",
+      "subtitle": "Вашиот членски идентитет",
+      "description": "Покажете ја оваа картичка за верификација при итни случаи или на партнерски локации.",
+      "member_since": "Член од",
+      "valid_thru": "Важи до",
+      "emergency_hotline": "Итна линија",
+      "back_to_dashboard": "Назад на контролна табла"
     }
   }
 }

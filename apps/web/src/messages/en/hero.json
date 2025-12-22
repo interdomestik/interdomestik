@@ -12,11 +12,21 @@
     "voiceClaims": "Voice Claims",
     "rating": "4.9★ Rating",
     "legalMediation": "Expert Mediation",
+    "activeMembersLabel": "Active Members",
+    "activeMembersValue": "8,500+",
+    "legalProtectionLabel": "Legal Protection",
+    "legalProtectionValue": "100%",
+    "caseOpeningLabel": "Case Opening",
+    "caseOpeningValue": "24h",
     "ctaTitle": "Secure Your Protection Today",
     "ctaSubtitle": "Don't wait for an accident to happen. Join Asistenca and be prepared for anything.",
     "priceAnchor": "Average claim value: €1,500–€5,000",
     "guarantee": "30-day money-back guarantee",
     "slaBadge": "Your case opens within 24 hours",
-    "noWinNoFee": "No Win, No Fee"
+    "noWinNoFee": "No Win, No Fee",
+    "trustBadgeSecurity": "CERTIFIED SECURITY",
+    "trustBadgeSupport": "TOP RATED SUPPORT",
+    "trustBadgeService": "GUARANTEED SERVICE",
+    "digitalCardSticky": "Get your digital ID today"
   }
 }

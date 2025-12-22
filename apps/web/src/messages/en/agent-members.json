@@ -1,0 +1,108 @@
+{
+  "agent-members": {
+    "members": {
+      "page": {
+        "title": "Members",
+        "description": "Your assigned members and active conversations.",
+        "register_member": "Register Member"
+      },
+      "register": {
+        "title": "Register New Member",
+        "description": "Manually register a member and activate their membership.",
+        "form": {
+          "full_name": "Full Name",
+          "full_name_placeholder": "e.g. John Doe",
+          "email": "Email",
+          "email_placeholder": "john@example.com",
+          "phone": "Phone",
+          "phone_placeholder": "+383 44 ...",
+          "plan": "Membership Plan",
+          "select_plan": "Select plan",
+          "notes": "Notes",
+          "notes_placeholder": "Additional details...",
+          "cancel": "Cancel",
+          "submit": "Register Member"
+        },
+        "plans": {
+          "standard": "Standard (€ 20/year)",
+          "family": "Family (€ 35/year)"
+        }
+      },
+      "panel": {
+        "title": "My Members",
+        "description": "Members who need your attention right now.",
+        "empty": "No assigned members yet.",
+        "view_all": "View all members"
+      },
+      "profile": {
+        "actions": {
+          "back": "Back to members",
+          "view_claim": "View claim"
+        },
+        "sections": {
+          "membership": "Membership",
+          "agent": "Assigned agent",
+          "preferences": "Notification preferences",
+          "claims_overview": "Claims overview",
+          "recent_claims": "Recent claims"
+        },
+        "labels": {
+          "member_id": "Member ID",
+          "joined": "Joined",
+          "email_verified_yes": "Email verified",
+          "email_verified_no": "Email not verified",
+          "status": "Status",
+          "plan": "Plan",
+          "period_end": "Period end",
+          "cancel_at_period_end": "Cancel at period end",
+          "no_agent": "No agent assigned",
+          "preferences_unset": "Preferences not set",
+          "no_claims": "No claims yet",
+          "unknown": "Unknown",
+          "not_set": "Not set"
+        },
+        "status": {
+          "active": "Active",
+          "past_due": "Past due",
+          "paused": "Paused",
+          "canceled": "Canceled",
+          "none": "Not subscribed"
+        },
+        "preferences": {
+          "email_claims": "Email claim updates",
+          "email_newsletter": "Email newsletter",
+          "email_marketing": "Email marketing",
+          "push_claims": "Push claim updates",
+          "push_messages": "Push messages",
+          "in_app": "In-app notifications"
+        },
+        "claims": {
+          "total": "Total claims",
+          "open": "Open claims",
+          "resolved": "Resolved",
+          "rejected": "Rejected"
+        }
+      },
+      "filters": {
+        "search_placeholder": "Search by name or email"
+      },
+      "table": {
+        "sections": {
+          "attention": "Needs attention",
+          "all": "All members"
+        },
+        "headers": {
+          "user": "Member",
+          "status": "Status",
+          "plan": "Plan",
+          "period_end": "Expires",
+          "actions": "Actions"
+        },
+        "view_profile": "View profile",
+        "view_claims": "View claims",
+        "message_alert": "New message ({count})",
+        "no_users": "No members found."
+      }
+    }
+  }
+}

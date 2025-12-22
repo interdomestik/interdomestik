@@ -79,6 +79,11 @@
       "updated": "Draft updated",
       "failed": "Failed to update claim"
     },
+    "gate": {
+      "membership_required_title": "Active Membership Required",
+      "membership_required_message": "You need an active membership plan to file new claims. Please obtain a plan to access our legal protection services.",
+      "view_plans": "View Plans"
+    },
     "detail": {
       "caseDetails": "Case Details",
       "description": "Description",

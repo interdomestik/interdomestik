@@ -79,6 +79,11 @@
       "updated": "Draft updated",
       "failed": "Failed to update claim"
     },
+    "gate": {
+      "membership_required_title": "Потребно е активно членство",
+      "membership_required_message": "Потребен ви е активен план за членство за да поднесете нови барања. Ве молиме набавете план за пристап до нашите услуги за правна заштита.",
+      "view_plans": "Погледни планови"
+    },
     "detail": {
       "caseDetails": "Case Details",
       "description": "Description",
