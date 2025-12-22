@@ -1,6 +1,6 @@
 'use client';
 
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import {
   Button,
@@ -52,7 +52,6 @@ export function LoginForm() {
               const { error } = await authClient.signIn.email({
                 email,
                 password,
-                redirect: false,
               });
 
               if (error) {
@@ -71,7 +70,7 @@ export function LoginForm() {
               } else {
                 router.push('/dashboard');
               }
-            } catch (err) {
+            } catch {
               setError(t('error'));
               setLoading(false);
             } finally {
