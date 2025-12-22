@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import {
   renderClaimAssignedEmail,
   renderClaimSubmittedEmail,
+  renderMemberWelcomeEmail,
   renderNewMessageEmail,
   renderPaymentFailedEmail,
   renderPaymentFinalWarningEmail,
@@ -179,4 +180,15 @@ export async function sendPaymentFinalWarningEmail(
   if (!to) return { success: false, error: 'Missing recipient email' };
   console.log(`[Dunning] Sending Day 13 FINAL WARNING to ${to}`);
   return sendEmail(to, renderPaymentFinalWarningEmail(params));
+}
+
+export async function sendMemberWelcomeEmail(
+  to: string,
+  params: {
+    memberName: string;
+    agentName: string;
+  }
+) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderMemberWelcomeEmail(params));
 }

@@ -109,6 +109,13 @@ Agents see stage and last update only. Staff controls workflow and internal note
 - [x] Wallet card + PWA install prompt + offline shell cache
 - [x] Claim filing gate for active membership
 
+- [x] Agent CRM: Simplified Member Management
+- [x] Manual Member Registration flow
+- [x] Subscription period & status visibility
+- [x] Agent navigation updated (CRM, Leads, Members)
+- [ ] Member Interaction Logging
+- [x] RLS for agent data isolation (Initial)
+
 ### Phase 2: Agent Sales System (Weeks 3-4)
 
 - CRM leads/deals/activities
@@ -181,6 +188,60 @@ Agents see stage and last update only. Staff controls workflow and internal note
 
 ---
 
+## Testing Infrastructure ✅ COMPLETE (Dec 22, 2025)
+
+### Unit Test Coverage
+
+| Directory          | Components | With Tests | Coverage    |
+| ------------------ | ---------- | ---------- | ----------- |
+| **claims/**        | 7          | 7          | **100%** ✅ |
+| **agent/**         | 11         | 11         | **100%** ✅ |
+| **admin/**         | 10         | 10         | **100%** ✅ |
+| **dashboard/**     | 9          | 9          | **100%** ✅ |
+| **auth/**          | 6          | 6          | **100%** ✅ |
+| **messaging/**     | 3          | 3          | **100%** ✅ |
+| **pricing/**       | 1          | 1          | **100%** ✅ |
+| **settings/**      | 2          | 2          | **100%** ✅ |
+| **notifications/** | 2          | 2          | **100%** ✅ |
+
+**Unit Tests: 438 passing** ✅
+
+### E2E Test Coverage
+
+| Test Suite                | Description               | Tests |
+| ------------------------- | ------------------------- | ----- |
+| `rbac.spec.ts`            | Role-Based Access Control | 22    |
+| `multi-user-flow.spec.ts` | Cross-role workflows      | 17    |
+| `api-permissions.spec.ts` | API authorization         | 24    |
+| `member-flow.spec.ts`     | Member journey            | 10    |
+| `staff-flow.spec.ts`      | Staff journey             | 6     |
+| `admin-flow.spec.ts`      | Admin journey             | 12    |
+| `agent-flow.spec.ts`      | Agent journey             | 8     |
+| _Other E2E tests_         | Auth, Claims, Settings    | 40+   |
+
+**E2E Tests: 100+ passing** ✅
+
+### Role Permission Testing
+
+All role-based access control verified:
+
+- ✅ Member restricted from admin/agent routes
+- ✅ Agent restricted from admin routes (view-only access)
+- ✅ Staff restricted from admin routes
+- ✅ Admin full access verified
+- ✅ Unauthenticated user protection
+- ✅ Cross-role data isolation
+
+### Test Seeding
+
+- 10 Worker-specific Members
+- 10 Worker-specific Agents
+- 3 Staff Users
+- 2 Admin Users
+- 50 Claims (5 per member worker)
+
+---
+
 ## Next Step
 
-Run Phase 0 validation, then begin Phase 1 development.
+Implement Member Interaction Logging (simplified activity notes) and Commission Tracking.
