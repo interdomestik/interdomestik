@@ -7,14 +7,20 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuPortal,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@interdomestik/ui';
 import {
   BarChart,
   Briefcase,
+  Check,
   ChevronUp,
   FileText,
+  Globe,
   Home,
   LayoutDashboard,
   LogOut,
@@ -22,7 +28,7 @@ import {
   Shield,
   Users,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface AdminSidebarProps {
   className?: string;
@@ -35,6 +41,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const t = useTranslations('admin.sidebar');
+  const tNav = useTranslations('nav');
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
@@ -101,9 +108,11 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
           </div>
           <div className="flex flex-col">
             <span className="leading-none bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-              Admin
+              {t('title')}
             </span>
-            <span className="text-xs text-muted-foreground font-medium mt-0.5">Control Panel</span>
+            <span className="text-xs text-muted-foreground font-medium mt-0.5">
+              {t('subtitle')}
+            </span>
           </div>
         </Link>
       </div>
@@ -155,12 +164,12 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
             <ChevronUp className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56" side="top" sideOffset={8}>
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>{tNav('myAccount')}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="cursor-pointer">
                 <Globe className="mr-2 h-4 w-4" />
-                <span>Language</span>
+                <span>{tNav('language')}</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent>
@@ -198,7 +207,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
             <DropdownMenuItem asChild>
               <Link href="/" className="cursor-pointer font-medium">
                 <Home className="mr-2 h-4 w-4" />
-                Back to Website
+                {tNav('backToWebsite')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -206,7 +215,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
               className="cursor-pointer text-red-500 focus:text-red-500 font-medium"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Log Out
+              {tNav('logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

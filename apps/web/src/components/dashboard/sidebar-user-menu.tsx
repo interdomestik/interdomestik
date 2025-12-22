@@ -21,12 +21,13 @@ import {
   SidebarMenuItem,
 } from '@interdomestik/ui';
 import { Check, ChevronUp, Globe, Home, LogOut } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 export function SidebarUserMenu() {
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations('nav');
   const { data: session } = authClient.useSession();
 
   const handleSignOut = async () => {
@@ -55,7 +56,7 @@ export function SidebarUserMenu() {
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
                 <span className="truncate text-xs text-muted-foreground capitalize">
-                  {(user as any).role || 'Member'}
+                  {(user as any).role || t('memberRole')}
                 </span>
               </div>
               <ChevronUp className="ml-auto size-4 text-muted-foreground" />
@@ -83,7 +84,7 @@ export function SidebarUserMenu() {
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="cursor-pointer">
                 <Globe className="mr-2 h-4 w-4" />
-                <span>Language</span>
+                <span>{t('language')}</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent>
@@ -122,7 +123,7 @@ export function SidebarUserMenu() {
             <DropdownMenuItem asChild>
               <Link href="/" className="cursor-pointer">
                 <Home className="mr-2 h-4 w-4" />
-                Back to Website
+                {t('backToWebsite')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -131,7 +132,7 @@ export function SidebarUserMenu() {
               className="text-red-500 focus:text-red-500 cursor-pointer"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Log out
+              {t('logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

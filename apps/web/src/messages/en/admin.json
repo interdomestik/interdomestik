@@ -1,6 +1,8 @@
 {
   "admin": {
     "sidebar": {
+      "title": "Admin",
+      "subtitle": "Control Panel",
       "dashboard": "Dashboard",
       "claims": "Case Management",
       "users": "Users",

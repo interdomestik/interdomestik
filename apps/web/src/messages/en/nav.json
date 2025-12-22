@@ -22,6 +22,12 @@
     "agentWorkspace": "Agent Workspace",
     "agentCrm": "CRM Dashboard",
     "agentLeads": "Leads",
-    "adminDashboard": "Admin Dashboard"
+    "adminDashboard": "Admin Dashboard",
+    "backToWebsite": "Back to Website",
+    "language": "Language",
+    "agentPortal": "Agent Portal",
+    "memberPortal": "Member Portal",
+    "memberRole": "Member",
+    "myAccount": "My Account"
   }
 }

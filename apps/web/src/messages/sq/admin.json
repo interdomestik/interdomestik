@@ -1,6 +1,8 @@
 {
   "admin": {
     "sidebar": {
+      "title": "Admin",
+      "subtitle": "Paneli i Kontrollit",
       "dashboard": "Paneli",
       "claims": "Menaxhimi i Rastit",
       "users": "Përdoruesit",

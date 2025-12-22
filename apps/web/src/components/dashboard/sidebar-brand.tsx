@@ -1,14 +1,15 @@
-'use client';
-
 import { Link } from '@/i18n/routing';
 import { SidebarHeader } from '@interdomestik/ui';
 import { Shield } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface SidebarBrandProps {
   role?: string;
 }
 
 export function SidebarBrand({ role }: SidebarBrandProps) {
+  const t = useTranslations('nav');
+
   return (
     <SidebarHeader className="h-20 flex items-center justify-center border-b border-white/10">
       <Link
@@ -23,7 +24,7 @@ export function SidebarBrand({ role }: SidebarBrandProps) {
             Interdomestik
           </span>
           <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1">
-            {role === 'agent' ? 'Agent Portal' : 'Member Portal'}
+            {role === 'agent' ? t('agentPortal') : t('memberPortal')}
           </span>
         </div>
       </Link>

@@ -22,6 +22,12 @@
     "agentWorkspace": "Hapësira e Agjentit",
     "agentCrm": "Paneli CRM",
     "agentLeads": "Lead-et",
-    "adminDashboard": "Paneli i Adminit"
+    "adminDashboard": "Paneli i Adminit",
+    "backToWebsite": "Kthehu tek Uebfaqja",
+    "language": "Gjuha",
+    "agentPortal": "Portali i Agjentit",
+    "memberPortal": "Portali i Anëtarit",
+    "memberRole": "Anëtar",
+    "myAccount": "Llogaria Ime"
   }
 }
