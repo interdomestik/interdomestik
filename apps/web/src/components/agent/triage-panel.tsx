@@ -41,7 +41,7 @@ export function TriagePanel({
     });
   };
 
-  const t = useTranslations('agent.triage');
+  const t = useTranslations('agent-claims.claims.triage');
   const tStatus = useTranslations('claims.status');
 
   return (

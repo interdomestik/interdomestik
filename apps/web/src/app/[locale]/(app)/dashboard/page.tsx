@@ -108,7 +108,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
               variant="outline"
               className="ml-2 bg-green-50 text-green-700 border-green-200 text-[10px] h-5"
             >
-              {subscription.planId.toUpperCase()}
+              {subscription.planId.toUpperCase().replace('_', ' ')}
             </Badge>
           )}
         </div>

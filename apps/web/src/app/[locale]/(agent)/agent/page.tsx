@@ -1,5 +1,5 @@
-import { getAgentUsers } from '@/actions/agent-users';
 import { getAgentDashboardData } from '@/actions/agent-dashboard';
+import { getAgentUsers } from '@/actions/agent-users';
 import { AgentStatsCards } from '@/components/agent/agent-stats-cards';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
@@ -8,9 +8,9 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@interdomestik/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Activity, ArrowRight, FileText, Users } from 'lucide-react';
@@ -25,8 +25,8 @@ export default async function AgentDashboardPage({
   setRequestLocale(locale);
 
   const t = await getTranslations('agent');
-  const tMembers = await getTranslations('agent.members_panel');
-  const tUsers = await getTranslations('agent.users_table');
+  const tMembers = await getTranslations('agent-members.members.panel');
+  const tUsers = await getTranslations('agent-members.members.table');
   const { stats, recentClaims } = await getAgentDashboardData();
   const members = await getAgentUsers();
 
@@ -158,23 +158,18 @@ export default async function AgentDashboardPage({
 
         <Card className="lg:col-span-12">
           <CardHeader>
-            <CardTitle>{t('details.notes', { defaultValue: 'Workspace Notes' })}</CardTitle>
-            <CardDescription>Quick reminders and private workspace notes.</CardDescription>
+            <CardTitle>{t('notes.title')}</CardTitle>
+            <CardDescription>{t('notes.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-900 text-sm">
                 <p className="font-semibold mb-1">{t('notes.priority')}</p>
-                <p className="opacity-80">
-                  All claims from Interdomestik Insurance need to be verified within 24 hours.
-                </p>
+                <p className="opacity-80">{t('notes.priority_text')}</p>
               </div>
               <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-sm">
                 <p className="font-semibold mb-1">{t('notes.deadline')}</p>
-                <p className="opacity-80">
-                  End of quarter reporting starts on Monday. Ensure all resolved cases are
-                  documented.
-                </p>
+                <p className="opacity-80">{t('notes.deadline_text')}</p>
               </div>
             </div>
           </CardContent>

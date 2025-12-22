@@ -9,7 +9,7 @@ export default async function AgentClaimsPage({ params }: { params: Promise<{ lo
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const t = await getTranslations('agent');
+  const t = await getTranslations('agent-claims.claims');
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session) return notFound();

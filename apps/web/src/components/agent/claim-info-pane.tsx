@@ -35,7 +35,7 @@ interface ClaimInfoPaneProps {
 }
 
 export function ClaimInfoPane({ claim, readOnly }: ClaimInfoPaneProps) {
-  const t = useTranslations('agent');
+  const t = useTranslations('agent-claims.claims');
 
   return (
     <Card>

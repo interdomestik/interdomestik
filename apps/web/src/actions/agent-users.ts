@@ -5,7 +5,11 @@ import { agentClients, db, eq, ilike, inArray, or, user } from '@interdomestik/d
 import { and, type SQL } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
-export async function getAgentUsers(filters?: { search?: string }) {
+export async function getAgentUsers(filters?: {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -38,8 +42,14 @@ export async function getAgentUsers(filters?: { search?: string }) {
   const users = await db.query.user.findMany({
     where: and(...conditions),
     orderBy: (users, { desc }) => [desc(users.createdAt)],
+    limit: filters?.limit,
+    offset: filters?.offset,
     with: {
       agent: true,
+      subscriptions: {
+        orderBy: (subs, { desc: descFn }) => [descFn(subs.createdAt)],
+        limit: 1,
+      },
     },
   });
 
@@ -47,5 +57,6 @@ export async function getAgentUsers(filters?: { search?: string }) {
     ...userRow,
     unreadCount: 0,
     alertLink: null,
+    subscription: userRow.subscriptions?.[0] || null,
   }));
 }

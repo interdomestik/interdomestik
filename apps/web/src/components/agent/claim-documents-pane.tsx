@@ -10,7 +10,7 @@ interface ClaimDocumentsPaneProps {
 }
 
 export function ClaimDocumentsPane({ documents }: ClaimDocumentsPaneProps) {
-  const t = useTranslations('agent');
+  const t = useTranslations('agent-claims.claims');
 
   return (
     <Card>

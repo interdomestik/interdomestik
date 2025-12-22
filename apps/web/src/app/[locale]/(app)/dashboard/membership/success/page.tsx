@@ -79,7 +79,8 @@ export default async function MembershipSuccessPage({ params }: SuccessPageProps
                 <div className="mt-8 relative z-10">
                   <div className="text-xs opacity-50 mb-1">{t('card_id_prefix')}</div>
                   <div className="text-lg font-mono tracking-widest">
-                    ID-{session.user.id.slice(0, 8).toUpperCase()}
+                    {(session.user as any).memberNumber ||
+                      `ID-${session.user.id.slice(0, 8).toUpperCase()}`}
                   </div>
                 </div>
 

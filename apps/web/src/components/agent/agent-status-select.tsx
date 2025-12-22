@@ -41,7 +41,7 @@ export function AgentStatusSelect({
   };
 
   const tStatus = useTranslations('claims.status');
-  const tDetails = useTranslations('agent.details');
+  const tDetails = useTranslations('agent-claims.claims.details');
 
   return (
     <div className="flex items-center gap-2">

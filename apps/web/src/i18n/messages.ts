@@ -4,6 +4,9 @@ export const MESSAGE_NAMESPACES = [
   'about',
   'admin',
   'agent',
+  'agent-claims',
+  'agent-crm',
+  'agent-members',
   'auth',
   'claimCategories',
   'claims',
@@ -72,8 +75,25 @@ export const APP_NAMESPACES = [
   'timeline',
   'consumerRights',
 ] as const;
-export const AGENT_NAMESPACES = ['agent', 'claims', 'messaging', 'notifications'] as const;
-export const ADMIN_NAMESPACES = ['admin', 'agent', 'claims', 'messaging', 'notifications'] as const;
+export const AGENT_NAMESPACES = [
+  'agent',
+  'agent-claims',
+  'agent-crm',
+  'agent-members',
+  'claims',
+  'messaging',
+  'notifications',
+] as const;
+export const ADMIN_NAMESPACES = [
+  'admin',
+  'agent',
+  'agent-claims',
+  'agent-crm',
+  'agent-members',
+  'claims',
+  'messaging',
+  'notifications',
+] as const;
 
 type MessageValue =
   | string

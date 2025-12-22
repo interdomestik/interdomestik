@@ -2,36 +2,49 @@
 
 import { useRouter } from '@/i18n/routing';
 import { Input } from '@interdomestik/ui';
-import { Search } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { Loader2, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
 
 export function AgentUsersFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tCommon = useTranslations('common');
-  const t = useTranslations('agent.users_filters');
+  const t = useTranslations('agent-members.members.filters');
+  const [isPending, startTransition] = useTransition();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
 
-  const currentSearch = searchParams.get('search') || '';
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchTerm) {
+        params.set('search', searchTerm);
+      } else {
+        params.delete('search');
+      }
 
-  const handleSearch = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set('search', value);
-    } else {
-      params.delete('search');
-    }
-    router.push(`?${params.toString()}`);
-  };
+      startTransition(() => {
+        router.push(`?${params.toString()}`);
+      });
+    }, 200); // 200ms debounce for "instant" feel
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, searchParams, router]);
 
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+      {isPending ? (
+        <Loader2 className="absolute left-3 top-3 h-4 w-4 text-primary animate-spin" />
+      ) : (
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+      )}
       <Input
         placeholder={t('search_placeholder') || `${tCommon('search')}...`}
-        className="pl-9"
-        defaultValue={currentSearch}
-        onChange={e => handleSearch(e.target.value)}
+        className="pl-9 h-11 border-2 focus-visible:ring-primary shadow-sm"
+        value={searchTerm}
+        onChange={e => setSearchTerm(e.target.value)}
+        autoFocus
       />
     </div>
   );

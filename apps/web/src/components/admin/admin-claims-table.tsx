@@ -1,7 +1,8 @@
 'use client';
 
-import { fetchClaims, type ClaimsListItem } from '@/lib/api/claims';
 import { Link } from '@/i18n/routing';
+import { fetchClaims, type ClaimsListItem } from '@/lib/api/claims';
+import { cn } from '@interdomestik/ui';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
 import {
@@ -12,11 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from '@interdomestik/ui/components/table';
-import { cn } from '@interdomestik/ui';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 
 const PER_PAGE = 20;
@@ -53,7 +53,7 @@ function ClaimsSection({ title, count, defaultOpen = true, children }: ClaimsSec
 export function AdminClaimsTable() {
   const searchParams = useSearchParams();
   const tAdmin = useTranslations('admin.claims_page');
-  const tTable = useTranslations('agent.table');
+  const tTable = useTranslations('agent-claims.claims.table');
   const tStatus = useTranslations('claims.status');
   const tCommon = useTranslations('common');
 

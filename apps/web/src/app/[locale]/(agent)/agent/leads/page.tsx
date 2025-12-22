@@ -4,12 +4,14 @@ import { db } from '@interdomestik/database/db';
 import { crmLeads } from '@interdomestik/database/schema';
 import { Button } from '@interdomestik/ui';
 import { desc, eq } from 'drizzle-orm';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export default async function LeadsPage() {
-  const t = await getTranslations('agent.leads_page');
+export default async function LeadsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations('agent-crm.crm.leads');
   const session = await auth.api.getSession({
     headers: await headers(),
   });

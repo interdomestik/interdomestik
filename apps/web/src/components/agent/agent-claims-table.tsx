@@ -19,7 +19,7 @@ import { useSearchParams } from 'next/navigation';
 const PER_PAGE = 20;
 
 export function AgentClaimsTable({ userRole }: { userRole?: string }) {
-  const t = useTranslations('agent');
+  const t = useTranslations('agent-claims.claims');
   const tCommon = useTranslations('common');
   const searchParams = useSearchParams();
 

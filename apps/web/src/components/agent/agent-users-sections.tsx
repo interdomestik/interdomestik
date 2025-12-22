@@ -1,8 +1,9 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
-import { Button } from '@interdomestik/ui';
+import { Button, cn } from '@interdomestik/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
+import { Badge } from '@interdomestik/ui/components/badge';
 import {
   Table,
   TableBody,
@@ -11,10 +12,17 @@ import {
   TableHeader,
   TableRow,
 } from '@interdomestik/ui/components/table';
-import { cn } from '@interdomestik/ui';
 import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
+
+const membershipStatusStyles: Record<string, string> = {
+  active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  past_due: 'bg-amber-100 text-amber-700 border-amber-200',
+  paused: 'bg-slate-100 text-slate-700 border-slate-200',
+  canceled: 'bg-rose-100 text-rose-700 border-rose-200',
+  none: 'bg-muted text-muted-foreground border-transparent',
+};
 
 type User = {
   id: string;
@@ -30,6 +38,11 @@ type User = {
   createdAt: Date;
   unreadCount?: number;
   alertLink?: string | null;
+  subscription?: {
+    status: string;
+    planId: string | null;
+    currentPeriodEnd: Date | null;
+  } | null;
 };
 
 type UsersSectionsProps = {
@@ -66,8 +79,9 @@ function Section({ title, count, defaultOpen = true, children }: SectionProps) {
 }
 
 export function AgentUsersSections({ users }: UsersSectionsProps) {
-  const t = useTranslations('agent.users_table');
-  const tCommon = useTranslations('common');
+  const t = useTranslations('agent-members.members.table');
+  const [showAllNeedsAttention, setShowAllNeedsAttention] = useState(false);
+  const [showAllMembers, setShowAllMembers] = useState(false);
 
   if (users.length === 0) {
     return (
@@ -78,83 +92,119 @@ export function AgentUsersSections({ users }: UsersSectionsProps) {
   }
 
   const members = users.filter(user => user.role === 'user');
-  const needsAttention = members.filter(user => user.unreadCount);
-  const allMembers = members.filter(user => !user.unreadCount);
+  const needsAttentionRaw = members.filter(user => user.unreadCount);
+  const allMembersRaw = members.filter(user => !user.unreadCount);
 
-  const renderTable = (rows: User[]) => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>{t('headers.user')}</TableHead>
-          <TableHead>{t('headers.assigned_agent')}</TableHead>
-          <TableHead>{t('headers.joined')}</TableHead>
-          <TableHead className="text-right">{t('headers.actions')}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map(member => (
-          <TableRow
-            key={member.id}
-            className={member.unreadCount ? 'bg-amber-50/40 hover:bg-amber-50/60' : undefined}
-          >
-            <TableCell>
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage src={member.image || ''} />
-                  <AvatarFallback>{member.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="font-medium">{member.name}</span>
-                  <span className="text-xs text-muted-foreground">{member.email}</span>
-                  <Button asChild size="sm" variant="outline" className="mt-2 h-7 px-2 text-xs">
-                    <Link href={`/agent/users/${member.id}`}>{t('view_profile')}</Link>
-                  </Button>
+  const DISPLAY_LIMIT = 5;
+
+  const needsAttention = showAllNeedsAttention
+    ? needsAttentionRaw
+    : needsAttentionRaw.slice(0, DISPLAY_LIMIT);
+  const allMembers = showAllMembers ? allMembersRaw : allMembersRaw.slice(0, DISPLAY_LIMIT);
+
+  const renderTable = (
+    rows: User[],
+    isLimited: boolean,
+    onExpand: () => void,
+    totalCount: number
+  ) => (
+    <div className="space-y-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t('headers.user')}</TableHead>
+            <TableHead>{t('headers.status') || 'Status'}</TableHead>
+            <TableHead>{t('headers.plan') || 'Plan'}</TableHead>
+            <TableHead>{t('headers.period_end') || 'Expires'}</TableHead>
+            <TableHead className="text-right">{t('headers.actions')}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map(member => (
+            <TableRow
+              key={member.id}
+              className={member.unreadCount ? 'bg-amber-50/40 hover:bg-amber-50/60' : undefined}
+            >
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={member.image || ''} />
+                    <AvatarFallback>{member.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-foreground">{member.name}</span>
+                    <span className="text-xs text-muted-foreground font-mono">{member.email}</span>
+                  </div>
                 </div>
-              </div>
-            </TableCell>
-            <TableCell className="text-sm text-muted-foreground">
-              {member.agent?.name || tCommon('none')}
-            </TableCell>
-            <TableCell className="text-sm">
-              {new Date(member.createdAt).toLocaleDateString()}
-            </TableCell>
-            <TableCell className="text-right">
-              {member.unreadCount && member.alertLink ? (
-                <Button
-                  asChild
-                  size="sm"
-                  className="gap-2 animate-pulse bg-amber-500 text-white hover:bg-amber-600"
+              </TableCell>
+              <TableCell>
+                <Badge
+                  className={cn(
+                    'font-medium text-[10px] uppercase tracking-wider',
+                    membershipStatusStyles[member.subscription?.status || 'none']
+                  )}
+                  variant="outline"
                 >
-                  <Link href={member.alertLink}>
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-                    </span>
-                    {t('message_alert', { count: member.unreadCount })}
-                  </Link>
-                </Button>
-              ) : (
-                <Button asChild size="sm" variant="outline">
+                  {member.subscription?.status || 'none'}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-sm font-bold">
+                {member.subscription?.planId ? (
+                  <span className="capitalize">{member.subscription.planId.replace('_', ' ')}</span>
+                ) : (
+                  <span className="opacity-30">-</span>
+                )}
+              </TableCell>
+              <TableCell className="text-sm font-medium">
+                {member.subscription?.currentPeriodEnd ? (
+                  new Date(member.subscription.currentPeriodEnd).toLocaleDateString()
+                ) : (
+                  <span className="opacity-30">-</span>
+                )}
+              </TableCell>
+              <TableCell className="text-right">
+                <Button asChild size="sm" variant="outline" className="h-8 shadow-sm">
                   <Link href={`/agent/users/${member.id}`}>{t('view_profile')}</Link>
                 </Button>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {isLimited && totalCount > DISPLAY_LIMIT && (
+        <div className="flex justify-center pt-2">
+          <Button variant="ghost" size="sm" onClick={onExpand} className="text-primary font-bold">
+            Expand All ({totalCount})
+          </Button>
+        </div>
+      )}
+    </div>
   );
 
   return (
     <div className="space-y-6">
-      {needsAttention.length > 0 && (
-        <Section title={t('sections.attention')} count={needsAttention.length}>
-          {renderTable(needsAttention)}
+      {needsAttentionRaw.length > 0 && (
+        <Section title={t('sections.attention')} count={needsAttentionRaw.length}>
+          {renderTable(
+            needsAttention,
+            !showAllNeedsAttention,
+            () => setShowAllNeedsAttention(true),
+            needsAttentionRaw.length
+          )}
         </Section>
       )}
-      {allMembers.length > 0 && (
-        <Section title={t('sections.all')} count={allMembers.length} defaultOpen={false}>
-          {renderTable(allMembers)}
+      {allMembersRaw.length > 0 && (
+        <Section
+          title={t('sections.all')}
+          count={allMembersRaw.length}
+          defaultOpen={needsAttentionRaw.length === 0}
+        >
+          {renderTable(
+            allMembers,
+            !showAllMembers,
+            () => setShowAllMembers(true),
+            allMembersRaw.length
+          )}
         </Section>
       )}
     </div>
