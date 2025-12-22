@@ -57,6 +57,18 @@ export default async function AgentLayout({ children, params }: Props) {
                   {t('dashboard')}
                 </Link>
                 <Link
+                  href="/agent/crm"
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  {t('crm')}
+                </Link>
+                <Link
+                  href="/agent/leads"
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  {t('leads')}
+                </Link>
+                <Link
                   href="/agent/claims"
                   className="transition-colors hover:text-foreground/80 text-foreground/60"
                 >
@@ -67,6 +79,12 @@ export default async function AgentLayout({ children, params }: Props) {
                   className="transition-colors hover:text-foreground/80 text-foreground/60"
                 >
                   {t('members')}
+                </Link>
+                <Link
+                  href="/agent/commissions"
+                  className="transition-colors hover:text-foreground/80 text-foreground/60"
+                >
+                  {t('commissions.title')}
                 </Link>
               </nav>
             </div>

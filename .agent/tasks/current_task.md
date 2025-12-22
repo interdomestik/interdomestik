@@ -5,7 +5,7 @@ priority: 'P1-High'
 estimate: 'TBD'
 test_level: 'unit'
 roadmap_ref: ''
-branch: 'feat/paddle-subscription-integration'
+branch: 'feat/commission-pages'
 start_time: 'Mon Dec 22 14:22:54 CET 2025'
 baseline:
   lint: 'skipped'
@@ -49,8 +49,8 @@ Copy the block below to your Agent to start with maximum context:
   - [x] Admin can manage/approve/pay commissions
   - [x] Per-agent commission rate customization
   - [x] Translations (en, sq)
-  - [ ] Agent commissions page (/agent/commissions)
-  - [ ] Admin commissions page (/admin/commissions)
+  - [x] Agent commissions page (/agent/commissions)
+  - [x] Admin commissions page (/admin/commissions)
   - [ ] Unit tests for commission actions
 </acceptance_criteria>
 ```
