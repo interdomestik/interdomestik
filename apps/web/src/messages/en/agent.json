@@ -11,7 +11,16 @@
       "total": "Total Claims",
       "new": "New (Submitted)",
       "verification": "In Verification",
+
       "closed": "Resolved / Rejected"
+    },
+    "details": {
+      "claimantInfo": "Claimant Information",
+      "company": "Company",
+      "amount": "Claim Amount",
+      "description": "Description",
+      "evidence": "Evidence",
+      "noEvidence": "No evidence attached"
     },
     "table": {
       "recent_activity": "Recent Activity",

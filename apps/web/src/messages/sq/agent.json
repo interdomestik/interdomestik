@@ -13,6 +13,14 @@
       "verification": "Në Verifikim",
       "closed": "Të Mbyllura"
     },
+    "details": {
+      "claimantInfo": "Informacioni i Kërkuesit",
+      "company": "Kompania",
+      "amount": "Shuma",
+      "description": "Përshkrimi",
+      "evidence": "Dëshmi",
+      "noEvidence": "Nuk ka dëshmi të bashkëngjitura"
+    },
     "table": {
       "recent_activity": "Aktiviteti i Fundit",
       "no_claims": "Nuk u gjet asnjë kërkesë për dëmshpërblim."
