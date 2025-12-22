@@ -19,6 +19,10 @@ export const auth = betterAuth({
         type: 'string',
         defaultValue: 'user',
       },
+      memberNumber: {
+        type: 'string',
+        fieldName: 'member_number',
+      },
     },
   },
   emailAndPassword: {
