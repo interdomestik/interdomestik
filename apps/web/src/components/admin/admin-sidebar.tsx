@@ -37,6 +37,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const t = useTranslations('admin.sidebar');
   const pathname = usePathname();
   const router = useRouter();
+  const locale = useLocale();
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -156,6 +157,44 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
           <DropdownMenuContent align="end" className="w-56" side="top" sideOffset={8}>
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="cursor-pointer">
+                <Globe className="mr-2 h-4 w-4" />
+                <span>Language</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem
+                    onClick={() => router.replace(pathname, { locale: 'en' })}
+                    className="cursor-pointer"
+                  >
+                    <span className="mr-2">🇬🇧</span> English
+                    {locale === 'en' && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.replace(pathname, { locale: 'sq' })}
+                    className="cursor-pointer"
+                  >
+                    <span className="mr-2">🇦🇱</span> Shqip
+                    {locale === 'sq' && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.replace(pathname, { locale: 'mk' })}
+                    className="cursor-pointer"
+                  >
+                    <span className="mr-2">🇲🇰</span> Македонски
+                    {locale === 'mk' && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.replace(pathname, { locale: 'sr' })}
+                    className="cursor-pointer"
+                  >
+                    <span className="mr-2">🇷🇸</span> Srpski
+                    {locale === 'sr' && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
             <DropdownMenuItem asChild>
               <Link href="/" className="cursor-pointer font-medium">
                 <Home className="mr-2 h-4 w-4" />
