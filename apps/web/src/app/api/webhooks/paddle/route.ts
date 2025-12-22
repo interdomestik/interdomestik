@@ -1,9 +1,10 @@
+import { createCommission } from '@/actions/commissions';
+import { calculateCommission } from '@/actions/commissions.types';
+import { sendPaymentFailedEmail } from '@/lib/email';
 import { db, subscriptions, user } from '@interdomestik/database';
 import { Environment, EventName, Paddle } from '@paddle/paddle-node-sdk';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
-
-import { sendPaymentFailedEmail } from '@/lib/email';
 
 const paddle = new Paddle(process.env.PADDLE_API_KEY || 'placeholder', {
   environment: (process.env.NEXT_PUBLIC_PADDLE_ENV as Environment) || Environment.sandbox,
@@ -94,7 +95,9 @@ export async function POST(req: NextRequest) {
       case EventName.SubscriptionResumed: {
         const sub = data as any;
         // Handle both camelCase (from SDK) and snake_case (from raw JSON)
-        const customData = (sub.customData || sub.custom_data) as { userId?: string } | undefined;
+        const customData = (sub.customData || sub.custom_data) as
+          | { userId?: string; agentId?: string }
+          | undefined;
         const userId = customData?.userId;
 
         if (!userId) {
@@ -153,6 +156,46 @@ export async function POST(req: NextRequest) {
         console.log(
           `[Webhook] Updated subscription ${sub.id} (status: ${mappedStatus}) for user ${userId}`
         );
+
+        // Create commission for new subscriptions with agent referral
+        if (eventType === EventName.SubscriptionCreated) {
+          const agentId = customData?.agentId;
+          const transactionTotal =
+            parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
+
+          if (agentId && transactionTotal > 0) {
+            // Fetch agent's custom commission rates
+            const agentSettings = await db.query.agentSettings?.findFirst({
+              where: (settings, { eq }) => eq(settings.agentId, agentId),
+            });
+            const customRates = agentSettings?.commissionRates as
+              | Record<string, number>
+              | undefined;
+
+            const commissionAmount = calculateCommission(
+              'new_membership',
+              transactionTotal,
+              customRates
+            );
+            await createCommission({
+              agentId,
+              memberId: userId,
+              subscriptionId: sub.id,
+              type: 'new_membership',
+              amount: commissionAmount,
+              currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
+              metadata: {
+                planId: priceId,
+                transactionTotal,
+                source: 'paddle_webhook',
+                customRates: !!customRates,
+              },
+            });
+            console.log(
+              `[Webhook] 💰 Commission created: €${commissionAmount} for agent ${agentId}${customRates ? ' (custom rates)' : ''}`
+            );
+          }
+        }
         break;
       }
 

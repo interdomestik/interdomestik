@@ -15,6 +15,27 @@
       "when": 1766267981929,
       "tag": "0001_long_shaman",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1766346549705,
+      "tag": "0002_silky_sentry",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1766392072862,
+      "tag": "0003_add_member_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1766410545104,
+      "tag": "0004_add_agent_settings",
+      "breakpoints": true
     }
   ]
 }

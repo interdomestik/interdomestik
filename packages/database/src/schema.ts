@@ -60,6 +60,15 @@ export const commissionTypeEnum = pgEnum('commission_type', [
   'b2b',
 ]);
 
+export const noteTypeEnum = pgEnum('note_type', [
+  'call',
+  'meeting',
+  'email',
+  'general',
+  'follow_up',
+  'issue',
+]);
+
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -70,6 +79,7 @@ export const user = pgTable('user', {
   marketingOptIn: boolean('marketing_opt_in').default(false),
   referralCode: text('referral_code').unique(),
   consentAt: timestamp('consent_at'),
+  memberNumber: text('member_number').unique(),
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
   agentId: text('agentId'), // Sales agent who referred this member (legacy mapping)
@@ -370,6 +380,29 @@ export const agentCommissions = pgTable('agent_commissions', {
   metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
 });
 
+// Per-agent configuration including custom commission rates
+export const agentSettings = pgTable('agent_settings', {
+  id: text('id').primaryKey(),
+  agentId: text('agent_id')
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  // Custom commission rates (JSON for flexibility)
+  // Structure: { new_membership: 0.20, renewal: 0.10, upgrade: 0.15, b2b: 0.25 }
+  commissionRates: jsonb('commission_rates').$type<Record<string, number>>().default({}).notNull(),
+  // Whether this agent can set their own rates (tier-based feature)
+  canNegotiateRates: boolean('can_negotiate_rates').default(false).notNull(),
+  // Agent tier (affects default rates)
+  tier: text('tier').default('standard'), // 'standard', 'premium', 'vip'
+  // Payment preferences
+  paymentMethod: text('payment_method'), // 'bank_transfer', 'paypal', etc.
+  paymentDetails: jsonb('payment_details').$type<Record<string, string>>().default({}),
+  // Minimum payout threshold
+  minPayoutAmount: decimal('min_payout_amount', { precision: 8, scale: 2 }).default('50.00'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+});
+
 export const referrals = pgTable('referrals', {
   id: text('id').primaryKey(),
   referrerId: text('referrer_id')
@@ -434,14 +467,37 @@ export const leadDownloads = pgTable('lead_downloads', {
   downloadedAt: timestamp('downloaded_at').defaultNow(),
 });
 
+// Member Interaction Logging - simplified activity notes
+export const memberNotes = pgTable('member_notes', {
+  id: text('id').primaryKey(),
+  memberId: text('member_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  authorId: text('author_id')
+    .notNull()
+    .references(() => user.id),
+  type: noteTypeEnum('type').default('general').notNull(),
+  content: text('content').notNull(),
+  isPinned: boolean('is_pinned').default(false).notNull(),
+  isInternal: boolean('is_internal').default(true).notNull(), // Only visible to agent/staff
+  followUpDate: timestamp('follow_up_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+});
+
 export const userRelations = relations(user, ({ many, one }) => ({
   claims: many(claims),
   staffClaims: many(claims, { relationName: 'claim_staff' }),
   auditLogs: many(auditLog),
-  subscriptions: many(subscriptions),
+  subscriptions: many(subscriptions, { relationName: 'user_subscriptions' }),
+  referredSubscriptions: many(subscriptions, { relationName: 'agent_referred_subscriptions' }),
   agentClients: many(agentClients, { relationName: 'agent_clients_agent' }),
   memberAgents: many(agentClients, { relationName: 'agent_clients_member' }),
   commissions: many(agentCommissions),
+  agentSettings: one(agentSettings, {
+    fields: [user.id],
+    references: [agentSettings.agentId],
+  }),
   agent: one(user, {
     fields: [user.agentId],
     references: [user.id],
@@ -520,6 +576,7 @@ export const subscriptionsRelations = relations(subscriptions, ({ one, many }) =
   user: one(user, {
     fields: [subscriptions.userId],
     references: [user.id],
+    relationName: 'user_subscriptions',
   }),
   plan: one(membershipPlans, {
     fields: [subscriptions.planKey],
@@ -529,10 +586,12 @@ export const subscriptionsRelations = relations(subscriptions, ({ one, many }) =
   referredByAgent: one(user, {
     fields: [subscriptions.referredByAgentId],
     references: [user.id],
+    relationName: 'agent_referred_subscriptions',
   }),
   referredByMember: one(user, {
     fields: [subscriptions.referredByMemberId],
     references: [user.id],
+    relationName: 'member_referred_subscriptions',
   }),
 }));
 
@@ -654,5 +713,18 @@ export const agentCommissionsRelations = relations(agentCommissions, ({ one }) =
   subscription: one(subscriptions, {
     fields: [agentCommissions.subscriptionId],
     references: [subscriptions.id],
+  }),
+}));
+
+export const memberNotesRelations = relations(memberNotes, ({ one }) => ({
+  member: one(user, {
+    fields: [memberNotes.memberId],
+    references: [user.id],
+    relationName: 'member_notes_member',
+  }),
+  author: one(user, {
+    fields: [memberNotes.authorId],
+    references: [user.id],
+    relationName: 'member_notes_author',
   }),
 }));

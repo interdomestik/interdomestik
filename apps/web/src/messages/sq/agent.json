@@ -13,172 +13,68 @@
       "verification": "Në Verifikim",
       "closed": "Të Mbyllura"
     },
-    "claims_queue": "Radha e Kërkesave për Dëmshpërblim",
-    "manage_triage": "Menaxho dhe vlerëso të gjitha kërkesat e dorëzuara për dëmshpërblim.",
     "table": {
-      "claimant": "Ankuesi",
-      "claim": "Kërkesa për Dëmshpërblim",
-      "status": "Statusi",
-      "amount": "Shuma",
-      "date": "Data",
-      "actions": "Veprime",
-      "triage": "Vlerësim",
-      "message_alert": "Mesazh i ri ({count})",
-      "no_claims": "Nuk u gjet asnjë kërkesë për dëmshpërblim.",
-      "no_claims_ready": "Lista e kërkesave për dëmshpërblim vjen së shpejti",
-      "recent_activity": "Aktiviteti i Fundit"
-    },
-    "actions": {
-      "approve": "Aprovo",
-      "reject": "Refuzo",
-      "requestInfo": "Kërko Info",
-      "review": "Rishiko Rastin"
-    },
-    "details": {
-      "title": "Detajet e Kërkesës për Dëmshpërblim",
-      "claimantInfo": "Informacioni i Kërkuesit",
-      "name": "Emri",
-      "email": "Email",
-      "description": "Përshkrimi",
-      "amount": "Shuma",
-      "company": "Subjekti / Kompania",
-      "title_label": "Titulli",
-      "category_label": "Kategoria",
-      "status_label": "Statusi",
-      "evidence": "Dosjet e Dëshmive",
-      "noEvidence": "Nuk ka dokumente të ngarkuara.",
-      "notes": "Shënime të Brendshme",
-      "notesPlaceholder": "Opsioni i shënimeve private të agjentit vjen së shpejti.",
-      "timeline": "Kronologjia e Rastit",
-      "no_messages": "Nuk ka ende histori ndërveprimesh.",
-      "message_placeholder": "Shkruani një mesazh ose shënim të brendshëm...",
-      "internal_note": "Shënim i Brendshëm",
-      "send_message": "Dërgo Mesazh",
-      "incident_date": "Data e Incidentit",
-      "messages": "Mesazhet",
-      "documents": "Dokumentet",
-      "no_documents": "Nuk ka dokumente të ngarkuara",
-      "unknown_date": "Datë e panjohur"
-    },
-    "triage": {
-      "title": "Veprimet e Vlerësimit",
-      "changeStatus": "Ndrysho Statusin",
-      "selectStatus": "Zgjidh statusin",
-      "verify": "Verifiko Info",
-      "reject": "Refuzo Kërkesën për Dëmshpërblim",
-      "notice": "Ndryshimi i statusit përditëson menjëherë kohështrirjen e përdoruesit."
+      "recent_activity": "Aktiviteti i Fundit",
+      "no_claims": "Nuk u gjet asnjë kërkesë për dëmshpërblim."
     },
     "notes": {
-      "title": "Shënime të Agjentit",
-      "description": "Kujtues të shpejtë dhe shënime private të hapësirës së punës.",
-      "priority": "Triage Prioritare",
-      "deadline": "Afati i Ardhshëm"
+      "title": "Shënimet e Anëtarit",
+      "description": "Ndiqni ndërveprimet dhe informacionin e rëndësishëm rreth këtij anëtari.",
+      "noteDescription": "Shtoni një shënim rreth ndërveprimit ose detajeve të rëndësishme të këtij anëtari.",
+      "addNote": "Shto Shënim",
+      "editNote": "Ndrysho Shënimin",
+      "newNote": "Shënim i Ri",
+      "noNotes": "Asnjë shënim ende",
+      "noNotesDescription": "Filloni të ndiqni ndërveprimet me {name}.",
+      "noteType": "Lloji i Shënimit",
+      "noteContent": "Përmbajtja",
+      "noteContentPlaceholder": "Shkruani shënimin tuaj këtu...",
+      "cancel": "Anulo",
+      "create": "Krijo",
+      "update": "Përditëso",
+      "saving": "Duke ruajtur...",
+      "edit": "Ndrysho",
+      "delete": "Fshi",
+      "pin": "Fiksoje",
+      "unpin": "Çfiksoje",
+      "loading": "Duke ngarkuar shënimet...",
+      "noteCreated": "Shënimi u krijua",
+      "noteUpdated": "Shënimi u përditësua",
+      "noteDeleted": "Shënimi u fshi",
+      "createError": "Dështoi krijimi i shënimit",
+      "updateError": "Dështoi përditësimi i shënimit",
+      "deleteError": "Dështoi fshirja e shënimit",
+      "pinError": "Dështoi fiksimi",
+      "types": {
+        "call": "Thirrje",
+        "meeting": "Takim",
+        "email": "Email",
+        "general": "E Përgjithshme",
+        "follow_up": "Ndjekje",
+        "issue": "Problem"
+      }
     },
-    "members_page": {
-      "title": "Anëtarë",
-      "description": "Anëtarët tuaj të caktuar dhe bisedat aktive."
-    },
-    "members_panel": {
-      "title": "Anëtarët e Mi",
-      "description": "Anëtarët që kërkojnë vëmendjen tuaj tani.",
-      "empty": "Nuk ka ende anëtarë të caktuar.",
-      "view_all": "Shiko të gjithë anëtarët"
-    },
-    "member_profile": {
-      "actions": {
-        "back": "Kthehu te anëtarët",
-        "view_claim": "Shiko kërkesën"
-      },
-      "sections": {
-        "membership": "Anëtarësimi",
-        "agent": "Agjenti i caktuar",
-        "preferences": "Preferencat e njoftimeve",
-        "claims_overview": "Përmbledhja e kërkesave për dëmshpërblim",
-        "recent_claims": "Kërkesat e fundit për dëmshpërblim"
-      },
-      "labels": {
-        "member_id": "ID i anëtarit",
-        "joined": "Regjistruar",
-        "email_verified_yes": "Email i verifikuar",
-        "email_verified_no": "Email i paverifikuar",
-        "status": "Statusi",
-        "plan": "Plani",
-        "period_end": "Fundi i periudhës",
-        "cancel_at_period_end": "Anulim në fund të periudhës",
-        "no_agent": "Nuk ka agjent të caktuar",
-        "preferences_unset": "Preferencat nuk janë vendosur",
-        "no_claims": "Nuk ka ende kërkesa për dëmshpërblim",
-        "unknown": "E panjohur",
-        "not_set": "Nuk është vendosur"
+    "commissions": {
+      "title": "Komisionet",
+      "summary": "Përmbledhje Komisionesh",
+      "pending": "Në Pritje",
+      "approved": "Të Aprovuara",
+      "paid": "Të Paguara",
+      "items": "artikuj",
+      "recentCommissions": "Komisionet e Fundit",
+      "noCommissions": "Ende nuk keni komisione",
+      "noCommissionsHint": "Filloni të referoni anëtarë për të fituar komisione.",
+      "types": {
+        "new_membership": "Anëtarësim i Ri",
+        "renewal": "Rinovim",
+        "upgrade": "Përmirësim",
+        "b2b": "Marrëveshje B2B"
       },
       "status": {
-        "active": "Aktive",
-        "past_due": "Me vonesë",
-        "paused": "Pezull",
-        "canceled": "Anuluar",
-        "none": "Pa anëtarësim"
-      },
-      "preferences": {
-        "email_claims": "Email përditësime të kërkesave",
-        "email_newsletter": "Email buletini",
-        "email_marketing": "Email marketing",
-        "push_claims": "Njoftime push për kërkesat",
-        "push_messages": "Njoftime push për mesazhe",
-        "in_app": "Njoftime në aplikacion"
-      },
-      "claims": {
-        "total": "Kërkesa gjithsej",
-        "open": "Kërkesa të hapura",
-        "resolved": "Të zgjidhura",
-        "rejected": "Të refuzuara"
-      }
-    },
-    "users_filters": {
-      "search_placeholder": "Kërko sipas emrit ose email-it"
-    },
-    "users_table": {
-      "sections": {
-        "attention": "Kërkon vëmendje",
-        "all": "Të gjithë anëtarët"
-      },
-      "headers": {
-        "user": "Anëtari",
-        "assigned_agent": "Agjenti i caktuar",
-        "joined": "Regjistruar",
-        "actions": "Veprime"
-      },
-      "view_profile": "Shiko profilin",
-      "view_claims": "Shiko kërkesat",
-      "message_alert": "Mesazh i ri ({count})",
-      "no_users": "Nuk u gjetën anëtarë."
-    },
-    "crm_dashboard": {
-      "title": "Pasqyra e Shitjeve",
-      "subtitle": "Ndiqni performancën dhe linjën tuaj.",
-      "stats": {
-        "leads_new": "Lead-e të reja",
-        "leads_contacted": "Të kontaktuar",
-        "deals_won": "Të fituara",
-        "commission": "Komisione"
-      }
-    },
-    "leads_page": {
-      "title": "Menaxhimi i Lead-eve",
-      "subtitle": "Menaxhoni dhe konvertoni anëtarët potencialë.",
-      "table": {
-        "name": "Emri",
-        "stage": "Faza",
-        "source": "Burimi",
-        "last_contact": "Kontakti i fundit",
-        "actions": "Veprime"
-      },
-      "stages": {
-        "new": "E re",
-        "contacted": "Kontaktuar",
-        "qualified": "Kualifikuar",
-        "proposal": "Propozim",
-        "won": "Fituar",
-        "lost": "Humbur"
+        "pending": "Në Pritje",
+        "approved": "Aprovuar",
+        "paid": "Paguar",
+        "void": "Anuluar"
       }
     }
   }

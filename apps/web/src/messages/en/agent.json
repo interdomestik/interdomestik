@@ -13,172 +13,68 @@
       "verification": "In Verification",
       "closed": "Resolved / Rejected"
     },
-    "claims_queue": "Claims Queue",
-    "manage_triage": "Manage and triage all submitted claims.",
     "table": {
-      "claimant": "Claimant",
-      "claim": "Claim",
-      "status": "Status",
-      "amount": "Amount",
-      "date": "Date",
-      "actions": "Actions",
-      "triage": "Triage",
-      "message_alert": "New message ({count})",
-      "no_claims": "No claims found.",
-      "no_claims_ready": "Claim List Component Coming Soon",
-      "recent_activity": "Recent Activity"
-    },
-    "actions": {
-      "approve": "Approve",
-      "reject": "Reject",
-      "requestInfo": "Request Info",
-      "review": "Review Case"
-    },
-    "details": {
-      "title": "Claim Details",
-      "claimantInfo": "Claimant Information",
-      "name": "Name",
-      "email": "Email",
-      "description": "Description",
-      "amount": "Amount",
-      "company": "Subject / Company",
-      "title_label": "Title",
-      "category_label": "Category",
-      "status_label": "Status",
-      "evidence": "Evidence Files",
-      "noEvidence": "No documents uploaded.",
-      "notes": "Internal Notes",
-      "notesPlaceholder": "Private agent notes feature coming soon.",
-      "timeline": "Case Timeline",
-      "no_messages": "No interaction history yet.",
-      "message_placeholder": "Type a message or internal note...",
-      "internal_note": "Internal Note",
-      "send_message": "Send Message",
-      "incident_date": "Incident Date",
-      "messages": "Messages",
-      "documents": "Documents",
-      "no_documents": "No documents uploaded",
-      "unknown_date": "Unknown date"
-    },
-    "triage": {
-      "title": "Triage Actions",
-      "changeStatus": "Change Status",
-      "selectStatus": "Select status",
-      "verify": "Verify Info",
-      "reject": "Reject Claim",
-      "notice": "Changing status updates the user's timeline immediately."
+      "recent_activity": "Recent Activity",
+      "no_claims": "No claims found."
     },
     "notes": {
-      "title": "Agent Notes",
-      "description": "Quick reminders and private workspace notes.",
-      "priority": "Priority Triage",
-      "deadline": "Upcoming Deadline"
+      "title": "Member Notes",
+      "description": "Track interactions and important information about this member.",
+      "noteDescription": "Add a note about this member's interaction or important details.",
+      "addNote": "Add Note",
+      "editNote": "Edit Note",
+      "newNote": "New Note",
+      "noNotes": "No notes yet",
+      "noNotesDescription": "Start tracking interactions with {name}.",
+      "noteType": "Note Type",
+      "noteContent": "Content",
+      "noteContentPlaceholder": "Enter your note here...",
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Update",
+      "saving": "Saving...",
+      "edit": "Edit",
+      "delete": "Delete",
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "loading": "Loading notes...",
+      "noteCreated": "Note created",
+      "noteUpdated": "Note updated",
+      "noteDeleted": "Note deleted",
+      "createError": "Failed to create note",
+      "updateError": "Failed to update note",
+      "deleteError": "Failed to delete note",
+      "pinError": "Failed to toggle pin",
+      "types": {
+        "call": "Call",
+        "meeting": "Meeting",
+        "email": "Email",
+        "general": "General",
+        "follow_up": "Follow-up",
+        "issue": "Issue"
+      }
     },
-    "members_page": {
-      "title": "Members",
-      "description": "Your assigned members and active conversations."
-    },
-    "members_panel": {
-      "title": "My Members",
-      "description": "Members who need your attention right now.",
-      "empty": "No assigned members yet.",
-      "view_all": "View all members"
-    },
-    "member_profile": {
-      "actions": {
-        "back": "Back to members",
-        "view_claim": "View claim"
-      },
-      "sections": {
-        "membership": "Membership",
-        "agent": "Assigned agent",
-        "preferences": "Notification preferences",
-        "claims_overview": "Claims overview",
-        "recent_claims": "Recent claims"
-      },
-      "labels": {
-        "member_id": "Member ID",
-        "joined": "Joined",
-        "email_verified_yes": "Email verified",
-        "email_verified_no": "Email not verified",
-        "status": "Status",
-        "plan": "Plan",
-        "period_end": "Period end",
-        "cancel_at_period_end": "Cancel at period end",
-        "no_agent": "No agent assigned",
-        "preferences_unset": "Preferences not set",
-        "no_claims": "No claims yet",
-        "unknown": "Unknown",
-        "not_set": "Not set"
+    "commissions": {
+      "title": "Commissions",
+      "summary": "Commission Summary",
+      "pending": "Pending",
+      "approved": "Approved",
+      "paid": "Paid",
+      "items": "items",
+      "recentCommissions": "Recent Commissions",
+      "noCommissions": "No commissions yet",
+      "noCommissionsHint": "Start referring members to earn commissions.",
+      "types": {
+        "new_membership": "New Membership",
+        "renewal": "Renewal",
+        "upgrade": "Upgrade",
+        "b2b": "B2B Deal"
       },
       "status": {
-        "active": "Active",
-        "past_due": "Past due",
-        "paused": "Paused",
-        "canceled": "Canceled",
-        "none": "Not subscribed"
-      },
-      "preferences": {
-        "email_claims": "Email claim updates",
-        "email_newsletter": "Email newsletter",
-        "email_marketing": "Email marketing",
-        "push_claims": "Push claim updates",
-        "push_messages": "Push messages",
-        "in_app": "In-app notifications"
-      },
-      "claims": {
-        "total": "Total claims",
-        "open": "Open claims",
-        "resolved": "Resolved",
-        "rejected": "Rejected"
-      }
-    },
-    "users_filters": {
-      "search_placeholder": "Search by name or email"
-    },
-    "users_table": {
-      "sections": {
-        "attention": "Needs attention",
-        "all": "All members"
-      },
-      "headers": {
-        "user": "Member",
-        "assigned_agent": "Assigned agent",
-        "joined": "Joined",
-        "actions": "Actions"
-      },
-      "view_profile": "View profile",
-      "view_claims": "View claims",
-      "message_alert": "New message ({count})",
-      "no_users": "No members found."
-    },
-    "crm_dashboard": {
-      "title": "Sales Overview",
-      "subtitle": "Track your performance and pipeline.",
-      "stats": {
-        "leads_new": "New Leads",
-        "leads_contacted": "Contacted",
-        "deals_won": "Deals Won",
-        "commission": "Commission"
-      }
-    },
-    "leads_page": {
-      "title": "Lead Management",
-      "subtitle": "Manage and convert your potential members.",
-      "table": {
-        "name": "Name",
-        "stage": "Stage",
-        "source": "Source",
-        "last_contact": "Last Contact",
-        "actions": "Actions"
-      },
-      "stages": {
-        "new": "New",
-        "contacted": "Contacted",
-        "qualified": "Qualified",
-        "proposal": "Proposal",
-        "won": "Won",
-        "lost": "Lost"
+        "pending": "Pending",
+        "approved": "Approved",
+        "paid": "Paid",
+        "void": "Void"
       }
     }
   }
