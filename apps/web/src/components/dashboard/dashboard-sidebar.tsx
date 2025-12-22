@@ -114,7 +114,7 @@ export function DashboardSidebar() {
     // For now, appending Admin Dashboard to member items as before.
     items.push({
       title: t('adminDashboard'),
-      href: '/admin/claims',
+      href: '/admin',
       icon: LayoutTemplate,
     });
   }

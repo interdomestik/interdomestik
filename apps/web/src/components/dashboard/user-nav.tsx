@@ -84,7 +84,7 @@ export function UserNav() {
           </DropdownMenuItem>
           {role === 'admin' && (
             <DropdownMenuItem asChild>
-              <Link href="/admin/claims" className="w-full cursor-pointer">
+              <Link href="/admin" className="w-full cursor-pointer">
                 <LayoutTemplate className="mr-2 h-4 w-4" />
                 <span>{t('adminDashboard')}</span>
               </Link>
