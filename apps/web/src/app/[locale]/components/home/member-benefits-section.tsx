@@ -50,10 +50,10 @@ export function MemberBenefitsSection() {
         </div>
         <h2 className="font-display font-black mb-12 text-slate-900 tracking-tight leading-[0.9] animate-fade-in uppercase">
           <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 opacity-60">
-            Mbrojtje që ju
+            {t('mainHeading1')}
           </span>
           <span className="text-5xl md:text-6xl lg:text-7xl block leading-[0.85] tracking-[-0.05em] text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
-            përket vetëm juve.
+            {t('mainHeading2')}
           </span>
         </h2>
         <p className="text-slate-500 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed opacity-60 mb-16 lg:mb-24 animate-fade-in">
