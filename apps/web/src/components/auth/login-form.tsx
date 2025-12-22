@@ -20,6 +20,7 @@ import * as React from 'react';
 export function LoginForm() {
   const t = useTranslations('auth.login');
   const common = useTranslations('common');
+  const router = useRouter();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -51,14 +52,28 @@ export function LoginForm() {
               const { error } = await authClient.signIn.email({
                 email,
                 password,
-                callbackURL: '/dashboard',
+                redirect: false,
               });
 
               if (error) {
-                setError(error.message || 'Invalid credentials');
+                setError(error.message || t('error'));
+                setLoading(false);
+                return;
               }
-            } catch {
-              setError('An unexpected error occurred');
+
+              const { data: session } = await authClient.getSession();
+              const role = (session?.user as any)?.role;
+
+              if (role === 'admin') {
+                router.push('/admin');
+              } else if (role === 'agent') {
+                router.push('/agent');
+              } else {
+                router.push('/dashboard');
+              }
+            } catch (err) {
+              setError(t('error'));
+              setLoading(false);
             } finally {
               setLoading(false);
             }
