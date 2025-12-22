@@ -1,7 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
-import { Badge, Button } from '@interdomestik/ui';
+import { Button } from '@interdomestik/ui';
 import { Building2, Check, ShieldCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -28,7 +28,7 @@ export function PricingSection() {
       id: 'standard',
       name: t('standard.name'),
       price: t('standard.price'),
-      monthlyPrice: '€2',
+      monthlyPrice: t('standard.monthlyPrice'),
       period: t('standard.period'),
       description: t('standard.description'),
       features: [
@@ -47,7 +47,7 @@ export function PricingSection() {
       id: 'family',
       name: t('family.name'),
       price: t('family.price'),
-      monthlyPrice: '€5',
+      monthlyPrice: t('family.monthlyPrice'),
       period: t('family.period'),
       description: t('family.description'),
       features: [
@@ -62,7 +62,7 @@ export function PricingSection() {
       id: 'business',
       name: t('business.name'),
       price: t('business.price'),
-      monthlyPrice: '€10',
+      monthlyPrice: t('business.monthlyPrice'),
       period: t('business.period'),
       description: t('business.description'),
       features: [
@@ -77,117 +77,151 @@ export function PricingSection() {
   ];
 
   return (
-    <section className="py-20 lg:py-28 bg-slate-50/50">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-display font-black mb-4 text-slate-900 tracking-tight">
+    <section id="pricing" className="py-24 lg:py-40 relative overflow-hidden bg-white">
+      {/* Prime Background Orbs */}
+      <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[140px] -translate-x-1/2 pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-secondary/5 rounded-full blur-[160px] translate-x-1/4 pointer-events-none" />
+
+      <div className="container mx-auto px-4 relative z-10 text-center">
+        {/* Prime Lvl 2 Headline */}
+        <div className="mb-16 lg:mb-24 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 text-slate-900 text-[10px] font-black uppercase tracking-[0.2em] mb-8 border border-slate-200/50 shadow-sm transition-all text-balance">
+            <Users className="h-3 w-3 text-primary" />
             {t('title')}
+          </div>
+          <h2 className="font-display font-black mb-12 text-slate-900 tracking-tight leading-[0.9] animate-fade-in uppercase">
+            <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 opacity-60">
+              Zgjidhni mbrojtjen
+            </span>
+            <span className="text-5xl md:text-6xl lg:text-7xl block leading-[0.85] tracking-[-0.05em] text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
+              që ju përshtatet.
+            </span>
           </h2>
-          <p className="text-slate-500 text-lg font-medium">{t('subtitle')}</p>
+          <p className="text-slate-500 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed opacity-60">
+            {t('subtitle')}
+          </p>
         </div>
 
-        {/* Billing Toggle */}
-        <div className="flex flex-col items-center gap-4 mb-12">
-          <div className="inline-flex items-center p-1 rounded-full bg-white border border-slate-200 shadow-sm">
+        {/* Billing Toggle - Prime Style */}
+        <div className="flex flex-col items-center gap-6 mb-20 animate-fade-in">
+          <div className="inline-flex items-center p-1.5 rounded-3xl bg-slate-50 border border-slate-100 shadow-inner">
             <button
               onClick={() => setIsYearly(false)}
-              className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${
+              className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
                 !isYearly
-                  ? 'bg-primary text-white shadow-md'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white text-slate-900 shadow-md border border-slate-100'
+                  : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               {t('monthly')}
             </button>
             <button
               onClick={() => setIsYearly(true)}
-              className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${
-                isYearly ? 'bg-primary text-white shadow-md' : 'text-slate-500 hover:text-slate-700'
+              className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                isYearly
+                  ? 'bg-white text-slate-900 shadow-md border border-slate-100'
+                  : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               {t('yearly')}
             </button>
           </div>
           {isYearly && (
-            <Badge
-              variant="secondary"
-              className="bg-emerald-50 text-emerald-700 border-emerald-200 font-bold"
-            >
+            <div className="px-4 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-black uppercase tracking-widest animate-pulse-slow">
               {t('yearlySaving')}
-            </Badge>
+            </div>
           )}
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map(plan => (
+        {/* Pricing Cards - Prime Bento Style */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 max-w-7xl mx-auto">
+          {plans.map((plan, index) => (
             <div
               key={plan.id}
-              className={`bg-white rounded-3xl p-8 relative transition-all duration-300 border-2 ${
+              className={`group relative bg-white rounded-[2.5rem] p-10 lg:p-12 transition-all duration-500 hover:-translate-y-2 border ${
                 plan.popular
-                  ? 'border-primary shadow-2xl shadow-primary/10 scale-[1.02] z-10'
-                  : 'border-slate-100 shadow-xl hover:shadow-2xl hover:scale-[1.01]'
-              }`}
+                  ? 'border-primary/20 shadow-[0_40px_80px_rgba(0,0,0,0.06)]'
+                  : 'border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)]'
+              } flex flex-col justify-between overflow-hidden text-left`}
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
-              {plan.popular && plan.popularLabel && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
-                  <span className="bg-emerald-500 text-white text-sm font-bold px-5 py-1.5 rounded-full shadow-lg">
-                    {plan.popularLabel}
-                  </span>
-                </div>
+              {/* Popular Glow Effect */}
+              {plan.popular && (
+                <div className="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-primary via-secondary to-accent" />
               )}
 
-              {/* Icon */}
-              <div className="flex justify-center mb-6">
-                <div
-                  className={`h-14 w-14 rounded-2xl flex items-center justify-center ${
-                    plan.popular ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  <plan.icon className="h-7 w-7" />
-                </div>
-              </div>
+              <div
+                className={`absolute -right-20 -top-20 w-80 h-80 bg-gradient-to-br ${plan.popular ? 'from-primary/10 to-secondary/10' : 'from-slate-50 to-slate-100'} opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-700 pointer-events-none`}
+              />
 
-              {/* Plan Name */}
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-black mb-4 text-slate-900">{plan.name}</h3>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-5xl font-black text-slate-900 tracking-tighter">
-                    {isYearly ? plan.price : plan.monthlyPrice}
-                  </span>
-                  <span className="text-slate-400 font-bold">{isYearly ? '/vit' : '/muaj'}</span>
-                </div>
-                <p className="text-xs font-bold text-primary uppercase tracking-wider mt-2">
-                  {isYearly ? 'BILLED ANNUALLY' : 'BILLED MONTHLY'}
-                </p>
-                <p className="text-sm font-medium text-slate-500 mt-3">{plan.description}</p>
-              </div>
-
-              {/* Features */}
-              <ul className="space-y-3 mb-8">
-                {plan.features.map(feature => (
-                  <li
-                    key={feature}
-                    className="flex items-center gap-3 text-sm font-medium text-slate-600"
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-12">
+                  <div
+                    className={`h-16 w-16 rounded-2xl ${plan.popular ? 'bg-primary/5 text-primary' : 'bg-slate-50 text-slate-400'} flex items-center justify-center transition-all duration-500 group-hover:scale-110 border border-white/50 shadow-sm`}
                   >
-                    <Check className="h-5 w-5 text-emerald-500 shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
+                    <plan.icon className="h-8 w-8" />
+                  </div>
+                  {plan.popular && (
+                    <span className="px-3 py-1.5 rounded-full bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest shadow-lg">
+                      {plan.popularLabel}
+                    </span>
+                  )}
+                </div>
 
-              {/* CTA */}
-              <Link href="/register" className="block">
-                <Button
-                  size="lg"
-                  variant={plan.popular ? 'default' : 'outline'}
-                  className={`w-full h-12 font-bold rounded-xl ${
-                    plan.popular ? 'shadow-lg shadow-primary/30' : ''
-                  }`}
-                >
-                  {t('cta')}
-                </Button>
-              </Link>
+                <div className="mb-10">
+                  <h3 className="text-2xl font-display font-black text-slate-900 tracking-tighter mb-4">
+                    {plan.name}
+                  </h3>
+                  <div className="flex items-baseline gap-1.5 mb-2">
+                    <span className="text-6xl font-display font-black text-slate-900 tracking-tighter leading-none">
+                      {isYearly ? plan.price : plan.monthlyPrice}
+                    </span>
+                    <span className="text-slate-400 font-bold text-lg">
+                      /{isYearly ? t('perYear') : t('perMonth')}
+                    </span>
+                  </div>
+                  <p className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-4">
+                    {isYearly ? t('billedAnnually') : t('billedMonthly')}
+                  </p>
+                  <p className="text-slate-500 text-base font-medium leading-relaxed opacity-70">
+                    {plan.description}
+                  </p>
+                </div>
+
+                <div className="h-px w-full bg-slate-50 mb-10" />
+
+                <ul className="space-y-4 mb-12">
+                  {plan.features.map(feature => (
+                    <li key={feature} className="flex gap-4 text-sm font-medium text-slate-600">
+                      <div className="mt-0.5 h-5 w-5 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
+                        <Check className="h-3 w-3 text-emerald-500" />
+                      </div>
+                      <span className="leading-tight">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="relative z-10 w-full">
+                <Link href="/register">
+                  <Button
+                    size="xl"
+                    className={`w-full h-16 text-lg font-black rounded-2xl transition-all duration-300 ${
+                      plan.popular
+                        ? 'brand-gradient text-white shadow-xl shadow-primary/20 hover:scale-[1.02] border-0'
+                        : 'bg-white text-slate-900 border-2 border-slate-100 hover:border-primary/20 hover:bg-slate-50'
+                    }`}
+                  >
+                    {t('cta')}
+                  </Button>
+                </Link>
+                <div className="mt-6 flex items-center justify-center gap-2 opacity-30 grayscale group-hover:opacity-60 transition-all">
+                  <ShieldCheck className="h-4 w-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    Bashkohu me siguri
+                  </span>
+                </div>
+              </div>
             </div>
           ))}
         </div>

@@ -46,7 +46,7 @@ export function Footer() {
                   </div>
                   <div>
                     <p className="font-bold">{phone}</p>
-                    <p className="text-xs text-slate-500">24/7 Hotline</p>
+                    <p className="text-xs text-slate-500">{t('hotlineLabel')}</p>
                   </div>
                 </a>
               )}
@@ -60,7 +60,7 @@ export function Footer() {
                   </div>
                   <div>
                     <p className="font-bold">WhatsApp</p>
-                    <p className="text-xs text-slate-500">Chat with us</p>
+                    <p className="text-xs text-slate-500">{t('chatWithUs')}</p>
                   </div>
                 </a>
               )}
@@ -71,7 +71,7 @@ export function Footer() {
                   </div>
                   <div>
                     <p className="font-medium text-white">{address}</p>
-                    {hours && <p className="text-xs text-slate-500">{hours}</p>}
+                    {hours && <p className="text-xs text-slate-500">{t('hours', { hours })}</p>}
                   </div>
                 </div>
               )}
@@ -81,7 +81,7 @@ export function Footer() {
           {/* Membership Links */}
           <div>
             <h4 className="font-display font-bold text-sm uppercase tracking-wider text-slate-300 mb-6">
-              Membership
+              {t('membership')}
             </h4>
             <ul className="space-y-3 text-sm">
               <li>
@@ -89,7 +89,7 @@ export function Footer() {
                   href="/pricing"
                   className="text-slate-400 hover:text-white transition-colors font-medium"
                 >
-                  Plans & Pricing
+                  {t('plansPricing')}
                 </Link>
               </li>
               <li>
@@ -97,7 +97,7 @@ export function Footer() {
                   href="/register"
                   className="text-slate-400 hover:text-white transition-colors font-medium"
                 >
-                  Join the Club
+                  {t('joinClub')}
                 </Link>
               </li>
               <li>
@@ -105,7 +105,7 @@ export function Footer() {
                   href="/login"
                   className="text-slate-400 hover:text-white transition-colors font-medium"
                 >
-                  Member Login
+                  {t('memberLogin')}
                 </Link>
               </li>
               <li>
@@ -180,7 +180,7 @@ export function Footer() {
                   className="text-slate-400 hover:text-white transition-colors font-medium flex items-center gap-2"
                 >
                   <Mail className="h-4 w-4" />
-                  Email Us
+                  {t('emailUs')}
                 </a>
               </li>
             </ul>
@@ -193,7 +193,7 @@ export function Footer() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-slate-500">
-              {t('copyright', { year: new Date().getFullYear() })}
+              {t('copyright', { year: new Date().getFullYear(), appName: common('appName') })}
             </p>
             <p className="text-xs text-slate-600 text-center md:text-right max-w-lg">
               {t('disclaimer')}

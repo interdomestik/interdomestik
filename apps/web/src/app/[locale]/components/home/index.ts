@@ -6,7 +6,7 @@ export { HeroSection } from './hero-section';
 export { HowMembershipWorksSection } from './how-membership-works-section';
 export { MemberBenefitsSection } from './member-benefits-section';
 export { PricingSection } from './pricing-section';
-export { StickyMobileCTA } from './sticky-mobile-cta';
+export { StickyPrimeCTA } from './sticky-mobile-cta';
 export { TestimonialsSection } from './testimonials-section';
 export { TrustStatsSection } from './trust-stats-section';
 export { TrustStrip } from './trust-strip';

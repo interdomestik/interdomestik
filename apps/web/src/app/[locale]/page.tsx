@@ -10,7 +10,7 @@ import {
   HowMembershipWorksSection,
   MemberBenefitsSection,
   PricingSection,
-  StickyMobileCTA,
+  StickyPrimeCTA,
   TestimonialsSection,
   TrustStatsSection,
   TrustStrip,
@@ -37,16 +37,16 @@ export default async function HomePage({ params }: Props) {
         <Header />
         <HeroSection />
         <TrustStrip />
-        <TrustStatsSection />
         <MemberBenefitsSection />
-        <VoiceClaimSection />
-        <HowMembershipWorksSection />
-        <TestimonialsSection />
         <PricingSection />
+        <VoiceClaimSection />
+        <TestimonialsSection />
+        <TrustStatsSection />
+        <HowMembershipWorksSection />
         <FAQSection />
         <CTASection />
         <Footer />
-        <StickyMobileCTA />
+        <StickyPrimeCTA />
       </main>
     </NextIntlClientProvider>
   );
