@@ -88,7 +88,7 @@ export function MemberClaimsTable() {
           </p>
           {!searchQuery && !statusFilter && (
             <Button asChild>
-              <Link href="/dashboard/claims/new">
+              <Link href="/member/claims/new">
                 <Plus className="mr-2 h-4 w-4" />
                 {t('empty.createFirst')}
               </Link>
@@ -118,7 +118,7 @@ export function MemberClaimsTable() {
               <TableRow key={claim.id} className="hover:bg-muted/50 cursor-pointer">
                 <TableCell className="font-medium">
                   <Link
-                    href={`/dashboard/claims/${claim.id}`}
+                    href={`/member/claims/${claim.id}`}
                     className="hover:underline underline-offset-4 block max-w-[240px] truncate"
                     title={claim.title}
                   >

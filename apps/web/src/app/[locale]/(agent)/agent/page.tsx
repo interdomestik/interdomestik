@@ -1,8 +1,13 @@
-import { getAgentDashboardData } from '@/actions/agent-dashboard';
-import { getAgentUsers } from '@/actions/agent-users';
-import { AgentStatsCards } from '@/components/agent/agent-stats-cards';
-import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
+import { getMyCommissionSummary } from '@/actions/commissions';
 import { Link } from '@/i18n/routing';
+import { auth } from '@/lib/auth';
+import { db } from '@interdomestik/database/db';
+import {
+  agentCommissions,
+  crmDeals,
+  crmLeads,
+  subscriptions,
+} from '@interdomestik/database/schema';
 import {
   Button,
   Card,
@@ -12,9 +17,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui';
-import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
-import { Activity, ArrowRight, FileText, Users } from 'lucide-react';
+import { and, count, eq, sql } from 'drizzle-orm';
+import { ArrowRight, DollarSign, TrendingUp, Users } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function AgentDashboardPage({
   params,
@@ -25,14 +32,46 @@ export default async function AgentDashboardPage({
   setRequestLocale(locale);
 
   const t = await getTranslations('agent');
-  const tMembers = await getTranslations('agent-members.members.panel');
-  const tUsers = await getTranslations('agent-members.members.table');
-  const { stats, recentClaims } = await getAgentDashboardData();
-  const members = await getAgentUsers();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-  const attentionMembers = members.filter(member => member.unreadCount);
-  const highlightedMembers = attentionMembers.length > 0 ? attentionMembers : members;
-  const displayedMembers = highlightedMembers.slice(0, 5);
+  if (!session?.user) {
+    redirect('/auth/login');
+  }
+
+  const agentId = session.user.id;
+
+  // Fetch stats for agent sales dashboard
+  const [newLeads] = await db
+    .select({ count: count() })
+    .from(crmLeads)
+    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, 'new')));
+
+  const [contactedLeads] = await db
+    .select({ count: count() })
+    .from(crmLeads)
+    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, 'contacted')));
+
+  const [wonDeals] = await db
+    .select({ count: count() })
+    .from(crmDeals)
+    .where(and(eq(crmDeals.agentId, agentId), eq(crmDeals.stage, 'closed_won')));
+
+  const [totalCommission] = await db
+    .select({ total: sql<number>`COALESCE(sum(${agentCommissions.amount}), 0)` })
+    .from(agentCommissions)
+    .where(and(eq(agentCommissions.agentId, agentId), eq(agentCommissions.status, 'paid')));
+
+  // Get clients (members the agent signed up)
+  const [clientCount] = await db
+    .select({ count: count() })
+    .from(subscriptions)
+    .where(eq(subscriptions.referredByAgentId, agentId));
+
+  // Get commission summary
+  const summaryResult = await getMyCommissionSummary();
+  const summary = summaryResult.success ? summaryResult.data : null;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -40,7 +79,7 @@ export default async function AgentDashboardPage({
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">
-            {t('dashboard')} -{' '}
+            {t('dashboard')} —{' '}
             {new Date().toLocaleDateString(locale, {
               weekday: 'long',
               year: 'numeric',
@@ -50,127 +89,146 @@ export default async function AgentDashboardPage({
           </p>
         </div>
         <Button asChild>
-          <Link href="/agent/claims">
-            {t('claims_queue')} <ArrowRight className="ml-2 h-4 w-4" />
+          <Link href="/agent/leads/new">
+            Add New Lead <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
       </div>
 
-      <AgentStatsCards stats={stats} />
-
-      <div className="grid gap-4 lg:grid-cols-12">
-        <Card className="lg:col-span-7">
-          <CardHeader>
-            <CardTitle>{t('table.recent_activity', { defaultValue: 'Recent Activity' })}</CardTitle>
-            <CardDescription>
-              {recentClaims.length === 0
-                ? t('table.no_claims')
-                : 'Your most recently updated cases.'}
-            </CardDescription>
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">New Leads</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {recentClaims.map(claim => (
-                <div key={claim.id} className="flex items-center gap-4">
-                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">{claim.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {claim.user?.name || 'Unknown User'} • {claim.companyName}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <ClaimStatusBadge status={claim.status} />
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href={`/agent/claims/${claim.id}`}>
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {recentClaims.length === 0 && (
-                <div className="py-10 text-center text-muted-foreground opacity-50">
-                  <Activity className="h-10 w-10 mx-auto mb-3" />
-                  <p>{t('table.no_claims')}</p>
-                </div>
-              )}
-            </div>
+            <div className="text-2xl font-bold">{newLeads?.count ?? 0}</div>
+            <p className="text-xs text-muted-foreground">Awaiting first contact</p>
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              {tMembers('title')}
-            </CardTitle>
-            <CardDescription>{tMembers('description')}</CardDescription>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Contacted</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {displayedMembers.map(member => (
-                <div key={member.id} className="flex items-center gap-3">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={member.image || ''} />
-                    <AvatarFallback>{member.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{member.name || 'Unknown'}</p>
-                    <p className="text-xs text-muted-foreground">{member.email}</p>
-                  </div>
-                  {member.unreadCount && member.alertLink ? (
-                    <Button
-                      asChild
-                      size="sm"
-                      className="gap-2 animate-pulse bg-amber-500 text-white hover:bg-amber-600"
-                    >
-                      <Link href={member.alertLink}>
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-                        </span>
-                        {tUsers('message_alert', { count: member.unreadCount })}
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/agent/users/${member.id}`}>{tUsers('view_profile')}</Link>
-                    </Button>
-                  )}
-                </div>
-              ))}
-              {displayedMembers.length === 0 && (
-                <div className="py-10 text-center text-muted-foreground opacity-70">
-                  <p>{tMembers('empty')}</p>
-                </div>
-              )}
+            <div className="text-2xl font-bold">{contactedLeads?.count ?? 0}</div>
+            <p className="text-xs text-muted-foreground">In your pipeline</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Deals Won</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{wonDeals?.count ?? 0}</div>
+            <p className="text-xs text-muted-foreground">Memberships sold</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              €{Number(totalCommission?.total ?? 0).toFixed(2)}
+            </div>
+            <p className="text-xs text-muted-foreground">Paid commissions</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* Pipeline Overview */}
+        <Card className="lg:col-span-8">
+          <CardHeader>
+            <CardTitle>Pipeline Overview</CardTitle>
+            <CardDescription>Your sales funnel at a glance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold">{newLeads?.count ?? 0}</div>
+                <div className="text-xs text-muted-foreground">New</div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              <div className="text-center">
+                <div className="text-2xl font-bold">{contactedLeads?.count ?? 0}</div>
+                <div className="text-xs text-muted-foreground">Contacted</div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              <div className="text-center">
+                <div className="text-2xl font-bold">{wonDeals?.count ?? 0}</div>
+                <div className="text-xs text-muted-foreground">Won</div>
+              </div>
             </div>
           </CardContent>
-          <CardFooter className="justify-end">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/agent/users">{tMembers('view_all')}</Link>
+          <CardFooter>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/agent/crm">View Full Pipeline</Link>
             </Button>
           </CardFooter>
         </Card>
 
+        {/* Commission Summary */}
+        <Card className="lg:col-span-4">
+          <CardHeader>
+            <CardTitle>Commission Summary</CardTitle>
+            <CardDescription>Your earnings overview</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Pending</span>
+              <span className="font-semibold">
+                €{((summary?.totalPending ?? 0) / 100).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Approved</span>
+              <span className="font-semibold text-green-600">
+                €{((summary?.totalApproved ?? 0) / 100).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Paid</span>
+              <span className="font-semibold">€{((summary?.totalPaid ?? 0) / 100).toFixed(2)}</span>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/agent/commissions">View All Commissions</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Your Clients */}
         <Card className="lg:col-span-12">
           <CardHeader>
-            <CardTitle>{t('notes.title')}</CardTitle>
-            <CardDescription>{t('notes.description')}</CardDescription>
+            <CardTitle>Your Clients</CardTitle>
+            <CardDescription>
+              Members you've signed up ({clientCount?.count ?? 0} total)
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-900 text-sm">
-                <p className="font-semibold mb-1">{t('notes.priority')}</p>
-                <p className="opacity-80">{t('notes.priority_text')}</p>
-              </div>
-              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-sm">
-                <p className="font-semibold mb-1">{t('notes.deadline')}</p>
-                <p className="opacity-80">{t('notes.deadline_text')}</p>
-              </div>
+            <div className="text-center py-8 text-muted-foreground">
+              {(clientCount?.count ?? 0) === 0 ? (
+                <div>
+                  <p className="mb-4">No clients yet. Start selling memberships!</p>
+                  <Button asChild>
+                    <Link href="/agent/leads/new">Add Your First Lead</Link>
+                  </Button>
+                </div>
+              ) : (
+                <Button asChild variant="outline">
+                  <Link href="/agent/clients">View All Clients</Link>
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

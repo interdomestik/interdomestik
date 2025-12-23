@@ -24,7 +24,7 @@ interface MemberNotesCardProps {
 }
 
 export function MemberNotesCard({ memberId, memberName }: MemberNotesCardProps) {
-  const t = useTranslations('Agent.notes');
+  const t = useTranslations('agent.notes');
   const [notes, setNotes] = useState<MemberNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);

@@ -63,6 +63,7 @@ vi.mock('@interdomestik/ui/components/badge', () => ({
 vi.mock('@interdomestik/ui/components/button', () => ({
   Button: ({
     children,
+    asChild: _asChild,
     ...props
   }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
     children: React.ReactNode;

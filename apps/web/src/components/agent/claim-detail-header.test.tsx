@@ -80,6 +80,6 @@ describe('ClaimDetailHeader', () => {
   it('back link points to claims list', () => {
     render(<ClaimDetailHeader claim={mockClaim} />);
     const backLink = screen.getByText('Back').closest('a');
-    expect(backLink).toHaveAttribute('href', '/agent/claims');
+    expect(backLink).toHaveAttribute('href', '/member/claims');
   });
 });

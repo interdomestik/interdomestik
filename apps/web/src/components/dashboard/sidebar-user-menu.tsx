@@ -56,7 +56,7 @@ export function SidebarUserMenu() {
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{user.name}</span>
                 <span className="truncate text-xs text-muted-foreground capitalize">
-                  {(user as any).role || t('memberRole')}
+                  {(user as { role?: string }).role || t('memberRole')}
                 </span>
               </div>
               <ChevronUp className="ml-auto size-4 text-muted-foreground" />

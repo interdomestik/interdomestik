@@ -2,10 +2,10 @@ import { expect, test } from './fixtures/auth.fixture';
 
 test.describe('Staff Claim Management', () => {
   test('Staff can view dashboard stats and recent claims', async ({ staffPage: page }) => {
-    await page.goto('/en/agent');
+    await page.goto('/en/staff');
 
     // Check titles
-    await expect(page.getByRole('heading', { name: /Agent Workspace/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Overview/i })).toBeVisible();
 
     // Check stats cards
     await expect(page.getByText('Total Claims')).toBeVisible();
@@ -16,8 +16,8 @@ test.describe('Staff Claim Management', () => {
   });
 
   test('Staff can view and navigate claims queue', async ({ staffPage: page }) => {
-    await page.goto('/en/agent/claims');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/en/staff/claims');
+    await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByRole('heading', { name: 'Claims Queue' })).toBeVisible();
 
@@ -28,19 +28,19 @@ test.describe('Staff Claim Management', () => {
     await expect(page.getByRole('columnheader', { name: 'Claim', exact: true })).toBeVisible();
 
     // Check if at least one claim is present (seeded data)
-    const firstReviewButton = page.getByRole('link', { name: 'Review' }).first();
+    const firstReviewButton = page.getByRole('link', { name: /Review/i }).first();
     await expect(firstReviewButton).toBeVisible();
   });
 
   test('Staff can view claim details', async ({ staffPage: page }) => {
-    await page.goto('/en/agent/claims');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/en/staff/claims');
+    await page.waitForLoadState('domcontentloaded');
 
     // Click on the first claim
-    const reviewLink = page.getByRole('link', { name: 'Review' }).first();
+    const reviewLink = page.getByRole('link', { name: /Review/i }).first();
     await reviewLink.click();
 
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Check new detail pane structure
     await expect(page.getByText('Claim Details')).toBeVisible();
@@ -60,13 +60,13 @@ test.describe('Staff Claim Management', () => {
   });
 
   test('Staff can update claim status', async ({ staffPage: page }) => {
-    await page.goto('/en/agent/claims');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/en/staff/claims');
+    await page.waitForLoadState('domcontentloaded');
 
     // Click on the first claim
-    const reviewLink = page.getByRole('link', { name: 'Review' }).first();
+    const reviewLink = page.getByRole('link', { name: /Review/i }).first();
     await reviewLink.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Update status to Verification
     const statusSelect = page.getByRole('combobox').first();

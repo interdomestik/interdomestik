@@ -6,7 +6,11 @@ import { Download, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface ClaimDocumentsPaneProps {
-  documents: any[];
+  documents: {
+    id: string;
+    fileName: string | null;
+    createdAt?: string | Date | null;
+  }[];
 }
 
 export function ClaimDocumentsPane({ documents }: ClaimDocumentsPaneProps) {

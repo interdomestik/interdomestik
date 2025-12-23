@@ -98,7 +98,7 @@ export async function updateNotificationPreferences(preferences: NotificationPre
       });
     }
 
-    revalidatePath('/dashboard/settings');
+    revalidatePath('/member/settings');
     return { success: true };
   } catch (error) {
     console.error('Error saving notification preferences:', error);

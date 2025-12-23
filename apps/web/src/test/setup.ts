@@ -22,7 +22,7 @@ vi.mock('next/navigation', () => ({
     forward: vi.fn(),
     refresh: vi.fn(),
   }),
-  usePathname: () => '/en/dashboard',
+  usePathname: () => '/en/member',
   useSearchParams: () => new URLSearchParams(),
   useParams: () => ({ locale: 'en' }),
   redirect: vi.fn(),

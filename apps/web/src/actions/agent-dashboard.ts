@@ -30,12 +30,8 @@ export async function getAgentDashboardData() {
     throw new Error('Unauthorized');
   }
 
-  const staffId = session.user.id;
-  const isStaff = session.user.role === 'staff';
-
-  // Base query filter: if role is 'staff', only show their assigned claims
-  // If 'admin', show everything for now (or maybe just general overview)
-  const whereClause = isStaff ? eq(claims.staffId, staffId) : sql`1=1`;
+  // Staff and admin both get the full claims overview.
+  const whereClause = sql`1=1`;
 
   // Fetch stats
   const [totalRes] = await db.select({ count: count() }).from(claims).where(whereClause);
@@ -54,7 +50,7 @@ export async function getAgentDashboardData() {
     .from(claims)
     .where(and(whereClause, sql`${claims.status} IN ('resolved', 'rejected')`));
 
-  // Fetch recent assigned claims
+  // Fetch recent claims
   const recentClaims = await db.query.claims.findMany({
     where: whereClause,
     orderBy: [desc(claims.updatedAt)],

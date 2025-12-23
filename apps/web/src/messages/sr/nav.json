@@ -1,6 +1,7 @@
 {
   "nav": {
     "home": "Home",
+    "services": "Services",
     "dashboard": "Dashboard",
     "claims": "Claims",
     "newClaim": "New Claim",
@@ -19,9 +20,15 @@
     "overview": "Pregled",
     "consumerRights": "Prava potrošača",
     "agentWorkspace": "Radni prostor agenta",
-    "adminDashboard": "Admin kontrolna tabla",
-    "services": "Services",
     "agentCrm": "CRM Dashboard",
-    "agentLeads": "Leads"
+    "agentLeads": "Leads",
+    "adminDashboard": "Admin kontrolna tabla",
+    "backToWebsite": "Back to Website",
+    "language": "Language",
+    "agentPortal": "Agent Portal",
+    "staffPortal": "Staff Portal",
+    "memberPortal": "Member Portal",
+    "memberRole": "Member",
+    "myAccount": "My Account"
   }
 }

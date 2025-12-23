@@ -1,17 +1,14 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DashboardSidebar } from './dashboard-sidebar';
 
-// Mock authClient
-vi.mock('@/lib/auth-client', () => ({
-  authClient: {
-    useSession: vi.fn(),
-  },
+// Mock the useDashboardNavigation hook
+vi.mock('@/hooks/use-dashboard-navigation', () => ({
+  useDashboardNavigation: vi.fn(),
 }));
 
-// Get the mock reference
-import { authClient } from '@/lib/auth-client';
-const mockUseSession = vi.mocked(authClient.useSession);
+import { useDashboardNavigation } from '@/hooks/use-dashboard-navigation';
+const mockUseDashboardNavigation = vi.mocked(useDashboardNavigation);
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
@@ -39,7 +36,7 @@ vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
-  usePathname: () => '/en/dashboard',
+  usePathname: () => '/en/member',
 }));
 
 // Mock UI components
@@ -48,17 +45,33 @@ vi.mock('@interdomestik/ui', () => ({
     <aside data-testid="sidebar">{children}</aside>
   ),
   SidebarContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  SidebarFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarGroupContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarGroupLabel: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   SidebarHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
   SidebarMenu: ({ children }: { children: React.ReactNode }) => <nav>{children}</nav>,
-  SidebarMenuButton: ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => (
-    <div>{asChild ? children : <button>{children}</button>}</div>
+  SidebarMenuButton: ({ children }: { children: React.ReactNode; asChild?: boolean }) => (
+    <div>{children}</div>
   ),
   SidebarMenuItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarRail: () => <div data-testid="sidebar-rail" />,
 }));
+
+// Mock child components
+vi.mock('./sidebar-brand', () => ({
+  SidebarBrand: ({ role }: { role?: string }) => (
+    <div data-testid="sidebar-brand">Interdomestik ({role || 'user'})</div>
+  ),
+}));
+
+vi.mock('./sidebar-user-menu', () => ({
+  SidebarUserMenu: () => <div data-testid="sidebar-user-menu">User Menu</div>,
+}));
+
+// Create a simple mock icon component - cast to any to bypass LucideIcon type constraints
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MockIcon: any = () => <span data-testid="icon">Icon</span>;
 
 describe('DashboardSidebar', () => {
   beforeEach(() => {
@@ -66,11 +79,18 @@ describe('DashboardSidebar', () => {
   });
 
   it('renders sidebar with member menu items for regular users', () => {
-    mockUseSession.mockReturnValue({
-      data: { user: { id: 'user1', name: 'Test User', role: 'user' } },
-      isPending: false,
-      error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    mockUseDashboardNavigation.mockReturnValue({
+      items: [
+        { title: 'Overview', href: '/member', icon: MockIcon },
+        { title: 'Claims', href: '/member/claims', icon: MockIcon },
+        { title: 'Documents', href: '/member/documents', icon: MockIcon },
+        { title: 'New Claim', href: '/member/claims/new', icon: MockIcon },
+        { title: 'Consumer Rights', href: '/member/rights', icon: MockIcon },
+        { title: 'Settings', href: '/member/settings', icon: MockIcon },
+        { title: 'Help', href: '/member/help', icon: MockIcon },
+      ],
+      role: 'user',
+    });
 
     render(<DashboardSidebar />);
 
@@ -85,11 +105,16 @@ describe('DashboardSidebar', () => {
   });
 
   it('renders agent menu items for agent role', () => {
-    mockUseSession.mockReturnValue({
-      data: { user: { id: 'agent1', name: 'Test Agent', role: 'agent' } },
-      isPending: false,
-      error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    mockUseDashboardNavigation.mockReturnValue({
+      items: [
+        { title: 'Workspace', href: '/agent', icon: MockIcon },
+        { title: 'CRM', href: '/agent/crm', icon: MockIcon },
+        { title: 'Leads', href: '/agent/leads', icon: MockIcon },
+        { title: 'Settings', href: '/agent/settings', icon: MockIcon },
+        { title: 'Help', href: '/agent/help', icon: MockIcon },
+      ],
+      role: 'agent',
+    });
 
     render(<DashboardSidebar />);
 
@@ -104,11 +129,14 @@ describe('DashboardSidebar', () => {
   });
 
   it('renders admin menu items for admin role', () => {
-    mockUseSession.mockReturnValue({
-      data: { user: { id: 'admin1', name: 'Test Admin', role: 'admin' } },
-      isPending: false,
-      error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    mockUseDashboardNavigation.mockReturnValue({
+      items: [
+        { title: 'Overview', href: '/member', icon: MockIcon },
+        { title: 'Claims', href: '/member/claims', icon: MockIcon },
+        { title: 'Admin Dashboard', href: '/admin', icon: MockIcon },
+      ],
+      role: 'admin',
+    });
 
     render(<DashboardSidebar />);
 
@@ -119,23 +147,21 @@ describe('DashboardSidebar', () => {
   });
 
   it('renders brand logo and name', () => {
-    mockUseSession.mockReturnValue({
-      data: { user: { id: 'user1', name: 'Test User', role: 'user' } },
-      isPending: false,
-      error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    mockUseDashboardNavigation.mockReturnValue({
+      items: [{ title: 'Overview', href: '/member', icon: MockIcon }],
+      role: 'user',
+    });
 
     render(<DashboardSidebar />);
 
-    expect(screen.getByText('Interdomestik')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-brand')).toBeInTheDocument();
   });
 
   it('renders menu label', () => {
-    mockUseSession.mockReturnValue({
-      data: { user: { id: 'user1', name: 'Test User', role: 'user' } },
-      isPending: false,
-      error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    mockUseDashboardNavigation.mockReturnValue({
+      items: [{ title: 'Overview', href: '/member', icon: MockIcon }],
+      role: 'user',
+    });
 
     render(<DashboardSidebar />);
 
@@ -143,11 +169,13 @@ describe('DashboardSidebar', () => {
   });
 
   it('handles null session gracefully', () => {
-    mockUseSession.mockReturnValue({
-      data: null,
-      isPending: false,
-      error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    mockUseDashboardNavigation.mockReturnValue({
+      items: [
+        { title: 'Overview', href: '/member', icon: MockIcon },
+        { title: 'Claims', href: '/member/claims', icon: MockIcon },
+      ],
+      role: undefined,
+    });
 
     render(<DashboardSidebar />);
 

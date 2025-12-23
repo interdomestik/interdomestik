@@ -105,7 +105,7 @@ export function renderClaimSubmittedEmail(params: {
   claimTitle: string;
   category: string;
 }) {
-  const claimUrl = joinUrl(DEFAULT_APP_URL, `/dashboard/claims/${params.claimId}`);
+  const claimUrl = joinUrl(DEFAULT_APP_URL, `/member/claims/${params.claimId}`);
   return buildEmailTemplate({
     title: 'We received your claim',
     intro: `Your claim "${params.claimTitle}" has been submitted successfully.`,
@@ -120,7 +120,7 @@ export function renderClaimAssignedEmail(params: {
   claimTitle: string;
   agentName: string;
 }) {
-  const claimUrl = joinUrl(DEFAULT_APP_URL, `/agent/claims/${params.claimId}`);
+  const claimUrl = joinUrl(DEFAULT_APP_URL, `/member/claims/${params.claimId}`);
   return buildEmailTemplate({
     title: 'A new claim was assigned to you',
     intro: `"${params.claimTitle}" is now assigned to ${params.agentName}.`,
@@ -136,7 +136,7 @@ export function renderStatusChangedEmail(params: {
   oldStatus: string;
   newStatus: string;
 }) {
-  const claimUrl = joinUrl(DEFAULT_APP_URL, `/dashboard/claims/${params.claimId}`);
+  const claimUrl = joinUrl(DEFAULT_APP_URL, `/member/claims/${params.claimId}`);
   return buildEmailTemplate({
     title: `Claim status updated to ${formatStatusLabel(params.newStatus)}`,
     intro: `Your claim "${params.claimTitle}" has moved from ${formatStatusLabel(
@@ -154,7 +154,7 @@ export function renderNewMessageEmail(params: {
   senderName: string;
   messagePreview: string;
 }) {
-  const claimUrl = joinUrl(DEFAULT_APP_URL, `/dashboard/claims/${params.claimId}`);
+  const claimUrl = joinUrl(DEFAULT_APP_URL, `/member/claims/${params.claimId}`);
   const preview = params.messagePreview.slice(0, 160);
   return buildEmailTemplate({
     title: 'New message on your claim',
@@ -178,7 +178,7 @@ export function renderPaymentFailedEmail(params: {
   gracePeriodDays: number;
   gracePeriodEndDate: string;
 }) {
-  const updatePaymentUrl = joinUrl(DEFAULT_APP_URL, '/dashboard/membership');
+  const updatePaymentUrl = joinUrl(DEFAULT_APP_URL, '/member/membership');
   return buildEmailTemplate({
     title: '⚠️ Payment Failed - Action Required',
     intro: `Hi ${params.memberName}, your payment for ${params.planName} was unsuccessful. Please update your payment method to continue enjoying your membership benefits.`,
@@ -202,7 +202,7 @@ export function renderPaymentReminderEmail(params: {
   daysRemaining: number;
   gracePeriodEndDate: string;
 }) {
-  const updatePaymentUrl = joinUrl(DEFAULT_APP_URL, '/dashboard/membership');
+  const updatePaymentUrl = joinUrl(DEFAULT_APP_URL, '/member/membership');
   return buildEmailTemplate({
     title: `⏰ ${params.daysRemaining} Days Left to Update Payment`,
     intro: `Hi ${params.memberName}, this is a reminder that your payment for ${params.planName} is still pending. You have ${params.daysRemaining} days left to update your payment method before losing access.`,
@@ -225,7 +225,7 @@ export function renderPaymentFinalWarningEmail(params: {
   planName: string;
   gracePeriodEndDate: string;
 }) {
-  const updatePaymentUrl = joinUrl(DEFAULT_APP_URL, '/dashboard/membership');
+  const updatePaymentUrl = joinUrl(DEFAULT_APP_URL, '/member/membership');
   return buildEmailTemplate({
     title: '🚨 FINAL WARNING: Membership Expires Tomorrow',
     intro: `Hi ${params.memberName}, your grace period for ${params.planName} ends TOMORROW. If payment is not updated, your membership will be suspended and you will lose access to all benefits.`,

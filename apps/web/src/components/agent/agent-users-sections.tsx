@@ -164,7 +164,7 @@ export function AgentUsersSections({ users }: UsersSectionsProps) {
               </TableCell>
               <TableCell className="text-right">
                 <Button asChild size="sm" variant="outline" className="h-8 shadow-sm">
-                  <Link href={`/agent/users/${member.id}`}>{t('view_profile')}</Link>
+                  <Link href={`/agent/clients/${member.id}`}>{t('view_profile')}</Link>
                 </Button>
               </TableCell>
             </TableRow>

@@ -10,7 +10,7 @@ import { expect, test } from '@playwright/test';
 test.describe('Claims Flow', () => {
   test.describe('Public Access', () => {
     test('should redirect to login when accessing claims without auth', async ({ page }) => {
-      await page.goto('/dashboard/claims');
+      await page.goto('/member/claims');
 
       // Should redirect to login
       await page.waitForURL(/.*login.*/);
@@ -18,7 +18,7 @@ test.describe('Claims Flow', () => {
     });
 
     test('should redirect to login when accessing new claim without auth', async ({ page }) => {
-      await page.goto('/dashboard/claims/new');
+      await page.goto('/member/claims/new');
 
       // Should redirect to login
       await page.waitForURL(/.*login.*/);
@@ -32,14 +32,14 @@ test.describe('Claims Flow', () => {
 
     test.skip('should display claim wizard steps', async ({ page }) => {
       // This would use authenticatedPage fixture
-      await page.goto('/dashboard/claims/new');
+      await page.goto('/member/claims/new');
 
       // Check wizard structure
       await expect(page.locator('text=/step|category|type/i')).toBeVisible();
     });
 
     test.skip('should show category selection as first step', async ({ page }) => {
-      await page.goto('/dashboard/claims/new');
+      await page.goto('/member/claims/new');
 
       // Check for category options
       const categoryOptions = page.locator(
@@ -49,7 +49,7 @@ test.describe('Claims Flow', () => {
     });
 
     test.skip('should validate required fields before proceeding', async ({ page }) => {
-      await page.goto('/dashboard/claims/new');
+      await page.goto('/member/claims/new');
 
       // Try to proceed without selecting category
       const nextButton = page.locator('button:has-text("Next"), button:has-text("Continue")');
@@ -62,21 +62,21 @@ test.describe('Claims Flow', () => {
 
   test.describe('Claims List', () => {
     test.skip('should display claims list for authenticated user', async ({ page }) => {
-      await page.goto('/dashboard/claims');
+      await page.goto('/member/claims');
 
       // Check for claims list structure
       await expect(page.locator('h1, h2').filter({ hasText: /claims/i })).toBeVisible();
     });
 
     test.skip('should have link to create new claim', async ({ page }) => {
-      await page.goto('/dashboard/claims');
+      await page.goto('/member/claims');
 
       const newClaimLink = page.locator('a[href*="new"], button:has-text("New Claim")');
       await expect(newClaimLink).toBeVisible();
     });
 
     test.skip('should display empty state when no claims', async ({ page }) => {
-      await page.goto('/dashboard/claims');
+      await page.goto('/member/claims');
 
       // Either shows claims or empty state
       const content = await page.content();
@@ -90,14 +90,14 @@ test.describe('Claims Flow', () => {
   test.describe('Claim Detail', () => {
     test.skip('should display claim details', async ({ page }) => {
       // Assuming we have a test claim with known ID
-      await page.goto('/dashboard/claims/test-claim-id');
+      await page.goto('/member/claims/test-claim-id');
 
       // Check for claim detail structure
       await expect(page.locator('[data-testid="claim-title"], h1, h2')).toBeVisible();
     });
 
     test.skip('should show claim status', async ({ page }) => {
-      await page.goto('/dashboard/claims/test-claim-id');
+      await page.goto('/member/claims/test-claim-id');
 
       // Check for status indicator
       const statusBadge = page.locator('[data-testid="claim-status"], .status-badge, .badge');
@@ -105,7 +105,7 @@ test.describe('Claims Flow', () => {
     });
 
     test.skip('should show claim timeline', async ({ page }) => {
-      await page.goto('/dashboard/claims/test-claim-id');
+      await page.goto('/member/claims/test-claim-id');
 
       // Check for timeline component
       const timeline = page.locator('[data-testid="claim-timeline"], .timeline');
@@ -129,7 +129,7 @@ test.describe('Claims Flow', () => {
 
     for (const category of categories) {
       test.skip(`should support ${category} category`, async ({ page }) => {
-        await page.goto('/dashboard/claims/new');
+        await page.goto('/member/claims/new');
 
         // Look for category option
         const content = await page.content();

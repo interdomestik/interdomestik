@@ -45,7 +45,7 @@ export function MemberNoteDialog({
   onSubmit,
   onCancel,
 }: MemberNoteDialogProps) {
-  const t = useTranslations('Agent.notes');
+  const t = useTranslations('agent.notes');
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

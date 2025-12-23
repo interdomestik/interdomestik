@@ -1,4 +1,4 @@
-export type ClaimsScope = 'member' | 'admin' | 'staff_queue' | 'agent_queue';
+export type ClaimsScope = 'member' | 'admin' | 'staff_queue' | 'staff_all' | 'agent_queue';
 
 export type ClaimsListItem = {
   id: string;

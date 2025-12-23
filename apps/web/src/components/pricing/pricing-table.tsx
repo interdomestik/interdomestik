@@ -100,7 +100,7 @@ export function PricingTable({ userId, email }: PricingTableProps) {
             displayMode: 'overlay',
             theme: 'light',
             locale: 'en',
-            successUrl: `${window.location.origin}/dashboard/membership/success`,
+            successUrl: `${window.location.origin}/member/membership/success`,
           },
         });
       } else {

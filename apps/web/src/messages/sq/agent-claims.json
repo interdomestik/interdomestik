@@ -2,6 +2,7 @@
   "agent-claims": {
     "claims": {
       "queue": "Radha e Kërkesave për Dëmshpërblim",
+      "claims_queue": "Radha e Kërkesave për Dëmshpërblim",
       "manage_triage": "Menaxho dhe vlerëso të gjitha kërkesat e dorëzuara për dëmshpërblim.",
       "table": {
         "claimant": "Ankuesi",

@@ -11,6 +11,7 @@
       "closed": "Resolved / Rejected"
     },
     "claims_queue": "Claims Queue",
+    "settings": "Settings",
     "manage_triage": "Manage and triage all submitted claims.",
     "table": {
       "claimant": "Claimant",

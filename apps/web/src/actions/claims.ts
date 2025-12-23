@@ -92,7 +92,7 @@ export async function createClaim(prevState: unknown, formData: FormData) {
     return { error: 'Failed to create claim. Please try again.' };
   }
 
-  // We return success and let the client handle the redirect to /dashboard/claims
+  // We return success and let the client handle the redirect to /member/claims
   // this is often smoother for UX than server-side redirect in an action which can be abrupt.
   return { success: true };
 }
@@ -186,7 +186,7 @@ export async function submitClaim(data: CreateClaimValues) {
     category,
   }).catch((err: Error) => console.error('Failed to send claim submitted notification:', err));
 
-  revalidatePath('/dashboard/claims');
+  revalidatePath('/member/claims');
   return { success: true };
 }
 
@@ -276,8 +276,8 @@ export async function updateDraftClaim(claimId: string, data: CreateClaimValues)
     return { success: false, error: 'Failed to update claim' };
   }
 
-  revalidatePath('/dashboard/claims');
-  revalidatePath(`/dashboard/claims/${claimId}`);
+  revalidatePath('/member/claims');
+  revalidatePath(`/member/claims/${claimId}`);
 
   return { success: true };
 }
@@ -334,8 +334,8 @@ export async function cancelClaim(claimId: string) {
     return { success: false, error: 'Failed to cancel claim' };
   }
 
-  revalidatePath('/dashboard/claims');
-  revalidatePath(`/dashboard/claims/${claimId}`);
+  revalidatePath('/member/claims');
+  revalidatePath(`/member/claims/${claimId}`);
 
   return { success: true };
 }
@@ -419,7 +419,7 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
 
     revalidatePath('/admin/claims');
     revalidatePath(`/admin/claims/${claimId}`);
-    revalidatePath('/dashboard/claims'); // Update user view too
+    revalidatePath('/member/claims'); // Update user view too
 
     return { success: true };
   } catch (e) {

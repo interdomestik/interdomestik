@@ -24,7 +24,7 @@ export function ClaimDraftActions({ claimId }: ClaimDraftActionsProps) {
       const result = await cancelClaim(claimId);
       if (result.success) {
         toast.success(t('cancelled'));
-        router.push('/dashboard/claims');
+        router.push('/member/claims');
         return;
       }
 
@@ -35,7 +35,7 @@ export function ClaimDraftActions({ claimId }: ClaimDraftActionsProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button asChild variant="outline" size="sm">
-        <Link href={`/dashboard/claims/${claimId}/edit`}>{t('editDraft')}</Link>
+        <Link href={`/member/claims/${claimId}/edit`}>{t('editDraft')}</Link>
       </Button>
       <Button variant="destructive" size="sm" onClick={handleCancel} disabled={isPending}>
         {t('cancelClaim')}

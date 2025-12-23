@@ -7,6 +7,8 @@
     "deals": "Deals",
     "claims": "Claims",
     "members": "Members",
+    "claims_queue": "Claims Queue",
+    "settings": "Settings",
     "stats": {
       "total": "Total Claims",
       "new": "New (Submitted)",

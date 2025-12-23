@@ -8,7 +8,11 @@ export async function MembershipInfoCard({
   membershipStatus,
   membershipBadgeClass,
 }: {
-  subscription: any;
+  subscription: {
+    planId: string;
+    currentPeriodEnd: Date | null;
+    cancelAtPeriodEnd: boolean;
+  } | null;
   membershipStatus: string;
   membershipBadgeClass: string;
 }) {

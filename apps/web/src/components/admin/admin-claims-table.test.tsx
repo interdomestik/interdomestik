@@ -109,7 +109,7 @@ describe('AdminClaimsTable', () => {
       isLoading: true,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<AdminClaimsTable />);
 
@@ -122,7 +122,7 @@ describe('AdminClaimsTable', () => {
       isLoading: false,
       isError: true,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<AdminClaimsTable />);
 
@@ -136,7 +136,7 @@ describe('AdminClaimsTable', () => {
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<AdminClaimsTable />);
 
@@ -150,7 +150,7 @@ describe('AdminClaimsTable', () => {
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<AdminClaimsTable />);
 
@@ -165,7 +165,7 @@ describe('AdminClaimsTable', () => {
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<AdminClaimsTable />);
 
@@ -181,7 +181,7 @@ describe('AdminClaimsTable', () => {
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<AdminClaimsTable />);
 
@@ -199,7 +199,7 @@ describe('AdminClaimsTable', () => {
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<AdminClaimsTable />);
 
@@ -214,7 +214,7 @@ describe('AdminClaimsTable', () => {
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<AdminClaimsTable />);
 

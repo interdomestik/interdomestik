@@ -93,7 +93,22 @@ export async function POST(req: NextRequest) {
       case EventName.SubscriptionCanceled:
       case EventName.SubscriptionPaused:
       case EventName.SubscriptionResumed: {
-        const sub = data as any;
+        const sub = data as unknown as {
+          id: string;
+          customData?: { userId?: string; agentId?: string };
+          custom_data?: { userId?: string; agentId?: string };
+          status: string;
+          items?: Array<{
+            price?: { id?: string; unitPrice?: { amount?: string; currencyCode?: string } };
+            priceId?: string;
+          }>;
+          customerId?: string;
+          customer_id?: string;
+          currentBillingPeriod?: { startsAt?: string; endsAt?: string };
+          current_billing_period?: { starts_at?: string; ends_at?: string };
+          scheduledChange?: { action?: string };
+          scheduled_change?: { action?: string };
+        };
         // Handle both camelCase (from SDK) and snake_case (from raw JSON)
         const customData = (sub.customData || sub.custom_data) as
           | { userId?: string; agentId?: string }
@@ -117,12 +132,14 @@ export async function POST(req: NextRequest) {
           currentPeriodStart:
             sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
               ? new Date(
-                  sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
+                  sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at || ''
                 )
               : null,
           currentPeriodEnd:
             sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at
-              ? new Date(sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at)
+              ? new Date(
+                  sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at || ''
+                )
               : null,
           cancelAtPeriodEnd:
             sub.scheduledChange?.action === 'cancel' || sub.scheduled_change?.action === 'cancel',
@@ -232,7 +249,16 @@ export async function POST(req: NextRequest) {
 
       // DUNNING: Handle past_due subscription (payment failed)
       case EventName.SubscriptionPastDue: {
-        const sub = data as any;
+        const sub = data as unknown as {
+          id: string;
+          customData?: { userId?: string };
+          custom_data?: { userId?: string };
+          items?: Array<{ price?: { id?: string; description?: string }; priceId?: string }>;
+          customerId?: string;
+          customer_id?: string;
+          currentBillingPeriod?: { startsAt?: string; endsAt?: string };
+          current_billing_period?: { starts_at?: string; ends_at?: string };
+        };
         const customData = (sub.customData || sub.custom_data) as { userId?: string } | undefined;
         const userId = customData?.userId;
 
@@ -273,12 +299,16 @@ export async function POST(req: NextRequest) {
             currentPeriodStart:
               sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
                 ? new Date(
-                    sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
+                    sub.currentBillingPeriod?.startsAt ||
+                      sub.current_billing_period?.starts_at ||
+                      ''
                   )
                 : null,
             currentPeriodEnd:
               sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at
-                ? new Date(sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at)
+                ? new Date(
+                    sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at || ''
+                  )
                 : null,
             updatedAt: now,
           })

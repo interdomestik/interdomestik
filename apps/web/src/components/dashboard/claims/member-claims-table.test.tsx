@@ -94,7 +94,7 @@ describe('MemberClaimsTable', () => {
       isLoading: true,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<MemberClaimsTable />);
     expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe('MemberClaimsTable', () => {
       isLoading: false,
       isError: true,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<MemberClaimsTable />);
     expect(screen.getByText('An error occurred')).toBeInTheDocument();
@@ -119,7 +119,7 @@ describe('MemberClaimsTable', () => {
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<MemberClaimsTable />);
     expect(screen.getByText('No claims yet')).toBeInTheDocument();
@@ -132,7 +132,7 @@ describe('MemberClaimsTable', () => {
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<MemberClaimsTable />);
 
@@ -148,7 +148,7 @@ describe('MemberClaimsTable', () => {
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<MemberClaimsTable />);
 
@@ -167,7 +167,7 @@ describe('MemberClaimsTable', () => {
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    } as ReturnType<typeof useQuery>);
+    } as unknown as ReturnType<typeof useQuery>);
 
     render(<MemberClaimsTable />);
 

@@ -61,14 +61,16 @@ export function LoginForm() {
               }
 
               const { data: session } = await authClient.getSession();
-              const role = (session?.user as any)?.role;
+              const role = (session?.user as { role?: string })?.role;
 
               if (role === 'admin') {
                 router.push('/admin');
               } else if (role === 'agent') {
                 router.push('/agent');
+              } else if (role === 'staff') {
+                router.push('/staff');
               } else {
-                router.push('/dashboard');
+                router.push('/member');
               }
             } catch {
               setError(t('error'));
@@ -162,7 +164,7 @@ export function LoginForm() {
             onClick={async () => {
               await authClient.signIn.social({
                 provider: 'github',
-                callbackURL: `${window.location.origin}/dashboard`,
+                callbackURL: `${window.location.origin}/member`,
               });
             }}
           >

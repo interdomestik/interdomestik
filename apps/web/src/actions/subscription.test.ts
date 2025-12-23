@@ -42,9 +42,14 @@ describe('cancelSubscription', () => {
   });
 
   it('should succeed if user owns subscription', async () => {
-    (auth.api.getSession as any).mockResolvedValue({ user: { id: 'u1' } });
-    (db.query.subscriptions.findFirst as any).mockResolvedValue({ id: 'sub1', userId: 'u1' });
-    (paddle.subscriptions.cancel as any).mockResolvedValue({});
+    (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { id: 'u1' },
+    });
+    (db.query.subscriptions.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'sub1',
+      userId: 'u1',
+    });
+    (paddle.subscriptions.cancel as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
     const result = await cancelSubscription('sub1');
     expect(result).toEqual({ success: true });
@@ -54,22 +59,31 @@ describe('cancelSubscription', () => {
   });
 
   it('should fail if unauthorized', async () => {
-    (auth.api.getSession as any).mockResolvedValue(null);
+    (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     const result = await cancelSubscription('sub1');
     expect(result).toEqual({ error: 'Unauthorized' });
   });
 
   it('should fail if not owner', async () => {
-    (auth.api.getSession as any).mockResolvedValue({ user: { id: 'u1' } });
-    (db.query.subscriptions.findFirst as any).mockResolvedValue({ id: 'sub1', userId: 'u2' });
+    (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { id: 'u1' },
+    });
+    (db.query.subscriptions.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'sub1',
+      userId: 'u2',
+    });
 
     const result = await cancelSubscription('sub1');
     expect(result).toEqual({ error: 'Subscription not found or access denied' });
   });
 
   it('should fail if subscription not found', async () => {
-    (auth.api.getSession as any).mockResolvedValue({ user: { id: 'u1' } });
-    (db.query.subscriptions.findFirst as any).mockResolvedValue(null);
+    (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: { id: 'u1' },
+    });
+    (db.query.subscriptions.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
+      null
+    );
 
     const result = await cancelSubscription('sub1');
     expect(result).toEqual({ error: 'Subscription not found or access denied' });

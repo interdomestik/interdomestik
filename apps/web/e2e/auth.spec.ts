@@ -72,26 +72,26 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Protected Routes', () => {
-    test('should redirect /dashboard to login when not authenticated', async ({ page }) => {
-      await page.goto('/dashboard');
+    test('should redirect /member to login when not authenticated', async ({ page }) => {
+      await page.goto('/member');
 
       // Should be redirected to login
       await page.waitForURL(/.*login.*/);
       expect(page.url()).toMatch(/login/);
     });
 
-    test('should redirect /dashboard/claims to login when not authenticated', async ({ page }) => {
-      await page.goto('/dashboard/claims');
+    test('should redirect /member/claims to login when not authenticated', async ({ page }) => {
+      await page.goto('/member/claims');
 
       // Should be redirected to login
       await page.waitForURL(/.*login.*/);
       expect(page.url()).toMatch(/login/);
     });
 
-    test.skip('should redirect /dashboard/settings to login when not authenticated', async ({
+    test.skip('should redirect /member/settings to login when not authenticated', async ({
       page,
     }) => {
-      await page.goto('/dashboard/settings');
+      await page.goto('/member/settings');
 
       // Wait for redirect
       await page.waitForURL(/.*(login|auth\/sign-in|\/en\/?$|\/sq\/?$).*/, { timeout: 10000 });
@@ -100,12 +100,12 @@ test.describe('Authentication', () => {
       expect(page.url()).toMatch(/(login|auth\/sign-in|\/en\/?$|\/sq\/?$)/);
     });
 
-    test('should allow dashboard when authenticated fixture is used', async ({
+    test('should allow member portal when authenticated fixture is used', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/dashboard');
+      await authenticatedPage.goto('/member');
       // Wait for page to fully load (WebKit needs this for auth state)
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
       await authenticatedPage.waitForTimeout(1000);
       expect(authenticatedPage.url()).not.toMatch(/login/);
       const loggedIn = await isLoggedIn(authenticatedPage);

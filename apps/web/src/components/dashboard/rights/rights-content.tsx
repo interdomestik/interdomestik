@@ -85,7 +85,7 @@ export function RightsContent() {
         </CardHeader>
         <CardContent>
           <Button asChild size="lg">
-            <Link href="/dashboard/claims/new">{t('cta')}</Link>
+            <Link href="/member/claims/new">{t('cta')}</Link>
           </Button>
         </CardContent>
       </Card>

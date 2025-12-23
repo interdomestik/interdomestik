@@ -45,7 +45,7 @@ describe('UserNav', () => {
       data: null,
       isPending: false,
       error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    } as unknown as ReturnType<typeof authClient.useSession>);
 
     render(<UserNav />);
 
@@ -67,7 +67,7 @@ describe('UserNav', () => {
       },
       isPending: false,
       error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    } as unknown as ReturnType<typeof authClient.useSession>);
 
     render(<UserNav />);
 
@@ -95,7 +95,7 @@ describe('UserNav', () => {
       },
       isPending: false,
       error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    } as unknown as ReturnType<typeof authClient.useSession>);
 
     render(<UserNav />);
 
@@ -119,7 +119,7 @@ describe('UserNav', () => {
       },
       isPending: false,
       error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    } as unknown as ReturnType<typeof authClient.useSession>);
 
     render(<UserNav />);
 
@@ -141,7 +141,7 @@ describe('UserNav', () => {
       },
       isPending: false,
       error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    } as unknown as ReturnType<typeof authClient.useSession>);
 
     render(<UserNav />);
 
@@ -163,7 +163,7 @@ describe('UserNav', () => {
       },
       isPending: false,
       error: null,
-    } as ReturnType<typeof authClient.useSession>);
+    } as unknown as ReturnType<typeof authClient.useSession>);
 
     render(<UserNav />);
 

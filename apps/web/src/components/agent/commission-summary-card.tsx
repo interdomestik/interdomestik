@@ -10,7 +10,7 @@ interface CommissionSummaryCardProps {
 }
 
 export function CommissionSummaryCard({ summary, currency = 'EUR' }: CommissionSummaryCardProps) {
-  const t = useTranslations('Agent.commissions');
+  const t = useTranslations('agent.commissions');
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('de-DE', {

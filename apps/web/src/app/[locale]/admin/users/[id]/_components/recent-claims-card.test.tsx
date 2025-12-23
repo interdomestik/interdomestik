@@ -12,7 +12,9 @@ vi.mock('./utils', () => ({
 
 // Mock Link
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: any) => <a href={href}>{children}</a>,
+  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 
 // Mock ClaimStatusBadge

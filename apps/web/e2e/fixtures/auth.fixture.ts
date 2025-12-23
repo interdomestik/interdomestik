@@ -51,10 +51,14 @@ interface AuthFixtures {
 
 async function performLogin(page: Page, email: string, password: string): Promise<void> {
   try {
+    const host = process.env.PLAYWRIGHT_HOST ?? 'localhost';
+    const port = process.env.PLAYWRIGHT_PORT ?? '3000';
+    const origin = `http://${host}:${port}`;
+
     // First try programmatic sign-in to ensure cookies are set even if UI changes.
     const apiResp = await page.request.post('/api/auth/sign-in/email', {
-      data: { email, password, callbackURL: '/dashboard' },
-      headers: { 'content-type': 'application/json' },
+      data: { email, password, callbackURL: '/member' },
+      headers: { 'content-type': 'application/json', origin },
     });
 
     if (!apiResp.ok()) {
@@ -88,7 +92,7 @@ export const test = base.extend<AuthFixtures>({
    * @example
    * ```ts
    * test('can view dashboard', async ({ authenticatedPage }) => {
-   *   await authenticatedPage.goto('/dashboard');
+   *   await authenticatedPage.goto('/member');
    *   await expect(authenticatedPage.locator('h1')).toContainText('Dashboard');
    * });
    * ```

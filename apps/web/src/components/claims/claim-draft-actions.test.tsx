@@ -43,6 +43,7 @@ vi.mock('@/actions/claims', () => ({
 vi.mock('@interdomestik/ui/components/button', () => ({
   Button: ({
     children,
+    asChild: _asChild,
     ...props
   }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
     children: React.ReactNode;
@@ -68,7 +69,7 @@ describe('ClaimDraftActions', () => {
   it('edit link has correct href', () => {
     render(<ClaimDraftActions claimId="claim-123" />);
     const editLink = screen.getByText('Edit Draft').closest('a');
-    expect(editLink).toHaveAttribute('href', '/dashboard/claims/claim-123/edit');
+    expect(editLink).toHaveAttribute('href', '/member/claims/claim-123/edit');
   });
 
   it('renders action buttons container', () => {

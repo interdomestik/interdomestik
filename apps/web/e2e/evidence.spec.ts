@@ -20,7 +20,7 @@ async function requireAuthOrSkip(page: import('@playwright/test').Page) {
 
 test.describe('Evidence uploads', () => {
   test('blocks disallowed mime types before upload', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/dashboard/claims/new');
+    await authenticatedPage.goto('/member/claims/new');
     await requireAuthOrSkip(authenticatedPage);
 
     const fileInput = authenticatedPage.locator('input[type="file"]');
@@ -60,7 +60,7 @@ test.describe('Evidence uploads', () => {
       route.fulfill({ status: 200, body: '' })
     );
 
-    await authenticatedPage.goto('/dashboard/claims/new');
+    await authenticatedPage.goto('/member/claims/new');
     await requireAuthOrSkip(authenticatedPage);
 
     const fileInput = authenticatedPage.locator('input[type="file"]');

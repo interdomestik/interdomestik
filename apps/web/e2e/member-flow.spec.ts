@@ -12,11 +12,11 @@ import { expect, test } from './fixtures/auth.fixture';
 test.describe('Member User Flow', () => {
   test.describe('Dashboard', () => {
     test('Member can access dashboard after login', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should be on dashboard, not redirected
-      expect(page.url()).toContain('/dashboard');
+      expect(page.url()).toContain('/member');
 
       // Should see dashboard overview heading
       await expect(
@@ -25,8 +25,8 @@ test.describe('Member User Flow', () => {
     });
 
     test('Member can see dashboard content', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should see dashboard content - use first() to handle multiple main elements
       const dashboardContent = page.locator('main').first();
@@ -42,8 +42,8 @@ test.describe('Member User Flow', () => {
     });
 
     test('Member can see claims navigation link', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member');
+      await page.waitForLoadState('domcontentloaded');
 
       // Find claims link anywhere on the page
       const claimsLink = page.getByRole('link', { name: /claims/i }).first();
@@ -56,8 +56,8 @@ test.describe('Member User Flow', () => {
 
   test.describe('Claims Management', () => {
     test('Member can view their claims list', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard/claims');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member/claims');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should see claims page
       expect(page.url()).toContain('/claims');
@@ -81,8 +81,8 @@ test.describe('Member User Flow', () => {
     });
 
     test('Member can access new claim wizard', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard/claims/new');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member/claims/new');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should see claim wizard or category selection
       const isOnWizard = page.url().includes('/new') || page.url().includes('/wizard');
@@ -99,8 +99,8 @@ test.describe('Member User Flow', () => {
     });
 
     test('Member can navigate to claims page', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard/claims');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member/claims');
+      await page.waitForLoadState('domcontentloaded');
 
       // Verify we are on claims page
       expect(page.url()).toContain('/claims');
@@ -113,8 +113,8 @@ test.describe('Member User Flow', () => {
 
   test.describe('Settings', () => {
     test('Member can access settings page', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard/settings');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member/settings');
+      await page.waitForLoadState('domcontentloaded');
 
       expect(page.url()).toContain('/settings');
 
@@ -128,8 +128,8 @@ test.describe('Member User Flow', () => {
     });
 
     test('Member can see profile section in settings', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard/settings');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member/settings');
+      await page.waitForLoadState('domcontentloaded');
 
       // Look for profile-related form fields or content
       const pageContent = await page.content();
@@ -142,8 +142,8 @@ test.describe('Member User Flow', () => {
     });
 
     test('Member can see password section in settings', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard/settings');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member/settings');
+      await page.waitForLoadState('domcontentloaded');
 
       // Look for password-related content
       const pageContent = await page.content();
@@ -157,8 +157,8 @@ test.describe('Member User Flow', () => {
 
   test.describe('Navigation', () => {
     test('Member dashboard has content area', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member');
+      await page.waitForLoadState('domcontentloaded');
 
       // Check main content area is visible
       const mainContent = page.locator('main').first();
@@ -166,8 +166,8 @@ test.describe('Member User Flow', () => {
     });
 
     test('Member can access user menu', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member');
+      await page.waitForLoadState('domcontentloaded');
 
       // Look for user nav or avatar button
       const userNav = page.locator('[data-testid="user-nav"]');

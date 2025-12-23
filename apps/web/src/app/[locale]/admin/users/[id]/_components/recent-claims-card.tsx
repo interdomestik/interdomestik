@@ -13,7 +13,16 @@ import {
 import { getTranslations } from 'next-intl/server';
 import { formatDate } from './utils';
 
-export async function RecentClaimsCard({ recentClaims }: { recentClaims: any[] }) {
+interface RecentClaim {
+  id: string;
+  title: string | null;
+  status: string;
+  claimAmount: string | null;
+  currency: string | null;
+  createdAt: Date;
+}
+
+export async function RecentClaimsCard({ recentClaims }: { recentClaims: RecentClaim[] }) {
   const t = await getTranslations('admin.member_profile');
   const tClaims = await getTranslations('claims');
   const tCommon = await getTranslations('common');
@@ -50,7 +59,7 @@ export async function RecentClaimsCard({ recentClaims }: { recentClaims: any[] }
                   <TableCell>
                     <ClaimStatusBadge status={claim.status} />
                   </TableCell>
-                  <TableCell>{formatDate(claim.createdAt, tCommon('none'))}</TableCell>
+                  <TableCell>{formatDate(claim.createdAt || undefined, tCommon('none'))}</TableCell>
                   <TableCell className="text-right">
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/admin/claims/${claim.id}`}>{tCommon('view')}</Link>

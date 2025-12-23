@@ -7,10 +7,16 @@ import { ChevronLeft } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface ClaimDetailHeaderProps {
-  claim: any;
+  claim: {
+    id: string;
+    title: string | null;
+    category?: string | null;
+    createdAt?: string | Date | null;
+  };
+  backHref?: string;
 }
 
-export function ClaimDetailHeader({ claim }: ClaimDetailHeaderProps) {
+export function ClaimDetailHeader({ claim, backHref = '/member/claims' }: ClaimDetailHeaderProps) {
   const tCategory = useTranslations('claims.category');
   const tCommon = useTranslations('common');
 
@@ -24,7 +30,7 @@ export function ClaimDetailHeader({ claim }: ClaimDetailHeaderProps) {
             size="sm"
             className="-ml-2 h-8 px-2 text-muted-foreground"
           >
-            <Link href="/agent/claims">
+            <Link href={backHref}>
               <ChevronLeft className="mr-1 h-4 w-4" /> {tCommon('back')}
             </Link>
           </Button>

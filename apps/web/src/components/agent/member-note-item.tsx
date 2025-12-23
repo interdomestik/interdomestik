@@ -22,7 +22,7 @@ interface MemberNoteItemProps {
 }
 
 export function MemberNoteItem({ note, onEdit, onDelete, onTogglePin }: MemberNoteItemProps) {
-  const t = useTranslations('Agent.notes');
+  const t = useTranslations('agent.notes');
 
   return (
     <div

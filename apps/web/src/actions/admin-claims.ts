@@ -108,7 +108,7 @@ export async function updateClaimStatus(formData: FormData) {
 
   revalidatePath(`/${locale}/admin/claims`);
   revalidatePath(`/${locale}/admin/claims/${claimId}`);
-  revalidatePath(`/${locale}/dashboard/claims/${claimId}`);
+  revalidatePath(`/${locale}/member/claims/${claimId}`);
 
   redirect(`/${locale}/admin/claims/${claimId}`);
 }

@@ -9,7 +9,7 @@ import { expect, test } from './fixtures/auth.fixture';
 test.describe('Settings Page', () => {
   test.describe('Navigation', () => {
     test('should redirect to login when not authenticated', async ({ page }) => {
-      await page.goto('/en/dashboard/settings');
+      await page.goto('/en/member/settings');
 
       // Should be redirected to login
       await page.waitForURL(/.*login.*|.*auth\/sign-in.*/);
@@ -17,8 +17,8 @@ test.describe('Settings Page', () => {
     });
 
     test('should display settings page when authenticated', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/dashboard/settings');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for settings page title
       await expect(authenticatedPage.locator('h2')).toContainText('Settings');
@@ -27,8 +27,8 @@ test.describe('Settings Page', () => {
 
   test.describe('Profile Settings', () => {
     test('should display profile form', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/dashboard/settings');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for profile section
       await expect(authenticatedPage.locator('h3:has-text("Profile")').first()).toBeVisible();
@@ -41,8 +41,8 @@ test.describe('Settings Page', () => {
 
   test.describe('Password Settings', () => {
     test('should display password change form', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/dashboard/settings');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for security section
       await expect(
@@ -59,8 +59,8 @@ test.describe('Settings Page', () => {
 
   test.describe('Language Settings', () => {
     test('should display language selector', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/dashboard/settings');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for language section
       await expect(authenticatedPage.locator('h3:has-text("Language")').first()).toBeVisible();
@@ -74,8 +74,8 @@ test.describe('Settings Page', () => {
 
     test('should switch language', async ({ authenticatedPage }) => {
       // Start on English settings page
-      await authenticatedPage.goto('/en/dashboard/settings');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Find and click language selector
       const languageButton = authenticatedPage.locator('[id*="language-select"]').first();
@@ -90,7 +90,7 @@ test.describe('Settings Page', () => {
         await albanianOption.click();
 
         // Wait for navigation
-        await authenticatedPage.waitForTimeout(1000);
+        await authenticatedPage.waitForURL(/\/sq\//);
 
         // Should be on Albanian settings page
         expect(authenticatedPage.url()).toContain('/sq/');
@@ -100,8 +100,8 @@ test.describe('Settings Page', () => {
 
   test.describe('Notification Settings', () => {
     test('should display notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/dashboard/settings');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section to load
       await authenticatedPage.waitForTimeout(1000);
@@ -122,8 +122,8 @@ test.describe('Settings Page', () => {
     });
 
     test('should toggle notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/dashboard/settings');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section to load
       await authenticatedPage.waitForTimeout(1500);
@@ -149,8 +149,8 @@ test.describe('Settings Page', () => {
     });
 
     test('should save notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/dashboard/settings');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section to load
       await authenticatedPage.waitForTimeout(1500);
@@ -174,7 +174,7 @@ test.describe('Settings Page', () => {
 
       // Refresh page and verify preference persisted
       await authenticatedPage.reload();
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
       await authenticatedPage.waitForTimeout(1500);
 
       // Check if the preference persisted
@@ -191,8 +191,8 @@ test.describe('Settings Page', () => {
     test('should handle save errors gracefully', async ({ authenticatedPage }) => {
       // This test would require mocking the API to return an error
       // For now, we'll just verify the UI is present
-      await authenticatedPage.goto('/en/dashboard/settings');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section
       await authenticatedPage.waitForTimeout(1500);
@@ -209,8 +209,8 @@ test.describe('Settings Page', () => {
       // Set mobile viewport
       await authenticatedPage.setViewportSize({ width: 375, height: 667 });
 
-      await authenticatedPage.goto('/en/dashboard/settings');
-      await authenticatedPage.waitForLoadState('networkidle');
+      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check that settings page is visible
       await expect(authenticatedPage.locator('h2:has-text("Settings")')).toBeVisible();

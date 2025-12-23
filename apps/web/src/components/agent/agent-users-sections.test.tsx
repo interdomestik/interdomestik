@@ -31,6 +31,7 @@ vi.mock('next-intl', () => ({
 vi.mock('@interdomestik/ui', () => ({
   Button: ({
     children,
+    asChild: _asChild,
     ...props
   }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
     children: React.ReactNode;
@@ -68,7 +69,7 @@ const mockUsers = [
     agentId: 'agent-1',
     createdAt: new Date('2024-01-15'),
     unreadCount: 2,
-    alertLink: '/agent/claims/123',
+    alertLink: '/member/claims/123',
   },
   {
     id: 'user-2',

@@ -162,7 +162,7 @@ NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_MONTH=pri_your_price_id_here
    - No errors in console (except expected webhook 404 for localhost)
 
 3. **Success Page**
-   - Redirected to `/dashboard/membership/success`
+   - Redirected to `/member/membership/success`
    - Page displays correctly
    - No CSP errors
    - Novu notifications loading

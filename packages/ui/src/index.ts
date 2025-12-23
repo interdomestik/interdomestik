@@ -93,6 +93,7 @@ export {
   TableHeader,
   TableRow,
 } from './components/table';
+export { Tabs, TabsContent, TabsList, TabsTrigger } from './components/tabs';
 export { Textarea } from './components/textarea';
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/tooltip';
 

@@ -2,7 +2,7 @@
 
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
-import { fetchClaims } from '@/lib/api/claims';
+import { fetchClaims, type ClaimsScope } from '@/lib/api/claims';
 import {
   Button,
   Table,
@@ -18,7 +18,15 @@ import { useSearchParams } from 'next/navigation';
 
 const PER_PAGE = 20;
 
-export function AgentClaimsTable({ userRole }: { userRole?: string }) {
+export function AgentClaimsTable({
+  userRole,
+  scope = 'agent_queue',
+  detailBasePath = '/member/claims',
+}: {
+  userRole?: string;
+  scope?: ClaimsScope;
+  detailBasePath?: string;
+}) {
   const t = useTranslations('agent-claims.claims');
   const tCommon = useTranslations('common');
   const searchParams = useSearchParams();
@@ -33,10 +41,10 @@ export function AgentClaimsTable({ userRole }: { userRole?: string }) {
   const page = Math.max(1, Number(searchParams.get('page') || 1));
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['claims', 'agent_queue', { statusFilter, searchQuery, page }],
+    queryKey: ['claims', scope, { statusFilter, searchQuery, page }],
     queryFn: ({ signal }) =>
       fetchClaims({
-        scope: 'agent_queue',
+        scope,
         status: statusFilter,
         search: searchQuery,
         page,
@@ -136,7 +144,7 @@ export function AgentClaimsTable({ userRole }: { userRole?: string }) {
                         size="sm"
                         className="gap-2 animate-pulse bg-amber-500 text-white hover:bg-amber-600"
                       >
-                        <Link href={`/agent/claims/${claim.id}`}>
+                        <Link href={`${detailBasePath}/${claim.id}`}>
                           <span className="relative flex h-2 w-2">
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
@@ -146,12 +154,12 @@ export function AgentClaimsTable({ userRole }: { userRole?: string }) {
                       </Button>
                     ) : (
                       <Button asChild size="sm" variant="outline">
-                        <Link href={`/agent/claims/${claim.id}`}>{t('actions.review')}</Link>
+                        <Link href={`${detailBasePath}/${claim.id}`}>{t('actions.review')}</Link>
                       </Button>
                     )
                   ) : (
                     <Button asChild size="sm" variant="ghost">
-                      <Link href={`/agent/claims/${claim.id}`}>View Status</Link>
+                      <Link href={`${detailBasePath}/${claim.id}`}>View Status</Link>
                     </Button>
                   )}
                 </TableCell>

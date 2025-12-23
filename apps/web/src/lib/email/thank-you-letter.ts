@@ -88,7 +88,7 @@ function escapeHtml(value: string): string {
 
 export function renderThankYouLetterEmail(params: ThankYouLetterParams) {
   const t = TRANSLATIONS[params.locale || 'en'];
-  const dashboardUrl = `${DEFAULT_APP_URL}/dashboard`;
+  const dashboardUrl = `${DEFAULT_APP_URL}/member`;
 
   const memberName = escapeHtml(params.memberName);
   const memberNumber = escapeHtml(params.memberNumber);

@@ -60,7 +60,7 @@ export function RegisterForm() {
                 email,
                 password,
                 name,
-                callbackURL: '/dashboard',
+                callbackURL: '/member',
               });
 
               if (signUpError) {
@@ -174,7 +174,7 @@ export function RegisterForm() {
             onClick={async () => {
               await authClient.signIn.social({
                 provider: 'github',
-                callbackURL: `${window.location.origin}/dashboard`,
+                callbackURL: `${window.location.origin}/member`,
               });
             }}
           >

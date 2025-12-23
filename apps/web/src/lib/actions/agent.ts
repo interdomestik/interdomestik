@@ -29,7 +29,7 @@ const createLeadSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function createLead(prevState: any, formData: FormData) {
+export async function createLead(prevState: unknown, formData: FormData) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -104,6 +104,7 @@ export async function updateLeadStatus(leadId: string, stage: string) {
 
   await db
     .update(crmLeads)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .set({ stage: stage as any, updatedAt: new Date() })
     .where(eq(crmLeads.id, leadId));
 
@@ -134,6 +135,7 @@ export async function logActivity(leadId: string, type: string, summary: string)
     id: nanoid(),
     leadId,
     agentId: session.user.id,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     type: type as any,
     summary,
     createdAt: new Date(),
@@ -150,7 +152,7 @@ const registerMemberSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function registerMember(prevState: any, formData: FormData) {
+export async function registerMember(prevState: unknown, formData: FormData) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -225,11 +227,11 @@ export async function registerMember(prevState: any, formData: FormData) {
       agentName: session.user.name || 'Your Agent',
     });
 
-    revalidatePath('/agent/users');
+    revalidatePath('/agent/clients');
   } catch (err) {
     console.error('Registration failed:', err);
     return { error: 'Failed to register member. Email might already exist.' };
   }
 
-  redirect('/agent/users');
+  redirect('/agent/clients');
 }

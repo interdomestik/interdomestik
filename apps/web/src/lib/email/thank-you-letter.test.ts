@@ -39,6 +39,7 @@ describe('renderThankYouLetterEmail', () => {
   });
 
   it('handles missing QR code', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { qrCodeDataUrl, ...paramsWithoutQr } = mockParams;
     const result = renderThankYouLetterEmail(paramsWithoutQr);
     expect(result.html).not.toContain('alt="QR Code"');

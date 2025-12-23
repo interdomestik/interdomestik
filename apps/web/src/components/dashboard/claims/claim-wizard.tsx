@@ -94,7 +94,7 @@ export function ClaimWizard() {
         claimAmount: data.claimAmount || undefined,
         files: [],
       });
-      router.push('/dashboard/claims');
+      router.push('/member/claims');
     });
   });
 

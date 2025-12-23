@@ -14,7 +14,7 @@ import {
   user,
 } from '@interdomestik/database';
 import { randomUUID } from 'crypto';
-import { desc, isNotNull, isNull } from 'drizzle-orm';
+import { SQL, desc, isNotNull, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
@@ -72,7 +72,7 @@ export async function getUsers(filters?: { search?: string; role?: string; assig
 
   // Fetch users with their assigned agent
   // Since we need joined data, we use query
-  const conditions: any[] = [];
+  const conditions: SQL<unknown>[] = [];
   const roleFilter = filters?.role && filters.role !== 'all' ? filters.role : null;
   const assignmentFilter =
     filters?.assignment && filters.assignment !== 'all' ? filters.assignment : null;
@@ -99,7 +99,9 @@ export async function getUsers(filters?: { search?: string; role?: string; assig
   }
 
   const users = await db.query.user.findMany({
-    where: conditions.length ? and(...conditions) : undefined,
+    where: conditions.length
+      ? and(...conditions.filter((c): c is SQL<unknown> => c !== undefined && c !== null))
+      : undefined,
     orderBy: (users, { desc }) => [desc(users.createdAt)],
     with: {
       agent: true,

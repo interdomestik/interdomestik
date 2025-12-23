@@ -26,7 +26,7 @@ interface CommissionsListProps {
 }
 
 export function CommissionsList({ commissions, currency = 'EUR' }: CommissionsListProps) {
-  const t = useTranslations('Agent.commissions');
+  const t = useTranslations('agent.commissions');
 
   const formatAmount = (amount: string) => {
     return new Intl.NumberFormat('de-DE', {

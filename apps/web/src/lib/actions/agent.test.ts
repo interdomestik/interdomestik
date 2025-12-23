@@ -60,7 +60,9 @@ describe('agent actions', () => {
 
   describe('createLead', () => {
     it('should create lead if valid', async () => {
-      (auth.api.getSession as any).mockResolvedValue({ user: { id: 'agent1', role: 'agent' } });
+      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', role: 'agent' },
+      });
 
       const formData = new FormData();
       formData.set('type', 'individual');
@@ -80,13 +82,15 @@ describe('agent actions', () => {
     });
 
     it('should return error if unauthorized', async () => {
-      (auth.api.getSession as any).mockResolvedValue(null);
+      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       const result = await createLead(null, new FormData());
       expect(result).toEqual({ error: 'Unauthorized' });
     });
 
     it('should return validation error if fields missing', async () => {
-      (auth.api.getSession as any).mockResolvedValue({ user: { id: 'agent1', role: 'agent' } });
+      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', role: 'agent' },
+      });
       const formData = new FormData();
       // Empty
 
@@ -97,8 +101,13 @@ describe('agent actions', () => {
 
   describe('updateLeadStatus', () => {
     it('should update status if owned by agent', async () => {
-      (auth.api.getSession as any).mockResolvedValue({ user: { id: 'agent1', role: 'agent' } });
-      (db.query.crmLeads.findFirst as any).mockResolvedValue({ id: 'lead1', agentId: 'agent1' });
+      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', role: 'agent' },
+      });
+      (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'lead1',
+        agentId: 'agent1',
+      });
 
       const result = await updateLeadStatus('lead1', 'contacted');
       expect(result).toEqual({ success: true });
@@ -106,8 +115,13 @@ describe('agent actions', () => {
     });
 
     it('should fail if not owner', async () => {
-      (auth.api.getSession as any).mockResolvedValue({ user: { id: 'agent1', role: 'agent' } });
-      (db.query.crmLeads.findFirst as any).mockResolvedValue({ id: 'lead1', agentId: 'agent2' });
+      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', role: 'agent' },
+      });
+      (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'lead1',
+        agentId: 'agent2',
+      });
 
       const result = await updateLeadStatus('lead1', 'contacted');
       expect(result).toEqual({ error: 'Not found' });
@@ -116,8 +130,13 @@ describe('agent actions', () => {
 
   describe('logActivity', () => {
     it('should log activity', async () => {
-      (auth.api.getSession as any).mockResolvedValue({ user: { id: 'agent1', role: 'agent' } });
-      (db.query.crmLeads.findFirst as any).mockResolvedValue({ id: 'lead1', agentId: 'agent1' });
+      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', role: 'agent' },
+      });
+      (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'lead1',
+        agentId: 'agent1',
+      });
 
       const result = await logActivity('lead1', 'call', 'Called user');
       expect(result).toEqual({ success: true });

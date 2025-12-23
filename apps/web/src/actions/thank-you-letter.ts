@@ -8,10 +8,10 @@ const DEFAULT_APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000';
 
 /**
- * Generate a QR code as a data URL for the member dashboard
+ * Generate a QR code as a data URL for the member portal
  */
 async function generateMemberQRCode(memberNumber: string): Promise<string> {
-  const dashboardUrl = `${DEFAULT_APP_URL}/dashboard?ref=${memberNumber}`;
+  const dashboardUrl = `${DEFAULT_APP_URL}/member?ref=${memberNumber}`;
   try {
     const qrDataUrl = await QRCode.toDataURL(dashboardUrl, {
       width: 200,

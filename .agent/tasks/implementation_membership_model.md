@@ -4,7 +4,7 @@
 
 **Created**: 2025-12-20  
 **Updated**: 2025-12-22  
-**Status**: Phase 1 Completed / Testing Infrastructure Complete / Next: Operations & Referral  
+**Status**: Phase 1 Completed / Testing Infrastructure Complete / Next: Member Interaction Logging + Commission Tracking  
 **Version**: 3.1
 
 ---
@@ -985,6 +985,19 @@ ALTER TABLE claim ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
 
 **Deliverable**: People can BUY memberships and see value.
 
+## Phase 1.1: Portal Governance & Role Enforcement (Post-launch)
+
+**Goal**: Align experience naming and enforce strict portal boundaries.
+
+| Task                                                                            | Effort | Owner    |
+| ------------------------------------------------------------------------------- | ------ | -------- |
+| Rename `/dashboard` → `/member`, add locale-aware redirect, and update links/tests | 4h     | Frontend |
+| Enforce portal redirects from member layout so agents/staff/admins land on `/agent`, `/staff`, `/admin` | 3h     | Backend  |
+| Confirm agent nav links point to `/agent/*`, staff/all-claims view references `/staff/claims` only | 2h     | Frontend |
+| Update RBAC e2e fixtures + tests to assert new routes                             | 2h     | QA       |
+
+**Deliverable**: Portal names match the plan, and users are funneled into their portals without cross-traffic.
+
 ## Phase 2: Agent Sales System (Weeks 3-4) 🔴 Critical
 
 **Goal**: Enable agents to sell memberships
@@ -1052,6 +1065,7 @@ ALTER TABLE claim ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
 | Claim tracker (member view)                 | 6h     | Frontend   |
 | Voice Claim (hotline + staff transcription) | 4h     | Ops        |
 | Voice claim intake script                   | 2h     | Ops        |
+| Staff all-claims queue (`/staff/claims`) with global permissions | 4h | Frontend |
 
 **Deliverable**: Staff can handle claims internally + voice claims.
 

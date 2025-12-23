@@ -113,6 +113,7 @@ Agents see stage and last update only. Staff controls workflow and internal note
 - [x] Manual Member Registration flow
 - [x] Subscription period & status visibility
 - [x] Agent navigation updated (CRM, Leads, Members)
+- [x] Portal alignment: rename `/dashboard` → `/member`, keep `/dashboard` redirect, and enforce strict portal redirects + tests for role separation
 - [ ] Member Interaction Logging
 - [x] RLS for agent data isolation (Initial)
 
@@ -244,4 +245,10 @@ All role-based access control verified:
 
 ## Next Step
 
-Implement Member Interaction Logging (simplified activity notes) and Commission Tracking.
+Implement Member Interaction Logging (simplified activity notes) and Commission Tracking as the next active workstream.
+
+## Recent Implementation Highlights
+
+- `/dashboard` route renamed to `/member` with a locale-aware redirect and all navigation/tests updated to point to the new portal.
+- Portal separation enforced via layout redirects so agents/staff/admins are routed to `/agent`, `/staff`, `/admin` portals and can no longer access `/member`.
+- Agent views now limit claim exposure to status-only summaries while staff can review all claims from `/staff/claims` per plan (all-claims view).

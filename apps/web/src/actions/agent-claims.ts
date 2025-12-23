@@ -69,11 +69,13 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
     ).catch((err: Error) => console.error('Failed to send status notification:', err));
   }
 
-  revalidatePath('/agent/claims');
-  revalidatePath(`/agent/claims/${claimId}`);
+  revalidatePath('/member/claims');
+  revalidatePath(`/member/claims/${claimId}`);
+  revalidatePath('/staff/claims');
+  revalidatePath(`/staff/claims/${claimId}`);
   // Also revalidate user dashboard
-  revalidatePath('/dashboard/claims');
-  revalidatePath(`/dashboard/claims/${claimId}`);
+  revalidatePath('/member/claims');
+  revalidatePath(`/member/claims/${claimId}`);
 }
 
 export async function assignClaim(claimId: string, agentId: string | null) {
@@ -129,8 +131,10 @@ export async function assignClaim(claimId: string, agentId: string | null) {
     }
   }
 
-  revalidatePath('/agent/claims');
-  revalidatePath(`/agent/claims/${claimId}`);
+  revalidatePath('/member/claims');
+  revalidatePath(`/member/claims/${claimId}`);
   revalidatePath('/admin/claims');
   revalidatePath(`/admin/claims/${claimId}`);
+  revalidatePath('/staff/claims');
+  revalidatePath(`/staff/claims/${claimId}`);
 }

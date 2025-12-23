@@ -9,7 +9,15 @@ export async function UserProfileHeader({
   membershipStatus,
   membershipBadgeClass,
 }: {
-  member: any;
+  member: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    role: string;
+    emailVerified: Date | null;
+    createdAt: Date;
+  };
   membershipStatus: string;
   membershipBadgeClass: string;
 }) {

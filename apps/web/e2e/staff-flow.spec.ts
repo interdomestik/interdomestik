@@ -12,18 +12,18 @@ import { expect, test } from './fixtures/auth.fixture';
 
 test.describe('Staff User Flow', () => {
   test.describe('Workspace Access', () => {
-    test('Staff can access agent workspace', async ({ staffPage: page }) => {
-      await page.goto('/en/agent');
-      await page.waitForLoadState('networkidle');
+    test('Staff can access staff workspace', async ({ staffPage: page }) => {
+      await page.goto('/en/staff');
+      await page.waitForLoadState('domcontentloaded');
 
-      // Staff should be on agent workspace or redirected appropriately
+      // Staff should be on staff workspace
       const currentUrl = page.url();
-      expect(currentUrl).toMatch(/\/(agent|dashboard)/);
+      expect(currentUrl).toContain('/staff');
     });
 
     test('Staff can view workspace content', async ({ staffPage: page }) => {
-      await page.goto('/en/agent');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/staff');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should see some content on the page - use body as fallback
       const hasContent = await page
@@ -37,16 +37,16 @@ test.describe('Staff User Flow', () => {
 
   test.describe('Claims Queue', () => {
     test('Staff can access claims page', async ({ staffPage: page }) => {
-      await page.goto('/en/agent/claims');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/staff/claims');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should be on claims page
       expect(page.url()).toContain('/claims');
     });
 
     test('Staff can view claims content', async ({ staffPage: page }) => {
-      await page.goto('/en/agent/claims');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/staff/claims');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should see claims related content
       const pageContent = await page.content();
@@ -59,8 +59,8 @@ test.describe('Staff User Flow', () => {
     });
 
     test('Staff can see table or list of claims', async ({ staffPage: page }) => {
-      await page.goto('/en/agent/claims');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/staff/claims');
+      await page.waitForLoadState('domcontentloaded');
 
       // Check for table or list structure
       const hasTable = await page
@@ -84,8 +84,8 @@ test.describe('Staff User Flow', () => {
 
   test.describe('Claim Details', () => {
     test('Staff can access claim detail URL pattern', async ({ staffPage: page }) => {
-      await page.goto('/en/agent/claims');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/staff/claims');
+      await page.waitForLoadState('domcontentloaded');
 
       // Find any link that goes to a claim detail
       const claimLinks = page.locator('a[href*="/claims/"]');
@@ -99,12 +99,12 @@ test.describe('Staff User Flow', () => {
   });
 
   test.describe('Messaging', () => {
-    test('Staff can access agent claims page', async ({ staffPage: page }) => {
-      await page.goto('/en/agent/claims');
-      await page.waitForLoadState('networkidle');
+    test('Staff can access staff claims page', async ({ staffPage: page }) => {
+      await page.goto('/en/staff/claims');
+      await page.waitForLoadState('domcontentloaded');
 
       // Page should load successfully
-      expect(page.url()).toContain('/agent');
+      expect(page.url()).toContain('/staff');
     });
   });
 });

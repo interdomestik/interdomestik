@@ -60,6 +60,7 @@ export const HOME_NAMESPACES = [
 export const SITE_NAMESPACES = ['about', 'pricing', 'services', 'legal'] as const;
 export const AUTH_NAMESPACES = ['auth'] as const;
 export const APP_NAMESPACES = [
+  'common',
   'nav',
   'dashboard',
   'membership',
@@ -76,6 +77,8 @@ export const APP_NAMESPACES = [
   'consumerRights',
 ] as const;
 export const AGENT_NAMESPACES = [
+  'common',
+  'nav',
   'agent',
   'agent-claims',
   'agent-crm',
@@ -84,7 +87,18 @@ export const AGENT_NAMESPACES = [
   'messaging',
   'notifications',
 ] as const;
+export const STAFF_NAMESPACES = [
+  'common',
+  'nav',
+  'agent',
+  'agent-claims',
+  'claims',
+  'messaging',
+  'notifications',
+] as const;
 export const ADMIN_NAMESPACES = [
+  'common',
+  'nav',
   'admin',
   'agent',
   'agent-claims',
@@ -155,6 +169,7 @@ export async function loadAllMessages(locale: string) {
 
   return Object.assign({}, ...modules);
 }
+// Force reload
 
 export function pickMessages(
   messages: Record<string, unknown>,

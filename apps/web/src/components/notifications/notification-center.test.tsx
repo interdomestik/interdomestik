@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationCenter } from './notification-center';
 
 // Mock Novu Inbox

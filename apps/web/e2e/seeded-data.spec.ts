@@ -3,7 +3,7 @@ import { expect, test } from './fixtures/auth.fixture';
 test.describe('Seeded Data Verification', () => {
   test('should display all seeded claims on dashboard', async ({ authenticatedPage }) => {
     // Go to dashboard claims list
-    await authenticatedPage.goto('/dashboard/claims');
+    await authenticatedPage.goto('/member/claims');
 
     // Wait for list to load
     await authenticatedPage.waitForSelector('text=Car Accident', { timeout: 10000 });
@@ -23,7 +23,7 @@ test.describe('Seeded Data Verification', () => {
   });
 
   test('should show correct status for specific claims', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/dashboard/claims');
+    await authenticatedPage.goto('/member/claims');
     await authenticatedPage.waitForSelector('text=Car Accident');
 
     // Helper to find row with text and check badge
@@ -43,13 +43,13 @@ test.describe('Seeded Data Verification', () => {
   });
 
   test('should view claim details', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/dashboard/claims');
+    await authenticatedPage.goto('/member/claims');
 
     // Click on a claim
     await authenticatedPage.click('text=Flight Delay to Munich');
 
     // Wait for detail page (increased timeout for WebKit)
-    await authenticatedPage.waitForURL(/\/dashboard\/claims\/claim-/, { timeout: 45000 });
+    await authenticatedPage.waitForURL(/\/member\/claims\/claim-/, { timeout: 45000 });
 
     // Verify detail content
     await expect(authenticatedPage.locator('h1, h2')).toContainText('Flight Delay to Munich');

@@ -13,7 +13,7 @@ export function SidebarBrand({ role }: SidebarBrandProps) {
   return (
     <SidebarHeader className="h-20 flex items-center justify-center border-b border-white/10">
       <Link
-        href="/dashboard"
+        href="/member"
         className="flex items-center gap-3 font-bold text-xl px-2 w-full group-data-[state=collapsed]:justify-center group hover:opacity-90 transition-opacity"
       >
         <div className="h-10 w-10 rounded-xl brand-gradient flex items-center justify-center text-white shadow-lg shadow-primary/25 transition-transform group-hover:scale-105 shrink-0">

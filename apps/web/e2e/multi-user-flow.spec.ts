@@ -13,8 +13,8 @@ import { expect, test } from './fixtures/auth.fixture';
 test.describe('Multi-User Claim Workflow', () => {
   test.describe('Member Claim Creation', () => {
     test('Member can navigate to new claim page', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard/claims');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member/claims');
+      await page.waitForLoadState('domcontentloaded');
 
       // Look for create claim button
       const newClaimLink = page.getByRole('link', { name: /New Claim|Create/i });
@@ -22,18 +22,18 @@ test.describe('Multi-User Claim Workflow', () => {
       // Either click the button or navigate directly
       if (await newClaimLink.isVisible().catch(() => false)) {
         await newClaimLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
       } else {
-        await page.goto('/en/dashboard/claims/new');
-        await page.waitForLoadState('networkidle');
+        await page.goto('/en/member/claims/new');
+        await page.waitForLoadState('domcontentloaded');
       }
 
       expect(page.url()).toContain('/claims/new');
     });
 
     test('Member can see their existing claims', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/dashboard/claims');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/member/claims');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should see claims table or list
       const content = await page.content();
@@ -45,65 +45,38 @@ test.describe('Multi-User Claim Workflow', () => {
   });
 
   test.describe('Agent-Member Relationship', () => {
-    test('Agent can see assigned member claims', async ({ agentPage: page }) => {
-      await page.goto('/en/agent/claims');
-      await page.waitForLoadState('networkidle');
+    test('Agent can access assigned members list', async ({ agentPage: page }) => {
+      await page.goto('/en/agent/clients');
+      await page.waitForLoadState('domcontentloaded');
 
-      // Agent should see claims queue or list
+      // Agent should see member list content
       const mainContent = page.locator('main, body').first();
       await expect(mainContent).toBeVisible();
-    });
-
-    test('Agent sees view-only buttons for claims', async ({ agentPage: page }) => {
-      await page.goto('/en/agent/claims');
-      await page.waitForLoadState('networkidle');
-
-      // Agent should see "View Status" or similar read-only actions
-      const pageContent = await page.content();
-      const hasViewOnlyUI =
-        pageContent.includes('View') ||
-        pageContent.includes('Status') ||
-        pageContent.includes('Details');
-
-      expect(hasViewOnlyUI).toBeTruthy();
-    });
-
-    test('Agent cannot see other agents member claims', async ({ agentPage: page }) => {
-      // Navigate to agent claims - should only see own clients
-      await page.goto('/en/agent/claims');
-      await page.waitForLoadState('networkidle');
-
-      // Verify agent only sees their assigned claims (worker-specific)
-      // The claim title should include their worker index
-      const content = await page.content();
-
-      // Agent should have filtered view - not seeing ALL claims
-      expect(content).toBeDefined();
     });
   });
 
   test.describe('Staff Claim Management', () => {
     test('Staff can access claims queue', async ({ staffPage: page }) => {
-      await page.goto('/en/agent/claims');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/en/staff/claims');
+      await page.waitForLoadState('domcontentloaded');
 
-      expect(page.url()).toContain('/agent');
+      expect(page.url()).toContain('/staff');
     });
 
     test('Staff is redirected from admin claims to dashboard', async ({ staffPage: page }) => {
       await page.goto('/en/admin/claims');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
-      // Staff is redirected - verify they end up on dashboard or agent workspace
+      // Staff is redirected - verify they end up on staff workspace
       const url = page.url();
-      expect(url).toMatch(/\/(dashboard|agent)/);
+      expect(url).toContain('/staff');
     });
 
-    test('Staff can view claims via agent workspace', async ({ staffPage: page }) => {
-      await page.goto('/en/agent/claims');
-      await page.waitForLoadState('networkidle');
+    test('Staff can view claims via staff workspace', async ({ staffPage: page }) => {
+      await page.goto('/en/staff/claims');
+      await page.waitForLoadState('domcontentloaded');
 
-      // Staff should be able to see claims in agent view
+      // Staff should be able to see claims in staff view
       const content = await page.content();
       const hasClaims =
         content.includes('claim') || content.includes('Claim') || content.includes('Worker');
@@ -114,7 +87,7 @@ test.describe('Multi-User Claim Workflow', () => {
   test.describe('Admin Full Access', () => {
     test('Admin can see all claims', async ({ adminPage: page }) => {
       await page.goto('/en/admin/claims');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Admin should see claims management UI
       await expect(page.getByRole('heading', { name: /Claims Management/i })).toBeVisible();
@@ -122,14 +95,14 @@ test.describe('Multi-User Claim Workflow', () => {
 
     test('Admin can see all users', async ({ adminPage: page }) => {
       await page.goto('/en/admin/users');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       await expect(page.getByRole('heading', { name: /User Management/i })).toBeVisible();
     });
 
     test('Admin can access any claim details', async ({ adminPage: page }) => {
       await page.goto('/en/admin/claims');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Look for claim entries
       const claimLinks = page.locator('a[href*="/claims/"], tr');
@@ -140,7 +113,7 @@ test.describe('Multi-User Claim Workflow', () => {
 
     test('Admin can see claim status options', async ({ adminPage: page }) => {
       await page.goto('/en/admin/claims');
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should see status filters or options
       const content = await page.content();
@@ -157,8 +130,8 @@ test.describe('Cross-Role Data Isolation', () => {
     authenticatedPage: page,
   }) => {
     // Try to access a claim that belongs to another user
-    await page.goto('/en/dashboard/claims/claim-1-worker5');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/en/member/claims/claim-1-worker5');
+    await page.waitForLoadState('domcontentloaded');
 
     // Should be denied or redirected - handled gracefully
     const url = page.url();
@@ -166,7 +139,7 @@ test.describe('Cross-Role Data Isolation', () => {
 
     // Either redirected to claims list, or error shown
     expect(
-      url.includes('/dashboard/claims') ||
+      url.includes('/member/claims') ||
         content.includes('not found') ||
         content.includes('Not Found') ||
         content.includes('denied') ||
@@ -174,50 +147,45 @@ test.describe('Cross-Role Data Isolation', () => {
     ).toBeTruthy();
   });
 
-  test('Agent cannot access claims of members not assigned to them', async ({
-    agentPage: page,
-  }) => {
-    // Try to access a specific claim from a different worker
-    await page.goto('/en/agent/claims/claim-1-worker9');
-    await page.waitForLoadState('networkidle');
+  test('Agent is redirected away from staff claims detail', async ({ agentPage: page }) => {
+    await page.goto('/en/staff/claims/claim-1-worker9');
+    await page.waitForLoadState('domcontentloaded');
 
-    // Should handle gracefully - either redirect or show appropriate error
-    expect(true).toBeTruthy(); // Test runs without crashing = access handled
+    expect(page.url()).not.toContain('/staff/claims');
   });
 
-  test('Staff can access claims via agent workspace', async ({ staffPage: page }) => {
-    await page.goto('/en/agent/claims');
-    await page.waitForLoadState('networkidle');
+  test('Staff can access claims via staff workspace', async ({ staffPage: page }) => {
+    await page.goto('/en/staff/claims');
+    await page.waitForLoadState('domcontentloaded');
 
-    // Staff should have access to agent workspace
-    expect(page.url()).toContain('/agent');
+    expect(page.url()).toContain('/staff');
   });
 
   test('Unauthenticated user cannot access protected routes', async ({ page }) => {
     // Do not log in
-    await page.goto('/en/dashboard');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/en/member');
+    await page.waitForLoadState('domcontentloaded');
 
     // Should be redirected to login
     const url = page.url();
     const isProtected =
-      url.includes('/login') || url.includes('/sign-in') || !url.includes('/dashboard');
+      url.includes('/login') || url.includes('/sign-in') || !url.includes('/member');
 
     expect(isProtected).toBeTruthy();
   });
 
   test('Unauthenticated user cannot access admin routes', async ({ page }) => {
     await page.goto('/en/admin');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     expect(page.url()).not.toMatch(/\/admin$/);
   });
 
-  test('Unauthenticated user cannot access agent routes', async ({ page }) => {
-    await page.goto('/en/agent/claims');
-    await page.waitForLoadState('networkidle');
+  test('Unauthenticated user cannot access staff routes', async ({ page }) => {
+    await page.goto('/en/staff/claims');
+    await page.waitForLoadState('domcontentloaded');
 
     const url = page.url();
-    expect(url.includes('/login') || !url.includes('/agent')).toBeTruthy();
+    expect(url.includes('/login') || !url.includes('/staff')).toBeTruthy();
   });
 });

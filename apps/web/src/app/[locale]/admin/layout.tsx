@@ -1,7 +1,8 @@
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
+import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { Separator, SidebarInset, SidebarProvider, SidebarTrigger } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -23,8 +24,16 @@ export default async function AdminLayout({
   }
 
   // Strict Role Check
+  console.log(
+    '[AdminLayout] Checking access for:',
+    session?.user?.email,
+    'Role:',
+    session?.user?.role
+  );
+
   if (session!.user.role !== 'admin') {
-    const fallback = session!.user.role === 'agent' ? '/agent' : '/dashboard';
+    console.log('[AdminLayout] Access Denied. Redirecting to /member');
+    const fallback = '/member';
     redirect({ href: fallback, locale });
   }
 
@@ -36,19 +45,31 @@ export default async function AdminLayout({
 
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
-      <div className="flex min-h-screen">
+      <SidebarProvider defaultOpen={true}>
         <AdminSidebar
-          className="w-64 hidden md:flex"
           user={{
             name: session!.user.name || 'Admin',
             email: session!.user.email,
             role: session!.user.role,
           }}
         />
-        <main className="flex-1 overflow-y-auto bg-background">
-          <div className="container mx-auto p-8">{children}</div>
-        </main>
-      </div>
+        <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 transition-all">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+            </div>
+            <div className="flex-1 flex items-center justify-between">
+              <h1 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Admin Panel
+              </h1>
+            </div>
+          </header>
+          <main className="flex-1 overflow-y-auto p-6 md:p-8">
+            <div className="container mx-auto">{children}</div>
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
     </NextIntlClientProvider>
   );
 }

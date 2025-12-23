@@ -2,6 +2,7 @@
   "agent-claims": {
     "claims": {
       "queue": "Claims Queue",
+      "claims_queue": "Claims Queue",
       "manage_triage": "Manage and triage all submitted claims.",
       "table": {
         "claimant": "Claimant",

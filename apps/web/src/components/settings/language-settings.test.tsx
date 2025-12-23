@@ -4,7 +4,7 @@ import { LanguageSettings } from './language-settings';
 
 // Mock routing
 vi.mock('@/i18n/routing', () => ({
-  usePathname: () => '/dashboard/settings',
+  usePathname: () => '/member/settings',
   useRouter: () => ({
     replace: vi.fn(),
   }),

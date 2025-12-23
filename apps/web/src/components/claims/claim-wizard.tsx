@@ -79,7 +79,7 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
       const result = await submitClaim(data);
       if (result.success) {
         toast.success('Claim submitted successfully!');
-        router.push('/dashboard/claims');
+        router.push('/member/claims');
       } else {
         toast.error('Failed to submit, please try again.');
         // console.error(result.error);

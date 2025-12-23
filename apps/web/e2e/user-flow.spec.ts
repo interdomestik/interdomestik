@@ -58,7 +58,7 @@ test.describe('End-to-End User Journey', () => {
     if ((await newClaimBtn.count()) > 0) {
       await newClaimBtn.first().click();
       // Verify we entered the wizard or claim form
-      // This might redirect to /dashboard/claims/new or similar
+      // This might redirect to /member/claims/new or similar
       await expect(page).toHaveURL(/.*claims\/new|.*wizard/);
     }
   });

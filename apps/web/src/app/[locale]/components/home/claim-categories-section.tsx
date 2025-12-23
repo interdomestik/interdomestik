@@ -3,10 +3,10 @@ import { ArrowRight, Car, Home, Plane, Stethoscope } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 const categoriesConfig = [
-  { icon: Car, key: 'vehicle', href: '/dashboard/claims/new?category=vehicle' },
-  { icon: Home, key: 'property', href: '/dashboard/claims/new?category=property' },
-  { icon: Stethoscope, key: 'injury', href: '/dashboard/claims/new?category=injury' },
-  { icon: Plane, key: 'travel', href: '/dashboard/claims/new?category=travel' },
+  { icon: Car, key: 'vehicle', href: '/member/claims/new?category=vehicle' },
+  { icon: Home, key: 'property', href: '/member/claims/new?category=property' },
+  { icon: Stethoscope, key: 'injury', href: '/member/claims/new?category=injury' },
+  { icon: Plane, key: 'travel', href: '/member/claims/new?category=travel' },
 ];
 
 export function ClaimCategoriesSection() {

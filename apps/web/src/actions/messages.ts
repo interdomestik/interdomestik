@@ -206,8 +206,8 @@ export async function sendMessage(
     const createdMessage = result[0];
 
     // Revalidate the claim pages to show updated message count
-    revalidatePath(`/dashboard/claims/${claimId}`);
-    revalidatePath(`/agent/claims/${claimId}`);
+    revalidatePath(`/member/claims/${claimId}`);
+    revalidatePath(`/staff/claims/${claimId}`);
 
     // Send notification (fire and forget)
     if (!isInternal && isStaff) {

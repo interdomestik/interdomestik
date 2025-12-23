@@ -2,20 +2,20 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { MessageSquare } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface ClaimMessagesPaneProps {
   claimId: string;
   messages: { id: string; content: string; sender?: { name?: string | null } | null }[];
   currentUserId: string;
-  t: (key: string) => string;
 }
 
 export function ClaimMessagesPane({
   claimId: _claimId,
   messages,
   currentUserId: _currentUserId,
-  t,
 }: ClaimMessagesPaneProps) {
+  const t = useTranslations('agent-claims.claims');
   return (
     <Card className="lg:col-span-1">
       <CardHeader>

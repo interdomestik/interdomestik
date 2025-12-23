@@ -2,7 +2,18 @@ import { Badge } from '@interdomestik/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { getTranslations } from 'next-intl/server';
 
-export async function PreferencesCard({ preferences }: { preferences: any }) {
+export async function PreferencesCard({
+  preferences,
+}: {
+  preferences: {
+    emailClaimUpdates?: boolean;
+    emailNewsletter?: boolean;
+    emailMarketing?: boolean;
+    pushClaimUpdates?: boolean;
+    pushMessages?: boolean;
+    inAppAll?: boolean;
+  } | null;
+}) {
   const t = await getTranslations('admin.member_profile');
   const tCommon = await getTranslations('common');
 

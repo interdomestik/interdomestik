@@ -7,6 +7,8 @@
     "deals": "Marrëveshjet",
     "claims": "Kërkesat për Dëmshpërblim",
     "members": "Anëtarë",
+    "claims_queue": "Radha e dëmshpërblimeve",
+    "settings": "Cilësimet",
     "stats": {
       "total": "Gjithsej Kërkesa për Dëmshpërblim",
       "new": "Të Reja",

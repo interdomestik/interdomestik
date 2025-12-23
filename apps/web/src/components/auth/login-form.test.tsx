@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginForm } from './login-form';
 
 // Mock authClient
 const mockSignInEmail = vi.fn();
 const mockSignInSocial = vi.fn();
+const mockGetSession = vi.fn();
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
@@ -12,39 +13,98 @@ vi.mock('@/lib/auth-client', () => ({
       email: (...args: unknown[]) => mockSignInEmail(...args),
       social: (...args: unknown[]) => mockSignInSocial(...args),
     },
+    getSession: () => mockGetSession(),
   },
 }));
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    const translations: Record<string, string> = {
-      title: 'Welcome Back',
-      subtitle: 'Sign in to continue',
-      email: 'Email',
-      password: 'Password',
-      forgotPassword: 'Forgot password?',
-      rememberMe: 'Remember me',
-      submit: 'Sign In',
-      noAccount: "Don't have an account?",
-      registerLink: 'Register',
-      loading: 'Loading...',
-      or: 'or',
+  useTranslations: (namespace: string) => (key: string) => {
+    const translations: Record<string, Record<string, string>> = {
+      'auth.login': {
+        title: 'Welcome Back',
+        subtitle: 'Sign in to continue',
+        email: 'Email',
+        password: 'Password',
+        forgotPassword: 'Forgot password?',
+        rememberMe: 'Remember me',
+        submit: 'Sign In',
+        noAccount: "Don't have an account?",
+        registerLink: 'Register',
+        error: 'An error occurred',
+      },
+      common: {
+        loading: 'Loading...',
+        or: 'or',
+      },
     };
-    return translations[key] || key;
+    return translations[namespace]?.[key] || key;
   },
 }));
 
-// Mock routing
+// Mock router
+const mockPush = vi.fn();
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
+  ),
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
+// Mock UI components
+vi.mock('@interdomestik/ui', () => ({
+  Button: ({
+    children,
+    type,
+    onClick,
+    disabled,
+  }: {
+    children: React.ReactNode;
+    type?: string;
+    onClick?: () => void;
+    disabled?: boolean;
+  }) =>
+    type === 'submit' ? (
+      <button type="submit" disabled={disabled}>
+        {children}
+      </button>
+    ) : (
+      <button type="button" onClick={onClick} disabled={disabled}>
+        {children}
+      </button>
+    ),
+  Card: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  CardContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  CardDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+  CardHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  CardTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+  Checkbox: ({ id, disabled }: { id: string; disabled?: boolean }) => (
+    <input type="checkbox" id={id} disabled={disabled} />
+  ),
+  Input: ({
+    id,
+    name,
+    type,
+    required,
+    disabled,
+  }: {
+    id: string;
+    name: string;
+    type: string;
+    required?: boolean;
+    disabled?: boolean;
+  }) => <input id={id} name={name} type={type} required={required} disabled={disabled} />,
+  Label: ({ children, htmlFor }: { children: React.ReactNode; htmlFor: string }) => (
+    <label htmlFor={htmlFor}>{children}</label>
   ),
 }));
 
 describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
   });
 
   it('renders the login form correctly', () => {
@@ -63,6 +123,8 @@ describe('LoginForm', () => {
 
   it('submits form with email and password', async () => {
     mockSignInEmail.mockResolvedValue({ error: null });
+    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+
     render(<LoginForm />);
 
     const emailInput = screen.getByLabelText('Email');
@@ -77,8 +139,11 @@ describe('LoginForm', () => {
       expect(mockSignInEmail).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password123',
-        callbackURL: '/dashboard',
       });
+    });
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/member');
     });
   });
 
@@ -103,6 +168,8 @@ describe('LoginForm', () => {
     mockSignInEmail.mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({ error: null }), 100))
     );
+    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+
     render(<LoginForm />);
 
     const emailInput = screen.getByLabelText('Email');
@@ -137,7 +204,7 @@ describe('LoginForm', () => {
     await waitFor(() => {
       expect(mockSignInSocial).toHaveBeenCalledWith({
         provider: 'github',
-        callbackURL: 'http://localhost:3000/dashboard',
+        callbackURL: 'http://localhost:3000/member',
       });
     });
 

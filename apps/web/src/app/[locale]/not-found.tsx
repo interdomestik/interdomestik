@@ -15,7 +15,7 @@ export default async function NotFound() {
       </div>
       <div className="flex items-center gap-3">
         <Button asChild variant="outline">
-          <Link href="/dashboard">{tCommon('back')}</Link>
+          <Link href="/member">{tCommon('back')}</Link>
         </Button>
         <Button asChild>
           <Link href="/">{tNav('home')}</Link>

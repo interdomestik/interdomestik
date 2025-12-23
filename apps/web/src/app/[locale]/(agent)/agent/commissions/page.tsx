@@ -4,7 +4,7 @@ import { CommissionsList } from '@/components/agent/commissions-list';
 import { getTranslations } from 'next-intl/server';
 
 export default async function AgentCommissionsPage() {
-  const t = await getTranslations('Agent.commissions');
+  const t = await getTranslations('agent.commissions');
 
   const [commissionsResult, summaryResult] = await Promise.all([
     getMyCommissions(),

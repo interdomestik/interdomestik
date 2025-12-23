@@ -189,7 +189,7 @@ Use these in Paddle Sandbox:
 3. Paddle checkout overlay opens
 4. Enter test card details
 5. Complete payment
-6. Redirected to `/dashboard/membership/success`
+6. Redirected to `/member/membership/success`
 7. Check database for new subscription
 
 ### Verify Webhook

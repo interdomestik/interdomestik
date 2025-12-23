@@ -10,7 +10,7 @@ import {
   or,
   user,
 } from '@interdomestik/database';
-import { count, desc, isNull } from 'drizzle-orm';
+import { SQL, count, desc, isNull } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -57,9 +57,10 @@ export async function GET(request: Request) {
   const isStaff = role === 'staff';
   const isAgent = role === 'agent';
 
-  let scope: 'member' | 'admin' | 'staff_queue' | 'agent_queue' = 'member';
+  let scope: 'member' | 'admin' | 'staff_queue' | 'staff_all' | 'agent_queue' = 'member';
   if (scopeParam === 'admin') scope = 'admin';
   if (scopeParam === 'staff_queue') scope = 'staff_queue';
+  if (scopeParam === 'staff_all') scope = 'staff_all';
   if (scopeParam === 'agent_queue') scope = 'agent_queue';
 
   if (scope === 'admin' && !isAdmin) {
@@ -70,11 +71,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
   }
 
+  if (scope === 'staff_all' && !isAdmin && !isStaff) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+  }
+
   if (scope === 'agent_queue' && !isAgent && !isAdmin) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
   }
 
-  const conditions: any[] = [];
+  const conditions: SQL<unknown>[] = [];
 
   if (scope === 'member') {
     conditions.push(eq(claims.userId, session.user.id));
@@ -95,7 +100,7 @@ export async function GET(request: Request) {
   }
 
   if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {
-    conditions.push(eq(claims.status, statusFilter as any));
+    conditions.push(eq(claims.status, statusFilter as (typeof VALID_STATUSES)[number]));
   }
 
   if (searchQuery) {
@@ -173,20 +178,22 @@ export async function GET(request: Request) {
     }
   }
 
+  const redactForAgent = scope === 'agent_queue' && isAgent;
+
   return NextResponse.json({
     success: true,
     claims: rows.map(row => ({
       id: row.id,
-      title: row.title,
+      title: redactForAgent ? null : row.title,
       status: row.status,
       createdAt: row.createdAt ? row.createdAt.toISOString() : null,
-      companyName: row.companyName,
-      claimAmount: row.claimAmount,
-      currency: row.currency,
-      category: row.category,
-      claimantName: row.claimantName,
-      claimantEmail: row.claimantEmail,
-      unreadCount: scope === 'member' ? 0 : unreadCounts.get(row.id) || 0,
+      companyName: redactForAgent ? null : row.companyName,
+      claimAmount: redactForAgent ? null : row.claimAmount,
+      currency: redactForAgent ? null : row.currency,
+      category: redactForAgent ? null : row.category,
+      claimantName: redactForAgent ? null : row.claimantName,
+      claimantEmail: redactForAgent ? null : row.claimantEmail,
+      unreadCount: scope === 'member' || redactForAgent ? 0 : unreadCounts.get(row.id) || 0,
     })),
     page,
     perPage,

@@ -92,7 +92,7 @@ export function UserNav() {
           )}
           {role === 'agent' && (
             <DropdownMenuItem asChild>
-              <Link href="/agent/claims" className="w-full cursor-pointer">
+              <Link href="/agent" className="w-full cursor-pointer">
                 <Briefcase className="mr-2 h-4 w-4" />
                 <span>{t('agentWorkspace')}</span>
               </Link>
