@@ -255,4 +255,124 @@ export function renderMemberWelcomeEmail(params: { memberName: string; agentName
   });
 }
 
+// ============================================================================
+// PHASE 5: ENGAGEMENT & RETENTION EMAIL TEMPLATES
+// ============================================================================
+
+export function renderWelcomeEmail(params: { name: string }) {
+  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/dashboard');
+  return buildEmailTemplate({
+    title: `Welcome to ${DEFAULT_APP_NAME}!`,
+    intro: `Hi ${params.name}, we're glad to have you with us. Your membership is now active.`,
+    details: [
+      'You now have 24/7 access to our assistance services.',
+      'Save our hotline number: +383 49 123 456',
+    ],
+    ctaLabel: 'Go to Dashboard',
+    ctaUrl: dashboardUrl,
+  });
+}
+
+export function renderOnboardingEmail(params: { name: string }) {
+  const cardUrl = joinUrl(DEFAULT_APP_URL, '/dashboard/membership/card');
+  return buildEmailTemplate({
+    title: 'Download your Digital Card',
+    intro: `Hi ${params.name}, have you downloaded your digital membership card yet?`,
+    details: [
+      'Add it to your Apple Wallet or Google Pay.',
+      'Show it to our partners to get instant discounts.',
+    ],
+    ctaLabel: 'Get my card',
+    ctaUrl: cardUrl,
+  });
+}
+
+export function renderCheckinEmail(params: { name: string }) {
+  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/dashboard');
+  return buildEmailTemplate({
+    title: 'How is everything going?',
+    intro: `Hi ${params.name}, just checking in to see if you need any assistance.`,
+    details: ['Remember, we are here to help you with any claims or legal questions.'],
+    ctaLabel: 'Visit Dashboard',
+    ctaUrl: dashboardUrl,
+  });
+}
+
+export function renderNewsletterEmail(params: {
+  month: string;
+  hero: { title: string; imageUrl?: string; text: string; ctaLabel?: string; ctaUrl?: string };
+  partner?: { name: string; discount: string; description: string; imageUrl?: string };
+  tip?: { title: string; text: string };
+}) {
+  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/dashboard');
+
+  const details = [params.hero.text];
+
+  if (params.partner) {
+    details.push('---');
+    details.push(`Partner of the Month: ${params.partner.name}`);
+    details.push(`${params.partner.description}`);
+    details.push(`Discount: ${params.partner.discount}`);
+  }
+
+  if (params.tip) {
+    details.push('---');
+    details.push(`Safety Tip: ${params.tip.title}`);
+    details.push(params.tip.text);
+  }
+
+  return buildEmailTemplate({
+    title: `${DEFAULT_APP_NAME} Newsletter - ${params.month}`,
+    intro: params.hero.title,
+    details: details,
+    ctaLabel: params.hero.ctaLabel || 'Read More',
+    ctaUrl: params.hero.ctaUrl || dashboardUrl,
+  });
+}
+
+export function renderSeasonalEmail(params: { season: 'winter' | 'summer'; name: string }) {
+  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/dashboard');
+
+  if (params.season === 'winter') {
+    return buildEmailTemplate({
+      title: 'Winter Safety Check ❄️',
+      intro: `Hi ${params.name}, winter is here and road safety is more important than ever.`,
+      details: [
+        'Check your tires: Winter tires are mandatory in many regions.',
+        'Emergency kit: Keep a blanket and snow shovel in your car.',
+        'Slow down: Icy roads require longer braking distances.',
+      ],
+      ctaLabel: 'Safety Checklist',
+      ctaUrl: dashboardUrl,
+    });
+  }
+
+  return buildEmailTemplate({
+    title: 'Summer Readiness ☀️',
+    intro: `Hi ${params.name}, getting ready for your summer travels?`,
+    details: [
+      'AC Check: Make sure your car stays cool during long trips.',
+      'International Travel: Bring your Green Card if traveling across borders.',
+      'Hydration: Always keep water in the car during high temperatures.',
+    ],
+    ctaLabel: 'Travel Guide',
+    ctaUrl: dashboardUrl,
+  });
+}
+
+export function renderAnnualReportEmail(params: { name: string; year: number }) {
+  const wrappedUrl = joinUrl(DEFAULT_APP_URL, '/dashboard/wrapped');
+  return buildEmailTemplate({
+    title: `Your ${params.year} Protection Summary is Ready! 🏆`,
+    intro: `Hi ${params.name}, we've summarized your year with Interdomestik. Discover how your membership protected you in ${params.year}.`,
+    details: [
+      'See your total days protected.',
+      'Review your resolved claims and savings.',
+      'Share your protection status with others.',
+    ],
+    ctaLabel: 'View My Summary',
+    ctaUrl: wrappedUrl,
+  });
+}
+
 export type { EmailTemplate };

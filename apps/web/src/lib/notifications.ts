@@ -1,31 +1,12 @@
-import { Novu } from '@novu/node';
 import {
   sendClaimAssignedEmail,
   sendClaimSubmittedEmail,
   sendNewMessageEmail,
   sendStatusChangedEmail,
 } from '@/lib/email';
-
-// Lazy-initialize Novu client to avoid throwing on module load
-let novu: Novu | null = null;
-
-function getNovuClient(): Novu | null {
-  if (novu) return novu;
-
-  const apiKey = process.env.NOVU_API_KEY || process.env.NOVU_SECRET_KEY;
-  if (!apiKey) {
-    console.warn('Novu API key not configured. Notifications will be skipped.');
-    return null;
-  }
-
-  try {
-    novu = new Novu(apiKey);
-    return novu;
-  } catch (error) {
-    console.warn('Failed to initialize Novu client:', error);
-    return null;
-  }
-}
+import { db } from '@interdomestik/database';
+import { notifications } from '@interdomestik/database/schema';
+import { nanoid } from 'nanoid';
 
 // Notification event types
 export type NotificationEvent =
@@ -37,51 +18,37 @@ export type NotificationEvent =
   | 'sla_breached';
 
 /**
- * Send a notification to a subscriber
+ * Send a notification (In-app DB + Email is handled in notify functions)
  */
 export async function sendNotification(
-  subscriberId: string,
+  userId: string,
   event: NotificationEvent,
   payload: Record<string, string | number | boolean>,
   options?: {
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    locale?: string;
+    actionUrl?: string;
+    title?: string;
   }
 ) {
-  const client = getNovuClient();
-
-  // Skip notification if Novu is not configured
-  if (!client) {
-    console.debug(`Skipping notification [${event}] - Novu not configured`);
-    return { success: false, error: 'Novu not configured' };
-  }
-
   try {
-    // First, identify/update the subscriber
-    if (options?.email || options?.firstName) {
-      await client.subscribers.identify(subscriberId, {
-        email: options.email,
-        firstName: options.firstName,
-        lastName: options.lastName,
-        locale: options.locale,
-      });
-    }
+    const title = options?.title || event.replace(/_/g, ' ').toUpperCase();
+    const content = payload.claimTitle
+      ? `Update on: ${payload.claimTitle}`
+      : `New update: ${event}`;
 
-    // Trigger the notification workflow
-    const response = await client.trigger(event, {
-      to: {
-        subscriberId,
-        email: options?.email,
-      },
-      payload,
-    });
+    await db.insert(notifications).values({
+      id: `ntf_${nanoid()}`,
+      userId,
+      type: event,
+      title,
+      content,
+      actionUrl: options?.actionUrl || null,
+      isRead: false,
+    } as any);
 
-    return { success: true, transactionId: response.data?.data?.transactionId };
+    return { success: true };
   } catch (error) {
-    console.error(`Failed to send notification [${event}]:`, error);
-    return { success: false, error: 'Failed to send notification' };
+    console.error(`Failed to create in-app notification [${event}]:`, error);
+    return { success: false, error: 'Database error' };
   }
 }
 
@@ -105,7 +72,10 @@ export async function notifyClaimSubmitted(
       claimTitle: claim.title,
       category: claim.category,
     },
-    { email: userEmail }
+    {
+      title: 'Claim Submitted',
+      actionUrl: `/dashboard/claims/${claim.id}`,
+    }
   );
 }
 
@@ -130,7 +100,10 @@ export async function notifyClaimAssigned(
       claimTitle: claim.title,
       agentName,
     },
-    { email: agentEmail }
+    {
+      title: 'New Claim Assigned',
+      actionUrl: `/staff/claims/${claim.id}`,
+    }
   );
 }
 
@@ -157,7 +130,10 @@ export async function notifyStatusChanged(
       oldStatus,
       newStatus,
     },
-    { email: userEmail }
+    {
+      title: 'Claim Status Updated',
+      actionUrl: `/dashboard/claims/${claim.id}`,
+    }
   );
 }
 
@@ -184,9 +160,9 @@ export async function notifyNewMessage(
       senderName,
       messagePreview: messagePreview.substring(0, 100),
     },
-    { email: recipientEmail }
+    {
+      title: 'New Message',
+      actionUrl: `/dashboard/claims/${claim.id}`,
+    }
   );
 }
-
-// Note: Preference management will be implemented once Novu workflows are configured
-// in the Novu dashboard. The SDK methods require workflow IDs that are defined there.

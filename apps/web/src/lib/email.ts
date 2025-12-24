@@ -1,13 +1,19 @@
 import { Resend } from 'resend';
 import {
+  renderAnnualReportEmail,
+  renderCheckinEmail,
   renderClaimAssignedEmail,
   renderClaimSubmittedEmail,
   renderMemberWelcomeEmail,
   renderNewMessageEmail,
+  renderNewsletterEmail,
+  renderOnboardingEmail,
   renderPaymentFailedEmail,
   renderPaymentFinalWarningEmail,
   renderPaymentReminderEmail,
+  renderSeasonalEmail,
   renderStatusChangedEmail,
+  renderWelcomeEmail,
 } from './email-templates';
 
 let resendClient: Resend | null = null;
@@ -196,4 +202,44 @@ export async function sendMemberWelcomeEmail(
 ) {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderMemberWelcomeEmail(params));
+}
+
+// ============================================================================
+// PHASE 5: ENGAGEMENT & RETENTION EMAILS
+// ============================================================================
+
+export async function sendWelcomeEmail(to: string, name: string) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderWelcomeEmail({ name }));
+}
+
+export async function sendOnboardingEmail(to: string, name: string) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderOnboardingEmail({ name }));
+}
+
+export async function sendCheckinEmail(to: string, name: string) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderCheckinEmail({ name }));
+}
+
+export async function sendNewsletterEmail(
+  to: string,
+  props: Parameters<typeof renderNewsletterEmail>[0]
+) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderNewsletterEmail(props));
+}
+
+export async function sendSeasonalEmail(
+  to: string,
+  props: Parameters<typeof renderSeasonalEmail>[0]
+) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderSeasonalEmail(props));
+}
+
+export async function sendAnnualReportEmail(to: string, name: string, year: number) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderAnnualReportEmail({ name, year }));
 }
