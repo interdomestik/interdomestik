@@ -23,5 +23,6 @@ export default defineConfig({
     'subscriptions',
     'agent_clients',
     'agent_commissions',
+    'automation_logs',
   ],
 });

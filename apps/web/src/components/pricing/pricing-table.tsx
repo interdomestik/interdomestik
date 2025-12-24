@@ -3,6 +3,7 @@
 import { PADDLE_PRICES } from '@/config/paddle';
 import { getPaddleInstance } from '@/lib/paddle';
 import { Badge, Button } from '@interdomestik/ui';
+import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -92,10 +93,16 @@ export function PricingTable({ userId, email }: PricingTableProps) {
 
       const paddle = await getPaddleInstance();
       if (paddle) {
+        // Check for referral cookie
+        const agentId = getCookie('agent_ref');
+
         paddle.Checkout.open({
           items: [{ priceId, quantity: 1 }],
           customer: email ? { email } : undefined,
-          customData: { userId },
+          customData: {
+            userId,
+            ...(agentId ? { agentId: String(agentId) } : {}),
+          },
           settings: {
             displayMode: 'overlay',
             theme: 'light',

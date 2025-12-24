@@ -8,6 +8,12 @@
 import '@testing-library/jest-dom';
 import { afterEach, beforeAll, vi } from 'vitest';
 
+// Set critical env vars at module load time.
+// Some app modules (e.g. Supabase client) are initialized during import, which happens
+// before `beforeAll()` hooks run.
+process.env.NEXT_PUBLIC_SUPABASE_URL ||= 'http://localhost:54321';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||= 'test-anon-key';
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // GLOBAL MOCKS
 // ═══════════════════════════════════════════════════════════════════════════════

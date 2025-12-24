@@ -3,6 +3,7 @@ import {
   getRecentClaims,
   getUnassignedClaims,
 } from '@/actions/admin-dashboard';
+import { AnalyticsDashboard } from '@/components/admin/analytics-dashboard';
 import { AdminStatsCards } from '@/components/admin/dashboard/admin-stats-cards';
 import { RecentActivityCard } from '@/components/admin/dashboard/recent-activity-card';
 import { Link } from '@/i18n/routing';
@@ -59,6 +60,8 @@ export default async function AdminDashboardPage({
           </Button>
         </div>
       </div>
+
+      <AnalyticsDashboard />
 
       <Suspense
         fallback={

@@ -7,6 +7,7 @@ export * from './enums';
 // Tables by domain
 export * from './agents';
 export * from './auth';
+export * from './automation';
 export * from './claims';
 export * from './crm';
 export * from './memberships';

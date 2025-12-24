@@ -1,62 +1,81 @@
 import { render, screen } from '@testing-library/react';
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationCenter } from './notification-center';
 
-// Mock Novu Inbox
-vi.mock('@novu/nextjs', () => ({
-  Inbox: ({
-    applicationIdentifier,
-    subscriberId,
-  }: {
-    applicationIdentifier: string;
-    subscriberId: string;
-  }) => (
-    <div
-      data-testid="novu-inbox"
-      data-app-id={applicationIdentifier}
-      data-subscriber={subscriberId}
-    >
-      Novu Inbox
-    </div>
-  ),
+const mocks = vi.hoisted(() => {
+  const getNotifications = vi.fn<() => Promise<any[]>>();
+  const markAsRead = vi.fn<(notificationId: string) => Promise<unknown>>();
+  const markAllAsRead = vi.fn<() => Promise<unknown>>();
+
+  const subscribe = vi.fn<() => { id: string }>(() => ({ id: 'channel' }));
+  const on = vi.fn(() => ({ subscribe }));
+  const channel = vi.fn<(name: string) => { on: typeof on; subscribe: typeof subscribe }>(() => ({
+    on,
+    subscribe,
+  }));
+  const removeChannel = vi.fn();
+
+  return {
+    getNotifications,
+    markAsRead,
+    markAllAsRead,
+    channel,
+    removeChannel,
+  };
+});
+
+vi.mock('@/actions/notifications', () => ({
+  getNotifications: mocks.getNotifications,
+  markAsRead: mocks.markAsRead,
+  markAllAsRead: mocks.markAllAsRead,
+}));
+
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    channel: mocks.channel,
+    removeChannel: mocks.removeChannel,
+  },
+}));
+
+// Mock UI primitives to avoid portal/open-state complexity.
+vi.mock('@interdomestik/ui', () => ({
+  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  cn: (...classes: any[]) => classes.filter(Boolean).join(' '),
 }));
 
 describe('NotificationCenter', () => {
-  const originalEnv = process.env;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset env before each test
-    process.env = { ...originalEnv };
+    mocks.getNotifications.mockResolvedValue([]);
   });
 
-  afterAll(() => {
-    process.env = originalEnv;
+  it('shows empty state when there are no notifications', async () => {
+    render(<NotificationCenter subscriberId="user-123" />);
+
+    expect(await screen.findByText('All caught up!')).toBeInTheDocument();
   });
 
-  it('renders Novu Inbox when app ID is set', () => {
-    process.env.NEXT_PUBLIC_NOVU_APP_ID = 'test-app-id';
+  it('shows unread count and renders notification content', async () => {
+    mocks.getNotifications.mockResolvedValue([
+      {
+        id: 'n1',
+        userId: 'user-123',
+        type: 'new_message',
+        title: 'New message',
+        content: 'You have a new message',
+        actionUrl: null,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
 
     render(<NotificationCenter subscriberId="user-123" />);
 
-    expect(screen.getByTestId('novu-inbox')).toBeInTheDocument();
-    expect(screen.getByTestId('novu-inbox')).toHaveAttribute('data-app-id', 'test-app-id');
-    expect(screen.getByTestId('novu-inbox')).toHaveAttribute('data-subscriber', 'user-123');
-  });
-
-  it('passes subscriberHash when provided', () => {
-    process.env.NEXT_PUBLIC_NOVU_APP_ID = 'test-app-id';
-
-    render(<NotificationCenter subscriberId="user-123" />);
-
-    expect(screen.getByTestId('novu-inbox')).toBeInTheDocument();
-  });
-
-  it('returns null when app ID is not set', () => {
-    delete process.env.NEXT_PUBLIC_NOVU_APP_ID;
-
-    const { container } = render(<NotificationCenter subscriberId="user-123" />);
-
-    expect(container.firstChild).toBeNull();
+    expect(await screen.findByText('New message')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 });
