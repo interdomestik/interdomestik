@@ -87,6 +87,16 @@
         "paid": "Paid",
         "void": "Void"
       }
+    },
+    "leads_page": {
+      "stages": {
+        "new": "New",
+        "contacted": "Contacted",
+        "qualified": "Qualified",
+        "proposal": "Proposal",
+        "won": "Won",
+        "lost": "Lost"
+      }
     }
   }
 }

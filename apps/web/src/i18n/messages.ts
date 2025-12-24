@@ -86,6 +86,7 @@ export const AGENT_NAMESPACES = [
   'claims',
   'messaging',
   'notifications',
+  'settings',
 ] as const;
 export const STAFF_NAMESPACES = [
   'common',

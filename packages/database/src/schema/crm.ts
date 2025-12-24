@@ -34,7 +34,9 @@ export const crmActivities = pgTable('crm_activities', {
     .notNull()
     .references(() => user.id),
   type: text('type').notNull(), // 'call', 'meeting', 'email', 'note'
-  summary: text('summary').notNull(),
+  summary: text('summary').notNull(), // treated as subject
+  description: text('description'),
+  occurredAt: timestamp('occurred_at').defaultNow(),
   scheduledAt: timestamp('scheduled_at'),
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow(),

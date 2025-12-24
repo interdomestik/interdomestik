@@ -1,6 +1,6 @@
 'use client';
 
-import { logActivity } from '@/actions/activities';
+import { logActivity, logLeadActivity } from '@/actions/activities';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@interdomestik/ui/components/button';
 import {
@@ -42,10 +42,11 @@ const formSchema = z.object({
 });
 
 interface LogActivityDialogProps {
-  memberId: string;
+  entityId: string;
+  entityType?: 'member' | 'lead';
 }
 
-export function LogActivityDialog({ memberId }: LogActivityDialogProps) {
+export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivityDialogProps) {
   const [open, setOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -58,12 +59,21 @@ export function LogActivityDialog({ memberId }: LogActivityDialogProps) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const result = await logActivity({
-      memberId,
-      ...values,
-    });
+    let result;
 
-    if (result.error) {
+    if (entityType === 'member') {
+      result = await logActivity({
+        memberId: entityId,
+        ...values,
+      });
+    } else {
+      result = await logLeadActivity({
+        leadId: entityId,
+        ...values,
+      });
+    }
+
+    if (result?.error) {
       toast.error(result.error);
     } else {
       toast.success('Activity logged');
@@ -83,7 +93,9 @@ export function LogActivityDialog({ memberId }: LogActivityDialogProps) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Log Activity</DialogTitle>
-          <DialogDescription>Record a call, meeting, or note for this member.</DialogDescription>
+          <DialogDescription>
+            Record a call, meeting, or note for this {entityType}.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

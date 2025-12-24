@@ -1,9 +1,12 @@
+import { getLeadActivities } from '@/actions/activities';
+import { ActivityFeed } from '@/components/crm/activity-feed';
+import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { db } from '@interdomestik/database/db';
-import { crmActivities, crmLeads } from '@interdomestik/database/schema';
+import { crmLeads } from '@interdomestik/database/schema';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
@@ -19,20 +22,17 @@ export default async function LeadDetailsPage({ params }: { params: Promise<{ id
     redirect('/auth/login');
   }
 
-  const lead = await db.query.crmLeads.findFirst({
-    where: eq(crmLeads.id, id),
-    with: {
-      activities: {
-        orderBy: desc(crmActivities.createdAt),
-      },
-      deals: {
-        with: {
-          // If you had a relation to membershipPlans configured in schema.ts, you could include it:
-          // plan: true,
+  const [lead, activities] = await Promise.all([
+    db.query.crmLeads.findFirst({
+      where: eq(crmLeads.id, id),
+      with: {
+        deals: {
+          with: {},
         },
       },
-    },
-  });
+    }),
+    getLeadActivities(id),
+  ]);
 
   if (!lead) {
     notFound();
@@ -62,7 +62,7 @@ export default async function LeadDetailsPage({ params }: { params: Promise<{ id
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">Log Activity</Button>
+          {/* We handle logging in the card below, but could also have one here */}
           <Button>Create Deal</Button>
         </div>
       </div>
@@ -123,35 +123,13 @@ export default async function LeadDetailsPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="space-y-6">
-          <Card className="h-full">
-            <CardHeader>
+          <Card className="h-full flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Activity History</CardTitle>
+              <LogActivityDialog entityId={id} entityType="lead" />
             </CardHeader>
-            <CardContent>
-              {lead.activities.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                  <p>No activities logged.</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {lead.activities.map(activity => (
-                    <div key={activity.id} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-muted border">
-                          <span className="text-xs font-bold capitalize">{activity.type[0]}</span>
-                        </div>
-                        <div className="h-full w-px bg-border my-1"></div>
-                      </div>
-                      <div className="pb-8 last:pb-0">
-                        <p className="text-sm font-medium">{activity.summary}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {activity.createdAt ? new Date(activity.createdAt).toLocaleString() : ''}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <CardContent className="px-0 flex-1">
+              <ActivityFeed activities={activities} />
             </CardContent>
           </Card>
         </div>

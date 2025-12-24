@@ -86,6 +86,16 @@
         "paid": "Paguar",
         "void": "Anuluar"
       }
+    },
+    "leads_page": {
+      "stages": {
+        "new": "I/E Re",
+        "contacted": "Kontakuar",
+        "qualified": "Kualifikuar",
+        "proposal": "Propozim",
+        "won": "Fituar",
+        "lost": "Humbur"
+      }
     }
   }
 }

@@ -362,7 +362,7 @@ export default async function AgentMemberProfilePage({
         <Card className="lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Member Activity</CardTitle>
-            <LogActivityDialog memberId={member.id} />
+            <LogActivityDialog entityId={member.id} entityType="member" />
           </CardHeader>
           <CardContent>
             <ActivityFeed activities={activities} />
