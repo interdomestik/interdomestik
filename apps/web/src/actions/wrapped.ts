@@ -35,8 +35,10 @@ export async function getWrappedStats() {
   });
 
   const resolvedCount = userClaims.filter(c => c.status === 'resolved').length;
-  const inProgressCount = userClaims.filter(c =>
-    ['submitted', 'verification', 'evaluation', 'negotiation', 'court'].includes(c.status)
+  const inProgressCount = userClaims.filter(
+    c =>
+      c.status &&
+      ['submitted', 'verification', 'evaluation', 'negotiation', 'court'].includes(c.status)
   ).length;
 
   // 4. Calculate Total Managed/Recovered

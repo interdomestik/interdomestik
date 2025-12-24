@@ -7,6 +7,7 @@ import { claimDocuments, claimMessages, claims, claimStageHistory } from './clai
 import { crmActivities, crmDeals, crmLeads, memberActivities } from './crm';
 import { membershipFamilyMembers, membershipPlans, subscriptions } from './memberships';
 import { auditLog, memberNotes } from './notes';
+import { emailCampaignLogs, notifications } from './notifications';
 import { partnerDiscountUsage, referrals, serviceRequests, serviceUsage } from './services';
 
 // User relations
@@ -40,6 +41,8 @@ export const userRelations = relations(user, ({ many, one }) => ({
   serviceRequests: many(serviceRequests),
   handledServiceRequests: many(serviceRequests, { relationName: 'service_request_handler' }),
   partnerDiscountUsage: many(partnerDiscountUsage),
+  notifications: many(notifications),
+  emailCampaignLogs: many(emailCampaignLogs),
 }));
 
 // Claims relations
@@ -215,4 +218,13 @@ export const memberActivitiesRelations = relations(memberActivities, ({ one }) =
     references: [user.id],
     relationName: 'member_activity_history',
   }),
+}));
+
+// Phase 5: Notifications relations
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(user, { fields: [notifications.userId], references: [user.id] }),
+}));
+
+export const emailCampaignLogsRelations = relations(emailCampaignLogs, ({ one }) => ({
+  user: one(user, { fields: [emailCampaignLogs.userId], references: [user.id] }),
 }));
