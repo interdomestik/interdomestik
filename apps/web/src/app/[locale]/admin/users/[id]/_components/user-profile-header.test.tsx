@@ -17,7 +17,7 @@ describe('UserProfileHeader', () => {
     id: 'user-123',
     name: 'John Doe',
     email: 'john@example.com',
-    emailVerified: true,
+    emailVerified: new Date() as Date | null,
     role: 'user',
     createdAt: new Date(),
     image: null,

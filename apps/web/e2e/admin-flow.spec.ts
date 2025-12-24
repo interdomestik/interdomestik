@@ -109,24 +109,31 @@ test.describe('Admin User Flow', () => {
   });
 
   test.describe('Navigation', () => {
-    test('Admin sidebar has navigation links', async ({ adminPage: page }) => {
+    test('Admin sidebar has navigation links', async ({ adminPage: page, isMobile }) => {
       await page.goto('/en/admin');
 
-      const sidebar = page.getByTestId('admin-sidebar');
+      if (isMobile) {
+        await page.getByRole('button', { name: /toggle sidebar/i }).click();
+      }
+
+      const sidebar = isMobile ? page.getByRole('dialog') : page.getByTestId('admin-sidebar');
 
       // Check for expected links
       await expect(sidebar.getByRole('link', { name: /Dashboard/i })).toBeVisible();
       await expect(sidebar.getByRole('link', { name: /Case Management/i })).toBeVisible();
     });
 
-    test('Admin can navigate to different sections', async ({ adminPage: page }) => {
+    test('Admin can navigate to different sections', async ({ adminPage: page, isMobile }) => {
       await page.goto('/en/admin');
 
+      if (isMobile) {
+        await page.getByRole('button', { name: /toggle sidebar/i }).click();
+      }
+
       // Navigate to claims (Case Management)
-      await page
-        .getByTestId('admin-sidebar')
-        .getByRole('link', { name: /Case Management/i })
-        .click();
+      const sidebar = isMobile ? page.getByRole('dialog') : page.getByTestId('admin-sidebar');
+
+      await sidebar.getByRole('link', { name: /Case Management/i }).click();
 
       await expect(page).toHaveURL(/.*\/admin\/claims/);
     });

@@ -110,24 +110,37 @@ export default async function MemberProfilePage({
       </div>
 
       <UserProfileHeader
-        member={member}
+        member={{
+          ...member,
+          emailVerified: member.emailVerified ? new Date() : null,
+        }}
         membershipStatus={membershipStatus}
         membershipBadgeClass={membershipBadgeClass}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <MembershipInfoCard
-          subscription={subscription}
+          subscription={
+            subscription
+              ? {
+                  planId: subscription.planId ?? 'none',
+                  currentPeriodEnd: subscription.currentPeriodEnd,
+                  cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
+                }
+              : null
+          }
           membershipStatus={membershipStatus}
           membershipBadgeClass={membershipBadgeClass}
         />
         <AgentInfoCard agent={member.agent} />
-        <PreferencesCard preferences={preferences} />
+        <PreferencesCard preferences={preferences ?? null} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ClaimsStatsCard counts={counts} />
-        <RecentClaimsCard recentClaims={recentClaims} />
+        <RecentClaimsCard
+          recentClaims={recentClaims.map(c => ({ ...c, status: c.status ?? 'unknown' }))}
+        />
       </div>
     </div>
   );

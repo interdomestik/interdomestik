@@ -43,8 +43,8 @@ test.describe('End-to-End User Journey', () => {
 
     // 5. Verify Dashboard
     // Wait for redirect
-    await page.waitForURL(/.*dashboard/);
-    await expect(page).toHaveURL(/.*dashboard/);
+    await page.waitForURL(/.*member/);
+    await expect(page).toHaveURL(/.*member/);
     await expect(
       page.getByRole('heading', { name: /Overview|Dashboard|Përmbledhje/i })
     ).toBeVisible();

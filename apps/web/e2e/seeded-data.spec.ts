@@ -23,7 +23,7 @@ test.describe('Seeded Data Verification', () => {
   });
 
   test('should show correct status for specific claims', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/member/claims');
+    await authenticatedPage.goto('/en/member/claims');
     await authenticatedPage.waitForSelector('text=Car Accident');
 
     // Helper to find row with text and check badge

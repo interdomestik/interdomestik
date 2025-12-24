@@ -10,7 +10,9 @@
     "typecheck": "pnpm type-check",
     "type-check": "tsc --noEmit",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:fast": "PLAYWRIGHT_SKIP_SEED=1 playwright test",
+    "test:e2e:one-by-one": "PLAYWRIGHT_SKIP_SEED=1 PLAYWRIGHT_MANAGE_SERVER=1 node scripts/run-e2e-one-by-one.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

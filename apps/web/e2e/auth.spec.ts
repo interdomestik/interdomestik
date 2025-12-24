@@ -88,9 +88,7 @@ test.describe('Authentication', () => {
       expect(page.url()).toMatch(/login/);
     });
 
-    test.skip('should redirect /member/settings to login when not authenticated', async ({
-      page,
-    }) => {
+    test('should redirect /member/settings to login when not authenticated', async ({ page }) => {
       await page.goto('/member/settings');
 
       // Wait for redirect
@@ -107,6 +105,7 @@ test.describe('Authentication', () => {
       // Wait for page to fully load (WebKit needs this for auth state)
       await authenticatedPage.waitForLoadState('domcontentloaded');
       await authenticatedPage.waitForTimeout(1000);
+      await expect(authenticatedPage).toHaveURL(/.*member.*/);
       expect(authenticatedPage.url()).not.toMatch(/login/);
       const loggedIn = await isLoggedIn(authenticatedPage);
       expect(loggedIn).toBeTruthy();

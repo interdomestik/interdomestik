@@ -2,83 +2,154 @@
  * Authentication Fixture for Playwright E2E Tests
  *
  * Provides authenticated page contexts for testing protected routes.
+ * Features:
+ * - Deterministic UI login with proper wait conditions
+ * - Locale-aware URL matching (/en/login, /sq/login, etc.)
+ * - Verification via user-nav element or session cookie
+ * - StorageState helpers for faster test runs
  */
 
-import { test as base, Page } from '@playwright/test';
+import { test as base, expect, Page } from '@playwright/test';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Locale-aware login URL matcher - handles /login, /signin, /en/login, /sq/login, etc.
+const LOGIN_RX = /(?:\/[a-z]{2})?\/(?:login|signin|auth\/sign-in)(?:\/)?(?:\?|$)/i;
+
+// Where to navigate for login (router will redirect to locale-prefixed route)
+const SIGNIN_PATH = '/login';
+
+// Locator that only appears when logged in
+const AUTH_OK_LOCATOR = '[data-testid="user-nav"]';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TEST USER CREDENTIALS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const TEST_USER = {
-  email: 'test@interdomestik.com',
-  password: 'TestPassword123!',
-  name: 'Test User',
+type Role = 'member' | 'admin' | 'agent' | 'staff';
+
+const CREDS: Record<Role, { email: string; password: string; name: string }> = {
+  member: {
+    email: 'test@interdomestik.com',
+    password: 'TestPassword123!',
+    name: 'Test User',
+  },
+  admin: {
+    email: 'admin@interdomestik.com',
+    password: 'AdminPassword123!',
+    name: 'Admin User',
+  },
+  agent: {
+    email: 'agent@interdomestik.com',
+    password: 'AgentPassword123!',
+    name: 'Agent User',
+  },
+  staff: {
+    email: 'staff@interdomestik.com',
+    password: 'StaffPassword123!',
+    name: 'Staff User',
+  },
 };
 
-export const TEST_ADMIN = {
-  email: 'admin@interdomestik.com',
-  password: 'AdminPassword123!',
-  name: 'Admin User',
-};
+// Legacy exports for backward compatibility
+export const TEST_USER = CREDS.member;
+export const TEST_ADMIN = CREDS.admin;
+export const TEST_AGENT = CREDS.agent;
+export const TEST_STAFF = CREDS.staff;
 
-export const TEST_AGENT = {
-  email: 'agent@interdomestik.com',
-  password: 'AgentPassword123!',
-  name: 'Agent User',
-};
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOGIN HELPER
+// ═══════════════════════════════════════════════════════════════════════════════
 
-export const TEST_STAFF = {
-  email: 'staff@interdomestik.com',
-  password: 'StaffPassword123!',
-  name: 'Staff User',
-};
+async function performLogin(page: Page, role: Role): Promise<void> {
+  const { email, password } = CREDS[role];
+
+  // Always start from a clean tab and a consistent URL
+  await page.goto(SIGNIN_PATH, { waitUntil: 'domcontentloaded' });
+
+  // Wait for form to be visible
+  await page.waitForSelector('form', { state: 'visible', timeout: 10_000 });
+
+  // Fill credentials
+  // Wait for network to settle to ensure hydration
+  await page.waitForLoadState('networkidle').catch(() => {}); // catch if network never idles
+  await page.fill('input[name="email"], input[type="email"]', email);
+  await page.fill('input[name="password"], input[type="password"]', password);
+
+  // Wait for auth API response (if exposed) AND click submit
+  const authResponse = page
+    .waitForResponse(
+      r =>
+        /\/api\/auth|\/session|\/login|\/signin/.test(r.url()) &&
+        r.request().method() === 'POST' &&
+        r.status() < 400
+    )
+    .catch(() => null); // tolerate apps that don't expose this endpoint
+
+  const [response] = await Promise.all([authResponse, page.click('button[type="submit"]')]);
+
+  if (response && !response.ok()) {
+    console.error('❌ Login Failed:', response.status(), await response.text());
+  }
+
+  // Prove we are NOT on a login URL anymore (handles locale prefixes)
+  await expect(page).not.toHaveURL(LOGIN_RX, { timeout: 15_000 });
+
+  // Final proof of auth: visible user nav OR cookie presence fallback
+  try {
+    await expect(page.locator(AUTH_OK_LOCATOR)).toBeVisible({ timeout: 5_000 });
+  } catch {
+    // Fallback: check for a session/auth cookie
+    const cookies = await page.context().cookies();
+    const hasSession = cookies.some(c => /session|auth|better-auth/i.test(c.name));
+    expect(hasSession, 'Expected an auth/session cookie after login').toBeTruthy();
+
+    // Optional fallback: hit a protected page to force auth check
+    await page.goto('/member', { waitUntil: 'domcontentloaded' });
+    await expect(page).not.toHaveURL(LOGIN_RX, { timeout: 10_000 });
+  }
+}
+
+async function hasSessionCookie(page: Page): Promise<boolean> {
+  const cookies = await page.context().cookies();
+  return cookies.some(c => /session|auth|better-auth/i.test(c.name));
+}
+
+async function ensureAuthenticated(page: Page, role: Role): Promise<void> {
+  // If the project provides storageState, we should already have cookies.
+  // Avoid UI login unless we truly need it.
+  if (await hasSessionCookie(page)) return;
+  await performLogin(page, role);
+}
+
+function storageStateFile(role: Role): string {
+  return path.join(__dirname, '.auth', `${role}.json`);
+}
+
+async function storageStateExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // FIXTURE TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface AuthFixtures {
+  loginAs: (role: Role) => Promise<void>;
+  saveState: (role: Role) => Promise<void>;
   authenticatedPage: Page;
   adminPage: Page;
   agentPage: Page;
   staffPage: Page;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// LOGIN HELPER
-// ═══════════════════════════════════════════════════════════════════════════════
-
-async function performLogin(page: Page, email: string, password: string): Promise<void> {
-  try {
-    const host = process.env.PLAYWRIGHT_HOST ?? 'localhost';
-    const port = process.env.PLAYWRIGHT_PORT ?? '3000';
-    const origin = `http://${host}:${port}`;
-
-    // First try programmatic sign-in to ensure cookies are set even if UI changes.
-    const apiResp = await page.request.post('/api/auth/sign-in/email', {
-      data: { email, password, callbackURL: '/member' },
-      headers: { 'content-type': 'application/json', origin },
-    });
-
-    if (!apiResp.ok()) {
-      const body = await apiResp.text();
-      console.warn('Auth fixture: API login failed', {
-        status: apiResp.status(),
-        body: body.slice(0, 400),
-      });
-      throw new Error(`API login failed with status ${apiResp.status()}`);
-    }
-  } catch (error) {
-    // Fallback to UI login if API fails or request errors (e.g., ECONNRESET)
-    console.warn('Auth fixture: API login errored, falling back to UI', error);
-    await page.goto('/login');
-    await page.waitForSelector('form', { state: 'visible' });
-    await page.fill('input[name="email"], input[type="email"]', email);
-    await page.fill('input[name="password"], input[type="password"]', password);
-    await page.click('button[type="submit"]');
-    await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {});
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -87,81 +158,89 @@ async function performLogin(page: Page, email: string, password: string): Promis
 
 export const test = base.extend<AuthFixtures>({
   /**
-   * Provides a page that is already authenticated as a regular user.
-   *
-   * @example
-   * ```ts
-   * test('can view dashboard', async ({ authenticatedPage }) => {
-   *   await authenticatedPage.goto('/member');
-   *   await expect(authenticatedPage.locator('h1')).toContainText('Dashboard');
-   * });
-   * ```
+   * Helper to login as any role on demand
    */
-  /**
-   * Provides a page that is already authenticated as a regular user.
-   * Uses worker-specific accounts to allow parallel execution.
-   */
-  authenticatedPage: async ({ page }, use, testInfo) => {
-    try {
-      // Use worker-specific user if available (0-9 seeded)
-      // Fallback to legacy test-user if index >= 10 (though seed script supports 10)
-      const workerIndex = testInfo.workerIndex;
-      const email =
-        workerIndex < 10 ? `test-worker${workerIndex}@interdomestik.com` : TEST_USER.email;
-
-      await performLogin(page, email, TEST_USER.password);
-      await use(page);
-    } catch (error) {
-      console.warn('Auth fixture: Login failed, providing unauthenticated page', error);
-      await use(page);
-    }
+  loginAs: async ({ page }, use) => {
+    await use(async (role: Role) => {
+      await ensureAuthenticated(page, role);
+    });
   },
 
   /**
-   * Provides a page that is authenticated as an admin user.
-   * Admin is shared (single user), so tests modifying admin data might still conflict.
+   * Helper to generate storageState files for faster tests
    */
-  adminPage: async ({ page }, use) => {
-    try {
-      await performLogin(page, TEST_ADMIN.email, TEST_ADMIN.password);
-      await use(page);
-    } catch (error) {
-      console.warn('Auth fixture: Admin login failed, providing unauthenticated page', error);
-      await use(page);
-    }
+  saveState: async ({ page }, use) => {
+    await use(async (role: Role) => {
+      await performLogin(page, role);
+      const out = path.join(__dirname, '.auth', `${role}.json`);
+      await fs.mkdir(path.dirname(out), { recursive: true });
+      await page.context().storageState({ path: out });
+      console.log(`✅ Saved storageState for ${role} to ${out}`);
+    });
   },
 
   /**
-   * Provides a page that is authenticated as an agent user.
-   * Uses worker-specific accounts.
+   * Page authenticated as a regular member
    */
-  agentPage: async ({ page }, use, testInfo) => {
-    try {
-      const workerIndex = testInfo.workerIndex;
-      const email =
-        workerIndex < 10 ? `agent-worker${workerIndex}@interdomestik.com` : TEST_AGENT.email;
-
-      await performLogin(page, email, TEST_AGENT.password);
-      await use(page);
-    } catch (error) {
-      console.warn('Auth fixture: Agent login failed, providing unauthenticated page', error);
-      await use(page);
+  authenticatedPage: async ({ browser }, use) => {
+    const statePath = storageStateFile('member');
+    const context = await browser.newContext(
+      (await storageStateExists(statePath)) ? { storageState: statePath } : undefined
+    );
+    const page = await context.newPage();
+    if (!(await hasSessionCookie(page))) {
+      await performLogin(page, 'member');
     }
+    await use(page);
+    await context.close();
   },
 
   /**
-   * Provides a page that is authenticated as a staff user.
-   * Uses shared staff credentials for now (since we don't have worker-specific staff in seed yet, or we can add them).
-   * Actually, let's use the static staff user from seed: staff-user / StaffPassword123!
+   * Page authenticated as an admin
    */
-  staffPage: async ({ page }, use) => {
-    try {
-      await performLogin(page, TEST_STAFF.email, TEST_STAFF.password);
-      await use(page);
-    } catch (error) {
-      console.warn('Auth fixture: Staff login failed', error);
-      await use(page);
+  adminPage: async ({ browser }, use) => {
+    const statePath = storageStateFile('admin');
+    const context = await browser.newContext(
+      (await storageStateExists(statePath)) ? { storageState: statePath } : undefined
+    );
+    const page = await context.newPage();
+    if (!(await hasSessionCookie(page))) {
+      await performLogin(page, 'admin');
     }
+    await use(page);
+    await context.close();
+  },
+
+  /**
+   * Page authenticated as an agent
+   */
+  agentPage: async ({ browser }, use) => {
+    const statePath = storageStateFile('agent');
+    const context = await browser.newContext(
+      (await storageStateExists(statePath)) ? { storageState: statePath } : undefined
+    );
+    const page = await context.newPage();
+    if (!(await hasSessionCookie(page))) {
+      await performLogin(page, 'agent');
+    }
+    await use(page);
+    await context.close();
+  },
+
+  /**
+   * Page authenticated as a staff member
+   */
+  staffPage: async ({ browser }, use) => {
+    const statePath = storageStateFile('staff');
+    const context = await browser.newContext(
+      (await storageStateExists(statePath)) ? { storageState: statePath } : undefined
+    );
+    const page = await context.newPage();
+    if (!(await hasSessionCookie(page))) {
+      await performLogin(page, 'staff');
+    }
+    await use(page);
+    await context.close();
   },
 });
 
@@ -180,9 +259,8 @@ export { expect } from '@playwright/test';
  */
 export async function isLoggedIn(page: Page): Promise<boolean> {
   try {
-    // Check for common auth indicators
-    const userNav = page.locator('[data-testid="user-nav"], .user-avatar, .user-menu');
-    return await userNav.isVisible({ timeout: 2000 });
+    const userNav = page.locator(AUTH_OK_LOCATOR);
+    return await userNav.isVisible({ timeout: 2_000 });
   } catch {
     return false;
   }
@@ -192,12 +270,7 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
  * Perform logout.
  */
 export async function logout(page: Page): Promise<void> {
-  // Click user menu
-  await page.click('[data-testid="user-nav"], .user-avatar, .user-menu');
-
-  // Click logout option
+  await page.click(AUTH_OK_LOCATOR);
   await page.click('text=Logout, text=Sign out, [data-testid="logout"]');
-
-  // Wait for redirect to login/home
-  await page.waitForURL(/\/(login|$)/);
+  await page.waitForURL(LOGIN_RX, { timeout: 15_000 });
 }

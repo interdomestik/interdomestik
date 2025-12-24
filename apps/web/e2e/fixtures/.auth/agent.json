@@ -1,0 +1,25 @@
+{
+  "cookies": [
+    {
+      "name": "NEXT_LOCALE",
+      "value": "sq",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "better-auth.session_token",
+      "value": "VNDQrHktOrTGKBZiVfjWwBR13FpLPRtV.M7DmFy%2BgiN6C1VOdcDRkib0pvEnFt3VhUZgrCDdMfyM%3D",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1767171255.061255,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}

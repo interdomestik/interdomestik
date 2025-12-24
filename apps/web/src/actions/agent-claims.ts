@@ -1,7 +1,7 @@
 'use server';
 
-import { auth } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
+import { auth } from '@/lib/auth';
 import { notifyClaimAssigned, notifyStatusChanged } from '@/lib/notifications';
 import { claims, db, eq, user } from '@interdomestik/database';
 import { revalidatePath } from 'next/cache';
@@ -60,13 +60,17 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
 
   // Send notification to claim owner (fire-and-forget)
   if (claimWithUser.userId && claimWithUser.userEmail && oldStatus !== newStatus) {
-    notifyStatusChanged(
-      claimWithUser.userId,
-      claimWithUser.userEmail,
-      { id: claimWithUser.id, title: claimWithUser.title },
-      oldStatus,
-      newStatus
-    ).catch((err: Error) => console.error('Failed to send status notification:', err));
+    try {
+      notifyStatusChanged(
+        claimWithUser.userId,
+        claimWithUser.userEmail,
+        { id: claimWithUser.id, title: claimWithUser.title },
+        oldStatus,
+        newStatus
+      ).catch((err: Error) => console.error('Failed to send status notification:', err));
+    } catch (err) {
+      console.error('Failed to initiate status notification:', err);
+    }
   }
 
   revalidatePath('/member/claims');

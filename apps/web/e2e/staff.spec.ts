@@ -44,14 +44,14 @@ test.describe('Staff Claim Management', () => {
 
     // Check new detail pane structure
     await expect(page.getByText('Claim Details')).toBeVisible();
-    await expect(page.getByText('Messages')).toBeVisible();
+    await expect(page.getByRole('tab', { name: /Messages/i })).toBeVisible();
     await expect(page.getByText('Documents')).toBeVisible();
 
     // Check claim info fields
     await expect(page.getByText('Company')).toBeVisible();
     await expect(page.getByText('Amount')).toBeVisible();
     await expect(page.getByText('Incident Date')).toBeVisible();
-    await expect(page.getByText('Status')).toBeVisible();
+    await expect(page.getByText('Status', { exact: true })).toBeVisible();
     await expect(page.getByText('Description')).toBeVisible();
 
     // Check status select exists
@@ -68,10 +68,18 @@ test.describe('Staff Claim Management', () => {
     await reviewLink.click();
     await page.waitForLoadState('domcontentloaded');
 
-    // Update status to Verification
+    // Update status - cycle to ensure change
     const statusSelect = page.getByRole('combobox').first();
+    const initialStatus = await statusSelect.textContent();
+
     await statusSelect.click();
-    await page.getByRole('option', { name: /verification/i }).click();
+
+    // Pick a status different from current
+    if (initialStatus?.toLowerCase().includes('verification')) {
+      await page.getByRole('option', { name: /evaluation/i }).click();
+    } else {
+      await page.getByRole('option', { name: /verification/i }).click();
+    }
 
     // Verify toast or updated status
     await expect(page.getByText('Status updated successfully')).toBeVisible();

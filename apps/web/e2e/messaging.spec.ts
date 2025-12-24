@@ -20,8 +20,8 @@ test.describe('Messaging System', () => {
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Verify messaging panel is visible using data-testid
-      const messagingPanel = authenticatedPage.locator('[data-testid="messaging-panel"]');
-      await expect(messagingPanel.first()).toBeVisible({ timeout: 10000 });
+      const messagingPanel = authenticatedPage.locator('[data-testid="messaging-panel"]:visible');
+      await expect(messagingPanel).toBeVisible({ timeout: 10000 });
     });
 
     test('should show messages section', async ({ authenticatedPage }) => {
@@ -35,8 +35,8 @@ test.describe('Messaging System', () => {
       await authenticatedPage.goto(href!);
 
       // Look for messaging panel
-      const messagingPanel = authenticatedPage.locator('[data-testid="messaging-panel"]');
-      await expect(messagingPanel.first()).toBeVisible({ timeout: 10000 });
+      const messagingPanel = authenticatedPage.locator('[data-testid="messaging-panel"]:visible');
+      await expect(messagingPanel).toBeVisible({ timeout: 10000 });
     });
 
     test('should have message input field', async ({ authenticatedPage }) => {
@@ -50,8 +50,8 @@ test.describe('Messaging System', () => {
       await authenticatedPage.goto(href!);
 
       // Find message input using data-testid
-      const messageInput = authenticatedPage.locator('[data-testid="message-input"]');
-      await expect(messageInput.first()).toBeVisible({ timeout: 10000 });
+      const messageInput = authenticatedPage.locator('[data-testid="message-input"]:visible');
+      await expect(messageInput).toBeVisible({ timeout: 10000 });
     });
 
     test('should have send button', async ({ authenticatedPage }) => {
@@ -65,8 +65,8 @@ test.describe('Messaging System', () => {
       await authenticatedPage.goto(href!);
 
       // Find send button using data-testid
-      const sendButton = authenticatedPage.locator('[data-testid="send-message-button"]');
-      await expect(sendButton.first()).toBeVisible({ timeout: 10000 });
+      const sendButton = authenticatedPage.locator('[data-testid="send-message-button"]:visible');
+      await expect(sendButton).toBeVisible({ timeout: 10000 });
     });
   });
 
@@ -80,15 +80,16 @@ test.describe('Messaging System', () => {
 
       // Click first claim and wait for navigation
       const firstClaimLink = staffPage.locator('a[href*="/staff/claims/"]').first();
-      await firstClaimLink.click();
+      // Force click to avoid sticky header interception on mobile
+      await firstClaimLink.click({ force: true });
       await staffPage.waitForLoadState('domcontentloaded');
 
       // Wait for detail page (increased timeout for WebKit)
       await staffPage.waitForURL(/\/staff\/claims\//, { timeout: 45000 });
 
       // Verify messaging panel is present using data-testid
-      const messagingPanel = staffPage.locator('[data-testid="messaging-panel"]');
-      await expect(messagingPanel.first()).toBeVisible({ timeout: 10000 });
+      const messagingPanel = staffPage.locator('[data-testid="messaging-panel"]:visible');
+      await expect(messagingPanel).toBeVisible({ timeout: 10000 });
     });
 
     test('should have internal note checkbox for staff', async ({ staffPage }) => {
@@ -96,12 +97,14 @@ test.describe('Messaging System', () => {
       await staffPage.waitForSelector('table, [class*="claim"]', { timeout: 10000 });
 
       const firstClaimLink = staffPage.locator('a[href*="/staff/claims/"]').first();
-      await firstClaimLink.click();
+
+      // Force click to avoid sticky header interception on mobile
+      await firstClaimLink.click({ force: true });
       await staffPage.waitForURL(/\/staff\/claims\//, { timeout: 45000 });
 
       // Look for internal note toggle using data-testid
-      const internalNoteToggle = staffPage.locator('[data-testid="internal-note-toggle"]');
-      await expect(internalNoteToggle.first()).toBeVisible({ timeout: 10000 });
+      const internalNoteToggle = staffPage.locator('[data-testid="internal-note-toggle"]:visible');
+      await expect(internalNoteToggle).toBeVisible({ timeout: 10000 });
     });
   });
 

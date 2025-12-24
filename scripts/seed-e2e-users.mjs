@@ -135,6 +135,8 @@ for (let i = 0; i < WORKER_COUNT; i++) {
       companyName: c.companyName,
       amount: c.amount,
       currency: c.currency,
+      // Assign ALL claims to Staff User for testing simplicity
+      staffId: 'staff-user',
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * c.createdAtOffsetDays),
     });
   }
@@ -201,6 +203,7 @@ for (const c of baseClaims) {
     companyName: c.companyName,
     amount: c.amount,
     currency: c.currency,
+    staffId: 'staff-user',
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * c.createdAtOffsetDays),
   });
 }
@@ -246,13 +249,14 @@ async function upsertClaim(claim) {
   const now = new Date();
   // We use upsert on ID
   await sql`
-    insert into claim (id, "userId", title, description, status, category, "companyName", amount, currency, "createdAt", "updatedAt")
-    values (${claim.id}, ${claim.userId}, ${claim.title}, ${claim.description}, ${claim.status}, ${claim.category}, ${claim.companyName}, ${claim.amount}, ${claim.currency}, ${claim.createdAt}, ${now})
+    insert into claim (id, "userId", "staffId", title, description, status, category, "companyName", amount, currency, "createdAt", "updatedAt")
+    values (${claim.id}, ${claim.userId}, ${claim.staffId || null}, ${claim.title}, ${claim.description}, ${claim.status}, ${claim.category}, ${claim.companyName}, ${claim.amount}, ${claim.currency}, ${claim.createdAt}, ${now})
     on conflict (id) do update set
       title = excluded.title,
       description = excluded.description,
       status = excluded.status,
       amount = excluded.amount,
+      "staffId" = excluded."staffId",
       "updatedAt" = excluded."updatedAt";
   `;
 }

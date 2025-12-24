@@ -7,6 +7,8 @@
 import { expect, test } from './fixtures/auth.fixture';
 
 test.describe('Settings Page', () => {
+  test.describe.configure({ mode: 'serial' });
+
   test.describe('Navigation', () => {
     test('should redirect to login when not authenticated', async ({ page }) => {
       await page.goto('/en/member/settings');

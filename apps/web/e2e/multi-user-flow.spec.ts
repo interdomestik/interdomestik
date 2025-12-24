@@ -96,19 +96,21 @@ test.describe('Multi-User Claim Workflow', () => {
     test('Admin can see all users', async ({ adminPage: page }) => {
       await page.goto('/en/admin/users');
       await page.waitForLoadState('domcontentloaded');
-
-      await expect(page.getByRole('heading', { name: /User Management/i })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Members', level: 1 })).toBeVisible({
+        timeout: 10000,
+      });
     });
 
     test('Admin can access any claim details', async ({ adminPage: page }) => {
       await page.goto('/en/admin/claims');
       await page.waitForLoadState('domcontentloaded');
 
-      // Look for claim entries
-      const claimLinks = page.locator('a[href*="/claims/"], tr');
-      const count = await claimLinks.count();
-
-      expect(count).toBeGreaterThan(0);
+      // Expect > 0 claims with polling/timeout
+      await expect(async () => {
+        const claimLinks = page.locator('a[href*="/claims/"], tr');
+        const count = await claimLinks.count();
+        expect(count).toBeGreaterThan(0);
+      }).toPass({ timeout: 10000 });
     });
 
     test('Admin can see claim status options', async ({ adminPage: page }) => {

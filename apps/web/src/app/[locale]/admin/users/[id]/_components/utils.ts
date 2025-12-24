@@ -1,4 +1,4 @@
-export function formatDate(value: Date | string | null, fallback: string) {
+export function formatDate(value: Date | string | null | undefined, fallback: string) {
   if (!value) return fallback;
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return fallback;

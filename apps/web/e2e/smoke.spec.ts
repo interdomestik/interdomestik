@@ -8,7 +8,7 @@ test.describe('Smoke Tests', () => {
   });
 
   // Skipped until we configure auth fixture
-  test.skip('dashboard redirects to login when unauthenticated', async ({ page }) => {
+  test('dashboard redirects to login when unauthenticated', async ({ page }) => {
     await page.goto('/member');
     await expect(page).toHaveURL(/.*login/);
   });

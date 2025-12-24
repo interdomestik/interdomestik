@@ -40,11 +40,13 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">{t('title')}</h2>
+          <h2 className="text-3xl font-bold tracking-tight" data-testid="claims-title">
+            {t('title')}
+          </h2>
           <p className="text-muted-foreground mt-1">{t('description')}</p>
         </div>
         <Button asChild>
-          <Link href="/member/claims/new">
+          <Link href="/member/claims/new" data-testid="create-claim-button">
             <Plus className="mr-2 h-4 w-4" />
             {t('new')}
           </Link>

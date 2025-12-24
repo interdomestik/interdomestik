@@ -19,7 +19,7 @@ interface RecentClaim {
   status: string;
   claimAmount: string | null;
   currency: string | null;
-  createdAt: Date;
+  createdAt: Date | null;
 }
 
 export async function RecentClaimsCard({ recentClaims }: { recentClaims: RecentClaim[] }) {
@@ -47,7 +47,7 @@ export async function RecentClaimsCard({ recentClaims }: { recentClaims: RecentC
               {recentClaims.map(claim => (
                 <TableRow key={claim.id}>
                   <TableCell className="max-w-[240px]">
-                    <div className="truncate" title={claim.title}>
+                    <div className="truncate" title={claim.title ?? undefined}>
                       {claim.title}
                     </div>
                     <div className="text-xs text-muted-foreground">

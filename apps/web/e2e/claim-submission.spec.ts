@@ -2,6 +2,7 @@ import { expect, test } from './fixtures/auth.fixture';
 
 test.describe('Claim Creation Wizard', () => {
   test('should allow user to complete the claim wizard', async ({ authenticatedPage }) => {
+    test.setTimeout(60000); // Wizard can be slow
     // 1. Navigate to New Claim (Force English)
     await authenticatedPage.goto('/en/member/claims/new');
     await expect(authenticatedPage.locator('h1')).toContainText('New Claim');

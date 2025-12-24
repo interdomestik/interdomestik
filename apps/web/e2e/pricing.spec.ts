@@ -9,12 +9,16 @@ test.describe('Pricing Page', () => {
     await expect(page.locator('h1')).toBeVisible();
 
     // 3. Verify Plans are visible (public access allowed)
-    await expect(page.getByRole('heading', { name: 'Bazik' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Asistenca', exact: false })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Asistenca', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Asistenca+', exact: true })).toBeVisible();
 
     // 4. Verify "Join Now" buttons are present
     // Instead of hiding them, they redirect to register
-    const joinButtons = page.getByRole('button', { name: /Join Now|Bashkohu/i });
+    // Instead of hiding them, they redirect to register
+    // Use locator('button') in case role is not strictly button or name isn't accessible
+    const joinButtons = page
+      .locator('button')
+      .filter({ hasText: /Join Now|Bashkohu|Bëhu Anëtar/i });
     expect(await joinButtons.count()).toBeGreaterThanOrEqual(1);
   });
 
@@ -25,11 +29,13 @@ test.describe('Pricing Page', () => {
 
     // 2. Verify Plan Cards are visible
     // "Basic", "Pro", etc.
-    await expect(authenticatedPage.getByText('Bazik')).toBeVisible();
-    await expect(authenticatedPage.getByText('Asistenca')).toBeVisible();
+    await expect(authenticatedPage.getByText('Asistenca', { exact: true })).toBeVisible();
+    await expect(authenticatedPage.getByText('Asistenca+', { exact: true })).toBeVisible();
 
     // 3. Verify buttons are visible
-    const upgradeButtons = authenticatedPage.getByRole('button', { name: /Join Now|Bashkohu/i });
+    const upgradeButtons = authenticatedPage.getByRole('button', {
+      name: /Join Now|Bashkohu|Bëhu Anëtar/i,
+    });
     expect(await upgradeButtons.count()).toBeGreaterThanOrEqual(1);
   });
 
@@ -45,8 +51,8 @@ test.describe('Pricing Page', () => {
     // Mock the global Paddle object using addInitScript so it persists/runs before load
     await authenticatedPage.addInitScript(() => {
       // Define types purely for the script context if needed, or cast window
-      const windowWithPaddle = window as unknown as Window & {
-        Paddle: { Checkout: { open: (args: unknown) => void } };
+      const windowWithPaddle = window as unknown as {
+        Paddle: Record<string, unknown>;
         paddleOpenCalled: unknown;
       };
       windowWithPaddle.Paddle = {
@@ -55,8 +61,11 @@ test.describe('Pricing Page', () => {
             console.log('Paddle.Checkout.open called', args);
             windowWithPaddle.paddleOpenCalled = args;
           },
+          updateCheckout: () => {},
+          updateItems: () => {},
+          close: () => {},
         },
-      };
+      } as Record<string, unknown>;
     });
 
     await authenticatedPage.goto('/pricing');
@@ -70,8 +79,12 @@ test.describe('Pricing Page', () => {
 
     await expect(assistencaCard).toBeVisible();
 
-    const joinButton = assistencaCard.getByRole('button', { name: /Join Now|Bashkohu/i });
-    await joinButton.click();
+    const joinButton = assistencaCard
+      .locator('button')
+      .filter({ hasText: /Join Now|Bashkohu|Bëhu Anëtar/i })
+      .first();
+    await joinButton.scrollIntoViewIfNeeded();
+    await joinButton.click({ force: true });
 
     // Verification happens via console logs or lack of error
     // In a real test we'd check window.paddleOpenCalled but that requires exposing it back to Node context

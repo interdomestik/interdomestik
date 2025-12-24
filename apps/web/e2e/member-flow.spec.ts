@@ -81,6 +81,7 @@ test.describe('Member User Flow', () => {
     });
 
     test('Member can access new claim wizard', async ({ authenticatedPage: page }) => {
+      test.setTimeout(60000); // Allow extra time for dev compilation on first load
       await page.goto('/en/member/claims/new');
       await page.waitForLoadState('domcontentloaded');
 
@@ -169,18 +170,24 @@ test.describe('Member User Flow', () => {
       await page.goto('/en/member');
       await page.waitForLoadState('domcontentloaded');
 
-      // Look for user nav or avatar button
+      // Look for user nav or avatar button or image
       const userNav = page.locator('[data-testid="user-nav"]');
-      const avatarButton = page.locator('button').filter({ hasText: /^[A-Z]{1,2}$/ });
+      const avatarButton = page.locator('button:has(img)');
+      const avatarText = page.locator('button').filter({ hasText: /^[A-Z]{1,2}$/ });
 
-      const hasUserNav =
-        (await userNav.isVisible().catch(() => false)) ||
-        (await avatarButton
+      // Wait for any of them to be visible
+      await expect(async () => {
+        const navVisible = await userNav.isVisible().catch(() => false);
+        const btnVisible = await avatarButton
           .first()
           .isVisible()
-          .catch(() => false));
-
-      expect(hasUserNav).toBeTruthy();
+          .catch(() => false);
+        const textVisible = await avatarText
+          .first()
+          .isVisible()
+          .catch(() => false);
+        expect(navVisible || btnVisible || textVisible).toBeTruthy();
+      }).toPass({ timeout: 5000 });
     });
   });
 });

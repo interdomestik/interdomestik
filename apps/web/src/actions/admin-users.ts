@@ -95,7 +95,10 @@ export async function getUsers(filters?: { search?: string; role?: string; assig
 
   if (filters?.search) {
     const term = `%${filters.search}%`;
-    conditions.push(or(ilike(user.name, term), ilike(user.email, term)));
+    const searchFilter = or(ilike(user.name, term), ilike(user.email, term));
+    if (searchFilter) {
+      conditions.push(searchFilter);
+    }
   }
 
   const users = await db.query.user.findMany({

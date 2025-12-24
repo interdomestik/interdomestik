@@ -38,6 +38,7 @@ export function LoginForm() {
       </CardHeader>
       <CardContent>
         <form
+          method="POST"
           className="space-y-4"
           onSubmit={async e => {
             e.preventDefault();
