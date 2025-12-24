@@ -6,17 +6,7 @@
  */
 
 import { Buffer } from 'buffer';
-import { expect, isLoggedIn, test } from './fixtures/auth.fixture';
-
-async function requireAuthOrSkip(page: import('@playwright/test').Page) {
-  if (page.url().includes('/login')) {
-    test.skip(true, 'Auth not configured for E2E environment');
-  }
-  const loggedIn = await isLoggedIn(page);
-  if (!loggedIn) {
-    test.skip(true, 'Auth not configured for E2E environment');
-  }
-}
+import { expect, test } from './fixtures/auth.fixture';
 
 test.describe('Evidence uploads', () => {
   test('blocks disallowed mime types before upload', async ({ authenticatedPage }) => {

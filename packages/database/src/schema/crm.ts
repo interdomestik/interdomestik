@@ -59,6 +59,22 @@ export const crmDeals = pgTable('crm_deals', {
   updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
 });
 
+export const memberActivities = pgTable('member_activities', {
+  id: text('id').primaryKey(),
+  agentId: text('agent_id')
+    .notNull()
+    .references(() => user.id),
+  memberId: text('member_id')
+    .notNull()
+    .references(() => user.id),
+  type: text('type').notNull(), // 'call', 'email', 'meeting', 'note', 'other'
+  subject: text('subject').notNull(),
+  description: text('description'),
+  occurredAt: timestamp('occurred_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+});
+
 // Legacy leads table
 export const leads = pgTable('leads', {
   id: text('id').primaryKey(),

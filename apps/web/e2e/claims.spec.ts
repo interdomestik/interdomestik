@@ -122,12 +122,7 @@ test.describe('Claims Flow', () => {
 
       // Check for timeline component
       // Adjust selector based on actual implementation
-      const timeline = authenticatedPage
-        .locator('[data-testid="claim-timeline"], .timeline, ol, ul')
-        .filter({ hasText: /Submitted|Created/ })
-        .first();
-      // Relaxed assertion as timeline might not always be present or have specific class
-      // await expect(timeline).toBeVisible();
+      // Claim timeline check removed as it is unused
     });
   });
 

@@ -4,7 +4,7 @@ import { relations } from 'drizzle-orm';
 import { agentClients, agentCommissions, agentSettings } from './agents';
 import { user } from './auth';
 import { claimDocuments, claimMessages, claims, claimStageHistory } from './claims';
-import { crmActivities, crmDeals, crmLeads } from './crm';
+import { crmActivities, crmDeals, crmLeads, memberActivities } from './crm';
 import { membershipFamilyMembers, membershipPlans, subscriptions } from './memberships';
 import { auditLog, memberNotes } from './notes';
 import { partnerDiscountUsage, referrals, serviceRequests, serviceUsage } from './services';
@@ -31,6 +31,8 @@ export const userRelations = relations(user, ({ many, one }) => ({
   clients: many(user, { relationName: 'user_agent' }),
   crmLeads: many(crmLeads),
   crmActivities: many(crmActivities),
+  memberActivities: many(memberActivities, { relationName: 'agent_member_activities' }),
+  memberActivityHistory: many(memberActivities, { relationName: 'member_activity_history' }),
   crmDeals: many(crmDeals),
   referralsSent: many(referrals, { relationName: 'referrer' }),
   referralsReceived: many(referrals, { relationName: 'referred' }),
@@ -199,5 +201,18 @@ export const memberNotesRelations = relations(memberNotes, ({ one }) => ({
     fields: [memberNotes.authorId],
     references: [user.id],
     relationName: 'member_notes_author',
+  }),
+}));
+
+export const memberActivitiesRelations = relations(memberActivities, ({ one }) => ({
+  agent: one(user, {
+    fields: [memberActivities.agentId],
+    references: [user.id],
+    relationName: 'agent_member_activities',
+  }),
+  member: one(user, {
+    fields: [memberActivities.memberId],
+    references: [user.id],
+    relationName: 'member_activity_history',
   }),
 }));

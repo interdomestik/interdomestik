@@ -1,4 +1,7 @@
+import { getMemberActivities } from '@/actions/activities';
 import { MemberNotesCard } from '@/components/agent/member-notes-card';
+import { ActivityFeed } from '@/components/crm/activity-feed';
+import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
@@ -76,7 +79,7 @@ export default async function AgentMemberProfilePage({
     return notFound();
   }
 
-  const [subscription, preferences, claimCounts, recentClaims] = await Promise.all([
+  const [subscription, preferences, claimCounts, recentClaims, activities] = await Promise.all([
     db.query.subscriptions.findFirst({
       where: eq(subscriptions.userId, member.id),
       orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
@@ -98,6 +101,7 @@ export default async function AgentMemberProfilePage({
       .where(eq(claims.userId, member.id))
       .orderBy(desc(claims.createdAt))
       .limit(RECENT_CLAIMS_LIMIT),
+    getMemberActivities(member.id),
   ]);
 
   const counts = { total: 0, open: 0, resolved: 0, rejected: 0 };
@@ -349,6 +353,19 @@ export default async function AgentMemberProfilePage({
                 </TableBody>
               </Table>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Member Activities Section */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-3">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Member Activity</CardTitle>
+            <LogActivityDialog memberId={member.id} />
+          </CardHeader>
+          <CardContent>
+            <ActivityFeed activities={activities} />
           </CardContent>
         </Card>
       </div>
