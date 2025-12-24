@@ -17,7 +17,7 @@ export function ClaimCategoriesSection() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">{t('title')}</h2>
-          <p className="text-[hsl(var(--muted-500))] max-w-2xl mx-auto">{t('subtitle')}</p>
+          <p className="text-slate-800 font-bold max-w-2xl mx-auto">{t('subtitle')}</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -34,10 +34,10 @@ export function ClaimCategoriesSection() {
               <h3 className="text-xl font-bold mb-3 text-slate-900">
                 {t(`${category.key}.title`)}
               </h3>
-              <p className="text-slate-500 text-sm mb-4 leading-relaxed">
+              <p className="text-sm text-slate-800 leading-relaxed font-bold">
                 {t(`${category.key}.description`)}
               </p>
-              <p className="text-xs font-medium text-slate-400 mt-auto">
+              <p className="text-xs font-bold text-slate-800 mt-auto">
                 {t(`${category.key}.examples`)}
               </p>
               <div className="mt-6 flex items-center text-sm font-bold text-primary group-hover:translate-x-1 transition-transform">

@@ -11,7 +11,7 @@ export function VoiceClaimSection() {
   const steps = [
     { number: '1', text: t('step1'), color: 'from-amber-400 to-orange-500' },
     { number: '2', text: t('step2'), color: 'from-blue-400 to-indigo-500' },
-    { number: '3', text: t('step3'), color: 'from-emerald-400 to-teal-500' },
+    { number: '3', text: t('step3'), color: 'from-emerald-300 to-teal-400' },
   ];
 
   return (
@@ -34,15 +34,15 @@ export function VoiceClaimSection() {
 
           {/* Unified Prime Headline */}
           <h2 className="font-display font-black mb-12 text-white tracking-tight leading-[0.9] animate-fade-in uppercase">
-            <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 opacity-60">
+            <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 text-slate-300">
               {t('title').split('.')[0]}.
             </span>
-            <span className="text-5xl md:text-6xl lg:text-7xl block leading-[0.85] tracking-[-0.05em] text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-200 filter drop-shadow-2xl">
+            <span className="text-5xl md:text-6xl lg:text-7xl block leading-[0.85] tracking-[-0.05em] text-amber-300 bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-200 filter drop-shadow-2xl bg-clip-text">
               {t('title').split('.')[1]?.trim() || ''}
             </span>
           </h2>
 
-          <p className="text-white/40 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed opacity-60 mb-16 lg:mb-24 animate-fade-in">
+          <p className="text-slate-300 max-w-2xl mx-auto text-base md:text-lg font-bold leading-relaxed mb-16 lg:mb-24 animate-fade-in">
             {t('subtitle')}
           </p>
 
@@ -70,7 +70,7 @@ export function VoiceClaimSection() {
               <div className="text-6xl md:text-8xl font-black text-white mb-2 tracking-tighter group-hover:text-amber-200 transition-colors">
                 {t('stats.time')}
               </div>
-              <div className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]">
+              <div className="text-[10px] text-slate-200 font-black uppercase tracking-[0.2em]">
                 {t('stats.timeLabel')}
               </div>
             </div>
@@ -79,7 +79,7 @@ export function VoiceClaimSection() {
               <div className="text-6xl md:text-8xl font-black text-white mb-2 tracking-tighter group-hover:text-amber-200 transition-colors">
                 {t('stats.noForms')}
               </div>
-              <div className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em]">
+              <div className="text-[10px] text-slate-200 font-black uppercase tracking-[0.2em]">
                 {t('stats.noFormsLabel')}
               </div>
             </div>
@@ -114,7 +114,7 @@ export function VoiceClaimSection() {
                   variant="outline"
                   className="h-20 px-14 text-xl font-bold bg-transparent backdrop-blur-md border-2 border-white/20 text-white hover:bg-white/10 rounded-[2rem] transition-all hover:scale-105"
                 >
-                  <MessageCircle className="h-6 w-6 mr-4 text-emerald-400" />
+                  <MessageCircle className="h-6 w-6 mr-4 text-emerald-300" />
                   {t('whatsappCta')}
                 </Button>
               </a>
@@ -122,17 +122,17 @@ export function VoiceClaimSection() {
           </div>
 
           {/* Trust Indicators */}
-          <div className="mt-20 flex flex-wrap justify-center gap-8 text-white/40 font-bold uppercase tracking-widest text-[10px]">
+          <div className="mt-20 flex flex-wrap justify-center gap-8 text-slate-300 font-bold uppercase tracking-widest text-[10px]">
             <div className="flex items-center gap-2 group">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 group-hover:scale-125 transition-transform" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-300 group-hover:scale-125 transition-transform" />
               <span>{t('noStress')}</span>
             </div>
             <div className="flex items-center gap-2 group">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 group-hover:scale-125 transition-transform" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-300 group-hover:scale-125 transition-transform" />
               <span>{t('noWaiting')}</span>
             </div>
             <div className="flex items-center gap-2 group">
-              <CheckCircle2 className="h-4 w-4 text-emerald-400 group-hover:scale-125 transition-transform" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-300 group-hover:scale-125 transition-transform" />
               <span>{t('noForms')}</span>
             </div>
           </div>

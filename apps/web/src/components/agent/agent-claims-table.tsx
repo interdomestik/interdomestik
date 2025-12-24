@@ -102,14 +102,18 @@ export function AgentClaimsTable({
               <TableRow
                 key={claim.id}
                 className={
-                  claim.unreadCount ? 'bg-amber-50/40 hover:bg-amber-50/60' : 'hover:bg-muted/50'
+                  claim.unreadCount
+                    ? 'bg-amber-50/50 hover:bg-amber-50/80 transition-colors duration-200'
+                    : 'hover:bg-slate-50/80 transition-colors duration-200'
                 }
               >
                 <TableCell>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-sm">{claim.claimantName || 'Unknown'}</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-slate-900 text-sm tracking-tight">
+                      {claim.claimantName || 'Unknown'}
+                    </span>
                     <span
-                      className="text-xs text-muted-foreground truncate max-w-[200px]"
+                      className="text-xs text-slate-500 font-medium truncate max-w-[200px]"
                       title={claim.claimantEmail || ''}
                     >
                       {claim.claimantEmail}
@@ -117,23 +121,32 @@ export function AgentClaimsTable({
                   </div>
                 </TableCell>
                 <TableCell className="max-w-[260px]">
-                  <div className="font-medium text-sm truncate" title={claim.title}>
-                    {claim.title}
-                  </div>
-                  <div
-                    className="text-xs text-muted-foreground truncate"
-                    title={claim.companyName || ''}
-                  >
-                    {claim.companyName}
+                  <div className="flex flex-col gap-0.5">
+                    <span
+                      className="font-medium text-slate-900 text-sm truncate tracking-tight"
+                      title={claim.title}
+                    >
+                      {claim.title}
+                    </span>
+                    <span
+                      className="text-xs text-slate-500 truncate font-medium"
+                      title={claim.companyName || ''}
+                    >
+                      {claim.companyName}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <ClaimStatusBadge status={claim.status} />
                 </TableCell>
-                <TableCell className="text-sm font-medium">
-                  {claim.claimAmount ? `${claim.claimAmount} ${claim.currency || 'EUR'}` : '-'}
+                <TableCell className="text-sm font-semibold text-slate-700 font-mono tracking-tight">
+                  {claim.claimAmount ? (
+                    `${claim.claimAmount} ${claim.currency || 'EUR'}`
+                  ) : (
+                    <span className="text-slate-400">-</span>
+                  )}
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="text-sm text-slate-500 font-medium">
                   {claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : '-'}
                 </TableCell>
                 <TableCell className="text-right">
@@ -142,7 +155,7 @@ export function AgentClaimsTable({
                       <Button
                         asChild
                         size="sm"
-                        className="gap-2 animate-pulse bg-amber-500 text-white hover:bg-amber-600"
+                        className="gap-2 shadow-sm shadow-amber-500/20 bg-amber-500 text-white hover:bg-amber-600 border-amber-600/20 font-semibold"
                       >
                         <Link href={`${detailBasePath}/${claim.id}`}>
                           <span className="relative flex h-2 w-2">
@@ -153,12 +166,22 @@ export function AgentClaimsTable({
                         </Link>
                       </Button>
                     ) : (
-                      <Button asChild size="sm" variant="outline">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="font-medium text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                      >
                         <Link href={`${detailBasePath}/${claim.id}`}>{t('actions.review')}</Link>
                       </Button>
                     )
                   ) : (
-                    <Button asChild size="sm" variant="ghost">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="ghost"
+                      className="text-slate-500 hover:text-primary hover:bg-primary/5 font-medium transition-colors"
+                    >
                       <Link href={`${detailBasePath}/${claim.id}`}>View Status</Link>
                     </Button>
                   )}
@@ -167,8 +190,16 @@ export function AgentClaimsTable({
             ))}
             {data.claims.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                  {t('table.no_claims')}
+                <TableCell colSpan={6} className="h-48 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
+                    <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mb-2">
+                      <span className="text-2xl">📭</span>
+                    </div>
+                    <span className="font-medium text-lg">{t('table.no_claims')}</span>
+                    <span className="text-sm text-slate-400">
+                      Claims will appear here once submitted.
+                    </span>
+                  </div>
                 </TableCell>
               </TableRow>
             )}

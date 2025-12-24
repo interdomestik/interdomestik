@@ -21,15 +21,15 @@ export function Footer() {
               </div>
               <div>
                 <span className="font-display font-black text-xl">{common('appName')}</span>
-                <p className="text-xs text-slate-400 font-medium">{common('tagline')}</p>
+                <p className="text-xs text-slate-200 font-bold">{common('tagline')}</p>
               </div>
             </div>
-            <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-sm">
+            <p className="text-slate-300 text-sm leading-relaxed mb-6 max-w-sm font-medium">
               {t('description')}
             </p>
 
             {/* Trust Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-bold mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm font-bold mb-8">
               <ShieldCheck className="h-4 w-4" />
               {t('noWinNoFee')}
             </div>
@@ -42,11 +42,11 @@ export function Footer() {
                   className="flex items-center gap-3 text-white hover:text-primary transition-colors group"
                 >
                   <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                    <Phone className="h-5 w-5" />
+                    <Phone className="h-5 w-5" aria-hidden="true" />
                   </div>
                   <div>
-                    <p className="font-bold">{phone}</p>
-                    <p className="text-xs text-slate-500">{t('hotlineLabel')}</p>
+                    <p className="font-bold text-slate-200">{phone}</p>
+                    <p className="text-xs text-slate-300 font-bold">{t('hotlineLabel')}</p>
                   </div>
                 </a>
               )}
@@ -56,22 +56,24 @@ export function Footer() {
                   className="flex items-center gap-3 text-white hover:text-green-400 transition-colors group"
                 >
                   <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center group-hover:bg-green-500/10 transition-colors">
-                    <MessageCircle className="h-5 w-5 text-green-500" />
+                    <MessageCircle className="h-5 w-5 text-green-500" aria-hidden="true" />
                   </div>
                   <div>
-                    <p className="font-bold">WhatsApp</p>
-                    <p className="text-xs text-slate-500">{t('chatWithUs')}</p>
+                    <p className="font-bold text-slate-200">WhatsApp</p>
+                    <p className="text-xs text-slate-300 font-bold">{t('chatWithUs')}</p>
                   </div>
                 </a>
               )}
               {address && (
-                <div className="flex items-center gap-3 text-slate-400">
+                <div className="flex items-center gap-3 text-slate-300">
                   <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center">
-                    <MapPin className="h-5 w-5" />
+                    <MapPin className="h-5 w-5" aria-hidden="true" />
                   </div>
                   <div>
                     <p className="font-medium text-white">{address}</p>
-                    {hours && <p className="text-xs text-slate-500">{t('hours', { hours })}</p>}
+                    {hours && (
+                      <p className="text-xs text-slate-300 font-bold">{t('hours', { hours })}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -80,14 +82,14 @@ export function Footer() {
 
           {/* Membership Links */}
           <div>
-            <h4 className="font-display font-bold text-sm uppercase tracking-wider text-slate-300 mb-6">
+            <h3 className="font-display font-bold text-sm uppercase tracking-wider text-slate-300 mb-6">
               {t('membership')}
-            </h4>
+            </h3>
             <ul className="space-y-3 text-sm">
               <li>
                 <Link
                   href="/pricing"
-                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                  className="text-slate-300 hover:text-white transition-colors font-bold"
                 >
                   {t('plansPricing')}
                 </Link>
@@ -95,7 +97,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/register"
-                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                  className="text-slate-300 hover:text-white transition-colors font-bold"
                 >
                   {t('joinClub')}
                 </Link>
@@ -103,7 +105,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/login"
-                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                  className="text-slate-300 hover:text-white transition-colors font-bold"
                 >
                   {t('memberLogin')}
                 </Link>
@@ -111,7 +113,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/about"
-                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                  className="text-slate-300 hover:text-white transition-colors font-bold"
                 >
                   {t('about')}
                 </Link>
@@ -121,14 +123,14 @@ export function Footer() {
 
           {/* Legal Links */}
           <div>
-            <h4 className="font-display font-bold text-sm uppercase tracking-wider text-slate-300 mb-6">
+            <h3 className="font-display font-bold text-sm uppercase tracking-wider text-slate-300 mb-6">
               {t('legal')}
-            </h4>
+            </h3>
             <ul className="space-y-3 text-sm">
               <li>
                 <Link
                   href="/legal/privacy"
-                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                  className="text-slate-300 hover:text-white transition-colors font-bold"
                 >
                   {t('privacy')}
                 </Link>
@@ -136,7 +138,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/legal/terms"
-                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                  className="text-slate-300 hover:text-white transition-colors font-bold"
                 >
                   {t('terms')}
                 </Link>
@@ -144,7 +146,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/legal/cookies"
-                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                  className="text-slate-300 hover:text-white transition-colors font-bold"
                 >
                   {t('cookies')}
                 </Link>
@@ -154,14 +156,14 @@ export function Footer() {
 
           {/* Support Links */}
           <div>
-            <h4 className="font-display font-bold text-sm uppercase tracking-wider text-slate-300 mb-6">
+            <h3 className="font-display font-bold text-sm uppercase tracking-wider text-slate-300 mb-6">
               {t('support')}
-            </h4>
+            </h3>
             <ul className="space-y-3 text-sm">
               <li>
                 <Link
                   href="/help"
-                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                  className="text-slate-300 hover:text-white transition-colors font-bold"
                 >
                   {t('help')}
                 </Link>
@@ -169,17 +171,17 @@ export function Footer() {
               <li>
                 <Link
                   href="/faq"
-                  className="text-slate-400 hover:text-white transition-colors font-medium"
+                  className="text-slate-300 hover:text-white transition-colors font-bold"
                 >
                   {t('faq')}
                 </Link>
               </li>
               <li>
                 <a
-                  href={`mailto:support@interdomestik.com`}
-                  className="text-slate-400 hover:text-white transition-colors font-medium flex items-center gap-2"
+                  href="mailto:support@interdomestik.com"
+                  className="text-slate-300 hover:text-white transition-colors font-bold flex items-center gap-2"
                 >
-                  <Mail className="h-4 w-4" />
+                  <Mail className="h-4 w-4" aria-hidden="true" />
                   {t('emailUs')}
                 </a>
               </li>
@@ -192,10 +194,10 @@ export function Footer() {
       <div className="border-t border-slate-800">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-300 font-medium">
               {t('copyright', { year: new Date().getFullYear(), appName: common('appName') })}
             </p>
-            <p className="text-xs text-slate-600 text-center md:text-right max-w-lg">
+            <p className="text-xs text-slate-300 text-center md:text-right max-w-lg font-medium">
               {t('disclaimer')}
             </p>
           </div>

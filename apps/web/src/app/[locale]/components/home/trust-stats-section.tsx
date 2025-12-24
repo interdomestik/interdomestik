@@ -49,7 +49,7 @@ export function TrustStatsSection() {
                 <stat.icon className="h-7 w-7" />
               </div>
               <div className="text-4xl font-black mb-1 tracking-tight">{stat.value}</div>
-              <div className="text-sm text-slate-400 font-medium uppercase tracking-wider">
+              <div className="text-sm text-slate-300 font-medium uppercase tracking-wider">
                 {stat.label}
               </div>
             </div>
@@ -58,7 +58,7 @@ export function TrustStatsSection() {
 
         {/* Partner Logos */}
         <div className="border-t border-slate-800 pt-12">
-          <p className="text-center text-sm text-slate-500 font-medium uppercase tracking-wider mb-8">
+          <p className="text-center text-sm text-slate-300 font-bold uppercase tracking-wider mb-8">
             {t('partnersTitle')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
@@ -66,7 +66,7 @@ export function TrustStatsSection() {
               <div key={index} className="group">
                 {partner.placeholder ? (
                   <div
-                    className="h-12 w-28 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500 font-bold text-sm"
+                    className="h-12 w-28 rounded-lg bg-slate-800 flex items-center justify-center text-slate-200 font-bold text-sm"
                     title={partner.name}
                   >
                     {partner.initial}

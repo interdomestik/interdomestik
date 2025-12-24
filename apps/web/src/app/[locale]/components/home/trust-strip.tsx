@@ -28,7 +28,7 @@ export function TrustStrip() {
               <div className="text-4xl md:text-5xl font-black text-primary tracking-tighter mb-2">
                 {stat.value}
               </div>
-              <div className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground/80 group-hover:text-primary transition-colors duration-300">
+              <div className="text-xs uppercase tracking-[0.2em] font-bold text-slate-800 group-hover:text-primary transition-colors duration-300">
                 {stat.label}
               </div>
             </div>

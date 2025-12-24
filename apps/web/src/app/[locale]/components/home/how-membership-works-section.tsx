@@ -25,7 +25,7 @@ export function HowMembershipWorksSection() {
           <h2 className="text-3xl md:text-4xl font-display font-black mb-4 text-slate-900 tracking-tight">
             {t('title')}
           </h2>
-          <p className="text-slate-500 text-lg font-medium">{t('subtitle')}</p>
+          <p className="text-slate-800 text-lg font-bold">{t('subtitle')}</p>
         </div>
 
         <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto">
@@ -41,7 +41,7 @@ export function HowMembershipWorksSection() {
                 </span>
               </div>
               <h3 className="text-xl font-black mb-3 text-slate-900">{step.title}</h3>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium px-2">
+              <p className="text-sm text-slate-800 leading-relaxed font-bold px-2">
                 {step.description}
               </p>
             </div>

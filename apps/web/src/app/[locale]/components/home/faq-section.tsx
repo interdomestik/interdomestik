@@ -23,7 +23,7 @@ export function FAQSection() {
           <h2 className="text-3xl md:text-4xl font-display font-black mb-4 text-slate-900 tracking-tight">
             {t('title')}
           </h2>
-          <p className="text-slate-500 text-lg font-medium">{t('subtitle')}</p>
+          <p className="text-slate-800 text-lg font-medium">{t('subtitle')}</p>
         </div>
 
         <div className="max-w-3xl mx-auto">
@@ -33,11 +33,11 @@ export function FAQSection() {
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
                 className="w-full py-6 flex items-center justify-between text-left group"
               >
-                <span className="text-lg font-bold text-slate-900 group-hover:text-primary transition-colors pr-4">
+                <div className="text-xs uppercase tracking-[0.2em] font-bold text-slate-800 group-hover:text-primary transition-colors duration-300">
                   {item.question}
-                </span>
+                </div>
                 <ChevronDown
-                  className={`h-5 w-5 text-slate-400 shrink-0 transition-transform duration-200 ${
+                  className={`h-5 w-5 text-slate-800 shrink-0 transition-transform duration-200 ${
                     openIndex === index ? 'rotate-180' : ''
                   }`}
                 />
@@ -47,7 +47,9 @@ export function FAQSection() {
                   openIndex === index ? 'max-h-96 pb-6' : 'max-h-0'
                 }`}
               >
-                <p className="text-slate-600 leading-relaxed">{item.answer}</p>
+                <p className="text-sm text-slate-800 leading-relaxed font-medium px-2">
+                  {item.answer}
+                </p>
               </div>
             </div>
           ))}

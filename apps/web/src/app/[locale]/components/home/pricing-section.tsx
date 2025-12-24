@@ -90,14 +90,14 @@ export function PricingSection() {
             {t('title')}
           </div>
           <h2 className="font-display font-black mb-12 text-slate-900 tracking-tight leading-[0.9] animate-fade-in uppercase">
-            <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 opacity-60">
+            <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 text-slate-800 font-bold">
               {t('mainHeading1')}
             </span>
             <span className="text-5xl md:text-6xl lg:text-7xl block leading-[0.85] tracking-[-0.05em] text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
               {t('mainHeading2')}
             </span>
           </h2>
-          <p className="text-slate-500 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed opacity-60">
+          <p className="text-slate-800 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed">
             {t('subtitle')}
           </p>
         </div>
@@ -110,7 +110,7 @@ export function PricingSection() {
               className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
                 !isYearly
                   ? 'bg-white text-slate-900 shadow-md border border-slate-100'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-slate-800 hover:text-slate-900'
               }`}
             >
               {t('monthly')}
@@ -120,15 +120,16 @@ export function PricingSection() {
               className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
                 isYearly
                   ? 'bg-white text-slate-900 shadow-md border border-slate-100'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-slate-800 hover:text-slate-900'
               }`}
             >
               {t('yearly')}
             </button>
           </div>
           {isYearly && (
-            <div className="px-4 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-black uppercase tracking-widest animate-pulse-slow">
-              {t('yearlySaving')}
+            <div className="px-4 py-1 rounded-full bg-emerald-50 border border-emerald-400/30 text-emerald-950 text-[10px] font-black uppercase tracking-widest relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-200/50 to-transparent -translate-x-full animate-shimmer" />
+              <span className="relative z-10">{t('yearlySaving')}</span>
             </div>
           )}
         </div>
@@ -157,7 +158,7 @@ export function PricingSection() {
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-12">
                   <div
-                    className={`h-16 w-16 rounded-2xl ${plan.popular ? 'bg-primary/5 text-primary' : 'bg-slate-50 text-slate-400'} flex items-center justify-center transition-all duration-500 group-hover:scale-110 border border-white/50 shadow-sm`}
+                    className={`h-16 w-16 rounded-2xl ${plan.popular ? 'bg-primary/5 text-primary' : 'bg-slate-50 text-slate-800'} flex items-center justify-center transition-all duration-500 group-hover:scale-110 border border-white/50 shadow-sm`}
                   >
                     <plan.icon className="h-8 w-8" />
                   </div>
@@ -176,14 +177,14 @@ export function PricingSection() {
                     <span className="text-6xl font-display font-black text-slate-900 tracking-tighter leading-none">
                       {isYearly ? plan.price : plan.monthlyPrice}
                     </span>
-                    <span className="text-slate-400 font-bold text-lg">
+                    <span className="text-slate-800 font-bold text-lg">
                       /{isYearly ? t('perYear') : t('perMonth')}
                     </span>
                   </div>
                   <p className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-4">
                     {isYearly ? t('billedAnnually') : t('billedMonthly')}
                   </p>
-                  <p className="text-slate-500 text-base font-medium leading-relaxed opacity-70">
+                  <p className="text-slate-800 text-base font-medium leading-relaxed">
                     {plan.description}
                   </p>
                 </div>
@@ -192,9 +193,9 @@ export function PricingSection() {
 
                 <ul className="space-y-4 mb-12">
                   {plan.features.map(feature => (
-                    <li key={feature} className="flex gap-4 text-sm font-medium text-slate-600">
+                    <li key={feature} className="flex gap-4 text-sm font-medium text-slate-800">
                       <div className="mt-0.5 h-5 w-5 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100">
-                        <Check className="h-3 w-3 text-emerald-500" />
+                        <Check className="h-3 w-3 text-emerald-900" />
                       </div>
                       <span className="leading-tight">{feature}</span>
                     </li>
@@ -215,7 +216,7 @@ export function PricingSection() {
                     {t('cta')}
                   </Button>
                 </Link>
-                <div className="mt-6 flex items-center justify-center gap-2 opacity-30 grayscale group-hover:opacity-60 transition-all">
+                <div className="mt-6 flex items-center justify-center gap-2 grayscale group-hover:opacity-60 transition-all text-slate-800 font-bold">
                   <ShieldCheck className="h-4 w-4" />
                   <span className="text-[10px] font-black uppercase tracking-widest">
                     {t('joinSecurely')}

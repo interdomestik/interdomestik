@@ -16,7 +16,7 @@ export function HowItWorksSection() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">{t('title')}</h2>
-          <p className="text-[hsl(var(--muted-500))]">{t('subtitle')}</p>
+          <p className="text-slate-800 font-bold">{t('subtitle')}</p>
         </div>
 
         <div className="grid md:grid-cols-4 gap-12 max-w-6xl mx-auto">
@@ -29,9 +29,7 @@ export function HowItWorksSection() {
                 {step.number}
               </div>
               <h3 className="text-xl font-bold mb-3 text-slate-900 leading-tight">{step.title}</h3>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                {step.description}
-              </p>
+              <p className="text-sm text-slate-800 leading-relaxed font-bold">{step.description}</p>
             </div>
           ))}
         </div>

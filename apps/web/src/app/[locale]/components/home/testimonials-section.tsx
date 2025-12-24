@@ -52,14 +52,14 @@ export function TestimonialsSection() {
             {t('title')}
           </div>
           <h2 className="font-display font-black mb-12 text-slate-900 tracking-tight leading-[0.9] animate-fade-in uppercase">
-            <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 opacity-60">
+            <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 text-slate-800 font-bold">
               {t('mainHeading1')}
             </span>
             <span className="text-5xl md:text-6xl lg:text-7xl block leading-[0.85] tracking-[-0.05em] text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
               {t('mainHeading2')}
             </span>
           </h2>
-          <p className="text-slate-500 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed opacity-60">
+          <p className="text-slate-800 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed">
             {t('subtitle')}
           </p>
         </div>
@@ -80,7 +80,7 @@ export function TestimonialsSection() {
                 {/* Quote Icon & Stars */}
                 <div className="flex items-center justify-between mb-8">
                   <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-white group-hover:border-primary/20 transition-colors">
-                    <Quote className="h-5 w-5 text-primary/40 group-hover:text-primary transition-colors" />
+                    <Quote className="h-5 w-5 text-slate-200 group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex gap-0.5">
                     {[...Array(5)].map((_, i) => (
@@ -90,7 +90,7 @@ export function TestimonialsSection() {
                 </div>
 
                 {/* Quote Text */}
-                <blockquote className="text-slate-600 text-[1.05rem] font-medium leading-[1.6] mb-8 flex-1 italic relative">
+                <blockquote className="text-slate-800 text-[1.05rem] font-medium leading-[1.6] mb-8 flex-1 italic relative">
                   "{story.quote}"
                 </blockquote>
 
@@ -102,7 +102,7 @@ export function TestimonialsSection() {
                     >
                       {story.amount}
                     </div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1">
+                    <span className="text-[10px] text-slate-800 font-bold uppercase tracking-widest ml-1">
                       {t('recoveredIn')} {story.time}
                     </span>
                   </div>
@@ -116,10 +116,10 @@ export function TestimonialsSection() {
                     {story.name.charAt(0)}
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-900 text-sm tracking-tight">
+                    <h3 className="font-black text-slate-900 text-sm tracking-tight">
                       {story.name}
-                    </h4>
-                    <div className="flex items-center gap-1.5 opacity-60">
+                    </h3>
+                    <div className="flex items-center gap-1.5 text-slate-800">
                       <Sparkles className="h-3 w-3 text-primary" />
                       <span className="text-[10px] font-black uppercase tracking-widest">
                         {story.role}

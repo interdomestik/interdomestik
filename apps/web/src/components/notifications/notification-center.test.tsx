@@ -47,7 +47,7 @@ describe('NotificationCenter', () => {
   it('passes subscriberHash when provided', () => {
     process.env.NEXT_PUBLIC_NOVU_APP_ID = 'test-app-id';
 
-    render(<NotificationCenter subscriberId="user-123" subscriberHash="hash-abc" />);
+    render(<NotificationCenter subscriberId="user-123" />);
 
     expect(screen.getByTestId('novu-inbox')).toBeInTheDocument();
   });

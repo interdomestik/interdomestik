@@ -34,18 +34,23 @@ export function StickyPrimeCTA() {
                 {t('digitalCardSticky')}
               </span>
             </div>
-            <div className="flex items-baseline gap-1">
-              <span className="text-base font-black text-slate-900">€20</span>
-              <span className="text-[8px] font-bold text-slate-400">/ VIT</span>
+            <div className="flex items-baseline gap-1 mt-0.5">
+              <span className="text-emerald-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {t('badge')}
+              </span>
             </div>
           </div>
           <Link href="/register">
             <Button
               size="lg"
-              className="h-12 px-6 font-black rounded-xl brand-gradient text-white shadow-lg shadow-primary/20 group animate-pulse-slow"
+              className="h-12 px-6 font-black rounded-xl brand-gradient text-white shadow-lg shadow-primary/20 group relative overflow-hidden"
             >
-              {t('cta')}
-              <ArrowRight className="ml-1.5 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-shimmer" />
+              <span className="relative z-10 flex items-center">
+                {t('cta')}
+                <ArrowRight className="ml-1.5 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </span>
             </Button>
           </Link>
         </div>
@@ -61,14 +66,14 @@ export function StickyPrimeCTA() {
             <div className="flex flex-col items-start mr-2">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <Sparkles className="h-3 w-3 text-amber-400" />
-                <span className="text-[9px] font-black uppercase tracking-tight text-slate-400">
+                <span className="text-[9px] font-black uppercase tracking-tight text-slate-800">
                   {t('digitalCardSticky')}
                 </span>
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg font-black text-slate-900">€20</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                  / vit
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {t('badge')}
                 </span>
               </div>
             </div>

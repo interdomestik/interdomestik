@@ -29,6 +29,7 @@
     "staffPortal": "Портал за персонал",
     "memberPortal": "Портал за членови",
     "memberRole": "Член",
-    "myAccount": "Моја сметка"
+    "myAccount": "Моја сметка",
+    "toggleMenu": "Отвори/затвори мени"
   }
 }

@@ -37,12 +37,12 @@ export default async function HomePage({ params }: Props) {
         <Header />
         <HeroSection />
         <TrustStrip />
-        <TrustStatsSection />
-        <MemberBenefitsSection />
         <VoiceClaimSection />
-        <HowMembershipWorksSection />
-        <TestimonialsSection />
+        <MemberBenefitsSection />
         <PricingSection />
+        <HowMembershipWorksSection />
+        <TrustStatsSection />
+        <TestimonialsSection />
         <FAQSection />
         <CTASection />
         <Footer />

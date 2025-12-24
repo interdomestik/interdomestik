@@ -49,14 +49,14 @@ export function MemberBenefitsSection() {
           {t('title')}
         </div>
         <h2 className="font-display font-black mb-12 text-slate-900 tracking-tight leading-[0.9] animate-fade-in uppercase">
-          <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 opacity-60">
+          <span className="text-2xl md:text-3xl lg:text-4xl block mb-3 text-slate-800 font-bold">
             {t('mainHeading1')}
           </span>
-          <span className="text-5xl md:text-6xl lg:text-7xl block leading-[0.85] tracking-[-0.05em] text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent">
+          <span className="text-5xl md:text-6xl lg:text-7xl block leading-[0.85] tracking-[-0.05em] text-primary bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text">
             {t('mainHeading2')}
           </span>
         </h2>
-        <p className="text-slate-500 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed opacity-60 mb-16 lg:mb-24 animate-fade-in">
+        <p className="text-slate-800 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed mb-16 lg:mb-24 animate-fade-in">
           {t('subtitle')}
         </p>
 
@@ -90,7 +90,7 @@ export function MemberBenefitsSection() {
                   <h3 className="text-2xl md:text-3xl font-display font-black text-slate-900 tracking-tighter leading-none mb-4">
                     {t(`${benefit.key}.title`)}
                   </h3>
-                  <p className="text-slate-500 text-base md:text-lg font-medium leading-snug opacity-70 group-hover:opacity-100 transition-opacity">
+                  <p className="text-slate-800 text-base md:text-lg font-medium leading-snug">
                     {t(`${benefit.key}.description`)}
                   </p>
                 </div>

@@ -15,7 +15,7 @@ export default async function proxy(request: NextRequest) {
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://va.vercel-scripts.com https://cdn.paddle.com https://sandbox-cdn.paddle.com https://checkout.paddle.com https://sandbox-checkout.paddle.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://sandbox-cdn.paddle.com;
-    img-src 'self' blob: data: https://*.supabase.co https://*.stripe.com https://*.paddle.com;
+    img-src 'self' blob: data: https://*.supabase.co https://*.stripe.com https://*.paddle.com https://*.githubusercontent.com;
     font-src 'self' https://fonts.gstatic.com https://sandbox-cdn.paddle.com;
     connect-src 'self' https://*.supabase.co https://api.stripe.com https://vitals.vercel-insights.com https://*.paddle.com https://sandbox-buy.paddle.com https://api.novu.co https://*.novu.co wss://*.novu.co;
     frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.paddle.com https://sandbox-buy.paddle.com;

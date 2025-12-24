@@ -27,14 +27,15 @@ export function Header() {
         <div className="h-18 flex items-center justify-between py-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
+            <span className="sr-only sm:hidden">{common('appName')}</span>
             <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20 group-hover:shadow-lg group-hover:shadow-primary/30 transition-shadow">
-              <Shield className="h-5 w-5 text-white" />
+              <Shield className="h-5 w-5 text-white" aria-hidden="true" />
             </div>
             <div className="hidden sm:block">
               <span className="font-display text-lg font-black text-slate-900">
                 {common('appName')}
               </span>
-              <p className="text-[10px] text-slate-400 font-medium -mt-0.5">{common('tagline')}</p>
+              <p className="text-[10px] text-slate-800 font-bold -mt-0.5">{common('tagline')}</p>
             </div>
           </Link>
 
@@ -44,7 +45,7 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-semibold text-slate-600 hover:text-primary transition-colors"
+                className="text-sm font-bold text-slate-800 hover:text-primary transition-colors"
               >
                 {link.label}
               </Link>
@@ -56,7 +57,7 @@ export function Header() {
             {whatsapp && (
               <a
                 href={whatsapp}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-green-600 hover:bg-green-50 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold text-emerald-950 hover:bg-emerald-50 transition-colors"
               >
                 <MessageCircle className="h-4 w-4" />
                 <span className="hidden lg:inline">WhatsApp</span>
@@ -65,7 +66,7 @@ export function Header() {
             {telHref && (
               <a
                 href={telHref}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold text-slate-800 hover:bg-slate-50 transition-colors"
               >
                 <Phone className="h-4 w-4" />
                 <span className="hidden lg:inline">{phone}</span>
@@ -76,7 +77,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="font-semibold text-slate-600 hover:text-primary"
+                className="font-bold text-slate-800 hover:text-primary"
               >
                 {t('login')}
               </Button>
@@ -101,9 +102,15 @@ export function Header() {
             )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 text-slate-600"
+              className="flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 text-slate-800"
+              aria-label={t('toggleMenu')}
+              aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Menu className="h-5 w-5" aria-hidden="true" />
+              )}
             </button>
           </div>
         </div>
@@ -117,7 +124,7 @@ export function Header() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="px-4 py-3 rounded-xl text-sm font-bold text-slate-800 hover:bg-slate-50 transition-colors"
                 >
                   {link.label}
                 </Link>

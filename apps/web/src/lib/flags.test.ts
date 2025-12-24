@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FLAGS } from './flags';
 
 describe('Feature Flags', () => {
   const originalEnv = process.env;
@@ -12,51 +13,31 @@ describe('Feature Flags', () => {
     process.env = originalEnv;
   });
 
-  it('should default all flags to false when env vars are not set', async () => {
-    delete process.env.NEXT_PUBLIC_ENABLE_FLIGHT_DELAY;
-    delete process.env.NEXT_PUBLIC_ENABLE_CALL_ME_NOW;
-    delete process.env.NEXT_PUBLIC_ENABLE_RESPONSE_SLA;
+  it('should default flags to false when env vars are not set', async () => {
+    delete process.env.NEXT_PUBLIC_FF_AI_ASSISTANT;
+    delete process.env.NEXT_PUBLIC_FF_NPS_SURVEY;
+    delete process.env.NEXT_PUBLIC_FF_NEW_PRICING;
 
-    const { flags } = await import('./flags');
+    const { getFeatureFlag } = await import('./flags');
 
-    expect(flags.flightDelay).toBe(false);
-    expect(flags.callMeNow).toBe(false);
-    expect(flags.responseSla).toBe(false);
+    expect(getFeatureFlag(FLAGS.AI_ASSISTANT)).toBe(false);
+    expect(getFeatureFlag(FLAGS.NPS_SURVEY)).toBe(false);
+    expect(getFeatureFlag(FLAGS.NEW_PRICING)).toBe(false);
   });
 
-  it('should set flightDelay to true when env var is "true"', async () => {
-    process.env.NEXT_PUBLIC_ENABLE_FLIGHT_DELAY = 'true';
+  it('should set AI_ASSISTANT to true when env var is "true"', async () => {
+    process.env.NEXT_PUBLIC_FF_AI_ASSISTANT = 'true';
 
-    const { flags } = await import('./flags');
+    const { getFeatureFlag } = await import('./flags');
 
-    expect(flags.flightDelay).toBe(true);
+    expect(getFeatureFlag(FLAGS.AI_ASSISTANT)).toBe(true);
   });
 
-  it('should set callMeNow to true when env var is "true"', async () => {
-    process.env.NEXT_PUBLIC_ENABLE_CALL_ME_NOW = 'true';
+  it('should keep flag false when env var is "false"', async () => {
+    process.env.NEXT_PUBLIC_FF_AI_ASSISTANT = 'false';
 
-    const { flags } = await import('./flags');
+    const { getFeatureFlag } = await import('./flags');
 
-    expect(flags.callMeNow).toBe(true);
-  });
-
-  it('should set responseSla to true when env var is "true"', async () => {
-    process.env.NEXT_PUBLIC_ENABLE_RESPONSE_SLA = 'true';
-
-    const { flags } = await import('./flags');
-
-    expect(flags.responseSla).toBe(true);
-  });
-
-  it('should keep flag false when env var is any value other than "true"', async () => {
-    process.env.NEXT_PUBLIC_ENABLE_FLIGHT_DELAY = 'yes';
-    process.env.NEXT_PUBLIC_ENABLE_CALL_ME_NOW = '1';
-    process.env.NEXT_PUBLIC_ENABLE_RESPONSE_SLA = 'false';
-
-    const { flags } = await import('./flags');
-
-    expect(flags.flightDelay).toBe(false);
-    expect(flags.callMeNow).toBe(false);
-    expect(flags.responseSla).toBe(false);
+    expect(getFeatureFlag(FLAGS.AI_ASSISTANT)).toBe(false);
   });
 });
