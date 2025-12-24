@@ -114,7 +114,8 @@ Agents see stage and last update only. Staff controls workflow and internal note
 - [x] Subscription period & status visibility
 - [x] Agent navigation updated (CRM, Leads, Members)
 - [x] Portal alignment: rename `/dashboard` → `/member`, keep `/dashboard` redirect, and enforce strict portal redirects + tests for role separation
-- [ ] Member Interaction Logging
+- [x] Member Interaction Logging
+- [x] Agent Settings Page
 - [x] RLS for agent data isolation (Initial)
 
 ### Phase 2: Agent Sales System (Weeks 3-4)

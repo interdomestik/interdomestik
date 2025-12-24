@@ -1,6 +1,7 @@
 import { getMyCommissions, getMyCommissionSummary } from '@/actions/commissions';
 import { CommissionSummaryCard } from '@/components/agent/commission-summary-card';
 import { CommissionsList } from '@/components/agent/commissions-list';
+import { ReferralLinkCard } from '@/components/agent/referral-link-card';
 import { getTranslations } from 'next-intl/server';
 
 export default async function AgentCommissionsPage() {
@@ -37,6 +38,7 @@ export default async function AgentCommissionsPage() {
         <p className="text-muted-foreground">Track your earnings from member referrals</p>
       </div>
 
+      <ReferralLinkCard />
       <CommissionSummaryCard summary={summary} />
       <CommissionsList commissions={commissions} />
     </div>

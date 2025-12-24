@@ -85,6 +85,13 @@
         "approved": "Aprovuar",
         "paid": "Paguar",
         "void": "Anuluar"
+      },
+      "referralLink": {
+        "title": "Linku Juaj i Referimit",
+        "description": "Shpërndani këtë link për të fituar komisione nga anëtarësimet e reja.",
+        "copied": "U kopjua!",
+        "copyError": "Dështoi kopjimi i linkut",
+        "loadError": "Dështoi ngarkimi i linkut"
       }
     },
     "leads_page": {

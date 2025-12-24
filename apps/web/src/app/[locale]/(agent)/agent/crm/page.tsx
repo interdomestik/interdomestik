@@ -64,7 +64,9 @@ export default async function CRMPage({ params }: { params: Promise<{ locale: st
         </div>
         <div className="p-6 bg-white rounded-lg border shadow-sm">
           <div className="text-sm font-medium text-muted-foreground">{t('stats.commission')}</div>
-          <div className="text-2xl font-bold">€ {(totalCommission?.total ?? 0).toFixed(2)}</div>
+          <div className="text-2xl font-bold">
+            € {Number(totalCommission?.total ?? 0).toFixed(2)}
+          </div>
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">

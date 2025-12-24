@@ -86,6 +86,13 @@
         "approved": "Approved",
         "paid": "Paid",
         "void": "Void"
+      },
+      "referralLink": {
+        "title": "Your Referral Link",
+        "description": "Share this link to earn commissions on new memberships.",
+        "copied": "Copied!",
+        "copyError": "Failed to copy link",
+        "loadError": "Failed to load referral link"
       }
     },
     "leads_page": {
