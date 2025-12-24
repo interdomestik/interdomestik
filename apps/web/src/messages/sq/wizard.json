@@ -3,7 +3,7 @@
     "categories": {
       "title": "Çfarë lloj kërkese për dëmshpërblim është kjo?",
       "subtitle": "Zgjidhni kategorinë që i përshtatet më mirë çështjes suaj.",
-      "freeConsultation": "✨ Konsultim Falas i Përfshirë",
+      "freeConsultation": "✓ Konsultim Falas i Përfshirë",
       "flight_delay": {
         "label": "Vonesë Fluturimi",
         "description": "Kompensim EU261 deri në €600",
@@ -65,7 +65,7 @@
         "titlePlaceholder": "p.sh., Lëndim në punë - shtrëngim i shpinës",
         "titleDesc": "Përmbledhje e shkurtër e lëndimit",
         "companyPlaceholder": "p.sh., Punëdhënësi, Spitali, Kompania e sigurimit",
-        "descriptionPlaceholder": "Përshkruani lëndimin: si ndodhi, cilat pjesë të trupit janë të prekura, trajtimi mjekësor i marrë, simptomat aktuale..."
+        "descriptionPlaceholder": "Përshkruani lëndimin: si ndodhi, cilat pjesë të trupit janë të prekura, trajtimi mjekësor i marrë, ofruesit e kujdesit shëndetësor, dhe simptomat ose kufizimet aktuale..."
       },
       "travel": {
         "titlePlaceholder": "p.sh., Vonesë fluturimi për në Berlin",

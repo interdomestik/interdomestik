@@ -38,7 +38,8 @@ test.describe('Claims Flow', () => {
       await authenticatedPage.goto('/member/claims/new');
 
       // Check for category options
-      const categoryOptions = authenticatedPage.getByTestId('category-option');
+      // Component uses data-testid="category-{id}"
+      const categoryOptions = authenticatedPage.locator('[data-testid^="category-"]');
       await expect(categoryOptions.first()).toBeVisible();
     });
 

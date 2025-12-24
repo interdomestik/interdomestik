@@ -1,7 +1,8 @@
 import { ClaimDetailHeader } from '@/components/agent/claim-detail-header';
 import { ClaimDocumentsPane } from '@/components/agent/claim-documents-pane';
 import { ClaimInfoPane } from '@/components/agent/claim-info-pane';
-import { MessagingPanel } from '@/components/messaging/messaging-panel';
+import { ClaimMessenger } from '@/components/shared/claim-messenger';
+import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { auth } from '@/lib/auth';
 import { claimDocuments, claims, db, eq } from '@interdomestik/database';
 import {
@@ -84,7 +85,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
 
             <div className="mt-4">
               <TabsContent value="messages">
-                <MessagingPanel claimId={id} currentUserId={session.user.id} isAgent />
+                <ClaimMessenger claimId={id} currentUserId={session.user.id} userRole="staff" />
               </TabsContent>
 
               <TabsContent value="documents">
@@ -108,6 +109,12 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
         </div>
 
         <div className="lg:col-span-4 space-y-6">
+          <ClaimActionPanel
+            claimId={claim.id}
+            currentStatus={claim.status || 'draft'}
+            staffId={session.user.id}
+            assigneeId={claim.staffId || null}
+          />
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <ClaimInfoPane claim={claim as any} />
         </div>

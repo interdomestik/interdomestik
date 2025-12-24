@@ -12,10 +12,10 @@
     },
     {
       "name": "better-auth.session_token",
-      "value": "UF2fH8i4YAB32nieS2dWpveOcjubk17k.3EcquCr2tAwvP0qBeTTNgbiO6GEuAltYhyqkRY1JmNU%3D",
+      "value": "GTVSaUreOyzRxhbSR5DCWB46EdaOek5n.90xuoOOsy2Up9fyt%2B8n2KPsIJTTMDqhySz90Ear3me4%3D",
       "domain": "localhost",
       "path": "/",
-      "expires": 1767171255.214164,
+      "expires": 1767190811.336104,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
