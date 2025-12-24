@@ -24,6 +24,20 @@ test.describe('Member User Flow', () => {
       ).toBeVisible();
     });
 
+    test('Member can see referral card', async ({ authenticatedPage: page }) => {
+      await page.goto('/en/member');
+      await page.waitForLoadState('domcontentloaded');
+
+      // Check for Referral Card Title
+      await expect(page.getByText('Invite Friends & Earn')).toBeVisible();
+
+      // Check for Referral Link Input presence
+      await expect(page.locator('input[readonly]')).toBeVisible();
+
+      // Check for Share options
+      await expect(page.getByRole('button', { name: 'WhatsApp' })).toBeVisible();
+    });
+
     test('Member can see dashboard content', async ({ authenticatedPage: page }) => {
       await page.goto('/en/member');
       await page.waitForLoadState('domcontentloaded');

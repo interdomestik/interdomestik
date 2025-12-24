@@ -13,6 +13,19 @@
     "needsAttention": "Kërkon vëmendje",
     "noChange": "Pa ndryshim",
     "recentActivity": "Aktiviteti i Fundit",
-    "quickActions": "Veprime të Shpejta"
+    "quickActions": "Veprime të Shpejta",
+    "referral": {
+      "title": "Fto Miqtë & Fito",
+      "description": "Shpërndani linkun tuaj dhe fitoni €5 për çdo mik që regjistrohet!",
+      "friends": "Miq të Ftuar",
+      "pending": "Në Pritje",
+      "earned": "Të Fituara",
+      "copied": "Linku u kopjua!",
+      "copyError": "Dështoi kopjimi",
+      "share": "Shpërndaj",
+      "shareTitle": "Bashkohu me Asistenca",
+      "shareText": "Mbro familjen tënde me anëtarësimin Asistenca!",
+      "rewardInfo": "Fitoni €5 kur miku juaj aktivizon anëtarësimin"
+    }
   }
 }

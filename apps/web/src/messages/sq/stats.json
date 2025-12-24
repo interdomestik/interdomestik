@@ -1,0 +1,16 @@
+{
+  "stats": {
+    "verifiedBadge": "Statistika të Verifikuara",
+    "title": "Ndikimi Ynë në Numra",
+    "subtitle": "Rezultate transparente dhe të verifikuara nga shërbimet tona të ndihmës për dëmshpërblim në Ballkan.",
+    "totalClaims": "Gjithsej Kërkesa të Trajtuara",
+    "successRate": "Shkalla e Suksesit",
+    "totalRecovered": "Gjithsej të Rikuperuara",
+    "avgResponse": "Koha Mesatare e Përgjigjes",
+    "trustTitle": "Pse t'i Besoni Këtyre Numrave?",
+    "trustDescription": "Të gjitha statistikat vijnë nga zgjidhjet e verifikuara të kërkesave dhe auditohen në mënyrë të pavarur çdo tremujor.",
+    "dataSecurity": "Të Dhëna të Mbrojtura",
+    "verifiedResults": "Rezultate të Verifikuara",
+    "legalCompliance": "Përputhshmëri Ligjore"
+  }
+}

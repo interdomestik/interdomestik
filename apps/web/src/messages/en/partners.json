@@ -1,0 +1,18 @@
+{
+  "partners": {
+    "memberExclusive": "Member Exclusive",
+    "title": "Partner Discounts",
+    "subtitle": "As an Asistenca member, you get exclusive discounts from our trusted partners across Kosovo and the region.",
+    "discountLabel": "Member discount",
+    "categories": {
+      "insurance": "Insurance",
+      "legal": "Legal Services",
+      "automotive": "Automotive",
+      "health": "Healthcare",
+      "property": "Property"
+    },
+    "ctaTitle": "Become a Member Today",
+    "ctaDescription": "Unlock all partner discounts and get 24/7 protection for your family.",
+    "ctaButton": "View Membership Plans"
+  }
+}

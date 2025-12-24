@@ -1,0 +1,18 @@
+{
+  "partners": {
+    "memberExclusive": "Ekskluzive për Anëtarët",
+    "title": "Zbritjet e Partnerëve",
+    "subtitle": "Si anëtar i Asistenca, përfitoni zbritje ekskluzive nga partnerët tanë të besuar në Kosovë dhe rajon.",
+    "discountLabel": "Zbritje anëtari",
+    "categories": {
+      "insurance": "Sigurime",
+      "legal": "Shërbime Ligjore",
+      "automotive": "Automobilistik",
+      "health": "Shëndetësi",
+      "property": "Pronë"
+    },
+    "ctaTitle": "Bëhu Anëtar Sot",
+    "ctaDescription": "Hap të gjitha zbritjet e partnerëve dhe merr mbrojtje 24/7 për familjen tënde.",
+    "ctaButton": "Shiko Planet e Anëtarësimit"
+  }
+}

@@ -29,10 +29,12 @@ export const MESSAGE_NAMESPACES = [
   'metadata',
   'nav',
   'notifications',
+  'partners',
   'pricing',
   'services',
   'servicesPage',
   'settings',
+  'stats',
   'testimonials',
   'timeline',
   'trust',
@@ -159,11 +161,18 @@ export async function loadAllMessages(locale: string) {
         const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
         return mergeMessages(fallback.default, mod.default);
       } catch (error) {
-        const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
-        if (locale === routing.defaultLocale) {
-          throw error;
+        console.error(`Error loading namespace ${namespace} for locale ${locale}:`, error);
+
+        try {
+          const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
+          if (locale === routing.defaultLocale) {
+            throw error;
+          }
+          return fallback.default;
+        } catch (fallbackError) {
+          console.error(`Failed to load fallback for ${namespace}:`, fallbackError);
+          return {};
         }
-        return fallback.default;
       }
     })
   );

@@ -1,0 +1,16 @@
+{
+  "stats": {
+    "verifiedBadge": "Verified Statistics",
+    "title": "Our Impact in Numbers",
+    "subtitle": "Transparent, verified results from our claim assistance services across the Balkans.",
+    "totalClaims": "Total Claims Handled",
+    "successRate": "Success Rate",
+    "totalRecovered": "Total Recovered",
+    "avgResponse": "Avg Response Time",
+    "trustTitle": "Why Trust These Numbers?",
+    "trustDescription": "All statistics are derived from verified claim resolutions and independently audited quarterly.",
+    "dataSecurity": "Data Protected",
+    "verifiedResults": "Verified Results",
+    "legalCompliance": "Legal Compliance"
+  }
+}

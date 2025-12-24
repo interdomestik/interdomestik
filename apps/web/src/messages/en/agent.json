@@ -95,6 +95,16 @@
         "loadError": "Failed to load referral link"
       }
     },
+    "leaderboard": {
+      "title": "Top Agents",
+      "week": "Week",
+      "month": "Month",
+      "allTime": "All Time",
+      "noData": "No leaderboard data yet",
+      "you": "You",
+      "deals": "deals",
+      "yourRank": "Your rank"
+    },
     "leads_page": {
       "stages": {
         "new": "New",

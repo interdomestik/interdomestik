@@ -22,7 +22,7 @@
     "travel": {
       "title": "Travel & Flight",
       "description": "Flight delays, cancellations, and lost baggage claims.",
-      "examples": "e.g., EU261 compensation up to €600"
+      "examples": "e.g., EU261 compensation up to 600 EUR"
     }
   }
 }

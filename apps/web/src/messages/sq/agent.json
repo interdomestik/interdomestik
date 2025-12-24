@@ -94,6 +94,16 @@
         "loadError": "Dështoi ngarkimi i linkut"
       }
     },
+    "leaderboard": {
+      "title": "Agjentët Top",
+      "week": "Java",
+      "month": "Muaji",
+      "allTime": "Gjithë Kohës",
+      "noData": "Ende nuk ka të dhëna për renditje",
+      "you": "Ti",
+      "deals": "marrëveshje",
+      "yourRank": "Renditja jote"
+    },
     "leads_page": {
       "stages": {
         "new": "I/E Re",

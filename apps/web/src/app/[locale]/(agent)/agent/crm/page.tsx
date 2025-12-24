@@ -1,3 +1,4 @@
+import { LeaderboardCard } from '@/components/agent/leaderboard-card';
 import { auth } from '@/lib/auth'; // server-side auth
 import { db } from '@interdomestik/database/db';
 import { agentCommissions, crmDeals, crmLeads } from '@interdomestik/database/schema';
@@ -9,7 +10,7 @@ import { redirect } from 'next/navigation';
 export default async function CRMPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations('agent-crm.crm.dashboard');
+  const t = await getTranslations('agent');
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -44,26 +45,24 @@ export default async function CRMPage({ params }: { params: Promise<{ locale: st
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('crm')}</h1>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Stats */}
         <div className="p-6 bg-white rounded-lg border shadow-sm">
-          <div className="text-sm font-medium text-muted-foreground">{t('stats.leads_new')}</div>
+          <div className="text-sm font-medium text-muted-foreground">{t('stats.new')}</div>
           <div className="text-2xl font-bold">{newLeads?.count ?? 0}</div>
         </div>
         <div className="p-6 bg-white rounded-lg border shadow-sm">
-          <div className="text-sm font-medium text-muted-foreground">
-            {t('stats.leads_contacted')}
-          </div>
+          <div className="text-sm font-medium text-muted-foreground">{t('stats.verification')}</div>
           <div className="text-2xl font-bold">{contactedLeads?.count ?? 0}</div>
         </div>
         <div className="p-6 bg-white rounded-lg border shadow-sm">
-          <div className="text-sm font-medium text-muted-foreground">{t('stats.deals_won')}</div>
+          <div className="text-sm font-medium text-muted-foreground">{t('stats.closed')}</div>
           <div className="text-2xl font-bold">{wonDeals?.count ?? 0}</div>
         </div>
         <div className="p-6 bg-white rounded-lg border shadow-sm">
-          <div className="text-sm font-medium text-muted-foreground">{t('stats.commission')}</div>
+          <div className="text-sm font-medium text-muted-foreground">{t('commissions.title')}</div>
           <div className="text-2xl font-bold">
             € {Number(totalCommission?.total ?? 0).toFixed(2)}
           </div>
@@ -76,11 +75,8 @@ export default async function CRMPage({ params }: { params: Promise<{ locale: st
             <span className="text-sm">Chart Placeholder (Pipeline visual coming soon)</span>
           </div>
         </div>
-        <div className="col-span-3 bg-white rounded-lg border shadow-sm p-6">
-          <h3 className="font-semibold mb-4">Recent Activities</h3>
-          <div className="space-y-4">
-            <div className="text-sm text-muted-foreground">No recent activities.</div>
-          </div>
+        <div className="col-span-3">
+          <LeaderboardCard />
         </div>
       </div>
     </div>

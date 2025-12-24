@@ -1,3 +1,4 @@
+import { ReferralCard } from '@/components/member/referral-card';
 import { and, claims, db, eq, subscriptions } from '@interdomestik/database';
 import {
   Badge,
@@ -224,6 +225,9 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Referral Invite Card */}
+          <ReferralCard />
 
           <Card className="shadow-premium border-none bg-white">
             <CardHeader className="pb-4">
