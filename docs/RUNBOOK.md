@@ -70,6 +70,16 @@ This is the minimal operational runbook for Interdomestik.
 - `GET /api/cron/dunning`
 - `GET /api/cron/engagement`
 
+### Engagement email cadence
+
+The engagement cron sends lifecycle emails to active subscribers at:
+
+- Day 7 (onboarding card reminder)
+- Day 14 (check-in)
+- Day 30 / 60 / 90 (retention touchpoints)
+
+Idempotency is enforced via the `engagement_email_sends` table (unique `dedupe_key`).
+
 ## Triage checklist
 
 - Is the database reachable?

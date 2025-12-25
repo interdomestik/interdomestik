@@ -1,10 +1,20 @@
-import { sendCheckinEmail, sendOnboardingEmail, sendSeasonalEmail } from '@/lib/email';
+import { logAuditEvent } from '@/lib/audit';
+import {
+  sendCheckinEmail,
+  sendEngagementDay30Email,
+  sendEngagementDay60Email,
+  sendEngagementDay90Email,
+  sendOnboardingEmail,
+  sendSeasonalEmail,
+} from '@/lib/email';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { db } from '@interdomestik/database';
-import { automationLogs, subscriptions, user } from '@interdomestik/database/schema';
-import { and, eq, gte, isNull, lte } from 'drizzle-orm';
+import { engagementEmailSends, subscriptions, user } from '@interdomestik/database/schema';
+import { and, eq, gte, lte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { NextResponse } from 'next/server';
+
+import { ENGAGEMENT_CADENCE, getDayWindow } from '@/lib/cron/engagement-schedule';
 
 // Auth header required:
 //   Authorization: Bearer $CRON_SECRET
@@ -36,107 +46,161 @@ export async function GET(request: Request) {
 
   const now = new Date();
   const results = {
-    onboarding: 0,
-    checkin: 0,
+    day7: 0,
+    day14: 0,
+    day30: 0,
+    day60: 0,
+    day90: 0,
     seasonal: 0,
     annual: 0,
+    skipped: 0,
+    errors: 0,
   };
 
   try {
     // ========================================================================
-    // 1. Day 3: Onboarding (Download App/Card)
+    // Lifecycle engagement cadence: Day 7/14/30/60/90 (idempotent)
     // ========================================================================
-    const day3Start = new Date(now);
-    day3Start.setDate(day3Start.getDate() - 3);
-    const day3End = new Date(day3Start);
-    day3End.setHours(day3End.getHours() + 24); // Loose window to catch any from that day
+    for (const cadence of ENGAGEMENT_CADENCE) {
+      const { start, end } = getDayWindow(now, cadence.daysSinceSubscriptionCreated);
 
-    // Find active subscriptions created ~3 days ago that haven't received onboarding email
-    const newMembers = await db
-      .select({
-        userId: subscriptions.userId,
-        subId: subscriptions.id,
-        name: user.name,
-        email: user.email,
-      })
-      .from(subscriptions)
-      .innerJoin(user, eq(subscriptions.userId, user.id))
-      .leftJoin(
-        automationLogs,
-        and(
-          eq(automationLogs.subscriptionId, subscriptions.id),
-          eq(automationLogs.type, 'onboarding')
+      const members = await db
+        .select({
+          userId: subscriptions.userId,
+          subId: subscriptions.id,
+          name: user.name,
+          email: user.email,
+        })
+        .from(subscriptions)
+        .innerJoin(user, eq(subscriptions.userId, user.id))
+        .where(
+          and(
+            eq(subscriptions.status, 'active'),
+            gte(subscriptions.createdAt, start),
+            lte(subscriptions.createdAt, end)
+          )
         )
-      )
-      .where(
-        and(
-          eq(subscriptions.status, 'active'),
-          gte(subscriptions.createdAt, day3Start),
-          lte(subscriptions.createdAt, day3End),
-          isNull(automationLogs.id) // Not sent yet
-        )
-      );
+        .limit(200);
 
-    for (const member of newMembers) {
-      if (member.email && member.name) {
-        await sendOnboardingEmail(member.email, member.name);
-        await db.insert(automationLogs).values({
-          id: nanoid(),
-          userId: member.userId!,
-          subscriptionId: member.subId,
-          type: 'onboarding',
-          triggeredAt: new Date(),
-        });
-        results.onboarding++;
+      for (const member of members) {
+        const templateKey = cadence.templateKey;
+        const dedupeKey = `engagement:${member.subId}:${templateKey}`;
+
+        const inserted = await db
+          .insert(engagementEmailSends)
+          .values({
+            id: nanoid(),
+            userId: member.userId!,
+            subscriptionId: member.subId,
+            templateKey,
+            dedupeKey,
+            status: 'pending',
+            createdAt: new Date(),
+            metadata: {
+              scheduledDays: cadence.daysSinceSubscriptionCreated,
+            },
+          })
+          .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
+          .returning({ id: engagementEmailSends.id });
+
+        if (inserted.length === 0) continue;
+
+        if (!member.email || !member.name) {
+          await db
+            .update(engagementEmailSends)
+            .set({
+              status: 'skipped',
+              error: 'Missing recipient email or name',
+            })
+            .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+          results.skipped++;
+          continue;
+        }
+
+        let sendResult: { success: true; id?: string } | { success: false; error?: string } = {
+          success: false,
+        };
+
+        try {
+          if (templateKey === 'onboarding') {
+            sendResult = await sendOnboardingEmail(member.email, member.name);
+            results.day7++;
+          } else if (templateKey === 'checkin') {
+            sendResult = await sendCheckinEmail(member.email, member.name);
+            results.day14++;
+          } else if (templateKey === 'day30') {
+            sendResult = await sendEngagementDay30Email(member.email, member.name);
+            results.day30++;
+          } else if (templateKey === 'day60') {
+            sendResult = await sendEngagementDay60Email(member.email, member.name);
+            results.day60++;
+          } else if (templateKey === 'day90') {
+            sendResult = await sendEngagementDay90Email(member.email, member.name);
+            results.day90++;
+          }
+
+          if (sendResult.success) {
+            await db
+              .update(engagementEmailSends)
+              .set({
+                status: 'sent',
+                providerMessageId: sendResult.id || null,
+                sentAt: new Date(),
+              })
+              .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+
+            await logAuditEvent({
+              actorId: null,
+              actorRole: 'system',
+              action: 'email.engagement.sent',
+              entityType: 'subscription',
+              entityId: member.subId,
+              metadata: { templateKey },
+              headers: request.headers,
+            });
+          } else {
+            const err = sendResult.error || 'Unknown error';
+            const status = err === 'Resend not configured' ? 'skipped' : 'error';
+
+            await db
+              .update(engagementEmailSends)
+              .set({
+                status,
+                error: err,
+              })
+              .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+
+            if (status === 'skipped') results.skipped++;
+            else results.errors++;
+
+            await logAuditEvent({
+              actorId: null,
+              actorRole: 'system',
+              action: 'email.engagement.failed',
+              entityType: 'subscription',
+              entityId: member.subId,
+              metadata: { templateKey, error: err },
+              headers: request.headers,
+            });
+          }
+        } catch (error) {
+          results.errors++;
+          await db
+            .update(engagementEmailSends)
+            .set({
+              status: 'error',
+              error: 'Unhandled exception during send',
+            })
+            .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+          console.error('Engagement email send error:', error);
+        }
       }
     }
 
     // ========================================================================
-    // 2. Day 14: Check-in
     // ========================================================================
-    const day14Start = new Date(now);
-    day14Start.setDate(day14Start.getDate() - 14);
-    const day14End = new Date(day14Start);
-    day14End.setHours(day14End.getHours() + 24);
-
-    const checkinMembers = await db
-      .select({
-        userId: subscriptions.userId,
-        subId: subscriptions.id,
-        name: user.name,
-        email: user.email,
-      })
-      .from(subscriptions)
-      .innerJoin(user, eq(subscriptions.userId, user.id))
-      .leftJoin(
-        automationLogs,
-        and(eq(automationLogs.subscriptionId, subscriptions.id), eq(automationLogs.type, 'checkin'))
-      )
-      .where(
-        and(
-          eq(subscriptions.status, 'active'),
-          gte(subscriptions.createdAt, day14Start),
-          lte(subscriptions.createdAt, day14End),
-          isNull(automationLogs.id)
-        )
-      );
-
-    for (const member of checkinMembers) {
-      if (member.email && member.name) {
-        await sendCheckinEmail(member.email, member.name);
-        await db.insert(automationLogs).values({
-          id: nanoid(),
-          userId: member.userId!,
-          subscriptionId: member.subId,
-          type: 'checkin',
-          triggeredAt: new Date(),
-        });
-        results.checkin++;
-      }
-    }
-
+    // Seasonal (Winter/Summer) - Runs on specific dates
     // ========================================================================
-    // 3. Seasonal (Winter/Summer) - Runs on specific dates
     // ========================================================================
     const month = now.getMonth(); // 0-11
     const day = now.getDate();
@@ -148,9 +212,6 @@ export async function GET(request: Request) {
     if (month === 5 && day === 1) season = 'summer';
 
     if (season) {
-      // Find all active members who haven't received THIS season's email THIS year
-      const campaignKey = `seasonal_${season}_${now.getFullYear()}`;
-
       const seasonalMembers = await db
         .select({
           userId: subscriptions.userId,
@@ -160,30 +221,26 @@ export async function GET(request: Request) {
         })
         .from(subscriptions)
         .innerJoin(user, eq(subscriptions.userId, user.id))
-        .leftJoin(
-          automationLogs,
-          and(
-            eq(automationLogs.subscriptionId, subscriptions.id),
-            eq(automationLogs.type, campaignKey)
-          )
-        )
-        .where(and(eq(subscriptions.status, 'active'), isNull(automationLogs.id)))
+        .where(and(eq(subscriptions.status, 'active')))
         .limit(100); // Batch limit to avoid timeouts
 
       for (const member of seasonalMembers) {
         if (member.email && member.name) {
           await sendSeasonalEmail(member.email, { season, name: member.name });
-          await db.insert(automationLogs).values({
-            id: nanoid(),
-            userId: member.userId!,
-            subscriptionId: member.subId,
-            type: campaignKey,
-            triggeredAt: new Date(),
-          });
           results.seasonal++;
         }
       }
     }
+
+    await logAuditEvent({
+      actorId: null,
+      actorRole: 'system',
+      action: 'cron.engagement.run',
+      entityType: 'cron',
+      entityId: 'engagement',
+      metadata: results,
+      headers: request.headers,
+    });
 
     return NextResponse.json({ success: true, results });
   } catch (error) {

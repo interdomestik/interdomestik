@@ -4,6 +4,9 @@ import {
   renderCheckinEmail,
   renderClaimAssignedEmail,
   renderClaimSubmittedEmail,
+  renderEngagementDay30Email,
+  renderEngagementDay60Email,
+  renderEngagementDay90Email,
   renderMemberWelcomeEmail,
   renderNewMessageEmail,
   renderNewsletterEmail,
@@ -227,6 +230,21 @@ export async function sendOnboardingEmail(to: string, name: string) {
 export async function sendCheckinEmail(to: string, name: string) {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderCheckinEmail({ name }));
+}
+
+export async function sendEngagementDay30Email(to: string, name: string) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderEngagementDay30Email({ name }));
+}
+
+export async function sendEngagementDay60Email(to: string, name: string) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderEngagementDay60Email({ name }));
+}
+
+export async function sendEngagementDay90Email(to: string, name: string) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderEngagementDay90Email({ name }));
 }
 
 export async function sendNewsletterEmail(

@@ -277,7 +277,7 @@ export function renderPasswordResetEmail(params: { resetUrl: string }) {
 // ============================================================================
 
 export function renderWelcomeEmail(params: { name: string }) {
-  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/dashboard');
+  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
   return buildEmailTemplate({
     title: `Welcome to ${DEFAULT_APP_NAME}!`,
     intro: `Hi ${params.name}, we're glad to have you with us. Your membership is now active.`,
@@ -291,7 +291,7 @@ export function renderWelcomeEmail(params: { name: string }) {
 }
 
 export function renderOnboardingEmail(params: { name: string }) {
-  const cardUrl = joinUrl(DEFAULT_APP_URL, '/dashboard/membership/card');
+  const cardUrl = joinUrl(DEFAULT_APP_URL, '/member/membership/card');
   return buildEmailTemplate({
     title: 'Download your Digital Card',
     intro: `Hi ${params.name}, have you downloaded your digital membership card yet?`,
@@ -305,12 +305,56 @@ export function renderOnboardingEmail(params: { name: string }) {
 }
 
 export function renderCheckinEmail(params: { name: string }) {
-  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/dashboard');
+  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
   return buildEmailTemplate({
     title: 'How is everything going?',
     intro: `Hi ${params.name}, just checking in to see if you need any assistance.`,
     details: ['Remember, we are here to help you with any claims or legal questions.'],
     ctaLabel: 'Visit Dashboard',
+    ctaUrl: dashboardUrl,
+  });
+}
+
+export function renderEngagementDay30Email(params: { name: string }) {
+  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
+  return buildEmailTemplate({
+    title: '30 days protected — quick check-in',
+    intro: `Hi ${params.name}, you’ve been protected for 30 days. Here’s what to do if something happens.`,
+    details: [
+      'Save the hotline number in your phone.',
+      'Upload evidence early (photos, police report, estimates).',
+      'If you have questions, message us from your portal.',
+    ],
+    ctaLabel: 'Open member portal',
+    ctaUrl: dashboardUrl,
+  });
+}
+
+export function renderEngagementDay60Email(params: { name: string }) {
+  return buildEmailTemplate({
+    title: '60 days in — maximize your benefits',
+    intro: `Hi ${params.name}, a reminder: your membership isn’t only for claims — it’s for guidance.`,
+    details: [
+      'Use us for legal questions before you sign or accept anything.',
+      'Keep your documents organized in your portal.',
+      'Tell a family member where to find the hotline number.',
+    ],
+    ctaLabel: 'View my membership',
+    ctaUrl: joinUrl(DEFAULT_APP_URL, '/member/membership'),
+  });
+}
+
+export function renderEngagementDay90Email(params: { name: string }) {
+  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
+  return buildEmailTemplate({
+    title: '3 months protected — we’re here 24/7',
+    intro: `Hi ${params.name}, you’ve been with us for 3 months. If you ever need help, start here.`,
+    details: [
+      'You can file a claim in minutes from your portal.',
+      'We aim to respond within 24h.',
+      'Keep your hotline number accessible — it’s the fastest path in emergencies.',
+    ],
+    ctaLabel: 'Go to portal',
     ctaUrl: dashboardUrl,
   });
 }
@@ -321,7 +365,7 @@ export function renderNewsletterEmail(params: {
   partner?: { name: string; discount: string; description: string; imageUrl?: string };
   tip?: { title: string; text: string };
 }) {
-  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/dashboard');
+  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
 
   const details = [params.hero.text];
 
@@ -348,7 +392,7 @@ export function renderNewsletterEmail(params: {
 }
 
 export function renderSeasonalEmail(params: { season: 'winter' | 'summer'; name: string }) {
-  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/dashboard');
+  const dashboardUrl = joinUrl(DEFAULT_APP_URL, '/member');
 
   if (params.season === 'winter') {
     return buildEmailTemplate({
