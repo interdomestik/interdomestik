@@ -3,8 +3,16 @@ import { ClaimDocumentsPane } from '@/components/agent/claim-documents-pane';
 import { ClaimInfoPane } from '@/components/agent/claim-info-pane';
 import { ClaimMessenger } from '@/components/shared/claim-messenger';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
+import { ClaimTriageNotes } from '@/components/staff/claim-triage-notes';
 import { auth } from '@/lib/auth';
-import { claimDocuments, claims, db, eq } from '@interdomestik/database';
+import {
+  claimDocuments,
+  claimStageHistory,
+  claims,
+  db,
+  eq,
+  user,
+} from '@interdomestik/database';
 import {
   Card,
   CardContent,
@@ -19,6 +27,7 @@ import { FileText, MessageSquare, ShieldAlert } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { desc } from 'drizzle-orm';
 
 interface PageProps {
   params: Promise<{
@@ -59,6 +68,22 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     .from(claimDocuments)
     .where(eq(claimDocuments.claimId, id));
 
+  const stageHistory = await db
+    .select({
+      id: claimStageHistory.id,
+      fromStatus: claimStageHistory.fromStatus,
+      toStatus: claimStageHistory.toStatus,
+      note: claimStageHistory.note,
+      isPublic: claimStageHistory.isPublic,
+      createdAt: claimStageHistory.createdAt,
+      changedByName: user.name,
+      changedByEmail: user.email,
+    })
+    .from(claimStageHistory)
+    .leftJoin(user, eq(claimStageHistory.changedById, user.id))
+    .where(eq(claimStageHistory.claimId, id))
+    .orderBy(desc(claimStageHistory.createdAt));
+
   const t = await getTranslations('agent-claims.claims');
 
   return (
@@ -98,9 +123,68 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
                     <CardTitle>{t('details.notes')}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {t('details.notesPlaceholder')}
-                    </p>
+                    <div className="space-y-6">
+                      <ClaimTriageNotes
+                        claimId={claim.id}
+                        currentStatus={claim.status || 'draft'}
+                      />
+
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium">History</h4>
+
+                        {stageHistory.length === 0 ? (
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                            {t('details.notesPlaceholder')}
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {stageHistory.map(entry => (
+                              <div
+                                key={entry.id}
+                                className="rounded-lg border bg-muted/20 p-3 space-y-2"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="text-sm">
+                                    <span className="font-medium">{entry.toStatus}</span>
+                                    {entry.fromStatus && entry.fromStatus !== entry.toStatus ? (
+                                      <span className="text-muted-foreground">
+                                        {' '}
+                                        (from {entry.fromStatus})
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  <div className="text-xs text-muted-foreground">
+                                    {entry.createdAt
+                                      ? new Intl.DateTimeFormat(undefined, {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: '2-digit',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        }).format(entry.createdAt)
+                                      : null}
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                  <span>{entry.isPublic ? 'Public' : 'Internal'}</span>
+                                  {entry.changedByName || entry.changedByEmail ? (
+                                    <span>
+                                      • {entry.changedByName || entry.changedByEmail}
+                                    </span>
+                                  ) : null}
+                                </div>
+
+                                {entry.note ? (
+                                  <p className="text-sm whitespace-pre-wrap">{entry.note}</p>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
