@@ -212,6 +212,8 @@ export async function GET(request: Request) {
     if (month === 5 && day === 1) season = 'summer';
 
     if (season) {
+      const templateKey = `seasonal_${season}_${now.getFullYear()}`;
+
       const seasonalMembers = await db
         .select({
           userId: subscriptions.userId,
@@ -225,9 +227,99 @@ export async function GET(request: Request) {
         .limit(100); // Batch limit to avoid timeouts
 
       for (const member of seasonalMembers) {
-        if (member.email && member.name) {
-          await sendSeasonalEmail(member.email, { season, name: member.name });
-          results.seasonal++;
+        const dedupeKey = `engagement:${member.subId}:${templateKey}`;
+
+        const inserted = await db
+          .insert(engagementEmailSends)
+          .values({
+            id: nanoid(),
+            userId: member.userId!,
+            subscriptionId: member.subId,
+            templateKey,
+            dedupeKey,
+            status: 'pending',
+            createdAt: new Date(),
+            metadata: {
+              season,
+              year: now.getFullYear(),
+            },
+          })
+          .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
+          .returning({ id: engagementEmailSends.id });
+
+        if (inserted.length === 0) continue;
+
+        if (!member.email || !member.name) {
+          await db
+            .update(engagementEmailSends)
+            .set({
+              status: 'skipped',
+              error: 'Missing recipient email or name',
+            })
+            .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+          results.skipped++;
+          continue;
+        }
+
+        try {
+          const sendResult = await sendSeasonalEmail(member.email, { season, name: member.name });
+
+          if (sendResult.success) {
+            await db
+              .update(engagementEmailSends)
+              .set({
+                status: 'sent',
+                providerMessageId: sendResult.id || null,
+                sentAt: new Date(),
+              })
+              .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+
+            results.seasonal++;
+
+            await logAuditEvent({
+              actorId: null,
+              actorRole: 'system',
+              action: 'email.engagement.sent',
+              entityType: 'subscription',
+              entityId: member.subId,
+              metadata: { templateKey },
+              headers: request.headers,
+            });
+          } else {
+            const err = sendResult.error || 'Unknown error';
+            const status = err === 'Resend not configured' ? 'skipped' : 'error';
+
+            await db
+              .update(engagementEmailSends)
+              .set({
+                status,
+                error: err,
+              })
+              .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+
+            if (status === 'skipped') results.skipped++;
+            else results.errors++;
+
+            await logAuditEvent({
+              actorId: null,
+              actorRole: 'system',
+              action: 'email.engagement.failed',
+              entityType: 'subscription',
+              entityId: member.subId,
+              metadata: { templateKey, error: err },
+              headers: request.headers,
+            });
+          }
+        } catch (error) {
+          results.errors++;
+          await db
+            .update(engagementEmailSends)
+            .set({
+              status: 'error',
+              error: 'Unhandled exception during send',
+            })
+            .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+          console.error('Seasonal engagement email send error:', error);
         }
       }
     }
