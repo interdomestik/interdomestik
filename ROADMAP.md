@@ -19,6 +19,10 @@ Key principles:
 - 24h response SLA and 30-day money-back guarantee
 - Strong onboarding and retention value without relying on claims
 
+Major milestone:
+
+- **Production hardening (rate limiting + Sentry)** ✅ COMPLETE (Dec 25, 2025)
+
 ---
 
 ## Business Model (Final)
