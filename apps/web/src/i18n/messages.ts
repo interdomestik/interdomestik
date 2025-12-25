@@ -28,6 +28,7 @@ export const MESSAGE_NAMESPACES = [
   'messaging',
   'metadata',
   'nav',
+  'nps',
   'notifications',
   'partners',
   'pricing',

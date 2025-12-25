@@ -69,6 +69,7 @@ This is the minimal operational runbook for Interdomestik.
 
 - `GET /api/cron/dunning`
 - `GET /api/cron/engagement`
+- `GET /api/cron/nps`
 
 ### Engagement email cadence
 
@@ -79,6 +80,13 @@ The engagement cron sends lifecycle emails to active subscribers at:
 - Day 30 / 60 / 90 (retention touchpoints)
 
 Idempotency is enforced via the `engagement_email_sends` table (unique `dedupe_key`).
+
+### NPS survey automation
+
+- Cron: `GET /api/cron/nps` sends a one-time NPS survey email around Day 45.
+- Idempotency: tracked via `engagement_email_sends` using `template_key = nps_v1`.
+- Survey UX: users land on `/:locale/nps/:token` (token is single-use + expiring).
+- API submit: `POST /api/public/nps`.
 
 ## Triage checklist
 

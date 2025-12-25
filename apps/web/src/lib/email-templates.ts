@@ -167,6 +167,18 @@ export function renderNewMessageEmail(params: {
   });
 }
 
+export function renderNpsSurveyEmail(params: { name: string; token: string }) {
+  const surveyUrl = joinUrl(DEFAULT_APP_URL, `/nps/${params.token}`);
+  return buildEmailTemplate({
+    title: 'Quick question: how are we doing?',
+    intro: `Hi ${params.name}, on a scale from 0–10, how likely are you to recommend us to a friend?`,
+    details: ['It takes less than 10 seconds.'],
+    ctaLabel: 'Answer the survey',
+    ctaUrl: surveyUrl,
+    footer: `${DEFAULT_APP_NAME} Team`,
+  });
+}
+
 // ============================================================================
 // DUNNING EMAIL TEMPLATES
 // ============================================================================

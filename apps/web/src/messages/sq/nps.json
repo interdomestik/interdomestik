@@ -1,0 +1,14 @@
+{
+  "title": "Pyetje e shpejtë",
+  "subtitle": "Sa ka gjasa të na rekomandosh Interdomestik një miku?",
+  "question": "Në një shkallë nga 0 në 10, sa ka gjasa të na rekomandosh?",
+  "labelLow": "Aspak",
+  "labelHigh": "Shumë",
+  "commentLabel": "Koment (opsionale)",
+  "commentPlaceholder": "Na thuaj çfarë mund të bëjmë më mirë…",
+  "submit": "Dërgo",
+  "submitting": "Duke dërguar…",
+  "submitError": "Diçka shkoi keq. Provo përsëri.",
+  "thanks": "Faleminderit për feedback-un — na ndihmon të përmirësohemi.",
+  "alreadySubmitted": "E ke dërguar tashmë këtë pyetje. Faleminderit!"
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Kratka anketa",
+  "subtitle": "Koliko je verovatno da biste preporučili Interdomestik prijatelju?",
+  "question": "Na skali od 0 do 10, koliko je verovatno da biste nas preporučili?",
+  "labelLow": "Nimalo",
+  "labelHigh": "Veoma",
+  "commentLabel": "Komentar (opciono)",
+  "commentPlaceholder": "Recite nam šta možemo da poboljšamo…",
+  "submit": "Pošalji",
+  "submitting": "Slanje…",
+  "submitError": "Nešto je pošlo po zlu. Pokušajte ponovo.",
+  "thanks": "Hvala na povratnoj informaciji — pomaže nam da budemo bolji.",
+  "alreadySubmitted": "Već ste poslali ovu anketu. Hvala!"
+}

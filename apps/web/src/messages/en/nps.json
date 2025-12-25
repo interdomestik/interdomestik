@@ -1,0 +1,14 @@
+{
+  "title": "Quick survey",
+  "subtitle": "How likely are you to recommend Interdomestik to a friend?",
+  "question": "On a scale of 0 to 10, how likely are you to recommend us?",
+  "labelLow": "Not likely",
+  "labelHigh": "Very likely",
+  "commentLabel": "Optional comment",
+  "commentPlaceholder": "Tell us what we could do better…",
+  "submit": "Submit",
+  "submitting": "Submitting…",
+  "submitError": "Something went wrong. Please try again.",
+  "thanks": "Thanks for your feedback — it helps us improve.",
+  "alreadySubmitted": "You already submitted this survey. Thank you!"
+}

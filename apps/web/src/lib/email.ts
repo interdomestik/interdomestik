@@ -9,6 +9,7 @@ import {
   renderEngagementDay90Email,
   renderMemberWelcomeEmail,
   renderNewMessageEmail,
+  renderNpsSurveyEmail,
   renderNewsletterEmail,
   renderOnboardingEmail,
   renderPasswordResetEmail,
@@ -261,6 +262,11 @@ export async function sendSeasonalEmail(
 ) {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderSeasonalEmail(props));
+}
+
+export async function sendNpsSurveyEmail(to: string, props: { name: string; token: string }) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderNpsSurveyEmail(props));
 }
 
 export async function sendAnnualReportEmail(to: string, name: string, year: number) {
