@@ -1,11 +1,18 @@
 import { Environment, Paddle } from '@paddle/paddle-node-sdk';
 
-const apiKey = process.env.PADDLE_API_KEY;
+import { getOptionalEnv, getRequiredEnv } from './env';
 
-if (!apiKey) {
-  throw new Error('PADDLE_API_KEY is missing');
+let paddleClient: Paddle | null = null;
+
+export function getPaddle(): Paddle {
+  if (paddleClient) return paddleClient;
+
+  const apiKey = getRequiredEnv('PADDLE_API_KEY');
+  const env = (getOptionalEnv('NEXT_PUBLIC_PADDLE_ENV') as Environment) || Environment.sandbox;
+
+  paddleClient = new Paddle(apiKey, {
+    environment: env,
+  });
+
+  return paddleClient;
 }
-
-export const paddle = new Paddle(apiKey, {
-  environment: (process.env.NEXT_PUBLIC_PADDLE_ENV as Environment) || Environment.sandbox,
-});

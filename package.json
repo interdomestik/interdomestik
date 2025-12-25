@@ -30,9 +30,14 @@
     "test:e2e": "pnpm --filter @interdomestik/web test:e2e",
     "check:fast": "pnpm format:check && pnpm lint && pnpm type-check && pnpm i18n:check && pnpm test",
     "check": "pnpm check:fast && pnpm build",
+    "commitlint": "commitlint --from=HEAD~1",
+    "release": "standard-version",
+    "release:dry": "standard-version --dry-run",
     "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@types/node": "^22.19.3",
     "bcryptjs": "^3.0.3",
     "husky": "^9.1.7",
@@ -40,6 +45,7 @@
     "oslo": "^1.2.1",
     "postgres": "^3.4.7",
     "prettier": "^3.7.4",
+    "standard-version": "^9.5.0",
     "turbo": "^2.7.0",
     "typescript": "^5.9.3"
   },

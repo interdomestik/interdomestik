@@ -36,6 +36,10 @@ coverage
 playwright-report/
 test-results/
 
+# Playwright generated auth state (never commit)
+apps/web/e2e/fixtures/.auth/
+.playwright/seeded.marker
+
 # Misc
 .DS_Store
 *.pem

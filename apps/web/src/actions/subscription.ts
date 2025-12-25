@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { paddle } from '@/lib/paddle-server';
+import { getPaddle } from '@/lib/paddle-server';
 import { db, eq, subscriptions } from '@interdomestik/database';
 import { headers } from 'next/headers';
 
@@ -24,6 +24,7 @@ export async function getPaymentUpdateUrl(subscriptionId: string) {
   }
 
   try {
+    const paddle = getPaddle();
     // specific method to create a transaction for updating payment method
     const transaction =
       await paddle.subscriptions.getPaymentMethodChangeTransaction(subscriptionId);
@@ -61,6 +62,7 @@ export async function cancelSubscription(subscriptionId: string) {
   }
 
   try {
+    const paddle = getPaddle();
     // Cancel at end of period to avoid prorating handling complexities for now
     await paddle.subscriptions.cancel(subscriptionId, {
       effectiveFrom: 'next_billing_period',

@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth';
-import { paddle } from '@/lib/paddle-server';
+import { getPaddle } from '@/lib/paddle-server';
 import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cancelSubscription } from './subscription';
@@ -25,11 +25,7 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('@/lib/paddle-server', () => ({
-  paddle: {
-    subscriptions: {
-      cancel: vi.fn(),
-    },
-  },
+  getPaddle: vi.fn(),
 }));
 
 vi.mock('next/headers', () => ({
@@ -37,8 +33,15 @@ vi.mock('next/headers', () => ({
 }));
 
 describe('cancelSubscription', () => {
+  const mockPaddle = {
+    subscriptions: {
+      cancel: vi.fn(),
+    },
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    (getPaddle as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockPaddle);
   });
 
   it('should succeed if user owns subscription', async () => {
@@ -49,11 +52,11 @@ describe('cancelSubscription', () => {
       id: 'sub1',
       userId: 'u1',
     });
-    (paddle.subscriptions.cancel as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
+    (mockPaddle.subscriptions.cancel as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
     const result = await cancelSubscription('sub1');
     expect(result).toEqual({ success: true });
-    expect(paddle.subscriptions.cancel).toHaveBeenCalledWith('sub1', {
+    expect(mockPaddle.subscriptions.cancel).toHaveBeenCalledWith('sub1', {
       effectiveFrom: 'next_billing_period',
     });
   });
