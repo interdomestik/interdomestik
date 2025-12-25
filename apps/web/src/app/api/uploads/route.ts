@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { createAdminClient } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
@@ -19,6 +20,14 @@ const requestSchema = z.object({
 const sanitizeFileName = (fileName: string) => fileName.replace(/[^\w.-]+/g, '_');
 
 export async function POST(req: Request) {
+  const limited = await enforceRateLimit({
+    name: 'api/uploads',
+    limit: 10,
+    windowSeconds: 60,
+    headers: req.headers,
+  });
+  if (limited) return limited;
+
   const session = await auth.api.getSession({
     headers: await headers(),
   });

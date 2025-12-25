@@ -1,6 +1,7 @@
 import { createCommission } from '@/actions/commissions';
 import { calculateCommission } from '@/actions/commissions.types';
 import { sendPaymentFailedEmail } from '@/lib/email';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { db, subscriptions, user } from '@interdomestik/database';
 import { Environment, EventName, Paddle } from '@paddle/paddle-node-sdk';
 import { eq } from 'drizzle-orm';
@@ -11,6 +12,14 @@ const paddle = new Paddle(process.env.PADDLE_API_KEY || 'placeholder', {
 });
 
 export async function POST(req: NextRequest) {
+  const limited = await enforceRateLimit({
+    name: 'api/webhooks/paddle',
+    limit: 60,
+    windowSeconds: 60,
+    headers: req.headers,
+  });
+  if (limited) return limited;
+
   const signature = req.headers.get('paddle-signature');
   const secret = process.env.PADDLE_WEBHOOK_SECRET_KEY;
 
