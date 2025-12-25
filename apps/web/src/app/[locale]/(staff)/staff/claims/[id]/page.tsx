@@ -5,14 +5,7 @@ import { ClaimMessenger } from '@/components/shared/claim-messenger';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { ClaimTriageNotes } from '@/components/staff/claim-triage-notes';
 import { auth } from '@/lib/auth';
-import {
-  claimDocuments,
-  claimStageHistory,
-  claims,
-  db,
-  eq,
-  user,
-} from '@interdomestik/database';
+import { claimDocuments, claimStageHistory, claims, db, eq, user } from '@interdomestik/database';
 import {
   Card,
   CardContent,
@@ -23,11 +16,11 @@ import {
   TabsList,
   TabsTrigger,
 } from '@interdomestik/ui';
+import { desc } from 'drizzle-orm';
 import { FileText, MessageSquare, ShieldAlert } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { desc } from 'drizzle-orm';
 
 interface PageProps {
   params: Promise<{
@@ -170,9 +163,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
                                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                   <span>{entry.isPublic ? 'Public' : 'Internal'}</span>
                                   {entry.changedByName || entry.changedByEmail ? (
-                                    <span>
-                                      • {entry.changedByName || entry.changedByEmail}
-                                    </span>
+                                    <span>• {entry.changedByName || entry.changedByEmail}</span>
                                   ) : null}
                                 </div>
 

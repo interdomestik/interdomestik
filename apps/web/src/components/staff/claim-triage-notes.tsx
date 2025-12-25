@@ -22,12 +22,7 @@ export function ClaimTriageNotes({ claimId, currentStatus }: ClaimTriageNotesPro
       const trimmed = note.trim();
       if (!trimmed) return;
 
-      const result = await updateClaimStatus(
-        claimId,
-        currentStatus as ClaimStatus,
-        trimmed,
-        false
-      );
+      const result = await updateClaimStatus(claimId, currentStatus as ClaimStatus, trimmed, false);
 
       if (result.success) {
         toast.success('Saved', { description: 'Internal note added' });
@@ -54,10 +49,7 @@ export function ClaimTriageNotes({ claimId, currentStatus }: ClaimTriageNotesPro
         />
       </div>
 
-      <Button
-        onClick={handleAddInternalNote}
-        disabled={isPending || note.trim().length === 0}
-      >
+      <Button onClick={handleAddInternalNote} disabled={isPending || note.trim().length === 0}>
         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Add internal note
       </Button>

@@ -18,7 +18,7 @@ export type ActionResult<T = void> = {
 /**
  * Assign a claim to a staff member (usually self)
  */
-export async function assignClaim(claimId: string, staffId: string): Promise<ActionResult> {
+export async function assignClaim(claimId: string): Promise<ActionResult> {
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session?.user || session.user.role !== 'staff') {
@@ -26,11 +26,21 @@ export async function assignClaim(claimId: string, staffId: string): Promise<Act
   }
 
   try {
+    const [existingClaim] = await db
+      .select({ id: claims.id })
+      .from(claims)
+      .where(eq(claims.id, claimId))
+      .limit(1);
+
+    if (!existingClaim) {
+      return { success: false, error: 'Claim not found' };
+    }
+
     const now = new Date();
     await db
       .update(claims)
       .set({
-        staffId: staffId,
+        staffId: session.user.id,
         assignedAt: now,
         assignedById: session.user.id,
         updatedAt: now,

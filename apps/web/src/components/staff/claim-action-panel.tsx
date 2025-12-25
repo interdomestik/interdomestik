@@ -46,7 +46,7 @@ export function ClaimActionPanel({
 
   const handleAssign = () => {
     startTransition(async () => {
-      const result = await assignClaim(claimId, staffId);
+      const result = await assignClaim(claimId);
       if (result.success) {
         toast.success('Success', { description: 'Claim assigned to you' });
         router.refresh();

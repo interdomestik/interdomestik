@@ -1,6 +1,6 @@
 'use client';
 
-import { getClaimMessages, MessageData, sendMessage } from '@/actions/messaging';
+import { getMessagesForClaim, sendMessage, type MessageWithSender } from '@/actions/messages';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '@interdomestik/ui';
 import { Loader2, MessageSquare, RefreshCw, Send, ShieldAlert } from 'lucide-react';
 import { useEffect, useRef, useState, useTransition } from 'react';
@@ -13,7 +13,7 @@ interface ClaimMessengerProps {
 }
 
 export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessengerProps) {
-  const [messages, setMessages] = useState<MessageData[]>([]);
+  const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,9 +23,9 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
   const isStaffOrAdmin = ['staff', 'admin'].includes(userRole);
 
   const fetchMessages = async () => {
-    const result = await getClaimMessages(claimId);
-    if (result.success && result.data) {
-      setMessages(result.data);
+    const result = await getMessagesForClaim(claimId);
+    if (result.success && result.messages) {
+      setMessages(result.messages);
     }
     setIsLoading(false);
   };
@@ -47,28 +47,16 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
     if (!newMessage.trim()) return;
 
     startTransition(async () => {
-      // Optimistic update
-      const tempId = crypto.randomUUID();
-      const optimisticMsg: MessageData = {
-        id: tempId,
-        content: newMessage,
-        senderId: currentUserId,
-        senderName: 'Me',
-        senderRole: userRole,
-        createdAt: new Date(),
-        isInternal,
-        isMe: true,
-      };
-      setMessages(prev => [...prev, optimisticMsg]);
+      const content = newMessage;
       setNewMessage('');
 
-      const result = await sendMessage(claimId, optimisticMsg.content, isInternal);
+      const result = await sendMessage(claimId, content, isInternal);
       if (!result.success) {
         toast.error('Failed to send message');
-        // Revert or refresh
+        // Refresh to revert
         fetchMessages();
       } else {
-        // Refresh to get real ID and server timestamp
+        // Refresh to get server timestamp
         fetchMessages();
       }
     });
@@ -100,12 +88,12 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
                 <div
                   key={msg.id}
                   className={`flex flex-col max-w-[85%] ${
-                    msg.isMe ? 'ml-auto items-end' : 'mr-auto items-start'
+                    msg.senderId === currentUserId ? 'ml-auto items-end' : 'mr-auto items-start'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs text-muted-foreground font-medium">
-                      {msg.senderName}
+                      {msg.sender.name}
                     </span>
                     {msg.isInternal && (
                       <span className="flex items-center gap-0.5 text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-full border border-yellow-200">
@@ -116,7 +104,7 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
                   </div>
                   <div
                     className={`px-4 py-2 rounded-lg text-sm ${
-                      msg.isMe
+                      msg.senderId === currentUserId
                         ? 'bg-primary text-primary-foreground rounded-br-none'
                         : msg.isInternal
                           ? 'bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-bl-none'
@@ -147,9 +135,7 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
                 {isInternal ? 'Internal Note' : 'Public Message'}
               </Button>
               <span className="text-xs text-muted-foreground">
-                {isInternal
-                  ? 'Only visible to Staff & Admin'
-                  : 'Visible to Member, Agent, Staff & Admin'}
+                {isInternal ? 'Only visible to Staff & Admin' : 'Visible to Member, Staff & Admin'}
               </span>
             </div>
           )}
