@@ -4,12 +4,30 @@ import { DocumentList } from '@/components/documents/document-list';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { Link, redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { claimDocuments, claimStageHistory, claims, db, eq } from '@interdomestik/database';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
+import { and, desc } from 'drizzle-orm';
 import { ArrowLeft, Download } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+
+const CLAIM_STATUSES = [
+  'draft',
+  'submitted',
+  'verification',
+  'evaluation',
+  'negotiation',
+  'court',
+  'resolved',
+  'rejected',
+] as const;
+
+type ClaimStatus = (typeof CLAIM_STATUSES)[number];
+
+function toClaimStatus(value: unknown): ClaimStatus {
+  return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
+}
 
 interface PageProps {
   params: Promise<{
@@ -66,6 +84,15 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
     })
     .from(claimDocuments)
     .where(eq(claimDocuments.claimId, id));
+
+  const publicStageHistory = await db
+    .select({
+      toStatus: claimStageHistory.toStatus,
+      createdAt: claimStageHistory.createdAt,
+    })
+    .from(claimStageHistory)
+    .where(and(eq(claimStageHistory.claimId, id), eq(claimStageHistory.isPublic, true)))
+    .orderBy(desc(claimStageHistory.createdAt));
 
   // --- MEMBER VIEW ---
   const tClaims = await getTranslations('claims');
@@ -166,6 +193,10 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
               <ClaimTimeline
                 status={claim.status || 'draft'}
                 updatedAt={claim.updatedAt || new Date()}
+                history={publicStageHistory.map(h => ({
+                  toStatus: toClaimStatus(h.toStatus),
+                  createdAt: h.createdAt,
+                }))}
               />
             </CardContent>
           </Card>

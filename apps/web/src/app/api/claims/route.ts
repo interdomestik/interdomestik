@@ -10,7 +10,7 @@ import {
   or,
   user,
 } from '@interdomestik/database';
-import { SQL, count, desc, isNull } from 'drizzle-orm';
+import { SQL, count, desc, isNull, ne } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
@@ -57,10 +57,12 @@ export async function GET(request: Request) {
   const isStaff = role === 'staff';
   const isAgent = role === 'agent';
 
-  let scope: 'member' | 'admin' | 'staff_queue' | 'staff_all' | 'agent_queue' = 'member';
+  let scope: 'member' | 'admin' | 'staff_queue' | 'staff_all' | 'staff_unassigned' | 'agent_queue' =
+    'member';
   if (scopeParam === 'admin') scope = 'admin';
   if (scopeParam === 'staff_queue') scope = 'staff_queue';
   if (scopeParam === 'staff_all') scope = 'staff_all';
+  if (scopeParam === 'staff_unassigned') scope = 'staff_unassigned';
   if (scopeParam === 'agent_queue') scope = 'agent_queue';
 
   if (scope === 'admin' && !isAdmin) {
@@ -72,6 +74,10 @@ export async function GET(request: Request) {
   }
 
   if (scope === 'staff_all' && !isAdmin && !isStaff) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+  }
+
+  if (scope === 'staff_unassigned' && !isAdmin && !isStaff) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -87,6 +93,11 @@ export async function GET(request: Request) {
 
   if (scope === 'staff_queue' && isStaff) {
     conditions.push(eq(claims.staffId, session.user.id));
+  }
+
+  if (scope === 'staff_unassigned') {
+    conditions.push(isNull(claims.staffId));
+    conditions.push(ne(claims.status, 'draft'));
   }
 
   if (scope === 'agent_queue') {

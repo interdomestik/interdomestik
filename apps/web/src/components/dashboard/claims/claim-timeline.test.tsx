@@ -21,13 +21,14 @@ vi.mock('@interdomestik/ui/lib/utils', () => ({
 
 describe('ClaimTimeline', () => {
   const mockUpdatedAt = new Date('2024-01-15T10:00:00Z');
+  const mockNow = new Date('2024-01-15T11:00:00Z');
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('renders timeline phases', () => {
-    render(<ClaimTimeline status="submitted" updatedAt={mockUpdatedAt} />);
+    render(<ClaimTimeline status="submitted" updatedAt={mockUpdatedAt} now={mockNow} />);
 
     // Should show the phase labels
     expect(screen.getByText('Submission')).toBeInTheDocument();
@@ -38,35 +39,35 @@ describe('ClaimTimeline', () => {
   });
 
   it('shows phase descriptions', () => {
-    render(<ClaimTimeline status="verification" updatedAt={mockUpdatedAt} />);
+    render(<ClaimTimeline status="verification" updatedAt={mockUpdatedAt} now={mockNow} />);
 
     expect(screen.getByText('Claim received')).toBeInTheDocument();
     expect(screen.getByText('Checking details')).toBeInTheDocument();
   });
 
   it('shows SLA information', () => {
-    render(<ClaimTimeline status="submitted" updatedAt={mockUpdatedAt} />);
+    render(<ClaimTimeline status="submitted" updatedAt={mockUpdatedAt} now={mockNow} />);
 
-    expect(screen.getByText('Next action <24h')).toBeInTheDocument();
+    expect(screen.getByText('Next action 23h')).toBeInTheDocument();
   });
 
   it('handles resolved status', () => {
-    render(<ClaimTimeline status="resolved" updatedAt={mockUpdatedAt} />);
+    render(<ClaimTimeline status="resolved" updatedAt={mockUpdatedAt} now={mockNow} />);
 
     expect(screen.getByText('Resolution')).toBeInTheDocument();
   });
 
   it('handles rejected status', () => {
-    render(<ClaimTimeline status="rejected" updatedAt={mockUpdatedAt} />);
+    render(<ClaimTimeline status="rejected" updatedAt={mockUpdatedAt} now={mockNow} />);
 
     // Should still render the timeline
     expect(screen.getByText('Resolution')).toBeInTheDocument();
   });
 
   it('shows at risk warning for stale claims', () => {
-    // Create a date more than 48 hours ago
-    const oldDate = new Date(Date.now() - 72 * 60 * 60 * 1000);
-    render(<ClaimTimeline status="verification" updatedAt={oldDate} />);
+    const oldDate = new Date('2024-01-10T10:00:00Z');
+    const now = new Date('2024-01-11T12:00:00Z');
+    render(<ClaimTimeline status="verification" updatedAt={oldDate} now={now} />);
 
     expect(screen.getByText('At Risk')).toBeInTheDocument();
   });
