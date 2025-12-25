@@ -9,8 +9,6 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { test } from './fixtures/auth.fixture';
 
-const LOGIN_RX = /(?:\/|^)(?:[a-z]{2}\/)?(?:login|signin|auth\/sign-in)(?:\/|\?|$)/i;
-
 function stateFile(role: string): string {
   return path.join(__dirname, 'fixtures', '.auth', `${role}.json`);
 }

@@ -72,7 +72,40 @@
       "priority": "Priority Triage",
       "priority_text": "All claims from Interdomestik Insurance need to be verified within 24 hours.",
       "deadline": "Upcoming Deadline",
-      "deadline_text": "End of quarter reporting starts on Monday. Ensure all resolved cases are documented."
+      "deadline_text": "End of quarter reporting starts on Monday. Ensure all resolved cases are documented.",
+      "noteDescription": "Add a note about this member's interaction or important details.",
+      "addNote": "Add Note",
+      "editNote": "Edit Note",
+      "newNote": "New Note",
+      "noNotes": "No notes yet",
+      "noNotesDescription": "Start tracking interactions with {name}.",
+      "noteType": "Note Type",
+      "noteContent": "Content",
+      "noteContentPlaceholder": "Enter your note here...",
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Update",
+      "saving": "Saving...",
+      "edit": "Edit",
+      "delete": "Delete",
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "loading": "Loading notes...",
+      "noteCreated": "Note created",
+      "noteUpdated": "Note updated",
+      "noteDeleted": "Note deleted",
+      "createError": "Failed to create note",
+      "updateError": "Failed to update note",
+      "deleteError": "Failed to delete note",
+      "pinError": "Failed to toggle pin",
+      "types": {
+        "call": "Call",
+        "meeting": "Meeting",
+        "email": "Email",
+        "general": "General",
+        "follow_up": "Follow-up",
+        "issue": "Issue"
+      }
     },
     "members_page": {
       "title": "Members",
@@ -183,6 +216,46 @@
         "won": "Won",
         "lost": "Lost"
       }
+    },
+    "commissions": {
+      "title": "Commissions",
+      "summary": "Commission Summary",
+      "pending": "Pending",
+      "approved": "Approved",
+      "paid": "Paid",
+      "items": "items",
+      "recentCommissions": "Recent Commissions",
+      "noCommissions": "No commissions yet",
+      "noCommissionsHint": "Start referring members to earn commissions.",
+      "types": {
+        "new_membership": "New Membership",
+        "renewal": "Renewal",
+        "upgrade": "Upgrade",
+        "b2b": "B2B Deal"
+      },
+      "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "paid": "Paid",
+        "void": "Void"
+      },
+      "referralLink": {
+        "title": "Your Referral Link",
+        "description": "Share this link to earn commissions on new memberships.",
+        "copied": "Copied!",
+        "copyError": "Failed to copy link",
+        "loadError": "Failed to load referral link"
+      }
+    },
+    "leaderboard": {
+      "title": "Top Agents",
+      "week": "Week",
+      "month": "Month",
+      "allTime": "All Time",
+      "noData": "No leaderboard data yet",
+      "you": "You",
+      "deals": "deals",
+      "yourRank": "Your rank"
     }
   }
 }

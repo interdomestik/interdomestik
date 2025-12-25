@@ -55,7 +55,8 @@
         "verify": "Verifikuj info",
         "reject": "Odbij zahtev",
         "notice": "Promena statusa odmah ažurira korisnikovu vremensku liniju."
-      }
+      },
+      "claims_queue": "Claims Queue"
     }
   }
 }

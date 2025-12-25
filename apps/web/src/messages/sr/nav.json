@@ -29,6 +29,7 @@
     "staffPortal": "Staff Portal",
     "memberPortal": "Member Portal",
     "memberRole": "Member",
-    "myAccount": "My Account"
+    "myAccount": "My Account",
+    "toggleMenu": "Toggle menu"
   }
 }

@@ -39,9 +39,7 @@ export function DashboardSidebar() {
             <SidebarMenu className="gap-2">
               {items.map(item => {
                 const isActive =
-                  item.href === '/member'
-                    ? pathname === '/member'
-                    : pathname.startsWith(item.href);
+                  item.href === '/member' ? pathname === '/member' : pathname.startsWith(item.href);
 
                 return (
                   <SidebarMenuItem key={item.href}>

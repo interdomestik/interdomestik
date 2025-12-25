@@ -5,7 +5,12 @@
       "claims": "Claims",
       "users": "Users",
       "analytics": "Analytics",
-      "settings": "Settings"
+      "settings": "Settings",
+      "title": "Admin",
+      "subtitle": "Control Panel",
+      "members": "Members",
+      "agents": "Agents",
+      "staff": "Staff"
     },
     "users_page": {
       "title": "User Management",
