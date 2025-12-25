@@ -1,3 +1,5 @@
+import { type ClaimStatus } from '@interdomestik/database/constants';
+
 type EmailTemplate = {
   subject: string;
   html: string;
@@ -17,7 +19,7 @@ const DEFAULT_APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Interdomestik';
 const DEFAULT_APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000';
 
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS = {
   draft: 'Draft',
   submitted: 'Submitted',
   verification: 'Verification',
@@ -26,7 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
   court: 'Court',
   resolved: 'Resolved',
   rejected: 'Rejected',
-};
+} satisfies Record<ClaimStatus, string>;
 
 function escapeHtml(value: string) {
   return value
@@ -38,7 +40,7 @@ function escapeHtml(value: string) {
 }
 
 function formatStatusLabel(status: string) {
-  return STATUS_LABELS[status] || status;
+  return STATUS_LABELS[status as ClaimStatus] || status;
 }
 
 function joinUrl(baseUrl: string, path: string) {
@@ -252,6 +254,21 @@ export function renderMemberWelcomeEmail(params: { memberName: string; agentName
     ctaLabel: 'Set Your Password',
     ctaUrl: resetUrl,
     footer: 'If you have any questions, please contact your agent or reply to this email.',
+  });
+}
+
+export function renderPasswordResetEmail(params: { resetUrl: string }) {
+  return buildEmailTemplate({
+    title: 'Reset your password',
+    intro:
+      "We received a request to reset your password. If you requested this, use the button below to continue.",
+    details: [
+      'If you did not request a password reset, you can safely ignore this email.',
+      'For security, this link expires soon.',
+    ],
+    ctaLabel: 'Reset password',
+    ctaUrl: params.resetUrl,
+    footer: `${DEFAULT_APP_NAME} Team`,
   });
 }
 

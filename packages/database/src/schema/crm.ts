@@ -13,7 +13,7 @@ export const crmLeads = pgTable('crm_leads', {
   phone: text('phone'),
   email: text('email'),
   source: text('source'),
-  stage: text('stage').notNull(), // 'new', 'contacted', 'qualified', 'proposal', 'won', 'lost'
+  stage: text('stage').notNull(), // 'new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'
   score: integer('score').default(0),
   notes: text('notes'),
   lastContactedAt: timestamp('last_contacted_at'),

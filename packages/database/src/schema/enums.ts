@@ -1,16 +1,8 @@
 import { pgEnum } from 'drizzle-orm/pg-core';
+import { CLAIM_STATUSES } from '../constants';
 
 // Claim status workflow
-export const statusEnum = pgEnum('status', [
-  'draft',
-  'submitted', // Phase 1: Submission
-  'verification', // Phase 2: Information Verification
-  'evaluation', // Phase 3: Damages Evaluation
-  'negotiation', // Phase 4: Offer & Negotiation
-  'court', // Phase 5: Judicial Process (if needed)
-  'resolved', // Phase 6: Final Resolution (Success)
-  'rejected', // Phase 6: Final Resolution (Failure)
-]);
+export const statusEnum = pgEnum('status', CLAIM_STATUSES);
 
 export const documentCategoryEnum = pgEnum('document_category', [
   'evidence',

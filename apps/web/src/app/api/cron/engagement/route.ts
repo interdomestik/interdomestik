@@ -1,18 +1,35 @@
 import { sendCheckinEmail, sendOnboardingEmail, sendSeasonalEmail } from '@/lib/email';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { db } from '@interdomestik/database';
 import { automationLogs, subscriptions, user } from '@interdomestik/database/schema';
 import { and, eq, gte, isNull, lte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { NextResponse } from 'next/server';
 
+// Auth header required:
+//   Authorization: Bearer $CRON_SECRET
 // Secure the cron job
 function isAuthorized(request: Request) {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
+
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const allowDevBypass = process.env.CRON_BYPASS_SECRET_IN_DEV === 'true';
+  if (isDevelopment && allowDevBypass) return true;
+
+  if (!cronSecret) return false;
   return authHeader === `Bearer ${cronSecret}`;
 }
 
 export async function GET(request: Request) {
+  const limited = await enforceRateLimit({
+    name: 'api/cron/engagement',
+    limit: 10,
+    windowSeconds: 60,
+    headers: request.headers,
+  });
+  if (limited) return limited;
+
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

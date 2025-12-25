@@ -31,7 +31,6 @@ export default async function AgentSettingsPage({ params }: SettingsPageProps) {
     redirect({ href: '/login', locale });
   }
 
-  const t = await getTranslations('agent.settings');
   const tCommon = await getTranslations('settings');
 
   return (

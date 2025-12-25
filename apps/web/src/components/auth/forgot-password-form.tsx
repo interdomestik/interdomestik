@@ -1,6 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
+import { authClient } from '@/lib/auth-client';
 import {
   Button,
   Card,
@@ -31,10 +32,22 @@ export function ForgotPasswordForm() {
     const email = formData.get('email') as string;
 
     try {
-      // TODO: Implement actual password reset with Better Auth
-      // For now, show success message - user can contact support
+      const currentUrl = new URL(window.location.href);
+      currentUrl.pathname = currentUrl.pathname.replace(/\/forgot-password$/, '/reset-password');
+      currentUrl.search = '';
+      currentUrl.hash = '';
 
-      console.log('Password reset requested for:', email);
+      const { error: requestError } = await authClient.requestPasswordReset({
+        email,
+        redirectTo: currentUrl.toString(),
+      });
+
+      if (requestError) {
+        setError(requestError.message || 'Unable to request password reset');
+        return;
+      }
+
+      // Always show success to avoid account enumeration.
       setSuccess(true);
     } catch {
       setError('An unexpected error occurred');

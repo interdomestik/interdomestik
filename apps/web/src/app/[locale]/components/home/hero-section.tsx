@@ -63,7 +63,7 @@ export function HeroSection() {
                 size="xl"
                 className="w-full sm:w-auto h-20 px-10 text-xl font-black rounded-2xl shadow-2xl shadow-primary/30 cta-press group overflow-hidden relative"
               >
-                <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-[2000ms] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform [transition-duration:2000ms] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
                 <div className="flex flex-col items-center">
                   <span className="flex items-center gap-2">
                     {t('cta')}

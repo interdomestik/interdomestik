@@ -6,8 +6,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { describe, expect, it } from 'vitest';
 import { fileURLToPath } from 'url';
+import { describe, expect, it } from 'vitest';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
@@ -224,12 +224,14 @@ describe('Translation Files', () => {
 
   describe('Key Count Summary', () => {
     it('should report translation statistics', () => {
-      console.log('\n📊 Translation Statistics:');
-      console.log(`   English (en): ${enKeys.length} keys`);
-      console.log(`   Albanian (sq): ${sqKeys.length} keys`);
+      if (process.env.SHOW_I18N_STATS === '1') {
+        console.log('\n📊 Translation Statistics:');
+        console.log(`   English (en): ${enKeys.length} keys`);
+        console.log(`   Albanian (sq): ${sqKeys.length} keys`);
 
-      const coverage = ((sqKeys.length / enKeys.length) * 100).toFixed(1);
-      console.log(`   Coverage: ${coverage}%\n`);
+        const coverage = ((sqKeys.length / enKeys.length) * 100).toFixed(1);
+        console.log(`   Coverage: ${coverage}%\n`);
+      }
 
       // Always pass - this is informational
       expect(true).toBe(true);

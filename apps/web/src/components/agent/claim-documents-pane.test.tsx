@@ -8,6 +8,7 @@ vi.mock('next-intl', () => ({
     const translations: Record<string, string> = {
       'details.documents': 'Documents',
       'details.no_documents': 'No documents uploaded',
+      'errors.download': 'Failed to download',
     };
     return translations[key] || key;
   },

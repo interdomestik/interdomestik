@@ -1,5 +1,6 @@
 import { ReferralCard } from '@/components/member/referral-card';
-import { and, claims, db, eq, subscriptions } from '@interdomestik/database';
+import { and, claims, db, eq, inArray, subscriptions } from '@interdomestik/database';
+import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import {
   Badge,
   Button,
@@ -9,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui';
-import { count, sql, sum } from 'drizzle-orm';
+import { count, sum } from 'drizzle-orm';
 import {
   AlertCircle,
   ArrowUpRight,
@@ -26,6 +27,10 @@ import Link from 'next/link';
 export async function MemberDashboardView({ userId }: { userId: string }) {
   const t = await getTranslations('dashboard');
 
+  const activeClaimStatuses = CLAIM_STATUSES.filter(
+    status => status !== 'draft' && status !== 'resolved' && status !== 'rejected'
+  ) as ClaimStatus[];
+
   const subscription = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, userId),
   });
@@ -39,12 +44,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
   const [activeClaims] = await db
     .select({ count: count() })
     .from(claims)
-    .where(
-      and(
-        eq(claims.userId, userId),
-        sql`${claims.status} IN ('submitted', 'verification', 'evaluation', 'negotiation', 'court')`
-      )
-    );
+    .where(and(eq(claims.userId, userId), inArray(claims.status, activeClaimStatuses)));
 
   const [resolvedClaims] = await db
     .select({ count: count() })

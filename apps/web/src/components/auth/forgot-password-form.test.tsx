@@ -2,6 +2,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ForgotPasswordForm } from './forgot-password-form';
 
+// Mock authClient
+vi.mock('@/lib/auth-client', () => ({
+  authClient: {
+    requestPasswordReset: vi.fn(),
+  },
+}));
+
+import { authClient } from '@/lib/auth-client';
+const mockRequestPasswordReset = vi.mocked(authClient.requestPasswordReset);
+
 // Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
@@ -22,7 +32,10 @@ vi.mock('@/i18n/routing', () => ({
 describe('ForgotPasswordForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    window.history.pushState({}, 'Forgot Password', '/en/forgot-password');
+    mockRequestPasswordReset.mockResolvedValue({ error: null } as Awaited<
+      ReturnType<typeof authClient.requestPasswordReset>
+    >);
   });
 
   afterEach(() => {
@@ -40,7 +53,6 @@ describe('ForgotPasswordForm', () => {
   });
 
   it('submits form with email', async () => {
-    const consoleSpy = vi.spyOn(console, 'log');
     render(<ForgotPasswordForm />);
 
     const emailInput = screen.getByLabelText('Email Address');
@@ -49,8 +61,13 @@ describe('ForgotPasswordForm', () => {
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.click(submitButton);
 
+    const expectedRedirectTo = new URL('/en/reset-password', window.location.origin).toString();
+
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('Password reset requested for:', 'test@example.com');
+      expect(mockRequestPasswordReset).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        redirectTo: expectedRedirectTo,
+      });
     });
   });
 
@@ -67,6 +84,24 @@ describe('ForgotPasswordForm', () => {
       expect(screen.getByText('Check your email')).toBeInTheDocument();
       expect(screen.getByText(/If an account exists for that email/)).toBeInTheDocument();
       expect(screen.getByText('Return to login')).toBeInTheDocument();
+    });
+  });
+
+  it('shows an error if request fails', async () => {
+    mockRequestPasswordReset.mockResolvedValue({
+      error: { message: 'Reset password is not enabled' },
+    } as Awaited<ReturnType<typeof authClient.requestPasswordReset>>);
+
+    render(<ForgotPasswordForm />);
+
+    const emailInput = screen.getByLabelText('Email Address');
+    const submitButton = screen.getByText('Send reset link');
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Reset password is not enabled')).toBeInTheDocument();
     });
   });
 

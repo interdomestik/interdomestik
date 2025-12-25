@@ -4,8 +4,7 @@ import { routing } from './i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
 
-// Proxy replaces the deprecated middleware convention in Next.js 16.
-export default async function proxy(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // 1. Handle i18n routing
   const response = intlMiddleware(request);
 

@@ -10,6 +10,7 @@ import { db } from '@interdomestik/database';
 import { emailCampaignLogs } from '@interdomestik/database/schema';
 import { endOfDay, startOfDay, subDays } from 'date-fns';
 import { and, eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 
 export async function processEmailSequences() {
   const now = new Date();
@@ -36,11 +37,13 @@ export async function processEmailSequences() {
 
     if (!alreadySent) {
       await sendWelcomeEmail(sub.user.email, sub.user.name);
-      await db.insert(emailCampaignLogs).values({
+      const insertWelcomeLog = {
+        id: `ecl_${nanoid()}`,
         userId: sub.userId,
         campaignId: 'welcome_day_0',
         sentAt: new Date(),
-      } as any);
+      };
+      await db.insert(emailCampaignLogs).values(insertWelcomeLog);
       logs.push(`Sent welcome_day_0 to ${sub.user.email}`);
     }
   }
@@ -65,11 +68,13 @@ export async function processEmailSequences() {
 
     if (!alreadySent) {
       await sendOnboardingEmail(u.email, u.name);
-      await db.insert(emailCampaignLogs).values({
+      const insertOnboardingLog = {
+        id: `ecl_${nanoid()}`,
         userId: u.id,
         campaignId: 'onboarding_day_3',
         sentAt: new Date(),
-      } as any);
+      };
+      await db.insert(emailCampaignLogs).values(insertOnboardingLog);
       logs.push(`Sent onboarding_day_3 to ${u.email}`);
     }
   }
@@ -94,11 +99,13 @@ export async function processEmailSequences() {
 
     if (!alreadySent) {
       await sendCheckinEmail(u.email, u.name);
-      await db.insert(emailCampaignLogs).values({
+      const insertCheckinLog = {
+        id: `ecl_${nanoid()}`,
         userId: u.id,
         campaignId: 'checkin_day_14',
         sentAt: new Date(),
-      } as any);
+      };
+      await db.insert(emailCampaignLogs).values(insertCheckinLog);
       logs.push(`Sent checkin_day_14 to ${u.email}`);
     }
   }
@@ -146,11 +153,13 @@ export async function processSeasonalCampaigns() {
         }
       );
 
-      await db.insert(emailCampaignLogs).values({
+      const insertSeasonalLog = {
+        id: `ecl_${nanoid()}`,
         userId: u.id,
         campaignId,
         sentAt: new Date(),
-      } as any);
+      };
+      await db.insert(emailCampaignLogs).values(insertSeasonalLog);
       logs.push(`Sent ${campaignId} to ${u.email}`);
     }
   }
@@ -189,11 +198,13 @@ export async function processAnnualReports() {
         }
       );
 
-      await db.insert(emailCampaignLogs).values({
+      const insertAnnualLog = {
+        id: `ecl_${nanoid()}`,
         userId: u.id,
         campaignId,
         sentAt: new Date(),
-      } as any);
+      };
+      await db.insert(emailCampaignLogs).values(insertAnnualLog);
       logs.push(`Sent ${campaignId} to ${u.email}`);
     }
   }

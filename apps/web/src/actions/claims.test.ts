@@ -1,4 +1,5 @@
 import type { CreateClaimValues } from '@/lib/validators/claims';
+import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClaim, submitClaim, updateClaimStatus } from './claims';
 
@@ -258,9 +259,13 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
       mockDbInsert.mockRejectedValueOnce(new Error('DB Error'));
 
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       await expect(submitClaim(validPayload)).rejects.toThrow(
         'Failed to create claim. Please try again.'
       );
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -269,12 +274,16 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
       mockDbInsert.mockRejectedValueOnce(new Error('DB Error'));
 
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       const formData = new FormData();
       formData.append('title', 'Test Claim');
       formData.append('companyName', 'Bad Company');
       formData.append('category', 'retail');
 
       const result = await createClaim({}, formData);
+
+      consoleErrorSpy.mockRestore();
 
       expect(result).toEqual({ error: 'Failed to create claim. Please try again.' });
     });
@@ -310,7 +319,11 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
       mockDbUpdate.mockRejectedValueOnce(new Error('DB Error'));
 
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       const result = await updateClaimStatus('claim-1', 'resolved');
+
+      consoleErrorSpy.mockRestore();
 
       expect(result).toEqual({ error: 'Failed to update status' });
     });
@@ -319,18 +332,7 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
       mockDbUpdate.mockResolvedValue(undefined);
 
-      const validStatuses = [
-        'draft',
-        'submitted',
-        'verification',
-        'evaluation',
-        'negotiation',
-        'court',
-        'resolved',
-        'rejected',
-      ];
-
-      for (const status of validStatuses) {
+      for (const status of CLAIM_STATUSES) {
         const result = await updateClaimStatus('claim-1', status);
         expect(result).toEqual({ success: true });
       }

@@ -190,8 +190,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
             staffId={session.user.id}
             assigneeId={claim.staffId || null}
           />
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <ClaimInfoPane claim={claim as any} />
+          <ClaimInfoPane claim={claim} />
         </div>
       </div>
     </div>

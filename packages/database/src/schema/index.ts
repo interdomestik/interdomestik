@@ -14,6 +14,7 @@ export * from './memberships';
 export * from './notes';
 export * from './notifications';
 export * from './services';
+export * from './webhooks';
 
 // Relations
 export * from './relations';

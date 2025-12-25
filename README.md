@@ -87,6 +87,11 @@ interdomestikv2/
    # Edit .env.local with your credentials
    ```
 
+   Optional (but recommended) toggles:
+   - `CRON_SECRET` protects `/api/cron/*` endpoints (cron caller must send `Authorization: Bearer $CRON_SECRET`)
+   - `CRON_BYPASS_SECRET_IN_DEV=true` to allow local cron calls without the header (dev only)
+   - `SHOW_I18N_STATS=1` to print i18n key-count stats during tests
+
 4. **Start Supabase locally** (optional)
 
    ```bash

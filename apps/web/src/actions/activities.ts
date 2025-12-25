@@ -152,7 +152,7 @@ export async function getLeadActivities(leadId: string) {
       id: a.id,
       memberId: a.leadId, // overload memberId
       agentId: a.agentId,
-      type: a.type as any,
+      type: a.type,
       subject: a.summary,
       description: a.description,
       occurredAt: a.occurredAt,

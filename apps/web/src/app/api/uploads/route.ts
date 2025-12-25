@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { createAdminClient } from '@interdomestik/database';
+import { claims, createAdminClient, db, eq } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -53,7 +53,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'File too large' }, { status: 413 });
   }
 
-  // TODO: plug virus scan service (clamd/lambda) before issuing signed URLs for production
+  if (claimId) {
+    const claim = await db.query.claims.findFirst({
+      where: eq(claims.id, claimId),
+      columns: {
+        id: true,
+        userId: true,
+      },
+    });
+
+    if (!claim) {
+      return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
+    }
+
+    if (claim.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
+  // NOTE: Consider adding virus scanning / quarantine promotion before enabling uploads in production.
 
   const bucket = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || DEFAULT_BUCKET;
   const adminClient = createAdminClient();

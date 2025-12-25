@@ -36,20 +36,23 @@ async function stateIsValidForRole(opts: {
     const context = await browser.newContext({ storageState: storageStatePath });
     const page = await context.newPage();
 
-    const targetPath =
-      role === 'admin'
-        ? '/en/admin'
-        : role === 'agent'
-          ? '/en/agent'
-          : role === 'staff'
-            ? '/en/staff'
-            : '/en/member';
+    // Avoid navigating to heavy dashboard pages just to validate auth state.
+    // Better-auth exposes session info under /api/auth/get-session.
+    const response = await page.request.get(new URL('/api/auth/get-session', baseURL).toString());
+    if (response.status() !== 200) {
+      await context.close();
+      return false;
+    }
 
-    await page.goto(new URL(targetPath, baseURL).toString(), { waitUntil: 'domcontentloaded' });
-    // If we get bounced to a sign-in route, state is not usable.
-    const url = page.url();
+    const data = (await response.json().catch(() => null)) as null | {
+      user?: { role?: string };
+      session?: unknown;
+    };
+    const userRole = data?.user?.role;
+
+    const expected = role === 'member' ? 'user' : role;
     await context.close();
-    return !LOGIN_RX.test(url);
+    return userRole === expected;
   } catch {
     return false;
   }

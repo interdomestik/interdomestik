@@ -5,25 +5,13 @@ import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { Link, redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { claimDocuments, claimStageHistory, claims, db, eq } from '@interdomestik/database';
+import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { and, desc } from 'drizzle-orm';
 import { ArrowLeft, Download } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-
-const CLAIM_STATUSES = [
-  'draft',
-  'submitted',
-  'verification',
-  'evaluation',
-  'negotiation',
-  'court',
-  'resolved',
-  'rejected',
-] as const;
-
-type ClaimStatus = (typeof CLAIM_STATUSES)[number];
 
 function toClaimStatus(value: unknown): ClaimStatus {
   return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';

@@ -1,3 +1,4 @@
+import { type ClaimStatus } from '@interdomestik/database/constants';
 import { db } from '@interdomestik/database/db';
 import { claims, user } from '@interdomestik/database/schema';
 import { count, desc, eq, isNull, sql } from 'drizzle-orm';
@@ -11,15 +12,18 @@ export interface DashboardStats {
 }
 
 export async function getAdminDashboardStats(): Promise<DashboardStats> {
+  const NEW_STATUS: ClaimStatus = 'submitted';
+  const RESOLVED_STATUS: ClaimStatus = 'resolved';
+
   const [totalClaimsRes] = await db.select({ count: count() }).from(claims);
   const [newClaimsRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(eq(claims.status, 'submitted'));
+    .where(eq(claims.status, NEW_STATUS));
   const [resolvedClaimsRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(eq(claims.status, 'resolved'));
+    .where(eq(claims.status, RESOLVED_STATUS));
   const [totalUsersRes] = await db
     .select({ count: count() })
     .from(user)

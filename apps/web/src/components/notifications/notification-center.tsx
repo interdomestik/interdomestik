@@ -49,7 +49,7 @@ export function NotificationCenter({ subscriberId }: NotificationCenterProps) {
   const fetchInitialNotifications = useCallback(async () => {
     try {
       const data = await getNotifications();
-      setNotifications(data as any);
+      setNotifications(data as unknown as Notification[]);
       const unread = data.filter(n => !n.isRead).length;
       setUnreadCount(unread);
     } catch (error) {

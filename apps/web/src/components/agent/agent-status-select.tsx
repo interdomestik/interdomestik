@@ -1,20 +1,16 @@
 'use client';
 
 import { updateClaimStatus } from '@/actions/agent-claims';
+import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@interdomestik/ui';
 import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 
-const STATUSES = [
-  'submitted',
-  'verification',
-  'evaluation',
-  'negotiation',
-  'court',
-  'resolved',
-  'rejected',
-];
+const AGENT_STATUSES = CLAIM_STATUSES.filter(status => status !== 'draft') as Exclude<
+  ClaimStatus,
+  'draft'
+>[];
 
 export function AgentStatusSelect({
   claimId,
@@ -27,7 +23,7 @@ export function AgentStatusSelect({
 }) {
   const [isPending, startTransition] = useTransition();
 
-  const handleStatusChange = (value: string) => {
+  const handleStatusChange = (value: ClaimStatus) => {
     if (disabled) return;
     startTransition(async () => {
       try {
@@ -50,14 +46,14 @@ export function AgentStatusSelect({
       </span>
       <Select
         defaultValue={currentStatus}
-        onValueChange={handleStatusChange}
+        onValueChange={value => handleStatusChange(value as ClaimStatus)}
         disabled={isPending || disabled}
       >
         <SelectTrigger className="w-[180px] h-9">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
-          {STATUSES.map(status => (
+          {AGENT_STATUSES.map(status => (
             <SelectItem key={status} value={status} className="capitalize">
               {tStatus(status)}
             </SelectItem>

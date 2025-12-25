@@ -20,6 +20,26 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+
+  // Guard against invalid locale segments (e.g. /index.html/metadata.json)
+  // which can otherwise cause dynamic import failures.
+  if (!routing.locales.includes(locale as (typeof routing.locales)[number])) {
+    return {
+      title: {
+        default: 'Interdomestik',
+        template: `%s | Interdomestik`,
+      },
+      description: 'Consumer Protection Platform',
+      keywords: ['consumer protection', 'claims', 'disputes', 'balkans', 'kosovo', 'albania'],
+      authors: [{ name: 'Interdomestik' }],
+      openGraph: {
+        type: 'website',
+        locale: 'en_US',
+        siteName: 'Interdomestik',
+      },
+    };
+  }
+
   const messages = (await import(`@/messages/${locale}/metadata.json`)).default;
 
   return {

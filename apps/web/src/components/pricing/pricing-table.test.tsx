@@ -68,6 +68,8 @@ describe('PricingTable', () => {
   });
 
   it('initiates checkout on button click', async () => {
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+
     render(<PricingTable userId="user-123" email="test@example.com" />);
 
     // Find the Join Now button for standard plan (now at index 0)
@@ -83,12 +85,15 @@ describe('PricingTable', () => {
         })
       );
     });
+
+    consoleLog.mockRestore();
   });
 
   it('handles paddle initialization failure gracefully', async () => {
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     render(<PricingTable userId="user-123" email="test@example.com" />);
 
@@ -103,5 +108,6 @@ describe('PricingTable', () => {
 
     alertMock.mockRestore();
     consoleError.mockRestore();
+    consoleLog.mockRestore();
   });
 });

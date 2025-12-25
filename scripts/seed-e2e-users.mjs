@@ -218,8 +218,14 @@ async function upsertUser({ id, name, email, role, password, agentId }) {
   await sql`delete from subscriptions where "user_id" = ${id};`;
   await sql`delete from audit_log where "actor_id" = ${id};`;
   await sql`delete from agent_clients where agent_id = ${id} OR member_id = ${id};`;
+  await sql`delete from agent_commissions where agent_id = ${id} OR member_id = ${id};`;
 
   await sql`delete from account where "userId" = ${id};`;
+
+  // Claims have dependents (messages/docs/stage history) that must be removed first.
+  await sql`delete from claim_messages where "claim_id" in (select id from claim where "userId" = ${id});`;
+  await sql`delete from claim_documents where "claim_id" in (select id from claim where "userId" = ${id});`;
+  await sql`delete from claim_stage_history where "claim_id" in (select id from claim where "userId" = ${id});`;
   await sql`delete from claim where "userId" = ${id};`;
   await sql`delete from "user" where id = ${id};`;
 

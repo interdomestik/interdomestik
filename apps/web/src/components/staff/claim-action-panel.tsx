@@ -1,6 +1,8 @@
 'use client';
 
 import { assignClaim, ClaimStatus, updateClaimStatus } from '@/actions/staff-claims';
+import { getStaffClaimStatusLabel } from '@/lib/claim-ui';
+import { CLAIM_STATUSES as CANONICAL_CLAIM_STATUSES } from '@interdomestik/database/constants';
 import {
   Button,
   Select,
@@ -22,16 +24,12 @@ interface ClaimActionPanelProps {
   assigneeId: string | null;
 }
 
-const CLAIM_STATUSES: { value: ClaimStatus; label: string }[] = [
-  { value: 'draft', label: 'Draft' }, // Usually not manually selected
-  { value: 'submitted', label: 'Submitted' },
-  { value: 'verification', label: 'In Verification' },
-  { value: 'evaluation', label: 'Evaluation' },
-  { value: 'negotiation', label: 'Negotiation' },
-  { value: 'court', label: 'Court/Legal' },
-  { value: 'resolved', label: 'Resolved' },
-  { value: 'rejected', label: 'Rejected' },
-];
+const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = CANONICAL_CLAIM_STATUSES.map(
+  status => ({
+    value: status as ClaimStatus,
+    label: getStaffClaimStatusLabel(status),
+  })
+);
 
 export function ClaimActionPanel({
   claimId,
@@ -41,7 +39,7 @@ export function ClaimActionPanel({
 }: ClaimActionPanelProps) {
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState('');
-  const [status, setStatus] = useState<string>(currentStatus);
+  const [status, setStatus] = useState<ClaimStatus>(currentStatus as ClaimStatus);
   const router = useRouter();
 
   const handleAssign = () => {
@@ -105,12 +103,16 @@ export function ClaimActionPanel({
       <div className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Update Status</label>
-          <Select value={status} onValueChange={setStatus} disabled={isPending}>
+          <Select
+            value={status}
+            onValueChange={value => setStatus(value as ClaimStatus)}
+            disabled={isPending}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
             <SelectContent>
-              {CLAIM_STATUSES.map(s => (
+              {CLAIM_STATUS_OPTIONS.map(s => (
                 <SelectItem key={s.value} value={s.value}>
                   {s.label}
                 </SelectItem>

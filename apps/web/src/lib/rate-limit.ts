@@ -26,7 +26,11 @@ function getRatelimitInstance(limit: number, windowSeconds: number) {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token) {
-    if (!warnedMissingUpstashEnv) {
+    const isAutomatedTestRun =
+      process.env.NODE_ENV === 'test' ||
+      process.env.CI === 'true' ||
+      process.env.INTERDOMESTIK_AUTOMATED === '1';
+    if (!warnedMissingUpstashEnv && !isAutomatedTestRun) {
       warnedMissingUpstashEnv = true;
       console.warn(
         '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; rate limiting is disabled'

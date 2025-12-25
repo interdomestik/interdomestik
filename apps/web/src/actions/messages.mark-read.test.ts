@@ -1,9 +1,14 @@
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import './messages.test.base';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { markMessagesAsRead } from './messages';
 import { mocks, resetMocks } from './messages.test.base';
 
+let markMessagesAsRead: typeof import('./messages').markMessagesAsRead;
+
 describe('markMessagesAsRead', () => {
+  beforeAll(async () => {
+    ({ markMessagesAsRead } = await import('./messages'));
+  });
+
   beforeEach(() => {
     resetMocks();
   });
@@ -39,7 +44,11 @@ describe('markMessagesAsRead', () => {
     mocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
     mocks.dbUpdate.mockRejectedValue(new Error('DB Error'));
 
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     const result = await markMessagesAsRead(['msg-1']);
+
+    consoleErrorSpy.mockRestore();
 
     expect(result).toEqual({ success: false, error: 'Failed to mark messages as read' });
   });

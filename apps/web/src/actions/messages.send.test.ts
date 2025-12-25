@@ -1,9 +1,14 @@
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import './messages.test.base';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { sendMessage } from './messages';
 import { mocks, mockSelectChain, resetMocks } from './messages.test.base';
 
+let sendMessage: typeof import('./messages').sendMessage;
+
 describe('sendMessage', () => {
+  beforeAll(async () => {
+    ({ sendMessage } = await import('./messages'));
+  });
+
   beforeEach(() => {
     resetMocks();
   });
@@ -157,7 +162,11 @@ describe('sendMessage', () => {
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mocks.dbInsert.mockRejectedValue(new Error('DB Error'));
 
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     const result = await sendMessage('claim-123', 'Hello');
+
+    consoleErrorSpy.mockRestore();
 
     expect(result).toEqual({ success: false, error: 'Failed to send message' });
   });

@@ -45,7 +45,6 @@ export async function getClaimMessages(claimId: string): Promise<ActionResult<Me
 
     const isMember = session.user.role === 'user';
     const isStaffOrAdmin = ['staff', 'admin'].includes(session.user.role);
-    const isAgent = session.user.role === 'agent';
 
     // Access control:
     // - Member: can view if they own the claim

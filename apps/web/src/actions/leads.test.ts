@@ -24,22 +24,30 @@ describe('Leads Actions', () => {
 
   describe('submitLead', () => {
     it('should return error for invalid name (too short)', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       const result = await submitLead({
         name: 'A', // Too short - needs min 2 chars
         phone: '+383491234567',
         category: 'auto',
       });
 
+      consoleErrorSpy.mockRestore();
+
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
 
     it('should return error for invalid phone (too short)', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       const result = await submitLead({
         name: 'John Doe',
         phone: '123', // Too short - needs min 6 chars
         category: 'auto',
       });
+
+      consoleErrorSpy.mockRestore();
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -80,11 +88,15 @@ describe('Leads Actions', () => {
     it('should handle database errors gracefully', async () => {
       mocks.dbInsert.mockRejectedValue(new Error('DB Error'));
 
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
       const result = await submitLead({
         name: 'John Doe',
         phone: '+383491234567',
         category: 'auto',
       });
+
+      consoleErrorSpy.mockRestore();
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to submit request');

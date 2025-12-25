@@ -1,6 +1,7 @@
 'use client';
 
 import { updateClaimStatus } from '@/actions/agent-claims';
+import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import {
   Button,
   Card,
@@ -16,15 +17,10 @@ import {
 import { useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 
-const STATUSES = [
-  'submitted',
-  'verification',
-  'evaluation',
-  'negotiation',
-  'court',
-  'resolved',
-  'rejected',
-];
+const TRIAGE_STATUSES = CLAIM_STATUSES.filter(status => status !== 'draft') as Exclude<
+  ClaimStatus,
+  'draft'
+>[];
 
 export function TriagePanel({
   claimId,
@@ -35,7 +31,7 @@ export function TriagePanel({
 }) {
   const [isPending, startTransition] = useTransition();
 
-  const handleStatusChange = (value: string) => {
+  const handleStatusChange = (value: ClaimStatus) => {
     startTransition(async () => {
       await updateClaimStatus(claimId, value);
     });
@@ -56,14 +52,14 @@ export function TriagePanel({
           <label className="text-sm font-medium text-muted-foreground">{t('changeStatus')}</label>
           <Select
             defaultValue={currentStatus}
-            onValueChange={handleStatusChange}
+            onValueChange={value => handleStatusChange(value as ClaimStatus)}
             disabled={isPending}
           >
             <SelectTrigger>
               <SelectValue placeholder={t('selectStatus')} />
             </SelectTrigger>
             <SelectContent>
-              {STATUSES.map(status => (
+              {TRIAGE_STATUSES.map(status => (
                 <SelectItem key={status} value={status} className="capitalize">
                   {tStatus(status)}
                 </SelectItem>

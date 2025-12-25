@@ -4,6 +4,8 @@ import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik
 import { format } from 'date-fns';
 import { Download, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface ClaimDocumentsPaneProps {
   documents: {
@@ -15,6 +17,31 @@ interface ClaimDocumentsPaneProps {
 
 export function ClaimDocumentsPane({ documents }: ClaimDocumentsPaneProps) {
   const t = useTranslations('agent-claims.claims');
+  const tDocs = useTranslations('documents');
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const handleDownload = async (docId: string, fileName: string | null) => {
+    setLoadingId(docId);
+    try {
+      const fileRes = await fetch(`/api/documents/${docId}/download`);
+      if (!fileRes.ok) throw new Error('Failed to download file');
+      const blob = await fileRes.blob();
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || 'document';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast.error(tDocs('errors.download'));
+    } finally {
+      setLoadingId(null);
+    }
+  };
 
   return (
     <Card>
@@ -42,7 +69,12 @@ export function ClaimDocumentsPane({ documents }: ClaimDocumentsPaneProps) {
                     </p>
                   </div>
                 </div>
-                <Button size="sm" variant="ghost">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleDownload(doc.id, doc.fileName)}
+                  disabled={loadingId === doc.id}
+                >
                   <Download className="h-4 w-4" />
                 </Button>
               </div>

@@ -1,27 +1,13 @@
 'use client';
 
+import { CLAIM_TIMELINE_PHASES } from '@/lib/claim-ui';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 import { cn } from '@interdomestik/ui/lib/utils';
-import {
-  CheckCircle2,
-  Clock,
-  FileCheck,
-  FileText,
-  Gavel,
-  History,
-  Scale,
-  XCircle,
-} from 'lucide-react';
+import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
-type ClaimStatus =
-  | 'draft'
-  | 'submitted'
-  | 'verification'
-  | 'evaluation'
-  | 'negotiation'
-  | 'court'
-  | 'resolved'
-  | 'rejected';
+const SLA_TARGET_HOURS = 24;
 
 interface ClaimTimelineProps {
   status: ClaimStatus;
@@ -33,68 +19,30 @@ interface ClaimTimelineProps {
   now?: Date;
 }
 
-const PHASES = [
-  {
-    id: 'submitted',
-    label: 'Submission',
-    description: 'Claim received',
-    icon: FileText,
-  },
-  {
-    id: 'verification',
-    label: 'Verification',
-    description: 'Checking details',
-    icon: FileCheck,
-  },
-  {
-    id: 'evaluation',
-    label: 'Evaluation',
-    description: 'Assessing value',
-    icon: Scale,
-  },
-  {
-    id: 'negotiation',
-    label: 'Negotiation',
-    description: 'Offer sent',
-    icon: History, // Or Handshake if available? using History as placeholder for "process"
-  },
-  {
-    id: 'court',
-    label: 'Court',
-    description: 'Legal proceedings',
-    icon: Gavel,
-    optional: true, // This step might be skipped
-  },
-  {
-    id: 'resolved',
-    label: 'Resolution',
-    description: 'Final decision',
-    icon: CheckCircle2,
-  },
-];
-
-const SLA_TARGET_HOURS = 24;
-
 export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimelineProps) {
-  const t = useTranslations('timeline');
-  // If rejected, we show a special state but map it to 'resolved' visually or distinct
-  const isRejected = status === 'rejected';
+  const t = useTranslations('claims.timeline');
   const updatedAtDate = updatedAt instanceof Date ? updatedAt : new Date(updatedAt);
+  const nowDate = now ? (now instanceof Date ? now : new Date(now)) : new Date();
+  const isRejected = status === 'rejected';
 
-  const nowDate = now ?? new Date();
+  const reachedAt = useMemo(() => {
+    const reached = new Map<ClaimStatus, Date>();
 
-  const reachedAt = new Map<ClaimStatus, Date>();
-  if (history && history.length > 0) {
+    if (!history || history.length === 0) return reached;
+
     for (const entry of history) {
       if (!entry.createdAt) continue;
-      if (!reachedAt.has(entry.toStatus)) {
-        reachedAt.set(
+
+      if (!reached.has(entry.toStatus)) {
+        reached.set(
           entry.toStatus,
           entry.createdAt instanceof Date ? entry.createdAt : new Date(entry.createdAt)
         );
       }
     }
-  }
+
+    return reached;
+  }, [history]);
 
   const lastActivityAt =
     history && history[0]?.createdAt
@@ -105,9 +53,9 @@ export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimeline
 
   // Find current phase index
   // Note: 'draft' is before submission (-1)
-  let currentIndex = PHASES.findIndex(p => p.id === status);
+  let currentIndex = CLAIM_TIMELINE_PHASES.findIndex(p => p.id === status);
   if (status === 'draft') currentIndex = -1;
-  if (isRejected) currentIndex = PHASES.length - 1; // Show formatted as final but red
+  if (isRejected) currentIndex = CLAIM_TIMELINE_PHASES.length - 1; // Show formatted as final but red
 
   const hoursSinceUpdate = (nowDate.getTime() - lastActivityAt.getTime()) / (1000 * 60 * 60);
   const isTerminal = ['resolved', 'rejected'].includes(status);
@@ -118,9 +66,6 @@ export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimeline
       ? '<1h'
       : `${Math.ceil(hoursRemaining)}h`;
   const isAtRisk = hoursSinceUpdate > SLA_TARGET_HOURS && !isTerminal;
-
-  // Handle distinct "Court" skipping logic later if needed
-  // For now, linear progress
 
   return (
     <div className="relative">
@@ -138,7 +83,7 @@ export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimeline
       <div className="absolute left-4 top-0 h-full w-0.5 bg-[hsl(var(--muted))]" />
 
       <div className="space-y-8">
-        {PHASES.map((phase, index) => {
+        {CLAIM_TIMELINE_PHASES.map((phase, index) => {
           const Icon = phase.icon;
           const isCompleted = index < currentIndex;
           const isCurrent = index === currentIndex;
@@ -156,9 +101,6 @@ export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimeline
 
           return (
             <div key={phase.id} className="relative flex gap-6">
-              {/* Connector Line Cover (for clean segments) */}
-
-              {/* Icon Marker */}
               <div
                 className={cn(
                   'relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-300',
@@ -177,7 +119,6 @@ export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimeline
                 )}
               </div>
 
-              {/* Content */}
               <div
                 className={cn(
                   'flex flex-col pt-1 transition-opacity duration-300',

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationCenter } from './notification-center';
 
 const mocks = vi.hoisted(() => {
-  const getNotifications = vi.fn<() => Promise<any[]>>();
+  const getNotifications = vi.fn<() => Promise<unknown[]>>();
   const markAsRead = vi.fn<(notificationId: string) => Promise<unknown>>();
   const markAllAsRead = vi.fn<() => Promise<unknown>>();
 
@@ -40,11 +40,16 @@ vi.mock('@/lib/supabase', () => ({
 // Mock UI primitives to avoid portal/open-state complexity.
 vi.mock('@interdomestik/ui', () => ({
   Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  Button: ({
+    children,
+    ...props
+  }: React.PropsWithChildren<React.ButtonHTMLAttributes<HTMLButtonElement>>) => (
+    <button {...props}>{children}</button>
+  ),
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  cn: (...classes: any[]) => classes.filter(Boolean).join(' '),
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' '),
 }));
 
 describe('NotificationCenter', () => {

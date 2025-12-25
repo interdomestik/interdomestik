@@ -1,6 +1,7 @@
 'use client';
 
 import { updateClaimStatus } from '@/actions/admin-claims';
+import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import {
   Select,
   SelectContent,
@@ -20,21 +21,10 @@ interface ClaimStatusFormProps {
 
 export function ClaimStatusForm({ claimId, currentStatus, locale }: ClaimStatusFormProps) {
   const t = useTranslations('claims.status');
-  const [status, setStatus] = useState(currentStatus);
+  const [status, setStatus] = useState<ClaimStatus>(currentStatus as ClaimStatus);
   const [isPending, setIsPending] = useState(false);
 
-  const statuses = [
-    'draft',
-    'submitted',
-    'verification',
-    'evaluation',
-    'negotiation',
-    'court',
-    'resolved',
-    'rejected',
-  ];
-
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: ClaimStatus) => {
     setIsPending(true);
     const formData = new FormData();
     formData.append('claimId', claimId);
@@ -55,12 +45,16 @@ export function ClaimStatusForm({ claimId, currentStatus, locale }: ClaimStatusF
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={status} onValueChange={handleStatusChange} disabled={isPending}>
+      <Select
+        value={status}
+        onValueChange={value => handleStatusChange(value as ClaimStatus)}
+        disabled={isPending}
+      >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
-          {statuses.map(s => (
+          {CLAIM_STATUSES.map(s => (
             <SelectItem key={s} value={s} className="capitalize">
               {t(s)}
             </SelectItem>

@@ -3,6 +3,7 @@ import { and, eq, gt } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { sendPaymentFinalWarningEmail, sendPaymentReminderEmail } from '@/lib/email';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 /**
  * DUNNING CRON JOB
@@ -21,6 +22,9 @@ import { sendPaymentFinalWarningEmail, sendPaymentReminderEmail } from '@/lib/em
  *     "schedule": "0 10 * * *"
  *   }]
  * }
+ *
+ * Auth header required:
+ *   Authorization: Bearer $CRON_SECRET
  */
 
 // Verify cron secret to prevent unauthorized access
@@ -28,15 +32,23 @@ function verifyCronSecret(req: NextRequest): boolean {
   const secret = req.headers.get('authorization');
   const expectedSecret = process.env.CRON_SECRET;
 
-  // In development, allow requests without secret
-  if (process.env.NODE_ENV !== 'production') {
-    return true;
-  }
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const allowDevBypass = process.env.CRON_BYPASS_SECRET_IN_DEV === 'true';
+  if (isDevelopment && allowDevBypass) return true;
 
+  if (!expectedSecret) return false;
   return secret === `Bearer ${expectedSecret}`;
 }
 
 export async function GET(req: NextRequest) {
+  const limited = await enforceRateLimit({
+    name: 'api/cron/dunning',
+    limit: 10,
+    windowSeconds: 60,
+    headers: req.headers,
+  });
+  if (limited) return limited;
+
   // Verify request is from cron job
   if (!verifyCronSecret(req)) {
     console.error('[Dunning Cron] Unauthorized request');

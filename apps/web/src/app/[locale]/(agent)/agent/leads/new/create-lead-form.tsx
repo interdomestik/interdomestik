@@ -2,6 +2,7 @@
 
 import { Link } from '@/i18n/routing';
 import { createLead } from '@/lib/actions/agent';
+import { type LeadStage } from '@interdomestik/database/constants';
 import { Button } from '@interdomestik/ui/components/button';
 import { Input } from '@interdomestik/ui/components/input';
 import { Label } from '@interdomestik/ui/components/label';
@@ -20,6 +21,15 @@ const initialState = {
   error: '',
   fields: undefined as Record<string, string[]> | undefined,
 };
+
+const INITIAL_LEAD_STAGES: readonly LeadStage[] = ['new', 'contacted', 'qualified'];
+
+function labelLeadStage(stage: LeadStage) {
+  if (stage === 'new') return 'New';
+  if (stage === 'contacted') return 'Contacted';
+  if (stage === 'qualified') return 'Qualified';
+  return stage;
+}
 
 export function CreateLeadForm() {
   const [state, action, pending] = useActionState(createLead, initialState);
@@ -54,9 +64,11 @@ export function CreateLeadForm() {
               <SelectValue placeholder="Select stage" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="new">New</SelectItem>
-              <SelectItem value="contacted">Contacted</SelectItem>
-              <SelectItem value="qualified">Qualified</SelectItem>
+              {INITIAL_LEAD_STAGES.map(stage => (
+                <SelectItem key={stage} value={stage}>
+                  {labelLeadStage(stage)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

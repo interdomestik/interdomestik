@@ -1,9 +1,14 @@
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import './messages.test.base';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { getMessagesForClaim } from './messages';
 import { mocks, mockSelectChain, resetMocks } from './messages.test.base';
 
+let getMessagesForClaim: typeof import('./messages').getMessagesForClaim;
+
 describe('getMessagesForClaim', () => {
+  beforeAll(async () => {
+    ({ getMessagesForClaim } = await import('./messages'));
+  });
+
   beforeEach(() => {
     resetMocks();
   });
@@ -68,7 +73,11 @@ describe('getMessagesForClaim', () => {
     mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
     mocks.dbQuery.mockRejectedValue(new Error('DB Error'));
 
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     const result = await getMessagesForClaim('claim-123');
+
+    consoleErrorSpy.mockRestore();
 
     expect(result).toEqual({ success: false, error: 'Failed to fetch messages' });
   });

@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { claims, db, subscriptions } from '@interdomestik/database';
+import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { differenceInDays } from 'date-fns';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
@@ -35,10 +36,13 @@ export async function getWrappedStats() {
   });
 
   const resolvedCount = userClaims.filter(c => c.status === 'resolved').length;
+
+  const inProgressStatuses = CLAIM_STATUSES.filter(
+    status => status !== 'draft' && status !== 'resolved' && status !== 'rejected'
+  ) as ClaimStatus[];
+
   const inProgressCount = userClaims.filter(
-    c =>
-      c.status &&
-      ['submitted', 'verification', 'evaluation', 'negotiation', 'court'].includes(c.status)
+    c => !!c.status && inProgressStatuses.includes(c.status as ClaimStatus)
   ).length;
 
   // 4. Calculate Total Managed/Recovered

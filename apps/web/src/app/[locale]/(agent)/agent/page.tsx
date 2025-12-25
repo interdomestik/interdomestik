@@ -1,6 +1,7 @@
 import { getMyCommissionSummary } from '@/actions/commissions';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
+import { type LeadStage } from '@interdomestik/database/constants';
 import { db } from '@interdomestik/database/db';
 import {
   agentCommissions,
@@ -42,16 +43,19 @@ export default async function AgentDashboardPage({
 
   const agentId = session.user.id;
 
+  const STAGE_NEW: LeadStage = 'new';
+  const STAGE_CONTACTED: LeadStage = 'contacted';
+
   // Fetch stats for agent sales dashboard
   const [newLeads] = await db
     .select({ count: count() })
     .from(crmLeads)
-    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, 'new')));
+    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, STAGE_NEW)));
 
   const [contactedLeads] = await db
     .select({ count: count() })
     .from(crmLeads)
-    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, 'contacted')));
+    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, STAGE_CONTACTED)));
 
   const [wonDeals] = await db
     .select({ count: count() })

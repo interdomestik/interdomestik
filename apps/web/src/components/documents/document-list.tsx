@@ -23,13 +23,8 @@ export function DocumentList({ documents }: Props) {
   const handleView = async (docId: string) => {
     setLoadingId(docId);
     try {
-      const res = await fetch(`/api/documents/${docId}`);
-      if (!res.ok) {
-        throw new Error('Failed to get document URL');
-      }
-      const data = await res.json();
-      // Open in new tab
-      window.open(data.url, '_blank');
+      // Open proxy stream in new tab so RBAC + access logs remain server-side.
+      window.open(`/api/documents/${docId}/download?disposition=inline`, '_blank');
     } catch (error) {
       console.error('Error fetching document:', error);
       alert(t('errors.view'));
@@ -41,14 +36,9 @@ export function DocumentList({ documents }: Props) {
   const handleDownload = async (docId: string, fileName: string) => {
     setLoadingId(docId);
     try {
-      const res = await fetch(`/api/documents/${docId}`);
-      if (!res.ok) {
-        throw new Error('Failed to get document URL');
-      }
-      const data = await res.json();
-
-      // Fetch the file and trigger download
-      const fileRes = await fetch(data.url);
+      // Fetch via proxy so RBAC + access logs remain server-side.
+      const fileRes = await fetch(`/api/documents/${docId}/download`);
+      if (!fileRes.ok) throw new Error('Failed to download file');
       const blob = await fileRes.blob();
       const url = URL.createObjectURL(blob);
 

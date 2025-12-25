@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { db } from '@interdomestik/database';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
@@ -6,7 +7,15 @@ import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = await enforceRateLimit({
+    name: 'api/settings/notifications:get',
+    limit: 30,
+    windowSeconds: 60,
+    headers: request.headers,
+  });
+  if (limited) return limited;
+
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -50,6 +59,14 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const limited = await enforceRateLimit({
+    name: 'api/settings/notifications:post',
+    limit: 15,
+    windowSeconds: 60,
+    headers: request.headers,
+  });
+  if (limited) return limited;
+
   try {
     const session = await auth.api.getSession({
       headers: await headers(),

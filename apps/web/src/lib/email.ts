@@ -8,6 +8,7 @@ import {
   renderNewMessageEmail,
   renderNewsletterEmail,
   renderOnboardingEmail,
+  renderPasswordResetEmail,
   renderPaymentFailedEmail,
   renderPaymentFinalWarningEmail,
   renderPaymentReminderEmail,
@@ -202,6 +203,11 @@ export async function sendMemberWelcomeEmail(
 ) {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderMemberWelcomeEmail(params));
+}
+
+export async function sendPasswordResetEmail(to: string, resetUrl: string) {
+  if (!to) return { success: false, error: 'Missing recipient email' };
+  return sendEmail(to, renderPasswordResetEmail({ resetUrl }));
 }
 
 // ============================================================================

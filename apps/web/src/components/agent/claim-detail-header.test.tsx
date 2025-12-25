@@ -33,10 +33,15 @@ vi.mock('@interdomestik/ui', () => ({
   Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   Button: ({
     children,
+    asChild: _asChild,
+    variant: _variant,
+    size: _size,
     ...props
   }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
     children: React.ReactNode;
     asChild?: boolean;
+    variant?: string;
+    size?: string;
   }) => <button {...props}>{children}</button>,
 }));
 

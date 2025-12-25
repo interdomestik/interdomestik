@@ -32,6 +32,23 @@ const AUTH_OK_LOCATOR = '[data-testid="user-nav"]';
 
 type Role = 'member' | 'admin' | 'agent' | 'staff';
 
+function ipForRole(role: Role): string {
+  // If rate limiting is enabled in e2e (Upstash env vars set), many requests can otherwise
+  // end up keyed under IP=unknown. Give each role a stable, distinct IP.
+  switch (role) {
+    case 'member':
+      return '10.0.0.11';
+    case 'admin':
+      return '10.0.0.12';
+    case 'agent':
+      return '10.0.0.13';
+    case 'staff':
+      return '10.0.0.14';
+    default:
+      return '10.0.0.10';
+  }
+}
+
 const CREDS: Record<Role, { email: string; password: string; name: string }> = {
   member: {
     email: 'test@interdomestik.com',
@@ -172,6 +189,13 @@ export const test = base.extend<AuthFixtures>({
   saveState: async ({ page }, use) => {
     await use(async (role: Role) => {
       await performLogin(page, role);
+
+      // Give the post-login route a chance to finish streaming/hydration.
+      // This reduces noisy server logs (aborted/partial JSON) when Playwright
+      // snapshots storageState and closes the context shortly after login.
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      await page.waitForLoadState('networkidle', { timeout: 3_000 }).catch(() => {});
+
       const out = path.join(__dirname, '.auth', `${role}.json`);
       await fs.mkdir(path.dirname(out), { recursive: true });
       await page.context().storageState({ path: out });
@@ -184,9 +208,12 @@ export const test = base.extend<AuthFixtures>({
    */
   authenticatedPage: async ({ browser }, use) => {
     const statePath = storageStateFile('member');
-    const context = await browser.newContext(
-      (await storageStateExists(statePath)) ? { storageState: statePath } : undefined
-    );
+    const context = await browser.newContext({
+      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      extraHTTPHeaders: {
+        'x-forwarded-for': ipForRole('member'),
+      },
+    });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
       await performLogin(page, 'member');
@@ -200,9 +227,12 @@ export const test = base.extend<AuthFixtures>({
    */
   adminPage: async ({ browser }, use) => {
     const statePath = storageStateFile('admin');
-    const context = await browser.newContext(
-      (await storageStateExists(statePath)) ? { storageState: statePath } : undefined
-    );
+    const context = await browser.newContext({
+      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      extraHTTPHeaders: {
+        'x-forwarded-for': ipForRole('admin'),
+      },
+    });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
       await performLogin(page, 'admin');
@@ -216,9 +246,12 @@ export const test = base.extend<AuthFixtures>({
    */
   agentPage: async ({ browser }, use) => {
     const statePath = storageStateFile('agent');
-    const context = await browser.newContext(
-      (await storageStateExists(statePath)) ? { storageState: statePath } : undefined
-    );
+    const context = await browser.newContext({
+      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      extraHTTPHeaders: {
+        'x-forwarded-for': ipForRole('agent'),
+      },
+    });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
       await performLogin(page, 'agent');
@@ -232,9 +265,12 @@ export const test = base.extend<AuthFixtures>({
    */
   staffPage: async ({ browser }, use) => {
     const statePath = storageStateFile('staff');
-    const context = await browser.newContext(
-      (await storageStateExists(statePath)) ? { storageState: statePath } : undefined
-    );
+    const context = await browser.newContext({
+      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      extraHTTPHeaders: {
+        'x-forwarded-for': ipForRole('staff'),
+      },
+    });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
       await performLogin(page, 'staff');

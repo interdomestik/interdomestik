@@ -76,6 +76,7 @@ export default defineConfig({
           env: {
             NEXT_PUBLIC_APP_URL: BASE_URL,
             BETTER_AUTH_URL: BASE_URL,
+            INTERDOMESTIK_AUTOMATED: '1',
           },
         },
       }),

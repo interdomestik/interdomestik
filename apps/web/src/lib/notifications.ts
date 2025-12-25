@@ -43,7 +43,7 @@ export async function sendNotification(
       content,
       actionUrl: options?.actionUrl || null,
       isRead: false,
-    } as any);
+    });
 
     return { success: true };
   } catch (error) {

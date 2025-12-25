@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import {
   and,
   claimMessages,
@@ -10,20 +11,12 @@ import {
   or,
   user,
 } from '@interdomestik/database';
-import { SQL, count, desc, isNull, ne } from 'drizzle-orm';
+import { CLAIM_STATUSES } from '@interdomestik/database/constants';
+import { SQL, count, desc, isNotNull, isNull, ne } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-const VALID_STATUSES = [
-  'draft',
-  'submitted',
-  'verification',
-  'evaluation',
-  'negotiation',
-  'court',
-  'resolved',
-  'rejected',
-] as const;
+const VALID_STATUSES = CLAIM_STATUSES;
 
 const MAX_PER_PAGE = 50;
 
@@ -38,6 +31,14 @@ function clampPerPage(value: number, fallback: number) {
 }
 
 export async function GET(request: Request) {
+  const limited = await enforceRateLimit({
+    name: 'api/claims',
+    limit: 60,
+    windowSeconds: 60,
+    headers: request.headers,
+  });
+  if (limited) return limited;
+
   const requestHeaders = await headers();
   const session = await auth.api.getSession({ headers: requestHeaders });
 
@@ -95,6 +96,10 @@ export async function GET(request: Request) {
     conditions.push(eq(claims.staffId, session.user.id));
   }
 
+  if (scope === 'staff_queue' && isAdmin && !isStaff) {
+    conditions.push(isNotNull(claims.staffId));
+  }
+
   if (scope === 'staff_unassigned') {
     conditions.push(isNull(claims.staffId));
     conditions.push(ne(claims.status, 'draft'));
@@ -105,9 +110,9 @@ export async function GET(request: Request) {
       // Agents only see claims from users they manage
       conditions.push(eq(user.agentId, session.user.id));
     }
-    // Admins can see all in agent queue if they want, or we restrict them too?
-    // Usually admins see everything. But if they request agent_queue without being an agent, it's weird.
-    // Let's assume admins can see all or debugging.
+    if (isAdmin && !isAgent) {
+      conditions.push(isNotNull(user.agentId));
+    }
   }
 
   if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {

@@ -79,7 +79,8 @@ describe('GET /api/settings/notifications', () => {
   it('should return 401 if user is not authenticated', async () => {
     hoistedMocks.getSession.mockResolvedValue(null);
 
-    const response = await GET();
+    const request = new Request('http://localhost:3000/api/settings/notifications');
+    const response = await GET(request);
     const data = await response.json();
 
     expect(response.status).toBe(401);
@@ -92,7 +93,8 @@ describe('GET /api/settings/notifications', () => {
     });
     mockSelectChain.limit.mockReturnValue([]);
 
-    const response = await GET();
+    const request = new Request('http://localhost:3000/api/settings/notifications');
+    const response = await GET(request);
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -121,7 +123,8 @@ describe('GET /api/settings/notifications', () => {
       },
     ]);
 
-    const response = await GET();
+    const request = new Request('http://localhost:3000/api/settings/notifications');
+    const response = await GET(request);
     const data = await response.json();
 
     expect(response.status).toBe(200);
@@ -141,8 +144,13 @@ describe('GET /api/settings/notifications', () => {
     });
     mockSelectChain.limit.mockRejectedValue(new Error('DB Error'));
 
-    const response = await GET();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const request = new Request('http://localhost:3000/api/settings/notifications');
+    const response = await GET(request);
     const data = await response.json();
+
+    consoleErrorSpy.mockRestore();
 
     expect(response.status).toBe(500);
     expect(data).toEqual({ error: 'Failed to fetch preferences' });
@@ -267,6 +275,8 @@ describe('POST /api/settings/notifications', () => {
     mockSelectChain.limit.mockReturnValue([]);
     mockInsertChain.values.mockRejectedValue(new Error('DB Error'));
 
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     const request = new Request('http://localhost:3000/api/settings/notifications', {
       method: 'POST',
       body: JSON.stringify({
@@ -281,6 +291,8 @@ describe('POST /api/settings/notifications', () => {
 
     const response = await POST(request);
     const data = await response.json();
+
+    consoleErrorSpy.mockRestore();
 
     expect(response.status).toBe(500);
     expect(data).toEqual({ error: 'Failed to save preferences' });
@@ -293,6 +305,8 @@ describe('POST /api/settings/notifications', () => {
     mockSelectChain.limit.mockReturnValue([{ id: 'pref-123' }]);
     mockUpdateChain.where.mockRejectedValue(new Error('DB Error'));
 
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
     const request = new Request('http://localhost:3000/api/settings/notifications', {
       method: 'POST',
       body: JSON.stringify({
@@ -307,6 +321,8 @@ describe('POST /api/settings/notifications', () => {
 
     const response = await POST(request);
     const data = await response.json();
+
+    consoleErrorSpy.mockRestore();
 
     expect(response.status).toBe(500);
     expect(data).toEqual({ error: 'Failed to save preferences' });

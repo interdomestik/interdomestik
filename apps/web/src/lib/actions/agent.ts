@@ -3,6 +3,7 @@
 import { auth } from '@/lib/auth';
 import { sendMemberWelcomeEmail } from '@/lib/email';
 import { generateMemberNumber } from '@/utils/member';
+import { LEAD_STAGES, type LeadStage } from '@interdomestik/database/constants';
 import { db } from '@interdomestik/database/db';
 import {
   agentClients,
@@ -18,9 +19,13 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
+function isLeadStage(value: unknown): value is LeadStage {
+  return LEAD_STAGES.includes(value as LeadStage);
+}
+
 const createLeadSchema = z.object({
   type: z.enum(['individual', 'business']),
-  stage: z.enum(['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost']),
+  stage: z.enum(LEAD_STAGES),
   fullName: z.string().min(2, 'Name is required'),
   companyName: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
@@ -97,16 +102,11 @@ export async function updateLeadStatus(leadId: string, stage: string) {
   }
 
   // Validate stage
-  const validStages = ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'];
-  if (!validStages.includes(stage)) {
+  if (!isLeadStage(stage)) {
     return { error: 'Invalid stage' };
   }
 
-  await db
-    .update(crmLeads)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .set({ stage: stage as any, updatedAt: new Date() })
-    .where(eq(crmLeads.id, leadId));
+  await db.update(crmLeads).set({ stage, updatedAt: new Date() }).where(eq(crmLeads.id, leadId));
 
   revalidatePath(`/agent/leads/${leadId}`);
   revalidatePath('/agent/leads');

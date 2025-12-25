@@ -1,10 +1,11 @@
 'use client';
 
 import { useRouter } from '@/i18n/routing';
+import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { Badge, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 
 export function AgentClaimsFilters() {
   const router = useRouter();
@@ -17,14 +18,7 @@ export function AgentClaimsFilters() {
 
   const statusOptions = [
     { value: 'all', label: tCommon('all') },
-    { value: 'draft', label: tStatus('draft') },
-    { value: 'submitted', label: tStatus('submitted') },
-    { value: 'verification', label: tStatus('verification') },
-    { value: 'evaluation', label: tStatus('evaluation') },
-    { value: 'negotiation', label: tStatus('negotiation') },
-    { value: 'court', label: tStatus('court') },
-    { value: 'resolved', label: tStatus('resolved') },
-    { value: 'rejected', label: tStatus('rejected') },
+    ...CLAIM_STATUSES.map(status => ({ value: status, label: tStatus(status) })),
   ];
 
   const handleStatusChange = (status: string) => {
