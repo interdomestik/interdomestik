@@ -89,7 +89,7 @@ export function ClaimActionPanel({
           </p>
         </div>
         {!isAssignedToMe && (
-          <Button size="sm" onClick={handleAssign} disabled={isPending || !!assigneeId}>
+          <Button size="sm" onClick={handleAssign} disabled={isPending}>
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {assigneeId ? 'Reassign to Me' : 'Assign to Me'}
           </Button>
