@@ -213,6 +213,44 @@ This file is continuously updated as entrypoints are modularized across the repo
   - `pnpm -C apps/web vitest run "src/app/[locale]/admin/analytics/_core.test.ts"`
   - `pnpm -C apps/web typecheck`
 
+### Page: Admin User Profile
+
+- Added shared core module: [apps/web/src/app/[locale]/admin/users/[id]/\_core.ts](apps/web/src/app/[locale]/admin/users/[id]/_core.ts)
+- Refactored page to thin wrapper: [apps/web/src/app/[locale]/admin/users/[id]/page.tsx](apps/web/src/app/[locale]/admin/users/[id]/page.tsx)
+- Added tests: [apps/web/src/app/[locale]/admin/users/[id]/\_core.test.ts](apps/web/src/app/[locale]/admin/users/[id]/_core.test.ts)
+- Verification:
+  - `pnpm -C apps/web vitest run "src/app/[locale]/admin/users/[id]/_core.test.ts"`
+  - `pnpm -C apps/web typecheck`
+
+### Libs: Core/Wrappers
+
+- Split implementation into `*.core.ts` and kept stable import paths via thin wrapper re-exports:
+  - [apps/web/src/lib/cron-service.core.ts](apps/web/src/lib/cron-service.core.ts) + [apps/web/src/lib/cron-service.ts](apps/web/src/lib/cron-service.ts)
+  - [apps/web/src/lib/push.core.ts](apps/web/src/lib/push.core.ts) + [apps/web/src/lib/push.ts](apps/web/src/lib/push.ts)
+  - [apps/web/src/lib/notifications.core.ts](apps/web/src/lib/notifications.core.ts) + [apps/web/src/lib/notifications.ts](apps/web/src/lib/notifications.ts)
+- Verification (push/notifications):
+  - `pnpm -C apps/web vitest run src/lib/push.test.ts src/lib/notifications.test.ts`
+  - `pnpm -C apps/web typecheck`
+
+### Actions: Messages (Send)
+
+- Extracted DB/audit logic into core module: [apps/web/src/actions/messages/send.core.ts](apps/web/src/actions/messages/send.core.ts)
+- Kept action wrapper focused on Next revalidation + notifications: [apps/web/src/actions/messages/send.ts](apps/web/src/actions/messages/send.ts)
+- Added tests: [apps/web/src/actions/messages/send.core.test.ts](apps/web/src/actions/messages/send.core.test.ts)
+- Verification:
+  - `pnpm -C apps/web test:unit -- src/actions/messages/send.core.test.ts`
+  - `pnpm -C apps/web typecheck`
+
+### Autopilot: Entrypoints + Modules (Including Small Files)
+
+- Applied repo-wide mechanical modularization using [scripts/modularize-autopilot.mjs](scripts/modularize-autopilot.mjs):
+  - Entrypoints (`page.tsx`/`layout.tsx`/`route.ts`) moved to sibling `_core.ts` / `_core.entry.tsx` and replaced with thin re-export wrappers.
+  - Module files under `apps/web/src/lib` + `apps/web/src/actions` moved to sibling `*.core.ts(x)` and replaced with thin re-export wrappers.
+  - Wrapper generation preserves default exports to avoid breaking default imports.
+- Verification:
+  - `pnpm -C apps/web typecheck`
+  - `pnpm -C apps/web test:unit`
+
 ### Verification (Batch)
 
 - `pnpm vitest run src/app/api/cron/dunning/route.test.ts src/app/api/cron/nps/route.test.ts src/app/api/cron/engagement/route.test.ts src/app/api/webhooks/paddle/route.test.ts src/app/api/public/nps/route.test.ts`
