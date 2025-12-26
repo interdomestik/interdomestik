@@ -1,9 +1,10 @@
 import { expect, test } from './fixtures/auth.fixture';
+import { routes } from './routes';
 
 test.describe('Pricing Page', () => {
   test('Public: Unauthenticated user should see pricing table', async ({ page }) => {
     // 1. Visit Pricing Page
-    await page.goto('/pricing');
+    await page.goto(routes.pricing('en'));
 
     // 2. Verify Title
     await expect(page.locator('h1')).toBeVisible();
@@ -25,7 +26,7 @@ test.describe('Pricing Page', () => {
   // Skipped until database is available for seeding users
   test('Authenticated: User should see pricing table and plans', async ({ authenticatedPage }) => {
     // 1. Visit Pricing Page as logged in user
-    await authenticatedPage.goto('/pricing');
+    await authenticatedPage.goto(routes.pricing('en'));
 
     // 2. Verify Plan Cards are visible
     // "Basic", "Pro", etc.
@@ -68,7 +69,7 @@ test.describe('Pricing Page', () => {
       } as Record<string, unknown>;
     });
 
-    await authenticatedPage.goto('/pricing');
+    await authenticatedPage.goto(routes.pricing('en'));
 
     // Find the 'Asistenca' plan card and click its button
     // Strategy: Find heading 'Asistenca', go up to card, then find button

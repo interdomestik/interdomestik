@@ -10,11 +10,12 @@
  */
 
 import { expect, test } from './fixtures/auth.fixture';
+import { routes } from './routes';
 
 test.describe('Admin User Flow', () => {
   test.describe('Dashboard Access', () => {
     test('Admin can access admin dashboard', async ({ adminPage: page }) => {
-      await page.goto('/en/admin');
+      await page.goto(routes.admin());
 
       // Should be on admin dashboard
       await expect(page).toHaveURL(/.*\/admin/);
@@ -24,7 +25,7 @@ test.describe('Admin User Flow', () => {
     });
 
     test('Admin can see dashboard content', async ({ adminPage: page }) => {
-      await page.goto('/en/admin');
+      await page.goto(routes.admin());
 
       // Check for main content area
       const mainContent = page.locator('main').first();
@@ -32,7 +33,7 @@ test.describe('Admin User Flow', () => {
     });
 
     test('Admin can see recent activity', async ({ adminPage: page }) => {
-      await page.goto('/en/admin');
+      await page.goto(routes.admin());
 
       // Look for recent activity section
       await expect(page.getByText(/Recent Activity/i)).toBeVisible();
@@ -41,7 +42,7 @@ test.describe('Admin User Flow', () => {
 
   test.describe('Claims Management', () => {
     test('Admin can access claims management page', async ({ adminPage: page }) => {
-      await page.goto('/en/admin/claims');
+      await page.goto(routes.adminClaims());
 
       // Should see claims management
       await expect(
@@ -50,7 +51,7 @@ test.describe('Admin User Flow', () => {
     });
 
     test('Admin can see claims table', async ({ adminPage: page }) => {
-      await page.goto('/en/admin/claims');
+      await page.goto(routes.adminClaims());
 
       // Should see claims table or content
       await expect(page.locator('main').first()).toBeVisible();
@@ -64,7 +65,7 @@ test.describe('Admin User Flow', () => {
     });
 
     test('Admin page loads claims data', async ({ adminPage: page }) => {
-      await page.goto('/en/admin/claims');
+      await page.goto(routes.adminClaims());
 
       // Check that the page renders without errors
       await expect(page.locator('body')).toContainText('Claim', { ignoreCase: true });
@@ -73,14 +74,14 @@ test.describe('Admin User Flow', () => {
 
   test.describe('User Management', () => {
     test('Admin can access user management page', async ({ adminPage: page }) => {
-      await page.goto('/en/admin/users');
+      await page.goto(routes.adminUsers());
 
       // Should see user management heading (Matches "Members" from translations)
       await expect(page.getByRole('heading', { name: /Members/i, level: 1 })).toBeVisible();
     });
 
     test('Admin can see user content', async ({ adminPage: page }) => {
-      await page.goto('/en/admin/users');
+      await page.goto(routes.adminUsers());
 
       // Should see user-related content
       const mainContent = page.locator('main').first();
@@ -90,7 +91,7 @@ test.describe('Admin User Flow', () => {
 
   test.describe('Analytics', () => {
     test('Admin can access analytics page', async ({ adminPage: page }) => {
-      await page.goto('/en/admin/analytics');
+      await page.goto(routes.adminAnalytics());
 
       // Should see analytics content
       await expect(page.locator('body')).toContainText('Analytics', { ignoreCase: true });
@@ -99,7 +100,7 @@ test.describe('Admin User Flow', () => {
 
   test.describe('Settings', () => {
     test('Admin can access admin settings', async ({ adminPage: page }) => {
-      await page.goto('/en/admin/settings');
+      await page.goto(routes.adminSettings());
 
       // Should see admin settings
       await expect(
@@ -110,7 +111,7 @@ test.describe('Admin User Flow', () => {
 
   test.describe('Navigation', () => {
     test('Admin sidebar has navigation links', async ({ adminPage: page, isMobile }) => {
-      await page.goto('/en/admin');
+      await page.goto(routes.admin());
 
       if (isMobile) {
         await page.getByRole('button', { name: /toggle sidebar/i }).click();
@@ -124,7 +125,7 @@ test.describe('Admin User Flow', () => {
     });
 
     test('Admin can navigate to different sections', async ({ adminPage: page, isMobile }) => {
-      await page.goto('/en/admin');
+      await page.goto(routes.admin());
 
       if (isMobile) {
         await page.getByRole('button', { name: /toggle sidebar/i }).click();
@@ -141,7 +142,7 @@ test.describe('Admin User Flow', () => {
 
   test.describe('Access Control', () => {
     test('Non-admin is denied access to admin routes', async ({ authenticatedPage: page }) => {
-      await page.goto('/en/admin');
+      await page.goto(routes.admin());
 
       // Regular user should be redirected away from admin
       await expect(page).not.toHaveURL(/\/admin$/);

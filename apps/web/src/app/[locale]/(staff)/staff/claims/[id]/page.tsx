@@ -5,7 +5,6 @@ import { ClaimMessenger } from '@/components/shared/claim-messenger';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { ClaimTriageNotes } from '@/components/staff/claim-triage-notes';
 import { auth } from '@/lib/auth';
-import { claimDocuments, claimStageHistory, claims, db, eq, user } from '@interdomestik/database';
 import {
   Card,
   CardContent,
@@ -16,11 +15,12 @@ import {
   TabsList,
   TabsTrigger,
 } from '@interdomestik/ui';
-import { desc } from 'drizzle-orm';
 import { FileText, MessageSquare, ShieldAlert } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+
+import { getStaffClaimDetailsCore } from './_core';
 
 interface PageProps {
   params: Promise<{
@@ -41,41 +41,10 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     return notFound();
   }
 
-  const claim = await db.query.claims.findFirst({
-    where: eq(claims.id, id),
-    with: {
-      user: true,
-    },
-  });
+  const result = await getStaffClaimDetailsCore({ claimId: id });
+  if (result.kind !== 'ok') return notFound();
 
-  if (!claim) return notFound();
-
-  const documents = await db
-    .select({
-      id: claimDocuments.id,
-      name: claimDocuments.name,
-      fileSize: claimDocuments.fileSize,
-      fileType: claimDocuments.fileType,
-      createdAt: claimDocuments.createdAt,
-    })
-    .from(claimDocuments)
-    .where(eq(claimDocuments.claimId, id));
-
-  const stageHistory = await db
-    .select({
-      id: claimStageHistory.id,
-      fromStatus: claimStageHistory.fromStatus,
-      toStatus: claimStageHistory.toStatus,
-      note: claimStageHistory.note,
-      isPublic: claimStageHistory.isPublic,
-      createdAt: claimStageHistory.createdAt,
-      changedByName: user.name,
-      changedByEmail: user.email,
-    })
-    .from(claimStageHistory)
-    .leftJoin(user, eq(claimStageHistory.changedById, user.id))
-    .where(eq(claimStageHistory.claimId, id))
-    .orderBy(desc(claimStageHistory.createdAt));
+  const { claim, documents, stageHistory } = result;
 
   const t = await getTranslations('agent-claims.claims');
 
@@ -107,7 +76,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
               </TabsContent>
 
               <TabsContent value="documents">
-                <ClaimDocumentsPane documents={documents.map(d => ({ ...d, fileName: d.name }))} />
+                <ClaimDocumentsPane documents={documents} />
               </TabsContent>
 
               <TabsContent value="triage">

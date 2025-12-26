@@ -1,7 +1,8 @@
 'use client';
 
 import { updateUserAgent } from '@/actions/admin-users';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
+import { isMember } from '@/lib/roles';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
@@ -21,7 +22,6 @@ import {
   TableRow,
 } from '@interdomestik/ui/components/table';
 import { useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/routing';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -147,7 +147,7 @@ export function UsersTable({
               <Badge variant="outline">{tCommon(`roles.${user.role}`)}</Badge>
             </TableCell>
             <TableCell>
-              {user.role === 'user' ? (
+              {isMember(user.role) ? (
                 <Select
                   disabled={loadingId === user.id}
                   value={assignedAgents[user.id] || 'unassigned'}

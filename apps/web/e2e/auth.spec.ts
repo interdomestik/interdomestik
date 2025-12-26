@@ -5,11 +5,12 @@
  */
 
 import { expect, isLoggedIn, test } from './fixtures/auth.fixture';
+import { routes } from './routes';
 
 test.describe('Authentication', () => {
   test.describe('Login Page', () => {
     test('should display login form', async ({ page }) => {
-      await page.goto('/login');
+      await page.goto(routes.login());
 
       // Check for form elements
       await expect(page.locator('input[name="email"], input[type="email"]')).toBeVisible();
@@ -18,7 +19,7 @@ test.describe('Authentication', () => {
     });
 
     test('should show validation error for empty email', async ({ page }) => {
-      await page.goto('/login');
+      await page.goto(routes.login());
 
       // Submit empty form
       await page.click('button[type="submit"]');
@@ -35,7 +36,7 @@ test.describe('Authentication', () => {
     });
 
     test('should show validation error for invalid email format', async ({ page }) => {
-      await page.goto('/login');
+      await page.goto(routes.login());
 
       await page.fill('input[name="email"], input[type="email"]', 'not-an-email');
       await page.fill('input[name="password"], input[type="password"]', 'somepassword');
@@ -51,7 +52,7 @@ test.describe('Authentication', () => {
     });
 
     test('should have link to registration', async ({ page }) => {
-      await page.goto('/login');
+      await page.goto(routes.login());
 
       const registerLink = page.locator('a[href*="register"], a[href*="signup"]');
 
@@ -61,7 +62,7 @@ test.describe('Authentication', () => {
     });
 
     test('should have forgot password link', async ({ page }) => {
-      await page.goto('/login');
+      await page.goto(routes.login());
 
       const forgotLink = page.locator('a:has-text("forgot"), a[href*="forgot"], a[href*="reset"]');
 
@@ -73,7 +74,7 @@ test.describe('Authentication', () => {
 
   test.describe('Protected Routes', () => {
     test('should redirect /member to login when not authenticated', async ({ page }) => {
-      await page.goto('/member');
+      await page.goto(routes.member());
 
       // Should be redirected to login
       await page.waitForURL(/.*login.*/);
@@ -81,7 +82,7 @@ test.describe('Authentication', () => {
     });
 
     test('should redirect /member/claims to login when not authenticated', async ({ page }) => {
-      await page.goto('/member/claims');
+      await page.goto(routes.memberClaims());
 
       // Should be redirected to login
       await page.waitForURL(/.*login.*/);
@@ -89,7 +90,7 @@ test.describe('Authentication', () => {
     });
 
     test('should redirect /member/settings to login when not authenticated', async ({ page }) => {
-      await page.goto('/member/settings');
+      await page.goto(routes.memberSettings());
 
       // Wait for redirect
       await page.waitForURL(/.*(login|auth\/sign-in|\/en\/?$|\/sq\/?$).*/, { timeout: 10000 });
@@ -101,7 +102,7 @@ test.describe('Authentication', () => {
     test('should allow member portal when authenticated fixture is used', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/member');
+      await authenticatedPage.goto(routes.member());
       // Wait for page to fully load (WebKit needs this for auth state)
       await authenticatedPage.waitForLoadState('domcontentloaded');
       await authenticatedPage.waitForTimeout(1000);
@@ -114,7 +115,7 @@ test.describe('Authentication', () => {
 
   test.describe('Register Page', () => {
     test('should display registration form if available', async ({ page }) => {
-      await page.goto('/register');
+      await page.goto(routes.register());
       await page.waitForLoadState('domcontentloaded');
 
       // Check if register page exists (might redirect to login)
@@ -135,7 +136,7 @@ test.describe('Authentication', () => {
     });
 
     test('should have terms and conditions checkbox if required', async ({ page }) => {
-      await page.goto('/register');
+      await page.goto(routes.register());
 
       const termsCheckbox = page.locator('input[type="checkbox"]');
 
@@ -148,7 +149,7 @@ test.describe('Authentication', () => {
   test.describe('Locale Handling', () => {
     test('should maintain locale after login attempt', async ({ page }) => {
       // Go to Albanian login page
-      await page.goto('/sq/login');
+      await page.goto(routes.login('sq'));
 
       // Fill form and submit
       await page.fill('input[name="email"], input[type="email"]', 'test@interdomestik.com');
@@ -163,14 +164,14 @@ test.describe('Authentication', () => {
     });
 
     test('should display login page in English', async ({ page }) => {
-      await page.goto('/en/login');
+      await page.goto(routes.login('en'));
 
       // Check page is in English locale
       expect(page.url()).toContain('/en/');
     });
 
     test('should display login page in Albanian', async ({ page }) => {
-      await page.goto('/sq/login');
+      await page.goto(routes.login('sq'));
 
       // Check page is in Albanian locale
       expect(page.url()).toContain('/sq/');

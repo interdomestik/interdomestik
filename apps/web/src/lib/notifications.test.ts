@@ -19,6 +19,10 @@ vi.mock('@/lib/email', () => ({
   sendStatusChangedEmail: vi.fn().mockResolvedValue({}),
 }));
 
+vi.mock('@/lib/push', () => ({
+  sendPushToUser: vi.fn().mockResolvedValue({ success: true, okCount: 1, failCount: 0 }),
+}));
+
 import {
   notifyClaimAssigned,
   notifyClaimSubmitted,

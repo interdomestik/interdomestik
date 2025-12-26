@@ -13,6 +13,11 @@ describe('markMessagesAsRead', () => {
     resetMocks();
   });
 
+  beforeEach(async () => {
+    const { headers } = await import('next/headers');
+    (headers as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
+  });
+
   it('should fail if user is not authenticated', async () => {
     mocks.getSession.mockResolvedValue(null);
 

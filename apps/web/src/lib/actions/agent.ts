@@ -1,237 +1,80 @@
 'use server';
 
-import { auth } from '@/lib/auth';
-import { sendMemberWelcomeEmail } from '@/lib/email';
-import { generateMemberNumber } from '@/utils/member';
-import { LEAD_STAGES, type LeadStage } from '@interdomestik/database/constants';
-import { db } from '@interdomestik/database/db';
-import {
-  agentClients,
-  crmActivities,
-  crmLeads,
-  subscriptions,
-  user as userTable,
-} from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { z } from 'zod';
-
-function isLeadStage(value: unknown): value is LeadStage {
-  return LEAD_STAGES.includes(value as LeadStage);
-}
-
-const createLeadSchema = z.object({
-  type: z.enum(['individual', 'business']),
-  stage: z.enum(LEAD_STAGES),
-  fullName: z.string().min(2, 'Name is required'),
-  companyName: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().min(6, 'Phone is required'),
-  source: z.string().min(1, 'Source is required'),
-  notes: z.string().optional(),
-});
+import { getAgentSession } from './agent/context';
+import { createLeadCore } from './agent/create-lead';
+import { logActivityCore } from './agent/log-activity';
+import { registerMemberCore } from './agent/register-member';
+import { updateLeadStatusCore } from './agent/update-lead-status';
 
 export async function createLead(prevState: unknown, formData: FormData) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user || session.user.role !== 'agent') {
-    return { error: 'Unauthorized' };
+  const session = await getAgentSession();
+  if (!session) {
+    return { error: 'Unauthorized', fields: undefined };
   }
 
-  const rawData = {
-    type: formData.get('type'),
-    stage: formData.get('stage'),
-    fullName: formData.get('fullName'),
-    companyName: formData.get('companyName')?.toString() || undefined,
-    email: formData.get('email')?.toString() || undefined,
-    phone: formData.get('phone'),
-    source: formData.get('source'),
-    notes: formData.get('notes')?.toString() || undefined,
-  };
-
-  const validated = createLeadSchema.safeParse(rawData);
-
-  if (!validated.success) {
+  const result = await createLeadCore(session.user.id, formData);
+  if (!result.ok) {
     return {
-      error: 'Validation failed',
-      fields: validated.error.flatten().fieldErrors,
+      error: result.error,
+      fields: 'fields' in result ? result.fields : undefined,
     };
   }
 
-  try {
-    const newLeadId = nanoid();
-
-    await db.insert(crmLeads).values({
-      id: newLeadId,
-      agentId: session.user.id,
-      ...validated.data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    revalidatePath('/agent/leads');
-    revalidatePath('/agent/crm');
-  } catch (error) {
-    console.error('Failed to create lead:', error);
-    return { error: 'Failed to create lead' };
-  }
-
-  redirect(`/agent/leads`);
+  revalidatePath('/agent/leads');
+  revalidatePath('/agent/crm');
+  redirect('/agent/leads');
 }
 
 export async function updateLeadStatus(leadId: string, stage: string) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user || session.user.role !== 'agent') {
+  const session = await getAgentSession();
+  if (!session) {
     return { error: 'Unauthorized' };
   }
 
-  // Verify ownership
-  const lead = await db.query.crmLeads.findFirst({
-    where: eq(crmLeads.id, leadId),
-  });
-
-  if (!lead || lead.agentId !== session.user.id) {
-    return { error: 'Not found' };
+  const result = await updateLeadStatusCore(session.user.id, leadId, stage);
+  if ('error' in result) {
+    return result;
   }
-
-  // Validate stage
-  if (!isLeadStage(stage)) {
-    return { error: 'Invalid stage' };
-  }
-
-  await db.update(crmLeads).set({ stage, updatedAt: new Date() }).where(eq(crmLeads.id, leadId));
 
   revalidatePath(`/agent/leads/${leadId}`);
   revalidatePath('/agent/leads');
-  return { success: true };
+  return result;
 }
 
 export async function logActivity(leadId: string, type: string, summary: string) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user || session.user.role !== 'agent') {
+  const session = await getAgentSession();
+  if (!session) {
     return { error: 'Unauthorized' };
   }
 
-  // Verify ownership
-  const lead = await db.query.crmLeads.findFirst({
-    where: eq(crmLeads.id, leadId),
-  });
-
-  if (!lead || lead.agentId !== session.user.id) {
-    return { error: 'Not found' };
+  const result = await logActivityCore(session.user.id, leadId, type, summary);
+  if ('error' in result) {
+    return result;
   }
-
-  await db.insert(crmActivities).values({
-    id: nanoid(),
-    leadId,
-    agentId: session.user.id,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    type: type as any,
-    summary,
-    createdAt: new Date(),
-  });
 
   revalidatePath(`/agent/leads/${leadId}`);
-  return { success: true };
+  return result;
 }
-const registerMemberSchema = z.object({
-  fullName: z.string().min(2, 'Name is required'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().min(5, 'Phone is required'),
-  planId: z.enum(['standard', 'family']),
-  notes: z.string().optional(),
-});
 
 export async function registerMember(prevState: unknown, formData: FormData) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user || session.user.role !== 'agent') {
-    return { error: 'Unauthorized' };
+  const session = await getAgentSession();
+  if (!session) {
+    return { error: 'Unauthorized', fields: undefined };
   }
 
-  const rawData = {
-    fullName: formData.get('fullName'),
-    email: formData.get('email'),
-    phone: formData.get('phone'),
-    planId: formData.get('planId'),
-    notes: formData.get('notes') || undefined,
-  };
-
-  const validated = registerMemberSchema.safeParse(rawData);
-
-  if (!validated.success) {
+  const result = await registerMemberCore(
+    { id: session.user.id, name: session.user.name },
+    formData
+  );
+  if (!result.ok) {
     return {
-      error: 'Validation failed',
-      fields: validated.error.flatten().fieldErrors,
+      error: result.error,
+      fields: 'fields' in result ? result.fields : undefined,
     };
   }
 
-  const data = validated.data;
-  const userId = nanoid();
-
-  try {
-    await db.transaction(async tx => {
-      // 1. Create User
-      await tx.insert(userTable).values({
-        id: userId,
-        name: data.fullName,
-        email: data.email,
-        emailVerified: false,
-        memberNumber: generateMemberNumber(),
-        role: 'user',
-        agentId: session.user.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      // 2. Link Agent
-      await tx.insert(agentClients).values({
-        id: nanoid(),
-        agentId: session.user.id,
-        memberId: userId,
-        status: 'active',
-        joinedAt: new Date(),
-        createdAt: new Date(),
-      });
-
-      // 3. Create Subscription (Manual/Trial)
-      const expiry = new Date();
-      expiry.setFullYear(expiry.getFullYear() + 1);
-
-      await tx.insert(subscriptions).values({
-        id: nanoid(),
-        userId: userId,
-        planId: data.planId,
-        status: 'active',
-        currentPeriodEnd: expiry,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    });
-
-    // 4. Send Welcome Email
-    await sendMemberWelcomeEmail(data.email, {
-      memberName: data.fullName,
-      agentName: session.user.name || 'Your Agent',
-    });
-
-    revalidatePath('/agent/clients');
-  } catch (err) {
-    console.error('Registration failed:', err);
-    return { error: 'Failed to register member. Email might already exist.' };
-  }
-
+  revalidatePath('/agent/clients');
   redirect('/agent/clients');
 }

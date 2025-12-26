@@ -1,5 +1,4 @@
 import { auth } from '@/lib/auth';
-import { db, eq, subscriptions } from '@interdomestik/database';
 import {
   Button,
   Card,
@@ -18,19 +17,7 @@ import { redirect } from 'next/navigation';
 import { ManageSubscriptionButton } from './components/manage-subscription-button';
 import { UpdatePaymentButton } from './components/update-payment-button';
 
-// Helper to calculate days remaining in grace period
-function getDaysRemaining(endDate: Date | null): number {
-  if (!endDate) return 0;
-  const now = new Date();
-  const diff = endDate.getTime() - now.getTime();
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-}
-
-// Helper to check if grace period has expired
-function isGracePeriodExpired(endDate: Date | null): boolean {
-  if (!endDate) return false;
-  return new Date() > endDate;
-}
+import { getMembershipPageModelCore } from './_core';
 
 export default async function MembershipPage() {
   const session = await auth.api.getSession({
@@ -43,17 +30,11 @@ export default async function MembershipPage() {
 
   const t = await getTranslations('membership');
 
-  const subscription = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, session.user.id),
+  const { subscription, dunning } = await getMembershipPageModelCore({
+    userId: session.user.id,
   });
 
-  const isPastDue = subscription?.status === 'past_due';
-  const isInGracePeriod =
-    isPastDue &&
-    subscription?.gracePeriodEndsAt &&
-    !isGracePeriodExpired(subscription.gracePeriodEndsAt);
-  const daysRemaining = getDaysRemaining(subscription?.gracePeriodEndsAt || null);
-  const isGraceExpired = isPastDue && isGracePeriodExpired(subscription?.gracePeriodEndsAt || null);
+  const { isPastDue, isInGracePeriod, isGraceExpired, daysRemaining } = dunning;
 
   return (
     <div className="space-y-6">
@@ -63,7 +44,7 @@ export default async function MembershipPage() {
       </div>
 
       {/* DUNNING: Grace Period Warning Banner */}
-      {isPastDue && isInGracePeriod && (
+      {subscription && isPastDue && isInGracePeriod && (
         <div className="rounded-lg border-2 border-orange-500 bg-orange-50 p-4 dark:bg-orange-950/30">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
@@ -90,7 +71,7 @@ export default async function MembershipPage() {
       )}
 
       {/* DUNNING: Locked State - Grace Period Expired */}
-      {isGraceExpired && (
+      {subscription && isGraceExpired && (
         <div className="rounded-lg border-2 border-red-500 bg-red-50 p-4 dark:bg-red-950/30">
           <div className="flex items-start gap-3">
             <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />

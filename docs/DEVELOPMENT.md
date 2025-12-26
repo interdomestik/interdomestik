@@ -3,6 +3,8 @@
 ## Daily workflow
 
 - Start dev servers: `pnpm dev`
+- If you need to bind explicitly to loopback: `cd apps/web && pnpm dev:local`
+  - Note: avoid `pnpm dev -- --hostname ...` because Next treats `--` as end-of-options and misreads `--hostname` as a positional project directory.
 - Run unit tests: `pnpm test`
 - Run fast quality gate (recommended before pushing): `pnpm check:fast`
 - Run CI-equivalent gate: `pnpm check`

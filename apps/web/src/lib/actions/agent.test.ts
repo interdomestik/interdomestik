@@ -84,7 +84,7 @@ describe('agent actions', () => {
     it('should return error if unauthorized', async () => {
       (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       const result = await createLead(null, new FormData());
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ error: 'Unauthorized', fields: undefined });
     });
 
     it('should return validation error if fields missing', async () => {

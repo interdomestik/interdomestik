@@ -1,10 +1,11 @@
 import { expect, test } from './fixtures/auth.fixture';
+import { routes } from './routes';
 
 test.describe('Claim Creation Wizard', () => {
   test('should allow user to complete the claim wizard', async ({ authenticatedPage }) => {
     test.setTimeout(60000); // Wizard can be slow
     // 1. Navigate to New Claim (Force English)
-    await authenticatedPage.goto('/en/member/claims/new');
+    await authenticatedPage.goto(routes.memberNewClaim('en'));
     await expect(authenticatedPage.locator('h1')).toContainText('New Claim');
 
     // 2. Step 1: Category
@@ -52,7 +53,7 @@ test.describe('Claim Creation Wizard', () => {
     // 6. Verify Redirection + data in list
     // 6. Verify Redirection
     // Ensure we are on the list page
-    await authenticatedPage.waitForURL(url => url.pathname === '/en/member/claims', {
+    await authenticatedPage.waitForURL(url => url.pathname === routes.memberClaims('en'), {
       timeout: 20000,
     });
 

@@ -101,7 +101,10 @@ interdomestikv2/
 5. **Run the development server**
 
    ```bash
-   npm run dev
+   pnpm dev
+   # If you need to bind explicitly to loopback:
+   pnpm -C apps/web dev:local
+   # Avoid: pnpm -C apps/web dev -- --hostname ... (Next treats `--` as end-of-options and misreads args)
    ```
 
 6. **Open** [http://localhost:3000](http://localhost:3000)

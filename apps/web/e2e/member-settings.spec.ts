@@ -5,13 +5,14 @@
  */
 
 import { expect, test } from './fixtures/auth.fixture';
+import { routes } from './routes';
 
 test.describe('Settings Page', () => {
   test.describe.configure({ mode: 'serial' });
 
   test.describe('Navigation', () => {
     test('should redirect to login when not authenticated', async ({ page }) => {
-      await page.goto('/en/member/settings');
+      await page.goto(routes.memberSettings('en'));
 
       // Should be redirected to login
       await page.waitForURL(/.*login.*|.*auth\/sign-in.*/);
@@ -19,7 +20,7 @@ test.describe('Settings Page', () => {
     });
 
     test('should display settings page when authenticated', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for settings page title
@@ -29,7 +30,7 @@ test.describe('Settings Page', () => {
 
   test.describe('Profile Settings', () => {
     test('should display profile form', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for profile section
@@ -43,7 +44,7 @@ test.describe('Settings Page', () => {
 
   test.describe('Password Settings', () => {
     test('should display password change form', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for security section
@@ -61,7 +62,7 @@ test.describe('Settings Page', () => {
 
   test.describe('Language Settings', () => {
     test('should display language selector', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for language section
@@ -76,7 +77,7 @@ test.describe('Settings Page', () => {
 
     test('should switch language', async ({ authenticatedPage }) => {
       // Start on English settings page
-      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Find and click language selector
@@ -102,7 +103,7 @@ test.describe('Settings Page', () => {
 
   test.describe('Notification Settings', () => {
     test('should display notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section to load
@@ -124,7 +125,7 @@ test.describe('Settings Page', () => {
     });
 
     test('should toggle notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section to load
@@ -151,7 +152,7 @@ test.describe('Settings Page', () => {
     });
 
     test('should save notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section to load
@@ -193,7 +194,7 @@ test.describe('Settings Page', () => {
     test('should handle save errors gracefully', async ({ authenticatedPage }) => {
       // This test would require mocking the API to return an error
       // For now, we'll just verify the UI is present
-      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section
@@ -211,7 +212,7 @@ test.describe('Settings Page', () => {
       // Set mobile viewport
       await authenticatedPage.setViewportSize({ width: 375, height: 667 });
 
-      await authenticatedPage.goto('/en/member/settings');
+      await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check that settings page is visible

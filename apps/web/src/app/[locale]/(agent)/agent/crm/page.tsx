@@ -1,12 +1,10 @@
 import { LeaderboardCard } from '@/components/agent/leaderboard-card';
 import { auth } from '@/lib/auth'; // server-side auth
-import { type LeadStage } from '@interdomestik/database/constants';
-import { db } from '@interdomestik/database/db';
-import { agentCommissions, crmDeals, crmLeads } from '@interdomestik/database/schema';
-import { and, count, eq, sql } from 'drizzle-orm';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+
+import { getAgentCrmStatsCore } from './_core';
 
 export default async function CRMPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -22,29 +20,7 @@ export default async function CRMPage({ params }: { params: Promise<{ locale: st
 
   const agentId = session.user.id;
 
-  const STAGE_NEW: LeadStage = 'new';
-  const STAGE_CONTACTED: LeadStage = 'contacted';
-
-  // Fetch Stats
-  const [newLeads] = await db
-    .select({ count: count() })
-    .from(crmLeads)
-    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, STAGE_NEW)));
-
-  const [contactedLeads] = await db
-    .select({ count: count() })
-    .from(crmLeads)
-    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, STAGE_CONTACTED)));
-
-  const [wonDeals] = await db
-    .select({ count: count() })
-    .from(crmDeals)
-    .where(and(eq(crmDeals.agentId, agentId), eq(crmDeals.stage, 'closed_won')));
-
-  const [totalCommission] = await db
-    .select({ total: sql<number>`sum(${agentCommissions.amount})` })
-    .from(agentCommissions)
-    .where(and(eq(agentCommissions.agentId, agentId), eq(agentCommissions.status, 'paid')));
+  const stats = await getAgentCrmStatsCore({ agentId });
 
   return (
     <div className="space-y-6">
@@ -55,21 +31,19 @@ export default async function CRMPage({ params }: { params: Promise<{ locale: st
         {/* Stats */}
         <div className="p-6 bg-white rounded-lg border shadow-sm">
           <div className="text-sm font-medium text-muted-foreground">{t('stats.new')}</div>
-          <div className="text-2xl font-bold">{newLeads?.count ?? 0}</div>
+          <div className="text-2xl font-bold">{stats.newLeadsCount}</div>
         </div>
         <div className="p-6 bg-white rounded-lg border shadow-sm">
           <div className="text-sm font-medium text-muted-foreground">{t('stats.verification')}</div>
-          <div className="text-2xl font-bold">{contactedLeads?.count ?? 0}</div>
+          <div className="text-2xl font-bold">{stats.contactedLeadsCount}</div>
         </div>
         <div className="p-6 bg-white rounded-lg border shadow-sm">
           <div className="text-sm font-medium text-muted-foreground">{t('stats.closed')}</div>
-          <div className="text-2xl font-bold">{wonDeals?.count ?? 0}</div>
+          <div className="text-2xl font-bold">{stats.closedWonDealsCount}</div>
         </div>
         <div className="p-6 bg-white rounded-lg border shadow-sm">
           <div className="text-sm font-medium text-muted-foreground">{t('commissions.title')}</div>
-          <div className="text-2xl font-bold">
-            € {Number(totalCommission?.total ?? 0).toFixed(2)}
-          </div>
+          <div className="text-2xl font-bold">€ {stats.paidCommissionTotal.toFixed(2)}</div>
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">

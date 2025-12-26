@@ -1,14 +1,6 @@
 import { getMyCommissionSummary } from '@/actions/commissions';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { type LeadStage } from '@interdomestik/database/constants';
-import { db } from '@interdomestik/database/db';
-import {
-  agentCommissions,
-  crmDeals,
-  crmLeads,
-  subscriptions,
-} from '@interdomestik/database/schema';
 import {
   Button,
   Card,
@@ -18,11 +10,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui';
-import { and, count, eq, sql } from 'drizzle-orm';
 import { ArrowRight, DollarSign, TrendingUp, Users } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getAgentDashboardStatsCore } from './_core';
 
 export default async function AgentDashboardPage({
   params,
@@ -43,35 +35,7 @@ export default async function AgentDashboardPage({
 
   const agentId = session.user.id;
 
-  const STAGE_NEW: LeadStage = 'new';
-  const STAGE_CONTACTED: LeadStage = 'contacted';
-
-  // Fetch stats for agent sales dashboard
-  const [newLeads] = await db
-    .select({ count: count() })
-    .from(crmLeads)
-    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, STAGE_NEW)));
-
-  const [contactedLeads] = await db
-    .select({ count: count() })
-    .from(crmLeads)
-    .where(and(eq(crmLeads.agentId, agentId), eq(crmLeads.stage, STAGE_CONTACTED)));
-
-  const [wonDeals] = await db
-    .select({ count: count() })
-    .from(crmDeals)
-    .where(and(eq(crmDeals.agentId, agentId), eq(crmDeals.stage, 'closed_won')));
-
-  const [totalCommission] = await db
-    .select({ total: sql<number>`COALESCE(sum(${agentCommissions.amount}), 0)` })
-    .from(agentCommissions)
-    .where(and(eq(agentCommissions.agentId, agentId), eq(agentCommissions.status, 'paid')));
-
-  // Get clients (members the agent signed up)
-  const [clientCount] = await db
-    .select({ count: count() })
-    .from(subscriptions)
-    .where(eq(subscriptions.referredByAgentId, agentId));
+  const stats = await getAgentDashboardStatsCore({ agentId });
 
   // Get commission summary
   const summaryResult = await getMyCommissionSummary();
@@ -107,7 +71,7 @@ export default async function AgentDashboardPage({
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{newLeads?.count ?? 0}</div>
+            <div className="text-2xl font-bold">{stats.newLeads}</div>
             <p className="text-xs text-muted-foreground">Awaiting first contact</p>
           </CardContent>
         </Card>
@@ -118,7 +82,7 @@ export default async function AgentDashboardPage({
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{contactedLeads?.count ?? 0}</div>
+            <div className="text-2xl font-bold">{stats.contactedLeads}</div>
             <p className="text-xs text-muted-foreground">In your pipeline</p>
           </CardContent>
         </Card>
@@ -129,7 +93,7 @@ export default async function AgentDashboardPage({
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{wonDeals?.count ?? 0}</div>
+            <div className="text-2xl font-bold">{stats.wonDeals}</div>
             <p className="text-xs text-muted-foreground">Memberships sold</p>
           </CardContent>
         </Card>
@@ -140,9 +104,7 @@ export default async function AgentDashboardPage({
             <DollarSign className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              €{Number(totalCommission?.total ?? 0).toFixed(2)}
-            </div>
+            <div className="text-2xl font-bold">€{stats.totalPaidCommission.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">Paid commissions</p>
           </CardContent>
         </Card>
@@ -158,17 +120,17 @@ export default async function AgentDashboardPage({
           <CardContent>
             <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="text-center">
-                <div className="text-2xl font-bold">{newLeads?.count ?? 0}</div>
+                <div className="text-2xl font-bold">{stats.newLeads}</div>
                 <div className="text-xs text-muted-foreground">New</div>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
               <div className="text-center">
-                <div className="text-2xl font-bold">{contactedLeads?.count ?? 0}</div>
+                <div className="text-2xl font-bold">{stats.contactedLeads}</div>
                 <div className="text-xs text-muted-foreground">Contacted</div>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
               <div className="text-center">
-                <div className="text-2xl font-bold">{wonDeals?.count ?? 0}</div>
+                <div className="text-2xl font-bold">{stats.wonDeals}</div>
                 <div className="text-xs text-muted-foreground">Won</div>
               </div>
             </div>
@@ -215,13 +177,11 @@ export default async function AgentDashboardPage({
         <Card className="lg:col-span-12">
           <CardHeader>
             <CardTitle>Your Clients</CardTitle>
-            <CardDescription>
-              Members you've signed up ({clientCount?.count ?? 0} total)
-            </CardDescription>
+            <CardDescription>Members you've signed up ({stats.clientCount} total)</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-8 text-muted-foreground">
-              {(clientCount?.count ?? 0) === 0 ? (
+              {stats.clientCount === 0 ? (
                 <div>
                   <p className="mb-4">No clients yet. Start selling memberships!</p>
                   <Button asChild>

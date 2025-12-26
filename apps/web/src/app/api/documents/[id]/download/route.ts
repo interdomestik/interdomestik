@@ -1,15 +1,9 @@
 import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { claimDocuments, claims, createAdminClient, db } from '@interdomestik/database';
-import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-function safeFilename(value: string) {
-  // Keep it simple; rely on filename* encoding for non-ascii.
-  return value.replace(/[\r\n"]/g, '_');
-}
+import { downloadStorageFileCore, getDocumentAccessCore, safeFilename } from '../../_core';
 
 // GET /api/documents/[id]/download
 // Streams the file via Supabase Admin client so we can enforce RBAC and write access logs.
@@ -24,9 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await auth.api.getSession({ headers: request.headers });
 
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -37,78 +29,62 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const disposition: 'inline' | 'attachment' =
     dispositionParam === 'inline' ? 'inline' : 'attachment';
 
-  // Fetch document metadata + claim ownership for RBAC
-  const [row] = await db
-    .select({
-      doc: claimDocuments,
-      claimOwnerId: claims.userId,
-    })
-    .from(claimDocuments)
-    .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
-    .where(eq(claimDocuments.id, id));
+  const access = await getDocumentAccessCore({
+    session,
+    documentId: id,
+    mode: 'download',
+    disposition,
+  });
 
-  if (!row?.doc) {
-    return NextResponse.json({ error: 'Document not found' }, { status: 404 });
-  }
+  const userRole = (session.user.role as string | undefined) ?? undefined;
 
-  const doc = row.doc;
+  if (!access.ok) {
+    if (access.status === 404) {
+      return NextResponse.json({ error: access.error }, { status: 404 });
+    }
 
-  const userRole = session.user.role as string | undefined;
-  const isPrivileged = userRole === 'admin' || userRole === 'staff';
-  const isClaimOwner = row.claimOwnerId === session.user.id;
-  const isUploader = doc.uploadedBy === session.user.id;
-
-  if (!isPrivileged && !isClaimOwner && !isUploader) {
     await logAuditEvent({
       actorId: session.user.id,
       actorRole: userRole ?? null,
-      action: 'document.forbidden',
-      entityType: 'claim_document',
-      entityId: id,
-      metadata: {
-        claimId: doc.claimId,
-        bucket: doc.bucket,
-        filePath: doc.filePath,
-        disposition,
-      },
+      action: access.audit.action,
+      entityType: access.audit.entityType,
+      entityId: access.audit.entityId,
+      metadata: access.audit.metadata,
       headers: request.headers,
     });
 
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return NextResponse.json({ error: access.error }, { status: 403 });
   }
 
   await logAuditEvent({
     actorId: session.user.id,
-    actorRole: userRole ?? null,
-    action: disposition === 'inline' ? 'document.view' : 'document.download',
-    entityType: 'claim_document',
-    entityId: id,
-    metadata: {
-      claimId: doc.claimId,
-      bucket: doc.bucket,
-      filePath: doc.filePath,
-      fileType: doc.fileType,
-      fileSize: doc.fileSize,
-      disposition,
-    },
+    actorRole: access.audit.actorRole,
+    action: access.audit.action,
+    entityType: access.audit.entityType,
+    entityId: access.audit.entityId,
+    metadata: access.audit.metadata,
     headers: request.headers,
   });
 
-  const adminClient = createAdminClient();
-  const { data, error } = await adminClient.storage.from(doc.bucket).download(doc.filePath);
+  const file = await downloadStorageFileCore({
+    bucket: access.document.bucket,
+    filePath: access.document.filePath,
+  });
 
-  if (error || !data) {
-    console.error('Failed to download document from storage', error);
+  if (!file.ok) {
+    console.error('Failed to download document from storage');
     return NextResponse.json({ error: 'Failed to download document' }, { status: 500 });
   }
 
-  const filename = safeFilename(doc.name || 'document');
+  const filename = safeFilename(access.document.name || 'document');
   const encoded = encodeURIComponent(filename);
 
-  return new Response(data, {
+  const body = 'stream' in file.data ? file.data.stream() : file.data;
+
+  return new Response(body, {
     status: 200,
     headers: {
-      'Content-Type': doc.fileType || 'application/octet-stream',
+      'Content-Type': access.document.fileType || 'application/octet-stream',
       'Content-Disposition': `${disposition}; filename="${filename}"; filename*=UTF-8''${encoded}`,
       'Cache-Control': 'private, no-store',
     },

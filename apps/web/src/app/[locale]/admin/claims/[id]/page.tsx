@@ -3,33 +3,18 @@ import { ClaimAssignmentForm } from '@/components/admin/claims/claim-assignment-
 import { ClaimStatusForm } from '@/components/admin/claims/claim-status-form';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import { claimDocuments, claims } from '@interdomestik/database/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { format } from 'date-fns';
-import { eq } from 'drizzle-orm';
 import { Download, FileText } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-async function getClaimDetails(id: string) {
-  const claim = await db.query.claims.findFirst({
-    where: eq(claims.id, id),
-    with: {
-      user: true,
-    },
-  });
-
-  if (!claim) return null;
-
-  const docs = await db.select().from(claimDocuments).where(eq(claimDocuments.claimId, id));
-  return { ...claim, docs };
-}
+import { getAdminClaimDetailsCore } from './_core';
 
 export default async function AdminClaimDetailPage({
   params,
@@ -42,14 +27,15 @@ export default async function AdminClaimDetailPage({
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return notFound();
 
-  const data = await getClaimDetails(id);
+  const result = await getAdminClaimDetailsCore({ claimId: id });
   const t = await getTranslations('agent.details');
   const tAdmin = await getTranslations('admin.dashboard');
   const tClaimsAdmin = await getTranslations('admin.claims_page');
   const tCategory = await getTranslations('claims.category');
   const staff = await getStaff();
 
-  if (!data) return notFound();
+  if (result.kind === 'not_found') return notFound();
+  const data = result.data;
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -162,7 +148,7 @@ export default async function AdminClaimDetailPage({
                     <div className="flex flex-col truncate">
                       <span className="truncate font-medium">{doc.name}</span>
                       <span className="text-[10px] text-muted-foreground">
-                        {(doc.fileSize / 1024).toFixed(1)} KB
+                        {doc.fileSize != null ? `${(doc.fileSize / 1024).toFixed(1)} KB` : 'N/A'}
                       </span>
                     </div>
                   </div>

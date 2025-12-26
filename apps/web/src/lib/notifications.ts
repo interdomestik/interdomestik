@@ -4,6 +4,7 @@ import {
   sendNewMessageEmail,
   sendStatusChangedEmail,
 } from '@/lib/email';
+import { sendPushToUser } from '@/lib/push';
 import { db } from '@interdomestik/database';
 import { notifications } from '@interdomestik/database/schema';
 import { nanoid } from 'nanoid';
@@ -121,6 +122,12 @@ export async function notifyStatusChanged(
     console.error('Failed to send status change email:', error)
   );
 
+  sendPushToUser(userId, 'claim_updates', {
+    title: 'Claim Status Updated',
+    body: `${claim.title}: ${oldStatus} → ${newStatus}`,
+    url: `/dashboard/claims/${claim.id}`,
+  }).catch(error => console.error('Failed to send status change push:', error));
+
   return sendNotification(
     userId,
     'claim_status_changed',
@@ -150,6 +157,12 @@ export async function notifyNewMessage(
   sendNewMessageEmail(recipientEmail, claim, senderName, messagePreview).catch(error =>
     console.error('Failed to send new message email:', error)
   );
+
+  sendPushToUser(recipientId, 'messages', {
+    title: 'New Message',
+    body: `${senderName}: ${messagePreview.substring(0, 100)}`,
+    url: `/dashboard/claims/${claim.id}`,
+  }).catch(error => console.error('Failed to send new message push:', error));
 
   return sendNotification(
     recipientId,

@@ -1,6 +1,7 @@
 'use client';
 
 import { getMessagesForClaim, sendMessage, type MessageWithSender } from '@/actions/messages';
+import { isStaffOrAdmin } from '@/lib/roles';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input } from '@interdomestik/ui';
 import { Loader2, MessageSquare, RefreshCw, Send, ShieldAlert } from 'lucide-react';
 import { useEffect, useRef, useState, useTransition } from 'react';
@@ -20,7 +21,7 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
   const [isPending, startTransition] = useTransition();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const isStaffOrAdmin = ['staff', 'admin'].includes(userRole);
+  const staffOrAdmin = isStaffOrAdmin(userRole);
 
   const fetchMessages = async () => {
     const result = await getMessagesForClaim(claimId);
@@ -123,7 +124,7 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
         </div>
 
         <div className="p-4 border-t bg-background">
-          {isStaffOrAdmin && (
+          {staffOrAdmin && (
             <div className="flex items-center gap-2 mb-2">
               <Button
                 variant={isInternal ? 'default' : 'outline'}

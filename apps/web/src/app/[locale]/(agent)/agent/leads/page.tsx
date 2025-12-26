@@ -1,12 +1,10 @@
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import { crmLeads } from '@interdomestik/database/schema';
 import { Button } from '@interdomestik/ui';
-import { desc, eq } from 'drizzle-orm';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getAgentLeadsCore } from './_core';
 
 export default async function LeadsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -20,11 +18,7 @@ export default async function LeadsPage({ params }: { params: Promise<{ locale: 
     redirect('/auth/login');
   }
 
-  const leads = await db
-    .select()
-    .from(crmLeads)
-    .where(eq(crmLeads.agentId, session.user.id))
-    .orderBy(desc(crmLeads.updatedAt));
+  const leads = await getAgentLeadsCore({ agentId: session.user.id });
 
   return (
     <div className="space-y-6">

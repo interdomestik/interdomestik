@@ -1,10 +1,9 @@
 import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { claimDocuments, claims, createAdminClient, db } from '@interdomestik/database';
-import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
+
+import { createSignedDownloadUrlCore, getDocumentAccessCore } from '../_core';
 
 // GET /api/documents/[id] - Generate signed download URL
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -18,86 +17,64 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { id } = await params;
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await auth.api.getSession({ headers: _request.headers });
 
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Fetch document metadata + claim ownership for RBAC
-  const [row] = await db
-    .select({
-      doc: claimDocuments,
-      claimOwnerId: claims.userId,
-    })
-    .from(claimDocuments)
-    .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
-    .where(eq(claimDocuments.id, id));
+  const access = await getDocumentAccessCore({
+    session,
+    documentId: id,
+    mode: 'signed_url',
+  });
 
-  if (!row?.doc) {
-    return NextResponse.json({ error: 'Document not found' }, { status: 404 });
-  }
+  const userRole = (session.user.role as string | undefined) ?? undefined;
 
-  const doc = row.doc;
+  if (!access.ok) {
+    if (access.status === 404) {
+      return NextResponse.json({ error: access.error }, { status: 404 });
+    }
 
-  const userRole = session.user.role as string | undefined;
-  const isPrivileged = userRole === 'admin' || userRole === 'staff';
-  const isClaimOwner = row.claimOwnerId === session.user.id;
-  const isUploader = doc.uploadedBy === session.user.id;
-
-  // Allow staff/admin access, or the member who owns the claim, or the uploader.
-  // (Uploader check is retained for backward compatibility with any legacy flows.)
-  if (!isPrivileged && !isClaimOwner && !isUploader) {
     await logAuditEvent({
       actorId: session.user.id,
       actorRole: userRole ?? null,
-      action: 'document.forbidden',
-      entityType: 'claim_document',
-      entityId: id,
-      metadata: {
-        claimId: doc.claimId,
-        bucket: doc.bucket,
-        filePath: doc.filePath,
-        mode: 'signed_url',
-      },
+      action: access.audit.action,
+      entityType: access.audit.entityType,
+      entityId: access.audit.entityId,
+      metadata: access.audit.metadata,
       headers: _request.headers,
     });
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    return NextResponse.json({ error: access.error }, { status: 403 });
   }
 
   await logAuditEvent({
     actorId: session.user.id,
-    actorRole: userRole ?? null,
-    action: 'document.signed_url_issued',
-    entityType: 'claim_document',
-    entityId: id,
-    metadata: {
-      claimId: doc.claimId,
-      bucket: doc.bucket,
-      filePath: doc.filePath,
-      expiresInSeconds: 300,
-    },
+    actorRole: access.audit.actorRole,
+    action: access.audit.action,
+    entityType: access.audit.entityType,
+    entityId: access.audit.entityId,
+    metadata: access.audit.metadata,
     headers: _request.headers,
   });
 
-  // Generate signed URL for download
-  const adminClient = createAdminClient();
-  const { data, error } = await adminClient.storage
-    .from(doc.bucket)
-    .createSignedUrl(doc.filePath, 60 * 5); // 5 minute expiry
+  const urlResult = await createSignedDownloadUrlCore({
+    bucket: access.document.bucket,
+    filePath: access.document.filePath,
+    expiresInSeconds: 60 * 5,
+  });
 
-  if (error || !data?.signedUrl) {
-    console.error('Failed to create signed download URL', error);
+  if (!urlResult.ok) {
+    console.error('Failed to create signed download URL');
     return NextResponse.json({ error: 'Failed to generate download URL' }, { status: 500 });
   }
 
   return NextResponse.json({
-    url: data.signedUrl,
-    name: doc.name,
-    type: doc.fileType,
-    size: doc.fileSize,
+    url: urlResult.signedUrl,
+    name: access.document.name,
+    type: access.document.fileType,
+    size: access.document.fileSize,
     expiresIn: 300,
   });
 }

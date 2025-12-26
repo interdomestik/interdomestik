@@ -12,6 +12,7 @@
 import { test as base, expect, Page } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { routes } from '../routes';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -21,7 +22,8 @@ import path from 'node:path';
 const LOGIN_RX = /(?:\/[a-z]{2})?\/(?:login|signin|auth\/sign-in)(?:\/)?(?:\?|$)/i;
 
 // Where to navigate for login (router will redirect to locale-prefixed route)
-const SIGNIN_PATH = '/login';
+const DEFAULT_LOCALE = process.env.PLAYWRIGHT_LOCALE ?? 'en';
+const SIGNIN_PATH = routes.login(DEFAULT_LOCALE);
 
 // Locator that only appears when logged in
 const AUTH_OK_LOCATOR = '[data-testid="user-nav"]';
@@ -86,7 +88,10 @@ async function performLogin(page: Page, role: Role): Promise<void> {
   const { email, password } = CREDS[role];
 
   // Always start from a clean tab and a consistent URL
-  await page.goto(SIGNIN_PATH, { waitUntil: 'domcontentloaded' });
+  const loginResponse = await page.goto(SIGNIN_PATH, { waitUntil: 'domcontentloaded' });
+  if (loginResponse && loginResponse.status() === 404) {
+    await page.goto(routes.loginRaw(), { waitUntil: 'domcontentloaded' });
+  }
 
   // Wait for form to be visible
   await page.waitForSelector('form', { state: 'visible', timeout: 10_000 });
@@ -126,7 +131,7 @@ async function performLogin(page: Page, role: Role): Promise<void> {
     expect(hasSession, 'Expected an auth/session cookie after login').toBeTruthy();
 
     // Optional fallback: hit a protected page to force auth check
-    await page.goto('/member', { waitUntil: 'domcontentloaded' });
+    await page.goto(`/${DEFAULT_LOCALE}/member`, { waitUntil: 'domcontentloaded' });
     await expect(page).not.toHaveURL(LOGIN_RX, { timeout: 10_000 });
   }
 }
@@ -210,6 +215,7 @@ export const test = base.extend<AuthFixtures>({
     const statePath = storageStateFile('member');
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      locale: 'en-US',
       extraHTTPHeaders: {
         'x-forwarded-for': ipForRole('member'),
       },
@@ -229,6 +235,7 @@ export const test = base.extend<AuthFixtures>({
     const statePath = storageStateFile('admin');
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      locale: 'en-US',
       extraHTTPHeaders: {
         'x-forwarded-for': ipForRole('admin'),
       },
@@ -248,6 +255,7 @@ export const test = base.extend<AuthFixtures>({
     const statePath = storageStateFile('agent');
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      locale: 'en-US',
       extraHTTPHeaders: {
         'x-forwarded-for': ipForRole('agent'),
       },
@@ -267,6 +275,7 @@ export const test = base.extend<AuthFixtures>({
     const statePath = storageStateFile('staff');
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      locale: 'en-US',
       extraHTTPHeaders: {
         'x-forwarded-for': ipForRole('staff'),
       },

@@ -15,6 +15,7 @@
 ## Test the Integration
 
 1. Start dev server: `pnpm dev`
+   - If you need to bind explicitly to loopback: `cd apps/web && pnpm dev:local` (avoid `pnpm dev -- --hostname ...`)
 2. Navigate to: `http://localhost:3000/sq/pricing`
 3. Click "Bëhu Anëtar" on any plan
 4. Use test card: `4242 4242 4242 4242`

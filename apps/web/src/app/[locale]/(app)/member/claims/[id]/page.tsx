@@ -4,18 +4,12 @@ import { DocumentList } from '@/components/documents/document-list';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { Link, redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { claimDocuments, claimStageHistory, claims, db, eq } from '@interdomestik/database';
-import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { and, desc } from 'drizzle-orm';
 import { ArrowLeft, Download } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-
-function toClaimStatus(value: unknown): ClaimStatus {
-  return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
-}
+import { getMemberClaimDetailsCore, getMemberClaimRedirect } from './_core';
 
 interface PageProps {
   params: Promise<{
@@ -34,53 +28,21 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
 
   if (!session) return notFound();
 
-  // Fetch claim with user info
-  const claim = await db.query.claims.findFirst({
-    where: eq(claims.id, id),
-    with: {
-      user: true,
-    },
+  const redirectDecision = getMemberClaimRedirect({
+    role: session.user.role,
+    claimId: id,
   });
 
-  if (!claim) return notFound();
-
-  const role = session.user.role;
-
-  if (role !== 'user') {
-    if (role === 'staff') {
-      redirect({ href: `/staff/claims/${id}`, locale });
-    } else if (role === 'admin') {
-      redirect({ href: `/admin/claims/${id}`, locale });
-    } else if (role === 'agent') {
-      redirect({ href: '/agent', locale });
-    }
-    return notFound();
+  if (redirectDecision.kind === 'redirect') {
+    redirect({ href: redirectDecision.href, locale });
   }
 
-  if (claim.userId !== session.user.id) {
-    return notFound();
-  }
+  if (redirectDecision.kind === 'not_found') return notFound();
 
-  // Fetch documents
-  const documents = await db
-    .select({
-      id: claimDocuments.id,
-      name: claimDocuments.name,
-      fileSize: claimDocuments.fileSize,
-      fileType: claimDocuments.fileType,
-      createdAt: claimDocuments.createdAt,
-    })
-    .from(claimDocuments)
-    .where(eq(claimDocuments.claimId, id));
+  const details = await getMemberClaimDetailsCore({ claimId: id, viewerUserId: session.user.id });
+  if (details.kind !== 'ok') return notFound();
 
-  const publicStageHistory = await db
-    .select({
-      toStatus: claimStageHistory.toStatus,
-      createdAt: claimStageHistory.createdAt,
-    })
-    .from(claimStageHistory)
-    .where(and(eq(claimStageHistory.claimId, id), eq(claimStageHistory.isPublic, true)))
-    .orderBy(desc(claimStageHistory.createdAt));
+  const { claim, documents, publicStageHistory } = details;
 
   // --- MEMBER VIEW ---
   const tClaims = await getTranslations('claims');
@@ -182,7 +144,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
                 status={claim.status || 'draft'}
                 updatedAt={claim.updatedAt || new Date()}
                 history={publicStageHistory.map(h => ({
-                  toStatus: toClaimStatus(h.toStatus),
+                  toStatus: h.toStatus,
                   createdAt: h.createdAt,
                 }))}
               />

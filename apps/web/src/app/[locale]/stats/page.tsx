@@ -1,36 +1,13 @@
-import { claims, db } from '@interdomestik/database';
-import { count, sql } from 'drizzle-orm';
 import { CheckCircle, Clock, Shield, TrendingUp, Users } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { getPublicStatsCore } from './_core';
 
 export default async function PublicStatsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('stats');
 
-  // Fetch verified statistics
-  const [totalClaimsResult] = await db.select({ count: count() }).from(claims);
-
-  const [resolvedClaimsResult] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(sql`${claims.status} = 'resolved'`);
-
-  const [totalRecovered] = await db
-    .select({ total: sql<string>`COALESCE(SUM(${claims.claimAmount}), 0)` })
-    .from(claims)
-    .where(sql`${claims.status} = 'resolved'`);
-
-  const stats = {
-    totalClaims: totalClaimsResult?.count || 0,
-    resolvedClaims: resolvedClaimsResult?.count || 0,
-    totalRecovered: Number(totalRecovered?.total || 0),
-    successRate:
-      resolvedClaimsResult?.count && totalClaimsResult?.count
-        ? Math.round((resolvedClaimsResult.count / totalClaimsResult.count) * 100)
-        : 0,
-    avgResponseTime: 24, // hours - placeholder, would need actual tracking
-  };
+  const stats = await getPublicStatsCore();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background">

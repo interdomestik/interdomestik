@@ -1,9 +1,10 @@
 import { expect, test } from './fixtures/auth.fixture';
+import { routes } from './routes';
 
 test.describe('Sidebar Toggle', () => {
   test('should toggle sidebar expand/collapse state', async ({ adminPage: page }) => {
     // Navigate to dashboard
-    await page.goto('/en/member');
+    await page.goto(routes.member());
 
     // Check initial state (should be expanded due to defaultOpen={true})
     // data-state="expanded" is on the wrapper. data-collapsible="icon" is also on the wrapper.

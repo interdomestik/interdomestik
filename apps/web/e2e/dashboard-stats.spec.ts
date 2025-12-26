@@ -1,8 +1,9 @@
 import { expect, test } from './fixtures/auth.fixture';
+import { routes } from './routes';
 
 test.describe('User Dashboard Statistics', () => {
   test('User can view real claim statistics on dashboard', async ({ authenticatedPage: page }) => {
-    await page.goto('/en/member');
+    await page.goto(routes.member());
     await page.waitForLoadState('domcontentloaded');
 
     // Check page title
@@ -23,7 +24,7 @@ test.describe('User Dashboard Statistics', () => {
   });
 
   test('Dashboard statistics update based on user claims', async ({ authenticatedPage: page }) => {
-    await page.goto('/en/member');
+    await page.goto(routes.member());
     await page.waitForLoadState('domcontentloaded');
 
     // Get initial active claims count
@@ -41,7 +42,7 @@ test.describe('User Dashboard Statistics', () => {
     const initialCount = await activeClaimsCard.locator('.text-3xl').textContent();
 
     // Navigate to claims page to verify consistency
-    await page.goto('/en/member/claims');
+    await page.goto(routes.memberClaims());
     await page.waitForLoadState('domcontentloaded');
 
     // Count actual claims in the table
@@ -49,7 +50,7 @@ test.describe('User Dashboard Statistics', () => {
     // const rowCount = await claimRows.count();
 
     // Go back to dashboard
-    await page.goto('/en/member');
+    await page.goto(routes.member());
     await page.waitForLoadState('domcontentloaded');
 
     // Verify the count is still the same
@@ -63,7 +64,7 @@ test.describe('User Dashboard Statistics', () => {
     const cleanPass = 'TestPass123!';
     const cleanName = 'Empty State User';
 
-    await page.goto('/en/register');
+    await page.goto(routes.register('en'));
 
     // Fill register form
     await page.fill('input[name="fullName"]', cleanName);

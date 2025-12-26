@@ -1,9 +1,10 @@
 import { expect, test } from './fixtures/auth.fixture';
+import { routes } from './routes';
 
 test.describe('End-to-End User Journey', () => {
   test('Guest -> Services -> Login -> Dashboard -> Start Claim', async ({ page }) => {
     // 1. Guest visits Landing Page
-    await page.goto('/en');
+    await page.goto(routes.home('en'));
     await expect(page).toHaveTitle(/Interdomestik/);
 
     // 2. Navigate to Services
@@ -30,7 +31,7 @@ test.describe('End-to-End User Journey', () => {
         await menuBtn.click();
         await page.locator('a[href*="/login"]:visible').first().click();
       } else {
-        await page.goto('/login');
+        await page.goto(routes.login('en'));
       }
     }
     await expect(page).toHaveURL(/.*login/);

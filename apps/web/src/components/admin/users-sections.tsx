@@ -1,6 +1,7 @@
 'use client';
 
 import { UsersTable } from '@/components/admin/users-table';
+import { isMember, isStaffOrAdmin } from '@/lib/roles';
 import { cn } from '@interdomestik/ui';
 import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -70,11 +71,11 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
     );
   }
 
-  const members = users.filter(user => user.role === 'user');
+  const members = users.filter(user => isMember(user.role));
   const assignedMembers = members.filter(member => member.agentId);
   const unassignedMembers = members.filter(member => !member.agentId);
   const agentsOnly = users.filter(user => user.role === 'agent');
-  const staffMembers = users.filter(user => user.role === 'staff' || user.role === 'admin');
+  const staffMembers = users.filter(user => isStaffOrAdmin(user.role));
 
   return (
     <div className="space-y-6">

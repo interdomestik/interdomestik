@@ -20,7 +20,7 @@ interface ClaimTimelineProps {
 }
 
 export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimelineProps) {
-  const t = useTranslations('claims.timeline');
+  const t = useTranslations('timeline');
   const updatedAtDate = updatedAt instanceof Date ? updatedAt : new Date(updatedAt);
   const nowDate = now ? (now instanceof Date ? now : new Date(now)) : new Date();
   const isRejected = status === 'rejected';

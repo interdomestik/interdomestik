@@ -1,17 +1,9 @@
-import { getMemberActivities } from '@/actions/activities';
 import { MemberNotesCard } from '@/components/agent/member-notes-card';
 import { ActivityFeed } from '@/components/crm/activity-feed';
 import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import {
-  claims,
-  subscriptions,
-  userNotificationPreferences,
-  user as userTable,
-} from '@interdomestik/database/schema';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
@@ -24,21 +16,12 @@ import {
   TableHeader,
   TableRow,
 } from '@interdomestik/ui/components/table';
-import { count, desc, eq } from 'drizzle-orm';
 import { ArrowLeft, BadgeCheck, Mail, User } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-const RECENT_CLAIMS_LIMIT = 6;
-
-const membershipStatusStyles: Record<string, string> = {
-  active: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  past_due: 'bg-amber-100 text-amber-700 border-amber-200',
-  paused: 'bg-slate-100 text-slate-700 border-slate-200',
-  canceled: 'bg-rose-100 text-rose-700 border-rose-200',
-  none: 'bg-muted text-muted-foreground border-transparent',
-};
+import { getAgentClientProfileCore } from './_core';
 
 function formatDate(value: Date | string | null, fallback: string) {
   if (!value) return fallback;
@@ -64,63 +47,17 @@ export default async function AgentMemberProfilePage({
   const tCommon = await getTranslations('common');
   const tClaims = await getTranslations('claims');
 
-  const member = await db.query.user.findFirst({
-    where: eq(userTable.id, id),
-    with: {
-      agent: true,
-    },
+  const result = await getAgentClientProfileCore({
+    memberId: id,
+    viewer: { id: session.user.id, role: (session.user as { role?: string | null }).role },
   });
 
-  if (!member) {
+  if (result.kind !== 'ok') {
     return notFound();
   }
 
-  if (session.user.role === 'agent' && member.agentId !== session.user.id) {
-    return notFound();
-  }
-
-  const [subscription, preferences, claimCounts, recentClaims, activities] = await Promise.all([
-    db.query.subscriptions.findFirst({
-      where: eq(subscriptions.userId, member.id),
-      orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
-    }),
-    db.query.userNotificationPreferences.findFirst({
-      where: eq(userNotificationPreferences.userId, member.id),
-    }),
-    db
-      .select({ status: claims.status, total: count() })
-      .from(claims)
-      .where(eq(claims.userId, member.id))
-      .groupBy(claims.status),
-    db
-      .select({
-        id: claims.id,
-        status: claims.status,
-      })
-      .from(claims)
-      .where(eq(claims.userId, member.id))
-      .orderBy(desc(claims.createdAt))
-      .limit(RECENT_CLAIMS_LIMIT),
-    getMemberActivities(member.id),
-  ]);
-
-  const counts = { total: 0, open: 0, resolved: 0, rejected: 0 };
-  for (const row of claimCounts) {
-    const status = row.status || 'draft';
-    const total = Number(row.total || 0);
-    counts.total += total;
-    if (status === 'resolved') {
-      counts.resolved += total;
-    } else if (status === 'rejected') {
-      counts.rejected += total;
-    } else {
-      counts.open += total;
-    }
-  }
-
-  const rawStatus = subscription?.status;
-  const membershipStatus = rawStatus && membershipStatusStyles[rawStatus] ? rawStatus : 'none';
-  const membershipBadgeClass = membershipStatusStyles[membershipStatus];
+  const { member, membership, preferences, claimCounts: counts, recentClaims, activities } = result;
+  const { subscription, status: membershipStatus, badgeClass: membershipBadgeClass } = membership;
 
   return (
     <div className="space-y-8">

@@ -12,22 +12,22 @@
     "promptDescription": "Pick a couple of items below so we can start quickly.",
     "prompts": {
       "flight_delay": [
-        "Bileta ose boarding pass",
-        "Njoftimi i vonesës/anulimit nga linja",
-        "Fatura për ushqim/hotel/transport"
+        "Boarding pass or ticket",
+        "Airline delay/cancellation notice",
+        "Receipts for meals/hotels/transport"
       ],
       "damaged_goods": [
-        "Foto të dëmit",
-        "Faturë ose kupon blerjeje",
-        "Vlerësim ose preventiv riparimi"
+        "Photos of damage",
+        "Purchase receipt or invoice",
+        "Repair/assessment estimate"
       ],
       "service_issue": [
-        "Kontratë ose faturë",
-        "Screenshote bisedash/email",
-        "Fatura ose njoftim anulimi"
+        "Contract/invoice",
+        "Chat/email screenshots",
+        "Bills or cancellation notice"
       ],
-      "travel": ["Itinerari dhe biletat", "Foto/video të incidentit", "Fatura për shpenzime"],
-      "default": ["Foto ose screenshote", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
+      "travel": ["Itinerary and tickets", "Photos/videos of incident", "Receipts for expenses"],
+      "default": ["Photos or screenshots", "Receipts/invoices", "Any official correspondence"]
     },
     "validation": {
       "mime": "Only PDF, JPG, or PNG files are allowed.",

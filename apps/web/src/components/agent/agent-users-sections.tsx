@@ -1,6 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
+import { isMember } from '@/lib/roles';
 import { Button, cn } from '@interdomestik/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
@@ -91,7 +92,7 @@ export function AgentUsersSections({ users }: UsersSectionsProps) {
     );
   }
 
-  const members = users.filter(user => user.role === 'user');
+  const members = users.filter(user => isMember(user.role));
   const needsAttentionRaw = members.filter(user => user.unreadCount);
   const allMembersRaw = members.filter(user => !user.unreadCount);
 

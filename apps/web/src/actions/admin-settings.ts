@@ -1,8 +1,9 @@
 'use server';
 
-import { auth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
+
+import { getActionContext } from './admin-settings/context';
+import { adminUpdateSettingsCore } from './admin-settings/update';
 
 export async function adminUpdateSettings(data: {
   appName: string;
@@ -10,20 +11,8 @@ export async function adminUpdateSettings(data: {
   autoAssign: boolean;
   defaultExpiry: number;
 }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session || session.user.role !== 'admin') {
-    throw new Error('Unauthorized');
-  }
-
-  // NOTE: This is a stub for future global settings table
-  // For now we just log and revalidate to simulate success
-  console.log('Updating global settings:', data);
-
-  // Real implementation would involve db.update(settingsTable)...
-
+  const { session } = await getActionContext();
+  const result = await adminUpdateSettingsCore({ session, data });
   revalidatePath('/admin/settings');
-  return { success: true };
+  return result;
 }

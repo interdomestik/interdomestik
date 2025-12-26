@@ -1,6 +1,7 @@
 'use client';
 
 import type { MessageWithSender } from '@/actions/messages';
+import { isMember } from '@/lib/roles';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Card } from '@interdomestik/ui/components/card';
@@ -84,7 +85,7 @@ export function MessageThread({ messages, currentUserId, isAgent = false }: Mess
             <div className="space-y-4">
               {dateMessages.map(message => {
                 const isOwn = message.senderId === currentUserId;
-                const isAgentMessage = message.sender.role !== 'user';
+                const isAgentMessage = !isMember(message.sender.role);
 
                 return (
                   <div

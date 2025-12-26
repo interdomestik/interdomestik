@@ -1,15 +1,16 @@
 import { expect, test } from './fixtures/auth.fixture';
+import { routes } from './routes';
 
 test.describe('Agent Role Access', () => {
   test('Agent is redirected away from staff claims queue', async ({ agentPage: page }) => {
-    await page.goto('/en/staff/claims');
+    await page.goto(routes.staffClaims());
     await page.waitForLoadState('domcontentloaded');
 
     expect(page.url()).not.toContain('/staff/claims');
   });
 
   test('Agent can access CRM dashboard', async ({ agentPage: page }) => {
-    await page.goto('/en/agent/crm');
+    await page.goto(routes.agentCrm());
     await page.waitForLoadState('domcontentloaded');
 
     // Check for CRM elements
@@ -20,7 +21,7 @@ test.describe('Agent Role Access', () => {
   });
 
   test('Agent can see Leaderboard', async ({ agentPage: page }) => {
-    await page.goto('/en/agent/crm');
+    await page.goto(routes.agentCrm());
 
     // Check Leaderboard Card
     await expect(page.getByText('Top Agents')).toBeVisible();

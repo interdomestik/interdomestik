@@ -3,13 +3,11 @@ import { ActivityFeed } from '@/components/crm/activity-feed';
 import { LogActivityDialog } from '@/components/crm/log-activity-dialog';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import { crmLeads } from '@interdomestik/database/schema';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import { getAgentLeadDetailsCore } from './_core';
 
 export default async function LeadDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,26 +20,16 @@ export default async function LeadDetailsPage({ params }: { params: Promise<{ id
     redirect('/auth/login');
   }
 
-  const [lead, activities] = await Promise.all([
-    db.query.crmLeads.findFirst({
-      where: eq(crmLeads.id, id),
-      with: {
-        deals: {
-          with: {},
-        },
-      },
-    }),
+  const [leadResult, activities] = await Promise.all([
+    getAgentLeadDetailsCore({ leadId: id, viewerAgentId: session.user.id }),
     getLeadActivities(id),
   ]);
 
-  if (!lead) {
-    notFound();
-  }
+  if (leadResult.kind === 'not_found') notFound();
+  if (leadResult.kind === 'redirect') redirect(leadResult.href);
 
-  // Security check: ensure agent owns this lead
-  if (lead.agentId !== session.user.id) {
-    redirect('/agent/leads');
-  }
+  const lead = leadResult.lead;
+  const deals = leadResult.deals;
 
   return (
     <div className="space-y-6">
@@ -95,11 +83,11 @@ export default async function LeadDetailsPage({ params }: { params: Promise<{ id
               <CardTitle>Deals</CardTitle>
             </CardHeader>
             <CardContent>
-              {lead.deals.length === 0 ? (
+              {deals.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No deals created yet.</p>
               ) : (
                 <div className="space-y-4">
-                  {lead.deals.map(deal => (
+                  {deals.map(deal => (
                     <div
                       key={deal.id}
                       className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
