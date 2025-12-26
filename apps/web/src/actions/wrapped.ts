@@ -1,9 +1,3 @@
 'use server';
-
-import { getActionContext } from './wrapped/context';
-import { getWrappedStatsCore } from './wrapped/get';
-
-export async function getWrappedStats() {
-  const { session } = await getActionContext();
-  return getWrappedStatsCore({ session });
-}
+// Thin wrapper to keep import path stable while implementation lives in `./wrapped.core`.
+export * from './wrapped.core';

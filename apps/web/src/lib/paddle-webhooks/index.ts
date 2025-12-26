@@ -1,10 +1,2 @@
-export { sha256Hex } from './crypto';
-export { handlePaddleEvent } from './handle';
-export { parsePaddleWebhookBody } from './parse';
-export {
-  insertWebhookEvent,
-  markWebhookFailed,
-  markWebhookProcessed,
-  persistInvalidSignatureAttempt,
-} from './persist';
-export { verifyPaddleWebhook } from './verify';
+// Thin wrapper to keep import path stable while implementation lives in `./index.core`.
+export * from './index.core';

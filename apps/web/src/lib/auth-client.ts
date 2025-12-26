@@ -1,5 +1,2 @@
-import { createAuthClient } from 'better-auth/react';
-
-export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-}); // infer types from server
+// Thin wrapper to keep import path stable while implementation lives in `./auth-client.core`.
+export * from './auth-client.core';

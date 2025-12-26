@@ -1,7 +1,2 @@
-export type PaymentUpdateUrlResult =
-  | { url: string; error?: undefined }
-  | { error: string; url?: undefined };
-
-export type CancelSubscriptionResult =
-  | { success: true; error?: undefined }
-  | { error: string; success?: undefined };
+// Thin wrapper to keep import path stable while implementation lives in `./types.core`.
+export * from './types.core';

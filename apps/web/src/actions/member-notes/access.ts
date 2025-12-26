@@ -1,3 +1,2 @@
-export function canAccessNotes(role: string | undefined): boolean {
-  return ['agent', 'staff', 'admin'].includes(role || '');
-}
+// Thin wrapper to keep import path stable while implementation lives in `./access.core`.
+export * from './access.core';

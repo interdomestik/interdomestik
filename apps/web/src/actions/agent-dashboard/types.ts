@@ -1,6 +1,2 @@
-export interface AgentStats {
-  total: number;
-  new: number;
-  inProgress: number;
-  completed: number;
-}
+// Thin wrapper to keep import path stable while implementation lives in `./types.core`.
+export * from './types.core';

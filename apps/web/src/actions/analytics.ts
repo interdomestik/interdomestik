@@ -1,10 +1,3 @@
 'use server';
-
-import { getActionContext } from './analytics/context';
-import { getAdminAnalyticsCore } from './analytics/get-admin';
-export type { AnalyticsData } from './analytics/types';
-
-export async function getAdminAnalytics() {
-  const { session } = await getActionContext();
-  return getAdminAnalyticsCore({ session });
-}
+// Thin wrapper to keep import path stable while implementation lives in `./analytics.core`.
+export * from './analytics.core';
