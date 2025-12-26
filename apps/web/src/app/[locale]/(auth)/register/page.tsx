@@ -1,17 +1,2 @@
-import { RegisterForm } from '@/components/auth/register-form';
-import { setRequestLocale } from 'next-intl/server';
-
-type Props = {
-  params: Promise<{ locale: string }>;
-};
-
-export default async function RegisterPage({ params }: Props) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(var(--background))] to-[hsl(var(--surface-strong))] p-4">
-      <RegisterForm />
-    </div>
-  );
-}
+export { default } from './_core.entry';
+export * from './_core.entry';

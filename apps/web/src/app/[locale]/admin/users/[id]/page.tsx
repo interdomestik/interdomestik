@@ -1,13 +1,5 @@
 import { Link } from '@/i18n/routing';
-import { db } from '@interdomestik/database/db';
-import {
-  claims,
-  subscriptions,
-  userNotificationPreferences,
-  user as userTable,
-} from '@interdomestik/database/schema';
 import { Button } from '@interdomestik/ui/components/button';
-import { count, desc, eq } from 'drizzle-orm';
 import { ArrowLeft } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -18,6 +10,7 @@ import { MembershipInfoCard } from './_components/membership-info-card';
 import { PreferencesCard } from './_components/preferences-card';
 import { RecentClaimsCard } from './_components/recent-claims-card';
 import { UserProfileHeader } from './_components/user-profile-header';
+import { getAdminUserProfileCore } from './_core';
 import { ResendWelcomeEmailButton } from './resend-welcome-button';
 
 const RECENT_CLAIMS_LIMIT = 6;
@@ -40,61 +33,15 @@ export default async function MemberProfilePage({
 
   const t = await getTranslations('admin.member_profile');
 
-  const member = await db.query.user.findFirst({
-    where: eq(userTable.id, id),
-    with: {
-      agent: true,
-    },
+  const result = await getAdminUserProfileCore({
+    userId: id,
+    recentClaimsLimit: RECENT_CLAIMS_LIMIT,
   });
-
-  if (!member) {
+  if (result.kind === 'not_found') {
     return notFound();
   }
 
-  const [subscription, preferences, claimCounts, recentClaims] = await Promise.all([
-    db.query.subscriptions.findFirst({
-      where: eq(subscriptions.userId, member.id),
-      orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
-    }),
-    db.query.userNotificationPreferences.findFirst({
-      where: eq(userNotificationPreferences.userId, member.id),
-    }),
-    db
-      .select({ status: claims.status, total: count() })
-      .from(claims)
-      .where(eq(claims.userId, member.id))
-      .groupBy(claims.status),
-    db
-      .select({
-        id: claims.id,
-        title: claims.title,
-        status: claims.status,
-        claimAmount: claims.claimAmount,
-        currency: claims.currency,
-        createdAt: claims.createdAt,
-      })
-      .from(claims)
-      .where(eq(claims.userId, member.id))
-      .orderBy(desc(claims.createdAt))
-      .limit(RECENT_CLAIMS_LIMIT),
-  ]);
-
-  const counts = { total: 0, open: 0, resolved: 0, rejected: 0 };
-  for (const row of claimCounts) {
-    const status = row.status || 'draft';
-    const total = Number(row.total || 0);
-    counts.total += total;
-    if (status === 'resolved') {
-      counts.resolved += total;
-    } else if (status === 'rejected') {
-      counts.rejected += total;
-    } else {
-      counts.open += total;
-    }
-  }
-
-  const rawStatus = subscription?.status;
-  const membershipStatus = rawStatus && membershipStatusStyles[rawStatus] ? rawStatus : 'none';
+  const { member, subscription, preferences, counts, recentClaims, membershipStatus } = result;
   const membershipBadgeClass = membershipStatusStyles[membershipStatus];
 
   return (
@@ -138,9 +85,7 @@ export default async function MemberProfilePage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ClaimsStatsCard counts={counts} />
-        <RecentClaimsCard
-          recentClaims={recentClaims.map(c => ({ ...c, status: c.status ?? 'unknown' }))}
-        />
+        <RecentClaimsCard recentClaims={recentClaims} />
       </div>
     </div>
   );
