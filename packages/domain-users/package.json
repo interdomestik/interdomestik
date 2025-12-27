@@ -1,0 +1,28 @@
+{
+  "name": "@interdomestik/domain-users",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./admin/access": "./src/admin/access.ts",
+    "./admin/get-users": "./src/admin/get-users.ts",
+    "./admin/get-agents": "./src/admin/get-agents.ts",
+    "./admin/get-staff": "./src/admin/get-staff.ts",
+    "./admin/update-user-agent": "./src/admin/update-user-agent.ts",
+    "./agent/get-users": "./src/agent/get-users.ts",
+    "./user-settings/get": "./src/user-settings/get.ts",
+    "./user-settings/update": "./src/user-settings/update.ts",
+    "./user-settings/types": "./src/user-settings/types.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@interdomestik/database": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "nanoid": "^5.1.6"
+  }
+}

@@ -30,7 +30,9 @@
       "@interdomestik/domain-membership-billing": ["packages/domain-membership-billing/src"],
       "@interdomestik/domain-membership-billing/*": ["packages/domain-membership-billing/src/*"],
       "@interdomestik/domain-referrals": ["packages/domain-referrals/src"],
-      "@interdomestik/domain-referrals/*": ["packages/domain-referrals/src/*"]
+      "@interdomestik/domain-referrals/*": ["packages/domain-referrals/src/*"],
+      "@interdomestik/domain-users": ["packages/domain-users/src"],
+      "@interdomestik/domain-users/*": ["packages/domain-users/src/*"]
     }
   },
   "include": [

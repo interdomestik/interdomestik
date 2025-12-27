@@ -33,6 +33,7 @@
     "@interdomestik/domain-claims": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
     "@interdomestik/domain-referrals": "workspace:*",
+    "@interdomestik/domain-users": "workspace:*",
     "@interdomestik/ui": "workspace:*",
     "@novu/nextjs": "^3.11.0",
     "@novu/node": "^2.6.6",
