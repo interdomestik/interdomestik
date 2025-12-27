@@ -64,7 +64,7 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
   };
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-[600px] flex flex-col" data-testid="messaging-panel">
       <CardHeader className="flex flex-row items-center justify-between py-3 border-b">
         <CardTitle className="text-base flex items-center gap-2">
           <MessageSquare className="h-4 w-4" />
@@ -131,6 +131,7 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
                 size="sm"
                 className={`gap-2 h-7 text-xs ${isInternal ? 'bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600' : ''}`}
                 onClick={() => setIsInternal(!isInternal)}
+                data-testid="internal-note-toggle"
               >
                 <ShieldAlert className="h-3 w-3" />
                 {isInternal ? 'Internal Note' : 'Public Message'}
