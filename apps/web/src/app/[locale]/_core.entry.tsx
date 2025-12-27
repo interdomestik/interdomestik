@@ -1,4 +1,5 @@
 import { AxeProvider } from '@/components/accessibility/axe-provider';
+import { AnalyticsScripts } from '@/components/analytics/analytics-scripts';
 import { ReferralTracker } from '@/components/analytics/referral-tracker';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
@@ -87,6 +88,7 @@ export default async function RootLayout({ children, params }: Props) {
             <Toaster position="top-right" richColors />
             <AxeProvider />
             <ReferralTracker />
+            <AnalyticsScripts />
           </QueryProvider>
         </NextIntlClientProvider>
       </body>
