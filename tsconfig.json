@@ -20,7 +20,9 @@
       "@interdomestik/ui": ["packages/ui/src"],
       "@interdomestik/ui/*": ["packages/ui/src/*"],
       "@interdomestik/database": ["packages/database/src"],
-      "@interdomestik/database/*": ["packages/database/src/*"]
+      "@interdomestik/database/*": ["packages/database/src/*"],
+      "@interdomestik/domain-membership-billing": ["packages/domain-membership-billing/src"],
+      "@interdomestik/domain-membership-billing/*": ["packages/domain-membership-billing/src/*"]
     }
   },
   "include": [

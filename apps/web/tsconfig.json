@@ -27,7 +27,11 @@
       "@interdomestik/ui": ["../../packages/ui/src"],
       "@interdomestik/ui/*": ["../../packages/ui/src/*"],
       "@interdomestik/database": ["../../packages/database/src"],
-      "@interdomestik/database/*": ["../../packages/database/src/*"]
+      "@interdomestik/database/*": ["../../packages/database/src/*"],
+      "@interdomestik/domain-membership-billing": ["../../packages/domain-membership-billing/src"],
+      "@interdomestik/domain-membership-billing/*": [
+        "../../packages/domain-membership-billing/src/*"
+      ]
     }
   },
   "include": [
@@ -38,6 +42,7 @@
     "../../packages/ui/src/**/*.ts",
     "../../packages/ui/src/**/*.tsx",
     "../../packages/database/src/**/*.ts",
+    "../../packages/domain-membership-billing/src/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]

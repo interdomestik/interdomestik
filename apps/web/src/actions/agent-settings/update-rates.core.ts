@@ -18,11 +18,15 @@ export async function updateAgentCommissionRatesCore(params: {
   if (!session?.user) return { success: false, error: 'Unauthorized' };
   if (!isAdmin(session.user.role)) return { success: false, error: 'Admin access required' };
 
+  const normalizedRates: Record<string, number> = {};
+
   // Validate rates are between 0 and 1
-  for (const [, rate] of Object.entries(rates)) {
-    if (rate < 0 || rate > 1) {
+  for (const [key, rate] of Object.entries(rates)) {
+    if (typeof rate !== 'number') continue;
+    if (!Number.isFinite(rate) || rate < 0 || rate > 1) {
       return { success: false, error: 'Rates must be between 0 and 1' };
     }
+    normalizedRates[key] = rate;
   }
 
   try {
@@ -33,17 +37,17 @@ export async function updateAgentCommissionRatesCore(params: {
     if (existing) {
       await db
         .update(agentSettings)
-        .set({ commissionRates: rates, updatedAt: new Date() })
+        .set({ commissionRates: normalizedRates, updatedAt: new Date() })
         .where(eq(agentSettings.agentId, agentId));
     } else {
       await db.insert(agentSettings).values({
         id: nanoid(),
         agentId,
-        commissionRates: rates,
+        commissionRates: normalizedRates,
       });
     }
 
-    console.log(`[Commission] Updated rates for agent ${agentId}:`, rates);
+    console.log(`[Commission] Updated rates for agent ${agentId}:`, normalizedRates);
     return { success: true };
   } catch (error) {
     console.error('Error updating commission rates:', error);
