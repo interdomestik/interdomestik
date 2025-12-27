@@ -1,38 +1,11 @@
-import { EventName } from '@paddle/paddle-node-sdk';
-import { handleSubscriptionPastDue } from './handlers/dunning';
-import { handleSubscriptionChanged } from './handlers/subscriptions';
-import { handleTransactionCompleted } from './handlers/transaction';
+import { handlePaddleEvent as handlePaddleEventCore } from '@interdomestik/domain-membership-billing/paddle-webhooks/handle';
+
+import { sendThankYouLetterCore } from '@/actions/thank-you-letter/send';
+import { sendPaymentFailedEmail } from '@/lib/email';
 
 export async function handlePaddleEvent(params: { eventType: string | undefined; data: unknown }) {
-  const eventType = params.eventType;
-
-  if (!eventType) {
-    console.log('[Webhook] Missing event type');
-    return;
-  }
-
-  switch (eventType) {
-    case EventName.SubscriptionCreated:
-    case EventName.SubscriptionUpdated:
-    case EventName.SubscriptionCanceled:
-    case EventName.SubscriptionPaused:
-    case EventName.SubscriptionResumed: {
-      await handleSubscriptionChanged({ eventType, data: params.data });
-      break;
-    }
-
-    case EventName.SubscriptionPastDue: {
-      await handleSubscriptionPastDue({ data: params.data });
-      break;
-    }
-
-    case EventName.TransactionCompleted: {
-      await handleTransactionCompleted({ data: params.data });
-      break;
-    }
-
-    default:
-      console.log(`[Webhook] Unhandled event type: ${eventType}`);
-      break;
-  }
+  return handlePaddleEventCore(params, {
+    sendPaymentFailedEmail,
+    sendThankYouLetter: sendThankYouLetterCore,
+  });
 }

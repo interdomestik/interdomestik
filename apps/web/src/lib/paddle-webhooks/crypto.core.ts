@@ -1,5 +1,2 @@
-import { createHash } from 'crypto';
-
-export function sha256Hex(input: string) {
-  return createHash('sha256').update(input).digest('hex');
-}
+// Thin wrapper to keep import path stable while implementation lives in the domain package.
+export * from '@interdomestik/domain-membership-billing/paddle-webhooks/crypto';
