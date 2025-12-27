@@ -58,6 +58,9 @@ importers:
       '@interdomestik/domain-claims':
         specifier: workspace:*
         version: link:../../packages/domain-claims
+      '@interdomestik/domain-communications':
+        specifier: workspace:*
+        version: link:../../packages/domain-communications
       '@interdomestik/domain-membership-billing':
         specifier: workspace:*
         version: link:../../packages/domain-membership-billing
@@ -300,6 +303,27 @@ importers:
       zod:
         specifier: ^4.2.1
         version: 4.2.1
+
+  packages/domain-communications:
+    dependencies:
+      '@interdomestik/database':
+        specifier: workspace:*
+        version: link:../database
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@upstash/redis@1.35.8)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7)
+      nanoid:
+        specifier: ^5.1.6
+        version: 5.1.6
+      resend:
+        specifier: ^4.4.0
+        version: 4.8.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      web-push:
+        specifier: ^3.6.7
+        version: 3.6.7
 
   packages/domain-membership-billing:
     dependencies:

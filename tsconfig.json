@@ -21,6 +21,8 @@
       "@interdomestik/ui/*": ["packages/ui/src/*"],
       "@interdomestik/database": ["packages/database/src"],
       "@interdomestik/database/*": ["packages/database/src/*"],
+      "@interdomestik/domain-communications": ["packages/domain-communications/src"],
+      "@interdomestik/domain-communications/*": ["packages/domain-communications/src/*"],
       "@interdomestik/domain-claims": ["packages/domain-claims/src"],
       "@interdomestik/domain-claims/*": ["packages/domain-claims/src/*"],
       "@interdomestik/domain-membership-billing": ["packages/domain-membership-billing/src"],
