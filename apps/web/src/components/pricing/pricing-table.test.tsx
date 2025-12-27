@@ -1,4 +1,4 @@
-import * as paddleLib from '@/lib/paddle';
+import * as paddleLib from '@interdomestik/domain-membership-billing/paddle';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PricingTable } from './pricing-table';

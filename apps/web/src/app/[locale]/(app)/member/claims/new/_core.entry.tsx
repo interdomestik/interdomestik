@@ -1,6 +1,6 @@
 import { ClaimWizard } from '@/components/claims/claim-wizard';
 import { auth } from '@/lib/auth';
-import { hasActiveMembership } from '@/lib/subscription';
+import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { Button } from '@interdomestik/ui';
 import { ShieldAlert } from 'lucide-react';
 import { Metadata } from 'next';

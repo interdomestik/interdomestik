@@ -1,6 +1,6 @@
 import { logAuditEvent } from '@/lib/audit';
 import { notifyClaimSubmitted } from '@/lib/notifications';
-import { hasActiveMembership } from '@/lib/subscription';
+import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { createClaimSchema, type CreateClaimValues } from '@/lib/validators/claims';
 import { claimDocuments, claims, db } from '@interdomestik/database';
 import { nanoid } from 'nanoid';

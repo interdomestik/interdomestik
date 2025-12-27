@@ -9,7 +9,7 @@ const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
 const mockHasActiveMembership = vi.fn();
 
-vi.mock('@/lib/subscription', () => ({
+vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   hasActiveMembership: () => mockHasActiveMembership(),
 }));
 

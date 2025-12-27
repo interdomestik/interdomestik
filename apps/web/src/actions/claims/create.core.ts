@@ -1,5 +1,5 @@
 import { logAuditEvent } from '@/lib/audit';
-import { hasActiveMembership } from '@/lib/subscription';
+import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { claims, db } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';

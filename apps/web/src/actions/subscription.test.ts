@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth';
-import { getPaddle } from '@/lib/paddle-server';
+import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-server';
 import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cancelSubscription } from './subscription';
@@ -24,7 +24,7 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
-vi.mock('@/lib/paddle-server', () => ({
+vi.mock('@interdomestik/domain-membership-billing/paddle-server', () => ({
   getPaddle: vi.fn(),
 }));
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { PADDLE_PRICES } from '@/config/paddle';
-import { getPaddleInstance } from '@/lib/paddle';
+import { getPaddleInstance } from '@interdomestik/domain-membership-billing/paddle';
 import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
