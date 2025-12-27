@@ -13,6 +13,7 @@ import { Input } from '@interdomestik/ui/components/input';
 import { Textarea } from '@interdomestik/ui/components/textarea';
 import { useFormContext } from 'react-hook-form';
 
+import { VoiceRecorder } from '@/components/ui/voice-recorder';
 import { useTranslations } from 'next-intl';
 
 export function WizardStepDetails() {
@@ -154,6 +155,44 @@ export function WizardStepDetails() {
             </FormItem>
           )}
         />
+
+        <div className="border-t pt-6 mt-2">
+          <FormLabel className="mb-3 font-medium flex items-center gap-2">
+            {t('voice_note_label', { defaultMessage: 'Or Record a Voice Message' })}
+            <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">New</span>
+          </FormLabel>
+          <VoiceRecorder
+            onRecordingComplete={async (blob: Blob) => {
+              const formData = new FormData();
+              formData.append('file', blob, 'voicenote.webm');
+
+              const { toast } = await import('sonner');
+              const loader = toast.loading('Uploading voice note...');
+
+              try {
+                const { uploadVoiceNote } = await import('@/actions/uploads/upload');
+                const result = await uploadVoiceNote(formData);
+
+                if (result.success) {
+                  form.setValue('voiceNoteUrl', result.url);
+                  toast.success('Voice note attached!', { id: loader });
+                } else {
+                  toast.error('Upload failed: ' + result.error, { id: loader });
+                }
+              } catch {
+                toast.error('Upload failed', { id: loader });
+              }
+            }}
+            onClear={() => {
+              form.setValue('voiceNoteUrl', undefined);
+            }}
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            {t('voice_note_desc', {
+              defaultMessage: 'Skip typing. Explain what happened in 60 seconds.',
+            })}
+          </p>
+        </div>
       </div>
     </div>
   );

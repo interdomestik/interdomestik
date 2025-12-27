@@ -26,6 +26,7 @@ export const claimDetailsSchema = z.object({
     .optional(), // Made optional as it's not in DB yet
   claimAmount: z.string().optional(), // Can be parsed to number on server
   currency: z.string().default('EUR'),
+  voiceNoteUrl: z.string().optional(),
 });
 
 export const claimEvidenceSchema = z.object({
