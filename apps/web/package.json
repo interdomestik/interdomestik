@@ -36,7 +36,6 @@
     "@interdomestik/domain-users": "workspace:*",
     "@interdomestik/ui": "workspace:*",
     "@novu/nextjs": "^3.11.0",
-    "@novu/node": "^2.6.6",
     "@paddle/paddle-js": "^1.6.1",
     "@paddle/paddle-node-sdk": "^3.5.0",
     "@radix-ui/react-label": "^2.1.7",
@@ -79,7 +78,6 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
-    "@types/dotenv": "^8.2.3",
     "@types/node": "^22.19.2",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.7",
@@ -96,6 +94,6 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.0",
     "typescript-eslint": "^8.25.0",
-    "vitest": "^4.0.15"
+    "vitest": "^4.0.16"
   }
 }

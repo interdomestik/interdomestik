@@ -1,7 +1,26 @@
+import { randomBytes, scryptSync } from 'crypto';
 import fs from 'fs';
-import { Scrypt } from 'oslo/password';
 import path from 'path';
 import postgres from 'postgres';
+
+const SCRYPT_PARAMS = {
+  N: 16384,
+  r: 16,
+  p: 1,
+  keyLength: 64,
+  maxmem: 128 * 16384 * 16 * 2,
+};
+
+function hashPassword(password) {
+  const salt = randomBytes(16).toString('hex');
+  const key = scryptSync(password.normalize('NFKC'), salt, SCRYPT_PARAMS.keyLength, {
+    N: SCRYPT_PARAMS.N,
+    r: SCRYPT_PARAMS.r,
+    p: SCRYPT_PARAMS.p,
+    maxmem: SCRYPT_PARAMS.maxmem,
+  });
+  return `${salt}:${key.toString('hex')}`;
+}
 
 // Load .env manually if not in env
 if (!process.env.DATABASE_URL) {
@@ -210,7 +229,7 @@ for (const c of baseClaims) {
 
 async function upsertUser({ id, name, email, role, password, agentId }) {
   const now = new Date();
-  const hash = await new Scrypt().hash(password);
+  const hash = hashPassword(password);
 
   // Clean existing rows for deterministic state
   // Delete referencing tables first (order matters for FK constraints)

@@ -17,7 +17,7 @@ Use Conventional Commits (enforced via `commitlint`). Examples:
 ## Cut a release
 
 1. Ensure `pnpm check` is green on `main`.
-2. Run `pnpm release`.
+2. Run `pnpm release` (uses release-it).
 3. Push the resulting commit + tag.
 
 Dry run:

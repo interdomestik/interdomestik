@@ -80,7 +80,7 @@ export function UsersTable({
     setLoadingId(userId);
     try {
       const result = await updateUserAgent(userId, agentId === 'unassigned' ? null : agentId);
-      if (result.error) {
+      if ('error' in result) {
         setAssignedAgents(current => ({ ...current, [userId]: previousValue }));
         toast.error(result.error);
       } else {

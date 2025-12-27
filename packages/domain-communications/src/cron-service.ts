@@ -113,7 +113,7 @@ export async function forEachBatchedUsers(args: {
   return { batches: Math.max(batches - 1, 0), totalUsers, lastAfterId: afterId };
 }
 
-async function processBatchedUserCampaign(args: {
+export async function processBatchedUserCampaign(args: {
   campaignId: string;
   sendToUser: (u: UserMini) => Promise<void>;
 }): Promise<{

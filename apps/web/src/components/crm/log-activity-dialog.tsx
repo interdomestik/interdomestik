@@ -73,7 +73,7 @@ export function LogActivityDialog({ entityId, entityType = 'member' }: LogActivi
       });
     }
 
-    if (result?.error) {
+    if (result && 'error' in result) {
       toast.error(result.error);
     } else {
       toast.success('Activity logged');

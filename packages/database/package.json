@@ -37,7 +37,7 @@
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.8",
     "nanoid": "^5.1.6",
-    "supabase": "^2.67.0",
+    "supabase": "^2.70.5",
     "tsx": "^4.21.0",
     "typescript": "^5.8.0"
   }
