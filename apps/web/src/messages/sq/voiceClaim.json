@@ -16,6 +16,13 @@
     },
     "noStress": "Pa stres",
     "noWaiting": "Pa pritje",
-    "noForms": "Pa formularë"
+    "noForms": "Pa formularë",
+    "recorder": {
+      "tapToRecord": "Shtyp për të Inçizuar (Max 60s)",
+      "recording": "Duke inçizuar...",
+      "start": "Fillo",
+      "stop": "Ndale",
+      "readyToUpload": "Mesazhi zanor gati për ngarkim."
+    }
   }
 }

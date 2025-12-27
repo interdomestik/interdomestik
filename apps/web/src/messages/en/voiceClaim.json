@@ -16,6 +16,13 @@
     },
     "noStress": "No stress",
     "noWaiting": "No waiting",
-    "noForms": "No forms"
+    "noForms": "No forms",
+    "recorder": {
+      "tapToRecord": "Tap to Record (Max 60s)",
+      "recording": "Recording...",
+      "start": "Start",
+      "stop": "Stop",
+      "readyToUpload": "Voice note ready to upload."
+    }
   }
 }

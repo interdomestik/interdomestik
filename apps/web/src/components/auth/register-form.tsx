@@ -86,7 +86,7 @@ export function RegisterForm() {
               id="fullName"
               name="fullName"
               type="text"
-              placeholder="Emri Mbiemri"
+              placeholder={t('namePlaceholder')}
               required
               autoComplete="name"
               className="bg-background/50"
@@ -100,7 +100,7 @@ export function RegisterForm() {
               id="email"
               name="email"
               type="email"
-              placeholder="emri@shembull.com"
+              placeholder={t('emailPlaceholder')}
               required
               autoComplete="email"
               className="bg-background/50"

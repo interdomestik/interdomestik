@@ -1,21 +1,28 @@
 {
   "voiceClaim": {
-    "badge": "The fastest way",
-    "title": "One Call. That's It.",
-    "subtitle": "File your claim by phone in 60 seconds. No forms, no stress, no waiting.",
-    "step1": "Call our 24/7 hotline",
-    "step2": "Describe the accident",
-    "step3": "We handle everything",
-    "cta": "Call Now",
-    "whatsappCta": "Send WhatsApp",
+    "badge": "Najbrži način",
+    "title": "Jedan Poziv. To je sve.",
+    "subtitle": "Prijavite vašu nesreću/štetu telefonom za 60 sekundi. Bez formulara, bez stresa, bez čekanja.",
+    "step1": "Pozovite 24/7 liniju",
+    "step2": "Opišite nesreću",
+    "step3": "Mi rešavamo sve",
+    "cta": "Pozovi Odmah",
+    "whatsappCta": "Pošalji WhatsApp",
     "stats": {
-      "time": "60 sec",
-      "timeLabel": "to file a claim",
+      "time": "60 sek",
+      "timeLabel": "za prijavu nesreće/štete",
       "noForms": "0",
-      "noFormsLabel": "forms to fill out"
+      "noFormsLabel": "formulara za popunjavanje"
     },
-    "noStress": "No stress",
-    "noWaiting": "No waiting",
-    "noForms": "No forms"
+    "noStress": "Bez stresa",
+    "noWaiting": "Bez čekanja",
+    "noForms": "Bez formulara",
+    "recorder": {
+      "tapToRecord": "Dodirni za snimanje (Max 60s)",
+      "recording": "Snima se...",
+      "start": "Počni",
+      "stop": "Zaustavi",
+      "readyToUpload": "Glasovna poruka spremna za slanje."
+    }
   }
 }

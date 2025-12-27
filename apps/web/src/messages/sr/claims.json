@@ -1,95 +1,96 @@
 {
   "claims": {
-    "title": "My Claims",
-    "new": "New Claim",
+    "title": "Moji Zahtevi",
+    "description": "Upravljajte svojim zahtevima za odštetu i pratite njihov status.",
+    "new": "Novi Zahtev",
     "empty": {
-      "title": "No claims yet",
-      "description": "Start by creating your first claim",
-      "filtered": "Try adjusting your filters or search query.",
-      "createFirst": "Create Your First Claim"
+      "title": "Nema pronađenih zahteva",
+      "description": "Još uvek niste podneli zahtev. Započnite kreiranjem vašeg prvog zahteva.",
+      "filtered": "Pokušajte da prilagodite filtere ili pretragu.",
+      "createFirst": "Kreiraj Prvi Zahtev"
     },
+    "table": {
+      "title": "Naslov",
+      "company": "Kompanija",
+      "category": "Kategorija",
+      "status": "Status",
+      "amount": "Iznos",
+      "created": "Kreirano"
+    },
+    "showing": "Prikazuje se",
+    "claim": "zahtev",
+    "claimsPlural": "zahtevi",
     "status": {
-      "draft": "Draft",
-      "submitted": "Submitted",
-      "verification": "Verification",
-      "evaluation": "Evaluation",
-      "negotiation": "Negotiation",
-      "court": "Court",
-      "resolved": "Resolved",
-      "rejected": "Rejected",
-      "assigned": "Assigned",
-      "investigating": "Investigating",
-      "contacting": "Contacting",
-      "negotiating": "Negotiating",
-      "mediation": "Mediation",
-      "closed": "Closed"
+      "draft": "Nacrt",
+      "submitted": "Podneto",
+      "verification": "Verifikacija",
+      "evaluation": "Procena",
+      "negotiation": "Pregovori",
+      "court": "Sud",
+      "resolved": "Rešeno",
+      "rejected": "Odbijeno",
+      "assigned": "Dodeljeno",
+      "investigating": "Istraga",
+      "contacting": "Kontaktiranje",
+      "negotiating": "Pregovaranje",
+      "mediation": "Medijacija",
+      "closed": "Zatvoreno"
     },
     "category": {
-      "consumer": "Consumer",
-      "housing": "Housing",
-      "insurance": "Insurance",
-      "employment": "Employment",
-      "contracts": "Contracts",
-      "utilities": "Utilities",
-      "auto": "Vehicle",
-      "vehicle": "Vehicle",
-      "travel": "Travel",
-      "retail": "Retail",
-      "real_estate": "Real Estate",
-      "flight_delay": "Flight Delay",
-      "damaged_goods": "Damaged Goods",
-      "service_issue": "Service Issue",
-      "other": "Other"
+      "consumer": "Potrošač",
+      "housing": "Stanovanje",
+      "insurance": "Osiguranje",
+      "employment": "Zaposlenje",
+      "contracts": "Ugovori",
+      "utilities": "Komunalije",
+      "auto": "Vozilo",
+      "vehicle": "Vozilo",
+      "travel": "Putovanje",
+      "retail": "Maloprodaja",
+      "real_estate": "Nekretnine",
+      "property": "Imovina",
+      "flight_delay": "Kašnjenje leta",
+      "damaged_goods": "Oštećena roba",
+      "service_issue": "Problem sa uslugom",
+      "other": "Ostalo"
     },
     "priority": {
-      "low": "Low",
-      "normal": "Normal",
-      "high": "High",
-      "urgent": "Urgent"
+      "low": "Nizak",
+      "normal": "Normalan",
+      "high": "Visok",
+      "urgent": "Hitan"
     },
     "wizard": {
-      "step1": "Category",
-      "step2": "Details",
-      "step3": "Documents",
-      "step4": "Finish",
-      "submitClaim": "Submit Claim"
+      "step1": "Kategorija",
+      "step2": "Detalji",
+      "step3": "Dokazi",
+      "step4": "Pregled",
+      "submitClaim": "Podnesi Zahtev"
     },
-    "description": "Manage your consumer complaints and track their status.",
-    "table": {
-      "title": "Title",
-      "company": "Company",
-      "category": "Category",
-      "status": "Status",
-      "amount": "Amount",
-      "created": "Created"
-    },
-    "showing": "Showing",
-    "claim": "claim",
-    "claimsPlural": "claims",
     "actions": {
-      "editDraft": "Edit draft",
-      "cancelClaim": "Cancel claim",
-      "cancelConfirm": "Cancel this claim? You can’t undo this.",
-      "cancelled": "Claim cancelled",
-      "cancelFailed": "Failed to cancel claim"
+      "editDraft": "Uredi nacrt",
+      "cancelClaim": "Otkaži zahtev",
+      "cancelConfirm": "Da li sigurno želite da otkažete ovaj zahtev? Ovo se ne može opozvati.",
+      "cancelled": "Zahtev otkazan",
+      "cancelFailed": "Neuspešno otkazivanje"
     },
     "edit": {
-      "title": "Edit draft",
-      "description": "Update the information before submitting your claim.",
-      "updated": "Draft updated",
-      "failed": "Failed to update claim"
+      "title": "Uredi nacrt",
+      "description": "Ažurirajte informacije pre podnošenja zahteva.",
+      "updated": "Nacrt ažuriran",
+      "failed": "Neuspešno ažuriranje"
     },
     "gate": {
-      "membership_required_title": "Active Membership Required",
-      "membership_required_message": "You need an active membership plan to file new claims. Please obtain a plan to access our legal protection services.",
-      "view_plans": "View Plans"
+      "membership_required_title": "Potrebno Aktivno Članstvo",
+      "membership_required_message": "Potreban vam je aktivan plan članstva za podnošenje novih zahteva. Molimo nabavite plan za pristup našim uslugama pravne zaštite.",
+      "view_plans": "Pogledaj Planove"
     },
     "detail": {
-      "caseDetails": "Case Details",
-      "description": "Description",
-      "claimAmount": "Claim Amount",
-      "category": "Category",
-      "evidence": "Attached Evidence"
+      "caseDetails": "Detalji Slučaja",
+      "description": "Opis",
+      "claimAmount": "Traženi Iznos",
+      "category": "Kategorija",
+      "evidence": "Priloženi Dokazi"
     }
   }
 }

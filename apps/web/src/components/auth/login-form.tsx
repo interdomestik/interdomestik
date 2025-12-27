@@ -92,7 +92,7 @@ export function LoginForm() {
               id="email"
               name="email"
               type="email"
-              placeholder="emri@shembull.com"
+              placeholder={t('emailPlaceholder')}
               required
               autoComplete="email"
               className="bg-background/50"
