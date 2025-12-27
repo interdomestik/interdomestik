@@ -7,7 +7,10 @@ import {
   persistInvalidSignatureAttempt,
   sha256Hex,
   verifyPaddleWebhook,
-} from '@/lib/paddle-webhooks';
+} from '@interdomestik/domain-membership-billing/paddle-webhooks';
+import { sendThankYouLetterCore } from '@/actions/thank-you-letter/send';
+import { logAuditEvent } from '@/lib/audit';
+import { sendPaymentFailedEmail } from '@/lib/email';
 
 import type { Paddle } from '@paddle/paddle-node-sdk';
 
@@ -48,15 +51,18 @@ export async function handlePaddleWebhookCore(args: {
         ? `paddle:${eventIdFromPayload}`
         : `paddle:sha256:${payloadHash}`;
 
-      await persistInvalidSignatureAttempt({
-        headers,
-        dedupeKey,
-        eventType: eventTypeFromPayload,
-        eventId: eventIdFromPayload,
-        eventTimestamp: eventTimestampFromPayload,
-        payloadHash,
-        parsedPayload,
-      });
+      await persistInvalidSignatureAttempt(
+        {
+          headers,
+          dedupeKey,
+          eventType: eventTypeFromPayload,
+          eventId: eventIdFromPayload,
+          eventTimestamp: eventTimestampFromPayload,
+          payloadHash,
+          parsedPayload,
+        },
+        { logAuditEvent }
+      );
     } catch {
       // Best-effort persistence; ignore errors.
     }
@@ -81,17 +87,20 @@ export async function handlePaddleWebhookCore(args: {
 
   const dedupeKey = eventId ? `paddle:${eventId}` : `paddle:sha256:${payloadHash}`;
 
-  const insertResult = await insertWebhookEvent({
-    headers,
-    dedupeKey,
-    eventType,
-    eventId,
-    signatureValid,
-    signatureBypassed,
-    eventTimestamp: eventTimestampFromPayload,
-    payloadHash,
-    parsedPayload,
-  });
+  const insertResult = await insertWebhookEvent(
+    {
+      headers,
+      dedupeKey,
+      eventType,
+      eventId,
+      signatureValid,
+      signatureBypassed,
+      eventTimestamp: eventTimestampFromPayload,
+      payloadHash,
+      parsedPayload,
+    },
+    { logAuditEvent }
+  );
 
   if (!insertResult.inserted || !insertResult.webhookEventRowId) {
     return { status: 200, body: { success: true, duplicate: true } };
@@ -100,16 +109,28 @@ export async function handlePaddleWebhookCore(args: {
   const webhookEventRowId = insertResult.webhookEventRowId;
 
   try {
-    await handlePaddleEvent({ eventType, data });
-    await markWebhookProcessed({ headers, webhookEventRowId, eventType, eventId });
+    await handlePaddleEvent(
+      { eventType, data },
+      {
+        sendPaymentFailedEmail,
+        sendThankYouLetter: sendThankYouLetterCore,
+      }
+    );
+    await markWebhookProcessed(
+      { headers, webhookEventRowId, eventType, eventId },
+      { logAuditEvent }
+    );
   } catch (processingError) {
-    await markWebhookFailed({
-      headers,
-      webhookEventRowId,
-      eventType,
-      eventId,
-      error: processingError,
-    });
+    await markWebhookFailed(
+      {
+        headers,
+        webhookEventRowId,
+        eventType,
+        eventId,
+        error: processingError,
+      },
+      { logAuditEvent }
+    );
 
     throw processingError;
   }
