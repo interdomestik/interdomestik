@@ -21,7 +21,8 @@
     "generate": "drizzle-kit generate",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "seed:e2e": "tsx src/seed-e2e.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
