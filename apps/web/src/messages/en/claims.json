@@ -48,6 +48,7 @@
       "travel": "Travel",
       "retail": "Retail",
       "real_estate": "Real Estate",
+      "property": "Property",
       "flight_delay": "Flight Delay",
       "damaged_goods": "Damaged Goods",
       "service_issue": "Service Issue",

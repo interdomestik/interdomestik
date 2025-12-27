@@ -42,6 +42,13 @@
       "generic": "Something went wrong. Please try again.",
       "retry": "Please try again. If the problem persists, contact support.",
       "unauthorized": "Unauthorized"
+    },
+    "cookie_consent": {
+      "title": "Cookie Settings",
+      "description": "We use cookies to improve your experience.",
+      "details": "By clicking 'Accept', you agree to our use of cookies for analytics and personalized content.",
+      "accept": "Accept All",
+      "decline": "Necessary Only"
     }
   }
 }

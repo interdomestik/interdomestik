@@ -42,6 +42,13 @@
       "generic": "Diçka shkoi keq. Ju lutemi provoni përsëri.",
       "retry": "Ju lutemi provoni përsëri. Nëse problemi vazhdon, kontaktoni mbështetjen.",
       "unauthorized": "I paautorizuar"
+    },
+    "cookie_consent": {
+      "title": "Cilësimet e Cookies",
+      "description": "Ne përdorim cookies për të përmirësuar përvojën tuaj.",
+      "details": "Duke klikuar 'Pranoji të Gjitha', ju pajtoheni me përdorimin tonë të cookies për analitikë.",
+      "accept": "Pranoji të Gjitha",
+      "decline": "Vetëm të Domosdoshme"
     }
   }
 }
