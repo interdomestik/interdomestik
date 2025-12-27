@@ -51,7 +51,7 @@ export function WizardStepEvidence() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const files = form.watch('files') ?? [];
+  const files = (form.watch('files') ?? []) as EvidenceFile[];
   const category = form.watch('category') || 'default';
   const promptConfig = (t.raw('prompts') as Record<string, string[]>) || {};
   const promptList =

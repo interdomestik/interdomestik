@@ -21,7 +21,7 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
-vi.mock('@interdomestik/database/db', () => ({
+vi.mock('@interdomestik/database', () => ({
   db: {
     insert: () => ({ values: mockDbInsert }),
     update: () => ({ set: () => ({ where: mockDbUpdate }) }),
@@ -49,6 +49,10 @@ vi.mock('@interdomestik/database/db', () => ({
       },
     },
   },
+  claims: { id: 'id' },
+  claimDocuments: { id: 'id' },
+  user: { id: 'id' },
+  eq: vi.fn(),
 }));
 
 // Mock nanoid

@@ -1,0 +1,26 @@
+{
+  "name": "@interdomestik/domain-claims",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./claims/types": "./src/claims/types.ts",
+    "./claims/documents": "./src/claims/documents.ts",
+    "./claims/create": "./src/claims/create.ts",
+    "./claims/submit": "./src/claims/submit.ts",
+    "./claims/status": "./src/claims/status.ts",
+    "./claims/draft": "./src/claims/draft.ts",
+    "./validators/claims": "./src/validators/claims.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@interdomestik/database": "workspace:*",
+    "@interdomestik/domain-membership-billing": "workspace:*",
+    "nanoid": "^5.1.6",
+    "zod": "^4.2.1"
+  }
+}

@@ -28,6 +28,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@interdomestik/database": "workspace:*",
+    "@interdomestik/domain-claims": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
     "@interdomestik/ui": "workspace:*",
     "@novu/nextjs": "^3.11.0",
