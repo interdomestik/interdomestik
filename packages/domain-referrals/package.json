@@ -1,0 +1,23 @@
+{
+  "name": "@interdomestik/domain-referrals",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./referrals/get-agent-link": "./src/referrals/get-agent-link.ts",
+    "./referrals/types": "./src/referrals/types.ts",
+    "./member-referrals/link": "./src/member-referrals/link.ts",
+    "./member-referrals/stats": "./src/member-referrals/stats.ts",
+    "./member-referrals/types": "./src/member-referrals/types.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@interdomestik/database": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "nanoid": "^5.1.6"
+  }
+}

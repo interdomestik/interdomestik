@@ -35,7 +35,9 @@
       "@interdomestik/domain-membership-billing": ["../../packages/domain-membership-billing/src"],
       "@interdomestik/domain-membership-billing/*": [
         "../../packages/domain-membership-billing/src/*"
-      ]
+      ],
+      "@interdomestik/domain-referrals": ["../../packages/domain-referrals/src"],
+      "@interdomestik/domain-referrals/*": ["../../packages/domain-referrals/src/*"]
     }
   },
   "include": [
@@ -49,6 +51,7 @@
     "../../packages/domain-communications/src/**/*.ts",
     "../../packages/domain-claims/src/**/*.ts",
     "../../packages/domain-membership-billing/src/**/*.ts",
+    "../../packages/domain-referrals/src/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
