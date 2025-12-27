@@ -1,40 +1,19 @@
-import { crmActivities, db } from '@interdomestik/database';
-import { nanoid } from 'nanoid';
 import { revalidatePath } from 'next/cache';
 
 import { getSessionFromHeaders } from './context';
+import {
+  logLeadActivityCore as logLeadActivityDomain,
+  type LogLeadActivityInput,
+} from '@interdomestik/domain-activities/log-lead';
 
-export type LogLeadActivityInput = {
-  leadId: string;
-  type: 'call' | 'email' | 'meeting' | 'note' | 'other';
-  subject: string;
-  description?: string;
-};
+export type { LogLeadActivityInput } from '@interdomestik/domain-activities/log-lead';
 
 export async function logLeadActivityCore(data: LogLeadActivityInput) {
   const session = await getSessionFromHeaders();
 
-  if (!session) return { error: 'Unauthorized' };
-  if (session.user.role === 'member') return { error: 'Permission denied' };
+  const result = await logLeadActivityDomain({ session, data });
+  if ('error' in result) return result;
 
-  try {
-    const newActivity = {
-      id: nanoid(),
-      agentId: session.user.id,
-      leadId: data.leadId,
-      type: data.type === 'other' ? 'note' : data.type,
-      summary: data.subject,
-      description: data.description,
-      occurredAt: new Date(),
-      createdAt: new Date(),
-    };
-
-    await db.insert(crmActivities).values(newActivity);
-
-    revalidatePath(`/agent/crm/leads/${data.leadId}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to log lead activity:', error);
-    return { error: 'Failed to log activity.' };
-  }
+  revalidatePath(`/agent/crm/leads/${data.leadId}`);
+  return result;
 }

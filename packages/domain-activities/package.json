@@ -1,0 +1,26 @@
+{
+  "name": "@interdomestik/domain-activities",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./schema": "./src/schema.ts",
+    "./log-lead": "./src/log-lead.ts",
+    "./log-member": "./src/log-member.ts",
+    "./get-lead": "./src/get-lead.ts",
+    "./get-member": "./src/get-member.ts",
+    "./map-lead": "./src/map-lead.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@interdomestik/database": "workspace:*",
+    "drizzle-orm": "^0.45.1",
+    "nanoid": "^5.1.6",
+    "zod": "^4.2.1"
+  }
+}

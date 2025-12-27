@@ -55,6 +55,9 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@interdomestik/domain-activities':
+        specifier: workspace:*
+        version: link:../../packages/domain-activities
       '@interdomestik/domain-claims':
         specifier: workspace:*
         version: link:../../packages/domain-claims
@@ -291,6 +294,21 @@ importers:
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
+
+  packages/domain-activities:
+    dependencies:
+      '@interdomestik/database':
+        specifier: workspace:*
+        version: link:../database
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@upstash/redis@1.35.8)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7)
+      nanoid:
+        specifier: ^5.1.6
+        version: 5.1.6
+      zod:
+        specifier: ^4.2.1
+        version: 4.2.1
 
   packages/domain-claims:
     dependencies:

@@ -32,6 +32,8 @@
       "@interdomestik/domain-communications/*": ["../../packages/domain-communications/src/*"],
       "@interdomestik/domain-claims": ["../../packages/domain-claims/src"],
       "@interdomestik/domain-claims/*": ["../../packages/domain-claims/src/*"],
+      "@interdomestik/domain-activities": ["../../packages/domain-activities/src"],
+      "@interdomestik/domain-activities/*": ["../../packages/domain-activities/src/*"],
       "@interdomestik/domain-membership-billing": ["../../packages/domain-membership-billing/src"],
       "@interdomestik/domain-membership-billing/*": [
         "../../packages/domain-membership-billing/src/*"
@@ -50,6 +52,7 @@
     "../../packages/database/src/**/*.ts",
     "../../packages/domain-communications/src/**/*.ts",
     "../../packages/domain-claims/src/**/*.ts",
+    "../../packages/domain-activities/src/**/*.ts",
     "../../packages/domain-membership-billing/src/**/*.ts",
     "../../packages/domain-referrals/src/**/*.ts",
     ".next/dev/types/**/*.ts"
