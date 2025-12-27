@@ -14,7 +14,7 @@ import { routes } from './routes';
 
 test.describe('Seeded Data Verification', () => {
   // Skip these tests by default - they depend on specific seeded data that may change
-  test.skip('should display all seeded claims on dashboard', async ({ authenticatedPage }) => {
+  test('should display all seeded claims on dashboard', async ({ authenticatedPage }) => {
     // Go to dashboard claims list
     await authenticatedPage.goto(routes.memberClaims('en'));
 
@@ -35,7 +35,7 @@ test.describe('Seeded Data Verification', () => {
     }
   });
 
-  test.skip('should show correct status for specific claims', async ({ authenticatedPage }) => {
+  test('should show correct status for specific claims', async ({ authenticatedPage }) => {
     await authenticatedPage.goto(routes.memberClaims('en'));
     await authenticatedPage.waitForSelector('text=Car Accident');
 
@@ -50,14 +50,17 @@ test.describe('Seeded Data Verification', () => {
     await checkStatus('Rejected Insurance Claim', 'Rejected');
   });
 
-  test.skip('should view claim details', async ({ authenticatedPage }) => {
+  test('should view claim details', async ({ authenticatedPage }) => {
     await authenticatedPage.goto(routes.memberClaims('en'));
 
     // Click on a claim
-    await authenticatedPage.click('text=Flight Delay to Munich');
-
-    // Wait for detail page (increased timeout for WebKit)
-    await authenticatedPage.waitForURL(/\/member\/claims\/claim-/, { timeout: 45000 });
+    // Navigate directly using href for stability
+    const link = authenticatedPage
+      .locator('tr', { hasText: 'Flight Delay to Munich' })
+      .getByRole('link');
+    const href = await link.getAttribute('href');
+    await authenticatedPage.goto(href!);
+    await authenticatedPage.waitForLoadState('domcontentloaded');
 
     // Verify detail content
     await expect(authenticatedPage.locator('h1, h2')).toContainText('Flight Delay to Munich');

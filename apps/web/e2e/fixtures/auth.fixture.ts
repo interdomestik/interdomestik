@@ -193,6 +193,9 @@ export const test = base.extend<AuthFixtures>({
    */
   saveState: async ({ page }, use) => {
     await use(async (role: Role) => {
+      await page.context().setExtraHTTPHeaders({
+        'x-forwarded-for': ipForRole(role),
+      });
       await performLogin(page, role);
 
       // Give the post-login route a chance to finish streaming/hydration.

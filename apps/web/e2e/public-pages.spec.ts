@@ -17,8 +17,8 @@ test.describe('Public Pages', () => {
       await expect(page.getByText('Avg Response Time')).toBeVisible();
     });
 
-    // Skip language test - SQ translations are not yet complete for stats page
-    test.skip('should switch language on stats page', async ({ page }) => {
+    // Unskipped language test - SQ translations are now available
+    test('should switch language on stats page', async ({ page }) => {
       await page.goto(routes.stats('sq'));
       await page.waitForLoadState('domcontentloaded');
 

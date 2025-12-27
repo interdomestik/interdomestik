@@ -68,8 +68,8 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          // Use Turbopack for faster dev server startup
-          command: `pnpm exec next dev --turbopack --hostname ${BIND_HOST} --port ${PORT}`,
+          // Build once and run production server to avoid dev manifest corruption during parallel tests.
+          command: `pnpm exec next build && pnpm exec next start --hostname ${BIND_HOST} --port ${PORT}`,
           url: BASE_URL,
           reuseExistingServer: !process.env.CI,
           timeout: 300 * 1000,
@@ -77,6 +77,7 @@ export default defineConfig({
             NEXT_PUBLIC_APP_URL: BASE_URL,
             BETTER_AUTH_URL: BASE_URL,
             INTERDOMESTIK_AUTOMATED: '1',
+            PADDLE_WEBHOOK_BYPASS_SIGNATURE_IN_DEV: 'true',
           },
         },
       }),
