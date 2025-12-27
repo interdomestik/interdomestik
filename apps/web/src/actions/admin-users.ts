@@ -1,3 +1,4 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./admin-users.core`.
-export * from './admin-users.core';
+import { getAgents, getStaff, getUsers, updateUserAgent } from './admin-users.core';
+
+export { getAgents, getStaff, getUsers, updateUserAgent };

@@ -1,2 +1,3 @@
 // Thin wrapper to keep import path stable while implementation lives in `./auth.core`.
-export * from './auth.core';
+import { auth } from './auth.core';
+export { auth };

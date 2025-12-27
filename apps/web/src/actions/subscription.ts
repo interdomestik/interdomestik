@@ -1,3 +1,4 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./subscription.core`.
-export * from './subscription.core';
+import { cancelSubscription, getPaymentUpdateUrl } from './subscription.core';
+
+export { cancelSubscription, getPaymentUpdateUrl };

@@ -1,3 +1,4 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./notifications.core`.
-export * from './notifications.core';
+import { getNotifications, markAllAsRead, markAsRead } from './notifications.core';
+
+export { getNotifications, markAllAsRead, markAsRead };

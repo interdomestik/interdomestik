@@ -1,3 +1,4 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./staff-claims.core`.
-export * from './staff-claims.core';
+import { assignClaim, updateClaimStatus } from './staff-claims.core';
+export type { ActionResult, ClaimStatus } from './staff-claims.core';
+export { assignClaim, updateClaimStatus };

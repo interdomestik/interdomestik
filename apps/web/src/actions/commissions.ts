@@ -1,3 +1,10 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./commissions.core`.
-export * from './commissions.core';
+import { createCommission, getMyCommissionSummary, getMyCommissions } from './commissions.core';
+
+export type {
+  Commission,
+  CommissionStatus,
+  CommissionSummary,
+  CommissionType,
+} from './commissions.core';
+export { createCommission, getMyCommissionSummary, getMyCommissions };

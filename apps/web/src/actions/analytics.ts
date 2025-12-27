@@ -1,3 +1,5 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./analytics.core`.
-export * from './analytics.core';
+import { getAdminAnalytics } from './analytics.core';
+
+export type { AnalyticsData } from './analytics.core';
+export { getAdminAnalytics };

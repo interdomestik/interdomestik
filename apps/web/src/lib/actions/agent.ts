@@ -1,3 +1,4 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./agent.core`.
-export * from './agent.core';
+import { createLead, logActivity, registerMember, updateLeadStatus } from './agent.core';
+
+export { createLead, logActivity, registerMember, updateLeadStatus };

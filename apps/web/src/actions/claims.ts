@@ -1,3 +1,10 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./claims.core`.
-export * from './claims.core';
+import {
+  cancelClaim,
+  createClaim,
+  submitClaim,
+  updateClaimStatus,
+  updateDraftClaim,
+} from './claims.core';
+
+export { cancelClaim, createClaim, submitClaim, updateClaimStatus, updateDraftClaim };

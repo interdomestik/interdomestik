@@ -1,3 +1,10 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./activities.core`.
-export * from './activities.core';
+import {
+  getLeadActivities,
+  getMemberActivities,
+  logActivity,
+  logLeadActivity,
+} from './activities.core';
+
+export type { LogActivityInput } from './activities.core';
+export { getLeadActivities, getMemberActivities, logActivity, logLeadActivity };

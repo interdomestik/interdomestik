@@ -1,3 +1,5 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./referrals.core`.
-export * from './referrals.core';
+import { getAgentReferralLink } from './referrals.core';
+
+export type { ActionResult, ReferralLinkResult } from './referrals.core';
+export { getAgentReferralLink };

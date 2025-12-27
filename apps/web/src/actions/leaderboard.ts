@@ -1,3 +1,5 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./leaderboard.core`.
-export * from './leaderboard.core';
+import { getAgentLeaderboard } from './leaderboard.core';
+
+export type { ActionResult, LeaderboardData, LeaderboardEntry } from './leaderboard.core';
+export { getAgentLeaderboard };

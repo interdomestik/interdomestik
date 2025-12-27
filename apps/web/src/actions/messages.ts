@@ -1,3 +1,5 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./messages.core`.
-export * from './messages.core';
+import { getMessagesForClaim, markMessagesAsRead, sendMessage } from './messages.core';
+
+export type { MessageWithSender } from './messages.core';
+export { getMessagesForClaim, markMessagesAsRead, sendMessage };

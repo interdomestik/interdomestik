@@ -1,3 +1,3 @@
 'use server';
-// Thin wrapper to keep import path stable while implementation lives in `./agent-claims.core`.
-export * from './agent-claims.core';
+import { assignClaim, updateClaimStatus } from './agent-claims.core';
+export { assignClaim, updateClaimStatus };
