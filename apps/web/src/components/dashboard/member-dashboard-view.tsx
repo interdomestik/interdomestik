@@ -217,13 +217,56 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 24/7 Hotline
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-6 text-center">
-              <div className="text-2xl font-black tracking-tighter mb-1">+383 49 123 456</div>
-              <p className="text-xs font-medium opacity-70 mb-4">Urgent medical or legal support</p>
-              <Button size="sm" className="w-full bg-primary font-bold shadow-lg shadow-primary/30">
-                Call Now
-              </Button>
-            </CardContent>
+            <div className="flex flex-col gap-4">
+              {/* North Macedonia */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-2 text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                  <span>🇲🇰 North Macedonia</span>
+                </div>
+                <div className="text-xl font-black tracking-tighter">
+                  <a href="tel:+38970337140" className="hover:text-primary transition-colors">
+                    +389 70 337 140
+                  </a>
+                </div>
+              </div>
+
+              {/* Kosovo */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-center gap-2 text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                  <span>🇽🇰 Kosovo</span>
+                </div>
+                <div className="text-xl font-black tracking-tighter">
+                  <a href="tel:+38349900600" className="hover:text-primary transition-colors">
+                    +383 49 900 600
+                  </a>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="w-full font-bold shadow-lg shadow-primary/30"
+                  asChild
+                >
+                  <a href="tel:+38970337140">Call MK</a>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full font-bold bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                  asChild
+                >
+                  <a
+                    href="https://wa.me/38970337140?text=I%20have%20an%20emergency"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    WhatsApp
+                  </a>
+                </Button>
+              </div>
+            </div>
           </Card>
 
           {/* Referral Invite Card */}
