@@ -297,6 +297,9 @@ importers:
       '@interdomestik/domain-membership-billing':
         specifier: workspace:*
         version: link:../domain-membership-billing
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@upstash/redis@1.35.8)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7)
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6

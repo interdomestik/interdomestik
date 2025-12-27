@@ -30,5 +30,11 @@ export type ClaimsDeps = {
     oldStatus: string,
     newStatus: string
   ) => Promise<unknown> | unknown;
+  notifyClaimAssigned?: (
+    agentId: string,
+    email: string,
+    claim: { id: string; title: string },
+    agentName: string
+  ) => Promise<unknown> | unknown;
   revalidatePath?: (path: string) => Promise<void> | void;
 };

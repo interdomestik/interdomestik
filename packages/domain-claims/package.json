@@ -12,6 +12,12 @@
     "./claims/submit": "./src/claims/submit.ts",
     "./claims/status": "./src/claims/status.ts",
     "./claims/draft": "./src/claims/draft.ts",
+    "./agent-claims/assign": "./src/agent-claims/assign.ts",
+    "./agent-claims/update-status": "./src/agent-claims/update-status.ts",
+    "./staff-claims/assign": "./src/staff-claims/assign.ts",
+    "./staff-claims/update-status": "./src/staff-claims/update-status.ts",
+    "./staff-claims/types": "./src/staff-claims/types.ts",
+    "./admin-claims/update-status": "./src/admin-claims/update-status.ts",
     "./validators/claims": "./src/validators/claims.ts"
   },
   "scripts": {
@@ -20,6 +26,7 @@
   "dependencies": {
     "@interdomestik/database": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
+    "drizzle-orm": "^0.45.1",
     "nanoid": "^5.1.6",
     "zod": "^4.2.1"
   }
