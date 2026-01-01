@@ -1,6 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 
@@ -13,6 +14,18 @@ export async function uploadVoiceNote(formData: FormData): Promise<UploadResult>
 
   if (!file) {
     return { success: false, error: 'No file provided' };
+  }
+
+  // Rate Limit: 5 uploads per 10 minutes per IP
+  const rateLimit = await enforceRateLimit({
+    name: 'action:upload-voice',
+    limit: 5,
+    windowSeconds: 600,
+    headers: await headers(),
+  });
+
+  if (rateLimit) {
+    return { success: false, error: 'Too many uploads. Please try again later.' };
   }
 
   // Validate file type
@@ -35,16 +48,21 @@ export async function uploadVoiceNote(formData: FormData): Promise<UploadResult>
 
   // Use Service Role to bypass RLS since we handle auth here
   // Note: Ensure SUPABASE_SERVICE_ROLE_KEY is in .env or .env.local
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseServiceKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Supabase service role key is required for voice note uploads.');
+    return { success: false, error: 'Upload unavailable. Please try again later.' };
+  }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   const userId = session.user.id;
   const ext = file.type.split('/')[1] || 'webm';
   const fileName = `${userId}/${crypto.randomUUID()}.${ext}`;
-  const bucketName = 'voice-notes';
+  const bucketName = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
+  const signedUrlExpiresIn = 60 * 10;
 
   try {
     const arrayBuffer = await file.arrayBuffer();
@@ -60,9 +78,16 @@ export async function uploadVoiceNote(formData: FormData): Promise<UploadResult>
       return { success: false, error: 'Upload failed: ' + error.message };
     }
 
-    const { data: publicData } = supabase.storage.from(bucketName).getPublicUrl(fileName);
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from(bucketName)
+      .createSignedUrl(fileName, signedUrlExpiresIn);
 
-    return { success: true, url: publicData.publicUrl, path: fileName };
+    if (signedError || !signedData?.signedUrl) {
+      console.warn('Signed URL generation failed for voice note upload.');
+      return { success: true, url: '', path: fileName };
+    }
+
+    return { success: true, url: signedData.signedUrl, path: fileName };
   } catch (err) {
     console.error('Unexpected upload error:', err);
     return { success: false, error: 'Unexpected error during upload' };

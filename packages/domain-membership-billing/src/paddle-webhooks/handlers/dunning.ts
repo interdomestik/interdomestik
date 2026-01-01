@@ -3,6 +3,14 @@ import { eq } from 'drizzle-orm';
 
 import type { PaddleWebhookDeps } from '../types';
 
+const redactEmail = (email?: string | null) => {
+  if (!email) return 'unknown';
+  const [local, domain] = email.split('@');
+  if (!domain) return 'unknown';
+  const maskedLocal = local.length <= 2 ? `${local[0] ?? ''}*` : `${local[0]}***${local.slice(-1)}`;
+  return `${maskedLocal}@${domain}`;
+};
+
 export async function handleSubscriptionPastDue(
   params: { data: unknown },
   deps: Pick<PaddleWebhookDeps, 'sendPaymentFailedEmail'> = {}
@@ -92,7 +100,7 @@ export async function handleSubscriptionPastDue(
           gracePeriodDays,
           gracePeriodEndDate: gracePeriodEnd.toLocaleDateString(),
         });
-        console.log(`[Webhook] ✉️ Day 0 dunning email sent to ${userRecord.email}`);
+        console.log(`[Webhook] ✉️ Day 0 dunning email sent to ${redactEmail(userRecord.email)}`);
       } else {
         console.warn(`[Webhook] No email found for user ${userId}`);
       }

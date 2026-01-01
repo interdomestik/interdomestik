@@ -13,9 +13,15 @@ export async function verifyPaddleWebhook(params: {
   signature: string;
   parsedPayload: Record<string, unknown>;
 }): Promise<VerifiedPaddleWebhook> {
-  const allowDevBypass = process.env.PADDLE_WEBHOOK_BYPASS_SIGNATURE_IN_DEV === 'true';
+  const allowDevBypass =
+    process.env.PADDLE_WEBHOOK_BYPASS_SIGNATURE_IN_DEV === 'true' ||
+    process.env.PADDLE_WEBHOOK_BYPASS_SIGNATURE_IN_DEV === '1';
+  const isProduction = process.env.NODE_ENV === 'production';
 
   if (allowDevBypass) {
+    if (isProduction) {
+      throw new Error('PADDLE_WEBHOOK_BYPASS_SIGNATURE_IN_DEV is not allowed in production.');
+    }
     console.warn('[Webhook] DEV MODE: Paddle signature verification bypass ENABLED');
     const parsedBody = params.parsedPayload;
     return {

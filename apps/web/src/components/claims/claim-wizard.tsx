@@ -1,6 +1,7 @@
 'use client';
 
 import { submitClaim } from '@/actions/claims';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useRouter } from '@/i18n/routing';
 import { createClaimSchema, type CreateClaimValues } from '@/lib/validators/claims';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -56,6 +57,40 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
   // Calculate progress
   const progress = ((currentStep + 1) / steps.length) * 100;
 
+  // Persistence Logic
+  const [draft, setDraft] = useLocalStorage<CreateClaimValues | null>('claim-wizard-draft', null);
+  const [isLoaded, setIsLoaded] = React.useState(false);
+
+  // Restore draft on mount
+  React.useEffect(() => {
+    if (draft && !isLoaded) {
+      // Merge defaults with draft to ensure structure
+      const merged = { ...form.getValues(), ...draft };
+      // Override specific fields that might need it, or just reset
+      form.reset(merged);
+      if (Object.keys(draft).length > 2) {
+        // Minimal check to avoid empty toast
+        toast.info(tCommon('draftRestored'), { duration: 4000 });
+      }
+      setIsLoaded(true);
+      // Determine step based on data? For now, stick to start or maybe save step too?
+      // Let's just restore data. User can click next.
+    } else {
+      setIsLoaded(true);
+    }
+  }, []); // Run once on mount
+
+  // Save draft on change
+  React.useEffect(() => {
+    if (!isLoaded) return; // Don't save before loading
+    const subscription = form.watch(value => {
+      setDraft(value as CreateClaimValues);
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch, setDraft, isLoaded]);
+
+  // Clear draft on successful submit
+
   const nextStep = async () => {
     // Validate current step fields before moving
     let valid = false;
@@ -79,6 +114,7 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
       const result = await submitClaim(data);
       if (result.success) {
         toast.success('Claim submitted successfully!');
+        setDraft(null); // Clear draft
         router.push('/member/claims');
       } else {
         toast.error('Failed to submit, please try again.');

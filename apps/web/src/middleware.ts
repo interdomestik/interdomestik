@@ -4,7 +4,15 @@ import { routing } from './i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
 
+function createNonce() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes));
+}
+
 export default function middleware(request: NextRequest) {
+  const nonce = createNonce();
+
   // 1. Handle i18n routing
   const response = intlMiddleware(request);
 
@@ -26,16 +34,46 @@ export default function middleware(request: NextRequest) {
     }
   }
 
+  const isDev = process.env.NODE_ENV !== 'production';
+  const scriptSrc = [
+    "'self'",
+    `'nonce-${nonce}'`,
+    ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'"] : []),
+    'https://va.vercel-scripts.com',
+    'https://www.googletagmanager.com',
+    'https://connect.facebook.net',
+    'https://cdn.paddle.com',
+    'https://sandbox-cdn.paddle.com',
+    'https://checkout.paddle.com',
+    'https://sandbox-checkout.paddle.com',
+  ];
+  const styleSrc = [
+    "'self'",
+    `'nonce-${nonce}'`,
+    ...(isDev ? ["'unsafe-inline'"] : []),
+    'https://fonts.googleapis.com',
+    'https://sandbox-cdn.paddle.com',
+  ];
+  const styleElemSrc = [
+    "'self'",
+    ...(isDev ? ["'unsafe-inline'"] : [`'nonce-${nonce}'`]),
+    'https://fonts.googleapis.com',
+    'https://sandbox-cdn.paddle.com',
+  ];
+  const styleAttrSrc = ["'unsafe-inline'"];
+
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://va.vercel-scripts.com https://cdn.paddle.com https://sandbox-cdn.paddle.com https://checkout.paddle.com https://sandbox-checkout.paddle.com;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://sandbox-cdn.paddle.com;
-    img-src 'self' blob: data: https://*.supabase.co https://*.stripe.com https://*.paddle.com https://*.githubusercontent.com;
+    script-src ${scriptSrc.join(' ')};
+    style-src ${styleSrc.join(' ')};
+    style-src-elem ${styleElemSrc.join(' ')};
+    style-src-attr ${styleAttrSrc.join(' ')};
+    img-src 'self' blob: data: https://*.supabase.co https://*.paddle.com https://*.githubusercontent.com;
     font-src 'self' https://fonts.gstatic.com https://sandbox-cdn.paddle.com;
     connect-src 'self' https://*.supabase.co wss://*.supabase.co ${supabaseConnectSrc.join(
       ' '
-    )} https://api.stripe.com https://vitals.vercel-insights.com https://*.paddle.com https://sandbox-buy.paddle.com https://api.novu.co https://*.novu.co wss://*.novu.co;
-    frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.paddle.com https://sandbox-buy.paddle.com;
+    )} https://vitals.vercel-insights.com https://*.paddle.com https://sandbox-buy.paddle.com https://api.novu.co https://*.novu.co wss://*.novu.co;
+    frame-src 'self' https://*.paddle.com https://sandbox-buy.paddle.com;
     object-src 'none';
     base-uri 'self';
     form-action 'self';
@@ -44,6 +82,12 @@ export default function middleware(request: NextRequest) {
     .trim();
 
   response.headers.set('Content-Security-Policy', cspHeader);
+  response.headers.set('x-middleware-request-x-nonce', nonce);
+  const overrideHeaders = response.headers.get('x-middleware-override-headers');
+  response.headers.set(
+    'x-middleware-override-headers',
+    overrideHeaders ? `${overrideHeaders},x-nonce` : 'x-nonce'
+  );
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');

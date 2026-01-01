@@ -8,7 +8,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
   Checkbox,
   Input,
   Label,
@@ -33,7 +32,7 @@ export function LoginForm() {
         >
           <Shield className="h-10 w-10 text-primary" />
         </Link>
-        <CardTitle className="text-2xl font-bold tracking-tight">{t('title')}</CardTitle>
+        <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
         <CardDescription className="text-muted-foreground">{t('subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>

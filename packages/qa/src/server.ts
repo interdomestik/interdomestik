@@ -7,7 +7,7 @@ import { tools } from './tools/list-tools.js';
 import { handleToolCall } from './tool-router.js';
 import { REPO_ROOT } from './utils/paths.js';
 
-dotenv.config({ path: path.join(REPO_ROOT, '.env') });
+dotenv.config({ path: path.join(REPO_ROOT, '.env'), quiet: true });
 
 // Server name defaults to interdomestik-qa; override with MCP_SERVER_NAME if needed.
 const serverName = process.env.MCP_SERVER_NAME || 'interdomestik-qa';

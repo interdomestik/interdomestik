@@ -45,7 +45,7 @@ export async function handlePaddleWebhookCore(args: {
       signature,
       parsedPayload,
     });
-  } catch (unmarshalError) {
+  } catch {
     try {
       const dedupeKey = eventIdFromPayload
         ? `paddle:${eventIdFromPayload}`

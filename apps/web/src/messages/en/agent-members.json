@@ -84,6 +84,7 @@
         }
       },
       "filters": {
+        "search_label": "Search members",
         "search_placeholder": "Search by name or email"
       },
       "table": {

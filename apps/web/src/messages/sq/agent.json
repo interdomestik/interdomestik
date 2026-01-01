@@ -15,6 +15,13 @@
       "verification": "Në Verifikim",
       "closed": "Të Mbyllura"
     },
+    "pipeline": {
+      "title": "Pasqyra e Fluksit",
+      "subtitle": "Performanca e fluksit të shitjeve",
+      "new_leads": "Të Reja",
+      "contacted": "Kontakuar",
+      "won": "Fituar"
+    },
     "details": {
       "claimantInfo": "Informacioni i Kërkuesit",
       "company": "Kompania",

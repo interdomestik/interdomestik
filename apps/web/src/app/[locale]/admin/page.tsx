@@ -78,7 +78,7 @@ export default async function AdminDashboardPage({
 
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>{tAdmin('unassigned_claims')}</CardTitle>
+            <CardTitle as="h2">{tAdmin('unassigned_claims')}</CardTitle>
             <CardDescription>
               {unassignedClaims.length === 0 ? tAdmin('no_unassigned_claims') : ''}
             </CardDescription>

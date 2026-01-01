@@ -53,6 +53,7 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 import { sendMessageDbCore } from './send.core';
+import type { Session } from './context';
 
 describe('sendMessageDbCore', () => {
   beforeEach(() => {
@@ -97,7 +98,7 @@ describe('sendMessageDbCore', () => {
 
   it('returns Message cannot be empty for whitespace-only content', async () => {
     const result = await sendMessageDbCore({
-      session: { user: { id: 'user_1', role: 'user', name: 'U' } } as any,
+      session: { user: { id: 'user_1', role: 'user', name: 'U' } } as NonNullable<Session>,
       requestHeaders: new Headers(),
       claimId: 'claim_1',
       content: '   ',
@@ -119,7 +120,7 @@ describe('sendMessageDbCore', () => {
     mocks.userFindFirst.mockResolvedValue({ email: 'member@example.com' });
 
     const result = await sendMessageDbCore({
-      session: { user: { id: 'user_1', role: 'staff', name: 'Agent' } } as any,
+      session: { user: { id: 'user_1', role: 'staff', name: 'Agent' } } as NonNullable<Session>,
       requestHeaders: new Headers(),
       claimId: 'claim_1',
       content: 'Hello',

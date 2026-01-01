@@ -8,9 +8,16 @@
       "total": "Total Claims",
       "new": "New (Submitted)",
       "verification": "In Verification",
-      "closed": "Resolved / Rejected"
+      "closed": "Решени / Одбиени"
     },
-    "claims_queue": "Claims Queue",
+    "pipeline": {
+      "title": "Преглед на инка",
+      "subtitle": "Перформанси на продажната инка",
+      "new_leads": "Нови",
+      "contacted": "Контактирани",
+      "won": "Освоени"
+    },
+    "claims_queue": "Ред на барања",
     "settings": "Подесувања",
     "manage_triage": "Manage and triage all submitted claims.",
     "table": {

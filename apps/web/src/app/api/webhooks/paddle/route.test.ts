@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
 
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
@@ -35,12 +36,12 @@ describe('POST /api/webhooks/paddle', () => {
   it('returns early when rate limited', async () => {
     hoisted.enforceRateLimit.mockResolvedValue(new Response('limited', { status: 429 }));
 
-    const req = new Request('http://localhost:3000/api/webhooks/paddle', {
+    const req = new NextRequest('http://localhost:3000/api/webhooks/paddle', {
       method: 'POST',
       body: 'x',
     });
 
-    const res = await POST(req as any);
+    const res = await POST(req);
 
     expect(res.status).toBe(429);
     expect(await res.text()).toBe('limited');
@@ -52,7 +53,7 @@ describe('POST /api/webhooks/paddle', () => {
       body: { accepted: true },
     });
 
-    const req = new Request('http://localhost:3000/api/webhooks/paddle', {
+    const req = new NextRequest('http://localhost:3000/api/webhooks/paddle', {
       method: 'POST',
       headers: {
         'paddle-signature': 'sig_123',
@@ -60,7 +61,7 @@ describe('POST /api/webhooks/paddle', () => {
       body: 'payload',
     });
 
-    const res = await POST(req as any);
+    const res = await POST(req);
     const data = await res.json();
 
     expect(res.status).toBe(202);

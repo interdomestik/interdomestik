@@ -27,7 +27,7 @@ function createCountChain(total: number) {
   };
 }
 
-function createRowsChain(rows: any[]) {
+function createRowsChain<T extends Record<string, unknown>>(rows: T[]) {
   return {
     from: vi.fn().mockReturnThis(),
     leftJoin: vi.fn().mockReturnThis(),

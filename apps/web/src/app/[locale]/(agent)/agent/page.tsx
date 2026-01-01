@@ -1,4 +1,7 @@
 import { getMyCommissionSummary } from '@/actions/commissions';
+import { LeaderboardCard } from '@/components/agent/leaderboard-card';
+import { PipelineChart } from '@/components/agent/pipeline-chart';
+import { ReferralLinkCard } from '@/components/agent/referral-link-card';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import {
@@ -111,91 +114,79 @@ export default async function AgentDashboardPage({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* Pipeline Overview */}
-        <Card className="lg:col-span-8">
-          <CardHeader>
-            <CardTitle>Pipeline Overview</CardTitle>
-            <CardDescription>Your sales funnel at a glance</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
-              <div className="text-center">
-                <div className="text-2xl font-bold">{stats.newLeads}</div>
-                <div className="text-xs text-muted-foreground">New</div>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              <div className="text-center">
-                <div className="text-2xl font-bold">{stats.contactedLeads}</div>
-                <div className="text-xs text-muted-foreground">Contacted</div>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              <div className="text-center">
-                <div className="text-2xl font-bold">{stats.wonDeals}</div>
-                <div className="text-xs text-muted-foreground">Won</div>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/agent/crm">View Full Pipeline</Link>
-            </Button>
-          </CardFooter>
-        </Card>
+        {/* Pipeline Overview & Leaderboard */}
+        <div className="lg:col-span-8 space-y-6">
+          <PipelineChart data={stats} />
 
-        {/* Commission Summary */}
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>Commission Summary</CardTitle>
-            <CardDescription>Your earnings overview</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Pending</span>
-              <span className="font-semibold">
-                €{((summary?.totalPending ?? 0) / 100).toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Approved</span>
-              <span className="font-semibold text-green-600">
-                €{((summary?.totalApproved ?? 0) / 100).toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Paid</span>
-              <span className="font-semibold">€{((summary?.totalPaid ?? 0) / 100).toFixed(2)}</span>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/agent/commissions">View All Commissions</Link>
-            </Button>
-          </CardFooter>
-        </Card>
+          {/* Leaderboard - Gamification */}
+          <LeaderboardCard />
+        </div>
+
+        {/* Sidebar: Referral Link & Commissions */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Revenue Enabler: Copy Link */}
+          <ReferralLinkCard />
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Commission Summary</CardTitle>
+              <CardDescription>Your earnings overview</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Pending</span>
+                <span className="font-semibold">
+                  €{((summary?.totalPending ?? 0) / 100).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Approved</span>
+                <span className="font-semibold text-green-600">
+                  €{((summary?.totalApproved ?? 0) / 100).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Paid</span>
+                <span className="font-semibold">
+                  €{((summary?.totalPaid ?? 0) / 100).toFixed(2)}
+                </span>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/agent/commissions">View All Commissions</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
 
         {/* Your Clients */}
-        <Card className="lg:col-span-12">
-          <CardHeader>
-            <CardTitle>Your Clients</CardTitle>
-            <CardDescription>Members you've signed up ({stats.clientCount} total)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              {stats.clientCount === 0 ? (
-                <div>
-                  <p className="mb-4">No clients yet. Start selling memberships!</p>
-                  <Button asChild>
-                    <Link href="/agent/leads/new">Add Your First Lead</Link>
+        <div className="lg:col-span-12">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Clients</CardTitle>
+              <CardDescription>
+                Members you've signed up ({stats.clientCount} total)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                {stats.clientCount === 0 ? (
+                  <div>
+                    <p className="mb-4">No clients yet. Start selling memberships!</p>
+                    <Button asChild>
+                      <Link href="/agent/leads/new">Add Your First Lead</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button asChild variant="outline">
+                    <Link href="/agent/clients">View All Clients</Link>
                   </Button>
-                </div>
-              ) : (
-                <Button asChild variant="outline">
-                  <Link href="/agent/clients">View All Clients</Link>
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

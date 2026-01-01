@@ -21,6 +21,8 @@ vi.mock('@interdomestik/database', () => ({
     fileSize: 'claimDocuments.fileSize',
     fileType: 'claimDocuments.fileType',
     createdAt: 'claimDocuments.createdAt',
+    filePath: 'claimDocuments.filePath',
+    bucket: 'claimDocuments.bucket',
   },
 }));
 
@@ -56,6 +58,8 @@ describe('getAdminClaimDetailsCore', () => {
         fileSize: 123,
         fileType: 'application/pdf',
         createdAt: new Date('2025-01-01T00:00:00Z'),
+        filePath: 'claims/c1/file.pdf',
+        bucket: 'claim-documents',
       },
     ];
 
@@ -67,6 +71,15 @@ describe('getAdminClaimDetailsCore', () => {
     if (result.kind !== 'ok') return;
 
     expect(result.data.id).toBe('c1');
-    expect(result.data.docs).toEqual(docsResult);
+    expect(result.data.docs).toEqual([
+      {
+        id: 'd1',
+        name: 'file.pdf',
+        fileSize: 123,
+        fileType: 'application/pdf',
+        createdAt: new Date('2025-01-01T00:00:00Z'),
+        url: expect.any(String),
+      },
+    ]);
   });
 });

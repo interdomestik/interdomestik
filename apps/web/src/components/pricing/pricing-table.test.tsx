@@ -2,6 +2,7 @@ import * as paddleLib from '@interdomestik/domain-membership-billing/paddle';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PricingTable } from './pricing-table';
+import { PADDLE_PRICES } from '@/config/paddle';
 
 // Mock dependencies
 import { MouseEventHandler, ReactNode } from 'react';
@@ -79,7 +80,7 @@ describe('PricingTable', () => {
     await waitFor(() => {
       expect(mockPaddle.Checkout.open).toHaveBeenCalledWith(
         expect.objectContaining({
-          items: expect.arrayContaining([{ priceId: 'pri_standard_year', quantity: 1 }]),
+          items: expect.arrayContaining([{ priceId: PADDLE_PRICES.standard.yearly, quantity: 1 }]),
           customer: { email: 'test@example.com' },
           customData: { userId: 'user-123' },
         })

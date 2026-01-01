@@ -1,3 +1,37 @@
+const CACHE_NAME = 'interdomestik-offline-v1';
+const OFFLINE_URL = '/offline.html'; // Offline fallback page
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll([
+        '/favicon.ico',
+        '/manifest.json',
+        OFFLINE_URL,
+        '/icon-192.png',
+        '/icon-512.png',
+      ]);
+    })
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', event => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match(event.request).then(response => {
+          return response || caches.match(OFFLINE_URL);
+        });
+      })
+    );
+  }
+});
+
 self.addEventListener('push', event => {
   let payload = {};
 

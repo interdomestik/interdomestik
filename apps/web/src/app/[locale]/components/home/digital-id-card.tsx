@@ -46,7 +46,7 @@ export function DigitalIDCard() {
           className="relative w-full max-w-[460px] aspect-[1.58/1] rounded-[2rem] border border-white/10 bg-slate-950 overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] p-8 flex flex-col justify-between select-none ring-1 ring-white/10"
         >
           {/* Noise Texture & Omni-Gradient */}
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjAwIDIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZmlsdGVyIGlkPSJub2lzZUZpbHRlciI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuNjUiIG51bU9jdGF2ZXM9IjMiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjbm9pc2VGaWx0ZXIpIiBvcGFjaXR5PSIwLjUiLz48L3N2Zz4=')] opacity-[0.1] mix-blend-overlay pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-br from-slate-800/50 via-slate-900/80 to-black pointer-events-none" />
           <div className="absolute -top-[100%] -left-[50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.08),transparent_50%)] pointer-events-none" />
 

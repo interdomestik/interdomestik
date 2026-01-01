@@ -98,7 +98,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
 
     const registration =
       (await navigator.serviceWorker.getRegistration()) ??
-      (await navigator.serviceWorker.register('/push-sw.js'));
+      (await navigator.serviceWorker.register('/sw.js'));
 
     const subscription =
       (await registration.pushManager.getSubscription()) ??

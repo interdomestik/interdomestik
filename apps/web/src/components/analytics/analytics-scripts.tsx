@@ -2,7 +2,11 @@
 
 import Script from 'next/script';
 
-export function AnalyticsScripts() {
+type AnalyticsScriptsProps = {
+  nonce?: string | null;
+};
+
+export function AnalyticsScripts({ nonce }: AnalyticsScriptsProps) {
   const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
   const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
@@ -10,7 +14,7 @@ export function AnalyticsScripts() {
     <>
       {/* Google Tag Manager */}
       {GTM_ID && (
-        <Script id="google-tag-manager" strategy="afterInteractive">
+        <Script id="google-tag-manager" strategy="afterInteractive" nonce={nonce ?? undefined}>
           {`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -23,7 +27,7 @@ export function AnalyticsScripts() {
 
       {/* Meta Pixel Code */}
       {META_PIXEL_ID && (
-        <Script id="meta-pixel" strategy="afterInteractive">
+        <Script id="meta-pixel" strategy="afterInteractive" nonce={nonce ?? undefined}>
           {`
             !function(f,b,e,v,n,t,s)
             {if(f.fbq)return;n=f.fbq=function(){n.callMethod?

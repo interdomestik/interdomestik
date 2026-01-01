@@ -26,7 +26,7 @@ export async function RecentActivityCard({ claims }: RecentActivityCardProps) {
     <Card className="col-span-4">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>{tAdmin('recent_activity')}</CardTitle>
+          <CardTitle as="h2">{tAdmin('recent_activity')}</CardTitle>
           <CardDescription>
             {claims.length === 0 ? tAdmin('no_recent_activity') : ''}
           </CardDescription>
@@ -55,6 +55,7 @@ export async function RecentActivityCard({ claims }: RecentActivityCardProps) {
                 <Button asChild variant="ghost" size="icon" className="h-8 w-8">
                   <Link href={`/admin/claims/${claim.id}`}>
                     <FileText className="h-4 w-4" />
+                    <span className="sr-only">{tAdmin('view_details')}</span>
                   </Link>
                 </Button>
               </div>

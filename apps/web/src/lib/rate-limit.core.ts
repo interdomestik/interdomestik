@@ -22,23 +22,6 @@ function getClientIp(headers: Headers): string {
 }
 
 function getRatelimitInstance(limit: number, windowSeconds: number) {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  if (!url || !token) {
-    const isAutomatedTestRun =
-      process.env.NODE_ENV === 'test' ||
-      process.env.CI === 'true' ||
-      process.env.INTERDOMESTIK_AUTOMATED === '1';
-    if (!warnedMissingUpstashEnv && !isAutomatedTestRun) {
-      warnedMissingUpstashEnv = true;
-      console.warn(
-        '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; rate limiting is disabled'
-      );
-    }
-    return null;
-  }
-
   const redis = Redis.fromEnv();
   return new Ratelimit({
     redis,
@@ -49,8 +32,31 @@ function getRatelimitInstance(limit: number, windowSeconds: number) {
 }
 
 export async function enforceRateLimit({ name, limit, windowSeconds, headers }: RateLimitOptions) {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const isAutomatedTestRun =
+    process.env.NODE_ENV === 'test' ||
+    process.env.CI === 'true' ||
+    process.env.INTERDOMESTIK_AUTOMATED === '1';
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!url || !token) {
+    if (isProduction) {
+      console.error(
+        '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; refusing request'
+      );
+      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+    }
+    if (!warnedMissingUpstashEnv && !isAutomatedTestRun) {
+      warnedMissingUpstashEnv = true;
+      console.warn(
+        '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; rate limiting is disabled'
+      );
+    }
+    return null;
+  }
+
   const ratelimit = getRatelimitInstance(limit, windowSeconds);
-  if (!ratelimit) return null;
 
   const ip = getClientIp(headers);
   const key = `${name}:${ip}`;

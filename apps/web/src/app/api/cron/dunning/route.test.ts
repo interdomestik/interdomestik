@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
 
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
@@ -33,8 +34,8 @@ describe('GET /api/cron/dunning', () => {
   it('returns early when rate limited', async () => {
     hoisted.enforceRateLimit.mockResolvedValue(new Response('limited', { status: 429 }));
 
-    const req = new Request('http://localhost:3000/api/cron/dunning');
-    const res = await GET(req as any);
+    const req = new NextRequest('http://localhost:3000/api/cron/dunning');
+    const res = await GET(req);
 
     expect(res.status).toBe(429);
     expect(await res.text()).toBe('limited');
@@ -43,8 +44,8 @@ describe('GET /api/cron/dunning', () => {
   it('returns 401 when unauthorized', async () => {
     hoisted.authorizeCronRequest.mockReturnValue(false);
 
-    const req = new Request('http://localhost:3000/api/cron/dunning');
-    const res = await GET(req as any);
+    const req = new NextRequest('http://localhost:3000/api/cron/dunning');
+    const res = await GET(req);
     const data = await res.json();
 
     expect(res.status).toBe(401);
@@ -52,8 +53,8 @@ describe('GET /api/cron/dunning', () => {
   });
 
   it('returns success payload when authorized', async () => {
-    const req = new Request('http://localhost:3000/api/cron/dunning');
-    const res = await GET(req as any);
+    const req = new NextRequest('http://localhost:3000/api/cron/dunning');
+    const res = await GET(req);
     const data = await res.json();
 
     expect(res.status).toBe(200);

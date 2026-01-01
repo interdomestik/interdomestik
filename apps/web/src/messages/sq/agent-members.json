@@ -84,6 +84,7 @@
         }
       },
       "filters": {
+        "search_label": "Kërko anëtarë",
         "search_placeholder": "Kërko sipas emrit ose email-it"
       },
       "table": {

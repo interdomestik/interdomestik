@@ -7,14 +7,28 @@ import { Clock, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFormContext } from 'react-hook-form';
 
+import { useNetwork } from '@/hooks/use-network';
+import { Alert, AlertDescription, AlertTitle } from '@interdomestik/ui/components/alert';
+import { WifiOff } from 'lucide-react';
+
 export function WizardReview() {
   const tEvidence = useTranslations('evidence');
   const t = useTranslations('wizard.review');
   const form = useFormContext<CreateClaimValues>();
   const values = form.getValues();
+  const { isOffline } = useNetwork();
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+      {isOffline && (
+        <Alert variant="destructive">
+          <WifiOff className="h-4 w-4" />
+          <AlertTitle>You are offline</AlertTitle>
+          <AlertDescription>
+            Your claim is saved as a draft, but you cannot submit until connection is restored.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="text-center">
         <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
         <p className="text-muted-foreground mt-2">{t('subtitle')}</p>

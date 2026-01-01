@@ -65,9 +65,9 @@ export default async function AdminLayout({
               </h1>
             </div>
           </header>
-          <main className="flex-1 overflow-y-auto p-6 md:p-8">
+          <div className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="container mx-auto">{children}</div>
-          </main>
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </NextIntlClientProvider>

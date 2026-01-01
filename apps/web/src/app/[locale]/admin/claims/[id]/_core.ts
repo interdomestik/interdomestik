@@ -1,4 +1,5 @@
 import { claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { createClient } from '@supabase/supabase-js';
 
 export type AdminClaimDocument = {
   id: string;
@@ -6,6 +7,15 @@ export type AdminClaimDocument = {
   fileSize: number | null;
   fileType: string | null;
   createdAt: Date | null;
+  url: string;
+};
+
+type ClaimWithUser = NonNullable<Awaited<ReturnType<typeof db.query.claims.findFirst>>> & {
+  user: {
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  } | null;
 };
 
 export type AdminClaimDetailsResult =
@@ -29,16 +39,35 @@ export async function getAdminClaimDetailsCore(args: {
 
   if (!claim) return { kind: 'not_found' };
 
-  const docs = await db
+  const rawDocs = await db
     .select({
       id: claimDocuments.id,
       name: claimDocuments.name,
       fileSize: claimDocuments.fileSize,
       fileType: claimDocuments.fileType,
       createdAt: claimDocuments.createdAt,
+      filePath: claimDocuments.filePath,
+      bucket: claimDocuments.bucket,
     })
     .from(claimDocuments)
     .where(eq(claimDocuments.claimId, args.claimId));
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  const docs = rawDocs.map(doc => {
+    const { data } = supabase.storage.from(doc.bucket).getPublicUrl(doc.filePath);
+    return {
+      id: doc.id,
+      name: doc.name,
+      fileSize: doc.fileSize,
+      fileType: doc.fileType,
+      createdAt: doc.createdAt,
+      url: data.publicUrl,
+    };
+  });
 
   return {
     kind: 'ok',
@@ -48,11 +77,3 @@ export async function getAdminClaimDetailsCore(args: {
     },
   };
 }
-
-type ClaimWithUser = NonNullable<Awaited<ReturnType<typeof db.query.claims.findFirst>>> & {
-  user: {
-    name: string | null;
-    email: string | null;
-    image: string | null;
-  } | null;
-};

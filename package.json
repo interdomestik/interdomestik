@@ -50,9 +50,12 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
+    "@playwright/mcp": "^0.0.54",
     "@release-it/conventional-changelog": "^10.0.4",
     "@types/node": "^22.19.3",
+    "@upstash/context7-mcp": "^2.0.1",
     "bcryptjs": "^3.0.3",
+    "hono": "^4.11.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.6",
     "postgres": "^3.4.7",
@@ -67,7 +70,8 @@
   "packageManager": "pnpm@10.25.0",
   "pnpm": {
     "overrides": {
-      "esbuild": "^0.25.0"
+      "esbuild": "^0.25.0",
+      "zod": "4.2.1"
     }
   }
 }

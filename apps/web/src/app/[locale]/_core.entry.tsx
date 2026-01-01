@@ -1,5 +1,7 @@
 import { AxeProvider } from '@/components/accessibility/axe-provider';
 import { AnalyticsScripts } from '@/components/analytics/analytics-scripts';
+import { PwaRegistrar } from '@/components/pwa-registrar';
+
 import { ReferralTracker } from '@/components/analytics/referral-tracker';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
@@ -8,6 +10,7 @@ import '@interdomestik/ui/globals.css';
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Toaster } from 'sonner';
 
@@ -66,6 +69,8 @@ type Props = {
 
 export default async function RootLayout({ children, params }: Props) {
   const { locale } = await params;
+  const headersList = await headers();
+  const nonce = headersList.get('x-nonce');
 
   // Ensure that the incoming locale is valid
   if (!routing.locales.includes(locale as (typeof routing.locales)[number])) {
@@ -88,7 +93,8 @@ export default async function RootLayout({ children, params }: Props) {
             <Toaster position="top-right" richColors />
             <AxeProvider />
             <ReferralTracker />
-            <AnalyticsScripts />
+            <PwaRegistrar />
+            <AnalyticsScripts nonce={nonce} />
           </QueryProvider>
         </NextIntlClientProvider>
       </body>

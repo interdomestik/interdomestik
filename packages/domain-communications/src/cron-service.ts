@@ -1,3 +1,8 @@
+import { db, inArray } from '@interdomestik/database';
+import { emailCampaignLogs } from '@interdomestik/database/schema';
+import { endOfDay, startOfDay, subDays } from 'date-fns';
+import { and, eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import {
   sendAnnualReportEmail,
   sendCheckinEmail,
@@ -6,11 +11,6 @@ import {
   sendWelcomeEmail,
 } from './email';
 import { sendNotification } from './notifications/notify';
-import { db, inArray } from '@interdomestik/database';
-import { emailCampaignLogs } from '@interdomestik/database/schema';
-import { endOfDay, startOfDay, subDays } from 'date-fns';
-import { and, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 
 const USER_BATCH_SIZE = 500;
 const DEFAULT_RETRY_ATTEMPTS = 3;
@@ -186,136 +186,153 @@ export async function processEmailSequences() {
   let sent = 0;
   let skipped = 0;
 
-  // 1. Day 0: Welcome Email
-  const newSubscribers = await db.query.subscriptions.findMany({
-    where: (subscriptions, { eq, and, gt }) =>
-      and(eq(subscriptions.status, 'active'), gt(subscriptions.createdAt, subDays(now, 1))),
-    with: {
-      user: true,
-    },
-  });
+  // Helper for safe processing
+  const safeSend = async (
+    context: string,
+    id: string,
+    email: string | null,
+    fn: () => Promise<void>
+  ) => {
+    attempted += 1;
+    if (!email) {
+      skipped += 1;
+      return;
+    }
+    try {
+      await fn();
+      sent += 1;
+      logs.push(`Sent ${context} to ${email}`);
+    } catch (err) {
+      errors.push(`Failed ${context} for userId=${id} email=${email}: ${stringifyError(err)}`);
+    }
+  };
 
+  // 1. Day 0: Welcome Email (Subscriptions)
   {
     const campaignId = 'welcome_day_0';
-    const userIds = Array.from(new Set(newSubscribers.map(s => s.userId)));
-    const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
+    let afterId: string | null = null;
 
-    for (const sub of newSubscribers) {
-      attempted += 1;
-      if (!sub.user?.email) {
-        skipped += 1;
-        continue;
+    while (true) {
+      const batch = await db.query.subscriptions.findMany({
+        where: (subscriptions, { eq, and, gt }) =>
+          and(
+            eq(subscriptions.status, 'active'),
+            gt(subscriptions.createdAt, subDays(now, 1)),
+            afterId ? gt(subscriptions.id, afterId) : undefined
+          ),
+        orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
+        limit: USER_BATCH_SIZE,
+        with: { user: true },
+      });
+
+      if (batch.length === 0) break;
+
+      const userIds = Array.from(new Set(batch.map(s => s.userId)));
+      const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
+
+      for (const sub of batch) {
+        if (alreadySentSet.has(sub.userId)) {
+          skipped += 1;
+          continue;
+        }
+        await safeSend(campaignId, sub.userId, sub.user?.email || null, async () => {
+          await withRetries(() => sendWelcomeEmail(sub.user!.email!, sub.user!.name));
+          await db.insert(emailCampaignLogs).values({
+            id: `ecl_${nanoid()}`,
+            userId: sub.userId,
+            campaignId,
+            sentAt: new Date(),
+          });
+        });
       }
 
-      if (alreadySentSet.has(sub.userId)) {
-        skipped += 1;
-        continue;
-      }
-
-      try {
-        await withRetries(() => sendWelcomeEmail(sub.user!.email!, sub.user!.name));
-        const insertWelcomeLog = {
-          id: `ecl_${nanoid()}`,
-          userId: sub.userId,
-          campaignId,
-          sentAt: new Date(),
-        };
-        await db.insert(emailCampaignLogs).values(insertWelcomeLog);
-        sent += 1;
-        logs.push(`Sent ${campaignId} to ${sub.user.email}`);
-      } catch (err) {
-        errors.push(
-          `Failed ${campaignId} for userId=${sub.userId} email=${sub.user.email}: ${stringifyError(err)}`
-        );
-      }
+      afterId = batch[batch.length - 1].id;
     }
   }
 
-  // 2. Day 3: Onboarding
-  const windowStart = startOfDay(subDays(now, 3));
-  const windowEnd = endOfDay(subDays(now, 3));
-
-  const day3Users = await db.query.user.findMany({
-    where: (user, { between }) => between(user.createdAt, windowStart, windowEnd),
-  });
-
+  // 2. Day 3: Onboarding (Users)
   {
     const campaignId = 'onboarding_day_3';
-    const userIds = day3Users.map(u => u.id);
-    const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
+    const windowStart = startOfDay(subDays(now, 3));
+    const windowEnd = endOfDay(subDays(now, 3));
+    let afterId: string | null = null;
 
-    for (const u of day3Users) {
-      attempted += 1;
-      if (!u.email) {
-        skipped += 1;
-        continue;
+    while (true) {
+      const batch = await db.query.user.findMany({
+        where: (user, { between, and, gt }) =>
+          and(
+            between(user.createdAt, windowStart, windowEnd),
+            afterId ? gt(user.id, afterId) : undefined
+          ),
+        orderBy: (user, { asc }) => [asc(user.id)],
+        limit: USER_BATCH_SIZE,
+      });
+
+      if (batch.length === 0) break;
+
+      const userIds = batch.map(u => u.id);
+      const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
+
+      for (const u of batch) {
+        if (alreadySentSet.has(u.id)) {
+          skipped += 1;
+          continue;
+        }
+        await safeSend(campaignId, u.id, u.email, async () => {
+          await withRetries(() => sendOnboardingEmail(u.email!, u.name));
+          await db.insert(emailCampaignLogs).values({
+            id: `ecl_${nanoid()}`,
+            userId: u.id,
+            campaignId,
+            sentAt: new Date(),
+          });
+        });
       }
 
-      if (alreadySentSet.has(u.id)) {
-        skipped += 1;
-        continue;
-      }
-
-      try {
-        await withRetries(() => sendOnboardingEmail(u.email!, u.name));
-        const insertOnboardingLog = {
-          id: `ecl_${nanoid()}`,
-          userId: u.id,
-          campaignId,
-          sentAt: new Date(),
-        };
-        await db.insert(emailCampaignLogs).values(insertOnboardingLog);
-        sent += 1;
-        logs.push(`Sent ${campaignId} to ${u.email}`);
-      } catch (err) {
-        errors.push(
-          `Failed ${campaignId} for userId=${u.id} email=${u.email}: ${stringifyError(err)}`
-        );
-      }
+      afterId = batch[batch.length - 1].id;
     }
   }
 
-  // 3. Day 14: Check-in
-  const day14Start = startOfDay(subDays(now, 14));
-  const day14End = endOfDay(subDays(now, 14));
-
-  const day14Users = await db.query.user.findMany({
-    where: (user, { between }) => between(user.createdAt, day14Start, day14End),
-  });
-
+  // 3. Day 14: Check-in (Users)
   {
     const campaignId = 'checkin_day_14';
-    const userIds = day14Users.map(u => u.id);
-    const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
+    const day14Start = startOfDay(subDays(now, 14));
+    const day14End = endOfDay(subDays(now, 14));
+    let afterId: string | null = null;
 
-    for (const u of day14Users) {
-      attempted += 1;
-      if (!u.email) {
-        skipped += 1;
-        continue;
+    while (true) {
+      const batch = await db.query.user.findMany({
+        where: (user, { between, and, gt }) =>
+          and(
+            between(user.createdAt, day14Start, day14End),
+            afterId ? gt(user.id, afterId) : undefined
+          ),
+        orderBy: (user, { asc }) => [asc(user.id)],
+        limit: USER_BATCH_SIZE,
+      });
+
+      if (batch.length === 0) break;
+
+      const userIds = batch.map(u => u.id);
+      const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
+
+      for (const u of batch) {
+        if (alreadySentSet.has(u.id)) {
+          skipped += 1;
+          continue;
+        }
+        await safeSend(campaignId, u.id, u.email, async () => {
+          await withRetries(() => sendCheckinEmail(u.email!, u.name));
+          await db.insert(emailCampaignLogs).values({
+            id: `ecl_${nanoid()}`,
+            userId: u.id,
+            campaignId,
+            sentAt: new Date(),
+          });
+        });
       }
 
-      if (alreadySentSet.has(u.id)) {
-        skipped += 1;
-        continue;
-      }
-
-      try {
-        await withRetries(() => sendCheckinEmail(u.email!, u.name));
-        const insertCheckinLog = {
-          id: `ecl_${nanoid()}`,
-          userId: u.id,
-          campaignId,
-          sentAt: new Date(),
-        };
-        await db.insert(emailCampaignLogs).values(insertCheckinLog);
-        sent += 1;
-        logs.push(`Sent ${campaignId} to ${u.email}`);
-      } catch (err) {
-        errors.push(
-          `Failed ${campaignId} for userId=${u.id} email=${u.email}: ${stringifyError(err)}`
-        );
-      }
+      afterId = batch[batch.length - 1].id;
     }
   }
 

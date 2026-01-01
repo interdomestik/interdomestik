@@ -1,12 +1,13 @@
 import { db } from '@interdomestik/database/db';
 import {
+  agentClients,
   claims,
   memberActivities,
   subscriptions,
   userNotificationPreferences,
   user as userTable,
 } from '@interdomestik/database/schema';
-import { count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 
 const RECENT_CLAIMS_LIMIT = 6;
 
@@ -58,8 +59,22 @@ export async function getAgentClientProfileCore(args: {
     return { kind: 'not_found' };
   }
 
-  if (viewer.role === 'agent' && member.agentId !== viewer.id) {
-    return { kind: 'forbidden' };
+  if (viewer.role === 'agent') {
+    const assignments = await db
+      .select()
+      .from(agentClients)
+      .where(
+        and(
+          eq(agentClients.agentId, viewer.id),
+          eq(agentClients.memberId, member.id),
+          eq(agentClients.status, 'active')
+        )
+      )
+      .limit(1);
+
+    if (assignments.length === 0) {
+      return { kind: 'forbidden' };
+    }
   }
 
   const [subscription, preferences, claimCounts, recentClaims, activities] = await Promise.all([

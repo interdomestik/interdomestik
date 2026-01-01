@@ -41,6 +41,7 @@ export function AgentUsersFilters() {
       )}
       <Input
         placeholder={t('search_placeholder') || `${tCommon('search')}...`}
+        aria-label={t('search_label') || tCommon('search') || 'Search users'}
         className="pl-9 h-11 border-2 focus-visible:ring-primary shadow-sm"
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}

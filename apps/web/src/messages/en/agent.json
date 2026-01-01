@@ -16,6 +16,13 @@
 
       "closed": "Resolved / Rejected"
     },
+    "pipeline": {
+      "title": "Pipeline Overview",
+      "subtitle": "Your sales funnel performance",
+      "new_leads": "New Leads",
+      "contacted": "Contacted",
+      "won": "Won"
+    },
     "details": {
       "claimantInfo": "Claimant Information",
       "company": "Company",

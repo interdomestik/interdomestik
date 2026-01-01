@@ -50,7 +50,7 @@ export default async function AgentLayout({
         <AgentSidebar />
         <SidebarInset className="bg-mesh flex flex-col min-h-screen">
           <DashboardHeader />
-          <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
+          <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>
         </SidebarInset>
       </SidebarProvider>
     </NextIntlClientProvider>

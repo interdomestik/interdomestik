@@ -1,3 +1,5 @@
 packages:
-  - 'apps/*'
-  - 'packages/*'
+  - apps/*
+  - packages/*
+
+storeDir: /Users/arbenlila/Library/pnpm/store/v10

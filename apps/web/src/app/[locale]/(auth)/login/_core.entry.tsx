@@ -10,8 +10,8 @@ export default async function LoginPage({ params }: Props) {
   setRequestLocale(locale);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(var(--background))] to-[hsl(var(--surface-strong))] p-4">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(var(--background))] to-[hsl(var(--surface-strong))] p-4">
       <LoginForm />
-    </div>
+    </main>
   );
 }

@@ -91,7 +91,8 @@
       "no_messages": "Nuk ka ende histori ndërveprimesh.",
       "message_placeholder": "Shkruani një mesazh ose shënim të brendshëm...",
       "internal_note": "Shënim i Brendshëm",
-      "send_message": "Dërgo Mesazh"
+      "send_message": "Dërgo Mesazh",
+      "view_details": "Shiko Detajet"
     },
     "analytics": {
       "title": "Përmbledhja e Analitikës",

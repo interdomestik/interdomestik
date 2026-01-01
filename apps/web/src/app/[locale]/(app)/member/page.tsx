@@ -1,6 +1,7 @@
 import { MemberDashboardView } from '@/components/dashboard/member-dashboard-view';
 import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
+import { ErrorBoundary } from '@interdomestik/ui';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 
@@ -34,5 +35,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   }
 
   // Members see their personal dashboard
-  return <MemberDashboardView userId={session.user.id} />;
+  return (
+    <ErrorBoundary>
+      <MemberDashboardView userId={session.user.id} />
+    </ErrorBoundary>
+  );
 }

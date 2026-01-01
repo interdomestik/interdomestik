@@ -40,7 +40,9 @@ export function AnalyticsDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total MRR</CardTitle>
+            <CardTitle as="h2" className="text-sm font-medium">
+              Total MRR
+            </CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -55,7 +57,9 @@ export function AnalyticsDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Members</CardTitle>
+            <CardTitle as="h2" className="text-sm font-medium">
+              Active Members
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -69,7 +73,9 @@ export function AnalyticsDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Life-time Value</CardTitle>
+            <CardTitle as="h2" className="text-sm font-medium">
+              Life-time Value
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -80,7 +86,9 @@ export function AnalyticsDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Churn Rate</CardTitle>
+            <CardTitle as="h2" className="text-sm font-medium">
+              Churn Rate
+            </CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -93,10 +101,10 @@ export function AnalyticsDashboard() {
       {/* Growth Chart */}
       <Card className="col-span-4">
         <CardHeader>
-          <CardTitle>Member Growth (30 Days)</CardTitle>
+          <CardTitle as="h2">Member Growth (30 Days)</CardTitle>
         </CardHeader>
         <CardContent className="pl-2">
-          <div className="h-[300px] w-full">
+          <div className="h-[300px] w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.memberGrowth}>
                 <defs>

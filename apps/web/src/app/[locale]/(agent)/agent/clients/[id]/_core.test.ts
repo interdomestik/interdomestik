@@ -24,6 +24,11 @@ vi.mock('@interdomestik/database/schema', () => ({
   user: { id: 'user.id' },
   subscriptions: { userId: 'subscriptions.userId', createdAt: 'subscriptions.createdAt' },
   userNotificationPreferences: { userId: 'prefs.userId' },
+  agentClients: {
+    agentId: 'agentClients.agentId',
+    memberId: 'agentClients.memberId',
+    status: 'agentClients.status',
+  },
   claims: {
     id: 'claims.id',
     userId: 'claims.userId',
@@ -38,6 +43,7 @@ vi.mock('@interdomestik/database/schema', () => ({
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
+  and: vi.fn((...args: unknown[]) => ({ and: args })),
   desc: vi.fn((v: unknown) => ({ desc: v })),
   count: vi.fn(() => ({ kind: 'count' })),
 }));
@@ -68,6 +74,7 @@ describe('getAgentClientProfileCore', () => {
 
   it('returns forbidden when agent tries to access a member they do not own', async () => {
     hoisted.userFindFirst.mockResolvedValue({ id: 'm1', agentId: 'agent-OTHER' });
+    hoisted.dbSelect.mockReturnValueOnce(createSelectChain([]));
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
@@ -84,6 +91,7 @@ describe('getAgentClientProfileCore', () => {
     hoisted.memberActivitiesFindMany.mockResolvedValue([{ id: 'a1' }]);
 
     hoisted.dbSelect
+      .mockReturnValueOnce(createSelectChain([{ id: 'assignment-1' }]))
       .mockReturnValueOnce(
         createSelectChain([
           { status: 'resolved', total: 2 },
@@ -115,6 +123,7 @@ describe('getAgentClientProfileCore', () => {
     hoisted.memberActivitiesFindMany.mockResolvedValue([]);
 
     hoisted.dbSelect
+      .mockReturnValueOnce(createSelectChain([{ id: 'assignment-1' }]))
       .mockReturnValueOnce(createSelectChain([]))
       .mockReturnValueOnce(createSelectChain([]));
 

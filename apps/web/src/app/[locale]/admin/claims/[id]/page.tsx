@@ -5,7 +5,6 @@ import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { auth } from '@/lib/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
-import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Separator } from '@interdomestik/ui/components/separator';
 import { format } from 'date-fns';
@@ -136,31 +135,46 @@ export default async function AdminClaimDetailPage({
               {data.docs.length === 0 && (
                 <div className="text-sm text-muted-foreground italic py-4">{t('noEvidence')}</div>
               )}
-              {data.docs.map(doc => (
-                <div
-                  key={doc.id}
-                  className="flex items-center justify-between p-3 rounded-xl border bg-card text-sm group hover:bg-muted/50 hover:border-primary/20 transition-all cursor-pointer"
-                >
-                  <div className="flex items-center gap-3 truncate">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                      <FileText className="h-4 w-4" />
-                    </div>
-                    <div className="flex flex-col truncate">
-                      <span className="truncate font-medium">{doc.name}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {doc.fileSize != null ? `${(doc.fileSize / 1024).toFixed(1)} KB` : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-primary shrink-0"
+              {data.docs.map(doc => {
+                const isAudio = doc.fileType?.startsWith('audio/');
+                return (
+                  <div
+                    key={doc.id}
+                    className="flex flex-col gap-2 p-3 rounded-xl border bg-card text-sm group hover:bg-muted/50 transition-all"
                   >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 truncate">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="flex flex-col truncate">
+                          <span className="truncate font-medium">{doc.name}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {doc.fileSize != null
+                              ? `${(doc.fileSize / 1024).toFixed(1)} KB`
+                              : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                      <a
+                        href={doc.url}
+                        download={doc.name}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                      >
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </div>
+
+                    {isAudio && (
+                      <div className="mt-2 w-full">
+                        <audio controls className="w-full h-8" src={doc.url} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
         </div>

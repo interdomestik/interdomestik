@@ -5,6 +5,12 @@ import { ClaimWizard } from './claim-wizard';
 // Mock react-hook-form
 vi.mock('react-hook-form', () => {
   const actual = vi.importActual('react-hook-form');
+  const mockWatch = vi.fn((arg?: unknown) => {
+    if (typeof arg === 'function') {
+      return { unsubscribe: vi.fn() };
+    }
+    return {};
+  });
   return {
     ...actual,
     useForm: () => ({
@@ -14,7 +20,7 @@ vi.mock('react-hook-form', () => {
         fn();
       },
       trigger: vi.fn().mockResolvedValue(true),
-      watch: vi.fn(),
+      watch: mockWatch,
       getValues: vi.fn().mockReturnValue({}),
       formState: { errors: {} },
       reset: vi.fn(),
@@ -29,7 +35,7 @@ vi.mock('react-hook-form', () => {
     useWatch: vi.fn().mockReturnValue({}),
     useFormContext: () => ({
       control: {},
-      watch: vi.fn(),
+      watch: mockWatch,
       getValues: vi.fn().mockReturnValue({}),
       formState: { errors: {} },
       register: vi.fn(),

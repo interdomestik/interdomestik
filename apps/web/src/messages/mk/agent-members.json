@@ -84,6 +84,7 @@
         }
       },
       "filters": {
+        "search_label": "Пребарај членови",
         "search_placeholder": "Барај по име или email"
       },
       "table": {

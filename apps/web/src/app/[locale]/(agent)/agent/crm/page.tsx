@@ -1,4 +1,5 @@
 import { LeaderboardCard } from '@/components/agent/leaderboard-card';
+import { PipelineChart } from '@/components/agent/pipeline-chart';
 import { auth } from '@/lib/auth'; // server-side auth
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -47,11 +48,14 @@ export default async function CRMPage({ params }: { params: Promise<{ locale: st
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4 bg-white rounded-lg border shadow-sm p-6">
-          <h3 className="font-semibold mb-4">Pipeline Overview</h3>
-          <div className="h-[200px] flex items-center justify-center text-muted-foreground bg-muted/20 rounded">
-            <span className="text-sm">Chart Placeholder (Pipeline visual coming soon)</span>
-          </div>
+        <div className="col-span-4">
+          <PipelineChart
+            data={{
+              newLeads: stats.newLeadsCount,
+              contactedLeads: stats.contactedLeadsCount,
+              wonDeals: stats.closedWonDealsCount,
+            }}
+          />
         </div>
         <div className="col-span-3">
           <LeaderboardCard />

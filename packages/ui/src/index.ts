@@ -98,4 +98,5 @@ export { Textarea } from './components/textarea';
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/tooltip';
 
 // Utilities
+export { ErrorBoundary } from './components/error-boundary';
 export { cn } from './lib/utils';

@@ -5,6 +5,14 @@ import { mapPaddleStatus } from '../subscription-status';
 
 import type { PaddleWebhookDeps } from '../types';
 
+const redactEmail = (email?: string | null) => {
+  if (!email) return 'unknown';
+  const [local, domain] = email.split('@');
+  if (!domain) return 'unknown';
+  const maskedLocal = local.length <= 2 ? `${local[0] ?? ''}*` : `${local[0]}***${local.slice(-1)}`;
+  return `${maskedLocal}@${domain}`;
+};
+
 export async function handleSubscriptionChanged(
   params: { eventType: string; data: unknown },
   deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> = {}
@@ -33,7 +41,7 @@ export async function handleSubscriptionChanged(
 
   if (!userId) {
     console.warn(`[Webhook] No userId found in customData for subscription ${sub.id}`);
-    console.warn(`[Webhook] Custom data:`, customData);
+    console.warn(`[Webhook] Custom data keys:`, customData ? Object.keys(customData) : []);
     return;
   }
 
@@ -142,7 +150,7 @@ export async function handleSubscriptionChanged(
             expiresAt: periodEnd,
             locale: 'en',
           });
-          console.log(`[Webhook] 📧 Thank-you Letter sent to ${userData.email}`);
+          console.log(`[Webhook] 📧 Thank-you Letter sent to ${redactEmail(userData.email)}`);
         }
       } catch (emailError) {
         console.error('[Webhook] Failed to send Thank-you Letter:', emailError);
