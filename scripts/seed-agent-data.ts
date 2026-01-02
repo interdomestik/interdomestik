@@ -150,6 +150,7 @@ async function seedAgentData() {
   // 5. Create Clients & Subscriptions (The "Your Clients" metric)
   console.log('Creating Clients...');
   const clients = ['Peter Parker', 'Tony Stark'];
+  const seededClients: Array<{ id: string; subscriptionId: string | null }> = [];
 
   for (const clientName of clients) {
     const email = `${clientName.split(' ')[0].toLowerCase()}.client@example.com`;
@@ -181,18 +182,35 @@ async function seedAgentData() {
       where: eq(subscriptions.userId, clientId),
     });
 
+    const subscriptionId = existingSub?.id ?? uuidv4();
     if (!existingSub) {
       await db.insert(subscriptions).values({
-        id: uuidv4(),
+        id: subscriptionId,
         userId: clientId,
         status: 'active',
-        planId: 'family_protection',
+        planId: 'family',
+        planKey: 'family',
         referredByAgentId: agentId,
         createdAt: new Date(),
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
       });
+    } else {
+      await db
+        .update(subscriptions)
+        .set({
+          status: 'active',
+          planId: existingSub.planId ?? 'family',
+          planKey: existingSub.planKey ?? 'family',
+          referredByAgentId: agentId,
+          currentPeriodStart: existingSub.currentPeriodStart ?? new Date(),
+          currentPeriodEnd:
+            existingSub.currentPeriodEnd ??
+            new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        })
+        .where(eq(subscriptions.id, existingSub.id));
     }
+    seededClients.push({ id: clientId, subscriptionId: subscriptionId ?? null });
 
     // Link Member to Agent in agent_clients table (CRITICAL FIX)
     // Check if link exists
@@ -213,9 +231,13 @@ async function seedAgentData() {
 
   // 6. Commissions (Paid, Pending)
   console.log('Creating Commissions...');
+  const paidMember = seededClients[0];
+  const pendingMember = seededClients[1] ?? seededClients[0];
   await db.insert(agentCommissions).values({
     id: uuidv4(),
     agentId,
+    memberId: paidMember?.id,
+    subscriptionId: paidMember?.subscriptionId ?? undefined,
     type: 'new_membership',
     status: 'paid',
     amount: '50.00',
@@ -228,6 +250,8 @@ async function seedAgentData() {
   await db.insert(agentCommissions).values({
     id: uuidv4(),
     agentId,
+    memberId: pendingMember?.id,
+    subscriptionId: pendingMember?.subscriptionId ?? undefined,
     type: 'new_membership',
     status: 'pending',
     amount: '125.50',

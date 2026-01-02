@@ -1,12 +1,12 @@
-import { analyzePolicyText } from '@/lib/ai/policy-analyzer';
+import { analyzePolicyImages, analyzePolicyText } from '@/lib/ai/policy-analyzer';
 import { auth } from '@/lib/auth'; // Using better-auth
-import { db } from '@interdomestik/database';
+import { createAdminClient, db } from '@interdomestik/database';
 import { policies } from '@interdomestik/database/schema';
 import { NextRequest, NextResponse } from 'next/server';
+import { nanoid } from 'nanoid';
 
 const MAX_UPLOAD_BYTES =
   Number.parseInt(process.env.POLICY_UPLOAD_MAX_BYTES || '', 10) || 15_000_000;
-const MAX_SCAN_PAGES = 5;
 const ALLOWED_MIME_TYPES = new Set([
   'application/pdf',
   'image/jpeg',
@@ -14,6 +14,7 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
+const POLICIES_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || 'policies';
 
 function isValidUpload(file: File) {
   if (ALLOWED_MIME_TYPES.has(file.type)) return true;
@@ -37,10 +38,30 @@ function formatError(prefix: string, error: unknown) {
   return `${prefix}: ${message}`;
 }
 
-// Initialize Supabase Client for Storage (using Service Role for upload if needed, or standard client)
-// Assuming we use the standard client for now, or the one from @interdomestik/domain-claims if available
-// For simplicity in this Task, I will use a direct generic client here or just mock the upload if credentials aren't perfect.
-// BUT, I should check internal tools.
+async function uploadPolicyFile(args: {
+  userId: string;
+  file: File;
+  buffer: Buffer;
+  safeName: string;
+}) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { ok: false, error: 'Supabase service role key is required for policy uploads.' };
+  }
+
+  const filePath = `pii/policies/${args.userId}/${Date.now()}_${args.safeName}`;
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.storage.from(POLICIES_BUCKET).upload(filePath, args.buffer, {
+    contentType: args.file.type || 'application/octet-stream',
+    upsert: false,
+  });
+
+  if (error) {
+    console.error('Supabase policy upload error:', error);
+    return { ok: false, error: 'Failed to upload policy file' };
+  }
+
+  return { ok: true, filePath };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -93,88 +114,74 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Use Vision API for images or scanned PDFs
-    if (isImage || !textContent || textContent.trim().length < 50) {
-      const logMessage = isImage
-        ? 'Direct image upload detected, using Vision API...'
-        : 'No text found, attempting Vision API with image conversion...';
-      console.log(logMessage);
+    if (isImage) {
+      const analysis = await analyzePolicyImages([buffer]);
 
-      try {
-        let imageBuffers: Buffer[];
+      const safeName = sanitizeFileName(file.name);
+      const upload = await uploadPolicyFile({
+        userId: session.user.id,
+        file,
+        buffer,
+        safeName,
+      });
 
-        if (isImage) {
-          // Direct image upload - use as-is
-          imageBuffers = [buffer];
-        } else {
-          // Scanned PDF - convert to images
-          const { convert } = await import('pdf-img-convert');
-
-          const pdfImages = await convert(buffer, {
-            width: 2000,
-            height: 2000,
-            page_numbers: Array.from({ length: MAX_SCAN_PAGES }, (_, i) => i + 1),
-          });
-
-          // Ensure we have an array of buffers (convert Uint8Array to Buffer)
-          imageBuffers = (Array.isArray(pdfImages) ? pdfImages : [pdfImages]).map(img =>
-            Buffer.from(img)
-          );
-
-          if (imageBuffers.length === 0) {
-            return NextResponse.json({ error: 'Could not convert PDF to images' }, { status: 400 });
-          }
-        }
-
-        // Use Vision API
-        const { analyzePolicyImages } = await import('@/lib/ai/policy-analyzer');
-        const analysis = await analyzePolicyImages(imageBuffers);
-
-        // Continue with storage and database steps
-        const safeName = sanitizeFileName(file.name);
-        const fileUrl = `https://storage.interdomestik.com/policies/${session.user.id}/${Date.now()}_${safeName}`;
-
-        const newPolicy = await db
-          .insert(policies)
-          .values({
-            userId: session.user.id,
-            provider: analysis.provider,
-            policyNumber: analysis.policyNumber,
-            analysisJson: analysis,
-            fileUrl,
-          })
-          .returning();
-
-        const successMessage = isImage
-          ? 'Policy analyzed from image using Vision AI'
-          : 'Policy analyzed using Vision AI (scanned document)';
-
-        return NextResponse.json({
-          success: true,
-          policy: newPolicy[0],
-          message: successMessage,
-        });
-      } catch (visionError: unknown) {
-        console.error('Vision API Error:', visionError);
-        return NextResponse.json(
-          { error: formatError('Could not analyze scanned PDF', visionError) },
-          { status: 500 }
-        );
+      if (!upload.ok) {
+        return NextResponse.json({ error: upload.error }, { status: 500 });
       }
+
+      const newPolicy = await db
+        .insert(policies)
+        .values({
+          id: nanoid(),
+          userId: session.user.id,
+          provider: analysis.provider,
+          policyNumber: analysis.policyNumber,
+          analysisJson: analysis,
+          fileUrl: upload.filePath,
+        })
+        .returning();
+
+      return NextResponse.json({
+        success: true,
+        policy: newPolicy[0],
+        analysis,
+        message: 'Policy analyzed from image upload',
+      });
+    }
+
+    if (!textContent || textContent.trim().length < 50) {
+      return NextResponse.json(
+        {
+          error:
+            'Scanned PDFs are not supported yet. Please upload a text-based PDF or a clear image.',
+        },
+        { status: 422 }
+      );
     }
 
     // 2. AI Analysis (text-based)
     const analysis = await analyzePolicyText(textContent);
 
-    // 3. Upload to Storage (Mocking for now)
+    // 3. Upload to Storage
     const safeName = sanitizeFileName(file.name);
-    const fileUrl = `https://storage.interdomestik.com/policies/${session.user.id}/${Date.now()}_${safeName}`;
+    const upload = await uploadPolicyFile({
+      userId: session.user.id,
+      file,
+      buffer,
+      safeName,
+    });
+
+    if (!upload.ok) {
+      return NextResponse.json({ error: upload.error }, { status: 500 });
+    }
 
     // 4. Save to DB
     const [inserted] = await db
       .insert(policies)
       .values({
+        id: nanoid(),
         userId: session.user.id,
-        fileUrl: fileUrl,
+        fileUrl: upload.filePath,
         provider: analysis.provider || 'Unknown',
         policyNumber: analysis.policyNumber,
         analysisJson: analysis,

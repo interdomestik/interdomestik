@@ -13,6 +13,7 @@ export * from './crm';
 export * from './memberships';
 export * from './notes';
 export * from './notifications';
+export * from './policies';
 export * from './services';
 export * from './webhooks';
 

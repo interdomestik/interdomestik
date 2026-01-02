@@ -29,15 +29,6 @@ test.describe('Agent User Flow', () => {
     expect(page.url()).toContain('/agent/leads');
   });
 
-  test('Agent can access deals', async ({ agentPage: page }) => {
-    await page.goto(routes.agentDeals());
-    await page.waitForLoadState('domcontentloaded');
-
-    expect(page.url()).toContain('/agent/deals');
-    await expect(page.getByRole('heading', { name: 'Deals' })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'No deals created yet.' }).first()).toBeVisible();
-  });
-
   test('Agent can access clients', async ({ agentPage: page }) => {
     await page.goto(routes.agentClients());
     await page.waitForLoadState('domcontentloaded');

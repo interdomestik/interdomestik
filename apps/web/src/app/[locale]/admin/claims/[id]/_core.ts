@@ -1,5 +1,4 @@
-import { claimDocuments, claims, db, eq } from '@interdomestik/database';
-import { createClient } from '@supabase/supabase-js';
+import { claimDocuments, claims, createAdminClient, db, eq } from '@interdomestik/database';
 
 export type AdminClaimDocument = {
   id: string;
@@ -52,22 +51,23 @@ export async function getAdminClaimDetailsCore(args: {
     .from(claimDocuments)
     .where(eq(claimDocuments.claimId, args.claimId));
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const adminClient = createAdminClient();
 
-  const docs = rawDocs.map(doc => {
-    const { data } = supabase.storage.from(doc.bucket).getPublicUrl(doc.filePath);
-    return {
-      id: doc.id,
-      name: doc.name,
-      fileSize: doc.fileSize,
-      fileType: doc.fileType,
-      createdAt: doc.createdAt,
-      url: data.publicUrl,
-    };
-  });
+  const docs = await Promise.all(
+    rawDocs.map(async doc => {
+      const { data } = await adminClient.storage
+        .from(doc.bucket)
+        .createSignedUrl(doc.filePath, 60 * 5);
+      return {
+        id: doc.id,
+        name: doc.name,
+        fileSize: doc.fileSize,
+        fileType: doc.fileType,
+        createdAt: doc.createdAt,
+        url: data?.signedUrl ?? '',
+      };
+    })
+  );
 
   return {
     kind: 'ok',

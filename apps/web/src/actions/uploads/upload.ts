@@ -60,7 +60,7 @@ export async function uploadVoiceNote(formData: FormData): Promise<UploadResult>
 
   const userId = session.user.id;
   const ext = file.type.split('/')[1] || 'webm';
-  const fileName = `${userId}/${crypto.randomUUID()}.${ext}`;
+  const fileName = `pii/claims/${userId}/voice-notes/${crypto.randomUUID()}.${ext}`;
   const bucketName = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
   const signedUrlExpiresIn = 60 * 10;
 

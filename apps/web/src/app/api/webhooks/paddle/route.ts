@@ -1,12 +1,8 @@
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { Environment, Paddle } from '@paddle/paddle-node-sdk';
+import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-server';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { handlePaddleWebhookCore } from './_core';
-
-const paddle = new Paddle(process.env.PADDLE_API_KEY || 'placeholder', {
-  environment: (process.env.NEXT_PUBLIC_PADDLE_ENV as Environment) || Environment.sandbox,
-});
 
 export async function POST(req: NextRequest) {
   const limited = await enforceRateLimit({
@@ -18,6 +14,7 @@ export async function POST(req: NextRequest) {
   if (limited) return limited;
 
   try {
+    const paddle = getPaddle();
     const signature = req.headers.get('paddle-signature');
     const secret = process.env.PADDLE_WEBHOOK_SECRET_KEY;
     const bodyText = await req.text();

@@ -6,7 +6,13 @@ import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 
-export function UsersFilters({ hideRole = false }: { hideRole?: boolean }) {
+export function UsersFilters({
+  hideRole = false,
+  hideAssignment = false,
+}: {
+  hideRole?: boolean;
+  hideAssignment?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations('admin.users_filters');
@@ -86,24 +92,26 @@ export function UsersFilters({ hideRole = false }: { hideRole?: boolean }) {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t('labels.assignment')}
-          </span>
-          {assignmentOptions.map(option => {
-            const isActive = currentAssignment === option.value;
-            return (
-              <Badge
-                key={option.value}
-                variant={isActive ? 'default' : 'outline'}
-                className="cursor-pointer hover:bg-primary/10 transition-colors"
-                onClick={() => updateParams('assignment', option.value)}
-              >
-                {option.label}
-              </Badge>
-            );
-          })}
-        </div>
+        {!hideAssignment && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {t('labels.assignment')}
+            </span>
+            {assignmentOptions.map(option => {
+              const isActive = currentAssignment === option.value;
+              return (
+                <Badge
+                  key={option.value}
+                  variant={isActive ? 'default' : 'outline'}
+                  className="cursor-pointer hover:bg-primary/10 transition-colors"
+                  onClick={() => updateParams('assignment', option.value)}
+                >
+                  {option.label}
+                </Badge>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 'use client';
 
 import { getNotifications, markAllAsRead, markAsRead } from '@/actions/notifications';
-import { supabase } from '@/lib/supabase';
 import {
   Badge,
   Button,
@@ -61,29 +60,12 @@ export function NotificationCenter({ subscriberId }: NotificationCenterProps) {
 
   useEffect(() => {
     fetchInitialNotifications();
-
-    const channel = supabase
-      .channel(`user-notifications-${subscriberId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${subscriberId}`,
-        },
-        payload => {
-          const newNotification = payload.new as Notification;
-          setNotifications(prev => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [subscriberId, fetchInitialNotifications]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetchInitialNotifications();
+  }, [isOpen, fetchInitialNotifications]);
 
   const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
     if (e) {

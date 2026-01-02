@@ -1,6 +1,6 @@
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth'; // auth-client imports are for client, server uses auth helper
-import { db } from '@interdomestik/database';
+import { createAdminClient, db } from '@interdomestik/database';
 import { policies } from '@interdomestik/database/schema';
 import {
   Button,
@@ -37,6 +37,23 @@ export default async function PoliciesPage() {
     orderBy: [desc(policies.createdAt)],
   });
 
+  const adminClient = createAdminClient();
+  const policiesBucket = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || 'policies';
+  const policiesWithUrls = await Promise.all(
+    userPolicies.map(async policy => {
+      const storedUrl = policy.fileUrl;
+      if (storedUrl.startsWith('http://') || storedUrl.startsWith('https://')) {
+        return { policy, fileHref: storedUrl };
+      }
+
+      const { data, error } = await adminClient.storage
+        .from(policiesBucket)
+        .createSignedUrl(storedUrl, 300);
+
+      return { policy, fileHref: error ? '' : (data?.signedUrl ?? '') };
+    })
+  );
+
   return (
     <div className="flex flex-col gap-8 p-8">
       <div className="flex items-center justify-between">
@@ -70,7 +87,7 @@ export default async function PoliciesPage() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {userPolicies.map(policy => {
+          {policiesWithUrls.map(({ policy, fileHref }) => {
             const analysis = policy.analysisJson as PolicyAnalysis | null;
             return (
               <Card key={policy.id} className="overflow-hidden hover:shadow-md transition-shadow">
@@ -130,11 +147,17 @@ export default async function PoliciesPage() {
                   )}
 
                   <div className="pt-4 flex gap-2">
-                    <Button variant="outline" className="w-full text-xs" asChild>
-                      <Link href={policy.fileUrl} target="_blank">
+                    {fileHref ? (
+                      <Button variant="outline" className="w-full text-xs" asChild>
+                        <Link href={fileHref} target="_blank">
+                          View PDF
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button variant="outline" className="w-full text-xs" disabled>
                         View PDF
-                      </Link>
-                    </Button>
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

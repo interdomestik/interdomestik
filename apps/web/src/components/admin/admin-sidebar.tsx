@@ -39,6 +39,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 
 interface AdminSidebarProps {
   className?: string;
@@ -55,6 +56,14 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
+  const searchParams = useSearchParams();
+
+  const roleParam = searchParams.get('role');
+  const peopleRole = roleParam?.includes('agent')
+    ? 'agents'
+    : roleParam?.includes('staff') || roleParam?.includes('admin')
+      ? 'staff'
+      : 'members';
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -76,16 +85,19 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
       title: 'members',
       href: '/admin/users',
       icon: Users,
+      peopleKey: 'members',
     },
     {
       title: 'agents',
-      href: '/admin/agents',
+      href: '/admin/users?role=agent',
       icon: Briefcase,
+      peopleKey: 'agents',
     },
     {
       title: 'staff',
-      href: '/admin/staff',
+      href: '/admin/users?role=admin,staff',
       icon: Shield,
+      peopleKey: 'staff',
     },
     {
       title: 'analytics',
@@ -129,8 +141,13 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
           <SidebarGroupContent>
             <SidebarMenu className="gap-2">
               {sidebarItems.map(item => {
+                const isPeopleRoute = pathname.startsWith('/admin/users');
                 const isActive =
-                  item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
+                  item.peopleKey !== undefined
+                    ? isPeopleRoute && peopleRole === item.peopleKey
+                    : item.href === '/admin'
+                      ? pathname === '/admin'
+                      : pathname.startsWith(item.href);
 
                 return (
                   <SidebarMenuItem key={item.href}>

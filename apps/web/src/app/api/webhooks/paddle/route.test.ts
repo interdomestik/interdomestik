@@ -14,13 +14,8 @@ vi.mock('./_core', () => ({
   handlePaddleWebhookCore: hoisted.handlePaddleWebhookCore,
 }));
 
-vi.mock('@paddle/paddle-node-sdk', () => ({
-  Environment: { sandbox: 'sandbox' },
-  Paddle: class Paddle {
-    constructor() {
-      return { mocked: true };
-    }
-  },
+vi.mock('@interdomestik/domain-membership-billing/paddle-server', () => ({
+  getPaddle: () => ({ mocked: true }),
 }));
 
 import { POST } from './route';

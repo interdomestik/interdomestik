@@ -1,4 +1,4 @@
-import { integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { user } from './auth';
 import { subscriptions } from './memberships';
 
@@ -36,6 +36,9 @@ export const engagementEmailSends = pgTable(
   },
   table => ({
     dedupeKeyUq: uniqueIndex('engagement_email_sends_dedupe_key_uq').on(table.dedupeKey),
+    userIdIdx: index('engagement_email_sends_user_id_idx').on(table.userId),
+    subscriptionIdIdx: index('engagement_email_sends_subscription_id_idx').on(table.subscriptionId),
+    createdAtIdx: index('engagement_email_sends_created_at_idx').on(table.createdAt),
   })
 );
 
@@ -59,22 +62,33 @@ export const npsSurveyTokens = pgTable(
   table => ({
     dedupeKeyUq: uniqueIndex('nps_survey_tokens_dedupe_key_uq').on(table.dedupeKey),
     tokenUq: uniqueIndex('nps_survey_tokens_token_uq').on(table.token),
+    userIdIdx: index('nps_survey_tokens_user_id_idx').on(table.userId),
+    subscriptionIdIdx: index('nps_survey_tokens_subscription_id_idx').on(table.subscriptionId),
+    createdAtIdx: index('nps_survey_tokens_created_at_idx').on(table.createdAt),
   })
 );
 
-export const npsSurveyResponses = pgTable('nps_survey_responses', {
-  id: text('id').primaryKey(),
-  tokenId: text('token_id')
-    .notNull()
-    .references(() => npsSurveyTokens.id, { onDelete: 'cascade' }),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  subscriptionId: text('subscription_id').references(() => subscriptions.id, {
-    onDelete: 'set null',
-  }),
-  score: integer('score').notNull(),
-  comment: text('comment'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
-});
+export const npsSurveyResponses = pgTable(
+  'nps_survey_responses',
+  {
+    id: text('id').primaryKey(),
+    tokenId: text('token_id')
+      .notNull()
+      .references(() => npsSurveyTokens.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    subscriptionId: text('subscription_id').references(() => subscriptions.id, {
+      onDelete: 'set null',
+    }),
+    score: integer('score').notNull(),
+    comment: text('comment'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+  },
+  table => ({
+    userIdIdx: index('nps_survey_responses_user_id_idx').on(table.userId),
+    subscriptionIdIdx: index('nps_survey_responses_subscription_id_idx').on(table.subscriptionId),
+    createdAtIdx: index('nps_survey_responses_created_at_idx').on(table.createdAt),
+  })
+);
