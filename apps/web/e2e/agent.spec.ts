@@ -16,15 +16,15 @@ test.describe('Agent Role Access', () => {
     // Check for CRM elements
     // Note: Title might be "CRM Overview" or "Dashboard" depending on translation exact key
     // We check for the stats cards which are distinctive
-    await expect(page.getByText('New (Submitted)')).toBeVisible();
-    await expect(page.getByText('In Verification')).toBeVisible();
+    await expect(page.getByText('New (Submitted)').first()).toBeVisible();
+    await expect(page.getByText('In Verification').first()).toBeVisible();
   });
 
   test('Agent can see Leaderboard', async ({ agentPage: page }) => {
     await page.goto(routes.agentCrm());
 
     // Check Leaderboard Card
-    await expect(page.getByText('Top Agents')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Top Agents' }).first()).toBeVisible();
 
     // Check Tabs
     await expect(page.getByRole('tab', { name: 'Week' })).toBeVisible();

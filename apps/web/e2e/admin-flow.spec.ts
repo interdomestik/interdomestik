@@ -36,7 +36,7 @@ test.describe('Admin User Flow', () => {
       await page.goto(routes.admin());
 
       // Look for recent activity section
-      await expect(page.getByText(/Recent Activity/i)).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Recent Activity/i }).first()).toBeVisible();
     });
   });
 

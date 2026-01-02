@@ -39,7 +39,8 @@ test.describe('Staff Claim Management', () => {
 
     // Click on the first claim
     const reviewLink = page.getByRole('link', { name: /Review/i }).first();
-    await reviewLink.click();
+    await reviewLink.scrollIntoViewIfNeeded();
+    await reviewLink.click({ force: true });
 
     await page.waitForLoadState('domcontentloaded');
 

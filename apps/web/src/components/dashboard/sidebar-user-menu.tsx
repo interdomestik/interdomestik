@@ -46,6 +46,7 @@ export function SidebarUserMenu() {
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-xl hover:bg-muted/50 transition-colors"
+              data-testid="sidebar-user-menu-button"
             >
               <Avatar className="h-8 w-8 rounded-lg bg-primary/10 text-primary">
                 <AvatarImage src={user.image || ''} alt={user.name || ''} />

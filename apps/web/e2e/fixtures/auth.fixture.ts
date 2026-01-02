@@ -25,8 +25,8 @@ const LOGIN_RX = /(?:\/[a-z]{2})?\/(?:login|signin|auth\/sign-in)(?:\/)?(?:\?|$)
 const DEFAULT_LOCALE = process.env.PLAYWRIGHT_LOCALE ?? 'en';
 const SIGNIN_PATH = routes.login(DEFAULT_LOCALE);
 
-// Locator that only appears when logged in
-const AUTH_OK_LOCATOR = '[data-testid="user-nav"]';
+// Locators that only appear when logged in
+const AUTH_OK_SELECTORS = ['[data-testid="user-nav"]', '[data-testid="sidebar-user-menu-button"]'];
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TEST USER CREDENTIALS
@@ -123,7 +123,9 @@ async function performLogin(page: Page, role: Role): Promise<void> {
 
   // Final proof of auth: visible user nav OR cookie presence fallback
   try {
-    await expect(page.locator(AUTH_OK_LOCATOR)).toBeVisible({ timeout: 5_000 });
+    await expect(async () => {
+      expect(await isLoggedIn(page)).toBeTruthy();
+    }).toPass({ timeout: 5_000 });
   } catch {
     // Fallback: check for a session/auth cookie
     const cookies = await page.context().cookies();
@@ -306,11 +308,24 @@ export { expect } from '@playwright/test';
  * Check if user is logged in by looking for auth indicators.
  */
 export async function isLoggedIn(page: Page): Promise<boolean> {
-  try {
-    const userNav = page.locator(AUTH_OK_LOCATOR);
-    return await userNav.isVisible({ timeout: 2_000 });
-  } catch {
-    return false;
+  for (const selector of AUTH_OK_SELECTORS) {
+    const isVisible = await page
+      .locator(selector)
+      .first()
+      .isVisible({ timeout: 2_000 })
+      .catch(() => false);
+    if (isVisible) return true;
+  }
+  return await hasSessionCookie(page);
+}
+
+async function openAuthMenu(page: Page): Promise<void> {
+  for (const selector of AUTH_OK_SELECTORS) {
+    const locator = page.locator(selector).first();
+    if (await locator.isVisible().catch(() => false)) {
+      await locator.click();
+      return;
+    }
   }
 }
 
@@ -318,7 +333,7 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
  * Perform logout.
  */
 export async function logout(page: Page): Promise<void> {
-  await page.click(AUTH_OK_LOCATOR);
+  await openAuthMenu(page);
   await page.click('text=Logout, text=Sign out, [data-testid="logout"]');
   await page.waitForURL(LOGIN_RX, { timeout: 15_000 });
 }

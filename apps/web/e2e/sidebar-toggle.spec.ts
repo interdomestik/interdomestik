@@ -2,7 +2,8 @@ import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 
 test.describe('Sidebar Toggle', () => {
-  test('should toggle sidebar expand/collapse state', async ({ adminPage: page }) => {
+  test('should toggle sidebar expand/collapse state', async ({ adminPage: page, isMobile }) => {
+    test.skip(isMobile, 'Sidebar toggle is desktop-only in responsive layout.');
     // Navigate to dashboard
     await page.goto(routes.member());
 

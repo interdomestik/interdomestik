@@ -12,8 +12,10 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 
+const runSeededDataTests = process.env.RUN_SEEDED_DATA_TESTS === '1';
+
 test.describe('Seeded Data Verification', () => {
-  // Skip these tests by default - they depend on specific seeded data that may change
+  test.skip(!runSeededDataTests, 'Requires seeded data. Set RUN_SEEDED_DATA_TESTS=1 to enable.');
   test('should display all seeded claims on dashboard', async ({ authenticatedPage }) => {
     // Go to dashboard claims list
     await authenticatedPage.goto(routes.memberClaims('en'));

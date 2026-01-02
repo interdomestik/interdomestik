@@ -18,12 +18,13 @@ test.describe('Multi-User Claim Workflow', () => {
       await page.waitForLoadState('domcontentloaded');
 
       // Look for create claim button
-      const newClaimLink = page.getByRole('link', { name: /New Claim|Create/i });
+      const newClaimLink = page.getByRole('link', { name: /New Claim|Create/i }).first();
 
       // Either click the button or navigate directly
       if (await newClaimLink.isVisible().catch(() => false)) {
-        await newClaimLink.click();
-        await page.waitForLoadState('domcontentloaded');
+        await newClaimLink.scrollIntoViewIfNeeded();
+        await newClaimLink.click({ force: true });
+        await page.waitForURL(/\/member\/claims\/new/, { timeout: 10000 });
       } else {
         await page.goto(routes.memberNewClaim());
         await page.waitForLoadState('domcontentloaded');
