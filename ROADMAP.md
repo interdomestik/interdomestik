@@ -1,6 +1,7 @@
 # Interdomestik V2 - Asistenca Membership Roadmap
 
 Full implementation plan: `.agent/tasks/implementation_membership_model.md`
+Multi-tenant vNext plan: `.agent/tasks/implementation_multitenant_vnext.md`
 
 ## Vision
 
