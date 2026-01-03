@@ -9,7 +9,7 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
   return updateClaimStatusCore({ claimId, newStatus, session, requestHeaders });
 }
 
-export async function assignClaim(claimId: string, agentId: string | null) {
+export async function assignClaim(claimId: string, staffId: string | null) {
   const { session, requestHeaders } = await getActionContext();
-  return assignClaimCore({ claimId, agentId, session, requestHeaders });
+  return assignClaimCore({ claimId, staffId, session, requestHeaders });
 }

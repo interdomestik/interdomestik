@@ -30,6 +30,7 @@ import {
   Check,
   ChevronUp,
   FileText,
+  GitBranch,
   Globe,
   Home,
   LayoutDashboard,
@@ -98,6 +99,12 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
       icon: LayoutDashboard,
     },
     {
+      title: 'branches',
+      href: '/admin/branches',
+      icon: GitBranch,
+      hidden: !['super_admin', 'tenant_admin', 'admin'].includes(user.role),
+    },
+    {
       title: 'claims',
       href: '/admin/claims',
       icon: FileText,
@@ -130,7 +137,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
       href: '/admin/settings',
       icon: Settings,
     },
-  ];
+  ].filter(item => !item.hidden);
 
   return (
     <Sidebar

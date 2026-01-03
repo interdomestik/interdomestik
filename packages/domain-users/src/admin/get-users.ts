@@ -9,7 +9,7 @@ import {
   or,
   user,
 } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 import { SQL, desc, isNotNull, isNull } from 'drizzle-orm';
 
 import type { UserSession } from '../types';
@@ -29,7 +29,19 @@ export async function getUsersCore(params: {
   const adminSession = await requireTenantAdminSession(session);
 
   const conditions: SQL<unknown>[] = [];
-  const tenantId = ensureTenantId(adminSession);
+
+  // Apply Scope Filter (Tenant + Branch + Agent)
+  const scope = scopeFilter(adminSession as unknown as SessionWithTenant);
+  const tenantId = scope.tenantId;
+
+  if (!scope.isFullTenantScope) {
+    if (scope.branchId) {
+      conditions.push(eq(user.branchId, scope.branchId));
+    }
+    if (scope.agentId) {
+      conditions.push(eq(user.agentId, scope.agentId));
+    }
+  }
   const roleFilter = filters?.role && filters.role !== 'all' ? filters.role : null;
   const assignmentFilter =
     filters?.assignment && filters.assignment !== 'all' ? filters.assignment : null;

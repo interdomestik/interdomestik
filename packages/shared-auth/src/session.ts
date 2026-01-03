@@ -12,6 +12,9 @@ export type SessionWithTenant = {
   user?: {
     id?: string;
     tenantId?: string | null;
+    role?: string | null;
+    branchId?: string | null;
+    agentId?: string | null;
   } | null;
 } | null;
 

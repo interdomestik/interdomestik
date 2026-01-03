@@ -1,6 +1,6 @@
 'use client';
 
-import { assignClaim } from '@/actions/agent-claims';
+import { assignClaim } from '@/actions/admin-claims';
 import { Button } from '@interdomestik/ui/components/button';
 import {
   Select,

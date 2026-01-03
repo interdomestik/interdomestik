@@ -148,17 +148,26 @@ describe('Staff Claims Actions', () => {
   describe('assignClaim', () => {
     it('should throw if user is not authenticated', async () => {
       mocks.getSession.mockResolvedValue(null);
-      await expect(assignClaim('claim-1', 'agent-2')).rejects.toThrow('Unauthorized');
+      await expect(assignClaim('claim-1', 'staff-2')).rejects.toThrow('Unauthorized');
+    });
+
+    it('should not allow staff to assign claims to someone else', async () => {
+      mocks.getSession.mockResolvedValue({
+        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
+      });
+
+      await expect(assignClaim('claim-1', 'staff-2')).rejects.toThrow('Access denied');
+      expect(mocks.dbUpdate).not.toHaveBeenCalled();
     });
 
     it('should throw if claim does not exist', async () => {
       mocks.getSession.mockResolvedValue({
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
       });
-      mocks.dbQueryUser.mockResolvedValue({ id: 'agent-2', email: 'agent@test.com' });
+      mocks.dbQueryUser.mockResolvedValue({ id: 'staff-2', email: 'staff@test.com' });
       mocks.dbQueryClaims.mockResolvedValue(null); // No claim
 
-      await expect(assignClaim('claim-1', 'agent-2')).rejects.toThrow('Claim not found');
+      await expect(assignClaim('claim-1', 'staff-2')).rejects.toThrow('Claim not found');
     });
 
     it('should throw if staff member does not exist', async () => {
@@ -168,7 +177,7 @@ describe('Staff Claims Actions', () => {
       mocks.dbQueryClaims.mockResolvedValue({ id: 'claim-1', title: 'Test Claim' });
       mocks.dbQueryUser.mockResolvedValue(null); // No agent
 
-      await expect(assignClaim('claim-1', 'agent-2')).rejects.toThrow('Staff member not found');
+      await expect(assignClaim('claim-1', 'staff-2')).rejects.toThrow('Staff member not found');
     });
 
     it('should update staffId and notify staff', async () => {

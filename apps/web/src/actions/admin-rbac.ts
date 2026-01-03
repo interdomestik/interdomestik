@@ -2,10 +2,20 @@
 
 import {
   createBranch,
+  deleteBranch,
   grantUserRole,
   listBranches,
   listUserRoles,
   revokeUserRole,
+  updateBranch,
 } from './admin-rbac.core';
 
-export { createBranch, grantUserRole, listBranches, listUserRoles, revokeUserRole };
+export {
+  createBranch,
+  deleteBranch,
+  grantUserRole,
+  listBranches,
+  listUserRoles,
+  revokeUserRole,
+  updateBranch,
+};

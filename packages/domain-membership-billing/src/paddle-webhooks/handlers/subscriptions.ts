@@ -1,6 +1,6 @@
+import { db, subscriptions } from '@interdomestik/database';
 import { createCommissionCore } from '../../commissions/create';
 import { calculateCommission } from '../../commissions/types';
-import { db, subscriptions } from '@interdomestik/database';
 import { mapPaddleStatus } from '../subscription-status';
 
 import type { PaddleWebhookDeps } from '../types';
@@ -90,17 +90,32 @@ export async function handleSubscriptionChanged(
     console.log(`[Webhook] Subscription ${sub.id} recovered - clearing dunning fields`);
   }
 
+  let agentBranchId: string | undefined;
+  if (customData?.agentId) {
+    const agent = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, customData.agentId!),
+      columns: { branchId: true },
+    });
+    agentBranchId = agent?.branchId || undefined;
+  }
+
   await db
     .insert(subscriptions)
     .values({
       id: sub.id,
       tenantId,
       userId,
+      agentId: customData?.agentId,
+      branchId: agentBranchId,
       ...baseValues,
     })
     .onConflictDoUpdate({
       target: subscriptions.id,
-      set: baseValues,
+      set: {
+        ...baseValues,
+        agentId: customData?.agentId,
+        branchId: agentBranchId,
+      },
     });
 
   console.log(

@@ -1,5 +1,6 @@
 import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
+import { branches } from './rbac';
 import { tenants } from './tenants';
 
 export const user = pgTable('user', {
@@ -20,6 +21,7 @@ export const user = pgTable('user', {
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
   agentId: text('agentId'), // Sales agent who referred this member (legacy mapping)
+  branchId: text('branch_id').references(() => branches.id), // Branch for staff/agents
 });
 
 export const session = pgTable('session', {

@@ -1,22 +1,31 @@
-import { boolean, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, index, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { tenants } from './tenants';
 
-export const branches = pgTable('branches', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  name: text('name').notNull(),
-  code: text('code'),
-  isActive: boolean('is_active').default(true).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+export const branches = pgTable(
+  'branches',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    name: text('name').notNull(),
+    code: text('code'),
+    isActive: boolean('is_active').default(true).notNull(),
+    slug: text('slug').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => ({
+    tenantSlugUq: uniqueIndex('branches_tenant_slug_uq').on(table.tenantId, table.slug),
+    tenantCodeUq: uniqueIndex('branches_tenant_code_uq').on(table.tenantId, table.code),
+    tenantIdx: index('idx_branches_tenant').on(table.tenantId),
+  })
+);
 
 export const userRoles = pgTable(
   'user_roles',

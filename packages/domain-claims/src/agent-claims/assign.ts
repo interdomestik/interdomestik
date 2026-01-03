@@ -14,13 +14,13 @@ function isStaffOrAdmin(role: string | null | undefined) {
 export async function assignClaimCore(
   params: {
     claimId: string;
-    agentId: string | null;
+    staffId: string | null;
     session: ClaimsSession | null;
     requestHeaders: Headers;
   },
   deps: ClaimsDeps = {}
 ) {
-  const { claimId, agentId, session, requestHeaders } = params;
+  const { claimId, staffId, session, requestHeaders } = params;
 
   if (!session || !isStaffOrAdmin(session.user.role)) {
     throw new Error('Unauthorized');
@@ -28,7 +28,7 @@ export async function assignClaimCore(
 
   const tenantId = ensureTenantId(session);
 
-  if (isStaff(session.user.role) && agentId && agentId !== session.user.id) {
+  if (isStaff(session.user.role) && staffId && staffId !== session.user.id) {
     throw new Error('Access denied');
   }
 
@@ -42,29 +42,29 @@ export async function assignClaimCore(
 
   await db
     .update(claims)
-    .set({ staffId: agentId })
+    .set({ staffId })
     .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
       actorId: session.user.id,
       actorRole: session.user.role,
-      action: agentId ? 'claim.assigned' : 'claim.unassigned',
+      action: staffId ? 'claim.assigned' : 'claim.unassigned',
       entityType: 'claim',
       entityId: claimId,
       metadata: {
         previousStaffId: claim.staffId || null,
-        newStaffId: agentId,
+        newStaffId: staffId,
       },
       headers: requestHeaders,
     });
   }
 
-  if (agentId) {
+  if (staffId) {
     // Get staff details for notification
     const staffMember = await db.query.user.findFirst({
       where: (userTable, { and, eq }) =>
-        and(eq(userTable.id, agentId), eq(userTable.tenantId, tenantId)),
+        and(eq(userTable.id, staffId), eq(userTable.tenantId, tenantId)),
     });
 
     if (!staffMember) throw new Error('Staff member not found');

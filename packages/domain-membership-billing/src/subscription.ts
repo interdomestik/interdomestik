@@ -34,3 +34,25 @@ export async function hasActiveMembership(
 
   return false;
 }
+
+export async function getActiveSubscription(userId: string, tenantId: string) {
+  if (!tenantId) {
+    throw new Error('tenantId is required for membership lookup');
+  }
+  const sub = await db.query.subscriptions.findFirst({
+    where: and(eq(subscriptions.userId, userId), eq(subscriptions.tenantId, tenantId)),
+  });
+
+  if (!sub) return null;
+
+  const isActive =
+    sub.status === 'active' ||
+    sub.status === 'trialing' ||
+    (sub.status === 'past_due' && sub.gracePeriodEndsAt
+      ? new Date() < sub.gracePeriodEndsAt
+      : false);
+
+  if (!isActive) return null;
+
+  return sub;
+}
