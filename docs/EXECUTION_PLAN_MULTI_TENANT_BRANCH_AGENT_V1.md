@@ -52,7 +52,7 @@ Progress tracking:
 
 ---
 
-## 1) Phase A — Tenant enforcement & cross-tenant guardrails
+## 1) Phase A — Tenant enforcement & cross-tenant guardrails (Effort: S)
 
 ### A1. [ ] Confirm tenant scoping is mandatory for ALL domain queries
 
@@ -77,7 +77,7 @@ Progress tracking:
 
 ---
 
-## 2) Phase B — Branches (CRUD + tenant scoping)
+## 2) Phase B — Branches (CRUD + tenant scoping) (Effort: S)
 
 ### B1. [ ] Keep branch CRUD logic centralized in domain-users
 
@@ -102,7 +102,7 @@ Progress tracking:
 
 ---
 
-## 3) Phase C — Role assignment + branch-scoped roles
+## 3) Phase C — Role assignment + branch-scoped roles (Effort: M)
 
 ### C1. [ ] Standardize “branch required” roles
 
@@ -132,7 +132,7 @@ Progress tracking:
 
 ---
 
-## 4) Phase D — Agent ownership (members) vs claim handling (staff)
+## 4) Phase D — Agent ownership (members) vs claim handling (staff) (Effort: M)
 
 ### D1. [ ] Treat agent->member ownership as canonical via `agent_clients`
 
@@ -171,16 +171,17 @@ Progress tracking:
 
 **Implementation options (pick 1, simplest first)**
 
-1. **Tenant setting**: store `tenant_settings(category='rbac', key='default_branch_id')` and read it in `subscriptions.ts` handler.
+> [!TIP]
+> **Recommended: Option 1** — `tenant_settings` is the most flexible approach and aligns with the existing schema pattern. It avoids schema changes to the `tenants` table and allows per-tenant configuration without migrations.
+
+1. **Tenant setting** ✅ (Recommended): store `tenant_settings(category='rbac', key='default_branch_id')` and read it in `subscriptions.ts` handler.
    - Update: `packages/database/src/schema/tenants.ts` (already supports tenant_settings)
    - Add migration: `packages/database/drizzle/0012_seed_default_branch_settings.sql`
 2. **Tenant column**: add a first-class `defaultBranchId` on tenants.
-
-- Update: `packages/database/src/schema/tenants.ts` (add `defaultBranchId: text('default_branch_id').references(() => branches.id)`)
-- Add migration: `packages/database/drizzle/0012_add_default_branch_to_tenants.sql`
-- Backfill strategy: set the default for existing tenants based on a known branch (from `scripts/seed-branches-manual.mjs`) or a one-time manual update.
-
-3. Convention: pick the branch with `code='main'` (or similar) per tenant.
+   - Update: `packages/database/src/schema/tenants.ts` (add `defaultBranchId: text('default_branch_id').references(() => branches.id)`)
+   - Add migration: `packages/database/drizzle/0012_add_default_branch_to_tenants.sql`
+   - Backfill strategy: set the default for existing tenants based on a known branch (from `scripts/seed-branches-manual.mjs`) or a one-time manual update.
+3. **Convention**: pick the branch with `code='main'` (or similar) per tenant.
    - This is simpler but becomes brittle once you add more branches/countries.
 
 **Selective tests (unit)**
@@ -191,7 +192,7 @@ Progress tracking:
 
 ---
 
-## 5) Phase E — Claim creation routing + staff queue visibility
+## 5) Phase E — Claim creation routing + staff queue visibility (Effort: M)
 
 ### E1. [ ] Make claim routing deterministic from subscription
 
@@ -218,7 +219,7 @@ Progress tracking:
 
 ---
 
-## 6) Seed/backfill plan (keep environments deterministic)
+## 6) Seed/backfill plan (keep environments deterministic) (Effort: S)
 
 ### F1. [ ] Tenants are already seeded in migration
 
@@ -277,7 +278,7 @@ Apply these rules per task:
 
 ---
 
-## 8) Implementation order (fastest path)
+## 9) Implementation order (fastest path)
 
 - [ ] Confirm tenant scoping for the 3 primary data entrypoints:
   - user listing (`getUsersCore`)
