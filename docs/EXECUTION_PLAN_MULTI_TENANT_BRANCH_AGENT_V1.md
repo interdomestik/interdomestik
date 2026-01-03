@@ -86,7 +86,7 @@ Progress tracking:
 
 ## 2) Phase B — Branches (CRUD + tenant scoping) (Effort: S)
 
-### B1. [ ] Keep branch CRUD logic centralized in domain-users
+### B1. [x] Keep branch CRUD logic centralized in domain-users
 
 **Source of truth**
 
