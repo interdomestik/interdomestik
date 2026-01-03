@@ -1,4 +1,5 @@
-import { and, claims, db, eq, user } from '@interdomestik/database';
+import { and, claims, db, eq } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from './types';
 
@@ -40,7 +41,7 @@ export async function updateClaimStatusCore(
     return { error: 'Invalid status' };
   }
 
-  const tenantId = session.user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
 
   try {
     const claim = await db.query.claims.findFirst({

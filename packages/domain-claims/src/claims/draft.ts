@@ -1,4 +1,5 @@
 import { and, claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import { buildClaimDocumentRows } from './documents';
@@ -19,7 +20,7 @@ export async function updateDraftClaimCore(
     return { success: false, error: 'Unauthorized' };
   }
 
-  const tenantId = session.user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
   const claim = await db.query.claims.findFirst({
     where: (claimsTable, { and, eq }) =>
       and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
@@ -113,7 +114,7 @@ export async function cancelClaimCore(
     return { success: false, error: 'Unauthorized' };
   }
 
-  const tenantId = session.user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
   const claim = await db.query.claims.findFirst({
     where: (claimsTable, { and, eq }) =>
       and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),

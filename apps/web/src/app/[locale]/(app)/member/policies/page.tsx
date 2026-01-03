@@ -2,7 +2,7 @@ import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth'; // auth-client imports are for client, server uses auth helper
 import { createAdminClient, db } from '@interdomestik/database';
 import { policies } from '@interdomestik/database/schema';
-import { ensureTenantId } from '@interdomestik/domain-users';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import {
   Button,
   Card,

@@ -1,4 +1,5 @@
-import { and, claims, db, eq, user } from '@interdomestik/database';
+import { and, claims, db, eq } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 
@@ -25,7 +26,7 @@ export async function assignClaimCore(
     throw new Error('Unauthorized');
   }
 
-  const tenantId = session.user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
 
   if (isStaff(session.user.role) && agentId && agentId !== session.user.id) {
     throw new Error('Access denied');

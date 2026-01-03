@@ -1,6 +1,6 @@
 import { db } from '@interdomestik/database';
 import { notifications } from '@interdomestik/database/schema';
-import { ensureTenantId } from '@interdomestik/domain-users';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
 import type { Session } from '../types';

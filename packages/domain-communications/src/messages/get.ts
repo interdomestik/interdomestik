@@ -1,5 +1,5 @@
 import { claimMessages, db, user } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/domain-users';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq, or } from 'drizzle-orm';
 import type { Session } from '../types';
 import { normalizeSelectedMessages } from './normalize';

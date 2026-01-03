@@ -10,7 +10,7 @@ import {
   user,
 } from '@interdomestik/database';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
-import { ensureTenantId } from '@interdomestik/domain-users';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { SQL, count, desc, isNotNull, isNull, ne } from 'drizzle-orm';
 
 type Session = {

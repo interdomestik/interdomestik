@@ -36,6 +36,7 @@
     "@interdomestik/domain-membership-billing": "workspace:*",
     "@interdomestik/domain-referrals": "workspace:*",
     "@interdomestik/domain-users": "workspace:*",
+    "@interdomestik/shared-auth": "workspace:*",
     "@interdomestik/ui": "workspace:*",
     "@novu/nextjs": "^3.11.0",
     "@paddle/paddle-js": "^1.6.1",

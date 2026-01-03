@@ -1,7 +1,8 @@
 import { and, claims, db, eq } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 
-import type { ActionResult } from './types';
 import type { ClaimsSession } from '../claims/types';
+import type { ActionResult } from './types';
 
 /** Assign a claim to the current staff member */
 export async function assignClaimCore(params: {
@@ -14,7 +15,7 @@ export async function assignClaimCore(params: {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const tenantId = session.user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
 
   try {
     const [existingClaim] = await db

@@ -68,7 +68,7 @@ describe('updateClaimStatusCore', () => {
         claimId: 'claim-1',
         newStatus: 'resolved',
         session: {
-          user: { id: 'staff-1', role: 'staff' },
+          user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
           session: { id: 'session-1' },
         } as unknown as import('./context').Session,
         requestHeaders: new Headers(),

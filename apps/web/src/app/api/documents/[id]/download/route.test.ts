@@ -79,7 +79,9 @@ describe('GET /api/documents/[id]/download', () => {
   });
 
   it('returns 404 when document missing', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
     mockSelectChain.where.mockResolvedValue([]);
 
     const request = new Request('http://localhost:3000/api/documents/doc-404/download');
@@ -91,7 +93,9 @@ describe('GET /api/documents/[id]/download', () => {
   });
 
   it('returns 403 and logs audit when forbidden', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
     mockSelectChain.where.mockResolvedValue([
       {
         doc: {
@@ -124,7 +128,9 @@ describe('GET /api/documents/[id]/download', () => {
   });
 
   it('streams file and sets content-disposition (attachment by default)', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
     mockSelectChain.where.mockResolvedValue([
       {
         doc: {
@@ -165,7 +171,9 @@ describe('GET /api/documents/[id]/download', () => {
   });
 
   it('uses inline disposition when requested', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
     mockSelectChain.where.mockResolvedValue([
       {
         doc: {

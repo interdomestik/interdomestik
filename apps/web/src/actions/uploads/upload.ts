@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { ensureTenantId } from '@interdomestik/domain-users';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 

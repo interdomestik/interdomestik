@@ -1,6 +1,6 @@
 import { claimDocuments, claims, db } from '@interdomestik/database';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
-import { ensureTenantId } from '@interdomestik/domain-users';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';

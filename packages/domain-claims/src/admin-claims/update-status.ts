@@ -1,4 +1,5 @@
 import { claims, db, user } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
@@ -46,7 +47,7 @@ export async function updateClaimStatusCore(
     throw new Error('Invalid status');
   }
 
-  const tenantId = session.user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
 
   // Fetch claim with user info before update
   const [claimWithUser] = await db

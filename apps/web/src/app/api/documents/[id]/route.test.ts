@@ -79,7 +79,9 @@ describe('GET /api/documents/[id]', () => {
   });
 
   it('returns 404 when document missing', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
     mockSelectChain.where.mockResolvedValue([]);
 
     const request = new Request('http://localhost:3000/api/documents/doc-404');
@@ -91,7 +93,9 @@ describe('GET /api/documents/[id]', () => {
   });
 
   it('returns 403 and logs audit when forbidden', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
     mockSelectChain.where.mockResolvedValue([
       {
         doc: {
@@ -124,7 +128,9 @@ describe('GET /api/documents/[id]', () => {
   });
 
   it('returns 200 with signed url and logs audit when allowed', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
     mockSelectChain.where.mockResolvedValue([
       {
         doc: {

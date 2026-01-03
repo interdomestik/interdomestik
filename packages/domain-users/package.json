@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
+    "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "nanoid": "^5.1.6"
   }

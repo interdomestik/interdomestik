@@ -1,7 +1,7 @@
 import { ClaimWizard } from '@/components/claims/claim-wizard';
 import { auth } from '@/lib/auth';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
-import { ensureTenantId } from '@interdomestik/domain-users';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Button } from '@interdomestik/ui';
 import { ShieldAlert } from 'lucide-react';
 import { Metadata } from 'next';

@@ -1,5 +1,5 @@
 import { and, db, eq, subscriptions } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/domain-users';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getPaddle } from '../paddle-server';
 
 import type { PaymentUpdateUrlResult, SubscriptionSession } from './types';

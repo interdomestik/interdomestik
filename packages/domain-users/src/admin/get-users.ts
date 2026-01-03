@@ -9,6 +9,7 @@ import {
   or,
   user,
 } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { SQL, desc, isNotNull, isNull } from 'drizzle-orm';
 
 import type { UserSession } from '../types';
@@ -28,7 +29,7 @@ export async function getUsersCore(params: {
   const adminSession = await requireTenantAdminSession(session);
 
   const conditions: SQL<unknown>[] = [];
-  const tenantId = adminSession.user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(adminSession);
   const roleFilter = filters?.role && filters.role !== 'all' ? filters.role : null;
   const assignmentFilter =
     filters?.assignment && filters.assignment !== 'all' ? filters.assignment : null;

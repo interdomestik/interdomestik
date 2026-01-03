@@ -1,5 +1,5 @@
 import { claimMessages, db, user } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/domain-users';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { AuditLogger, Session } from '../types';

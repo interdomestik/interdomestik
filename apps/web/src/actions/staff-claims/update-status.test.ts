@@ -40,7 +40,7 @@ describe('updateClaimStatusCore', () => {
       claimId: 'claim-1',
       newStatus: 'submitted' as unknown as import('./types').ClaimStatus,
       session: {
-        user: { id: 'staff-1', role: 'staff' },
+        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
         session: { id: 's1' },
       } as unknown as NonNullable<import('./context').Session>,
     });

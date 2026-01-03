@@ -26,7 +26,7 @@
   "dependencies": {
     "@interdomestik/database": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
-    "@interdomestik/domain-users": "workspace:*",
+    "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "nanoid": "^5.1.6",
     "zod": "^4.2.1"

@@ -1,4 +1,5 @@
 import { and, claimStageHistory, claims, db, eq } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ClaimsSession } from '../claims/types';
 import type { ActionResult, ClaimStatus } from './types';
 
@@ -16,7 +17,7 @@ export async function updateClaimStatusCore(params: {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const tenantId = session.user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
 
   try {
     const [currentClaim] = await db
