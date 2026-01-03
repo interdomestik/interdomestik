@@ -2,8 +2,9 @@ import { analyzePolicyImages, analyzePolicyText } from '@/lib/ai/policy-analyzer
 import { auth } from '@/lib/auth'; // Using better-auth
 import { createAdminClient, db } from '@interdomestik/database';
 import { policies } from '@interdomestik/database/schema';
-import { NextRequest, NextResponse } from 'next/server';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
+import { NextRequest, NextResponse } from 'next/server';
 
 const MAX_UPLOAD_BYTES =
   Number.parseInt(process.env.POLICY_UPLOAD_MAX_BYTES || '', 10) || 15_000_000;
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Use Vision API for images or scanned PDFs
-    const tenantId = (session.user as { tenantId?: string | null }).tenantId ?? 'tenant_mk';
+    const tenantId = ensureTenantId(session);
 
     if (isImage) {
       const analysis = await analyzePolicyImages([buffer]);

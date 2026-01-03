@@ -1,4 +1,5 @@
 import { claimDocuments, claims, createAdminClient, db } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
 type Session = {
@@ -66,7 +67,7 @@ export async function getDocumentAccessCore(args: {
   disposition?: 'inline' | 'attachment';
 }): Promise<DocumentAccessResult> {
   const { session, documentId, mode, disposition } = args;
-  const tenantId = session.user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
 
   // Fetch document metadata + claim ownership for RBAC
   const [row] = await db
