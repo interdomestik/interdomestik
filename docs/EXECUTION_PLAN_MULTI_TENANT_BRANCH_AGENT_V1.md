@@ -141,7 +141,7 @@ Progress tracking:
 
 ## 4) Phase D — Agent ownership (members) vs claim handling (staff) (Effort: M)
 
-### D1. [ ] Treat agent->member ownership as canonical via `agent_clients`
+### D1. [x] Treat agent->member ownership as canonical via `agent_clients`
 
 **Why:** it stays stable even if subscriptions churn/renew.
 

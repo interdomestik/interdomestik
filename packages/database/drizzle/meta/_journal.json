@@ -92,6 +92,13 @@
       "when": 1767450412681,
       "tag": "0012_seed_default_branch_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1767890798000,
+      "tag": "0013_add_agent_clients_unique",
+      "breakpoints": true
     }
   ]
 }

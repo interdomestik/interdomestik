@@ -19,13 +19,22 @@ export async function getAgentUsersCore(params: {
     throw new Error('Unauthorized');
   }
 
+  const tenantId = session.user.tenantId ?? 'tenant_mk';
+
   const conditions: SQL[] = [eq(user.role, 'user')];
+  conditions.push(eq(user.tenantId, tenantId) as SQL);
 
   if (session.user.role === 'agent') {
     const links = await db
       .select({ memberId: agentClients.memberId })
       .from(agentClients)
-      .where(and(eq(agentClients.agentId, session.user.id), eq(agentClients.status, 'active')));
+      .where(
+        and(
+          eq(agentClients.agentId, session.user.id),
+          eq(agentClients.tenantId, tenantId),
+          eq(agentClients.status, 'active')
+        )
+      );
 
     const memberIds = links.map(link => link.memberId);
 

@@ -1,26 +1,46 @@
-import { boolean, decimal, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  decimal,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { commissionStatusEnum, commissionTypeEnum } from './enums';
 import { subscriptions } from './memberships';
 import { tenants } from './tenants';
 
-export const agentClients = pgTable('agent_clients', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
-  agentId: text('agent_id')
-    .notNull()
-    .references(() => user.id),
-  memberId: text('member_id')
-    .notNull()
-    .references(() => user.id),
-  status: text('status').default('active').notNull(),
-  joinedAt: timestamp('joined_at').defaultNow().notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export const agentClients = pgTable(
+  'agent_clients',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id)
+      .default('tenant_mk'),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => user.id),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => user.id),
+    status: text('status').default('active').notNull(),
+    joinedAt: timestamp('joined_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  table => ({
+    tenantIdx: index('idx_agent_clients_tenant_id').on(table.tenantId),
+    tenantAgentMemberUq: uniqueIndex('agent_clients_tenant_agent_member_uq').on(
+      table.tenantId,
+      table.agentId,
+      table.memberId
+    ),
+  })
+);
 
 export const agentCommissions = pgTable('agent_commissions', {
   id: text('id').primaryKey(),
