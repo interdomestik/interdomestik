@@ -19,7 +19,7 @@ Progress tracking:
 
 ---
 
-## 0) Baseline: what already exists (don’t redo)
+## 0) Baseline: what already exists (don't redo)
 
 **Drizzle schema (already tenant/branch aware)**
 
@@ -37,6 +37,7 @@ Progress tracking:
 - `packages/database/drizzle/0009_add_branches_rbac.sql`
 - `packages/database/drizzle/0010_add_branch_scoping.sql`
 - `packages/database/drizzle/0011_refine_branch_schema.sql`
+- `packages/database/drizzle/0012_seed_default_branch_settings.sql`
 
 **Scoping helpers (already present)**
 
@@ -54,9 +55,15 @@ Progress tracking:
 
 ## 1) Phase A — Tenant enforcement & cross-tenant guardrails (Effort: S)
 
-### A1. [ ] Confirm tenant scoping is mandatory for ALL domain queries
+### A1. [x] Confirm tenant scoping is mandatory for ALL domain queries
 
 **Goal:** every domain query is tenant-scoped (and branch/agent scoped when required).
+
+**Sub-checklist (mark these as you verify them)**
+
+- [x] `listClaims` always enforces `claims.tenantId = scope.tenantId`
+- [x] `getUsersCore` always enforces `user.tenantId = scope.tenantId`
+- [x] `handleSubscriptionChanged` resolves tenant safely (no cross-tenant writes)
 
 **Files to review/adjust (domain level)**
 
@@ -104,7 +111,7 @@ Progress tracking:
 
 ## 3) Phase C — Role assignment + branch-scoped roles (Effort: M)
 
-### C1. [ ] Standardize “branch required” roles
+### C1. [ ] Standardize "branch required" roles
 
 **Current behavior:** `grantUserRoleCore()` enforces branch requirement for `branch_manager` and `agent`.
 
@@ -122,7 +129,7 @@ Progress tracking:
 **Selective tests**
 
 - Unit (always add/update when access rules change):
-  - Add tests that cover “role requires branchId” and “cannot assign to inactive branch” by testing the _domain_ function indirectly via existing action tests:
+  - Add tests that cover "role requires branchId" and "cannot assign to inactive branch" by testing the _domain_ function indirectly via existing action tests:
     - `apps/web/src/actions/admin-rbac.wrapper.test.ts` (wrapper behavior)
     - Add a new focused unit test file in web actions if you change validation branches/role rules (prefer this over setting up a new vitest harness inside domain packages).
 
@@ -147,16 +154,16 @@ Progress tracking:
 
 - Add a uniqueness constraint to prevent duplicates:
   - New Drizzle change: `packages/database/src/schema/agents.ts` (unique index on tenantId+agentId+memberId)
-  - New SQL migration under `packages/database/drizzle/0012_*.sql`
+  - New SQL migration under `packages/database/drizzle/0013_*.sql`
 
 **Selective tests (unit)**
 
 - Only if you change the scoping rules for agent visibility:
   - Add/update a unit test around the relevant action/core (agent clients listing), e.g. under `apps/web/src/actions/agent-*.test.ts`.
 
-### D2. [ ] Ensure subscriptions carry branch + agent (routing inputs)
+### D2. [x] Ensure subscriptions carry branch + agent (routing inputs)
 
-**Current behavior:** Paddle webhook handler sets `subscriptions.agentId` and derives `subscriptions.branchId` from the agent’s `user.branchId`.
+**Current behavior:** Paddle webhook handler sets `subscriptions.agentId` and derives `subscriptions.branchId` from the agent's `user.branchId`.
 
 **Files**
 
@@ -166,17 +173,28 @@ Progress tracking:
 **Gap to decide (usually part of the checklist)**
 
 - What happens for **self-serve** members (no agentId)?
-  - Recommended: set `subscriptions.branchId` to tenant’s **default branch**.
+  - Recommended: set `subscriptions.branchId` to tenant's **default branch**.
   - Prefer `tenant_settings(category='rbac', key='default_branch_id')` as canonical source (keeps tenant table stable and matches what you already have in schema).
+
+**Guardrail (important)**
+
+- Do not default `tenantId` (e.g. to `tenant_mk`) if it can't be resolved.
+- If a webhook event cannot be mapped to a tenant (via existing subscription or the user record), log and abort the write.
 
 **Implementation options (pick 1, simplest first)**
 
-> [!TIP]
-> **Recommended: Option 1** — `tenant_settings` is the most flexible approach and aligns with the existing schema pattern. It avoids schema changes to the `tenants` table and allows per-tenant configuration without migrations.
+**Decision (choose 1 to avoid stalling execution)**
 
-1. **Tenant setting** ✅ (Recommended): store `tenant_settings(category='rbac', key='default_branch_id')` and read it in `subscriptions.ts` handler.
+- [x] Option 1: `tenant_settings(category='rbac', key='default_branch_id')` (chosen path)
+- [ ] Option 2: `tenants.default_branch_id` column (defer)
+- [ ] Option 3: Convention (`code='main'`) (defer)
+
+1. **Tenant setting** ✅ (Chosen): store `tenant_settings(category='rbac', key='default_branch_id')` and read it in `subscriptions.ts` handler.
    - Update: `packages/database/src/schema/tenants.ts` (already supports tenant_settings)
-   - Add migration: `packages/database/drizzle/0012_seed_default_branch_settings.sql`
+
+- [x] Add migration: `packages/database/drizzle/0012_seed_default_branch_settings.sql`
+- [x] Add a unit test for webhook default-branch behavior: `apps/web/src/lib/paddle-webhooks/subscriptions-handler.test.ts`
+
 2. **Tenant column**: add a first-class `defaultBranchId` on tenants.
    - Update: `packages/database/src/schema/tenants.ts` (add `defaultBranchId: text('default_branch_id').references(() => branches.id)`)
    - Add migration: `packages/database/drizzle/0012_add_default_branch_to_tenants.sql`
@@ -217,17 +235,30 @@ Progress tracking:
     - Step 2: staff opens `/staff/claims` and searches/locates that title
     - Stop there (do not test full status workflow; keep it stable)
 
+### E2. [ ] Agent visibility policy (explicit decision)
+
+**Problem to decide:** should an agent's “queue/visibility” be based on the historical snapshot (`claims.agentId`) or on canonical ownership (`agent_clients`)?
+
+- [ ] Defer (v1): keep agent visibility based on `claims.agentId` only (snapshot semantics)
+- [ ] Adopt (v2+): change agent visibility to derive from `agent_clients` (canonical ownership)
+
+**Where this shows up in code**
+
+- Listing entrypoint: `packages/domain-claims/src/claims/list.ts` (scope `agent_queue`)
+- Ownership model: `packages/database/src/schema/agents.ts` (`agent_clients`)
+
 ---
 
 ## 6) Seed/backfill plan (keep environments deterministic) (Effort: S)
 
-### F1. [ ] Tenants are already seeded in migration
+### F1. [x] Tenants are already seeded in migration
 
 - Tenants inserted in: `packages/database/drizzle/0008_add_multitenant.sql`
 
-### F2. [ ] Branch seed
+### F2. [x] Branch seed
 
 - Manual branch seed script already exists: `scripts/seed-branches-manual.mjs`
+  - [x] Seed now also upserts `tenant_settings(category='rbac', key='default_branch_id')` for the tenant.
 
 ### F3. [ ] E2E users + seeded claims
 
@@ -241,25 +272,29 @@ Progress tracking:
 
 ---
 
-## 9) Known repo gotchas (worth checking early)
+## 7) Known repo gotchas (worth checking early)
 
-These aren’t extra scope—just things that can silently break the intended model.
+These aren't extra scope—just things that can silently break the intended model.
 
 - [x] **Claim assignment naming drift**: there are both staff-claim and agent-claim assign handlers; verify they set the correct column.
   - Check `packages/domain-claims/src/agent-claims/assign.ts` and `packages/domain-claims/src/staff-claims/assign.ts` for accidental `staffId` updates using an agent id.
-- [ ] **Routing “source of truth”**:
+- [ ] **Routing "source of truth"**:
   - Claim creation snapshots `branchId`/`agentId` from the active subscription in `packages/domain-claims/src/claims/create.ts`.
   - Ongoing agent visibility should be based on `agent_clients` ownership if you want it to survive subscription churn.
+  - This decision is tracked explicitly in **Phase E2**.
+- [ ] **Staff queue scoping decision**:
+  - Currently staff is **full-tenant scope** in `packages/shared-auth/src/scope.ts`.
+  - **Decision needed**: Should staff become branch-scoped in a future phase? Marking as "not now" is a valid choice, but should be explicit.
 
 ---
 
-## 7) “Selective tests” rule of thumb (your velocity policy)
+## 8) "Selective tests" rule of thumb (your velocity policy)
 
 Apply these rules per task:
 
 - **Access rules / scoping / permissions** (tenant/branch/agent filters, role checks):
   - Always add/update **at least 1 unit test** near the boundary you changed.
-  - Prefer existing web-side tests (they’re already wired):
+  - Prefer existing web-side tests (they're already wired):
     - `apps/web/src/actions/admin-rbac.wrapper.test.ts`
     - `apps/web/src/actions/claims.test.ts`
   - **Hygiene tip (focused unit runs):** run only the specific test files you touched to avoid getting blocked by unrelated failing suites:
@@ -280,11 +315,51 @@ Apply these rules per task:
 
 ## 9) Implementation order (fastest path)
 
-- [ ] Confirm tenant scoping for the 3 primary data entrypoints:
+- [x] Confirm tenant scoping for the 3 primary data entrypoints:
   - user listing (`getUsersCore`)
   - claim listing (`listClaims`)
   - subscription webhook upsert (`handleSubscriptionChanged`)
-- [ ] Decide default branch strategy for self-serve members.
-- [ ] Implement default-branch routing (if needed) + one unit test.
-- [ ] Add minimal “member claim → staff queue” E2E.
+- [x] Decide default branch strategy for self-serve members.
+- [x] Implement default-branch routing (if needed) + one unit test.
+- [x] Add minimal "member claim → staff queue" E2E.
 - [ ] Only then expand to more branches/roles/tenants.
+
+---
+
+## 10) Rollback & Risk Mitigation
+
+> [!WARNING]
+> Always test migrations in a staging environment before production. Keep backups of production data before running any migration.
+
+### Migration Rollback Strategy
+
+- **Before each migration**: Ensure you have a database backup or snapshot.
+- **Drizzle rollback**: If a migration fails mid-way, use `drizzle-kit drop` to revert the failed migration, fix the issue, and re-run.
+- **Data migrations**: For backfill scripts, always run in a transaction with `ROLLBACK` option first (dry-run mode) before committing.
+
+### Feature Flags (Recommended for Gradual Rollout)
+
+- **Default-branch routing**: Consider adding a feature flag `ENABLE_DEFAULT_BRANCH_ROUTING` in environment variables.
+  - If `false`: skip default-branch assignment (existing behavior).
+  - If `true`: apply new routing logic.
+  - This allows safe rollout and quick rollback without code changes.
+
+### CI/E2E Dependency Chain
+
+The correct run order for CI and local E2E:
+
+```bash
+# 1. Apply migrations
+pnpm db:migrate
+
+# 2. Seed branches (must run before E2E if tests depend on specific branches)
+node scripts/seed-branches-manual.mjs
+
+# 3. Seed E2E users
+node scripts/seed-e2e-users.mjs
+
+# 4. Run E2E tests
+pnpm test:e2e
+```
+
+- **Playwright globalSetup**: Consider adding these seed steps to `playwright.config.ts` → `globalSetup` for full automation.

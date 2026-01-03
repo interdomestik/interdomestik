@@ -58,7 +58,15 @@ export async function handleSubscriptionChanged(
     columns: { tenantId: true, email: true, name: true, memberNumber: true },
   });
 
-  const tenantId = existingSub?.tenantId ?? userRecord?.tenantId ?? 'tenant_mk';
+  const tenantId = existingSub?.tenantId ?? userRecord?.tenantId;
+
+  // Guardrail: never guess a tenant. If we cannot resolve tenant, abort the write.
+  if (!tenantId) {
+    console.warn(
+      `[Webhook] Cannot resolve tenant for subscription ${sub.id} userId=${userId}; skipping write`
+    );
+    return;
+  }
 
   const baseValues = {
     status: mappedStatus,
@@ -93,11 +101,34 @@ export async function handleSubscriptionChanged(
   let agentBranchId: string | undefined;
   if (customData?.agentId) {
     const agent = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, customData.agentId!),
+      where: (u, { and, eq }) => and(eq(u.id, customData.agentId!), eq(u.tenantId, tenantId)),
       columns: { branchId: true },
     });
     agentBranchId = agent?.branchId || undefined;
   }
+
+  let defaultBranchId: string | undefined;
+  if (!customData?.agentId) {
+    const defaultBranchSetting = await db.query.tenantSettings.findFirst({
+      where: (ts, { and, eq }) =>
+        and(eq(ts.tenantId, tenantId), eq(ts.category, 'rbac'), eq(ts.key, 'default_branch_id')),
+      columns: { value: true },
+    });
+
+    const value = defaultBranchSetting?.value as unknown;
+    if (value && typeof value === 'object') {
+      const obj = value as Record<string, unknown>;
+      const candidate =
+        (typeof obj.branchId === 'string' && obj.branchId) ||
+        (typeof obj.defaultBranchId === 'string' && obj.defaultBranchId) ||
+        (typeof obj.id === 'string' && obj.id) ||
+        (typeof obj.value === 'string' && obj.value) ||
+        undefined;
+      defaultBranchId = candidate;
+    }
+  }
+
+  const branchId = agentBranchId ?? defaultBranchId;
 
   await db
     .insert(subscriptions)
@@ -106,7 +137,7 @@ export async function handleSubscriptionChanged(
       tenantId,
       userId,
       agentId: customData?.agentId,
-      branchId: agentBranchId,
+      branchId,
       ...baseValues,
     })
     .onConflictDoUpdate({
@@ -114,7 +145,7 @@ export async function handleSubscriptionChanged(
       set: {
         ...baseValues,
         agentId: customData?.agentId,
-        branchId: agentBranchId,
+        branchId,
       },
     });
 

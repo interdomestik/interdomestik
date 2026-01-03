@@ -31,6 +31,18 @@ function formatZodFieldErrors(errors: Record<string, string[] | undefined>) {
   return formattedErrors;
 }
 
+function extractBranchIdFromSetting(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const obj = value as Record<string, unknown>;
+  const candidate =
+    (typeof obj.branchId === 'string' && obj.branchId) ||
+    (typeof obj.defaultBranchId === 'string' && obj.defaultBranchId) ||
+    (typeof obj.id === 'string' && obj.id) ||
+    (typeof obj.value === 'string' && obj.value) ||
+    undefined;
+  return candidate;
+}
+
 export async function createClaimCore(
   params: {
     session: ClaimsSession | null;
@@ -50,6 +62,22 @@ export async function createClaimCore(
   if (!subscription) {
     return { error: 'Membership required to create a claim.' };
   }
+
+  const defaultBranchId = subscription.branchId
+    ? undefined
+    : extractBranchIdFromSetting(
+        (
+          await db.query.tenantSettings.findFirst({
+            where: (ts, { and, eq }) =>
+              and(
+                eq(ts.tenantId, tenantId),
+                eq(ts.category, 'rbac'),
+                eq(ts.key, 'default_branch_id')
+              ),
+            columns: { value: true },
+          })
+        )?.value
+      );
 
   const result = claimSchema.safeParse(Object.fromEntries(formData));
 
@@ -76,7 +104,7 @@ export async function createClaimCore(
       claimAmount: claimAmount || undefined,
       currency,
       status: 'draft',
-      branchId: subscription.branchId,
+      branchId: subscription.branchId ?? defaultBranchId,
       agentId: subscription.agentId,
     });
 

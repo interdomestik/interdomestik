@@ -64,6 +64,20 @@ async function upsertBranch(params) {
     `;
 }
 
+async function upsertDefaultBranchSetting(params) {
+  const now = new Date();
+  const { tenantId, branchId } = params;
+  const id = `ts:${tenantId}:rbac:default_branch_id`;
+
+  await sql`
+    insert into tenant_settings (id, tenant_id, category, key, value, created_at, updated_at)
+    values (${id}, ${tenantId}, ${'rbac'}, ${'default_branch_id'}, jsonb_build_object('branchId', ${branchId}), ${now}, ${now})
+    on conflict (tenant_id, category, key) do update set
+      value = excluded.value,
+      updated_at = excluded.updated_at;
+  `;
+}
+
 // Hash helper
 import { randomBytes, scryptSync } from 'crypto';
 
@@ -163,6 +177,12 @@ async function main() {
     isActive: true,
   });
 
+  // Set MK default branch (first active branch)
+  await upsertDefaultBranchSetting({
+    tenantId: 'tenant_mk',
+    branchId: 'branch-mk-skopje-center',
+  });
+
   await upsertBranch({
     id: 'branch-mk-bitola-main',
     tenantId: 'tenant_mk',
@@ -189,6 +209,12 @@ async function main() {
     code: 'KS-PR-001',
     slug: 'prishtina-main',
     isActive: true,
+  });
+
+  // Set KS default branch (first active branch)
+  await upsertDefaultBranchSetting({
+    tenantId: 'tenant_ks',
+    branchId: 'branch-ks-prishtina-main',
   });
 
   await upsertBranch({

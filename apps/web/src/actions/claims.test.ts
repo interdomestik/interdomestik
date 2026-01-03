@@ -1,4 +1,5 @@
 import type { CreateClaimValues } from '@/lib/validators/claims';
+import { db } from '@interdomestik/database';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClaim, submitClaim, updateClaimStatus } from './claims';
@@ -9,9 +10,14 @@ const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
 const mockHasActiveMembership = vi.fn();
 
-vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
-  hasActiveMembership: () => mockHasActiveMembership(),
-}));
+vi.mock('@interdomestik/domain-membership-billing/subscription', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@interdomestik/domain-membership-billing/subscription')>();
+  return {
+    ...actual,
+    hasActiveMembership: () => mockHasActiveMembership(),
+  };
+});
 
 vi.mock('@/lib/auth', () => ({
   auth: {
@@ -33,6 +39,9 @@ vi.mock('@interdomestik/database', () => ({
           status: 'active',
         }),
       },
+      tenantSettings: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
       claims: {
         findFirst: vi.fn().mockResolvedValue({
           id: 'claim-1',
@@ -49,6 +58,7 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
   },
+  subscriptions: { id: 'id', userId: 'userId', tenantId: 'tenantId' },
   claims: { id: 'id', tenantId: 'tenantId' },
   claimDocuments: { id: 'id', tenantId: 'tenantId' },
   user: { id: 'id', tenantId: 'tenantId' },
@@ -89,7 +99,7 @@ describe('Claim Actions', () => {
   describe('createClaim', () => {
     it('should fail if user has no active membership', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
-      mockHasActiveMembership.mockResolvedValue(false);
+      (db.query.subscriptions.findFirst as any).mockResolvedValueOnce(null);
 
       const formData = new FormData();
       const result = await createClaim({}, formData);
@@ -127,6 +137,35 @@ describe('Claim Actions', () => {
           companyName: 'Bad Company',
           userId: 'user-123',
           status: 'draft',
+        })
+      );
+    });
+
+    it('applies tenant default branch when subscription has no branchId', async () => {
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+
+      (db.query.subscriptions.findFirst as any).mockResolvedValueOnce({
+        id: 'sub-1',
+        userId: 'user-123',
+        status: 'active',
+        branchId: null,
+        agentId: null,
+      });
+
+      (db.query.tenantSettings.findFirst as any).mockResolvedValueOnce({
+        value: { branchId: 'branch-mk-skopje-center' },
+      });
+
+      const formData = new FormData();
+      formData.append('title', 'Test Claim');
+      formData.append('companyName', 'Bad Company');
+      formData.append('category', 'retail');
+
+      await createClaim({}, formData);
+
+      expect(mockDbInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          branchId: 'branch-mk-skopje-center',
         })
       );
     });
