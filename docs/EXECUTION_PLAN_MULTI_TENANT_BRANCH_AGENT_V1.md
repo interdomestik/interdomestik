@@ -111,7 +111,7 @@ Progress tracking:
 
 ## 3) Phase C — Role assignment + branch-scoped roles (Effort: M)
 
-### C1. [ ] Standardize "branch required" roles
+### C1. [x] Standardize "branch required" roles
 
 **Current behavior:** `grantUserRoleCore()` enforces branch requirement for `branch_manager` and `agent`.
 
