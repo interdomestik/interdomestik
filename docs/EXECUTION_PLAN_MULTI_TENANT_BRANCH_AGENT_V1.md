@@ -212,7 +212,7 @@ Progress tracking:
 
 ## 5) Phase E — Claim creation routing + staff queue visibility (Effort: M)
 
-### E1. [ ] Make claim routing deterministic from subscription
+### E1. [x] Make claim routing deterministic from subscription
 
 **Current behavior:** claim inherits `branchId` + `agentId` from active subscription.
 **Important:** Treat these as **snapshots** at claim creation. Agent visibility should be based on
