@@ -12,6 +12,14 @@ vi.mock('@/i18n/routing', () => ({
   }),
 }));
 
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useSearchParams: () =>
+    new URLSearchParams(
+      'tenantId=tenant_mk&search=john&role=agent&assignment=unassigned&sort=name&dir=asc&pageSize=50&page=2'
+    ),
+}));
+
 // Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string, params?: Record<string, unknown>) => {
@@ -101,6 +109,8 @@ const mockUsers = [
     image: null,
     agentId: null,
     createdAt: new Date('2024-01-15'),
+    unreadCount: 3,
+    alertLink: '/admin/claims/claim-1?foo=bar',
   },
   {
     id: 'user-2',
@@ -121,6 +131,47 @@ const mockAgents = [
 describe('UsersTable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('preserves full users list query params in profile and alert links', () => {
+    render(<UsersTable users={mockUsers} agents={mockAgents} />);
+
+    const profileLinks = screen.getAllByRole('link', { name: 'View Profile' });
+    expect(profileLinks).toHaveLength(2);
+
+    const profileHref = profileLinks[0].getAttribute('href');
+    expect(profileHref).toBeTruthy();
+    const profileUrl = new URL(profileHref!, 'http://test.local');
+    expect(profileUrl.pathname).toBe('/admin/users/user-1');
+
+    // Full query string preserved
+    expect(profileUrl.searchParams.get('tenantId')).toBe('tenant_mk');
+    expect(profileUrl.searchParams.get('search')).toBe('john');
+    expect(profileUrl.searchParams.get('role')).toBe('agent');
+    expect(profileUrl.searchParams.get('assignment')).toBe('unassigned');
+    expect(profileUrl.searchParams.get('sort')).toBe('name');
+    expect(profileUrl.searchParams.get('dir')).toBe('asc');
+    expect(profileUrl.searchParams.get('pageSize')).toBe('50');
+    expect(profileUrl.searchParams.get('page')).toBe('2');
+
+    const alertLink = screen.getByRole('link', { name: '3 new message(s)' });
+    const alertHref = alertLink.getAttribute('href');
+    expect(alertHref).toBeTruthy();
+    const alertUrl = new URL(alertHref!, 'http://test.local');
+    expect(alertUrl.pathname).toBe('/admin/claims/claim-1');
+
+    // Destination query params preserved
+    expect(alertUrl.searchParams.get('foo')).toBe('bar');
+
+    // Full users list context also preserved
+    expect(alertUrl.searchParams.get('tenantId')).toBe('tenant_mk');
+    expect(alertUrl.searchParams.get('search')).toBe('john');
+    expect(alertUrl.searchParams.get('role')).toBe('agent');
+    expect(alertUrl.searchParams.get('assignment')).toBe('unassigned');
+    expect(alertUrl.searchParams.get('sort')).toBe('name');
+    expect(alertUrl.searchParams.get('dir')).toBe('asc');
+    expect(alertUrl.searchParams.get('pageSize')).toBe('50');
+    expect(alertUrl.searchParams.get('page')).toBe('2');
   });
 
   it('renders table headers', () => {

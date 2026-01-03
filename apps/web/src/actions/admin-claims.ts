@@ -1,3 +1,3 @@
 'use server';
-import { updateClaimStatus } from './admin-claims.core';
-export { updateClaimStatus };
+import { assignClaim, updateClaimStatus } from './admin-claims.core';
+export { assignClaim, updateClaimStatus };

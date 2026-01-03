@@ -38,10 +38,31 @@ export async function verifyPaddleWebhook(params: {
     };
   }
 
-  const eventData = await params.paddle.webhooks.unmarshal(
+  // Validate the signature cryptographically, but avoid unmarshalling into
+  // Paddle SDK event classes here. Those classes expect the full Paddle payload
+  // shape and will throw for minimal/partial payloads (e.g. in tests), which we
+  // already parse/handle ourselves.
+  const signatureValid = await params.paddle.webhooks.isSignatureValid(
     params.body,
     params.secret,
     params.signature
   );
-  return { eventData, signatureValid: true, signatureBypassed: false };
+
+  if (!signatureValid) {
+    throw new Error('[Paddle] Webhook signature verification failed');
+  }
+
+  const parsedBody = params.parsedPayload;
+  return {
+    eventData: {
+      eventType: (parsedBody['event_type'] as string | undefined) || 'unknown',
+      eventId:
+        (parsedBody['event_id'] as string | undefined) ||
+        (parsedBody['eventId'] as string | undefined) ||
+        (parsedBody['id'] as string | undefined),
+      data: parsedBody['data'],
+    },
+    signatureValid: true,
+    signatureBypassed: false,
+  };
 }

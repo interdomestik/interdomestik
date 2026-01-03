@@ -1,10 +1,15 @@
 import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
+import { tenants } from './tenants';
 
 // Phase 5: Notifications table
 export const notifications = pgTable('notifications', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
@@ -19,6 +24,10 @@ export const notifications = pgTable('notifications', {
 // Phase 5: Email campaign logs for tracking sent sequences
 export const emailCampaignLogs = pgTable('email_campaign_logs', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id),

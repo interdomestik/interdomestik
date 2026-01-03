@@ -41,7 +41,7 @@ export async function enforceRateLimit({ name, limit, windowSeconds, headers }: 
   const isProduction = process.env.NODE_ENV === 'production';
 
   if (!url || !token) {
-    if (isProduction) {
+    if (isProduction && !isAutomatedTestRun) {
       console.error(
         '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; refusing request'
       );

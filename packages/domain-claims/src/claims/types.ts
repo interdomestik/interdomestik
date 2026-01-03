@@ -2,6 +2,7 @@ export type ClaimsSession = {
   user: {
     id: string;
     role?: string | null;
+    tenantId?: string | null;
     email?: string | null;
   };
 };

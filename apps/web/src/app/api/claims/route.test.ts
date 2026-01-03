@@ -60,6 +60,7 @@ vi.mock('@interdomestik/database', () => ({
   claims: {
     id: 'claims.id',
     userId: 'claims.userId',
+    tenantId: 'claims.tenantId',
     staffId: 'claims.staffId',
     status: 'claims.status',
     title: 'claims.title',
@@ -111,7 +112,9 @@ describe('GET /api/claims', () => {
   });
 
   it('returns 403 when unauthorized scope is requested', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
 
     const request = new Request('http://localhost:3000/api/claims?scope=admin');
     const response = await GET(request);
@@ -122,7 +125,9 @@ describe('GET /api/claims', () => {
   });
 
   it('returns claims for member scope by default', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
 
     const createdAt = new Date('2025-01-01T00:00:00.000Z');
     hoisted.dbSelect.mockReturnValueOnce(createCountChain(1)).mockReturnValueOnce(
@@ -172,7 +177,9 @@ describe('GET /api/claims', () => {
   });
 
   it('redacts fields for agent queue when agent', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'agent-1', role: 'agent' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_mk' },
+    });
 
     const createdAt = new Date('2025-01-01T00:00:00.000Z');
     hoisted.dbSelect

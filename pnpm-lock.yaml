@@ -56,9 +56,6 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
-      vitest:
-        specifier: ^4.0.16
-        version: 4.0.16(@opentelemetry/api@1.9.0)(@types/node@22.19.3)(jiti@2.6.1)(jsdom@27.3.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
 
   apps/web:
     dependencies:
@@ -86,6 +83,9 @@ importers:
       '@interdomestik/domain-users':
         specifier: workspace:*
         version: link:../../packages/domain-users
+      '@interdomestik/shared-auth':
+        specifier: workspace:*
+        version: link:../../packages/shared-auth
       '@interdomestik/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -252,6 +252,9 @@ importers:
       eslint-config-next:
         specifier: ^16.0.10
         version: 16.0.10(@typescript-eslint/parser@8.49.0(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3)
+      eslint-plugin-react-hooks:
+        specifier: ^7.0.1
+        version: 7.0.1(eslint@9.39.2(jiti@1.21.7))
       jsdom:
         specifier: ^27.3.0
         version: 27.3.0(postcss@8.5.6)
@@ -337,6 +340,9 @@ importers:
       '@interdomestik/domain-membership-billing':
         specifier: workspace:*
         version: link:../domain-membership-billing
+      '@interdomestik/shared-auth':
+        specifier: workspace:*
+        version: link:../shared-auth
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@upstash/redis@1.35.8)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7)
@@ -352,6 +358,9 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../database
+      '@interdomestik/shared-auth':
+        specifier: workspace:*
+        version: link:../shared-auth
       '@types/web-push':
         specifier: ^3.6.4
         version: 3.6.4
@@ -380,6 +389,9 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../database
+      '@interdomestik/shared-auth':
+        specifier: workspace:*
+        version: link:../shared-auth
       '@paddle/paddle-js':
         specifier: ^1.6.1
         version: 1.6.1
@@ -413,12 +425,18 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../database
+      '@interdomestik/shared-auth':
+        specifier: workspace:*
+        version: link:../shared-auth
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@upstash/redis@1.35.8)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7)
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
+      slugify:
+        specifier: ^1.6.6
+        version: 1.6.6
 
   packages/qa:
     dependencies:
@@ -450,6 +468,8 @@ importers:
       typescript:
         specifier: ^5.3.0
         version: 5.9.3
+
+  packages/shared-auth: {}
 
   packages/ui:
     dependencies:
@@ -10569,6 +10589,13 @@ packages:
       }
     engines: { node: '>=18' }
 
+  slugify@1.6.6:
+    resolution:
+      {
+        integrity: sha512-h+z7HKHYXj6wJU+AnS/+IH8Uh9fdcX1Lrhg1/VMdf9PwoBQXFcXiAdsy2tSK0P6gKwJLXp02r90ahUCqHk9rrw==,
+      }
+    engines: { node: '>=8.0.0' }
+
   smart-buffer@4.2.0:
     resolution:
       {
@@ -18614,6 +18641,8 @@ snapshots:
     dependencies:
       ansi-styles: 6.2.3
       is-fullwidth-code-point: 5.1.0
+
+  slugify@1.6.6: {}
 
   smart-buffer@4.2.0: {}
 

@@ -1,4 +1,5 @@
-import { claims, db, eq, user } from '@interdomestik/database';
+import { and, claims, db, eq, user } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 
@@ -25,6 +26,8 @@ export async function updateClaimStatusCore(
     throw new Error('Unauthorized');
   }
 
+  const tenantId = ensureTenantId(session);
+
   // Fetch claim with user info before update
   const [claimWithUser] = await db
     .select({
@@ -37,7 +40,7 @@ export async function updateClaimStatusCore(
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
-    .where(eq(claims.id, claimId));
+    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
 
   if (!claimWithUser) {
     throw new Error('Claim not found');
@@ -53,7 +56,7 @@ export async function updateClaimStatusCore(
   await db
     .update(claims)
     .set({ status: newStatus as typeof oldStatus })
-    .where(eq(claims.id, claimId));
+    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({

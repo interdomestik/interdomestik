@@ -1,7 +1,9 @@
 'use client';
 
+import { canAccessAdmin } from '@/actions/admin-access';
 import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
+import { isAdmin } from '@/lib/roles.core';
 import {
   Button,
   Card,
@@ -63,7 +65,9 @@ export function LoginForm() {
               const { data: session } = await authClient.getSession();
               const role = (session?.user as { role?: string })?.role;
 
-              if (role === 'admin') {
+              const hasAdminAccess = isAdmin(role) || (await canAccessAdmin().catch(() => false));
+
+              if (hasAdminAccess) {
                 router.push('/admin');
               } else if (role === 'agent') {
                 router.push('/agent');

@@ -1,5 +1,6 @@
 import { claims, db, user } from '@interdomestik/database';
-import { eq } from 'drizzle-orm';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import { and, eq } from 'drizzle-orm';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 
@@ -35,13 +36,18 @@ export async function updateClaimStatusCore(
 ) {
   const { claimId, newStatus, session, requestHeaders } = params;
 
-  if (!session || session.user.role !== 'admin') {
+  const role = session?.user?.role;
+  const isAdminRole = role === 'admin' || role === 'tenant_admin' || role === 'super_admin';
+
+  if (!session || !isAdminRole) {
     throw new Error('Unauthorized');
   }
 
   if (!validStatuses.includes(newStatus)) {
     throw new Error('Invalid status');
   }
+
+  const tenantId = ensureTenantId(session);
 
   // Fetch claim with user info before update
   const [claimWithUser] = await db
@@ -54,7 +60,7 @@ export async function updateClaimStatusCore(
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
-    .where(eq(claims.id, claimId));
+    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
 
   if (!claimWithUser) {
     throw new Error('Claim not found');
@@ -69,7 +75,7 @@ export async function updateClaimStatusCore(
       status: newStatus,
       updatedAt: new Date(),
     })
-    .where(eq(claims.id, claimId));
+    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({

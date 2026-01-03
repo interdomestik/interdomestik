@@ -49,9 +49,10 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
   },
-  claims: { id: 'id' },
-  claimDocuments: { id: 'id' },
-  user: { id: 'id' },
+  claims: { id: 'id', tenantId: 'tenantId' },
+  claimDocuments: { id: 'id', tenantId: 'tenantId' },
+  user: { id: 'id', tenantId: 'tenantId' },
+  and: vi.fn(),
   eq: vi.fn(),
 }));
 
@@ -87,7 +88,7 @@ describe('Claim Actions', () => {
 
   describe('createClaim', () => {
     it('should fail if user has no active membership', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
       mockHasActiveMembership.mockResolvedValue(false);
 
       const formData = new FormData();
@@ -103,7 +104,7 @@ describe('Claim Actions', () => {
     });
 
     it('should fail with validation errors for empty data', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
       const formData = new FormData();
       const result = await createClaim({}, formData);
 
@@ -112,7 +113,7 @@ describe('Claim Actions', () => {
     });
 
     it('should create a claim successfully with valid data', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
       const formData = new FormData();
       formData.append('title', 'Test Claim');
       formData.append('companyName', 'Bad Company');
@@ -133,13 +134,17 @@ describe('Claim Actions', () => {
 
   describe('updateClaimStatus', () => {
     it('should deny non-admin and non-staff users', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'user', tenantId: 'tenant_mk' },
+      });
       const result = await updateClaimStatus('claim-1', 'resolved');
       expect(result).toEqual({ error: 'Unauthorized' });
     });
 
     it('should allow staff users to update status', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'staff-1', role: 'staff' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
+      });
       const result = await updateClaimStatus('claim-1', 'resolved');
 
       expect(mockDbUpdate).toHaveBeenCalled();
@@ -147,7 +152,9 @@ describe('Claim Actions', () => {
     });
 
     it('should allow admin users to update status', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
+      });
       const result = await updateClaimStatus('claim-1', 'resolved');
 
       expect(mockDbUpdate).toHaveBeenCalled();
@@ -155,7 +162,9 @@ describe('Claim Actions', () => {
     });
 
     it('should reject invalid status values', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
+      });
       const result = await updateClaimStatus('claim-1', 'super-resolved');
       expect(result).toEqual({ error: 'Invalid status' });
     });
@@ -173,7 +182,7 @@ describe('Claim Actions', () => {
         {
           id: 'file-1',
           name: 'receipt.pdf',
-          path: 'pii/claims/user-123/unassigned/file-1',
+          path: 'pii/tenants/tenant_mk/claims/user-123/unassigned/file-1',
           type: 'application/pdf',
           size: 1024,
           bucket: 'claim-evidence',
@@ -189,7 +198,7 @@ describe('Claim Actions', () => {
     });
 
     it('should throw if user has no active membership', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
       mockHasActiveMembership.mockResolvedValue(false);
 
       await expect(submitClaim(validPayload)).rejects.toThrow(
@@ -198,7 +207,7 @@ describe('Claim Actions', () => {
     });
 
     it('should insert claim and documents when payload is valid', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
       await submitClaim(validPayload);
 
@@ -223,7 +232,7 @@ describe('Claim Actions', () => {
     });
 
     it('should insert claim without documents when files are empty', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
       const payloadWithoutFiles: CreateClaimValues = { ...validPayload, files: [] };
 
@@ -242,7 +251,7 @@ describe('Claim Actions', () => {
     });
 
     it('should throw on validation error', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
       const invalidPayload = {
         title: 'AB', // Too short - needs min 5 chars
@@ -260,7 +269,7 @@ describe('Claim Actions', () => {
     });
 
     it('should throw on database error during claim insert', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
       mockDbInsert.mockRejectedValueOnce(new Error('DB Error'));
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -275,7 +284,7 @@ describe('Claim Actions', () => {
 
   describe('createClaim - error handling', () => {
     it('should handle database errors gracefully', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
       mockDbInsert.mockRejectedValueOnce(new Error('DB Error'));
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -293,7 +302,7 @@ describe('Claim Actions', () => {
     });
 
     it('should handle optional claimAmount as empty string', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
       const formData = new FormData();
       formData.append('title', 'Test Claim');
@@ -320,7 +329,9 @@ describe('Claim Actions', () => {
     });
 
     it('should handle database errors during status update', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
+      });
       mockDbUpdate.mockRejectedValueOnce(new Error('DB Error'));
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -333,7 +344,9 @@ describe('Claim Actions', () => {
     });
 
     it('should accept all valid status values', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
+      });
       mockDbUpdate.mockResolvedValue(undefined);
 
       for (const status of CLAIM_STATUSES) {
@@ -345,7 +358,7 @@ describe('Claim Actions', () => {
 
   describe('submitClaim - optional fields coverage', () => {
     it('should handle empty description as minimal value', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
       const payload: CreateClaimValues = {
         title: 'Valid title here',
@@ -367,7 +380,7 @@ describe('Claim Actions', () => {
     });
 
     it('should handle file with explicit classification', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
       const payload: CreateClaimValues = {
         title: 'Valid title here',
@@ -404,7 +417,7 @@ describe('Claim Actions', () => {
 
   describe('createClaim - claimAmount transform coverage', () => {
     it('should transform truthy claimAmount value', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123' } });
+      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
       const formData = new FormData();
       formData.append('title', 'Test Claim');

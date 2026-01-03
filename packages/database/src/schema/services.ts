@@ -2,9 +2,14 @@ import { boolean, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { user } from './auth';
 import { subscriptions } from './memberships';
+import { tenants } from './tenants';
 
 export const referrals = pgTable('referrals', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   referrerId: text('referrer_id')
     .notNull()
     .references(() => user.id),
@@ -21,6 +26,10 @@ export const referrals = pgTable('referrals', {
 
 export const serviceUsage = pgTable('service_usage', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id),
@@ -33,6 +42,10 @@ export const serviceUsage = pgTable('service_usage', {
 
 export const serviceRequests = pgTable('service_requests', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id),
@@ -47,6 +60,10 @@ export const serviceRequests = pgTable('service_requests', {
 
 export const partnerDiscountUsage = pgTable('partner_discount_usage', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id),
@@ -57,6 +74,10 @@ export const partnerDiscountUsage = pgTable('partner_discount_usage', {
 
 export const leadDownloads = pgTable('lead_downloads', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   email: text('email').notNull(),
   resourceCode: text('resource_code').notNull(),
   utmSource: text('utm_source'),

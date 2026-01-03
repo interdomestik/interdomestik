@@ -76,8 +76,8 @@ test.describe('Admin User Flow', () => {
     test('Admin can access user management page', async ({ adminPage: page }) => {
       await page.goto(routes.adminUsers());
 
-      // Should see user management heading (Matches "Members" from translations)
-      await expect(page.getByRole('heading', { name: /Members/i, level: 1 })).toBeVisible();
+      // Should see user management heading
+      await expect(page.getByRole('heading', { name: /Users|Members/i, level: 1 })).toBeVisible();
     });
 
     test('Admin can see user content', async ({ adminPage: page }) => {

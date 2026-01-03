@@ -22,7 +22,9 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should fail if claim is not found', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
+    mocks.getSession.mockResolvedValue({
+      user: { id: 'user-123', role: 'user', tenantId: 'tenant_mk' },
+    });
     mocks.dbQuery.mockResolvedValue(null);
 
     const result = await getMessagesForClaim('claim-123');
@@ -31,7 +33,9 @@ describe('getMessagesForClaim', () => {
   });
 
   it("should fail if member tries to access another user's claim", async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
+    mocks.getSession.mockResolvedValue({
+      user: { id: 'user-123', role: 'user', tenantId: 'tenant_mk' },
+    });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
 
     const result = await getMessagesForClaim('claim-123');
@@ -40,7 +44,9 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should return messages for claim owner', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
+    mocks.getSession.mockResolvedValue({
+      user: { id: 'user-123', role: 'user', tenantId: 'tenant_mk' },
+    });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mockSelectChain.orderBy.mockReturnValue([]);
 
@@ -50,7 +56,9 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should allow admins to access any claim', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+    mocks.getSession.mockResolvedValue({
+      user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
+    });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
     mockSelectChain.orderBy.mockReturnValue([]);
 
@@ -60,7 +68,9 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should allow staff to access any claim', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'staff-1', role: 'staff' } });
+    mocks.getSession.mockResolvedValue({
+      user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
+    });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'other-user' });
     mockSelectChain.orderBy.mockReturnValue([]);
 
@@ -70,7 +80,9 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
+    mocks.getSession.mockResolvedValue({
+      user: { id: 'user-123', role: 'user', tenantId: 'tenant_mk' },
+    });
     mocks.dbQuery.mockRejectedValue(new Error('DB Error'));
 
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -83,7 +95,9 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should handle null sender info gracefully', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
+    mocks.getSession.mockResolvedValue({
+      user: { id: 'user-123', role: 'user', tenantId: 'tenant_mk' },
+    });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mockSelectChain.orderBy.mockReturnValue([
       {
@@ -107,7 +121,7 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should fallback to user role when user role is undefined', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mockSelectChain.orderBy.mockReturnValue([]);
 
@@ -117,7 +131,9 @@ describe('getMessagesForClaim', () => {
   });
 
   it('should handle partial sender info', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', role: 'user' } });
+    mocks.getSession.mockResolvedValue({
+      user: { id: 'user-123', role: 'user', tenantId: 'tenant_mk' },
+    });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
     mockSelectChain.orderBy.mockReturnValue([
       {

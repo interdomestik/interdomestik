@@ -10,6 +10,7 @@
       "agents": "Agjentë",
       "staff": "Staf",
       "analytics": "Analitika",
+      "branches": "Degët",
       "settings": "Cilësimet"
     },
     "users_page": {
@@ -184,6 +185,47 @@
         "resolved": "Të zgjidhura",
         "rejected": "Të refuzuara"
       }
+    },
+    "branches": {
+      "title": "Menaxhimi i Degëve",
+      "description": "Menaxhoni degët e organizatës suaj.",
+      "listTitle": "Degët",
+      "createButton": "Degë e Re",
+      "createTitle": "Krijoni Degë të Re",
+      "createDescription": "Shtoni një degë të re në organizatën tuaj.",
+      "editTitle": "Ndrysho Degën",
+      "editDescription": "Përditëso detajet e degës.",
+      "createSuccess": "Dega u krijua me sukses.",
+      "createError": "Dështoi krijimi i degës.",
+      "updateSuccess": "Dega u përditësua me sukses.",
+      "updateError": "Dështoi përditësimi i degës.",
+      "deleteSuccess": "Dega u fshi me sukses.",
+      "deleteError": "Dështoi fshirja e degës.",
+      "fields": {
+        "name": "Emri",
+        "code": "Kodi",
+        "slug": "Slug",
+        "status": "Statusi",
+        "isActive": "Statusi Aktiv"
+      },
+      "status": {
+        "active": "Aktive",
+        "inactive": "Joaktive"
+      },
+      "actions": {
+        "label": "Veprime",
+        "edit": "Ndrysho",
+        "delete": "Fshij",
+        "open": "Hap menunë",
+        "showInactive": "Shfaq Joaktivet"
+      },
+      "deleteTitle": "A jeni i sigurt?",
+      "deleteConfirm": "Kjo do të fshijë butësisht degën {name}. Anëtarët aktivë mund të ndikohen.",
+      "cancel": "Anulo",
+      "save": "Ruaj",
+      "saving": "Duke ruajtur...",
+      "deleting": "Duke fshirë...",
+      "noResults": "Nuk u gjetën degë."
     }
   }
 }

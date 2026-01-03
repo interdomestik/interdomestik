@@ -50,10 +50,11 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(() => ({ __eq: true })),
+  and: vi.fn(() => ({ __and: true })),
 }));
 
-import { sendMessageDbCore } from './send.core';
 import type { Session } from './context';
+import { sendMessageDbCore } from './send.core';
 
 describe('sendMessageDbCore', () => {
   beforeEach(() => {
@@ -98,7 +99,9 @@ describe('sendMessageDbCore', () => {
 
   it('returns Message cannot be empty for whitespace-only content', async () => {
     const result = await sendMessageDbCore({
-      session: { user: { id: 'user_1', role: 'user', name: 'U' } } as NonNullable<Session>,
+      session: {
+        user: { id: 'user_1', role: 'user', name: 'U', tenantId: 'tenant_mk' },
+      } as NonNullable<Session>,
       requestHeaders: new Headers(),
       claimId: 'claim_1',
       content: '   ',
@@ -120,7 +123,9 @@ describe('sendMessageDbCore', () => {
     mocks.userFindFirst.mockResolvedValue({ email: 'member@example.com' });
 
     const result = await sendMessageDbCore({
-      session: { user: { id: 'user_1', role: 'staff', name: 'Agent' } } as NonNullable<Session>,
+      session: {
+        user: { id: 'user_1', role: 'staff', name: 'Agent', tenantId: 'tenant_mk' },
+      } as NonNullable<Session>,
       requestHeaders: new Headers(),
       claimId: 'claim_1',
       content: 'Hello',

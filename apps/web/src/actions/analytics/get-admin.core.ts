@@ -2,11 +2,13 @@ import { db } from '@interdomestik/database';
 import { membershipPlans, subscriptions } from '@interdomestik/database/schema';
 import { eq, gte, sql } from 'drizzle-orm';
 
+import { isStaffOrAdmin } from '@/lib/roles.core';
+
 import type { Session } from './context';
 import type { AdminAnalyticsResult } from './types';
 
 function hasAdminAnalyticsAccess(role: string | null | undefined): boolean {
-  return role === 'admin' || role === 'staff';
+  return isStaffOrAdmin(role);
 }
 
 export async function getAdminAnalyticsCore(params: {

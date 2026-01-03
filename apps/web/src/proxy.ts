@@ -1,5 +1,6 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest } from 'next/server';
+
 import { routing } from './i18n/routing';
 
 const intlMiddleware = createMiddleware(routing);
@@ -10,7 +11,7 @@ function createNonce() {
   return btoa(String.fromCharCode(...bytes));
 }
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const nonce = createNonce();
 
   // 1. Handle i18n routing
@@ -82,21 +83,19 @@ export default function middleware(request: NextRequest) {
     .trim();
 
   response.headers.set('Content-Security-Policy', cspHeader);
+
+  // Forward the nonce upstream (used by RootLayout to nonce inline scripts).
   response.headers.set('x-middleware-request-x-nonce', nonce);
   const overrideHeaders = response.headers.get('x-middleware-override-headers');
   response.headers.set(
     'x-middleware-override-headers',
     overrideHeaders ? `${overrideHeaders},x-nonce` : 'x-nonce'
   );
+
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-
-  // 3. Optional: Optimistic Auth Check
-  // Note: Full session validation happens in pages/layouts or via auth.api.getSession
-  // This is just a placeholder to show where middleware logic would go.
-  // const session = await auth.api.getSession({ headers: await headers() });
 
   return response;
 }

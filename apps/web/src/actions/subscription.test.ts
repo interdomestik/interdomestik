@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth';
-import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-server';
 import { db } from '@interdomestik/database';
+import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cancelSubscription } from './subscription';
 
@@ -12,8 +12,9 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
   },
+  and: vi.fn(),
   eq: vi.fn(),
-  subscriptions: { id: 'id', userId: 'userId' },
+  subscriptions: { id: 'id', userId: 'userId', tenantId: 'tenantId' },
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -46,7 +47,7 @@ describe('cancelSubscription', () => {
 
   it('should succeed if user owns subscription', async () => {
     (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      user: { id: 'u1' },
+      user: { id: 'u1', tenantId: 'tenant_mk' },
     });
     (db.query.subscriptions.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 'sub1',
@@ -69,7 +70,7 @@ describe('cancelSubscription', () => {
 
   it('should fail if not owner', async () => {
     (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      user: { id: 'u1' },
+      user: { id: 'u1', tenantId: 'tenant_mk' },
     });
     (db.query.subscriptions.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 'sub1',
@@ -82,7 +83,7 @@ describe('cancelSubscription', () => {
 
   it('should fail if subscription not found', async () => {
     (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      user: { id: 'u1' },
+      user: { id: 'u1', tenantId: 'tenant_mk' },
     });
     (db.query.subscriptions.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
       null

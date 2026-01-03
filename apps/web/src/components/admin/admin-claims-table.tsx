@@ -57,6 +57,27 @@ export function AdminClaimsTable() {
   const tStatus = useTranslations('claims.status');
   const tCommon = useTranslations('common');
 
+  const withClaimsListContext = (href: string) => {
+    const listQueryString = searchParams.toString();
+    if (!listQueryString) return href;
+
+    const [path, queryString] = href.split('?');
+    const merged = new URLSearchParams(listQueryString);
+    if (queryString) {
+      const destinationParams = new URLSearchParams(queryString);
+      const destinationKeys = new Set(Array.from(destinationParams.keys()));
+      for (const key of destinationKeys) {
+        merged.delete(key);
+        for (const value of destinationParams.getAll(key)) {
+          merged.append(key, value);
+        }
+      }
+    }
+
+    const next = merged.toString();
+    return next ? `${path}?${next}` : path;
+  };
+
   const page = Math.max(1, Number(searchParams.get('page') || 1));
   const statusFilter = searchParams.get('status') || undefined;
   const searchQuery = searchParams.get('search') || undefined;
@@ -182,7 +203,7 @@ export function AdminClaimsTable() {
                   size="sm"
                   className="gap-2 animate-pulse bg-amber-500 text-white hover:bg-amber-600"
                 >
-                  <Link href={`/admin/claims/${claim.id}`}>
+                  <Link href={withClaimsListContext(`/admin/claims/${claim.id}`)}>
                     <span className="relative flex h-2 w-2">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
@@ -192,7 +213,9 @@ export function AdminClaimsTable() {
                 </Button>
               ) : (
                 <Button asChild size="sm" variant="outline">
-                  <Link href={`/admin/claims/${claim.id}`}>{tCommon('view')}</Link>
+                  <Link href={withClaimsListContext(`/admin/claims/${claim.id}`)}>
+                    {tCommon('view')}
+                  </Link>
                 </Button>
               )}
             </TableCell>

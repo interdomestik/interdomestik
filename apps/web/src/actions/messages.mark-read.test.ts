@@ -27,7 +27,7 @@ describe('markMessagesAsRead', () => {
   });
 
   it('should succeed with empty message list', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
     const result = await markMessagesAsRead([]);
 
@@ -36,7 +36,7 @@ describe('markMessagesAsRead', () => {
   });
 
   it('should update messages as read', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
     mocks.dbUpdate.mockResolvedValue(undefined);
 
     const result = await markMessagesAsRead(['msg-1', 'msg-2']);
@@ -46,7 +46,7 @@ describe('markMessagesAsRead', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
     mocks.dbUpdate.mockRejectedValue(new Error('DB Error'));
 
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

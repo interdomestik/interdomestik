@@ -1,9 +1,14 @@
 import { integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
+import { tenants } from './tenants';
 
 export const crmLeads = pgTable('crm_leads', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   agentId: text('agent_id')
     .notNull()
     .references(() => user.id),
@@ -27,6 +32,10 @@ export const crmLeads = pgTable('crm_leads', {
 
 export const crmActivities = pgTable('crm_activities', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   leadId: text('lead_id')
     .notNull()
     .references(() => crmLeads.id),
@@ -46,6 +55,10 @@ export const crmActivities = pgTable('crm_activities', {
 // We'll import it in the index and use the reference there
 export const crmDeals = pgTable('crm_deals', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   leadId: text('lead_id')
     .notNull()
     .references(() => crmLeads.id),
@@ -63,6 +76,10 @@ export const crmDeals = pgTable('crm_deals', {
 
 export const memberActivities = pgTable('member_activities', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   agentId: text('agent_id')
     .notNull()
     .references(() => user.id),
@@ -80,6 +97,10 @@ export const memberActivities = pgTable('member_activities', {
 // Legacy leads table
 export const leads = pgTable('leads', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   name: text('name').notNull(),
   phone: text('phone').notNull(),
   category: text('category').notNull(),

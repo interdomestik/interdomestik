@@ -1,10 +1,25 @@
-import { boolean, decimal, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  decimal,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { membershipTierEnum, subscriptionStatusEnum } from './enums';
+import { branches } from './rbac';
+import { tenants } from './tenants';
 
 export const membershipPlans = pgTable('membership_plans', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   name: text('name').notNull(),
   description: text('description'),
   tier: membershipTierEnum('tier').notNull(),
@@ -25,38 +40,55 @@ export const membershipPlans = pgTable('membership_plans', {
     .notNull(),
 });
 
-export const subscriptions = pgTable('subscriptions', {
-  id: text('id').primaryKey(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id),
-  status: subscriptionStatusEnum('status').notNull().default('active'),
-  planId: text('plan_id').notNull(),
-  planKey: text('plan_key').references(() => membershipPlans.id),
-  provider: text('provider').default('paddle'),
-  providerCustomerId: text('provider_customer_id'),
-  currentPeriodStart: timestamp('current_period_start'),
-  currentPeriodEnd: timestamp('current_period_end'),
-  cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
-  canceledAt: timestamp('canceled_at'),
-  pastDueAt: timestamp('past_due_at'),
-  gracePeriodEndsAt: timestamp('grace_period_ends_at'),
-  dunningAttemptCount: integer('dunning_attempt_count').default(0),
-  lastDunningAt: timestamp('last_dunning_at'),
-  referredByAgentId: text('referred_by_agent_id').references(() => user.id),
-  referredByMemberId: text('referred_by_member_id').references(() => user.id),
-  referralCode: text('referral_code').unique(),
-  acquisitionSource: text('acquisition_source'),
-  utmSource: text('utm_source'),
-  utmMedium: text('utm_medium'),
-  utmCampaign: text('utm_campaign'),
-  utmContent: text('utm_content'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
-});
+export const subscriptions = pgTable(
+  'subscriptions',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id)
+      .default('tenant_mk'),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id),
+    status: subscriptionStatusEnum('status').notNull().default('active'),
+    planId: text('plan_id').notNull(),
+    planKey: text('plan_key').references(() => membershipPlans.id),
+    provider: text('provider').default('paddle'),
+    providerCustomerId: text('provider_customer_id'),
+    currentPeriodStart: timestamp('current_period_start'),
+    currentPeriodEnd: timestamp('current_period_end'),
+    cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+    canceledAt: timestamp('canceled_at'),
+    pastDueAt: timestamp('past_due_at'),
+    gracePeriodEndsAt: timestamp('grace_period_ends_at'),
+    dunningAttemptCount: integer('dunning_attempt_count').default(0),
+    lastDunningAt: timestamp('last_dunning_at'),
+    referredByAgentId: text('referred_by_agent_id').references(() => user.id),
+    referredByMemberId: text('referred_by_member_id').references(() => user.id),
+    referralCode: text('referral_code').unique(),
+    acquisitionSource: text('acquisition_source'),
+    utmSource: text('utm_source'),
+    utmMedium: text('utm_medium'),
+    utmCampaign: text('utm_campaign'),
+    utmContent: text('utm_content'),
+    branchId: text('branch_id').references(() => branches.id), // Branch scoping
+    agentId: text('agent_id').references(() => user.id), // Assigned agent (replaces referredByAgentId)
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+  },
+  table => ({
+    branchIdx: index('idx_memberships_branch').on(table.branchId),
+    agentIdx: index('idx_memberships_agent').on(table.agentId),
+  })
+);
 
 export const membershipFamilyMembers = pgTable('membership_family_members', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   subscriptionId: text('subscription_id')
     .notNull()
     .references(() => subscriptions.id),
@@ -68,6 +100,10 @@ export const membershipFamilyMembers = pgTable('membership_family_members', {
 
 export const userNotificationPreferences = pgTable('user_notification_preferences', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .unique()
@@ -86,6 +122,10 @@ export const userNotificationPreferences = pgTable('user_notification_preference
 
 export const pushSubscriptions = pgTable('push_subscriptions', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),

@@ -1,5 +1,6 @@
-import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { claims, db } from '@interdomestik/database';
+import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
@@ -44,8 +45,9 @@ export async function createClaimCore(
     return { error: 'Unauthorized' };
   }
 
-  const hasAccess = await hasActiveMembership(session.user.id);
-  if (!hasAccess) {
+  const tenantId = ensureTenantId(session);
+  const subscription = await getActiveSubscription(session.user.id, tenantId);
+  if (!subscription) {
     return { error: 'Membership required to create a claim.' };
   }
 
@@ -65,6 +67,7 @@ export async function createClaimCore(
   try {
     await db.insert(claims).values({
       id: claimId,
+      tenantId,
       userId: session.user.id,
       title,
       description,
@@ -73,6 +76,8 @@ export async function createClaimCore(
       claimAmount: claimAmount || undefined,
       currency,
       status: 'draft',
+      branchId: subscription.branchId,
+      agentId: subscription.agentId,
     });
 
     if (deps.logAuditEvent) {

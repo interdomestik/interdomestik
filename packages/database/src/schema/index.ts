@@ -14,7 +14,9 @@ export * from './memberships';
 export * from './notes';
 export * from './notifications';
 export * from './policies';
+export * from './rbac';
 export * from './services';
+export * from './tenants';
 export * from './webhooks';
 
 // Relations

@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./types": "./src/types.ts",
     "./admin/access": "./src/admin/access.ts",
+    "./admin/rbac": "./src/admin/rbac.ts",
     "./admin/get-users": "./src/admin/get-users.ts",
     "./admin/get-agents": "./src/admin/get-agents.ts",
     "./admin/get-staff": "./src/admin/get-staff.ts",
@@ -22,7 +23,9 @@
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
+    "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.1",
-    "nanoid": "^5.1.6"
+    "nanoid": "^5.1.6",
+    "slugify": "^1.6.6"
   }
 }

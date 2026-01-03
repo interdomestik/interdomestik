@@ -9,10 +9,11 @@ import {
   or,
   user,
 } from '@interdomestik/database';
+import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 import { SQL, desc, isNotNull, isNull } from 'drizzle-orm';
 
-import { requireAdminSession } from './access';
 import type { UserSession } from '../types';
+import { requireTenantAdminSession } from './access';
 
 export type GetUsersFilters = {
   search?: string;
@@ -25,9 +26,22 @@ export async function getUsersCore(params: {
   filters?: GetUsersFilters;
 }) {
   const { session, filters } = params;
-  requireAdminSession(session);
+  const adminSession = await requireTenantAdminSession(session);
 
   const conditions: SQL<unknown>[] = [];
+
+  // Apply Scope Filter (Tenant + Branch + Agent)
+  const scope = scopeFilter(adminSession as unknown as SessionWithTenant);
+  const tenantId = scope.tenantId;
+
+  if (!scope.isFullTenantScope) {
+    if (scope.branchId) {
+      conditions.push(eq(user.branchId, scope.branchId));
+    }
+    if (scope.agentId) {
+      conditions.push(eq(user.agentId, scope.agentId));
+    }
+  }
   const roleFilter = filters?.role && filters.role !== 'all' ? filters.role : null;
   const assignmentFilter =
     filters?.assignment && filters.assignment !== 'all' ? filters.assignment : null;
@@ -56,6 +70,8 @@ export async function getUsersCore(params: {
     }
   }
 
+  conditions.push(eq(user.tenantId, tenantId));
+
   const users = await db.query.user.findMany({
     where: conditions.length
       ? and(...conditions.filter((c): c is SQL<unknown> => c !== undefined && c !== null))
@@ -71,6 +87,7 @@ export async function getUsersCore(params: {
   const unreadConditions = [
     isNull(claimMessages.readAt),
     eq(claimMessages.senderId, claims.userId),
+    eq(claims.tenantId, tenantId),
   ];
 
   const unreadRows = await db

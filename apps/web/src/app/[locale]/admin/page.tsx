@@ -21,14 +21,50 @@ import { Suspense } from 'react';
 
 export default async function AdminDashboardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale } = await params;
+  const sp = await searchParams;
   setRequestLocale(locale);
 
   const t = await getTranslations('agent');
   const tAdmin = await getTranslations('admin.dashboard');
+
+  const adminContextParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp ?? {})) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        adminContextParams.append(key, item);
+      }
+    } else {
+      adminContextParams.set(key, value);
+    }
+  }
+  const adminContextQueryString = adminContextParams.toString();
+
+  const withAdminContext = (href: string) => {
+    if (!adminContextQueryString) return href;
+
+    const [path, queryString] = href.split('?');
+    const merged = new URLSearchParams(adminContextQueryString);
+    if (queryString) {
+      const destinationParams = new URLSearchParams(queryString);
+      const destinationKeys = new Set(Array.from(destinationParams.keys()));
+      for (const key of destinationKeys) {
+        merged.delete(key);
+        for (const value of destinationParams.getAll(key)) {
+          merged.append(key, value);
+        }
+      }
+    }
+
+    const next = merged.toString();
+    return next ? `${path}?${next}` : path;
+  };
 
   const [stats, recentClaims, unassignedClaims] = await Promise.all([
     getAdminDashboardStats(),
@@ -47,13 +83,13 @@ export default async function AdminDashboardPage({
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href="/admin/agents">
+            <Link href={withAdminContext('/admin/agents')}>
               <UserPlus className="mr-2 h-4 w-4" />
               {tAdmin('invite_agent')}
             </Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/admin/users">
+            <Link href={withAdminContext('/admin/users')}>
               <Plus className="mr-2 h-4 w-4" />
               {tAdmin('create_user')}
             </Link>
@@ -73,7 +109,7 @@ export default async function AdminDashboardPage({
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Suspense fallback={<Card className="col-span-4 h-96 animate-pulse" />}>
-          <RecentActivityCard claims={recentClaims} />
+          <RecentActivityCard claims={recentClaims} queryString={adminContextQueryString} />
         </Suspense>
 
         <Card className="col-span-3">
@@ -95,7 +131,9 @@ export default async function AdminDashboardPage({
                     <p className="text-sm text-muted-foreground">{claim.user?.name || 'Unknown'}</p>
                   </div>
                   <Button asChild variant="outline" size="sm">
-                    <Link href={`/admin/claims/${claim.id}`}>{tAdmin('assign')}</Link>
+                    <Link href={withAdminContext(`/admin/claims/${claim.id}`)}>
+                      {tAdmin('assign')}
+                    </Link>
                   </Button>
                 </div>
               ))}

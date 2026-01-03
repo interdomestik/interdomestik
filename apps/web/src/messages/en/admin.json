@@ -10,6 +10,7 @@
       "agents": "Agents",
       "staff": "Staff",
       "analytics": "Analytics",
+      "branches": "Branches",
       "settings": "Settings"
     },
     "users_page": {
@@ -184,6 +185,47 @@
         "resolved": "Resolved",
         "rejected": "Rejected"
       }
+    },
+    "branches": {
+      "title": "Branch Management",
+      "description": "Manage your organization's branches.",
+      "listTitle": "Branches",
+      "createButton": "New Branch",
+      "createTitle": "Create New Branch",
+      "createDescription": "Add a new branch to your organization.",
+      "editTitle": "Edit Branch",
+      "editDescription": "Update branch details.",
+      "createSuccess": "Branch created successfully.",
+      "createError": "Failed to create branch.",
+      "updateSuccess": "Branch updated successfully.",
+      "updateError": "Failed to update branch.",
+      "deleteSuccess": "Branch deleted successfully.",
+      "deleteError": "Failed to delete branch.",
+      "fields": {
+        "name": "Branch Name",
+        "code": "Branch Code",
+        "slug": "Slug",
+        "status": "Status",
+        "isActive": "Active Status"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "actions": {
+        "label": "Actions",
+        "edit": "Edit",
+        "delete": "Delete",
+        "open": "Open menu",
+        "showInactive": "Show Inactive"
+      },
+      "deleteTitle": "Are you sure?",
+      "deleteConfirm": "This will softly delete branch {name}. Active members may be affected.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "deleting": "Deleting...",
+      "noResults": "No branches found."
     }
   }
 }

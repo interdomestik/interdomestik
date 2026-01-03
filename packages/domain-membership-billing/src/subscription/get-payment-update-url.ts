@@ -1,5 +1,6 @@
+import { and, db, eq, subscriptions } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getPaddle } from '../paddle-server';
-import { db, eq, subscriptions } from '@interdomestik/database';
 
 import type { PaymentUpdateUrlResult, SubscriptionSession } from './types';
 
@@ -13,8 +14,9 @@ export async function getPaymentUpdateUrlCore(params: {
     return { error: 'Unauthorized' };
   }
 
+  const tenantId = ensureTenantId(session);
   const sub = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.id, subscriptionId),
+    where: and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)),
   });
 
   if (!sub || sub.userId !== session.user.id) {

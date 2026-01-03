@@ -67,7 +67,11 @@ describe('getStaffClaimDetailsCore', () => {
   });
 
   it('returns claim, documents (with fileName), and stage history', async () => {
-    hoisted.claimsFindFirst.mockResolvedValue({ id: 'c1', status: 'draft', user: { id: 'u1' } });
+    hoisted.claimsFindFirst.mockResolvedValue({
+      id: 'c1',
+      status: 'draft',
+      user: { id: 'u1', tenantId: 'tenant_mk' },
+    });
 
     const docsResult = [
       {

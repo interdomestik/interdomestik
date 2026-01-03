@@ -51,4 +51,5 @@ export const routes = {
   adminUsers: (locale?: Locale) => withLocale('/admin/users', locale),
   adminAnalytics: (locale?: Locale) => withLocale('/admin/analytics', locale),
   adminSettings: (locale?: Locale) => withLocale('/admin/settings', locale),
+  adminBranches: (locale?: Locale) => withLocale('/admin/branches', locale),
 } as const;

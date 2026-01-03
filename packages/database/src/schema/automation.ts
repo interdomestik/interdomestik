@@ -1,9 +1,14 @@
 import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import { user } from './auth';
 import { subscriptions } from './memberships';
+import { tenants } from './tenants';
 
 export const automationLogs = pgTable('automation_logs', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
@@ -19,6 +24,10 @@ export const engagementEmailSends = pgTable(
   'engagement_email_sends',
   {
     id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id)
+      .default('tenant_mk'),
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
@@ -46,6 +55,10 @@ export const npsSurveyTokens = pgTable(
   'nps_survey_tokens',
   {
     id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id)
+      .default('tenant_mk'),
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
@@ -72,6 +85,10 @@ export const npsSurveyResponses = pgTable(
   'nps_survey_responses',
   {
     id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id)
+      .default('tenant_mk'),
     tokenId: text('token_id')
       .notNull()
       .references(() => npsSurveyTokens.id, { onDelete: 'cascade' }),

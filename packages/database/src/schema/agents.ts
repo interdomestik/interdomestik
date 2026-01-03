@@ -3,9 +3,14 @@ import { boolean, decimal, jsonb, pgTable, text, timestamp } from 'drizzle-orm/p
 import { user } from './auth';
 import { commissionStatusEnum, commissionTypeEnum } from './enums';
 import { subscriptions } from './memberships';
+import { tenants } from './tenants';
 
 export const agentClients = pgTable('agent_clients', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   agentId: text('agent_id')
     .notNull()
     .references(() => user.id),
@@ -19,6 +24,10 @@ export const agentClients = pgTable('agent_clients', {
 
 export const agentCommissions = pgTable('agent_commissions', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   agentId: text('agent_id')
     .notNull()
     .references(() => user.id),
@@ -35,6 +44,10 @@ export const agentCommissions = pgTable('agent_commissions', {
 
 export const agentSettings = pgTable('agent_settings', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   agentId: text('agent_id')
     .notNull()
     .unique()

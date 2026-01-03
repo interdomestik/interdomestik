@@ -44,6 +44,7 @@ vi.mock('@interdomestik/database', () => ({
   userNotificationPreferences: {
     id: 'id',
     userId: 'user_id',
+    tenantId: 'tenant_id',
     emailClaimUpdates: 'email_claim_updates',
     emailMarketing: 'email_marketing',
     emailNewsletter: 'email_newsletter',
@@ -57,6 +58,7 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
+  and: vi.fn(),
   relations: vi.fn(),
 }));
 

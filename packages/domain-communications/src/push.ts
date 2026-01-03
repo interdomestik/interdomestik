@@ -47,12 +47,23 @@ export async function sendPushToUser(
   payload: PushPayload,
   deps?: {
     logAuditEvent?: AuditLogger;
+    tenantId?: string | null;
   }
 ) {
   const vapid = getVapidDetails();
   if (!vapid) {
     return { success: false, skipped: true, reason: 'missing_vapid' as const };
   }
+
+  const resolvedTenantId =
+    deps?.tenantId ??
+    (
+      await db.query.user.findFirst({
+        where: (users, { eq }) => eq(users.id, userId),
+        columns: { tenantId: true },
+      })
+    )?.tenantId ??
+    'tenant_mk';
 
   // Respect stored preferences
   const [prefs] = await db
@@ -61,7 +72,12 @@ export async function sendPushToUser(
       pushMessages: userNotificationPreferences.pushMessages,
     })
     .from(userNotificationPreferences)
-    .where(eq(userNotificationPreferences.userId, userId))
+    .where(
+      and(
+        eq(userNotificationPreferences.userId, userId),
+        eq(userNotificationPreferences.tenantId, resolvedTenantId)
+      )
+    )
     .limit(1);
 
   const allowed =
@@ -78,7 +94,9 @@ export async function sendPushToUser(
       auth: pushSubscriptions.auth,
     })
     .from(pushSubscriptions)
-    .where(eq(pushSubscriptions.userId, userId));
+    .where(
+      and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.tenantId, resolvedTenantId))
+    );
 
   if (subscriptions.length === 0) {
     return { success: false, skipped: true, reason: 'no_subscription' as const };
@@ -115,6 +133,7 @@ export async function sendPushToUser(
             .where(
               and(
                 eq(pushSubscriptions.userId, userId),
+                eq(pushSubscriptions.tenantId, resolvedTenantId),
                 eq(pushSubscriptions.endpoint, sub.endpoint)
               )
             );

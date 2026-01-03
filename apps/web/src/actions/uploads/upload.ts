@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 
@@ -59,8 +60,9 @@ export async function uploadVoiceNote(formData: FormData): Promise<UploadResult>
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   const userId = session.user.id;
+  const tenantId = ensureTenantId(session);
   const ext = file.type.split('/')[1] || 'webm';
-  const fileName = `pii/claims/${userId}/voice-notes/${crypto.randomUUID()}.${ext}`;
+  const fileName = `pii/tenants/${tenantId}/claims/${userId}/voice-notes/${crypto.randomUUID()}.${ext}`;
   const bucketName = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
   const signedUrlExpiresIn = 60 * 10;
 

@@ -16,11 +16,32 @@ type ClaimWithUser = Awaited<ReturnType<typeof getRecentClaims>>[number];
 
 interface RecentActivityCardProps {
   claims: ClaimWithUser[];
+  queryString?: string;
 }
 
-export async function RecentActivityCard({ claims }: RecentActivityCardProps) {
+export async function RecentActivityCard({ claims, queryString }: RecentActivityCardProps) {
   const tAdmin = await getTranslations('admin.dashboard');
   const tClaims = await getTranslations('claims.status');
+
+  const withAdminContext = (href: string) => {
+    if (!queryString) return href;
+
+    const [path, destinationQuery] = href.split('?');
+    const merged = new URLSearchParams(queryString);
+    if (destinationQuery) {
+      const destinationParams = new URLSearchParams(destinationQuery);
+      const destinationKeys = new Set(Array.from(destinationParams.keys()));
+      for (const key of destinationKeys) {
+        merged.delete(key);
+        for (const value of destinationParams.getAll(key)) {
+          merged.append(key, value);
+        }
+      }
+    }
+
+    const next = merged.toString();
+    return next ? `${path}?${next}` : path;
+  };
 
   return (
     <Card className="col-span-4">
@@ -32,7 +53,7 @@ export async function RecentActivityCard({ claims }: RecentActivityCardProps) {
           </CardDescription>
         </div>
         <Button asChild variant="ghost" size="sm">
-          <Link href="/admin/claims">{tAdmin('view_all')}</Link>
+          <Link href={withAdminContext('/admin/claims')}>{tAdmin('view_all')}</Link>
         </Button>
       </CardHeader>
       <CardContent>
@@ -53,7 +74,7 @@ export async function RecentActivityCard({ claims }: RecentActivityCardProps) {
                   {tClaims(claim.status || 'draft')}
                 </Badge>
                 <Button asChild variant="ghost" size="icon" className="h-8 w-8">
-                  <Link href={`/admin/claims/${claim.id}`}>
+                  <Link href={withAdminContext(`/admin/claims/${claim.id}`)}>
                     <FileText className="h-4 w-4" />
                     <span className="sr-only">{tAdmin('view_details')}</span>
                   </Link>

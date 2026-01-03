@@ -42,7 +42,7 @@ describe('agent-claims action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(assignClaimCore).toHaveBeenCalledWith({
       claimId: 'claim-1',
-      agentId: 'staff-2',
+      staffId: 'staff-2',
       session: { user: { id: 'staff-1', role: 'staff' } },
       requestHeaders: expect.any(Headers),
     });

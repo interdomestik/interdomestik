@@ -14,24 +14,32 @@ vi.mock('web-push', () => {
 const hoistedMocks = vi.hoisted(() => ({
   dbSelect: vi.fn(),
   dbDelete: vi.fn(),
+  dbUserFindFirst: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
   db: {
     select: hoistedMocks.dbSelect,
     delete: hoistedMocks.dbDelete,
+    query: {
+      user: {
+        findFirst: hoistedMocks.dbUserFindFirst,
+      },
+    },
   },
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
   pushSubscriptions: {
     userId: 'user_id',
+    tenantId: 'tenant_id',
     endpoint: 'endpoint',
     p256dh: 'p256dh',
     auth: 'auth',
   },
   userNotificationPreferences: {
     userId: 'user_id',
+    tenantId: 'tenant_id',
     pushClaimUpdates: 'push_claim_updates',
     pushMessages: 'push_messages',
   },
@@ -71,6 +79,7 @@ const webPushMock = webPush as unknown as {
 describe('sendPushToUser', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoistedMocks.dbUserFindFirst.mockResolvedValue({ tenantId: 'tenant_mk' });
     vi.stubEnv('NEXT_PUBLIC_VAPID_PUBLIC_KEY', 'public');
     vi.stubEnv('VAPID_PRIVATE_KEY', 'private');
     vi.stubEnv('VAPID_SUBJECT', 'mailto:test@example.com');

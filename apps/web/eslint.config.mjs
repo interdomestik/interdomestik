@@ -1,4 +1,5 @@
 import nextPlugin from '@next/eslint-plugin-next';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import { dirname } from 'path';
 import tseslint from 'typescript-eslint';
 import { fileURLToPath } from 'url';
@@ -26,6 +27,7 @@ export default tseslint.config(
     files: ['**/*.{ts,tsx}'],
     plugins: {
       '@next/next': nextPlugin,
+      'react-hooks': reactHooksPlugin,
     },
     languageOptions: {
       parserOptions: {

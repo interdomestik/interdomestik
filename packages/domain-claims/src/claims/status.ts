@@ -1,4 +1,5 @@
-import { claims, db, eq, user } from '@interdomestik/database';
+import { and, claims, db, eq } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from './types';
 
@@ -40,9 +41,12 @@ export async function updateClaimStatusCore(
     return { error: 'Invalid status' };
   }
 
+  const tenantId = ensureTenantId(session);
+
   try {
     const claim = await db.query.claims.findFirst({
-      where: eq(claims.id, claimId),
+      where: (claimsTable, { and, eq }) =>
+        and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
     });
 
     if (!claim) {
@@ -57,7 +61,7 @@ export async function updateClaimStatusCore(
         status: newStatus,
         updatedAt: new Date(),
       })
-      .where(eq(claims.id, claimId));
+      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
 
     if (deps.logAuditEvent) {
       await deps.logAuditEvent({
@@ -76,7 +80,8 @@ export async function updateClaimStatusCore(
 
     if (claim.userId && oldStatus !== newStatus && deps.notifyStatusChanged) {
       const member = await db.query.user.findFirst({
-        where: eq(user.id, claim.userId),
+        where: (userTable, { and, eq }) =>
+          and(eq(userTable.id, claim.userId), eq(userTable.tenantId, tenantId)),
       });
 
       if (member?.email) {

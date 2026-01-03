@@ -1,9 +1,10 @@
 import { updateClaimStatusCore as updateClaimStatusCoreDomain } from '@interdomestik/domain-claims/admin-claims/update-status';
+import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
+import type { UserSession } from '@interdomestik/domain-users/types';
 
 import { logAuditEvent } from '@/lib/audit';
 import { notifyStatusChanged } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 import type { Session } from './context';
 
@@ -35,9 +36,7 @@ export async function updateClaimStatusCore(params: {
 }) {
   const { formData, session, requestHeaders } = params;
 
-  if (!session || session.user.role !== 'admin') {
-    throw new Error('Unauthorized');
-  }
+  await requireTenantAdminSession(session as unknown as UserSession | null);
 
   const claimId = formData.get('claimId') as string;
   const newStatus = formData.get('status') as ClaimStatus;
@@ -67,6 +66,4 @@ export async function updateClaimStatusCore(params: {
   revalidatePath(`/${locale}/admin/claims`);
   revalidatePath(`/${locale}/admin/claims/${claimId}`);
   revalidatePath(`/${locale}/member/claims/${claimId}`);
-
-  redirect(`/${locale}/admin/claims/${claimId}`);
 }

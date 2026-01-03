@@ -1,7 +1,14 @@
 import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
+import { branches } from './rbac';
+import { tenants } from './tenants';
+
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
   emailVerified: boolean('emailVerified').notNull(),
@@ -14,6 +21,7 @@ export const user = pgTable('user', {
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
   agentId: text('agentId'), // Sales agent who referred this member (legacy mapping)
+  branchId: text('branch_id').references(() => branches.id), // Branch for staff/agents
 });
 
 export const session = pgTable('session', {

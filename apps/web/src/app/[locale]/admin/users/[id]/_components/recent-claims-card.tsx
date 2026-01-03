@@ -22,10 +22,36 @@ interface RecentClaim {
   createdAt: Date | null;
 }
 
-export async function RecentClaimsCard({ recentClaims }: { recentClaims: RecentClaim[] }) {
+export async function RecentClaimsCard({
+  recentClaims,
+  queryString,
+}: {
+  recentClaims: RecentClaim[];
+  queryString?: string;
+}) {
   const t = await getTranslations('admin.member_profile');
   const tClaims = await getTranslations('claims');
   const tCommon = await getTranslations('common');
+
+  const withAdminContext = (href: string) => {
+    if (!queryString) return href;
+
+    const [path, destinationQuery] = href.split('?');
+    const merged = new URLSearchParams(queryString);
+    if (destinationQuery) {
+      const destinationParams = new URLSearchParams(destinationQuery);
+      const destinationKeys = new Set(Array.from(destinationParams.keys()));
+      for (const key of destinationKeys) {
+        merged.delete(key);
+        for (const value of destinationParams.getAll(key)) {
+          merged.append(key, value);
+        }
+      }
+    }
+
+    const next = merged.toString();
+    return next ? `${path}?${next}` : path;
+  };
 
   return (
     <Card>
@@ -62,7 +88,9 @@ export async function RecentClaimsCard({ recentClaims }: { recentClaims: RecentC
                   <TableCell>{formatDate(claim.createdAt || undefined, tCommon('none'))}</TableCell>
                   <TableCell className="text-right">
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/admin/claims/${claim.id}`}>{tCommon('view')}</Link>
+                      <Link href={withAdminContext(`/admin/claims/${claim.id}`)}>
+                        {tCommon('view')}
+                      </Link>
                     </Button>
                   </TableCell>
                 </TableRow>

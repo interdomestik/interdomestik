@@ -8,10 +8,14 @@ import { crmActivities, crmDeals, crmLeads, memberActivities } from './crm';
 import { membershipFamilyMembers, membershipPlans, subscriptions } from './memberships';
 import { auditLog, memberNotes } from './notes';
 import { emailCampaignLogs, notifications } from './notifications';
+import { branches, userRoles } from './rbac';
 import { partnerDiscountUsage, referrals, serviceRequests, serviceUsage } from './services';
+import { tenants, tenantSettings } from './tenants';
 
 // User relations
 export const userRelations = relations(user, ({ many, one }) => ({
+  tenant: one(tenants, { fields: [user.tenantId], references: [tenants.id] }),
+  roles: many(userRoles),
   claims: many(claims),
   staffClaims: many(claims, { relationName: 'claim_staff' }),
   auditLogs: many(auditLog),
@@ -43,6 +47,27 @@ export const userRelations = relations(user, ({ many, one }) => ({
   partnerDiscountUsage: many(partnerDiscountUsage),
   notifications: many(notifications),
   emailCampaignLogs: many(emailCampaignLogs),
+}));
+
+export const tenantsRelations = relations(tenants, ({ many }) => ({
+  settings: many(tenantSettings),
+  branches: many(branches),
+  userRoles: many(userRoles),
+}));
+
+export const tenantSettingsRelations = relations(tenantSettings, ({ one }) => ({
+  tenant: one(tenants, { fields: [tenantSettings.tenantId], references: [tenants.id] }),
+}));
+
+export const branchesRelations = relations(branches, ({ many, one }) => ({
+  tenant: one(tenants, { fields: [branches.tenantId], references: [tenants.id] }),
+  roles: many(userRoles),
+}));
+
+export const userRolesRelations = relations(userRoles, ({ one }) => ({
+  tenant: one(tenants, { fields: [userRoles.tenantId], references: [tenants.id] }),
+  user: one(user, { fields: [userRoles.userId], references: [user.id] }),
+  branch: one(branches, { fields: [userRoles.branchId], references: [branches.id] }),
 }));
 
 // Claims relations

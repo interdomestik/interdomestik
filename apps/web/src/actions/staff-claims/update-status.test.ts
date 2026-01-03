@@ -6,8 +6,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  claims: { id: 'id', status: 'status' },
-  claimStageHistory: {},
+  claims: { id: 'id', tenantId: 'tenantId', status: 'status' },
+  claimStageHistory: { tenantId: 'tenantId' },
   db: {
     select: () => ({
       from: () => ({
@@ -18,6 +18,7 @@ vi.mock('@interdomestik/database', () => ({
     }),
     transaction: mocks.dbTransaction,
   },
+  and: vi.fn(),
   eq: vi.fn(),
 }));
 
@@ -39,7 +40,7 @@ describe('updateClaimStatusCore', () => {
       claimId: 'claim-1',
       newStatus: 'submitted' as unknown as import('./types').ClaimStatus,
       session: {
-        user: { id: 'staff-1', role: 'staff' },
+        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
         session: { id: 's1' },
       } as unknown as NonNullable<import('./context').Session>,
     });

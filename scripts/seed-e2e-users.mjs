@@ -116,6 +116,8 @@ const baseClaims = [
 const users = [];
 const claims = [];
 
+const DEFAULT_TENANT_ID = 'tenant_mk';
+
 // 1. Generate Worker-Specific Users/Agents/Claims
 for (let i = 0; i < WORKER_COUNT; i++) {
   // Member
@@ -286,11 +288,37 @@ async function upsertClaim(claim) {
   `;
 }
 
+async function upsertTenant(params) {
+  const now = new Date();
+  const { id, name, legalName, countryCode, currency = 'EUR' } = params;
+
+  await sql`
+    insert into tenants (id, name, legal_name, country_code, currency, is_active, created_at, updated_at)
+    values (${id}, ${name}, ${legalName}, ${countryCode}, ${currency}, ${true}, ${now}, ${now})
+    on conflict (id) do update set
+      name = excluded.name,
+      legal_name = excluded.legal_name,
+      country_code = excluded.country_code,
+      currency = excluded.currency,
+      is_active = excluded.is_active,
+      updated_at = excluded.updated_at;
+  `;
+}
+
 async function main() {
   console.log('🌱 Seeding database...');
 
   // 1. Clear sessions for deterministic logins
   await sql`delete from session;`;
+
+  // Ensure default tenant exists for tenant_id defaults/FKs.
+  await upsertTenant({
+    id: DEFAULT_TENANT_ID,
+    name: 'Interdomestik (E2E)',
+    legalName: 'Interdomestik (E2E)',
+    countryCode: 'MK',
+    currency: 'EUR',
+  });
 
   // 2. Clear old test claims (dependents first)
   const claimIds = claims.map(c => c.id);
