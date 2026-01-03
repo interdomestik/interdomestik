@@ -240,7 +240,7 @@ Progress tracking:
 **Problem to decide:** should an agent's “queue/visibility” be based on the historical snapshot (`claims.agentId`) or on canonical ownership (`agent_clients`)?
 
 - [ ] Defer (v1): keep agent visibility based on `claims.agentId` only (snapshot semantics)
-- [ ] Adopt (v2+): change agent visibility to derive from `agent_clients` (canonical ownership)
+- [x] Adopt (v2+): change agent visibility to derive from `agent_clients` (canonical ownership)
 
 **Where this shows up in code**
 

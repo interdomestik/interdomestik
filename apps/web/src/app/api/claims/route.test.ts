@@ -23,6 +23,7 @@ function createCountChain(total: number) {
   return {
     from: vi.fn().mockReturnThis(),
     leftJoin: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
     where: vi.fn().mockResolvedValue([{ total }]),
   };
 }
@@ -31,6 +32,7 @@ function createRowsChain<T extends Record<string, unknown>>(rows: T[]) {
   return {
     from: vi.fn().mockReturnThis(),
     leftJoin: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
     orderBy: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
@@ -51,12 +53,18 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     select: hoisted.dbSelect,
   },
-  and: vi.fn(),
-  or: vi.fn(),
-  eq: vi.fn(),
-  ne: vi.fn(),
-  ilike: vi.fn(),
-  inArray: vi.fn(),
+  and: vi.fn(() => ({})),
+  or: vi.fn(() => ({})),
+  eq: vi.fn(() => ({})),
+  ne: vi.fn(() => ({})),
+  ilike: vi.fn(() => ({})),
+  inArray: vi.fn(() => ({})),
+  agentClients: {
+    tenantId: 'agentClients.tenantId',
+    agentId: 'agentClients.agentId',
+    memberId: 'agentClients.memberId',
+    status: 'agentClients.status',
+  },
   claims: {
     id: 'claims.id',
     userId: 'claims.userId',
@@ -182,24 +190,26 @@ describe('GET /api/claims', () => {
     });
 
     const createdAt = new Date('2025-01-01T00:00:00.000Z');
+    hoisted.dbSelect;
+    const countChain = createCountChain(1);
+    const rowsChain = createRowsChain([
+      {
+        id: 'claim-1',
+        title: 'Sensitive',
+        status: 'submitted',
+        createdAt,
+        companyName: 'Secret',
+        claimAmount: '10',
+        currency: 'USD',
+        category: 'cat',
+        claimantName: 'Name',
+        claimantEmail: 'Email',
+      },
+    ]);
+
     hoisted.dbSelect
-      .mockReturnValueOnce(createCountChain(1))
-      .mockReturnValueOnce(
-        createRowsChain([
-          {
-            id: 'claim-1',
-            title: 'Sensitive',
-            status: 'submitted',
-            createdAt,
-            companyName: 'Secret',
-            claimAmount: '10',
-            currency: 'USD',
-            category: 'cat',
-            claimantName: 'Name',
-            claimantEmail: 'Email',
-          },
-        ])
-      )
+      .mockReturnValueOnce(countChain)
+      .mockReturnValueOnce(rowsChain)
       .mockReturnValueOnce(createUnreadChain([{ claimId: 'claim-1', total: 2 }]))
       .mockClear();
 
@@ -229,6 +239,8 @@ describe('GET /api/claims', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
+    expect(countChain.innerJoin).toHaveBeenCalled();
+    expect(rowsChain.innerJoin).toHaveBeenCalled();
     expect(data.claims[0]).toEqual(
       expect.objectContaining({
         id: 'claim-1',

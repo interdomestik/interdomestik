@@ -1,4 +1,5 @@
 import {
+  agentClients,
   and,
   claimMessages,
   claims,
@@ -94,6 +95,17 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
 
   conditions.push(eq(claims.tenantId, tenantId));
 
+  const useAgentClientsJoin =
+    scope === 'agent_queue' && !!authScope.agentId && !authScope.isFullTenantScope;
+  const agentClientsJoinOn = useAgentClientsJoin
+    ? and(
+        eq(agentClients.memberId, claims.userId),
+        eq(agentClients.agentId, authScope.agentId!),
+        eq(agentClients.tenantId, tenantId),
+        eq(agentClients.status, 'active')
+      )
+    : null;
+
   // Apply Mandatory Scoping (Branch / Agent)
   if (!authScope.isFullTenantScope) {
     // If user has branch scope, restrict to branch claims
@@ -101,7 +113,8 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
       conditions.push(eq(claims.branchId, authScope.branchId));
     }
     // If user has agent scope, restrict to claims where they are the agent
-    if (authScope.agentId) {
+    // NOTE: For agent_queue, visibility is derived from canonical ownership (agent_clients).
+    if (authScope.agentId && scope !== 'agent_queue') {
       conditions.push(eq(claims.agentId, authScope.agentId));
     }
   }
@@ -147,17 +160,22 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
 
   const whereClause = conditions.length ? and(...conditions) : undefined;
 
-  const [countRow] = await db
+  let countQuery = db
     .select({ total: count() })
     .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id))
-    .where(whereClause);
+    .leftJoin(user, eq(claims.userId, user.id));
+
+  if (agentClientsJoinOn) {
+    countQuery = countQuery.innerJoin(agentClients, agentClientsJoinOn);
+  }
+
+  const [countRow] = await countQuery.where(whereClause);
 
   const totalCount = Number(countRow?.total || 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
   const offset = (page - 1) * perPage;
 
-  const rows = await db
+  let rowsQuery = db
     .select({
       id: claims.id,
       title: claims.title,
@@ -171,7 +189,13 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
       claimantEmail: user.email,
     })
     .from(claims)
-    .leftJoin(user, eq(claims.userId, user.id))
+    .leftJoin(user, eq(claims.userId, user.id));
+
+  if (agentClientsJoinOn) {
+    rowsQuery = rowsQuery.innerJoin(agentClients, agentClientsJoinOn);
+  }
+
+  const rows = await rowsQuery
     .where(whereClause)
     .orderBy(desc(claims.createdAt))
     .limit(perPage)
