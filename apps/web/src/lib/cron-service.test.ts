@@ -6,12 +6,14 @@ describe('forEachBatchedUsers', () => {
   it('iterates batches and stops on empty batch', async () => {
     const seenAfterIds: Array<string | null> = [];
 
-    const batches: Array<Array<{ id: string; email: string | null; name: string | null }>> = [
+    const batches: Array<
+      Array<{ id: string; email: string | null; name: string | null; tenantId: string | null }>
+    > = [
       [
-        { id: 'u1', email: 'u1@example.com', name: 'U1' },
-        { id: 'u2', email: 'u2@example.com', name: 'U2' },
+        { id: 'u1', email: 'u1@example.com', name: 'U1', tenantId: 'tenant_mk' },
+        { id: 'u2', email: 'u2@example.com', name: 'U2', tenantId: 'tenant_mk' },
       ],
-      [{ id: 'u3', email: 'u3@example.com', name: 'U3' }],
+      [{ id: 'u3', email: 'u3@example.com', name: 'U3', tenantId: 'tenant_mk' }],
       [],
     ];
 
@@ -32,7 +34,9 @@ describe('forEachBatchedUsers', () => {
   it('throws if maxBatches is exceeded (infinite-loop protection)', async () => {
     await expect(
       forEachBatchedUsers({
-        fetchBatch: async () => [{ id: 'u1', email: 'u1@example.com', name: 'U1' }],
+        fetchBatch: async () => [
+          { id: 'u1', email: 'u1@example.com', name: 'U1', tenantId: 'tenant_mk' },
+        ],
         onBatch: async () => {},
         maxBatches: 3,
       })

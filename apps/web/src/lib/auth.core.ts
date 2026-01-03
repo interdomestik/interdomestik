@@ -16,13 +16,18 @@ export const auth = betterAuth({
   }),
   user: {
     additionalFields: {
+      tenantId: {
+        type: 'string',
+        fieldName: 'tenantId',
+        defaultValue: 'tenant_mk',
+      },
       role: {
         type: 'string',
         defaultValue: 'user',
       },
       memberNumber: {
         type: 'string',
-        fieldName: 'member_number',
+        fieldName: 'memberNumber',
       },
     },
   },

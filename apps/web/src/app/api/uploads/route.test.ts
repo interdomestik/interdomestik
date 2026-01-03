@@ -25,8 +25,9 @@ vi.mock('nanoid', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
+  and: vi.fn(),
   eq: vi.fn(),
-  claims: { id: 'id' },
+  claims: { id: 'id', tenantId: 'tenant_id' },
   db: {
     query: {
       claims: {
@@ -74,7 +75,9 @@ describe('POST /api/uploads', () => {
   });
 
   it('returns 400 for invalid payload', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
 
     const req = new Request('http://localhost:3000/api/uploads', {
       method: 'POST',
@@ -89,7 +92,9 @@ describe('POST /api/uploads', () => {
   });
 
   it('returns 415 when mime type not allowed', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
 
     const req = new Request('http://localhost:3000/api/uploads', {
       method: 'POST',
@@ -108,7 +113,9 @@ describe('POST /api/uploads', () => {
   });
 
   it('returns 413 when file is too large', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
 
     const req = new Request('http://localhost:3000/api/uploads', {
       method: 'POST',
@@ -127,7 +134,9 @@ describe('POST /api/uploads', () => {
   });
 
   it('returns 404 when claim does not exist', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
     hoisted.findClaimFirst.mockResolvedValue(null);
 
     const req = new Request('http://localhost:3000/api/uploads', {
@@ -148,7 +157,9 @@ describe('POST /api/uploads', () => {
   });
 
   it('returns 403 when claim is owned by someone else', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
     hoisted.findClaimFirst.mockResolvedValue({ id: 'claim-1', userId: 'user-OTHER' });
 
     const req = new Request('http://localhost:3000/api/uploads', {
@@ -169,7 +180,9 @@ describe('POST /api/uploads', () => {
   });
 
   it('returns 200 with signed upload details', async () => {
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', role: 'user' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
 
     const req = new Request('http://localhost:3000/api/uploads', {
       method: 'POST',
@@ -196,7 +209,9 @@ describe('POST /api/uploads', () => {
       })
     );
 
-    expect(data.upload.path).toContain('/claims/user-1/claim-1/evidence-123-My_File.pdf');
+    expect(data.upload.path).toContain(
+      '/tenants/tenant_mk/claims/user-1/claim-1/evidence-123-My_File.pdf'
+    );
     expect(hoisted.createSignedUploadUrl).toHaveBeenCalled();
   });
 });

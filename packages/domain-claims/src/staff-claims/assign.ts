@@ -1,4 +1,4 @@
-import { claims, db, eq } from '@interdomestik/database';
+import { and, claims, db, eq } from '@interdomestik/database';
 
 import type { ActionResult } from './types';
 import type { ClaimsSession } from '../claims/types';
@@ -14,11 +14,13 @@ export async function assignClaimCore(params: {
     return { success: false, error: 'Unauthorized' };
   }
 
+  const tenantId = session.user.tenantId ?? 'tenant_mk';
+
   try {
     const [existingClaim] = await db
       .select({ id: claims.id })
       .from(claims)
-      .where(eq(claims.id, claimId))
+      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)))
       .limit(1);
 
     if (!existingClaim) {
@@ -34,7 +36,7 @@ export async function assignClaimCore(params: {
         assignedById: session.user.id,
         updatedAt: now,
       })
-      .where(eq(claims.id, claimId));
+      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
 
     return { success: true };
   } catch (error) {

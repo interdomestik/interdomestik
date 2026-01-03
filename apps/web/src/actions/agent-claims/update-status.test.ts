@@ -15,8 +15,15 @@ vi.mock('@/lib/notifications', () => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  claims: { id: 'id', status: 'status', userId: 'userId', title: 'title', staffId: 'staffId' },
-  user: { id: 'id', email: 'email' },
+  claims: {
+    id: 'id',
+    tenantId: 'tenantId',
+    status: 'status',
+    userId: 'userId',
+    title: 'title',
+    staffId: 'staffId',
+  },
+  user: { id: 'id', tenantId: 'tenantId', email: 'email' },
   db: {
     select: () => ({
       from: () => ({
@@ -29,6 +36,7 @@ vi.mock('@interdomestik/database', () => ({
       set: () => ({ where: mocks.dbUpdate }),
     }),
   },
+  and: vi.fn(),
   eq: vi.fn(),
 }));
 

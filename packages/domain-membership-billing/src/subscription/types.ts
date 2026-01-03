@@ -1,6 +1,7 @@
 export type SubscriptionSession = {
   user: {
     id: string;
+    tenantId?: string | null;
   };
 };
 

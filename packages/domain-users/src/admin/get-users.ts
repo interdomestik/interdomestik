@@ -11,8 +11,8 @@ import {
 } from '@interdomestik/database';
 import { SQL, desc, isNotNull, isNull } from 'drizzle-orm';
 
-import { requireAdminSession } from './access';
 import type { UserSession } from '../types';
+import { requireTenantAdminSession } from './access';
 
 export type GetUsersFilters = {
   search?: string;
@@ -25,9 +25,10 @@ export async function getUsersCore(params: {
   filters?: GetUsersFilters;
 }) {
   const { session, filters } = params;
-  requireAdminSession(session);
+  const adminSession = await requireTenantAdminSession(session);
 
   const conditions: SQL<unknown>[] = [];
+  const tenantId = adminSession.user.tenantId ?? 'tenant_mk';
   const roleFilter = filters?.role && filters.role !== 'all' ? filters.role : null;
   const assignmentFilter =
     filters?.assignment && filters.assignment !== 'all' ? filters.assignment : null;
@@ -56,6 +57,8 @@ export async function getUsersCore(params: {
     }
   }
 
+  conditions.push(eq(user.tenantId, tenantId));
+
   const users = await db.query.user.findMany({
     where: conditions.length
       ? and(...conditions.filter((c): c is SQL<unknown> => c !== undefined && c !== null))
@@ -71,6 +74,7 @@ export async function getUsersCore(params: {
   const unreadConditions = [
     isNull(claimMessages.readAt),
     eq(claimMessages.senderId, claims.userId),
+    eq(claims.tenantId, tenantId),
   ];
 
   const unreadRows = await db

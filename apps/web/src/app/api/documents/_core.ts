@@ -1,10 +1,11 @@
 import { claimDocuments, claims, createAdminClient, db } from '@interdomestik/database';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 type Session = {
   user: {
     id: string;
     role?: string | null;
+    tenantId?: string | null;
   };
 };
 
@@ -65,6 +66,7 @@ export async function getDocumentAccessCore(args: {
   disposition?: 'inline' | 'attachment';
 }): Promise<DocumentAccessResult> {
   const { session, documentId, mode, disposition } = args;
+  const tenantId = session.user.tenantId ?? 'tenant_mk';
 
   // Fetch document metadata + claim ownership for RBAC
   const [row] = await db
@@ -74,7 +76,7 @@ export async function getDocumentAccessCore(args: {
     })
     .from(claimDocuments)
     .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
-    .where(eq(claimDocuments.id, documentId));
+    .where(and(eq(claimDocuments.id, documentId), eq(claimDocuments.tenantId, tenantId)));
 
   if (!row?.doc) {
     return { ok: false, status: 404, error: 'Document not found' };

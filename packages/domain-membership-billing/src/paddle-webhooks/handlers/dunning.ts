@@ -1,5 +1,4 @@
-import { db, subscriptions, user } from '@interdomestik/database';
-import { eq } from 'drizzle-orm';
+import { db, subscriptions } from '@interdomestik/database';
 
 import type { PaddleWebhookDeps } from '../types';
 
@@ -44,12 +43,20 @@ export async function handleSubscriptionPastDue(
     where: (subs, { eq: eqFn }) => eqFn(subs.id, sub.id),
   });
 
+  const userRecord = await db.query.user.findFirst({
+    where: (users, { eq: eqFn }) => eqFn(users.id, userId),
+    columns: { tenantId: true, email: true, name: true },
+  });
+
+  const tenantId = existingSub?.tenantId ?? userRecord?.tenantId ?? 'tenant_mk';
+
   const newDunningCount = (existingSub?.dunningAttemptCount || 0) + 1;
 
   await db
     .insert(subscriptions)
     .values({
       id: sub.id,
+      tenantId,
       userId,
       status: 'past_due',
       planId: priceId,
@@ -90,8 +97,6 @@ export async function handleSubscriptionPastDue(
 
   if (newDunningCount === 1 && deps.sendPaymentFailedEmail) {
     try {
-      const userRecord = await db.query.user.findFirst({ where: eq(user.id, userId) });
-
       if (userRecord?.email) {
         const planName = sub.items?.[0]?.price?.description || 'Membership';
         await deps.sendPaymentFailedEmail(userRecord.email, {

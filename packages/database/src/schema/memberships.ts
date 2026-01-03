@@ -2,9 +2,14 @@ import { boolean, decimal, integer, jsonb, pgTable, text, timestamp } from 'driz
 
 import { user } from './auth';
 import { membershipTierEnum, subscriptionStatusEnum } from './enums';
+import { tenants } from './tenants';
 
 export const membershipPlans = pgTable('membership_plans', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   name: text('name').notNull(),
   description: text('description'),
   tier: membershipTierEnum('tier').notNull(),
@@ -27,6 +32,10 @@ export const membershipPlans = pgTable('membership_plans', {
 
 export const subscriptions = pgTable('subscriptions', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id),
@@ -57,6 +66,10 @@ export const subscriptions = pgTable('subscriptions', {
 
 export const membershipFamilyMembers = pgTable('membership_family_members', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   subscriptionId: text('subscription_id')
     .notNull()
     .references(() => subscriptions.id),
@@ -68,6 +81,10 @@ export const membershipFamilyMembers = pgTable('membership_family_members', {
 
 export const userNotificationPreferences = pgTable('user_notification_preferences', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .unique()
@@ -86,6 +103,10 @@ export const userNotificationPreferences = pgTable('user_notification_preference
 
 export const pushSubscriptions = pgTable('push_subscriptions', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),

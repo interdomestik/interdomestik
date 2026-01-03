@@ -1,5 +1,6 @@
-import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { claimDocuments, claims, db } from '@interdomestik/database';
+import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
+import { ensureTenantId } from '@interdomestik/domain-users';
 import { nanoid } from 'nanoid';
 
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
@@ -20,7 +21,8 @@ export async function submitClaimCore(
     throw new Error('Unauthorized');
   }
 
-  const hasAccess = await hasActiveMembership(session.user.id);
+  const tenantId = ensureTenantId(session);
+  const hasAccess = await hasActiveMembership(session.user.id, tenantId);
 
   if (!hasAccess) {
     throw new Error('Membership required to file a claim.');
@@ -38,6 +40,7 @@ export async function submitClaimCore(
   try {
     await db.insert(claims).values({
       id: claimId,
+      tenantId,
       userId: session.user.id,
       title,
       description: description || undefined,
@@ -53,6 +56,7 @@ export async function submitClaimCore(
         claimId,
         uploadedBy: session.user.id,
         files,
+        tenantId,
       });
 
       await db.insert(claimDocuments).values(documentRows);

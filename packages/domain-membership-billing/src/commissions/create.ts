@@ -12,12 +12,14 @@ export async function createCommissionCore(data: {
   type: CommissionType;
   amount: number;
   currency?: string;
+  tenantId?: string | null;
   metadata?: Record<string, unknown>;
 }): Promise<ActionResult<{ id: string }>> {
   try {
     const id = nanoid();
     await db.insert(agentCommissions).values({
       id,
+      tenantId: data.tenantId ?? 'tenant_mk',
       agentId: data.agentId,
       memberId: data.memberId ?? null,
       subscriptionId: data.subscriptionId ?? null,

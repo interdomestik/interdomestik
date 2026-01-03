@@ -48,6 +48,18 @@ export async function handleSubscriptionChanged(
   const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
   const mappedStatus = mapPaddleStatus(sub.status);
 
+  const existingSub = await db.query.subscriptions.findFirst({
+    where: (subs, { eq }) => eq(subs.id, sub.id),
+    columns: { tenantId: true },
+  });
+
+  const userRecord = await db.query.user.findFirst({
+    where: (users, { eq }) => eq(users.id, userId),
+    columns: { tenantId: true, email: true, name: true, memberNumber: true },
+  });
+
+  const tenantId = existingSub?.tenantId ?? userRecord?.tenantId ?? 'tenant_mk';
+
   const baseValues = {
     status: mappedStatus,
     planId: priceId,
@@ -82,6 +94,7 @@ export async function handleSubscriptionChanged(
     .insert(subscriptions)
     .values({
       id: sub.id,
+      tenantId,
       userId,
       ...baseValues,
     })
@@ -101,7 +114,8 @@ export async function handleSubscriptionChanged(
 
     if (agentId && transactionTotal > 0) {
       const agentSettings = await db.query.agentSettings?.findFirst({
-        where: (settings, { eq }) => eq(settings.agentId, agentId),
+        where: (settings, { and, eq }) =>
+          and(eq(settings.agentId, agentId), eq(settings.tenantId, tenantId)),
       });
       const customRates = agentSettings?.commissionRates as Record<string, number> | undefined;
 
@@ -113,6 +127,7 @@ export async function handleSubscriptionChanged(
         type: 'new_membership',
         amount: commissionAmount,
         currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
+        tenantId,
         metadata: {
           planId: priceId,
           transactionTotal,
@@ -128,10 +143,7 @@ export async function handleSubscriptionChanged(
     if (deps.sendThankYouLetter) {
       // Thank-you Letter
       try {
-        const userData = await db.query.user?.findFirst({
-          where: (u, { eq }) => eq(u.id, userId),
-        });
-        if (userData) {
+        if (userRecord) {
           const planPrice = sub.items?.[0]?.price?.unitPrice?.amount
             ? (parseFloat(sub.items[0].price.unitPrice.amount) / 100).toFixed(2)
             : '20.00';
@@ -140,9 +152,9 @@ export async function handleSubscriptionChanged(
             : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
           await deps.sendThankYouLetter({
-            email: userData.email,
-            memberName: userData.name,
-            memberNumber: userData.memberNumber || `M-${userId.slice(0, 8).toUpperCase()}`,
+            email: userRecord.email,
+            memberName: userRecord.name,
+            memberNumber: userRecord.memberNumber || `M-${userId.slice(0, 8).toUpperCase()}`,
             planName: priceId || 'Standard',
             planPrice: `€${planPrice}`,
             planInterval: 'year',
@@ -150,7 +162,7 @@ export async function handleSubscriptionChanged(
             expiresAt: periodEnd,
             locale: 'en',
           });
-          console.log(`[Webhook] 📧 Thank-you Letter sent to ${redactEmail(userData.email)}`);
+          console.log(`[Webhook] 📧 Thank-you Letter sent to ${redactEmail(userRecord.email)}`);
         }
       } catch (emailError) {
         console.error('[Webhook] Failed to send Thank-you Letter:', emailError);

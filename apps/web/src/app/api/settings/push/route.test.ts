@@ -53,11 +53,14 @@ vi.mock('@interdomestik/database', () => ({
 vi.mock('@interdomestik/database/schema', () => ({
   pushSubscriptions: {
     endpoint: 'endpoint',
+    tenantId: 'tenant_id',
+    userId: 'user_id',
   },
 }));
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
+  and: vi.fn(),
 }));
 
 vi.mock('nanoid', () => ({
@@ -98,7 +101,7 @@ describe('POST /api/settings/push', () => {
   });
 
   it('returns 400 on invalid JSON', async () => {
-    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
     const request = new Request('http://localhost:3000/api/settings/push', {
       method: 'POST',
@@ -113,7 +116,7 @@ describe('POST /api/settings/push', () => {
   });
 
   it('returns 400 on missing fields', async () => {
-    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
     const request = new Request('http://localhost:3000/api/settings/push', {
       method: 'POST',
@@ -128,7 +131,7 @@ describe('POST /api/settings/push', () => {
   });
 
   it('creates a new subscription when none exists', async () => {
-    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
     mockSelectChain.limit.mockResolvedValue([]);
 
     const body = {
@@ -150,6 +153,7 @@ describe('POST /api/settings/push', () => {
     expect(mockInsertChain.values).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'test-id-123',
+        tenantId: 'tenant_mk',
         userId: 'user-123',
         endpoint: body.endpoint,
         p256dh: 'p256',
@@ -160,7 +164,7 @@ describe('POST /api/settings/push', () => {
   });
 
   it('updates subscription when it exists', async () => {
-    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
     mockSelectChain.limit.mockResolvedValue([{ id: 'sub-1', endpoint: 'https://example.com/ep' }]);
 
     const body = {
@@ -181,6 +185,7 @@ describe('POST /api/settings/push', () => {
     expect(data).toEqual({ success: true });
     expect(mockUpdateChain.set).toHaveBeenCalledWith(
       expect.objectContaining({
+        tenantId: 'tenant_mk',
         userId: 'user-123',
         endpoint: body.endpoint,
         p256dh: 'p256',
@@ -214,7 +219,7 @@ describe('DELETE /api/settings/push', () => {
   });
 
   it('returns 400 on invalid JSON', async () => {
-    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
     const request = new Request('http://localhost:3000/api/settings/push', {
       method: 'DELETE',
@@ -229,7 +234,7 @@ describe('DELETE /api/settings/push', () => {
   });
 
   it('returns 400 when endpoint is missing', async () => {
-    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
     const request = new Request('http://localhost:3000/api/settings/push', {
       method: 'DELETE',
@@ -244,7 +249,7 @@ describe('DELETE /api/settings/push', () => {
   });
 
   it('deletes subscription by endpoint', async () => {
-    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123' } });
+    hoistedMocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
     const request = new Request('http://localhost:3000/api/settings/push', {
       method: 'DELETE',

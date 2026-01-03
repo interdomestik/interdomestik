@@ -1,5 +1,6 @@
-import { claimMessages, claims, db, user } from '@interdomestik/database';
-import { eq } from 'drizzle-orm';
+import { claimMessages, db, user } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/domain-users';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { AuditLogger, Session } from '../types';
 import { normalizeSelectedMessages } from './normalize';
@@ -40,6 +41,7 @@ export async function sendMessageDbCore(params: {
 
     const userId = session.user.id;
     const userRole = session.user.role || 'user';
+    const tenantId = ensureTenantId(session);
     const trimmed = content.trim();
 
     if (!trimmed) {
@@ -47,7 +49,8 @@ export async function sendMessageDbCore(params: {
     }
 
     const claim = await db.query.claims.findFirst({
-      where: eq(claims.id, claimId),
+      where: (claimsTable, { and, eq }) =>
+        and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
     });
 
     if (!claim) {
@@ -68,6 +71,7 @@ export async function sendMessageDbCore(params: {
 
     await db.insert(claimMessages).values({
       id: messageId,
+      tenantId,
       claimId,
       senderId: userId,
       content: trimmed,
@@ -107,7 +111,7 @@ export async function sendMessageDbCore(params: {
       })
       .from(claimMessages)
       .leftJoin(user, eq(claimMessages.senderId, user.id))
-      .where(eq(claimMessages.id, messageId))
+      .where(and(eq(claimMessages.id, messageId), eq(claimMessages.tenantId, tenantId)))
       .limit(1)) as unknown as SelectedMessageRow[];
 
     const createdMessage = normalizeSelectedMessages(selected)[0];
@@ -118,7 +122,8 @@ export async function sendMessageDbCore(params: {
     let claimOwnerEmail: string | null = null;
     if (!isInternal && isStaff) {
       const claimOwner = await db.query.user.findFirst({
-        where: eq(user.id, claim.userId),
+        where: (users, { and, eq }) =>
+          and(eq(users.id, claim.userId), eq(users.tenantId, tenantId)),
       });
       claimOwnerEmail = claimOwner?.email ?? null;
     }

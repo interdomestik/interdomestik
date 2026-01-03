@@ -1,4 +1,4 @@
-import { claimStageHistory, claims, db, eq } from '@interdomestik/database';
+import { and, claimStageHistory, claims, db, eq } from '@interdomestik/database';
 import type { ClaimsSession } from '../claims/types';
 import type { ActionResult, ClaimStatus } from './types';
 
@@ -16,11 +16,13 @@ export async function updateClaimStatusCore(params: {
     return { success: false, error: 'Unauthorized' };
   }
 
+  const tenantId = session.user.tenantId ?? 'tenant_mk';
+
   try {
     const [currentClaim] = await db
       .select({ status: claims.status })
       .from(claims)
-      .where(eq(claims.id, claimId))
+      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)))
       .limit(1);
 
     if (!currentClaim) {
@@ -37,12 +39,13 @@ export async function updateClaimStatusCore(params: {
         await tx
           .update(claims)
           .set({ status: newStatus, updatedAt: new Date() })
-          .where(eq(claims.id, claimId));
+          .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
       }
 
       // 2. Add history entry
       await tx.insert(claimStageHistory).values({
         id: crypto.randomUUID(),
+        tenantId,
         claimId,
         fromStatus: currentClaim.status,
         toStatus: newStatus,

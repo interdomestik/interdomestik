@@ -138,7 +138,7 @@ describe('Claim Validators', () => {
     const sampleFile = {
       id: 'file-1',
       name: 'receipt.pdf',
-      path: 'pii/claims/user123/receipt.pdf',
+      path: 'pii/tenants/tenant_mk/claims/user123/receipt.pdf',
       type: 'application/pdf',
       size: 1024,
       bucket: 'claim-evidence',
@@ -175,7 +175,7 @@ describe('Claim Validators', () => {
           {
             id: 'file-1',
             name: 'photo.jpg',
-            path: 'pii/claims/user/photo.jpg',
+            path: 'pii/tenants/tenant_mk/claims/user/photo.jpg',
             type: 'image/jpeg',
             size: 2048,
             bucket: 'claim-evidence',
@@ -205,7 +205,7 @@ describe('Claim Validators', () => {
         {
           id: 'file-1',
           name: 'receipt.pdf',
-          path: 'pii/claims/user123/receipt.pdf',
+          path: 'pii/tenants/tenant_mk/claims/user123/receipt.pdf',
           type: 'application/pdf',
           size: 1024,
           bucket: 'claim-evidence',

@@ -1,7 +1,9 @@
 'use client';
 
+import { canAccessAdmin } from '@/actions/admin-access';
 import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
+import { isAdmin } from '@/lib/roles.core';
 import {
   Avatar,
   AvatarFallback,
@@ -23,12 +25,36 @@ import { useEffect, useState } from 'react';
 export function UserNav() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [adminAccess, setAdminAccess] = useState(false);
   const { data: session } = authClient.useSession();
   const t = useTranslations('nav');
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!session) return;
+
+    const role = (session.user as unknown as { role?: string })?.role ?? null;
+    if (isAdmin(role)) {
+      setAdminAccess(true);
+      return;
+    }
+
+    let cancelled = false;
+    canAccessAdmin()
+      .then(ok => {
+        if (!cancelled) setAdminAccess(ok);
+      })
+      .catch(() => {
+        // Ignore; keep adminAccess false.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -82,7 +108,7 @@ export function UserNav() {
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
-          {role === 'admin' && (
+          {(isAdmin(role) || adminAccess) && (
             <DropdownMenuItem asChild>
               <Link href="/admin" className="w-full cursor-pointer">
                 <LayoutTemplate className="mr-2 h-4 w-4" />

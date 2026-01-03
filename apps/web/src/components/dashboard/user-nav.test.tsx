@@ -2,6 +2,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserNav } from './user-nav';
 
+vi.mock('@/actions/admin-access', () => ({
+  canAccessAdmin: vi.fn(async () => false),
+}));
+
 // Mock authClient
 vi.mock('@/lib/auth-client', () => ({
   authClient: {

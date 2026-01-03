@@ -1,5 +1,6 @@
 import { db } from '@interdomestik/database';
 import { notifications } from '@interdomestik/database/schema';
+import { ensureTenantId } from '@interdomestik/domain-users';
 import { and, eq } from 'drizzle-orm';
 
 import type { Session } from '../types';
@@ -11,10 +12,17 @@ export async function markAsReadCore(params: { session: Session | null; notifica
     throw new Error('Not authenticated');
   }
 
+  const tenantId = ensureTenantId(session);
   await db
     .update(notifications)
     .set({ isRead: true })
-    .where(and(eq(notifications.id, notificationId), eq(notifications.userId, session.user.id)));
+    .where(
+      and(
+        eq(notifications.id, notificationId),
+        eq(notifications.userId, session.user.id),
+        eq(notifications.tenantId, tenantId)
+      )
+    );
 
   return { success: true };
 }
@@ -26,10 +34,11 @@ export async function markAllAsReadCore(params: { session: Session | null }) {
     throw new Error('Not authenticated');
   }
 
+  const tenantId = ensureTenantId(session);
   await db
     .update(notifications)
     .set({ isRead: true })
-    .where(eq(notifications.userId, session.user.id));
+    .where(and(eq(notifications.userId, session.user.id), eq(notifications.tenantId, tenantId)));
 
   return { success: true };
 }

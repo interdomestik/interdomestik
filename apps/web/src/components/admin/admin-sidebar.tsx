@@ -58,6 +58,27 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const locale = useLocale();
   const searchParams = useSearchParams();
 
+  const withAdminContext = (href: string) => {
+    const contextQueryString = searchParams.toString();
+    if (!contextQueryString) return href;
+
+    const [path, queryString] = href.split('?');
+    const merged = new URLSearchParams(contextQueryString);
+    if (queryString) {
+      const destinationParams = new URLSearchParams(queryString);
+      const destinationKeys = new Set(Array.from(destinationParams.keys()));
+      for (const key of destinationKeys) {
+        merged.delete(key);
+        for (const value of destinationParams.getAll(key)) {
+          merged.append(key, value);
+        }
+      }
+    }
+
+    const next = merged.toString();
+    return next ? `${path}?${next}` : path;
+  };
+
   const roleParam = searchParams.get('role');
   const peopleRole = roleParam?.includes('agent')
     ? 'agents'
@@ -119,7 +140,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
     >
       <SidebarHeader className="h-20 flex items-center justify-center border-b border-white/10">
         <Link
-          href="/admin"
+          href={withAdminContext('/admin')}
           className="flex items-center gap-3 font-bold text-xl px-2 w-full group-data-[state=collapsed]:justify-center group hover:opacity-90 transition-opacity"
         >
           <div className="h-10 w-10 rounded-xl brand-gradient flex items-center justify-center text-white shadow-lg shadow-primary/25 transition-transform group-hover:scale-105 shrink-0">
@@ -166,7 +187,10 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
                       `}
                       isActive={isActive}
                     >
-                      <Link href={item.href} className="flex items-center gap-3 font-medium">
+                      <Link
+                        href={withAdminContext(item.href)}
+                        className="flex items-center gap-3 font-medium"
+                      >
                         <item.icon
                           className={`h-5 w-5 shrink-0 ${isActive ? 'animate-pulse' : ''}`}
                         />

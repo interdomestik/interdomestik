@@ -1,7 +1,7 @@
-import crypto from 'node:crypto';
-import type { Page } from '@playwright/test';
 import { db } from '@interdomestik/database';
+import type { Page } from '@playwright/test';
 import { sql } from 'drizzle-orm';
+import crypto from 'node:crypto';
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 
@@ -13,7 +13,9 @@ type PaddleWebhookPayload = {
 };
 
 function buildPaddleSignature(body: string, secret: string) {
-  const ts = Math.floor(Date.now() / 1000) + 60;
+  // Paddle verifies signatures against a tight timestamp window.
+  // Use a current (or slightly past) Unix timestamp to avoid being rejected.
+  const ts = Math.floor(Date.now() / 1000) - 1;
   const payload = `${ts}:${body}`;
   const h1 = crypto.createHmac('sha256', secret).update(payload).digest('hex');
   return `ts=${ts};h1=${h1}`;
@@ -25,13 +27,14 @@ async function postPaddleWebhook(page: Page, payload: PaddleWebhookPayload) {
     throw new Error('PADDLE_WEBHOOK_SECRET_KEY is required for webhook tests');
   }
 
+  // Paddle verifies the signature against the raw request body.
+  // Playwright will JSON.stringify `data` when it's an object; sign that exact string.
   const body = JSON.stringify(payload);
   const signature = buildPaddleSignature(body, secret);
 
   return page.request.post('/api/webhooks/paddle', {
-    data: body,
+    data: payload,
     headers: {
-      'content-type': 'application/json',
       'paddle-signature': signature,
     },
   });
@@ -215,19 +218,19 @@ test.describe('Subscription Lifecycle', () => {
 
     const now = new Date();
     const subscriptionId = `sub_${unique}`;
-    const createdResponse = await postPaddleWebhook(
-      page,
-      buildSubscriptionPayload({
-        eventType: 'subscription.created',
-        eventId: `evt_${unique}_created`,
-        subscriptionId,
-        userId: userId ?? '',
-        status: 'active',
-        priceId: priceId ?? 'unknown',
-        periodStart: now,
-        periodEnd: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
-      })
-    );
+    const createdEventId = `evt_${unique}_created`;
+    const createdPayload = buildSubscriptionPayload({
+      eventType: 'subscription.created',
+      eventId: createdEventId,
+      subscriptionId,
+      userId: userId ?? '',
+      status: 'active',
+      priceId: priceId ?? 'unknown',
+      periodStart: now,
+      periodEnd: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
+    });
+
+    const createdResponse = await postPaddleWebhook(page, createdPayload);
 
     if (!createdResponse.ok()) {
       const errorBody = await createdResponse.text();

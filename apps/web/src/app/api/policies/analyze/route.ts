@@ -38,17 +38,20 @@ function formatError(prefix: string, error: unknown) {
   return `${prefix}: ${message}`;
 }
 
+type UploadPolicyResult = { ok: true; filePath: string } | { ok: false; error: string };
+
 async function uploadPolicyFile(args: {
   userId: string;
+  tenantId: string;
   file: File;
   buffer: Buffer;
   safeName: string;
-}) {
+}): Promise<UploadPolicyResult> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return { ok: false, error: 'Supabase service role key is required for policy uploads.' };
   }
 
-  const filePath = `pii/policies/${args.userId}/${Date.now()}_${args.safeName}`;
+  const filePath = `pii/tenants/${args.tenantId}/policies/${args.userId}/${Date.now()}_${args.safeName}`;
   const adminClient = createAdminClient();
   const { error } = await adminClient.storage.from(POLICIES_BUCKET).upload(filePath, args.buffer, {
     contentType: args.file.type || 'application/octet-stream',
@@ -114,12 +117,15 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Use Vision API for images or scanned PDFs
+    const tenantId = (session.user as { tenantId?: string | null }).tenantId ?? 'tenant_mk';
+
     if (isImage) {
       const analysis = await analyzePolicyImages([buffer]);
 
       const safeName = sanitizeFileName(file.name);
       const upload = await uploadPolicyFile({
         userId: session.user.id,
+        tenantId,
         file,
         buffer,
         safeName,
@@ -133,9 +139,10 @@ export async function POST(req: NextRequest) {
         .insert(policies)
         .values({
           id: nanoid(),
+          tenantId,
           userId: session.user.id,
-          provider: analysis.provider,
-          policyNumber: analysis.policyNumber,
+          provider: analysis.provider || 'Unknown',
+          policyNumber: analysis.policyNumber ?? null,
           analysisJson: analysis,
           fileUrl: upload.filePath,
         })
@@ -166,6 +173,7 @@ export async function POST(req: NextRequest) {
     const safeName = sanitizeFileName(file.name);
     const upload = await uploadPolicyFile({
       userId: session.user.id,
+      tenantId,
       file,
       buffer,
       safeName,
@@ -180,10 +188,11 @@ export async function POST(req: NextRequest) {
       .insert(policies)
       .values({
         id: nanoid(),
+        tenantId,
         userId: session.user.id,
         fileUrl: upload.filePath,
         provider: analysis.provider || 'Unknown',
-        policyNumber: analysis.policyNumber,
+        policyNumber: analysis.policyNumber ?? null,
         analysisJson: analysis,
       })
       .returning();

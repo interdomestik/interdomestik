@@ -1,4 +1,5 @@
-import { claimMessages, claims, db, user } from '@interdomestik/database';
+import { claimMessages, db, user } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/domain-users';
 import { and, eq, or } from 'drizzle-orm';
 import type { Session } from '../types';
 import { normalizeSelectedMessages } from './normalize';
@@ -22,9 +23,11 @@ export async function getMessagesForClaimCore(params: {
 
     const userId = session.user.id;
     const userRole = session.user.role || 'user';
+    const tenantId = ensureTenantId(session);
 
     const claim = await db.query.claims.findFirst({
-      where: eq(claims.id, claimId),
+      where: (claimsTable, { and, eq }) =>
+        and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
     });
 
     if (!claim) {
@@ -57,6 +60,7 @@ export async function getMessagesForClaimCore(params: {
       .where(
         and(
           eq(claimMessages.claimId, claimId),
+          eq(claimMessages.tenantId, tenantId),
           isStaff
             ? undefined
             : or(eq(claimMessages.isInternal, false), eq(claimMessages.senderId, userId))

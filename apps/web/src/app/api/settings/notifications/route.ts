@@ -24,7 +24,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const preferences = await getNotificationPreferencesCore({ userId: session.user.id });
+    const preferences = await getNotificationPreferencesCore({
+      userId: session.user.id,
+      tenantId: session.user.tenantId,
+    });
     return NextResponse.json(preferences);
   } catch (error) {
     console.error('Error fetching notification preferences:', error);
@@ -58,6 +61,7 @@ export async function POST(request: Request) {
 
     await upsertNotificationPreferencesCore({
       userId: session.user.id,
+      tenantId: session.user.tenantId,
       preferences: body,
     });
 

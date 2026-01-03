@@ -2,10 +2,15 @@ import { boolean, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { noteTypeEnum } from './enums';
+import { tenants } from './tenants';
 
 // Member Interaction Logging
 export const memberNotes = pgTable('member_notes', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   memberId: text('member_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
@@ -24,6 +29,10 @@ export const memberNotes = pgTable('member_notes', {
 // Audit logging for compliance
 export const auditLog = pgTable('audit_log', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   actorId: text('actor_id').references(() => user.id),
   actorRole: text('actor_role'),
   action: text('action').notNull(),

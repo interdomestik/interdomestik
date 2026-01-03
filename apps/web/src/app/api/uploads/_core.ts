@@ -1,4 +1,4 @@
-import { claims, createAdminClient, db, eq } from '@interdomestik/database';
+import { and, claims, createAdminClient, db, eq } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
@@ -6,6 +6,7 @@ type Session = {
   user: {
     id: string;
     role?: string | null;
+    tenantId?: string | null;
   };
 };
 
@@ -72,9 +73,11 @@ export async function createSignedUploadCore(args: {
     return { ok: false, status: 413, error: 'File too large' };
   }
 
+  const tenantId = session.user.tenantId ?? 'tenant_mk';
+
   if (claimId) {
     const claim = await db.query.claims.findFirst({
-      where: eq(claims.id, claimId),
+      where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
       columns: {
         id: true,
         userId: true,
@@ -93,7 +96,7 @@ export async function createSignedUploadCore(args: {
   const evidenceId = nanoid();
   const safeName = sanitizeFileName(fileName);
   const classification = DEFAULT_CLASSIFICATION;
-  const path = `${classification}/claims/${session.user.id}/${claimId ?? 'unassigned'}/${evidenceId}-${safeName}`;
+  const path = `${classification}/tenants/${tenantId}/claims/${session.user.id}/${claimId ?? 'unassigned'}/${evidenceId}-${safeName}`;
 
   const adminClient = createAdminClient();
   const { data, error } = await adminClient.storage.from(bucket).createSignedUploadUrl(path, {

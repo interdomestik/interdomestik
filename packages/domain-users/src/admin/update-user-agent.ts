@@ -1,8 +1,8 @@
 import { agentClients, db, eq, user } from '@interdomestik/database';
 import { randomUUID } from 'crypto';
 
-import { requireAdminSession } from './access';
 import type { ActionResult, UserSession } from '../types';
+import { requireTenantAdminSession } from './access';
 
 export async function updateUserAgentCore(params: {
   session: UserSession | null;
@@ -10,7 +10,7 @@ export async function updateUserAgentCore(params: {
   agentId: string | null;
 }): Promise<ActionResult> {
   const { session, userId, agentId } = params;
-  requireAdminSession(session);
+  await requireTenantAdminSession(session);
 
   try {
     await db.transaction(async tx => {

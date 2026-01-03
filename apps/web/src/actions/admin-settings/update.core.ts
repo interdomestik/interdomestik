@@ -1,3 +1,6 @@
+import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
+import type { UserSession } from '@interdomestik/domain-users/types';
+
 import type { Session } from './context';
 
 type AdminSettingsInput = {
@@ -13,9 +16,7 @@ export async function adminUpdateSettingsCore(params: {
 }) {
   const { session, data } = params;
 
-  if (!session || session.user.role !== 'admin') {
-    throw new Error('Unauthorized');
-  }
+  await requireTenantAdminSession(session as unknown as UserSession | null);
 
   // NOTE: This is a stub for future global settings table
   console.log('Updating global settings:', data);

@@ -10,12 +10,14 @@ import {
   user,
 } from '@interdomestik/database';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
+import { ensureTenantId } from '@interdomestik/domain-users';
 import { SQL, count, desc, isNotNull, isNull, ne } from 'drizzle-orm';
 
 type Session = {
   user: {
     id: string;
     role?: string | null;
+    tenantId?: string | null;
   };
 };
 
@@ -92,6 +94,7 @@ export async function listClaimsCore(args: {
   const isAdmin = role === 'admin';
   const isStaff = role === 'staff';
   const isAgent = role === 'agent';
+  const tenantId = ensureTenantId(session);
 
   if (scope === 'admin' && !isAdmin) {
     return { status: 403, body: { success: false, error: 'Unauthorized' } };
@@ -110,6 +113,8 @@ export async function listClaimsCore(args: {
   }
 
   const conditions: SQL<unknown>[] = [];
+
+  conditions.push(eq(claims.tenantId, tenantId));
 
   if (scope === 'member') {
     conditions.push(eq(claims.userId, session.user.id));
@@ -207,7 +212,8 @@ export async function listClaimsCore(args: {
             rows.map(row => row.id)
           ),
           isNull(claimMessages.readAt),
-          eq(claimMessages.senderId, claims.userId)
+          eq(claimMessages.senderId, claims.userId),
+          eq(claims.tenantId, tenantId)
         )
       )
       .groupBy(claimMessages.claimId);

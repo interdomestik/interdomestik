@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '@interdomestik/ui/components/table';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -63,6 +64,29 @@ export function UsersTable({
   const t = useTranslations('admin.users_table');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const withUsersListContext = (href: string) => {
+    const listQueryString = searchParams.toString();
+    if (!listQueryString) return href;
+
+    const [path, queryString] = href.split('?');
+
+    const merged = new URLSearchParams(listQueryString);
+    if (queryString) {
+      const destinationParams = new URLSearchParams(queryString);
+      const destinationKeys = new Set(Array.from(destinationParams.keys()));
+      for (const key of destinationKeys) {
+        merged.delete(key);
+        for (const value of destinationParams.getAll(key)) {
+          merged.append(key, value);
+        }
+      }
+    }
+
+    const next = merged.toString();
+    return next ? `${path}?${next}` : path;
+  };
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [assignedAgents, setAssignedAgents] = useState<Record<string, string>>({});
 
@@ -122,7 +146,9 @@ export function UsersTable({
                   <span className="text-xs text-muted-foreground">{user.email}</span>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
-                      <Link href={`/admin/users/${user.id}`}>{t('view_profile')}</Link>
+                      <Link href={withUsersListContext(`/admin/users/${user.id}`)}>
+                        {t('view_profile')}
+                      </Link>
                     </Button>
                     {!!user.unreadCount && user.alertLink && (
                       <Button
@@ -130,7 +156,7 @@ export function UsersTable({
                         size="sm"
                         className="h-7 gap-2 px-3 text-xs font-semibold shadow-sm animate-pulse bg-amber-500 text-white hover:bg-amber-600"
                       >
-                        <Link href={user.alertLink}>
+                        <Link href={withUsersListContext(user.alertLink)}>
                           <span className="relative flex h-2 w-2">
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />

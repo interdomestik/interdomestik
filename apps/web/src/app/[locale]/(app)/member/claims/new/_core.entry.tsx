@@ -1,6 +1,7 @@
 import { ClaimWizard } from '@/components/claims/claim-wizard';
 import { auth } from '@/lib/auth';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
+import { ensureTenantId } from '@interdomestik/domain-users';
 import { Button } from '@interdomestik/ui';
 import { ShieldAlert } from 'lucide-react';
 import { Metadata } from 'next';
@@ -32,7 +33,8 @@ export default async function NewClaimPage({ searchParams }: Props) {
     redirect('/auth/sign-in');
   }
 
-  const hasAccess = await hasActiveMembership(session.user.id);
+  const tenantId = ensureTenantId(session);
+  const hasAccess = await hasActiveMembership(session.user.id, tenantId);
 
   if (!hasAccess) {
     return (

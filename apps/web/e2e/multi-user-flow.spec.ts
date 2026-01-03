@@ -98,7 +98,7 @@ test.describe('Multi-User Claim Workflow', () => {
     test('Admin can see all users', async ({ adminPage: page }) => {
       await page.goto(routes.adminUsers());
       await page.waitForLoadState('domcontentloaded');
-      await expect(page.getByRole('heading', { name: 'Members', level: 1 })).toBeVisible({
+      await expect(page.getByRole('heading', { name: /Users|Members/i, level: 1 })).toBeVisible({
         timeout: 10000,
       });
     });

@@ -32,7 +32,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
-    const result = await upsertPushSubscriptionCore({ userId: session.user.id, body });
+    const result = await upsertPushSubscriptionCore({
+      userId: session.user.id,
+      tenantId: (session.user as { tenantId?: string | null }).tenantId,
+      body,
+    });
     if (result.status !== 200) {
       return NextResponse.json({ error: result.body.error }, { status: result.status });
     }
@@ -81,6 +85,7 @@ export async function DELETE(request: Request) {
 
     const result = await deletePushSubscriptionCore({
       userId: session.user.id,
+      tenantId: (session.user as { tenantId?: string | null }).tenantId,
       endpoint: endpoint ?? '',
     });
     if (result.status !== 200) {

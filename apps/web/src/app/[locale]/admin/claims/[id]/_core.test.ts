@@ -12,6 +12,15 @@ vi.mock('@interdomestik/database', () => ({
     },
     select: hoisted.dbSelect,
   },
+  createAdminClient: vi.fn(() => ({
+    storage: {
+      from: vi.fn(() => ({
+        createSignedUrl: vi.fn().mockResolvedValue({
+          data: { signedUrl: 'https://signed.example.com/doc' },
+        }),
+      })),
+    },
+  })),
   eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
   claims: { id: 'claims.id' },
   claimDocuments: {

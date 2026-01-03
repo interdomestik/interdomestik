@@ -50,6 +50,7 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(() => ({ __eq: true })),
+  and: vi.fn(() => ({ __and: true })),
 }));
 
 import { sendMessageDbCore } from './send.core';

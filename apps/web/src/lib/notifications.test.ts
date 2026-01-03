@@ -9,6 +9,11 @@ vi.mock('@interdomestik/database', () => ({
     insert: vi.fn().mockReturnValue({
       values: vi.fn().mockResolvedValue({}),
     }),
+    query: {
+      user: {
+        findFirst: vi.fn().mockResolvedValue({ tenantId: 'tenant_mk' }),
+      },
+    },
   },
 }));
 

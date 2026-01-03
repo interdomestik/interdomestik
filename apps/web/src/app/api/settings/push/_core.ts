@@ -1,6 +1,6 @@
 import { db } from '@interdomestik/database';
 import { pushSubscriptions } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export type PushSubscriptionBody = {
@@ -21,9 +21,11 @@ type Audit = {
 
 export async function upsertPushSubscriptionCore(args: {
   userId: string;
+  tenantId?: string | null;
   body: PushSubscriptionBody;
 }): Promise<{ status: 200 | 400; body: { success?: true; error?: string }; audit?: Audit }> {
-  const { userId, body } = args;
+  const { userId, tenantId, body } = args;
+  const resolvedTenantId = tenantId ?? 'tenant_mk';
 
   const endpoint = body?.endpoint;
   const p256dh = body?.keys?.p256dh;
@@ -43,6 +45,7 @@ export async function upsertPushSubscriptionCore(args: {
     await db
       .update(pushSubscriptions)
       .set({
+        tenantId: resolvedTenantId,
         userId,
         endpoint,
         p256dh,
@@ -54,6 +57,7 @@ export async function upsertPushSubscriptionCore(args: {
   } else {
     await db.insert(pushSubscriptions).values({
       id: nanoid(),
+      tenantId: resolvedTenantId,
       userId,
       endpoint,
       p256dh,
@@ -80,15 +84,25 @@ export async function upsertPushSubscriptionCore(args: {
 
 export async function deletePushSubscriptionCore(args: {
   userId: string;
+  tenantId?: string | null;
   endpoint: string;
 }): Promise<{ status: 200 | 400; body: { success?: true; error?: string }; audit?: Audit }> {
-  const { endpoint } = args;
+  const { endpoint, tenantId, userId } = args;
+  const resolvedTenantId = tenantId ?? 'tenant_mk';
 
   if (!endpoint) {
     return { status: 400, body: { error: 'Invalid subscription' } };
   }
 
-  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  await db
+    .delete(pushSubscriptions)
+    .where(
+      and(
+        eq(pushSubscriptions.endpoint, endpoint),
+        eq(pushSubscriptions.tenantId, resolvedTenantId),
+        eq(pushSubscriptions.userId, userId)
+      )
+    );
 
   return {
     status: 200,

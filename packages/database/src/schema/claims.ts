@@ -2,9 +2,14 @@ import { boolean, decimal, integer, pgTable, text, timestamp } from 'drizzle-orm
 
 import { user } from './auth';
 import { documentCategoryEnum, statusEnum } from './enums';
+import { tenants } from './tenants';
 
 export const claims = pgTable('claim', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('userId')
     .notNull()
     .references(() => user.id),
@@ -25,6 +30,10 @@ export const claims = pgTable('claim', {
 
 export const claimDocuments = pgTable('claim_documents', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   claimId: text('claim_id')
     .notNull()
     .references(() => claims.id),
@@ -43,6 +52,10 @@ export const claimDocuments = pgTable('claim_documents', {
 
 export const claimMessages = pgTable('claim_messages', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   claimId: text('claim_id')
     .notNull()
     .references(() => claims.id),
@@ -57,6 +70,10 @@ export const claimMessages = pgTable('claim_messages', {
 
 export const claimStageHistory = pgTable('claim_stage_history', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   claimId: text('claim_id')
     .notNull()
     .references(() => claims.id),

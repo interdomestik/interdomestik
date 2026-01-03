@@ -1,9 +1,14 @@
 import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { tenants } from './tenants';
 
 export const webhookEvents = pgTable(
   'webhook_events',
   {
     id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id)
+      .default('tenant_mk'),
     provider: text('provider').notNull(),
     dedupeKey: text('dedupe_key').notNull(),
     eventType: text('event_type'),

@@ -1,4 +1,4 @@
-import { claims, db, eq, user } from '@interdomestik/database';
+import { and, claims, db, eq, user } from '@interdomestik/database';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 
@@ -25,18 +25,24 @@ export async function assignClaimCore(
     throw new Error('Unauthorized');
   }
 
+  const tenantId = session.user.tenantId ?? 'tenant_mk';
+
   if (isStaff(session.user.role) && agentId && agentId !== session.user.id) {
     throw new Error('Access denied');
   }
 
   // Get claim details
   const claim = await db.query.claims.findFirst({
-    where: eq(claims.id, claimId),
+    where: (claimsTable, { and, eq }) =>
+      and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
   });
 
   if (!claim) throw new Error('Claim not found');
 
-  await db.update(claims).set({ staffId: agentId }).where(eq(claims.id, claimId));
+  await db
+    .update(claims)
+    .set({ staffId: agentId })
+    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -56,7 +62,8 @@ export async function assignClaimCore(
   if (agentId) {
     // Get staff details for notification
     const staffMember = await db.query.user.findFirst({
-      where: eq(user.id, agentId),
+      where: (userTable, { and, eq }) =>
+        and(eq(userTable.id, agentId), eq(userTable.tenantId, tenantId)),
     });
 
     if (!staffMember) throw new Error('Staff member not found');

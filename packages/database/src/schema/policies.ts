@@ -1,9 +1,14 @@
 import { jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
+import { tenants } from './tenants';
 
 export const policies = pgTable('policies', {
   id: text('id').primaryKey(),
+  tenantId: text('tenant_id')
+    .notNull()
+    .references(() => tenants.id)
+    .default('tenant_mk'),
   userId: text('user_id')
     .notNull()
     .references(() => user.id),

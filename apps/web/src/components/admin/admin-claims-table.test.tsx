@@ -12,7 +12,7 @@ const mockUseQuery = vi.mocked(useQuery);
 
 // Mock search params
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams('tenantId=tenant_mk&search=hello'),
 }));
 
 // Mock next-intl
@@ -206,6 +206,26 @@ describe('AdminClaimsTable', () => {
     await waitFor(() => {
       expect(screen.getByText('View')).toBeInTheDocument();
     });
+  });
+
+  it('preserves query params in claim detail links', async () => {
+    mockUseQuery.mockReturnValue({
+      data: { claims: [mockClaims[0]], totalPages: 1 },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useQuery>);
+
+    render(<AdminClaimsTable />);
+
+    const link = await screen.findByRole('link', { name: 'View' });
+    const href = link.getAttribute('href');
+    expect(href).toBeTruthy();
+
+    const url = new URL(href!, 'http://test.local');
+    expect(url.pathname).toBe('/admin/claims/claim-1');
+    expect(url.searchParams.get('tenantId')).toBe('tenant_mk');
+    expect(url.searchParams.get('search')).toBe('hello');
   });
 
   it('shows pagination when multiple pages', async () => {

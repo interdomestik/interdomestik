@@ -17,7 +17,7 @@ const DEFAULT_RETRY_ATTEMPTS = 3;
 const DEFAULT_RETRY_BASE_DELAY_MS = 250;
 const DEFAULT_MAX_BATCHES = 100_000;
 
-type UserMini = { id: string; email: string | null; name: string | null };
+type UserMini = { id: string; email: string | null; name: string | null; tenantId: string | null };
 
 function sleep(ms: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ms));
@@ -80,9 +80,15 @@ async function getUsersBatch(args: {
     where: args.afterId ? (user, { gt }) => gt(user.id, args.afterId as string) : undefined,
     orderBy: (user, { asc }) => [asc(user.id)],
     limit,
+    columns: {
+      id: true,
+      email: true,
+      name: true,
+      tenantId: true,
+    },
   });
 
-  return users.map(u => ({ id: u.id, email: u.email, name: u.name }));
+  return users.map(u => ({ id: u.id, email: u.email, name: u.name, tenantId: u.tenantId }));
 }
 
 export async function forEachBatchedUsers(args: {
@@ -154,6 +160,7 @@ export async function processBatchedUserCampaign(args: {
 
           const insertLog = {
             id: `ecl_${nanoid()}`,
+            tenantId: u.tenantId ?? 'tenant_mk',
             userId: u.id,
             campaignId: args.campaignId,
             sentAt: new Date(),
@@ -239,6 +246,7 @@ export async function processEmailSequences() {
           await withRetries(() => sendWelcomeEmail(sub.user!.email!, sub.user!.name));
           await db.insert(emailCampaignLogs).values({
             id: `ecl_${nanoid()}`,
+            tenantId: sub.tenantId ?? sub.user?.tenantId ?? 'tenant_mk',
             userId: sub.userId,
             campaignId,
             sentAt: new Date(),
@@ -282,6 +290,7 @@ export async function processEmailSequences() {
           await withRetries(() => sendOnboardingEmail(u.email!, u.name));
           await db.insert(emailCampaignLogs).values({
             id: `ecl_${nanoid()}`,
+            tenantId: u.tenantId ?? 'tenant_mk',
             userId: u.id,
             campaignId,
             sentAt: new Date(),
@@ -325,6 +334,7 @@ export async function processEmailSequences() {
           await withRetries(() => sendCheckinEmail(u.email!, u.name));
           await db.insert(emailCampaignLogs).values({
             id: `ecl_${nanoid()}`,
+            tenantId: u.tenantId ?? 'tenant_mk',
             userId: u.id,
             campaignId,
             sentAt: new Date(),

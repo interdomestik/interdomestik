@@ -1,4 +1,4 @@
-import { claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { and, claimDocuments, claims, db, eq } from '@interdomestik/database';
 
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import { buildClaimDocumentRows } from './documents';
@@ -19,8 +19,10 @@ export async function updateDraftClaimCore(
     return { success: false, error: 'Unauthorized' };
   }
 
+  const tenantId = session.user.tenantId ?? 'tenant_mk';
   const claim = await db.query.claims.findFirst({
-    where: eq(claims.id, claimId),
+    where: (claimsTable, { and, eq }) =>
+      and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
   });
 
   if (!claim) {
@@ -54,13 +56,14 @@ export async function updateDraftClaimCore(
         currency: currency || 'EUR',
         updatedAt: new Date(),
       })
-      .where(eq(claims.id, claimId));
+      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
 
     if (files?.length) {
       const documentRows = buildClaimDocumentRows({
         claimId,
         uploadedBy: session.user.id,
         files,
+        tenantId,
       });
 
       await db.insert(claimDocuments).values(documentRows);
@@ -110,8 +113,10 @@ export async function cancelClaimCore(
     return { success: false, error: 'Unauthorized' };
   }
 
+  const tenantId = session.user.tenantId ?? 'tenant_mk';
   const claim = await db.query.claims.findFirst({
-    where: eq(claims.id, claimId),
+    where: (claimsTable, { and, eq }) =>
+      and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
   });
 
   if (!claim) {
@@ -133,7 +138,7 @@ export async function cancelClaimCore(
         status: 'rejected',
         updatedAt: new Date(),
       })
-      .where(eq(claims.id, claimId));
+      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
 
     if (deps.logAuditEvent) {
       await deps.logAuditEvent({

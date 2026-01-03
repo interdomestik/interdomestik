@@ -60,6 +60,7 @@ vi.mock('@interdomestik/database', () => ({
   claims: {
     id: 'claims.id',
     userId: 'claims.userId',
+    tenantId: 'claims.tenantId',
     staffId: 'claims.staffId',
     status: 'claims.status',
     title: 'claims.title',

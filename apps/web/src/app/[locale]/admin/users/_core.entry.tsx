@@ -6,15 +6,18 @@ import { Button } from '@interdomestik/ui/components/button';
 import { getTranslations } from 'next-intl/server';
 
 type Props = {
-  searchParams: Promise<{
-    search?: string;
-    role?: string;
-    assignment?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function AdminUsersPage({ searchParams }: Props) {
   const params = await searchParams;
+
+  const getFirst = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value;
+
+  const search = getFirst(params.search);
+  const roleParam = getFirst(params.role);
+  const assignment = getFirst(params.assignment);
 
   const normalizeRole = (role?: string) => {
     if (!role || role === 'all' || role === 'user') return 'user';
@@ -23,12 +26,12 @@ export default async function AdminUsersPage({ searchParams }: Props) {
     return 'user';
   };
 
-  const selectedRole = normalizeRole(params.role);
+  const selectedRole = normalizeRole(roleParam);
 
   const users = await getUsers({
-    search: params.search,
+    search,
     role: selectedRole,
-    assignment: selectedRole === 'user' ? params.assignment : undefined,
+    assignment: selectedRole === 'user' ? assignment : undefined,
   });
   const agents = await getAgents();
   const t = await getTranslations('admin.users_page');
@@ -46,13 +49,25 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   const buildRoleHref = (role: string) => {
     const nextParams = new URLSearchParams();
-    if (params.search) nextParams.set('search', params.search);
-    if (role === 'user') {
-      if (params.assignment) nextParams.set('assignment', params.assignment);
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined) continue;
+      if (Array.isArray(value)) {
+        for (const item of value) nextParams.append(key, item);
+        continue;
+      }
+      nextParams.set(key, value);
     }
-    if (role !== 'user') {
+
+    // Reset pagination on role change to avoid empty results.
+    nextParams.delete('page');
+
+    // Update only the role param; preserve everything else.
+    if (role === 'user') {
+      nextParams.delete('role');
+    } else {
       nextParams.set('role', role);
     }
+
     const query = nextParams.toString();
     return query ? `/admin/users?${query}` : '/admin/users';
   };
@@ -70,12 +85,17 @@ export default async function AdminUsersPage({ searchParams }: Props) {
             return (
               <Button
                 key={option.value}
-                asChild
+                asChild={!isActive}
+                disabled={isActive}
                 size="sm"
                 variant={isActive ? 'default' : 'ghost'}
                 className="rounded-md"
               >
-                <Link href={buildRoleHref(option.value)}>{option.label}</Link>
+                {isActive ? (
+                  option.label
+                ) : (
+                  <Link href={buildRoleHref(option.value)}>{option.label}</Link>
+                )}
               </Button>
             );
           })}

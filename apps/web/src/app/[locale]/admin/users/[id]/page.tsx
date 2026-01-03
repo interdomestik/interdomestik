@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
+import { AdminUserRolesPanel } from './_components/admin-user-roles-panel';
 import { AgentInfoCard } from './_components/agent-info-card';
 import { ClaimsStatsCard } from './_components/claims-stats-card';
 import { MembershipInfoCard } from './_components/membership-info-card';
@@ -25,10 +26,13 @@ const membershipStatusStyles: Record<string, string> = {
 
 export default async function MemberProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale, id } = await params;
+  const sp = await searchParams;
   setRequestLocale(locale);
 
   const t = await getTranslations('admin.member_profile');
@@ -44,11 +48,25 @@ export default async function MemberProfilePage({
   const { member, subscription, preferences, counts, recentClaims, membershipStatus } = result;
   const membershipBadgeClass = membershipStatusStyles[membershipStatus];
 
+  const backParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp ?? {})) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        backParams.append(key, item);
+      }
+    } else {
+      backParams.set(key, value);
+    }
+  }
+  const backQuery = backParams.toString();
+  const backHref = backQuery ? `/admin/users?${backQuery}` : '/admin/users';
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
         <Button asChild variant="ghost" size="sm">
-          <Link href="/admin/users">
+          <Link href={backHref}>
             <ArrowLeft className="h-4 w-4" />
             {t('actions.back')}
           </Link>
@@ -64,6 +82,8 @@ export default async function MemberProfilePage({
         membershipStatus={membershipStatus}
         membershipBadgeClass={membershipBadgeClass}
       />
+
+      <AdminUserRolesPanel userId={member.id} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <MembershipInfoCard
@@ -85,7 +105,7 @@ export default async function MemberProfilePage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ClaimsStatsCard counts={counts} />
-        <RecentClaimsCard recentClaims={recentClaims} />
+        <RecentClaimsCard recentClaims={recentClaims} queryString={backQuery} />
       </div>
     </div>
   );

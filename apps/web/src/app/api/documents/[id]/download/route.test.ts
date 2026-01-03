@@ -35,7 +35,7 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     select: hoisted.dbSelect,
   },
-  claimDocuments: {},
+  claimDocuments: { tenantId: 'claim_documents.tenant_id' },
   claims: { userId: 'user_id' },
   createAdminClient: () => ({
     storage: {
@@ -48,6 +48,7 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
+  and: vi.fn(),
 }));
 
 describe('GET /api/documents/[id]/download', () => {

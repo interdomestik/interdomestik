@@ -1,6 +1,6 @@
 import { db } from '@interdomestik/database';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export type NotificationPreferences = {
@@ -23,13 +23,20 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
 
 export async function getNotificationPreferencesCore(args: {
   userId: string;
+  tenantId?: string | null;
 }): Promise<NotificationPreferences> {
-  const { userId } = args;
+  const { userId, tenantId } = args;
+  const resolvedTenantId = tenantId ?? 'tenant_mk';
 
   const [preferences] = await db
     .select()
     .from(userNotificationPreferences)
-    .where(eq(userNotificationPreferences.userId, userId))
+    .where(
+      and(
+        eq(userNotificationPreferences.userId, userId),
+        eq(userNotificationPreferences.tenantId, resolvedTenantId)
+      )
+    )
     .limit(1);
 
   if (!preferences) return DEFAULT_NOTIFICATION_PREFERENCES;
@@ -46,14 +53,21 @@ export async function getNotificationPreferencesCore(args: {
 
 export async function upsertNotificationPreferencesCore(args: {
   userId: string;
+  tenantId?: string | null;
   preferences: NotificationPreferences;
 }): Promise<void> {
-  const { userId, preferences } = args;
+  const { userId, tenantId, preferences } = args;
+  const resolvedTenantId = tenantId ?? 'tenant_mk';
 
   const [existing] = await db
     .select()
     .from(userNotificationPreferences)
-    .where(eq(userNotificationPreferences.userId, userId))
+    .where(
+      and(
+        eq(userNotificationPreferences.userId, userId),
+        eq(userNotificationPreferences.tenantId, resolvedTenantId)
+      )
+    )
     .limit(1);
 
   if (existing) {
@@ -63,13 +77,19 @@ export async function upsertNotificationPreferencesCore(args: {
         ...preferences,
         updatedAt: new Date(),
       })
-      .where(eq(userNotificationPreferences.userId, userId));
+      .where(
+        and(
+          eq(userNotificationPreferences.userId, userId),
+          eq(userNotificationPreferences.tenantId, resolvedTenantId)
+        )
+      );
 
     return;
   }
 
   await db.insert(userNotificationPreferences).values({
     id: nanoid(),
+    tenantId: resolvedTenantId,
     userId,
     ...preferences,
     createdAt: new Date(),

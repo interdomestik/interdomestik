@@ -2,6 +2,7 @@ import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth'; // auth-client imports are for client, server uses auth helper
 import { createAdminClient, db } from '@interdomestik/database';
 import { policies } from '@interdomestik/database/schema';
+import { ensureTenantId } from '@interdomestik/domain-users';
 import {
   Button,
   Card,
@@ -10,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui';
-import { desc, eq } from 'drizzle-orm';
+import { desc } from 'drizzle-orm';
 import { FileText, Plus, Shield } from 'lucide-react';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -32,8 +33,10 @@ export default async function PoliciesPage() {
     redirect('/login');
   }
 
+  const tenantId = ensureTenantId(session);
   const userPolicies = await db.query.policies.findMany({
-    where: eq(policies.userId, session.user.id),
+    where: (policiesTable, { and, eq }) =>
+      and(eq(policiesTable.userId, session.user.id), eq(policiesTable.tenantId, tenantId)),
     orderBy: [desc(policies.createdAt)],
   });
 

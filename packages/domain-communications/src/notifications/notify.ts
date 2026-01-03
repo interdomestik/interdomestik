@@ -34,9 +34,20 @@ export async function sendNotification(
   options?: {
     actionUrl?: string;
     title?: string;
+    tenantId?: string | null;
   }
 ) {
   try {
+    const resolvedTenantId =
+      options?.tenantId ??
+      (
+        await db.query.user.findFirst({
+          where: (users, { eq }) => eq(users.id, userId),
+          columns: { tenantId: true },
+        })
+      )?.tenantId ??
+      'tenant_mk';
+
     const title = options?.title || event.replace(/_/g, ' ').toUpperCase();
     const content = payload.claimTitle
       ? `Update on: ${payload.claimTitle}`
@@ -44,6 +55,7 @@ export async function sendNotification(
 
     await db.insert(notifications).values({
       id: `ntf_${nanoid()}`,
+      tenantId: resolvedTenantId,
       userId,
       type: event,
       title,

@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginForm } from './login-form';
 
+const mockCanAccessAdmin = vi.fn();
+vi.mock('@/actions/admin-access', () => ({
+  canAccessAdmin: () => mockCanAccessAdmin(),
+}));
+
 // Mock authClient
 const mockSignInEmail = vi.fn();
 const mockSignInSocial = vi.fn();
@@ -105,6 +110,7 @@ describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+    mockCanAccessAdmin.mockResolvedValue(false);
   });
 
   it('renders the login form correctly', () => {
@@ -144,6 +150,26 @@ describe('LoginForm', () => {
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/member');
+    });
+  });
+
+  it('redirects to /admin when canAccessAdmin is true', async () => {
+    mockSignInEmail.mockResolvedValue({ error: null });
+    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+    mockCanAccessAdmin.mockResolvedValue(true);
+
+    render(<LoginForm />);
+
+    const emailInput = screen.getByLabelText('Email');
+    const passwordInput = screen.getByLabelText('Password');
+    const submitButton = screen.getByText('Sign In');
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/admin');
     });
   });
 

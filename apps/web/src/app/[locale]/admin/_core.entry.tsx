@@ -1,7 +1,11 @@
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
+import type { AdminTenantOption } from '@/components/admin/admin-tenant-selector';
+import { AdminTenantSelector } from '@/components/admin/admin-tenant-selector';
 import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
+import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
+import type { UserSession } from '@interdomestik/domain-users/types';
 import { Separator, SidebarInset, SidebarProvider, SidebarTrigger } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -23,16 +27,11 @@ export default async function AdminLayout({
     redirect({ href: '/auth/sign-in', locale });
   }
 
-  // Strict Role Check
-  console.log(
-    '[AdminLayout] Checking access for:',
-    session?.user?.email,
-    'Role:',
-    session?.user?.role
-  );
+  const sessionNonNull = session as NonNullable<typeof session>;
 
-  if (session!.user.role !== 'admin') {
-    console.log('[AdminLayout] Access Denied. Redirecting to /member');
+  try {
+    await requireTenantAdminSession(sessionNonNull as unknown as UserSession);
+  } catch {
     const fallback = '/member';
     redirect({ href: fallback, locale });
   }
@@ -43,14 +42,34 @@ export default async function AdminLayout({
     ...pickMessages(allMessages, ADMIN_NAMESPACES),
   };
 
+  const isSuperAdmin = sessionNonNull.user.role === 'super_admin';
+
+  let tenantOptions: AdminTenantOption[] = [];
+  if (isSuperAdmin) {
+    const [{ db }, { tenants }, drizzle] = await Promise.all([
+      import('@interdomestik/database/db'),
+      import('@interdomestik/database/schema'),
+      import('drizzle-orm'),
+    ]);
+
+    // Keep selector lightweight: only active tenants.
+    const rows = await db
+      .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
+      .from(tenants)
+      .where(drizzle.eq(tenants.isActive, true))
+      .orderBy(drizzle.asc(tenants.name));
+
+    tenantOptions = rows;
+  }
+
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
       <SidebarProvider defaultOpen={true}>
         <AdminSidebar
           user={{
-            name: session!.user.name || 'Admin',
-            email: session!.user.email,
-            role: session!.user.role,
+            name: sessionNonNull.user.name || 'Admin',
+            email: sessionNonNull.user.email,
+            role: sessionNonNull.user.role,
           }}
         />
         <SidebarInset className="bg-mesh flex flex-col min-h-screen">
@@ -63,6 +82,14 @@ export default async function AdminLayout({
               <h1 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 Admin Panel
               </h1>
+              {isSuperAdmin ? (
+                <div className="flex items-center gap-2">
+                  <AdminTenantSelector
+                    tenants={tenantOptions}
+                    defaultTenantId={sessionNonNull.user.tenantId}
+                  />
+                </div>
+              ) : null}
             </div>
           </header>
           <div className="flex-1 overflow-y-auto p-6 md:p-8">
