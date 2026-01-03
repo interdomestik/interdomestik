@@ -1,5 +1,5 @@
 import { claimDocuments, claims, createAdminClient, db } from '@interdomestik/database';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { ensureTenantId, isStaffOrHigher } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
 type Session = {
@@ -86,7 +86,8 @@ export async function getDocumentAccessCore(args: {
   const doc = row.doc as unknown as DocumentRow;
 
   const userRole = (session.user.role as string | undefined) ?? undefined;
-  const isPrivileged = userRole === 'admin' || userRole === 'staff';
+  // Permissions: Admin/Staff can read any. User must own it.
+  const isPrivileged = isStaffOrHigher(userRole);
   const isClaimOwner = row.claimOwnerId === session.user.id;
   const isUploader = doc.uploadedBy === session.user.id;
 

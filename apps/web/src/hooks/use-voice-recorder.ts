@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface UseVoiceRecorderReturn {
   isRecording: boolean;
@@ -13,7 +13,15 @@ export interface UseVoiceRecorderReturn {
   error: string | null;
 }
 
-export function useVoiceRecorder(): UseVoiceRecorderReturn {
+export interface UseVoiceRecorderConfig {
+  maxDurationSeconds?: number;
+  maxSizeBytes?: number;
+}
+
+export function useVoiceRecorder({
+  maxDurationSeconds = 120,
+  maxSizeBytes = 10 * 1024 * 1024,
+}: UseVoiceRecorderConfig = {}): UseVoiceRecorderReturn {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -54,9 +62,17 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
+      // Check limits on data available
       mediaRecorder.ondataavailable = e => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
+
+          // Check size limit (approximate as we push chunks)
+          const currentSize = chunksRef.current.reduce((acc, chunk) => acc + chunk.size, 0);
+          if (maxSizeBytes && currentSize > maxSizeBytes) {
+            stopRecording();
+            setError('Recording limit reached (max size).');
+          }
         }
       };
 
@@ -71,7 +87,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         stream.getTracks().forEach(track => track.stop());
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // Process data every second for size checks
       setIsRecording(true);
       startTimer();
     } catch (err) {
@@ -94,6 +110,15 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     setIsPaused(false);
     chunksRef.current = [];
   };
+
+  // Check limits in timer loop
+
+  useEffect(() => {
+    if (isRecording && maxDurationSeconds && recordingTime >= maxDurationSeconds) {
+      stopRecording();
+      setError('Recording limit reached (time).');
+    }
+  }, [recordingTime, isRecording, maxDurationSeconds, stopRecording, setError]);
 
   return {
     isRecording,

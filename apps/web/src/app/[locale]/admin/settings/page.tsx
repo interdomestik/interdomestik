@@ -1,3 +1,7 @@
-'use client';
-export { default } from './_core.entry';
-export * from './_core.entry';
+import AdminSettingsPage from './_core.entry';
+
+export const dynamic = 'force-dynamic';
+
+export default function Page() {
+  return <AdminSettingsPage />;
+}

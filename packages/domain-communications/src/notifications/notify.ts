@@ -5,6 +5,7 @@ import {
   sendStatusChangedEmail,
 } from '../email';
 import { db } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { notifications } from '@interdomestik/database/schema';
 import { nanoid } from 'nanoid';
 import type { AuditLogger } from '../types';
@@ -38,15 +39,22 @@ export async function sendNotification(
   }
 ) {
   try {
-    const resolvedTenantId =
-      options?.tenantId ??
-      (
-        await db.query.user.findFirst({
-          where: (users, { eq }) => eq(users.id, userId),
-          columns: { tenantId: true },
-        })
-      )?.tenantId ??
-      'tenant_mk';
+    const requestedTenantId = options?.tenantId ?? null;
+    const userRecord = await db.query.user.findFirst({
+      where: (users, { eq }) =>
+        requestedTenantId
+          ? withTenant(requestedTenantId, users.tenantId, eq(users.id, userId))
+          : eq(users.id, userId),
+      columns: { tenantId: true },
+    });
+    const resolvedTenantId = userRecord?.tenantId;
+
+    if (!resolvedTenantId) {
+      return { success: false, error: 'Missing tenantId for notification' };
+    }
+    if (requestedTenantId && resolvedTenantId !== requestedTenantId) {
+      return { success: false, error: 'Tenant mismatch for notification' };
+    }
 
     const title = options?.title || event.replace(/_/g, ' ').toUpperCase();
     const content = payload.claimTitle

@@ -1,7 +1,8 @@
 import { db } from '@interdomestik/database';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { UserSession } from '../types';
 import type { NotificationPreferences } from './types';
@@ -16,11 +17,23 @@ export async function updateNotificationPreferencesCore(params: {
     return { success: false, error: 'Unauthorized' };
   }
 
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { success: false, error: 'Unauthorized' };
+  }
+
   try {
     const [existing] = await db
       .select()
       .from(userNotificationPreferences)
-      .where(eq(userNotificationPreferences.userId, session.user.id))
+      .where(
+        and(
+          eq(userNotificationPreferences.userId, session.user.id),
+          eq(userNotificationPreferences.tenantId, tenantId)
+        )
+      )
       .limit(1);
 
     if (existing) {
@@ -30,10 +43,16 @@ export async function updateNotificationPreferencesCore(params: {
           ...preferences,
           updatedAt: new Date(),
         })
-        .where(eq(userNotificationPreferences.userId, session.user.id));
+        .where(
+          and(
+            eq(userNotificationPreferences.userId, session.user.id),
+            eq(userNotificationPreferences.tenantId, tenantId)
+          )
+        );
     } else {
       await db.insert(userNotificationPreferences).values({
         id: nanoid(),
+        tenantId,
         userId: session.user.id,
         ...preferences,
         createdAt: new Date(),

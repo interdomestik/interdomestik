@@ -39,6 +39,7 @@ export async function runNpsCronCore(args: {
     .select({
       userId: subscriptions.userId,
       subId: subscriptions.id,
+      tenantId: subscriptions.tenantId,
       name: user.name,
       email: user.email,
     })
@@ -60,6 +61,7 @@ export async function runNpsCronCore(args: {
       .insert(engagementEmailSends)
       .values({
         id: nanoid(),
+        tenantId: member.tenantId!,
         userId: member.userId!,
         subscriptionId: member.subId,
         templateKey: NPS_TEMPLATE_KEY,
@@ -94,6 +96,7 @@ export async function runNpsCronCore(args: {
       .insert(npsSurveyTokens)
       .values({
         id: nanoid(),
+        tenantId: member.tenantId!,
         userId: member.userId!,
         subscriptionId: member.subId,
         dedupeKey,
@@ -144,6 +147,7 @@ export async function runNpsCronCore(args: {
         await logAuditEvent({
           actorId: null,
           actorRole: 'system',
+          tenantId: member.tenantId,
           action: 'email.nps.sent',
           entityType: 'subscription',
           entityId: member.subId,
@@ -168,6 +172,7 @@ export async function runNpsCronCore(args: {
         await logAuditEvent({
           actorId: null,
           actorRole: 'system',
+          tenantId: member.tenantId,
           action: 'email.nps.failed',
           entityType: 'subscription',
           entityId: member.subId,

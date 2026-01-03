@@ -21,6 +21,7 @@ export async function submitNpsCore(args: {
   const [tokenRow] = await db
     .select({
       id: npsSurveyTokens.id,
+      tenantId: npsSurveyTokens.tenantId,
       userId: npsSurveyTokens.userId,
       subscriptionId: npsSurveyTokens.subscriptionId,
       expiresAt: npsSurveyTokens.expiresAt,
@@ -55,6 +56,7 @@ export async function submitNpsCore(args: {
 
     await db.insert(npsSurveyResponses).values({
       id: nanoid(),
+      tenantId: tokenRow.tenantId,
       tokenId: tokenRow.id,
       userId: tokenRow.userId,
       subscriptionId: tokenRow.subscriptionId,

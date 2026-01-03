@@ -52,6 +52,7 @@ export async function runEngagementCronCore(args: {
       .select({
         userId: subscriptions.userId,
         subId: subscriptions.id,
+        tenantId: subscriptions.tenantId,
         name: user.name,
         email: user.email,
       })
@@ -74,6 +75,7 @@ export async function runEngagementCronCore(args: {
         .insert(engagementEmailSends)
         .values({
           id: nanoid(),
+          tenantId: member.tenantId!,
           userId: member.userId!,
           subscriptionId: member.subId,
           templateKey,
@@ -136,6 +138,7 @@ export async function runEngagementCronCore(args: {
           await logAuditEvent({
             actorId: null,
             actorRole: 'system',
+            tenantId: member.tenantId,
             action: 'email.engagement.sent',
             entityType: 'subscription',
             entityId: member.subId,
@@ -160,6 +163,7 @@ export async function runEngagementCronCore(args: {
           await logAuditEvent({
             actorId: null,
             actorRole: 'system',
+            tenantId: member.tenantId,
             action: 'email.engagement.failed',
             entityType: 'subscription',
             entityId: member.subId,
@@ -195,6 +199,7 @@ export async function runEngagementCronCore(args: {
       .select({
         userId: subscriptions.userId,
         subId: subscriptions.id,
+        tenantId: subscriptions.tenantId,
         name: user.name,
         email: user.email,
       })
@@ -210,6 +215,7 @@ export async function runEngagementCronCore(args: {
         .insert(engagementEmailSends)
         .values({
           id: nanoid(),
+          tenantId: member.tenantId!,
           userId: member.userId!,
           subscriptionId: member.subId,
           templateKey,
@@ -256,6 +262,7 @@ export async function runEngagementCronCore(args: {
           await logAuditEvent({
             actorId: null,
             actorRole: 'system',
+            tenantId: member.tenantId,
             action: 'email.engagement.sent',
             entityType: 'subscription',
             entityId: member.subId,
@@ -280,6 +287,7 @@ export async function runEngagementCronCore(args: {
           await logAuditEvent({
             actorId: null,
             actorRole: 'system',
+            tenantId: member.tenantId,
             action: 'email.engagement.failed',
             entityType: 'subscription',
             entityId: member.subId,

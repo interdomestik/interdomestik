@@ -1,5 +1,6 @@
 import { agentCommissions, db, user } from '@interdomestik/database';
-import { desc, eq, sql } from 'drizzle-orm';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { Session } from './context';
 import type { ActionResult, LeaderboardData, LeaderboardEntry } from './types';
@@ -23,6 +24,8 @@ export async function getAgentLeaderboardCore(params: {
   }
 
   try {
+    const tenantId = ensureTenantId(session);
+
     let dateFilter = sql`TRUE`;
     const now = new Date();
 
@@ -34,6 +37,8 @@ export async function getAgentLeaderboardCore(params: {
       dateFilter = sql`${agentCommissions.earnedAt} >= ${monthAgo.toISOString()}`;
     }
 
+    const tenantFilter = eq(agentCommissions.tenantId, tenantId);
+
     const results = await db
       .select({
         agentId: agentCommissions.agentId,
@@ -41,7 +46,7 @@ export async function getAgentLeaderboardCore(params: {
         dealCount: sql<number>`COUNT(*)`,
       })
       .from(agentCommissions)
-      .where(dateFilter)
+      .where(and(dateFilter, tenantFilter))
       .groupBy(agentCommissions.agentId)
       .orderBy(
         desc(

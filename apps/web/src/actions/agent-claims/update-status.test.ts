@@ -16,14 +16,14 @@ vi.mock('@/lib/notifications', () => ({
 
 vi.mock('@interdomestik/database', () => ({
   claims: {
-    id: 'id',
-    tenantId: 'tenantId',
-    status: 'status',
-    userId: 'userId',
-    title: 'title',
-    staffId: 'staffId',
+    id: { name: 'id' },
+    tenantId: { name: 'tenantId' },
+    status: { name: 'status' },
+    userId: { name: 'userId' },
+    title: { name: 'title' },
+    staffId: { name: 'staffId' },
   },
-  user: { id: 'id', tenantId: 'tenantId', email: 'email' },
+  user: { id: { name: 'id' }, tenantId: { name: 'tenantId' }, email: { name: 'email' } },
   db: {
     select: () => ({
       from: () => ({

@@ -71,7 +71,7 @@ async function upsertDefaultBranchSetting(params) {
 
   await sql`
     insert into tenant_settings (id, tenant_id, category, key, value, created_at, updated_at)
-    values (${id}, ${tenantId}, ${'rbac'}, ${'default_branch_id'}, jsonb_build_object('branchId', ${branchId}), ${now}, ${now})
+    values (${id}, ${tenantId}, ${'rbac'}, ${'default_branch_id'}, jsonb_build_object('branchId', ${branchId}::text), ${now}, ${now})
     on conflict (tenant_id, category, key) do update set
       value = excluded.value,
       updated_at = excluded.updated_at;

@@ -48,7 +48,14 @@ export async function handleSubscriptionPastDue(
     columns: { tenantId: true, email: true, name: true },
   });
 
-  const tenantId = existingSub?.tenantId ?? userRecord?.tenantId ?? 'tenant_mk';
+  const tenantId = existingSub?.tenantId ?? userRecord?.tenantId;
+
+  if (!tenantId) {
+    console.warn(
+      `[Webhook] Cannot resolve tenant for past_due subscription ${sub.id} userId=${userId}; skipping write`
+    );
+    return;
+  }
 
   const newDunningCount = (existingSub?.dunningAttemptCount || 0) + 1;
 

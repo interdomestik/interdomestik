@@ -15,11 +15,15 @@ import {
 } from '@interdomestik/ui';
 import { Github, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
 export function RegisterForm() {
   const t = useTranslations('auth.register');
   const common = useTranslations('common');
+  const searchParams = useSearchParams();
+  const tenantId = searchParams.get('tenantId') || undefined;
+  const loginHref = tenantId ? `/login?tenantId=${tenantId}` : '/login';
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -55,13 +59,22 @@ export function RegisterForm() {
               return;
             }
 
+            if (!tenantId) {
+              setError('Missing tenant context. Please select a tenant to continue.');
+              setLoading(false);
+              return;
+            }
+
             try {
-              const { error: signUpError } = await authClient.signUp.email({
+              const signUpPayload = {
                 email,
                 password,
                 name,
                 callbackURL: '/member',
-              });
+                tenantId,
+              } as Parameters<typeof authClient.signUp.email>[0];
+
+              const { error: signUpError } = await authClient.signUp.email(signUpPayload);
 
               if (signUpError) {
                 setError(signUpError.message || 'Something went wrong');
@@ -175,6 +188,7 @@ export function RegisterForm() {
               await authClient.signIn.social({
                 provider: 'github',
                 callbackURL: `${window.location.origin}/member`,
+                ...(tenantId ? { additionalData: { tenantId } } : {}),
               });
             }}
           >
@@ -184,7 +198,10 @@ export function RegisterForm() {
 
           <p className="text-center text-sm text-[hsl(var(--muted-500))] mt-4">
             {t('hasAccount')}{' '}
-            <Link href="/login" className="text-[hsl(var(--primary))] hover:underline font-medium">
+            <Link
+              href={loginHref}
+              className="text-[hsl(var(--primary))] hover:underline font-medium"
+            >
               {t('loginLink')}
             </Link>
           </p>

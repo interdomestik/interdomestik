@@ -1,7 +1,8 @@
 import { db } from '@interdomestik/database';
 import { agentSettings } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ActionResult } from '../commissions.types';
 import { isAdmin } from './access';
@@ -17,20 +18,27 @@ export async function updateAgentTierCore(params: {
 
   if (!session?.user) return { success: false, error: 'Unauthorized' };
   if (!isAdmin(session.user.role)) return { success: false, error: 'Admin access required' };
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { success: false, error: 'Missing tenantId' };
+  }
 
   try {
     const existing = await db.query.agentSettings?.findFirst({
-      where: eq(agentSettings.agentId, agentId),
+      where: and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)),
     });
 
     if (existing) {
       await db
         .update(agentSettings)
         .set({ tier, updatedAt: new Date() })
-        .where(eq(agentSettings.agentId, agentId));
+        .where(and(eq(agentSettings.agentId, agentId), eq(agentSettings.tenantId, tenantId)));
     } else {
       await db.insert(agentSettings).values({
         id: nanoid(),
+        tenantId,
         agentId,
         tier,
         commissionRates: {},

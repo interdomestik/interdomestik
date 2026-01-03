@@ -1,4 +1,5 @@
 import { claimMessages, db, user } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq, or } from 'drizzle-orm';
 import type { Session } from '../types';
@@ -26,8 +27,8 @@ export async function getMessagesForClaimCore(params: {
     const tenantId = ensureTenantId(session);
 
     const claim = await db.query.claims.findFirst({
-      where: (claimsTable, { and, eq }) =>
-        and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
     });
 
     if (!claim) {
@@ -38,6 +39,13 @@ export async function getMessagesForClaimCore(params: {
     if (!isStaff && claim.userId !== userId) {
       return { success: false, error: 'Access denied' };
     }
+
+    const visibilityCondition = isStaff
+      ? undefined
+      : or(eq(claimMessages.isInternal, false), eq(claimMessages.senderId, userId));
+    const messageCondition = visibilityCondition
+      ? and(eq(claimMessages.claimId, claimId), visibilityCondition)
+      : eq(claimMessages.claimId, claimId);
 
     const selected = (await db
       .select({
@@ -57,15 +65,7 @@ export async function getMessagesForClaimCore(params: {
       })
       .from(claimMessages)
       .leftJoin(user, eq(claimMessages.senderId, user.id))
-      .where(
-        and(
-          eq(claimMessages.claimId, claimId),
-          eq(claimMessages.tenantId, tenantId),
-          isStaff
-            ? undefined
-            : or(eq(claimMessages.isInternal, false), eq(claimMessages.senderId, userId))
-        )
-      )
+      .where(withTenant(tenantId, claimMessages.tenantId, messageCondition))
       .orderBy(claimMessages.createdAt)) as unknown as SelectedMessageRow[];
 
     return { success: true, messages: normalizeSelectedMessages(selected) };

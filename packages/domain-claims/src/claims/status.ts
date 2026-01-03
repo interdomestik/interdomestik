@@ -1,4 +1,5 @@
-import { and, claims, db, eq } from '@interdomestik/database';
+import { claims, db, eq } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from './types';
@@ -45,8 +46,8 @@ export async function updateClaimStatusCore(
 
   try {
     const claim = await db.query.claims.findFirst({
-      where: (claimsTable, { and, eq }) =>
-        and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
     });
 
     if (!claim) {
@@ -61,7 +62,7 @@ export async function updateClaimStatusCore(
         status: newStatus,
         updatedAt: new Date(),
       })
-      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
     if (deps.logAuditEvent) {
       await deps.logAuditEvent({
@@ -80,8 +81,8 @@ export async function updateClaimStatusCore(
 
     if (claim.userId && oldStatus !== newStatus && deps.notifyStatusChanged) {
       const member = await db.query.user.findFirst({
-        where: (userTable, { and, eq }) =>
-          and(eq(userTable.id, claim.userId), eq(userTable.tenantId, tenantId)),
+        where: (userTable, { eq }) =>
+          withTenant(tenantId, userTable.tenantId, eq(userTable.id, claim.userId)),
       });
 
       if (member?.email) {

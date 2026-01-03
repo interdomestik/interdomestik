@@ -19,6 +19,7 @@ export async function logActivityCore(
 
   await db.insert(crmActivities).values({
     id: nanoid(),
+    tenantId: lead.tenantId,
     leadId,
     agentId,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

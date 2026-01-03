@@ -9,8 +9,7 @@ export const memberNotes = pgTable('member_notes', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   memberId: text('member_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
@@ -31,8 +30,7 @@ export const auditLog = pgTable('audit_log', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   actorId: text('actor_id').references(() => user.id),
   actorRole: text('actor_role'),
   action: text('action').notNull(),

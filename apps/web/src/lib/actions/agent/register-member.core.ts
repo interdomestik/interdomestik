@@ -7,6 +7,7 @@ import { registerMemberSchema } from './schemas';
 
 export async function registerMemberCore(
   agent: { id: string; name?: string | null },
+  tenantId: string,
   formData: FormData
 ) {
   const rawData = {
@@ -34,6 +35,7 @@ export async function registerMemberCore(
     await db.transaction(async tx => {
       await tx.insert(userTable).values({
         id: userId,
+        tenantId,
         name: data.fullName,
         email: data.email,
         emailVerified: false,
@@ -46,6 +48,7 @@ export async function registerMemberCore(
 
       await tx.insert(agentClients).values({
         id: nanoid(),
+        tenantId,
         agentId: agent.id,
         memberId: userId,
         status: 'active',
@@ -58,6 +61,7 @@ export async function registerMemberCore(
 
       await tx.insert(subscriptions).values({
         id: nanoid(),
+        tenantId,
         userId,
         planId: data.planId,
         status: 'active',

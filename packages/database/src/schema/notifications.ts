@@ -8,8 +8,7 @@ export const notifications = pgTable('notifications', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
@@ -26,8 +25,7 @@ export const emailCampaignLogs = pgTable('email_campaign_logs', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   userId: text('user_id')
     .notNull()
     .references(() => user.id),

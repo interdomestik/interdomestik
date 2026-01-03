@@ -6,7 +6,7 @@ import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 interface PricingTableProps {
@@ -17,6 +17,8 @@ interface PricingTableProps {
 export function PricingTable({ userId, email }: PricingTableProps) {
   const t = useTranslations('pricing');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tenantId = searchParams.get('tenantId') || undefined;
   const [loading, setLoading] = useState<string | null>(null);
   const [isYearly, setIsYearly] = useState(true);
 
@@ -79,7 +81,9 @@ export function PricingTable({ userId, email }: PricingTableProps) {
 
   const handleAction = async (planId: string, priceId: string) => {
     if (!userId) {
-      router.push(`/register?plan=${planId}`);
+      const params = new URLSearchParams({ plan: planId });
+      if (tenantId) params.set('tenantId', tenantId);
+      router.push(`/register?${params.toString()}`);
       return;
     }
 

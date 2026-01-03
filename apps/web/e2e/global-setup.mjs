@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 async function globalSetup() {
   const repoRoot = path.resolve(__dirname, '..', '..', '..');
   dotenv.config({ path: path.join(repoRoot, '.env') });
+  const seedBranchesScript = path.join(repoRoot, 'scripts', 'seed-branches-manual.mjs');
   const seedScript = path.join(repoRoot, 'scripts', 'seed-e2e-users.mjs');
   const seedAgentCommand = 'pnpm seed:agent';
 
@@ -34,6 +35,14 @@ async function globalSetup() {
   }
 
   try {
+    execSync(`node ${seedBranchesScript}`, {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        PLAYWRIGHT_HOST: process.env.PLAYWRIGHT_HOST ?? 'localhost',
+      },
+    });
     execSync(`node ${seedScript}`, {
       cwd: repoRoot,
       stdio: 'inherit',

@@ -118,6 +118,31 @@ const claims = [];
 
 const DEFAULT_TENANT_ID = 'tenant_mk';
 
+async function getTenantDefaultBranchId(tenantId) {
+  const rows = await sql`
+    select value
+    from tenant_settings
+    where tenant_id = ${tenantId} and category = 'rbac' and key = 'default_branch_id'
+    limit 1;
+  `;
+
+  const value = rows?.[0]?.value;
+  const branchId = value?.branchId;
+  if (typeof branchId === 'string' && branchId.length > 0) {
+    return branchId;
+  }
+
+  const fallback = await sql`
+    select id
+    from branches
+    where tenant_id = ${tenantId} and is_active = true
+    order by created_at asc
+    limit 1;
+  `;
+
+  return fallback?.[0]?.id ?? null;
+}
+
 // 1. Generate Worker-Specific Users/Agents/Claims
 for (let i = 0; i < WORKER_COUNT; i++) {
   // Member
@@ -236,10 +261,16 @@ async function upsertUser({ id, name, email, role, password, agentId }) {
   // Clean existing rows for deterministic state
   // Delete referencing tables first (order matters for FK constraints)
   await sql`delete from session where "userId" = ${id};`;
-  await sql`delete from subscriptions where "user_id" = ${id};`;
+  await sql`delete from subscriptions where "user_id" = ${id} OR agent_id = ${id};`;
   await sql`delete from audit_log where "actor_id" = ${id};`;
   await sql`delete from agent_clients where agent_id = ${id} OR member_id = ${id};`;
   await sql`delete from agent_commissions where agent_id = ${id} OR member_id = ${id};`;
+  await sql`delete from user_roles where user_id = ${id};`;
+
+  // CRM tables reference user via agent_id (FK is ON DELETE NO ACTION)
+  await sql`delete from crm_activities where agent_id = ${id};`;
+  await sql`delete from crm_deals where agent_id = ${id};`;
+  await sql`delete from crm_leads where agent_id = ${id};`;
 
   await sql`delete from account where "userId" = ${id};`;
 
@@ -248,15 +279,22 @@ async function upsertUser({ id, name, email, role, password, agentId }) {
   await sql`delete from claim_documents where "claim_id" in (select id from claim where "userId" = ${id});`;
   await sql`delete from claim_stage_history where "claim_id" in (select id from claim where "userId" = ${id});`;
   await sql`delete from claim where "userId" = ${id};`;
+  await sql`delete from claim where agent_id = ${id};`;
   await sql`delete from "user" where id = ${id};`;
 
+  const tenantId = DEFAULT_TENANT_ID;
+  const defaultBranchId = await getTenantDefaultBranchId(tenantId);
+  const branchId = role === 'agent' ? defaultBranchId : null;
+
   await sql`
-    insert into "user" (id, name, email, "emailVerified", image, role, "agentId", "createdAt", "updatedAt")
-    values (${id}, ${name}, ${email}, ${true}, ${null}, ${role}, ${agentId || null}, ${now}, ${now})
+    insert into "user" (id, name, email, "emailVerified", image, role, "agentId", "tenant_id", "branch_id", "createdAt", "updatedAt")
+    values (${id}, ${name}, ${email}, ${true}, ${null}, ${role}, ${agentId || null}, ${tenantId}, ${branchId}, ${now}, ${now})
     on conflict (email) do update set
       name = excluded.name,
       role = excluded.role,
       "agentId" = excluded."agentId",
+      "tenant_id" = excluded."tenant_id",
+      "branch_id" = excluded."branch_id",
       "updatedAt" = excluded."updatedAt";
   `;
 
@@ -276,15 +314,30 @@ async function upsertClaim(claim) {
   const now = new Date();
   // We use upsert on ID
   await sql`
-    insert into claim (id, "userId", "staffId", title, description, status, category, "companyName", amount, currency, "createdAt", "updatedAt")
-    values (${claim.id}, ${claim.userId}, ${claim.staffId || null}, ${claim.title}, ${claim.description}, ${claim.status}, ${claim.category}, ${claim.companyName}, ${claim.amount}, ${claim.currency}, ${claim.createdAt}, ${now})
+    insert into claim (id, tenant_id, "userId", agent_id, branch_id, "staffId", title, description, status, category, "companyName", amount, currency, "createdAt", "updatedAt")
+    values (${claim.id}, ${DEFAULT_TENANT_ID}, ${claim.userId}, ${claim.agentId || null}, ${claim.branchId || null}, ${claim.staffId || null}, ${claim.title}, ${claim.description}, ${claim.status}, ${claim.category}, ${claim.companyName}, ${claim.amount}, ${claim.currency}, ${claim.createdAt}, ${now})
     on conflict (id) do update set
       title = excluded.title,
       description = excluded.description,
       status = excluded.status,
       amount = excluded.amount,
+      tenant_id = excluded.tenant_id,
+      agent_id = excluded.agent_id,
+      branch_id = excluded.branch_id,
       "staffId" = excluded."staffId",
       "updatedAt" = excluded."updatedAt";
+  `;
+}
+
+async function upsertAgentClient({ agentId, memberId, tenantId }) {
+  const now = new Date();
+  const id = `ac:${tenantId}:${agentId}:${memberId}`;
+  await sql`
+    insert into agent_clients (id, tenant_id, agent_id, member_id, status, joined_at, created_at)
+    values (${id}, ${tenantId}, ${agentId}, ${memberId}, ${'active'}, ${now}, ${now})
+    on conflict (tenant_id, agent_id, member_id) do update set
+      status = excluded.status,
+      joined_at = excluded.joined_at;
   `;
 }
 
@@ -338,23 +391,57 @@ async function main() {
   }
 
   // 3. Upsert Users
+  const tenantId = DEFAULT_TENANT_ID;
+  const defaultBranchId = await getTenantDefaultBranchId(tenantId);
   for (const user of users) {
     await upsertUser(user);
     console.log(`👤 Seeded user: ${user.email}`);
   }
 
-  // 4. Upsert Subscriptions for Test Users (to pass Membership Gate)
+  // 3.1 Upsert canonical agent ownership (agent_clients)
   for (const user of users) {
+    if (user.role === 'user' && user.agentId) {
+      await upsertAgentClient({ agentId: user.agentId, memberId: user.id, tenantId });
+    }
+  }
+
+  // 4. Upsert Subscriptions for Test Users (to pass Membership Gate)
+  for (const u of users) {
+    const subscriptionId = `sub-${u.id}`;
+    const agentId = u.role === 'user' ? (u.agentId ?? null) : null;
+    const branchId = agentId ? defaultBranchId : defaultBranchId;
+
     await sql`
-      INSERT INTO subscriptions (id, user_id, status, plan_id, current_period_end)
-      VALUES (${'sub-' + user.id}, ${user.id}, 'active', 'standard', ${new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()})
-      ON CONFLICT (id) DO UPDATE SET status = 'active';
+      insert into subscriptions (id, tenant_id, user_id, status, plan_id, current_period_end, agent_id, branch_id)
+      values (
+        ${subscriptionId},
+        ${tenantId},
+        ${u.id},
+        ${'active'},
+        ${'standard'},
+        ${new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)},
+        ${agentId},
+        ${branchId}
+      )
+      on conflict (id) do update set
+        tenant_id = excluded.tenant_id,
+        user_id = excluded.user_id,
+        status = excluded.status,
+        plan_id = excluded.plan_id,
+        current_period_end = excluded.current_period_end,
+        agent_id = excluded.agent_id,
+        branch_id = excluded.branch_id;
     `;
   }
 
   // 5. Upsert Claims
   for (const claim of claims) {
-    await upsertClaim(claim);
+    const agentId = users.find(u => u.id === claim.userId)?.agentId ?? null;
+    await upsertClaim({
+      ...claim,
+      agentId,
+      branchId: defaultBranchId,
+    });
     console.log(`📄 Seeded claim: ${claim.title} (${claim.status})`);
   }
 

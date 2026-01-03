@@ -10,7 +10,7 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     insert: () => ({ values: mocks.dbInsertValues }),
   },
-  crmActivities: {},
+  crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
 }));
 
 vi.mock('next/cache', () => ({
@@ -30,7 +30,7 @@ describe('logLeadActivityCore', () => {
 
   it('maps type "other" to "note" and subject to summary', async () => {
     mocks.getSessionFromHeaders.mockResolvedValue({
-      user: { id: 'agent-1', role: 'agent' },
+      user: { id: 'agent-1', role: 'agent', tenantId: 'tenant_mk' },
     });
     mocks.dbInsertValues.mockResolvedValue(undefined);
 

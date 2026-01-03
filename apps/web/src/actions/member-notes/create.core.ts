@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
 import { memberNotes } from '@interdomestik/database/schema';
 import { nanoid } from 'nanoid';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ActionResult, CreateNoteInput, MemberNote, NoteType } from '../member-notes.types';
 import { createNoteSchema } from '../member-notes.types';
 import { canAccessNotes } from './access';
@@ -14,6 +15,12 @@ export async function createMemberNoteCore(params: {
 
   if (!session?.user) return { success: false, error: 'Unauthorized' };
   if (!canAccessNotes(session.user.role)) return { success: false, error: 'Access denied' };
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { success: false, error: 'Missing tenantId' };
+  }
 
   const validated = createNoteSchema.safeParse(data);
   if (!validated.success) return { success: false, error: validated.error.message };
@@ -21,6 +28,7 @@ export async function createMemberNoteCore(params: {
   try {
     const newNote = {
       id: nanoid(),
+      tenantId,
       memberId: validated.data.memberId,
       authorId: session.user.id,
       type: validated.data.type ?? 'general',

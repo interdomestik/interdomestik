@@ -1,5 +1,6 @@
 import { db } from '@interdomestik/database';
-import { agentCommissions } from '@interdomestik/database/schema';
+import { agentCommissions, user } from '@interdomestik/database/schema';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import type { ActionResult, CommissionType } from './types';
@@ -16,10 +17,23 @@ export async function createCommissionCore(data: {
   metadata?: Record<string, unknown>;
 }): Promise<ActionResult<{ id: string }>> {
   try {
+    const resolvedTenantId =
+      data.tenantId ??
+      (
+        await db.query.user.findFirst({
+          where: eq(user.id, data.agentId),
+          columns: { tenantId: true },
+        })
+      )?.tenantId;
+
+    if (!resolvedTenantId) {
+      return { success: false, error: 'Missing tenantId for commission' };
+    }
+
     const id = nanoid();
     await db.insert(agentCommissions).values({
       id,
-      tenantId: data.tenantId ?? 'tenant_mk',
+      tenantId: resolvedTenantId,
       agentId: data.agentId,
       memberId: data.memberId ?? null,
       subscriptionId: data.subscriptionId ?? null,

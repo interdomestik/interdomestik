@@ -8,8 +8,7 @@ export const referrals = pgTable('referrals', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   referrerId: text('referrer_id')
     .notNull()
     .references(() => user.id),
@@ -28,8 +27,7 @@ export const serviceUsage = pgTable('service_usage', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   userId: text('user_id')
     .notNull()
     .references(() => user.id),
@@ -44,8 +42,7 @@ export const serviceRequests = pgTable('service_requests', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   userId: text('user_id')
     .notNull()
     .references(() => user.id),
@@ -62,8 +59,7 @@ export const partnerDiscountUsage = pgTable('partner_discount_usage', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   userId: text('user_id')
     .notNull()
     .references(() => user.id),
@@ -76,8 +72,7 @@ export const leadDownloads = pgTable('lead_downloads', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   email: text('email').notNull(),
   resourceCode: text('resource_code').notNull(),
   utmSource: text('utm_source'),

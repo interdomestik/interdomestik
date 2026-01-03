@@ -7,6 +7,8 @@ import { AnalyticsDashboard } from '@/components/admin/analytics-dashboard';
 import { AdminStatsCards } from '@/components/admin/dashboard/admin-stats-cards';
 import { RecentActivityCard } from '@/components/admin/dashboard/recent-activity-card';
 import { Link } from '@/i18n/routing';
+import { auth } from '@/lib/auth';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Button } from '@interdomestik/ui/components/button';
 import {
   Card,
@@ -17,6 +19,7 @@ import {
 } from '@interdomestik/ui/components/card';
 import { Plus, UserPlus } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
 import { Suspense } from 'react';
 
 export default async function AdminDashboardPage({
@@ -66,10 +69,15 @@ export default async function AdminDashboardPage({
     return next ? `${path}?${next}` : path;
   };
 
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const tenantId = ensureTenantId(session);
+
   const [stats, recentClaims, unassignedClaims] = await Promise.all([
-    getAdminDashboardStats(),
-    getRecentClaims(5),
-    getUnassignedClaims(5),
+    getAdminDashboardStats(tenantId),
+    getRecentClaims(tenantId, 5),
+    getUnassignedClaims(tenantId, 5),
   ]);
 
   return (

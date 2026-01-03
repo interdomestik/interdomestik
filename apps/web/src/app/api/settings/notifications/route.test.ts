@@ -91,7 +91,7 @@ describe('GET /api/settings/notifications', () => {
 
   it('should return default preferences if none exist', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123' },
+      user: { id: 'user-123', tenantId: 'tenant_mk' },
     });
     mockSelectChain.limit.mockReturnValue([]);
 
@@ -112,7 +112,7 @@ describe('GET /api/settings/notifications', () => {
 
   it('should return existing preferences', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123' },
+      user: { id: 'user-123', tenantId: 'tenant_mk' },
     });
     mockSelectChain.limit.mockReturnValue([
       {
@@ -142,7 +142,7 @@ describe('GET /api/settings/notifications', () => {
 
   it('should handle database errors gracefully', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123' },
+      user: { id: 'user-123', tenantId: 'tenant_mk' },
     });
     mockSelectChain.limit.mockRejectedValue(new Error('DB Error'));
 
@@ -194,7 +194,7 @@ describe('POST /api/settings/notifications', () => {
 
   it('should create new preferences if none exist', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123' },
+      user: { id: 'user-123', tenantId: 'tenant_mk' },
     });
     mockSelectChain.limit.mockReturnValue([]);
 
@@ -228,7 +228,7 @@ describe('POST /api/settings/notifications', () => {
 
   it('should update existing preferences', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123' },
+      user: { id: 'user-123', tenantId: 'tenant_mk' },
     });
     mockSelectChain.limit.mockReturnValue([
       {
@@ -272,7 +272,7 @@ describe('POST /api/settings/notifications', () => {
 
   it('should handle database errors gracefully on create', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123' },
+      user: { id: 'user-123', tenantId: 'tenant_mk' },
     });
     mockSelectChain.limit.mockReturnValue([]);
     mockInsertChain.values.mockRejectedValue(new Error('DB Error'));
@@ -302,7 +302,7 @@ describe('POST /api/settings/notifications', () => {
 
   it('should handle database errors gracefully on update', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123' },
+      user: { id: 'user-123', tenantId: 'tenant_mk' },
     });
     mockSelectChain.limit.mockReturnValue([{ id: 'pref-123' }]);
     mockUpdateChain.where.mockRejectedValue(new Error('DB Error'));
@@ -332,7 +332,7 @@ describe('POST /api/settings/notifications', () => {
 
   it('should handle invalid JSON gracefully', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123' },
+      user: { id: 'user-123', tenantId: 'tenant_mk' },
     });
 
     const request = new Request('http://localhost:3000/api/settings/notifications', {

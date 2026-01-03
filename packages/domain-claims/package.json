@@ -21,7 +21,9 @@
     "./validators/claims": "./src/validators/claims.ts"
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "test": "vitest run"
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
@@ -30,5 +32,9 @@
     "drizzle-orm": "^0.45.1",
     "nanoid": "^5.1.6",
     "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "postcss": "^8.5.6",
+    "vitest": "^4.0.16"
   }
 }

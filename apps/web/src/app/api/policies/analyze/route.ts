@@ -1,5 +1,6 @@
 import { analyzePolicyImages, analyzePolicyText } from '@/lib/ai/policy-analyzer';
 import { auth } from '@/lib/auth'; // Using better-auth
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { createAdminClient, db } from '@interdomestik/database';
 import { policies } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -16,6 +17,8 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/webp',
 ]);
 const POLICIES_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || 'policies';
+const ANALYSIS_TIMEOUT_MS =
+  Number.parseInt(process.env.POLICY_ANALYSIS_TIMEOUT_MS || '', 10) || 15_000;
 
 function isValidUpload(file: File) {
   if (ALLOWED_MIME_TYPES.has(file.type)) return true;
@@ -27,6 +30,67 @@ function isValidUpload(file: File) {
     lower.endsWith('.png') ||
     lower.endsWith('.webp')
   );
+}
+
+class PolicyAnalysisTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PolicyAnalysisTimeoutError';
+  }
+}
+
+async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new PolicyAnalysisTimeoutError(`${label} timed out`));
+    }, ANALYSIS_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+// Derive image type from MIME, extension, or magic bytes
+function isImageFile(file: File, buffer: Buffer): boolean {
+  // Check MIME type first
+  if (file.type.startsWith('image/')) return true;
+
+  // Fallback to extension
+  const lower = file.name.toLowerCase();
+  if (
+    lower.endsWith('.jpg') ||
+    lower.endsWith('.jpeg') ||
+    lower.endsWith('.png') ||
+    lower.endsWith('.webp')
+  ) {
+    return true;
+  }
+
+  // Fallback to magic bytes
+  if (buffer.length >= 4) {
+    // PNG: 89 50 4E 47
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47)
+      return true;
+    // JPEG: FF D8 FF
+    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return true;
+    // WebP: RIFF....WEBP
+    if (
+      buffer[0] === 0x52 &&
+      buffer[1] === 0x49 &&
+      buffer[2] === 0x46 &&
+      buffer[3] === 0x46 &&
+      buffer.length >= 12
+    ) {
+      if (buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50)
+        return true;
+    }
+  }
+
+  return false;
 }
 
 function sanitizeFileName(name: string) {
@@ -77,6 +141,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Rate Limit: 5 requests per minute per user/IP to prevent cost spikes
+    const limit = await enforceRateLimit({
+      name: 'api:policy-analyze',
+      limit: 5,
+      windowSeconds: 60,
+      headers: await req.headers,
+    });
+
+    // Return the response directly (can be 429 or 503 with proper headers)
+    if (limit) {
+      return limit;
+    }
+
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
@@ -98,8 +175,8 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Check if this is a direct image upload (not a PDF)
-    const isImage = file.type.startsWith('image/');
+    // Check if this is a direct image upload (not a PDF) - using magic bytes fallback
+    const isImage = isImageFile(file, buffer);
 
     // 1. Extract Text (only for PDFs)
     let textContent = '';
@@ -121,7 +198,7 @@ export async function POST(req: NextRequest) {
     const tenantId = ensureTenantId(session);
 
     if (isImage) {
-      const analysis = await analyzePolicyImages([buffer]);
+      const analysis = await withTimeout(analyzePolicyImages([buffer]), 'Image analysis');
 
       const safeName = sanitizeFileName(file.name);
       const upload = await uploadPolicyFile({
@@ -168,7 +245,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. AI Analysis (text-based)
-    const analysis = await analyzePolicyText(textContent);
+    const analysis = await withTimeout(analyzePolicyText(textContent), 'Text analysis');
 
     // 3. Upload to Storage
     const safeName = sanitizeFileName(file.name);
@@ -204,6 +281,9 @@ export async function POST(req: NextRequest) {
       analysis,
     });
   } catch (error: unknown) {
+    if (error instanceof PolicyAnalysisTimeoutError) {
+      return NextResponse.json({ error: error.message }, { status: 504 });
+    }
     console.error('Policy Analysis Error:', error);
     // Return actual error message for debugging
     return NextResponse.json({ error: formatError('Server error', error) }, { status: 500 });

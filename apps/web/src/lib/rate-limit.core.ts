@@ -81,3 +81,43 @@ export async function enforceRateLimit({ name, limit, windowSeconds, headers }: 
     }
   );
 }
+
+// Server-action-safe variant that returns structured data instead of NextResponse
+export type RateLimitResult =
+  | { limited: false }
+  | { limited: true; status: 429 | 503; retryAfter?: number; error: string };
+
+export async function enforceRateLimitForAction({
+  name,
+  limit,
+  windowSeconds,
+  headers,
+}: RateLimitOptions): Promise<RateLimitResult> {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const isAutomatedTestRun =
+    process.env.NODE_ENV === 'test' ||
+    process.env.CI === 'true' ||
+    process.env.INTERDOMESTIK_AUTOMATED === '1';
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!url || !token) {
+    if (isProduction && !isAutomatedTestRun) {
+      console.error(
+        '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; refusing request'
+      );
+      return { limited: true, status: 503, error: 'Service unavailable' };
+    }
+    return { limited: false };
+  }
+
+  const ratelimit = getRatelimitInstance(limit, windowSeconds);
+  const ip = getClientIp(headers);
+  const key = `${name}:${ip}`;
+  const result = await ratelimit.limit(key);
+
+  if (result.success) return { limited: false };
+
+  const resetSeconds = Math.max(1, Math.ceil((result.reset - Date.now()) / 1000));
+  return { limited: true, status: 429, retryAfter: resetSeconds, error: 'Too many requests' };
+}

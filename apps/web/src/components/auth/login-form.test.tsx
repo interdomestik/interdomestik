@@ -47,6 +47,10 @@ vi.mock('next-intl', () => ({
   },
 }));
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(''),
+}));
+
 // Mock router
 const mockPush = vi.fn();
 vi.mock('@/i18n/routing', () => ({

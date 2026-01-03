@@ -1,6 +1,7 @@
 import { agentClients, db, eq, ilike, inArray, or, user } from '@interdomestik/database';
 import { and, type SQL } from 'drizzle-orm';
 
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { UserSession } from '../types';
 
 type Filters = {
@@ -19,7 +20,7 @@ export async function getAgentUsersCore(params: {
     throw new Error('Unauthorized');
   }
 
-  const tenantId = session.user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
 
   const conditions: SQL[] = [eq(user.role, 'user')];
   conditions.push(eq(user.tenantId, tenantId) as SQL);

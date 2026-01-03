@@ -40,7 +40,7 @@ NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR=pri_***
 
 | File                                                | Purpose           |
 | --------------------------------------------------- | ----------------- |
-| `apps/web/src/middleware.ts`                        | CSP configuration |
+| `apps/web/src/proxy.ts`                             | CSP configuration |
 | `apps/web/src/config/paddle.ts`                     | Price ID mappings |
 | `apps/web/src/components/pricing/pricing-table.tsx` | Checkout trigger  |
 | `apps/web/src/app/api/webhooks/paddle/route.ts`     | Webhook handler   |

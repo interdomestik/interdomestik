@@ -1,0 +1,9 @@
+ schemaname |   tablename   |    policyname    |  roles   | qual  
+------------+---------------+------------------+----------+-------
+ public     | account       | No public access | {public} | false
+ public     | session       | No public access | {public} | false
+ public     | subscriptions | No public access | {public} | false
+ public     | user          | No public access | {public} | false
+ public     | verification  | No public access | {public} | false
+(5 rows)
+

@@ -20,8 +20,7 @@ export const agentClients = pgTable(
     id: text('id').primaryKey(),
     tenantId: text('tenant_id')
       .notNull()
-      .references(() => tenants.id)
-      .default('tenant_mk'),
+      .references(() => tenants.id),
     agentId: text('agent_id')
       .notNull()
       .references(() => user.id),
@@ -46,8 +45,7 @@ export const agentCommissions = pgTable('agent_commissions', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   agentId: text('agent_id')
     .notNull()
     .references(() => user.id),
@@ -66,8 +64,7 @@ export const agentSettings = pgTable('agent_settings', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   agentId: text('agent_id')
     .notNull()
     .unique()

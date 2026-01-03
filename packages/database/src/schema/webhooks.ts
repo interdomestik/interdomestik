@@ -5,10 +5,7 @@ export const webhookEvents = pgTable(
   'webhook_events',
   {
     id: text('id').primaryKey(),
-    tenantId: text('tenant_id')
-      .notNull()
-      .references(() => tenants.id)
-      .default('tenant_mk'),
+    tenantId: text('tenant_id').references(() => tenants.id),
     provider: text('provider').notNull(),
     dedupeKey: text('dedupe_key').notNull(),
     eventType: text('event_type'),

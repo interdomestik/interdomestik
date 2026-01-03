@@ -19,7 +19,6 @@ export const auth = betterAuth({
       tenantId: {
         type: 'string',
         fieldName: 'tenantId',
-        defaultValue: 'tenant_mk',
       },
       role: {
         type: 'string',

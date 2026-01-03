@@ -9,6 +9,7 @@ import {
   or,
   user,
 } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 import { SQL, desc, isNotNull, isNull } from 'drizzle-orm';
 
@@ -70,12 +71,16 @@ export async function getUsersCore(params: {
     }
   }
 
-  conditions.push(eq(user.tenantId, tenantId));
+  // Ensure tenant scoping is enforced via helper
+  const userConditions = conditions.length
+    ? and(...conditions.filter((c): c is SQL<unknown> => c !== undefined && c !== null))
+    : undefined;
+
+  // Use withTenant to enforce tenant boundary, replacing manual push
+  // conditions.push(eq(user.tenantId, tenantId)); <-- Removed manual push
 
   const users = await db.query.user.findMany({
-    where: conditions.length
-      ? and(...conditions.filter((c): c is SQL<unknown> => c !== undefined && c !== null))
-      : undefined,
+    where: (t, { eq, and }) => withTenant(tenantId, t.tenantId, userConditions),
     orderBy: (users, { desc }) => [desc(users.createdAt)],
     with: {
       agent: true,

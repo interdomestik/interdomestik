@@ -20,8 +20,8 @@ vi.mock('@interdomestik/database/db', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
-  crmLeads: { id: 'id', agentId: 'agentId' },
-  crmActivities: { id: 'id' },
+  crmLeads: { id: { name: 'id' }, agentId: { name: 'agentId' }, tenantId: { name: 'tenantId' } },
+  crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -61,7 +61,7 @@ describe('agent actions', () => {
   describe('createLead', () => {
     it('should create lead if valid', async () => {
       (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', role: 'agent' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
       });
 
       const formData = new FormData();
@@ -89,7 +89,7 @@ describe('agent actions', () => {
 
     it('should return validation error if fields missing', async () => {
       (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', role: 'agent' },
+        user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
       });
       const formData = new FormData();
       // Empty

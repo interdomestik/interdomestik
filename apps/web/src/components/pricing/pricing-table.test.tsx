@@ -1,8 +1,8 @@
+import { PADDLE_PRICES } from '@/config/paddle';
 import * as paddleLib from '@interdomestik/domain-membership-billing/paddle';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PricingTable } from './pricing-table';
-import { PADDLE_PRICES } from '@/config/paddle';
 
 // Mock dependencies
 import { MouseEventHandler, ReactNode } from 'react';
@@ -41,6 +41,15 @@ vi.mock('lucide-react', () => ({
   ShieldCheck: () => <span>🛡️</span>,
   Users: () => <span>👥</span>,
   Building2: () => <span>🏢</span>,
+}));
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(''),
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
 }));
 
 describe('PricingTable', () => {

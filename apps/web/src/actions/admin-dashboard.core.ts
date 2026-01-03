@@ -1,7 +1,7 @@
 import { type ClaimStatus } from '@interdomestik/database/constants';
 import { db } from '@interdomestik/database/db';
 import { claims, user } from '@interdomestik/database/schema';
-import { count, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 
 export interface DashboardStats {
   totalClaims: number;
@@ -11,29 +11,36 @@ export interface DashboardStats {
   totalClaimVolume: number;
 }
 
-export async function getAdminDashboardStats(): Promise<DashboardStats> {
+export async function getAdminDashboardStats(tenantId: string): Promise<DashboardStats> {
   const NEW_STATUS: ClaimStatus = 'submitted';
   const RESOLVED_STATUS: ClaimStatus = 'resolved';
 
-  const [totalClaimsRes] = await db.select({ count: count() }).from(claims);
+  const [totalClaimsRes] = await db
+    .select({ count: count() })
+    .from(claims)
+    .where(eq(claims.tenantId, tenantId));
+
   const [newClaimsRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(eq(claims.status, NEW_STATUS));
+    .where(and(eq(claims.status, NEW_STATUS), eq(claims.tenantId, tenantId)));
+
   const [resolvedClaimsRes] = await db
     .select({ count: count() })
     .from(claims)
-    .where(eq(claims.status, RESOLVED_STATUS));
+    .where(and(eq(claims.status, RESOLVED_STATUS), eq(claims.tenantId, tenantId)));
+
   const [totalUsersRes] = await db
     .select({ count: count() })
     .from(user)
-    .where(eq(user.role, 'user'));
+    .where(and(eq(user.role, 'user'), eq(user.tenantId, tenantId)));
 
   const [volumeRes] = await db
     .select({
       sum: sql<number>`COALESCE(SUM(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
     })
-    .from(claims);
+    .from(claims)
+    .where(eq(claims.tenantId, tenantId));
 
   return {
     totalClaims: totalClaimsRes.count,
@@ -44,8 +51,9 @@ export async function getAdminDashboardStats(): Promise<DashboardStats> {
   };
 }
 
-export async function getRecentClaims(limit = 5) {
+export async function getRecentClaims(tenantId: string, limit = 5) {
   return await db.query.claims.findMany({
+    where: (claims, { eq }) => eq(claims.tenantId, tenantId),
     with: {
       user: true,
     },
@@ -54,12 +62,13 @@ export async function getRecentClaims(limit = 5) {
   });
 }
 
-export async function getUnassignedClaims(limit = 5) {
+export async function getUnassignedClaims(tenantId: string, limit = 5) {
   return await db.query.claims.findMany({
     with: {
       user: true,
     },
-    where: isNull(claims.staffId),
+    where: (claims, { and, eq, isNull }) =>
+      and(eq(claims.tenantId, tenantId), isNull(claims.staffId)),
     limit,
     orderBy: [desc(claims.createdAt)],
   });

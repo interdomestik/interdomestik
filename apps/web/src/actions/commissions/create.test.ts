@@ -35,6 +35,7 @@ describe('createCommissionCore', () => {
       type: 'new_membership',
       amount: 12.3,
       currency: 'EUR',
+      tenantId: 'tenant_mk',
       metadata: { source: 'test' },
     });
 
@@ -49,6 +50,7 @@ describe('createCommissionCore', () => {
         status: 'pending',
         amount: '12.30',
         currency: 'EUR',
+        tenantId: 'tenant_mk',
         metadata: { source: 'test' },
         earnedAt: expect.any(Date),
       })

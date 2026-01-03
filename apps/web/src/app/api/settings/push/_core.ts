@@ -25,7 +25,10 @@ export async function upsertPushSubscriptionCore(args: {
   body: PushSubscriptionBody;
 }): Promise<{ status: 200 | 400; body: { success?: true; error?: string }; audit?: Audit }> {
   const { userId, tenantId, body } = args;
-  const resolvedTenantId = tenantId ?? 'tenant_mk';
+  if (!tenantId) {
+    return { status: 400, body: { error: 'Missing tenantId' } };
+  }
+  const resolvedTenantId = tenantId;
 
   const endpoint = body?.endpoint;
   const p256dh = body?.keys?.p256dh;
@@ -88,7 +91,10 @@ export async function deletePushSubscriptionCore(args: {
   endpoint: string;
 }): Promise<{ status: 200 | 400; body: { success?: true; error?: string }; audit?: Audit }> {
   const { endpoint, tenantId, userId } = args;
-  const resolvedTenantId = tenantId ?? 'tenant_mk';
+  if (!tenantId) {
+    return { status: 400, body: { error: 'Missing tenantId' } };
+  }
+  const resolvedTenantId = tenantId;
 
   if (!endpoint) {
     return { status: 400, body: { error: 'Invalid subscription' } };

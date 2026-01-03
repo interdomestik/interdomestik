@@ -2,6 +2,7 @@ import { db } from '@interdomestik/database';
 import { notifications } from '@interdomestik/database/schema';
 import { desc, eq } from 'drizzle-orm';
 
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { Session } from '../types';
 
 export async function getNotificationsCore(params: { session: Session | null; limit?: number }) {
@@ -12,7 +13,7 @@ export async function getNotificationsCore(params: { session: Session | null; li
     throw new Error('Not authenticated');
   }
 
-  const tenantId = user.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
   return db.query.notifications.findMany({
     where: (table, { and, eq }) => and(eq(table.userId, user.id), eq(table.tenantId, tenantId)),
     orderBy: [desc(notifications.createdAt)],

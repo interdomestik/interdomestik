@@ -11,8 +11,7 @@ export const claims = pgTable(
     id: text('id').primaryKey(),
     tenantId: text('tenant_id')
       .notNull()
-      .references(() => tenants.id)
-      .default('tenant_mk'),
+      .references(() => tenants.id),
     userId: text('userId')
       .notNull()
       .references(() => user.id),
@@ -34,6 +33,8 @@ export const claims = pgTable(
   table => ({
     branchIdx: index('idx_claims_branch').on(table.branchId),
     agentIdx: index('idx_claims_agent').on(table.agentId),
+    userCreatedIdx: index('idx_claims_user_created').on(table.userId, table.createdAt),
+    statusIdx: index('idx_claims_status').on(table.status),
   })
 );
 
@@ -41,8 +42,7 @@ export const claimDocuments = pgTable('claim_documents', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   claimId: text('claim_id')
     .notNull()
     .references(() => claims.id),
@@ -63,8 +63,7 @@ export const claimMessages = pgTable('claim_messages', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   claimId: text('claim_id')
     .notNull()
     .references(() => claims.id),
@@ -81,8 +80,7 @@ export const claimStageHistory = pgTable('claim_stage_history', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   claimId: text('claim_id')
     .notNull()
     .references(() => claims.id),

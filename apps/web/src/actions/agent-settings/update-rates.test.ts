@@ -33,7 +33,7 @@ describe('updateAgentCommissionRatesCore', () => {
   it('rejects rates outside 0..1', async () => {
     const result = await updateAgentCommissionRatesCore({
       session: {
-        user: { id: 'admin-1', role: 'admin' },
+        user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
         session: { id: 'session-1' },
       } as unknown as NonNullable<Session>,
       agentId: 'agent-1',

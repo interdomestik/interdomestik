@@ -148,7 +148,7 @@ ngrok http 3000
 
 ## Content Security Policy (CSP)
 
-The following CSP directives are configured in `apps/web/src/middleware.ts`:
+The following CSP directives are configured in `apps/web/src/proxy.ts`:
 
 ```typescript
 script-src: https://cdn.paddle.com https://sandbox-cdn.paddle.com
@@ -242,7 +242,7 @@ CREATE TABLE subscriptions (
    - Event processing
    - Database sync
 
-5. **Middleware**: `apps/web/src/middleware.ts`
+5. **Middleware**: `apps/web/src/proxy.ts` (Next.js 16 Proxy)
    - CSP configuration
    - Security headers
 

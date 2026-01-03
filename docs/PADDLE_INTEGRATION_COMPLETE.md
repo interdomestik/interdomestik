@@ -71,7 +71,7 @@
    - `/Users/arbenlila/development/interdomestikv2/apps/web/.env` - Symlink to root
 
 2. **Middleware**
-   - `apps/web/src/middleware.ts` - CSP configuration
+   - `apps/web/src/proxy.ts` - CSP configuration (Next.js 16 Proxy)
 
 3. **Components**
    - `apps/web/src/components/pricing/pricing-table.tsx` - Checkout trigger
@@ -277,7 +277,7 @@ NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_MONTH=pri_your_price_id_here
 - **Environment Setup**: See `docs/PADDLE_SETUP.md`
 - **Local Testing**: Use ngrok for webhook testing
 - **Debugging**: Check browser console and server logs
-- **CSP Issues**: Verify middleware.ts configuration
+- **CSP Issues**: Verify proxy.ts configuration
 
 ### For Product Team
 

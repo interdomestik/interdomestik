@@ -18,8 +18,7 @@ export const membershipPlans = pgTable('membership_plans', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   name: text('name').notNull(),
   description: text('description'),
   tier: membershipTierEnum('tier').notNull(),
@@ -46,8 +45,7 @@ export const subscriptions = pgTable(
     id: text('id').primaryKey(),
     tenantId: text('tenant_id')
       .notNull()
-      .references(() => tenants.id)
-      .default('tenant_mk'),
+      .references(() => tenants.id),
     userId: text('user_id')
       .notNull()
       .references(() => user.id),
@@ -87,8 +85,7 @@ export const membershipFamilyMembers = pgTable('membership_family_members', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   subscriptionId: text('subscription_id')
     .notNull()
     .references(() => subscriptions.id),
@@ -102,8 +99,7 @@ export const userNotificationPreferences = pgTable('user_notification_preference
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   userId: text('user_id')
     .notNull()
     .unique()
@@ -124,8 +120,7 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),

@@ -14,7 +14,7 @@ vi.mock('@interdomestik/database', () => ({
   },
   and: vi.fn(),
   eq: vi.fn(),
-  subscriptions: { id: 'id', userId: 'userId', tenantId: 'tenantId' },
+  subscriptions: { id: { name: 'id' }, userId: { name: 'userId' }, tenantId: { name: 'tenantId' } },
 }));
 
 vi.mock('@/lib/auth', () => ({

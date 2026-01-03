@@ -145,6 +145,12 @@ export async function processBatchedUserCampaign(args: {
       for (const u of batch) {
         attempted += 1;
 
+        if (!u.tenantId) {
+          skipped += 1;
+          errors.push(`Missing tenantId for userId=${u.id} email=${u.email ?? 'n/a'}`);
+          continue;
+        }
+
         if (!u.email) {
           skipped += 1;
           continue;
@@ -160,7 +166,7 @@ export async function processBatchedUserCampaign(args: {
 
           const insertLog = {
             id: `ecl_${nanoid()}`,
-            tenantId: u.tenantId ?? 'tenant_mk',
+            tenantId: u.tenantId,
             userId: u.id,
             campaignId: args.campaignId,
             sentAt: new Date(),
@@ -238,6 +244,15 @@ export async function processEmailSequences() {
       const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
 
       for (const sub of batch) {
+        const resolvedTenantId = sub.tenantId ?? sub.user?.tenantId;
+        if (!resolvedTenantId) {
+          skipped += 1;
+          errors.push(
+            `Missing tenantId for subscription ${sub.id} userId=${sub.userId} email=${sub.user?.email ?? 'n/a'}`
+          );
+          continue;
+        }
+
         if (alreadySentSet.has(sub.userId)) {
           skipped += 1;
           continue;
@@ -246,7 +261,7 @@ export async function processEmailSequences() {
           await withRetries(() => sendWelcomeEmail(sub.user!.email!, sub.user!.name));
           await db.insert(emailCampaignLogs).values({
             id: `ecl_${nanoid()}`,
-            tenantId: sub.tenantId ?? sub.user?.tenantId ?? 'tenant_mk',
+            tenantId: resolvedTenantId,
             userId: sub.userId,
             campaignId,
             sentAt: new Date(),
@@ -282,6 +297,12 @@ export async function processEmailSequences() {
       const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
 
       for (const u of batch) {
+        if (!u.tenantId) {
+          skipped += 1;
+          errors.push(`Missing tenantId for userId=${u.id} email=${u.email ?? 'n/a'}`);
+          continue;
+        }
+
         if (alreadySentSet.has(u.id)) {
           skipped += 1;
           continue;
@@ -290,7 +311,7 @@ export async function processEmailSequences() {
           await withRetries(() => sendOnboardingEmail(u.email!, u.name));
           await db.insert(emailCampaignLogs).values({
             id: `ecl_${nanoid()}`,
-            tenantId: u.tenantId ?? 'tenant_mk',
+            tenantId: u.tenantId,
             userId: u.id,
             campaignId,
             sentAt: new Date(),
@@ -326,6 +347,12 @@ export async function processEmailSequences() {
       const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
 
       for (const u of batch) {
+        if (!u.tenantId) {
+          skipped += 1;
+          errors.push(`Missing tenantId for userId=${u.id} email=${u.email ?? 'n/a'}`);
+          continue;
+        }
+
         if (alreadySentSet.has(u.id)) {
           skipped += 1;
           continue;
@@ -334,7 +361,7 @@ export async function processEmailSequences() {
           await withRetries(() => sendCheckinEmail(u.email!, u.name));
           await db.insert(emailCampaignLogs).values({
             id: `ecl_${nanoid()}`,
-            tenantId: u.tenantId ?? 'tenant_mk',
+            tenantId: u.tenantId,
             userId: u.id,
             campaignId,
             sentAt: new Date(),

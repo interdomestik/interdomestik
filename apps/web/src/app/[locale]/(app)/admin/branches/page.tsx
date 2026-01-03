@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { getTranslations } from 'next-intl/server';
 
 type Props = {
-  params: { locale: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function AdminBranchesPage({ searchParams }: Props) {
   const t = await getTranslations('admin.branches');
-  const showInactive = searchParams.showInactive === 'true';
+  const sp = await searchParams;
+  const showInactive = sp.showInactive === 'true';
   const branches = await listBranches({ includeInactive: showInactive });
 
   return (

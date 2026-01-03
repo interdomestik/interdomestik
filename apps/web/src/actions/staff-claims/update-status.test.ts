@@ -6,8 +6,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/database', () => ({
-  claims: { id: 'id', tenantId: 'tenantId', status: 'status' },
-  claimStageHistory: { tenantId: 'tenantId' },
+  claims: { id: { name: 'id' }, tenantId: { name: 'tenantId' }, status: { name: 'status' } },
+  claimStageHistory: { tenantId: { name: 'tenantId' } },
   db: {
     select: () => ({
       from: () => ({

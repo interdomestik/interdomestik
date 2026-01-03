@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid';
 export type AuditEvent = {
   actorId?: string | null;
   actorRole?: string | null;
+  tenantId?: string | null;
   action: string;
   entityType: string;
   entityId?: string | null;
@@ -27,6 +28,7 @@ function extractRequestMetadata(requestHeaders?: Headers) {
 export async function logAuditEvent({
   actorId,
   actorRole,
+  tenantId,
   action,
   entityType,
   entityId,
@@ -35,13 +37,20 @@ export async function logAuditEvent({
 }: AuditEvent) {
   try {
     const requestMetadata = extractRequestMetadata(headers);
-    const combinedMetadata = {
+    const combinedMetadata: Record<string, unknown> = {
       ...metadata,
       ...requestMetadata,
     };
 
+    const resolvedTenantId = tenantId || (combinedMetadata.tenantId as string | undefined) || null;
+
+    if (!resolvedTenantId) {
+      return;
+    }
+
     await db.insert(auditLog).values({
       id: nanoid(),
+      tenantId: resolvedTenantId,
       actorId: actorId || null,
       actorRole: actorRole || null,
       action,

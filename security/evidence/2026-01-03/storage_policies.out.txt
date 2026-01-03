@@ -1,0 +1,6 @@
+                policyname                 |  roles   |                                      qual                                       
+-------------------------------------------+----------+---------------------------------------------------------------------------------
+ Service role full access (claim-evidence) | {public} | ((bucket_id = 'claim-evidence'::text) AND (auth.role() = 'service_role'::text))
+ Service role full access (policies)       | {public} | ((bucket_id = 'policies'::text) AND (auth.role() = 'service_role'::text))
+(2 rows)
+

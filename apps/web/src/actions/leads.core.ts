@@ -9,6 +9,7 @@ const createLeadSchema = z.object({
   name: z.string().min(2),
   phone: z.string().min(6),
   category: z.string(),
+  tenantId: z.string().min(1),
 });
 
 export async function submitLead(data: z.infer<typeof createLeadSchema>) {
@@ -20,6 +21,7 @@ export async function submitLead(data: z.infer<typeof createLeadSchema>) {
       name: validated.name,
       phone: validated.phone,
       category: validated.category,
+      tenantId: validated.tenantId,
     });
 
     return { success: true };

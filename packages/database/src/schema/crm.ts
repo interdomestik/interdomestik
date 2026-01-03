@@ -7,8 +7,7 @@ export const crmLeads = pgTable('crm_leads', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   agentId: text('agent_id')
     .notNull()
     .references(() => user.id),
@@ -34,8 +33,7 @@ export const crmActivities = pgTable('crm_activities', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   leadId: text('lead_id')
     .notNull()
     .references(() => crmLeads.id),
@@ -57,8 +55,7 @@ export const crmDeals = pgTable('crm_deals', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   leadId: text('lead_id')
     .notNull()
     .references(() => crmLeads.id),
@@ -78,8 +75,7 @@ export const memberActivities = pgTable('member_activities', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   agentId: text('agent_id')
     .notNull()
     .references(() => user.id),
@@ -99,8 +95,7 @@ export const leads = pgTable('leads', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   name: text('name').notNull(),
   phone: text('phone').notNull(),
   category: text('category').notNull(),

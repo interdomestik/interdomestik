@@ -1,0 +1,6 @@
+       id       |      name      | public 
+----------------+----------------+--------
+ claim-evidence | claim-evidence | f
+ policies       | policies       | f
+(2 rows)
+

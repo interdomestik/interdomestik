@@ -62,8 +62,11 @@ export async function sendPushToUser(
         where: (users, { eq }) => eq(users.id, userId),
         columns: { tenantId: true },
       })
-    )?.tenantId ??
-    'tenant_mk';
+    )?.tenantId;
+
+  if (!resolvedTenantId) {
+    return { success: false, skipped: true, reason: 'missing_tenant' as const };
+  }
 
   // Respect stored preferences
   const [prefs] = await db

@@ -13,6 +13,7 @@ export async function persistInvalidSignatureAttempt(
     eventTimestamp: Date | null;
     payloadHash: string;
     parsedPayload: Record<string, unknown>;
+    tenantId?: string | null;
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
@@ -20,6 +21,7 @@ export async function persistInvalidSignatureAttempt(
     .insert(webhookEvents)
     .values({
       id: nanoid(),
+      tenantId: params.tenantId ?? null,
       provider: 'paddle',
       dedupeKey: params.dedupeKey,
       eventType: params.eventType ?? null,
@@ -60,6 +62,7 @@ export async function insertWebhookEvent(
     eventTimestamp: Date | null;
     payloadHash: string;
     parsedPayload: Record<string, unknown>;
+    tenantId?: string | null;
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
@@ -67,6 +70,7 @@ export async function insertWebhookEvent(
     .insert(webhookEvents)
     .values({
       id: nanoid(),
+      tenantId: params.tenantId ?? null,
       provider: 'paddle',
       dedupeKey: params.dedupeKey,
       eventType: params.eventType ?? null,

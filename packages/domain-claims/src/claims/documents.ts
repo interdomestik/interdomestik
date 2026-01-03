@@ -13,14 +13,13 @@ export function buildClaimDocumentRows(params: {
   claimId: string;
   uploadedBy: string;
   files: ClaimFileInput[];
-  tenantId?: string | null;
+  tenantId: string;
 }) {
   const { claimId, uploadedBy, files, tenantId } = params;
-  const resolvedTenantId = tenantId ?? 'tenant_mk';
 
   return files.map(file => ({
     id: nanoid(),
-    tenantId: resolvedTenantId,
+    tenantId,
     claimId,
     name: file.name,
     filePath: file.path,

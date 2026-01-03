@@ -7,8 +7,7 @@ export const automationLogs = pgTable('automation_logs', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id')
     .notNull()
-    .references(() => tenants.id)
-    .default('tenant_mk'),
+    .references(() => tenants.id),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
@@ -26,8 +25,7 @@ export const engagementEmailSends = pgTable(
     id: text('id').primaryKey(),
     tenantId: text('tenant_id')
       .notNull()
-      .references(() => tenants.id)
-      .default('tenant_mk'),
+      .references(() => tenants.id),
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
@@ -57,8 +55,7 @@ export const npsSurveyTokens = pgTable(
     id: text('id').primaryKey(),
     tenantId: text('tenant_id')
       .notNull()
-      .references(() => tenants.id)
-      .default('tenant_mk'),
+      .references(() => tenants.id),
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
@@ -87,8 +84,7 @@ export const npsSurveyResponses = pgTable(
     id: text('id').primaryKey(),
     tenantId: text('tenant_id')
       .notNull()
-      .references(() => tenants.id)
-      .default('tenant_mk'),
+      .references(() => tenants.id),
     tokenId: text('token_id')
       .notNull()
       .references(() => npsSurveyTokens.id, { onDelete: 'cascade' }),

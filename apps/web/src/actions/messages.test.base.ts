@@ -29,16 +29,23 @@ vi.mock('@/lib/auth', () => ({
 
 vi.mock('@interdomestik/database', () => ({
   claimMessages: {
-    id: 'id',
-    claimId: 'claim_id',
-    senderId: 'sender_id',
-    content: 'content',
-    isInternal: 'is_internal',
-    readAt: 'read_at',
-    createdAt: 'created_at',
+    id: { name: 'id' },
+    claimId: { name: 'claim_id' },
+    senderId: { name: 'sender_id' },
+    content: { name: 'content' },
+    isInternal: { name: 'is_internal' },
+    readAt: { name: 'read_at' },
+    createdAt: { name: 'created_at' },
+    tenantId: { name: 'tenant_id' },
   },
-  claims: { id: 'id', userId: 'userId' },
-  user: { id: 'id', name: 'name', image: 'image', role: 'role' },
+  claims: { id: { name: 'id' }, userId: { name: 'userId' }, tenantId: { name: 'tenantId' } },
+  user: {
+    id: { name: 'id' },
+    name: { name: 'name' },
+    image: { name: 'image' },
+    role: { name: 'role' },
+    tenantId: { name: 'tenantId' },
+  },
   db: {
     select: () => mockSelectChain,
     insert: () => ({ values: hoistedMocks.dbInsert }),

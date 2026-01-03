@@ -1,0 +1,9 @@
+    relname    | relrowsecurity 
+---------------+----------------
+ subscriptions | t
+ verification  | t
+ user          | t
+ session       | t
+ account       | t
+(5 rows)
+

@@ -19,6 +19,9 @@ export async function logActivityCore(params: {
   if (session.user.role === 'member') {
     return { error: 'Permission denied' };
   }
+  if (!session.user.tenantId) {
+    return { error: 'Missing tenantId' };
+  }
 
   const result = activitySchema.safeParse(data);
   if (!result.success) {
@@ -30,6 +33,7 @@ export async function logActivityCore(params: {
   try {
     const newActivity = {
       id: nanoid(),
+      tenantId: session.user.tenantId,
       agentId: session.user.id,
       memberId,
       type,

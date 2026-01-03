@@ -25,6 +25,7 @@ import { Input } from '@interdomestik/ui/components/input';
 import { CheckCircle, Loader2, PhoneCall } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useSearchParams } from 'next/navigation';
 import * as z from 'zod';
 
 const formSchema = z.object({
@@ -41,6 +42,8 @@ interface CallMeNowDialogProps {
 export function CallMeNowDialog({ category }: CallMeNowDialogProps) {
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const searchParams = useSearchParams();
+  const tenantId = searchParams.get('tenantId') || '';
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -52,10 +55,15 @@ export function CallMeNowDialog({ category }: CallMeNowDialogProps) {
 
   const onSubmit = async (values: FormValues) => {
     try {
+      if (!tenantId) {
+        throw new Error('Missing tenant context');
+      }
+
       const result = await submitLead({
         name: values.name,
         phone: values.phone,
         category: category,
+        tenantId,
       });
 
       if (!result.success) throw new Error(result.error);

@@ -12,7 +12,13 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
-  leads: { id: 'id', name: 'name', phone: 'phone', category: 'category' },
+  leads: {
+    id: { name: 'id' },
+    name: { name: 'name' },
+    phone: { name: 'phone' },
+    category: { name: 'category' },
+    tenantId: { name: 'tenantId' },
+  },
 }));
 
 import { submitLead } from './leads';
@@ -30,6 +36,7 @@ describe('Leads Actions', () => {
         name: 'A', // Too short - needs min 2 chars
         phone: '+383491234567',
         category: 'auto',
+        tenantId: 'tenant_mk',
       });
 
       consoleErrorSpy.mockRestore();
@@ -45,6 +52,7 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '123', // Too short - needs min 6 chars
         category: 'auto',
+        tenantId: 'tenant_mk',
       });
 
       consoleErrorSpy.mockRestore();
@@ -58,6 +66,7 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '+383491234567',
         category: '', // Empty string fails validation
+        tenantId: 'tenant_mk',
       });
 
       // Zod treats empty string as valid for z.string(), but our schema might pass
@@ -73,6 +82,7 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '+383491234567',
         category: 'auto',
+        tenantId: 'tenant_mk',
       });
 
       expect(result.success).toBe(true);
@@ -81,6 +91,7 @@ describe('Leads Actions', () => {
           name: 'John Doe',
           phone: '+383491234567',
           category: 'auto',
+          tenantId: 'tenant_mk',
         })
       );
     });
@@ -94,6 +105,7 @@ describe('Leads Actions', () => {
         name: 'John Doe',
         phone: '+383491234567',
         category: 'auto',
+        tenantId: 'tenant_mk',
       });
 
       consoleErrorSpy.mockRestore();

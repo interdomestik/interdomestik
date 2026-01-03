@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 
 import type { ActionResult, UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 
 export async function updateUserAgentCore(params: {
   session: UserSession | null;
@@ -12,7 +13,7 @@ export async function updateUserAgentCore(params: {
   const { session, userId, agentId } = params;
   await requireTenantAdminSession(session);
 
-  const tenantId = session?.user?.tenantId ?? 'tenant_mk';
+  const tenantId = ensureTenantId(session);
 
   try {
     await db.transaction(async tx => {

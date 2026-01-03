@@ -13,10 +13,12 @@ export async function logLeadActivityCore(params: {
 
   if (!session) return { error: 'Unauthorized' };
   if (session.user.role === 'member') return { error: 'Permission denied' };
+  if (!session.user.tenantId) return { error: 'Missing tenantId' };
 
   try {
     const newActivity = {
       id: nanoid(),
+      tenantId: session.user.tenantId,
       agentId: session.user.id,
       leadId: data.leadId,
       type: data.type === 'other' ? 'note' : data.type,

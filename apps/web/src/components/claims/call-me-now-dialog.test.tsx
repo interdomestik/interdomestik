@@ -31,6 +31,10 @@ vi.mock('@/actions/leads', () => ({
   submitLead: vi.fn().mockResolvedValue({ success: true }),
 }));
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams('tenantId=tenant_mk'),
+}));
+
 // Mock UI components
 vi.mock('@interdomestik/ui/components/button', () => ({
   Button: ({

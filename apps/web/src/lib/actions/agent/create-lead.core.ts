@@ -3,7 +3,7 @@ import { crmLeads } from '@interdomestik/database/schema';
 import { nanoid } from 'nanoid';
 import { createLeadSchema } from './schemas';
 
-export async function createLeadCore(agentId: string, formData: FormData) {
+export async function createLeadCore(agentId: string, tenantId: string, formData: FormData) {
   const rawData = {
     type: formData.get('type'),
     stage: formData.get('stage'),
@@ -30,6 +30,7 @@ export async function createLeadCore(agentId: string, formData: FormData) {
 
     await db.insert(crmLeads).values({
       id: newLeadId,
+      tenantId,
       agentId,
       ...validated.data,
       createdAt: new Date(),

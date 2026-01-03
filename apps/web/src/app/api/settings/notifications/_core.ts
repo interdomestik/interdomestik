@@ -26,7 +26,10 @@ export async function getNotificationPreferencesCore(args: {
   tenantId?: string | null;
 }): Promise<NotificationPreferences> {
   const { userId, tenantId } = args;
-  const resolvedTenantId = tenantId ?? 'tenant_mk';
+  if (!tenantId) {
+    throw new Error('Missing tenantId for notification preferences');
+  }
+  const resolvedTenantId = tenantId;
 
   const [preferences] = await db
     .select()
@@ -57,7 +60,10 @@ export async function upsertNotificationPreferencesCore(args: {
   preferences: NotificationPreferences;
 }): Promise<void> {
   const { userId, tenantId, preferences } = args;
-  const resolvedTenantId = tenantId ?? 'tenant_mk';
+  if (!tenantId) {
+    throw new Error('Missing tenantId for notification preferences');
+  }
+  const resolvedTenantId = tenantId;
 
   const [existing] = await db
     .select()

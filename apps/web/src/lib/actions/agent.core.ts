@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getAgentSession } from './agent/context';
 import { createLeadCore } from './agent/create-lead';
 import { logActivityCore } from './agent/log-activity';
@@ -14,7 +15,14 @@ export async function createLead(prevState: unknown, formData: FormData) {
     return { error: 'Unauthorized', fields: undefined };
   }
 
-  const result = await createLeadCore(session.user.id, formData);
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { error: 'Missing tenantId', fields: undefined };
+  }
+
+  const result = await createLeadCore(session.user.id, tenantId, formData);
   if (!result.ok) {
     return {
       error: result.error,
@@ -64,8 +72,16 @@ export async function registerMember(prevState: unknown, formData: FormData) {
     return { error: 'Unauthorized', fields: undefined };
   }
 
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { error: 'Missing tenantId', fields: undefined };
+  }
+
   const result = await registerMemberCore(
     { id: session.user.id, name: session.user.name },
+    tenantId,
     formData
   );
   if (!result.ok) {

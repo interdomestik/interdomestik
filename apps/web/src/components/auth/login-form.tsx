@@ -16,12 +16,16 @@ import {
 } from '@interdomestik/ui';
 import { Github, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
 export function LoginForm() {
   const t = useTranslations('auth.login');
   const common = useTranslations('common');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tenantId = searchParams.get('tenantId') || undefined;
+  const registerHref = tenantId ? `/register?tenantId=${tenantId}` : '/register';
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -169,6 +173,7 @@ export function LoginForm() {
               await authClient.signIn.social({
                 provider: 'github',
                 callbackURL: `${window.location.origin}/member`,
+                ...(tenantId ? { additionalData: { tenantId } } : {}),
               });
             }}
           >
@@ -179,7 +184,7 @@ export function LoginForm() {
           <p className="text-center text-sm text-[hsl(var(--muted-500))]">
             {t('noAccount')}{' '}
             <Link
-              href="/register"
+              href={registerHref}
               className="text-[hsl(var(--primary))] hover:underline font-medium"
             >
               {t('registerLink')}

@@ -28,14 +28,14 @@ vi.mock('@/lib/audit', () => ({
 
 vi.mock('@interdomestik/database', () => ({
   claims: {
-    id: 'id',
-    tenantId: 'tenantId',
-    status: 'status',
-    staffId: 'staffId',
-    userId: 'userId',
-    title: 'title',
+    id: { name: 'id' },
+    tenantId: { name: 'tenantId' },
+    status: { name: 'status' },
+    staffId: { name: 'staffId' },
+    userId: { name: 'userId' },
+    title: { name: 'title' },
   },
-  user: { id: 'id', tenantId: 'tenantId', email: 'email' },
+  user: { id: { name: 'id' }, tenantId: { name: 'tenantId' }, email: { name: 'email' } },
   db: {
     select: () => ({
       from: () => ({

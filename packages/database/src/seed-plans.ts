@@ -7,6 +7,8 @@ dotenv.config({ path: resolve(__dirname, '../../../.env') });
 async function seedPlans() {
   console.log('🌱 Seeding membership plans...');
 
+  const DEFAULT_TENANT_ID = 'tenant_mk';
+
   // Use dynamic import to ensure env vars are loaded first
   const { db } = await import('./db');
   const { membershipPlans } = await import('./schema');
@@ -14,6 +16,7 @@ async function seedPlans() {
   const plans = [
     {
       id: 'standard',
+      tenantId: DEFAULT_TENANT_ID,
       name: 'Standard',
       description: 'Complete protection for individuals',
       tier: 'standard' as const,
@@ -36,6 +39,7 @@ async function seedPlans() {
     },
     {
       id: 'family',
+      tenantId: DEFAULT_TENANT_ID,
       name: 'Family',
       description: 'Protection for the whole household',
       tier: 'family' as const,
@@ -56,6 +60,7 @@ async function seedPlans() {
     },
     {
       id: 'basic',
+      tenantId: DEFAULT_TENANT_ID,
       name: 'Bazik',
       description: 'Essential protection for individuals',
       tier: 'basic' as const,

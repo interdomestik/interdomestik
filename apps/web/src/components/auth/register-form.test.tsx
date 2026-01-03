@@ -35,6 +35,10 @@ vi.mock('next-intl', () => ({
   },
 }));
 
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(''),
+}));
+
 // Mock routing
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => (

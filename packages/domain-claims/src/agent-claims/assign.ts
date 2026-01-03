@@ -1,4 +1,5 @@
-import { and, claims, db, eq } from '@interdomestik/database';
+import { claims, db, eq } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
@@ -34,8 +35,8 @@ export async function assignClaimCore(
 
   // Get claim details
   const claim = await db.query.claims.findFirst({
-    where: (claimsTable, { and, eq }) =>
-      and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
+    where: (claimsTable, { eq }) =>
+      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
   });
 
   if (!claim) throw new Error('Claim not found');
@@ -43,7 +44,7 @@ export async function assignClaimCore(
   await db
     .update(claims)
     .set({ staffId })
-    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
+    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -63,8 +64,8 @@ export async function assignClaimCore(
   if (staffId) {
     // Get staff details for notification
     const staffMember = await db.query.user.findFirst({
-      where: (userTable, { and, eq }) =>
-        and(eq(userTable.id, staffId), eq(userTable.tenantId, tenantId)),
+      where: (userTable, { eq }) =>
+        withTenant(tenantId, userTable.tenantId, eq(userTable.id, staffId)),
     });
 
     if (!staffMember) throw new Error('Staff member not found');

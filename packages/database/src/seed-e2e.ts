@@ -7,6 +7,8 @@ dotenv.config({ path: resolve(__dirname, '../../../.env') });
 async function seedE2E() {
   console.log('🌱 Seeding E2E test data...');
 
+  const DEFAULT_TENANT_ID = 'tenant_mk';
+
   // Use dynamic import
   const { db } = await import('./db');
   const { user, claims, claimMessages, claimDocuments, claimStageHistory } =
@@ -22,6 +24,7 @@ async function seedE2E() {
       name: 'Test Member',
       email: 'test@interdomestik.com',
       emailVerified: true,
+      tenantId: DEFAULT_TENANT_ID,
       role: 'user',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -31,6 +34,7 @@ async function seedE2E() {
       name: 'Test Agent',
       email: 'agent@interdomestik.com',
       emailVerified: true,
+      tenantId: DEFAULT_TENANT_ID,
       role: 'agent',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -40,6 +44,7 @@ async function seedE2E() {
       name: 'Test Staff',
       email: 'staff@interdomestik.com',
       emailVerified: true,
+      tenantId: DEFAULT_TENANT_ID,
       role: 'staff',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -49,6 +54,7 @@ async function seedE2E() {
       name: 'Test Admin',
       email: 'admin@interdomestik.com',
       emailVerified: true,
+      tenantId: DEFAULT_TENANT_ID,
       role: 'admin',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -145,6 +151,7 @@ async function seedE2E() {
   for (const c of e2eClaims) {
     await db.insert(claims).values({
       id: `e2e-claim-${nanoid(6)}`,
+      tenantId: DEFAULT_TENANT_ID,
       userId: memberUser.id,
       title: c.title,
       status: c.status as any,

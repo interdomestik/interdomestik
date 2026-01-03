@@ -11,6 +11,7 @@ import {
 import { sendThankYouLetterCore } from '@/actions/thank-you-letter/send';
 import { logAuditEvent } from '@/lib/audit';
 import { sendPaymentFailedEmail } from '@/lib/email';
+import { db } from '@interdomestik/database';
 
 import type { Paddle } from '@paddle/paddle-node-sdk';
 
@@ -18,6 +19,37 @@ export type PaddleWebhookCoreResult = {
   status: 200 | 400 | 401 | 500;
   body: Record<string, unknown>;
 };
+
+type PaddleWebhookData = {
+  id?: string;
+  subscriptionId?: string | null;
+  subscription_id?: string | null;
+  customData?: { userId?: string };
+  custom_data?: { userId?: string };
+};
+
+async function resolveWebhookTenantId(data: unknown): Promise<string | null> {
+  const payload = (data ?? {}) as PaddleWebhookData;
+  const customData = payload.customData || payload.custom_data;
+  const userId = customData?.userId;
+
+  if (userId) {
+    const userRecord = await db.query.user.findFirst({
+      where: (users, { eq }) => eq(users.id, userId),
+      columns: { tenantId: true },
+    });
+    if (userRecord?.tenantId) return userRecord.tenantId;
+  }
+
+  const subscriptionId = payload.id || payload.subscriptionId || payload.subscription_id;
+  if (!subscriptionId) return null;
+
+  const subscription = await db.query.subscriptions.findFirst({
+    where: (subs, { eq }) => eq(subs.id, subscriptionId),
+    columns: { tenantId: true },
+  });
+  return subscription?.tenantId ?? null;
+}
 
 export async function handlePaddleWebhookCore(args: {
   paddle: Paddle;
@@ -86,6 +118,7 @@ export async function handlePaddleWebhookCore(args: {
   const data = (eventData as { data?: unknown }).data;
 
   const dedupeKey = eventId ? `paddle:${eventId}` : `paddle:sha256:${payloadHash}`;
+  const tenantId = await resolveWebhookTenantId(data);
 
   const insertResult = await insertWebhookEvent(
     {
@@ -98,6 +131,7 @@ export async function handlePaddleWebhookCore(args: {
       eventTimestamp: eventTimestampFromPayload,
       payloadHash,
       parsedPayload,
+      tenantId,
     },
     { logAuditEvent }
   );

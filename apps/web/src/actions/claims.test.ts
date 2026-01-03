@@ -31,6 +31,11 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     insert: () => ({ values: mockDbInsert }),
     update: () => ({ set: () => ({ where: mockDbUpdate }) }),
+    transaction: async (fn: (tx: any) => Promise<void>) => {
+      return fn({
+        insert: () => ({ values: mockDbInsert }),
+      });
+    },
     query: {
       subscriptions: {
         findFirst: vi.fn().mockResolvedValue({
@@ -58,10 +63,16 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
   },
-  subscriptions: { id: 'id', userId: 'userId', tenantId: 'tenantId' },
-  claims: { id: 'id', tenantId: 'tenantId' },
-  claimDocuments: { id: 'id', tenantId: 'tenantId' },
-  user: { id: 'id', tenantId: 'tenantId' },
+  subscriptions: {
+    id: { name: 'id' },
+    userId: { name: 'userId' },
+    tenantId: { name: 'tenantId' },
+    branchId: { name: 'branchId' },
+    agentId: { name: 'agentId' },
+  },
+  claims: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+  claimDocuments: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+  user: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   and: vi.fn(),
   eq: vi.fn(),
 }));
@@ -94,6 +105,9 @@ describe('Claim Actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasActiveMembership.mockResolvedValue(true);
+
+    // Keep submitClaimCore bucket validation deterministic across environments.
+    process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET = 'claim-evidence';
   });
 
   describe('createClaim', () => {
@@ -230,19 +244,25 @@ describe('Claim Actions', () => {
       ],
     };
 
-    it('should throw if unauthenticated', async () => {
+    it('returns error when unauthenticated', async () => {
       mockGetSession.mockResolvedValue(null);
 
-      await expect(submitClaim(validPayload)).rejects.toThrow('Unauthorized');
+      await expect(submitClaim(validPayload)).resolves.toEqual({
+        success: false,
+        error: 'Unauthorized',
+        code: 'UNAUTHORIZED',
+      });
     });
 
-    it('should throw if user has no active membership', async () => {
+    it('returns error when user has no active membership', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
       mockHasActiveMembership.mockResolvedValue(false);
 
-      await expect(submitClaim(validPayload)).rejects.toThrow(
-        'Membership required to file a claim.'
-      );
+      await expect(submitClaim(validPayload)).resolves.toEqual({
+        success: false,
+        error: 'Membership required to file a claim.',
+        code: 'MEMBERSHIP_REQUIRED',
+      });
     });
 
     it('should insert claim and documents when payload is valid', async () => {
@@ -289,7 +309,7 @@ describe('Claim Actions', () => {
       expect(mockDbInsert).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw on validation error', async () => {
+    it('returns error on validation failure', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
       const invalidPayload = {
@@ -302,9 +322,11 @@ describe('Claim Actions', () => {
         files: [],
       };
 
-      await expect(submitClaim(invalidPayload as CreateClaimValues)).rejects.toThrow(
-        'Validation failed'
-      );
+      await expect(submitClaim(invalidPayload as CreateClaimValues)).resolves.toEqual({
+        success: false,
+        error: 'Validation failed',
+        code: 'INVALID_PAYLOAD',
+      });
     });
 
     it('should throw on database error during claim insert', async () => {
@@ -432,10 +454,10 @@ describe('Claim Actions', () => {
           {
             id: 'file-1',
             name: 'doc.pdf',
-            path: 'path/to/file',
+            path: 'pii/tenants/tenant_mk/claims/user-123/unassigned/file-1',
             type: 'application/pdf',
             size: 1024,
-            bucket: 'test-bucket',
+            bucket: 'claim-evidence',
             classification: 'public',
           },
         ],

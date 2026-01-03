@@ -186,8 +186,8 @@ Progress tracking:
 **Decision (choose 1 to avoid stalling execution)**
 
 - [x] Option 1: `tenant_settings(category='rbac', key='default_branch_id')` (chosen path)
-- [ ] Option 2: `tenants.default_branch_id` column (defer)
-- [ ] Option 3: Convention (`code='main'`) (defer)
+- [ ] Option 2: `tenants.default_branch_id` column (defer; only do this if you need FK-level invariants / non-null enforcement)
+- [ ] Option 3: Convention (`code='main'`) (do not implement; too brittle once tenants have multiple branches / renames)
 
 1. **Tenant setting** ✅ (Chosen): store `tenant_settings(category='rbac', key='default_branch_id')` and read it in `subscriptions.ts` handler.
    - Update: `packages/database/src/schema/tenants.ts` (already supports tenant_settings)
@@ -235,11 +235,11 @@ Progress tracking:
     - Step 2: staff opens `/staff/claims` and searches/locates that title
     - Stop there (do not test full status workflow; keep it stable)
 
-### E2. [ ] Agent visibility policy (explicit decision)
+### E2. [x] Agent visibility policy (explicit decision)
 
 **Problem to decide:** should an agent's “queue/visibility” be based on the historical snapshot (`claims.agentId`) or on canonical ownership (`agent_clients`)?
 
-- [ ] Defer (v1): keep agent visibility based on `claims.agentId` only (snapshot semantics)
+- [ ] Defer (v1): keep agent visibility based on `claims.agentId` only (snapshot semantics) (rejected; keep `claims.agent_id` as attribution, not authorization)
 - [x] Adopt (v2+): change agent visibility to derive from `agent_clients` (canonical ownership)
 
 **Where this shows up in code**
@@ -260,7 +260,7 @@ Progress tracking:
 - Manual branch seed script already exists: `scripts/seed-branches-manual.mjs`
   - [x] Seed now also upserts `tenant_settings(category='rbac', key='default_branch_id')` for the tenant.
 
-### F3. [ ] E2E users + seeded claims
+### F3. [x] E2E users + seeded claims
 
 - `scripts/seed-e2e-users.mjs`
 
@@ -278,11 +278,11 @@ These aren't extra scope—just things that can silently break the intended mode
 
 - [x] **Claim assignment naming drift**: there are both staff-claim and agent-claim assign handlers; verify they set the correct column.
   - Check `packages/domain-claims/src/agent-claims/assign.ts` and `packages/domain-claims/src/staff-claims/assign.ts` for accidental `staffId` updates using an agent id.
-- [ ] **Routing "source of truth"**:
+- [x] **Routing "source of truth"**:
   - Claim creation snapshots `branchId`/`agentId` from the active subscription in `packages/domain-claims/src/claims/create.ts`.
   - Ongoing agent visibility should be based on `agent_clients` ownership if you want it to survive subscription churn.
   - This decision is tracked explicitly in **Phase E2**.
-- [ ] **Staff queue scoping decision**:
+- [x] **Staff queue scoping decision**:
   - Currently staff is **full-tenant scope** in `packages/shared-auth/src/scope.ts`.
   - **Decision needed**: Should staff become branch-scoped in a future phase? Marking as "not now" is a valid choice, but should be explicit.
 
@@ -322,7 +322,7 @@ Apply these rules per task:
 - [x] Decide default branch strategy for self-serve members.
 - [x] Implement default-branch routing (if needed) + one unit test.
 - [x] Add minimal "member claim → staff queue" E2E.
-- [ ] Only then expand to more branches/roles/tenants.
+- [ ] Only then expand to more branches/roles/tenants. (future phase; do once there is real product pressure)
 
 ---
 

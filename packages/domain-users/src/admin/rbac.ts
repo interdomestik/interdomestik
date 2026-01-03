@@ -2,10 +2,13 @@ import { and, branches, db, eq, user, userRoles } from '@interdomestik/database'
 import { randomUUID } from 'crypto';
 import { isNull } from 'drizzle-orm';
 
-import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
+import {
+  ensureTenantId,
+  hasPermission,
+  PERMISSIONS,
+  requirePermission,
+} from '@interdomestik/shared-auth';
 import type { ActionResult, UserSession } from '../types';
-
-const DEFAULT_TENANT_ID = 'tenant_mk';
 
 function resolveTenantId(session: UserSession, requestedTenantId?: string | null): string {
   if (requestedTenantId) {
@@ -19,7 +22,7 @@ function resolveTenantId(session: UserSession, requestedTenantId?: string | null
     throw new Error('Unauthorized');
   }
 
-  return session.user.tenantId ?? DEFAULT_TENANT_ID;
+  return ensureTenantId(session);
 }
 
 export async function listBranchesCore(params: {
