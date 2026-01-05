@@ -10,6 +10,10 @@ const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
 const mockHasActiveMembership = vi.fn();
 
+type MockResolvedOnce = {
+  mockResolvedValueOnce: (value: unknown) => unknown;
+};
+
 vi.mock('@interdomestik/domain-membership-billing/subscription', async importOriginal => {
   const actual =
     await importOriginal<typeof import('@interdomestik/domain-membership-billing/subscription')>();
@@ -31,7 +35,9 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     insert: () => ({ values: mockDbInsert }),
     update: () => ({ set: () => ({ where: mockDbUpdate }) }),
-    transaction: async (fn: (tx: any) => Promise<void>) => {
+    transaction: async (
+      fn: (tx: { insert: () => { values: typeof mockDbInsert } }) => Promise<void>
+    ) => {
       return fn({
         insert: () => ({ values: mockDbInsert }),
       });
@@ -113,7 +119,9 @@ describe('Claim Actions', () => {
   describe('createClaim', () => {
     it('should fail if user has no active membership', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
-      (db.query.subscriptions.findFirst as any).mockResolvedValueOnce(null);
+      const subscriptionsFindFirst = db.query.subscriptions
+        .findFirst as unknown as MockResolvedOnce;
+      subscriptionsFindFirst.mockResolvedValueOnce(null);
 
       const formData = new FormData();
       const result = await createClaim({}, formData);
@@ -158,7 +166,12 @@ describe('Claim Actions', () => {
     it('applies tenant default branch when subscription has no branchId', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
-      (db.query.subscriptions.findFirst as any).mockResolvedValueOnce({
+      const subscriptionsFindFirst = db.query.subscriptions
+        .findFirst as unknown as MockResolvedOnce;
+      const tenantSettingsFindFirst = db.query.tenantSettings
+        .findFirst as unknown as MockResolvedOnce;
+
+      subscriptionsFindFirst.mockResolvedValueOnce({
         id: 'sub-1',
         userId: 'user-123',
         status: 'active',
@@ -166,7 +179,7 @@ describe('Claim Actions', () => {
         agentId: null,
       });
 
-      (db.query.tenantSettings.findFirst as any).mockResolvedValueOnce({
+      tenantSettingsFindFirst.mockResolvedValueOnce({
         value: { branchId: 'branch-mk-skopje-center' },
       });
 

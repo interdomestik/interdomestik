@@ -17,8 +17,6 @@ export async function GET(request: Request) {
     !authorizeCronRequest({
       authorizationHeader: request.headers.get('authorization'),
       cronSecret: process.env.CRON_SECRET,
-      nodeEnv: process.env.NODE_ENV,
-      allowDevBypass: process.env.CRON_BYPASS_SECRET_IN_DEV === 'true',
     })
   ) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

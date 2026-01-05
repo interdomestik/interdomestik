@@ -80,14 +80,13 @@ export function BranchesTable({ initialData }: BranchesTableProps) {
     setIsDeleting(true);
     try {
       const result = await deleteBranch({ branchId: deletingBranch.id });
-      if (result.success) {
+      if ('success' in result && result.success) {
         toast.success(t('deleteSuccess'));
         // Optimistic update - but server refresh will eventually sync
         setData(prev => prev.filter(b => b.id !== deletingBranch.id));
         router.refresh();
       } else {
-        // @ts-expect-error - error existence inferred
-        toast.error(result.error || t('deleteError'));
+        toast.error('error' in result ? result.error : t('deleteError'));
       }
     } catch {
       toast.error(t('deleteError'));

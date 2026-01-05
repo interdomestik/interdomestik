@@ -1,4 +1,5 @@
 import { claims, db } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
@@ -69,10 +70,10 @@ export async function createClaimCore(
         (
           await db.query.tenantSettings.findFirst({
             where: (ts, { and, eq }) =>
-              and(
-                eq(ts.tenantId, tenantId),
-                eq(ts.category, 'rbac'),
-                eq(ts.key, 'default_branch_id')
+              withTenant(
+                tenantId,
+                ts.tenantId,
+                and(eq(ts.category, 'rbac'), eq(ts.key, 'default_branch_id'))
               ),
             columns: { value: true },
           })

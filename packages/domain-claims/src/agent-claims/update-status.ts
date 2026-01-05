@@ -1,4 +1,5 @@
 import { and, claims, db, eq, user } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
@@ -40,7 +41,7 @@ export async function updateClaimStatusCore(
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
-    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
+    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
   if (!claimWithUser) {
     throw new Error('Claim not found');
@@ -56,7 +57,7 @@ export async function updateClaimStatusCore(
   await db
     .update(claims)
     .set({ status: newStatus as typeof oldStatus })
-    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
+    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({

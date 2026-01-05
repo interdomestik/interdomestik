@@ -1,4 +1,5 @@
 import { claims, db, user } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
@@ -60,7 +61,7 @@ export async function updateClaimStatusCore(
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
-    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
+    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
   if (!claimWithUser) {
     throw new Error('Claim not found');
@@ -75,7 +76,7 @@ export async function updateClaimStatusCore(
       status: newStatus,
       updatedAt: new Date(),
     })
-    .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
+    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({

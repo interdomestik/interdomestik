@@ -1,4 +1,5 @@
 import { and, claims, db, eq } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ClaimsSession } from '../claims/types';
@@ -21,7 +22,7 @@ export async function assignClaimCore(params: {
     const [existingClaim] = await db
       .select({ id: claims.id })
       .from(claims)
-      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)))
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
       .limit(1);
 
     if (!existingClaim) {
@@ -37,7 +38,7 @@ export async function assignClaimCore(params: {
         assignedById: session.user.id,
         updatedAt: now,
       })
-      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
     return { success: true };
   } catch (error) {

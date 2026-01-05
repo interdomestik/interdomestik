@@ -6,6 +6,12 @@ export default defineConfig({
   out: './drizzle',
   dbCredentials: {
     url: process.env.DATABASE_URL!,
+    ssl:
+      process.env.NODE_ENV === 'production'
+        ? 'require'
+        : process.env.NODE_ENV === 'staging'
+          ? 'prefer'
+          : false,
   },
   tablesFilter: [
     'user',
@@ -25,4 +31,6 @@ export default defineConfig({
     'agent_commissions',
     'automation_logs',
   ],
+  verbose: process.env.NODE_ENV === 'development',
+  strict: true,
 });

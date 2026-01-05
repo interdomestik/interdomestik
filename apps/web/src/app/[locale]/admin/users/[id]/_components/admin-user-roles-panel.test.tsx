@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { AdminUserRolesPanel } from './admin-user-roles-panel';
 
 const rbacMocks = vi.hoisted(() => ({
-  listBranches: vi.fn(async (_params?: any) => []),
-  listUserRoles: vi.fn(async (_params?: any) => []),
+  listBranches: vi.fn(async (_params?: unknown) => []),
+  listUserRoles: vi.fn(async (_params?: unknown) => []),
   grantUserRole: vi.fn(async () => ({ success: true })),
   revokeUserRole: vi.fn(async () => ({ success: true })),
   createBranch: vi.fn(async () => ({ success: true })),

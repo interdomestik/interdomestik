@@ -1,9 +1,10 @@
 import { db, subscriptions } from '@interdomestik/database';
 import { createCommissionCore } from '../../commissions/create';
 import { calculateCommission } from '../../commissions/types';
+import { subscriptionEventDataSchema } from '../schemas';
 import { mapPaddleStatus } from '../subscription-status';
 
-import type { PaddleWebhookDeps } from '../types';
+import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
 
 const redactEmail = (email?: string | null) => {
   if (!email) return 'unknown';
@@ -15,24 +16,14 @@ const redactEmail = (email?: string | null) => {
 
 export async function handleSubscriptionChanged(
   params: { eventType: string; data: unknown },
-  deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> = {}
+  deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> & PaddleWebhookAuditDeps = {}
 ) {
-  const sub = params.data as unknown as {
-    id: string;
-    customData?: { userId?: string; agentId?: string };
-    custom_data?: { userId?: string; agentId?: string };
-    status: string;
-    items?: Array<{
-      price?: { id?: string; unitPrice?: { amount?: string; currencyCode?: string } };
-      priceId?: string;
-    }>;
-    customerId?: string;
-    customer_id?: string;
-    currentBillingPeriod?: { startsAt?: string; endsAt?: string };
-    current_billing_period?: { starts_at?: string; ends_at?: string };
-    scheduledChange?: { action?: string };
-    scheduled_change?: { action?: string };
-  };
+  const parseResult = subscriptionEventDataSchema.safeParse(params.data);
+  if (!parseResult.success) {
+    console.error('[Webhook] Invalid subscription data:', parseResult.error);
+    return;
+  }
+  const sub = parseResult.data;
 
   const customData = (sub.customData || sub.custom_data) as
     | { userId?: string; agentId?: string }
@@ -75,12 +66,14 @@ export async function handleSubscriptionChanged(
     currentPeriodStart:
       sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
         ? new Date(
-            sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at || ''
+            sub.currentBillingPeriod?.startsAt || (sub.current_billing_period?.starts_at as string)
           )
         : null,
     currentPeriodEnd:
       sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at
-        ? new Date(sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at || '')
+        ? new Date(
+            sub.currentBillingPeriod?.endsAt || (sub.current_billing_period?.ends_at as string)
+          )
         : null,
     cancelAtPeriodEnd:
       sub.scheduledChange?.action === 'cancel' || sub.scheduled_change?.action === 'cancel',
@@ -148,6 +141,23 @@ export async function handleSubscriptionChanged(
         branchId,
       },
     });
+
+  // 🔒 SECURITY Audit Log
+  if (deps.logAuditEvent) {
+    await deps.logAuditEvent({
+      actorRole: 'system',
+      action: 'subscription.updated',
+      entityType: 'subscription',
+      entityId: sub.id,
+      tenantId,
+      metadata: {
+        eventType: params.eventType,
+        status: mappedStatus,
+        paddleStatus: sub.status,
+        userId,
+      },
+    });
+  }
 
   console.log(
     `[Webhook] Updated subscription ${sub.id} (status: ${mappedStatus}) for user ${userId}`

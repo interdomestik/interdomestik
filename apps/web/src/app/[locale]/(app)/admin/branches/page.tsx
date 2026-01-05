@@ -13,7 +13,8 @@ export default async function AdminBranchesPage({ searchParams }: Props) {
   const t = await getTranslations('admin.branches');
   const sp = await searchParams;
   const showInactive = sp.showInactive === 'true';
-  const branches = await listBranches({ includeInactive: showInactive });
+  const result = await listBranches({ includeInactive: showInactive });
+  const branches = 'error' in result ? [] : result;
 
   return (
     <div className="space-y-6">

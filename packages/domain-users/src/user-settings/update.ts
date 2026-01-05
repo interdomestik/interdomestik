@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -29,9 +30,10 @@ export async function updateNotificationPreferencesCore(params: {
       .select()
       .from(userNotificationPreferences)
       .where(
-        and(
-          eq(userNotificationPreferences.userId, session.user.id),
-          eq(userNotificationPreferences.tenantId, tenantId)
+        withTenant(
+          tenantId,
+          userNotificationPreferences.tenantId,
+          eq(userNotificationPreferences.userId, session.user.id)
         )
       )
       .limit(1);
@@ -44,9 +46,10 @@ export async function updateNotificationPreferencesCore(params: {
           updatedAt: new Date(),
         })
         .where(
-          and(
-            eq(userNotificationPreferences.userId, session.user.id),
-            eq(userNotificationPreferences.tenantId, tenantId)
+          withTenant(
+            tenantId,
+            userNotificationPreferences.tenantId,
+            eq(userNotificationPreferences.userId, session.user.id)
           )
         );
     } else {

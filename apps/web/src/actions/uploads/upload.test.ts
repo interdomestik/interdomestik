@@ -52,6 +52,33 @@ describe('uploadVoiceNote', () => {
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
   });
 
+  it('prevents Stored XSS by overriding malicious content-type', async () => {
+    // Valid MP3 magic bytes (ID3)
+    const bytes = new Uint8Array([0x49, 0x44, 0x33, 0x00]);
+    const file = {
+      name: 'exploit.mp3',
+      type: 'text/html', // <--- Malicious Type (Attacker controlled)
+      size: bytes.length,
+      arrayBuffer: async () => bytes.buffer,
+    } as File;
+    const formData = {
+      get: (key: string) => (key === 'file' ? file : null),
+    } as FormData;
+
+    const result = await uploadVoiceNote(formData);
+
+    expect(result.success).toBe(true);
+    // Verify that the upload function ignored 'text/html' and forced 'audio/mpeg'
+    expect(hoisted.upload).toHaveBeenCalledWith(
+      expect.stringContaining('.mp3'),
+      expect.anything(),
+      expect.objectContaining({
+        contentType: 'audio/mpeg', // <--- Safely derived from extension/magic bytes
+        upsert: false,
+      })
+    );
+  });
+
   it('infers mp4 extension when content-type is missing', async () => {
     const bytes = new Uint8Array(12);
     // ftyp at offset 4

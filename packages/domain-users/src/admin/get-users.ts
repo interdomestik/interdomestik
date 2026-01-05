@@ -92,7 +92,6 @@ export async function getUsersCore(params: {
   const unreadConditions = [
     isNull(claimMessages.readAt),
     eq(claimMessages.senderId, claims.userId),
-    eq(claims.tenantId, tenantId),
   ];
 
   const unreadRows = await db
@@ -102,7 +101,7 @@ export async function getUsersCore(params: {
     })
     .from(claimMessages)
     .innerJoin(claims, eq(claimMessages.claimId, claims.id))
-    .where(and(...unreadConditions))
+    .where(withTenant(tenantId, claims.tenantId, and(...unreadConditions)))
     .orderBy(desc(claimMessages.createdAt));
 
   for (const row of unreadRows) {

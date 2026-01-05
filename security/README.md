@@ -6,6 +6,8 @@ This folder tracks security audit status, evidence, and follow-up tasks.
 
 - `security/SECURITY_AUDIT_REPORT.md` - current audit status, evidence links, and remediation guidance.
 - `security/SECURITY_TASKS.md` - execution checklist and ongoing backlog.
+- `security/HARDENING_CHECKLIST.md` - module-by-module hardening template.
+- `security/hardening/` - per-module hardening progress and notes.
 
 ## How to Use
 

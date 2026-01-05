@@ -20,7 +20,7 @@ export async function submitClaimCore(params: {
   data: CreateClaimValues;
 }): Promise<SubmitClaimResult> {
   try {
-    const result = await submitClaimCoreDomain(params, {
+    await submitClaimCoreDomain(params, {
       logAuditEvent,
       notifyClaimSubmitted,
       revalidatePath,

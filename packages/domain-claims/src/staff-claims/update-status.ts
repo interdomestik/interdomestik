@@ -1,16 +1,21 @@
-import { and, claimStageHistory, claims, db, eq } from '@interdomestik/database';
+import { claimStageHistory, claims, db, eq } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import type { ClaimsSession } from '../claims/types';
+import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type { ActionResult, ClaimStatus } from './types';
 
 /** Update claim status and optionally add a history note */
-export async function updateClaimStatusCore(params: {
-  claimId: string;
-  newStatus: ClaimStatus;
-  note?: string;
-  isPublicChange?: boolean;
-  session: ClaimsSession | null;
-}): Promise<ActionResult> {
+export async function updateClaimStatusCore(
+  params: {
+    claimId: string;
+    newStatus: ClaimStatus;
+    note?: string;
+    isPublicChange?: boolean;
+    session: ClaimsSession | null;
+    requestHeaders?: Headers; // Optional headers
+  },
+  deps: ClaimsDeps = {}
+): Promise<ActionResult> {
   const { claimId, newStatus, note, isPublicChange = true, session } = params;
 
   if (!session?.user || session.user.role !== 'staff') {
@@ -23,7 +28,7 @@ export async function updateClaimStatusCore(params: {
     const [currentClaim] = await db
       .select({ status: claims.status })
       .from(claims)
-      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)))
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
       .limit(1);
 
     if (!currentClaim) {
@@ -34,13 +39,15 @@ export async function updateClaimStatusCore(params: {
       return { success: true }; // No change needed
     }
 
+    const oldStatus = currentClaim.status;
+
     await db.transaction(async tx => {
       // 1. Update claim status
       if (currentClaim.status !== newStatus) {
         await tx
           .update(claims)
           .set({ status: newStatus, updatedAt: new Date() })
-          .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
+          .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
       }
 
       // 2. Add history entry
@@ -57,6 +64,24 @@ export async function updateClaimStatusCore(params: {
         createdAt: new Date(),
       });
     });
+
+    // 🔒 SECURITY Audit Log
+    if (deps.logAuditEvent) {
+      await deps.logAuditEvent({
+        actorId: session.user.id,
+        actorRole: session.user.role,
+        action: 'claim.status_changed', // Same action as admin for consistency
+        entityType: 'claim',
+        entityId: claimId,
+        metadata: {
+          oldStatus,
+          newStatus,
+          note: note || undefined,
+          isPublic: isPublicChange,
+        },
+        headers: params.requestHeaders,
+      });
+    }
 
     return { success: true };
   } catch (error) {

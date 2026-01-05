@@ -10,6 +10,7 @@ import {
   or,
   user,
 } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 import { SQL, count, desc, isNotNull, isNull, ne } from 'drizzle-orm';
@@ -93,16 +94,17 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
 
   const conditions: SQL<unknown>[] = [];
 
-  conditions.push(eq(claims.tenantId, tenantId));
-
   const useAgentClientsJoin =
     scope === 'agent_queue' && !!authScope.agentId && !authScope.isFullTenantScope;
   const agentClientsJoinOn = useAgentClientsJoin
-    ? and(
-        eq(agentClients.memberId, claims.userId),
-        eq(agentClients.agentId, authScope.agentId!),
-        eq(agentClients.tenantId, tenantId),
-        eq(agentClients.status, 'active')
+    ? withTenant(
+        tenantId,
+        agentClients.tenantId,
+        and(
+          eq(agentClients.memberId, claims.userId),
+          eq(agentClients.agentId, authScope.agentId!),
+          eq(agentClients.status, 'active')
+        )
       )
     : null;
 
@@ -158,7 +160,8 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
     }
   }
 
-  const whereClause = conditions.length ? and(...conditions) : undefined;
+  const baseWhere = conditions.length ? and(...conditions) : undefined;
+  const whereClause = withTenant(tenantId, claims.tenantId, baseWhere);
 
   let countQuery = db
     .select({ total: count() })
@@ -212,14 +215,17 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
       .from(claimMessages)
       .innerJoin(claims, eq(claimMessages.claimId, claims.id))
       .where(
-        and(
-          inArray(
-            claimMessages.claimId,
-            rows.map(row => row.id)
-          ),
-          isNull(claimMessages.readAt),
-          eq(claimMessages.senderId, claims.userId),
-          eq(claims.tenantId, tenantId)
+        withTenant(
+          tenantId,
+          claims.tenantId,
+          and(
+            inArray(
+              claimMessages.claimId,
+              rows.map(row => row.id)
+            ),
+            isNull(claimMessages.readAt),
+            eq(claimMessages.senderId, claims.userId)
+          )
         )
       )
       .groupBy(claimMessages.claimId);

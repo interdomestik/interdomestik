@@ -1,18 +1,43 @@
-export async function handleTransactionCompleted(params: { data: unknown }) {
-  const tx = params.data as
-    | {
-        customData?: { userId?: string };
-        custom_data?: { userId?: string };
-        subscriptionId?: string | null;
-        subscription_id?: string | null;
-      }
-    | undefined;
+import { db } from '@interdomestik/database';
+import { transactionEventDataSchema } from '../schemas';
+import type { PaddleWebhookAuditDeps } from '../types';
 
-  const customData = (tx?.customData || tx?.custom_data) as { userId?: string } | undefined;
+export async function handleTransactionCompleted(
+  params: { data: unknown },
+  deps: PaddleWebhookAuditDeps = {}
+) {
+  const parseResult = transactionEventDataSchema.safeParse(params.data);
+  if (!parseResult.success) {
+    console.error('[Webhook] Invalid transaction data:', parseResult.error);
+    return;
+  }
+  const tx = parseResult.data;
+
+  const customData = tx.customData || tx.custom_data;
   const userId = customData?.userId;
-  const subscriptionId = tx?.subscriptionId || tx?.subscription_id;
+  const subscriptionId = tx.subscriptionId || tx.subscription_id;
 
   if (userId && subscriptionId) {
-    console.log(`[Webhook] Transaction completed for sub ${subscriptionId}, user ${userId}`);
+    // Resolve Tenant for Audit Log
+    const user = await db.query.user.findFirst({
+      where: (t, { eq }) => eq(t.id, userId),
+      columns: { tenantId: true },
+    });
+
+    if (deps.logAuditEvent && user?.tenantId) {
+      await deps.logAuditEvent({
+        actorRole: 'system',
+        action: 'payment.processed',
+        entityType: 'transaction',
+        entityId: tx.id,
+        tenantId: user.tenantId,
+        metadata: {
+          subscriptionId,
+          status: tx.status,
+          currency: tx.details?.totals?.currencyCode,
+          amount: tx.details?.totals?.total,
+        },
+      });
+    }
   }
 }

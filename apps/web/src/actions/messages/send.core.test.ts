@@ -48,6 +48,10 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: vi.fn(() => ({ scoped: true })),
+}));
+
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(() => ({ __eq: true })),
   and: vi.fn(() => ({ __and: true })),

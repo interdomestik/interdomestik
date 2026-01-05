@@ -50,15 +50,15 @@ export function CreateBranchDialog() {
         code: data.code || null,
       });
 
-      if (result.success) {
+      if ('success' in result && result.success) {
         toast.success(t('createSuccess'));
         setOpen(false);
         reset();
         // Ideally revalidatePath happens on server
       } else {
-        toast.error(result.error || t('createError'));
+        toast.error('error' in result ? result.error : t('createError'));
       }
-    } catch (err) {
+    } catch {
       toast.error(t('createError'));
     } finally {
       setIsPending(false);

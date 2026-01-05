@@ -1,6 +1,7 @@
 import webPush, { type PushSubscription } from 'web-push';
 
 import { db } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { pushSubscriptions, userNotificationPreferences } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
 import type { AuditLogger } from './types';
@@ -76,9 +77,10 @@ export async function sendPushToUser(
     })
     .from(userNotificationPreferences)
     .where(
-      and(
-        eq(userNotificationPreferences.userId, userId),
-        eq(userNotificationPreferences.tenantId, resolvedTenantId)
+      withTenant(
+        resolvedTenantId,
+        userNotificationPreferences.tenantId,
+        eq(userNotificationPreferences.userId, userId)
       )
     )
     .limit(1);
@@ -98,7 +100,7 @@ export async function sendPushToUser(
     })
     .from(pushSubscriptions)
     .where(
-      and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.tenantId, resolvedTenantId))
+      withTenant(resolvedTenantId, pushSubscriptions.tenantId, eq(pushSubscriptions.userId, userId))
     );
 
   if (subscriptions.length === 0) {
@@ -134,10 +136,13 @@ export async function sendPushToUser(
           await db
             .delete(pushSubscriptions)
             .where(
-              and(
-                eq(pushSubscriptions.userId, userId),
-                eq(pushSubscriptions.tenantId, resolvedTenantId),
-                eq(pushSubscriptions.endpoint, sub.endpoint)
+              withTenant(
+                resolvedTenantId,
+                pushSubscriptions.tenantId,
+                and(
+                  eq(pushSubscriptions.userId, userId),
+                  eq(pushSubscriptions.endpoint, sub.endpoint)
+                )
               )
             );
         }

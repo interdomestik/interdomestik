@@ -1,7 +1,7 @@
-import { Link } from '@/i18n/routing';
-import { auth } from '@/lib/auth'; // auth-client imports are for client, server uses auth helper
-import { createAdminClient, db } from '@interdomestik/database';
-import { policies } from '@interdomestik/database/schema';
+import { FileText, Plus, Shield } from 'lucide-react';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import {
   Button,
@@ -11,10 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui';
-import { desc } from 'drizzle-orm';
-import { FileText, Plus, Shield } from 'lucide-react';
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+
+import { Link } from '@/i18n/routing';
+import { auth } from '@/lib/auth'; // auth-client imports are for client, server uses auth helper
+
+import { getPoliciesWithSignedUrlsCore } from './_core';
 
 type PolicyAnalysis = {
   summary?: string;
@@ -34,28 +35,10 @@ export default async function PoliciesPage() {
   }
 
   const tenantId = ensureTenantId(session);
-  const userPolicies = await db.query.policies.findMany({
-    where: (policiesTable, { and, eq }) =>
-      and(eq(policiesTable.userId, session.user.id), eq(policiesTable.tenantId, tenantId)),
-    orderBy: [desc(policies.createdAt)],
+  const policiesWithUrls = await getPoliciesWithSignedUrlsCore({
+    tenantId,
+    userId: session.user.id,
   });
-
-  const adminClient = createAdminClient();
-  const policiesBucket = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || 'policies';
-  const policiesWithUrls = await Promise.all(
-    userPolicies.map(async policy => {
-      const storedUrl = policy.fileUrl;
-      if (storedUrl.startsWith('http://') || storedUrl.startsWith('https://')) {
-        return { policy, fileHref: storedUrl };
-      }
-
-      const { data, error } = await adminClient.storage
-        .from(policiesBucket)
-        .createSignedUrl(storedUrl, 300);
-
-      return { policy, fileHref: error ? '' : (data?.signedUrl ?? '') };
-    })
-  );
 
   return (
     <div className="flex flex-col gap-8 p-8">
@@ -74,7 +57,7 @@ export default async function PoliciesPage() {
         </Link>
       </div>
 
-      {userPolicies.length === 0 ? (
+      {policiesWithUrls.length === 0 ? (
         <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
           <div className="bg-primary/10 p-4 rounded-full mb-4">
             <Shield className="h-8 w-8 text-primary" />

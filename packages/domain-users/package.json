@@ -12,6 +12,7 @@
     "./admin/get-users": "./src/admin/get-users.ts",
     "./admin/get-agents": "./src/admin/get-agents.ts",
     "./admin/get-staff": "./src/admin/get-staff.ts",
+    "./admin/schemas": "./src/admin/schemas.ts",
     "./admin/update-user-agent": "./src/admin/update-user-agent.ts",
     "./agent/get-users": "./src/agent/get-users.ts",
     "./user-settings/get": "./src/user-settings/get.ts",
@@ -28,7 +29,8 @@
     "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "nanoid": "^5.1.6",
-    "slugify": "^1.6.6"
+    "slugify": "^1.6.6",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "postcss": "^8.5.6",

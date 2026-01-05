@@ -41,6 +41,13 @@
       "retry": "Please try again. If the problem persists, contact support.",
       "unauthorized": "Unauthorized"
     },
+    "cookie_consent": {
+      "title": "Podešavanja kolačića",
+      "description": "Koristimo kolačiće kako bismo poboljšali vaše iskustvo.",
+      "details": "Klikom na 'Prihvati sve', pristajete na našu upotrebu kolačića za analitiku i personalizovani sadržaj.",
+      "accept": "Prihvati sve",
+      "decline": "Samo neophodni"
+    },
     "companyName": "Interdomestik",
     "tagline": "There when you need us"
   }

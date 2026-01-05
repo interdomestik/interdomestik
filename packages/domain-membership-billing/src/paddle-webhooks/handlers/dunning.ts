@@ -1,6 +1,7 @@
 import { db, subscriptions } from '@interdomestik/database';
 
-import type { PaddleWebhookDeps } from '../types';
+import { subscriptionEventDataSchema } from '../schemas';
+import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
 
 const redactEmail = (email?: string | null) => {
   if (!email) return 'unknown';
@@ -12,19 +13,16 @@ const redactEmail = (email?: string | null) => {
 
 export async function handleSubscriptionPastDue(
   params: { data: unknown },
-  deps: Pick<PaddleWebhookDeps, 'sendPaymentFailedEmail'> = {}
+  deps: Pick<PaddleWebhookDeps, 'sendPaymentFailedEmail'> & PaddleWebhookAuditDeps = {}
 ) {
-  const sub = params.data as unknown as {
-    id: string;
-    customData?: { userId?: string };
-    custom_data?: { userId?: string };
-    items?: Array<{ price?: { id?: string; description?: string }; priceId?: string }>;
-    customerId?: string;
-    customer_id?: string;
-    currentBillingPeriod?: { startsAt?: string; endsAt?: string };
-    current_billing_period?: { starts_at?: string; ends_at?: string };
-  };
-  const customData = (sub.customData || sub.custom_data) as { userId?: string } | undefined;
+  const parseResult = subscriptionEventDataSchema.safeParse(params.data);
+  if (!parseResult.success) {
+    console.error('[Webhook] Invalid dunning data:', parseResult.error);
+    return;
+  }
+  const sub = parseResult.data;
+
+  const customData = sub.customData || sub.custom_data;
   const userId = customData?.userId;
 
   if (!userId) {
@@ -32,38 +30,34 @@ export async function handleSubscriptionPastDue(
     return;
   }
 
-  const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
-  const now = new Date();
-
-  const gracePeriodDays = 14;
-  const gracePeriodEnd = new Date(now);
-  gracePeriodEnd.setDate(gracePeriodEnd.getDate() + gracePeriodDays);
-
-  const existingSub = await db.query.subscriptions.findFirst({
-    where: (subs, { eq: eqFn }) => eqFn(subs.id, sub.id),
-  });
-
+  // Get User Tenant
   const userRecord = await db.query.user.findFirst({
-    where: (users, { eq: eqFn }) => eqFn(users.id, userId),
-    columns: { tenantId: true, email: true, name: true },
+    where: (users, { eq }) => eq(users.id, userId),
+    columns: { id: true, email: true, name: true, tenantId: true },
   });
 
-  const tenantId = existingSub?.tenantId ?? userRecord?.tenantId;
-
-  if (!tenantId) {
-    console.warn(
-      `[Webhook] Cannot resolve tenant for past_due subscription ${sub.id} userId=${userId}; skipping write`
-    );
+  if (!userRecord) {
+    console.warn(`[Webhook] User not found: ${userId}`);
     return;
   }
 
+  // Get existing subscription to increment counters
+  const existingSub = await db.query.subscriptions.findFirst({
+    where: (subs, { eq }) => eq(subs.id, sub.id),
+  });
+
+  const now = new Date();
+  const gracePeriodDays = 14;
+  const gracePeriodEnd = new Date(now);
+  gracePeriodEnd.setDate(now.getDate() + gracePeriodDays);
   const newDunningCount = (existingSub?.dunningAttemptCount || 0) + 1;
+  const priceId = sub.items?.[0]?.price?.id || sub.items?.[0]?.priceId || 'unknown';
 
   await db
     .insert(subscriptions)
     .values({
       id: sub.id,
-      tenantId,
+      tenantId: userRecord.tenantId,
       userId,
       status: 'past_due',
       planId: priceId,
@@ -75,12 +69,15 @@ export async function handleSubscriptionPastDue(
       currentPeriodStart:
         sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
           ? new Date(
-              sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at || ''
+              sub.currentBillingPeriod?.startsAt ||
+                (sub.current_billing_period?.starts_at as string)
             )
           : null,
       currentPeriodEnd:
         sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at
-          ? new Date(sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at || '')
+          ? new Date(
+              sub.currentBillingPeriod?.endsAt || (sub.current_billing_period?.ends_at as string)
+            )
           : null,
       updatedAt: now,
     })
@@ -101,6 +98,21 @@ export async function handleSubscriptionPastDue(
     `[Webhook] 🚨 DUNNING: Subscription ${sub.id} is past_due (attempt ${newDunningCount})`
   );
   console.log(`[Webhook] Grace period ends: ${gracePeriodEnd.toISOString()}`);
+
+  // 🔒 SECURITY Audit Log
+  if (deps.logAuditEvent) {
+    await deps.logAuditEvent({
+      actorRole: 'system',
+      action: 'subscription.past_due',
+      entityType: 'subscription',
+      entityId: sub.id,
+      tenantId: userRecord.tenantId,
+      metadata: {
+        dunningAttempt: newDunningCount,
+        gracePeriodEnd: gracePeriodEnd.toISOString(),
+      },
+    });
+  }
 
   if (newDunningCount === 1 && deps.sendPaymentFailedEmail) {
     try {

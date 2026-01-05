@@ -92,6 +92,16 @@ test.describe('Subscription Lifecycle', () => {
   });
 
   test('signup -> checkout -> success -> cancel via webhook', async ({ page }) => {
+    const projectName = test.info().project.name;
+    const ipMap: Record<string, string> = {
+      chromium: '10.0.0.21',
+      firefox: '10.0.0.22',
+      webkit: '10.0.0.23',
+      'mobile-chrome': '10.0.0.24',
+    };
+    await page.context().setExtraHTTPHeaders({
+      'x-forwarded-for': ipMap[projectName] ?? '10.0.0.20',
+    });
     test.skip(
       !process.env.PADDLE_WEBHOOK_SECRET_KEY,
       'PADDLE_WEBHOOK_SECRET_KEY is required for webhook signature verification.'
@@ -103,6 +113,7 @@ test.describe('Subscription Lifecycle', () => {
     test.slow();
 
     const locale = 'en';
+    const tenantId = process.env.E2E_TENANT_ID ?? 'tenant_mk';
     const unique = Date.now().toString(36);
     const email = `e2e+${unique}@interdomestik.com`;
     const password = 'TestPassword123!';
@@ -112,7 +123,7 @@ test.describe('Subscription Lifecycle', () => {
       await dialog.dismiss();
     });
 
-    await page.goto(routes.register(locale));
+    await page.goto(`${routes.register(locale)}?tenantId=${encodeURIComponent(tenantId)}`);
     await page.fill('input[name="fullName"]', fullName);
     await page.fill('input[name="email"]', email);
     await page.fill('input[name="password"]', password);
@@ -139,7 +150,7 @@ test.describe('Subscription Lifecycle', () => {
     const sessionUser = sessionData.user ?? sessionData.session?.user;
     let userId = sessionUser?.id;
     if (!userId) {
-      await page.goto(routes.login(locale));
+      await page.goto(`${routes.login(locale)}?tenantId=${encodeURIComponent(tenantId)}`);
       await page.fill('input[name="email"]', email);
       await page.fill('input[name="password"]', password);
       await Promise.all([

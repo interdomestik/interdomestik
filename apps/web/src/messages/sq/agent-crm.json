@@ -3,7 +3,7 @@
     "crm": {
       "dashboard": {
         "title": "Pasqyra e Shitjeve",
-        "subtitle": "Ndiqni performancën dhe linjën tuaj.",
+        "subtitle": "Ndiqni performancën dhe procesin tuaj të shitjes.",
         "stats": {
           "leads_new": "Lead-e të reja",
           "leads_contacted": "Të kontaktuar",

@@ -1,14 +1,24 @@
 export function authorizeCronRequest(args: {
   authorizationHeader: string | null;
   cronSecret: string | undefined;
-  nodeEnv: string | undefined;
-  allowDevBypass: boolean;
 }): boolean {
-  const { authorizationHeader, cronSecret, nodeEnv, allowDevBypass } = args;
+  const { authorizationHeader, cronSecret } = args;
 
-  const isDevelopment = (nodeEnv || 'production') !== 'production';
-  if (isDevelopment && allowDevBypass) return true;
+  // 🔒 SECURITY: Never bypass authentication, even in development
+  // Development should use proper authentication to prevent security holes
 
-  if (!cronSecret) return false;
-  return authorizationHeader === `Bearer ${cronSecret}`;
+  if (!cronSecret) {
+    console.error('CRON_SECRET is not configured');
+    return false;
+  }
+
+  const expectedAuth = `Bearer ${cronSecret}`;
+  const isValidAuth = authorizationHeader === expectedAuth;
+
+  if (!isValidAuth) {
+    console.warn('Unauthorized cron request attempt detected');
+    return false;
+  }
+
+  return true;
 }

@@ -1,4 +1,5 @@
-import { agentClients, and, db, eq, user } from '@interdomestik/database';
+import { agentClients, db, eq, user } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { randomUUID } from 'crypto';
 
 import type { ActionResult, UserSession } from '../types';
@@ -17,12 +18,15 @@ export async function updateUserAgentCore(params: {
 
   try {
     await db.transaction(async tx => {
-      await tx.update(user).set({ agentId }).where(eq(user.id, userId));
+      await tx
+        .update(user)
+        .set({ agentId })
+        .where(withTenant(tenantId, user.tenantId, eq(user.id, userId)));
 
       await tx
         .update(agentClients)
         .set({ status: 'inactive' })
-        .where(and(eq(agentClients.memberId, userId), eq(agentClients.tenantId, tenantId)));
+        .where(withTenant(tenantId, agentClients.tenantId, eq(agentClients.memberId, userId)));
 
       if (agentId) {
         await tx

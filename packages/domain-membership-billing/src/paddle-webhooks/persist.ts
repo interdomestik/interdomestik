@@ -133,6 +133,7 @@ export async function markWebhookProcessed(
     webhookEventRowId: string;
     eventType: string | undefined;
     eventId: string | undefined;
+    tenantId?: string | null;
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
@@ -151,6 +152,7 @@ export async function markWebhookProcessed(
       action: 'webhook.processed',
       entityType: 'webhook_event',
       entityId: params.webhookEventRowId,
+      tenantId: params.tenantId || undefined,
       metadata: {
         provider: 'paddle',
         eventType: params.eventType,
@@ -169,6 +171,7 @@ export async function markWebhookFailed(
     eventType: string | undefined;
     eventId: string | undefined;
     error: unknown;
+    tenantId?: string | null;
   },
   deps: PaddleWebhookAuditDeps = {}
 ) {
@@ -189,6 +192,7 @@ export async function markWebhookFailed(
       action: 'webhook.failed',
       entityType: 'webhook_event',
       entityId: params.webhookEventRowId,
+      tenantId: params.tenantId || undefined,
       metadata: {
         provider: 'paddle',
         eventType: params.eventType,

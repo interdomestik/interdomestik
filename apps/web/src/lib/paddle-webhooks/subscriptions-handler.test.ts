@@ -2,9 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   insertValues: vi.fn((_vals?: unknown) => ({ onConflictDoUpdate: vi.fn(async () => undefined) })),
-  findSubscription: vi.fn(async () => null) as any,
-  findUser: vi.fn(async () => null) as any,
-  findTenantSetting: vi.fn(async () => null) as any,
+  findSubscription: vi.fn<() => Promise<Record<string, unknown> | null>>(() =>
+    Promise.resolve(null)
+  ),
+  findUser: vi.fn<() => Promise<Record<string, unknown> | null>>(() => Promise.resolve(null)),
+  findTenantSetting: vi.fn<() => Promise<Record<string, unknown> | null>>(() =>
+    Promise.resolve(null)
+  ),
 }));
 
 vi.mock('@interdomestik/database', () => ({

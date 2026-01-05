@@ -33,6 +33,10 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: vi.fn(() => ({ scoped: true })),
+}));
+
 vi.mock('@interdomestik/shared-auth', () => ({
   hasPermission: vi.fn(() => true),
   PERMISSIONS: {
@@ -44,12 +48,12 @@ vi.mock('@interdomestik/shared-auth', () => ({
 describe('domain-users rbac: branch required roles', () => {
   const session = {
     user: { id: 'admin-1', role: 'super_admin', tenantId: 'tenant_mk' },
-  } as any;
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    hoisted.transaction.mockImplementation(async (fn: any) => {
+    hoisted.transaction.mockImplementation(async fn => {
       const tx = {
         update: vi.fn(() => ({
           set: vi.fn(() => ({

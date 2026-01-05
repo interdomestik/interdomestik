@@ -1,3 +1,7 @@
+import { sendThankYouLetterCore } from '@/actions/thank-you-letter/send';
+import { logAuditEvent } from '@/lib/audit';
+import { sendPaymentFailedEmail } from '@/lib/email';
+import { db } from '@interdomestik/database';
 import {
   handlePaddleEvent,
   insertWebhookEvent,
@@ -8,10 +12,6 @@ import {
   sha256Hex,
   verifyPaddleWebhook,
 } from '@interdomestik/domain-membership-billing/paddle-webhooks';
-import { sendThankYouLetterCore } from '@/actions/thank-you-letter/send';
-import { logAuditEvent } from '@/lib/audit';
-import { sendPaymentFailedEmail } from '@/lib/email';
-import { db } from '@interdomestik/database';
 
 import type { Paddle } from '@paddle/paddle-node-sdk';
 
@@ -148,10 +148,11 @@ export async function handlePaddleWebhookCore(args: {
       {
         sendPaymentFailedEmail,
         sendThankYouLetter: sendThankYouLetterCore,
+        logAuditEvent,
       }
     );
     await markWebhookProcessed(
-      { headers, webhookEventRowId, eventType, eventId },
+      { headers, webhookEventRowId, eventType, eventId, tenantId },
       { logAuditEvent }
     );
   } catch (processingError) {
@@ -162,6 +163,7 @@ export async function handlePaddleWebhookCore(args: {
         eventType,
         eventId,
         error: processingError,
+        tenantId,
       },
       { logAuditEvent }
     );

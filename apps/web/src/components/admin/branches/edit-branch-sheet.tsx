@@ -84,12 +84,12 @@ export function EditBranchSheet({ branch, isOpen, onClose, onUpdate }: EditBranc
         isActive: data.isActive,
       });
 
-      if (result.success) {
+      if ('success' in result && result.success) {
         toast.success(t('updateSuccess'));
         onUpdate({ ...branch, ...data });
         onClose();
       } else {
-        toast.error(result.error || t('updateError'));
+        toast.error('error' in result ? result.error : t('updateError'));
       }
     } catch {
       toast.error(t('updateError'));

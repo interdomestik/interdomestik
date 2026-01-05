@@ -1,4 +1,5 @@
 import { agentClients, db, eq, ilike, inArray, or, user } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { and, type SQL } from 'drizzle-orm';
 
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -23,17 +24,16 @@ export async function getAgentUsersCore(params: {
   const tenantId = ensureTenantId(session);
 
   const conditions: SQL[] = [eq(user.role, 'user')];
-  conditions.push(eq(user.tenantId, tenantId) as SQL);
 
   if (session.user.role === 'agent') {
     const links = await db
       .select({ memberId: agentClients.memberId })
       .from(agentClients)
       .where(
-        and(
-          eq(agentClients.agentId, session.user.id),
-          eq(agentClients.tenantId, tenantId),
-          eq(agentClients.status, 'active')
+        withTenant(
+          tenantId,
+          agentClients.tenantId,
+          and(eq(agentClients.agentId, session.user.id), eq(agentClients.status, 'active'))
         )
       );
 
@@ -51,8 +51,9 @@ export async function getAgentUsersCore(params: {
     conditions.push(or(ilike(user.name, term), ilike(user.email, term)) as SQL);
   }
 
+  const userConditions = conditions.length ? and(...conditions) : undefined;
   const users = await db.query.user.findMany({
-    where: and(...conditions),
+    where: withTenant(tenantId, user.tenantId, userConditions),
     orderBy: (users, { desc }) => [desc(users.createdAt)],
     limit: filters?.limit,
     offset: filters?.offset,

@@ -141,8 +141,21 @@ export async function uploadVoiceNote(formData: FormData): Promise<UploadResult>
     // Reuse the arrayBuffer already read for magic byte validation
     const buffer = Buffer.from(arrayBuffer);
 
+    // 🔒 SECURITY: Enforce Content-Type based on the validated extension.
+    // Do NOT trust file.type from the client, as it can be spoofed (e.g. 'text/html')
+    // to execute XSS.
+    const EXT_TO_MIME: Record<string, string> = {
+      webm: 'audio/webm',
+      mp4: 'audio/mp4',
+      ogg: 'audio/ogg',
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+    };
+
+    const safeContentType = EXT_TO_MIME[ext] || 'application/octet-stream';
+
     const { error } = await supabase.storage.from(bucketName).upload(fileName, buffer, {
-      contentType: file.type,
+      contentType: safeContentType,
       upsert: false,
     });
 

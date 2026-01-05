@@ -7,9 +7,9 @@ export function getAuthRateLimitConfig(method: AuthMethod): {
 } {
   switch (method) {
     case 'GET':
-      return { name: 'api/auth', limit: 30, windowSeconds: 60 };
+      return { name: 'api/auth', limit: 10, windowSeconds: 60 };
     case 'POST':
-      return { name: 'api/auth', limit: 15, windowSeconds: 60 };
+      return { name: 'api/auth', limit: 5, windowSeconds: 60 };
   }
 }
 

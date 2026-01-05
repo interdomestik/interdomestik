@@ -63,7 +63,7 @@ This is the minimal operational runbook for Interdomestik.
 ### Protection
 
 - Cron endpoints require `Authorization: Bearer $CRON_SECRET`.
-- Dev-only: `CRON_BYPASS_SECRET_IN_DEV=true` allows local testing.
+- Dev note: cron endpoints require `CRON_SECRET` even locally (no bypass flag).
 
 ### Endpoints
 

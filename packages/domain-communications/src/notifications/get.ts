@@ -1,4 +1,5 @@
 import { db } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { notifications } from '@interdomestik/database/schema';
 import { desc, eq } from 'drizzle-orm';
 
@@ -15,7 +16,7 @@ export async function getNotificationsCore(params: { session: Session | null; li
 
   const tenantId = ensureTenantId(session);
   return db.query.notifications.findMany({
-    where: (table, { and, eq }) => and(eq(table.userId, user.id), eq(table.tenantId, tenantId)),
+    where: (table, { eq }) => withTenant(tenantId, table.tenantId, eq(table.userId, user.id)),
     orderBy: [desc(notifications.createdAt)],
     limit,
   });

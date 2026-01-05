@@ -84,6 +84,7 @@
         }
       },
       "filters": {
+        "search_label": "Search members",
         "search_placeholder": "Pretraži po imenu ili emailu"
       },
       "table": {

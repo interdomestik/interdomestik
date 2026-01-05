@@ -5,6 +5,7 @@
       "claims": "Claims",
       "users": "Users",
       "analytics": "Analytics",
+      "branches": "Branches",
       "settings": "Settings",
       "title": "Admin",
       "subtitle": "Control Panel",
@@ -91,7 +92,8 @@
       "no_messages": "No interaction history yet.",
       "message_placeholder": "Type a message or internal note...",
       "internal_note": "Internal Note",
-      "send_message": "Send Message"
+      "send_message": "Send Message",
+      "view_details": "View Details"
     },
     "analytics": {
       "title": "Analytics Overview",
@@ -183,6 +185,47 @@
         "resolved": "Resolved",
         "rejected": "Rejected"
       }
+    },
+    "branches": {
+      "title": "Upravljanje filijalama",
+      "description": "Upravljajte filijalama vaše organizacije.",
+      "listTitle": "Filijale",
+      "createButton": "Nova filijala",
+      "createTitle": "Kreiraj novu filijalu",
+      "createDescription": "Dodajte novu filijalu vašoj organizaciji.",
+      "editTitle": "Izmeni filijalu",
+      "editDescription": "Ažurirajte detalje filijale.",
+      "createSuccess": "Filijala uspešno kreirana.",
+      "createError": "Neuspešno kreiranje filijale.",
+      "updateSuccess": "Filijala uspešno ažurirana.",
+      "updateError": "Neuspešno ažuriranje filijale.",
+      "deleteSuccess": "Filijala uspešno obrisana.",
+      "deleteError": "Neuspešno brisanje filijale.",
+      "fields": {
+        "name": "Naziv filijale",
+        "code": "Kod filijale",
+        "slug": "Slug",
+        "status": "Status",
+        "isActive": "Status aktivnosti"
+      },
+      "status": {
+        "active": "Aktivno",
+        "inactive": "Neaktivno"
+      },
+      "actions": {
+        "label": "Akcije",
+        "edit": "Izmeni",
+        "delete": "Obriši",
+        "open": "Otvori meni",
+        "showInactive": "Prikaži neaktivne"
+      },
+      "deleteTitle": "Da li ste sigurni?",
+      "deleteConfirm": "Ovo će 'meko' obrisati filijalu {name}. Aktivni članovi mogu biti pogođeni.",
+      "cancel": "Otkaži",
+      "save": "Sačuvaj",
+      "saving": "Čuvanje...",
+      "deleting": "Brisanje...",
+      "noResults": "Nema pronađenih filijala."
     }
   }
 }

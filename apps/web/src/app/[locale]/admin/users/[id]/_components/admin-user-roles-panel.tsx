@@ -39,7 +39,7 @@ import {
   TableRow,
 } from '@interdomestik/ui/components/table';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 type Branch = {
@@ -78,7 +78,7 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
     return [{ id: TENANT_WIDE_BRANCH, name: 'Tenant-wide', code: null }, ...branches];
   }, [branches]);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const [branchesResult, rolesResult] = await Promise.all([
@@ -94,12 +94,11 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId, userId]);
 
   useEffect(() => {
     void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenantId, userId]);
+  }, [refresh]);
 
   const handleGrant = async () => {
     if (!effectiveRoleValue) {

@@ -45,5 +45,8 @@
     "drizzle-orm": "^0.45.1",
     "nanoid": "^5.1.6",
     "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.16"
   }
 }

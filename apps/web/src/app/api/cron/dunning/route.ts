@@ -39,8 +39,6 @@ export async function GET(req: NextRequest) {
     !authorizeCronRequest({
       authorizationHeader: req.headers.get('authorization'),
       cronSecret: process.env.CRON_SECRET,
-      nodeEnv: process.env.NODE_ENV,
-      allowDevBypass: process.env.CRON_BYPASS_SECRET_IN_DEV === 'true',
     })
   ) {
     console.error('[Dunning Cron] Unauthorized request');

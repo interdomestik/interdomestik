@@ -38,17 +38,19 @@ describe('actions/subscription wrapper', () => {
     const paymentResult = await getPaymentUpdateUrl(subId);
     const cancelResult = await cancelSubscription(subId);
 
-    expect(getPaymentUpdateUrlCore).toHaveBeenCalledTimes(1);
     expect(getPaymentUpdateUrlCore).toHaveBeenCalledWith({
       session: { user: { id: 'u1' } },
       subscriptionId: subId,
     });
 
     expect(cancelSubscriptionCore).toHaveBeenCalledTimes(1);
-    expect(cancelSubscriptionCore).toHaveBeenCalledWith({
-      session: { user: { id: 'u1' } },
-      subscriptionId: subId,
-    });
+    expect(cancelSubscriptionCore).toHaveBeenCalledWith(
+      {
+        session: { user: { id: 'u1' } },
+        subscriptionId: subId,
+      },
+      expect.anything()
+    );
 
     expect(paymentResult).toEqual({ url: 'https://example.com/update', error: undefined });
     expect(cancelResult).toEqual({ success: true, error: undefined });

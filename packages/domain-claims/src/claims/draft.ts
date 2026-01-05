@@ -1,4 +1,5 @@
-import { and, claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { claimDocuments, claims, db, eq } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
@@ -22,8 +23,8 @@ export async function updateDraftClaimCore(
 
   const tenantId = ensureTenantId(session);
   const claim = await db.query.claims.findFirst({
-    where: (claimsTable, { and, eq }) =>
-      and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
+    where: (claimsTable, { eq }) =>
+      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
   });
 
   if (!claim) {
@@ -57,7 +58,7 @@ export async function updateDraftClaimCore(
         currency: currency || 'EUR',
         updatedAt: new Date(),
       })
-      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
     if (files?.length) {
       const documentRows = buildClaimDocumentRows({
@@ -116,8 +117,8 @@ export async function cancelClaimCore(
 
   const tenantId = ensureTenantId(session);
   const claim = await db.query.claims.findFirst({
-    where: (claimsTable, { and, eq }) =>
-      and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
+    where: (claimsTable, { eq }) =>
+      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
   });
 
   if (!claim) {
@@ -139,7 +140,7 @@ export async function cancelClaimCore(
         status: 'rejected',
         updatedAt: new Date(),
       })
-      .where(and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)));
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
     if (deps.logAuditEvent) {
       await deps.logAuditEvent({

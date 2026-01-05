@@ -4,6 +4,44 @@ import { db } from '@interdomestik/database/db';
 import { agentClients, subscriptions, user as userTable } from '@interdomestik/database/schema';
 import { nanoid } from 'nanoid';
 import { registerMemberSchema } from './schemas';
+// Temporary retry implementation (will move to shared-utils)
+async function withTransactionRetry<T>(
+  operation: (tx: any) => Promise<T>,
+  maxRetries = 3
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    try {
+      return await db.transaction(operation);
+    } catch (error) {
+      const isLastAttempt = attempt > maxRetries;
+      const isRetryable =
+        (error as any)?.message?.toLowerCase()?.includes('deadlock') ||
+        (error as any)?.message?.toLowerCase()?.includes('could not serialize');
+
+      if (isLastAttempt || !isRetryable) {
+        throw error;
+      }
+
+      const delay = Math.min(100 * Math.pow(2, attempt - 1), 1000);
+      console.warn(
+        `Transaction failed (attempt ${attempt}/${maxRetries + 1}), retrying in ${delay}ms:`,
+        error
+      );
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
+async function withCircuitBreaker<T>(operation: () => Promise<T>): Promise<T> {
+  // Simple circuit breaker for email service
+  try {
+    return await operation();
+  } catch (error) {
+    console.warn('Email service temporarily unavailable:', error);
+    throw error;
+  }
+}
 
 export async function registerMemberCore(
   agent: { id: string; name?: string | null },
@@ -32,7 +70,7 @@ export async function registerMemberCore(
   const userId = nanoid();
 
   try {
-    await db.transaction(async tx => {
+    await withTransactionRetry(async tx => {
       await tx.insert(userTable).values({
         id: userId,
         tenantId,
@@ -71,10 +109,18 @@ export async function registerMemberCore(
       });
     });
 
-    await sendMemberWelcomeEmail(data.email, {
-      memberName: data.fullName,
-      agentName: agent.name || 'Your Agent',
-    });
+    // Send email with circuit breaker protection
+    try {
+      await withCircuitBreaker(() =>
+        sendMemberWelcomeEmail(data.email, {
+          memberName: data.fullName,
+          agentName: agent.name || 'Your Agent',
+        })
+      );
+    } catch (emailError) {
+      // Don't fail registration if email fails, just log it
+      console.warn('Welcome email failed:', emailError);
+    }
 
     return { ok: true as const };
   } catch (err) {

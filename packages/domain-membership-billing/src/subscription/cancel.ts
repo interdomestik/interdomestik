@@ -2,12 +2,15 @@ import { and, db, eq, subscriptions } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getPaddle } from '../paddle-server';
 
-import type { CancelSubscriptionResult, SubscriptionSession } from './types';
+import type { CancelSubscriptionResult, SubscriptionDeps, SubscriptionSession } from './types';
 
-export async function cancelSubscriptionCore(params: {
-  session: SubscriptionSession | null;
-  subscriptionId: string;
-}): Promise<CancelSubscriptionResult> {
+export async function cancelSubscriptionCore(
+  params: {
+    session: SubscriptionSession | null;
+    subscriptionId: string;
+  },
+  deps: SubscriptionDeps = {}
+): Promise<CancelSubscriptionResult> {
   const { session, subscriptionId } = params;
 
   if (!session) {
@@ -28,6 +31,20 @@ export async function cancelSubscriptionCore(params: {
     await paddle.subscriptions.cancel(subscriptionId, {
       effectiveFrom: 'next_billing_period',
     });
+
+    if (deps.logAuditEvent) {
+      await deps.logAuditEvent({
+        actorId: session.user.id,
+        actorRole: 'member',
+        action: 'subscription.canceled_scheduled',
+        entityType: 'subscription',
+        entityId: subscriptionId,
+        tenantId,
+        metadata: {
+          effectiveFrom: 'next_billing_period',
+        },
+      });
+    }
 
     return { success: true, error: undefined };
   } catch (error) {

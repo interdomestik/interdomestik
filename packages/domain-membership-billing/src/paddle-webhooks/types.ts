@@ -4,6 +4,7 @@ export type AuditEvent = {
   action: string;
   entityType: string;
   entityId?: string | null;
+  tenantId?: string | null;
   metadata?: Record<string, unknown>;
   headers?: Headers;
 };

@@ -5,6 +5,7 @@
       "claims": "Claims",
       "users": "Users",
       "analytics": "Analytics",
+      "branches": "Branches",
       "settings": "Settings",
       "title": "Admin",
       "subtitle": "Control Panel",
@@ -184,6 +185,47 @@
         "resolved": "Resolved",
         "rejected": "Rejected"
       }
+    },
+    "branches": {
+      "title": "Управување со филијали",
+      "description": "Управувајте со филијалите на вашата организација.",
+      "listTitle": "Филијали",
+      "createButton": "Нова Филијала",
+      "createTitle": "Креирај Нова Филијала",
+      "createDescription": "Додадете нова филијала во вашата организација.",
+      "editTitle": "Уреди Филијала",
+      "editDescription": "Ажурирај детали за филијала.",
+      "createSuccess": "Филијалата е успешно креирана.",
+      "createError": "Неуспешно креирање на филијала.",
+      "updateSuccess": "Филијалата е успешно ажурирана.",
+      "updateError": "Неуспешно ажурирање на филијала.",
+      "deleteSuccess": "Филијалата е успешно избришана.",
+      "deleteError": "Неуспешно бришење на филијала.",
+      "fields": {
+        "name": "Име на филијала",
+        "code": "Шифра на филијала",
+        "slug": "Slug",
+        "status": "Статус",
+        "isActive": "Статус на активност"
+      },
+      "status": {
+        "active": "Активно",
+        "inactive": "Неактивно"
+      },
+      "actions": {
+        "label": "Дејства",
+        "edit": "Уреди",
+        "delete": "Избриши",
+        "open": "Отвори мени",
+        "showInactive": "Прикажи неактивни"
+      },
+      "deleteTitle": "Дали сте сигурни?",
+      "deleteConfirm": "Ова 'меко' ќе ја избрише филијалата {name}. Активните членови може да бидат засегнати.",
+      "cancel": "Откажи",
+      "save": "Зачувај",
+      "saving": "Зачувување...",
+      "deleting": "Бришење...",
+      "noResults": "Не се пронајдени филијали."
     }
   }
 }

@@ -1,6 +1,7 @@
 import { claimMessages, db, user } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { AuditLogger, Session } from '../types';
 import { normalizeSelectedMessages } from './normalize';
@@ -49,8 +50,8 @@ export async function sendMessageDbCore(params: {
     }
 
     const claim = await db.query.claims.findFirst({
-      where: (claimsTable, { and, eq }) =>
-        and(eq(claimsTable.id, claimId), eq(claimsTable.tenantId, tenantId)),
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
     });
 
     if (!claim) {
@@ -111,7 +112,7 @@ export async function sendMessageDbCore(params: {
       })
       .from(claimMessages)
       .leftJoin(user, eq(claimMessages.senderId, user.id))
-      .where(and(eq(claimMessages.id, messageId), eq(claimMessages.tenantId, tenantId)))
+      .where(withTenant(tenantId, claimMessages.tenantId, eq(claimMessages.id, messageId)))
       .limit(1)) as unknown as SelectedMessageRow[];
 
     const createdMessage = normalizeSelectedMessages(selected)[0];
@@ -122,8 +123,7 @@ export async function sendMessageDbCore(params: {
     let claimOwnerEmail: string | null = null;
     if (!isInternal && isStaff) {
       const claimOwner = await db.query.user.findFirst({
-        where: (users, { and, eq }) =>
-          and(eq(users.id, claim.userId), eq(users.tenantId, tenantId)),
+        where: (users, { eq }) => withTenant(tenantId, users.tenantId, eq(users.id, claim.userId)),
       });
       claimOwnerEmail = claimOwner?.email ?? null;
     }

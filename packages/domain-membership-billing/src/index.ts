@@ -20,4 +20,10 @@ export * from './paddle-webhooks/verify';
 export * from './subscription';
 export * from './subscription/cancel';
 export * from './subscription/get-payment-update-url';
-export * from './subscription/types';
+export type {
+  SubscriptionSession,
+  PaymentUpdateUrlResult,
+  CancelSubscriptionResult,
+  AuditLogger,
+  SubscriptionDeps,
+} from './subscription/types';

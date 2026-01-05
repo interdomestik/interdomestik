@@ -11,3 +11,20 @@ export type UserSession = {
 };
 
 export type ActionResult<T = unknown> = { success: true; data?: T } | { error: string };
+
+export type AuditEvent = {
+  actorId?: string | null;
+  actorRole?: string | null;
+  action: string;
+  entityType: string;
+  entityId?: string | null;
+  tenantId?: string | null;
+  metadata?: Record<string, unknown>;
+  headers?: Headers;
+};
+
+export type AuditLogger = (event: AuditEvent) => Promise<void> | void;
+
+export type UserDomainDeps = {
+  logAuditEvent?: AuditLogger;
+};

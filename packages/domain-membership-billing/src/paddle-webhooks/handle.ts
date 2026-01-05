@@ -3,11 +3,11 @@ import { handleSubscriptionPastDue } from './handlers/dunning';
 import { handleSubscriptionChanged } from './handlers/subscriptions';
 import { handleTransactionCompleted } from './handlers/transaction';
 
-import type { PaddleWebhookDeps } from './types';
+import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from './types';
 
 export async function handlePaddleEvent(
   params: { eventType: string | undefined; data: unknown },
-  deps: PaddleWebhookDeps = {}
+  deps: PaddleWebhookDeps & PaddleWebhookAuditDeps = {}
 ) {
   const eventType = params.eventType;
 
@@ -32,7 +32,7 @@ export async function handlePaddleEvent(
     }
 
     case EventName.TransactionCompleted: {
-      await handleTransactionCompleted({ data: params.data });
+      await handleTransactionCompleted({ data: params.data }, deps);
       break;
     }
 

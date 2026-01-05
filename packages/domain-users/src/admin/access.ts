@@ -1,4 +1,5 @@
 import { and, db, eq, userRoles } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { isNull } from 'drizzle-orm';
 
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -19,11 +20,14 @@ async function hasTenantRole(params: {
     .select({ id: userRoles.id })
     .from(userRoles)
     .where(
-      and(
-        eq(userRoles.tenantId, tenantId),
-        eq(userRoles.userId, userId),
-        eq(userRoles.role, role),
-        branchId == null ? isNull(userRoles.branchId) : eq(userRoles.branchId, branchId)
+      withTenant(
+        tenantId,
+        userRoles.tenantId,
+        and(
+          eq(userRoles.userId, userId),
+          eq(userRoles.role, role),
+          branchId == null ? isNull(userRoles.branchId) : eq(userRoles.branchId, branchId)
+        )
       )
     )
     .limit(1);

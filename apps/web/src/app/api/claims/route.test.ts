@@ -91,6 +91,10 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: vi.fn(() => ({ scoped: true })),
+}));
+
 vi.mock('@interdomestik/database/constants', () => ({
   CLAIM_STATUSES: ['draft', 'submitted', 'approved'],
 }));

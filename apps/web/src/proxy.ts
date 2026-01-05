@@ -73,7 +73,7 @@ export default function proxy(request: NextRequest) {
     font-src 'self' https://fonts.gstatic.com https://sandbox-cdn.paddle.com;
     connect-src 'self' https://*.supabase.co wss://*.supabase.co ${supabaseConnectSrc.join(
       ' '
-    )} https://vitals.vercel-insights.com https://*.paddle.com https://sandbox-buy.paddle.com https://api.novu.co https://*.novu.co wss://*.novu.co;
+    )} https://vitals.vercel-insights.com https://*.paddle.com https://sandbox-buy.paddle.com https://api.novu.co https://*.novu.co wss://*.novu.co https://api.openai.com https://api.resend.com;
     frame-src 'self' https://*.paddle.com https://sandbox-buy.paddle.com;
     object-src 'none';
     base-uri 'self';
@@ -83,6 +83,16 @@ export default function proxy(request: NextRequest) {
     .trim();
 
   response.headers.set('Content-Security-Policy', cspHeader);
+  response.headers.set('X-DNS-Prefetch-Control', 'on');
+
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  const isSecureRequest = request.nextUrl.protocol === 'https:' || forwardedProto === 'https';
+  if (process.env.NODE_ENV === 'production' || isSecureRequest) {
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=63072000; includeSubDomains; preload'
+    );
+  }
 
   // Forward the nonce upstream (used by RootLayout to nonce inline scripts).
   response.headers.set('x-middleware-request-x-nonce', nonce);
