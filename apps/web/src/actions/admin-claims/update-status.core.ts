@@ -8,26 +8,14 @@ import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
 
-type ClaimStatus =
-  | 'draft'
-  | 'submitted'
-  | 'verification'
-  | 'evaluation'
-  | 'negotiation'
-  | 'court'
-  | 'resolved'
-  | 'rejected';
+// ClaimStatus type removed in favor of Zod schema validation
 
-const validStatuses: ClaimStatus[] = [
-  'draft',
-  'submitted',
-  'verification',
-  'evaluation',
-  'negotiation',
-  'court',
-  'resolved',
-  'rejected',
-];
+// validStatuses removed in favor of Zod schema validation
+
+import { enforceRateLimitForAction } from '@/lib/rate-limit';
+import { claimStatusSchema } from '@interdomestik/domain-claims/validators/claims';
+
+// ...
 
 export async function updateClaimStatusCore(params: {
   formData: FormData;
@@ -38,22 +26,38 @@ export async function updateClaimStatusCore(params: {
 
   await requireTenantAdminSession(session as unknown as UserSession | null);
 
+  // Rate Limiting
+  if (session?.user?.id) {
+    const limit = await enforceRateLimitForAction({
+      name: `action:admin-update-status:${session.user.id}`,
+      limit: 20, // Higher limit for admins
+      windowSeconds: 60,
+      headers: requestHeaders,
+    });
+    if (limit.limited) {
+      throw new Error('Too many requests. Please wait a moment.');
+    }
+  }
+
   const claimId = formData.get('claimId') as string;
-  const newStatus = formData.get('status') as ClaimStatus;
+  const newStatus = formData.get('status') as string;
   const locale = formData.get('locale') as string;
 
   if (!claimId || !newStatus) {
     throw new Error('Missing required fields');
   }
 
-  if (!validStatuses.includes(newStatus)) {
+  // Use Zod schema for validation
+  const parsed = claimStatusSchema.safeParse({ status: newStatus });
+  if (!parsed.success) {
     throw new Error('Invalid status');
   }
+  const status = parsed.data.status;
 
   await updateClaimStatusCoreDomain(
     {
       claimId,
-      newStatus,
+      newStatus: status,
       session,
       requestHeaders,
     },

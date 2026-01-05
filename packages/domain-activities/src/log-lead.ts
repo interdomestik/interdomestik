@@ -6,6 +6,9 @@ import type { ActionResult, ActivitySession } from './types';
 
 export type { LogLeadActivityInput };
 
+/** Roles allowed to log lead activities */
+const ALLOWED_ROLES = ['admin', 'staff', 'agent'];
+
 export async function logLeadActivityCore(params: {
   session: ActivitySession | null;
   data: LogLeadActivityInput;
@@ -13,14 +16,20 @@ export async function logLeadActivityCore(params: {
   const { session, data } = params;
 
   if (!session) return { error: 'Unauthorized' };
-  if (session.user.role === 'member') return { error: 'Permission denied' };
-  if (!session.user.tenantId) return { error: 'Missing tenantId' };
 
-  if (!session.user.tenantId) return { error: 'Missing tenantId' };
+  // SECURITY: RBAC check
+  if (!ALLOWED_ROLES.includes(session.user.role)) {
+    return { error: 'Permission denied: insufficient role' };
+  }
+
+  // SECURITY: Tenant scoping
+  if (!session.user.tenantId) {
+    return { error: 'Missing tenantId' };
+  }
 
   const parsed = leadActivitySchema.safeParse(data);
   if (!parsed.success) {
-    return { error: 'Validation failed' };
+    return { error: `Validation failed: ${parsed.error.issues[0]?.message ?? 'invalid input'}` };
   }
   const { leadId, type, subject, description } = parsed.data;
 

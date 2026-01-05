@@ -45,19 +45,50 @@ describe('assignClaimCore', () => {
       return null;
     });
 
-    await expect(
-      assignClaimCore({
-        claimId: 'claim-1',
-        staffId: null,
-        session: baseSession as never,
-        requestHeaders: new Headers(),
-      })
-    ).rejects.toThrow('Claim not found');
+    const result = await assignClaimCore({
+      claimId: 'claim-1',
+      staffId: null,
+      session: baseSession as never,
+      requestHeaders: new Headers(),
+    });
+
+    expect(result).toEqual({ success: false, error: 'Claim not found' });
 
     expect(mocks.withTenant).toHaveBeenCalledWith(
       'tenant-1',
       'claims.tenant_id',
       expect.any(Object)
     );
+  });
+
+  it('prevents staff from assigning other staff', async () => {
+    const result = await assignClaimCore({
+      claimId: 'claim-1',
+      staffId: 'other-staff-id',
+      session: baseSession as never, // Role is staff
+      requestHeaders: new Headers(),
+    });
+
+    expect(result).toEqual({ success: false, error: 'Access denied: Cannot assign other staff' });
+  });
+
+  it('allows admin to assign any staff', async () => {
+    mocks.findFirst.mockResolvedValue({ id: 'claim-1' });
+    // Mock staff member for notification lookup
+    const userQueries = (await import('@interdomestik/database')).db.query.user;
+    (userQueries.findFirst as any).mockResolvedValue({
+      id: 'other-staff-id',
+      email: 'staff@example.com',
+      name: 'Staff',
+    });
+
+    const result = await assignClaimCore({
+      claimId: 'claim-1',
+      staffId: 'other-staff-id',
+      session: { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } } as never,
+      requestHeaders: new Headers(),
+    });
+
+    expect(result).toEqual({ success: true });
   });
 });

@@ -45,6 +45,6 @@ export async function sendMessage(
 export async function markMessagesAsRead(
   messageIds: string[]
 ): Promise<{ success: boolean; error?: string }> {
-  const { session } = await getActionContext();
-  return markMessagesAsReadCore({ session, messageIds });
+  const { session, requestHeaders } = await getActionContext();
+  return markMessagesAsReadCore({ session, messageIds, requestHeaders });
 }

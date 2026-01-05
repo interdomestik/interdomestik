@@ -48,7 +48,7 @@ describe('getMemberReferralLinkCore', () => {
 
     const result = await getMemberReferralLinkCore({
       session: {
-        user: { id: 'user-1', role: 'user', name: 'Jane Doe' },
+        user: { id: 'user-1', role: 'user', name: 'Jane Doe', tenantId: 'tenant_mk' },
       } as unknown as NonNullable<import('./context').Session>,
     });
 

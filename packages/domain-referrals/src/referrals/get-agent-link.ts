@@ -1,6 +1,6 @@
 import { db } from '@interdomestik/database';
 import { user } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import type { ActionResult, ReferralLinkResult, ReferralSession } from './types';
@@ -23,9 +23,16 @@ export async function getAgentReferralLinkCore(params: {
     return { success: false, error: 'Access denied' };
   }
 
+  // SECURITY: Tenant scoping
+  const tenantId = session.user.tenantId;
+  if (!tenantId) {
+    return { success: false, error: 'Missing tenant context' };
+  }
+
   try {
+    // SECURITY: Query scoped to tenant + user
     const existingUser = await db.query.user.findFirst({
-      where: eq(user.id, session.user.id),
+      where: and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)),
       columns: { referralCode: true },
     });
 
@@ -42,7 +49,11 @@ export async function getAgentReferralLinkCore(params: {
       const randomPart = nanoid(6).toUpperCase();
       code = `${namePart}-${randomPart}`;
 
-      await db.update(user).set({ referralCode: code }).where(eq(user.id, session.user.id));
+      // SECURITY: Update scoped to tenant + user
+      await db
+        .update(user)
+        .set({ referralCode: code })
+        .where(and(eq(user.id, session.user.id), eq(user.tenantId, tenantId)));
     }
 
     return {

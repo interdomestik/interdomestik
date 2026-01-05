@@ -12,5 +12,6 @@ export type ReferralSession = {
     id: string;
     role: string;
     name?: string | null;
+    tenantId?: string | null;
   };
 };

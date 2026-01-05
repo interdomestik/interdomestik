@@ -2,7 +2,8 @@ import { claims, db, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
-import type { ClaimsDeps, ClaimsSession } from '../claims/types';
+import type { ActionResult, ClaimsDeps, ClaimsSession } from '../claims/types';
+import { assignClaimSchema } from '../validators/claims';
 
 function isStaff(role: string | null | undefined) {
   return role === 'staff';
@@ -20,17 +21,23 @@ export async function assignClaimCore(
     requestHeaders: Headers;
   },
   deps: ClaimsDeps = {}
-) {
+): Promise<ActionResult> {
   const { claimId, staffId, session, requestHeaders } = params;
 
   if (!session || !isStaffOrAdmin(session.user.role)) {
-    throw new Error('Unauthorized');
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  // Validate inputs
+  const parsed = assignClaimSchema.safeParse({ staffId });
+  if (!parsed.success) {
+    return { success: false, error: 'Invalid staff assignment' };
   }
 
   const tenantId = ensureTenantId(session);
 
   if (isStaff(session.user.role) && staffId && staffId !== session.user.id) {
-    throw new Error('Access denied');
+    return { success: false, error: 'Access denied: Cannot assign other staff' };
   }
 
   // Get claim details
@@ -39,7 +46,7 @@ export async function assignClaimCore(
       withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
   });
 
-  if (!claim) throw new Error('Claim not found');
+  if (!claim) return { success: false, error: 'Claim not found' };
 
   await db
     .update(claims)
@@ -50,6 +57,7 @@ export async function assignClaimCore(
     await deps.logAuditEvent({
       actorId: session.user.id,
       actorRole: session.user.role,
+      tenantId,
       action: staffId ? 'claim.assigned' : 'claim.unassigned',
       entityType: 'claim',
       entityId: claimId,
@@ -68,7 +76,7 @@ export async function assignClaimCore(
         withTenant(tenantId, userTable.tenantId, eq(userTable.id, staffId)),
     });
 
-    if (!staffMember) throw new Error('Staff member not found');
+    if (!staffMember) return { success: false, error: 'Staff member not found' };
 
     // Notify the assigned staff member
     if (staffMember.email && deps.notifyClaimAssigned) {
@@ -82,4 +90,6 @@ export async function assignClaimCore(
       ).catch(err => console.error('Failed to notify assignment:', err));
     }
   }
+
+  return { success: true };
 }

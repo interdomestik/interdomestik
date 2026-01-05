@@ -5,7 +5,25 @@ import {
 import { markNotificationReadSchema } from '@interdomestik/domain-communications/notifications/schemas';
 import type { Session } from './context';
 
-export async function markAsReadCore(params: { session: Session | null; notificationId: string }) {
+import { enforceRateLimit } from '@/lib/rate-limit';
+
+export async function markAsReadCore(params: {
+  session: Session | null;
+  notificationId: string;
+  requestHeaders: Headers;
+}) {
+  if (params.session?.user?.id) {
+    const rateLimit = await enforceRateLimit({
+      name: `action:mark-notif-read:${params.session.user.id}`,
+      limit: 60,
+      windowSeconds: 60,
+      headers: params.requestHeaders,
+    });
+    if (rateLimit) {
+      throw new Error('Too many requests');
+    }
+  }
+
   const validation = markNotificationReadSchema.safeParse({
     notificationId: params.notificationId,
   });

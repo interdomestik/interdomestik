@@ -10,6 +10,7 @@ export type ClaimsSession = {
 export type ClaimsAuditEvent = {
   actorId?: string | null;
   actorRole?: string | null;
+  tenantId?: string | null;
   action: string;
   entityType: string;
   entityId?: string | null;
@@ -39,3 +40,7 @@ export type ClaimsDeps = {
   ) => Promise<unknown> | unknown;
   revalidatePath?: (path: string) => Promise<void> | void;
 };
+
+export type ActionResult<T = void> =
+  | { success: true; data?: T; error?: undefined }
+  | { success: false; error: string; data?: undefined };

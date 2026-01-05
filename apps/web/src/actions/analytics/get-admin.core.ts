@@ -5,7 +5,8 @@ import { and, eq, gte, sql } from 'drizzle-orm';
 import { isStaffOrAdmin } from '@/lib/roles.core';
 
 import type { Session } from './context';
-import type { AdminAnalyticsResult } from './types';
+import type { AdminAnalyticsResult, AnalyticsQueryInput } from './types';
+import { analyticsQuerySchema } from './types';
 
 function hasAdminAnalyticsAccess(role: string | null | undefined): boolean {
   return isStaffOrAdmin(role);
@@ -13,13 +14,27 @@ function hasAdminAnalyticsAccess(role: string | null | undefined): boolean {
 
 export async function getAdminAnalyticsCore(params: {
   session: NonNullable<Session> | null;
+  query?: Partial<AnalyticsQueryInput>;
 }): Promise<AdminAnalyticsResult> {
-  const { session } = params;
+  const { session, query } = params;
 
   try {
     if (!session?.user || !hasAdminAnalyticsAccess(session.user.role)) {
       return { success: false, error: 'Unauthorized' };
     }
+
+    // SECURITY: Validate tenant context
+    const tenantId = session.user.tenantId;
+    if (!tenantId) {
+      return { success: false, error: 'Missing tenant context' };
+    }
+
+    // SECURITY: Validate query parameters
+    const parsed = analyticsQuerySchema.safeParse(query ?? {});
+    if (!parsed.success) {
+      return { success: false, error: `Invalid query: ${parsed.error.issues[0]?.message}` };
+    }
+    const { daysBack, limit } = parsed.data;
 
     const activeSubs = await db
       .select({
@@ -30,9 +45,7 @@ export async function getAdminAnalyticsCore(params: {
       })
       .from(subscriptions)
       .innerJoin(membershipPlans, eq(subscriptions.planId, membershipPlans.paddlePriceId))
-      .where(
-        and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, session.user.tenantId!))
-      );
+      .where(and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, tenantId)));
 
     let mrr = 0;
     for (const sub of activeSubs) {
@@ -47,25 +60,20 @@ export async function getAdminAnalyticsCore(params: {
     const allSubsCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(subscriptions)
-      .where(eq(subscriptions.tenantId, session.user.tenantId!));
+      .where(eq(subscriptions.tenantId, tenantId));
 
     const canceledSubsCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(subscriptions)
-      .where(
-        and(
-          eq(subscriptions.status, 'canceled'),
-          eq(subscriptions.tenantId, session.user.tenantId!)
-        )
-      );
+      .where(and(eq(subscriptions.status, 'canceled'), eq(subscriptions.tenantId, tenantId)));
 
     const totalMembers = Number(allSubsCount[0]?.count || 0);
     const activeMembers = activeSubs.length;
     const canceledMembers = Number(canceledSubsCount[0]?.count || 0);
     const churnRate = totalMembers > 0 ? (canceledMembers / totalMembers) * 100 : 0;
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const lookbackDate = new Date();
+    lookbackDate.setDate(lookbackDate.getDate() - daysBack);
 
     const recentGrowth = await db
       .select({
@@ -73,14 +81,10 @@ export async function getAdminAnalyticsCore(params: {
         count: sql<number>`count(*)`,
       })
       .from(subscriptions)
-      .where(
-        and(
-          gte(subscriptions.createdAt, thirtyDaysAgo),
-          eq(subscriptions.tenantId, session.user.tenantId!)
-        )
-      )
+      .where(and(gte(subscriptions.createdAt, lookbackDate), eq(subscriptions.tenantId, tenantId)))
       .groupBy(sql`DATE(${subscriptions.createdAt})`)
-      .orderBy(sql`DATE(${subscriptions.createdAt})`);
+      .orderBy(sql`DATE(${subscriptions.createdAt})`)
+      .limit(limit);
 
     const formattedGrowth = recentGrowth.map(item => ({
       date: String(item.date),

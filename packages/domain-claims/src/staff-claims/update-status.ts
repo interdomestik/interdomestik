@@ -4,11 +4,13 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type { ActionResult, ClaimStatus } from './types';
 
+import { claimStatusSchema } from '../validators/claims';
+
 /** Update claim status and optionally add a history note */
 export async function updateClaimStatusCore(
   params: {
     claimId: string;
-    newStatus: ClaimStatus;
+    newStatus: string;
     note?: string;
     isPublicChange?: boolean;
     session: ClaimsSession | null;
@@ -21,6 +23,13 @@ export async function updateClaimStatusCore(
   if (!session?.user || session.user.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
   }
+
+  // Validate status
+  const parsed = claimStatusSchema.safeParse({ status: newStatus });
+  if (!parsed.success) {
+    return { success: false, error: 'Invalid status' };
+  }
+  const status = parsed.data.status as ClaimStatus;
 
   const tenantId = ensureTenantId(session);
 
@@ -35,7 +44,7 @@ export async function updateClaimStatusCore(
       return { success: false, error: 'Claim not found' };
     }
 
-    if (currentClaim.status === newStatus && !note) {
+    if (currentClaim.status === status && !note) {
       return { success: true }; // No change needed
     }
 
@@ -43,10 +52,10 @@ export async function updateClaimStatusCore(
 
     await db.transaction(async tx => {
       // 1. Update claim status
-      if (currentClaim.status !== newStatus) {
+      if (currentClaim.status !== status) {
         await tx
           .update(claims)
-          .set({ status: newStatus, updatedAt: new Date() })
+          .set({ status: status, updatedAt: new Date() })
           .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
       }
 
@@ -56,7 +65,7 @@ export async function updateClaimStatusCore(
         tenantId,
         claimId,
         fromStatus: currentClaim.status,
-        toStatus: newStatus,
+        toStatus: status,
         changedById: session.user.id,
         changedByRole: 'staff',
         note: note || null,
@@ -70,12 +79,13 @@ export async function updateClaimStatusCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
+        tenantId,
         action: 'claim.status_changed', // Same action as admin for consistency
         entityType: 'claim',
         entityId: claimId,
         metadata: {
           oldStatus,
-          newStatus,
+          newStatus: status,
           note: note || undefined,
           isPublic: isPublicChange,
         },

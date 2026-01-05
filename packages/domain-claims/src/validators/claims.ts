@@ -38,7 +38,28 @@ export const createClaimSchema = claimCategorySchema
   .merge(claimDetailsSchema)
   .merge(claimEvidenceSchema);
 
+const VALID_STATUSES = [
+  'draft',
+  'submitted',
+  'verification',
+  'evaluation',
+  'negotiation',
+  'court',
+  'resolved',
+  'rejected',
+] as const;
+
+export const claimStatusSchema = z.object({
+  status: z.enum(VALID_STATUSES),
+});
+
+export const assignClaimSchema = z.object({
+  staffId: z.string().min(1, 'Staff ID is required').nullable(),
+});
+
 export type ClaimCategoryValues = z.infer<typeof claimCategorySchema>;
 export type ClaimDetailsValues = z.infer<typeof claimDetailsSchema>;
 export type EvidenceFile = z.infer<typeof evidenceFileSchema>;
 export type CreateClaimValues = z.infer<typeof createClaimSchema>;
+export type ClaimStatusValues = z.infer<typeof claimStatusSchema>;
+export type AssignClaimValues = z.infer<typeof assignClaimSchema>;

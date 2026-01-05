@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
@@ -67,6 +67,9 @@ describe('GET /api/cron/dunning', () => {
     );
 
     expect(hoisted.runDunningCronCore).toHaveBeenCalledTimes(1);
-    expect(hoisted.runDunningCronCore).toHaveBeenCalledWith({ now: expect.any(Date) });
+    expect(hoisted.runDunningCronCore).toHaveBeenCalledWith({
+      now: expect.any(Date),
+      headers: expect.any(Headers),
+    });
   });
 });

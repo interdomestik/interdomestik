@@ -55,4 +55,26 @@ describe('updateClaimStatusCore', () => {
       expect.any(Object)
     );
   });
+
+  it('rejects invalid status', async () => {
+    const result = await updateClaimStatusCore({
+      session: { user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' } } as never,
+      requestHeaders: new Headers(),
+      claimId: 'claim-1',
+      newStatus: 'invalid-status',
+    });
+
+    expect(result).toEqual({ error: 'Invalid status' });
+  });
+
+  it('rejects unauthorized user (member)', async () => {
+    const result = await updateClaimStatusCore({
+      session: { user: { id: 'user-1', role: 'member', tenantId: 'tenant-1' } } as never,
+      requestHeaders: new Headers(),
+      claimId: 'claim-1',
+      newStatus: 'submitted',
+    });
+
+    expect(result).toEqual({ error: 'Unauthorized' });
+  });
 });

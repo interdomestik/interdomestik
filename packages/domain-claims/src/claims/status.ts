@@ -15,9 +15,7 @@ const VALID_STATUSES = [
   'rejected',
 ] as const;
 
-function isValidStatus(value: string): value is (typeof VALID_STATUSES)[number] {
-  return (VALID_STATUSES as readonly string[]).includes(value);
-}
+import { claimStatusSchema } from '../validators/claims';
 
 function isStaffOrAdmin(role: string | null | undefined): boolean {
   return role === 'staff' || role === 'admin';
@@ -38,9 +36,13 @@ export async function updateClaimStatusCore(
     return { error: 'Unauthorized' };
   }
 
-  if (!isValidStatus(newStatus)) {
+  const parsed = claimStatusSchema.safeParse({ status: newStatus });
+  if (!parsed.success) {
     return { error: 'Invalid status' };
   }
+
+  // validated by safeParse above
+  const { status } = parsed.data;
 
   const tenantId = ensureTenantId(session);
 
@@ -59,7 +61,7 @@ export async function updateClaimStatusCore(
     await db
       .update(claims)
       .set({
-        status: newStatus,
+        status,
         updatedAt: new Date(),
       })
       .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
@@ -68,6 +70,7 @@ export async function updateClaimStatusCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
+        tenantId,
         action: 'claim.status_changed',
         entityType: 'claim',
         entityId: claimId,

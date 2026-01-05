@@ -18,8 +18,8 @@ export async function getNotifications(limit = 20) {
  * Mark a notification as read
  */
 export async function markAsRead(notificationId: string) {
-  const { session } = await getActionContext();
-  const result = await markAsReadCore({ session, notificationId });
+  const { session, requestHeaders } = await getActionContext();
+  const result = await markAsReadCore({ session, notificationId, requestHeaders });
   revalidatePath('/dashboard');
   return result;
 }

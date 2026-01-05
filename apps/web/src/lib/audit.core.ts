@@ -45,6 +45,7 @@ export async function logAuditEvent({
     const resolvedTenantId = tenantId || (combinedMetadata.tenantId as string | undefined) || null;
 
     if (!resolvedTenantId) {
+      console.error('Audit log failed: Missing tenantId', { action, entityType, entityId });
       return;
     }
 

@@ -16,10 +16,12 @@ vi.mock('@interdomestik/database', () => ({
     },
     update: mocks.update,
   },
+  withTenant: vi.fn(),
 }));
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
+  and: vi.fn(),
   relations: vi.fn(),
 }));
 
@@ -38,7 +40,7 @@ describe('getMemberReferralLinkCore', () => {
     mocks.findFirst.mockResolvedValue({ referralCode: 'EXISTING-123', name: 'John Doe' });
 
     const result = await getMemberReferralLinkCore({
-      session: { user: { id: 'u1', name: 'John Doe' } } as any,
+      session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: 'tenant_1' } } as any,
     });
 
     expect(result.success).toBe(true);
@@ -53,15 +55,11 @@ describe('getMemberReferralLinkCore', () => {
     mocks.nanoid.mockReturnValue('123456');
 
     const result = await getMemberReferralLinkCore({
-      session: { user: { id: 'u1', name: 'John Doe' } } as any,
+      session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: 'tenant_1' } } as any,
     });
 
     expect(result.success).toBe(true);
     expect(mocks.update).toHaveBeenCalled();
-    // Verify Update Logic
-    // JOHN-123456 (First name JOHN, random 123456)
-    // Note: implementation uses user.name from session or DB?
-    // Impl logic: session.user.name or 'USER'
     if (result.success) {
       expect(result.data.code).toBe('JOHN-123456');
     }
@@ -72,6 +70,16 @@ describe('getMemberReferralLinkCore', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toBe('Unauthorized');
+    }
+  });
+
+  it('handles missing tenant context', async () => {
+    const result = await getMemberReferralLinkCore({
+      session: { user: { id: 'u1', name: 'John Doe', role: 'user', tenantId: null } } as any,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe('Missing tenant context');
     }
   });
 });

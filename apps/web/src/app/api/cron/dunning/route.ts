@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    const result = await runDunningCronCore({ now });
+    const result = await runDunningCronCore({ now, headers: req.headers });
     stats = result.stats;
 
     return NextResponse.json({

@@ -47,7 +47,7 @@ describe('logLeadActivityCore', () => {
       session: { user: { role: 'member', tenantId: 't1' } } as any,
       data: validData,
     });
-    expect(result).toEqual({ error: 'Permission denied' });
+    expect(result).toEqual({ error: 'Permission denied: insufficient role' });
   });
 
   it('fails if missing tenantId', async () => {
@@ -63,7 +63,7 @@ describe('logLeadActivityCore', () => {
       session: validSession,
       data: { ...validData, subject: '' },
     });
-    expect(result).toEqual({ error: 'Validation failed' });
+    expect(result).toEqual({ error: 'Validation failed: Subject is required' });
     expect(mocks.insert).not.toHaveBeenCalled();
   });
 

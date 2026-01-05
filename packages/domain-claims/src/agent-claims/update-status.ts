@@ -1,8 +1,9 @@
-import { and, claims, db, eq, user } from '@interdomestik/database';
+import { claims, db, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
-import type { ClaimsDeps, ClaimsSession } from '../claims/types';
+import type { ActionResult, ClaimsDeps, ClaimsSession } from '../claims/types';
+import { claimStatusSchema } from '../validators/claims';
 
 function isStaff(role: string | null | undefined) {
   return role === 'staff';
@@ -20,12 +21,19 @@ export async function updateClaimStatusCore(
     requestHeaders: Headers;
   },
   deps: ClaimsDeps = {}
-) {
+): Promise<ActionResult> {
   const { claimId, newStatus, session, requestHeaders } = params;
 
   if (!session || !isStaffOrAdmin(session.user.role)) {
-    throw new Error('Unauthorized');
+    return { success: false, error: 'Unauthorized' };
   }
+
+  // Validate status
+  const parsed = claimStatusSchema.safeParse({ status: newStatus });
+  if (!parsed.success) {
+    return { success: false, error: 'Invalid status' };
+  }
+  const status = parsed.data.status;
 
   const tenantId = ensureTenantId(session);
 
@@ -44,11 +52,11 @@ export async function updateClaimStatusCore(
     .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
   if (!claimWithUser) {
-    throw new Error('Claim not found');
+    return { success: false, error: 'Claim not found' };
   }
 
   if (isStaff(session.user.role) && claimWithUser.staffId !== session.user.id) {
-    throw new Error('Access denied');
+    return { success: false, error: 'Access denied' };
   }
 
   const oldStatus = claimWithUser.status || 'draft';
@@ -56,19 +64,20 @@ export async function updateClaimStatusCore(
   // Update status
   await db
     .update(claims)
-    .set({ status: newStatus as typeof oldStatus })
+    .set({ status: status as typeof oldStatus })
     .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
       actorId: session.user.id,
       actorRole: session.user.role,
+      tenantId,
       action: 'claim.status_changed',
       entityType: 'claim',
       entityId: claimId,
       metadata: {
         oldStatus,
-        newStatus,
+        newStatus: status,
       },
       headers: requestHeaders,
     });
@@ -78,7 +87,7 @@ export async function updateClaimStatusCore(
   if (
     claimWithUser.userId &&
     claimWithUser.userEmail &&
-    oldStatus !== newStatus &&
+    oldStatus !== status &&
     deps.notifyStatusChanged
   ) {
     Promise.resolve(
@@ -87,8 +96,10 @@ export async function updateClaimStatusCore(
         claimWithUser.userEmail,
         { id: claimWithUser.id, title: claimWithUser.title },
         oldStatus,
-        newStatus
+        status
       )
     ).catch((err: Error) => console.error('Failed to send status notification:', err));
   }
+
+  return { success: true };
 }

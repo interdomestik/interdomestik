@@ -11,8 +11,9 @@ export type DunningCronStats = {
 
 export async function runDunningCronCore(args: {
   now: Date;
+  headers: Headers;
 }): Promise<{ stats: DunningCronStats }> {
-  const { now } = args;
+  const { now, headers } = args;
 
   const stats: DunningCronStats = {
     checked: 0,
@@ -92,6 +93,21 @@ export async function runDunningCronCore(args: {
           .update(subscriptions)
           .set({ lastDunningAt: now })
           .where(eq(subscriptions.id, sub.id));
+
+        await logAuditEvent({
+          actorId: null,
+          actorRole: 'system',
+          tenantId: sub.tenantId,
+          action: emailToSend === 'day7' ? 'email.dunning.reminder' : 'email.dunning.final_warning',
+          entityType: 'subscription',
+          entityId: sub.id,
+          metadata: {
+            emailToSend,
+            daysRemaining,
+            daysSinceFailed,
+          },
+          headers,
+        });
       } catch {
         stats.errors++;
       }

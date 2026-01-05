@@ -1,7 +1,6 @@
 [api]
 enabled = true
 port = 54321
-host = "127.0.0.1"
 schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
@@ -14,7 +13,6 @@ major_version = 15
 [studio]
 enabled = true
 port = 54323
-host = "127.0.0.1"
 api_url = "http://127.0.0.1:54321"
 
 [inbucket]
@@ -22,7 +20,6 @@ enabled = true
 port = 54324
 smtp_port = 54325
 pop3_port = 54326
-host = "127.0.0.1"
 
 [storage]
 enabled = true
