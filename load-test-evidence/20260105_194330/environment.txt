@@ -1,0 +1,9 @@
+Comprehensive Load Test Environment
+================================
+Date: Mon Jan  5 19:43:30 CET 2026
+Base URL: http://127.0.0.1:3000
+Test ID: 20260105_194330
+Node Version: v24.8.0
+CPU Cores: 10
+Memory: 17179869184
+Load Scenarios: 1-5

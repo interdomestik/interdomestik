@@ -1,0 +1,10 @@
+Stress Test Environment
+=====================
+Date: Mon Jan  5 19:20:32 CET 2026
+Hostname: Arbens-Mac-mini.local
+OS: Darwin Arbens-Mac-mini.local 25.1.0 Darwin Kernel Version 25.1.0: Mon Oct 20 19:32:56 PDT 2025; root:xnu-12377.41.6~2/RELEASE_ARM64_T8132 arm64
+Node Version: v24.8.0
+CPU Cores: 10
+Memory: 17179869184
+Base URL: http://127.0.0.1:3000
+Test ID: 20260105_192032

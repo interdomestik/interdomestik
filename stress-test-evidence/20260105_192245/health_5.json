@@ -1,0 +1,25 @@
+{
+  "status": "healthy",
+  "timestamp": "2026-01-05T18:22:47.369Z",
+  "services": {
+    "database": {
+      "status": "healthy",
+      "responseTime": 99,
+      "lastCheck": "2026-01-05T18:22:47.369Z"
+    },
+    "email": { "status": "healthy", "lastCheck": "2026-01-05T18:22:47.369Z" },
+    "push": { "status": "healthy", "lastCheck": "2026-01-05T18:22:47.369Z" },
+    "ai": { "status": "healthy", "lastCheck": "2026-01-05T18:22:47.369Z" }
+  },
+  "metrics": {
+    "uptime": 111724,
+    "memoryUsage": {
+      "rss": 390332416,
+      "heapTotal": 174211072,
+      "heapUsed": 112774208,
+      "external": 4267135,
+      "arrayBuffers": 269829
+    },
+    "cpuUsage": { "user": 6614304, "system": 1280904 }
+  }
+}

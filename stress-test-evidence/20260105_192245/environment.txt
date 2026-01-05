@@ -1,0 +1,5 @@
+Test Environment:
+Date: Mon Jan  5 19:22:45 CET 2026
+Base URL: http://127.0.0.1:3000
+Test ID: 20260105_192245
+Node Version: v24.8.0
