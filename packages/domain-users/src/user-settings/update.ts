@@ -1,22 +1,32 @@
 import { db } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import { userNotificationPreferences } from '@interdomestik/database/schema';
+import { withTenant } from '@interdomestik/database/tenant-security';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { UserSession } from '../types';
-import type { NotificationPreferences } from './types';
+import { notificationPreferencesSchema, type NotificationPreferences } from './types';
 
 export async function updateNotificationPreferencesCore(params: {
   session: UserSession | null;
-  preferences: NotificationPreferences;
+  preferences: unknown; // Accept unknown and validate with Zod
 }): Promise<{ success: true } | { success: false; error: string }> {
-  const { session, preferences } = params;
+  const { session, preferences: rawPreferences } = params;
 
   if (!session?.user) {
     return { success: false, error: 'Unauthorized' };
   }
+
+  // Validate input with Zod (strict schema rejects unknown keys)
+  const parsed = notificationPreferencesSchema.safeParse(rawPreferences);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: `Validation failed: ${parsed.error.issues[0]?.message ?? 'Invalid input'}`,
+    };
+  }
+  const preferences: NotificationPreferences = parsed.data;
 
   let tenantId: string;
   try {

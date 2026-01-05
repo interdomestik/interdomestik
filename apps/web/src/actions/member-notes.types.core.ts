@@ -2,10 +2,21 @@ import { z } from 'zod';
 
 export const noteTypeSchema = z.enum(['call', 'meeting', 'email', 'general', 'follow_up', 'issue']);
 
+/** Maximum content length for member notes */
+export const MAX_NOTE_CONTENT_LENGTH = 2000;
+
+/** Sanitize note content - strip HTML and limit length */
+export function sanitizeNoteContent(content: string): string {
+  // Strip any HTML tags (whitelist: plain text only)
+  const plainText = content.replace(/<[^>]*>/g, '');
+  // Trim and limit to max length
+  return plainText.trim().slice(0, MAX_NOTE_CONTENT_LENGTH);
+}
+
 export const createNoteSchema = z.object({
   memberId: z.string().min(1),
   type: noteTypeSchema.optional(),
-  content: z.string().min(1).max(5000),
+  content: z.string().min(1).max(MAX_NOTE_CONTENT_LENGTH),
   isPinned: z.boolean().optional(),
   isInternal: z.boolean().optional(),
   followUpDate: z.date().optional(),
@@ -14,7 +25,7 @@ export const createNoteSchema = z.object({
 export const updateNoteSchema = z.object({
   id: z.string().min(1),
   type: noteTypeSchema.optional(),
-  content: z.string().min(1).max(5000).optional(),
+  content: z.string().min(1).max(MAX_NOTE_CONTENT_LENGTH).optional(),
   isPinned: z.boolean().optional(),
   isInternal: z.boolean().optional(),
   followUpDate: z.date().nullable().optional(),

@@ -41,24 +41,37 @@ export const agentClients = pgTable(
   })
 );
 
-export const agentCommissions = pgTable('agent_commissions', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  agentId: text('agent_id')
-    .notNull()
-    .references(() => user.id),
-  memberId: text('member_id').references(() => user.id),
-  subscriptionId: text('subscription_id').references(() => subscriptions.id),
-  type: commissionTypeEnum('type').notNull(),
-  status: commissionStatusEnum('status').default('pending').notNull(),
-  amount: decimal('amount', { precision: 8, scale: 2 }).notNull(),
-  currency: text('currency').default('EUR').notNull(),
-  earnedAt: timestamp('earned_at').defaultNow(),
-  paidAt: timestamp('paid_at'),
-  metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
-});
+export const agentCommissions = pgTable(
+  'agent_commissions',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => user.id),
+    memberId: text('member_id').references(() => user.id),
+    subscriptionId: text('subscription_id').references(() => subscriptions.id),
+    type: commissionTypeEnum('type').notNull(),
+    status: commissionStatusEnum('status').default('pending').notNull(),
+    amount: decimal('amount', { precision: 8, scale: 2 }).notNull(),
+    currency: text('currency').default('EUR').notNull(),
+    earnedAt: timestamp('earned_at').defaultNow(),
+    paidAt: timestamp('paid_at'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+  },
+  table => ({
+    // SECURITY: Idempotency index to prevent duplicate commission payouts
+    // This ensures the same (tenant, subscription, type) combo can only exist once
+    tenantSubscriptionTypeUq: uniqueIndex('agent_commissions_tenant_subscription_type_uq').on(
+      table.tenantId,
+      table.subscriptionId,
+      table.type
+    ),
+    tenantIdx: index('idx_agent_commissions_tenant_id').on(table.tenantId),
+  })
+);
 
 export const agentSettings = pgTable('agent_settings', {
   id: text('id').primaryKey(),

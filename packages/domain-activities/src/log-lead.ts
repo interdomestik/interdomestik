@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid';
 import { leadActivitySchema, type LogLeadActivityInput } from './schema';
 import type { ActionResult, ActivitySession } from './types';
 
-export type { LogLeadActivityInput } from './schema';
+export type { LogLeadActivityInput };
 
 export async function logLeadActivityCore(params: {
   session: ActivitySession | null;

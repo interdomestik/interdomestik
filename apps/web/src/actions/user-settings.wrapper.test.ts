@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { getNotificationPreferences, updateNotificationPreferences } from './user-settings';
 
+vi.mock('next/headers', () => ({
+  headers: vi.fn(async () => new Headers()),
+}));
+
 vi.mock('./user-settings/context', () => ({
   getActionContext: vi.fn(async () => ({
     session: { user: { id: 'user-1', role: 'user' } },
@@ -68,6 +72,7 @@ describe('user-settings action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(updateNotificationPreferencesCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user' } },
+      requestHeaders: expect.any(Headers),
       preferences: prefs,
     });
     expect(result).toEqual({ success: true });

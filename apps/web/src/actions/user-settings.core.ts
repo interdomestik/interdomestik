@@ -1,5 +1,7 @@
 'use server';
 
+import { headers } from 'next/headers';
+
 import type { NotificationPreferences } from './user-settings/types';
 
 export type { NotificationPreferences } from './user-settings/types';
@@ -15,5 +17,6 @@ export async function getNotificationPreferences() {
 
 export async function updateNotificationPreferences(preferences: NotificationPreferences) {
   const { session } = await getActionContext();
-  return updateNotificationPreferencesCore({ session, preferences });
+  const requestHeaders = await headers();
+  return updateNotificationPreferencesCore({ session, requestHeaders, preferences });
 }

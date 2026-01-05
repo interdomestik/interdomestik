@@ -3,7 +3,13 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { Session } from './context';
-import type { ActionResult, LeaderboardData, LeaderboardEntry } from './types';
+import {
+  LEADERBOARD_MAX_RESULTS,
+  leaderboardPeriodSchema,
+  type ActionResult,
+  type LeaderboardData,
+  type LeaderboardEntry,
+} from './types';
 
 function hasLeaderboardAccess(role: string | null | undefined): boolean {
   return role === 'agent' || role === 'admin' || role === 'staff';
@@ -11,9 +17,9 @@ function hasLeaderboardAccess(role: string | null | undefined): boolean {
 
 export async function getAgentLeaderboardCore(params: {
   session: NonNullable<Session> | null;
-  period: 'week' | 'month' | 'all';
+  period: unknown; // Accept unknown and validate with Zod
 }): Promise<ActionResult<LeaderboardData>> {
-  const { session, period } = params;
+  const { session, period: rawPeriod } = params;
 
   if (!session?.user) {
     return { success: false, error: 'Unauthorized' };
@@ -22,6 +28,13 @@ export async function getAgentLeaderboardCore(params: {
   if (!hasLeaderboardAccess(session.user.role)) {
     return { success: false, error: 'Access denied' };
   }
+
+  // Validate period input
+  const periodParsed = leaderboardPeriodSchema.safeParse(rawPeriod);
+  if (!periodParsed.success) {
+    return { success: false, error: 'Invalid period. Must be week, month, or all.' };
+  }
+  const period = periodParsed.data;
 
   try {
     const tenantId = ensureTenantId(session);
@@ -80,19 +93,22 @@ export async function getAgentLeaderboardCore(params: {
     if (userInTop) {
       currentUserRank = userInTop.rank;
     } else if (session.user.role === 'agent') {
+      // FIXED: Added tenantFilter to prevent cross-tenant data leak
+      // FIXED: Added limit cap to prevent expensive queries
       const allRanked = await db
         .select({
           agentId: agentCommissions.agentId,
           total: sql<string>`COALESCE(SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END), 0)`,
         })
         .from(agentCommissions)
-        .where(dateFilter)
+        .where(and(dateFilter, tenantFilter)) // SECURITY: Added tenantFilter
         .groupBy(agentCommissions.agentId)
         .orderBy(
           desc(
             sql`SUM(CASE WHEN ${agentCommissions.status} = 'paid' THEN ${agentCommissions.amount} ELSE 0 END)`
           )
-        );
+        )
+        .limit(LEADERBOARD_MAX_RESULTS); // SECURITY: Cap results
 
       const userIndex = allRanked.findIndex(r => r.agentId === session.user.id);
       currentUserRank = userIndex >= 0 ? userIndex + 1 : null;

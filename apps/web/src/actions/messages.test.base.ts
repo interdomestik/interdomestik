@@ -49,7 +49,11 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     select: () => mockSelectChain,
     insert: () => ({ values: hoistedMocks.dbInsert }),
-    update: () => ({ set: () => ({ where: hoistedMocks.dbUpdate }) }),
+    update: () => ({
+      set: () => ({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
+    }),
     query: {
       claims: {
         findFirst: () => hoistedMocks.dbQuery(),
@@ -86,6 +90,7 @@ vi.mock('drizzle-orm', () => ({
   and: vi.fn(),
   or: vi.fn(),
   isNull: vi.fn(),
+  inArray: vi.fn(),
 }));
 
 export const resetMocks = () => {

@@ -127,7 +127,7 @@ describe('POST /api/settings/push', () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data).toEqual({ error: 'Invalid subscription' });
+    expect(data).toEqual({ error: 'Invalid subscription data' });
   });
 
   it('creates a new subscription when none exists', async () => {

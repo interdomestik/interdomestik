@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
 import { memberNotes, user as userTable } from '@interdomestik/database/schema';
-import { desc, eq } from 'drizzle-orm';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import { and, desc, eq } from 'drizzle-orm';
 import type { ActionResult, MemberNote } from '../member-notes.types';
 import { canAccessNotes } from './access';
 import type { Session } from './context';
@@ -14,6 +15,13 @@ export async function getMemberNotesCore(params: {
 
   if (!session?.user) return { success: false, error: 'Unauthorized' };
   if (!canAccessNotes(session.user.role)) return { success: false, error: 'Access denied' };
+
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { success: false, error: 'Missing tenantId' };
+  }
 
   try {
     const rows = await db
@@ -32,7 +40,12 @@ export async function getMemberNotesCore(params: {
       })
       .from(memberNotes)
       .leftJoin(userTable, eq(memberNotes.authorId, userTable.id))
-      .where(eq(memberNotes.memberId, memberId))
+      .where(
+        and(
+          eq(memberNotes.tenantId, tenantId), // SECURITY: Tenant scoping
+          eq(memberNotes.memberId, memberId)
+        )
+      )
       .orderBy(desc(memberNotes.isPinned), desc(memberNotes.createdAt));
 
     return { success: true, data: rows.map(mapNoteRow) };

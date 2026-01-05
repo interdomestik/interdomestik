@@ -1,9 +1,9 @@
 import { db } from '@interdomestik/database';
 import { memberNotes } from '@interdomestik/database/schema';
-import { nanoid } from 'nanoid';
 import { ensureTenantId } from '@interdomestik/shared-auth';
+import { nanoid } from 'nanoid';
 import type { ActionResult, CreateNoteInput, MemberNote, NoteType } from '../member-notes.types';
-import { createNoteSchema } from '../member-notes.types';
+import { createNoteSchema, sanitizeNoteContent } from '../member-notes.types';
 import { canAccessNotes } from './access';
 import type { Session } from './context';
 
@@ -26,13 +26,20 @@ export async function createMemberNoteCore(params: {
   if (!validated.success) return { success: false, error: validated.error.message };
 
   try {
+    // SECURITY: Sanitize content - strip HTML and limit length
+    const sanitizedContent = sanitizeNoteContent(validated.data.content);
+    if (!sanitizedContent) {
+      return { success: false, error: 'Content cannot be empty' };
+    }
+
     const newNote = {
       id: nanoid(),
       tenantId,
       memberId: validated.data.memberId,
       authorId: session.user.id,
       type: validated.data.type ?? 'general',
-      content: validated.data.content,
+      content: sanitizedContent, // Use sanitized content
+
       isPinned: validated.data.isPinned ?? false,
       isInternal: validated.data.isInternal ?? true,
       followUpDate: validated.data.followUpDate ?? null,
