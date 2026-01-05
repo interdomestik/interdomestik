@@ -17,7 +17,7 @@ export async function createClaim(prevState: unknown, formData: FormData) {
     windowSeconds: 600, // 10 minutes
     headers: requestHeaders,
   });
-  if (limit.limited) return { error: 'Too many requests. Please try again later.' };
+  if (limit.limited) return { success: false, error: 'Too many requests. Please try again later.' };
 
   return createClaimCore({ session, requestHeaders, formData });
 }
@@ -74,7 +74,7 @@ export async function updateClaimStatus(claimId: string, newStatus: string) {
     windowSeconds: 600,
     headers: requestHeaders,
   });
-  if (limit.limited) return { error: 'Too many requests' }; // Core returns { error? } shape
+  if (limit.limited) return { success: false, error: 'Too many requests' };
 
   return updateClaimStatusCore({ session, requestHeaders, claimId, newStatus });
 }

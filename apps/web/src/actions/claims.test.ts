@@ -125,14 +125,14 @@ describe('Claim Actions', () => {
 
       const formData = new FormData();
       const result = await createClaim({}, formData);
-      expect(result).toEqual({ error: 'Membership required to create a claim.' });
+      expect(result).toEqual({ success: false, error: 'Membership required to create a claim.' });
     });
 
     it('should fail if user is not authenticated', async () => {
       mockGetSession.mockResolvedValue(null);
       const formData = new FormData();
       const result = await createClaim({}, formData);
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: 'Unauthorized' });
     });
 
     it('should fail with validation errors for empty data', async () => {
@@ -140,6 +140,7 @@ describe('Claim Actions', () => {
       const formData = new FormData();
       const result = await createClaim({}, formData);
 
+      expect(result).toHaveProperty('success', false);
       expect(result).toHaveProperty('error', 'Validation failed');
       expect(result).toHaveProperty('issues');
     });
@@ -204,7 +205,7 @@ describe('Claim Actions', () => {
         user: { id: 'user-123', role: 'user', tenantId: 'tenant_mk' },
       });
       const result = await updateClaimStatus('claim-1', 'resolved');
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: 'Unauthorized' });
     });
 
     it('should allow staff users to update status', async () => {
@@ -232,7 +233,7 @@ describe('Claim Actions', () => {
         user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
       });
       const result = await updateClaimStatus('claim-1', 'super-resolved');
-      expect(result).toEqual({ error: 'Invalid status' });
+      expect(result).toEqual({ success: false, error: 'Invalid status' });
     });
   });
 
@@ -372,7 +373,10 @@ describe('Claim Actions', () => {
 
       consoleErrorSpy.mockRestore();
 
-      expect(result).toEqual({ error: 'Failed to create claim. Please try again.' });
+      expect(result).toEqual({
+        success: false,
+        error: 'Failed to create claim. Please try again.',
+      });
     });
 
     it('should handle optional claimAmount as empty string', async () => {
@@ -399,7 +403,7 @@ describe('Claim Actions', () => {
     it('should deny unauthenticated users', async () => {
       mockGetSession.mockResolvedValue(null);
       const result = await updateClaimStatus('claim-1', 'resolved');
-      expect(result).toEqual({ error: 'Unauthorized' });
+      expect(result).toEqual({ success: false, error: 'Unauthorized' });
     });
 
     it('should handle database errors during status update', async () => {
@@ -414,7 +418,7 @@ describe('Claim Actions', () => {
 
       consoleErrorSpy.mockRestore();
 
-      expect(result).toEqual({ error: 'Failed to update status' });
+      expect(result).toEqual({ success: false, error: 'Failed to update status' });
     });
 
     it('should accept all valid status values', async () => {

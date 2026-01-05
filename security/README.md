@@ -8,6 +8,7 @@ This folder tracks security audit status, evidence, and follow-up tasks.
 - `security/SECURITY_TASKS.md` - execution checklist and ongoing backlog.
 - `security/HARDENING_CHECKLIST.md` - module-by-module hardening template.
 - `security/hardening/` - per-module hardening progress and notes.
+- `security/hardening/INDEX.md` - master index of hardened modules and status.
 
 ## How to Use
 
@@ -26,3 +27,9 @@ Store artifacts under a dated subfolder when possible, e.g.:
 ## Ownership
 
 Assign an owner and update date in `security/SECURITY_TASKS.md` after each review.
+
+## New Feature Hardening Policy
+
+All new features must follow the Hardened Module Standard in
+`security/HARDENING_CHECKLIST.md`, add/update a module doc under
+`security/hardening/`, and record verification evidence.

@@ -3,6 +3,7 @@ import { memberNotes } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import type { ActionResult } from '../member-notes.types';
+import { logAuditEvent } from '@/lib/audit';
 import { canAccessNotes } from './access';
 import type { Session } from './context';
 
@@ -36,6 +37,16 @@ export async function toggleNotePinCore(params: {
       .update(memberNotes)
       .set({ isPinned: newPinned, updatedAt: new Date() })
       .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)));
+
+    await logAuditEvent({
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      tenantId,
+      action: 'member_note.pin_toggled',
+      entityType: 'member_note',
+      entityId: noteId,
+      metadata: { memberId: existing.memberId, isPinned: newPinned },
+    });
     return { success: true, data: { isPinned: newPinned } };
   } catch (error) {
     console.error('Error toggling pin:', error);

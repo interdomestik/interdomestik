@@ -63,17 +63,17 @@ describe('updateClaimStatusCore', () => {
       },
     ]);
 
-    await expect(
-      updateClaimStatusCore({
-        claimId: 'claim-1',
-        newStatus: 'resolved',
-        session: {
-          user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
-          session: { id: 'session-1' },
-        } as unknown as import('./context').Session,
-        requestHeaders: new Headers(),
-      })
-    ).rejects.toThrow('Access denied');
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'resolved',
+      session: {
+        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant_mk' },
+        session: { id: 'session-1' },
+      } as unknown as import('./context').Session,
+      requestHeaders: new Headers(),
+    });
+
+    expect(result).toEqual({ success: false, error: 'Access denied' });
 
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();

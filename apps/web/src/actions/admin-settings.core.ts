@@ -11,8 +11,8 @@ export async function adminUpdateSettings(data: {
   autoAssign: boolean;
   defaultExpiry: number;
 }) {
-  const { session } = await getActionContext();
-  const result = await adminUpdateSettingsCore({ session, data });
+  const { requestHeaders, session } = await getActionContext();
+  const result = await adminUpdateSettingsCore({ session, requestHeaders, data });
   revalidatePath('/admin/settings');
   return result;
 }

@@ -3,7 +3,7 @@ export * from './claims/documents';
 export * from './claims/draft';
 export * from './claims/submit';
 export * from './claims/types';
-export * from './staff-claims/types';
+export type { ClaimStatus } from './staff-claims/types';
 export * from './validators/claims';
 
 export { updateClaimStatusCore as updateAdminClaimStatusCore } from './admin-claims/update-status';

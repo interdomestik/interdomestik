@@ -13,6 +13,7 @@ describe('actions/notifications markAsReadCore', () => {
       markAsReadCore({
         session: { user: { id: 'u1' } } as any,
         notificationId: '',
+        requestHeaders: new Headers(),
       })
     ).rejects.toThrow('Notification ID is required');
   });
@@ -21,6 +22,7 @@ describe('actions/notifications markAsReadCore', () => {
     const result = await markAsReadCore({
       session: { user: { id: 'u1' } } as any,
       notificationId: 'notif-123',
+      requestHeaders: new Headers(),
     });
     expect(result).toEqual({ success: true });
   });

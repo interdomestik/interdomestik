@@ -29,15 +29,17 @@ export async function updateClaimStatusCore(params: {
     }
   }
 
-  await updateClaimStatusCoreDomain(params, {
+  const result = await updateClaimStatusCoreDomain(params, {
     logAuditEvent,
     notifyStatusChanged,
   });
 
-  revalidatePath('/member/claims');
-  revalidatePath(`/member/claims/${params.claimId}`);
-  revalidatePath('/staff/claims');
-  revalidatePath(`/staff/claims/${params.claimId}`);
-  revalidatePath('/member/claims');
-  revalidatePath(`/member/claims/${params.claimId}`);
+  if (result.success) {
+    revalidatePath('/member/claims');
+    revalidatePath(`/member/claims/${params.claimId}`);
+    revalidatePath('/staff/claims');
+    revalidatePath(`/staff/claims/${params.claimId}`);
+  }
+
+  return result;
 }

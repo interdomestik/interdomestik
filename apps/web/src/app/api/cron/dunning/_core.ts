@@ -1,3 +1,4 @@
+import { logAuditEvent } from '@/lib/audit';
 import { sendPaymentFinalWarningEmail, sendPaymentReminderEmail } from '@/lib/email';
 import { db, subscriptions, user } from '@interdomestik/database';
 import { and, eq, gt } from 'drizzle-orm';

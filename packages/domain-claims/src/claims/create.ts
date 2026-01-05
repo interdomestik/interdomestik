@@ -55,13 +55,13 @@ export async function createClaimCore(
   const { session, requestHeaders, formData } = params;
 
   if (!session) {
-    return { error: 'Unauthorized' };
+    return { success: false, error: 'Unauthorized' };
   }
 
   const tenantId = ensureTenantId(session);
   const subscription = await getActiveSubscription(session.user.id, tenantId);
   if (!subscription) {
-    return { error: 'Membership required to create a claim.' };
+    return { success: false, error: 'Membership required to create a claim.' };
   }
 
   const defaultBranchId = subscription.branchId
@@ -86,7 +86,7 @@ export async function createClaimCore(
     const errors = result.error.flatten().fieldErrors;
     const formattedErrors = formatZodFieldErrors(errors as unknown as Record<string, string[]>);
 
-    return { error: 'Validation failed', issues: formattedErrors };
+    return { success: false, error: 'Validation failed', issues: formattedErrors };
   }
 
   const { title, description, category, companyName, claimAmount, currency } = result.data;
@@ -127,7 +127,7 @@ export async function createClaimCore(
     }
   } catch (error) {
     console.error('Failed to create claim:', error);
-    return { error: 'Failed to create claim. Please try again.' };
+    return { success: false, error: 'Failed to create claim. Please try again.' };
   }
 
   return { success: true };

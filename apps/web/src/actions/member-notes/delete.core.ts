@@ -3,6 +3,7 @@ import { memberNotes } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import type { ActionResult } from '../member-notes.types';
+import { logAuditEvent } from '@/lib/audit';
 import { canAccessNotes } from './access';
 import type { Session } from './context';
 
@@ -37,6 +38,16 @@ export async function deleteMemberNoteCore(params: {
     await db
       .delete(memberNotes)
       .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, tenantId)));
+
+    await logAuditEvent({
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      tenantId,
+      action: 'member_note.deleted',
+      entityType: 'member_note',
+      entityId: noteId,
+      metadata: { memberId: existing.memberId },
+    });
     return { success: true };
   } catch (error) {
     console.error('Error deleting note:', error);

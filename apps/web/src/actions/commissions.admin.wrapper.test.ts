@@ -1,5 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
+
 const mocks = vi.hoisted(() => ({
   getAllCommissionsCore: vi.fn(),
   getGlobalCommissionSummaryCore: vi.fn(),

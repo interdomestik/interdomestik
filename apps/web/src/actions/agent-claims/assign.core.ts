@@ -12,15 +12,19 @@ export async function assignClaimCore(params: {
   session: NonNullable<Session> | null;
   requestHeaders: Headers;
 }) {
-  await assignClaimCoreDomain(params, {
+  const result = await assignClaimCoreDomain(params, {
     logAuditEvent,
     notifyClaimAssigned,
   });
 
-  revalidatePath('/member/claims');
-  revalidatePath(`/member/claims/${params.claimId}`);
-  revalidatePath('/admin/claims');
-  revalidatePath(`/admin/claims/${params.claimId}`);
-  revalidatePath('/staff/claims');
-  revalidatePath(`/staff/claims/${params.claimId}`);
+  if (result.success) {
+    revalidatePath('/member/claims');
+    revalidatePath(`/member/claims/${params.claimId}`);
+    revalidatePath('/admin/claims');
+    revalidatePath(`/admin/claims/${params.claimId}`);
+    revalidatePath('/staff/claims');
+    revalidatePath(`/staff/claims/${params.claimId}`);
+  }
+
+  return result;
 }

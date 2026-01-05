@@ -4,6 +4,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import type { ActionResult, MemberNote, UpdateNoteInput } from '../member-notes.types';
 import { sanitizeNoteContent, updateNoteSchema } from '../member-notes.types';
+import { logAuditEvent } from '@/lib/audit';
 import { canAccessNotes } from './access';
 import type { Session } from './context';
 import { mapNoteRow } from './map';
@@ -54,6 +55,20 @@ export async function updateMemberNoteCore(params: {
       .update(memberNotes)
       .set(updateData)
       .where(and(eq(memberNotes.id, validated.data.id), eq(memberNotes.tenantId, tenantId)));
+
+    const updatedFields = Object.keys(updateData).filter(key => key !== 'updatedAt');
+    await logAuditEvent({
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      tenantId,
+      action: 'member_note.updated',
+      entityType: 'member_note',
+      entityId: validated.data.id,
+      metadata: {
+        memberId: existing.memberId,
+        updatedFields,
+      },
+    });
 
     const [updated] = await db
       .select({

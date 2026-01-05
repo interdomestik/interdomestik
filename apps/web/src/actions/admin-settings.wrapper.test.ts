@@ -21,6 +21,7 @@ describe('actions/admin-settings wrapper', () => {
     const { revalidatePath } = await import('next/cache');
 
     (getActionContext as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      requestHeaders: new Headers(),
       session: { user: { id: 'u1', role: 'admin' } },
     });
 
@@ -38,6 +39,7 @@ describe('actions/admin-settings wrapper', () => {
     const result = await adminUpdateSettings(data);
 
     expect(adminUpdateSettingsCore).toHaveBeenCalledWith({
+      requestHeaders: expect.any(Headers),
       session: { user: { id: 'u1', role: 'admin' } },
       data,
     });

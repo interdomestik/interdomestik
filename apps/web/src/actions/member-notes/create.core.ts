@@ -4,6 +4,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import type { ActionResult, CreateNoteInput, MemberNote, NoteType } from '../member-notes.types';
 import { createNoteSchema, sanitizeNoteContent } from '../member-notes.types';
+import { logAuditEvent } from '@/lib/audit';
 import { canAccessNotes } from './access';
 import type { Session } from './context';
 
@@ -48,6 +49,21 @@ export async function createMemberNoteCore(params: {
     };
 
     await db.insert(memberNotes).values(newNote);
+
+    await logAuditEvent({
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      tenantId,
+      action: 'member_note.created',
+      entityType: 'member_note',
+      entityId: newNote.id,
+      metadata: {
+        memberId: newNote.memberId,
+        noteType: newNote.type,
+        isPinned: newNote.isPinned,
+        isInternal: newNote.isInternal,
+      },
+    });
 
     return {
       success: true,

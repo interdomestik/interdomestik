@@ -176,7 +176,7 @@ export async function handleSubscriptionChanged(
       const customRates = agentSettings?.commissionRates as Record<string, number> | undefined;
 
       const commissionAmount = calculateCommission('new_membership', transactionTotal, customRates);
-      await createCommissionCore({
+      const commissionResult = await createCommissionCore({
         agentId,
         memberId: userId,
         subscriptionId: sub.id,
@@ -191,6 +191,23 @@ export async function handleSubscriptionChanged(
           customRates: !!customRates,
         },
       });
+      if (deps.logAuditEvent && commissionResult.success) {
+        await deps.logAuditEvent({
+          actorRole: 'system',
+          action: 'commission.created',
+          entityType: 'commission',
+          entityId: commissionResult.data?.id ?? null,
+          tenantId,
+          metadata: {
+            agentId,
+            memberId: userId,
+            subscriptionId: sub.id,
+            amount: commissionAmount,
+            currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
+            source: 'paddle_webhook',
+          },
+        });
+      }
       console.log(
         `[Webhook] 💰 Commission created: €${commissionAmount} for agent ${agentId}${customRates ? ' (custom rates)' : ''}`
       );
