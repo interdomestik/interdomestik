@@ -1,3 +1,4 @@
+import { sendMessageSchema } from '@interdomestik/domain-communications/messages/schemas';
 import {
   sendMessageDbCore as sendMessageDbCoreDomain,
   type SendMessageDbCoreResult,
@@ -17,6 +18,18 @@ export async function sendMessageDbCore(params: {
   content: string;
   isInternal?: boolean;
 }): Promise<SendMessageDbCoreResult> {
+  const validation = sendMessageSchema.safeParse({
+    claimId: params.claimId,
+    content: params.content,
+    isInternal: params.isInternal,
+  });
+
+  if (!validation.success) {
+    const fieldErrors = validation.error.flatten().fieldErrors;
+    const error = fieldErrors.content?.[0] || fieldErrors.claimId?.[0] || 'Invalid input';
+    return { success: false, error };
+  }
+
   const rateLimit = await enforceRateLimit({
     name: 'action:message-send',
     limit: 10,

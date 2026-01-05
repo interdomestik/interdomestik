@@ -1,6 +1,7 @@
 import { db } from '@interdomestik/database';
 import { user } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 
 import type { ActionResult, MemberReferralLink, MemberReferralSession } from './types';
 
@@ -33,7 +34,7 @@ export async function getMemberReferralLinkCore(params: {
             .slice(0, 4)
         : 'USER';
 
-      const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const randomPart = nanoid(6).toUpperCase();
       code = `${namePart}-${randomPart}`;
 
       await db.update(user).set({ referralCode: code }).where(eq(user.id, session.user.id));

@@ -1,5 +1,6 @@
 import { db } from '@interdomestik/database';
 import { pushSubscriptions } from '@interdomestik/database/schema';
+import { pushSubscriptionSchema } from '@interdomestik/domain-communications/notifications/schemas';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -30,13 +31,14 @@ export async function upsertPushSubscriptionCore(args: {
   }
   const resolvedTenantId = tenantId;
 
-  const endpoint = body?.endpoint;
-  const p256dh = body?.keys?.p256dh;
-  const authKey = body?.keys?.auth;
+  const validation = pushSubscriptionSchema.safeParse(body);
 
-  if (!endpoint || !p256dh || !authKey) {
-    return { status: 400, body: { error: 'Invalid subscription' } };
+  if (!validation.success) {
+    return { status: 400, body: { error: 'Invalid subscription data' } };
   }
+
+  const { endpoint, keys, userAgent } = validation.data;
+  const { p256dh, auth: authKey } = keys;
 
   const [existing] = await db
     .select()
@@ -53,10 +55,16 @@ export async function upsertPushSubscriptionCore(args: {
         endpoint,
         p256dh,
         auth: authKey,
-        userAgent: body.userAgent,
+        userAgent,
         updatedAt: new Date(),
       })
-      .where(eq(pushSubscriptions.endpoint, endpoint));
+      .where(
+        and(
+          eq(pushSubscriptions.endpoint, endpoint),
+          eq(pushSubscriptions.tenantId, resolvedTenantId),
+          eq(pushSubscriptions.userId, userId)
+        )
+      );
   } else {
     await db.insert(pushSubscriptions).values({
       id: nanoid(),
@@ -65,7 +73,7 @@ export async function upsertPushSubscriptionCore(args: {
       endpoint,
       p256dh,
       auth: authKey,
-      userAgent: body.userAgent,
+      userAgent,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -79,7 +87,7 @@ export async function upsertPushSubscriptionCore(args: {
       entityType: 'push_subscription',
       entityId: endpoint,
       metadata: {
-        userAgent: body.userAgent,
+        userAgent,
       },
     },
   };

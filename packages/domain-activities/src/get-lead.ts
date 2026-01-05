@@ -1,4 +1,5 @@
 import { crmActivities, db, desc, eq } from '@interdomestik/database';
+import { and } from 'drizzle-orm';
 
 import { mapLeadActivitiesToFeedRows } from './map-lead';
 import type { ActivitySession } from './types';
@@ -13,7 +14,10 @@ export async function getLeadActivitiesCore(params: {
 
   try {
     const activities = await db.query.crmActivities.findMany({
-      where: eq(crmActivities.leadId, leadId),
+      where: and(
+        eq(crmActivities.leadId, leadId),
+        eq(crmActivities.tenantId, session.user.tenantId!)
+      ),
       orderBy: [desc(crmActivities.occurredAt)],
       with: {
         agent: {

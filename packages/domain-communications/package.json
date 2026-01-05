@@ -12,8 +12,10 @@
     "./messages/get": "./src/messages/get.ts",
     "./messages/mark-read": "./src/messages/mark-read.ts",
     "./messages/send": "./src/messages/send.ts",
+    "./messages/schemas": "./src/messages/schemas.ts",
     "./notifications/get": "./src/notifications/get.ts",
     "./notifications/mark-read": "./src/notifications/mark-read.ts",
+    "./notifications/schemas": "./src/notifications/schemas.ts",
     "./notifications": "./src/notifications/notify.ts",
     "./push": "./src/push.ts",
     "./email": "./src/email.ts",
@@ -35,7 +37,8 @@
     "drizzle-orm": "^0.45.1",
     "nanoid": "^5.1.6",
     "resend": "^4.4.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "zod": "4.2.1"
   },
   "devDependencies": {
     "postcss": "^8.5.6",

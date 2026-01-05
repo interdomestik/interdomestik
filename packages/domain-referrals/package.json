@@ -13,11 +13,16 @@
     "./member-referrals/types": "./src/member-referrals/types.ts"
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "test": "vitest run"
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "nanoid": "^5.1.6"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.16"
   }
 }

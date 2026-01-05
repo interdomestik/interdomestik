@@ -1,9 +1,10 @@
 import { crmActivities, db } from '@interdomestik/database';
 import { nanoid } from 'nanoid';
 
-import type { ActionResult, ActivitySession, LogLeadActivityInput } from './types';
+import { leadActivitySchema, type LogLeadActivityInput } from './schema';
+import type { ActionResult, ActivitySession } from './types';
 
-export type { LogLeadActivityInput } from './types';
+export type { LogLeadActivityInput } from './schema';
 
 export async function logLeadActivityCore(params: {
   session: ActivitySession | null;
@@ -15,15 +16,23 @@ export async function logLeadActivityCore(params: {
   if (session.user.role === 'member') return { error: 'Permission denied' };
   if (!session.user.tenantId) return { error: 'Missing tenantId' };
 
+  if (!session.user.tenantId) return { error: 'Missing tenantId' };
+
+  const parsed = leadActivitySchema.safeParse(data);
+  if (!parsed.success) {
+    return { error: 'Validation failed' };
+  }
+  const { leadId, type, subject, description } = parsed.data;
+
   try {
     const newActivity = {
       id: nanoid(),
       tenantId: session.user.tenantId,
       agentId: session.user.id,
-      leadId: data.leadId,
-      type: data.type === 'other' ? 'note' : data.type,
-      summary: data.subject,
-      description: data.description,
+      leadId,
+      type: type === 'other' ? 'note' : type,
+      summary: subject,
+      description,
       occurredAt: new Date(),
       createdAt: new Date(),
     };

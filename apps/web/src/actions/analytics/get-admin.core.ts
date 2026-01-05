@@ -1,6 +1,6 @@
 import { db } from '@interdomestik/database';
 import { membershipPlans, subscriptions } from '@interdomestik/database/schema';
-import { eq, gte, sql } from 'drizzle-orm';
+import { and, eq, gte, sql } from 'drizzle-orm';
 
 import { isStaffOrAdmin } from '@/lib/roles.core';
 
@@ -30,7 +30,9 @@ export async function getAdminAnalyticsCore(params: {
       })
       .from(subscriptions)
       .innerJoin(membershipPlans, eq(subscriptions.planId, membershipPlans.paddlePriceId))
-      .where(eq(subscriptions.status, 'active'));
+      .where(
+        and(eq(subscriptions.status, 'active'), eq(subscriptions.tenantId, session.user.tenantId!))
+      );
 
     let mrr = 0;
     for (const sub of activeSubs) {
@@ -42,12 +44,20 @@ export async function getAdminAnalyticsCore(params: {
       }
     }
 
-    const allSubsCount = await db.select({ count: sql<number>`count(*)` }).from(subscriptions);
+    const allSubsCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(subscriptions)
+      .where(eq(subscriptions.tenantId, session.user.tenantId!));
 
     const canceledSubsCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(subscriptions)
-      .where(eq(subscriptions.status, 'canceled'));
+      .where(
+        and(
+          eq(subscriptions.status, 'canceled'),
+          eq(subscriptions.tenantId, session.user.tenantId!)
+        )
+      );
 
     const totalMembers = Number(allSubsCount[0]?.count || 0);
     const activeMembers = activeSubs.length;
@@ -63,7 +73,12 @@ export async function getAdminAnalyticsCore(params: {
         count: sql<number>`count(*)`,
       })
       .from(subscriptions)
-      .where(gte(subscriptions.createdAt, thirtyDaysAgo))
+      .where(
+        and(
+          gte(subscriptions.createdAt, thirtyDaysAgo),
+          eq(subscriptions.tenantId, session.user.tenantId!)
+        )
+      )
       .groupBy(sql`DATE(${subscriptions.createdAt})`)
       .orderBy(sql`DATE(${subscriptions.createdAt})`);
 
