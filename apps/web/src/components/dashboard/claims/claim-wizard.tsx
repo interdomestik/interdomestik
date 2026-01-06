@@ -313,7 +313,7 @@ export function ClaimWizard() {
                   <div>
                     <h4 className="font-semibold text-sm text-muted-foreground">Amount</h4>
                     <p className="mt-1 font-semibold">
-                      €{parseFloat(formValues.claimAmount).toFixed(2)}
+                      €{Number.parseFloat(formValues.claimAmount).toFixed(2)}
                     </p>
                   </div>
                 )}

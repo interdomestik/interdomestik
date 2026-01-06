@@ -1,8 +1,8 @@
 'use client';
 
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
-import { fetchClaims } from '@/lib/api/claims';
 import { Link } from '@/i18n/routing';
+import { fetchClaims } from '@/lib/api/claims';
 import {
   Button,
   Card,
@@ -16,8 +16,8 @@ import {
 } from '@interdomestik/ui';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Plus } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 
 const PER_PAGE = 10;
 
@@ -136,7 +136,9 @@ export function MemberClaimsTable() {
                 </TableCell>
                 <TableCell>
                   {claim.claimAmount ? (
-                    <span className="font-medium">€{parseFloat(claim.claimAmount).toFixed(2)}</span>
+                    <span className="font-medium">
+                      €{Number.parseFloat(claim.claimAmount).toFixed(2)}
+                    </span>
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}

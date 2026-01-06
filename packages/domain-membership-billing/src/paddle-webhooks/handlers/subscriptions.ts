@@ -202,7 +202,7 @@ async function handleNewSubscriptionExtras(args: {
 
   // 1. Commissions
   const agentId = customData?.agentId;
-  const transactionTotal = parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
+  const transactionTotal = Number.parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
 
   if (agentId && transactionTotal > 0) {
     const agentSettings = await db.query.agentSettings?.findFirst({
@@ -255,7 +255,7 @@ async function handleNewSubscriptionExtras(args: {
     try {
       if (userRecord) {
         const planPrice = sub.items?.[0]?.price?.unitPrice?.amount
-          ? (parseFloat(sub.items[0].price.unitPrice.amount) / 100).toFixed(2)
+          ? (Number.parseFloat(sub.items[0].price.unitPrice.amount) / 100).toFixed(2)
           : '20.00';
         const periodEnd = sub.currentBillingPeriod?.endsAt
           ? new Date(sub.currentBillingPeriod.endsAt)

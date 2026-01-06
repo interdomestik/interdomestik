@@ -36,7 +36,7 @@ export async function getMyCommissionSummaryCore(params: {
     };
 
     for (const row of rows) {
-      const amount = parseFloat(row.total || '0');
+      const amount = Number.parseFloat(row.total || '0');
       const count = Number(row.count);
       if (row.status === 'pending') {
         summary.totalPending = amount;

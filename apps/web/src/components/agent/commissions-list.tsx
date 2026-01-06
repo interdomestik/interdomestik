@@ -32,7 +32,7 @@ export function CommissionsList({ commissions, currency = 'EUR' }: CommissionsLi
     return new Intl.NumberFormat('de-DE', {
       style: 'currency',
       currency,
-    }).format(parseFloat(amount));
+    }).format(Number.parseFloat(amount));
   };
 
   if (commissions.length === 0) {
