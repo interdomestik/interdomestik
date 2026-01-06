@@ -73,7 +73,9 @@ export function LeaderboardCard() {
       </CardHeader>
       <CardContent className="space-y-2">
         {isLoading ? (
-          Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
+          Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={`leaderboard-skeleton-${i}`} className="h-12 w-full" />
+          ))
         ) : entries.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">{t('noData')}</p>
         ) : (

@@ -11,7 +11,7 @@ export async function getPaymentUpdateUrlCore(params: {
   const { session, subscriptionId } = params;
 
   if (!session) {
-    return { error: 'Unauthorized' };
+    return { error: 'Unauthorized', url: undefined };
   }
 
   const tenantId = ensureTenantId(session);
@@ -20,7 +20,7 @@ export async function getPaymentUpdateUrlCore(params: {
   });
 
   if (!sub || sub.userId !== session.user.id) {
-    return { error: 'Subscription not found or access denied' };
+    return { error: 'Subscription not found or access denied', url: undefined };
   }
 
   try {
@@ -32,9 +32,9 @@ export async function getPaymentUpdateUrlCore(params: {
       return { url: transaction.checkout.url, error: undefined };
     }
 
-    return { error: 'No checkout URL generated' };
+    return { error: 'No checkout URL generated', url: undefined };
   } catch (error) {
     console.error('Failed to get payment update URL:', error);
-    return { error: 'Failed to generate update link' };
+    return { error: 'Failed to generate update link', url: undefined };
   }
 }

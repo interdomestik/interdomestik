@@ -15,21 +15,24 @@ export async function logLeadActivityCore(params: {
 }): Promise<ActionResult> {
   const { session, data } = params;
 
-  if (!session) return { error: 'Unauthorized' };
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   // SECURITY: RBAC check
   if (!ALLOWED_ROLES.includes(session.user.role)) {
-    return { error: 'Permission denied: insufficient role' };
+    return { success: false, error: 'Permission denied: insufficient role' };
   }
 
   // SECURITY: Tenant scoping
   if (!session.user.tenantId) {
-    return { error: 'Missing tenantId' };
+    return { success: false, error: 'Missing tenantId' };
   }
 
   const parsed = leadActivitySchema.safeParse(data);
   if (!parsed.success) {
-    return { error: `Validation failed: ${parsed.error.issues[0]?.message ?? 'invalid input'}` };
+    return {
+      success: false,
+      error: `Validation failed: ${parsed.error.issues[0]?.message ?? 'invalid input'}`,
+    };
   }
   const { leadId, type, subject, description } = parsed.data;
 
@@ -48,9 +51,9 @@ export async function logLeadActivityCore(params: {
 
     await db.insert(crmActivities).values(newActivity);
 
-    return { success: true };
+    return { success: true, error: undefined };
   } catch (error) {
     console.error('Failed to log lead activity:', error);
-    return { error: 'Failed to log activity.' };
+    return { success: false, error: 'Failed to log activity.' };
   }
 }

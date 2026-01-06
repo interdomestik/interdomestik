@@ -25,13 +25,13 @@ export async function updateClaimStatusCore(
   const { claimId, newStatus, session, requestHeaders } = params;
 
   if (!session || !isStaffOrAdmin(session.user.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: 'Unauthorized', data: undefined };
   }
 
   // Validate status
   const parsed = claimStatusSchema.safeParse({ status: newStatus });
   if (!parsed.success) {
-    return { success: false, error: 'Invalid status' };
+    return { success: false, error: 'Invalid status', data: undefined };
   }
   const status = parsed.data.status;
 
@@ -52,11 +52,11 @@ export async function updateClaimStatusCore(
     .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
   if (!claimWithUser) {
-    return { success: false, error: 'Claim not found' };
+    return { success: false, error: 'Claim not found', data: undefined };
   }
 
   if (isStaff(session.user.role) && claimWithUser.staffId !== session.user.id) {
-    return { success: false, error: 'Access denied' };
+    return { success: false, error: 'Access denied', data: undefined };
   }
 
   const oldStatus = claimWithUser.status || 'draft';
@@ -101,5 +101,5 @@ export async function updateClaimStatusCore(
     ).catch((err: Error) => console.error('Failed to send status notification:', err));
   }
 
-  return { success: true };
+  return { success: true, error: undefined };
 }

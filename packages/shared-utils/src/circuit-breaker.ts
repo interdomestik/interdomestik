@@ -1,5 +1,3 @@
-import postgres from 'postgres';
-
 export interface CircuitBreakerConfig {
   failureThreshold: number;
   recoveryTimeout: number;
@@ -30,8 +28,8 @@ export class CircuitBreaker {
   private nextAttempt?: Date;
 
   constructor(
-    private config: CircuitBreakerConfig,
-    private serviceName: string
+    private readonly config: CircuitBreakerConfig,
+    private readonly serviceName: string
   ) {}
 
   async execute<T>(operation: () => Promise<T>, timeoutMs = 30000): Promise<T> {

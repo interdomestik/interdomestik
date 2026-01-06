@@ -67,7 +67,7 @@ export function TestimonialsSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {stories.map((story, index) => (
             <div
-              key={index}
+              key={story.name}
               className="group relative bg-white rounded-[2.5rem] p-8 transition-all duration-500 hover:-translate-y-2 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_40px_80px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
@@ -83,8 +83,8 @@ export function TestimonialsSection() {
                     <Quote className="h-5 w-5 text-slate-200 group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex gap-0.5">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    {[...new Array(5)].map((_, i) => (
+                      <Star key={`star-${i}`} className="h-3 w-3 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 export type LeadActivityType = 'call' | 'email' | 'meeting' | 'note' | 'other';
 
-export type ActionResult = { success: true } | { error: string };
+export type ActionResult = { success: true; error: undefined } | { success: false; error: string };
 
 export type ActivitySession = {
   user: {

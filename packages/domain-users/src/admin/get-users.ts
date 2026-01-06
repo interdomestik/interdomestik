@@ -28,12 +28,40 @@ export async function getUsersCore(params: {
 }) {
   const { session, filters } = params;
   const adminSession = await requireTenantAdminSession(session);
-
-  const conditions: SQL<unknown>[] = [];
-
-  // Apply Scope Filter (Tenant + Branch + Agent)
   const scope = scopeFilter(adminSession as unknown as SessionWithTenant);
-  const tenantId = scope.tenantId;
+
+  // Build filter conditions
+  const conditions = buildUserConditions(scope, filters);
+
+  const userConditions = conditions.length
+    ? and(...conditions.filter((c): c is SQL<unknown> => c !== undefined && c !== null))
+    : undefined;
+
+  const users = await db.query.user.findMany({
+    where: (t, { eq, and }) => withTenant(scope.tenantId!, t.tenantId, userConditions),
+    orderBy: (users, { desc }) => [desc(users.createdAt)],
+    with: {
+      agent: true,
+    },
+  });
+
+  const unreadByUser = await fetchUnreadCounts(scope.tenantId!);
+
+  const alertBase = '/admin/claims/';
+
+  return users.map(userRow => {
+    const unread = unreadByUser.get(userRow.id);
+    return {
+      ...userRow,
+      unreadCount: unread?.count ?? 0,
+      unreadClaimId: unread?.claimId ?? null,
+      alertLink: unread ? `${alertBase}${unread.claimId}` : null,
+    };
+  });
+}
+
+function buildUserConditions(scope: ReturnType<typeof scopeFilter>, filters?: GetUsersFilters) {
+  const conditions: SQL<unknown>[] = [];
 
   if (!scope.isFullTenantScope) {
     if (scope.branchId) {
@@ -43,6 +71,7 @@ export async function getUsersCore(params: {
       conditions.push(eq(user.agentId, scope.agentId));
     }
   }
+
   const roleFilter = filters?.role && filters.role !== 'all' ? filters.role : null;
   const assignmentFilter =
     filters?.assignment && filters.assignment !== 'all' ? filters.assignment : null;
@@ -57,9 +86,7 @@ export async function getUsersCore(params: {
 
   if (assignmentFilter === 'assigned') {
     conditions.push(isNotNull(user.agentId));
-  }
-
-  if (assignmentFilter === 'unassigned') {
+  } else if (assignmentFilter === 'unassigned') {
     conditions.push(isNull(user.agentId));
   }
 
@@ -70,23 +97,10 @@ export async function getUsersCore(params: {
       conditions.push(searchFilter);
     }
   }
+  return conditions;
+}
 
-  // Ensure tenant scoping is enforced via helper
-  const userConditions = conditions.length
-    ? and(...conditions.filter((c): c is SQL<unknown> => c !== undefined && c !== null))
-    : undefined;
-
-  // Use withTenant to enforce tenant boundary, replacing manual push
-  // conditions.push(eq(user.tenantId, tenantId)); <-- Removed manual push
-
-  const users = await db.query.user.findMany({
-    where: (t, { eq, and }) => withTenant(tenantId, t.tenantId, userConditions),
-    orderBy: (users, { desc }) => [desc(users.createdAt)],
-    with: {
-      agent: true,
-    },
-  });
-
+async function fetchUnreadCounts(tenantId: string) {
   const unreadByUser = new Map<string, { count: number; claimId: string }>();
 
   const unreadConditions = [
@@ -112,16 +126,5 @@ export async function getUsersCore(params: {
       unreadByUser.set(row.userId, { count: 1, claimId: row.claimId });
     }
   }
-
-  const alertBase = '/admin/claims/';
-
-  return users.map(userRow => {
-    const unread = unreadByUser.get(userRow.id);
-    return {
-      ...userRow,
-      unreadCount: unread?.count ?? 0,
-      unreadClaimId: unread?.claimId ?? null,
-      alertLink: unread ? `${alertBase}${unread.claimId}` : null,
-    };
-  });
+  return unreadByUser;
 }

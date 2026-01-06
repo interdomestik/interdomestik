@@ -10,12 +10,14 @@ export type { LogLeadActivityInput } from '@interdomestik/domain-activities/log-
 
 export async function logLeadActivityCore(data: LogLeadActivityInput) {
   const session = await getSessionFromHeaders();
-
-  const result = await logLeadActivityDomain({ session, data });
-  if ('error' in result) {
-    return result;
+  if (!session) {
+    return { success: false as const, error: 'Unauthorized' };
   }
 
-  revalidatePath(`/agent/crm/leads/${data.leadId}`);
-  return { success: true };
+  const result = await logLeadActivityDomain({ session, data });
+  if (result.success) {
+    revalidatePath(`/agent/crm/leads/${data.leadId}`);
+  }
+
+  return result;
 }

@@ -10,6 +10,8 @@ export type DunningCronStats = {
   errors: number;
 };
 
+type SubscriptionRecord = Awaited<ReturnType<typeof db.query.subscriptions.findMany>>[number];
+
 export async function runDunningCronCore(args: {
   now: Date;
   headers: Headers;
@@ -44,15 +46,15 @@ export async function runDunningCronCore(args: {
 
     stats.checked += pastDueSubscriptions.length;
 
-    for (const sub of pastDueSubscriptions) {
-      if (!sub.gracePeriodEndsAt || !sub.pastDueAt) continue;
-
-      try {
-        await processDunningSubscription({ sub, now, headers, stats });
-      } catch {
-        stats.errors++;
-      }
-    }
+    await processBatch({
+      subscriptions: pastDueSubscriptions as (SubscriptionRecord & {
+        gracePeriodEndsAt: Date;
+        pastDueAt: Date;
+      })[],
+      now,
+      headers,
+      stats,
+    });
 
     afterId = pastDueSubscriptions[pastDueSubscriptions.length - 1]?.id ?? afterId;
   }
@@ -60,8 +62,25 @@ export async function runDunningCronCore(args: {
   return { stats };
 }
 
+async function processBatch(params: {
+  subscriptions: (SubscriptionRecord & { gracePeriodEndsAt: Date; pastDueAt: Date })[];
+  now: Date;
+  headers: Headers;
+  stats: DunningCronStats;
+}) {
+  const { subscriptions, now, headers, stats } = params;
+  for (const sub of subscriptions) {
+    if (!sub.gracePeriodEndsAt || !sub.pastDueAt) continue;
+    try {
+      await processDunningSubscription({ sub, now, headers, stats });
+    } catch {
+      stats.errors++;
+    }
+  }
+}
+
 async function processDunningSubscription(params: {
-  sub: any;
+  sub: SubscriptionRecord & { gracePeriodEndsAt: Date; pastDueAt: Date };
   now: Date;
   headers: Headers;
   stats: DunningCronStats;
@@ -129,7 +148,7 @@ function determineDunningEmailType(
 async function sendDunningEmail(params: {
   email: string;
   userName: string | null;
-  sub: any;
+  sub: SubscriptionRecord & { gracePeriodEndsAt: Date };
   daysRemaining: number;
   emailType: 'day7' | 'day13';
 }) {

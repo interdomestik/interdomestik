@@ -39,7 +39,7 @@ describe('logLeadActivityCore', () => {
 
   it('fails if unauthorized (no session)', async () => {
     const result = await logLeadActivityCore({ session: null, data: validData });
-    expect(result).toEqual({ error: 'Unauthorized' });
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
   });
 
   it('fails if user is member', async () => {
@@ -47,7 +47,7 @@ describe('logLeadActivityCore', () => {
       session: { user: { role: 'member', tenantId: 't1' } } as any,
       data: validData,
     });
-    expect(result).toEqual({ error: 'Permission denied: insufficient role' });
+    expect(result).toEqual({ success: false, error: 'Permission denied: insufficient role' });
   });
 
   it('fails if missing tenantId', async () => {
@@ -55,7 +55,7 @@ describe('logLeadActivityCore', () => {
       session: { user: { role: 'agent' } } as any, // Missing tenantId
       data: validData,
     });
-    expect(result).toEqual({ error: 'Missing tenantId' });
+    expect(result).toEqual({ success: false, error: 'Missing tenantId' });
   });
 
   it('fails validation (Zod) on empty subject', async () => {
@@ -63,7 +63,7 @@ describe('logLeadActivityCore', () => {
       session: validSession,
       data: { ...validData, subject: '' },
     });
-    expect(result).toEqual({ error: 'Validation failed: Subject is required' });
+    expect(result).toEqual({ success: false, error: 'Validation failed: Subject is required' });
     expect(mocks.insert).not.toHaveBeenCalled();
   });
 

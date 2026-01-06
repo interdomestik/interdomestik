@@ -10,8 +10,8 @@ export interface AnalyticsData {
 }
 
 export type AdminAnalyticsResult =
-  | { success: true; data: AnalyticsData; error?: undefined }
-  | { success: false; error: string; data?: undefined };
+  | { success: true; data: AnalyticsData; error: undefined }
+  | { success: false; error: string; data: undefined };
 
 /** Zod schema for analytics query parameters */
 export const analyticsQuerySchema = z

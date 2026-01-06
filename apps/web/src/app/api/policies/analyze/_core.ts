@@ -56,38 +56,30 @@ async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
 
 // Derive image type from MIME, extension, or magic bytes
 function isImageFile(file: File, buffer: Buffer): boolean {
-  // Check MIME type first
   if (file.type.startsWith('image/')) return true;
 
-  // Fallback to extension
   const lower = file.name.toLowerCase();
-  if (
-    lower.endsWith('.jpg') ||
-    lower.endsWith('.jpeg') ||
-    lower.endsWith('.png') ||
-    lower.endsWith('.webp')
-  ) {
-    return true;
+  const validExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+  if (validExtensions.some(ext => lower.endsWith(ext))) return true;
+
+  if (buffer.length < 4) return false;
+
+  const magicBytes = [
+    { name: 'PNG', bytes: [0x89, 0x50, 0x4e, 0x47] },
+    { name: 'JPEG', bytes: [0xff, 0xd8, 0xff] },
+  ];
+
+  for (const { bytes } of magicBytes) {
+    if (bytes.every((byte, i) => buffer[i] === byte)) return true;
   }
 
-  // Fallback to magic bytes
-  if (buffer.length >= 4) {
-    // PNG: 89 50 4E 47
-    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47)
-      return true;
-    // JPEG: FF D8 FF
-    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return true;
-    // WebP: RIFF....WEBP
-    if (
-      buffer[0] === 0x52 &&
-      buffer[1] === 0x49 &&
-      buffer[2] === 0x46 &&
-      buffer[3] === 0x46 &&
-      buffer.length >= 12
-    ) {
-      if (buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50)
-        return true;
-    }
+  // WebP: RIFF [4-7] WEBP [8-11]
+  if (
+    buffer.length >= 12 &&
+    buffer.toString('ascii', 0, 4) === 'RIFF' &&
+    buffer.toString('ascii', 8, 12) === 'WEBP'
+  ) {
+    return true;
   }
 
   return false;
@@ -133,29 +125,42 @@ async function uploadPolicyFile(args: {
   return { ok: true, filePath };
 }
 
+async function getAuthorizedSession(req: NextRequest) {
+  const headersList = req.headers;
+  const session = await auth.api.getSession({
+    headers: headersList,
+  });
+
+  if (!session?.user) {
+    return { error: 'Unauthorized', status: 401 as const };
+  }
+
+  const limit = await enforceRateLimit({
+    name: 'api:policy-analyze',
+    limit: 5,
+    windowSeconds: 60,
+    headers: headersList,
+  });
+
+  if (limit) {
+    return { limitResponse: limit };
+  }
+
+  return { session, headersList };
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // FIX: req.headers is not a Promise
-    const headersList = req.headers;
-    const session = await auth.api.getSession({
-      headers: headersList,
-    });
+    const authResult = await getAuthorizedSession(req);
 
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if ('error' in authResult) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+    if ('limitResponse' in authResult) {
+      return authResult.limitResponse;
     }
 
-    // Rate Limit
-    const limit = await enforceRateLimit({
-      name: 'api:policy-analyze',
-      limit: 5,
-      windowSeconds: 60,
-      headers: headersList,
-    });
-
-    if (limit) {
-      return limit;
-    }
+    const { session } = authResult;
 
     const formData = await req.formData();
     const file = formData.get('file') as File;

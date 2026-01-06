@@ -55,55 +55,7 @@ export async function submitClaimCore(
   const { title, description, category, companyName, claimAmount, currency, files } = result.data;
 
   // Security: Validate ALL files before creating ANY database records
-  // This prevents orphaned claims and ensures data integrity.
-  if (files?.length) {
-    const expectedPrefix = `pii/tenants/${tenantId}/claims/${session.user.id}/`;
-    const expectedBucket = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB - aligned with upload API
-    const ALLOWED_TYPES = new Set([
-      'application/pdf',
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-      'image/jpg',
-      'audio/webm',
-      'audio/mp4',
-      'audio/ogg',
-      'audio/mpeg',
-      'audio/m4a',
-    ]);
-
-    for (const file of files) {
-      // 1. Bucket Check
-      if (file.bucket !== expectedBucket) {
-        throw new ClaimValidationError(
-          'Invalid file bucket. Evidence must be stored in the designated claim evidence bucket.',
-          'INVALID_BUCKET'
-        );
-      }
-      // 2. Path Ownership Check
-      if (!file.path.startsWith(expectedPrefix)) {
-        throw new ClaimValidationError(
-          'Invalid file path detected. Evidence must be uploaded by the claimant.',
-          'INVALID_PATH'
-        );
-      }
-      // 3. Size Check (Metadata)
-      if (file.size > MAX_FILE_SIZE) {
-        throw new ClaimValidationError(
-          `File too large: ${file.name}. Max size is 10MB.`,
-          'INVALID_SIZE'
-        );
-      }
-      // 4. Type Check (Metadata)
-      if (!ALLOWED_TYPES.has(file.type)) {
-        throw new ClaimValidationError(
-          `Unsupported file type: ${file.type}. Allowed: PDF, Images, Audio.`,
-          'INVALID_TYPE'
-        );
-      }
-    }
-  }
+  validateClaimFiles(files, session, tenantId);
 
   const claimId = nanoid();
 
@@ -171,4 +123,55 @@ export async function submitClaimCore(
   }
 
   return { success: true };
+}
+
+function validateClaimFiles(
+  files: CreateClaimValues['files'],
+  session: ClaimsSession,
+  tenantId: string
+) {
+  if (!files?.length) return;
+
+  const expectedPrefix = `pii/tenants/${tenantId}/claims/${session.user.id}/`;
+  const expectedBucket = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB - aligned with upload API
+  const ALLOWED_TYPES = new Set([
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/jpg',
+    'audio/webm',
+    'audio/mp4',
+    'audio/ogg',
+    'audio/mpeg',
+    'audio/m4a',
+  ]);
+
+  for (const file of files) {
+    if (file.bucket !== expectedBucket) {
+      throw new ClaimValidationError(
+        'Invalid file bucket. Evidence must be stored in the designated claim evidence bucket.',
+        'INVALID_BUCKET'
+      );
+    }
+    if (!file.path.startsWith(expectedPrefix)) {
+      throw new ClaimValidationError(
+        'Invalid file path detected. Evidence must be uploaded by the claimant.',
+        'INVALID_PATH'
+      );
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      throw new ClaimValidationError(
+        `File too large: ${file.name}. Max size is 10MB.`,
+        'INVALID_SIZE'
+      );
+    }
+    if (!ALLOWED_TYPES.has(file.type)) {
+      throw new ClaimValidationError(
+        `Unsupported file type: ${file.type}. Allowed: PDF, Images, Audio.`,
+        'INVALID_TYPE'
+      );
+    }
+  }
 }

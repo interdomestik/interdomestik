@@ -6,8 +6,8 @@ export type SubscriptionSession = {
 };
 
 export type PaymentUpdateUrlResult =
-  | { url: string; error?: undefined }
-  | { error: string; url?: undefined };
+  | { url: string; error: undefined }
+  | { error: string; url: undefined };
 
 export type AuditEvent = {
   actorId?: string | null;
@@ -27,5 +27,5 @@ export type SubscriptionDeps = {
 };
 
 export type CancelSubscriptionResult =
-  | { success: true; error?: undefined }
-  | { error: string; success?: undefined };
+  | { success: true; error: undefined }
+  | { error: string; success: undefined };

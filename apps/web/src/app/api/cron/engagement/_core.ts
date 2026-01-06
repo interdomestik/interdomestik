@@ -12,7 +12,11 @@ import { engagementEmailSends, subscriptions, user } from '@interdomestik/databa
 import { and, eq, gte, lte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
-import { ENGAGEMENT_CADENCE, getDayWindow } from '@/lib/cron/engagement-schedule';
+import {
+  ENGAGEMENT_CADENCE,
+  getDayWindow,
+  type EngagementCadence,
+} from '@/lib/cron/engagement-schedule';
 
 export type EngagementCronResults = {
   day7: number;
@@ -24,6 +28,14 @@ export type EngagementCronResults = {
   annual: number;
   skipped: number;
   errors: number;
+};
+
+type EngagementMember = {
+  userId: string | null;
+  subId: string;
+  tenantId: string | null;
+  name: string | null;
+  email: string | null;
 };
 
 export async function runEngagementCronCore(args: {
@@ -94,8 +106,8 @@ async function processLifecycleEngagement(
 }
 
 async function processMemberEngagement(
-  member: any,
-  cadence: any,
+  member: EngagementMember,
+  cadence: EngagementCadence,
   results: EngagementCronResults,
   headers: Headers
 ) {
@@ -137,7 +149,8 @@ async function processMemberEngagement(
   }
 }
 
-async function sendEngagementEmail(templateKey: string, member: any) {
+async function sendEngagementEmail(templateKey: string, member: EngagementMember) {
+  if (!member.email || !member.name) return { success: false, error: 'Missing email or name' };
   if (templateKey === 'onboarding') return await sendOnboardingEmail(member.email, member.name);
   if (templateKey === 'checkin') return await sendCheckinEmail(member.email, member.name);
   if (templateKey === 'day30') return await sendEngagementDay30Email(member.email, member.name);
@@ -180,7 +193,7 @@ async function processSeasonalEngagement(
 }
 
 async function processSeasonalMember(
-  member: any,
+  member: EngagementMember,
   season: string,
   templateKey: string,
   now: Date,
@@ -217,10 +230,10 @@ async function processSeasonalMember(
   }
 
   try {
-    const sendResult = await sendSeasonalEmail(member.email, {
-      season: season as any,
+    const sendResult = (await sendSeasonalEmail(member.email, {
+      season: season as 'winter' | 'summer',
       name: member.name,
-    });
+    })) as { success: boolean; id?: string; error?: string };
     await handleSendResult(
       sendResult,
       dedupeKey,
@@ -237,65 +250,110 @@ async function processSeasonalMember(
 }
 
 async function handleSendResult(
-  sendResult: any,
+  sendResult: { success: boolean; id?: string; error?: string },
   dedupeKey: string,
-  member: any,
+  member: EngagementMember,
   templateKey: string,
   results: EngagementCronResults,
   headers: Headers,
   isSeasonal = false
 ) {
   if (sendResult.success) {
-    await db
-      .update(engagementEmailSends)
-      .set({
-        status: 'sent',
-        providerMessageId: sendResult.id || null,
-        sentAt: new Date(),
-      })
-      .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
-
-    // Update counters
-    if (isSeasonal) results.seasonal++;
-    else if (templateKey === 'onboarding') results.day7++;
-    else if (templateKey === 'checkin') results.day14++;
-    else if (templateKey === 'day30') results.day30++;
-    else if (templateKey === 'day60') results.day60++;
-    else if (templateKey === 'day90') results.day90++;
-
-    await logAuditEvent({
-      actorId: null,
-      actorRole: 'system',
-      tenantId: member.tenantId,
-      action: 'email.engagement.sent',
-      entityType: 'subscription',
-      entityId: member.subId,
-      metadata: { templateKey },
+    await handleSuccess(
+      dedupeKey,
+      member,
+      templateKey,
+      results,
       headers,
-    });
+      isSeasonal,
+      sendResult.id
+    );
   } else {
-    const err = sendResult.error || 'Unknown error';
-    const status = err === 'Resend not configured' ? 'skipped' : 'error';
-
-    await db
-      .update(engagementEmailSends)
-      .set({ status, error: err })
-      .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
-
-    if (status === 'skipped') results.skipped++;
-    else results.errors++;
-
-    await logAuditEvent({
-      actorId: null,
-      actorRole: 'system',
-      tenantId: member.tenantId,
-      action: 'email.engagement.failed',
-      entityType: 'subscription',
-      entityId: member.subId,
-      metadata: { templateKey, error: err },
-      headers,
-    });
+    await handleFailure(dedupeKey, member, templateKey, results, headers, sendResult.error);
   }
+}
+
+async function handleSuccess(
+  dedupeKey: string,
+  member: EngagementMember,
+  templateKey: string,
+  results: EngagementCronResults,
+  headers: Headers,
+  isSeasonal: boolean,
+  providerMessageId?: string
+) {
+  await db
+    .update(engagementEmailSends)
+    .set({
+      status: 'sent',
+      providerMessageId: providerMessageId || null,
+      sentAt: new Date(),
+    })
+    .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+
+  updateSuccessStats(results, templateKey, isSeasonal);
+
+  await logAuditEvent({
+    actorId: null,
+    actorRole: 'system',
+    tenantId: member.tenantId,
+    action: 'email.engagement.sent',
+    entityType: 'subscription',
+    entityId: member.subId,
+    metadata: { templateKey },
+    headers,
+  });
+}
+
+function updateSuccessStats(
+  results: EngagementCronResults,
+  templateKey: string,
+  isSeasonal: boolean
+) {
+  if (isSeasonal) {
+    results.seasonal++;
+  } else {
+    const keyMap: Record<string, keyof EngagementCronResults> = {
+      onboarding: 'day7',
+      checkin: 'day14',
+      day30: 'day30',
+      day60: 'day60',
+      day90: 'day90',
+    };
+    const statKey = keyMap[templateKey];
+    if (statKey) (results[statKey] as number)++;
+  }
+}
+
+async function handleFailure(
+  dedupeKey: string,
+  member: EngagementMember,
+  templateKey: string,
+  results: EngagementCronResults,
+  headers: Headers,
+  error?: string
+) {
+  const err = error || 'Unknown error';
+  const status = err === 'Resend not configured' ? 'skipped' : 'error';
+
+  await db
+    .update(engagementEmailSends)
+    .set({ status, error: err })
+    .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+
+  if (status === 'skipped') results.skipped++;
+  else results.errors++;
+
+  await logAuditEvent({
+    actorId: null,
+    actorRole: 'system',
+    tenantId: member.tenantId,
+    action: 'email.engagement.failed',
+    entityType: 'subscription',
+    entityId: member.subId,
+    metadata: { templateKey, error: err },
+    headers,
+  });
 }
 
 async function markAsSkipped(dedupeKey: string, reason: string) {

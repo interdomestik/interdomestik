@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@interdomestik/database';
 import { user } from '@interdomestik/database/schema/auth';
-import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from 'next/server';
 
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -31,82 +30,25 @@ const startTime = Date.now();
 
 async function healthCheck(): Promise<HealthCheckResult> {
   const services: HealthCheckResult['services'] = {
-    database: {
-      status: 'unhealthy',
-      lastCheck: new Date().toISOString(),
-    },
+    database: await checkDatabaseHealth(),
+    redis: process.env.UPSTASH_REDIS_REST_URL ? await checkRedisHealth() : undefined,
+    // Service health checks (simplified for now)
+    email: { status: 'healthy', lastCheck: new Date().toISOString() },
+    push: { status: 'healthy', lastCheck: new Date().toISOString() },
+    ai: { status: 'healthy', lastCheck: new Date().toISOString() },
   };
+
+  // Logic allows for "degraded" if needed, but keeping simple "unhealthy" if any service fails for now,
+  // or matches original logic: if any fail, overall is unhealthy.
+  // Original logic had a slight inconsistency where Redis fail made it degraded if previous was healthy.
+  // We'll standardise: if DB is down -> unhealthy. If Redis is down -> degraded?
+
   let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
 
-  // Database health check
-  try {
-    const dbStartTime = Date.now();
-    const result = await db.select({ id: user.id }).from(user).limit(1);
-    const dbResponseTime = Date.now() - dbStartTime;
-    services.database = {
-      status: 'healthy',
-      responseTime: dbResponseTime,
-      lastCheck: new Date().toISOString(),
-    };
-  } catch (error) {
-    services.database = {
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown database error',
-      lastCheck: new Date().toISOString(),
-    };
+  if (services.database.status === 'unhealthy') {
     overallStatus = 'unhealthy';
-  }
-
-  // Redis health check (if available)
-  if (process.env.UPSTASH_REDIS_REST_URL) {
-    try {
-      const redisStartTime = Date.now();
-      const response = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/ping`, {
-        headers: {
-          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
-        },
-      });
-      const redisResponseTime = Date.now() - redisStartTime;
-
-      if (response.ok) {
-        services.redis = {
-          status: 'healthy',
-          responseTime: redisResponseTime,
-          lastCheck: new Date().toISOString(),
-        };
-      } else {
-        throw new Error(`Redis returned ${response.status}`);
-      }
-    } catch (error) {
-      services.redis = {
-        status: 'unhealthy',
-        error: error instanceof Error ? error.message : 'Unknown Redis error',
-        lastCheck: new Date().toISOString(),
-      };
-      overallStatus = overallStatus === 'healthy' ? 'degraded' : 'unhealthy';
-    }
-  }
-
-  // Service health checks (simplified for now)
-  services.email = {
-    status: 'healthy',
-    lastCheck: new Date().toISOString(),
-  };
-
-  services.push = {
-    status: 'healthy',
-    lastCheck: new Date().toISOString(),
-  };
-
-  services.ai = {
-    status: 'healthy',
-    lastCheck: new Date().toISOString(),
-  };
-
-  // Determine overall status
-  const unhealthyServices = Object.values(services).filter(s => s.status === 'unhealthy');
-  if (unhealthyServices.length > 0) {
-    overallStatus = 'unhealthy';
+  } else if (services.redis?.status === 'unhealthy') {
+    overallStatus = 'degraded';
   }
 
   return {
@@ -121,7 +63,54 @@ async function healthCheck(): Promise<HealthCheckResult> {
   };
 }
 
-export async function GET(request: NextRequest) {
+async function checkDatabaseHealth(): Promise<ServiceHealth> {
+  try {
+    const dbStartTime = Date.now();
+    await db.select({ id: user.id }).from(user).limit(1);
+    const dbResponseTime = Date.now() - dbStartTime;
+    return {
+      status: 'healthy',
+      responseTime: dbResponseTime,
+      lastCheck: new Date().toISOString(),
+    };
+  } catch (error) {
+    return {
+      status: 'unhealthy',
+      error: error instanceof Error ? error.message : 'Unknown database error',
+      lastCheck: new Date().toISOString(),
+    };
+  }
+}
+
+async function checkRedisHealth(): Promise<ServiceHealth> {
+  try {
+    const redisStartTime = Date.now();
+    const response = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/ping`, {
+      headers: {
+        Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+      },
+    });
+    const redisResponseTime = Date.now() - redisStartTime;
+
+    if (!response.ok) {
+      throw new Error(`Redis returned ${response.status}`);
+    }
+
+    return {
+      status: 'healthy',
+      responseTime: redisResponseTime,
+      lastCheck: new Date().toISOString(),
+    };
+  } catch (error) {
+    return {
+      status: 'unhealthy',
+      error: error instanceof Error ? error.message : 'Unknown Redis error',
+      lastCheck: new Date().toISOString(),
+    };
+  }
+}
+
+export async function GET(_request: NextRequest) {
   try {
     const health = await healthCheck();
 
@@ -147,7 +136,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function HEAD(request: NextRequest) {
+export async function HEAD(_request: NextRequest) {
   const health = await healthCheck();
   const statusCode = health.status === 'healthy' ? 200 : 503;
 

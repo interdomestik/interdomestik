@@ -1,6 +1,9 @@
 import { Card, CardContent, CardHeader, Skeleton } from '@interdomestik/ui';
 
-export function SkeletonCard({ className, rows = 3 }: { className?: string; rows?: number }) {
+export function SkeletonCard({
+  className,
+  rows = 3,
+}: Readonly<{ className?: string; rows?: number }>) {
   return (
     <Card className={className}>
       <CardHeader>
@@ -9,7 +12,7 @@ export function SkeletonCard({ className, rows = 3 }: { className?: string; rows
       </CardHeader>
       <CardContent className="space-y-2">
         {Array.from({ length: rows }).map((_, i) => (
-          <Skeleton key={i} className="h-4 w-full" />
+          <Skeleton key={`skeleton-row-${i}`} className="h-4 w-full" />
         ))}
       </CardContent>
     </Card>
@@ -27,7 +30,7 @@ export function SkeletonStats() {
   );
 }
 
-export function SkeletonTable({ rows = 5 }: { rows?: number }) {
+export function SkeletonTable({ rows = 5 }: Readonly<{ rows?: number }>) {
   return (
     <div className="w-full space-y-4">
       <div className="flex items-center justify-between">
@@ -39,7 +42,10 @@ export function SkeletonTable({ rows = 5 }: { rows?: number }) {
           <Skeleton className="h-4 w-full" />
         </div>
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="h-16 border-b px-4 flex items-center space-x-4">
+          <div
+            key={`skeleton-table-row-${i}`}
+            className="h-16 border-b px-4 flex items-center space-x-4"
+          >
             <Skeleton className="h-10 w-10 rounded-full" />
             <div className="space-y-2 flex-1">
               <Skeleton className="h-4 w-1/4" />

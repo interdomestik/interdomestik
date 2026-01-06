@@ -13,19 +13,19 @@ export async function logActivityCore(params: {
   const { session, data } = params;
 
   if (!session) {
-    return { error: 'Unauthorized' };
+    return { success: false, error: 'Unauthorized' };
   }
 
   if (session.user.role === 'member') {
-    return { error: 'Permission denied' };
+    return { success: false, error: 'Permission denied' };
   }
   if (!session.user.tenantId) {
-    return { error: 'Missing tenantId' };
+    return { success: false, error: 'Missing tenantId' };
   }
 
   const result = activitySchema.safeParse(data);
   if (!result.success) {
-    return { error: 'Validation failed' };
+    return { success: false, error: 'Validation failed' };
   }
 
   const { memberId, type, subject, description } = result.data;
@@ -46,9 +46,9 @@ export async function logActivityCore(params: {
 
     await db.insert(memberActivities).values(newActivity);
 
-    return { success: true };
+    return { success: true, error: undefined };
   } catch (error) {
     console.error('Failed to log activity:', error);
-    return { error: 'Failed to log activity. Please try again.' };
+    return { success: false, error: 'Failed to log activity. Please try again.' };
   }
 }

@@ -36,7 +36,7 @@ interface Notification {
 }
 
 interface NotificationCenterProps {
-  subscriberId: string;
+  readonly subscriberId: string;
 }
 
 export function NotificationCenter({ subscriberId }: NotificationCenterProps) {

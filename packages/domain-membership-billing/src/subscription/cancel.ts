@@ -14,7 +14,7 @@ export async function cancelSubscriptionCore(
   const { session, subscriptionId } = params;
 
   if (!session) {
-    return { error: 'Unauthorized' };
+    return { error: 'Unauthorized', success: undefined };
   }
 
   const tenantId = ensureTenantId(session);
@@ -23,7 +23,7 @@ export async function cancelSubscriptionCore(
   });
 
   if (!sub || sub.userId !== session.user.id) {
-    return { error: 'Subscription not found or access denied' };
+    return { error: 'Subscription not found or access denied', success: undefined };
   }
 
   try {
@@ -49,6 +49,6 @@ export async function cancelSubscriptionCore(
     return { success: true, error: undefined };
   } catch (error) {
     console.error('Failed to cancel subscription:', error);
-    return { error: 'Failed to cancel subscription' };
+    return { error: 'Failed to cancel subscription', success: undefined };
   }
 }

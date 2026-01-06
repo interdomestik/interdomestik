@@ -1,16 +1,16 @@
 import type {
-  SecurityEvent,
   ApiEvent,
-  DatabaseEvent,
   AuthEvent,
+  DatabaseEvent,
   LogEntry,
   LoggerConfig,
+  SecurityEvent,
 } from './types';
 
 export class StructuredLogger {
-  private config: LoggerConfig;
+  private readonly config: LoggerConfig;
   private logBuffer: LogEntry[] = [];
-  private alerts: Map<string, { count: number; timestamp: string }> = new Map();
+  private readonly alerts: Map<string, { count: number; timestamp: string }> = new Map();
 
   constructor(config: LoggerConfig) {
     this.config = config;
@@ -215,7 +215,7 @@ export class StructuredLogger {
     }
 
     // Check for connection errors
-    if (event.error && event.error.includes('connection')) {
+    if (event.error?.includes('connection')) {
       this.error(`Database connection error`, undefined, {
         databaseEvent: event,
         alertType: 'connection_error',

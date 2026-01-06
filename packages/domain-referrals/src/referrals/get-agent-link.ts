@@ -16,17 +16,22 @@ export async function getAgentReferralLinkCore(params: {
   const { session } = params;
 
   if (!session?.user) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: 'Unauthorized', data: undefined, fieldErrors: undefined };
   }
 
   if (session.user.role !== 'agent') {
-    return { success: false, error: 'Access denied' };
+    return { success: false, error: 'Access denied', data: undefined, fieldErrors: undefined };
   }
 
   // SECURITY: Tenant scoping
   const tenantId = session.user.tenantId;
   if (!tenantId) {
-    return { success: false, error: 'Missing tenant context' };
+    return {
+      success: false,
+      error: 'Missing tenant context',
+      data: undefined,
+      fieldErrors: undefined,
+    };
   }
 
   try {
@@ -63,9 +68,15 @@ export async function getAgentReferralLinkCore(params: {
         link: buildReferralLink(code),
       },
       error: undefined,
+      fieldErrors: undefined,
     };
   } catch (error) {
     console.error('Error generating referral link:', error);
-    return { success: false, error: 'Failed to generate referral link' };
+    return {
+      success: false,
+      error: 'Failed to generate referral link',
+      data: undefined,
+      fieldErrors: undefined,
+    };
   }
 }

@@ -191,194 +191,177 @@ export async function processBatchedUserCampaign(args: {
   };
 }
 
+// ... imports and helper functions remain ...
+
 export async function processEmailSequences() {
-  const now = new Date();
-  const logs: string[] = [];
-  const errors: string[] = [];
-  let attempted = 0;
-  let sent = 0;
-  let skipped = 0;
-
-  // Helper for safe processing
-  const safeSend = async (
-    context: string,
-    id: string,
-    email: string | null,
-    fn: () => Promise<void>
-  ) => {
-    attempted += 1;
-    if (!email) {
-      skipped += 1;
-      return;
-    }
-    try {
-      await fn();
-      sent += 1;
-      logs.push(`Sent ${context} to ${email}`);
-    } catch (err) {
-      errors.push(`Failed ${context} for userId=${id} email=${email}: ${stringifyError(err)}`);
-    }
-  };
-
-  // 1. Day 0: Welcome Email (Subscriptions)
-  {
-    const campaignId = 'welcome_day_0';
-    let afterId: string | null = null;
-
-    while (true) {
-      const batch = await db.query.subscriptions.findMany({
-        where: (subscriptions, { eq, and, gt }) =>
-          and(
-            eq(subscriptions.status, 'active'),
-            gt(subscriptions.createdAt, subDays(now, 1)),
-            afterId ? gt(subscriptions.id, afterId) : undefined
-          ),
-        orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
-        limit: USER_BATCH_SIZE,
-        with: { user: true },
-      });
-
-      if (batch.length === 0) break;
-
-      const userIds = Array.from(new Set(batch.map(s => s.userId)));
-      const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
-
-      for (const sub of batch) {
-        const resolvedTenantId = sub.tenantId ?? sub.user?.tenantId;
-        if (!resolvedTenantId) {
-          skipped += 1;
-          errors.push(
-            `Missing tenantId for subscription ${sub.id} userId=${sub.userId} email=${sub.user?.email ?? 'n/a'}`
-          );
-          continue;
-        }
-
-        if (alreadySentSet.has(sub.userId)) {
-          skipped += 1;
-          continue;
-        }
-        await safeSend(campaignId, sub.userId, sub.user?.email || null, async () => {
-          await withRetries(() => sendWelcomeEmail(sub.user!.email!, sub.user!.name));
-          await db.insert(emailCampaignLogs).values({
-            id: `ecl_${nanoid()}`,
-            tenantId: resolvedTenantId,
-            userId: sub.userId,
-            campaignId,
-            sentAt: new Date(),
-          });
-        });
-      }
-
-      afterId = batch[batch.length - 1].id;
-    }
-  }
-
-  // 2. Day 3: Onboarding (Users)
-  {
-    const campaignId = 'onboarding_day_3';
-    const windowStart = startOfDay(subDays(now, 3));
-    const windowEnd = endOfDay(subDays(now, 3));
-    let afterId: string | null = null;
-
-    while (true) {
-      const batch = await db.query.user.findMany({
-        where: (user, { between, and, gt }) =>
-          and(
-            between(user.createdAt, windowStart, windowEnd),
-            afterId ? gt(user.id, afterId) : undefined
-          ),
-        orderBy: (user, { asc }) => [asc(user.id)],
-        limit: USER_BATCH_SIZE,
-      });
-
-      if (batch.length === 0) break;
-
-      const userIds = batch.map(u => u.id);
-      const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
-
-      for (const u of batch) {
-        if (!u.tenantId) {
-          skipped += 1;
-          errors.push(`Missing tenantId for userId=${u.id} email=${u.email ?? 'n/a'}`);
-          continue;
-        }
-
-        if (alreadySentSet.has(u.id)) {
-          skipped += 1;
-          continue;
-        }
-        await safeSend(campaignId, u.id, u.email, async () => {
-          await withRetries(() => sendOnboardingEmail(u.email!, u.name));
-          await db.insert(emailCampaignLogs).values({
-            id: `ecl_${nanoid()}`,
-            tenantId: u.tenantId,
-            userId: u.id,
-            campaignId,
-            sentAt: new Date(),
-          });
-        });
-      }
-
-      afterId = batch[batch.length - 1].id;
-    }
-  }
-
-  // 3. Day 14: Check-in (Users)
-  {
-    const campaignId = 'checkin_day_14';
-    const day14Start = startOfDay(subDays(now, 14));
-    const day14End = endOfDay(subDays(now, 14));
-    let afterId: string | null = null;
-
-    while (true) {
-      const batch = await db.query.user.findMany({
-        where: (user, { between, and, gt }) =>
-          and(
-            between(user.createdAt, day14Start, day14End),
-            afterId ? gt(user.id, afterId) : undefined
-          ),
-        orderBy: (user, { asc }) => [asc(user.id)],
-        limit: USER_BATCH_SIZE,
-      });
-
-      if (batch.length === 0) break;
-
-      const userIds = batch.map(u => u.id);
-      const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
-
-      for (const u of batch) {
-        if (!u.tenantId) {
-          skipped += 1;
-          errors.push(`Missing tenantId for userId=${u.id} email=${u.email ?? 'n/a'}`);
-          continue;
-        }
-
-        if (alreadySentSet.has(u.id)) {
-          skipped += 1;
-          continue;
-        }
-        await safeSend(campaignId, u.id, u.email, async () => {
-          await withRetries(() => sendCheckinEmail(u.email!, u.name));
-          await db.insert(emailCampaignLogs).values({
-            id: `ecl_${nanoid()}`,
-            tenantId: u.tenantId,
-            userId: u.id,
-            campaignId,
-            sentAt: new Date(),
-          });
-        });
-      }
-
-      afterId = batch[batch.length - 1].id;
-    }
-  }
-
-  return {
+  const result = {
     processed: true,
-    logs,
-    errors,
-    stats: { attempted, sent, skipped, failed: errors.length },
+    logs: [] as string[],
+    errors: [] as string[],
+    stats: { attempted: 0, sent: 0, skipped: 0, failed: 0 },
   };
+
+  await Promise.all([
+    runWelcomeCampaign(result),
+    runOnboardingCampaign(result),
+    runCheckinCampaign(result),
+  ]);
+
+  return result;
+}
+
+async function runWelcomeCampaign(context: { logs: string[]; errors: string[]; stats: any }) {
+  const campaignId = 'welcome_day_0';
+  const now = new Date();
+  let afterId: string | null = null;
+
+  while (true) {
+    const batch = await db.query.subscriptions.findMany({
+      where: (subscriptions, { eq, and, gt }) =>
+        and(
+          eq(subscriptions.status, 'active'),
+          gt(subscriptions.createdAt, subDays(now, 1)),
+          afterId ? gt(subscriptions.id, afterId) : undefined
+        ),
+      orderBy: (subscriptions, { asc }) => [asc(subscriptions.id)],
+      limit: USER_BATCH_SIZE,
+      with: { user: true },
+    });
+
+    if (batch.length === 0) break;
+
+    const userIds = Array.from(new Set(batch.map(s => s.userId)));
+    const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
+
+    for (const sub of batch) {
+      const resolvedTenantId = sub.tenantId ?? sub.user?.tenantId;
+      if (!resolvedTenantId) {
+        context.stats.skipped += 1;
+        context.errors.push(
+          `Missing tenantId for subscription ${sub.id} userId=${sub.userId} email=${sub.user?.email ?? 'n/a'}`
+        );
+        continue;
+      }
+
+      if (alreadySentSet.has(sub.userId)) {
+        context.stats.skipped += 1;
+        continue;
+      }
+
+      context.stats.attempted += 1;
+      const email = sub.user?.email;
+
+      if (!email) {
+        context.stats.skipped += 1;
+        continue;
+      }
+
+      try {
+        await withRetries(() => sendWelcomeEmail(email, sub.user!.name));
+        await db.insert(emailCampaignLogs).values({
+          id: `ecl_${nanoid()}`,
+          tenantId: resolvedTenantId,
+          userId: sub.userId,
+          campaignId,
+          sentAt: new Date(),
+        });
+        context.stats.sent += 1;
+        context.logs.push(`Sent ${campaignId} to ${email}`);
+      } catch (err) {
+        context.stats.failed += 1;
+        context.errors.push(
+          `Failed ${campaignId} for userId=${sub.userId} email=${email}: ${stringifyError(err)}`
+        );
+      }
+    }
+    afterId = batch[batch.length - 1].id;
+  }
+}
+
+async function runOnboardingCampaign(context: { logs: string[]; errors: string[]; stats: any }) {
+  const campaignId = 'onboarding_day_3';
+  const now = new Date();
+  const windowStart = startOfDay(subDays(now, 3));
+  const windowEnd = endOfDay(subDays(now, 3));
+
+  await processStandardUserCampaign(campaignId, windowStart, windowEnd, context, async u => {
+    await withRetries(() => sendOnboardingEmail(u.email!, u.name ?? ''));
+  });
+}
+
+async function runCheckinCampaign(context: { logs: string[]; errors: string[]; stats: any }) {
+  const campaignId = 'checkin_day_14';
+  const now = new Date();
+  const day14Start = startOfDay(subDays(now, 14));
+  const day14End = endOfDay(subDays(now, 14));
+
+  await processStandardUserCampaign(campaignId, day14Start, day14End, context, async u => {
+    await withRetries(() => sendCheckinEmail(u.email!, u.name ?? ''));
+  });
+}
+
+async function processStandardUserCampaign(
+  campaignId: string,
+  windowStart: Date,
+  windowEnd: Date,
+  context: { logs: string[]; errors: string[]; stats: any },
+  sendFn: (u: UserMini) => Promise<void>
+) {
+  let afterId: string | null = null;
+  while (true) {
+    const batch = await db.query.user.findMany({
+      where: (user, { between, and, gt }) =>
+        and(
+          between(user.createdAt, windowStart, windowEnd),
+          afterId ? gt(user.id, afterId as string) : undefined
+        ),
+      orderBy: (user, { asc }) => [asc(user.id)],
+      limit: USER_BATCH_SIZE,
+    });
+
+    if (batch.length === 0) break;
+
+    const userIds = batch.map(u => u.id);
+    const alreadySentSet = await getAlreadySentUserIdSet({ campaignId, userIds });
+
+    for (const u of batch) {
+      if (!u.tenantId) {
+        context.stats.skipped += 1;
+        context.errors.push(`Missing tenantId for userId=${u.id} email=${u.email ?? 'n/a'}`);
+        continue;
+      }
+
+      if (alreadySentSet.has(u.id)) {
+        context.stats.skipped += 1;
+        continue;
+      }
+
+      context.stats.attempted += 1;
+      if (!u.email) {
+        context.stats.skipped += 1;
+        continue;
+      }
+
+      try {
+        await sendFn({ id: u.id, email: u.email, name: u.name, tenantId: u.tenantId });
+        await db.insert(emailCampaignLogs).values({
+          id: `ecl_${nanoid()}`,
+          tenantId: u.tenantId,
+          userId: u.id,
+          campaignId,
+          sentAt: new Date(),
+        });
+        context.stats.sent += 1;
+        context.logs.push(`Sent ${campaignId} to ${u.email}`);
+      } catch (err) {
+        context.stats.failed += 1;
+        context.errors.push(
+          `Failed ${campaignId} for userId=${u.id} email=${u.email}: ${stringifyError(err)}`
+        );
+      }
+    }
+    afterId = batch[batch.length - 1].id;
+  }
 }
 
 export async function processSeasonalCampaigns() {

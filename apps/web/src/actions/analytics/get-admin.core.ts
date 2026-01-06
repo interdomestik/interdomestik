@@ -20,19 +20,23 @@ export async function getAdminAnalyticsCore(params: {
 
   try {
     if (!session?.user || !hasAdminAnalyticsAccess(session.user.role)) {
-      return { success: false, error: 'Unauthorized' };
+      return { success: false, error: 'Unauthorized', data: undefined };
     }
 
     // SECURITY: Validate tenant context
     const tenantId = session.user.tenantId;
     if (!tenantId) {
-      return { success: false, error: 'Missing tenant context' };
+      return { success: false, error: 'Missing tenant context', data: undefined };
     }
 
     // SECURITY: Validate query parameters
     const parsed = analyticsQuerySchema.safeParse(query ?? {});
     if (!parsed.success) {
-      return { success: false, error: `Invalid query: ${parsed.error.issues[0]?.message}` };
+      return {
+        success: false,
+        error: `Invalid query: ${parsed.error.issues[0]?.message}`,
+        data: undefined,
+      };
     }
     const { daysBack, limit } = parsed.data;
 
@@ -105,6 +109,6 @@ export async function getAdminAnalyticsCore(params: {
     };
   } catch (error) {
     console.error('Analytics error:', error);
-    return { success: false, error: 'Failed to fetch analytics' };
+    return { success: false, error: 'Failed to fetch analytics', data: undefined };
   }
 }

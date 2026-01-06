@@ -1,9 +1,10 @@
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
-import { getTranslations } from 'next-intl/server';
+
+import { PreferencesRecord } from '../_core';
 
 interface PreferenceItem {
-  key: keyof NonNullable<PreferencesCardProps['preferences']>;
+  key: keyof NonNullable<PreferencesRecord>;
   labelKey: string;
 }
 
@@ -17,20 +18,12 @@ const PREFERENCE_Items: PreferenceItem[] = [
 ];
 
 interface PreferencesCardProps {
-  preferences: {
-    emailClaimUpdates?: boolean;
-    emailNewsletter?: boolean;
-    emailMarketing?: boolean;
-    pushClaimUpdates?: boolean;
-    pushMessages?: boolean;
-    inAppAll?: boolean;
-  } | null;
+  preferences: PreferencesRecord | null;
+  t: (key: string) => string;
+  tCommon: (key: string) => string;
 }
 
-export async function PreferencesCard({ preferences }: PreferencesCardProps) {
-  const t = await getTranslations('admin.member_profile');
-  const tCommon = await getTranslations('common');
-
+export function PreferencesCard({ preferences, t, tCommon }: PreferencesCardProps) {
   if (!preferences) {
     return (
       <Card>

@@ -51,7 +51,7 @@ vi.mock('@interdomestik/database', () => ({
     insert: () => ({ values: hoistedMocks.dbInsert }),
     update: () => ({
       set: () => ({
-        where: vi.fn().mockResolvedValue(undefined),
+        where: hoistedMocks.dbUpdate,
       }),
     }),
     query: {

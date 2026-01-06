@@ -72,8 +72,8 @@ describe('POST /api/policies/analyze', () => {
       formData: async () => new FormData(),
     };
     const res = await POST(req as unknown as NextRequest);
-
-    expect(res.status).toBe(503);
+    expect(res).toBeDefined();
+    expect(res!.status).toBe(503);
   });
 
   it('treats missing content-type images as images', async () => {
@@ -95,7 +95,8 @@ describe('POST /api/policies/analyze', () => {
 
     const { POST } = await import('./route');
     const res = await POST(req as unknown as NextRequest);
-    expect(res.status).toBe(200);
+    expect(res).toBeDefined();
+    expect(res!.status).toBe(200);
     expect(hoisted.analyzePolicyImages).toHaveBeenCalledOnce();
     expect(hoisted.analyzePolicyText).not.toHaveBeenCalled();
   });
@@ -124,9 +125,10 @@ describe('POST /api/policies/analyze', () => {
 
     const { POST } = await import('./route');
     const res = await POST(req as unknown as NextRequest);
-    const data = await res.json();
+    expect(res).toBeDefined();
+    const data = await res!.json();
 
-    expect(res.status).toBe(504);
+    expect(res!.status).toBe(504);
     expect(data.error).toMatch(/timed out/i);
   });
 });

@@ -45,8 +45,11 @@ describe('markMessagesAsRead', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    // This test relies on mocking the domain layer throw behavior
-    // Skip for now as the domain layer handles errors internally
-    expect(true).toBe(true); // Placeholder assertion to satisfy SonarQube
+    mocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+    mocks.dbUpdate.mockRejectedValue(new Error('Database connection error'));
+
+    const result = await markMessagesAsRead(['msg-1', 'msg-2']);
+
+    expect(result).toEqual({ success: false, error: 'Failed to mark messages as read' });
   });
 });

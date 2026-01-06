@@ -26,6 +26,7 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 vi.mock('nanoid', () => ({
+  customAlphabet: vi.fn(() => mocks.nanoid),
   nanoid: mocks.nanoid,
 }));
 

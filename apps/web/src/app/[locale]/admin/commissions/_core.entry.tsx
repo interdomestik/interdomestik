@@ -48,7 +48,7 @@ export default function AdminCommissionsPage() {
 
   const formatAmount = (amount: string, currency = 'EUR') => {
     return new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(
-      parseFloat(amount)
+      Number.parseFloat(amount)
     );
   };
 

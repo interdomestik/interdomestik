@@ -154,41 +154,41 @@ export async function auditNavigation() {
   const hasRootLayout = fs.existsSync(path.join(WEB_APP, 'src/app/layout.tsx'));
   const hasLocaleLayout = fs.existsSync(path.join(WEB_APP, 'src/app/[locale]/layout.tsx'));
   const hasRoutingConfig = fs.existsSync(path.join(WEB_APP, 'src/i18n/routing.ts'));
+  const hasNavigationHelper = fs.existsSync(path.join(WEB_APP, 'src/i18n/navigation.ts'));
 
-  // Check for i18n pattern (locale layout without root layout is valid)
+  if (hasNavigationHelper) {
+    checks.push('✅ Navigation Helper (src/i18n/navigation.ts) exists');
+  }
+
+  // I18n pattern (locale layout without separate root layout is valid in some configs, but usually we want both or specific setup)
   if (hasLocaleLayout && hasRoutingConfig) {
     checks.push('✅ Locale Layout (src/app/[locale]/layout.tsx) exists');
     checks.push('✅ Routing Config (src/i18n/routing.ts) exists');
-
     if (hasRootLayout) {
       checks.push('✅ Root Layout (src/app/layout.tsx) exists');
     } else {
       checks.push('ℹ️  Root Layout not present (using i18n locale-based routing pattern)');
     }
-  } else {
-    // Traditional pattern - root layout is required
-    if (hasRootLayout) {
-      checks.push('✅ Root Layout (src/app/layout.tsx) exists');
-    } else {
-      issues.push('❌ Missing Root Layout (src/app/layout.tsx)');
-    }
 
-    if (hasLocaleLayout) {
-      checks.push('✅ Locale Layout (src/app/[locale]/layout.tsx) exists');
-    } else {
-      issues.push('❌ Missing Locale Layout (src/app/[locale]/layout.tsx)');
-    }
-
-    if (hasRoutingConfig) {
-      checks.push('✅ Routing Config (src/i18n/routing.ts) exists');
-    } else {
-      issues.push('❌ Missing Routing Config (src/i18n/routing.ts)');
-    }
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `NAVIGATION AUDIT: SUCCESS\n\nCHECKS:\n${checks.join('\n')}\n\nISSUES:\nNone`,
+        },
+      ],
+    };
   }
 
-  if (fs.existsSync(path.join(WEB_APP, 'src/i18n/navigation.ts'))) {
-    checks.push('✅ Navigation Helper (src/i18n/navigation.ts) exists');
-  }
+  // Fallback checks for issues
+  if (hasRootLayout) checks.push('✅ Root Layout (src/app/layout.tsx) exists');
+  else issues.push('❌ Missing Root Layout (src/app/layout.tsx)');
+
+  if (hasLocaleLayout) checks.push('✅ Locale Layout (src/app/[locale]/layout.tsx) exists');
+  else issues.push('❌ Missing Locale Layout (src/app/[locale]/layout.tsx)');
+
+  if (hasRoutingConfig) checks.push('✅ Routing Config (src/i18n/routing.ts) exists');
+  else issues.push('❌ Missing Routing Config (src/i18n/routing.ts)');
 
   const status = issues.length === 0 ? 'SUCCESS' : 'WARNING';
   return {

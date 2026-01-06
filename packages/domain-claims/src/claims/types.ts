@@ -42,5 +42,5 @@ export type ClaimsDeps = {
 };
 
 export type ActionResult<T = void> =
-  | { success: true; data?: T; error?: undefined }
-  | { success: false; error: string; data?: undefined };
+  | { success: true; data?: T; error: undefined }
+  | { success: false; error: string; data: undefined };

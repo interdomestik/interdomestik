@@ -8,14 +8,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui';
-import { AlertTriangle, CheckCircle, Shield, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Shield } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { GracePeriodBanner } from './components/grace-period-banner';
+import { LockedStateBanner } from './components/locked-state-banner';
 import { ManageSubscriptionButton } from './components/manage-subscription-button';
-import { UpdatePaymentButton } from './components/update-payment-button';
 
 import { getMembershipPageModelCore } from './_core';
 
@@ -45,55 +46,17 @@ export default async function MembershipPage() {
 
       {/* DUNNING: Grace Period Warning Banner */}
       {subscription && isPastDue && isInGracePeriod && (
-        <div className="rounded-lg border-2 border-orange-500 bg-orange-50 p-4 dark:bg-orange-950/30">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-orange-800 dark:text-orange-200">
-                {t('dunning.payment_failed_title', { daysRemaining })}
-              </h3>
-              <p className="mt-2 text-orange-700 dark:text-orange-300">
-                {t('dunning.payment_failed_message')}
-              </p>
-              <p className="mt-2 text-sm text-orange-600">
-                {t('dunning.grace_period_ends', {
-                  date: subscription?.gracePeriodEndsAt?.toLocaleDateString() || '',
-                })}
-              </p>
-              <UpdatePaymentButton
-                subscriptionId={subscription.id}
-                label={t('dunning.update_payment_button')}
-                className="mt-4 bg-orange-600 hover:bg-orange-700"
-              />
-            </div>
-          </div>
-        </div>
+        <GracePeriodBanner
+          daysRemaining={daysRemaining}
+          gracePeriodEndsAt={subscription.gracePeriodEndsAt}
+          subscriptionId={subscription.id}
+          t={t}
+        />
       )}
 
       {/* DUNNING: Locked State - Grace Period Expired */}
       {subscription && isGraceExpired && (
-        <div className="rounded-lg border-2 border-red-500 bg-red-50 p-4 dark:bg-red-950/30">
-          <div className="flex items-start gap-3">
-            <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
-                {t('dunning.suspended_title')}
-              </h3>
-              <p className="mt-2 text-red-700 dark:text-red-300">
-                {t('dunning.suspended_message')}
-              </p>
-              <div className="mt-4 flex gap-2">
-                <UpdatePaymentButton
-                  subscriptionId={subscription.id}
-                  label={t('dunning.update_payment_button')}
-                />
-                <Button variant="outline" asChild>
-                  <Link href="/pricing">{t('plan.view_plans_button')}</Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <LockedStateBanner subscriptionId={subscription.id} t={t} />
       )}
 
       <div className="grid gap-6 md:grid-cols-2">

@@ -162,7 +162,9 @@ async function fetchMember(memberId: string) {
   });
 }
 
-type MemberRecord = NonNullable<Awaited<ReturnType<typeof fetchMember>>>;
-type SubscriptionRecord = Awaited<ReturnType<typeof db.query.subscriptions.findFirst>>;
-type PreferencesRecord = Awaited<ReturnType<typeof db.query.userNotificationPreferences.findFirst>>;
-type MemberActivities = Awaited<ReturnType<typeof db.query.memberActivities.findMany>>;
+export type MemberRecord = NonNullable<Awaited<ReturnType<typeof fetchMember>>>;
+export type SubscriptionRecord = Awaited<ReturnType<typeof db.query.subscriptions.findFirst>>;
+export type PreferencesRecord = Awaited<
+  ReturnType<typeof db.query.userNotificationPreferences.findFirst>
+>;
+export type MemberActivities = Awaited<ReturnType<typeof db.query.memberActivities.findMany>>;

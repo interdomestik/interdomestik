@@ -9,7 +9,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { Form } from '@interdomestik/ui/components/form';
 import { Progress } from '@interdomestik/ui/components/progress';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
@@ -21,6 +21,15 @@ import { WizardStepEvidence } from './wizard-step-evidence';
 
 type ClaimWizardProps = {
   initialCategory?: string;
+};
+
+const STEP_VALIDATION: Record<
+  number,
+  (form: UseFormReturn<CreateClaimValues>) => Promise<boolean>
+> = {
+  0: form => form.trigger('category'),
+  1: form => form.trigger(['title', 'companyName', 'description', 'incidentDate']),
+  2: async () => true,
 };
 
 export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
@@ -37,88 +46,60 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
 
   const [currentStep, setCurrentStep] = React.useState(initialCategory ? 1 : 0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isLoaded, setIsLoaded] = React.useState(false);
 
   const form = useForm({
     resolver: zodResolver(createClaimSchema),
     defaultValues: {
+      category: initialCategory || '',
       currency: 'EUR',
       files: [],
-      // defaults for other fields to avoid uncontrolled components
       title: '',
       companyName: '',
       description: '',
       claimAmount: '',
       incidentDate: '',
-      ...(initialCategory && { category: initialCategory }),
     },
     mode: 'onChange',
   });
 
-  // Calculate progress
-  const progress = ((currentStep + 1) / steps.length) * 100;
-
-  // Persistence Logic
   const [draft, setDraft] = useLocalStorage<CreateClaimValues | null>('claim-wizard-draft', null);
-  const [isLoaded, setIsLoaded] = React.useState(false);
 
-  // Restore draft on mount
   React.useEffect(() => {
     if (draft && !isLoaded) {
-      // Merge defaults with draft to ensure structure
-      const merged = { ...form.getValues(), ...draft };
-      // Override specific fields that might need it, or just reset
-      form.reset(merged);
+      form.reset({ ...form.getValues(), ...draft });
       if (Object.keys(draft).length > 2) {
-        // Minimal check to avoid empty toast
         toast.info(tCommon('draftRestored'), { duration: 4000 });
       }
-      setIsLoaded(true);
-      // Determine step based on data? For now, stick to start or maybe save step too?
-      // Let's just restore data. User can click next.
-    } else {
-      setIsLoaded(true);
     }
-  }, []); // Run once on mount
+    setIsLoaded(true);
+  }, [isLoaded, draft, form, tCommon]);
 
-  // Save draft on change
   React.useEffect(() => {
-    if (!isLoaded) return; // Don't save before loading
-    const subscription = form.watch(value => {
-      setDraft(value as CreateClaimValues);
-    });
+    if (!isLoaded) return;
+    const subscription = form.watch(value => setDraft(value as CreateClaimValues));
     return () => subscription.unsubscribe();
   }, [form.watch, setDraft, isLoaded]);
 
-  // Clear draft on successful submit
-
   const nextStep = async () => {
-    // Validate current step fields before moving
-    let valid = false;
-    if (currentStep === 0) valid = await form.trigger('category');
-    if (currentStep === 1)
-      valid = await form.trigger(['title', 'companyName', 'description', 'incidentDate']);
-    if (currentStep === 2) valid = true; // Evidence optional
-
-    if (valid) {
+    const validator = STEP_VALIDATION[currentStep];
+    if (!validator || (await validator(form as any))) {
       setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
     }
   };
 
-  const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 0));
-  };
+  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
 
-  async function onSubmit(data: CreateClaimValues) {
+  async function onSubmit(data: any) {
     setIsSubmitting(true);
     try {
       const result = await submitClaim(data);
       if (result.success) {
         toast.success('Claim submitted successfully!');
-        setDraft(null); // Clear draft
+        setDraft(null);
         router.push('/member/claims');
       } else {
         toast.error('Failed to submit, please try again.');
-        // console.error(result.error);
       }
     } catch (error) {
       toast.error('An unexpected error occurred.');
@@ -128,9 +109,10 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
     }
   }
 
+  const progress = ((currentStep + 1) / steps.length) * 100;
+
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
-      {/* Progress Bar */}
       <div className="mb-8 space-y-2">
         <div className="flex justify-between text-sm font-medium text-muted-foreground">
           <span>
@@ -141,9 +123,8 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
         <Progress value={progress} className="h-2" />
       </div>
 
-      <Form {...form}>
+      <Form {...(form as any)}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Step Content */}
           <div className="min-h-[400px]">
             {currentStep === 0 && <WizardStepCategory />}
             {currentStep === 1 && <WizardStepDetails />}
@@ -151,7 +132,6 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
             {currentStep === 3 && <WizardReview />}
           </div>
 
-          {/* Navigation Buttons */}
           <div className="flex justify-between pt-4 border-t">
             <Button
               type="button"
@@ -178,7 +158,7 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
                 data-testid="wizard-submit"
               >
                 {isSubmitting ? (
-                  <>{tCommon('processing')}</>
+                  tCommon('processing')
                 ) : (
                   <>
                     {t('submitClaim')}

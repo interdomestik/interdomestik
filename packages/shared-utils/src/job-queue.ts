@@ -16,11 +16,11 @@ export interface JobHandler<T = any> {
 }
 
 class SimpleJobQueue {
-  private jobs: Map<string, Job> = new Map();
-  private handlers: Map<string, JobHandler> = new Map();
+  private readonly jobs: Map<string, Job> = new Map();
+  private readonly handlers: Map<string, JobHandler> = new Map();
   private processing = false;
-  private batchSize = 10;
-  private pollInterval = 5000; // 5 seconds
+  private readonly batchSize = 10;
+  private readonly pollInterval = 5000; // 5 seconds
 
   registerHandler<T>(handler: JobHandler<T>) {
     this.handlers.set(handler.type, handler);

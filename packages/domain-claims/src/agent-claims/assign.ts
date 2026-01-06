@@ -25,19 +25,19 @@ export async function assignClaimCore(
   const { claimId, staffId, session, requestHeaders } = params;
 
   if (!session || !isStaffOrAdmin(session.user.role)) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: 'Unauthorized', data: undefined };
   }
 
   // Validate inputs
   const parsed = assignClaimSchema.safeParse({ staffId });
   if (!parsed.success) {
-    return { success: false, error: 'Invalid staff assignment' };
+    return { success: false, error: 'Invalid staff assignment', data: undefined };
   }
 
   const tenantId = ensureTenantId(session);
 
   if (isStaff(session.user.role) && staffId && staffId !== session.user.id) {
-    return { success: false, error: 'Access denied: Cannot assign other staff' };
+    return { success: false, error: 'Access denied: Cannot assign other staff', data: undefined };
   }
 
   // Get claim details
@@ -46,7 +46,7 @@ export async function assignClaimCore(
       withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
   });
 
-  if (!claim) return { success: false, error: 'Claim not found' };
+  if (!claim) return { success: false, error: 'Claim not found', data: undefined };
 
   await db
     .update(claims)
@@ -76,7 +76,7 @@ export async function assignClaimCore(
         withTenant(tenantId, userTable.tenantId, eq(userTable.id, staffId)),
     });
 
-    if (!staffMember) return { success: false, error: 'Staff member not found' };
+    if (!staffMember) return { success: false, error: 'Staff member not found', data: undefined };
 
     // Notify the assigned staff member
     if (staffMember.email && deps.notifyClaimAssigned) {
@@ -91,5 +91,5 @@ export async function assignClaimCore(
     }
   }
 
-  return { success: true };
+  return { success: true, error: undefined };
 }

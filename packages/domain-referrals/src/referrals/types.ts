@@ -4,8 +4,13 @@ export interface ReferralLinkResult {
 }
 
 export type ActionResult<T> =
-  | { success: true; data: T; error?: undefined; fieldErrors?: undefined }
-  | { success: false; error: string; fieldErrors?: Record<string, string[]>; data?: undefined };
+  | { success: true; data: T; error: undefined; fieldErrors: undefined }
+  | {
+      success: false;
+      error: string;
+      fieldErrors: Record<string, string[]> | undefined;
+      data: undefined;
+    };
 
 export type ReferralSession = {
   user: {

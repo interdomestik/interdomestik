@@ -113,19 +113,9 @@ describe('Translation Files', () => {
       expect(missingInSq).toHaveLength(0);
     });
 
-    it('should not have extra keys in Albanian that are missing in English', () => {
+    it('should allow extra keys in Albanian (informational)', () => {
       const extraInSq = findMissingKeys(sqKeys, enKeys);
-
-      if (extraInSq.length > 0) {
-        console.log('Extra keys in sq.json not in en.json:', extraInSq);
-      }
-
-      // This is a warning, not an error - extra keys are allowed
-      // but should be reviewed
-      if (extraInSq.length > 0) {
-        console.warn('Found extra keys in sq.json - review if intentional');
-      }
-      expect(extraInSq).toBeDefined();
+      expect(Array.isArray(extraInSq)).toBe(true);
     });
   });
 
@@ -224,18 +214,8 @@ describe('Translation Files', () => {
   });
 
   describe('Key Count Summary', () => {
-    it('should report translation statistics', () => {
-      if (process.env.SHOW_I18N_STATS === '1') {
-        console.log('\n📊 Translation Statistics:');
-        console.log(`   English (en): ${enKeys.length} keys`);
-        console.log(`   Albanian (sq): ${sqKeys.length} keys`);
-
-        const coverage = ((sqKeys.length / enKeys.length) * 100).toFixed(1);
-        console.log(`   Coverage: ${coverage}%\n`);
-      }
-
-      // Always pass - this is informational
-      expect(true).toBe(true);
+    it('should report statistics', () => {
+      expect(enKeys.length).toBeGreaterThan(0);
     });
   });
 });

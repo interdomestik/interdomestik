@@ -38,7 +38,7 @@ export function Footer() {
             <div className="space-y-3">
               {phone && (
                 <a
-                  href={`tel:${phone.replace(/\s+/g, '')}`}
+                  href={`tel:${phone.replaceAll(' ', '')}`}
                   className="flex items-center gap-3 text-white hover:text-primary transition-colors group"
                 >
                   <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center group-hover:bg-primary/10 transition-colors">

@@ -27,6 +27,58 @@ export function RegisterForm() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    const name = formData.get('fullName') as string;
+    const passwordConfirm = formData.get('confirmPassword') as string;
+
+    if (password !== passwordConfirm) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (!tenantId) {
+      setError('Missing tenant context. Please select a tenant to continue.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const signUpPayload = {
+        email,
+        password,
+        name,
+        callbackURL: '/member',
+        tenantId,
+      };
+
+      const { error: signUpError } = await authClient.signUp.email(signUpPayload);
+
+      if (signUpError) {
+        setError(signUpError.message || 'Something went wrong');
+      }
+    } catch {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSocialSignIn = async (provider: 'github') => {
+    await authClient.signIn.social({
+      provider,
+      callbackURL: `${window.location.origin}/member`,
+      ...(tenantId ? { additionalData: { tenantId } } : {}),
+    });
+  };
+
   return (
     <Card className="w-full max-w-md animate-fade-in shadow-xl border-none ring-1 ring-white/10 bg-white/5 backdrop-blur-lg">
       <CardHeader className="text-center space-y-1">
@@ -40,53 +92,7 @@ export function RegisterForm() {
         <CardDescription className="text-muted-foreground">{t('subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form
-          className="space-y-4"
-          onSubmit={async e => {
-            e.preventDefault();
-            setError(null);
-            setLoading(true);
-
-            const formData = new FormData(e.currentTarget);
-            const email = formData.get('email') as string;
-            const password = formData.get('password') as string;
-            const name = formData.get('fullName') as string;
-            const passwordConfirm = formData.get('confirmPassword') as string;
-
-            if (password !== passwordConfirm) {
-              setError('Passwords do not match');
-              setLoading(false);
-              return;
-            }
-
-            if (!tenantId) {
-              setError('Missing tenant context. Please select a tenant to continue.');
-              setLoading(false);
-              return;
-            }
-
-            try {
-              const signUpPayload = {
-                email,
-                password,
-                name,
-                callbackURL: '/member',
-                tenantId,
-              } as Parameters<typeof authClient.signUp.email>[0];
-
-              const { error: signUpError } = await authClient.signUp.email(signUpPayload);
-
-              if (signUpError) {
-                setError(signUpError.message || 'Something went wrong');
-              }
-              // Success redirects automatically via callbackURL or we can router.push
-            } catch {
-              setError('An unexpected error occurred');
-            } finally {
-              setLoading(false);
-            }
-          }}
-        >
+        <form className="space-y-4" onSubmit={handleSubmit}>
           {error && (
             <div className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md">
               {error}
@@ -184,13 +190,7 @@ export function RegisterForm() {
             type="button"
             className="w-full bg-background/50"
             disabled={loading}
-            onClick={async () => {
-              await authClient.signIn.social({
-                provider: 'github',
-                callbackURL: `${window.location.origin}/member`,
-                ...(tenantId ? { additionalData: { tenantId } } : {}),
-              });
-            }}
+            onClick={() => handleSocialSignIn('github')}
           >
             <Github className="mr-2 h-4 w-4" />
             GitHub

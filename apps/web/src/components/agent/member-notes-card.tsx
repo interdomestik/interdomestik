@@ -71,42 +71,27 @@ export function MemberNotesCard({ memberId, memberName }: MemberNotesCardProps) 
     if (!noteContent.trim()) return;
 
     startTransition(async () => {
-      const result = editingNote
-        ? await updateMemberNote({ id: editingNote.id, content: noteContent, type: noteType })
-        : await createMemberNote({ memberId, content: noteContent, type: noteType });
-
-      if (result.success) {
-        toast.success(editingNote ? t('noteUpdated') : t('noteCreated'));
-        fetchNotes();
-        handleCloseDialog();
-      } else {
-        toast.error(result.error || t(editingNote ? 'updateError' : 'createError'));
-      }
+      await performSubmit(
+        editingNote,
+        memberId,
+        noteContent,
+        noteType,
+        t,
+        fetchNotes,
+        handleCloseDialog
+      );
     });
   };
 
   const handleDelete = (noteId: string) => {
     startTransition(async () => {
-      const result = await deleteMemberNote(noteId);
-      if (result.success) {
-        toast.success(t('noteDeleted'));
-        setNotes(prev => prev.filter(n => n.id !== noteId));
-      } else {
-        toast.error(result.error || t('deleteError'));
-      }
+      await performDelete(noteId, t, setNotes);
     });
   };
 
   const handleTogglePin = (noteId: string) => {
     startTransition(async () => {
-      const result = await toggleNotePin(noteId);
-      if (result.success && result.data) {
-        setNotes(prev =>
-          prev.map(n => (n.id === noteId ? { ...n, isPinned: result.data!.isPinned } : n))
-        );
-      } else {
-        toast.error(result.error || t('pinError'));
-      }
+      await performTogglePin(noteId, t, setNotes);
     });
   };
 
@@ -171,4 +156,55 @@ export function MemberNotesCard({ memberId, memberName }: MemberNotesCardProps) 
       />
     </>
   );
+}
+
+async function performSubmit(
+  editingNote: MemberNote | null,
+  memberId: string,
+  noteContent: string,
+  noteType: NoteType,
+  t: (key: string) => string,
+  fetchNotes: () => void,
+  handleCloseDialog: () => void
+) {
+  const result = editingNote
+    ? await updateMemberNote({ id: editingNote.id, content: noteContent, type: noteType })
+    : await createMemberNote({ memberId, content: noteContent, type: noteType });
+
+  if (result.success) {
+    toast.success(editingNote ? t('noteUpdated') : t('noteCreated'));
+    fetchNotes();
+    handleCloseDialog();
+  } else {
+    toast.error(result.error || t(editingNote ? 'updateError' : 'createError'));
+  }
+}
+
+async function performDelete(
+  noteId: string,
+  t: (key: string) => string,
+  setNotes: React.Dispatch<React.SetStateAction<MemberNote[]>>
+) {
+  const result = await deleteMemberNote(noteId);
+  if (result.success) {
+    toast.success(t('noteDeleted'));
+    setNotes(prev => prev.filter(n => n.id !== noteId));
+  } else {
+    toast.error(result.error || t('deleteError'));
+  }
+}
+
+async function performTogglePin(
+  noteId: string,
+  t: (key: string) => string,
+  setNotes: React.Dispatch<React.SetStateAction<MemberNote[]>>
+) {
+  const result = await toggleNotePin(noteId);
+  if (result.success && result.data) {
+    setNotes(prev =>
+      prev.map(n => (n.id === noteId ? { ...n, isPinned: result.data!.isPinned } : n))
+    );
+  } else {
+    toast.error(result.error || t('pinError'));
+  }
 }

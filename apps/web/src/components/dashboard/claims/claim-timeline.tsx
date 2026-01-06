@@ -10,13 +10,13 @@ import { useMemo } from 'react';
 const SLA_TARGET_HOURS = 24;
 
 interface ClaimTimelineProps {
-  status: ClaimStatus;
-  updatedAt: Date;
-  history?: Array<{
+  readonly status: ClaimStatus;
+  readonly updatedAt: Date;
+  readonly history?: ReadonlyArray<{
     toStatus: ClaimStatus;
     createdAt: Date | null;
   }>;
-  now?: Date;
+  readonly now?: Date;
 }
 
 export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimelineProps) {

@@ -8,7 +8,7 @@ import { DEFAULT_NOTIFICATION_PREFERENCES, type NotificationPreferences } from '
 export async function getNotificationPreferencesCore(params: {
   session: UserSession | null;
 }): Promise<
-  | { success: true; preferences: NotificationPreferences; error?: undefined }
+  | { success: true; preferences: NotificationPreferences; error: undefined }
   | { success: false; error: string }
 > {
   const { session } = params;
