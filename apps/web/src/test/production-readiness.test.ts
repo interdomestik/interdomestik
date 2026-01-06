@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Create mock transaction function
+const mockTransaction = vi.fn();
+
 // Mock the database module before importing withTransactionRetry
 vi.mock('@interdomestik/database', () => ({
   db: {
-    transaction: vi.fn(),
+    transaction: mockTransaction,
   },
 }));
 
@@ -13,13 +16,13 @@ import { withTransactionRetry } from '@interdomestik/shared-utils/resilience';
 describe('Production Readiness Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockTransaction.mockReset();
   });
 
   describe('Transaction Retry Logic', () => {
     it('should retry on deadlock errors', async () => {
       let attemptCount = 0;
 
-      const mockTransaction = vi.mocked(vi.importMock('@interdomestik/database')).db.transaction;
       mockTransaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
         attemptCount++;
         if (attemptCount === 1) {
@@ -39,7 +42,6 @@ describe('Production Readiness Tests', () => {
     });
 
     it('should not retry on non-retryable errors', async () => {
-      const mockTransaction = vi.mocked(vi.importMock('@interdomestik/database')).db.transaction;
       mockTransaction.mockRejectedValue(new Error('permission denied'));
 
       await expect(

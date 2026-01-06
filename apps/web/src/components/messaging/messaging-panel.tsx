@@ -14,10 +14,10 @@ import { MessageInput } from './message-input';
 import { MessageThread } from './message-thread';
 
 interface MessagingPanelProps {
-  claimId: string;
-  currentUserId: string;
-  isAgent?: boolean;
-  initialMessages?: MessageWithSender[];
+  readonly claimId: string;
+  readonly currentUserId: string;
+  readonly isAgent?: boolean;
+  readonly initialMessages?: MessageWithSender[];
 }
 
 export function MessagingPanel({

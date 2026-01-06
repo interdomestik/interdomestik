@@ -17,7 +17,7 @@ type Activity = {
 };
 
 interface ActivityFeedProps {
-  activities: Activity[];
+  readonly activities: Activity[];
 }
 
 const getActivityIcon = (type: string) => {

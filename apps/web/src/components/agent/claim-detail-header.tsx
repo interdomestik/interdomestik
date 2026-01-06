@@ -7,13 +7,13 @@ import { ChevronLeft } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface ClaimDetailHeaderProps {
-  claim: {
+  readonly claim: {
     id: string;
     title: string | null;
     category?: string | null;
     createdAt?: string | Date | null;
   };
-  backHref?: string;
+  readonly backHref?: string;
 }
 
 export function ClaimDetailHeader({ claim, backHref = '/member/claims' }: ClaimDetailHeaderProps) {

@@ -8,8 +8,8 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 interface ClaimTriageNotesProps {
-  claimId: string;
-  currentStatus: string;
+  readonly claimId: string;
+  readonly currentStatus: string;
 }
 
 export function ClaimTriageNotes({ claimId, currentStatus }: ClaimTriageNotesProps) {

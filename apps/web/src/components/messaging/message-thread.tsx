@@ -11,9 +11,9 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
 interface MessageThreadProps {
-  messages: MessageWithSender[];
-  currentUserId: string;
-  isAgent?: boolean;
+  readonly messages: MessageWithSender[];
+  readonly currentUserId: string;
+  readonly isAgent?: boolean;
 }
 
 export function MessageThread({ messages, currentUserId, isAgent = false }: MessageThreadProps) {

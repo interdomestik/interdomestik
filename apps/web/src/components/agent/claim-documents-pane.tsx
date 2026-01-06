@@ -8,11 +8,11 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 interface ClaimDocumentsPaneProps {
-  documents: {
+  readonly documents: ReadonlyArray<{
     id: string;
     fileName: string | null;
     createdAt?: string | Date | null;
-  }[];
+  }>;
 }
 
 export function ClaimDocumentsPane({ documents }: ClaimDocumentsPaneProps) {

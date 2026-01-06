@@ -18,10 +18,10 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 interface ClaimActionPanelProps {
-  claimId: string;
-  currentStatus: string;
-  staffId: string;
-  assigneeId: string | null;
+  readonly claimId: string;
+  readonly currentStatus: string;
+  readonly staffId: string;
+  readonly assigneeId: string | null;
 }
 
 const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = CANONICAL_CLAIM_STATUSES.map(
