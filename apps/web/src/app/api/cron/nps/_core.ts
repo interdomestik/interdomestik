@@ -54,142 +54,14 @@ export async function runNpsCronCore(args: {
     )
     .limit(200);
 
+  // Process members in parallel chunks or sequential loop
   for (const member of members) {
-    const dedupeKey = `engagement:${member.subId}:${NPS_TEMPLATE_KEY}`;
-
-    const inserted = await db
-      .insert(engagementEmailSends)
-      .values({
-        id: nanoid(),
-        tenantId: member.tenantId!,
-        userId: member.userId!,
-        subscriptionId: member.subId,
-        templateKey: NPS_TEMPLATE_KEY,
-        dedupeKey,
-        status: 'pending',
-        createdAt: new Date(),
-        metadata: {
-          scheduledDays: NPS_DAYS_SINCE_SUB_CREATED,
-        },
-      })
-      .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
-      .returning({ id: engagementEmailSends.id });
-
-    if (inserted.length === 0) continue;
-
-    if (!member.email || !member.name) {
-      await db
-        .update(engagementEmailSends)
-        .set({
-          status: 'skipped',
-          error: 'Missing recipient email or name',
-        })
-        .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
-      results.skipped++;
-      continue;
-    }
-
-    const token = nanoid(32);
-    const expiresAt = new Date(now.getTime() + TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
-
-    await db
-      .insert(npsSurveyTokens)
-      .values({
-        id: nanoid(),
-        tenantId: member.tenantId!,
-        userId: member.userId!,
-        subscriptionId: member.subId,
-        dedupeKey,
-        token,
-        createdAt: new Date(),
-        expiresAt,
-        usedAt: null,
-        metadata: {
-          templateKey: NPS_TEMPLATE_KEY,
-        },
-      })
-      .onConflictDoNothing({ target: npsSurveyTokens.dedupeKey });
-
-    const [tokenRow] = await db
-      .select({ token: npsSurveyTokens.token })
-      .from(npsSurveyTokens)
-      .where(eq(npsSurveyTokens.dedupeKey, dedupeKey))
-      .limit(1);
-
-    const surveyToken = tokenRow?.token;
-    if (!surveyToken) {
-      await db
-        .update(engagementEmailSends)
-        .set({ status: 'error', error: 'Failed to create NPS token' })
-        .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
-      results.errors++;
-      continue;
-    }
-
-    try {
-      const sendResult = await sendNpsSurveyEmail(member.email, {
-        name: member.name,
-        token: surveyToken,
-      });
-
-      if (sendResult.success) {
-        await db
-          .update(engagementEmailSends)
-          .set({
-            status: 'sent',
-            providerMessageId: sendResult.id || null,
-            sentAt: new Date(),
-          })
-          .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
-
-        results.sent++;
-
-        await logAuditEvent({
-          actorId: null,
-          actorRole: 'system',
-          tenantId: member.tenantId,
-          action: 'email.nps.sent',
-          entityType: 'subscription',
-          entityId: member.subId,
-          metadata: { templateKey: NPS_TEMPLATE_KEY },
-          headers,
-        });
-      } else {
-        const err = sendResult.error || 'Unknown error';
-        const status = err === 'Resend not configured' ? 'skipped' : 'error';
-
-        await db
-          .update(engagementEmailSends)
-          .set({
-            status,
-            error: err,
-          })
-          .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
-
-        if (status === 'skipped') results.skipped++;
-        else results.errors++;
-
-        await logAuditEvent({
-          actorId: null,
-          actorRole: 'system',
-          tenantId: member.tenantId,
-          action: 'email.nps.failed',
-          entityType: 'subscription',
-          entityId: member.subId,
-          metadata: { templateKey: NPS_TEMPLATE_KEY, error: err },
-          headers,
-        });
-      }
-    } catch {
-      results.errors++;
-      await db
-        .update(engagementEmailSends)
-        .set({
-          status: 'error',
-          error: 'Unhandled exception during send',
-        })
-        .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
-    }
+    const status = await processNpsMember({
+      member,
+      now,
+      headers,
+    });
+    results[status]++;
   }
 
   await logAuditEvent({
@@ -203,4 +75,151 @@ export async function runNpsCronCore(args: {
   });
 
   return results;
+}
+
+// Extracted helper to reduce cognitive complexity
+async function processNpsMember(args: {
+  member: {
+    userId: string | null;
+    subId: string;
+    tenantId: string | null;
+    name: string | null;
+    email: string | null;
+  };
+  now: Date;
+  headers: Headers;
+}): Promise<'sent' | 'skipped' | 'errors'> {
+  const { member, now, headers } = args;
+  const dedupeKey = `engagement:${member.subId}:${NPS_TEMPLATE_KEY}`;
+
+  const inserted = await db
+    .insert(engagementEmailSends)
+    .values({
+      id: nanoid(),
+      tenantId: member.tenantId!,
+      userId: member.userId!,
+      subscriptionId: member.subId,
+      templateKey: NPS_TEMPLATE_KEY,
+      dedupeKey,
+      status: 'pending',
+      createdAt: new Date(),
+      metadata: {
+        scheduledDays: NPS_DAYS_SINCE_SUB_CREATED,
+      },
+    })
+    .onConflictDoNothing({ target: engagementEmailSends.dedupeKey })
+    .returning({ id: engagementEmailSends.id });
+
+  if (inserted.length === 0) return 'skipped'; // Already processed
+
+  if (!member.email || !member.name) {
+    await db
+      .update(engagementEmailSends)
+      .set({
+        status: 'skipped',
+        error: 'Missing recipient email or name',
+      })
+      .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+    return 'skipped';
+  }
+
+  const token = nanoid(32);
+  const expiresAt = new Date(now.getTime() + TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+  await db
+    .insert(npsSurveyTokens)
+    .values({
+      id: nanoid(),
+      tenantId: member.tenantId!,
+      userId: member.userId!,
+      subscriptionId: member.subId,
+      dedupeKey,
+      token,
+      createdAt: new Date(),
+      expiresAt,
+      usedAt: null,
+      metadata: {
+        templateKey: NPS_TEMPLATE_KEY,
+      },
+    })
+    .onConflictDoNothing({ target: npsSurveyTokens.dedupeKey });
+
+  const [tokenRow] = await db
+    .select({ token: npsSurveyTokens.token })
+    .from(npsSurveyTokens)
+    .where(eq(npsSurveyTokens.dedupeKey, dedupeKey))
+    .limit(1);
+
+  const surveyToken = tokenRow?.token;
+  if (!surveyToken) {
+    await db
+      .update(engagementEmailSends)
+      .set({ status: 'error', error: 'Failed to create NPS token' })
+      .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+    return 'errors';
+  }
+
+  try {
+    const sendResult = await sendNpsSurveyEmail(member.email, {
+      name: member.name,
+      token: surveyToken,
+    });
+
+    if (sendResult.success) {
+      await db
+        .update(engagementEmailSends)
+        .set({
+          status: 'sent',
+          providerMessageId: sendResult.id || null,
+          sentAt: new Date(),
+        })
+        .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+
+      await logAuditEvent({
+        actorId: null,
+        actorRole: 'system',
+        tenantId: member.tenantId,
+        action: 'email.nps.sent',
+        entityType: 'subscription',
+        entityId: member.subId,
+        metadata: { templateKey: NPS_TEMPLATE_KEY },
+        headers,
+      });
+      return 'sent';
+    } else {
+      const err = sendResult.error || 'Unknown error';
+      // If "Resend not configured" (e.g. dev mode suppression), count as skipped
+      const isSkipped = err === 'Resend not configured';
+      const status = isSkipped ? 'skipped' : 'error';
+
+      await db
+        .update(engagementEmailSends)
+        .set({
+          status,
+          error: err,
+        })
+        .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+
+      await logAuditEvent({
+        actorId: null,
+        actorRole: 'system',
+        tenantId: member.tenantId,
+        action: 'email.nps.failed',
+        entityType: 'subscription',
+        entityId: member.subId,
+        metadata: { templateKey: NPS_TEMPLATE_KEY, error: err },
+        headers,
+      });
+      return isSkipped ? 'skipped' : 'errors';
+    }
+  } catch {
+    await db
+      .update(engagementEmailSends)
+      .set({
+        status: 'error',
+        error: 'Unhandled exception during send',
+      })
+      .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
+    return 'errors';
+  }
 }

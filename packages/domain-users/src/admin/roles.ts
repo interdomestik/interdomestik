@@ -138,7 +138,10 @@ export async function revokeUserRoleCore(
         and(
           eq(userRoles.userId, params.userId),
           eq(userRoles.role, role),
-          branchId == null ? isNull(userRoles.branchId) : eq(userRoles.branchId, branchId)
+          eq(userRoles.role, role),
+          branchId === null || branchId === undefined
+            ? isNull(userRoles.branchId)
+            : eq(userRoles.branchId, branchId)
         )
       )
     );

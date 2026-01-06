@@ -26,7 +26,9 @@ async function hasTenantRole(params: {
         and(
           eq(userRoles.userId, userId),
           eq(userRoles.role, role),
-          branchId == null ? isNull(userRoles.branchId) : eq(userRoles.branchId, branchId)
+          branchId === null || branchId === undefined
+            ? isNull(userRoles.branchId)
+            : eq(userRoles.branchId, branchId)
         )
       )
     )

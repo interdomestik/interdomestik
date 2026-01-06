@@ -1,0 +1,6 @@
+projectKey=interdomestikv2
+serverUrl=http://localhost:9000
+serverVersion=25.12.0.117093
+dashboardUrl=http://localhost:9000/dashboard?id=interdomestikv2
+ceTaskId=698837f9-db02-4186-9380-a6214b2d0da7
+ceTaskUrl=http://localhost:9000/api/ce/task?id=698837f9-db02-4186-9380-a6214b2d0da7
