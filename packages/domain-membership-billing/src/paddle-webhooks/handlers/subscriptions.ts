@@ -91,37 +91,11 @@ export async function handleSubscriptionChanged(
     console.log(`[Webhook] Subscription ${sub.id} recovered - clearing dunning fields`);
   }
 
-  let agentBranchId: string | undefined;
-  if (customData?.agentId) {
-    const agent = await db.query.user.findFirst({
-      where: (u, { and, eq }) => and(eq(u.id, customData.agentId!), eq(u.tenantId, tenantId)),
-      columns: { branchId: true },
-    });
-    agentBranchId = agent?.branchId || undefined;
-  }
-
-  let defaultBranchId: string | undefined;
-  if (!customData?.agentId) {
-    const defaultBranchSetting = await db.query.tenantSettings.findFirst({
-      where: (ts, { and, eq }) =>
-        and(eq(ts.tenantId, tenantId), eq(ts.category, 'rbac'), eq(ts.key, 'default_branch_id')),
-      columns: { value: true },
-    });
-
-    const value = defaultBranchSetting?.value as unknown;
-    if (value && typeof value === 'object') {
-      const obj = value as Record<string, unknown>;
-      const candidate =
-        (typeof obj.branchId === 'string' && obj.branchId) ||
-        (typeof obj.defaultBranchId === 'string' && obj.defaultBranchId) ||
-        (typeof obj.id === 'string' && obj.id) ||
-        (typeof obj.value === 'string' && obj.value) ||
-        undefined;
-      defaultBranchId = candidate;
-    }
-  }
-
-  const branchId = agentBranchId ?? defaultBranchId;
+  const branchId = await resolveBranchId({
+    customData,
+    tenantId,
+    db: db,
+  });
 
   await db
     .insert(subscriptions)
@@ -142,7 +116,6 @@ export async function handleSubscriptionChanged(
       },
     });
 
-  // 🔒 SECURITY Audit Log
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
       actorRole: 'system',
@@ -165,81 +138,144 @@ export async function handleSubscriptionChanged(
 
   // Commission + welcome letter only for new subs.
   if (params.eventType === 'subscription.created') {
-    const agentId = customData?.agentId;
-    const transactionTotal = parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
+    await handleNewSubscriptionExtras({
+      sub,
+      userId,
+      tenantId,
+      customData,
+      priceId,
+      userRecord,
+      deps,
+    });
+  }
+}
 
-    if (agentId && transactionTotal > 0) {
-      const agentSettings = await db.query.agentSettings?.findFirst({
-        where: (settings, { and, eq }) =>
-          and(eq(settings.agentId, agentId), eq(settings.tenantId, tenantId)),
-      });
-      const customRates = agentSettings?.commissionRates as Record<string, number> | undefined;
+// --- Helpers ---
 
-      const commissionAmount = calculateCommission('new_membership', transactionTotal, customRates);
-      const commissionResult = await createCommissionCore({
-        agentId,
-        memberId: userId,
-        subscriptionId: sub.id,
-        type: 'new_membership',
-        amount: commissionAmount,
-        currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
+async function resolveBranchId(args: {
+  customData: { agentId?: string } | undefined;
+  tenantId: string;
+  db: typeof db;
+}): Promise<string | undefined> {
+  const { customData, tenantId, db: database } = args;
+
+  // 1. Prefer Agent's Branch
+  if (customData?.agentId) {
+    const agent = await database.query.user.findFirst({
+      where: (u, { and, eq }) => and(eq(u.id, customData.agentId!), eq(u.tenantId, tenantId)),
+      columns: { branchId: true },
+    });
+    return agent?.branchId || undefined;
+  }
+
+  // 2. Fallback to Tenant Default Branch
+  const defaultBranchSetting = await database.query.tenantSettings.findFirst({
+    where: (ts, { and, eq }) =>
+      and(eq(ts.tenantId, tenantId), eq(ts.category, 'rbac'), eq(ts.key, 'default_branch_id')),
+    columns: { value: true },
+  });
+
+  const value = defaultBranchSetting?.value as unknown;
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    return (
+      (typeof obj.branchId === 'string' && obj.branchId) ||
+      (typeof obj.defaultBranchId === 'string' && obj.defaultBranchId) ||
+      (typeof obj.id === 'string' && obj.id) ||
+      (typeof obj.value === 'string' && obj.value) ||
+      undefined
+    );
+  }
+  return undefined;
+}
+
+async function handleNewSubscriptionExtras(args: {
+  sub: any;
+  userId: string;
+  tenantId: string;
+  customData: { agentId?: string } | undefined;
+  priceId: string;
+  userRecord: any;
+  deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> & PaddleWebhookAuditDeps;
+}) {
+  const { sub, userId, tenantId, customData, priceId, userRecord, deps } = args;
+
+  // 1. Commissions
+  const agentId = customData?.agentId;
+  const transactionTotal = parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
+
+  if (agentId && transactionTotal > 0) {
+    const agentSettings = await db.query.agentSettings?.findFirst({
+      where: (settings, { and, eq }) =>
+        and(eq(settings.agentId, agentId), eq(settings.tenantId, tenantId)),
+    });
+    const customRates = agentSettings?.commissionRates as Record<string, number> | undefined;
+
+    const commissionAmount = calculateCommission('new_membership', transactionTotal, customRates);
+    const commissionResult = await createCommissionCore({
+      agentId,
+      memberId: userId,
+      subscriptionId: sub.id,
+      type: 'new_membership',
+      amount: commissionAmount,
+      currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
+      tenantId,
+      metadata: {
+        planId: priceId,
+        transactionTotal,
+        source: 'paddle_webhook',
+        customRates: !!customRates,
+      },
+    });
+
+    if (deps.logAuditEvent && commissionResult.success) {
+      await deps.logAuditEvent({
+        actorRole: 'system',
+        action: 'commission.created',
+        entityType: 'commission',
+        entityId: commissionResult.data?.id ?? null,
         tenantId,
         metadata: {
-          planId: priceId,
-          transactionTotal,
+          agentId,
+          memberId: userId,
+          subscriptionId: sub.id,
+          amount: commissionAmount,
+          currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
           source: 'paddle_webhook',
-          customRates: !!customRates,
         },
       });
-      if (deps.logAuditEvent && commissionResult.success) {
-        await deps.logAuditEvent({
-          actorRole: 'system',
-          action: 'commission.created',
-          entityType: 'commission',
-          entityId: commissionResult.data?.id ?? null,
-          tenantId,
-          metadata: {
-            agentId,
-            memberId: userId,
-            subscriptionId: sub.id,
-            amount: commissionAmount,
-            currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
-            source: 'paddle_webhook',
-          },
-        });
-      }
-      console.log(
-        `[Webhook] 💰 Commission created: €${commissionAmount} for agent ${agentId}${customRates ? ' (custom rates)' : ''}`
-      );
     }
+    console.log(
+      `[Webhook] 💰 Commission created: €${commissionAmount} for agent ${agentId}${customRates ? ' (custom rates)' : ''}`
+    );
+  }
 
-    if (deps.sendThankYouLetter) {
-      // Thank-you Letter
-      try {
-        if (userRecord) {
-          const planPrice = sub.items?.[0]?.price?.unitPrice?.amount
-            ? (parseFloat(sub.items[0].price.unitPrice.amount) / 100).toFixed(2)
-            : '20.00';
-          const periodEnd = sub.currentBillingPeriod?.endsAt
-            ? new Date(sub.currentBillingPeriod.endsAt)
-            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+  // 2. Thank You Letter
+  if (deps.sendThankYouLetter) {
+    try {
+      if (userRecord) {
+        const planPrice = sub.items?.[0]?.price?.unitPrice?.amount
+          ? (parseFloat(sub.items[0].price.unitPrice.amount) / 100).toFixed(2)
+          : '20.00';
+        const periodEnd = sub.currentBillingPeriod?.endsAt
+          ? new Date(sub.currentBillingPeriod.endsAt)
+          : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
-          await deps.sendThankYouLetter({
-            email: userRecord.email,
-            memberName: userRecord.name,
-            memberNumber: userRecord.memberNumber || `M-${userId.slice(0, 8).toUpperCase()}`,
-            planName: priceId || 'Standard',
-            planPrice: `€${planPrice}`,
-            planInterval: 'year',
-            memberSince: new Date(),
-            expiresAt: periodEnd,
-            locale: 'en',
-          });
-          console.log(`[Webhook] 📧 Thank-you Letter sent to ${redactEmail(userRecord.email)}`);
-        }
-      } catch (emailError) {
-        console.error('[Webhook] Failed to send Thank-you Letter:', emailError);
+        await deps.sendThankYouLetter({
+          email: userRecord.email,
+          memberName: userRecord.name,
+          memberNumber: userRecord.memberNumber || `M-${userId.slice(0, 8).toUpperCase()}`,
+          planName: priceId || 'Standard',
+          planPrice: `€${planPrice}`,
+          planInterval: 'year',
+          memberSince: new Date(),
+          expiresAt: periodEnd,
+          locale: 'en',
+        });
+        console.log(`[Webhook] 📧 Thank-you Letter sent to ${redactEmail(userRecord.email)}`);
       }
+    } catch (emailError) {
+      console.error('[Webhook] Failed to send Thank-you Letter:', emailError);
     }
   }
 }
