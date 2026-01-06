@@ -1,15 +1,15 @@
+import { db } from '@interdomestik/database';
+import { notifications } from '@interdomestik/database/schema';
+import { withTenant } from '@interdomestik/database/tenant-security';
+import { nanoid } from 'nanoid';
 import {
   sendClaimAssignedEmail,
   sendClaimSubmittedEmail,
   sendNewMessageEmail,
   sendStatusChangedEmail,
 } from '../email';
-import { db } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
-import { notifications } from '@interdomestik/database/schema';
-import { nanoid } from 'nanoid';
-import type { AuditLogger } from '../types';
 import { sendPushToUser } from '../push';
+import type { AuditLogger } from '../types';
 
 // Notification event types
 export type NotificationEvent =
@@ -56,7 +56,7 @@ export async function sendNotification(
       return { success: false, error: 'Tenant mismatch for notification' };
     }
 
-    const title = options?.title || event.replace(/_/g, ' ').toUpperCase();
+    const title = options?.title || event.replaceAll('_', ' ').toUpperCase();
     const content = payload.claimTitle
       ? `Update on: ${payload.claimTitle}`
       : `New update: ${event}`;

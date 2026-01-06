@@ -45,7 +45,7 @@ function extractLabeledAmount(label: string, text: string) {
   const currencyRaw = match[1] ?? '';
   const amountRaw = match[2] ?? '';
   const currency = CURRENCY_SYMBOLS[currencyRaw] || currencyRaw || undefined;
-  const amount = amountRaw.replace(/,/g, '');
+  const amount = amountRaw.replaceAll(',', '');
 
   return { amount, currency };
 }
