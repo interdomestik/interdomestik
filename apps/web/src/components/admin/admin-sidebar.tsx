@@ -43,8 +43,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 
 interface AdminSidebarProps {
-  className?: string;
-  user: {
+  readonly className?: string;
+  readonly user: {
     name: string;
     email: string;
     role: string;

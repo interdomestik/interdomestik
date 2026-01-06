@@ -44,7 +44,7 @@ interface Branch {
 }
 
 interface BranchesTableProps {
-  initialData: Branch[];
+  readonly initialData: Branch[];
 }
 
 export function BranchesTable({ initialData }: BranchesTableProps) {

@@ -14,9 +14,9 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 interface ClaimStatusFormProps {
-  claimId: string;
-  currentStatus: string;
-  locale: string;
+  readonly claimId: string;
+  readonly currentStatus: string;
+  readonly locale: string;
 }
 
 export function ClaimStatusForm({ claimId, currentStatus, locale }: ClaimStatusFormProps) {

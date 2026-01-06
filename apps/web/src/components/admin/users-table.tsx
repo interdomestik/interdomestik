@@ -49,10 +49,10 @@ interface Agent {
 }
 
 interface UsersTableProps {
-  users: User[];
-  agents: Agent[];
-  showEmptyState?: boolean;
-  showContainer?: boolean;
+  readonly users: User[];
+  readonly agents: Agent[];
+  readonly showEmptyState?: boolean;
+  readonly showContainer?: boolean;
 }
 
 export function UsersTable({
