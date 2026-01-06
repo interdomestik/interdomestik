@@ -65,7 +65,7 @@ export function MemberBenefitsSection() {
             <div
               key={benefit.key}
               className={`group relative bg-white rounded-[2.5rem] p-8 lg:p-10 transition-all duration-500 hover:-translate-y-2 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_60px_rgba(0,0,0,0.08)] flex flex-col justify-between overflow-hidden text-left ${
-                index === 0 ? 'md:col-span-4' : index === 1 ? 'md:col-span-2' : 'md:col-span-2'
+                index === 0 ? 'md:col-span-4' : 'md:col-span-2'
               }`}
               style={{ animationDelay: `${index * 0.1}s` }}
             >

@@ -33,7 +33,7 @@ export function ClaimDocumentsPane({ documents }: ClaimDocumentsPaneProps) {
       a.download = fileName || 'document';
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading document:', error);

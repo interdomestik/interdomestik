@@ -63,10 +63,7 @@ export function WizardStepCategory() {
   };
 
   const handleTagSelect = (tag: (typeof quickSelectTags)[number]) => {
-    // analytics.track('claim_quick_tag_selected', { tag: tag.id, category: tag.category });
     form.setValue('category', tag.category, { shouldValidate: true });
-    // Optionally set a subcategory field if you have one
-    // form.setValue('subcategory', tag.id);
   };
 
   return (
