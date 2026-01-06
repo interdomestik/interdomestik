@@ -1,7 +1,9 @@
 import { db } from '@interdomestik/database';
 import { user } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+import { customAlphabet } from 'nanoid';
+
+const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6);
 
 import type { ActionResult, MemberReferralLink, MemberReferralSession } from './types';
 
@@ -41,7 +43,7 @@ export async function getMemberReferralLinkCore(params: {
             .slice(0, 4)
         : 'USER';
 
-      const randomPart = nanoid(6).toUpperCase();
+      const randomPart = nanoid();
       code = `${namePart}-${randomPart}`;
 
       // SECURITY: Update scoped to tenant + user

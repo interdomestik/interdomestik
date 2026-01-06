@@ -14,8 +14,12 @@ export default defineConfig({
   workers: process.env.CI ? 4 : '50%',
   reporter: process.env.CI ? [['html'], ['list']] : [['list']],
   timeout: 60 * 1000,
+  snapshotDir: './e2e/snapshots',
   expect: {
     timeout: 5 * 1000,
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.1,
+    },
   },
   use: {
     baseURL: BASE_URL,

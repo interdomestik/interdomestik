@@ -50,11 +50,13 @@ function getSenderAddress() {
   );
 }
 
+export type EmailResult = { success: true; id: string } | { success: false; error: string };
+
 export async function sendEmail(
   to: string,
   template: { subject: string; html: string; text: string },
   options: { attachments?: { filename: string; content: Buffer | string }[] } = {}
-) {
+): Promise<EmailResult> {
   const client = getResendClient();
   if (!client) {
     return { success: false, error: 'Resend not configured' };
@@ -70,7 +72,16 @@ export async function sendEmail(
       attachments: options.attachments,
     });
 
-    return { success: true, id: response.data?.id };
+    if (response.error) {
+      console.error('Resend error:', response.error);
+      return { success: false, error: response.error.message };
+    }
+
+    if (!response.data?.id) {
+      return { success: false, error: 'No email ID returned from Resend' };
+    }
+
+    return { success: true, id: response.data.id };
   } catch (error) {
     console.error('Failed to send email:', error);
     return { success: false, error: 'Failed to send email' };
@@ -80,7 +91,7 @@ export async function sendEmail(
 export async function sendClaimSubmittedEmail(
   to: string,
   claim: { id: string; title: string; category: string }
-) {
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(
     to,
@@ -96,7 +107,7 @@ export async function sendClaimAssignedEmail(
   to: string,
   claim: { id: string; title: string },
   agentName: string
-) {
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(
     to,
@@ -113,7 +124,7 @@ export async function sendStatusChangedEmail(
   claim: { id: string; title: string },
   oldStatus: string,
   newStatus: string
-) {
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(
     to,
@@ -131,7 +142,7 @@ export async function sendNewMessageEmail(
   claim: { id: string; title: string },
   senderName: string,
   messagePreview: string
-) {
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(
     to,
@@ -159,7 +170,7 @@ export async function sendPaymentFailedEmail(
     gracePeriodDays: number;
     gracePeriodEndDate: string;
   }
-) {
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   console.log(`[Dunning] Sending Day 0 email to ${to}`);
   return sendEmail(to, renderPaymentFailedEmail(params));
@@ -176,7 +187,7 @@ export async function sendPaymentReminderEmail(
     daysRemaining: number;
     gracePeriodEndDate: string;
   }
-) {
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   console.log(`[Dunning] Sending Day 7 reminder to ${to}`);
   return sendEmail(to, renderPaymentReminderEmail(params));
@@ -192,7 +203,7 @@ export async function sendPaymentFinalWarningEmail(
     planName: string;
     gracePeriodEndDate: string;
   }
-) {
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   console.log(`[Dunning] Sending Day 13 FINAL WARNING to ${to}`);
   return sendEmail(to, renderPaymentFinalWarningEmail(params));
@@ -204,12 +215,12 @@ export async function sendMemberWelcomeEmail(
     memberName: string;
     agentName: string;
   }
-) {
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderMemberWelcomeEmail(params));
 }
 
-export async function sendPasswordResetEmail(to: string, resetUrl: string) {
+export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderPasswordResetEmail({ resetUrl }));
 }
@@ -218,32 +229,32 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
 // PHASE 5: ENGAGEMENT & RETENTION EMAILS
 // ============================================================================
 
-export async function sendWelcomeEmail(to: string, name: string) {
+export async function sendWelcomeEmail(to: string, name: string): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderWelcomeEmail({ name }));
 }
 
-export async function sendOnboardingEmail(to: string, name: string) {
+export async function sendOnboardingEmail(to: string, name: string): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderOnboardingEmail({ name }));
 }
 
-export async function sendCheckinEmail(to: string, name: string) {
+export async function sendCheckinEmail(to: string, name: string): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderCheckinEmail({ name }));
 }
 
-export async function sendEngagementDay30Email(to: string, name: string) {
+export async function sendEngagementDay30Email(to: string, name: string): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderEngagementDay30Email({ name }));
 }
 
-export async function sendEngagementDay60Email(to: string, name: string) {
+export async function sendEngagementDay60Email(to: string, name: string): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderEngagementDay60Email({ name }));
 }
 
-export async function sendEngagementDay90Email(to: string, name: string) {
+export async function sendEngagementDay90Email(to: string, name: string): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderEngagementDay90Email({ name }));
 }
@@ -251,7 +262,7 @@ export async function sendEngagementDay90Email(to: string, name: string) {
 export async function sendNewsletterEmail(
   to: string,
   props: Parameters<typeof renderNewsletterEmail>[0]
-) {
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderNewsletterEmail(props));
 }
@@ -259,17 +270,24 @@ export async function sendNewsletterEmail(
 export async function sendSeasonalEmail(
   to: string,
   props: Parameters<typeof renderSeasonalEmail>[0]
-) {
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderSeasonalEmail(props));
 }
 
-export async function sendNpsSurveyEmail(to: string, props: { name: string; token: string }) {
+export async function sendNpsSurveyEmail(
+  to: string,
+  props: { name: string; token: string }
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderNpsSurveyEmail(props));
 }
 
-export async function sendAnnualReportEmail(to: string, name: string, year: number) {
+export async function sendAnnualReportEmail(
+  to: string,
+  name: string,
+  year: number
+): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
   return sendEmail(to, renderAnnualReportEmail({ name, year }));
 }

@@ -22,7 +22,8 @@ Transition to a migration-based workflow using `drizzle-kit generate` and `drizz
 
 1. Remove `db:push` usage for production-facing flows.
 2. Use `pnpm db:generate` to create SQL migration files.
-3. Use `pnpm db:migrate` (verified script needed) to apply changes securely.
+3. Use `pnpm --filter @interdomestik/database migrate` (or `pnpm db:migrate` if wired) to apply changes.
+4. Use `drizzle-kit push` only for local/dev throwaway databases.
 
 ## 2. Code Quality & Dead Code Elimination
 
@@ -41,6 +42,12 @@ Add [Knip](https://knip.dev/) to the CI pipeline. Knip analyzes the monorepo to 
 
 **ROI**: Drastically reduces bundle size and maintenance overhead by deleting dead code.
 
+**Baseline CI**:
+
+- `pnpm lint`
+- `pnpm type-check`
+- `pnpm test`
+
 ## 3. Architecture & Boundaries
 
 ### Current Status
@@ -57,6 +64,13 @@ Enforce architectural rules using `eslint-plugin-boundaries` to prevent "spaghet
 - **Shared**: **Cannot** import `domain-*` or `web`.
 
 This prevents circular dependencies that break builds and slow down development.
+
+### Recommendation: Modularization Guardrails
+
+Keep entrypoints thin and move business logic into core modules:
+
+- Follow `MODULARIZATION_REPORT.md` (thin Next.js entrypoints, logic in `*_core.ts` or domain packages).
+- Verify with `node scripts/check-entrypoints-no-db.mjs`.
 
 ## 4. Testing Strategy
 
@@ -101,10 +115,60 @@ Implement a strict CSP header to mitigate XSS.
 - **Frame-Ancestors**: Prevent clickjacking.
 - **Connect-Src**: Whitelist API endpoints (Supabase, Paddle, Novu).
 
+### Recommendation: Hardened Module Standard (Always)
+
+All new features must follow the hardened module checklist and be recorded:
+
+- `security/HARDENING_CHECKLIST.md`
+- `security/hardening/INDEX.md`
+
+## 7. Rate Limiting & Audit Logging
+
+### Recommendation: Mandatory Rate Limits for Mutations
+
+- Use `enforceRateLimitForAction` for server actions and `enforceRateLimit` for API routes.
+- Ensure headers are forwarded so IP-based rate limiting is accurate.
+
+### Recommendation: Audit on All Mutations
+
+- Use `logAuditEvent` for every create/update/delete.
+- Always include `tenantId` and keep metadata PII-safe.
+
+## 8. Tenant Isolation & RLS
+
+### Recommendation: Explicit Tenant Scoping
+
+- Always use `withTenant()` or verified RLS policies for queries.
+- Use `ensureTenantId()` for session-derived access.
+
+### Verification Aids
+
+- `node scripts/inspect_policies.js`
+- `node scripts/inspect_storage.js`
+- `node scripts/abuse_test_rls.js`
+
+## 9. Environment & Secrets Hygiene
+
+### Recommendation: Keep Secrets Local and Auditable
+
+- Use `.env.local` for local secrets and keep `.env.example` in sync.
+- Never commit secrets; use pre-commit checks and `scripts/secrets-precommit.sh`.
+- Ensure production secrets are set via the hosting platform, not checked into repo.
+
+## 10. Observability
+
+### Recommendation: Error and Audit Visibility
+
+- Keep Sentry configured for client/server/edge.
+- Monitor audit log error messages (`Missing tenantId`) as a signal for broken auth flows.
+
 ## Summary Checklist
 
 - [ ] **Database**: Switch to `db:migrate` workflow for production.
 - [ ] **Maintenance**: Run `knip` to cleanup dead code.
 - [ ] **Architecture**: Configure ESLint boundaries.
+- [ ] **Architecture**: Enforce modularization guardrails (`*_core.ts`, entrypoint checks).
 - [ ] **Testing**: Enable visual regression snapshots for core flows.
-- [ ] **Security**: Finalize CSP headers in `next.config.mjs`.
+- [ ] **Security**: Finalize CSP headers in `next.config.mjs` and follow the Hardened Module Standard.
+- [ ] **Security**: Enforce rate limiting + audit logging on all mutations.
+- [ ] **Security**: Verify tenant isolation (withTenant/RLS).

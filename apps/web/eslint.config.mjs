@@ -1,4 +1,5 @@
 import nextPlugin from '@next/eslint-plugin-next';
+import boundariesPlugin from 'eslint-plugin-boundaries';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import { dirname } from 'path';
 import tseslint from 'typescript-eslint';
@@ -28,6 +29,7 @@ export default tseslint.config(
     plugins: {
       '@next/next': nextPlugin,
       'react-hooks': reactHooksPlugin,
+      boundaries: boundariesPlugin,
     },
     languageOptions: {
       parserOptions: {
@@ -35,12 +37,56 @@ export default tseslint.config(
         tsconfigRootDir: __dirname,
       },
     },
+    settings: {
+      'boundaries/include': ['**/*'],
+      'boundaries/elements': [
+        {
+          type: 'app',
+          mode: 'full',
+          pattern: ['apps/web/**/*'],
+        },
+        {
+          type: 'domain',
+          mode: 'full',
+          pattern: ['../../packages/domain-*/**/*'],
+        },
+        {
+          type: 'shared',
+          mode: 'full',
+          pattern: ['../../packages/shared-*/**/*'],
+        },
+        {
+          type: 'ui',
+          mode: 'full',
+          pattern: ['../../packages/ui/**/*'],
+        },
+        {
+          type: 'database',
+          mode: 'full',
+          pattern: ['../../packages/database/**/*'],
+        },
+      ],
+    },
     rules: {
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs['core-web-vitals'].rules,
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'react/no-unescaped-entities': 'off',
+      // Boundaries
+      'boundaries/element-types': [
+        'error',
+        {
+          default: 'allow',
+          rules: [
+            {
+              from: 'app',
+              allow: ['domain', 'shared', 'ui', 'database'],
+            },
+          ],
+        },
+      ],
+      'boundaries/no-unknown': 'error',
     },
   },
   {

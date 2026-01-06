@@ -1,0 +1,38 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.{js,ts,mjs}"],
+      "project": ["scripts/**/*.{js,ts,mjs}"]
+    },
+    "apps/web": {
+      "entry": [
+        "next.config.{js,mjs,ts}",
+        "src/app/**/{page,layout,loading,error,not-found,global-error,route,template,default,icon,apple-icon,sitemap,robots}.{ts,tsx}",
+        "src/middleware.ts",
+        "src/instrumentation.ts"
+      ],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/*": {
+      "entry": ["src/index.ts", "src/cli.ts"],
+      "project": ["src/**/*.{ts,tsx}"]
+    }
+  },
+  "ignore": [
+    "**/*.d.ts",
+    "**/__mocks__/**",
+    "**/__tests__/**",
+    "**/*.test.{ts,tsx}",
+    "**/*.spec.{ts,tsx}"
+  ],
+  "ignoreDependencies": [
+    "pnpm",
+    "eslint-config-next",
+    "lint-staged",
+    "postcss",
+    "autoprefixer",
+    "hono",
+    "dotenv"
+  ]
+}
