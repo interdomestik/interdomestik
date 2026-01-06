@@ -119,6 +119,56 @@ export async function forEachBatchedUsers(args: {
   return { batches: Math.max(batches - 1, 0), totalUsers, lastAfterId: afterId };
 }
 
+async function processCampaignUser(
+  u: UserMini,
+  args: {
+    campaignId: string;
+    sendToUser: (u: UserMini) => Promise<void>;
+  },
+  alreadySentSet: Set<string>,
+  stats: { attempted: number; sent: number; skipped: number },
+  logs: string[],
+  errors: string[]
+) {
+  stats.attempted += 1;
+
+  if (!u.tenantId) {
+    stats.skipped += 1;
+    errors.push(`Missing tenantId for userId=${u.id} email=${u.email ?? 'n/a'}`);
+    return;
+  }
+
+  if (!u.email) {
+    stats.skipped += 1;
+    return;
+  }
+
+  if (alreadySentSet.has(u.id)) {
+    stats.skipped += 1;
+    return;
+  }
+
+  try {
+    await args.sendToUser(u);
+
+    const insertLog = {
+      id: `ecl_${nanoid()}`,
+      tenantId: u.tenantId,
+      userId: u.id,
+      campaignId: args.campaignId,
+      sentAt: new Date(),
+    };
+    await db.insert(emailCampaignLogs).values(insertLog);
+
+    stats.sent += 1;
+    logs.push(`Sent ${args.campaignId} to ${u.email}`);
+  } catch (err) {
+    errors.push(
+      `Failed ${args.campaignId} for userId=${u.id} email=${u.email}: ${stringifyError(err)}`
+    );
+  }
+}
+
 export async function processBatchedUserCampaign(args: {
   campaignId: string;
   sendToUser: (u: UserMini) => Promise<void>;
@@ -129,9 +179,7 @@ export async function processBatchedUserCampaign(args: {
 }> {
   const logs: string[] = [];
   const errors: string[] = [];
-  let attempted = 0;
-  let sent = 0;
-  let skipped = 0;
+  const stats = { attempted: 0, sent: 0, skipped: 0 };
 
   await forEachBatchedUsers({
     fetchBatch: afterId => getUsersBatch({ afterId, limit: USER_BATCH_SIZE }),
@@ -143,43 +191,7 @@ export async function processBatchedUserCampaign(args: {
       });
 
       for (const u of batch) {
-        attempted += 1;
-
-        if (!u.tenantId) {
-          skipped += 1;
-          errors.push(`Missing tenantId for userId=${u.id} email=${u.email ?? 'n/a'}`);
-          continue;
-        }
-
-        if (!u.email) {
-          skipped += 1;
-          continue;
-        }
-
-        if (alreadySentSet.has(u.id)) {
-          skipped += 1;
-          continue;
-        }
-
-        try {
-          await args.sendToUser(u);
-
-          const insertLog = {
-            id: `ecl_${nanoid()}`,
-            tenantId: u.tenantId,
-            userId: u.id,
-            campaignId: args.campaignId,
-            sentAt: new Date(),
-          };
-          await db.insert(emailCampaignLogs).values(insertLog);
-
-          sent += 1;
-          logs.push(`Sent ${args.campaignId} to ${u.email}`);
-        } catch (err) {
-          errors.push(
-            `Failed ${args.campaignId} for userId=${u.id} email=${u.email}: ${stringifyError(err)}`
-          );
-        }
+        await processCampaignUser(u, args, alreadySentSet, stats, logs, errors);
       }
     },
   });
@@ -187,7 +199,7 @@ export async function processBatchedUserCampaign(args: {
   return {
     logs,
     errors,
-    stats: { attempted, sent, skipped, failed: errors.length },
+    stats: { ...stats, failed: errors.length },
   };
 }
 

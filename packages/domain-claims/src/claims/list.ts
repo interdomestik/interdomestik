@@ -87,16 +87,12 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
   });
 
   // 3. Fetch Data
-  const totalCount = await fetchTotalCount(whereClause, agentClientsJoinOn);
-  const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
-  const offset = (page - 1) * perPage;
-
-  const rows = await fetchClaimRows({
+  const { totalCount, totalPages, rows } = await executeClaimsQuery(
     whereClause,
     agentClientsJoinOn,
-    perPage,
-    offset,
-  });
+    page,
+    perPage
+  );
 
   // 4. Fetch Metadata & Map Response
   const unreadCounts = await fetchUnreadCounts({
@@ -218,6 +214,26 @@ function buildClaimsWhereClause(params: {
 
   const baseWhere = conditions.length ? and(...conditions) : undefined;
   return withTenant(tenantId, claims.tenantId, baseWhere);
+}
+
+async function executeClaimsQuery(
+  whereClause: SQL | undefined,
+  agentClientsJoinOn: any,
+  page: number,
+  perPage: number
+) {
+  const totalCount = await fetchTotalCount(whereClause, agentClientsJoinOn);
+  const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
+  const offset = (page - 1) * perPage;
+
+  const rows = await fetchClaimRows({
+    whereClause,
+    agentClientsJoinOn,
+    perPage,
+    offset,
+  });
+
+  return { totalCount, totalPages, rows };
 }
 
 async function fetchTotalCount(whereClause: SQL | undefined, agentClientsJoinOn: any) {

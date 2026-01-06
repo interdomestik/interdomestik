@@ -11,7 +11,7 @@ export function SkeletonCard({
         <Skeleton className="h-4 w-1/2" />
       </CardHeader>
       <CardContent className="space-y-2">
-        {Array.from({ length: rows }).map((_, i) => (
+        {Array.from({ length: rows }, (_, k) => k).map(i => (
           <Skeleton key={`skeleton-row-${i}`} className="h-4 w-full" />
         ))}
       </CardContent>
@@ -41,7 +41,7 @@ export function SkeletonTable({ rows = 5 }: Readonly<{ rows?: number }>) {
         <div className="h-12 border-b px-4 flex items-center">
           <Skeleton className="h-4 w-full" />
         </div>
-        {Array.from({ length: rows }).map((_, i) => (
+        {Array.from({ length: rows }, (_, k) => k).map(i => (
           <div
             key={`skeleton-table-row-${i}`}
             className="h-16 border-b px-4 flex items-center space-x-4"

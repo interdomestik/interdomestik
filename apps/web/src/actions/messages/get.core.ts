@@ -8,7 +8,7 @@ export async function getMessagesForClaimCore(params: {
 }) {
   const validation = getMessagesSchema.safeParse({ claimId: params.claimId });
   if (!validation.success) {
-    const error = validation.error.flatten().fieldErrors.claimId?.[0] || 'Invalid input';
+    const error = validation.error.format().claimId?._errors[0] || 'Invalid input';
     return { success: false, error };
   }
 

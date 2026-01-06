@@ -142,7 +142,7 @@ async function processMemberEngagement(
 
   try {
     const sendResult = await sendEngagementEmail(templateKey, member);
-    await handleSendResult(sendResult, dedupeKey, member, templateKey, results, headers);
+    await handleLifecycleSendResult(sendResult, dedupeKey, member, templateKey, results, headers);
   } catch {
     results.errors++;
     await markAsError(dedupeKey, 'Unhandled exception during send');
@@ -230,44 +230,44 @@ async function processSeasonalMember(
   }
 
   try {
-    const sendResult = (await sendSeasonalEmail(member.email, {
+    const sendResult = await sendSeasonalEmail(member.email, {
       season: season as 'winter' | 'summer',
       name: member.name,
-    })) as { success: boolean; id?: string; error?: string };
-    await handleSendResult(
-      sendResult,
-      dedupeKey,
-      member,
-      templateKey,
-      results,
-      headers,
-      true // isSeasonal
-    );
+    });
+    await handleSeasonalSendResult(sendResult, dedupeKey, member, templateKey, results, headers);
   } catch {
     results.errors++;
     await markAsError(dedupeKey, 'Unhandled exception during send');
   }
 }
 
-async function handleSendResult(
+async function handleLifecycleSendResult(
   sendResult: { success: boolean; id?: string; error?: string },
   dedupeKey: string,
   member: EngagementMember,
   templateKey: string,
   results: EngagementCronResults,
-  headers: Headers,
-  isSeasonal = false
+  headers: Headers
 ) {
   if (sendResult.success) {
-    await handleSuccess(
-      dedupeKey,
-      member,
-      templateKey,
-      results,
-      headers,
-      isSeasonal,
-      sendResult.id
-    );
+    await handleSuccess(dedupeKey, member, templateKey, headers, sendResult.id);
+    updateLifecycleStats(results, templateKey);
+  } else {
+    await handleFailure(dedupeKey, member, templateKey, results, headers, sendResult.error);
+  }
+}
+
+async function handleSeasonalSendResult(
+  sendResult: { success: boolean; id?: string; error?: string },
+  dedupeKey: string,
+  member: EngagementMember,
+  templateKey: string,
+  results: EngagementCronResults,
+  headers: Headers
+) {
+  if (sendResult.success) {
+    await handleSuccess(dedupeKey, member, templateKey, headers, sendResult.id);
+    results.seasonal++;
   } else {
     await handleFailure(dedupeKey, member, templateKey, results, headers, sendResult.error);
   }
@@ -277,9 +277,7 @@ async function handleSuccess(
   dedupeKey: string,
   member: EngagementMember,
   templateKey: string,
-  results: EngagementCronResults,
   headers: Headers,
-  isSeasonal: boolean,
   providerMessageId?: string
 ) {
   await db
@@ -290,8 +288,6 @@ async function handleSuccess(
       sentAt: new Date(),
     })
     .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
-
-  updateSuccessStats(results, templateKey, isSeasonal);
 
   await logAuditEvent({
     actorId: null,
@@ -305,24 +301,16 @@ async function handleSuccess(
   });
 }
 
-function updateSuccessStats(
-  results: EngagementCronResults,
-  templateKey: string,
-  isSeasonal: boolean
-) {
-  if (isSeasonal) {
-    results.seasonal++;
-  } else {
-    const keyMap: Record<string, keyof EngagementCronResults> = {
-      onboarding: 'day7',
-      checkin: 'day14',
-      day30: 'day30',
-      day60: 'day60',
-      day90: 'day90',
-    };
-    const statKey = keyMap[templateKey];
-    if (statKey) (results[statKey] as number)++;
-  }
+function updateLifecycleStats(results: EngagementCronResults, templateKey: string) {
+  const keyMap: Record<string, keyof EngagementCronResults> = {
+    onboarding: 'day7',
+    checkin: 'day14',
+    day30: 'day30',
+    day60: 'day60',
+    day90: 'day90',
+  };
+  const statKey = keyMap[templateKey];
+  if (statKey) (results[statKey] as number)++;
 }
 
 async function handleFailure(
@@ -331,14 +319,13 @@ async function handleFailure(
   templateKey: string,
   results: EngagementCronResults,
   headers: Headers,
-  error?: string
+  error: string = 'Unknown error'
 ) {
-  const err = error || 'Unknown error';
-  const status = err === 'Resend not configured' ? 'skipped' : 'error';
+  const status = error === 'Resend not configured' ? 'skipped' : 'error';
 
   await db
     .update(engagementEmailSends)
-    .set({ status, error: err })
+    .set({ status, error })
     .where(eq(engagementEmailSends.dedupeKey, dedupeKey));
 
   if (status === 'skipped') results.skipped++;
@@ -351,7 +338,7 @@ async function handleFailure(
     action: 'email.engagement.failed',
     entityType: 'subscription',
     entityId: member.subId,
-    metadata: { templateKey, error: err },
+    metadata: { templateKey, error },
     headers,
   });
 }

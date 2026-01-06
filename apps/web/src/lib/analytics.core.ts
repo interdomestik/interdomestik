@@ -33,8 +33,5 @@ export const analytics = {
     }
 
     // 3. Send to Provider (e.g., PostHog/GA4) in Production
-    // if (window.posthog) {
-    //     window.posthog.capture(event, safeProps);
-    // }
   },
 };

@@ -77,11 +77,11 @@ function buildUserConditions(scope: ReturnType<typeof scopeFilter>, filters?: Ge
     filters?.assignment && filters.assignment !== 'all' ? filters.assignment : null;
 
   if (roleFilter) {
-    if (roleFilter.includes(',')) {
-      conditions.push(inArray(user.role, roleFilter.split(',')));
-    } else {
-      conditions.push(eq(user.role, roleFilter));
-    }
+    conditions.push(
+      roleFilter.includes(',')
+        ? inArray(user.role, roleFilter.split(','))
+        : eq(user.role, roleFilter)
+    );
   }
 
   if (assignmentFilter === 'assigned') {

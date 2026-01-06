@@ -73,7 +73,7 @@ export function LeaderboardCard() {
       </CardHeader>
       <CardContent className="space-y-2">
         {isLoading ? (
-          Array.from({ length: 5 }).map((_, i) => (
+          [0, 1, 2, 3, 4].map(i => (
             <Skeleton key={`leaderboard-skeleton-${i}`} className="h-12 w-full" />
           ))
         ) : entries.length === 0 ? (

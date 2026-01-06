@@ -28,7 +28,7 @@ export async function listBranches(params?: { tenantId?: string; includeInactive
 
   const validation = listBranchesSchema.safeParse(params || {});
   if (!validation.success) {
-    return { error: 'Validation failed', details: validation.error.flatten() };
+    return { error: 'Validation failed', details: validation.error.format() };
   }
 
   return listBranchesDomain({
@@ -47,7 +47,7 @@ export async function createBranch(params: {
 
   const validation = createBranchSchema.safeParse(params);
   if (!validation.success) {
-    return { error: 'Validation failed', details: validation.error.flatten() };
+    return { error: 'Validation failed', details: validation.error.format() };
   }
 
   return createBranchDomain(
@@ -72,7 +72,7 @@ export async function updateBranch(params: {
 
   const validation = updateBranchSchema.safeParse(params);
   if (!validation.success) {
-    return { error: 'Validation failed', details: validation.error.flatten() };
+    return { error: 'Validation failed', details: validation.error.format() };
   }
 
   return updateBranchDomain(
@@ -93,7 +93,7 @@ export async function deleteBranch(params: { tenantId?: string; branchId: string
 
   const validation = deleteBranchSchema.safeParse(params);
   if (!validation.success) {
-    return { error: 'Validation failed', details: validation.error.flatten() };
+    return { error: 'Validation failed', details: validation.error.format() };
   }
 
   return deleteBranchDomain(
@@ -111,7 +111,7 @@ export async function listUserRoles(params?: { tenantId?: string; userId?: strin
 
   const validation = listUserRolesSchema.safeParse(params || {});
   if (!validation.success) {
-    return { error: 'Validation failed', details: validation.error.flatten() };
+    return { error: 'Validation failed', details: validation.error.format() };
   }
 
   return listUserRolesDomain({
@@ -131,7 +131,7 @@ export async function grantUserRole(params: {
 
   const validation = grantRoleSchema.safeParse(params);
   if (!validation.success) {
-    return { error: 'Validation failed', details: validation.error.flatten() };
+    return { error: 'Validation failed', details: validation.error.format() };
   }
 
   return grantUserRoleDomain(
@@ -156,7 +156,7 @@ export async function revokeUserRole(params: {
 
   const validation = revokeRoleSchema.safeParse(params);
   if (!validation.success) {
-    return { error: 'Validation failed', details: validation.error.flatten() };
+    return { error: 'Validation failed', details: validation.error.format() };
   }
 
   return revokeUserRoleDomain(

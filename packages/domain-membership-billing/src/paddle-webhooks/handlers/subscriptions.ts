@@ -2,7 +2,7 @@ import { db, subscriptions } from '@interdomestik/database';
 import { createCommissionCore } from '../../commissions/create';
 import { calculateCommission } from '../../commissions/types';
 import { subscriptionEventDataSchema } from '../schemas';
-import { mapPaddleStatus } from '../subscription-status';
+import { mapPaddleStatus, type InternalSubscriptionStatus } from '../subscription-status';
 
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../types';
 
@@ -59,43 +59,13 @@ export async function handleSubscriptionChanged(
     return;
   }
 
-  const baseValues = {
-    status: mappedStatus,
-    planId: priceId,
-    providerCustomerId: sub.customerId || sub.customer_id,
-    currentPeriodStart:
-      sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
-        ? new Date(
-            sub.currentBillingPeriod?.startsAt || (sub.current_billing_period?.starts_at as string)
-          )
-        : null,
-    currentPeriodEnd:
-      sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at
-        ? new Date(
-            sub.currentBillingPeriod?.endsAt || (sub.current_billing_period?.ends_at as string)
-          )
-        : null,
-    cancelAtPeriodEnd:
-      sub.scheduledChange?.action === 'cancel' || sub.scheduled_change?.action === 'cancel',
-    canceledAt: mappedStatus === 'canceled' ? new Date() : null,
-    updatedAt: new Date(),
-  };
-
-  if (mappedStatus === 'active') {
-    Object.assign(baseValues, {
-      pastDueAt: null,
-      gracePeriodEndsAt: null,
-      dunningAttemptCount: 0,
-      lastDunningAt: null,
-    });
-    console.log(`[Webhook] Subscription ${sub.id} recovered - clearing dunning fields`);
-  }
-
   const branchId = await resolveBranchId({
     customData,
     tenantId,
     db: db,
   });
+
+  const values = mapToSubscriptionValues(sub, mappedStatus, priceId);
 
   await db
     .insert(subscriptions)
@@ -105,12 +75,12 @@ export async function handleSubscriptionChanged(
       userId,
       agentId: customData?.agentId,
       branchId,
-      ...baseValues,
+      ...values,
     })
     .onConflictDoUpdate({
       target: subscriptions.id,
       set: {
-        ...baseValues,
+        ...values,
         agentId: customData?.agentId,
         branchId,
       },
@@ -150,6 +120,45 @@ export async function handleSubscriptionChanged(
   }
 }
 
+function mapToSubscriptionValues(
+  sub: any,
+  mappedStatus: InternalSubscriptionStatus,
+  priceId: string
+) {
+  const baseValues = {
+    status: mappedStatus,
+    planId: priceId,
+    providerCustomerId: (sub.customerId || sub.customer_id) as string | null,
+    currentPeriodStart:
+      sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
+        ? new Date(
+            sub.currentBillingPeriod?.startsAt || (sub.current_billing_period?.starts_at as string)
+          )
+        : null,
+    currentPeriodEnd:
+      sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at
+        ? new Date(
+            sub.currentBillingPeriod?.endsAt || (sub.current_billing_period?.ends_at as string)
+          )
+        : null,
+    cancelAtPeriodEnd:
+      sub.scheduledChange?.action === 'cancel' || sub.scheduled_change?.action === 'cancel',
+    canceledAt: mappedStatus === 'canceled' ? new Date() : null,
+    updatedAt: new Date(),
+  };
+
+  if (mappedStatus === 'active') {
+    Object.assign(baseValues, {
+      pastDueAt: null,
+      gracePeriodEndsAt: null,
+      dunningAttemptCount: 0,
+      lastDunningAt: null,
+    });
+    console.log(`[Webhook] Subscription ${sub.id} recovered - clearing dunning fields`);
+  }
+
+  return baseValues;
+}
 // --- Helpers ---
 
 async function resolveBranchId(args: {
