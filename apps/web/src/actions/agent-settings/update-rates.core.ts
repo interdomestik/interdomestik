@@ -1,8 +1,8 @@
 import { db } from '@interdomestik/database';
 import { agentSettings } from '@interdomestik/database/schema';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ActionResult, CommissionRates } from '../commissions.types';
 import { isAdmin } from './access';
@@ -55,7 +55,6 @@ export async function updateAgentCommissionRatesCore(params: {
       });
     }
 
-    console.log(`[Commission] Updated rates for agent ${agentId}:`, normalizedRates);
     return { success: true };
   } catch (error) {
     console.error('Error updating commission rates:', error);

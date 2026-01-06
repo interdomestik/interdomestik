@@ -48,7 +48,6 @@ export async function adminUpdateSettingsCore(params: {
   const settings: AdminSettingsInput = parsed.data;
 
   // NOTE: This is a stub for future global settings table
-  console.log('Updating global settings:', { keys: Object.keys(settings) });
 
   await logAuditEvent({
     actorId: session?.user?.id ?? null,

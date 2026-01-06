@@ -10,8 +10,8 @@ import {
   or,
   user,
 } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
 import { SQL, count, desc, isNotNull, isNull, ne } from 'drizzle-orm';
 
@@ -61,20 +61,68 @@ const VALID_STATUSES = CLAIM_STATUSES;
 export async function listClaims(params: ListClaimsParams): Promise<ClaimsListResponse> {
   const { session, scope, status: statusFilter, search: searchQuery, page, perPage } = params;
 
+  // 1. Auth & Scope Validation
+  const authScope = scopeFilter(session);
+  const access = validateClaimsAccess(scope, authScope, session);
+
+  if (!access.allowed) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const { isPrivileged } = access;
+  const tenantId = authScope.tenantId;
   const role = session?.user?.role || 'user';
   const isAgent = role === 'agent';
 
-  // Calculate Authentication Scope
-  const authScope = scopeFilter(session);
-  const tenantId = authScope.tenantId;
+  // 2. Build Query Conditions
+  const agentClientsJoinOn = buildAgentClientsJoin(scope, authScope, tenantId);
+  const whereClause = buildClaimsWhereClause({
+    scope,
+    authScope,
+    tenantId,
+    session,
+    isPrivileged,
+    statusFilter,
+    searchQuery,
+  });
 
+  // 3. Fetch Data
+  const totalCount = await fetchTotalCount(whereClause, agentClientsJoinOn);
+  const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
+  const offset = (page - 1) * perPage;
+
+  const rows = await fetchClaimRows({
+    whereClause,
+    agentClientsJoinOn,
+    perPage,
+    offset,
+  });
+
+  // 4. Fetch Metadata & Map Response
+  const unreadCounts = await fetchUnreadCounts({
+    rows,
+    scope,
+    tenantId,
+  });
+
+  return {
+    success: true,
+    claims: mapClaimsToResponse(rows, scope, isAgent, unreadCounts),
+    page,
+    perPage,
+    totalCount,
+    totalPages,
+  };
+}
+
+function validateClaimsAccess(
+  scope: ClaimsScope,
+  authScope: any,
+  session: SessionWithTenant
+): { allowed: boolean; isPrivileged?: boolean } {
   // Permission Checks based on requested scope param
   if (scope === 'admin' && !authScope.isFullTenantScope) {
-    // If not full tenant scope, cannot request generic 'admin' view
-    // (Only Tenant Admin / Staff can see 'admin' view? Or just Admin?)
-    // _core.ts logic was: `if (scope === 'admin' && !authScope.isFullTenantScope)`
-    // Branch Manager !isFullTenantScope.
-    return { success: false, error: 'Unauthorized' };
+    return { allowed: false };
   }
 
   // Branch managers and Staff can access staff queues
@@ -84,19 +132,22 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
     (scope === 'staff_queue' || scope === 'staff_all' || scope === 'staff_unassigned') &&
     !isPrivileged
   ) {
-    return { success: false, error: 'Unauthorized' };
+    return { allowed: false };
   }
 
   // Agents access agent_queue
   if (scope === 'agent_queue' && !authScope.agentId && !isPrivileged) {
-    return { success: false, error: 'Unauthorized' };
+    return { allowed: false };
   }
 
-  const conditions: SQL<unknown>[] = [];
+  return { allowed: true, isPrivileged };
+}
 
+function buildAgentClientsJoin(scope: ClaimsScope, authScope: any, tenantId: string) {
   const useAgentClientsJoin =
     scope === 'agent_queue' && !!authScope.agentId && !authScope.isFullTenantScope;
-  const agentClientsJoinOn = useAgentClientsJoin
+
+  return useAgentClientsJoin
     ? withTenant(
         tenantId,
         agentClients.tenantId,
@@ -107,43 +158,48 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
         )
       )
     : null;
+}
 
-  // Apply Mandatory Scoping (Branch / Agent)
+function buildClaimsWhereClause(params: {
+  scope: ClaimsScope;
+  authScope: any;
+  tenantId: string;
+  session: SessionWithTenant;
+  isPrivileged?: boolean;
+  statusFilter?: string;
+  searchQuery?: string;
+}) {
+  const { scope, authScope, tenantId, session, isPrivileged, statusFilter, searchQuery } = params;
+  const conditions: SQL<unknown>[] = [];
+
+  // Mandatory Scoping (Branch / Agent)
   if (!authScope.isFullTenantScope) {
-    // If user has branch scope, restrict to branch claims
     if (authScope.branchId) {
       conditions.push(eq(claims.branchId, authScope.branchId));
     }
-    // If user has agent scope, restrict to claims where they are the agent
-    // NOTE: For agent_queue, visibility is derived from canonical ownership (agent_clients).
     if (authScope.agentId && scope !== 'agent_queue') {
       conditions.push(eq(claims.agentId, authScope.agentId));
     }
   }
 
+  // Scope specific filters
   if (scope === 'member') {
     conditions.push(eq(claims.userId, session!.user!.id!));
-  }
-
-  if (scope === 'staff_queue' && isPrivileged) {
+  } else if (scope === 'staff_queue' && isPrivileged) {
     conditions.push(eq(claims.staffId, session!.user!.id!));
-  }
-
-  if (scope === 'staff_unassigned') {
+  } else if (scope === 'staff_unassigned') {
     conditions.push(isNull(claims.staffId));
     conditions.push(ne(claims.status, 'draft'));
+  } else if (scope === 'agent_queue' && isPrivileged) {
+    conditions.push(isNotNull(claims.agentId));
   }
 
-  if (scope === 'agent_queue') {
-    if (isPrivileged) {
-      conditions.push(isNotNull(claims.agentId));
-    }
-  }
-
+  // Status Filter
   if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {
     conditions.push(eq(claims.status, statusFilter as (typeof VALID_STATUSES)[number]));
   }
 
+  // Search Query
   if (searchQuery) {
     const searchCondition =
       scope === 'member'
@@ -161,8 +217,10 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
   }
 
   const baseWhere = conditions.length ? and(...conditions) : undefined;
-  const whereClause = withTenant(tenantId, claims.tenantId, baseWhere);
+  return withTenant(tenantId, claims.tenantId, baseWhere);
+}
 
+async function fetchTotalCount(whereClause: SQL | undefined, agentClientsJoinOn: any) {
   let countQuery = db
     .select({ total: count() })
     .from(claims)
@@ -173,10 +231,16 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
   }
 
   const [countRow] = await countQuery.where(whereClause);
+  return Number(countRow?.total || 0);
+}
 
-  const totalCount = Number(countRow?.total || 0);
-  const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
-  const offset = (page - 1) * perPage;
+async function fetchClaimRows(params: {
+  whereClause: SQL | undefined;
+  agentClientsJoinOn: any;
+  perPage: number;
+  offset: number;
+}) {
+  const { whereClause, agentClientsJoinOn, perPage, offset } = params;
 
   let rowsQuery = db
     .select({
@@ -198,12 +262,19 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
     rowsQuery = rowsQuery.innerJoin(agentClients, agentClientsJoinOn);
   }
 
-  const rows = await rowsQuery
+  return await rowsQuery
     .where(whereClause)
     .orderBy(desc(claims.createdAt))
     .limit(perPage)
     .offset(offset);
+}
 
+async function fetchUnreadCounts(params: {
+  rows: { id: string }[];
+  scope: ClaimsScope;
+  tenantId: string;
+}) {
+  const { rows, scope, tenantId } = params;
   const unreadCounts = new Map<string, number>();
 
   if (scope !== 'member' && rows.length > 0) {
@@ -234,27 +305,28 @@ export async function listClaims(params: ListClaimsParams): Promise<ClaimsListRe
       unreadCounts.set(row.claimId, Number(row.total || 0));
     }
   }
+  return unreadCounts;
+}
 
+function mapClaimsToResponse(
+  rows: any[],
+  scope: ClaimsScope,
+  isAgent: boolean,
+  unreadCounts: Map<string, number>
+) {
   const redactForAgent = scope === 'agent_queue' && isAgent;
 
-  return {
-    success: true,
-    claims: rows.map(row => ({
-      id: row.id,
-      title: redactForAgent ? null : row.title,
-      status: row.status,
-      createdAt: row.createdAt ? row.createdAt.toISOString() : null,
-      companyName: redactForAgent ? null : row.companyName,
-      claimAmount: redactForAgent ? null : row.claimAmount,
-      currency: redactForAgent ? null : row.currency,
-      category: redactForAgent ? null : row.category,
-      claimantName: redactForAgent ? null : row.claimantName,
-      claimantEmail: redactForAgent ? null : row.claimantEmail,
-      unreadCount: scope === 'member' || redactForAgent ? 0 : unreadCounts.get(row.id) || 0,
-    })),
-    page,
-    perPage,
-    totalCount,
-    totalPages,
-  };
+  return rows.map(row => ({
+    id: row.id,
+    title: redactForAgent ? null : row.title,
+    status: row.status,
+    createdAt: row.createdAt ? row.createdAt.toISOString() : null,
+    companyName: redactForAgent ? null : row.companyName,
+    claimAmount: redactForAgent ? null : row.claimAmount,
+    currency: redactForAgent ? null : row.currency,
+    category: redactForAgent ? null : row.category,
+    claimantName: redactForAgent ? null : row.claimantName,
+    claimantEmail: redactForAgent ? null : row.claimantEmail,
+    unreadCount: scope === 'member' || redactForAgent ? 0 : unreadCounts.get(row.id) || 0,
+  }));
 }

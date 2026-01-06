@@ -34,7 +34,7 @@ export async function getAgentSettingsCore(params: {
         commissionRates: settings.commissionRates as CommissionRates,
         tier: (settings.tier ?? 'standard') as 'standard' | 'premium' | 'vip',
         canNegotiateRates: settings.canNegotiateRates,
-        minPayoutAmount: parseFloat(settings.minPayoutAmount ?? '50'),
+        minPayoutAmount: Number.parseFloat(settings.minPayoutAmount ?? '50'),
       },
     };
   } catch (error) {

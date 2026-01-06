@@ -25,7 +25,7 @@ export const uploadRequestSchema = z.object({
 
 export type UploadRequest = z.infer<typeof uploadRequestSchema>;
 
-export const sanitizeFileName = (fileName: string) => fileName.replace(/[^\w.-]+/g, '_');
+export const sanitizeFileName = (fileName: string) => fileName.replaceAll(/[^\w.-]+/g, '_');
 
 type UploadOk = {
   ok: true;

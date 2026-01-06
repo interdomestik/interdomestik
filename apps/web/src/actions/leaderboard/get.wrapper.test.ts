@@ -8,18 +8,34 @@ vi.mock('@interdomestik/database', () => {
     findFirst: vi.fn(),
   };
 
+  const resultObj = {
+    then: (cb: any) => Promise.resolve(cb([])),
+    catch: vi.fn(),
+  };
+
   return {
     db: {
-      select: vi.fn().mockReturnThis(),
-      from: vi.fn().mockReturnThis(),
-      leftJoin: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      groupBy: vi.fn().mockReturnThis(),
-      orderBy: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            groupBy: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue(resultObj),
+                ...resultObj,
+              }),
+              ...resultObj,
+            }),
+            ...resultObj,
+          }),
+          ...resultObj,
+        }),
+        ...resultObj,
+      }),
       query: {
         user: mockQueryUser,
       },
+      // Fallback for direct calls if any
+      then: resultObj.then,
     },
     agentCommissions: {
       agentId: 'ac_agentId',
@@ -32,6 +48,10 @@ vi.mock('@interdomestik/database', () => {
       name: 'u_name',
       image: 'u_image',
     },
+    eq: vi.fn(),
+    and: vi.fn(),
+    desc: vi.fn(),
+    sql: vi.fn(s => s[0]),
   };
 });
 
@@ -40,7 +60,27 @@ vi.mock('@interdomestik/shared-auth', () => ({
 }));
 
 describe('getAgentLeaderboardCore', () => {
-  const mockSession = { user: { id: 'agent1', role: 'agent', tenantId: 'tenant-1' } };
+  const mockSession = {
+    session: {
+      id: 'sess1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 'agent1',
+      expiresAt: new Date(Date.now() + 3600000),
+      token: 'token1',
+    },
+    user: {
+      id: 'agent1',
+      role: 'agent',
+      tenantId: 'tenant-1',
+      email: 'a@test.com',
+      emailVerified: true,
+      name: 'Agent',
+      memberNumber: 'M1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -49,9 +89,18 @@ describe('getAgentLeaderboardCore', () => {
 
   it('should query db with correct filters for week', async () => {
     const mockDbResult = [{ agentId: 'a1', totalEarned: '100', dealCount: 5 }];
-    (db.limit as any).mockResolvedValue(mockDbResult);
+    // The chain ends with .limit() which returns our resultObj.
+    // We need to override the then for this specific call.
+    (db.select() as any)
+      .from()
+      .where()
+      .groupBy()
+      .orderBy()
+      .limit.mockReturnValue({
+        then: (cb: any) => Promise.resolve(cb(mockDbResult)),
+      });
 
-    const result = await getAgentLeaderboardCore({ session: mockSession, period: 'week' });
+    const result = await getAgentLeaderboardCore({ session: mockSession as any, period: 'week' });
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -62,9 +111,16 @@ describe('getAgentLeaderboardCore', () => {
   });
 
   it('should handle db errors', async () => {
-    (db.limit as any).mockRejectedValue(new Error('DB Fail'));
+    (db.select() as any)
+      .from()
+      .where()
+      .groupBy()
+      .orderBy()
+      .limit.mockReturnValue({
+        then: (cb: any, errCb: any) => Promise.reject(new Error('DB Fail')).catch(errCb),
+      });
 
-    const result = await getAgentLeaderboardCore({ session: mockSession, period: 'week' });
+    const result = await getAgentLeaderboardCore({ session: mockSession as any, period: 'week' });
     expect(result).toEqual({ success: false, error: 'Failed to fetch leaderboard' });
   });
 });

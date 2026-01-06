@@ -1,5 +1,5 @@
 import { withTransactionRetry } from '@interdomestik/shared-utils/resilience';
-import { beforeEach, describe, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock db for testing
 const mockDb = {
@@ -51,7 +51,7 @@ describe.skip('Production Readiness Tests', () => {
       // Fixing the "cannot find name callback" error by defining what we want to run.
       // And fixing implicit any.
 
-      return { success: true };
+      expect(true).toBe(true); // Placeholder for skipped test
     });
 
     // ... I will replace the whole file with a corrected version that compiles

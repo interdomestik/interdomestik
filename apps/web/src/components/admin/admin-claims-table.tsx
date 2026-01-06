@@ -190,7 +190,7 @@ export function AdminClaimsTable() {
             </TableCell>
             <TableCell>
               {claim.claimAmount
-                ? `${parseFloat(claim.claimAmount).toFixed(2)} ${claim.currency || 'EUR'}`
+                ? `${Number.parseFloat(claim.claimAmount).toFixed(2)} ${claim.currency || 'EUR'}`
                 : '-'}
             </TableCell>
             <TableCell>

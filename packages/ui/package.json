@@ -11,6 +11,7 @@
     "./input": "./src/components/input.tsx",
     "./label": "./src/components/label.tsx",
     "./badge": "./src/components/badge.tsx",
+    "./alert": "./src/components/alert.tsx",
     "./avatar": "./src/components/avatar.tsx",
     "./progress": "./src/components/progress.tsx",
     "./skeleton": "./src/components/skeleton.tsx",

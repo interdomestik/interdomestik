@@ -23,8 +23,16 @@ vi.mock('next/cache', () => ({
 
 describe('assignClaimCore (Wrapper Means)', () => {
   const mockSession = {
+    session: {
+      id: 'sess1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 'admin1',
+      expiresAt: new Date(Date.now() + 3600000),
+      token: 'token1',
+    },
     user: { id: 'admin1', role: 'admin', tenantId: 'tenant1', email: 'admin@test.com' },
-  };
+  } as any;
   const mockHeaders = new Headers();
 
   beforeEach(() => {

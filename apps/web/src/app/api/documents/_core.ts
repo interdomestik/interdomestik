@@ -57,7 +57,7 @@ type DocumentAccessResult = ForbiddenResult | NotFoundResult | OkResult;
 
 export function safeFilename(value: string) {
   // Keep it simple; rely on filename* encoding for non-ascii.
-  return value.replace(/[\r\n"]/g, '_');
+  return value.replaceAll(/[\r\n"]/g, '_');
 }
 
 export async function getDocumentAccessCore(args: {

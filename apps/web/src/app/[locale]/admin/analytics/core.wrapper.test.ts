@@ -3,18 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { computeSuccessRate, getAdminAnalyticsDataCore, normalizeTotalsRow } from './_core';
 
 vi.mock('@interdomestik/database', () => {
+  const mockDbResult = {
+    then: vi.fn(),
+    catch: vi.fn(),
+  };
+
   const mockDb = {
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
     groupBy: vi.fn().mockReturnThis(),
-    // Drizzle select().from() returns a Promise-like
-    then: vi.fn(),
-    catch: vi.fn(),
+    then: mockDbResult.then,
   };
-  // Make it chainable and awaitable
-  mockDb.select.mockReturnValue(mockDb);
-  mockDb.from.mockReturnValue(mockDb);
-  mockDb.groupBy.mockReturnValue(mockDb);
 
   return {
     db: mockDb,
@@ -24,7 +23,7 @@ vi.mock('@interdomestik/database', () => {
       category: 'category',
       userId: 'userId',
     },
-    sql: (strings: any, ...values: any[]) => strings[0],
+    sql: (strings: any, ..._values: any[]) => strings[0],
   };
 });
 
@@ -51,7 +50,7 @@ describe('admin analytics _core', () => {
 
   describe('getAdminAnalyticsDataCore', () => {
     it('fetches data successfully', async () => {
-      (db.then as any)
+      (db as any).then
         .mockImplementationOnce((cb: any) => cb([{ sum: 1000, avg: 500, count: 2 }]))
         .mockImplementationOnce((cb: any) => cb([{ status: 'resolved', count: 1 }]))
         .mockImplementationOnce((cb: any) => cb([{ category: 'test', count: 2 }]))

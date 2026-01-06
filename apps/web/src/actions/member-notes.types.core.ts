@@ -8,7 +8,7 @@ export const MAX_NOTE_CONTENT_LENGTH = 2000;
 /** Sanitize note content - strip HTML and limit length */
 export function sanitizeNoteContent(content: string): string {
   // Strip any HTML tags (whitelist: plain text only)
-  const plainText = content.replace(/<[^>]*>/g, '');
+  const plainText = content.replaceAll(/<[^>]*>/g, '');
   // Trim and limit to max length
   return plainText.trim().slice(0, MAX_NOTE_CONTENT_LENGTH);
 }

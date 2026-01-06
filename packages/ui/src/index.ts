@@ -1,4 +1,5 @@
 // Components
+export { Alert, AlertDescription, AlertTitle } from './components/alert';
 export { Avatar, AvatarFallback, AvatarImage } from './components/avatar';
 export { Badge, badgeVariants, type BadgeProps } from './components/badge';
 export { Button, buttonVariants, type ButtonProps } from './components/button';

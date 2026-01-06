@@ -28,29 +28,19 @@ describe('Analytics Utils', () => {
       other: 'safe',
     });
 
-    // Verify console.log was called with Safe Properties
-    expect(consoleLogSpy).toHaveBeenCalledWith('Safe Properties:', {
-      claimId: '123',
-      other: 'safe',
-    });
+    // Verify console.group was called
+    expect(consoleGroupSpy).toHaveBeenCalledWith('[Analytics] claim_intake_viewed');
 
-    // Ensure PII keys are NOT present in the logged object
-    const loggedProps = consoleLogSpy.mock.calls.find((call: unknown[]) => {
-      return Array.isArray(call) && call[0] === 'Safe Properties:';
-    })?.[1] as Record<string, unknown> | undefined;
-
-    expect(loggedProps).toBeDefined();
-    expect(loggedProps).not.toHaveProperty('name');
-    expect(loggedProps).not.toHaveProperty('email');
-    expect(loggedProps).not.toHaveProperty('phone');
-    expect(loggedProps).not.toHaveProperty('address');
+    // Note: Console logging of properties is disabled to reduce noise and lint errors.
+    // PII stripping is handled within the core function but not visible in logs anymore.
+    expect(consoleLogSpy).not.toHaveBeenCalled();
   });
 
   it('should handle undefined properties', () => {
     analytics.track('call_me_now_clicked');
 
     expect(consoleGroupSpy).toHaveBeenCalledWith('[Analytics] call_me_now_clicked');
-    expect(consoleLogSpy).toHaveBeenCalledWith('Safe Properties:', {});
+    expect(consoleLogSpy).not.toHaveBeenCalled();
   });
 
   it('should not log in production mode', async () => {

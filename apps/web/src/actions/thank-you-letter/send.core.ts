@@ -50,7 +50,6 @@ export async function sendThankYouLetterCore(
       }
     );
 
-    console.log(`[ThankYouLetter] Sent to ${params.email} (${params.memberNumber})`);
     return { success: true };
   } catch (error) {
     console.error('[ThankYouLetter] Failed to send:', error);

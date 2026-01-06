@@ -135,23 +135,24 @@ async function uploadPolicyFile(args: {
 
 export async function POST(req: NextRequest) {
   try {
+    // FIX: req.headers is not a Promise
+    const headersList = req.headers;
     const session = await auth.api.getSession({
-      headers: await req.headers,
+      headers: headersList,
     });
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Rate Limit: 5 requests per minute per user/IP to prevent cost spikes
+    // Rate Limit
     const limit = await enforceRateLimit({
       name: 'api:policy-analyze',
       limit: 5,
       windowSeconds: 60,
-      headers: await req.headers,
+      headers: headersList,
     });
 
-    // Return the response directly (can be 429 or 503 with proper headers)
     if (limit) {
       return limit;
     }
@@ -159,135 +160,170 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
-    if (!isValidUpload(file)) {
-      return NextResponse.json(
-        { error: 'Only PDF and image uploads are supported (PDF, JPEG, PNG, WebP)' },
-        { status: 400 }
-      );
-    }
-
-    if (file.size > MAX_UPLOAD_BYTES) {
-      return NextResponse.json({ error: 'File too large' }, { status: 413 });
+    const validation = validatePolicyUpload(file);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Check if this is a direct image upload (not a PDF) - using magic bytes fallback
+    // Check if this is a direct image upload (not a PDF)
     const isImage = isImageFile(file, buffer);
-
-    // 1. Extract Text (only for PDFs)
-    let textContent = '';
-    if (!isImage) {
-      try {
-        // Lazy load pdf-parse to avoid top-level failures
-        const pdfModule = await import('pdf-parse');
-        const pdf = pdfModule.default ?? pdfModule;
-        const pdfData = await pdf(buffer);
-        textContent = pdfData.text;
-      } catch (pdfError: unknown) {
-        // Fallback to Vision API if text extraction fails.
-        console.error('PDF Parse Error (falling back to Vision):', pdfError);
-        textContent = '';
-      }
-    }
-
-    // 2. Use Vision API for images or scanned PDFs
     const tenantId = ensureTenantId(session);
+    const userId = session.user.id;
 
     if (isImage) {
-      const analysis = await withTimeout(analyzePolicyImages([buffer]), 'Image analysis');
-
-      const safeName = sanitizeFileName(file.name);
-      const upload = await uploadPolicyFile({
-        userId: session.user.id,
-        tenantId,
+      return await handleImageAnalysis({
         file,
         buffer,
-        safeName,
-      });
-
-      if (!upload.ok) {
-        return NextResponse.json({ error: upload.error }, { status: 500 });
-      }
-
-      const newPolicy = await db
-        .insert(policies)
-        .values({
-          id: nanoid(),
-          tenantId,
-          userId: session.user.id,
-          provider: analysis.provider || 'Unknown',
-          policyNumber: analysis.policyNumber ?? null,
-          analysisJson: analysis,
-          fileUrl: upload.filePath,
-        })
-        .returning();
-
-      return NextResponse.json({
-        success: true,
-        policy: newPolicy[0],
-        analysis,
-        message: 'Policy analyzed from image upload',
+        tenantId,
+        userId,
       });
     }
 
-    if (!textContent || textContent.trim().length < 50) {
-      return NextResponse.json(
-        {
-          error:
-            'Scanned PDFs are not supported yet. Please upload a text-based PDF or a clear image.',
-        },
-        { status: 422 }
-      );
-    }
-
-    // 2. AI Analysis (text-based)
-    const analysis = await withTimeout(analyzePolicyText(textContent), 'Text analysis');
-
-    // 3. Upload to Storage
-    const safeName = sanitizeFileName(file.name);
-    const upload = await uploadPolicyFile({
-      userId: session.user.id,
-      tenantId,
+    return await handlePdfAnalysis({
       file,
       buffer,
-      safeName,
-    });
-
-    if (!upload.ok) {
-      return NextResponse.json({ error: upload.error }, { status: 500 });
-    }
-
-    // 4. Save to DB
-    const [inserted] = await db
-      .insert(policies)
-      .values({
-        id: nanoid(),
-        tenantId,
-        userId: session.user.id,
-        fileUrl: upload.filePath,
-        provider: analysis.provider || 'Unknown',
-        policyNumber: analysis.policyNumber ?? null,
-        analysisJson: analysis,
-      })
-      .returning();
-
-    return NextResponse.json({
-      success: true,
-      policy: inserted,
-      analysis,
+      tenantId,
+      userId,
     });
   } catch (error: unknown) {
     if (error instanceof PolicyAnalysisTimeoutError) {
       return NextResponse.json({ error: error.message }, { status: 504 });
     }
     console.error('Policy Analysis Error:', error);
-    // Return actual error message for debugging
     return NextResponse.json({ error: formatError('Server error', error) }, { status: 500 });
   }
+}
+
+function validatePolicyUpload(file: File | null): {
+  valid: boolean;
+  error?: string;
+  status?: number;
+} {
+  if (!file) {
+    return { valid: false, error: 'No file provided', status: 400 };
+  }
+
+  if (!isValidUpload(file)) {
+    return {
+      valid: false,
+      error: 'Only PDF and image uploads are supported (PDF, JPEG, PNG, WebP)',
+      status: 400,
+    };
+  }
+
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return { valid: false, error: 'File too large', status: 413 };
+  }
+
+  return { valid: true };
+}
+
+async function handleImageAnalysis(params: {
+  file: File;
+  buffer: Buffer;
+  tenantId: string;
+  userId: string;
+}) {
+  const { file, buffer, tenantId, userId } = params;
+  const analysis = await withTimeout(analyzePolicyImages([buffer]), 'Image analysis');
+
+  const safeName = sanitizeFileName(file.name);
+  const upload = await uploadPolicyFile({
+    userId,
+    tenantId,
+    file,
+    buffer,
+    safeName,
+  });
+
+  if (!upload.ok) {
+    return NextResponse.json({ error: upload.error }, { status: 500 });
+  }
+
+  const newPolicy = await db
+    .insert(policies)
+    .values({
+      id: nanoid(),
+      tenantId,
+      userId,
+      provider: analysis.provider || 'Unknown',
+      policyNumber: analysis.policyNumber ?? null,
+      analysisJson: analysis,
+      fileUrl: upload.filePath,
+    })
+    .returning();
+
+  return NextResponse.json({
+    success: true,
+    policy: newPolicy[0],
+    analysis,
+    message: 'Policy analyzed from image upload',
+  });
+}
+
+async function handlePdfAnalysis(params: {
+  file: File;
+  buffer: Buffer;
+  tenantId: string;
+  userId: string;
+}) {
+  const { file, buffer, tenantId, userId } = params;
+  let textContent = '';
+
+  try {
+    const pdfModule = await import('pdf-parse');
+    const pdf = pdfModule.default ?? pdfModule;
+    const pdfData = await pdf(buffer);
+    textContent = pdfData.text;
+  } catch (pdfError: unknown) {
+    console.error('PDF Parse Error (falling back to Vision):', pdfError);
+    textContent = '';
+  }
+
+  if (!textContent || textContent.trim().length < 50) {
+    return NextResponse.json(
+      {
+        error:
+          'Scanned PDFs are not supported yet. Please upload a text-based PDF or a clear image.',
+      },
+      { status: 422 }
+    );
+  }
+
+  const analysis = await withTimeout(analyzePolicyText(textContent), 'Text analysis');
+
+  const safeName = sanitizeFileName(file.name);
+  const upload = await uploadPolicyFile({
+    userId,
+    tenantId,
+    file,
+    buffer,
+    safeName,
+  });
+
+  if (!upload.ok) {
+    return NextResponse.json({ error: upload.error }, { status: 500 });
+  }
+
+  const [inserted] = await db
+    .insert(policies)
+    .values({
+      id: nanoid(),
+      tenantId,
+      userId,
+      fileUrl: upload.filePath,
+      provider: analysis.provider || 'Unknown',
+      policyNumber: analysis.policyNumber ?? null,
+      analysisJson: analysis,
+    })
+    .returning();
+
+  return NextResponse.json({
+    success: true,
+    policy: inserted,
+    analysis,
+  });
 }

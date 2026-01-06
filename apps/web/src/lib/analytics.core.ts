@@ -24,9 +24,10 @@ export const analytics = {
     // 2. Log to console in Development
     if (!IS_PROD) {
       console.group(`[Analytics] ${event}`);
-      console.log('Timestamp:', new Date().toISOString());
-      if (properties) console.log('Raw Properties (Dev Only):', properties);
-      console.log('Safe Properties:', safeProps);
+      // Log for dev if needed, otherwise rely on PostHog
+      if (process.env.NODE_ENV === 'development') {
+        // console.log('Analytics Event:', { safeProps });
+      }
       console.groupEnd();
       return;
     }

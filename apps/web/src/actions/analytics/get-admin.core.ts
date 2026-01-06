@@ -49,7 +49,7 @@ export async function getAdminAnalyticsCore(params: {
 
     let mrr = 0;
     for (const sub of activeSubs) {
-      const price = parseFloat(sub.price || '0');
+      const price = Number.parseFloat(sub.price || '0');
       if (sub.interval === 'year') {
         mrr += price / 12;
       } else {

@@ -3,20 +3,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WizardReview } from './wizard-review';
 
 // Mock react-hook-form
-vi.mock('react-hook-form', () => ({
-  useFormContext: () => ({
-    getValues: vi.fn().mockReturnValue({
-      category: 'vehicle',
-      title: 'Car Accident on Highway',
-      companyName: 'State Farm',
-      claimAmount: '5000',
-      currency: 'EUR',
-      incidentDate: '2024-01-15',
-      description: 'I was rear-ended at a traffic light.',
-      files: [{ id: '1', name: 'photo.jpg' }],
+// Mock react-hook-form
+vi.mock('react-hook-form', async importOriginal => {
+  const actual = await importOriginal<typeof import('react-hook-form')>();
+  return {
+    ...actual,
+    useFormContext: () => ({
+      getValues: vi.fn().mockReturnValue({
+        category: 'vehicle',
+        title: 'Car Accident on Highway',
+        companyName: 'State Farm',
+        claimAmount: '5000',
+        currency: 'EUR',
+        incidentDate: '2024-01-15',
+        description: 'I was rear-ended at a traffic light.',
+        files: [{ id: '1', name: 'photo.jpg' }],
+      }),
     }),
-  }),
-}));
+  };
+});
 
 // Mock next-intl
 vi.mock('next-intl', () => ({

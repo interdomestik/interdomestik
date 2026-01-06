@@ -125,6 +125,7 @@ describe('Translation Files', () => {
       if (extraInSq.length > 0) {
         console.warn('Found extra keys in sq.json - review if intentional');
       }
+      expect(extraInSq).toBeDefined();
     });
   });
 

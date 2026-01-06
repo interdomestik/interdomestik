@@ -102,13 +102,15 @@ export function ClaimActionPanel({
       {/* Status Update Section */}
       <div className="space-y-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium">Update Status</label>
+          <label htmlFor="claim-status-select" className="text-sm font-medium">
+            Update Status
+          </label>
           <Select
             value={status}
             onValueChange={value => setStatus(value as ClaimStatus)}
             disabled={isPending}
           >
-            <SelectTrigger>
+            <SelectTrigger id="claim-status-select">
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
             <SelectContent>
@@ -122,10 +124,11 @@ export function ClaimActionPanel({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">
+          <label htmlFor="claim-status-note" className="text-sm font-medium">
             Status Note <span className="text-xs text-muted-foreground">(Visible to member)</span>
           </label>
           <Textarea
+            id="claim-status-note"
             placeholder="Reason for status change..."
             value={note}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNote(e.target.value)}

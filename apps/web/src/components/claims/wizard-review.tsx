@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl';
 import { useFormContext } from 'react-hook-form';
 
 import { useNetwork } from '@/hooks/use-network';
-import { Alert, AlertDescription, AlertTitle } from '@interdomestik/ui/components/alert';
+import { Alert, AlertDescription, AlertTitle } from '@interdomestik/ui';
 import { WifiOff } from 'lucide-react';
 
 export function WizardReview() {

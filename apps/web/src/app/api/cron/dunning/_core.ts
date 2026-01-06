@@ -47,68 +47,8 @@ export async function runDunningCronCore(args: {
     for (const sub of pastDueSubscriptions) {
       if (!sub.gracePeriodEndsAt || !sub.pastDueAt) continue;
 
-      const msRemaining = sub.gracePeriodEndsAt.getTime() - now.getTime();
-      const daysRemaining = Math.ceil(msRemaining / (1000 * 60 * 60 * 24));
-
-      const msSinceFailed = now.getTime() - sub.pastDueAt.getTime();
-      const daysSinceFailed = Math.floor(msSinceFailed / (1000 * 60 * 60 * 24));
-
-      let emailToSend: 'day7' | 'day13' | null = null;
-
-      if (
-        daysRemaining >= 6 &&
-        daysRemaining <= 8 &&
-        daysSinceFailed >= 6 &&
-        daysSinceFailed <= 8
-      ) {
-        emailToSend = 'day7';
-      } else if (daysRemaining >= 0 && daysRemaining <= 2 && daysSinceFailed >= 12) {
-        emailToSend = 'day13';
-      }
-
-      if (!emailToSend) continue;
-
       try {
-        const userRecord = await db.query.user.findFirst({
-          where: eq(user.id, sub.userId),
-        });
-
-        if (!userRecord?.email) continue;
-
-        const emailParams = {
-          memberName: userRecord.name || 'Member',
-          planName: sub.planId || 'Membership',
-          gracePeriodEndDate: sub.gracePeriodEndsAt.toLocaleDateString(),
-          daysRemaining,
-        };
-
-        if (emailToSend === 'day7') {
-          await sendPaymentReminderEmail(userRecord.email, emailParams);
-          stats.day7Sent++;
-        } else if (emailToSend === 'day13') {
-          await sendPaymentFinalWarningEmail(userRecord.email, emailParams);
-          stats.day13Sent++;
-        }
-
-        await db
-          .update(subscriptions)
-          .set({ lastDunningAt: now })
-          .where(eq(subscriptions.id, sub.id));
-
-        await logAuditEvent({
-          actorId: null,
-          actorRole: 'system',
-          tenantId: sub.tenantId,
-          action: emailToSend === 'day7' ? 'email.dunning.reminder' : 'email.dunning.final_warning',
-          entityType: 'subscription',
-          entityId: sub.id,
-          metadata: {
-            emailToSend,
-            daysRemaining,
-            daysSinceFailed,
-          },
-          headers,
-        });
+        await processDunningSubscription({ sub, now, headers, stats });
       } catch {
         stats.errors++;
       }
@@ -118,4 +58,92 @@ export async function runDunningCronCore(args: {
   }
 
   return { stats };
+}
+
+async function processDunningSubscription(params: {
+  sub: any;
+  now: Date;
+  headers: Headers;
+  stats: DunningCronStats;
+}) {
+  const { sub, now, headers, stats } = params;
+  const daysRemaining = calculateDaysDiff(sub.gracePeriodEndsAt, now);
+  const daysSinceFailed = calculateDaysDiff(now, sub.pastDueAt);
+
+  const emailType = determineDunningEmailType(daysRemaining, daysSinceFailed);
+  if (!emailType) return;
+
+  const userRecord = await db.query.user.findFirst({
+    where: eq(user.id, sub.userId),
+  });
+
+  if (!userRecord?.email) return;
+
+  await sendDunningEmail({
+    email: userRecord.email,
+    userName: userRecord.name,
+    sub,
+    daysRemaining,
+    emailType,
+  });
+
+  if (emailType === 'day7') stats.day7Sent++;
+  else if (emailType === 'day13') stats.day13Sent++;
+
+  await db.update(subscriptions).set({ lastDunningAt: now }).where(eq(subscriptions.id, sub.id));
+
+  await logAuditEvent({
+    actorId: null,
+    actorRole: 'system',
+    tenantId: sub.tenantId,
+    action: emailType === 'day7' ? 'email.dunning.reminder' : 'email.dunning.final_warning',
+    entityType: 'subscription',
+    entityId: sub.id,
+    metadata: {
+      emailToSend: emailType,
+      daysRemaining,
+      daysSinceFailed,
+    },
+    headers,
+  });
+}
+
+function calculateDaysDiff(dateA: Date, dateB: Date): number {
+  const ms = dateA.getTime() - dateB.getTime();
+  return ms > 0 ? Math.ceil(ms / (1000 * 60 * 60 * 24)) : Math.floor(ms / (1000 * 60 * 60 * 24));
+}
+
+function determineDunningEmailType(
+  daysRemaining: number,
+  daysSinceFailed: number
+): 'day7' | 'day13' | null {
+  if (daysRemaining >= 6 && daysRemaining <= 8 && daysSinceFailed >= 6 && daysSinceFailed <= 8) {
+    return 'day7';
+  }
+  if (daysRemaining >= 0 && daysRemaining <= 2 && daysSinceFailed >= 12) {
+    return 'day13';
+  }
+  return null;
+}
+
+async function sendDunningEmail(params: {
+  email: string;
+  userName: string | null;
+  sub: any;
+  daysRemaining: number;
+  emailType: 'day7' | 'day13';
+}) {
+  const { email, userName, sub, daysRemaining, emailType } = params;
+  const emailParams = {
+    memberName: userName || 'Member',
+    planName: sub.planId || 'Membership',
+    gracePeriodEndDate: sub.gracePeriodEndsAt.toLocaleDateString(),
+    daysRemaining,
+  };
+
+  if (emailType === 'day7') {
+    await sendPaymentReminderEmail(email, emailParams);
+  } else if (emailType === 'day13') {
+    await sendPaymentFinalWarningEmail(email, emailParams);
+  }
 }

@@ -37,10 +37,11 @@ export function ClaimTriageNotes({ claimId, currentStatus }: ClaimTriageNotesPro
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <label className="text-sm font-medium">
+        <label htmlFor="triage-internal-note" className="text-sm font-medium">
           Internal note <span className="text-xs text-muted-foreground">(Staff only)</span>
         </label>
         <Textarea
+          id="triage-internal-note"
           placeholder="Add an internal triage note..."
           value={note}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNote(e.target.value)}

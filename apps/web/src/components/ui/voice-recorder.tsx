@@ -53,11 +53,13 @@ export function VoiceRecorder({
         {audioBlob ? (
           <div className="flex flex-col items-center gap-2 w-full">
             <div className="flex items-center gap-4 w-full justify-center">
-              <audio
-                controls
-                src={URL.createObjectURL(audioBlob)}
-                className="h-10 w-full max-w-xs"
-              />
+              <audio controls src={URL.createObjectURL(audioBlob)} className="h-10 w-full max-w-xs">
+                <track
+                  kind="captions"
+                  src="data:text/vtt;charset=utf-8,WEBVTT"
+                  label="No captions available"
+                />
+              </audio>
               <Button
                 variant="destructive"
                 size="icon"

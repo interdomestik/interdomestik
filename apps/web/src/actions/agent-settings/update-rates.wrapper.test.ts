@@ -37,7 +37,17 @@ vi.mock('nanoid', () => ({
 }));
 
 describe('updateAgentCommissionRatesCore', () => {
-  const mockSession = { user: { id: 'admin1', role: 'admin', tenantId: 'tenant-1' } };
+  const mockSession = {
+    session: {
+      id: 'sess1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 'admin1',
+      expiresAt: new Date(Date.now() + 3600000),
+      token: 'token1',
+    },
+    user: { id: 'admin1', role: 'admin', tenantId: 'tenant-1' },
+  } as any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -63,9 +73,9 @@ describe('updateAgentCommissionRatesCore', () => {
 
   it('should fail if rates are invalid', async () => {
     const result = await updateAgentCommissionRatesCore({
-      session: mockSession,
+      session: mockSession as any,
       agentId: 'a1',
-      rates: { standard: 1.5 },
+      rates: { new_membership: 1.5 } as any,
     });
     expect(result).toEqual({ success: false, error: 'Rates must be between 0 and 1' });
   });
@@ -74,9 +84,9 @@ describe('updateAgentCommissionRatesCore', () => {
     (db.query.agentSettings.findFirst as any).mockResolvedValue({ id: 'existing' });
 
     const result = await updateAgentCommissionRatesCore({
-      session: mockSession,
+      session: mockSession as any,
       agentId: 'a1',
-      rates: { standard: 0.1 },
+      rates: { new_membership: 0.1 },
     });
 
     expect(result).toEqual({ success: true });
@@ -87,9 +97,9 @@ describe('updateAgentCommissionRatesCore', () => {
     (db.query.agentSettings.findFirst as any).mockResolvedValue(null);
 
     const result = await updateAgentCommissionRatesCore({
-      session: mockSession,
+      session: mockSession as any,
       agentId: 'a1',
-      rates: { standard: 0.1 },
+      rates: { new_membership: 0.1 },
     });
 
     expect(result).toEqual({ success: true });

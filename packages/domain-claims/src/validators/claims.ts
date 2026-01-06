@@ -20,7 +20,7 @@ export const claimDetailsSchema = z.object({
   description: z.string().min(20, 'Please provide more detail (min 20 chars)'),
   incidentDate: z
     .string()
-    .refine((val: string) => !isNaN(Date.parse(val)), {
+    .refine((val: string) => !Number.isNaN(Date.parse(val)), {
       message: 'Invalid date',
     })
     .optional(), // Made optional as it's not in DB yet

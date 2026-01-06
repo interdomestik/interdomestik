@@ -45,8 +45,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log('[Dunning Cron] Starting daily dunning check...');
-
   const now = new Date();
   let stats: DunningCronStats = {
     checked: 0,

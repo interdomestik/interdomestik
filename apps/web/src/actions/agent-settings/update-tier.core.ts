@@ -1,8 +1,8 @@
 import { db } from '@interdomestik/database';
 import { agentSettings } from '@interdomestik/database/schema';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 
 import type { ActionResult } from '../commissions.types';
 import { isAdmin } from './access';
@@ -45,7 +45,6 @@ export async function updateAgentTierCore(params: {
       });
     }
 
-    console.log(`[Commission] Updated tier for agent ${agentId}: ${tier}`);
     return { success: true };
   } catch (error) {
     console.error('Error updating agent tier:', error);

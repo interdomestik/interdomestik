@@ -16,7 +16,17 @@ vi.mock('@/lib/audit', () => ({
 }));
 
 describe('adminUpdateSettingsCore', () => {
-  const mockSession = { user: { id: 'admin1', tenantId: 't1', role: 'admin' } };
+  const mockSession = {
+    session: {
+      id: 'sess1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 'admin1',
+      expiresAt: new Date(Date.now() + 3600000),
+      token: 'token1',
+    },
+    user: { id: 'admin1', tenantId: 't1', role: 'admin' },
+  };
   const validData = {
     appName: 'TestApp',
     supportEmail: 'support@example.com',
@@ -45,7 +55,9 @@ describe('adminUpdateSettingsCore', () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Too many requests');
+    if (result.success === false) {
+      expect(result.error).toContain('Too many requests');
+    }
   });
 
   it('should update successfully', async () => {

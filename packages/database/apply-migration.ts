@@ -10,7 +10,7 @@ async function applyMigration() {
     const migrationFiles = fs
       .readdirSync(migrationsDir)
       .filter(file => file.endsWith('.sql'))
-      .sort();
+      .sort((a, b) => a.localeCompare(b));
 
     if (migrationFiles.length === 0) {
       console.log('ℹ️  No migrations found.');
