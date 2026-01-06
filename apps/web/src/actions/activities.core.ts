@@ -6,8 +6,6 @@ import { logLeadActivityCore, type LogLeadActivityInput } from './activities/log
 import { logActivityCore } from './activities/log-member';
 import type { LogActivityInput } from './activities/schema';
 
-export type { LogActivityInput } from './activities/schema';
-
 export async function logActivity(data: LogActivityInput) {
   return logActivityCore(data);
 }

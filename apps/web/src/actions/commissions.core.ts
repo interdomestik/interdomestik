@@ -12,12 +12,7 @@ import { createCommissionCore } from './commissions/create';
 import { getMyCommissionsCore } from './commissions/get-my';
 import { getMyCommissionSummaryCore } from './commissions/summary';
 
-export type {
-  Commission,
-  CommissionStatus,
-  CommissionSummary,
-  CommissionType,
-} from './commissions.types';
+export type { Commission, CommissionSummary } from './commissions.types';
 
 /** Get commissions for the current agent */
 export async function getMyCommissions(): Promise<ActionResult<Commission[]>> {
