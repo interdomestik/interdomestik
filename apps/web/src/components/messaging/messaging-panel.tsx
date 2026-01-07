@@ -56,18 +56,13 @@ export function MessagingPanel({
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     startTransition(async () => {
       await fetchMessages();
     });
-  };
+  }, [fetchMessages]);
 
-  const handleMessageSent = () => {
-    // Refresh messages after sending
-    startTransition(async () => {
-      await fetchMessages();
-    });
-  };
+  const handleMessageSent = handleRefresh;
 
   return (
     <Card className="flex flex-col h-[500px]" data-testid="messaging-panel">

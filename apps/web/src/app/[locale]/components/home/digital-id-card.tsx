@@ -135,22 +135,20 @@ export function DigitalIDCard() {
 
       {/* Modern Ecosystem Badges */}
       <div className="flex flex-wrap items-center justify-center gap-8 animate-fade-in delay-700 mt-4">
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           className="group/wallet flex items-center gap-3 px-5 py-3 bg-black text-white rounded-2xl font-black text-xs ring-1 ring-white/20 hover:ring-white/50 transition-all cursor-pointer shadow-lg active:scale-95"
         >
           <CreditCard className="h-4 w-4 text-white/70 group-hover/wallet:text-white transition-colors" />
           <span>Add to Apple Wallet</span>
-        </div>
-        <div
-          role="button"
-          tabIndex={0}
+        </button>
+        <button
+          type="button"
           className="group/wallet flex items-center gap-3 px-5 py-3 bg-slate-50 text-slate-900 rounded-2xl font-black text-xs border border-slate-200 hover:bg-white hover:shadow-xl transition-all cursor-pointer active:scale-95"
         >
           <QrCode className="h-4 w-4 text-slate-400 group-hover/wallet:text-primary transition-colors" />
           <span>Google Pay Ready</span>
-        </div>
+        </button>
       </div>
     </div>
   );

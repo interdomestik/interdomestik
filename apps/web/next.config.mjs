@@ -28,9 +28,11 @@ const nextConfig = {
   },
 };
 
+import { withAxiom } from 'next-axiom';
+
 const finalConfig = bundleAnalyzer(withNextIntl(nextConfig));
 
-export default withSentryConfig(finalConfig, {
+export default withSentryConfig(withAxiom(finalConfig), {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 

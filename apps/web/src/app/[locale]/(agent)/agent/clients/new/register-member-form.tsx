@@ -2,6 +2,7 @@
 
 import { Link } from '@/i18n/routing';
 import { registerMember } from '@/lib/actions/agent';
+import { RegistrationEvents } from '@/lib/analytics';
 import { Button } from '@interdomestik/ui/components/button';
 import { Input } from '@interdomestik/ui/components/input';
 import { Label } from '@interdomestik/ui/components/label';
@@ -15,7 +16,7 @@ import {
 import { Textarea } from '@interdomestik/ui/components/textarea';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useActionState } from 'react';
+import { useActionState, useEffect, useRef } from 'react';
 
 const initialState = {
   error: '',
@@ -26,6 +27,25 @@ export function RegisterMemberForm() {
   const t = useTranslations('agent-members.members.register.form');
   const tPlans = useTranslations('agent-members.members.register.plans');
   const [state, action, pending] = useActionState(registerMember, initialState);
+  const hasTrackedStart = useRef(false);
+  const hasTrackedResult = useRef(false);
+
+  // Track form opened (once)
+  useEffect(() => {
+    if (!hasTrackedStart.current) {
+      RegistrationEvents.started();
+      hasTrackedStart.current = true;
+    }
+  }, []);
+
+  // Track form result (only once per submission)
+  useEffect(() => {
+    if (hasTrackedResult.current) return;
+    if (state?.error) {
+      RegistrationEvents.failed(state.error);
+      hasTrackedResult.current = true;
+    }
+  }, [state]);
 
   return (
     <form action={action} className="space-y-6">

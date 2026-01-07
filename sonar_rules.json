@@ -1,0 +1,75 @@
+{
+  "total": 19,
+  "p": 1,
+  "ps": 1,
+  "paging": { "pageIndex": 1, "pageSize": 1, "total": 19 },
+  "effortTotal": 113,
+  "issues": [
+    {
+      "key": "1de499e3-9f34-42e8-aab1-1965d6abd45b",
+      "rule": "typescript:S6535",
+      "severity": "MAJOR",
+      "component": "interdomestikv2:apps/web/src/lib/ai/policy-analyzer.ts",
+      "project": "interdomestikv2",
+      "line": 39,
+      "hash": "1233b1d73487480e60e7c75e12cfc8b5",
+      "textRange": { "startLine": 39, "endLine": 39, "startOffset": 73, "endOffset": 74 },
+      "flows": [],
+      "status": "OPEN",
+      "message": "Unnecessary escape character: \\..",
+      "effort": "5min",
+      "debt": "5min",
+      "author": "",
+      "tags": [],
+      "creationDate": "2026-01-07T20:50:39+0000",
+      "updateDate": "2026-01-07T20:50:39+0000",
+      "type": "CODE_SMELL",
+      "scope": "MAIN",
+      "quickFixAvailable": true,
+      "messageFormattings": [],
+      "codeVariants": [],
+      "cleanCodeAttribute": "CLEAR",
+      "cleanCodeAttributeCategory": "INTENTIONAL",
+      "impacts": [{ "softwareQuality": "MAINTAINABILITY", "severity": "MEDIUM" }],
+      "issueStatus": "OPEN",
+      "prioritizedRule": false,
+      "fromSonarQubeUpdate": false,
+      "internalTags": [],
+      "linkedTicketStatus": "NOT_LINKED"
+    }
+  ],
+  "components": [
+    {
+      "key": "interdomestikv2",
+      "enabled": true,
+      "qualifier": "TRK",
+      "name": "interdomestikv2",
+      "longName": "interdomestikv2"
+    },
+    {
+      "key": "interdomestikv2:apps/web/src/lib/ai/policy-analyzer.ts",
+      "enabled": true,
+      "qualifier": "FIL",
+      "name": "policy-analyzer.ts",
+      "longName": "apps/web/src/lib/ai/policy-analyzer.ts",
+      "path": "apps/web/src/lib/ai/policy-analyzer.ts"
+    }
+  ],
+  "facets": [
+    {
+      "property": "rules",
+      "values": [
+        { "val": "typescript:S7785", "count": 6 },
+        { "val": "typescript:S4624", "count": 3 },
+        { "val": "typescript:S5850", "count": 2 },
+        { "val": "typescript:S6848", "count": 2 },
+        { "val": "typescript:S6850", "count": 1 },
+        { "val": "typescript:S6582", "count": 1 },
+        { "val": "typescript:S3358", "count": 1 },
+        { "val": "typescript:S5256", "count": 1 },
+        { "val": "typescript:S6535", "count": 1 },
+        { "val": "typescript:S1854", "count": 1 }
+      ]
+    }
+  ]
+}

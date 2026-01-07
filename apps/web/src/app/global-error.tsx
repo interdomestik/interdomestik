@@ -2,6 +2,8 @@
 
 import { Button } from '@interdomestik/ui';
 import '@interdomestik/ui/globals.css';
+import { useLogger } from 'next-axiom';
+import { useEffect } from 'react';
 
 export default function GlobalError({
   error,
@@ -10,6 +12,15 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const log = useLogger();
+
+  useEffect(() => {
+    log.error('Global Error Boundary', {
+      message: error.message,
+      digest: error.digest,
+      stack: error.stack,
+    });
+  }, [error, log]);
   return (
     <html lang="en">
       <body className="antialiased font-sans">

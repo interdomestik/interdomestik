@@ -12,6 +12,20 @@ type PipelineChartProps = {
   };
 };
 
+function CustomTooltip({ active, payload }: any) {
+  if (active && payload?.length) {
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <span className="font-medium text-muted-foreground">{payload[0].payload.name}:</span>
+          <span className="font-bold">{payload[0].value}</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function PipelineChart({ data }: PipelineChartProps) {
   const t = useTranslations('agent.pipeline');
 
@@ -58,21 +72,7 @@ export function PipelineChart({ data }: PipelineChartProps) {
               />
               <Tooltip
                 cursor={{ fill: 'hsl(var(--muted-100))', opacity: 0.2 }}
-                content={({ active, payload }) => {
-                  if (active && payload?.length) {
-                    return (
-                      <div className="rounded-lg border bg-background p-2 shadow-sm">
-                        <div className="grid grid-cols-2 gap-2">
-                          <span className="font-medium text-muted-foreground">
-                            {payload[0].payload.name}:
-                          </span>
-                          <span className="font-bold">{payload[0].value}</span>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
+                content={<CustomTooltip />}
               />
               <Bar
                 dataKey="value"

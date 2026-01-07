@@ -10,7 +10,7 @@ export async function generateThankYouPDF(params: ThankYouLetterParams): Promise
 
   // Constants
   const margin = 50;
-  let yPosition = height - margin;
+  let yPosition;
 
   // Header Background
   page.drawRectangle({

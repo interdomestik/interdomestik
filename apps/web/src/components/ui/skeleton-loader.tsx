@@ -46,8 +46,7 @@ export function SkeletonTable({ rows = 5 }: Readonly<{ rows?: number }>) {
         </div>
         {Array.from({ length: rows }, (_, k) => k).map(i => (
           <div key={`${id}-row-${i}`} className="h-16 border-b px-4 flex items-center space-x-4">
-            {' '}
-            // NOSONAR
+            {/* NOSONAR */}
             <Skeleton className="h-10 w-10 rounded-full" />
             <div className="space-y-2 flex-1">
               <Skeleton className="h-4 w-1/4" />

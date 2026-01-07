@@ -3,6 +3,7 @@ import { AnalyticsScripts } from '@/components/analytics/analytics-scripts';
 import { PwaRegistrar } from '@/components/pwa-registrar';
 
 import { ReferralTracker } from '@/components/analytics/referral-tracker';
+import { PostHogProvider } from '@/components/providers/posthog-provider';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { routing } from '@/i18n/routing';
@@ -12,6 +13,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 
 export function generateStaticParams() {
@@ -87,16 +89,20 @@ export default async function RootLayout({ children, params }: Props) {
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
-        <NextIntlClientProvider messages={messages} locale={locale}>
-          <QueryProvider>
-            {children}
-            <Toaster position="top-right" richColors />
-            <AxeProvider />
-            <ReferralTracker />
-            <PwaRegistrar />
-            <AnalyticsScripts nonce={nonce} />
-          </QueryProvider>
-        </NextIntlClientProvider>
+        <Suspense>
+          <PostHogProvider>
+            <NextIntlClientProvider messages={messages} locale={locale}>
+              <QueryProvider>
+                {children}
+                <Toaster position="top-right" richColors />
+                <AxeProvider />
+                <ReferralTracker />
+                <PwaRegistrar />
+                <AnalyticsScripts nonce={nonce} />
+              </QueryProvider>
+            </NextIntlClientProvider>
+          </PostHogProvider>
+        </Suspense>
       </body>
     </html>
   );

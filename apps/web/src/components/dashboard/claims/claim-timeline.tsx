@@ -54,7 +54,8 @@ function renderPhaseIcon({
 export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimelineProps) {
   const t = useTranslations('timeline');
   const updatedAtDate = updatedAt instanceof Date ? updatedAt : new Date(updatedAt);
-  const nowDate = now ? (now instanceof Date ? now : new Date(now)) : new Date();
+  const providedDate = now instanceof Date ? now : new Date(now ?? '');
+  const nowDate = now ? providedDate : new Date();
   const isRejected = status === 'rejected';
 
   const reachedAt = useMemo(() => {

@@ -17,8 +17,8 @@ function clampPerPage(value: number, fallback: number) {
   return Math.min(Math.floor(value), MAX_PER_PAGE);
 }
 
-function parseScope(scopeParam: string | null): ClaimsScope {
-  const value = scopeParam || 'member';
+function parseScope(scopeParam: string | null = 'member'): ClaimsScope {
+  const value = scopeParam ?? 'member';
   if (
     value === 'admin' ||
     value === 'staff_queue' ||

@@ -37,10 +37,7 @@ export async function auditCsp() {
   };
 }
 
-export async function auditAuth() {
-  const checks: string[] = [];
-  const issues: string[] = [];
-
+function checkAuthFiles(checks: string[], issues: string[]) {
   const authFile = checkFileExists(path.join(WEB_APP, 'src/lib/auth.ts'), 'Server Auth Config');
   if (authFile.check) checks.push(authFile.check);
   if (authFile.issue) issues.push(authFile.issue);
@@ -51,28 +48,40 @@ export async function auditAuth() {
   );
   if (clientFile.check) checks.push(clientFile.check);
   if (clientFile.issue) issues.push(clientFile.issue);
+}
 
-  // Check Middleware
+function checkMiddleware(checks: string[], issues: string[]) {
   const proxyPath = path.join(WEB_APP, 'src/proxy.ts');
   const middlewarePath = path.join(WEB_APP, 'src/middleware.ts');
   const targetPath = fs.existsSync(middlewarePath) ? middlewarePath : proxyPath;
   const middlewareCheck = checkFileExists(targetPath, 'Route Protection');
   if (middlewareCheck.check) checks.push(middlewareCheck.check);
   if (middlewareCheck.issue) issues.push(middlewareCheck.issue);
+}
 
-  // Check Env Vars
+function checkEnvVars(checks: string[], issues: string[]) {
   const envPath = path.join(REPO_ROOT, '.env');
-  if (fs.existsSync(envPath)) {
-    const secretCheck = checkFileContains(envPath, 'BETTER_AUTH_SECRET', 'BETTER_AUTH_SECRET');
-    if (secretCheck.check) checks.push(secretCheck.check);
-    if (secretCheck.issue) issues.push(secretCheck.issue);
-
-    const githubCheck = checkFileContains(envPath, 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_ID');
-    if (githubCheck.check) checks.push(githubCheck.check);
-    if (githubCheck.issue) issues.push(githubCheck.issue);
-  } else {
+  if (!fs.existsSync(envPath)) {
     issues.push('❌ .env file missing in root');
+    return;
   }
+
+  const secretCheck = checkFileContains(envPath, 'BETTER_AUTH_SECRET', 'BETTER_AUTH_SECRET');
+  if (secretCheck.check) checks.push(secretCheck.check);
+  if (secretCheck.issue) issues.push(secretCheck.issue);
+
+  const githubCheck = checkFileContains(envPath, 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_ID');
+  if (githubCheck.check) checks.push(githubCheck.check);
+  if (githubCheck.issue) issues.push(githubCheck.issue);
+}
+
+export async function auditAuth() {
+  const checks: string[] = [];
+  const issues: string[] = [];
+
+  checkAuthFiles(checks, issues);
+  checkMiddleware(checks, issues);
+  checkEnvVars(checks, issues);
 
   const status = issues.length === 0 ? 'SUCCESS' : 'WARNING';
   return {

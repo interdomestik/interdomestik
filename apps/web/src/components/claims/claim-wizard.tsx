@@ -3,6 +3,7 @@
 import { submitClaim } from '@/actions/claims';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useRouter } from '@/i18n/routing';
+import { ClaimsEvents } from '@/lib/analytics';
 import { createClaimSchema, type CreateClaimValues } from '@/lib/validators/claims';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@interdomestik/ui/components/button';
@@ -23,6 +24,8 @@ type ClaimWizardProps = {
   initialCategory?: string;
 };
 
+const STEP_NAMES = ['category', 'details', 'evidence', 'review'];
+
 const STEP_VALIDATION: Record<
   number,
   (form: UseFormReturn<CreateClaimValues>) => Promise<boolean>
@@ -36,6 +39,7 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
   const router = useRouter();
   const t = useTranslations('claims.wizard');
   const tCommon = useTranslations('common');
+  const hasTrackedOpen = React.useRef(false);
 
   const steps = [
     { id: 'category', title: t('step1') },
@@ -65,6 +69,14 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
 
   const [draft, setDraft] = useLocalStorage<CreateClaimValues | null>('claim-wizard-draft', null);
 
+  // Track wizard opened (once)
+  React.useEffect(() => {
+    if (!hasTrackedOpen.current) {
+      ClaimsEvents.wizardOpened();
+      hasTrackedOpen.current = true;
+    }
+  }, []);
+
   React.useEffect(() => {
     if (draft && !isLoaded) {
       form.reset({ ...form.getValues(), ...draft });
@@ -84,6 +96,7 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
   const nextStep = async () => {
     const validator = STEP_VALIDATION[currentStep];
     if (!validator || (await validator(form as any))) {
+      ClaimsEvents.stepCompleted(currentStep, STEP_NAMES[currentStep]);
       setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
     }
   };
@@ -95,13 +108,16 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
     try {
       const result = await submitClaim(data);
       if (result.success) {
+        ClaimsEvents.submitted('success');
         toast.success('Claim submitted successfully!');
         setDraft(null);
         router.push('/member/claims');
       } else {
+        ClaimsEvents.failed('submission_failed');
         toast.error('Failed to submit, please try again.');
       }
     } catch (error) {
+      ClaimsEvents.failed(String(error));
       toast.error('An unexpected error occurred.');
       console.error(error);
     } finally {

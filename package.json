@@ -42,9 +42,11 @@
     "smoke-test": "node scripts/smoke-test.mjs",
     "test": "pnpm --filter @interdomestik/web test:unit --run",
     "test:unit:domains": "pnpm --filter @interdomestik/domain-claims test:unit && pnpm --filter @interdomestik/domain-users test:unit && pnpm --filter @interdomestik/domain-communications test:unit",
+    "test:coverage": "pnpm --filter @interdomestik/web test:unit --coverage && pnpm --filter @interdomestik/domain-* test:unit --coverage",
     "test:e2e": "pnpm --filter @interdomestik/web test:e2e",
     "check:fast": "pnpm format:check && pnpm lint && pnpm type-check && pnpm i18n:check && pnpm check:entrypoints && pnpm test:unit:domains && pnpm test",
     "check": "pnpm check:fast && pnpm build",
+    "sonar:full": "pnpm type-check && pnpm test:coverage && sonar-scanner",
     "commitlint": "commitlint --from=HEAD~1",
     "release": "release-it",
     "release:dry": "release-it --dry-run",
@@ -80,5 +82,8 @@
       "esbuild": "^0.25.0",
       "zod": "4.2.1"
     }
+  },
+  "dependencies": {
+    "checkly": "^6.9.8"
   }
 }

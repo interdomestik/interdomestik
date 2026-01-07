@@ -22,8 +22,8 @@ function normalizeText(value: string) {
 
 function extractPolicyNumber(text: string) {
   const patterns = [
-    /policy\s*(number|no\.?|#)\s*[:\-]?\s*([A-Z0-9-]{4,})/i,
-    /policy\s*id\s*[:\-]?\s*([A-Z0-9-]{4,})/i,
+    /policy\s*(number|no\.?|#)\s*[:-]?\s*([A-Z0-9-]{4,})/i,
+    /policy\s*id\s*[:-]?\s*([A-Z0-9-]{4,})/i,
   ];
 
   for (const pattern of patterns) {
@@ -36,7 +36,7 @@ function extractPolicyNumber(text: string) {
 
 function extractLabeledAmount(label: string, text: string) {
   const pattern = new RegExp(
-    `${label}[^0-9]{0,20}([${EURO}$${POUND}]|EUR|USD|GBP)?\\s*([0-9][0-9,\\.]+)`,
+    `${label}[^0-9]{0,20}([${EURO}$${POUND}]|EUR|USD|GBP)?\\s*([0-9][0-9,\.]+)`,
     'i'
   );
   const match = pattern.exec(text);

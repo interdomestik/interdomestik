@@ -47,7 +47,7 @@ export function DocumentList({ documents }: Props) {
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading document:', error);

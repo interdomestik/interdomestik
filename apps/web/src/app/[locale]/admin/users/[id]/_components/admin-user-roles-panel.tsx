@@ -58,7 +58,8 @@ const DEFAULT_ROLE_OPTIONS = [ROLE_TENANT_ADMIN, ROLE_BRANCH_MANAGER, ROLE_MEMBE
 const TENANT_WIDE_BRANCH = '__tenant__';
 
 function formatBranchName(b: Branch | { name: string; code?: string | null }) {
-  return `${b.name}${b.code ? ` (${b.code})` : ''}`;
+  const codeSuffix = b.code ? ` (${b.code})` : '';
+  return `${b.name}${codeSuffix}`;
 }
 
 export function AdminUserRolesPanel({ userId }: { userId: string }) {
