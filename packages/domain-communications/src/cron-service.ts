@@ -3,18 +3,10 @@ import { endOfDay, startOfDay, subDays } from 'date-fns';
 import {
   USER_BATCH_SIZE,
   executeCampaign,
-  processBatchedUserCampaign,
   processStandardUserCampaign,
   withRetries,
 } from './campaign-execution';
-import {
-  sendAnnualReportEmail,
-  sendCheckinEmail,
-  sendOnboardingEmail,
-  sendSeasonalEmail,
-  sendWelcomeEmail,
-} from './email';
-import { sendNotification } from './notifications/notify';
+import { sendCheckinEmail, sendOnboardingEmail, sendWelcomeEmail } from './email';
 
 export async function processEmailSequences() {
   const result = {
@@ -33,81 +25,8 @@ export async function processEmailSequences() {
   return result;
 }
 
-export async function processSeasonalCampaigns() {
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-
-  let season: 'winter' | 'summer' | null = null;
-  let campaignId = '';
-
-  if (month >= 9 && month <= 11) {
-    season = 'winter';
-    campaignId = `seasonal_winter_${year}`;
-  } else if (month >= 4 && month <= 5) {
-    season = 'summer';
-    campaignId = `seasonal_summer_${year}`;
-  }
-
-  if (!season) return { processed: false, message: 'No active seasonal campaign' };
-
-  const result = await processBatchedUserCampaign({
-    campaignId,
-    sendToUser: async u => {
-      await withRetries(() => sendSeasonalEmail(u.email!, { season: season!, name: u.name ?? '' }));
-      await withRetries(() =>
-        sendNotification(
-          u.id,
-          'sla_warning',
-          {},
-          {
-            title: season === 'winter' ? 'Winter Safety Check ❄️' : 'Summer Readiness ☀️',
-            actionUrl: '/dashboard',
-          }
-        )
-      );
-    },
-  });
-
-  return {
-    processed: true,
-    ...result,
-  };
-}
-
-export async function processAnnualReports() {
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-
-  // Annual Reports trigger in December (11)
-  if (month !== 11) return { processed: false, message: 'Annual reports only process in December' };
-
-  const campaignId = `annual_report_${year}`;
-
-  const result = await processBatchedUserCampaign({
-    campaignId,
-    sendToUser: async u => {
-      await withRetries(() => sendAnnualReportEmail(u.email!, u.name ?? '', year));
-      await withRetries(() =>
-        sendNotification(
-          u.id,
-          'sla_warning',
-          {},
-          {
-            title: `Your ${year} Protection Summary is Ready! 🏆`,
-            actionUrl: '/dashboard/wrapped',
-          }
-        )
-      );
-    },
-  });
-
-  return {
-    processed: true,
-    ...result,
-  };
-}
+export { processAnnualReports } from './strategies/annual';
+export { processSeasonalCampaigns } from './strategies/seasonal';
 
 async function runWelcomeCampaign(context: { logs: string[]; errors: string[]; stats: any }) {
   const campaignId = 'welcome_day_0';
