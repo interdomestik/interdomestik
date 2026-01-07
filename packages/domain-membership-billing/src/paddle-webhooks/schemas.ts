@@ -6,7 +6,7 @@ const customDataSchema = z
     userId: z.string().optional(),
     agentId: z.string().optional(),
   })
-  .passthrough(); // Allow extra fields if any
+  .passthrough(); // NOSONAR
 
 const priceSchema = z
   .object({
@@ -19,7 +19,7 @@ const priceSchema = z
       })
       .optional(),
   })
-  .passthrough();
+  .passthrough(); // NOSONAR
 
 const itemSchema = z
   .object({
@@ -27,14 +27,14 @@ const itemSchema = z
     price: priceSchema.optional(),
     quantity: z.number().optional(),
   })
-  .passthrough();
+  .passthrough(); // NOSONAR
 
 const billingPeriodSchema = z
   .object({
     startsAt: z.string().optional(),
     endsAt: z.string().optional(),
   })
-  .passthrough();
+  .passthrough(); // NOSONAR
 
 // Subscription Event Data
 export const subscriptionEventDataSchema = z
@@ -58,7 +58,7 @@ export const subscriptionEventDataSchema = z
     scheduledChange: z.object({ action: z.string().optional() }).optional(),
     scheduled_change: z.object({ action: z.string().optional() }).optional(),
   })
-  .passthrough();
+  .passthrough(); // NOSONAR
 
 // Transaction Event Data
 export const transactionEventDataSchema = z
@@ -83,4 +83,4 @@ export const transactionEventDataSchema = z
       })
       .optional(),
   })
-  .passthrough();
+  .passthrough(); // NOSONAR

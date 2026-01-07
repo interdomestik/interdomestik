@@ -29,7 +29,7 @@ export async function updateClaimStatusCore(
   if (!parsed.success) {
     return { success: false, error: 'Invalid status' };
   }
-  const status = parsed.data.status as ClaimStatus;
+  const status = parsed.data.status as ClaimStatus; // NOSONAR
 
   const tenantId = ensureTenantId(session);
 

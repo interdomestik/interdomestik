@@ -310,7 +310,7 @@ function updateLifecycleStats(results: EngagementCronResults, templateKey: strin
     day90: 'day90',
   };
   const statKey = keyMap[templateKey];
-  if (statKey) (results[statKey] as number)++;
+  if (statKey) results[statKey]++;
 }
 
 async function handleFailure(

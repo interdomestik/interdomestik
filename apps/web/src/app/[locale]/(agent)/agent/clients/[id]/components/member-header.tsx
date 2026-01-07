@@ -8,10 +8,10 @@ import { ArrowLeft, BadgeCheck, Mail } from 'lucide-react';
 import { AgentClientMembership, MemberRecord } from '../_core';
 
 interface MemberHeaderProps {
-  member: MemberRecord;
-  membership: AgentClientMembership;
-  t: (key: string) => string;
-  tCommon: (key: string) => string;
+  readonly member: MemberRecord;
+  readonly membership: AgentClientMembership;
+  readonly t: (key: string) => string;
+  readonly tCommon: (key: string) => string;
 }
 
 export function MemberHeader({ member, membership, t, tCommon }: MemberHeaderProps) {

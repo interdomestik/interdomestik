@@ -12,9 +12,9 @@ import {
 import { AgentClientProfileOk } from '../_core';
 
 interface RecentClaimsCardProps {
-  recentClaims: AgentClientProfileOk['recentClaims'];
-  t: (key: string) => string;
-  tClaims?: (key: string) => string;
+  readonly recentClaims: AgentClientProfileOk['recentClaims'];
+  readonly t: (key: string) => string;
+  readonly tClaims?: (key: string) => string;
 }
 
 export function RecentClaimsCard({ recentClaims, t, tClaims }: RecentClaimsCardProps) {

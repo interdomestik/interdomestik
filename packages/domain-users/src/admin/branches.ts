@@ -43,9 +43,9 @@ export async function createBranchCore(
   const slug = name
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replaceAll(/[^\w\s-]/g, '')
+    .replaceAll(/[\s_-]+/g, '-')
+    .replaceAll(/^-+|-+$/g, '');
 
   if (!slug) {
     return { error: 'Invalid name generates empty slug' } satisfies ActionResult;
@@ -120,9 +120,9 @@ export async function updateBranchCore(
   const slug = name
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replaceAll(/[^\w\s-]/g, '')
+    .replaceAll(/[\s_-]+/g, '-')
+    .replaceAll(/^-+|-+$/g, '');
 
   const existing = await db.query.branches.findFirst({
     where: withTenant(tenantId, branches.tenantId, eq(branches.slug, slug)),

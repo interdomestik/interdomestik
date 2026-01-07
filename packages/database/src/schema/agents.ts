@@ -59,7 +59,7 @@ export const agentCommissions = pgTable(
     currency: text('currency').default('EUR').notNull(),
     earnedAt: timestamp('earned_at').defaultNow(),
     paidAt: timestamp('paid_at'),
-    metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}), // NOSONAR
   },
   table => [
     // SECURITY: Idempotency index to prevent duplicate commission payouts

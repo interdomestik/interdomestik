@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/comp
 import { PreferencesRecord } from '../_core';
 
 interface PreferenceItem {
-  key: keyof NonNullable<PreferencesRecord>;
-  labelKey: string;
+  readonly key: keyof NonNullable<PreferencesRecord>;
+  readonly labelKey: string;
 }
 
 const PREFERENCE_Items: PreferenceItem[] = [
@@ -18,9 +18,9 @@ const PREFERENCE_Items: PreferenceItem[] = [
 ];
 
 interface PreferencesCardProps {
-  preferences: PreferencesRecord | null;
-  t: (key: string) => string;
-  tCommon: (key: string) => string;
+  readonly preferences: PreferencesRecord | null;
+  readonly t: (key: string) => string;
+  readonly tCommon: (key: string) => string;
 }
 
 export function PreferencesCard({ preferences, t, tCommon }: PreferencesCardProps) {

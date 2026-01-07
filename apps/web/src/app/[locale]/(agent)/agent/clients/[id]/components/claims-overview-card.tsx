@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/comp
 import { AgentClientClaimCounts } from '../_core';
 
 interface ClaimsOverviewCardProps {
-  counts: AgentClientClaimCounts;
-  t: (key: string) => string;
+  readonly counts: AgentClientClaimCounts;
+  readonly t: (key: string) => string;
 }
 
 export function ClaimsOverviewCard({ counts, t }: ClaimsOverviewCardProps) {

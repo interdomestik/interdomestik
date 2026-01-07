@@ -47,8 +47,10 @@ async function runWelcomeCampaign(context: { logs: string[]; errors: string[]; s
         with: { user: true },
       }),
     async sub => {
-      const email = sub.user?.email;
-      await withRetries(() => sendWelcomeEmail(email!, sub.user!.name));
+      if (sub.user?.email && sub.user?.name) {
+        const { email, name } = sub.user;
+        await withRetries(() => sendWelcomeEmail(email, name));
+      }
     },
     context
   );
@@ -61,7 +63,7 @@ async function runOnboardingCampaign(context: { logs: string[]; errors: string[]
   const windowEnd = endOfDay(subDays(now, 3));
 
   await processStandardUserCampaign(campaignId, windowStart, windowEnd, context, async u => {
-    await withRetries(() => sendOnboardingEmail(u.email!, u.name ?? ''));
+    if (u.email) await withRetries(() => sendOnboardingEmail(u.email!, u.name ?? ''));
   });
 }
 
@@ -72,6 +74,6 @@ async function runCheckinCampaign(context: { logs: string[]; errors: string[]; s
   const day14End = endOfDay(subDays(now, 14));
 
   await processStandardUserCampaign(campaignId, day14Start, day14End, context, async u => {
-    await withRetries(() => sendCheckinEmail(u.email!, u.name ?? ''));
+    if (u.email) await withRetries(() => sendCheckinEmail(u.email!, u.name ?? ''));
   });
 }

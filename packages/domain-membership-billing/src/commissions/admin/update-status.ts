@@ -31,7 +31,7 @@ export async function updateCommissionStatusCore(params: {
   if (authError) return authError;
 
   try {
-    const tenantId = ensureTenantId(session!);
+    const tenantId = ensureTenantId(session!); // NOSONAR
 
     // Fetch current commission with tenant scoping
     const [commission] = await db

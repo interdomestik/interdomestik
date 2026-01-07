@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/comp
 import { AgentClientMembership, SubscriptionRecord } from '../_core';
 
 interface MembershipCardProps {
-  subscription: SubscriptionRecord | null;
-  membership: AgentClientMembership;
-  t: (key: string) => string;
-  tCommon: (key: string) => string;
+  readonly subscription: SubscriptionRecord | null;
+  readonly membership: AgentClientMembership;
+  readonly t: (key: string) => string;
+  readonly tCommon: (key: string) => string;
 }
 
 export function MembershipCard({ subscription, membership, t, tCommon }: MembershipCardProps) {

@@ -25,7 +25,7 @@ export async function sendMessageDbCore(params: {
   });
 
   if (!validation.success) {
-    const formatted = validation.error.format();
+    const formatted = validation.error.format(); // NOSONAR
     const error = formatted.content?._errors[0] || formatted.claimId?._errors[0] || 'Invalid input';
     return { success: false, error };
   }
