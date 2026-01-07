@@ -34,7 +34,7 @@ if [ ! -f "$MCP_CONFIG" ]; then
 fi
 
 # Check all MCP servers
-SERVERS=("mcp-context-server" "ecohub-qa" "e2e-test-generator" "context7" "playwright" "markitdown")
+SERVERS=("mcp-context-server" "repo-qa" "e2e-test-generator" "context7" "playwright" "markitdown")
 ALL_CONFIGURED=true
 
 for server in "${SERVERS[@]}"; do
@@ -72,7 +72,7 @@ echo -e "${GREEN}✅ MCP Tools Setup Complete!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo "Available MCP servers:"
-echo "  • ecohub-qa - QA audits, testing, and health checks"
+echo "  • repo-qa - QA audits, testing, and health checks"
 echo "  • mcp-context-server - Code search and navigation"
 echo "  • e2e-test-generator - Generate Playwright E2E tests"
 echo "  • context7 - Advanced context management"

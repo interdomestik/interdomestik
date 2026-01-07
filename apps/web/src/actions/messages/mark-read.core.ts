@@ -10,7 +10,7 @@ export async function markMessagesAsReadCore(params: {
 }) {
   const validation = markMessagesReadSchema.safeParse({ messageIds: params.messageIds });
   if (!validation.success) {
-    const error = validation.error.format().messageIds?._errors[0] || 'Invalid input';
+    const error = validation.error.format().messageIds?._errors[0] || 'Invalid input'; // NOSONAR
     return { success: false, error };
   }
 

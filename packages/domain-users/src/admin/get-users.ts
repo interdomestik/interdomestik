@@ -15,7 +15,7 @@ export async function getUsersCore(params: {
 }) {
   const { session, filters } = params;
   const adminSession = await requireTenantAdminSession(session);
-  const scope = scopeFilter(adminSession as unknown as SessionWithTenant);
+  const scope = scopeFilter(adminSession as SessionWithTenant);
 
   // Build filter conditions
   const conditions = buildUserConditions(scope, filters);

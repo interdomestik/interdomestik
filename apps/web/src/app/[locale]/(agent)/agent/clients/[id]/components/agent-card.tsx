@@ -5,8 +5,8 @@ import { User } from 'lucide-react';
 import { MemberRecord } from '../_core';
 
 interface AgentCardProps {
-  member: MemberRecord;
-  t: (key: string) => string;
+  readonly member: MemberRecord;
+  readonly t: (key: string) => string;
 }
 
 export function AgentCard({ member, t }: AgentCardProps) {

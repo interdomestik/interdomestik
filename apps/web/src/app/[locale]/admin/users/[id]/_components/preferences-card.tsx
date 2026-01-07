@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/comp
 import { getTranslations } from 'next-intl/server';
 
 interface PreferenceItem {
-  key: keyof NonNullable<PreferencesCardProps['preferences']>;
-  labelKey: string;
+  readonly key: keyof NonNullable<PreferencesCardProps['preferences']>;
+  readonly labelKey: string;
 }
 
 const PREFERENCE_Items: PreferenceItem[] = [
@@ -17,13 +17,13 @@ const PREFERENCE_Items: PreferenceItem[] = [
 ];
 
 interface PreferencesCardProps {
-  preferences: {
-    emailClaimUpdates?: boolean;
-    emailNewsletter?: boolean;
-    emailMarketing?: boolean;
-    pushClaimUpdates?: boolean;
-    pushMessages?: boolean;
-    inAppAll?: boolean;
+  readonly preferences: {
+    readonly emailClaimUpdates?: boolean;
+    readonly emailNewsletter?: boolean;
+    readonly emailMarketing?: boolean;
+    readonly pushClaimUpdates?: boolean;
+    readonly pushMessages?: boolean;
+    readonly inAppAll?: boolean;
   } | null;
 }
 

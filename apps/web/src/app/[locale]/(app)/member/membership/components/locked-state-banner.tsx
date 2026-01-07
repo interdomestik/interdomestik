@@ -5,8 +5,8 @@ import { XCircle } from 'lucide-react';
 import { UpdatePaymentButton } from './update-payment-button';
 
 interface LockedStateBannerProps {
-  subscriptionId: string;
-  t: (key: string) => string;
+  readonly subscriptionId: string;
+  readonly t: (key: string) => string;
 }
 
 export function LockedStateBanner({ subscriptionId, t }: LockedStateBannerProps) {

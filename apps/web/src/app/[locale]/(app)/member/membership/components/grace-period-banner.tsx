@@ -3,10 +3,10 @@ import { AlertTriangle } from 'lucide-react';
 import { UpdatePaymentButton } from './update-payment-button';
 
 interface GracePeriodBannerProps {
-  daysRemaining: number;
-  gracePeriodEndsAt: Date | null;
-  subscriptionId: string;
-  t: (key: string, values?: Record<string, string | number>) => string;
+  readonly daysRemaining: number;
+  readonly gracePeriodEndsAt: Date | null;
+  readonly subscriptionId: string;
+  readonly t: (key: string, values?: Record<string, string | number>) => string;
 }
 
 export function GracePeriodBanner({

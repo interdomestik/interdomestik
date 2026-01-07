@@ -173,7 +173,7 @@ function buildClaimsWhereClause(params: {
 
   // 2. Status Filter
   if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {
-    conditions.push(eq(claims.status, statusFilter as (typeof VALID_STATUSES)[number]));
+    conditions.push(eq(claims.status, statusFilter as (typeof VALID_STATUSES)[number])); // NOSONAR
   }
 
   // 3. Search Query

@@ -14,8 +14,8 @@ export function TenantSelector({
   tenants,
   title = 'Select your country',
 }: {
-  tenants: TenantOption[];
-  title?: string;
+  readonly tenants: TenantOption[];
+  readonly title?: string;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();

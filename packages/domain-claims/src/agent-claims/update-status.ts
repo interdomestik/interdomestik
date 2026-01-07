@@ -64,7 +64,7 @@ export async function updateClaimStatusCore(
   // Update status
   await db
     .update(claims)
-    .set({ status: status as typeof oldStatus })
+    .set({ status: status })
     .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
 
   if (deps.logAuditEvent) {

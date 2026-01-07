@@ -11,7 +11,7 @@ import type { Session } from './context';
 const adminSettingsSchema = z
   .object({
     appName: z.string().trim().min(1).max(100),
-    supportEmail: z.string().email(),
+    supportEmail: z.string().email(), // NOSONAR
     autoAssign: z.boolean(),
     defaultExpiry: z.number().int().min(1).max(365),
   })

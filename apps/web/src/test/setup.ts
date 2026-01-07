@@ -89,7 +89,7 @@ beforeAll(() => {
   global.IntersectionObserver = IntersectionObserverMock as unknown as typeof IntersectionObserver;
 
   // Mock window.matchMedia
-  Object.defineProperty(window, 'matchMedia', {
+  Object.defineProperty(globalThis, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation((query: string) => ({
       matches: false,
@@ -123,12 +123,12 @@ beforeAll(() => {
       },
     };
   })();
-  Object.defineProperty(window, 'localStorage', {
+  Object.defineProperty(globalThis, 'localStorage', {
     value: localStorageMock,
   });
 
   // Mock fetch
-  global.fetch = vi.fn().mockImplementation(() =>
+  globalThis.fetch = vi.fn().mockImplementation(() =>
     Promise.resolve({
       ok: true,
       json: () => Promise.resolve({}),
@@ -136,7 +136,7 @@ beforeAll(() => {
   );
 
   // Mock scrollTo
-  window.scrollTo = vi.fn();
+  globalThis.scrollTo = vi.fn();
 
   // Suppress console.error for expected errors in tests
   const originalError = console.error;

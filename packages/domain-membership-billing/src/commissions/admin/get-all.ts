@@ -3,13 +3,7 @@ import { agentCommissions, user as userTable } from '@interdomestik/database/sch
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, desc, eq, sql } from 'drizzle-orm';
 
-import type {
-  ActionResult,
-  Commission,
-  CommissionSession,
-  CommissionStatus,
-  CommissionType,
-} from '../types';
+import type { ActionResult, Commission, CommissionSession } from '../types';
 import { ensureAdminOrStaff } from './access';
 
 const MAX_RESULTS = 100;
@@ -67,8 +61,8 @@ export async function getAllCommissionsCore(params: {
         agentEmail: agent?.email ?? '',
         memberName: member?.name ?? null,
         memberEmail: member?.email ?? null,
-        type: row.type as CommissionType,
-        status: row.status as CommissionStatus,
+        type: row.type,
+        status: row.status,
       };
     });
 
