@@ -18,7 +18,7 @@ export async function getWrappedStatsCore(params: { session: Session | null }) {
     where: eq(subscriptions.userId, userId),
   });
 
-  if (!subscription || !subscription.createdAt) {
+  if (!subscription?.createdAt) {
     return null;
   }
 

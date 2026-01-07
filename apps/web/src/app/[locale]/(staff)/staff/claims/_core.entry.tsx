@@ -41,9 +41,16 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
   const tClaims = await getTranslations('agent-claims.claims');
 
   const queueParam = query.queue;
-  const queue = queueParam === 'mine' ? 'mine' : queueParam === 'all' ? 'all' : 'unassigned';
-  const scope =
-    queue === 'mine' ? 'staff_queue' : queue === 'all' ? 'staff_all' : 'staff_unassigned';
+  let queue: 'unassigned' | 'mine' | 'all' = 'unassigned';
+  let scope: 'staff_queue' | 'staff_all' | 'staff_unassigned' = 'staff_unassigned';
+
+  if (queueParam === 'mine') {
+    queue = 'mine';
+    scope = 'staff_queue';
+  } else if (queueParam === 'all') {
+    queue = 'all';
+    scope = 'staff_all';
+  }
 
   const buildQueueHref = (nextQueue: 'unassigned' | 'mine' | 'all') => {
     const params = new URLSearchParams();

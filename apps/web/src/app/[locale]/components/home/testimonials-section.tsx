@@ -83,8 +83,11 @@ export function TestimonialsSection() {
                     <Quote className="h-5 w-5 text-slate-200 group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex gap-0.5">
-                    {[...new Array(5)].map((_, i) => (
-                      <Star key={`star-${i}`} className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    {[1, 2, 3, 4, 5].map(starNum => (
+                      <Star
+                        key={`star-${story.name}-${starNum}`}
+                        className="h-3 w-3 fill-amber-400 text-amber-400"
+                      />
                     ))}
                   </div>
                 </div>

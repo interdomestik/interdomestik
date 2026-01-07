@@ -8,7 +8,7 @@ export async function updateLeadStatusCore(agentId: string, leadId: string, stag
     where: eq(crmLeads.id, leadId),
   });
 
-  if (!lead || lead.agentId !== agentId) {
+  if (lead?.agentId !== agentId) {
     return { error: 'Not found' as const };
   }
 

@@ -20,11 +20,11 @@ export const branches = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  table => ({
-    tenantSlugUq: uniqueIndex('branches_tenant_slug_uq').on(table.tenantId, table.slug),
-    tenantCodeUq: uniqueIndex('branches_tenant_code_uq').on(table.tenantId, table.code),
-    tenantIdx: index('idx_branches_tenant').on(table.tenantId),
-  })
+  table => [
+    uniqueIndex('branches_tenant_slug_uq').on(table.tenantId, table.slug),
+    uniqueIndex('branches_tenant_code_uq').on(table.tenantId, table.code),
+    index('idx_branches_tenant').on(table.tenantId),
+  ]
 );
 
 export const userRoles = pgTable(
@@ -41,12 +41,12 @@ export const userRoles = pgTable(
     branchId: text('branch_id').references(() => branches.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  table => ({
-    tenantUserRoleBranchUq: uniqueIndex('user_roles_tenant_user_role_branch_uq').on(
+  table => [
+    uniqueIndex('user_roles_tenant_user_role_branch_uq').on(
       table.tenantId,
       table.userId,
       table.role,
       table.branchId
     ),
-  })
+  ]
 );

@@ -34,7 +34,7 @@ export default function PolicyUploadPage() {
   const [analysisResult, setAnalysisResult] = useState<PolicyAnalysis | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       setFile(e.target.files[0]);
       setAnalysisResult(null);
     }
@@ -149,8 +149,8 @@ export default function PolicyUploadPage() {
             <div>
               <Label className="text-blue-600 font-bold">Hidden Perks Found</Label>
               <ul className="list-disc pl-5 mt-1 space-y-1">
-                {analysisResult.hiddenPerks?.map((perk, i) => (
-                  <li key={i} className="text-sm font-medium">
+                {analysisResult.hiddenPerks?.map(perk => (
+                  <li key={perk} className="text-sm font-medium">
                     {perk}
                   </li>
                 ))}

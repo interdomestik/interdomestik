@@ -1,7 +1,7 @@
 import { and, branches, db, eq, user, userRoles } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import { isNull } from 'drizzle-orm';
 import type { ActionResult, UserDomainDeps, UserSession } from '../types';
 import { resolveTenantId } from './utils';

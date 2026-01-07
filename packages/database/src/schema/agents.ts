@@ -31,14 +31,14 @@ export const agentClients = pgTable(
     joinedAt: timestamp('joined_at').defaultNow().notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  table => ({
-    tenantIdx: index('idx_agent_clients_tenant_id').on(table.tenantId),
-    tenantAgentMemberUq: uniqueIndex('agent_clients_tenant_agent_member_uq').on(
+  table => [
+    index('idx_agent_clients_tenant_id').on(table.tenantId),
+    uniqueIndex('agent_clients_tenant_agent_member_uq').on(
       table.tenantId,
       table.agentId,
       table.memberId
     ),
-  })
+  ]
 );
 
 export const agentCommissions = pgTable(
@@ -61,16 +61,16 @@ export const agentCommissions = pgTable(
     paidAt: timestamp('paid_at'),
     metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
   },
-  table => ({
+  table => [
     // SECURITY: Idempotency index to prevent duplicate commission payouts
     // This ensures the same (tenant, subscription, type) combo can only exist once
-    tenantSubscriptionTypeUq: uniqueIndex('agent_commissions_tenant_subscription_type_uq').on(
+    uniqueIndex('agent_commissions_tenant_subscription_type_uq').on(
       table.tenantId,
       table.subscriptionId,
       table.type
     ),
-    tenantIdx: index('idx_agent_commissions_tenant_id').on(table.tenantId),
-  })
+    index('idx_agent_commissions_tenant_id').on(table.tenantId),
+  ]
 );
 
 export const agentSettings = pgTable('agent_settings', {

@@ -1,1 +1,1 @@
-export * from '@interdomestik/domain-communications/cron-service';
+export * from '@interdomestik/domain-communications';

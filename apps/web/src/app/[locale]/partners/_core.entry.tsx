@@ -2,6 +2,15 @@ import { Building2, Car, Heart, Percent, Scale, Shield } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
+export function generateViewport() {
+  return {
+    themeColor: [
+      { media: '(prefers-color-scheme: light)', color: 'white' },
+      { media: '(prefers-color-scheme: dark)', color: 'black' },
+    ],
+  };
+}
+
 // Partner categories with sample data
 const PARTNER_CATEGORIES = [
   {
@@ -75,9 +84,9 @@ export default async function PartnersPage({ params }: { params: Promise<{ local
                   <h2 className="text-xl font-bold">{t(`categories.${category.id}`)}</h2>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {category.partners.map((partner, idx) => (
+                  {category.partners.map(partner => (
                     <div
-                      key={idx}
+                      key={partner.name}
                       className="bg-white rounded-xl shadow-md p-6 flex items-center gap-4 hover:shadow-lg transition-shadow"
                     >
                       <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground">

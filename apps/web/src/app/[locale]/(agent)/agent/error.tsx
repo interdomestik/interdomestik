@@ -9,10 +9,10 @@ import { useEffect } from 'react';
 export default function AgentError({
   error,
   reset,
-}: {
+}: Readonly<{
   error: Error & { digest?: string };
   reset: () => void;
-}) {
+}>) {
   const t = useTranslations('common');
 
   useEffect(() => {

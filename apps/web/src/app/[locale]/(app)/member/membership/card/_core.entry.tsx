@@ -25,7 +25,7 @@ export default async function MemberCardPage({ params }: { params: Promise<{ loc
     where: eq(subscriptions.userId, session.user.id),
   });
 
-  if (!subscription || subscription.status !== 'active') {
+  if (subscription?.status !== 'active') {
     // If not active, user shouldn't see the card
     redirect('/member/membership');
   }

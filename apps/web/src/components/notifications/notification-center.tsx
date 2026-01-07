@@ -110,6 +110,38 @@ export function NotificationCenter({ subscriberId }: NotificationCenterProps) {
     }
   };
 
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex h-32 items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+    if (notifications.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-48 text-center p-6 space-y-2 opacity-60">
+          <Bell className="h-10 w-10 text-muted-foreground/30" />
+          <p className="text-xs font-medium">All caught up!</p>
+          <p className="text-[10px] text-muted-foreground">No new notifications.</p>
+        </div>
+      );
+    }
+    return (
+      <div className="grid">
+        {notifications.map(notification => (
+          <NotificationItem
+            key={notification.id}
+            notification={notification}
+            onMarkAsRead={handleMarkAsRead}
+            onClose={() => setIsOpen(false)}
+            getIcon={getIcon}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
@@ -147,80 +179,77 @@ export function NotificationCenter({ subscriberId }: NotificationCenterProps) {
           )}
         </div>
 
-        <div className="overflow-y-auto overflow-x-hidden flex-1">
-          {loading ? (
-            <div className="flex h-32 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center p-6 space-y-2 opacity-60">
-              <Bell className="h-10 w-10 text-muted-foreground/30" />
-              <p className="text-xs font-medium">All caught up!</p>
-              <p className="text-[10px] text-muted-foreground">No new notifications.</p>
-            </div>
-          ) : (
-            <div className="grid">
-              {notifications.map(notification => (
-                <div
-                  key={notification.id}
-                  className={cn(
-                    'relative flex gap-3 p-4 transition-all duration-200 hover:bg-accent/30 list-none border-b last:border-0',
-                    !notification.isRead && 'bg-primary/5 border-l-2 border-primary'
-                  )}
-                >
-                  <div className="shrink-0 mt-1">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-background border shadow-sm">
-                      {getIcon(notification.type)}
-                    </div>
-                  </div>
-                  <div className="flex flex-col flex-1 gap-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p
-                        className={cn(
-                          'text-xs font-semibold leading-tight',
-                          !notification.isRead ? 'text-foreground' : 'text-muted-foreground'
-                        )}
-                      >
-                        {notification.title}
-                      </p>
-                      {!notification.isRead && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5 rounded-full hover:bg-primary/20 hover:text-primary"
-                          onClick={e => handleMarkAsRead(notification.id, e)}
-                        >
-                          <Check className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground line-clamp-2">
-                      {notification.content}
-                    </p>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-[10px] text-muted-foreground/60 font-medium">
-                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                      </span>
-                      {notification.actionUrl && (
-                        <Link
-                          href={notification.actionUrl}
-                          onClick={() => {
-                            if (!notification.isRead) handleMarkAsRead(notification.id);
-                            setIsOpen(false);
-                          }}
-                          className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
-                        >
-                          View <ExternalLink className="h-2 w-2" />
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <div className="overflow-y-auto overflow-x-hidden flex-1">{renderContent()}</div>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function NotificationItem({
+  notification,
+  onMarkAsRead,
+  onClose,
+  getIcon,
+}: {
+  notification: Notification;
+  onMarkAsRead: (id: string, e?: React.MouseEvent) => Promise<void>;
+  onClose: () => void;
+  getIcon: (type: string) => React.ReactNode;
+}) {
+  const isRead = notification.isRead;
+
+  return (
+    <div
+      className={cn(
+        'relative flex gap-3 p-4 transition-all duration-200 hover:bg-accent/30 list-none border-b last:border-0',
+        !isRead && 'bg-primary/5 border-l-2 border-primary'
+      )}
+    >
+      <div className="shrink-0 mt-1">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-background border shadow-sm">
+          {getIcon(notification.type)}
+        </div>
+      </div>
+      <div className="flex flex-col flex-1 gap-1">
+        <div className="flex items-start justify-between gap-2">
+          <p
+            className={cn(
+              'text-xs font-semibold leading-tight',
+              !isRead ? 'text-foreground' : 'text-muted-foreground'
+            )}
+          >
+            {notification.title}
+          </p>
+          {!isRead && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 rounded-full hover:bg-primary/20 hover:text-primary"
+              onClick={e => onMarkAsRead(notification.id, e)}
+            >
+              <Check className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+        <p className="text-[11px] text-muted-foreground line-clamp-2">{notification.content}</p>
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-[10px] text-muted-foreground/60 font-medium">
+            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+          </span>
+          {notification.actionUrl && (
+            <Link
+              href={notification.actionUrl}
+              onClick={() => {
+                if (!isRead) onMarkAsRead(notification.id);
+                onClose();
+              }}
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
+            >
+              View <ExternalLink className="h-2 w-2" />
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

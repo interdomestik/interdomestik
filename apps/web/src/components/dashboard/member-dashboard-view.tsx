@@ -282,9 +282,9 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                   { l: 'Legal Consultations', v: isActive ? 'Unlimited' : '0/2', ok: isActive },
                   { l: 'Damage Calculator', v: 'Active', ok: true },
                   { l: 'Expert Reports', v: isActive ? '50% Off' : 'Locked', ok: isActive },
-                ].map((b, i) => (
+                ].map(b => (
                   <div
-                    key={i}
+                    key={b.l}
                     className="flex items-center justify-between px-6 py-4 border-t first:border-t-0 group hover:bg-muted/30 transition-colors"
                   >
                     <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">

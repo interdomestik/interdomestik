@@ -57,6 +57,10 @@ type UserRoleRow = {
 const DEFAULT_ROLE_OPTIONS = [ROLE_TENANT_ADMIN, ROLE_BRANCH_MANAGER, ROLE_MEMBER, ROLE_PROMOTER];
 const TENANT_WIDE_BRANCH = '__tenant__';
 
+function formatBranchName(b: Branch | { name: string; code?: string | null }) {
+  return `${b.name}${b.code ? ` (${b.code})` : ''}`;
+}
+
 export function AdminUserRolesPanel({ userId }: { userId: string }) {
   const searchParams = useSearchParams();
   const tenantId = searchParams.get('tenantId') ?? undefined;
@@ -222,9 +226,7 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
               <SelectContent>
                 {branchOptions.map(b => (
                   <SelectItem key={b.id} value={b.id}>
-                    {b.id === TENANT_WIDE_BRANCH
-                      ? 'Tenant-wide'
-                      : `${b.name}${b.code ? ` (${b.code})` : ''}`}
+                    {b.id === TENANT_WIDE_BRANCH ? 'Tenant-wide' : formatBranchName(b)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -269,9 +271,7 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
                 return (
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.role}</TableCell>
-                    <TableCell>
-                      {branch ? `${branch.name}${branch.code ? ` (${branch.code})` : ''}` : '—'}
-                    </TableCell>
+                    <TableCell>{branch ? formatBranchName(branch) : '—'}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         type="button"

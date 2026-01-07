@@ -19,12 +19,9 @@ export const webhookEvents = pgTable(
     processingResult: text('processing_result'),
     error: text('error'),
   },
-  table => ({
-    dedupeKeyUq: uniqueIndex('webhook_events_dedupe_key_uq').on(table.dedupeKey),
-    providerEventIdUq: uniqueIndex('webhook_events_provider_event_id_uq').on(
-      table.provider,
-      table.eventId
-    ),
-    receivedAtIdx: index('webhook_events_received_at_idx').on(table.receivedAt),
-  })
+  table => [
+    uniqueIndex('webhook_events_dedupe_key_uq').on(table.dedupeKey),
+    uniqueIndex('webhook_events_provider_event_id_uq').on(table.provider, table.eventId),
+    index('webhook_events_received_at_idx').on(table.receivedAt),
+  ]
 );

@@ -4,10 +4,10 @@ import { nanoid } from 'nanoid';
 import { leadActivitySchema, type LogLeadActivityInput } from './schema';
 import type { ActionResult, ActivitySession } from './types';
 
-export type { LogLeadActivityInput };
+export type { LogLeadActivityInput } from './schema';
 
 /** Roles allowed to log lead activities */
-const ALLOWED_ROLES = ['admin', 'staff', 'agent'];
+const ALLOWED_ROLES = new Set(['admin', 'staff', 'agent']);
 
 export async function logLeadActivityCore(params: {
   session: ActivitySession | null;
@@ -18,7 +18,7 @@ export async function logLeadActivityCore(params: {
   if (!session) return { success: false, error: 'Unauthorized' };
 
   // SECURITY: RBAC check
-  if (!ALLOWED_ROLES.includes(session.user.role)) {
+  if (!ALLOWED_ROLES.has(session.user.role)) {
     return { success: false, error: 'Permission denied: insufficient role' };
   }
 

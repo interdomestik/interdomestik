@@ -6,7 +6,7 @@ export async function getAgentSession() {
     headers: await headers(),
   });
 
-  if (!session?.user || session.user.role !== 'agent') {
+  if (session?.user?.role !== 'agent') {
     return null;
   }
 

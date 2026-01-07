@@ -41,12 +41,12 @@ export const engagementEmailSends = pgTable(
     sentAt: timestamp('sent_at', { withTimezone: true }),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),
   },
-  table => ({
-    dedupeKeyUq: uniqueIndex('engagement_email_sends_dedupe_key_uq').on(table.dedupeKey),
-    userIdIdx: index('engagement_email_sends_user_id_idx').on(table.userId),
-    subscriptionIdIdx: index('engagement_email_sends_subscription_id_idx').on(table.subscriptionId),
-    createdAtIdx: index('engagement_email_sends_created_at_idx').on(table.createdAt),
-  })
+  table => [
+    uniqueIndex('engagement_email_sends_dedupe_key_uq').on(table.dedupeKey),
+    index('engagement_email_sends_user_id_idx').on(table.userId),
+    index('engagement_email_sends_subscription_id_idx').on(table.subscriptionId),
+    index('engagement_email_sends_created_at_idx').on(table.createdAt),
+  ]
 );
 
 export const npsSurveyTokens = pgTable(
@@ -69,13 +69,13 @@ export const npsSurveyTokens = pgTable(
     usedAt: timestamp('used_at', { withTimezone: true }),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),
   },
-  table => ({
-    dedupeKeyUq: uniqueIndex('nps_survey_tokens_dedupe_key_uq').on(table.dedupeKey),
-    tokenUq: uniqueIndex('nps_survey_tokens_token_uq').on(table.token),
-    userIdIdx: index('nps_survey_tokens_user_id_idx').on(table.userId),
-    subscriptionIdIdx: index('nps_survey_tokens_subscription_id_idx').on(table.subscriptionId),
-    createdAtIdx: index('nps_survey_tokens_created_at_idx').on(table.createdAt),
-  })
+  table => [
+    uniqueIndex('nps_survey_tokens_dedupe_key_uq').on(table.dedupeKey),
+    uniqueIndex('nps_survey_tokens_token_uq').on(table.token),
+    index('nps_survey_tokens_user_id_idx').on(table.userId),
+    index('nps_survey_tokens_subscription_id_idx').on(table.subscriptionId),
+    index('nps_survey_tokens_created_at_idx').on(table.createdAt),
+  ]
 );
 
 export const npsSurveyResponses = pgTable(
@@ -99,9 +99,9 @@ export const npsSurveyResponses = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),
   },
-  table => ({
-    userIdIdx: index('nps_survey_responses_user_id_idx').on(table.userId),
-    subscriptionIdIdx: index('nps_survey_responses_subscription_id_idx').on(table.subscriptionId),
-    createdAtIdx: index('nps_survey_responses_created_at_idx').on(table.createdAt),
-  })
+  table => [
+    index('nps_survey_responses_user_id_idx').on(table.userId),
+    index('nps_survey_responses_subscription_id_idx').on(table.subscriptionId),
+    index('nps_survey_responses_created_at_idx').on(table.createdAt),
+  ]
 );

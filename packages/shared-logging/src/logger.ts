@@ -46,14 +46,24 @@ export class StructuredLogger {
 
   // API request logging
   logApi(event: ApiEvent): void {
-    const level = event.status >= 500 ? 'error' : event.status >= 400 ? 'warn' : 'info';
+    let level: LogEntry['level'] = 'info';
+    if (event.status >= 500) {
+      level = 'error';
+    } else if (event.status >= 400) {
+      level = 'warn';
+    }
     this.log(level, `API ${event.method} ${event.url} - ${event.status}`, { apiEvent: event });
     this.checkApiAlerts(event);
   }
 
   // Database query logging
   logDatabase(event: DatabaseEvent): void {
-    const level = event.error ? 'error' : event.duration > 1000 ? 'warn' : 'debug';
+    let level: LogEntry['level'] = 'debug';
+    if (event.error) {
+      level = 'error';
+    } else if (event.duration > 1000) {
+      level = 'warn';
+    }
     this.log(level, `Database query in ${event.duration}ms`, { databaseEvent: event });
     this.checkDatabaseAlerts(event);
   }

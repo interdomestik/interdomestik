@@ -6,7 +6,9 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAgentLeadsCore } from './_core';
 
-export default async function LeadsPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function LeadsPage({
+  params,
+}: Readonly<{ params: Promise<{ locale: string }> }>) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('agent-crm.crm.leads');

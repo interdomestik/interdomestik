@@ -81,11 +81,12 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
   };
 
   const roleParam = searchParams.get('role');
-  const peopleRole = roleParam?.includes('agent')
-    ? 'agents'
-    : roleParam?.includes('staff') || roleParam?.includes('admin')
-      ? 'staff'
-      : 'members';
+  let peopleRole = 'members';
+  if (roleParam?.includes('agent')) {
+    peopleRole = 'agents';
+  } else if (roleParam?.includes('staff') || roleParam?.includes('admin')) {
+    peopleRole = 'staff';
+  }
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -136,6 +137,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
       title: 'settings',
       href: '/admin/settings',
       icon: Settings,
+      peopleKey: undefined,
     },
   ].filter(item => !item.hidden);
 
@@ -170,12 +172,15 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
             <SidebarMenu className="gap-2">
               {sidebarItems.map(item => {
                 const isPeopleRoute = pathname.startsWith('/admin/users');
-                const isActive =
-                  item.peopleKey !== undefined
-                    ? isPeopleRoute && peopleRole === item.peopleKey
-                    : item.href === '/admin'
-                      ? pathname === '/admin'
-                      : pathname.startsWith(item.href);
+                let isActive = false;
+
+                if (item.peopleKey !== undefined) {
+                  isActive = isPeopleRoute && peopleRole === item.peopleKey;
+                } else if (item.href === '/admin') {
+                  isActive = pathname === '/admin';
+                } else {
+                  isActive = pathname.startsWith(item.href);
+                }
 
                 return (
                   <SidebarMenuItem key={item.href}>

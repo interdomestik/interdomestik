@@ -13,6 +13,16 @@ interface ClaimMessengerProps {
   userRole: 'admin' | 'staff' | 'agent' | 'user';
 }
 
+function getMessageStyle(isMe: boolean, isInternal: boolean) {
+  if (isMe) {
+    return 'bg-primary text-primary-foreground rounded-br-none';
+  }
+  if (isInternal) {
+    return 'bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-bl-none';
+  }
+  return 'bg-muted rounded-bl-none';
+}
+
 export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessengerProps) {
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -104,13 +114,10 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
                     )}
                   </div>
                   <div
-                    className={`px-4 py-2 rounded-lg text-sm ${
-                      msg.senderId === currentUserId
-                        ? 'bg-primary text-primary-foreground rounded-br-none'
-                        : msg.isInternal
-                          ? 'bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-bl-none'
-                          : 'bg-muted rounded-bl-none'
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-sm ${getMessageStyle(
+                      msg.senderId === currentUserId,
+                      msg.isInternal
+                    )}`}
                   >
                     {msg.content}
                   </div>

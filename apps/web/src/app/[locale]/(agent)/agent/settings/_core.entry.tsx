@@ -21,7 +21,7 @@ interface SettingsPageProps {
   params: Promise<{ locale: string }>;
 }
 
-export default async function AgentSettingsPage({ params }: SettingsPageProps) {
+export default async function AgentSettingsPage({ params }: Readonly<SettingsPageProps>) {
   const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),

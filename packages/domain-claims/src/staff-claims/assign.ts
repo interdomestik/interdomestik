@@ -16,7 +16,7 @@ export async function assignClaimCore(
 ): Promise<ActionResult> {
   const { claimId, session, requestHeaders } = params;
 
-  if (!session?.user || session.user.role !== 'staff') {
+  if (session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
   }
 

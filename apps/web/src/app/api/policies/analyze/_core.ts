@@ -86,7 +86,7 @@ function isImageFile(file: File, buffer: Buffer): boolean {
 }
 
 function sanitizeFileName(name: string) {
-  return name.replace(/[^\w.-]+/g, '_');
+  return name.replaceAll(/[^\\w.-]+/g, '_');
 }
 
 function formatError(prefix: string, error: unknown) {

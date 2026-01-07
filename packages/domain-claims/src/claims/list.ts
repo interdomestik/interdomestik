@@ -168,7 +168,35 @@ function buildClaimsWhereClause(params: {
   const { scope, authScope, tenantId, session, isPrivileged, statusFilter, searchQuery } = params;
   const conditions: SQL<unknown>[] = [];
 
-  // Mandatory Scoping (Branch / Agent)
+  // 1. Mandatory Scoping
+  conditions.push(...buildScopeConditions(authScope, scope, session, isPrivileged));
+
+  // 2. Status Filter
+  if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {
+    conditions.push(eq(claims.status, statusFilter as (typeof VALID_STATUSES)[number]));
+  }
+
+  // 3. Search Query
+  if (searchQuery) {
+    const searchCondition = buildSearchConditions(scope, searchQuery);
+    if (searchCondition) {
+      conditions.push(searchCondition);
+    }
+  }
+
+  const baseWhere = conditions.length ? and(...conditions) : undefined;
+  return withTenant(tenantId, claims.tenantId, baseWhere);
+}
+
+function buildScopeConditions(
+  authScope: any,
+  scope: ClaimsScope,
+  session: SessionWithTenant,
+  isPrivileged?: boolean
+): SQL<unknown>[] {
+  const conditions: SQL<unknown>[] = [];
+
+  // Branch / Agent Scoping
   if (!authScope.isFullTenantScope) {
     if (authScope.branchId) {
       conditions.push(eq(claims.branchId, authScope.branchId));
@@ -178,7 +206,7 @@ function buildClaimsWhereClause(params: {
     }
   }
 
-  // Scope specific filters
+  // View Scope
   if (scope === 'member') {
     conditions.push(eq(claims.userId, session!.user!.id!));
   } else if (scope === 'staff_queue' && isPrivileged) {
@@ -190,30 +218,22 @@ function buildClaimsWhereClause(params: {
     conditions.push(isNotNull(claims.agentId));
   }
 
-  // Status Filter
-  if (statusFilter && (VALID_STATUSES as readonly string[]).includes(statusFilter)) {
-    conditions.push(eq(claims.status, statusFilter as (typeof VALID_STATUSES)[number]));
+  return conditions;
+}
+
+function buildSearchConditions(scope: ClaimsScope, searchQuery: string) {
+  const term = `%${searchQuery}%`;
+
+  if (scope === 'member') {
+    return or(ilike(claims.title, term), ilike(claims.companyName, term));
   }
 
-  // Search Query
-  if (searchQuery) {
-    const searchCondition =
-      scope === 'member'
-        ? or(ilike(claims.title, `%${searchQuery}%`), ilike(claims.companyName, `%${searchQuery}%`))
-        : or(
-            ilike(claims.title, `%${searchQuery}%`),
-            ilike(claims.companyName, `%${searchQuery}%`),
-            ilike(user.name, `%${searchQuery}%`),
-            ilike(user.email, `%${searchQuery}%`)
-          );
-
-    if (searchCondition) {
-      conditions.push(searchCondition);
-    }
-  }
-
-  const baseWhere = conditions.length ? and(...conditions) : undefined;
-  return withTenant(tenantId, claims.tenantId, baseWhere);
+  return or(
+    ilike(claims.title, term),
+    ilike(claims.companyName, term),
+    ilike(user.name, term),
+    ilike(user.email, term)
+  );
 }
 
 async function executeClaimsQuery(

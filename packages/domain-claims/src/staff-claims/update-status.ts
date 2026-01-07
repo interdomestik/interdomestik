@@ -20,7 +20,7 @@ export async function updateClaimStatusCore(
 ): Promise<ActionResult> {
   const { claimId, newStatus, note, isPublicChange = true, session } = params;
 
-  if (!session?.user || session.user.role !== 'staff') {
+  if (session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
   }
 

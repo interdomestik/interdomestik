@@ -122,6 +122,6 @@ export async function withDeadlockPrevention<T>(
       const result = await op.operation();
       results.push(result);
     }
-    return results[results.length - 1]; // Return last operation result
+    return results.at(-1); // Return last operation result
   });
 }

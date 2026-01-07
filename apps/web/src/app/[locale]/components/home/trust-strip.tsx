@@ -20,9 +20,9 @@ export function TrustStrip() {
             stats.length === 3 ? 'max-w-4xl mx-auto' : 'max-w-5xl mx-auto'
           }`}
         >
-          {stats.map((stat, index) => (
+          {stats.map(stat => (
             <div
-              key={index}
+              key={stat.label}
               className="text-center min-w-[140px] group transition-transform hover:-translate-y-1 duration-300"
             >
               <div className="text-4xl md:text-5xl font-black text-primary tracking-tighter mb-2">

@@ -9,11 +9,11 @@ export function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const questions = [
-    { question: t('questions.0.question'), answer: t('questions.0.answer') },
-    { question: t('questions.1.question'), answer: t('questions.1.answer') },
-    { question: t('questions.2.question'), answer: t('questions.2.answer') },
-    { question: t('questions.3.question'), answer: t('questions.3.answer') },
-    { question: t('questions.4.question'), answer: t('questions.4.answer') },
+    { id: 'hotline', question: t('questions.0.question'), answer: t('questions.0.answer') },
+    { id: 'process', question: t('questions.1.question'), answer: t('questions.1.answer') },
+    { id: 'timing', question: t('questions.2.question'), answer: t('questions.2.answer') },
+    { id: 'fees', question: t('questions.3.question'), answer: t('questions.3.answer') },
+    { id: 'documents', question: t('questions.4.question'), answer: t('questions.4.answer') },
   ];
 
   return (
@@ -28,7 +28,7 @@ export function FAQSection() {
 
         <div className="max-w-3xl mx-auto">
           {questions.map((item, index) => (
-            <div key={index} className="border-b border-slate-200 last:border-b-0">
+            <div key={item.id} className="border-b border-slate-200 last:border-b-0">
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
                 className="w-full py-6 flex items-center justify-between text-left group"

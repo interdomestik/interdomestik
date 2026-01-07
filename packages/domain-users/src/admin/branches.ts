@@ -1,7 +1,7 @@
 import { branches, db, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/shared-auth';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import type { ActionResult, UserDomainDeps, UserSession } from '../types';
 import { resolveTenantId } from './utils';
 
@@ -43,8 +43,8 @@ export async function createBranchCore(
   const slug = name
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
+    .replaceAll(/[^\w\s-]/g, '')
+    .replaceAll(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
   if (!slug) {
@@ -120,8 +120,8 @@ export async function updateBranchCore(
   const slug = name
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
+    .replaceAll(/[^\w\s-]/g, '')
+    .replaceAll(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
   const existing = await db.query.branches.findFirst({

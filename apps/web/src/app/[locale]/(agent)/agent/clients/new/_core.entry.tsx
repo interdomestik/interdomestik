@@ -5,7 +5,7 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
-export default async function RegisterMemberPage({ params }: Props) {
+export default async function RegisterMemberPage({ params }: Readonly<Props>) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('agent-members.members.register');

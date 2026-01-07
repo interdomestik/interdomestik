@@ -10,7 +10,7 @@ type Props = {
   searchParams: Promise<{ search?: string }>;
 };
 
-export default async function AgentUsersPage({ params, searchParams }: Props) {
+export default async function AgentUsersPage({ params, searchParams }: Readonly<Props>) {
   const { locale } = await params;
   setRequestLocale(locale);
 

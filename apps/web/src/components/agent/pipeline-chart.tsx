@@ -59,7 +59,7 @@ export function PipelineChart({ data }: PipelineChartProps) {
               <Tooltip
                 cursor={{ fill: 'hsl(var(--muted-100))', opacity: 0.2 }}
                 content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
+                  if (active && payload?.length) {
                     return (
                       <div className="rounded-lg border bg-background p-2 shadow-sm">
                         <div className="grid grid-cols-2 gap-2">

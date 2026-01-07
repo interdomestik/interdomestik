@@ -88,9 +88,16 @@ async function runAllAudits() {
   const failed = results.filter(r => r.status === 'fail').length;
 
   results.forEach(r => {
-    const icon = r.status === 'pass' ? '✅' : r.status === 'warning' ? '⚠️' : '❌';
-    const color =
-      r.status === 'pass' ? chalk.green : r.status === 'warning' ? chalk.yellow : chalk.red;
+    let icon = '❌';
+    let color = chalk.red;
+
+    if (r.status === 'pass') {
+      icon = '✅';
+      color = chalk.green;
+    } else if (r.status === 'warning') {
+      icon = '⚠️';
+      color = chalk.yellow;
+    }
     console.log(color(`${icon} ${r.name}`));
   });
 

@@ -2,12 +2,12 @@
 
 import { PanelLeft } from 'lucide-react';
 import * as React from 'react';
-import { useSidebar } from '../context';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../button';
+import { useSidebar } from '../context';
 
 const SidebarTrigger = React.forwardRef<
-  React.ElementRef<typeof Button>,
+  React.ComponentRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
   const { toggleSidebar } = useSidebar();
@@ -60,4 +60,4 @@ const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<'bu
 );
 SidebarRail.displayName = 'SidebarRail';
 
-export { SidebarTrigger, SidebarRail };
+export { SidebarRail, SidebarTrigger };

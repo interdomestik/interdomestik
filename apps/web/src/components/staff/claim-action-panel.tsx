@@ -70,6 +70,11 @@ export function ClaimActionPanel({
   const isAssignedToMe = assigneeId === staffId;
   const hasStatusChanged = status !== currentStatus;
 
+  let assignmentLabel = 'Unassigned';
+  if (assigneeId) {
+    assignmentLabel = isAssignedToMe ? 'Assigned to you' : 'Assigned to colleague';
+  }
+
   return (
     <div className="bg-white rounded-lg border shadow-sm p-6 space-y-6">
       <h3 className="font-semibold text-lg">Staff Actions</h3>
@@ -78,13 +83,7 @@ export function ClaimActionPanel({
       <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
         <div>
           <p className="text-sm font-medium">Assignment</p>
-          <p className="text-xs text-muted-foreground">
-            {assigneeId
-              ? isAssignedToMe
-                ? 'Assigned to you'
-                : 'Assigned to colleague'
-              : 'Unassigned'}
-          </p>
+          <p className="text-xs text-muted-foreground">{assignmentLabel}</p>
         </div>
         {!isAssignedToMe && (
           <Button size="sm" onClick={handleAssign} disabled={isPending}>

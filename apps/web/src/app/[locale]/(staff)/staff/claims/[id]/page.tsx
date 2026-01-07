@@ -37,7 +37,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     headers: await headers(),
   });
 
-  if (!session || session.user.role !== 'staff') {
+  if (session?.user?.role !== 'staff') {
     return notFound();
   }
 

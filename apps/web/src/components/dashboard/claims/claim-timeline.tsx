@@ -3,7 +3,7 @@
 import { CLAIM_TIMELINE_PHASES } from '@/lib/claim-ui';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { cn } from '@interdomestik/ui/lib/utils';
-import { CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
@@ -17,6 +17,38 @@ interface ClaimTimelineProps {
     createdAt: Date | null;
   }>;
   readonly now?: Date;
+}
+
+function getLastActivityAt(
+  updatedAtDate: Date,
+  history?: ReadonlyArray<{ createdAt: Date | null }>
+) {
+  if (history?.[0]?.createdAt) {
+    return history[0].createdAt instanceof Date
+      ? history[0].createdAt
+      : new Date(history[0].createdAt);
+  }
+  return updatedAtDate;
+}
+
+function renderPhaseIcon({
+  isCompleted,
+  isCurrent,
+  isRejected,
+  Icon,
+}: {
+  isCompleted: boolean;
+  isCurrent: boolean;
+  isRejected: boolean;
+  Icon: LucideIcon;
+}) {
+  if (isCompleted) {
+    return <CheckCircle2 className="h-5 w-5" />;
+  }
+  if (isCurrent && isRejected) {
+    return <XCircle className="h-5 w-5" />;
+  }
+  return <Icon className="h-4 w-4" />;
 }
 
 export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimelineProps) {
@@ -44,12 +76,7 @@ export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimeline
     return reached;
   }, [history]);
 
-  const lastActivityAt =
-    history && history[0]?.createdAt
-      ? history[0].createdAt instanceof Date
-        ? history[0].createdAt
-        : new Date(history[0].createdAt)
-      : updatedAtDate;
+  const lastActivityAt = getLastActivityAt(updatedAtDate, history);
 
   // Find current phase index
   // Note: 'draft' is before submission (-1)
@@ -60,11 +87,12 @@ export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimeline
   const hoursSinceUpdate = (nowDate.getTime() - lastActivityAt.getTime()) / (1000 * 60 * 60);
   const isTerminal = ['resolved', 'rejected'].includes(status);
   const hoursRemaining = Math.max(0, SLA_TARGET_HOURS - hoursSinceUpdate);
-  const slaTarget = isTerminal
-    ? '—'
-    : hoursRemaining <= 1
-      ? '<1h'
-      : `${Math.ceil(hoursRemaining)}h`;
+
+  let slaTarget = '—';
+  if (!isTerminal) {
+    slaTarget = hoursRemaining <= 1 ? '<1h' : `${Math.ceil(hoursRemaining)}h`;
+  }
+
   const isAtRisk = hoursSinceUpdate > SLA_TARGET_HOURS && !isTerminal;
 
   return (
@@ -110,13 +138,7 @@ export function ClaimTimeline({ status, updatedAt, history, now }: ClaimTimeline
                   stateColor
                 )}
               >
-                {isCompleted ? (
-                  <CheckCircle2 className="h-5 w-5" />
-                ) : isCurrent && isRejected ? (
-                  <XCircle className="h-5 w-5" />
-                ) : (
-                  <Icon className="h-4 w-4" />
-                )}
+                {renderPhaseIcon({ isCompleted, isCurrent, isRejected, Icon })}
               </div>
 
               <div

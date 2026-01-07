@@ -14,6 +14,12 @@ interface PricingTableProps {
   email?: string;
 }
 
+function getPlanColorClass(color: string) {
+  if (color === 'blue') return 'bg-blue-50 text-blue-600';
+  if (color === 'purple') return 'bg-purple-50 text-purple-600';
+  return 'bg-indigo-50 text-indigo-600';
+}
+
 export function PricingTable({ userId, email }: PricingTableProps) {
   const t = useTranslations('pricing');
   const router = useRouter();
@@ -175,13 +181,9 @@ export function PricingTable({ userId, email }: PricingTableProps) {
 
             <div className="text-center mb-10">
               <div
-                className={`mx-auto p-4 rounded-2xl w-fit mb-6 shadow-sm ${
-                  plan.color === 'blue'
-                    ? 'bg-blue-50 text-blue-600'
-                    : plan.color === 'purple'
-                      ? 'bg-purple-50 text-purple-600'
-                      : 'bg-indigo-50 text-indigo-600'
-                }`}
+                className={`mx-auto p-4 rounded-2xl w-fit mb-6 shadow-sm ${getPlanColorClass(
+                  plan.color
+                )}`}
               >
                 <plan.icon className="w-10 h-10" />
               </div>

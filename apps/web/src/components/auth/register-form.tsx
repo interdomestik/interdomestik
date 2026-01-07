@@ -13,7 +13,7 @@ import {
   Input,
   Label,
 } from '@interdomestik/ui';
-import { Github, Shield } from 'lucide-react';
+import { Code, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -192,7 +192,7 @@ export function RegisterForm() {
             disabled={loading}
             onClick={() => handleSocialSignIn('github')}
           >
-            <Github className="mr-2 h-4 w-4" />
+            <Code className="mr-2 h-4 w-4" />
             GitHub
           </Button>
 

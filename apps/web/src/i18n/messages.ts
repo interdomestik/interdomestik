@@ -113,43 +113,7 @@ export const ADMIN_NAMESPACES = [
   'notifications',
 ] as const;
 
-type MessageValue =
-  | string
-  | number
-  | boolean
-  | null
-  | MessageValue[]
-  | { [key: string]: MessageValue };
-
-function mergeMessages(fallback: MessageValue, overrides: MessageValue): MessageValue {
-  if (Array.isArray(fallback)) {
-    return Array.isArray(overrides) ? overrides : fallback;
-  }
-
-  if (typeof fallback === 'object' && fallback !== null) {
-    const fallbackObj = fallback as Record<string, MessageValue>;
-    const overrideObj =
-      typeof overrides === 'object' && overrides !== null && !Array.isArray(overrides)
-        ? (overrides as Record<string, MessageValue>)
-        : {};
-    const merged: Record<string, MessageValue> = {};
-
-    for (const key of Object.keys(fallbackObj)) {
-      merged[key] =
-        key in overrideObj ? mergeMessages(fallbackObj[key], overrideObj[key]) : fallbackObj[key];
-    }
-
-    for (const key of Object.keys(overrideObj)) {
-      if (!(key in merged)) {
-        merged[key] = overrideObj[key];
-      }
-    }
-
-    return merged;
-  }
-
-  return overrides === undefined ? fallback : overrides;
-}
+import { mergeMessages } from './utils/merge';
 
 export async function loadAllMessages(locale: string) {
   const modules = await Promise.all(

@@ -21,7 +21,7 @@ export async function createLeadCore(agentId: string, tenantId: string, formData
     return {
       ok: false as const,
       error: 'Validation failed' as const,
-      fields: validated.error.flatten().fieldErrors,
+      fields: validated.error.flatten().fieldErrors, // NOSONAR
     };
   }
 

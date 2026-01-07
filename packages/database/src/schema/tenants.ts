@@ -34,11 +34,11 @@ export const tenantSettings = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  table => ({
-    tenantCategoryKeyUq: uniqueIndex('tenant_settings_tenant_category_key_uq').on(
+  table => [
+    uniqueIndex('tenant_settings_tenant_category_key_uq').on(
       table.tenantId,
       table.category,
       table.key
     ),
-  })
+  ]
 );

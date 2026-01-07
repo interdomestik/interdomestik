@@ -18,6 +18,62 @@ import { useSearchParams } from 'next/navigation';
 
 const PER_PAGE = 20;
 
+function renderActionButtons({
+  isAgent,
+  unreadCount,
+  claimId,
+  detailBasePath,
+  t,
+}: {
+  isAgent: boolean;
+  unreadCount: number;
+  claimId: string;
+  detailBasePath: string;
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  if (isAgent) {
+    return (
+      <Button
+        asChild
+        size="sm"
+        variant="ghost"
+        className="text-slate-500 hover:text-primary hover:bg-primary/5 font-medium transition-colors"
+      >
+        <Link href={`${detailBasePath}/${claimId}`}>View Status</Link>
+      </Button>
+    );
+  }
+
+  if (unreadCount) {
+    return (
+      <Button
+        asChild
+        size="sm"
+        className="gap-2 shadow-sm shadow-amber-500/20 bg-amber-500 text-white hover:bg-amber-600 border-amber-600/20 font-semibold"
+      >
+        <Link href={`${detailBasePath}/${claimId}`}>
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+          </span>
+          {t('table.message_alert', { count: unreadCount })}
+        </Link>
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      asChild
+      size="sm"
+      variant="outline"
+      className="font-medium text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+    >
+      <Link href={`${detailBasePath}/${claimId}`}>{t('actions.review')}</Link>
+    </Button>
+  );
+}
+
 export function AgentClaimsTable({
   userRole,
   scope = 'agent_queue',
@@ -150,41 +206,13 @@ export function AgentClaimsTable({
                   {claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : '-'}
                 </TableCell>
                 <TableCell className="text-right">
-                  {!isAgent ? (
-                    claim.unreadCount ? (
-                      <Button
-                        asChild
-                        size="sm"
-                        className="gap-2 shadow-sm shadow-amber-500/20 bg-amber-500 text-white hover:bg-amber-600 border-amber-600/20 font-semibold"
-                      >
-                        <Link href={`${detailBasePath}/${claim.id}`}>
-                          <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-75" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-                          </span>
-                          {t('table.message_alert', { count: claim.unreadCount })}
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button
-                        asChild
-                        size="sm"
-                        variant="outline"
-                        className="font-medium text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                      >
-                        <Link href={`${detailBasePath}/${claim.id}`}>{t('actions.review')}</Link>
-                      </Button>
-                    )
-                  ) : (
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="ghost"
-                      className="text-slate-500 hover:text-primary hover:bg-primary/5 font-medium transition-colors"
-                    >
-                      <Link href={`${detailBasePath}/${claim.id}`}>View Status</Link>
-                    </Button>
-                  )}
+                  {renderActionButtons({
+                    isAgent,
+                    unreadCount: claim.unreadCount || 0,
+                    claimId: claim.id,
+                    detailBasePath,
+                    t,
+                  })}
                 </TableCell>
               </TableRow>
             ))}

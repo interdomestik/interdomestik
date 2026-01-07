@@ -30,12 +30,12 @@ export const claims = pgTable(
     createdAt: timestamp('createdAt').defaultNow(),
     updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
   },
-  table => ({
-    branchIdx: index('idx_claims_branch').on(table.branchId),
-    agentIdx: index('idx_claims_agent').on(table.agentId),
-    userCreatedIdx: index('idx_claims_user_created').on(table.userId, table.createdAt),
-    statusIdx: index('idx_claims_status').on(table.status),
-  })
+  table => [
+    index('idx_claims_branch').on(table.branchId),
+    index('idx_claims_agent').on(table.agentId),
+    index('idx_claims_user_created').on(table.userId, table.createdAt),
+    index('idx_claims_status').on(table.status),
+  ]
 );
 
 export const claimDocuments = pgTable('claim_documents', {

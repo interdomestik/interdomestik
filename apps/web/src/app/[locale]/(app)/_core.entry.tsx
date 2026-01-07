@@ -1,6 +1,6 @@
-import { auth } from '@/lib/auth';
-import { redirect } from '@/i18n/routing';
 import { APP_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { redirect } from '@/i18n/routing';
+import { auth } from '@/lib/auth';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -10,7 +10,7 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
-export default async function AppProtectedLayout({ children, params }: Props) {
+export default async function AppProtectedLayout({ children, params }: Readonly<Props>) {
   const { locale } = await params;
 
   // Enforce authentication for all routes in the (app) group

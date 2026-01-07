@@ -38,7 +38,7 @@ async function hasTenantRole(params: {
 }
 
 export function requireAdminSession(session: UserSession | null): UserSession {
-  if (!session?.user || session.user.role !== 'admin') {
+  if (session?.user?.role !== 'admin') {
     throw new Error('Unauthorized');
   }
 

@@ -56,9 +56,10 @@ export async function analyzePolicyText(text: string): Promise<PolicyAnalysis> {
   const coverage = extractLabeledAmount('coverage|limit|sum insured', normalized);
   const deductible = extractLabeledAmount('deductible|excess', normalized);
 
-  const summary = normalized
-    ? `${normalized.slice(0, 220)}${normalized.length > 220 ? '...' : ''}`
-    : undefined;
+  let summary: string | undefined;
+  if (normalized) {
+    summary = normalized.length > 220 ? `${normalized.slice(0, 220)}...` : normalized;
+  }
 
   return {
     provider: undefined,

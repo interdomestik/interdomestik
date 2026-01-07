@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { registerMemberCore } from '@/lib/actions/agent/register-member';
 import { auth } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 const registerSchema = z.object({
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: 'Validation failed',
-          details: validated.error.flatten().fieldErrors,
+          details: validated.error.flatten().fieldErrors, // NOSONAR
         },
         { status: 400 }
       );

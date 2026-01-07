@@ -19,6 +19,11 @@ export async function MembershipInfoCard({
   const t = await getTranslations('admin.member_profile');
   const tCommon = await getTranslations('common');
 
+  let cancellationStatus = tCommon('none');
+  if (subscription) {
+    cancellationStatus = subscription.cancelAtPeriodEnd ? tCommon('yes') : tCommon('no');
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -45,13 +50,7 @@ export async function MembershipInfoCard({
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{t('labels.cancel_at_period_end')}</span>
-          <span className="font-medium text-foreground">
-            {subscription
-              ? subscription.cancelAtPeriodEnd
-                ? tCommon('yes')
-                : tCommon('no')
-              : tCommon('none')}
-          </span>
+          <span className="font-medium text-foreground">{cancellationStatus}</span>
         </div>
       </CardContent>
     </Card>

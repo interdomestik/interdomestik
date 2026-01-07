@@ -9,7 +9,7 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function AdminBranchesPage({ searchParams }: Props) {
+export default async function AdminBranchesPage({ searchParams }: Readonly<Props>) {
   const t = await getTranslations('admin.branches');
   const sp = await searchParams;
   const showInactive = sp.showInactive === 'true';

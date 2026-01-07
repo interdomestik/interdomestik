@@ -47,6 +47,13 @@ export function MemberNoteDialog({
 }: MemberNoteDialogProps) {
   const t = useTranslations('agent.notes');
 
+  let submitLabel = t('create');
+  if (isPending) {
+    submitLabel = t('saving');
+  } else if (isEditing) {
+    submitLabel = t('update');
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md">
@@ -88,7 +95,7 @@ export function MemberNoteDialog({
             {t('cancel')}
           </Button>
           <Button onClick={onSubmit} disabled={isPending || !noteContent.trim()}>
-            {isPending ? t('saving') : isEditing ? t('update') : t('create')}
+            {submitLabel}
           </Button>
         </SheetFooter>
       </SheetContent>

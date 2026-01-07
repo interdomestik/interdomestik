@@ -1,17 +1,18 @@
 import { defineConfig } from 'drizzle-kit';
 
+function getSslConfig() {
+  if (process.env.NODE_ENV === 'production') return 'require';
+  if (process.env.NODE_ENV === 'staging') return 'prefer';
+  return false;
+}
+
 export default defineConfig({
   dialect: 'postgresql',
   schema: './src/schema.ts',
   out: './drizzle',
   dbCredentials: {
     url: process.env.DATABASE_URL!,
-    ssl:
-      process.env.NODE_ENV === 'production'
-        ? 'require'
-        : process.env.NODE_ENV === 'staging'
-          ? 'prefer'
-          : false,
+    ssl: getSslConfig(),
   },
   tablesFilter: [
     'user',

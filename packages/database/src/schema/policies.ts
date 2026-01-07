@@ -19,11 +19,7 @@ export const policies = pgTable(
     fileUrl: text('file_url').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  table => ({
-    userTenantCreatedIdx: index('idx_policies_user_tenant_created').on(
-      table.userId,
-      table.tenantId,
-      table.createdAt
-    ),
-  })
+  table => [
+    index('idx_policies_user_tenant_created').on(table.userId, table.tenantId, table.createdAt),
+  ]
 );

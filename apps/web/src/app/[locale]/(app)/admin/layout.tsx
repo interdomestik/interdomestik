@@ -7,7 +7,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-export default async function AdminLayout({ children }: Props) {
+export default async function AdminLayout({ children }: Readonly<Props>) {
   const messages = await getMessages();
   const adminMessages = pickMessages(messages, ADMIN_NAMESPACES);
 

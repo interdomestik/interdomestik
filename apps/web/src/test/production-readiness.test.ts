@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Create mock transaction function
-const mockTransaction = vi.fn();
+const { mockTransaction } = vi.hoisted(() => {
+  return { mockTransaction: vi.fn() };
+});
 
 // Mock the database module before importing withTransactionRetry
 vi.mock('@interdomestik/database', () => ({

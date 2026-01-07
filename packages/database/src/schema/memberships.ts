@@ -75,10 +75,10 @@ export const subscriptions = pgTable(
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
   },
-  table => ({
-    branchIdx: index('idx_memberships_branch').on(table.branchId),
-    agentIdx: index('idx_memberships_agent').on(table.agentId),
-  })
+  table => [
+    index('idx_memberships_branch').on(table.branchId),
+    index('idx_memberships_agent').on(table.agentId),
+  ]
 );
 
 export const membershipFamilyMembers = pgTable('membership_family_members', {

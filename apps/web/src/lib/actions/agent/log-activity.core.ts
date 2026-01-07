@@ -13,7 +13,7 @@ export async function logActivityCore(
     where: eq(crmLeads.id, leadId),
   });
 
-  if (!lead || lead.agentId !== agentId) {
+  if (lead?.agentId !== agentId) {
     return { error: 'Not found' as const };
   }
 

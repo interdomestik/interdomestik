@@ -11,10 +11,10 @@ import { headers } from 'next/headers';
 export default async function AgentLayout({
   children,
   params,
-}: {
+}: Readonly<{
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
-}) {
+}>) {
   const { locale } = await params;
   setRequestLocale(locale);
 

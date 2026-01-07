@@ -115,9 +115,9 @@ export default async function PoliciesPage() {
                         HIDDEN PERKS
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {analysis.hiddenPerks.slice(0, 2).map((perk, i) => (
+                        {analysis.hiddenPerks.slice(0, 2).map(perk => (
                           <span
-                            key={i}
+                            key={perk}
                             className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100"
                           >
                             {perk}

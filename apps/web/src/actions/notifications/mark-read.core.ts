@@ -28,7 +28,7 @@ export async function markAsReadCore(params: {
     notificationId: params.notificationId,
   });
   if (!validation.success) {
-    throw new Error(validation.error.flatten().fieldErrors.notificationId?.[0] || 'Invalid input');
+    throw new Error(validation.error.flatten().fieldErrors.notificationId?.[0] || 'Invalid input'); // NOSONAR
   }
   return markAsReadCoreDomain(params);
 }
