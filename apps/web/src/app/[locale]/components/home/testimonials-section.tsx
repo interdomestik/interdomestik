@@ -1,43 +1,47 @@
 import { Quote, Sparkles, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
 
 export function TestimonialsSection() {
   const t = useTranslations('testimonials');
 
-  const stories = [
-    {
-      quote: t('stories.0.quote'),
-      name: t('stories.0.name'),
-      role: t('stories.0.role'),
-      amount: t('stories.0.amount'),
-      time: t('stories.0.time'),
-      color: 'from-emerald-400 to-teal-500',
-    },
-    {
-      quote: t('stories.1.quote'),
-      name: t('stories.1.name'),
-      role: t('stories.1.role'),
-      amount: t('stories.1.amount'),
-      time: t('stories.1.time'),
-      color: 'from-blue-400 to-indigo-500',
-    },
-    {
-      quote: t('stories.2.quote'),
-      name: t('stories.2.name'),
-      role: t('stories.2.role'),
-      amount: t('stories.2.amount'),
-      time: t('stories.2.time'),
-      color: 'from-purple-400 to-fuchsia-500',
-    },
-    {
-      quote: t('stories.3.quote'),
-      name: t('stories.3.name'),
-      role: t('stories.3.role'),
-      amount: t('stories.3.amount'),
-      time: t('stories.3.time'),
-      color: 'from-amber-400 to-orange-500',
-    },
-  ];
+  const stories = useMemo(
+    () => [
+      {
+        quote: t('stories.0.quote'),
+        name: t('stories.0.name'),
+        role: t('stories.0.role'),
+        amount: t('stories.0.amount'),
+        time: t('stories.0.time'),
+        color: 'from-emerald-400 to-teal-500',
+      },
+      {
+        quote: t('stories.1.quote'),
+        name: t('stories.1.name'),
+        role: t('stories.1.role'),
+        amount: t('stories.1.amount'),
+        time: t('stories.1.time'),
+        color: 'from-blue-400 to-indigo-500',
+      },
+      {
+        quote: t('stories.2.quote'),
+        name: t('stories.2.name'),
+        role: t('stories.2.role'),
+        amount: t('stories.2.amount'),
+        time: t('stories.2.time'),
+        color: 'from-purple-400 to-fuchsia-500',
+      },
+      {
+        quote: t('stories.3.quote'),
+        name: t('stories.3.name'),
+        role: t('stories.3.role'),
+        amount: t('stories.3.amount'),
+        time: t('stories.3.time'),
+        color: 'from-amber-400 to-orange-500',
+      },
+    ],
+    [t]
+  );
 
   return (
     <section className="py-24 lg:py-40 relative overflow-hidden bg-white">

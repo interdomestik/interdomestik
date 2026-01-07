@@ -52,7 +52,7 @@ export function LeaderboardCard() {
   const renderContent = () => {
     if (isLoading) {
       return [0, 1, 2, 3, 4].map(i => (
-        <Skeleton key={`${skeletonId}-${i}`} className="h-12 w-full" />
+        <Skeleton key={`${skeletonId}-${i}`} className="h-12 w-full" /> // NOSONAR
       ));
     }
     if (entries.length === 0) {

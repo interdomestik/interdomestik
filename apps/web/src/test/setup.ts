@@ -85,8 +85,9 @@ class IntersectionObserverMock {
 
 beforeAll(() => {
   // Setup browser APIs
-  global.ResizeObserver = ResizeObserverMock;
-  global.IntersectionObserver = IntersectionObserverMock as unknown as typeof IntersectionObserver;
+  globalThis.ResizeObserver = ResizeObserverMock;
+  globalThis.IntersectionObserver =
+    IntersectionObserverMock as unknown as typeof IntersectionObserver;
 
   // Mock window.matchMedia
   Object.defineProperty(globalThis, 'matchMedia', {
