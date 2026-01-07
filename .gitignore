@@ -69,3 +69,5 @@ supabase/.branches
 .agent/tasks/archive/
 .agent/tasks/logs/
 .agent/tasks/.qa_baseline
+.scannerwork/
+measures.json
