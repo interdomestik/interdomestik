@@ -109,22 +109,17 @@ function mapToSubscriptionValues(
   mappedStatus: InternalSubscriptionStatus,
   priceId: string
 ) {
+  const currentStartsAt =
+    sub.currentBillingPeriod?.startsAt || (sub.current_billing_period?.starts_at as string);
+  const currentEndsAt =
+    sub.currentBillingPeriod?.endsAt || (sub.current_billing_period?.ends_at as string);
+
   const baseValues = {
     status: mappedStatus,
     planId: priceId,
     providerCustomerId: (sub.customerId || sub.customer_id) as string | null,
-    currentPeriodStart:
-      sub.currentBillingPeriod?.startsAt || sub.current_billing_period?.starts_at
-        ? new Date(
-            sub.currentBillingPeriod?.startsAt || (sub.current_billing_period?.starts_at as string)
-          )
-        : null,
-    currentPeriodEnd:
-      sub.currentBillingPeriod?.endsAt || sub.current_billing_period?.ends_at
-        ? new Date(
-            sub.currentBillingPeriod?.endsAt || (sub.current_billing_period?.ends_at as string)
-          )
-        : null,
+    currentPeriodStart: parseDate(currentStartsAt),
+    currentPeriodEnd: parseDate(currentEndsAt),
     cancelAtPeriodEnd:
       sub.scheduledChange?.action === 'cancel' || sub.scheduled_change?.action === 'cancel',
     canceledAt: mappedStatus === 'canceled' ? new Date() : null,
@@ -142,4 +137,8 @@ function mapToSubscriptionValues(
   }
 
   return baseValues;
+}
+
+function parseDate(dateStr: string | undefined | null): Date | null {
+  return dateStr ? new Date(dateStr) : null;
 }

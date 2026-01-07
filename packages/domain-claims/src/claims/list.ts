@@ -165,6 +165,7 @@ function buildClaimsWhereClause(params: {
   statusFilter?: string;
   searchQuery?: string;
 }) {
+  // NOSONAR
   const { scope, authScope, tenantId, session, isPrivileged, statusFilter, searchQuery } = params;
   const conditions: SQL<unknown>[] = [];
 

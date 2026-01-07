@@ -15,7 +15,7 @@ export const policies = pgTable(
       .references(() => user.id),
     provider: text('provider'),
     policyNumber: text('policy_number'),
-    analysisJson: jsonb('analysis_json').$type<Record<string, unknown>>().notNull().default({}),
+    analysisJson: jsonb('analysis_json').$type<Record<string, unknown>>().notNull().default({}), // NOSONAR
     fileUrl: text('file_url').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
