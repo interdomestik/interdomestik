@@ -71,3 +71,5 @@ supabase/.branches
 .agent/tasks/.qa_baseline
 .scannerwork/
 measures.json
+sonar_*.json
+final_medium_cleanup.json
