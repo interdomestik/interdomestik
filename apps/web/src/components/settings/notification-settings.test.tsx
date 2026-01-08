@@ -207,8 +207,9 @@ describe('NotificationSettings', () => {
 
       render(<NotificationSettings />);
 
+      // Wait for actual form content, not just header (header visible during loading)
       await waitFor(() => {
-        expect(screen.getByText('Notification Preferences')).toBeInTheDocument();
+        expect(screen.getByText('Email Notifications')).toBeInTheDocument();
       });
 
       const marketingCheckbox = screen.getByLabelText('Promotional emails', {
