@@ -225,7 +225,26 @@
       "save": "Save",
       "saving": "Saving...",
       "deleting": "Deleting...",
-      "noResults": "No branches found."
+      "noResults": "No branches found.",
+      "dashboard": {
+        "back_to_branches": "Back to Branches",
+        "status_active": "Active",
+        "status_inactive": "Inactive",
+        "code_label": "Code",
+        "stats_agents": "Agents",
+        "stats_members": "Members",
+        "stats_total_claims": "Total Claims",
+        "stats_claims_this_month": "This Month",
+        "agents_title": "Agents",
+        "agents_description": "{count, plural, =0 {No agents} =1 {1 agent} other {# agents}} in this branch",
+        "no_agents": "No agents in this branch yet.",
+        "col_rank": "Rank",
+        "col_agent_name": "Agent",
+        "col_members": "Members",
+        "col_active_claims": "Active",
+        "col_submitted_30d": "Submitted (30d)",
+        "unknown_agent": "Unknown"
+      }
     }
   }
 }

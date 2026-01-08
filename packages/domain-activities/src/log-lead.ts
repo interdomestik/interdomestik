@@ -3,8 +3,8 @@ import { nanoid } from 'nanoid';
 
 import { leadActivitySchema, type LogLeadActivityInput } from './schema';
 import type { ActionResult, ActivitySession } from './types';
+export type { LogLeadActivityInput } from './schema';
 
-export type { LogLeadActivityInput };
 // NOSONAR
 /** Roles allowed to log lead activities */
 const ALLOWED_ROLES = new Set(['admin', 'staff', 'agent']);

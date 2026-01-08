@@ -48,7 +48,7 @@ export async function getAgentReferralLinkCore(params: {
         ? session.user.name
             .split(' ')[0]
             .toUpperCase()
-            .replace(/[^A-Z]/g, '')
+            .replaceAll(/[^A-Z]/g, '')
         : 'AGENT';
 
       const randomPart = nanoid(6).toUpperCase();

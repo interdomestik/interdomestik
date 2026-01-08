@@ -225,7 +225,26 @@
       "save": "Ruaj",
       "saving": "Duke ruajtur...",
       "deleting": "Duke fshirë...",
-      "noResults": "Nuk u gjetën degë."
+      "noResults": "Nuk u gjetën degë.",
+      "dashboard": {
+        "back_to_branches": "Kthehu te Degët",
+        "status_active": "Aktive",
+        "status_inactive": "Joaktive",
+        "code_label": "Kodi",
+        "stats_agents": "Agjentët",
+        "stats_members": "Anëtarët",
+        "stats_total_claims": "Kërkesat Gjithsej",
+        "stats_claims_this_month": "Këtë Muaj",
+        "agents_title": "Agjentët",
+        "agents_description": "{count, plural, =0 {Nuk ka agjentë} =1 {1 agjent} other {# agjentë}} në këtë degë",
+        "no_agents": "Nuk ka agjentë në këtë degë akoma.",
+        "col_rank": "Rendi",
+        "col_agent_name": "Agjenti",
+        "col_members": "Anëtarët",
+        "col_active_claims": "Aktive",
+        "col_submitted_30d": "Dorëzuar (30d)",
+        "unknown_agent": "I panjohur"
+      }
     }
   }
 }

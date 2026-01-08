@@ -38,7 +38,9 @@
       "date": "Date of Incident",
       "description": "Description",
       "description_placeholder": "Describe exactly what happened...",
-      "helpfulTips": "💡 Helpful Tips:"
+      "helpfulTips": "💡 Helpful Tips:",
+      "voice_note_label": "Or Record a Voice Message",
+      "voice_note_desc": "Skip typing. Explain what happened in 60 seconds."
     },
     "review": {
       "title": "Rishiko & Dërgo",

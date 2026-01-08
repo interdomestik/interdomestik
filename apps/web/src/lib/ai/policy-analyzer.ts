@@ -17,7 +17,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 function normalizeText(value: string) {
-  return value.replace(/\s+/g, ' ').trim();
+  return value.replaceAll(/\s+/g, ' ').trim();
 }
 
 function extractPolicyNumber(text: string) {
@@ -36,7 +36,7 @@ function extractPolicyNumber(text: string) {
 
 function extractLabeledAmount(label: string, text: string) {
   const pattern = new RegExp(
-    `${label}[^0-9]{0,20}([${EURO}$${POUND}]|EUR|USD|GBP)?\\s*([0-9][0-9,.])`,
+    String.raw`${label}[^0-9]{0,20}([${EURO}$${POUND}]|EUR|USD|GBP)?\s*([0-9][0-9,.])`,
     'i'
   );
   const match = pattern.exec(text);

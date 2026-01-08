@@ -91,8 +91,19 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
         listUserRoles(tenantId ? { tenantId, userId } : { userId }),
       ]);
 
-      setBranches((branchesResult ?? []) as Branch[]);
-      setRoles((rolesResult ?? []) as UserRoleRow[]);
+      if (branchesResult.success) {
+        setBranches(branchesResult.data);
+      } else {
+        toast.error('Failed to load branches');
+        setBranches([]);
+      }
+
+      if (rolesResult.success) {
+        setRoles(rolesResult.data);
+      } else {
+        toast.error('Failed to load roles');
+        setRoles([]);
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to load roles');

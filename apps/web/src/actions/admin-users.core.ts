@@ -1,5 +1,6 @@
 'use server';
 
+import type { ActionResult } from '@/types/actions';
 import { z } from 'zod';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
@@ -26,48 +27,84 @@ const getUsersFiltersSchema = z
   })
   .strict();
 
-export async function updateUserAgent(userId: string, agentId: string | null) {
-  const { session, requestHeaders } = await getActionContext();
+export async function updateUserAgent(
+  userId: string,
+  agentId: string | null
+): Promise<ActionResult<void>> {
+  try {
+    const { session, requestHeaders } = await getActionContext();
 
-  const validation = updateUserAgentSchema.safeParse({ userId, agentId });
-  if (!validation.success) {
-    return { error: 'Validation failed' };
-  }
+    const validation = updateUserAgentSchema.safeParse({ userId, agentId });
+    if (!validation.success) {
+      return { success: false, error: 'Validation failed' };
+    }
 
-  if (session?.user?.id) {
-    const limit = await enforceRateLimitForAction({
-      name: `action:admin-users-update-agent:${session.user.id}`,
-      limit: 10,
-      windowSeconds: 60,
-      headers: requestHeaders,
+    if (session?.user?.id) {
+      const limit = await enforceRateLimitForAction({
+        name: `action:admin-users-update-agent:${session.user.id}`,
+        limit: 10,
+        windowSeconds: 60,
+        headers: requestHeaders,
+      });
+
+      if (limit.limited) {
+        return { success: false, error: 'Too many requests. Please wait a moment.' };
+      }
+    }
+
+    const result = await updateUserAgentCore({
+      session,
+      userId: validation.data.userId,
+      agentId: validation.data.agentId,
     });
 
-    if (limit.limited) {
-      return { error: 'Too many requests. Please wait a moment.' };
+    if ('error' in result) {
+      return { success: false, error: result.error };
     }
-  }
 
-  return updateUserAgentCore({
-    session,
-    userId: validation.data.userId,
-    agentId: validation.data.agentId,
-  });
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error('[Action:updateUserAgent]', err);
+    return { success: false, error: 'Failed to update user agent' };
+  }
 }
 
-export async function getUsers(filters?: GetUsersFilters) {
-  const { session } = await getActionContext();
-  const validation = getUsersFiltersSchema.safeParse(filters ?? {});
-  const safeFilters = validation.success ? validation.data : undefined;
-  return getUsersCore({ session, filters: safeFilters });
+export async function getUsers(
+  filters?: GetUsersFilters
+): Promise<ActionResult<Awaited<ReturnType<typeof getUsersCore>>>> {
+  try {
+    const { session } = await getActionContext();
+    const validation = getUsersFiltersSchema.safeParse(filters ?? {});
+    const safeFilters = validation.success ? validation.data : undefined;
+    const data = await getUsersCore({ session, filters: safeFilters });
+    return { success: true, data };
+  } catch (err) {
+    console.error('[Action:getUsers]', err);
+    return { success: false, error: 'Failed to retrieve users' };
+  }
 }
 
 // Fetch available agents for dropdown
-export async function getAgents() {
-  const { session } = await getActionContext();
-  return getAgentsCore({ session });
+export async function getAgents(): Promise<
+  ActionResult<Awaited<ReturnType<typeof getAgentsCore>>>
+> {
+  try {
+    const { session } = await getActionContext();
+    const data = await getAgentsCore({ session });
+    return { success: true, data };
+  } catch (err) {
+    console.error('[Action:getAgents]', err);
+    return { success: false, error: 'Failed to retrieve agents' };
+  }
 }
 
-export async function getStaff() {
-  const { session } = await getActionContext();
-  return getStaffCore({ session });
+export async function getStaff(): Promise<ActionResult<Awaited<ReturnType<typeof getStaffCore>>>> {
+  try {
+    const { session } = await getActionContext();
+    const data = await getStaffCore({ session });
+    return { success: true, data };
+  } catch (err) {
+    console.error('[Action:getStaff]', err);
+    return { success: false, error: 'Failed to retrieve staff' };
+  }
 }

@@ -225,7 +225,26 @@
       "save": "Зачувај",
       "saving": "Зачувување...",
       "deleting": "Бришење...",
-      "noResults": "Не се пронајдени филијали."
+      "noResults": "Не се пронајдени филијали.",
+      "dashboard": {
+        "back_to_branches": "Назад кон филијали",
+        "status_active": "Активно",
+        "status_inactive": "Неактивно",
+        "code_label": "Шифра",
+        "stats_agents": "Агенти",
+        "stats_members": "Членови",
+        "stats_total_claims": "Вкупно барања",
+        "stats_claims_this_month": "Овој месец",
+        "agents_title": "Агенти",
+        "agents_description": "{count, plural, =0 {Нема агенти} =1 {1 агент} other {# агенти}} во оваа филијала",
+        "no_agents": "Нема агенти во оваа филијала.",
+        "col_rank": "Ранг",
+        "col_agent_name": "Агент",
+        "col_members": "Членови",
+        "col_active_claims": "Активни",
+        "col_submitted_30d": "Поднесени (30д)",
+        "unknown_agent": "Непознат"
+      }
     }
   }
 }

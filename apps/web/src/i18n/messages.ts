@@ -78,6 +78,7 @@ export const APP_NAMESPACES = [
   'notifications',
   'timeline',
   'consumerRights',
+  'voiceClaim',
 ] as const;
 export const AGENT_NAMESPACES = [
   'common',

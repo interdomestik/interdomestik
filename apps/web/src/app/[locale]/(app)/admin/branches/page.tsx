@@ -14,7 +14,7 @@ export default async function AdminBranchesPage({ searchParams }: Readonly<Props
   const sp = await searchParams;
   const showInactive = sp.showInactive === 'true';
   const result = await listBranches({ includeInactive: showInactive });
-  const branches = 'error' in result ? [] : result;
+  const branches = result.success ? result.data : [];
 
   return (
     <div className="space-y-6">

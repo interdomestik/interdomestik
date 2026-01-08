@@ -15,7 +15,7 @@ const claimSchema = z.object({
   claimAmount: z
     .string()
     .optional()
-    .transform((val: string | undefined) => (val ? val : null)), // Handle empty string for optional decimal
+    .transform((val: string | undefined) => val || null), // Handle empty string for optional decimal
   currency: z.string().default('EUR'),
 });
 

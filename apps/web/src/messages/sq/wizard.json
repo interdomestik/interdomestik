@@ -46,7 +46,9 @@
       "date": "Data e Incidentit",
       "description": "Përshkrimi",
       "description_placeholder": "Përshkruani saktësisht çfarë ndodhi...",
-      "helpfulTips": "💡 Këshilla të Dobishme:"
+      "helpfulTips": "💡 Këshilla të Dobishme:",
+      "voice_note_label": "Ose Inçizo një Mesazh zanor",
+      "voice_note_desc": "Kalo shkrimin. Shpjego çfarë ndodhi në 60 sekonda."
     },
     "categoryFields": {
       "vehicle": {

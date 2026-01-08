@@ -107,7 +107,7 @@ export async function forEachBatchedUsers(args: {
     if (batch.length === 0) break;
 
     totalUsers += batch.length;
-    const lastId = batch[batch.length - 1]?.id;
+    const lastId = batch.at(-1)?.id;
     afterId = lastId ?? afterId;
     await args.onBatch(batch, afterId);
   }
@@ -275,7 +275,7 @@ export async function executeCampaign<
         );
       }
     }
-    afterId = batch[batch.length - 1].id;
+    afterId = batch.at(-1)!.id;
   }
 }
 
@@ -293,7 +293,7 @@ export async function processStandardUserCampaign(
         where: (user, { between, and, gt }) =>
           and(
             between(user.createdAt, windowStart, windowEnd),
-            afterId ? gt(user.id, afterId as string) : undefined
+            afterId ? gt(user.id, afterId) : undefined
           ),
         orderBy: (user, { asc }) => [asc(user.id)],
         limit: USER_BATCH_SIZE,

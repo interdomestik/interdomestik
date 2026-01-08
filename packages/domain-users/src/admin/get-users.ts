@@ -25,14 +25,14 @@ export async function getUsersCore(params: {
     : undefined;
 
   const users = await db.query.user.findMany({
-    where: (t, { eq, and }) => withTenant(scope.tenantId!, t.tenantId, userConditions),
+    where: (t, { eq, and }) => withTenant(scope.tenantId, t.tenantId, userConditions),
     orderBy: (users, { desc }) => [desc(users.createdAt)],
     with: {
       agent: true,
     },
   });
 
-  const unreadByUser = await fetchUnreadCounts(scope.tenantId!);
+  const unreadByUser = await fetchUnreadCounts(scope.tenantId);
 
   const alertBase = '/admin/claims/';
 

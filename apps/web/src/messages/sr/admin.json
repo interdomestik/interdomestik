@@ -225,7 +225,26 @@
       "save": "Sačuvaj",
       "saving": "Čuvanje...",
       "deleting": "Brisanje...",
-      "noResults": "Nema pronađenih filijala."
+      "noResults": "Nema pronađenih filijala.",
+      "dashboard": {
+        "back_to_branches": "Nazad na filijale",
+        "status_active": "Aktivno",
+        "status_inactive": "Neaktivno",
+        "code_label": "Kod",
+        "stats_agents": "Agenti",
+        "stats_members": "Članovi",
+        "stats_total_claims": "Ukupno zahteva",
+        "stats_claims_this_month": "Ovaj mesec",
+        "agents_title": "Agenti",
+        "agents_description": "{count, plural, =0 {Nema agenata} =1 {1 agent} other {# agenata}} u ovoj filijali",
+        "no_agents": "Nema agenata u ovoj filijali.",
+        "col_rank": "Rang",
+        "col_agent_name": "Agent",
+        "col_members": "Članovi",
+        "col_active_claims": "Aktivni",
+        "col_submitted_30d": "Podneti (30d)",
+        "unknown_agent": "Nepoznat"
+      }
     }
   }
 }

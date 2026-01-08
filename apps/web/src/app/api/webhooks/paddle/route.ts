@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/nextjs';
+
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -29,6 +31,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result.body, { status: result.status });
   } catch (error) {
+    // Capture webhook failures with full context for debugging
+    Sentry.captureException(error, {
+      tags: {
+        feature: 'webhooks',
+        layer: 'paddle',
+        action: 'handlePaddleWebhook',
+      },
+    });
+
     console.error('[Webhook Error]', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

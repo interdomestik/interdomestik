@@ -64,7 +64,7 @@ describe('admin-users action wrappers', () => {
       session: { user: { id: 'admin-1', role: 'admin' } },
       filters,
     });
-    expect(result).toEqual([{ id: 'u1' }]);
+    expect(result).toEqual({ success: true, data: [{ id: 'u1' }] });
   });
 
   it('getAgents delegates to core', async () => {
@@ -75,7 +75,7 @@ describe('admin-users action wrappers', () => {
     expect(mocks.getAgentsCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin' } },
     });
-    expect(result).toEqual([{ id: 'a1' }]);
+    expect(result).toEqual({ success: true, data: [{ id: 'a1' }] });
   });
 
   it('getStaff delegates to core', async () => {
@@ -86,6 +86,6 @@ describe('admin-users action wrappers', () => {
     expect(mocks.getStaffCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin' } },
     });
-    expect(result).toEqual([{ id: 's1' }]);
+    expect(result).toEqual({ success: true, data: [{ id: 's1' }] });
   });
 });

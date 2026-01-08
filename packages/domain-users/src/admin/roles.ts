@@ -14,7 +14,7 @@ export async function listUserRolesCore(params: {
   const session = params.session;
   if (!session) throw new Error('Unauthorized');
   requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
-  const tenantId = resolveTenantId(session!, params.tenantId);
+  const tenantId = resolveTenantId(session, params.tenantId);
 
   if (params.userId) {
     return db.query.userRoles.findMany({
@@ -40,7 +40,7 @@ export async function grantUserRoleCore(
   const session = params.session;
   if (!session) throw new Error('Unauthorized');
   requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
-  const tenantId = resolveTenantId(session!, params.tenantId);
+  const tenantId = resolveTenantId(session, params.tenantId);
 
   const role = params.role.trim();
   if (!role) return { error: 'Role is required' };
@@ -125,7 +125,7 @@ export async function revokeUserRoleCore(
   const session = params.session;
   if (!session) throw new Error('Unauthorized');
   requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
-  const tenantId = resolveTenantId(session!, params.tenantId);
+  const tenantId = resolveTenantId(session, params.tenantId);
 
   const role = params.role.trim();
   if (!role) return { error: 'Role is required' };

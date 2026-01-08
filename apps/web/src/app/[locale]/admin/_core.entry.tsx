@@ -24,7 +24,7 @@ export default async function AdminLayout({
   });
 
   if (!session) {
-    redirect({ href: '/auth/sign-in', locale });
+    redirect({ href: '/login', locale });
   }
 
   const sessionNonNull = session as NonNullable<typeof session>;

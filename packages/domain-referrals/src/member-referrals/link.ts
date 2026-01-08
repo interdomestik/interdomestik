@@ -39,7 +39,7 @@ export async function getMemberReferralLinkCore(params: {
         ? session.user.name
             .split(' ')[0]
             .toUpperCase()
-            .replace(/[^A-Z]/g, '')
+            .replaceAll(/[^A-Z]/g, '')
             .slice(0, 4)
         : 'USER';
 

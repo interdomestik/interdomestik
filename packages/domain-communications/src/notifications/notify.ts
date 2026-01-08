@@ -56,7 +56,7 @@ export async function sendNotification(
       return { success: false, error: 'Tenant mismatch for notification' };
     }
 
-    const title = options?.title || event.replaceAll('_', ' ').toUpperCase();
+    const title = options?.title ?? event.replaceAll('_', ' ').toUpperCase();
     const content = payload.claimTitle
       ? `Update on: ${payload.claimTitle}`
       : `New update: ${event}`;

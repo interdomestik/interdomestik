@@ -25,7 +25,6 @@ export const analytics = {
     if (!IS_PROD) {
       console.group(`[Analytics] ${event}`);
       console.groupEnd();
-      return;
     }
 
     // 3. Send to Provider (e.g., PostHog/GA4) in Production

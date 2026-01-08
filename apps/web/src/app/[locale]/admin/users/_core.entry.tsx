@@ -28,12 +28,26 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   const selectedRole = normalizeRole(roleParam);
 
-  const users = await getUsers({
-    search,
-    role: selectedRole,
-    assignment: selectedRole === 'user' ? assignment : undefined,
-  });
-  const agents = await getAgents();
+  const [usersResult, agentsResult] = await Promise.all([
+    getUsers({
+      search,
+      role: selectedRole,
+      assignment: selectedRole === 'user' ? assignment : undefined,
+    }),
+    getAgents(),
+  ]);
+
+  const users = usersResult.success ? usersResult.data : [];
+  const agents = agentsResult.success ? agentsResult.data : [];
+
+  if (!usersResult.success) {
+    console.error('Failed to load users:', usersResult.error);
+  }
+
+  if (!agentsResult.success) {
+    console.error('Failed to load agents:', agentsResult.error);
+  }
+
   const t = await getTranslations('admin.users_page');
   const tSidebar = await getTranslations('admin.sidebar');
   const tFilters = await getTranslations('admin.users_filters');

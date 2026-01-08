@@ -59,16 +59,16 @@ describe('admin-rbac.core', () => {
         session: mockSession,
         tenantId: 'tenant-1',
       });
-      expect(result).toBe(mockResult);
+      expect(result).toEqual({ success: true, data: mockResult });
     });
   });
 
   describe('createBranch', () => {
     it('should call domain function with correct params', async () => {
       const params = { name: 'Branch 1', code: 'B1' };
-      const mockResult = { success: true, data: { branchId: 'new-id' } };
+      const mockResult = { branchId: 'new-id' };
       vi.spyOn(rbacDomain, 'createBranchCore').mockResolvedValue(
-        mockResult as Awaited<ReturnType<typeof rbacDomain.createBranchCore>>
+        mockResult as unknown as Awaited<ReturnType<typeof rbacDomain.createBranchCore>>
       );
 
       const result = await createBranch(params);
@@ -82,17 +82,15 @@ describe('admin-rbac.core', () => {
         },
         expect.anything()
       );
-      expect(result).toBe(mockResult);
+      expect(result).toEqual({ success: true, data: mockResult });
     });
   });
 
   describe('updateBranch', () => {
     it('should call domain function with correct params', async () => {
       const params = { branchId: MOCK_BRANCH_ID, name: 'Updated', isActive: true };
-      const mockResult = { success: true };
-      vi.spyOn(rbacDomain, 'updateBranchCore').mockResolvedValue(
-        mockResult as Awaited<ReturnType<typeof rbacDomain.updateBranchCore>>
-      );
+      const mockResult = { id: MOCK_BRANCH_ID, name: 'Updated' };
+      vi.spyOn(rbacDomain, 'updateBranchCore').mockResolvedValue(mockResult as unknown as any);
 
       const result = await updateBranch(params);
 
@@ -107,18 +105,15 @@ describe('admin-rbac.core', () => {
         },
         expect.anything()
       );
-      expect(result).toBe(mockResult);
+      expect(result).toEqual({ success: true, data: mockResult });
     });
   });
 
   describe('deleteBranch', () => {
     it('should call domain function', async () => {
       const params = { branchId: MOCK_BRANCH_ID };
-      const mockResult = { success: true };
-      vi.spyOn(rbacDomain, 'deleteBranchCore').mockResolvedValue(
-        mockResult as Awaited<ReturnType<typeof rbacDomain.deleteBranchCore>>
-      );
-
+      const mockResult = {};
+      vi.spyOn(rbacDomain, 'deleteBranchCore').mockResolvedValue(mockResult as unknown as any);
       const result = await deleteBranch(params);
 
       expect(rbacDomain.deleteBranchCore).toHaveBeenCalledWith(
@@ -129,7 +124,7 @@ describe('admin-rbac.core', () => {
         },
         expect.anything()
       );
-      expect(result).toBe(mockResult);
+      expect(result).toEqual({ success: true, data: undefined });
     });
   });
 
@@ -146,7 +141,7 @@ describe('admin-rbac.core', () => {
         userId: params.userId,
         tenantId: params.tenantId,
       });
-      expect(result).toBe(mockResult);
+      expect(result).toEqual({ success: true, data: mockResult });
     });
   });
 });

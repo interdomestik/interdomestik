@@ -254,14 +254,17 @@ for (const c of baseClaims) {
   });
 }
 
-async function upsertUser({ id, name, email, role, password, agentId }) {
+async function upsertUser({ id, name, email, role, password, agentId, branchId, tenantId }) {
   const now = new Date();
   const hash = hashPassword(password);
+
+  // Use explicit tenant or default
+  const targetTenantId = tenantId || DEFAULT_TENANT_ID;
 
   // Clean existing rows for deterministic state
   // Delete referencing tables first (order matters for FK constraints)
   await sql`delete from session where "userId" = ${id};`;
-  await sql`delete from subscriptions where "user_id" = ${id} OR agent_id = ${id};`;
+  await sql`delete from subscriptions where "user_id" = ${id} OR agent_id = ${id} OR referred_by_agent_id = ${id} OR referred_by_member_id = ${id};`;
   await sql`delete from audit_log where "actor_id" = ${id};`;
   await sql`delete from agent_clients where agent_id = ${id} OR member_id = ${id};`;
   await sql`delete from agent_commissions where agent_id = ${id} OR member_id = ${id};`;
@@ -282,13 +285,14 @@ async function upsertUser({ id, name, email, role, password, agentId }) {
   await sql`delete from claim where agent_id = ${id};`;
   await sql`delete from "user" where id = ${id};`;
 
-  const tenantId = DEFAULT_TENANT_ID;
-  const defaultBranchId = await getTenantDefaultBranchId(tenantId);
-  const branchId = role === 'agent' ? defaultBranchId : null;
+  let targetBranchId = branchId || null;
+  if (!targetBranchId && role === 'agent') {
+    targetBranchId = await getTenantDefaultBranchId(targetTenantId);
+  }
 
   await sql`
     insert into "user" (id, name, email, "emailVerified", image, role, "agentId", "tenant_id", "branch_id", "createdAt", "updatedAt")
-    values (${id}, ${name}, ${email}, ${true}, ${null}, ${role}, ${agentId || null}, ${tenantId}, ${branchId}, ${now}, ${now})
+    values (${id}, ${name}, ${email}, ${true}, ${null}, ${role}, ${agentId || null}, ${targetTenantId}, ${targetBranchId}, ${now}, ${now})
     on conflict (email) do update set
       name = excluded.name,
       role = excluded.role,
@@ -308,6 +312,8 @@ async function upsertUser({ id, name, email, role, password, agentId }) {
       password = excluded.password,
       "updatedAt" = excluded."updatedAt";
   `;
+
+  console.log(`👤 Seeded user: ${email} (Branch: ${targetBranchId || 'None'})`);
 }
 
 async function upsertClaim(claim) {
@@ -358,6 +364,21 @@ async function upsertTenant(params) {
   `;
 }
 
+async function upsertBranch(params) {
+  const now = new Date();
+  const { id, tenantId, name, code, slug, isActive = true } = params;
+  await sql`
+    insert into branches (id, tenant_id, name, code, slug, is_active, created_at, updated_at)
+    values (${id}, ${tenantId}, ${name}, ${code}, ${slug}, ${isActive}, ${now}, ${now})
+    on conflict (id) do update set
+      name = excluded.name,
+      code = excluded.code,
+      slug = excluded.slug,
+      is_active = excluded.is_active,
+      updated_at = excluded.updated_at;
+  `;
+}
+
 async function main() {
   console.log('🌱 Seeding database...');
 
@@ -373,10 +394,40 @@ async function main() {
     currency: 'EUR',
   });
 
+  // Ensure isolation tenant exists
+  await upsertTenant({
+    id: 'tenant_ks',
+    name: 'Interdomestik KS (E2E)',
+    legalName: 'Interdomestik KS (E2E)',
+    countryCode: 'XK',
+    currency: 'EUR',
+  });
+
+  // 1.1 Seeding Branches for Tenant MK
+  await upsertBranch({
+    id: 'branch-a',
+    tenantId: DEFAULT_TENANT_ID,
+    name: 'Main Branch A',
+    code: 'BR_A',
+    slug: 'branch-a',
+  });
+  await upsertBranch({
+    id: 'branch-b',
+    tenantId: DEFAULT_TENANT_ID,
+    name: 'Secondary Branch B',
+    code: 'BR_B',
+    slug: 'branch-b',
+  });
+  const defaultBranchId = 'branch-a'; // Use created branch as default
+
   // 2. Clear old test claims (dependents first)
   const claimIds = claims.map(c => c.id);
+  // Add smoke test specific claims to clearance list
+  claimIds.push('claim-a-1', 'claim-b-1', 'claim-ks-1');
+
   if (claimIds.length > 0) {
     const ids = sql(claimIds);
+    // Cleanup dependents...
     await sql`delete from claim_messages where "claim_id" in ${ids};`;
     await sql`delete from claim_documents where "claim_id" in ${ids};`;
     await sql`delete from claim_stage_history where "claim_id" in ${ids};`;
@@ -385,6 +436,9 @@ async function main() {
 
   // Clear audit reference for these users (optional but cleaner)
   const userIds = users.map(u => u.id);
+  // Add branch manager and isolation admin to cleanup list
+  userIds.push('manager-a', 'admin-ks');
+
   if (userIds.length > 0) {
     const uIds = sql(userIds);
     await sql`delete from audit_log where "actor_id" in ${uIds};`;
@@ -392,11 +446,31 @@ async function main() {
 
   // 3. Upsert Users
   const tenantId = DEFAULT_TENANT_ID;
-  const defaultBranchId = await getTenantDefaultBranchId(tenantId);
+
   for (const user of users) {
-    await upsertUser(user);
+    await upsertUser({ ...user, branch_id: defaultBranchId }); // Assign default branch
     console.log(`👤 Seeded user: ${user.email}`);
   }
+
+  // 3.0.1 Upsert Branch Manager
+  await upsertUser({
+    id: 'manager-a',
+    name: 'Manager Branch A',
+    email: 'manager-a@test.com',
+    password: 'AdminPassword123!',
+    role: 'branch_manager',
+    branchId: 'branch-a', // Explicit branch assignment
+  });
+
+  // 3.1 Upsert Tenant KS Admin
+  await upsertUser({
+    id: 'admin-ks',
+    name: 'Admin KS',
+    email: 'admin-ks@interdomestik.com',
+    password: 'AdminPassword123!',
+    role: 'admin',
+    tenantId: 'tenant_ks', // Explicit tenant assignment
+  });
 
   // 3.1 Upsert canonical agent ownership (agent_clients)
   for (const user of users) {
@@ -444,6 +518,51 @@ async function main() {
     });
     console.log(`📄 Seeded claim: ${claim.title} (${claim.status})`);
   }
+
+  // 5.1 Upsert Branch Specific Claims for Testing Scope
+  await upsertClaim({
+    id: 'claim-a-1',
+    userId: 'test-user-0', // Reuse existing user
+    title: 'Branch A Claim',
+    description: 'Claim belonging to Branch A',
+    status: 'submitted',
+    category: 'other',
+    companyName: 'Branch A Co',
+    amount: '100',
+    currency: 'EUR',
+    branchId: 'branch-a',
+    tenant_id: DEFAULT_TENANT_ID,
+    createdAt: new Date(),
+  });
+  await upsertClaim({
+    id: 'claim-b-1',
+    userId: 'test-user-1', // Reuse existing user
+    title: 'Branch B Claim',
+    description: 'Claim belonging to Branch B',
+    status: 'submitted',
+    category: 'other',
+    companyName: 'Branch B Co',
+    amount: '100',
+    currency: 'EUR',
+    branchId: 'branch-b',
+    tenant_id: DEFAULT_TENANT_ID,
+    createdAt: new Date(),
+  });
+
+  // 5.2 Upsert Isolation Tenant Claim
+  await upsertClaim({
+    id: 'claim-ks-1',
+    userId: 'admin-ks', // Assigned to the admin of that tenant for simplicity of ownership
+    title: 'KS Tenant Claim',
+    description: 'Claim in KS Tenant',
+    status: 'submitted',
+    category: 'other',
+    companyName: 'KS Co',
+    amount: '999',
+    currency: 'EUR',
+    tenant_id: 'tenant_ks', // Different tenant
+    createdAt: new Date(),
+  });
 
   await sql.end({ timeout: 5 });
   console.log('✅ Seeding complete!');

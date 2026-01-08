@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/nextjs';
+
 import {
   ClaimValidationError,
   submitClaimCore as submitClaimCoreDomain,
@@ -22,7 +24,16 @@ export async function submitClaimCore(params: {
 }): Promise<SubmitClaimResult> {
   const { session, requestHeaders } = params;
 
+  // Context for Sentry (populated incrementally)
+  const sentryContext: Record<string, string> = {
+    feature: 'claims',
+    action: 'submitClaim',
+  };
+
   if (session?.user?.id) {
+    sentryContext.userId = session.user.id;
+    sentryContext.tenantId = session.user.tenantId ?? 'unknown';
+
     const limit = await enforceRateLimitForAction({
       name: `action:submit-claim:${session.user.id}`,
       limit: 1,
@@ -30,6 +41,7 @@ export async function submitClaimCore(params: {
       headers: requestHeaders,
     });
     if (limit.limited) {
+      // Expected rate limit - do NOT send to Sentry
       return { success: false, error: 'Too many requests. Please wait a moment.' };
     }
   }
@@ -43,9 +55,17 @@ export async function submitClaimCore(params: {
     return { success: true };
   } catch (error) {
     // Map ClaimValidationError to proper 400/403 response
+    // Expected validation - do NOT send to Sentry
     if (error instanceof ClaimValidationError) {
       return { success: false, error: error.message, code: error.code };
     }
+
+    // Capture unexpected errors with full context
+    Sentry.captureException(error, {
+      tags: sentryContext,
+      extra: { claimData: { category: params.data.category } },
+    });
+
     // Re-throw unexpected errors
     throw error;
   }
