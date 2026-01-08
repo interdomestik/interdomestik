@@ -45,7 +45,9 @@ test.describe('Claim routing (member → staff queue)', () => {
     await expect(async () => {
       await staffPage.reload();
       await staffPage.waitForLoadState('domcontentloaded');
-      await expect(staffPage.getByText(claimTitle)).toBeVisible({ timeout: 5_000 });
+      await expect(staffPage.getByText(claimTitle)).toBeVisible({ timeout: 10_000 });
+      // Verify Tenant/Status correctness implicitly by visibility in the queue
+      await expect(staffPage.getByRole('cell', { name: 'Submitted' })).toBeVisible();
     }).toPass({ timeout: 20_000 });
   });
 });

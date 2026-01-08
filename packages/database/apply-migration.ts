@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { sql } from 'drizzle-orm';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { db } from './src/index';
 
 async function applyMigration() {
@@ -31,4 +31,4 @@ async function applyMigration() {
   }
 }
 
-applyMigration();
+void applyMigration();

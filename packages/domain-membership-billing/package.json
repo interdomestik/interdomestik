@@ -35,6 +35,8 @@
     "./commissions/admin/summary": "./src/commissions/admin/summary.ts"
   },
   "scripts": {
+    "test:unit": "vitest run",
+    "test:watch": "vitest",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { REPO_ROOT } from '../../utils/paths.js';
 
 export async function auditEnv() {
@@ -25,7 +25,8 @@ export async function auditEnv() {
       present.push(v);
     } else {
       const match = envContent.match(new RegExp(`${v}=(.*)`));
-      if (match && match[1] && match[1].trim().length > 0) {
+      const val = match?.[1]?.trim();
+      if (val && val.length > 0) {
         present.push(v);
       } else {
         missing.push(v);
@@ -33,13 +34,12 @@ export async function auditEnv() {
     }
   });
 
+  const missingStr = missing.map(m => `❌ ${m}`).join('\n');
   return {
     content: [
       {
         type: 'text',
-        text: `ENV AUDIT\n\nPRESENT:\n${present.map(p => `✅ ${p}`).join('\n')}\n\nMISSING:\n${missing
-          .map(m => `❌ ${m}`)
-          .join('\n')}`,
+        text: `ENV AUDIT\n\nPRESENT:\n${present.map(p => `✅ ${p}`).join('\n')}\n\nMISSING:\n${missingStr}`,
       },
     ],
   };

@@ -16,7 +16,6 @@ export async function verifyPaddleWebhook(params: {
   const allowDevBypass =
     process.env.PADDLE_WEBHOOK_BYPASS_SIGNATURE_IN_DEV === 'true' ||
     process.env.PADDLE_WEBHOOK_BYPASS_SIGNATURE_IN_DEV === '1';
-  const isProduction = process.env.NODE_ENV === 'production';
   const isTest = process.env.NODE_ENV === 'test';
 
   if (allowDevBypass) {

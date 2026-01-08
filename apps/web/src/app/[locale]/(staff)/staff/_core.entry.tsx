@@ -27,7 +27,7 @@ export default async function StaffLayout({
     return null;
   }
 
-  if (session.user.role !== 'staff') {
+  if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
     if (session.user.role === 'admin') {
       redirect({ href: '/admin', locale });
     } else if (session.user.role === 'agent') {

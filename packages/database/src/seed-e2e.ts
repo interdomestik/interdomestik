@@ -1,5 +1,5 @@
 import * as dotenv from 'dotenv';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 
 // Force load .env from project root
 dotenv.config({ path: resolve(__dirname, '../../../.env') });
@@ -13,10 +13,32 @@ async function seedE2E() {
   const { db } = await import('./db');
   const { user, claims, claimMessages, claimDocuments, claimStageHistory } =
     await import('./schema');
-  const { nanoid } = await import('nanoid');
+  const { branches } = await import('./schema/rbac');
+
   const { eq } = await import('drizzle-orm');
 
-  // 1. Create Test Users
+  // 1a. Create Branches
+  const branchA = {
+    id: 'branch-a',
+    name: 'Branch A (Main)',
+    slug: 'branch-a',
+    tenantId: DEFAULT_TENANT_ID,
+  };
+  const branchB = {
+    id: 'branch-b',
+    name: 'Branch B (Remote)',
+    slug: 'branch-b',
+    tenantId: DEFAULT_TENANT_ID,
+  };
+
+  console.assert(branchA.id !== branchB.id, 'Sanity Check: Branch IDs must differ');
+
+  await db
+    .insert(branches)
+    .values([branchA, branchB])
+    .onConflictDoUpdate({ target: branches.id, set: { name: branches.name } });
+
+  // 1b. Create Test Users
   // Emails must match those in apps/web/e2e/fixtures/auth.fixture.ts
   const users = [
     {
@@ -59,9 +81,24 @@ async function seedE2E() {
       createdAt: new Date(),
       updatedAt: new Date(),
     },
+    {
+      id: 'e2e-bm-1',
+      name: 'Branch Manager A',
+      email: 'bm@interdomestik.com',
+      emailVerified: true,
+      tenantId: DEFAULT_TENANT_ID,
+      branchId: branchA.id,
+      role: 'branch_manager',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
   ];
 
   for (const u of users) {
+    if (u.role === 'branch_manager') {
+      console.assert(u.branchId === branchA.id, 'Sanity Check: BM must be assigned to Branch A');
+    }
+
     await db
       .insert(user)
       .values(u)
@@ -70,6 +107,7 @@ async function seedE2E() {
         set: {
           name: u.name,
           role: u.role,
+          branchId: u.branchId, // Ensure branchId is updated/set
         },
       });
   }
@@ -97,6 +135,7 @@ async function seedE2E() {
       category: 'vehicle',
       companyName: 'State Farm',
       claimAmount: '1500.00',
+      branchId: branchA.id, // Explicitly in Branch A
     },
     {
       title: 'Flight Delay to Munich',
@@ -104,6 +143,7 @@ async function seedE2E() {
       category: 'travel',
       companyName: 'Austrian Airlines',
       claimAmount: '600.00',
+      branchId: branchB.id, // Explicitly in Branch B
     },
     {
       title: 'Rejected Insurance Claim',
@@ -112,6 +152,7 @@ async function seedE2E() {
       companyName: 'Allianz',
       claimAmount: '5000.00',
       description: 'Water damage claim rejected',
+      branchId: branchA.id,
     },
     {
       title: 'Defective Laptop',
@@ -119,6 +160,7 @@ async function seedE2E() {
       category: 'retail',
       companyName: 'Apple',
       claimAmount: '2000.00',
+      branchId: branchA.id,
     },
     {
       title: 'Water Damage in Apartment',
@@ -126,6 +168,7 @@ async function seedE2E() {
       category: 'property',
       companyName: 'Sigal',
       claimAmount: '750.00',
+      branchId: branchB.id,
     },
   ];
 
@@ -148,9 +191,11 @@ async function seedE2E() {
     await db.delete(claims).where(eq(claims.userId, memberUser.id));
   }
 
-  for (const c of e2eClaims) {
+  for (const [index, c] of e2eClaims.entries()) {
+    // Deterministic ID for testing: claim-branch-a-1, claim-branch-b-1
+    const deterministicId = `claim-${c.branchId}-${index + 1}`;
     await db.insert(claims).values({
-      id: `e2e-claim-${nanoid(6)}`,
+      id: deterministicId,
       tenantId: DEFAULT_TENANT_ID,
       userId: memberUser.id,
       title: c.title,
@@ -160,6 +205,7 @@ async function seedE2E() {
       claimAmount: c.claimAmount,
       description: c.description || 'Seeded for E2E testing',
       currency: 'EUR',
+      branchId: c.branchId, // Seeded branch
       createdAt: new Date(),
     });
   }
@@ -168,7 +214,9 @@ async function seedE2E() {
   process.exit(0);
 }
 
-seedE2E().catch(err => {
+try {
+  await seedE2E();
+} catch (err) {
   console.error('❌ E2E seeding failed:', err);
   process.exit(1);
-});
+}

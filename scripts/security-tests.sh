@@ -183,7 +183,7 @@ test_environment_security() {
     
     # Test 2: No secrets in git
     ((tests_total++))
-    local exposed_secrets=$(git grep --cached -i -E "sk_[a-zA-Z0-9]{20,}|pk_[a-zA-Z0-9]{20,}|re_[a-zA-Z0-9]{20,}" -- . ':(exclude)*.example' ':(exclude)*.test' 2>/dev/null | wc -l)
+    local exposed_secrets=$(git grep --cached -i -E "sk_[a-zA-Z0-9]{20,}|pk_[a-zA-Z0-9]{20,}|re_[a-zA-Z0-9]{20,}|squ_[a-zA-Z0-9]{20,}|sqp_[a-zA-Z0-9]{20,}|sonar\\.token\\s*=" -- . ':(exclude)*.example' ':(exclude)*.test' 2>/dev/null | wc -l)
     if [[ $exposed_secrets -eq 0 ]]; then
         log_success "✓ No secrets exposed in repository"
         ((tests_passed++))

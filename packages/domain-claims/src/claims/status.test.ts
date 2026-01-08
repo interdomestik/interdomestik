@@ -77,4 +77,36 @@ describe('updateClaimStatusCore', () => {
 
     expect(result).toEqual({ error: 'Unauthorized' });
   });
+
+  it('successfully updates status', async () => {
+    mocks.findFirst.mockResolvedValue({
+      id: 'claim-1',
+      status: 'draft',
+      userId: 'member-1',
+      title: 'Test Claim',
+      tenantId: 'tenant-1',
+    });
+    mocks.withTenant.mockReturnValue({ scoped: true });
+
+    const result = await updateClaimStatusCore(
+      {
+        session: { user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' } } as never,
+        requestHeaders: new Headers(),
+        claimId: 'claim-1',
+        newStatus: 'submitted',
+      },
+      {
+        logAuditEvent: vi.fn(),
+        notifyStatusChanged: vi.fn(),
+        revalidatePath: vi.fn(),
+      }
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(mocks.update).toHaveBeenCalled();
+    expect(mocks.updateSet).toHaveBeenCalledWith({
+      status: 'submitted',
+      updatedAt: expect.any(Date),
+    });
+  });
 });

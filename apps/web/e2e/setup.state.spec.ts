@@ -7,7 +7,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { test } from './fixtures/auth.fixture';
+import { test as authTest } from './fixtures/auth.fixture';
 
 function stateFile(role: string): string {
   return path.join(__dirname, 'fixtures', '.auth', `${role}.json`);
@@ -23,7 +23,7 @@ async function stateExists(role: string): Promise<boolean> {
 }
 
 async function stateIsValidForRole(opts: {
-  role: 'member' | 'admin' | 'agent' | 'staff';
+  role: 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager';
   browser: import('@playwright/test').Browser;
   baseURL: string;
 }): Promise<boolean> {
@@ -56,8 +56,8 @@ async function stateIsValidForRole(opts: {
   }
 }
 
-test.describe('Generate StorageState Files', () => {
-  test('Setup member auth state', async ({ saveState, browser }, testInfo) => {
+authTest.describe('Generate StorageState Files', () => {
+  authTest('Setup member auth state', async ({ saveState, browser }, testInfo) => {
     const baseURL = (testInfo.project.use.baseURL ?? 'http://localhost:3000').toString();
     if (!process.env.FORCE_REGEN_STATE && (await stateExists('member'))) {
       const ok = await stateIsValidForRole({ role: 'member', browser, baseURL });
@@ -66,7 +66,7 @@ test.describe('Generate StorageState Files', () => {
     await saveState('member');
   });
 
-  test('Setup admin auth state', async ({ saveState, browser }, testInfo) => {
+  authTest('Setup admin auth state', async ({ saveState, browser }, testInfo) => {
     const baseURL = (testInfo.project.use.baseURL ?? 'http://localhost:3000').toString();
     if (!process.env.FORCE_REGEN_STATE && (await stateExists('admin'))) {
       const ok = await stateIsValidForRole({ role: 'admin', browser, baseURL });
@@ -75,7 +75,7 @@ test.describe('Generate StorageState Files', () => {
     await saveState('admin');
   });
 
-  test('Setup agent auth state', async ({ saveState, browser }, testInfo) => {
+  authTest('Setup agent auth state', async ({ saveState, browser }, testInfo) => {
     const baseURL = (testInfo.project.use.baseURL ?? 'http://localhost:3000').toString();
     if (!process.env.FORCE_REGEN_STATE && (await stateExists('agent'))) {
       const ok = await stateIsValidForRole({ role: 'agent', browser, baseURL });
@@ -84,12 +84,21 @@ test.describe('Generate StorageState Files', () => {
     await saveState('agent');
   });
 
-  test('Setup staff auth state', async ({ saveState, browser }, testInfo) => {
+  authTest('Setup staff auth state', async ({ saveState, browser }, testInfo) => {
     const baseURL = (testInfo.project.use.baseURL ?? 'http://localhost:3000').toString();
     if (!process.env.FORCE_REGEN_STATE && (await stateExists('staff'))) {
       const ok = await stateIsValidForRole({ role: 'staff', browser, baseURL });
       if (ok) return;
     }
     await saveState('staff');
+  });
+
+  authTest('Setup branch_manager auth state', async ({ saveState, browser }, testInfo) => {
+    const baseURL = (testInfo.project.use.baseURL ?? 'http://localhost:3000').toString();
+    if (!process.env.FORCE_REGEN_STATE && (await stateExists('branch_manager'))) {
+      const ok = await stateIsValidForRole({ role: 'branch_manager', browser, baseURL });
+      if (ok) return;
+    }
+    await saveState('branch_manager');
   });
 });

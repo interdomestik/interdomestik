@@ -26,6 +26,18 @@ This project uses a hierarchical environment management system to ensure proper 
 4. **VALIDATE** environment files before committing changes
 5. **NEVER share** production secrets through version control
 
+### ✅ Recommended Safe Workflow (Local)
+
+- Keep all tokens (Sonar, Stripe, etc.) in `.env.local` only (gitignored).
+- Auto-load environment variables with `direnv`:
+  - Install: `brew install direnv`
+  - Add to `~/.zshrc`: `eval "$(direnv hook zsh)"`
+  - Reload: `source ~/.zshrc`
+  - In repo root: `direnv allow`
+  - Note: `.envrc` is intended to contain no secrets.
+- Pre-commit secret scanning is enforced via `.husky/pre-commit` → `scripts/secrets-precommit.sh`.
+- If a token is pasted into chat/logs, rotate it in the provider dashboard.
+
 ### 🔄 Environment Loading Order
 
 Next.js and Node.js load environment files in this order:

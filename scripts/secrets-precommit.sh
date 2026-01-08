@@ -7,9 +7,17 @@ patterns=(
   "pk_[a-zA-Z0-9]{24,}"
   "sk-[a-zA-Z0-9]{20,}"
   "re_[a-zA-Z0-9]{20,}"
+  "whsec_[a-zA-Z0-9]{20,}"
   "AIza[a-zA-Z0-9_-]{35}"
   "ghp_[a-zA-Z0-9]{36}"
-  "whsec_[a-zA-Z0-9]{20,}"
+  "github_pat_[a-zA-Z0-9_]{20,}"
+  "sonar\\.token\\s*="
+  "SONAR_TOKEN\\s*="
+  "squ_[a-zA-Z0-9]{20,}"
+  "sqp_[a-zA-Z0-9]{20,}"
+  "pdl_[a-zA-Z0-9_+-]{20,}"
+  "xaat-[a-zA-Z0-9-]{10,}"
+  "-----BEGIN (RSA|OPENSSH|EC) PRIVATE KEY-----"
   "xox[baprs]-[a-zA-Z0-9-]{10,48}"
 )
 

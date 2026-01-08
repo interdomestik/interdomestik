@@ -34,16 +34,18 @@ function formatSummary(results: TestResult[]) {
 async function runCommand(name: string, command: string, cwd: string): Promise<TestResult> {
   try {
     const { stdout, stderr } = await execAsync(command, { cwd });
+    const errOutput = stderr ? `\n${stderr}` : '';
     return {
       name,
       status: 'pass',
-      output: `${stdout}${stderr ? `\n${stderr}` : ''}`.trim(),
+      output: `${stdout}${errOutput}`.trim(),
     };
   } catch (error: any) {
+    const errOutput = error.stderr ? `\n${error.stderr}` : '';
     return {
       name,
       status: 'fail',
-      output: `${error.stdout || ''}${error.stderr ? `\n${error.stderr}` : ''}`.trim(),
+      output: `${error.stdout || ''}${errOutput}`.trim(),
     };
   }
 }
@@ -53,13 +55,13 @@ export async function runUnitTests() {
     const { stdout, stderr } = await execAsync('pnpm test:unit', { cwd: WEB_APP });
     return { content: [{ type: 'text', text: `✅ UNIT TESTS PASSED\n\n${stdout}\n${stderr}` }] };
   } catch (error: any) {
+    const output = error.stdout || '';
+    const errOutput = error.stderr || '';
     return {
       content: [
         {
           type: 'text',
-          text: `❌ UNIT TESTS FAILED\n\nError: ${error.message}\n\nOutput: ${error.stdout || ''}\n${
-            error.stderr || ''
-          }`,
+          text: `❌ UNIT TESTS FAILED\n\nError: ${error.message}\n\nOutput: ${output}\n${errOutput}`,
         },
       ],
     };
@@ -71,13 +73,13 @@ export async function runE2ETests() {
     const { stdout, stderr } = await execAsync('pnpm test:e2e', { cwd: WEB_APP });
     return { content: [{ type: 'text', text: `✅ E2E TESTS PASSED\n\n${stdout}\n${stderr}` }] };
   } catch (error: any) {
+    const output = error.stdout || '';
+    const errOutput = error.stderr || '';
     return {
       content: [
         {
           type: 'text',
-          text: `❌ E2E TESTS FAILED\n\nError: ${error.message}\n\nOutput: ${error.stdout || ''}\n${
-            error.stderr || ''
-          }`,
+          text: `❌ E2E TESTS FAILED\n\nError: ${error.message}\n\nOutput: ${output}\n${errOutput}`,
         },
       ],
     };
@@ -89,13 +91,13 @@ export async function runCoverage() {
     const { stdout, stderr } = await execAsync('pnpm test:unit -- --coverage', { cwd: WEB_APP });
     return { content: [{ type: 'text', text: `✅ COVERAGE RUN PASSED\n\n${stdout}\n${stderr}` }] };
   } catch (error: any) {
+    const output = error.stdout || '';
+    const errOutput = error.stderr || '';
     return {
       content: [
         {
           type: 'text',
-          text: `❌ COVERAGE RUN FAILED\n\nError: ${error.message}\n\nOutput: ${error.stdout || ''}\n${
-            error.stderr || ''
-          }`,
+          text: `❌ COVERAGE RUN FAILED\n\nError: ${error.message}\n\nOutput: ${output}\n${errOutput}`,
         },
       ],
     };

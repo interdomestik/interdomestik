@@ -1,6 +1,7 @@
-import { claimDocuments, claims, db } from '@interdomestik/database';
-import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
+import { claimDocuments, claims, db, tenantSettings } from '@interdomestik/database';
+import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
@@ -40,9 +41,38 @@ export async function submitClaimCore(
   }
 
   const tenantId = ensureTenantId(session);
-  const hasAccess = await hasActiveMembership(session.user.id, tenantId);
 
-  if (!hasAccess) {
+  // Task A: Fix Claims Attribution
+  // 1. Fetch active subscription to get user's assigned branch/agent
+  const subscription = await getActiveSubscription(session.user.id, tenantId);
+
+  // 2. Fetch tenant default branch as fallback
+  // Logic: query tenant_settings for category='rbac', key='default_branch_id'
+  const defaultBranchSetting = await db.query.tenantSettings.findFirst({
+    where: and(
+      eq(tenantSettings.tenantId, tenantId),
+      eq(tenantSettings.category, 'rbac'),
+      eq(tenantSettings.key, 'default_branch_id')
+    ),
+  });
+
+  // 3. Determine final branchId/agentId
+  // Priority: Subscription > Default > null (should not happen if configured correctly)
+  let branchId = subscription?.branchId ?? null;
+  const agentId = subscription?.agentId ?? null;
+
+  if (!branchId && defaultBranchSetting?.value) {
+    // strict cast as we know the shape of value provided it's set correctly
+    const val = defaultBranchSetting.value as { branchId?: string } | string;
+    if (typeof val === 'string') {
+      branchId = val;
+    } else if (typeof val === 'object' && val.branchId) {
+      branchId = val.branchId;
+    }
+  }
+
+  // 4. Enforce Access: User must have an active subscription OR be in a grace period allowed by getActiveSubscription
+  if (!subscription) {
     throw new ClaimValidationError('Membership required to file a claim.', 'MEMBERSHIP_REQUIRED');
   }
 
@@ -65,6 +95,8 @@ export async function submitClaimCore(
         id: claimId,
         tenantId,
         userId: session.user.id,
+        branchId, // Added: derived from sub or default
+        agentId, // Added: derived from sub
         title,
         description: description || undefined,
         category,

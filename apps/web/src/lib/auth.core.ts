@@ -20,6 +20,12 @@ export const auth = betterAuth({
         type: 'string',
         fieldName: 'tenantId',
       },
+      branchId: {
+        type: 'string',
+        fieldName: 'branch_id', // Maps to DB column 'branch_id'
+        // CRITICAL FOR RLS: This field scopes Branch Managers to their specific branch.
+        // It MUST be checked in all protected actions to prevent cross-branch data leakage.
+      },
       role: {
         type: 'string',
         defaultValue: 'user',
@@ -27,6 +33,10 @@ export const auth = betterAuth({
       memberNumber: {
         type: 'string',
         fieldName: 'memberNumber',
+      },
+      agentId: {
+        type: 'string',
+        fieldName: 'agentId',
       },
     },
   },

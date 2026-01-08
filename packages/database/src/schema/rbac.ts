@@ -27,6 +27,10 @@ export const branches = pgTable(
   ]
 );
 
+// DEPRECATED FOR RUNTIME AUTH:
+// This table is kept for historical role assignment records.
+// Active runtime authorization MUST use `session.user` fields (role, branchId, agentId).
+// Do not query this table for permission checks.
 export const userRoles = pgTable(
   'user_roles',
   {

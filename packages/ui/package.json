@@ -24,6 +24,7 @@
     "./sheet": "./src/components/sheet.tsx",
     "./sidebar": "./src/components/sidebar/index.ts",
     "./table": "./src/components/table.tsx",
+    "./tabs": "./src/components/tabs.tsx",
     "./textarea": "./src/components/textarea.tsx",
     "./tooltip": "./src/components/tooltip.tsx",
     "./styles": "./src/styles.css"

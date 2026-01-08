@@ -110,4 +110,4 @@ async function runAllAudits() {
   process.exit(failed > 0 ? 1 : 0);
 }
 
-runAllAudits().catch(console.error);
+void runAllAudits().catch(console.error);

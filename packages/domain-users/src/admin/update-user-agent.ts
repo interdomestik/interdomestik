@@ -1,6 +1,6 @@
 import { agentClients, db, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 import type { ActionResult, UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
