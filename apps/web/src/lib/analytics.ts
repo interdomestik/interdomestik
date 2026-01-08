@@ -5,7 +5,7 @@ import posthog from 'posthog-js';
  * Safe to call even if PostHog is not initialized.
  */
 export function trackEvent(eventName: string, properties?: Record<string, unknown>) {
-  if (typeof window !== 'undefined' && posthog.__loaded) {
+  if (typeof globalThis !== 'undefined' && posthog.__loaded) {
     posthog.capture(eventName, properties);
   }
 }
@@ -32,14 +32,14 @@ export const ClaimsEvents = {
 
 /** User identification (link PostHog to your user ID) */
 export function identifyUser(userId: string, traits?: Record<string, unknown>) {
-  if (typeof window !== 'undefined' && posthog.__loaded) {
+  if (typeof globalThis !== 'undefined' && posthog.__loaded) {
     posthog.identify(userId, traits);
   }
 }
 
 /** Reset user identity on logout */
 export function resetIdentity() {
-  if (typeof window !== 'undefined' && posthog.__loaded) {
+  if (typeof globalThis !== 'undefined' && posthog.__loaded) {
     posthog.reset();
   }
 }

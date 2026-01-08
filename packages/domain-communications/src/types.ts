@@ -19,4 +19,4 @@ export type AuditEvent = {
   headers?: Headers;
 };
 
-export type AuditLogger = (event: AuditEvent) => Promise<unknown> | unknown;
+export type AuditLogger = (event: AuditEvent) => void | Promise<void>;

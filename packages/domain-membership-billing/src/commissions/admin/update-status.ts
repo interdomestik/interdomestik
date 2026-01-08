@@ -30,8 +30,11 @@ export async function updateCommissionStatusCore(params: {
   const authError = ensureAdminOrStaff(session);
   if (authError) return authError;
 
+  if (!session) return { success: false, error: 'Unauthorized' };
+  const sessionUser = session.user;
+
   try {
-    const tenantId = ensureTenantId(session!); // NOSONAR
+    const tenantId = ensureTenantId(session);
 
     // Fetch current commission with tenant scoping
     const [commission] = await db
@@ -55,7 +58,7 @@ export async function updateCommissionStatusCore(params: {
 
     // NO SELF-APPROVAL: Agent cannot approve or pay their own commission
     if (
-      session!.user.id === commission.agentId &&
+      sessionUser.id === commission.agentId &&
       (newStatus === 'approved' || newStatus === 'paid')
     ) {
       return { success: false, error: 'Cannot approve or pay your own commission' };

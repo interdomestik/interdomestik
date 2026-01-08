@@ -1,13 +1,13 @@
 import { and, claimMessages, claims, db, desc, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { scopeFilter, type SessionWithTenant } from '@interdomestik/shared-auth';
+import { scopeFilter } from '@interdomestik/shared-auth';
 import { isNull, type SQL } from 'drizzle-orm';
 
 import type { UserSession } from '../types';
 import { requireTenantAdminSession } from './access';
 import { buildUserConditions, type GetUsersFilters } from './user-filters';
 
-export { type GetUsersFilters };
+export type { GetUsersFilters } from './user-filters';
 
 export async function getUsersCore(params: {
   session: UserSession | null;
@@ -15,7 +15,7 @@ export async function getUsersCore(params: {
 }) {
   const { session, filters } = params;
   const adminSession = await requireTenantAdminSession(session);
-  const scope = scopeFilter(adminSession as SessionWithTenant);
+  const scope = scopeFilter(adminSession);
 
   // Build filter conditions
   const conditions = buildUserConditions(scope, filters);

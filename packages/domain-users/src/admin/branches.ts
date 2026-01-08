@@ -11,7 +11,8 @@ export async function listBranchesCore(params: {
   includeInactive?: boolean;
 }) {
   const session = params.session;
-  requirePermission(session!, PERMISSIONS['branches.manage'], hasPermission);
+  if (!session) throw new Error('Unauthorized');
+  requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
   const tenantId = resolveTenantId(session!, params.tenantId);
 
   const baseConditions = params.includeInactive ? undefined : eq(branches.isActive, true);
@@ -32,7 +33,8 @@ export async function createBranchCore(
   deps: UserDomainDeps = {}
 ) {
   const session = params.session;
-  requirePermission(session!, PERMISSIONS['branches.manage'], hasPermission);
+  if (!session) throw new Error('Unauthorized');
+  requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
   const tenantId = resolveTenantId(session!, params.tenantId);
 
   const name = params.name.trim();
@@ -109,7 +111,8 @@ export async function updateBranchCore(
   deps: UserDomainDeps = {}
 ) {
   const session = params.session;
-  requirePermission(session!, PERMISSIONS['branches.manage'], hasPermission);
+  if (!session) throw new Error('Unauthorized');
+  requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
   const tenantId = resolveTenantId(session!, params.tenantId);
 
   const name = params.name.trim();
@@ -175,7 +178,8 @@ export async function deleteBranchCore(
   deps: UserDomainDeps = {}
 ) {
   const session = params.session;
-  requirePermission(session!, PERMISSIONS['branches.manage'], hasPermission);
+  if (!session) throw new Error('Unauthorized');
+  requirePermission(session, PERMISSIONS['branches.manage'], hasPermission);
   const tenantId = resolveTenantId(session!, params.tenantId);
 
   await db

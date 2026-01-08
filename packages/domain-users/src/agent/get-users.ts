@@ -43,12 +43,12 @@ export async function getAgentUsersCore(params: {
       return [];
     }
 
-    conditions.push(inArray(user.id, memberIds) as SQL);
+    conditions.push(inArray(user.id, memberIds));
   }
 
   if (filters?.search) {
     const term = `%${filters.search}%`;
-    conditions.push(or(ilike(user.name, term), ilike(user.email, term)) as SQL);
+    conditions.push(or(ilike(user.name, term), ilike(user.email, term))!);
   }
 
   const userConditions = conditions.length ? and(...conditions) : undefined;

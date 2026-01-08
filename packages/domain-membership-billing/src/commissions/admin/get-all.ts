@@ -17,8 +17,9 @@ export async function getAllCommissionsCore(params: {
   const authError = ensureAdminOrStaff(params.session);
   if (authError) return authError;
 
+  if (!params.session) return { success: false, error: 'Unauthorized' };
   try {
-    const tenantId = ensureTenantId(params.session!);
+    const tenantId = ensureTenantId(params.session);
     const limit = Math.min(params.limit ?? MAX_RESULTS, MAX_RESULTS); // Cap at 100
     const offset = params.offset ?? 0;
 

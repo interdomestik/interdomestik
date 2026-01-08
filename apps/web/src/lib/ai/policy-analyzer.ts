@@ -36,7 +36,7 @@ function extractPolicyNumber(text: string) {
 
 function extractLabeledAmount(label: string, text: string) {
   const pattern = new RegExp(
-    `${label}[^0-9]{0,20}([${EURO}$${POUND}]|EUR|USD|GBP)?\\s*([0-9][0-9,\.]+)`,
+    `${label}[^0-9]{0,20}([${EURO}$${POUND}]|EUR|USD|GBP)?\\s*([0-9][0-9,.])`,
     'i'
   );
   const match = pattern.exec(text);

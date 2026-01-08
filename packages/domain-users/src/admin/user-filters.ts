@@ -52,13 +52,5 @@ export function buildUserConditions(
   scope: ReturnType<typeof scopeFilter>,
   filters?: GetUsersFilters
 ) {
-  const conditions: SQL<unknown>[] = [];
-
-  // 1. Scope Conditions
-  conditions.push(...buildScopeConditions(scope));
-
-  // 2. Filter & Search Conditions
-  conditions.push(...buildFilterConditions(filters));
-
-  return conditions;
+  return [...buildScopeConditions(scope), ...buildFilterConditions(filters)];
 }

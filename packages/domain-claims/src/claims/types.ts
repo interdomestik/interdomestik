@@ -24,20 +24,20 @@ export type ClaimsDeps = {
     userId: string,
     email: string,
     claim: { id: string; title: string; category: string }
-  ) => Promise<unknown> | unknown;
+  ) => unknown;
   notifyStatusChanged?: (
     userId: string,
     email: string,
     claim: { id: string; title: string },
     oldStatus: string,
     newStatus: string
-  ) => Promise<unknown> | unknown;
+  ) => unknown;
   notifyClaimAssigned?: (
     agentId: string,
     email: string,
     claim: { id: string; title: string },
     agentName: string
-  ) => Promise<unknown> | unknown;
+  ) => unknown;
   revalidatePath?: (path: string) => Promise<void> | void;
 };
 

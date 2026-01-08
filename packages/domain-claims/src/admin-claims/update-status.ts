@@ -1,7 +1,6 @@
-import { claims, db, user } from '@interdomestik/database';
+import { claims, db, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { and, eq } from 'drizzle-orm';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 

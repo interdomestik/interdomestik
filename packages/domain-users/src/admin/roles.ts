@@ -12,7 +12,8 @@ export async function listUserRolesCore(params: {
   userId?: string;
 }) {
   const session = params.session;
-  requirePermission(session!, PERMISSIONS['roles.manage'], hasPermission);
+  if (!session) throw new Error('Unauthorized');
+  requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
   const tenantId = resolveTenantId(session!, params.tenantId);
 
   if (params.userId) {
@@ -37,7 +38,8 @@ export async function grantUserRoleCore(
   deps: UserDomainDeps = {}
 ): Promise<ActionResult> {
   const session = params.session;
-  requirePermission(session!, PERMISSIONS['roles.manage'], hasPermission);
+  if (!session) throw new Error('Unauthorized');
+  requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
   const tenantId = resolveTenantId(session!, params.tenantId);
 
   const role = params.role.trim();
@@ -121,7 +123,8 @@ export async function revokeUserRoleCore(
   deps: UserDomainDeps = {}
 ): Promise<ActionResult> {
   const session = params.session;
-  requirePermission(session!, PERMISSIONS['roles.manage'], hasPermission);
+  if (!session) throw new Error('Unauthorized');
+  requirePermission(session, PERMISSIONS['roles.manage'], hasPermission);
   const tenantId = resolveTenantId(session!, params.tenantId);
 
   const role = params.role.trim();

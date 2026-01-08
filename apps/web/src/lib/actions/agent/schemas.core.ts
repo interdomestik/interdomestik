@@ -10,7 +10,7 @@ export const createLeadSchema = z.object({
   stage: z.enum(LEAD_STAGES),
   fullName: z.string().min(2, 'Name is required'),
   companyName: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
+  email: z.union([z.string().email(), z.literal('')]).optional(),
   phone: z.string().min(6, 'Phone is required'),
   source: z.string().min(1, 'Source is required'),
   notes: z.string().optional(),

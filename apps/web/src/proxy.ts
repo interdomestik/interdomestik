@@ -9,7 +9,7 @@ const intlMiddleware = createMiddleware(routing);
 function createNonce() {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
-  return btoa(String.fromCharCode(...bytes));
+  return btoa(String.fromCodePoint(...bytes));
 }
 
 export default async function proxy(request: NextRequest) {

@@ -208,13 +208,16 @@ function buildScopeConditions(
   }
 
   // View Scope
+  const userId = session?.user?.id;
+
   if (scope === 'member') {
-    conditions.push(eq(claims.userId, session!.user!.id!));
+    if (!userId) throw new Error('User ID required for member scope');
+    conditions.push(eq(claims.userId, userId));
   } else if (scope === 'staff_queue' && isPrivileged) {
-    conditions.push(eq(claims.staffId, session!.user!.id!));
+    if (!userId) throw new Error('User ID required for staff queue');
+    conditions.push(eq(claims.staffId, userId));
   } else if (scope === 'staff_unassigned') {
-    conditions.push(isNull(claims.staffId));
-    conditions.push(ne(claims.status, 'draft'));
+    conditions.push(isNull(claims.staffId), ne(claims.status, 'draft'));
   } else if (scope === 'agent_queue' && isPrivileged) {
     conditions.push(isNotNull(claims.agentId));
   }

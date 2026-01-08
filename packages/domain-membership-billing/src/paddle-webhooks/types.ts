@@ -23,7 +23,7 @@ export type SendPaymentFailedEmail = (
     gracePeriodDays: number;
     gracePeriodEndDate: string;
   }
-) => Promise<unknown> | unknown;
+) => unknown;
 
 export type SendThankYouLetter = (params: {
   email: string;
@@ -35,7 +35,7 @@ export type SendThankYouLetter = (params: {
   memberSince: Date;
   expiresAt: Date;
   locale?: 'en' | 'sq';
-}) => Promise<{ success: boolean; error?: string } | unknown>;
+}) => unknown;
 
 export type PaddleWebhookDeps = {
   sendPaymentFailedEmail?: SendPaymentFailedEmail;

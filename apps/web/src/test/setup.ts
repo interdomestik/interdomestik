@@ -124,20 +124,21 @@ beforeAll(() => {
       },
     };
   })();
-  Object.defineProperty(globalThis, 'localStorage', {
-    value: localStorageMock,
-  });
+  vi.stubGlobal('localStorage', localStorageMock);
 
   // Mock fetch
-  globalThis.fetch = vi.fn().mockImplementation(() =>
-    Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve({}),
-    })
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({}),
+      })
+    )
   );
 
   // Mock scrollTo
-  globalThis.scrollTo = vi.fn();
+  vi.stubGlobal('scrollTo', vi.fn());
 
   // Suppress console.error for expected errors in tests
   const originalError = console.error;

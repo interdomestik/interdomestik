@@ -4,7 +4,7 @@
  */
 
 import { MissingTenantError, UnauthorizedError } from './errors';
-import { isSuperAdmin, isTenantAdmin, ROLES } from './permissions';
+import { isSuperAdmin, isTenantAdmin, ROLES, type Permission } from './permissions';
 import type { SessionWithTenant } from './session';
 
 export type ScopeFilter = {
@@ -96,7 +96,6 @@ export function scopeFilter(session: SessionWithTenant): ScopeFilter {
 /**
  * Require a specific permission, throws if denied
  */
-import { Permission } from './permissions';
 
 export function requirePermission(
   session: SessionWithTenant,

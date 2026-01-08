@@ -24,7 +24,7 @@ export async function processSeasonalCampaigns() {
   const result = await processBatchedUserCampaign({
     campaignId,
     sendToUser: async u => {
-      await withRetries(() => sendSeasonalEmail(u.email!, { season: season!, name: u.name ?? '' }));
+      await withRetries(() => sendSeasonalEmail(u.email!, { season: season, name: u.name ?? '' }));
       await withRetries(() =>
         sendNotification(
           u.id,

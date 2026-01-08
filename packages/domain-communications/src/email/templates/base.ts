@@ -62,8 +62,7 @@ export function buildEmailTemplate({
   if (details?.length) {
     textParts.push(details.join('\n'));
   }
-  textParts.push(`${ctaLabel}: ${ctaUrl}`);
-  textParts.push(footer || `${DEFAULT_APP_NAME} Team`);
+  textParts.push(`${ctaLabel}: ${ctaUrl}`, footer || `${DEFAULT_APP_NAME} Team`);
 
   return {
     subject: title,

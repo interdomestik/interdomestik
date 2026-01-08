@@ -106,16 +106,16 @@ export function renderNewsletterEmail(params: {
   const details = [params.hero.text];
 
   if (params.partner) {
-    details.push('---');
-    details.push(`Partner of the Month: ${params.partner.name}`);
-    details.push(`${params.partner.description}`);
-    details.push(`Discount: ${params.partner.discount}`);
+    details.push(
+      '---',
+      `Partner of the Month: ${params.partner.name}`,
+      `${params.partner.description}`,
+      `Discount: ${params.partner.discount}`
+    );
   }
 
   if (params.tip) {
-    details.push('---');
-    details.push(`Safety Tip: ${params.tip.title}`);
-    details.push(params.tip.text);
+    details.push('---', `Safety Tip: ${params.tip.title}`, params.tip.text);
   }
 
   return buildEmailTemplate({

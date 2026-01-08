@@ -1,7 +1,7 @@
 import { db } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import { notifications } from '@interdomestik/database/schema';
-import { desc, eq } from 'drizzle-orm';
+import { withTenant } from '@interdomestik/database/tenant-security';
+import { desc } from 'drizzle-orm';
 
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { Session } from '../types';

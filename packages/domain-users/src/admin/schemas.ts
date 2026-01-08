@@ -6,7 +6,7 @@ export const createBranchSchema = z.object({
     .string()
     .min(1)
     .max(20)
-    .regex(/^[a-zA-Z0-9_-]+$/, 'Code must be alphanumeric') // NOSONAR
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Code must be alphanumeric')
     .optional()
     .nullable(),
   tenantId: z.string().optional(), // For super-admin override
@@ -19,7 +19,7 @@ export const updateBranchSchema = z.object({
     .string()
     .min(1)
     .max(20)
-    .regex(/^[a-zA-Z0-9_-]+$/, { message: 'Code must be alphanumeric' }) // NOSONAR
+    .regex(/^[a-zA-Z0-9_-]+$/, { message: 'Code must be alphanumeric' })
     .optional()
     .nullable(),
   isActive: z.boolean().optional(),
