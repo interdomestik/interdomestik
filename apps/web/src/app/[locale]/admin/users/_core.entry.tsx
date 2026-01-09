@@ -1,4 +1,6 @@
+import { listBranches } from '@/actions/admin-rbac.core';
 import { getAgents, getUsers } from '@/actions/admin-users';
+import { AddAgentDialog } from '@/components/admin/add-agent-dialog';
 import { UsersFilters } from '@/components/admin/users-filters';
 import { UsersSections } from '@/components/admin/users-sections';
 import { Link } from '@/i18n/routing';
@@ -28,17 +30,19 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   const selectedRole = normalizeRole(roleParam);
 
-  const [usersResult, agentsResult] = await Promise.all([
+  const [usersResult, agentsResult, branchesResult] = await Promise.all([
     getUsers({
       search,
       role: selectedRole,
       assignment: selectedRole === 'user' ? assignment : undefined,
     }),
     getAgents(),
+    listBranches({ includeInactive: false }),
   ]);
 
-  const users = usersResult.success ? usersResult.data : [];
-  const agents = agentsResult.success ? agentsResult.data : [];
+  const users = usersResult.success ? (usersResult.data ?? []) : [];
+  const agents = agentsResult.success ? (agentsResult.data ?? []) : [];
+  const branches = branchesResult.success ? (branchesResult.data ?? []) : [];
 
   if (!usersResult.success) {
     console.error('Failed to load users:', usersResult.error);
@@ -51,6 +55,9 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   const t = await getTranslations('admin.users_page');
   const tSidebar = await getTranslations('admin.sidebar');
   const tFilters = await getTranslations('admin.users_filters');
+
+  // Filter users eligible for promotion (not already agents/staff/admin)
+  const eligibleUsers = users.filter(u => u.role === 'user');
 
   const roleOptions = [
     { value: 'user', label: tFilters('roles.user') },
@@ -88,9 +95,12 @@ export default async function AdminUsersPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{tSidebar('users')}</h1>
-        <p className="text-muted-foreground">{t('description')}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{tSidebar('users')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
+        </div>
+        <AddAgentDialog users={eligibleUsers} branches={branches} />
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="inline-flex items-center rounded-lg bg-muted/60 p-1">

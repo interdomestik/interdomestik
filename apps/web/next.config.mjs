@@ -26,6 +26,7 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  serverExternalPackages: ['import-in-the-middle', 'require-in-the-middle'],
 };
 
 import { withAxiom } from 'next-axiom';

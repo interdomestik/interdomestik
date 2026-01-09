@@ -44,7 +44,6 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS['members.read'],
     PERMISSIONS['members.write'],
     PERMISSIONS['claims.read'],
-    PERMISSIONS['claims.update'],
     PERMISSIONS['analytics.read'],
   ],
   staff: [

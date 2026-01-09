@@ -92,14 +92,14 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
       ]);
 
       if (branchesResult.success) {
-        setBranches(branchesResult.data);
+        setBranches(branchesResult.data ?? []);
       } else {
         toast.error('Failed to load branches');
         setBranches([]);
       }
 
       if (rolesResult.success) {
-        setRoles(rolesResult.data);
+        setRoles(rolesResult.data ?? []);
       } else {
         toast.error('Failed to load roles');
         setRoles([]);
@@ -127,7 +127,7 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
         tenantId,
         userId,
         role: effectiveRoleValue,
-        branchId: grantBranchId === TENANT_WIDE_BRANCH ? null : grantBranchId,
+        branchId: grantBranchId === TENANT_WIDE_BRANCH ? undefined : grantBranchId,
       });
 
       if ('error' in result) {
@@ -152,7 +152,7 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
         tenantId,
         userId,
         role: row.role,
-        branchId: row.branchId,
+        branchId: row.branchId ?? undefined,
       });
 
       if ('error' in result) {

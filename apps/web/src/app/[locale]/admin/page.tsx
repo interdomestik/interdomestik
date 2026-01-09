@@ -74,6 +74,14 @@ export default async function AdminDashboardPage({
   });
   const tenantId = ensureTenantId(session);
 
+  // Branch Manager Redirect (Rule: "Branch auto-redirect for branch managers")
+  if (session?.user?.role === 'branch_manager' && session?.user?.branchId) {
+    // If they are at /admin (root dashboard), send them to their branch dashboard
+    // We import redirect dynamically to avoid build time issues if needed, but standard import is fine.
+    const { redirect } = await import('@/i18n/routing');
+    redirect({ href: `/admin/branches/${session.user.branchId}`, locale });
+  }
+
   const [stats, recentClaims, unassignedClaims] = await Promise.all([
     getAdminDashboardStats(tenantId),
     getRecentClaims(tenantId, 5),

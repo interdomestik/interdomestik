@@ -22,7 +22,7 @@ export const auth = betterAuth({
       },
       branchId: {
         type: 'string',
-        fieldName: 'branch_id', // Maps to DB column 'branch_id'
+        fieldName: 'branchId', // Maps to Drizzle schema key 'branchId'
         // CRITICAL FOR RLS: This field scopes Branch Managers to their specific branch.
         // It MUST be checked in all protected actions to prevent cross-branch data leakage.
       },

@@ -9,7 +9,9 @@ const __dirname = path.dirname(__filename);
 
 async function globalSetup() {
   const repoRoot = path.resolve(__dirname, '..', '..', '..');
+  // Load .env first, then .env.test with override to ensure E2E env vars bypass rate limiting
   dotenv.config({ path: path.join(repoRoot, '.env') });
+  dotenv.config({ path: path.join(repoRoot, '.env.test'), override: true });
   const seedBranchesScript = path.join(repoRoot, 'scripts', 'seed-branches-manual.mjs');
   const seedScript = path.join(repoRoot, 'scripts', 'seed-e2e-users.mjs');
   const seedAgentCommand = 'pnpm seed:agent';

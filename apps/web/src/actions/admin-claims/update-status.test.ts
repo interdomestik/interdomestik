@@ -13,7 +13,7 @@ describe('updateClaimStatusCore', () => {
       updateClaimStatusCore({
         formData,
         session: {
-          user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
+          user: { id: 'admin-1', role: 'tenant_admin', tenantId: 'tenant_mk' },
           session: { id: 'session-1' },
         } as unknown as NonNullable<import('./context').Session>,
         requestHeaders: new Headers(),

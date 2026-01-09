@@ -67,6 +67,7 @@ export function LoginForm() {
               }
 
               const { data: session } = await authClient.getSession();
+              console.log('Login Session User:', session?.user); // DEBUG: Check branchId
               const role = (session?.user as { role?: string })?.role;
 
               const hasAdminAccess = isAdmin(role) || (await canAccessAdmin().catch(() => false));
@@ -77,6 +78,18 @@ export function LoginForm() {
                 router.push('/agent');
               } else if (role === 'staff') {
                 router.push('/staff');
+              } else if (role === 'branch_manager') {
+                const user = session?.user as { branchId?: string; branch_id?: string };
+                const branchId = user?.branchId || user?.branch_id;
+
+                if (branchId) {
+                  router.push(`/admin/branches/${branchId}`);
+                } else {
+                  console.error('Branch Manager login failed: Missing branchId', user);
+                  setError(t('error') + ' (Missing Branch Assignment)'); // Or a more specific key
+                  setLoading(false);
+                  return;
+                }
               } else {
                 router.push('/member');
               }

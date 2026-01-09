@@ -1,6 +1,4 @@
 import { updateClaimStatusCore as updateClaimStatusCoreDomain } from '@interdomestik/domain-claims/admin-claims/update-status';
-import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
-import type { UserSession } from '@interdomestik/domain-users/types';
 
 import { logAuditEvent } from '@/lib/audit';
 import { notifyStatusChanged } from '@/lib/notifications';
@@ -24,7 +22,25 @@ export async function updateClaimStatusCore(params: {
 }) {
   const { formData, session, requestHeaders } = params;
 
-  await requireTenantAdminSession(session as unknown as UserSession | null);
+  // Check for authentication and valid session
+  if (!session?.user?.id || !session?.user?.tenantId) {
+    throw new Error('Unauthorized');
+  }
+
+  const tenantId = session.user.tenantId;
+
+  // Manual RBAC check: Must be Tenant Admin OR Staff with permission
+  // We can use shared-auth helpers if available, or manual role check.
+  // Ideally: hasPermission(session.user.role, 'claims.update')
+  // For now, explicit check for Admin or Staff
+  const isAllowed =
+    session.user.role === 'tenant_admin' ||
+    session.user.role === 'staff' ||
+    session.user.role === 'super_admin';
+
+  if (!isAllowed) {
+    throw new Error('Forbidden: Insufficient permissions to update status');
+  }
 
   // Rate Limiting
   if (session?.user?.id) {

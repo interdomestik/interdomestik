@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env.test BEFORE any other config to ensure E2E env vars take precedence
+dotenv.config({ path: resolve(__dirname, '../../.env.test'), override: true });
 
 const PORT = 3000;
 const HOST = process.env.PLAYWRIGHT_HOST ?? 'localhost';
@@ -72,8 +77,8 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          // Build once and run production server to avoid dev manifest corruption during parallel tests.
-          command: `pnpm -C ../../packages/database migrate && pnpm exec next build && pnpm exec next start --hostname ${BIND_HOST} --port ${PORT}`,
+          // Use dev mode with explicit env vars to bypass rate limiting
+          command: `INTERDOMESTIK_AUTOMATED=1 PLAYWRIGHT=1 UPSTASH_REDIS_REST_URL= UPSTASH_REDIS_REST_TOKEN= pnpm -C ../../packages/database migrate && INTERDOMESTIK_AUTOMATED=1 PLAYWRIGHT=1 UPSTASH_REDIS_REST_URL= UPSTASH_REDIS_REST_TOKEN= pnpm exec next dev --hostname ${BIND_HOST} --port ${PORT}`,
           url: BASE_URL,
           reuseExistingServer: !process.env.CI,
           timeout: 300 * 1000,
@@ -81,6 +86,10 @@ export default defineConfig({
             NEXT_PUBLIC_APP_URL: BASE_URL,
             BETTER_AUTH_URL: BASE_URL,
             INTERDOMESTIK_AUTOMATED: '1',
+            PLAYWRIGHT: '1',
+            // Disable rate limiting completely by unsetting Upstash vars
+            UPSTASH_REDIS_REST_URL: '',
+            UPSTASH_REDIS_REST_TOKEN: '',
             // Required for Paddle webhook signature validation tests.
             ...(process.env.PADDLE_WEBHOOK_SECRET_KEY
               ? { PADDLE_WEBHOOK_SECRET_KEY: process.env.PADDLE_WEBHOOK_SECRET_KEY }

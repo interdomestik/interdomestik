@@ -192,16 +192,23 @@ Navigate to `/admin` (requires login as Admin/Agent).
 
 ## 📦 Available Scripts
 
-| Script                | Description                   |
-| --------------------- | ----------------------------- |
-| `npm run dev`         | Start all apps in development |
-| `npm run build`       | Build all apps                |
-| `npm run lint`        | Lint all apps                 |
-| `npm run type-check`  | Type check all apps           |
-| `npm run format`      | Format code with Prettier     |
-| `npm run db:generate` | Generate Supabase types       |
-| `npm run db:push`     | Push database migrations      |
-| `npm run db:studio`   | Open Supabase Studio          |
+| Script               | Description                   |
+| -------------------- | ----------------------------- |
+| `npm run dev`        | Start all apps in development |
+| `npm run build`      | Build all apps                |
+| `npm run lint`       | Lint all apps                 |
+| `npm run type-check` | Type check all apps           |
+
+### SonarQube (Local)
+
+See [docs/SONAR.md](docs/SONAR.md) for the streamlined workflow:
+
+- `pnpm sonar:start`
+- `pnpm sonar:full:dotenv`
+  | `npm run format` | Format code with Prettier |
+  | `npm run db:generate` | Generate Supabase types |
+  | `npm run db:push` | Push database migrations |
+  | `npm run db:studio` | Open Supabase Studio |
 
 ## 🎨 Design System
 

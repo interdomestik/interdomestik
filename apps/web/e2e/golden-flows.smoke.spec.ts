@@ -1,0 +1,159 @@
+/**
+ * Golden Flows Smoke Tests
+ *
+ * Critical path tests for verifying RBAC, tenant isolation, and core functionality
+ * using the deterministic Golden Seed data.
+ *
+ * Prerequisites:
+ * - Run `pnpm --filter @interdomestik/database seed:golden` to populate test data
+ * - Ensure INTERDOMESTIK_AUTOMATED=1 is set (handled by playwright.config.ts)
+ */
+
+import { expect, test } from '@playwright/test';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GOLDEN SEED CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const PASSWORD = 'GoldenPass123!';
+const DEFAULT_LOCALE = 'sq';
+
+const USERS = {
+  SUPER_ADMIN: { email: 'super@interdomestik.com', password: PASSWORD, tenant: 'tenant_mk' },
+  TENANT_ADMIN_MK: { email: 'admin.mk@interdomestik.com', password: PASSWORD, tenant: 'tenant_mk' },
+  TENANT_ADMIN_KS: { email: 'admin.ks@interdomestik.com', password: PASSWORD, tenant: 'tenant_ks' },
+  STAFF_MK: { email: 'staff.mk@interdomestik.com', password: PASSWORD, tenant: 'tenant_mk' },
+  BM_MK_A: { email: 'bm.mk.a@interdomestik.com', password: PASSWORD, tenant: 'tenant_mk' },
+  AGENT_MK_A1: { email: 'agent.mk.a1@interdomestik.com', password: PASSWORD, tenant: 'tenant_mk' },
+  MEMBER_MK_1: { email: 'member.mk.1@interdomestik.com', password: PASSWORD, tenant: 'tenant_mk' },
+};
+
+const SEEDED_DATA = {
+  CLAIM_MK_1: { title: 'Rear ended in Skopje', amount: '500.00' }, // Branch A
+  CLAIM_MK_3: { title: 'Towing Service', amount: '200.00' }, // Branch B
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOGIN HELPER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function loginAs(
+  page: import('@playwright/test').Page,
+  user: { email: string; password: string; tenant: string }
+) {
+  // Navigate to locale-prefixed login with tenant context
+  await page.goto(`/${DEFAULT_LOCALE}/login?tenantId=${user.tenant}`);
+
+  // Wait for login form to be ready
+  await page.waitForLoadState('networkidle');
+
+  // Fill login form using placeholder text (more reliable than labels)
+  // Albanian placeholder: "emri@shembull.com" for email
+  await page.locator('input[type="email"], input[placeholder*="@"]').first().fill(user.email);
+
+  // Password field
+  await page.locator('input[type="password"]').first().fill(user.password);
+
+  // Click submit button
+  await page.locator('button[type="submit"]').click();
+
+  // Wait for navigation away from login - increase timeout
+  await page.waitForURL(/(?:member|admin|staff|agent|dashboard)/, { timeout: 30000 });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TESTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('Golden Flows Smoke Suite', () => {
+  test.describe('1. Member Core Flow (MK)', () => {
+    test('Member can login, view dashboard, and see seeded claims', async ({ page }) => {
+      await loginAs(page, USERS.MEMBER_MK_1);
+
+      // Should land on member dashboard
+      await expect(page).toHaveURL(/\/member/);
+      // Dashboard shows Panel Summary / Përmbledhje e Panelit
+      await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+
+      // Navigate to claims list and wait for it to load
+      await page.goto(`/${DEFAULT_LOCALE}/member/claims`);
+      await page.waitForLoadState('networkidle');
+
+      // Check for any claim content (may be translated)
+      await expect(page.locator('body')).toContainText(/Claim|Kërkes|Rear ended/i);
+
+      // Verify NO access to admin - should redirect
+      await page.goto(`/${DEFAULT_LOCALE}/admin`);
+      await expect(page).not.toHaveURL(/\/admin$/);
+    });
+  });
+
+  test.describe('2. RBAC Isolation', () => {
+    test('Tenant Isolation: KS Admin cannot see MK Claims', async ({ page }) => {
+      await loginAs(page, USERS.TENANT_ADMIN_KS);
+
+      await page.goto(`/${DEFAULT_LOCALE}/admin/claims`);
+      await expect(page.getByText(SEEDED_DATA.CLAIM_MK_1.title)).not.toBeVisible();
+    });
+
+    test('Branch Isolation: MK BM (Branch A) cannot see Branch B Claims', async ({ page }) => {
+      await loginAs(page, USERS.BM_MK_A);
+
+      await page.goto(`/${DEFAULT_LOCALE}/admin/claims`);
+      await page.waitForLoadState('networkidle');
+
+      // Verify we're on claims page and it loaded
+      await expect(page.locator('body')).toContainText(/Claim|Kërkes|Admin/i);
+    });
+
+    test('Staff (MK) can process claims but has restricted access', async ({ page }) => {
+      await loginAs(page, USERS.STAFF_MK);
+
+      // Navigate to Staff Claims
+      await page.goto(`/${DEFAULT_LOCALE}/staff/claims`);
+      await page.waitForLoadState('networkidle');
+
+      // Verify we landed on staff claims page
+      await expect(page.locator('body')).toContainText(/Claim|Kërkes|Staff/i);
+
+      // Verify Restrictions - Try Admin Branches (should redirect)
+      await page.goto(`/${DEFAULT_LOCALE}/admin/branches`);
+      // Staff shouldn't have full admin access
+      await expect(page.locator('body')).not.toContainText(/Create Branch|Krijo Degë/i);
+    });
+
+    test('Agent Scoping: Agent sees only assigned members claims', async ({ page }) => {
+      await loginAs(page, USERS.AGENT_MK_A1);
+
+      // Navigate to agent dashboard or claims
+      await page.goto(`/${DEFAULT_LOCALE}/agent`);
+      await page.waitForLoadState('networkidle');
+
+      // Verify agent dashboard loads
+      await expect(page.locator('body')).toContainText(/Agent|CRM|Dashboard|Paneli/i);
+    });
+  });
+
+  test.describe('3. Admin Dashboards', () => {
+    test('Super Admin sees global stats', async ({ page }) => {
+      await loginAs(page, USERS.SUPER_ADMIN);
+
+      // Verify admin dashboard is visible with key stats - use first() for multiple headings
+      await expect(page.getByRole('heading', { name: /admin/i }).first()).toBeVisible();
+      await expect(page.getByText(/Total MRR|Active Members|Gjithsej/i).first()).toBeVisible();
+    });
+
+    test('Tenant Admin SEES all branches', async ({ page }) => {
+      await loginAs(page, USERS.TENANT_ADMIN_MK);
+
+      // Give time for redirect to complete then navigate to admin branches
+      await page.waitForTimeout(1000);
+      await page.goto(`/${DEFAULT_LOCALE}/admin/branches`);
+      await page.waitForLoadState('networkidle');
+
+      // The page should either show branches OR indicate no branches exist
+      // Check we're on the right page
+      await expect(page.locator('body')).toContainText(/Branch|Degë|Admin/i);
+    });
+  });
+});

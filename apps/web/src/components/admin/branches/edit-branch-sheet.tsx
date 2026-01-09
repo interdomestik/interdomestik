@@ -79,9 +79,11 @@ export function EditBranchSheet({ branch, isOpen, onClose, onUpdate }: EditBranc
     try {
       const result = await updateBranch({
         branchId: branch.id,
-        name: data.name,
-        code: data.code || null,
-        isActive: data.isActive,
+        data: {
+          name: data.name,
+          code: data.code || null,
+          isActive: data.isActive,
+        },
       });
 
       if ('success' in result && result.success) {

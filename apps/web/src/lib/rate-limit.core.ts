@@ -32,15 +32,22 @@ function getRatelimitInstance(limit: number, windowSeconds: number) {
 }
 
 export async function enforceRateLimit({ name, limit, windowSeconds, headers }: RateLimitOptions) {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Skip rate limiting entirely for automated test runs (Playwright, CI, etc.)
   const isAutomatedTestRun =
     process.env.NODE_ENV === 'test' ||
     process.env.CI === 'true' ||
+    process.env.PLAYWRIGHT === '1' ||
     process.env.INTERDOMESTIK_AUTOMATED === '1';
+  if (isAutomatedTestRun) {
+    return null;
+  }
+
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   const isProduction = process.env.NODE_ENV === 'production';
 
-  if (!url || !token) {
+  // Treat empty strings as unset (for E2E testing)
+  if (!url || url === '' || !token || token === '') {
     if (isProduction && !isAutomatedTestRun) {
       console.error(
         '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; refusing request'
@@ -93,15 +100,22 @@ export async function enforceRateLimitForAction({
   windowSeconds,
   headers,
 }: RateLimitOptions): Promise<RateLimitResult> {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Skip rate limiting entirely for automated test runs (Playwright, CI, etc.)
   const isAutomatedTestRun =
     process.env.NODE_ENV === 'test' ||
     process.env.CI === 'true' ||
+    process.env.PLAYWRIGHT === '1' ||
     process.env.INTERDOMESTIK_AUTOMATED === '1';
+  if (isAutomatedTestRun) {
+    return { limited: false };
+  }
+
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   const isProduction = process.env.NODE_ENV === 'production';
 
-  if (!url || !token) {
+  // Treat empty strings as unset (for E2E testing)
+  if (!url || url === '' || !token || token === '') {
     if (isProduction && !isAutomatedTestRun) {
       console.error(
         '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; refusing request'

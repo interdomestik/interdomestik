@@ -20,10 +20,14 @@ vi.mock('@interdomestik/domain-users/admin/access', () => ({
   requireTenantAdminSession: vi.fn().mockResolvedValue(true),
 }));
 
+// ...
+
+// ...
+
 // Mock Rate Limiter
 const mockRateLimit = vi.fn();
 vi.mock('@/lib/rate-limit', () => ({
-  enforceRateLimitForAction: (...args: any[]) => mockRateLimit(...args),
+  enforceRateLimitForAction: (...args: unknown[]) => mockRateLimit(...args),
 }));
 
 // Mock Notifications/Audit
@@ -31,7 +35,10 @@ vi.mock('@/lib/notifications', () => ({ notifyStatusChanged: vi.fn() }));
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
 
 describe('Claims Action Hardening Verification', () => {
-  const baseSession = { user: { id: 'user-1', role: 'admin' }, excludes: () => false };
+  const baseSession = {
+    user: { id: 'user-1', role: 'tenant_admin', tenantId: 't1' },
+    excludes: () => false,
+  };
   const getFormData = (status: string) => {
     const fd = new FormData();
     fd.append('claimId', 'c1');
@@ -46,6 +53,7 @@ describe('Claims Action Hardening Verification', () => {
       await expect(
         adminUpdate({
           formData: getFormData('submitted'),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           session: baseSession as any,
           requestHeaders: new Headers(),
         })
@@ -57,6 +65,7 @@ describe('Claims Action Hardening Verification', () => {
       await expect(
         adminUpdate({
           formData: getFormData('invalid-status'),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           session: baseSession as any,
           requestHeaders: new Headers(),
         })
@@ -71,6 +80,7 @@ describe('Claims Action Hardening Verification', () => {
         agentUpdate({
           claimId: 'c1',
           newStatus: 'submitted',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           session: baseSession as any,
           requestHeaders: new Headers(),
         })
@@ -84,6 +94,7 @@ describe('Claims Action Hardening Verification', () => {
       const result = await staffUpdate({
         claimId: 'c1',
         newStatus: 'submitted',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         session: baseSession as any,
       });
       expect(result).toEqual({ success: false, error: 'Too many requests. Please wait a moment.' });

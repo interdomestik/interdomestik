@@ -122,5 +122,5 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/(sq|en|sr|mk)/:path*', '/((?!api|_next|_vercel|.*\\..*).*)'],
+  matcher: ['/', '/(sq|en|sr|mk|de|hr)/:path*', '/((?!api|_next|_vercel|.*\\..*).*)'],
 };

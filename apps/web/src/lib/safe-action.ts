@@ -6,6 +6,7 @@ import {
   ROLE_TENANT_ADMIN,
 } from '@/lib/roles.core';
 import { ensureTenantId } from '@interdomestik/shared-auth';
+import * as Sentry from '@sentry/nextjs';
 import { headers as nextHeaders } from 'next/headers';
 
 export type ActionError = {
@@ -63,7 +64,7 @@ function assertSessionContext(session: SessionData): ProtectedActionContext['sco
 function validateBranchManagerInvariant(role: string, branchId: string | null) {
   if (role === ROLE_BRANCH_MANAGER && !branchId) {
     const error = new Error('Security Violation: Branch Manager has no active branch context.');
-    (error as any).code = 'FORBIDDEN_NO_BRANCH';
+    (error as Error & { code?: string }).code = 'FORBIDDEN_NO_BRANCH';
     throw error;
   }
 }
@@ -72,7 +73,7 @@ function getActorAgentId(role: string, userId: string): string | null {
   const actorAgentId = role === ROLE_AGENT ? userId : null;
   if (role === ROLE_AGENT && !actorAgentId) {
     const error = new Error('Security Violation: Agent context missing.');
-    (error as any).code = 'FORBIDDEN_NO_AGENT';
+    (error as Error & { code?: string }).code = 'FORBIDDEN_NO_AGENT';
     throw error;
   }
   return actorAgentId;
@@ -97,14 +98,26 @@ export async function runAuthenticatedAction<T>(
     // This throws if tenant is missing, enforcing safety
     const tenantId = ensureTenantId(session);
 
+    // Set Sentry Context
+    Sentry.setUser({
+      id: session.user.id,
+      email: session.user.email,
+      username: session.user.name,
+    });
+
+    Sentry.setTag('tenantId', tenantId);
+    if (session.user.role) Sentry.setTag('userRole', session.user.role);
+    if (session.user.branchId) Sentry.setTag('branchId', session.user.branchId);
+
     // Enforce RBAC Invariants
     let scope;
     try {
       scope = assertSessionContext(session);
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Catch validation errors from logic above
-      if (e.code?.startsWith('FORBIDDEN')) {
-        return { success: false, error: e.message, code: e.code };
+      const error = e as { code?: string; message: string };
+      if (error.code?.startsWith('FORBIDDEN')) {
+        return { success: false, error: error.message, code: error.code };
       }
       throw e;
     }
@@ -120,7 +133,7 @@ export async function runAuthenticatedAction<T>(
     // If the handler returns a result object (success/error), return it directly
     // Otherwise wrap it in success.
     if (data && typeof data === 'object' && ('success' in data || 'error' in data)) {
-      return data as any;
+      return data as ActionSuccess<T> | ActionError;
     }
 
     return { success: true, data };
@@ -130,10 +143,14 @@ export async function runAuthenticatedAction<T>(
       if (error.name === 'MissingTenantError') {
         return { success: false, error: 'Missing tenant context', code: 'MISSING_TENANT' };
       }
-      if ((error as any).code?.startsWith('FORBIDDEN')) {
-        return { success: false, error: error.message, code: (error as any).code };
+      const err = error as Error & { code?: string };
+      if (err.code?.startsWith('FORBIDDEN')) {
+        return { success: false, error: err.message, code: err.code };
       }
     }
+
+    // Capture unexpected errors to Sentry
+    Sentry.captureException(error);
     console.error('Action failed:', error);
     return { success: false, error: 'Internal Server Error' };
   }

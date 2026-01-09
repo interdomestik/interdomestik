@@ -30,7 +30,12 @@ export default async function AdminLayout({
   const sessionNonNull = session as NonNullable<typeof session>;
 
   try {
-    await requireTenantAdminSession(sessionNonNull as unknown as UserSession);
+    // Basic check: Must be at least a branch manager to enter.
+    // Specific page access (e.g., /admin/users vs /admin/branches) is handled by page-level RBAC.
+    const isBranchManager = sessionNonNull.user.role === 'branch_manager';
+    if (!isBranchManager) {
+      await requireTenantAdminSession(sessionNonNull as unknown as UserSession);
+    }
   } catch {
     const fallback = '/member';
     redirect({ href: fallback, locale });

@@ -11,9 +11,9 @@ const queryClient =
       process.env.NODE_ENV === 'production'
         ? Number.parseInt(process.env.DB_MAX_CONNECTIONS || '50')
         : Number.parseInt(process.env.DB_MAX_CONNECTIONS || '10'),
-    idle_timeout: Number.parseInt(process.env.DB_IDLE_TIMEOUT || '20') * 1000,
-    connect_timeout: Number.parseInt(process.env.DB_CONNECT_TIMEOUT || '10') * 1000,
-    max_lifetime: Number.parseInt(process.env.DB_MAX_LIFETIME || '3600') * 1000,
+    idle_timeout: Number.parseInt(process.env.DB_IDLE_TIMEOUT || '20'),
+    connect_timeout: Number.parseInt(process.env.DB_CONNECT_TIMEOUT || '10'),
+    max_lifetime: Number.parseInt(process.env.DB_MAX_LIFETIME || '3600'),
     // Add connection monitoring
     onnotice: notice => {
       if (process.env.NODE_ENV === 'production') {

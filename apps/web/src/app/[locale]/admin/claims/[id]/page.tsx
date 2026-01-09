@@ -32,7 +32,7 @@ export default async function AdminClaimDetailPage({
   const tClaimsAdmin = await getTranslations('admin.claims_page');
   const tCategory = await getTranslations('claims.category');
   const staffResult = await getStaff();
-  const staff = staffResult.success ? staffResult.data : [];
+  const staff = staffResult.success ? (staffResult.data ?? []) : [];
 
   if (result.kind === 'not_found') return notFound();
   const data = result.data;

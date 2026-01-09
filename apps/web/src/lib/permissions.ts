@@ -43,8 +43,8 @@ export function scopeFilter(
 }
 
 // Type Guard
-function IsPgColumn(col: any): col is PgColumn {
-  return col && typeof col === 'object' && 'name' in col;
+function IsPgColumn(col: unknown): col is PgColumn {
+  return !!col && typeof col === 'object' && 'name' in col;
 }
 
 // --- Permission Helpers ---
@@ -68,7 +68,7 @@ export function allowedClaimStatusTransitions(userRole: string): string[] {
   return ['draft', 'submitted', 'reviewed', 'in_progress', 'resolved', 'rejected', 'paid'];
 }
 
-export function assertAgentClientAccess(ctx: ProtectedActionContext, clientUserId: string) {
+export function assertAgentClientAccess(ctx: ProtectedActionContext, _clientUserId: string) {
   // This would typically query the DB to ensure 'clientUserId' is in 'agent_clients' for 'ctx.scope.actorAgentId'
   // Placeholder for logic that should exist in the Action or Domain service.
   if (!ctx.scope.actorAgentId) return; // Not an agent, pass.

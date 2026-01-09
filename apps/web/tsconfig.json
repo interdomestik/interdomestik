@@ -58,7 +58,8 @@
     "../../packages/domain-membership-billing/src/**/*.ts",
     "../../packages/domain-referrals/src/**/*.ts",
     "../../packages/domain-users/src/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    ".next/dev/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
