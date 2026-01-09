@@ -4,6 +4,28 @@
     "crm": "CRM Overview",
     "dashboard": "Dashboard",
     "leads": "Leads",
+    "leads_list": {
+      "title": "Lead Management",
+      "subtitle": "Create and convert leads to members.",
+      "create": "New Lead",
+      "createSuccess": "Lead created successfully",
+      "paymentSuccess": "Payment initiated",
+      "table": {
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "email": "Email",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "form": {
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "email": "Email",
+        "phone": "Phone",
+        "notes": "Notes",
+        "submit": "Create Lead"
+      }
+    },
     "deals": "Deals",
     "claims": "Claims",
     "members": "Members",

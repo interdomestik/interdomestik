@@ -1,6 +1,7 @@
 {
   "agent": {
     "title": "Agent Workspace",
+    "crm": "Преглед на CRM",
     "dashboard": "Dashboard",
     "claims": "Claims",
     "members": "Members",
@@ -192,9 +193,30 @@
       "message_alert": "New message ({count})",
       "no_users": "No members found."
     },
-    "crm": "CRM Overview",
-    "leads": "Leads",
-    "deals": "Deals",
+    "leads": "Потенцијални клиенти",
+    "leads_list": {
+      "title": "Управување со потенцијални клиенти",
+      "subtitle": "Креирајте и конвертирајте потенцијални клиенти во членови.",
+      "create": "Нов потенцијален клиент",
+      "createSuccess": "Потенцијалниот клиент е успешно креиран",
+      "paymentSuccess": "Плаќањето е иницирано",
+      "table": {
+        "firstName": "Име",
+        "lastName": "Презиме",
+        "email": "Е-пошта",
+        "status": "Статус",
+        "actions": "Акции"
+      },
+      "form": {
+        "firstName": "Име",
+        "lastName": "Презиме",
+        "email": "Е-пошта",
+        "phone": "Телефон",
+        "notes": "Белешки",
+        "submit": "Креирај потенцијален клиент"
+      }
+    },
+    "deals": "Договори",
     "crm_dashboard": {
       "title": "Sales Overview",
       "subtitle": "Track your performance and pipeline.",

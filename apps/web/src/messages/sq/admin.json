@@ -11,7 +11,19 @@
       "staff": "Staf",
       "analytics": "Analitika",
       "branches": "Degët",
+      "leads": "Verifikimi i Lead-ve",
       "settings": "Cilësimet"
+    },
+    "leads": {
+      "title": "Verifikimi i Pagesave",
+      "subtitle": "Verifiko pagesat cash të mbledhura nga agjentët.",
+      "approve": "Aprovo",
+      "reject": "Refuzo",
+      "success": "Pagesa u verifikua",
+      "table": {
+        "amount": "Shuma",
+        "verification": "Verifikimi"
+      }
     },
     "users_page": {
       "title": "Menaxhimi i Përdoruesve",

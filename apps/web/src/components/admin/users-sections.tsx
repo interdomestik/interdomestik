@@ -1,9 +1,11 @@
 'use client';
 
 import { UsersTable } from '@/components/admin/users-table';
+import { GlassCard } from '@/components/ui/glass-card';
 import { isMember, isStaffOrAdmin } from '@/lib/roles';
 import { cn } from '@interdomestik/ui';
-import { ChevronDown } from 'lucide-react';
+import { Badge } from '@interdomestik/ui/components/badge';
+import { ChevronDown, ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 
@@ -42,21 +44,25 @@ function Section({ title, count, defaultOpen = true, children }: SectionProps) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <section className="rounded-md border bg-white">
+    <GlassCard className="overflow-hidden">
       <button
         type="button"
-        className="flex w-full items-center justify-between px-4 py-3"
+        className="flex w-full items-center justify-between px-6 py-4 bg-white/5 hover:bg-white/10 transition-colors border-b border-white/10"
         onClick={() => setOpen(prev => !prev)}
         aria-expanded={open}
       >
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <span className="text-sm text-muted-foreground">({count})</span>
+          <Badge variant="secondary" className="bg-white/10 text-muted-foreground border-white/10">
+            {count}
+          </Badge>
         </div>
-        <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
+        <ChevronDown
+          className={cn('h-4 w-4 transition-transform text-muted-foreground', open && 'rotate-180')}
+        />
       </button>
-      {open && <div className="border-t p-4">{children}</div>}
-    </section>
+      {open && <div className="p-2">{children}</div>}
+    </GlassCard>
   );
 }
 
@@ -65,9 +71,14 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
 
   if (users.length === 0) {
     return (
-      <div className="rounded-md border bg-white py-16 text-center text-sm text-muted-foreground">
-        {t('no_users')}
-      </div>
+      <GlassCard className="p-12 text-center text-muted-foreground">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center">
+            <ExternalLink className="h-6 w-6 opacity-50" />
+          </div>
+          <p>{t('no_users')}</p>
+        </div>
+      </GlassCard>
     );
   }
 

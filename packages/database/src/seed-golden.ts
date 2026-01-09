@@ -201,7 +201,45 @@ async function seedGolden() {
   // Delete sessions explicitly
   await db.delete(schema.session).where(inArray(schema.session.userId, userIds));
 
+  // Delete commissions first
+  await db
+    .delete(schema.agentCommissions)
+    .where(inArray(schema.agentCommissions.memberId, userIds));
+  await db.delete(schema.agentCommissions).where(inArray(schema.agentCommissions.agentId, userIds));
+  // Delete membership cards
+  await db.delete(schema.membershipCards).where(inArray(schema.membershipCards.userId, userIds));
+
+  // Delete leads linked to these agents (fetching IDs first for payment attempts)
+  const leadsToDelete = await db.query.memberLeads.findMany({
+    where: inArray(schema.memberLeads.agentId, userIds),
+    columns: { id: true },
+  });
+  const leadIds = leadsToDelete.map(l => l.id);
+  if (leadIds.length > 0) {
+    await db
+      .delete(schema.leadPaymentAttempts)
+      .where(inArray(schema.leadPaymentAttempts.leadId, leadIds));
+    await db.delete(schema.memberLeads).where(inArray(schema.memberLeads.id, leadIds));
+  }
+
+  // Delete subscriptions linked to these agents (and their dependencies)
+  const subsLinkedToAgents = await db.query.subscriptions.findMany({
+    where: inArray(schema.subscriptions.agentId, userIds),
+    columns: { id: true },
+  });
+  const subAgentIds = subsLinkedToAgents.map(s => s.id);
+  if (subAgentIds.length > 0) {
+    await db
+      .delete(schema.membershipCards)
+      .where(inArray(schema.membershipCards.subscriptionId, subAgentIds));
+    await db
+      .delete(schema.agentCommissions)
+      .where(inArray(schema.agentCommissions.subscriptionId, subAgentIds));
+    await db.delete(schema.subscriptions).where(inArray(schema.subscriptions.id, subAgentIds));
+  }
+
   await db.delete(schema.agentClients).where(inArray(schema.agentClients.memberId, userIds));
+  await db.delete(schema.agentClients).where(inArray(schema.agentClients.agentId, userIds));
   await db.delete(schema.subscriptions).where(inArray(schema.subscriptions.userId, userIds));
 
   // Now safe to delete users
@@ -442,6 +480,149 @@ async function seedGolden() {
       })
       .onConflictDoUpdate({ target: schema.claims.id, set: { status: c.status as any } });
   }
+
+  // 8. Balkan Agent Flow (Lead -> Payment -> Member)
+  console.log('🇧🇦 Seeding Balkan Agent Flow...');
+
+  // A. Create Agent
+  const balkanAgent = {
+    id: 'agent_balkan_1',
+    name: 'Balkan Agent 1',
+    email: 'agent.balkan.1@interdomestik.com',
+    role: 'agent',
+    tenantId: TENANTS.MK,
+    branchId: 'mk_branch_a',
+  };
+
+  await db
+    .insert(schema.user)
+    .values({
+      ...balkanAgent,
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // B. Create Lead
+  const leadId = 'lead_balkan_demo';
+  await db
+    .insert(schema.memberLeads)
+    .values({
+      id: leadId,
+      tenantId: TENANTS.MK,
+      branchId: 'mk_branch_a',
+      agentId: balkanAgent.id,
+      firstName: 'Balkan',
+      lastName: 'Lead',
+      email: 'lead.balkan@example.com',
+      phone: '+38970123456',
+      status: 'payment_pending',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // C. Create Payment Attempt (Cash)
+  const attemptId = 'pay_attempt_balkan_demo';
+  await db
+    .insert(schema.leadPaymentAttempts)
+    .values({
+      id: attemptId,
+      tenantId: TENANTS.MK,
+      leadId: leadId,
+      method: 'cash',
+      status: 'pending', // Pending verification
+      amount: 12000, // 120.00 EUR
+      currency: 'EUR',
+      createdAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // D. Create Converted Card Lead
+  const leadCardId = 'lead_balkan_card_demo';
+  const convertedUserId = 'user_balkan_converted_1';
+  const subscriptionId = 'sub_balkan_demo_1';
+
+  // 1. User Account
+  await db
+    .insert(schema.user)
+    .values({
+      id: convertedUserId,
+      name: 'Balkan Card Member',
+      email: 'member.balkan.card@example.com',
+      role: 'user',
+      tenantId: TENANTS.MK,
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // 2. Lead Record (Converted)
+  await db
+    .insert(schema.memberLeads)
+    .values({
+      id: leadCardId,
+      tenantId: TENANTS.MK,
+      branchId: 'mk_branch_a',
+      agentId: balkanAgent.id,
+      firstName: 'Balkan',
+      lastName: 'Card Member',
+      email: 'member.balkan.card@example.com',
+      phone: '+38970000000',
+      status: 'converted',
+      convertedUserId: convertedUserId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // 3. Payment Attempt (Card Success)
+  await db
+    .insert(schema.leadPaymentAttempts)
+    .values({
+      id: 'pay_attempt_card_success',
+      tenantId: TENANTS.MK,
+      leadId: leadCardId,
+      method: 'card',
+      status: 'succeeded',
+      amount: 12000,
+      currency: 'EUR',
+      paddleTransactionId: 'txn_golden_demo_123',
+      createdAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  // 4. Subscription
+  await db
+    .insert(schema.subscriptions)
+    .values({
+      id: subscriptionId,
+      tenantId: TENANTS.MK,
+      userId: convertedUserId,
+      status: 'active',
+      planId: 'standard_plan',
+      createdAt: new Date(),
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+    })
+    .onConflictDoNothing();
+
+  // 5. Membership Card
+  await db
+    .insert(schema.membershipCards)
+    .values({
+      id: 'card_balkan_demo_1',
+      tenantId: TENANTS.MK,
+      userId: convertedUserId,
+      subscriptionId: subscriptionId, // Mock sub
+      status: 'active',
+      cardNumber: 'MK-1000-0001',
+      qrCodeToken: 'qr_token_demo_123',
+      issuedAt: new Date(),
+    })
+    .onConflictDoNothing();
 
   console.log('✅ Golden Seed Complete!');
   process.exit(0);

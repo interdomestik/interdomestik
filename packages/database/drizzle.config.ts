@@ -2,7 +2,7 @@ import { defineConfig } from 'drizzle-kit';
 
 function getSslConfig() {
   if (process.env.NODE_ENV === 'production') return 'require';
-  if (process.env.NODE_ENV === 'staging') return 'prefer';
+  if ((process.env.NODE_ENV as string) === 'staging') return 'prefer';
   return false;
 }
 

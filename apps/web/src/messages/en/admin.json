@@ -11,7 +11,19 @@
       "staff": "Staff",
       "analytics": "Analytics",
       "branches": "Branches",
+      "leads": "Lead Verification",
       "settings": "Settings"
+    },
+    "leads": {
+      "title": "Payment Verification",
+      "subtitle": "Verify cash payments collected by agents.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "success": "Payment verified",
+      "table": {
+        "amount": "Amount",
+        "verification": "Verification"
+      }
     },
     "users_page": {
       "title": "User Management",

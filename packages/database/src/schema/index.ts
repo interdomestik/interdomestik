@@ -10,6 +10,7 @@ export * from './auth';
 export * from './automation';
 export * from './claims';
 export * from './crm';
+export * from './leads';
 export * from './memberships';
 export * from './notes';
 export * from './notifications';

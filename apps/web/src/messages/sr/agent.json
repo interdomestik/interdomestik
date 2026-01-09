@@ -1,7 +1,32 @@
 {
   "agent": {
     "title": "Agent Workspace",
-    "dashboard": "Dashboard",
+    "crm": "Pregled CRM-a",
+    "dashboard": "Kontrolna tabla",
+    "leads": "Potencijalni klijenti",
+    "leads_list": {
+      "title": "Upravljanje potencijalnim klijentima",
+      "subtitle": "Kreirajte i konvertujte potencijalne klijente u članove.",
+      "create": "Novi potencijalni klijent",
+      "createSuccess": "Potencijalni klijent uspešno kreiran",
+      "paymentSuccess": "Plaćanje pokrenuto",
+      "table": {
+        "firstName": "Ime",
+        "lastName": "Prezime",
+        "email": "Email",
+        "status": "Status",
+        "actions": "Akcije"
+      },
+      "form": {
+        "firstName": "Ime",
+        "lastName": "Prezime",
+        "email": "Email",
+        "phone": "Telefon",
+        "notes": "Napomene",
+        "submit": "Kreiraj potencijalnog klijenta"
+      }
+    },
+    "deals": "Dogovori",
     "claims": "Claims",
     "members": "Members",
     "stats": {

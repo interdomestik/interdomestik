@@ -1,6 +1,7 @@
 'use client';
 
 import { updateUserAgent } from '@/actions/admin-users';
+import { GlassCard } from '@/components/ui/glass-card';
 import { Link, useRouter } from '@/i18n/routing';
 import { isMember } from '@/lib/roles';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
@@ -122,7 +123,7 @@ export function UsersTable({
   const tableContent = (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="hover:bg-transparent border-white/10">
           <TableHead>{t('headers.user')}</TableHead>
           <TableHead>{t('headers.role')}</TableHead>
           <TableHead>{t('headers.assigned_agent')}</TableHead>
@@ -133,19 +134,30 @@ export function UsersTable({
         {users.map(user => (
           <TableRow
             key={user.id}
-            className={user.unreadCount ? 'bg-amber-50/40 hover:bg-amber-50/60' : undefined}
+            className={`transition-colors border-white/5 ${
+              user.unreadCount
+                ? 'bg-amber-500/5 hover:bg-amber-500/10'
+                : 'hover:bg-white/5 dark:hover:bg-white/5'
+            }`}
           >
             <TableCell>
               <div className="flex items-center gap-3">
-                <Avatar>
+                <Avatar className="h-9 w-9 border border-white/10">
                   <AvatarImage src={user.image || ''} />
-                  <AvatarFallback>{user.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                  <AvatarFallback className="bg-white/10 text-muted-foreground">
+                    {user.name?.[0]?.toUpperCase() || 'U'}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="font-medium">{user.name}</span>
                   <span className="text-xs text-muted-foreground">{user.email}</span>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs hover:bg-blue-500/10 hover:text-blue-500 border border-white/10"
+                    >
                       <Link href={withUsersListContext(`/admin/users/${user.id}`)}>
                         {t('view_profile')}
                       </Link>
@@ -154,7 +166,7 @@ export function UsersTable({
                       <Button
                         asChild
                         size="sm"
-                        className="h-7 gap-2 px-3 text-xs font-semibold shadow-sm animate-pulse bg-amber-500 text-white hover:bg-amber-600"
+                        className="h-7 gap-2 px-3 text-xs font-semibold shadow-sm animate-pulse bg-amber-500 text-white hover:bg-amber-600 border-none"
                       >
                         <Link href={withUsersListContext(user.alertLink)}>
                           <span className="relative flex h-2 w-2">
@@ -170,7 +182,9 @@ export function UsersTable({
               </div>
             </TableCell>
             <TableCell>
-              <Badge variant="outline">{tCommon(`roles.${user.role}`)}</Badge>
+              <Badge variant="outline" className="border-white/10 bg-white/5 text-muted-foreground">
+                {tCommon(`roles.${user.role}`)}
+              </Badge>
             </TableCell>
             <TableCell>
               {isMember(user.role) ? (
@@ -179,7 +193,7 @@ export function UsersTable({
                   value={assignedAgents[user.id] || 'unassigned'}
                   onValueChange={val => handleAgentChange(user.id, val)}
                 >
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[180px] bg-white/5 border-white/10 focus:ring-0 focus:ring-offset-0">
                     <SelectValue placeholder={t('select_agent')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -195,14 +209,14 @@ export function UsersTable({
                 <span className="text-sm text-muted-foreground">{tCommon('none')}</span>
               )}
             </TableCell>
-            <TableCell className="text-sm">
+            <TableCell className="text-sm text-muted-foreground">
               {new Date(user.createdAt).toLocaleDateString()}
             </TableCell>
           </TableRow>
         ))}
         {showEmptyState && users.length === 0 && (
           <TableRow>
-            <TableCell colSpan={4} className="h-24 text-center">
+            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
               {t('no_users')}
             </TableCell>
           </TableRow>
@@ -215,5 +229,5 @@ export function UsersTable({
     return tableContent;
   }
 
-  return <div className="rounded-md border bg-white">{tableContent}</div>;
+  return <GlassCard className="overflow-hidden p-0">{tableContent}</GlassCard>;
 }

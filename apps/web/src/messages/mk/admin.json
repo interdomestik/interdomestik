@@ -4,14 +4,26 @@
       "dashboard": "Dashboard",
       "claims": "Claims",
       "users": "Users",
-      "analytics": "Analytics",
-      "branches": "Branches",
+      "analytics": "Аналитика",
+      "branches": "Подружници",
+      "leads": "Верификација на потенцијални клиенти",
       "settings": "Settings",
       "title": "Admin",
       "subtitle": "Control Panel",
       "members": "Members",
       "agents": "Agents",
       "staff": "Staff"
+    },
+    "leads": {
+      "title": "Верификација на плаќање",
+      "subtitle": "Верификувајте ги готовинските плаќања собрани од агентите.",
+      "approve": "Одобри",
+      "reject": "Одбиј",
+      "success": "Плаќањето е верификувано",
+      "table": {
+        "amount": "Износ",
+        "verification": "Верификација"
+      }
     },
     "users_page": {
       "title": "User Management",

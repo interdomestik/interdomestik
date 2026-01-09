@@ -1,5 +1,6 @@
 'use client';
 
+import { GlassCard } from '@/components/ui/glass-card';
 import { useRouter } from '@/i18n/routing';
 import { Badge, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
@@ -59,12 +60,12 @@ export function UsersFilters({
   };
 
   return (
-    <div className="space-y-4">
+    <GlassCard className="p-4 space-y-4">
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder={t('search_placeholder') || `${tCommon('search')}...`}
-          className="pl-9"
+          className="pl-9 bg-white/5 border-white/10 focus:bg-white/10 transition-colors"
           defaultValue={currentSearch}
           onChange={e => handleSearch(e.target.value)}
         />
@@ -82,7 +83,11 @@ export function UsersFilters({
                 <Badge
                   key={option.value}
                   variant={isActive ? 'default' : 'outline'}
-                  className="cursor-pointer hover:bg-primary/10 transition-colors"
+                  className={`cursor-pointer transition-all ${
+                    isActive
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 border-transparent'
+                      : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 text-muted-foreground'
+                  }`}
                   onClick={() => updateParams('role', option.value)}
                 >
                   {option.label}
@@ -103,7 +108,11 @@ export function UsersFilters({
                 <Badge
                   key={option.value}
                   variant={isActive ? 'default' : 'outline'}
-                  className="cursor-pointer hover:bg-primary/10 transition-colors"
+                  className={`cursor-pointer transition-all ${
+                    isActive
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 border-transparent'
+                      : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 text-muted-foreground'
+                  }`}
                   onClick={() => updateParams('assignment', option.value)}
                 >
                   {option.label}
@@ -113,6 +122,6 @@ export function UsersFilters({
           </div>
         )}
       </div>
-    </div>
+    </GlassCard>
   );
 }

@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
@@ -133,3 +134,36 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
     .$onUpdate(() => new Date())
     .notNull(),
 });
+
+export const membershipCards = pgTable(
+  'membership_cards',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id),
+    subscriptionId: text('subscription_id')
+      .notNull()
+      .references(() => subscriptions.id), // Link to specific subscription
+
+    status: text('status', { enum: ['active', 'revoked', 'expired'] })
+      .notNull()
+      .default('active'),
+
+    // Card Details
+    cardNumber: text('card_number').notNull(),
+    qrCodeToken: text('qr_code_token').notNull(), // For generating dynamic QR
+
+    issuedAt: timestamp('issued_at').defaultNow().notNull(),
+    expiresAt: timestamp('expires_at'),
+    revokedAt: timestamp('revoked_at'),
+  },
+  table => [
+    index('idx_cards_user').on(table.userId),
+    index('idx_cards_sub').on(table.subscriptionId),
+    uniqueIndex('idx_cards_number').on(table.tenantId, table.cardNumber),
+  ]
+);

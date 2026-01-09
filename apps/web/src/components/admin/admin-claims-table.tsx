@@ -1,5 +1,6 @@
 'use client';
 
+import { GlassCard } from '@/components/ui/glass-card';
 import { Link } from '@/i18n/routing';
 import { fetchClaims, type ClaimsListItem } from '@/lib/api/claims';
 import { cn } from '@interdomestik/ui';
@@ -14,7 +15,7 @@ import {
   TableRow,
 } from '@interdomestik/ui/components/table';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react'; // Added ExternalLink
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
@@ -32,21 +33,25 @@ function ClaimsSection({ title, count, defaultOpen = true, children }: ClaimsSec
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <section className="rounded-md border bg-white">
+    <GlassCard className="overflow-hidden">
       <button
         type="button"
-        className="flex w-full items-center justify-between px-4 py-3"
+        className="flex w-full items-center justify-between px-6 py-4 bg-white/5 hover:bg-white/10 transition-colors border-b border-white/10"
         onClick={() => setOpen(prev => !prev)}
         aria-expanded={open}
       >
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <span className="text-sm text-muted-foreground">({count})</span>
+          <Badge variant="secondary" className="bg-white/10 text-muted-foreground border-white/10">
+            {count}
+          </Badge>
         </div>
-        <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
+        <ChevronDown
+          className={cn('h-4 w-4 transition-transform text-muted-foreground', open && 'rotate-180')}
+        />
       </button>
-      {open && <div className="border-t p-4">{children}</div>}
-    </section>
+      {open && <div className="p-2">{children}</div>}
+    </GlassCard>
   );
 }
 
@@ -109,49 +114,57 @@ export function AdminClaimsTable() {
   const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'submitted':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+        return 'bg-blue-500/15 text-blue-600 border-blue-500/20';
       case 'resolved':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
+        return 'bg-emerald-500/15 text-emerald-600 border-emerald-500/20';
       case 'rejected':
-        return 'bg-red-100 text-red-800 hover:bg-red-200';
+        return 'bg-red-500/15 text-red-600 border-red-500/20';
       case 'draft':
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+        return 'bg-slate-500/15 text-slate-600 border-slate-500/20';
       default:
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+        return 'bg-amber-500/15 text-amber-600 border-amber-500/20';
     }
   };
 
   if (isLoading) {
     return (
-      <div className="rounded-md border bg-background p-6 text-sm text-muted-foreground">
-        {tCommon('loading')}
-      </div>
+      <GlassCard className="p-12 flex justify-center">
+        <div className="flex flex-col items-center gap-4 text-muted-foreground animate-pulse">
+          <div className="h-8 w-8 rounded-full border-2 border-current border-t-transparent animate-spin" />
+          <p>{tCommon('loading')}</p>
+        </div>
+      </GlassCard>
     );
   }
 
   if (isError || !data) {
     return (
-      <div className="rounded-md border bg-background p-6 text-sm text-muted-foreground">
-        <div>{tCommon('errors.generic')}</div>
-        <Button className="mt-4" variant="outline" onClick={() => refetch()}>
+      <GlassCard className="p-8 text-center text-muted-foreground">
+        <p className="mb-4">{tCommon('errors.generic')}</p>
+        <Button variant="outline" onClick={() => refetch()} className="hover:bg-primary/5">
           {tCommon('tryAgain')}
         </Button>
-      </div>
+      </GlassCard>
     );
   }
 
   if (data.claims.length === 0) {
     return (
-      <div className="rounded-md border bg-background p-6 text-sm text-muted-foreground">
-        {tTable('no_claims')}
-      </div>
+      <GlassCard className="p-12 text-center text-muted-foreground">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center">
+            <ExternalLink className="h-6 w-6 opacity-50" />
+          </div>
+          <p>{tTable('no_claims')}</p>
+        </div>
+      </GlassCard>
     );
   }
 
   const renderTable = (claims: ClaimsListItem[]) => (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="hover:bg-transparent border-white/10">
           <TableHead>{tTable('claimant')}</TableHead>
           <TableHead>{tAdmin('table.title')}</TableHead>
           <TableHead>{tTable('status')}</TableHead>
@@ -164,7 +177,12 @@ export function AdminClaimsTable() {
         {claims.map(claim => (
           <TableRow
             key={claim.id}
-            className={claim.unreadCount ? 'bg-amber-50/40 hover:bg-amber-50/60' : undefined}
+            className={cn(
+              'group border-white/5 transition-colors',
+              claim.unreadCount
+                ? 'bg-amber-500/5 hover:bg-amber-500/10'
+                : 'hover:bg-white/5 dark:hover:bg-white/5'
+            )}
           >
             <TableCell>
               <div className="flex flex-col">
@@ -184,7 +202,7 @@ export function AdminClaimsTable() {
               </div>
             </TableCell>
             <TableCell>
-              <Badge className={getStatusColor(claim.status)} variant="secondary">
+              <Badge className={getStatusColor(claim.status)} variant="outline">
                 {tStatus(claim.status || 'draft')}
               </Badge>
             </TableCell>
@@ -201,7 +219,8 @@ export function AdminClaimsTable() {
                 <Button
                   asChild
                   size="sm"
-                  className="gap-2 animate-pulse bg-amber-500 text-white hover:bg-amber-600"
+                  variant="default"
+                  className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 border-none shadow-md shadow-amber-500/20"
                 >
                   <Link href={withClaimsListContext(`/admin/claims/${claim.id}`)}>
                     <span className="relative flex h-2 w-2">
@@ -212,7 +231,12 @@ export function AdminClaimsTable() {
                   </Link>
                 </Button>
               ) : (
-                <Button asChild size="sm" variant="outline">
+                <Button
+                  asChild
+                  size="sm"
+                  variant="ghost"
+                  className="hover:bg-blue-500/10 hover:text-blue-600"
+                >
                   <Link href={withClaimsListContext(`/admin/claims/${claim.id}`)}>
                     {tCommon('view')}
                   </Link>
@@ -236,7 +260,7 @@ export function AdminClaimsTable() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="space-y-6">
         {activeClaims.length > 0 && (
           <ClaimsSection title={tAdmin('sections.active')} count={activeClaims.length}>
@@ -265,13 +289,25 @@ export function AdminClaimsTable() {
 
       {data.totalPages > 1 && (
         <div className="flex items-center justify-end gap-2">
-          <Button asChild variant="outline" size="sm" disabled={page <= 1}>
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            className="bg-white/5 hover:bg-white/10 border-white/10"
+          >
             <Link href={buildPageLink(page - 1)}>{tCommon('previous')}</Link>
           </Button>
           <span className="text-sm text-muted-foreground">
             {tCommon('pagination.pageOf', { page, total: data.totalPages })}
           </span>
-          <Button asChild variant="outline" size="sm" disabled={page >= data.totalPages}>
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            disabled={page >= data.totalPages}
+            className="bg-white/5 hover:bg-white/10 border-white/10"
+          >
             <Link href={buildPageLink(page + 1)}>{tCommon('next')}</Link>
           </Button>
         </div>

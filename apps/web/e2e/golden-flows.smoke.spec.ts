@@ -156,4 +156,89 @@ test.describe('Golden Flows Smoke Suite', () => {
       await expect(page.locator('body')).toContainText(/Branch|Degë|Admin/i);
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 4. BALKAN AGENT FLOW
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  test.describe('4. Balkan Agent Flow (MK)', () => {
+    test.describe.configure({ mode: 'serial' }); // Dependent steps
+
+    test('Agent can create lead and initiate cash payment', async ({ page }) => {
+      await loginAs(page, {
+        email: 'agent.balkan.1@interdomestik.com',
+        password: PASSWORD,
+        tenant: 'tenant_mk',
+      });
+
+      await page.goto(`/${DEFAULT_LOCALE}/agent/leads`);
+      await page.waitForLoadState('networkidle');
+
+      // Verify Seeded Lead is visible
+      await expect(page.getByText('Balkan Lead')).toBeVisible();
+
+      // Create New Lead
+      await page.getByRole('button', { name: /New Lead|Lead i Ri/i }).click();
+      await page.waitForSelector('dialog[open]');
+
+      await page.locator('input[name="firstName"]').fill('Smoke');
+      await page.locator('input[name="lastName"]').fill('Test');
+      await page.locator('input[name="email"]').fill(`smoke.balkan.${Date.now()}@test.com`);
+      await page.locator('input[name="phone"]').fill('+38970888888');
+      await page.locator('button[type="submit"]').click();
+
+      // Wait for toast or refresh
+      await expect(page.getByText('Lead created', { exact: false })).toBeVisible({
+        timeout: 10000,
+      });
+
+      // Reload to see new lead
+      await page.reload();
+      await expect(page.getByText('Smoke Test')).toBeVisible();
+
+      // Initiate Cash Payment for new lead
+      // Assuming 'Cash' button is available for new leads
+      const row = page.getByRole('row', { name: 'Smoke Test' });
+      await row.getByRole('button', { name: /Cash/i }).click();
+
+      await expect(page.getByText(/Cash payment recorded|Pagesa u inicua/i)).toBeVisible();
+    });
+
+    test('Branch Manager can verify cash payment', async ({ page }) => {
+      await loginAs(page, USERS.BM_MK_A);
+
+      await page.goto(`/${DEFAULT_LOCALE}/admin/leads`);
+
+      // Should see the pending payment from seed (Balkan Lead)
+      // And potentially the one we just created if serial execution worked fast enough?
+      // Let's rely on the seeded one "Balkan Lead" which is definitely pending.
+      await expect(page.getByText('Balkan Lead')).toBeVisible();
+
+      // Click Approve
+      const row = page.getByRole('row', { name: 'Balkan Lead' });
+      await row.getByRole('button', { name: /Approve|Aprovo/i }).click();
+
+      await expect(page.getByText(/Payment approved|Pagesa u verifikua/i)).toBeVisible();
+      // Should disappear or change status
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 5. SECURITY & ISOLATION EXTENSION
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  test.describe('5. Security & Isolation', () => {
+    test('KS Admin cannot see MK Leads', async ({ page }) => {
+      await loginAs(page, USERS.TENANT_ADMIN_KS);
+      await page.goto(`/${DEFAULT_LOCALE}/admin/leads`);
+      await expect(page.getByText('Balkan Lead')).not.toBeVisible();
+    });
+
+    test('Staff forbidden from Agent Onboarding', async ({ page }) => {
+      await loginAs(page, USERS.STAFF_MK);
+      await page.goto(`/${DEFAULT_LOCALE}/agent/leads`);
+      // Should redirect or show 403
+      await expect(page).not.toHaveURL(/\/agent\/leads/);
+    });
+  });
 });

@@ -24,7 +24,8 @@
     "studio": "drizzle-kit studio",
     "type-check": "tsc --noEmit",
     "seed:e2e": "tsx src/seed-e2e.ts",
-    "seed:golden": "tsx src/seed-golden.ts"
+    "seed:golden": "tsx src/seed-golden.ts",
+    "seed:full": "tsx src/seed-full/index.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",

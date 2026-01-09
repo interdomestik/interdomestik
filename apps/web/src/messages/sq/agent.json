@@ -4,6 +4,28 @@
     "crm": "Pasqyra CRM",
     "dashboard": "Paneli",
     "leads": "Lead-et",
+    "leads_list": {
+      "title": "Menaxhimi i Lead-ve",
+      "subtitle": "Krijo dhe konverto lead-et në anëtarë.",
+      "create": "Lead i Ri",
+      "createSuccess": "Lead u krijua me sukses",
+      "paymentSuccess": "Pagesa u inicua",
+      "table": {
+        "firstName": "Emri",
+        "lastName": "Mbiemri",
+        "email": "Email",
+        "status": "Statusi",
+        "actions": "Veprimet"
+      },
+      "form": {
+        "firstName": "Emri",
+        "lastName": "Mbiemri",
+        "email": "Email",
+        "phone": "Telefoni",
+        "notes": "Shënime",
+        "submit": "Krijo Lead"
+      }
+    },
     "deals": "Marrëveshjet",
     "claims": "Kërkesat për Dëmshpërblim",
     "members": "Anëtarë",

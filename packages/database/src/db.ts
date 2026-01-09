@@ -4,6 +4,12 @@ import * as schema from './schema';
 
 const globalQueryClient = global as unknown as { queryClient: postgres.Sql };
 
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL is missing in db.ts!');
+} else {
+  console.log('✅ db.ts initialized with DATABASE_URL length:', process.env.DATABASE_URL.length);
+}
+
 const queryClient =
   globalQueryClient.queryClient ||
   postgres(process.env.DATABASE_URL!, {
