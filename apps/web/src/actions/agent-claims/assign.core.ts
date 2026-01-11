@@ -6,6 +6,14 @@ import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
 
+const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+
+function revalidatePathForAllLocales(path: string) {
+  for (const locale of LOCALES) {
+    revalidatePath(`/${locale}${path}`);
+  }
+}
+
 export async function assignClaimCore(params: {
   claimId: string;
   staffId: string | null;
@@ -18,12 +26,12 @@ export async function assignClaimCore(params: {
   });
 
   if (result.success) {
-    revalidatePath('/member/claims');
-    revalidatePath(`/member/claims/${params.claimId}`);
-    revalidatePath('/admin/claims');
-    revalidatePath(`/admin/claims/${params.claimId}`);
-    revalidatePath('/staff/claims');
-    revalidatePath(`/staff/claims/${params.claimId}`);
+    revalidatePathForAllLocales('/member/claims');
+    revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
+    revalidatePathForAllLocales('/admin/claims');
+    revalidatePathForAllLocales(`/admin/claims/${params.claimId}`);
+    revalidatePathForAllLocales('/staff/claims');
+    revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
   }
 
   return result;

@@ -1,9 +1,7 @@
 'use client';
 
-import { GlassCard } from '@/components/ui/glass-card';
 import { useRouter } from '@/i18n/routing';
-import { CLAIM_STATUSES } from '@interdomestik/database/constants';
-import { Badge, Input } from '@interdomestik/ui';
+import { Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -11,70 +9,107 @@ import { useSearchParams } from 'next/navigation';
 export function AdminClaimsFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const tAdmin = useTranslations('admin.claims_page');
   const tCommon = useTranslations('common');
-  const tStatus = useTranslations('claims.status');
 
-  const currentStatus = searchParams.get('status') || 'all';
   const currentSearch = searchParams.get('search') || '';
+  const currentStatus = searchParams.get('status') || 'all';
+  const currentAssignment = searchParams.get('assigned') || 'all';
 
+  // V2 Status Tabs
   const statusOptions = [
+    { value: 'active', label: tAdmin('sections.active') },
+    { value: 'draft', label: tAdmin('sections.draft') },
+    { value: 'closed', label: tAdmin('sections.resolved') },
     { value: 'all', label: tCommon('all') },
-    ...CLAIM_STATUSES.map(status => ({ value: status, label: tStatus(status) })),
   ];
 
-  const handleStatusChange = (status: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    if (status === 'all') {
-      params.delete('status');
-    } else {
-      params.set('status', status);
-    }
-    router.push(`?${params.toString()}`);
-  };
+  const assignmentOptions = [
+    { value: 'all', label: tCommon('all') },
+    { value: 'unassigned', label: tAdmin('filters.unassigned_only') }, // Ensure translation key exists or use fallback
+    { value: 'me', label: tAdmin('filters.assigned_to_me') },
+  ];
 
-  const handleSearch = (value: string) => {
+  const updateFilters = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    if (value) {
-      params.set('search', value);
-    } else {
-      params.delete('search');
-    }
+    params.delete('page'); // Reset pagination on filter change
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value && value !== 'all') {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+
     router.push(`?${params.toString()}`);
   };
 
   return (
-    <GlassCard className="p-4 space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+    <div
+      className="flex flex-col lg:flex-row gap-4 p-4 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm"
+      data-testid="admin-claims-filters"
+    >
+      {/* Search */}
+      <div className="relative flex-1 sm:max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder={`${tCommon('search')}...`}
-          className="pl-9 bg-white/5 border-white/10 focus:bg-white/10 transition-colors"
+          className="pl-9 bg-black/20 border-white/10 focus:bg-black/40 transition-colors h-10"
           defaultValue={currentSearch}
-          onChange={e => handleSearch(e.target.value)}
+          onChange={e => updateFilters({ search: e.target.value || null })}
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {statusOptions.map(option => {
-          const isActive = currentStatus === option.value;
-          return (
-            <Badge
-              key={option.value}
-              variant={isActive ? 'default' : 'outline'}
-              className={`cursor-pointer transition-all ${
-                isActive
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 border-transparent'
-                  : 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 text-muted-foreground'
-              }`}
-              onClick={() => handleStatusChange(option.value)}
-            >
-              {option.label}
-            </Badge>
-          );
-        })}
+      <div className="flex flex-1 flex-col sm:flex-row gap-4 items-start sm:items-center justify-between lg:justify-end">
+        {/* Assignment Filter - Using Tabs/Buttons style for visibility as per smoke test requirement */}
+        {/* Test expects button with text "Të pacaktuara" (Unassigned) */}
+        <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
+          {assignmentOptions.map(option => {
+            const isActive = currentAssignment === option.value;
+            return (
+              <button
+                key={option.value}
+                onClick={() => updateFilters({ assigned: option.value })}
+                className={`
+                            px-3 py-1.5 rounded-md text-sm font-medium transition-all
+                            ${
+                              isActive
+                                ? 'bg-background shadow-sm text-foreground ring-1 ring-white/10'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                            }
+                        `}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex flex-wrap gap-1.5 bg-black/20 p-1 rounded-lg border border-white/5">
+          {statusOptions.map(option => {
+            const isActive = currentStatus === option.value;
+            return (
+              <button
+                key={option.value}
+                onClick={() => updateFilters({ status: option.value })}
+                className={`
+                  px-3 py-1.5 rounded-md text-sm font-medium transition-all
+                  ${
+                    isActive
+                      ? 'bg-background shadow-sm text-foreground ring-1 ring-white/10'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                  }
+                `}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </GlassCard>
+    </div>
   );
 }

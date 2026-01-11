@@ -36,6 +36,32 @@
       "mediation": "Medijacija",
       "closed": "Zatvoreno"
     },
+    "stage": {
+      "draft": "Nacrt",
+      "submitted": "Podneto",
+      "verification": "Verifikacija",
+      "evaluation": "Procena",
+      "negotiation": "Pregovori",
+      "court": "Sud",
+      "resolved": "Rešeno",
+      "rejected": "Odbijeno"
+    },
+    "owner": {
+      "staff": "Staff",
+      "member": "Member / Agent",
+      "agent": "Agent",
+      "admin": "Admin",
+      "system": "System",
+      "unknown": "System"
+    },
+    "owner_genitive": {
+      "staff": "Staff",
+      "member": "Member / Agent",
+      "agent": "Agent",
+      "admin": "Admin",
+      "system": "System",
+      "unknown": "System"
+    },
     "category": {
       "consumer": "Potrošač",
       "housing": "Stanovanje",

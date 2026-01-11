@@ -17,8 +17,57 @@
       "message_alert": "New message ({count})",
       "table": {
         "title": "Title",
-        "amount": "Amount"
-      }
+        "amount": "Amount",
+        "headers": {
+          "complainant": "Claimant",
+          "title": "Title",
+          "status": "Status",
+          "amount": "Amount",
+          "date": "Date",
+          "branch": "Branch",
+          "assignee": "Assignee",
+          "updated": "Updated",
+          "actions": "Open"
+        },
+        "groups": {
+          "submitted": "Submitted",
+          "verification": "Verification",
+          "evaluation": "Evaluation",
+          "negotiation": "Negotiation",
+          "court": "Court",
+          "resolved": "Resolved",
+          "rejected": "Rejected",
+          "draft": "Draft",
+          "other": "Other"
+        },
+        "group_header": "{label} • {count}",
+        "row": {
+          "stage_line": "{stage} • {days} days",
+          "owner_waiting": "Waiting on {owner}",
+          "owner_assigned": "Owner: {name} ({role})",
+          "owner_system": "System hold",
+          "stuck": "Needs attention",
+          "branch_type": "{branch} • {type}",
+          "member": "{name} ({email})"
+        },
+        "empty_state": "No operational claims for this filter."
+      },
+      "lifecycle_tabs": {
+        "all": "All",
+        "intake": "Intake",
+        "verification": "Verification",
+        "processing": "Processing",
+        "negotiation": "Negotiation",
+        "legal": "Legal",
+        "completed": "Completed"
+      },
+      "indicators": {
+        "stuck": "Needs attention",
+        "sla_breach": "SLA breach",
+        "cash_pending": "Cash pending"
+      },
+      "pagination_info": "Page {page} of {total} ({count} claims)",
+      "access_denied": "Access denied. You do not have permission to view claims."
     }
   }
 }

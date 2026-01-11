@@ -22,6 +22,7 @@ vi.mock('next/cache', () => ({
 }));
 
 describe('assignClaimCore (Wrapper Means)', () => {
+  const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
   const mockSession = {
     session: {
       id: 'sess1',
@@ -66,12 +67,14 @@ describe('assignClaimCore (Wrapper Means)', () => {
       requestHeaders: mockHeaders,
     });
 
-    expect(nextCache.revalidatePath).toHaveBeenCalledWith('/member/claims');
-    expect(nextCache.revalidatePath).toHaveBeenCalledWith('/member/claims/claim1');
-    expect(nextCache.revalidatePath).toHaveBeenCalledWith('/admin/claims');
-    expect(nextCache.revalidatePath).toHaveBeenCalledWith('/admin/claims/claim1');
-    expect(nextCache.revalidatePath).toHaveBeenCalledWith('/staff/claims');
-    expect(nextCache.revalidatePath).toHaveBeenCalledWith('/staff/claims/claim1');
+    for (const locale of LOCALES) {
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/claims`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/claims/claim1`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/admin/claims`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/admin/claims/claim1`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims/claim1`);
+    }
   });
 
   it('should propagate errors from domain layer', async () => {

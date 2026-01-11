@@ -1,24 +1,81 @@
 {
   "admin": {
     "claims_page": {
-      "title": "Menaxhimi i Kërkesave për Dëmshpërblim",
-      "description": "Shiko dhe menaxho të gjitha kërkesat e përdoruesve për dëmshpërblim.",
+      "title": "Qendra Operacionale",
+      "description": "Monitoro rrjedhën e verifikimit, vlerësimit dhe mbylljes për çdo degë.",
       "assignment": {
-        "label": "Stafi i caktuar",
-        "placeholder": "Zgjidh stafin",
-        "unassigned": "I Pacaktuar",
+        "label": "Përgjegjësia e stafit",
+        "placeholder": "Zgjidh përgjegjësin",
+        "unassigned": "Pa përgjegjës",
         "success_message": "Kërkesa u caktua me sukses"
       },
       "sections": {
-        "active": "Aktive",
+        "active": "Në Proces",
         "draft": "Skica",
-        "resolved": "Të Zgjidhura"
+        "resolved": "Të Mbyllura"
       },
       "message_alert": "Mesazh i ri ({count})",
       "table": {
-        "title": "Titulli",
-        "amount": "Shuma"
-      }
+        "title": "Rasti",
+        "amount": "Shuma",
+        "headers": {
+          "complainant": "Ankuesi",
+          "title": "Rasti",
+          "status": "Statusi",
+          "amount": "Shuma",
+          "date": "Data",
+          "branch": "Dega",
+          "assignee": "Përgjegjësi",
+          "updated": "Përditësuar",
+          "actions": "Hap"
+        },
+        "groups": {
+          "submitted": "Dorëzuar",
+          "verification": "Verifikim",
+          "evaluation": "Vlerësim",
+          "negotiation": "Negociata",
+          "court": "Gjyq",
+          "resolved": "Zgjidhur",
+          "rejected": "Refuzuar",
+          "draft": "Skicë",
+          "other": "Të tjera"
+        },
+        "group_header": "{label} • {count}",
+        "row": {
+          "stage_line": "{stage} • {days} ditë",
+          "owner_waiting": "Në pritje të {owner}",
+          "owner_assigned": "Përgjegjës: {name} ({role})",
+          "owner_system": "Në pritje sistemike",
+          "stuck": "Kërkon vëmendje",
+          "branch_type": "{branch} • {type}",
+          "member": "{name} ({email})"
+        },
+        "empty_state": "Nuk ka kërkesa operative për këtë filtër."
+      },
+      "filters": {
+        "status_label": "Statusi i rrjedhës",
+        "assigned_label": "Shpërndarja",
+        "assigned_all": "Të gjitha",
+        "assigned_only": "Të caktuara",
+        "unassigned_only": "Të pacaktuara",
+        "assigned_to_me": "Të caktuara për mua"
+      },
+      "lifecycle_tabs": {
+        "all": "Të gjitha",
+        "intake": "Pranim",
+        "verification": "Verifikim",
+        "processing": "Procesim",
+        "negotiation": "Negocim",
+        "legal": "Ligjore",
+        "completed": "Përfunduar"
+      },
+      "indicators": {
+        "stuck": "Kërkon vëmendje",
+        "sla_breach": "Tejkalim afati",
+        "cash_pending": "Pagesa në pritje"
+      },
+      "pagination_info": "Faqja {page} nga {total} ({count} kërkesa)",
+      "access_denied": "Qasja e refuzuar. Nuk keni leje për të parë kërkesat."
     }
   }
 }

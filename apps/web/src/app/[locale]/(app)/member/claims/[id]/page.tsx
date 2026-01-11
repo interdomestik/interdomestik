@@ -1,15 +1,13 @@
-import { ClaimDraftActions } from '@/components/claims/claim-draft-actions';
-import { ClaimTimeline } from '@/components/dashboard/claims/claim-timeline';
-import { DocumentList } from '@/components/documents/document-list';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
-import { Link, redirect } from '@/i18n/routing';
+import { ClaimDocumentsList } from '@/features/claims/tracking/components/ClaimDocumentsList';
+import { ClaimTimeline } from '@/features/claims/tracking/components/ClaimTimeline';
+import { ClaimTrackingHeader } from '@/features/claims/tracking/components/ClaimTrackingHeader';
+import { getMemberClaimDetail } from '@/features/claims/tracking/server/getMemberClaimDetail';
 import { auth } from '@/lib/auth';
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import { ArrowLeft, Download } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
-import { getMemberClaimDetailsCore, getMemberClaimRedirect } from './_core';
+import { notFound, redirect } from 'next/navigation';
 
 interface PageProps {
   params: Promise<{
@@ -26,108 +24,85 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
     headers: await headers(),
   });
 
-  if (!session) return notFound();
-
-  const redirectDecision = getMemberClaimRedirect({
-    role: session.user.role,
-    claimId: id,
-  });
-
-  if (redirectDecision.kind === 'redirect') {
-    redirect({ href: redirectDecision.href, locale });
+  if (!session) {
+    redirect(`/${locale}/login?callbackUrl=/${locale}/member/claims/${id}`);
   }
 
-  if (redirectDecision.kind === 'not_found') return notFound();
+  // Use new feature loader
+  const trackingData = await getMemberClaimDetail(id, session.user.id);
 
-  const details = await getMemberClaimDetailsCore({ claimId: id, viewerUserId: session.user.id });
-  if (details.kind !== 'ok') return notFound();
+  if (!trackingData) {
+    // If not found or access denied, returning notFound() is safer than redirecting blindly
+    return notFound();
+  }
 
-  const { claim, documents, publicStageHistory } = details;
-
-  // --- MEMBER VIEW ---
-  const tClaims = await getTranslations('claims');
+  const { timeline, documents, ...claim } = trackingData;
+  const t = await getTranslations('claims.tracking');
 
   return (
-    <div className="flex flex-col h-full space-y-8 p-8 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <Link
-            href="/member/claims"
-            className="text-sm text-muted-foreground hover:text-foreground flex items-center mb-2 transition-colors"
-          >
-            <ArrowLeft className="mr-1 h-3 w-3" /> Back to My Claims
-          </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">{claim.title}</h1>
-            <Badge
-              variant={(claim.status || 'draft') === 'draft' ? 'outline' : 'default'}
-              className="uppercase text-xs"
-            >
-              {claim.status}
-            </Badge>
-          </div>
-          <p className="text-muted-foreground mt-1">
-            Case ID: <span className="font-mono text-foreground">{claim.id}</span> • Created{' '}
-            {claim.createdAt?.toLocaleDateString() || 'N/A'}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {claim.status === 'draft' && <ClaimDraftActions claimId={claim.id} />}
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export PDF
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col h-full space-y-8 p-4 md:p-8 max-w-5xl mx-auto">
+      {/* Tracking Header with Status & Share Button */}
+      <ClaimTrackingHeader
+        claimId={claim.id}
+        title={claim.title}
+        status={claim.status}
+        canShare={trackingData.canShare}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content: Info & Evidence */}
+        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Details Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Case Details</CardTitle>
+              <CardTitle>{t('details.title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h3 className="font-medium text-sm text-muted-foreground mb-1">Description</h3>
+                <h3 className="font-medium text-sm text-muted-foreground mb-1">
+                  {t('details.description')}
+                </h3>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {claim.description || 'No description provided.'}
+                  {claim.description || t('details.noDescription')}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground mb-1">
-                    Company Involved
+                    {t('details.company')}
                   </h3>
-                  <p className="font-medium">{claim.companyName || 'N/A'}</p>
+                  <p className="font-medium">{t('not_specified')}</p>
                 </div>
                 <div>
-                  <h3 className="font-medium text-sm text-muted-foreground mb-1">Claim Amount</h3>
+                  <h3 className="font-medium text-sm text-muted-foreground mb-1">
+                    {t('details.amount')}
+                  </h3>
                   <p className="font-medium">
-                    {claim.claimAmount ? `${claim.claimAmount} ${claim.currency}` : 'Not specified'}
+                    {claim.amount ? `${claim.amount} ${claim.currency}` : t('details.notSpecified')}
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-medium text-sm text-muted-foreground mb-1">Category</h3>
-                  <p className="capitalize">{claim.category?.replace('_', ' ') || 'General'}</p>
+                  <h3 className="font-medium text-sm text-muted-foreground mb-1">
+                    {t('details.category')}
+                  </h3>
+                  <p className="capitalize">General</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* Evidence/Documents */}
           <Card>
             <CardHeader>
-              <CardTitle>{tClaims('detail.evidence')}</CardTitle>
+              <CardTitle>{t('documents.title')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <DocumentList documents={documents} />
+              <ClaimDocumentsList documents={documents} />
             </CardContent>
           </Card>
 
-          {/* Messaging Panel for desktop (full width in main column) */}
+          {/* Messaging Panel for desktop */}
           <div className="hidden lg:block">
             <MessagingPanel claimId={claim.id} currentUserId={session.user.id} isAgent={false} />
           </div>
@@ -137,21 +112,14 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
         <div className="lg:col-span-1 space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Case Progress</CardTitle>
+              <CardTitle data-testid="claim-timeline-title">{t('timeline.title')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <ClaimTimeline
-                status={claim.status || 'draft'}
-                updatedAt={claim.updatedAt || new Date()}
-                history={publicStageHistory.map(h => ({
-                  toStatus: h.toStatus,
-                  createdAt: h.createdAt,
-                }))}
-              />
+              <ClaimTimeline events={timeline} />
             </CardContent>
           </Card>
 
-          {/* Messaging Panel for mobile (in sidebar) */}
+          {/* Messaging Mobile */}
           <div className="lg:hidden">
             <MessagingPanel claimId={claim.id} currentUserId={session.user.id} isAgent={false} />
           </div>

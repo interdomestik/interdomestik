@@ -4,6 +4,14 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react() as any],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@interdomestik/ui': path.resolve(__dirname, '../../packages/ui/src'),
+      '@interdomestik/database': path.resolve(__dirname, '../../packages/database/src'),
+      'server-only': path.resolve(__dirname, './src/test/__mocks__/server-only.ts'),
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
@@ -15,11 +23,6 @@ export default defineConfig({
       reporter: ['text', 'json', 'html', 'lcov'],
       reportsDirectory: './coverage',
       exclude: ['node_modules/', 'src/test/', '**/*.d.ts', '**/*.config.*', '**/types/**'],
-    },
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@interdomestik/ui': path.resolve(__dirname, '../../packages/ui/src'),
-      '@interdomestik/database': path.resolve(__dirname, '../../packages/database/src'),
     },
   },
 });

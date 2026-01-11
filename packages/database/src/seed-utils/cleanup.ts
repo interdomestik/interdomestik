@@ -173,6 +173,12 @@ export async function cleanupByPrefixes(
       );
     }
 
+    // 7b. Delete Lead Payment Attempts verified by these users
+    // This handles the "verified_by_user_id_fk" constraint
+    await db
+      .delete(dbSchema.leadPaymentAttempts)
+      .where(inArray(dbSchema.leadPaymentAttempts.verifiedBy, allUserIds));
+
     // Finally delete the users
     await db.delete(dbSchema.user).where(inArray(dbSchema.user.id, allUserIds));
   }

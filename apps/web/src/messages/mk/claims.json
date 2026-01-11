@@ -36,6 +36,32 @@
       "mediation": "Медијација",
       "closed": "Затворено"
     },
+    "stage": {
+      "draft": "Нацрт",
+      "submitted": "Поднесено",
+      "verification": "Верификација",
+      "evaluation": "Проценка",
+      "negotiation": "Преговори",
+      "court": "Суд",
+      "resolved": "Решено",
+      "rejected": "Одбиено"
+    },
+    "owner": {
+      "staff": "Персонал",
+      "member": "Член / Агент",
+      "agent": "Агент",
+      "admin": "Админ",
+      "system": "Систем",
+      "unknown": "Систем"
+    },
+    "owner_genitive": {
+      "staff": "Персонал",
+      "member": "Член / Агент",
+      "agent": "Агент",
+      "admin": "Админ",
+      "system": "Систем",
+      "unknown": "Систем"
+    },
     "category": {
       "consumer": "Потрошувач",
       "housing": "Домување",

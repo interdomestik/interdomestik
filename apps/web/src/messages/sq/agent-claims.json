@@ -1,31 +1,31 @@
 {
   "agent-claims": {
     "claims": {
-      "queue": "Radha e Kërkesave për Dëmshpërblim",
-      "claims_queue": "Radha e Kërkesave për Dëmshpërblim",
-      "manage_triage": "Menaxho dhe vlerëso të gjitha kërkesat e dorëzuara për dëmshpërblim.",
+      "queue": "Radha Operative e Kërkesave",
+      "claims_queue": "Radha Operative e Kërkesave",
+      "manage_triage": "Triage dhe verifiko kërkesat e dorëzuara përpara alokimit.",
       "table": {
         "claimant": "Ankuesi",
-        "claim": "Kërkesa për Dëmshpërblim",
+        "claim": "Rasti",
         "status": "Statusi",
         "amount": "Shuma",
         "date": "Data",
         "actions": "Veprime",
-        "triage": "Vlerësim",
+        "triage": "Triage",
         "message_alert": "Mesazh i ri ({count})",
-        "no_claims": "Nuk u gjet asnjë kërkesë për dëmshpërblim.",
-        "no_claims_ready": "Lista e kërkesave për dëmshpërblim vjen së shpejti",
-        "recent_activity": "Aktiviteti i Fundit"
+        "no_claims": "Nuk ka kërkesa në këtë fazë.",
+        "no_claims_ready": "Lista operative e kërkesave vjen së shpejti",
+        "recent_activity": "Aktiviteti Operativ"
       },
       "actions": {
         "approve": "Aprovo",
         "reject": "Refuzo",
-        "requestInfo": "Kërko Info",
+        "requestInfo": "Kërko sqarim",
         "review": "Rishiko Rastin"
       },
       "details": {
-        "title": "Detajet e Kërkesës për Dëmshpërblim",
-        "claimantInfo": "Informacioni i Kërkuesit",
+        "title": "Detajet Operative të Rastit",
+        "claimantInfo": "Informacioni i Ankimuesit",
         "name": "Emri",
         "email": "Email",
         "description": "Përshkrimi",
@@ -37,7 +37,7 @@
         "evidence": "Dosjet e Dëshmive",
         "noEvidence": "Nuk ka dokumente të ngarkuara.",
         "notes": "Shënime të Brendshme",
-        "notesPlaceholder": "Opsioni i shënimeve private të agjentit vjen së shpejti.",
+        "notesPlaceholder": "Shënimet private të agjentit do të shtohen së shpejti.",
         "timeline": "Kronologjia e Rastit",
         "no_messages": "Nuk ka ende histori ndërveprimesh.",
         "message_placeholder": "Shkruani një mesazh ose shënim të brendshëm...",
@@ -50,11 +50,11 @@
         "unknown_date": "Datë e panjohur"
       },
       "triage": {
-        "title": "Veprimet e Vlerësimit",
+        "title": "Veprimet e Triage",
         "changeStatus": "Ndrysho Statusin",
         "selectStatus": "Zgjidh statusin",
-        "verify": "Verifiko Info",
-        "reject": "Refuzo Kërkesën për Dëmshpërblim",
+        "verify": "Verifiko Informacionin",
+        "reject": "Refuzo Kërkesën",
         "notice": "Ndryshimi i statusit përditëson menjëherë kohështrirjen e përdoruesit."
       }
     }

@@ -383,4 +383,76 @@ test.describe('Golden Flows Smoke Suite', () => {
       await expect(staffLoadTable.getByText(/\d+/).first()).toBeVisible();
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 6. OPS: Cash Verification V2
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  test.describe('6. Cash Verification v2', () => {
+    test('Cash Ops: Verification queue loads and allows processing', async ({ page }) => {
+      // 1. Login as Tenant Admin (Sees all)
+      await loginAs(page, USERS.TENANT_ADMIN_MK);
+
+      // 2. Navigate to Leads page
+      await page.goto(`/${DEFAULT_LOCALE}/admin/leads`);
+      await page.waitForLoadState('networkidle');
+
+      // 3. VERIFY ROUTING: Check Page Title matches "Verifikimi i Pagesave"
+      // This explicitly confirms we are NOT on the Claims page ("Menaxhimi i Kërkesave...")
+      await expect(
+        page.getByRole('heading', { name: /Verifikimi|Payment Verification/i })
+      ).toBeVisible();
+
+      // 4. Content Check (Row OR Empty State)
+      const emptyState = page.getByText(/No pending cash verification requests/i);
+      const rows = page.locator('[data-testid="cash-verification-row"]');
+
+      if ((await rows.count()) > 0) {
+        // Active Flow
+        const firstRow = rows.first();
+        await expect(firstRow).toBeVisible();
+        await expect(firstRow).toContainText('MK-');
+
+        // Reject Flow
+        const countBefore = await rows.count();
+        await firstRow.locator('[data-testid="cash-reject"]').click({ force: true });
+        await expect(page.getByText(/Payment rejected/i)).toBeVisible();
+        await expect(rows).toHaveCount(countBefore - 1);
+      } else {
+        // Empty State Flow (Routing Verified via Title)
+        await expect(emptyState).toBeVisible();
+      }
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // 7. CLAIMS V2
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  test.describe('7. Claims V2', () => {
+    test('Claims List: Loads V2 Dashboard style and filters tabs', async ({ page }) => {
+      // 1. Login as Tenant Admin
+      await loginAs(page, USERS.TENANT_ADMIN_MK);
+
+      // 2. Navigate to Claims
+      await page.goto(`/${DEFAULT_LOCALE}/admin/claims`);
+      await page.waitForLoadState('networkidle');
+
+      // 3. Verify V2 Header Access
+      // "Kërkesat" is the title in Albanian
+      await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+
+      // 4. Verify Active Tab is default and shows content (or empty state)
+      // "Aktive" tab
+      const activeTab = page.getByText(/Aktive|Active/i).first();
+      await expect(activeTab).toBeVisible();
+
+      // 5. Switch to Draft Tab
+      const draftTab = page.getByText(/Draft/i).first();
+      await draftTab.click();
+
+      // Verify URL updated
+      await expect(page).toHaveURL(/status=draft/);
+    });
+  });
 });

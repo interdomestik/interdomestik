@@ -1,4 +1,5 @@
-import { listLeadsAction } from '@/actions/leads/dashboard';
+import { getPendingCashAttemptsAction } from '@/actions/leads/verification';
+import { type CashVerificationRequestDTO } from '@/actions/leads/verification.core';
 import { auth } from '@/lib/auth';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -9,14 +10,14 @@ export default async function AdminLeadsPage() {
   const t = await getTranslations('admin.leads');
   const session = await auth.api.getSession({ headers: await headers() });
 
-  const allowedRoles = ['admin', 'super_admin', 'branch_manager', 'tenant_admin'];
+  const allowedRoles = ['admin', 'super_admin', 'branch_manager', 'tenant_admin', 'staff'];
   if (!session || !allowedRoles.includes(session.user.role)) {
-    redirect('/admin'); // Staff redirected away
+    redirect('/admin');
   }
 
-  // Fetch 'payment_pending' leads to verify
-  const leadsResult = await listLeadsAction({ status: 'payment_pending' });
-  const leads = leadsResult.success ? leadsResult.data : [];
+  // Fetch 'payment_pending' attempts
+  const result = await getPendingCashAttemptsAction();
+  const leads = (result.success ? result.data : []) as CashVerificationRequestDTO[];
 
   return (
     <div className="container py-8 space-y-8">
@@ -27,7 +28,7 @@ export default async function AdminLeadsPage() {
         </div>
       </div>
 
-      <AdminLeadsClient initialLeads={leads as any} />
+      <AdminLeadsClient initialLeads={leads} />
     </div>
   );
 }

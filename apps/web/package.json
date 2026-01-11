@@ -14,6 +14,7 @@
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:fast": "PLAYWRIGHT_SKIP_SEED=1 playwright test",
+    "test:e2e:smoke": "playwright test e2e/admin-claims-v2.smoke.spec.ts",
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:chromium:list": "playwright test --project=chromium --reporter=list",
     "test:e2e:chromium:fast": "PLAYWRIGHT_SKIP_SEED=1 playwright test --project=chromium --reporter=list",

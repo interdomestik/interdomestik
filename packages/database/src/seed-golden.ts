@@ -196,6 +196,15 @@ async function seedGolden() {
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
     },
+    // Tracking Demo Member
+    {
+      id: goldenId('ks_member_tracking'),
+      name: 'KS Tracking Demo',
+      email: 'member.tracking.ks@interdomestik.com',
+      role: 'user',
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_a',
+    },
   ];
 
   // 1. Cleanup
@@ -505,6 +514,62 @@ async function seedGolden() {
     claimAmount: '500.00',
   });
 
+  // CLAIM TRACKING PACK (Strict Deterministic)
+  console.log('📝 Seeding CLAIM TRACKING PACK...');
+
+  // 1) KS Tracking Claim (Open + Assigned)
+  claimsToSeed.push({
+    id: goldenId('ks_track_claim_001'),
+    userId: goldenId('ks_member_tracking'),
+    tenantId: TENANTS.KS,
+    branchId: 'ks_branch_a',
+    agentId: goldenId('ks_agent_a1'),
+    status: 'evaluation',
+    title: 'Aksident i lehtë – Demo Tracking',
+    category: 'vehicle',
+    companyName: 'KS Insurance Co',
+    claimAmount: '250.00',
+    currency: 'EUR',
+    createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+    updatedAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+    staffId: goldenId('ks_staff'),
+    assignedAt: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000),
+    assignedById: goldenId('ks_admin'),
+  });
+
+  // 2) SLA Breach (Open + Old)
+  claimsToSeed.push({
+    id: goldenId('ks_track_claim_002'),
+    userId: goldenId('ks_member_tracking'),
+    tenantId: TENANTS.KS,
+    branchId: 'ks_branch_a',
+    agentId: goldenId('ks_agent_a1'),
+    status: 'submitted',
+    title: 'Vonesë në shqyrtim – SLA Demo',
+    category: 'property',
+    companyName: 'KS Insurance Co',
+    claimAmount: '120.00',
+    createdAt: new Date(now.getTime() - 40 * 24 * 60 * 60 * 1000), // >30 days
+    updatedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+    staffId: null,
+  });
+
+  // 3) Closed Example
+  claimsToSeed.push({
+    id: goldenId('ks_track_claim_003'),
+    userId: goldenId('ks_member_tracking'),
+    tenantId: TENANTS.KS,
+    branchId: 'ks_branch_a',
+    agentId: goldenId('ks_agent_a1'),
+    status: 'resolved',
+    title: 'E përfunduar – Demo',
+    category: 'other',
+    companyName: 'KS Insurance Co',
+    claimAmount: '90.00',
+    createdAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
+    updatedAt: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
+  });
+
   for (const c of claimsToSeed) {
     await db
       .insert(schema.claims)
@@ -585,7 +650,38 @@ async function seedGolden() {
     })
     .onConflictDoNothing();
 
+  // 9. Tracking Tokens
+  console.log('🔗 Seeding Tracking Tokens...');
+
+  // Use Node crypto for SHA256
+  const crypto = await import('crypto');
+
+  // Deterministic Token for ks_track_claim_001
+  const rawToken = 'demo-ks-track-token-001';
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+  await db
+    .insert(schema.claimTrackingTokens)
+    .values({
+      id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', // Deterministic UUID
+      tenantId: TENANTS.KS,
+      claimId: goldenId('ks_track_claim_001'),
+      tokenHash: tokenHash,
+      // Expires in 30 days
+      expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+    })
+    .onConflictDoNothing();
+
   console.log('✅ Golden Seed Baseline & KS Pack Complete!');
+  console.log(
+    '   Seeded Claims: ks_track_claim_001 (Evaluation), ks_track_claim_002 (Submitted >30d), ks_track_claim_003 (Resolved)'
+  );
+  console.log(`   Public Token for demo: ${rawToken}`);
+  console.log('   Routes to verify:');
+  console.log('     /sq/member/claims/golden_ks_track_claim_001');
+  console.log(`     /track/${rawToken}?lang=sq`);
+  console.log('     /sq/agent/claims');
+
   process.exit(0);
 }
 

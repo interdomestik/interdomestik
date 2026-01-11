@@ -1,80 +1,94 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminClaimsFilters } from './claims-filters';
 
-// Mock router
+// Mock specific imports used by the component
 vi.mock('@/i18n/routing', () => ({
-  useRouter: () => ({
-    push: vi.fn(),
-  }),
+  useRouter: vi.fn(),
 }));
 
-// Mock navigation
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: vi.fn(),
 }));
 
-// Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
-    const translations: Record<string, string> = {
-      all: 'All',
-      search: 'Search',
-      draft: 'Draft',
-      submitted: 'Submitted',
-      verification: 'Verification',
-      evaluation: 'Evaluation',
-      negotiation: 'Negotiation',
-      court: 'Court',
-      resolved: 'Resolved',
-      rejected: 'Rejected',
-    };
-    return translations[key] || key;
+    if (key === 'all') return 'All';
+    if (key === 'search') return 'Search';
+    return key; // Fallback to key for `sections.*`
   },
 }));
 
 // Mock UI components
 vi.mock('@interdomestik/ui', () => ({
-  Badge: ({
-    children,
-    ...props
-  }: React.HTMLAttributes<HTMLSpanElement> & { children: React.ReactNode; variant?: string }) => (
-    <span {...props}>{children}</span>
-  ),
-  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+  Badge: ({ children, ...props }: any) => <span {...props}>{children}</span>,
+  Input: (props: any) => <input {...props} />,
+  // GlassCard is just a div in test
+}));
+vi.mock('@/components/ui/glass-card', () => ({
+  GlassCard: ({ children }: any) => <div>{children}</div>,
 }));
 
+import { useRouter } from '@/i18n/routing';
+import { useSearchParams } from 'next/navigation';
+
 describe('AdminClaimsFilters', () => {
+  const mockRouter = { push: vi.fn() };
+  // Helper to create mocked params
+  const createMockParams = (qs = '') => new URLSearchParams(qs);
+
   beforeEach(() => {
     vi.clearAllMocks();
+    (useRouter as any).mockReturnValue(mockRouter);
+    (useSearchParams as any).mockReturnValue(createMockParams());
   });
 
   it('renders search input', () => {
     render(<AdminClaimsFilters />);
+    // Template: `${t('search')}...` -> 'Search...'
     expect(screen.getByPlaceholderText('Search...')).toBeInTheDocument();
   });
 
-  it('renders all status filter badges', () => {
+  it('renders V2 business group tabs', () => {
     render(<AdminClaimsFilters />);
 
-    expect(screen.getByText('All')).toBeInTheDocument();
-    expect(screen.getByText('Draft')).toBeInTheDocument();
-    expect(screen.getByText('Submitted')).toBeInTheDocument();
-    expect(screen.getByText('Verification')).toBeInTheDocument();
-    expect(screen.getByText('Evaluation')).toBeInTheDocument();
-    expect(screen.getByText('Negotiation')).toBeInTheDocument();
-    expect(screen.getByText('Court')).toBeInTheDocument();
-    expect(screen.getByText('Resolved')).toBeInTheDocument();
-    expect(screen.getByText('Rejected')).toBeInTheDocument();
+    expect(screen.getByText('sections.active')).toBeInTheDocument();
+    expect(screen.getByText('sections.draft')).toBeInTheDocument();
+    expect(screen.getByText('sections.resolved')).toBeInTheDocument();
+    expect(screen.getAllByText('All').length).toBeGreaterThan(0);
   });
 
-  it('renders 9 status options', () => {
+  it('updates url on status change', () => {
     render(<AdminClaimsFilters />);
 
-    // All + 8 statuses = 9 badges
-    const badges = screen.getAllByText(
-      /All|Draft|Submitted|Verification|Evaluation|Negotiation|Court|Resolved|Rejected/
-    );
-    expect(badges.length).toBe(9);
+    const draftTab = screen.getByText('sections.draft');
+    fireEvent.click(draftTab);
+
+    expect(mockRouter.push).toHaveBeenCalledWith(expect.stringContaining('status=draft'));
+  });
+
+  it('removes status param when clicking All', () => {
+    (useSearchParams as any).mockReturnValue(createMockParams('status=active'));
+    render(<AdminClaimsFilters />);
+
+    // Get the status 'All' tab (last one in the status group)
+    const allTabs = screen.getAllByText('All');
+    const statusAllTab = allTabs[allTabs.length - 1];
+    fireEvent.click(statusAllTab);
+
+    // Should push URL without status param
+    // The previous implementation constructs a string, if 'all' removes status, it might be just '?' or similar.
+    // Let's assert it DOES NOT contain 'status=all' or 'status=active'
+    const pushCall = mockRouter.push.mock.calls[0][0];
+    expect(pushCall).not.toContain('status=');
+  });
+
+  it('updates url on search', () => {
+    render(<AdminClaimsFilters />);
+
+    const input = screen.getByPlaceholderText('Search...');
+    fireEvent.change(input, { target: { value: 'query' } });
+
+    expect(mockRouter.push).toHaveBeenCalledWith(expect.stringContaining('search=query'));
   });
 });

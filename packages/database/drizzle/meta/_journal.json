@@ -120,6 +120,13 @@
       "when": 1768040335496,
       "tag": "0016_lean_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1768121723438,
+      "tag": "0017_spicy_maginty",
+      "breakpoints": true
     }
   ]
 }

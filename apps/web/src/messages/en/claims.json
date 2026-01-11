@@ -36,6 +36,32 @@
       "mediation": "Mediation",
       "closed": "Closed"
     },
+    "stage": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "verification": "Verification",
+      "evaluation": "Evaluation",
+      "negotiation": "Negotiation",
+      "court": "Court",
+      "resolved": "Resolved",
+      "rejected": "Rejected"
+    },
+    "owner": {
+      "staff": "Staff",
+      "member": "Member / Agent",
+      "agent": "Agent",
+      "admin": "Admin",
+      "system": "System",
+      "unknown": "System"
+    },
+    "owner_genitive": {
+      "staff": "Staff",
+      "member": "Member / Agent",
+      "agent": "Agent",
+      "admin": "Admin",
+      "system": "System",
+      "unknown": "System"
+    },
     "category": {
       "consumer": "Consumer",
       "housing": "Housing",

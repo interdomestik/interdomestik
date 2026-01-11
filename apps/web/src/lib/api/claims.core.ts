@@ -6,17 +6,31 @@ export type ClaimsScope =
   | 'staff_unassigned'
   | 'agent_queue';
 
+export type ClaimStatus =
+  | 'draft'
+  | 'submitted'
+  | 'verification'
+  | 'evaluation'
+  | 'negotiation'
+  | 'court'
+  | 'resolved'
+  | 'rejected';
+
 export type ClaimsListItem = {
   id: string;
   title: string;
-  status: string | null;
+  status: ClaimStatus | string | null;
+  statusLabelKey?: string;
   createdAt: string | null;
-  companyName: string | null;
+  updatedAt: string | null;
+  companyName?: string | null;
   claimAmount: string | null;
   currency: string | null;
   category: string | null;
   claimantName?: string | null;
   claimantEmail?: string | null;
+  branchName?: string | null;
+  branchCode?: string | null;
   unreadCount?: number;
 };
 
@@ -28,6 +42,12 @@ export type ClaimsListResponse = {
   totalCount: number;
   totalPages: number;
   error?: string;
+  facets: {
+    activeCount: number;
+    draftCount: number;
+    closedCount: number;
+    byStatus: Record<string, number>;
+  };
 };
 
 type FetchClaimsParams = {

@@ -1,16 +1,16 @@
 {
   "claims": {
-    "title": "Kërkesat e Mia për Dëmshpërblim",
-    "description": "Menaxhoni kërkesat tuaja për dëmshpërblim të konsumatorit dhe ndiqni statusin e tyre.",
+    "title": "Paneli i Kërkesave të Mia",
+    "description": "Ndiq rrjedhën e verifikimit dhe vendimet për kërkesat e tua.",
     "new": "Kërkesë e Re për Dëmshpërblim",
     "empty": {
-      "title": "Nuk u gjetën kërkesa për dëmshpërblim",
-      "description": "Nuk keni paraqitur ende asnjë kërkesë për dëmshpërblim. Filloni duke krijuar kërkesën tuaj të parë për dëmshpërblim.",
-      "filtered": "Provoni të rregulloni filtrat ose kërkimin tuaj.",
-      "createFirst": "Krijo Kërkesën e Parë për Dëmshpërblim"
+      "title": "Nuk ka kërkesa aktive",
+      "description": "Nuk keni paraqitur ende asnjë kërkesë. Nisni një rast të ri.",
+      "filtered": "Provoni filtra të tjerë ose ndryshoni kërkimin.",
+      "createFirst": "Hap Kërkesën e Parë"
     },
     "table": {
-      "title": "Titulli",
+      "title": "Rasti",
       "company": "Kompania",
       "category": "Kategoria",
       "status": "Statusi",
@@ -21,23 +21,50 @@
     "claim": "kërkesë për dëmshpërblim",
     "claimsPlural": "kërkesa për dëmshpërblim",
     "status": {
-      "draft": "Draft",
+      "draft": "Skicë",
       "submitted": "Dorëzuar",
-      "verification": "Verifikim",
-      "evaluation": "Vlerësim",
-      "negotiation": "Negociata",
-      "court": "Gjyq",
+      "verification": "Në Verifikim",
+      "evaluation": "Në Vlerësim",
+      "negotiation": "Në Negociata",
+      "court": "Në Gjyq",
       "resolved": "Zgjidhur",
       "rejected": "Refuzuar",
       "assigned": "Caktuar",
       "investigating": "Në Hetim",
-      "contacting": "Duke Kontaktuar",
+      "contacting": "Në Kontaktim",
       "negotiating": "Në Negociata",
-      "mediation": "Ndërmjetësim",
+      "mediation": "Në Ndërmjetësim",
       "closed": "Mbyllur"
+    },
+    "stage": {
+      "draft": "Skicë",
+      "submitted": "Dorëzuar",
+      "verification": "Në verifikim",
+      "evaluation": "Në vlerësim",
+      "negotiation": "Në negociata",
+      "court": "Në gjyq",
+      "resolved": "Zgjidhur",
+      "rejected": "Refuzuar"
+    },
+    "owner": {
+      "staff": "Staf",
+      "member": "Anëtar / Agjent",
+      "agent": "Agjent",
+      "admin": "Admin",
+      "system": "Sistem",
+      "unknown": "Sistem"
+    },
+    "owner_genitive": {
+      "staff": "stafit",
+      "member": "anëtarit / agjentit",
+      "agent": "agjentit",
+      "admin": "adminit",
+      "system": "sistemit",
+      "unknown": "sistemit"
     },
     "category": {
       "consumer": "Konsumator",
+      "consumer_rights": "Të Drejtat e Konsumatorit",
       "housing": "Strehim",
       "insurance": "Sigurim",
       "employment": "Punësim",
@@ -68,16 +95,16 @@
       "submitClaim": "Dërgo Kërkesën për Dëmshpërblim"
     },
     "actions": {
-      "editDraft": "Redakto draftin",
+      "editDraft": "Redakto skicën",
       "cancelClaim": "Anulo kërkesën për dëmshpërblim",
       "cancelConfirm": "Të anulohet kjo kërkesë për dëmshpërblim? Nuk mund të zhbëhet.",
       "cancelled": "Kërkesa për dëmshpërblim u anulua",
       "cancelFailed": "Dështoi anulimi i kërkesës për dëmshpërblim"
     },
     "edit": {
-      "title": "Redakto draftin",
+      "title": "Redakto skicën",
       "description": "Përditësoni informacionin para se të dorëzoni kërkesën për dëmshpërblim.",
-      "updated": "Drafti u përditësua",
+      "updated": "Skica u përditësua",
       "failed": "Dështoi përditësimi i kërkesës për dëmshpërblim"
     },
     "gate": {
