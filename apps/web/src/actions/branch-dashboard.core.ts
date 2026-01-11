@@ -8,9 +8,11 @@
  */
 
 import type { BranchAgentRow, BranchMetadata, BranchStats } from '@/actions/branch-dashboard.types';
+import { computeHealthScore, computeSeverity } from '@/features/admin/branches/utils/branch-risk';
+import { getOpenClaimsFilter, getSlaBreachesFilter } from '@/features/admin/kpis/kpi-definitions';
 import { db } from '@interdomestik/database/db';
-import { agentClients, claims, user } from '@interdomestik/database/schema';
-import { and, count, desc, eq, gte, sql } from 'drizzle-orm';
+import { claims, leadPaymentAttempts, memberLeads, user } from '@interdomestik/database/schema';
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 
 /**
  * Fetch branch metadata by ID with tenant scoping
@@ -41,48 +43,82 @@ export async function getBranchById(
  * - Total claims (all time)
  * - Claims created this month
  */
-export async function getBranchStats(branchId: string, tenantId: string): Promise<BranchStats> {
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+export async function getBranchStats(
+  branchId: string,
+  tenantId: string,
+  isActive: boolean
+): Promise<BranchStats> {
+  const [agentCount, memberCount, openClaimsCount, cashPendingCount, slaBreachesCount] =
+    await Promise.all([
+      // Count agents in branch
+      db
+        .select({ count: count() })
+        .from(user)
+        .where(
+          and(eq(user.branchId, branchId), eq(user.tenantId, tenantId), eq(user.role, 'agent'))
+        ),
 
-  const [agentCount, memberCount, claimsTotal, claimsMonth] = await Promise.all([
-    // Count agents in branch
-    db
-      .select({ count: count() })
-      .from(user)
-      .where(and(eq(user.branchId, branchId), eq(user.tenantId, tenantId), eq(user.role, 'agent'))),
+      // Count ALL members in this branch (role 'user' or 'member')
+      db
+        .select({ count: count() })
+        .from(user)
+        .where(
+          and(
+            eq(user.branchId, branchId),
+            eq(user.tenantId, tenantId),
+            inArray(user.role, ['user', 'member'])
+          )
+        ),
 
-    // Count members assigned to agents in this branch
-    db
-      .select({ count: count() })
-      .from(agentClients)
-      .innerJoin(user, eq(agentClients.agentId, user.id))
-      .where(and(eq(user.branchId, branchId), eq(user.tenantId, tenantId))),
+      // Open Claims: actionable statuses (Shared Definition)
+      db
+        .select({ count: count() })
+        .from(claims)
+        .where(
+          and(eq(claims.branchId, branchId), eq(claims.tenantId, tenantId), getOpenClaimsFilter())
+        ),
 
-    // Total claims for this branch (all time)
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(and(eq(claims.branchId, branchId), eq(claims.tenantId, tenantId))),
+      // Cash Pending: lead payments waiting verification in this branch
+      db
+        .select({ count: count() })
+        .from(leadPaymentAttempts)
+        .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
+        .where(
+          and(
+            eq(leadPaymentAttempts.tenantId, tenantId),
+            eq(leadPaymentAttempts.method, 'cash'),
+            eq(leadPaymentAttempts.status, 'pending'),
+            eq(memberLeads.branchId, branchId)
+          )
+        ),
 
-    // Claims created this month
-    db
-      .select({ count: count() })
-      .from(claims)
-      .where(
-        and(
-          eq(claims.branchId, branchId),
-          eq(claims.tenantId, tenantId),
-          gte(claims.createdAt, startOfMonth)
-        )
-      ),
-  ]);
+      // SLA Breaches: submitted > 30 days (Shared Definition)
+      db
+        .select({ count: count() })
+        .from(claims)
+        .where(
+          and(eq(claims.branchId, branchId), eq(claims.tenantId, tenantId), getSlaBreachesFilter())
+        ),
+    ]);
 
-  return {
+  const stats = {
     totalAgents: agentCount[0]?.count ?? 0,
     totalMembers: memberCount[0]?.count ?? 0,
-    totalClaimsAllTime: claimsTotal[0]?.count ?? 0,
-    claimsThisMonth: claimsMonth[0]?.count ?? 0,
+    openClaims: openClaimsCount[0]?.count ?? 0,
+    cashPending: cashPendingCount[0]?.count ?? 0,
+    slaBreaches: slaBreachesCount[0]?.count ?? 0,
+  };
+
+  return {
+    ...stats,
+    healthScore: computeHealthScore({
+      ...stats,
+      isActive,
+    }),
+    severity: computeSeverity({
+      ...stats,
+      isActive,
+    }),
   };
 }
 

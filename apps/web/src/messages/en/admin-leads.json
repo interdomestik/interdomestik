@@ -1,0 +1,28 @@
+{
+  "admin": {
+    "leads": {
+      "title": "Payment Verification",
+      "subtitle": "Verify cash payments collected by agents.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "success": "Payment verified",
+      "table": {
+        "amount": "Amount",
+        "verification": "Verification"
+      }
+    },
+    "analytics": {
+      "title": "Analytics Overview",
+      "description": "Platform performance and claim distribution metrics.",
+      "metrics": {
+        "total_value": "Total Claim Value",
+        "avg_value": "Average Claim Amount",
+        "success_rate": "Resolution Rate",
+        "active_users": "Active Claimants"
+      },
+      "status_distribution": "Distribution by Status",
+      "category_distribution": "Distribution by Category",
+      "no_data": "Insufficient data for visualization"
+    }
+  }
+}

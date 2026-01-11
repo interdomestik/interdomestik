@@ -43,6 +43,16 @@ vi.mock('@interdomestik/database/schema', () => ({
   agentClients: {
     agentId: 'agentClients.agentId',
   },
+  leadPaymentAttempts: {
+    tenantId: 'leadPaymentAttempts.tenantId',
+    method: 'leadPaymentAttempts.method',
+    status: 'leadPaymentAttempts.status',
+    leadId: 'leadPaymentAttempts.leadId',
+  },
+  memberLeads: {
+    id: 'memberLeads.id',
+    branchId: 'memberLeads.branchId',
+  },
 }));
 
 vi.mock('drizzle-orm', () => ({
@@ -53,6 +63,8 @@ vi.mock('drizzle-orm', () => ({
   desc: vi.fn(a => a),
   sql: vi.fn(() => ({ as: vi.fn(() => 'sql_column') })),
   notInArray: vi.fn((a, b) => [a, b]),
+  inArray: vi.fn((a, b) => [a, b]),
+  lt: vi.fn((a, b) => [a, b]),
 }));
 
 describe('Branch Dashboard Core', () => {
@@ -113,12 +125,13 @@ describe('Branch Dashboard Core', () => {
       mockDb.select = mockSelect;
 
       const { getBranchStats } = await import('./branch-dashboard.core');
-      const result = await getBranchStats('branch-1', 'tenant-1');
+      const result = await getBranchStats('branch-1', 'tenant-1', true);
 
       expect(result.totalAgents).toBe(0);
       expect(result.totalMembers).toBe(0);
-      expect(result.totalClaimsAllTime).toBe(0);
-      expect(result.claimsThisMonth).toBe(0);
+      expect(result.openClaims).toBe(0);
+      expect(result.cashPending).toBe(0);
+      expect(result.slaBreaches).toBe(0);
     });
   });
 

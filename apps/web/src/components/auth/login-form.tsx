@@ -67,8 +67,9 @@ export function LoginForm() {
               }
 
               const { data: session } = await authClient.getSession();
-              console.log('Login Session User:', session?.user); // DEBUG: Check branchId
+              console.log('Login Session User:', session?.user); // DEBUG: Full user object
               const role = (session?.user as { role?: string })?.role;
+              console.log('LOGIN DEBUG: role =', role, ', isAdmin =', isAdmin(role)); // DEBUG: Role check
 
               const hasAdminAccess = isAdmin(role) || (await canAccessAdmin().catch(() => false));
 

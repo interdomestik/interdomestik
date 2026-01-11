@@ -1,0 +1,208 @@
+{
+  "admin": {
+    "branches": {
+      "title": "Menaxhimi i Degëve",
+      "description": "Menaxhoni degët e organizatës suaj.",
+      "listTitle": "Degët",
+      "createButton": "Degë e Re",
+      "createTitle": "Krijoni Degë të Re",
+      "createDescription": "Shtoni një degë të re në organizatën tuaj.",
+      "editTitle": "Ndrysho Degën",
+      "editDescription": "Përditëso detajet e degës.",
+      "createSuccess": "Dega u krijua me sukses.",
+      "createError": "Dështoi krijimi i degës.",
+      "updateSuccess": "Dega u përditësua me sukses.",
+      "updateError": "Dështoi përditësimi i degës.",
+      "deleteSuccess": "Dega u fshi me sukses.",
+      "deleteError": "Dështoi fshirja e degës.",
+      "fields": {
+        "name": "Emri",
+        "code": "Kodi",
+        "slug": "Slug",
+        "status": "Statusi",
+        "isActive": "Statusi Aktiv"
+      },
+      "status": {
+        "active": "Aktive",
+        "inactive": "Joaktive"
+      },
+      "actions": {
+        "label": "Veprime",
+        "edit": "Ndrysho",
+        "delete": "Fshij",
+        "open": "Hap menunë",
+        "showInactive": "Shfaq Joaktivet"
+      },
+      "deleteTitle": "A jeni i sigurt?",
+      "deleteConfirm": "Kjo do të fshijë butësisht degën {name}. Anëtarët aktivë mund të ndikohen.",
+      "cancel": "Anulo",
+      "save": "Ruaj",
+      "saving": "Duke ruajtur...",
+      "deleting": "Duke fshirë...",
+      "noResults": "Nuk u gjetën degë.",
+      "no_branches": "Nuk u gjetën degë.",
+      "status_active": "Aktive",
+      "status_inactive": "Joaktive",
+      "status_active": "Aktive",
+      "status_inactive": "Joaktive",
+      "active_operations": "Statusi i Plotë Operacional",
+      "inactive_branch": "Oparacionet e Pezulluara",
+      "list_title": "Lista e Degëve",
+      "list_description": "Aktualisht keni {count} degë të regjistruara.",
+      "table_name": "Emri i Degës",
+      "table_code": "Kodi",
+      "table_status": "Statusi",
+      "table_kpis": "KPIs",
+      "table_open_claims": "Dëmet e Hapura",
+      "table_cash_pending": "Cash në Pritje",
+      "table_sla_breaches": "Shkeljet SLA",
+      "table_actions": "Veprimet",
+      "view_dashboard": "Shiko Panelin",
+      "search_placeholder": "Kërko degët...",
+      "filter_status": "Statusi",
+      "filter_all": "Të gjitha",
+      "filter_attention": "Kërkon Vëmendje",
+      "sort_label": "Rendit sipas",
+      "sort_name_asc": "Emri (A-Z)",
+      "sort_health_score_asc": "Shëndeti (Më i Mirë)",
+      "sort_health_score_desc": "Shëndeti (Më i Keq)",
+      "sort_open_claims_desc": "Dëmet e Hapura (Lart-Poshtë)",
+      "sort_cash_pending_desc": "Cash në Pritje (Lart-Poshtë)",
+      "sort_sla_breaches_desc": "Shkeljet SLA (Lart-Poshtë)",
+      "dashboard": {
+        "back_to_branches": "Kthehu te Degët",
+        "status_active": "Aktive",
+        "status_inactive": "Joaktive",
+        "code_label": "Kodi",
+        "stats_agents": "Agjentët",
+        "stats_members": "Anëtarët",
+        "stats_total_claims": "Kërkesat Gjithsej",
+        "stats_claims_this_month": "Këtë Muaj",
+        "stats_open_claims": "Dëmet e Hapura",
+        "stats_cash_pending": "Pagesa Cash Në Pritje",
+        "stats_sla_breaches": "Shkeljet e Afatit",
+        "agents_title": "Agjentët",
+        "agents_description": "{count, plural, =0 {Nuk ka agjentë} =1 {1 agjent} other {# agjentë}} në këtë degë",
+        "no_agents": "Nuk ka agjentë në këtë degë akoma.",
+        "col_rank": "Rendi",
+        "col_agent_name": "Agjenti",
+        "col_members": "Anëtarët",
+        "col_active_claims": "Aktive",
+        "col_submitted_30d": "Dorëzuar (30d)",
+        "unknown_agent": "I panjohur"
+      },
+      "create_branch": "Degë e Re",
+      "create_branch_title": "Krijoni Degë të Re",
+      "create_branch_description": "Shtoni një degë të re në organizatën tuaj.",
+      "field_name": "Emri i Degës",
+      "placeholder_name": "psh. Dega Kryesore",
+      "field_code": "Kodi i Degës",
+      "placeholder_code": "psh. BR-001",
+      "submit": "Krijo",
+      "create_error": "Gabim gjatë krijimit",
+      "create_success": "Dega u krijua",
+      "create_success_description": "Dega {name} u krijua me sukses.",
+      "unexpected_error": "An unexpected error occurred.",
+
+      "health_score": "Shëndeti {score}/100",
+      "filters": {
+        "needs_attention": "Kërkon Vëmendje"
+      },
+      "sort": {
+        "name_asc": "Emri (A–Z)",
+        "open_claims_desc": "Dëmet e Hapura",
+        "cash_pending_desc": "Cash në Pritje",
+        "sla_breaches_desc": "Shkeljet SLA",
+        "health_score_asc": "Shëndeti (Më Keq Fillimisht)"
+      },
+      "kpis": {
+        "open_claims": "Dëmet e Hapura",
+        "cash_pending": "Cash në Pritje",
+        "sla_breaches": "Shkeljet SLA",
+        "total_agents": "Agjentët Totale",
+        "total_members": "Anëtarët Totale"
+      },
+      "view_dashboard_subtitle": "Përmbledhje Operacionale dhe e Rreziqeve",
+      "back_to_branches": "Kthehu te Degët",
+      "health_status_healthy": "Gjendje e Shëndetshme",
+      "health_status_attention": "Kërkon Vëmendje",
+      "health_status_urgent": "Urgjente",
+      "health_status_inactive": "Joaktive",
+      "alerts": {
+        "title": "Alarmet Operacionale",
+        "no_alerts": "Nuk ka alarme kritike",
+        "sla_breach_title": "Rrezik Shkelje SLA",
+        "sla_breach_desc": "{count} kërkesa kanë shkelur afatin",
+        "cash_pending_title": "Cash në Pritje Autorizimi",
+        "cash_pending_desc": "{count} pagesa në pritje verifikimi"
+      },
+      "pipeline": {
+        "title": "Pipeline i Dëmeve",
+        "empty": "Nuk ka dëme aktive në pipeline"
+      },
+      "agent_health": {
+        "title": "Shëndeti i Agjentëve",
+        "agent": "Agjenti",
+        "score": "Rezultati",
+        "open": "Hapur",
+        "cash": "Cash",
+        "sla": "SLA",
+        "table_status": "Statusi",
+        "status": {
+          "healthy": "Gjendje e Shëndetshme",
+          "attention": "Kërkon Vëmendje",
+          "urgent": "Urgjente",
+          "inactive": "Joaktive"
+        },
+        "no_agents": "Nuk u gjetën agjentë"
+      },
+      "staff_load": {
+        "title": "Ngarkesa e Stafit",
+        "name": "Anëtar Stafi",
+        "workload": "Dëme Aktive",
+        "no_staff": "Nuk u gjetën caktime stafi"
+      },
+
+      "health": {
+        "healthy": "Gjendje e Shëndetshme",
+        "watch": "Kërkon Vëmendje",
+        "urgent": "Urgjente",
+        "inactive": "Joaktive",
+        "tooltip": {
+          "healthy": {
+            "title": "Operacionet janë nën kontroll.",
+            "action": "Nuk kërkohet veprim.",
+            "bullets": [
+              "Pa vonesa kritike",
+              "Pagesat po rrjedhin normalisht",
+              "Dëmet po përparojnë në kohë"
+            ]
+          },
+          "attention": {
+            "title": "Disa çështje kërkojnë monitorim.",
+            "action": "Rishikoni çështjet e hapura.",
+            "bullets": [
+              "Disa dëme ose pagesa kërkojnë ndjekje",
+              "U zbuluan vonesa të vogla",
+              "Rreziku është i menaxhueshëm nëse trajtohet herët"
+            ]
+          },
+          "urgent": {
+            "title": "Kërkohet veprim i menjëhershëm.",
+            "action": "Hetoni dhe zgjidhni sot.",
+            "bullets": [
+              "Dëmet janë vonuar përtej kufijve të pranueshëm",
+              "Pagesat janë në pritje të verifikimit",
+              "Rreziku operacional është i lartë"
+            ]
+          },
+          "inactive": {
+            "title": "Dega nuk është aktualisht operacionale.",
+            "action": "Verifikoni statusin e degës.",
+            "bullets": ["Asnjë dëm aktiv ose aktivitet i zbuluar"]
+          }
+        }
+      }
+    }
+  }
+}

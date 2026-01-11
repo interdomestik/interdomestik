@@ -1,0 +1,110 @@
+{
+  "admin": {
+    "users_page": {
+      "title": "User Management",
+      "description": "Manage platform users and role assignments.",
+      "add_agent": "Add Agent",
+      "add_agent_title": "Add New Agent",
+      "add_agent_description": "Select a staff member to promote to agent.",
+      "select_user": "Select User",
+      "select_user_placeholder": "Select a user",
+      "select_branch": "Select Branch",
+      "select_branch_placeholder": "Select a branch",
+      "no_branch": "No Branch",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "add_agent_success": "Agent added",
+      "add_agent_success_desc": "User successfully promoted to agent.",
+      "add_agent_error": "Error adding agent",
+      "unexpected_error": "An unexpected error occurred."
+    },
+    "users_filters": {
+      "search_placeholder": "Search by name or email",
+      "labels": {
+        "role": "Role",
+        "assignment": "Assignment"
+      },
+      "roles": {
+        "all": "All roles",
+        "user": "Members",
+        "agent": "Agents",
+        "staff": "Staff",
+        "admin": "Admins"
+      },
+      "assignments": {
+        "all": "All assignments",
+        "assigned": "Assigned",
+        "unassigned": "Unassigned"
+      }
+    },
+    "users_table": {
+      "sections": {
+        "members": "Members",
+        "agents": "Agents",
+        "staff": "Staff",
+        "unassigned": "Unassigned"
+      },
+      "headers": {
+        "user": "User",
+        "role": "Role",
+        "assigned_agent": "Assigned Agent",
+        "joined": "Joined"
+      },
+      "message_alert": "New message ({count})",
+      "select_agent": "Select Agent",
+      "unassigned": "Unassigned",
+      "no_users": "No users found",
+      "success_message": "User assigned successfully",
+      "view_profile": "View profile"
+    },
+    "member_profile": {
+      "actions": {
+        "back": "Back to users",
+        "view_claim": "View claim"
+      },
+      "sections": {
+        "membership": "Membership",
+        "agent": "Assigned agent",
+        "preferences": "Notification preferences",
+        "claims_overview": "Claims overview",
+        "recent_claims": "Recent claims"
+      },
+      "labels": {
+        "member_id": "Member ID",
+        "joined": "Joined",
+        "email_verified_yes": "Email verified",
+        "email_verified_no": "Email not verified",
+        "status": "Status",
+        "plan": "Plan",
+        "period_end": "Period end",
+        "cancel_at_period_end": "Cancel at period end",
+        "no_agent": "No agent assigned",
+        "preferences_unset": "Preferences not set",
+        "no_claims": "No claims yet",
+        "unknown": "Unknown",
+        "not_set": "Not set"
+      },
+      "status": {
+        "active": "Active",
+        "past_due": "Past due",
+        "paused": "Paused",
+        "canceled": "Canceled",
+        "none": "Not subscribed"
+      },
+      "preferences": {
+        "email_claims": "Email claim updates",
+        "email_newsletter": "Email newsletter",
+        "email_marketing": "Email marketing",
+        "push_claims": "Push claim updates",
+        "push_messages": "Push messages",
+        "in_app": "In-app notifications"
+      },
+      "claims": {
+        "total": "Total claims",
+        "open": "Open claims",
+        "resolved": "Resolved",
+        "rejected": "Rejected"
+      }
+    }
+  }
+}

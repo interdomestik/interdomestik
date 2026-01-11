@@ -35,6 +35,10 @@ export const claims = pgTable(
     index('idx_claims_agent').on(table.agentId),
     index('idx_claims_user_created').on(table.userId, table.createdAt),
     index('idx_claims_status').on(table.status),
+    // Performance indexes for branch dashboards and KPI aggregation
+    index('idx_claims_tenant_branch').on(table.tenantId, table.branchId),
+    index('idx_claims_tenant_branch_status').on(table.tenantId, table.branchId, table.status),
+    index('idx_claims_tenant_status_created').on(table.tenantId, table.status, table.createdAt),
   ]
 );
 

@@ -3,6 +3,13 @@ import { routing } from './routing';
 export const MESSAGE_NAMESPACES = [
   'about',
   'admin',
+  'admin-branches',
+  'admin-claims',
+  'admin-common',
+  'admin-dashboard',
+  'admin-leads',
+  'admin-settings',
+  'admin-users',
   'agent',
   'agent-claims',
   'agent-crm',
@@ -102,9 +109,16 @@ export const STAFF_NAMESPACES = [
   'notifications',
 ] as const;
 export const ADMIN_NAMESPACES = [
+  'admin',
   'common',
   'nav',
-  'admin',
+  'admin-common',
+  'admin-dashboard',
+  'admin-users',
+  'admin-claims',
+  'admin-branches',
+  'admin-settings',
+  'admin-leads',
   'agent',
   'agent-claims',
   'agent-crm',
@@ -121,29 +135,44 @@ export async function loadAllMessages(locale: string) {
     MESSAGE_NAMESPACES.map(async namespace => {
       try {
         const mod = await import(`../messages/${locale}/${namespace}.json`);
-        if (locale === routing.defaultLocale) {
-          return mod.default;
-        }
-        const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
-        return mergeMessages(fallback.default, mod.default);
-      } catch (error) {
-        console.error(`Error loading namespace ${namespace} for locale ${locale}:`, error);
+        let messages = mod.default;
 
-        try {
-          const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
-          if (locale === routing.defaultLocale) {
-            throw error;
+        if (locale !== routing.defaultLocale) {
+          try {
+            const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
+            messages = mergeMessages(fallback.default, messages);
+          } catch (e) {
+            // Fallback might fail if the file doesn't exist, just use what we have
           }
+        }
+
+        // Special handling for split admin files to merge them under 'admin' key
+        if (namespace.startsWith('admin-')) {
+          // If the file content isn't wrapped in 'admin', wrap it?
+          // Actually, the easiest way is to NOT wrap them in the file, but wrap them here.
+          // BUT, to maintain backward compatibility with current structure which wraps in "admin":
+          // The current plan implies the new files will contain { "admin": { "sidebar": ... } }
+          // If so, simple merge works.
+          // Let's assume the new files will mirror the structure: { "admin": { "sub-section": ... } }
+          return messages;
+        }
+
+        return messages;
+      } catch (error) {
+        // console.error(`Error loading namespace ${namespace} for locale ${locale}`, error);
+        try {
+          // Try loading fallback locale if main failed entirely
+          const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
           return fallback.default;
-        } catch (fallbackError) {
-          console.error(`Failed to load fallback for ${namespace}:`, fallbackError);
+        } catch {
           return {};
         }
       }
     })
   );
 
-  return Object.assign({}, ...modules);
+  // Use deep merge for the final object accumulation to ensure 'admin' keys from different files merge correctly
+  return modules.reduce((acc, curr) => mergeMessages(acc, curr), {});
 }
 // Force reload
 

@@ -1,0 +1,18 @@
+{
+  "admin": {
+    "sidebar": {
+      "title": "Admin",
+      "subtitle": "Control Panel",
+      "dashboard": "Dashboard",
+      "claims": "Case Management",
+      "users": "Users",
+      "members": "Members",
+      "agents": "Agents",
+      "staff": "Staff",
+      "analytics": "Analytics",
+      "branches": "Branches",
+      "leads": "Lead Verification",
+      "settings": "Settings"
+    }
+  }
+}

@@ -53,6 +53,7 @@ export {
 export { Input, type InputProps } from './components/input';
 export { Label } from './components/label';
 export { Progress } from './components/progress';
+export { ScrollArea, ScrollBar } from './components/scroll-area';
 export {
   Select,
   SelectContent,

@@ -1,0 +1,24 @@
+{
+  "admin": {
+    "claims_page": {
+      "title": "Claims Management",
+      "description": "View and manage all user claims.",
+      "assignment": {
+        "label": "Assigned staff",
+        "placeholder": "Select staff",
+        "unassigned": "Unassigned",
+        "success_message": "Claim assigned successfully"
+      },
+      "sections": {
+        "active": "Active",
+        "draft": "Drafts",
+        "resolved": "Resolved"
+      },
+      "message_alert": "New message ({count})",
+      "table": {
+        "title": "Title",
+        "amount": "Amount"
+      }
+    }
+  }
+}

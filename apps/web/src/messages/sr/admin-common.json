@@ -1,0 +1,18 @@
+{
+  "admin": {
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "claims": "Claims",
+      "users": "Users",
+      "analytics": "Analitika",
+      "branches": "Ogranci",
+      "leads": "Verifikacija potencijalnih klijenata",
+      "settings": "Podešavanja",
+      "title": "Admin",
+      "subtitle": "Control Panel",
+      "members": "Members",
+      "agents": "Agents",
+      "staff": "Staff"
+    }
+  }
+}

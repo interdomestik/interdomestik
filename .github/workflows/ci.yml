@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -43,8 +45,14 @@ jobs:
       - name: i18n Check
         run: pnpm i18n:check
 
-      - name: Unit Tests
-        run: pnpm --filter @interdomestik/web test:unit --run
+      - name: Unit Tests (Coverage)
+        run: pnpm test:coverage
+
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: pnpm sonar:scan
 
       - name: Install Playwright Browsers
         run: pnpm --filter @interdomestik/web exec playwright install --with-deps

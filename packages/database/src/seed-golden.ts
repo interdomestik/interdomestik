@@ -1,38 +1,23 @@
-import { randomBytes, scryptSync } from 'crypto';
-import * as dotenv from 'dotenv';
-import { resolve } from 'node:path';
+/**
+ * Contract:
+ * - seed:golden is immutable and baseline-only
+ * - seed:workload is additive and self-cleaning
+ * - seeds must never reference each other's IDs
+ */
+import { cleanupByPrefixes } from './seed-utils/cleanup';
+import { hashPassword } from './seed-utils/hash-password';
+import { loadEnvFromRoot } from './seed-utils/load-env';
+import { goldenId } from './seed-utils/seed-ids';
 
 // Force load .env from project root
-dotenv.config({ path: resolve(__dirname, '../../../.env') });
-
-const SCRYPT_PARAMS = {
-  N: 16384,
-  r: 16,
-  p: 1,
-  keyLength: 64,
-  maxmem: 128 * 16384 * 16 * 2,
-};
-
-function hashPassword(password: string) {
-  const salt = randomBytes(16).toString('hex');
-  const key = scryptSync(password.normalize('NFKC'), salt, SCRYPT_PARAMS.keyLength, {
-    N: SCRYPT_PARAMS.N,
-    r: SCRYPT_PARAMS.r,
-    p: SCRYPT_PARAMS.p,
-    maxmem: SCRYPT_PARAMS.maxmem,
-  });
-  return `${salt}:${key.toString('hex')}`;
-}
-
-const GOLDEN_PASSWORD = 'GoldenPass123!';
+loadEnvFromRoot();
 
 async function seedGolden() {
-  console.log('🌱 Starting Golden Seed...');
+  console.log('🌱 Starting Golden Seed (Baseline)...');
 
-  // Use dynamic import for DB connection and Schema
   const { db } = await import('./db');
   const schema = await import('./schema');
-  const { eq, inArray } = await import('drizzle-orm');
+  const { inArray } = await import('drizzle-orm');
 
   const TENANTS = {
     MK: 'tenant_mk',
@@ -56,17 +41,24 @@ async function seedGolden() {
     },
     {
       id: 'ks_branch_a',
-      name: 'KS Branch A (Main)',
+      name: 'KS Branch A (Prishtina)',
       tenantId: TENANTS.KS,
       slug: 'ks-branch-a',
       code: 'KS-A',
     },
     {
       id: 'ks_branch_b',
-      name: 'KS Branch B (West)',
+      name: 'KS Branch B (Prizren)',
       tenantId: TENANTS.KS,
       slug: 'ks-branch-b',
       code: 'KS-B',
+    },
+    {
+      id: 'ks_branch_c',
+      name: 'KS Branch C (Peja)',
+      tenantId: TENANTS.KS,
+      slug: 'ks-branch-c',
+      code: 'KS-C',
     },
     {
       id: 'mk_branch_empty',
@@ -80,173 +72,136 @@ async function seedGolden() {
   const USERS = [
     // Super Admin
     {
-      id: 'golden_super_admin',
+      id: goldenId('super_admin'),
       name: 'Super Admin',
       email: 'super@interdomestik.com',
       role: 'super_admin',
       tenantId: TENANTS.MK,
     },
-
     // MK Users
     {
-      id: 'golden_mk_admin',
-      name: 'MK Admin',
+      id: goldenId('mk_admin'),
+      name: 'Aleksandar Stojanovski',
       email: 'admin.mk@interdomestik.com',
       role: 'tenant_admin',
       tenantId: TENANTS.MK,
     },
     {
-      id: 'golden_mk_staff',
-      name: 'MK Staff',
+      id: goldenId('mk_staff'),
+      name: 'Elena Petrovska',
       email: 'staff.mk@interdomestik.com',
       role: 'staff',
       tenantId: TENANTS.MK,
     },
     {
-      id: 'golden_mk_bm_a',
-      name: 'MK Manager A',
+      id: goldenId('mk_bm_a'),
+      name: 'Marko Dimitrioski',
       email: 'bm.mk.a@interdomestik.com',
       role: 'branch_manager',
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
     },
     {
-      id: 'golden_mk_bm_b',
-      name: 'MK Manager B',
-      email: 'bm.mk.b@interdomestik.com',
-      role: 'branch_manager',
-      tenantId: TENANTS.MK,
-      branchId: 'mk_branch_b',
-    },
-    {
-      id: 'golden_mk_agent_a1',
-      name: 'MK Agent A1',
+      id: goldenId('mk_agent_a1'),
+      name: 'Stefan Dimitrioski',
       email: 'agent.mk.a1@interdomestik.com',
       role: 'agent',
       tenantId: TENANTS.MK,
+      branchId: 'mk_branch_a',
     },
     {
-      id: 'golden_mk_agent_a2',
-      name: 'MK Agent A2',
-      email: 'agent.mk.a2@interdomestik.com',
-      role: 'agent',
-      tenantId: TENANTS.MK,
-    },
-    {
-      id: 'golden_mk_member_1',
-      name: 'MK Member 1',
+      id: goldenId('mk_member_1'),
+      name: 'Aleksandar Stojanovski',
       email: 'member.mk.1@interdomestik.com',
       role: 'user',
       tenantId: TENANTS.MK,
     },
+    // KS Users & Staff
     {
-      id: 'golden_mk_member_2',
-      name: 'MK Member 2',
-      email: 'member.mk.2@interdomestik.com',
-      role: 'user',
-      tenantId: TENANTS.MK,
-    },
-
-    // KS Users
-    {
-      id: 'golden_ks_admin',
-      name: 'KS Admin',
+      id: goldenId('ks_admin'),
+      name: 'Arbër Krasniqi',
       email: 'admin.ks@interdomestik.com',
       role: 'tenant_admin',
       tenantId: TENANTS.KS,
     },
     {
-      id: 'golden_ks_staff',
-      name: 'KS Staff',
+      id: goldenId('ks_staff'),
+      name: 'Drita Gashi',
       email: 'staff.ks@interdomestik.com',
       role: 'staff',
       tenantId: TENANTS.KS,
     },
     {
-      id: 'golden_ks_agent_a1',
-      name: 'KS Agent A1',
-      email: 'agent.ks.a1@interdomestik.com',
-      role: 'agent',
+      id: goldenId('ks_staff_2'),
+      name: 'Besian Mustafa',
+      email: 'staff.ks.2@interdomestik.com',
+      role: 'staff',
       tenantId: TENANTS.KS,
     },
     {
-      id: 'golden_ks_member_1',
-      name: 'KS Member 1',
-      email: 'member.ks.1@interdomestik.com',
-      role: 'user',
+      id: goldenId('ks_agent_a1'),
+      name: 'Blerim Hoxha',
+      email: 'agent.ks.a1@interdomestik.com',
+      role: 'agent',
       tenantId: TENANTS.KS,
+      branchId: 'ks_branch_a',
+    },
+    {
+      id: goldenId('ks_b_agent_1'),
+      name: 'Valmir Shala',
+      email: 'agent.ks.b1@interdomestik.com',
+      role: 'agent',
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_b',
+    },
+    {
+      id: goldenId('ks_c_agent_1'),
+      name: 'Luan Berisha',
+      email: 'agent.ks.c1@interdomestik.com',
+      role: 'agent',
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_c',
+    },
+    // KS Members
+    ...Array.from({ length: 6 }).map((_, i) => ({
+      id: goldenId(`ks_a_member_${i + 1}`),
+      name: `KS A-Member ${i + 1}`,
+      email: `member.ks.a${i + 1}@interdomestik.com`,
+      role: 'member' as const,
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_a',
+    })),
+    ...Array.from({ length: 4 }).map((_, i) => ({
+      id: goldenId(`ks_b_member_${i + 1}`),
+      name: `KS B-Member ${i + 1}`,
+      email: `member.ks.b${i + 1}@interdomestik.com`,
+      role: 'member' as const,
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_b',
+    })),
+    ...Array.from({ length: 2 }).map((_, i) => ({
+      id: goldenId(`ks_c_member_${i + 1}`),
+      name: `KS C-Member ${i + 1}`,
+      email: `member.ks.c${i + 1}@interdomestik.com`,
+      role: 'user' as const,
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_c',
+    })),
+    // Balkan Agent
+    {
+      id: goldenId('agent_balkan_1'),
+      name: 'Balkan Agent 1',
+      email: 'agent.balkan.1@interdomestik.com',
+      role: 'agent',
+      tenantId: TENANTS.MK,
+      branchId: 'mk_branch_a',
     },
   ];
 
-  // 1. Clean up existing Golden Data (Idempotency)
-  console.log('🧹 Cleaning up old Golden data...');
-  const userIds = USERS.map(u => u.id);
+  // 1. Cleanup
+  await cleanupByPrefixes(db, schema, ['golden_', 'pack_ks_', 'member_']);
 
-  // Clean dependent tables first
-  const existingClaims = await db.query.claims.findMany({
-    where: inArray(schema.claims.userId, userIds),
-  });
-  if (existingClaims.length > 0) {
-    const cIds = existingClaims.map(c => c.id);
-    await db.delete(schema.claimMessages).where(inArray(schema.claimMessages.claimId, cIds));
-    await db.delete(schema.claimDocuments).where(inArray(schema.claimDocuments.claimId, cIds));
-    await db
-      .delete(schema.claimStageHistory)
-      .where(inArray(schema.claimStageHistory.claimId, cIds));
-    await db.delete(schema.claims).where(inArray(schema.claims.id, cIds));
-  }
-
-  // Delete accounts first (foreign key constraint)
-  await db.delete(schema.account).where(inArray(schema.account.userId, userIds));
-  // Delete sessions explicitly
-  await db.delete(schema.session).where(inArray(schema.session.userId, userIds));
-
-  // Delete commissions first
-  await db
-    .delete(schema.agentCommissions)
-    .where(inArray(schema.agentCommissions.memberId, userIds));
-  await db.delete(schema.agentCommissions).where(inArray(schema.agentCommissions.agentId, userIds));
-  // Delete membership cards
-  await db.delete(schema.membershipCards).where(inArray(schema.membershipCards.userId, userIds));
-
-  // Delete leads linked to these agents (fetching IDs first for payment attempts)
-  const leadsToDelete = await db.query.memberLeads.findMany({
-    where: inArray(schema.memberLeads.agentId, userIds),
-    columns: { id: true },
-  });
-  const leadIds = leadsToDelete.map(l => l.id);
-  if (leadIds.length > 0) {
-    await db
-      .delete(schema.leadPaymentAttempts)
-      .where(inArray(schema.leadPaymentAttempts.leadId, leadIds));
-    await db.delete(schema.memberLeads).where(inArray(schema.memberLeads.id, leadIds));
-  }
-
-  // Delete subscriptions linked to these agents (and their dependencies)
-  const subsLinkedToAgents = await db.query.subscriptions.findMany({
-    where: inArray(schema.subscriptions.agentId, userIds),
-    columns: { id: true },
-  });
-  const subAgentIds = subsLinkedToAgents.map(s => s.id);
-  if (subAgentIds.length > 0) {
-    await db
-      .delete(schema.membershipCards)
-      .where(inArray(schema.membershipCards.subscriptionId, subAgentIds));
-    await db
-      .delete(schema.agentCommissions)
-      .where(inArray(schema.agentCommissions.subscriptionId, subAgentIds));
-    await db.delete(schema.subscriptions).where(inArray(schema.subscriptions.id, subAgentIds));
-  }
-
-  await db.delete(schema.agentClients).where(inArray(schema.agentClients.memberId, userIds));
-  await db.delete(schema.agentClients).where(inArray(schema.agentClients.agentId, userIds));
-  await db.delete(schema.subscriptions).where(inArray(schema.subscriptions.userId, userIds));
-
-  // Now safe to delete users
-  await db.delete(schema.user).where(inArray(schema.user.id, userIds));
-  // Branches cleanup if needed, but we upsert them
-
-  // 2. Upsert Tenants (Ensuring they exist)
+  // 2. Upsert Tenants
   console.log('🏢 Seeding Tenants...');
   await db
     .insert(schema.tenants)
@@ -278,31 +233,9 @@ async function seedGolden() {
       set: { name: schema.branches.name, code: schema.branches.code },
     });
 
-  // Hashing logic from scripts/seed-e2e-users.mjs
-
-  const SCRYPT_PARAMS = {
-    N: 16384,
-    r: 16,
-    p: 1,
-    keyLength: 64,
-    maxmem: 128 * 16384 * 16 * 2,
-  };
-
-  function hashPassword(password: string) {
-    const salt = randomBytes(16).toString('hex');
-    const key = scryptSync(password.normalize('NFKC'), salt, SCRYPT_PARAMS.keyLength, {
-      N: SCRYPT_PARAMS.N,
-      r: SCRYPT_PARAMS.r,
-      p: SCRYPT_PARAMS.p,
-      maxmem: SCRYPT_PARAMS.maxmem,
-    });
-    return `${salt}:${key.toString('hex')}`;
-  }
-
-  const GOLDEN_PASSWORD = 'GoldenPass123!';
-
   // 4. Upsert Users & Accounts
   console.log('👥 Seeding Users & Credentials...');
+  const GOLDEN_PASSWORD = 'GoldenPass123!';
   const hashedPassword = hashPassword(GOLDEN_PASSWORD);
 
   for (const u of USERS) {
@@ -319,12 +252,11 @@ async function seedGolden() {
         set: {
           name: u.name,
           role: u.role,
-          branchId: u.branchId ?? null,
+          branchId: 'branchId' in u ? (u.branchId as string) : null,
           tenantId: u.tenantId,
         },
       });
 
-    // Upsert Account (Password)
     await db
       .insert(schema.account)
       .values({
@@ -348,288 +280,316 @@ async function seedGolden() {
 
   // 5. Agent Assignments
   console.log('🤝 Linking Agents to Members...');
-  const assignments = [
-    { agentId: 'golden_mk_agent_a1', memberId: 'golden_mk_member_1', tenantId: TENANTS.MK },
-    { agentId: 'golden_mk_agent_a2', memberId: 'golden_mk_member_2', tenantId: TENANTS.MK },
-    { agentId: 'golden_ks_agent_a1', memberId: 'golden_ks_member_1', tenantId: TENANTS.KS },
+  const assignmentData = [
+    {
+      id: goldenId('assign_mk_1'),
+      agent: 'mk_agent_a1',
+      member: 'mk_member_1',
+      tenant: TENANTS.MK,
+    },
+    ...Array.from({ length: 4 }).map((_, i) => ({
+      id: goldenId(`assign_ks_a_${i + 1}`),
+      agent: 'ks_agent_a1',
+      member: `ks_a_member_${i + 1}`,
+      tenant: TENANTS.KS,
+    })),
   ];
 
-  for (const a of assignments) {
-    const id = `assign-${a.agentId}-${a.memberId}`;
+  for (const a of assignmentData) {
     await db
       .insert(schema.agentClients)
       .values({
-        id,
-        tenantId: a.tenantId,
-        agentId: a.agentId,
-        memberId: a.memberId,
+        id: a.id,
+        tenantId: a.tenant,
+        agentId: goldenId(a.agent),
+        memberId: goldenId(a.member),
         status: 'active',
       })
       .onConflictDoUpdate({ target: schema.agentClients.id, set: { status: 'active' } });
-
-    // Also update user record for redundancy/perf if schema uses it
-    await db.update(schema.user).set({ agentId: a.agentId }).where(eq(schema.user.id, a.memberId));
   }
 
-  // 6. Subscriptions
+  // 6. Subscriptions & Plans
   console.log('💳 Seeding Subscriptions...');
-  // Ensure a plan exists
   const PLAN_MK = 'golden_mk_plan_basic';
+  const PLAN_KS = 'golden_ks_plan_basic';
+
   await db
     .insert(schema.membershipPlans)
-    .values({
-      id: PLAN_MK,
-      tenantId: TENANTS.MK,
-      name: 'Golden Basic MK',
-      tier: 'standard',
-      price: '100.00',
-      features: ['towing', 'legal'],
-    })
+    .values([
+      {
+        id: PLAN_MK,
+        tenantId: TENANTS.MK,
+        name: 'Golden Basic MK',
+        tier: 'standard',
+        price: '100.00',
+        features: ['towing', 'legal'],
+      },
+      {
+        id: PLAN_KS,
+        tenantId: TENANTS.KS,
+        name: 'Golden Basic KS',
+        tier: 'standard',
+        price: '120.00',
+        features: ['towing', 'legal', 'roadside'],
+      },
+    ])
     .onConflictDoNothing();
 
-  const subs = [
+  const subData = [
     {
-      id: 'sub_mk_1',
-      userId: 'golden_mk_member_1',
-      tenantId: TENANTS.MK,
-      status: 'active',
-      planId: PLAN_MK,
-      agentId: 'golden_mk_agent_a1',
+      id: goldenId('sub_mk_1'),
+      user: 'mk_member_1',
+      tenant: TENANTS.MK,
+      plan: PLAN_MK,
+      agent: 'mk_agent_a1',
+    },
+    // Target KS Members for "Members total" > 0
+    {
+      id: goldenId('sub_ks_a_1'),
+      user: 'ks_a_member_1',
+      tenant: TENANTS.KS,
+      plan: PLAN_KS,
+      agent: 'ks_agent_a1',
     },
     {
-      id: 'sub_mk_2',
-      userId: 'golden_mk_member_2',
-      tenantId: TENANTS.MK,
-      status: 'canceled',
-      planId: PLAN_MK,
-      agentId: 'golden_mk_agent_a2',
+      id: goldenId('sub_ks_a_2'),
+      user: 'ks_a_member_2',
+      tenant: TENANTS.KS,
+      plan: PLAN_KS,
+      agent: 'ks_agent_a1',
+    },
+    {
+      id: goldenId('sub_ks_b_1'),
+      user: 'ks_b_member_1',
+      tenant: TENANTS.KS,
+      plan: PLAN_KS,
+      agent: 'ks_b_agent_1',
     },
   ];
 
-  for (const s of subs) {
+  for (const s of subData) {
     await db
       .insert(schema.subscriptions)
       .values({
         id: s.id,
-        userId: s.userId,
-        tenantId: s.tenantId,
-        status: s.status as any,
-        planId: s.planId,
-        agentId: s.agentId,
-        currentPeriodStart: new Date(), // Corrected from startDate
+        userId: goldenId(s.user),
+        tenantId: s.tenant,
+        status: 'active',
+        planId: s.plan,
+        agentId: goldenId(s.agent),
+        currentPeriodStart: new Date(),
       })
-      .onConflictDoUpdate({ target: schema.subscriptions.id, set: { status: s.status as any } });
+      .onConflictDoUpdate({ target: schema.subscriptions.id, set: { status: 'active' } });
+
+    await db
+      .insert(schema.membershipCards)
+      .values({
+        id: `card_${s.id}`,
+        tenantId: s.tenant,
+        subscriptionId: s.id,
+        userId: goldenId(s.user),
+        cardNumber: `ID-${s.tenant === TENANTS.KS ? 'KS' : 'MK'}-${Math.random().toString().slice(2, 10)}`,
+        qrCodeToken: `qr_${s.id}_${Math.random().toString(36).slice(2, 7)}`,
+        status: 'active',
+      })
+      .onConflictDoNothing();
   }
 
-  // 7. Claims
-  console.log('📝 Seeding Claims...');
-  const claimsData = [
-    {
-      id: 'claim_mk_1',
-      userId: 'golden_mk_member_1',
-      tenantId: TENANTS.MK,
-      branchId: 'mk_branch_a',
-      status: 'submitted',
-      title: 'Rear ended in Skopje',
-      amount: '500.00',
-    },
-    {
-      id: 'claim_mk_2',
-      userId: 'golden_mk_member_1',
-      tenantId: TENANTS.MK,
-      branchId: 'mk_branch_a',
-      status: 'draft',
-      title: 'Broken Mirror',
-      amount: '150.00',
-    },
-    {
-      id: 'claim_mk_3',
-      userId: 'golden_mk_member_2',
-      tenantId: TENANTS.MK,
-      branchId: 'mk_branch_b',
-      status: 'evaluation',
-      title: 'Towing Service',
-      amount: '200.00',
-    }, // Branch B
-    {
-      id: 'claim_ks_1',
-      userId: 'golden_ks_member_1',
+  // 7. Claims Pack (KS-A Urgent, KS-B Attention, KS-C Healthy)
+  console.log('📝 Seeding Claims Pack (Ops Verification)...');
+  const now = new Date();
+  const claimsToSeed: (typeof schema.claims.$inferInsert)[] = [];
+
+  // KS-A (Urgent): 21 claims
+  const ksAStatuses = [
+    'submitted',
+    'submitted',
+    'submitted',
+    'submitted',
+    'submitted',
+    'submitted',
+    'submitted',
+    'submitted',
+    'submitted',
+    'verification',
+    'verification',
+    'verification',
+    'verification',
+    'evaluation',
+    'evaluation',
+    'evaluation',
+    'evaluation',
+    'negotiation',
+    'negotiation',
+    'negotiation',
+    'court',
+  ] as any[];
+
+  ksAStatuses.forEach((status, i) => {
+    const dayOffset = i < 9 ? i % 3 : i % 21;
+    let createdAt = new Date(now.getTime() - dayOffset * 24 * 60 * 60 * 1000);
+
+    // SLA Breaches in KS-A
+    if (i === 0) createdAt = new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000);
+    if (i === 1) createdAt = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000);
+
+    const claimId = `ks_a_claim_${(i + 1).toString().padStart(2, '0')}`;
+    const staffId = i < 7 ? goldenId('ks_staff') : i < 12 ? goldenId('ks_staff_2') : null;
+
+    claimsToSeed.push({
+      id: goldenId(claimId),
+      userId: goldenId(`ks_a_member_${(i % 4) + 1}`),
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_a',
-      status: 'submitted',
-      title: 'Pristina Fender Bender',
-      amount: '300.00',
-    },
-  ];
+      agentId: goldenId('ks_agent_a1'),
+      status: status,
+      title: `KS-A ${status.toUpperCase()} Claim ${i + 1}`,
+      category: 'vehicle',
+      companyName: 'KS Insurance Co',
+      claimAmount: '1200.00',
+      createdAt,
+      staffId,
+      assignedAt: staffId ? now : null,
+      assignedById: staffId ? goldenId('ks_admin') : null,
+    });
+  });
 
-  for (const c of claimsData) {
-    await db
-      .insert(schema.claims)
-      .values({
-        id: c.id,
-        userId: c.userId,
-        tenantId: c.tenantId,
-        branchId: c.branchId,
-        status: c.status as any,
-        title: c.title,
-        claimAmount: c.amount,
-        currency: 'EUR',
-        category: 'vehicle',
-        companyName: 'Test Insurer',
-        description: 'Seeded via Golden Seed',
-      })
-      .onConflictDoUpdate({ target: schema.claims.id, set: { status: c.status as any } });
-  }
+  Array.from({ length: 9 }).forEach((_, i) => {
+    const status = (i < 5 ? 'submitted' : i < 7 ? 'verification' : 'evaluation') as any;
+    const staffId = i < 4 ? goldenId('ks_staff') : null;
+    claimsToSeed.push({
+      id: goldenId(`ks_b_claim_${(i + 1).toString().padStart(2, '0')}`),
+      userId: goldenId(`ks_b_member_${(i % 4) + 1}`),
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_b',
+      agentId: goldenId('ks_b_agent_1'),
+      status,
+      title: `KS-B Claim ${i + 1}`,
+      category: 'vehicle',
+      companyName: 'KS West Insurer',
+      claimAmount: '800.00',
+      createdAt: new Date(now.getTime() - (i + 1) * 24 * 60 * 60 * 1000),
+      staffId,
+      assignedAt: staffId ? now : null,
+      assignedById: staffId ? goldenId('ks_admin') : null,
+    });
+  });
 
-  // 8. Balkan Agent Flow (Lead -> Payment -> Member)
-  console.log('🇧🇦 Seeding Balkan Agent Flow...');
+  // KS-C (Healthy): 2 claims
+  [1, 2].forEach(i => {
+    claimsToSeed.push({
+      id: goldenId(`ks_c_claim_${i.toString().padStart(2, '0')}`),
+      userId: goldenId(`ks_c_member_${i}`),
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_c',
+      agentId: goldenId('ks_c_agent_1'),
+      status: i === 1 ? 'submitted' : 'verification',
+      title: `KS-C Healthy Claim ${i}`,
+      category: 'vehicle',
+      companyName: 'Peja local',
+      claimAmount: '450.00',
+      createdAt: new Date(now.getTime() - i * 12 * 60 * 60 * 1000), // very recent
+    });
+  });
 
-  // A. Create Agent
-  const balkanAgent = {
-    id: 'agent_balkan_1',
-    name: 'Balkan Agent 1',
-    email: 'agent.balkan.1@interdomestik.com',
-    role: 'agent',
+  // MK Baseline
+  claimsToSeed.push({
+    id: goldenId('claim_mk_1'),
+    userId: goldenId('mk_member_1'),
     tenantId: TENANTS.MK,
     branchId: 'mk_branch_a',
-  };
+    status: 'submitted',
+    title: 'Rear ended in Skopje (Baseline)',
+    category: 'vehicle',
+    companyName: 'Test Insurer',
+    claimAmount: '500.00',
+  });
 
-  await db
-    .insert(schema.user)
-    .values({
-      ...balkanAgent,
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .onConflictDoNothing();
+  for (const c of claimsToSeed) {
+    await db
+      .insert(schema.claims)
+      .values(c)
+      .onConflictDoUpdate({
+        target: schema.claims.id,
+        set: { status: c.status, staffId: c.staffId, branchId: c.branchId, createdAt: c.createdAt },
+      });
+  }
 
-  // B. Create Lead
-  const leadId = 'lead_balkan_demo';
+  // 8. Leads & Cash Pending
+  console.log('💰 Seeding Leads & Cash Pending (KS)...');
+  const ksLeads = [
+    ...Array.from({ length: 3 }).map((_, i) => ({
+      id: `ks_a_cash_lead_${i + 1}`,
+      branch: 'ks_branch_a',
+      agent: 'ks_agent_a1',
+    })),
+    { id: 'ks_b_cash_lead_1', branch: 'ks_branch_b', agent: 'ks_b_agent_1' },
+  ];
+
+  for (const l of ksLeads) {
+    await db
+      .insert(schema.memberLeads)
+      .values({
+        id: goldenId(l.id),
+        tenantId: TENANTS.KS,
+        branchId: l.branch,
+        agentId: goldenId(l.agent),
+        firstName: 'Demo',
+        lastName: `Lead ${l.id}`,
+        email: `${l.id}@example.com`,
+        phone: '+38344111222',
+        status: 'payment_pending',
+      })
+      .onConflictDoNothing();
+
+    await db
+      .insert(schema.leadPaymentAttempts)
+      .values({
+        id: goldenId(`attempt_${l.id}`),
+        tenantId: TENANTS.KS,
+        leadId: goldenId(l.id),
+        method: 'cash',
+        status: 'pending',
+        amount: 15000,
+        createdAt: new Date(now.getTime() - (ksLeads.indexOf(l) + 1) * 2 * 24 * 60 * 60 * 1000),
+      })
+      .onConflictDoNothing();
+  }
+
+  // MK Balkan Lead
   await db
     .insert(schema.memberLeads)
     .values({
-      id: leadId,
+      id: goldenId('lead_balkan'),
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
-      agentId: balkanAgent.id,
+      agentId: goldenId('agent_balkan_1'),
       firstName: 'Balkan',
       lastName: 'Lead',
       email: 'lead.balkan@example.com',
-      phone: '+38970123456',
+      phone: '+38970111222',
       status: 'payment_pending',
-      createdAt: new Date(),
-      updatedAt: new Date(),
     })
     .onConflictDoNothing();
 
-  // C. Create Payment Attempt (Cash)
-  const attemptId = 'pay_attempt_balkan_demo';
   await db
     .insert(schema.leadPaymentAttempts)
     .values({
-      id: attemptId,
+      id: goldenId('pay_attempt_balkan'),
       tenantId: TENANTS.MK,
-      leadId: leadId,
+      leadId: goldenId('lead_balkan'),
       method: 'cash',
-      status: 'pending', // Pending verification
-      amount: 12000, // 120.00 EUR
-      currency: 'EUR',
-      createdAt: new Date(),
-    })
-    .onConflictDoNothing();
-
-  // D. Create Converted Card Lead
-  const leadCardId = 'lead_balkan_card_demo';
-  const convertedUserId = 'user_balkan_converted_1';
-  const subscriptionId = 'sub_balkan_demo_1';
-
-  // 1. User Account
-  await db
-    .insert(schema.user)
-    .values({
-      id: convertedUserId,
-      name: 'Balkan Card Member',
-      email: 'member.balkan.card@example.com',
-      role: 'user',
-      tenantId: TENANTS.MK,
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .onConflictDoNothing();
-
-  // 2. Lead Record (Converted)
-  await db
-    .insert(schema.memberLeads)
-    .values({
-      id: leadCardId,
-      tenantId: TENANTS.MK,
-      branchId: 'mk_branch_a',
-      agentId: balkanAgent.id,
-      firstName: 'Balkan',
-      lastName: 'Card Member',
-      email: 'member.balkan.card@example.com',
-      phone: '+38970000000',
-      status: 'converted',
-      convertedUserId: convertedUserId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .onConflictDoNothing();
-
-  // 3. Payment Attempt (Card Success)
-  await db
-    .insert(schema.leadPaymentAttempts)
-    .values({
-      id: 'pay_attempt_card_success',
-      tenantId: TENANTS.MK,
-      leadId: leadCardId,
-      method: 'card',
-      status: 'succeeded',
+      status: 'pending',
       amount: 12000,
-      currency: 'EUR',
-      paddleTransactionId: 'txn_golden_demo_123',
       createdAt: new Date(),
     })
     .onConflictDoNothing();
 
-  // 4. Subscription
-  await db
-    .insert(schema.subscriptions)
-    .values({
-      id: subscriptionId,
-      tenantId: TENANTS.MK,
-      userId: convertedUserId,
-      status: 'active',
-      planId: 'standard_plan',
-      createdAt: new Date(),
-      currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-    })
-    .onConflictDoNothing();
-
-  // 5. Membership Card
-  await db
-    .insert(schema.membershipCards)
-    .values({
-      id: 'card_balkan_demo_1',
-      tenantId: TENANTS.MK,
-      userId: convertedUserId,
-      subscriptionId: subscriptionId, // Mock sub
-      status: 'active',
-      cardNumber: 'MK-1000-0001',
-      qrCodeToken: 'qr_token_demo_123',
-      issuedAt: new Date(),
-    })
-    .onConflictDoNothing();
-
-  console.log('✅ Golden Seed Complete!');
+  console.log('✅ Golden Seed Baseline & KS Pack Complete!');
   process.exit(0);
 }
 
-// Execute
 seedGolden().catch(e => {
-  console.error('❌ Golden Seed Failed:', e);
+  console.error(e);
   process.exit(1);
 });

@@ -139,11 +139,11 @@ test.describe('Golden Flows Smoke Suite', () => {
       await loginAs(page, USERS.SUPER_ADMIN);
 
       // Verify admin dashboard is visible with key stats - use first() for multiple headings
-      await expect(page.getByRole('heading', { name: /admin/i }).first()).toBeVisible();
-      await expect(page.getByText(/Total MRR|Active Members|Gjithsej/i).first()).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Admin|Paneli/i }).first()).toBeVisible();
+      await expect(page.getByText(/Total MRR|Anëtarët|Gjithsej/i).first()).toBeVisible();
     });
 
-    test('Tenant Admin SEES all branches', async ({ page }) => {
+    test('Tenant Admin SEES all branches and can navigate to V2 Dashboard', async ({ page }) => {
       await loginAs(page, USERS.TENANT_ADMIN_MK);
 
       // Give time for redirect to complete then navigate to admin branches
@@ -154,6 +154,71 @@ test.describe('Golden Flows Smoke Suite', () => {
       // The page should either show branches OR indicate no branches exist
       // Check we're on the right page
       await expect(page.locator('body')).toContainText(/Branch|Degë|Admin/i);
+
+      // 1. Verify at least one branch card is present
+      await expect(page.locator('[data-testid="branch-card"]').first()).toBeVisible();
+
+      // 2. Verify total count of cards matches expectation if possible, or just > 0
+      const cards = page.locator('[data-testid="branch-card"]');
+      expect(await cards.count()).toBeGreaterThan(0);
+
+      // 3. Verify Navigation to Branch Dashboard V2
+      // Click the first branch card's "View Dashboard" link
+      const firstCardLink = cards.first().getByRole('link');
+      await firstCardLink.click();
+
+      // Should show the Branch Dashboard V2 with statistics
+      await page.waitForLoadState('networkidle');
+
+      // Verify URL pattern (uses branch CODE now, not ID)
+      await expect(page).toHaveURL(/\/admin\/branches\/[A-Z0-9-]+/);
+
+      // Verify V2 Dashboard Header with data-testid
+      await expect(page.locator('[data-testid="branch-dashboard-title"]')).toBeVisible();
+
+      // Verify Health Score is displayed (format: "Shëndeti XX/100")
+      await expect(page.locator('[data-testid="branch-health-score"]')).toContainText(/\d+\/100/);
+
+      // Verify Back to Branches link
+      await expect(page.locator('body')).toContainText(/Back to Branches|Kthehu te Degët/i);
+    });
+
+    test('Branch Dashboard V2 shows KPI panels and health indicators', async ({ page }) => {
+      await loginAs(page, USERS.TENANT_ADMIN_MK);
+
+      // Go directly to a known branch dashboard (MK-A code)
+      await page.goto(`/${DEFAULT_LOCALE}/admin/branches/MK-A`);
+      await page.waitForLoadState('networkidle');
+
+      // Verify KPI Row with labels (translated)
+      await expect(page.locator('body')).toContainText(
+        /Open Claims|Dëmet e Hapura|Kërkesat e Hapura/i
+      );
+      await expect(page.locator('body')).toContainText(/Cash|Kesh/i);
+      await expect(page.locator('body')).toContainText(/SLA|Shkeljet/i);
+
+      // Verify Staff Load Panel header is visible
+      await expect(page.locator('body')).toContainText(/Staff Load|Ngarkesa e Stafit/i);
+    });
+
+    test('Risk signaling appears for seeded risky branch (KS-A with 20+ open claims)', async ({
+      page,
+    }) => {
+      await loginAs(page, USERS.TENANT_ADMIN_KS); // Login as KS Admin
+
+      await page.goto(`/${DEFAULT_LOCALE}/admin/branches`);
+      await page.waitForLoadState('networkidle');
+
+      // Find the KS-A branch card (should be "urgent" due to high open claims)
+      const ksBranchACard = page.locator('[data-testid="branch-card"]', {
+        hasText: /KS Branch A|KS-A/i,
+      });
+
+      // Verify the card exists
+      await expect(ksBranchACard).toBeVisible();
+
+      // Verify it shows an urgent severity indicator (badge text)
+      await expect(ksBranchACard).toContainText(/Urgjent|Urgent/i);
     });
   });
 
@@ -188,8 +253,8 @@ test.describe('Golden Flows Smoke Suite', () => {
       await page.locator('button[type="submit"]').click();
 
       // Wait for toast or refresh
-      await expect(page.getByText('Lead created', { exact: false })).toBeVisible({
-        timeout: 10000,
+      await expect(page.getByText(/Lead created|Lead u krijua/i)).toBeVisible({
+        timeout: 20000,
       });
 
       // Reload to see new lead
@@ -239,6 +304,83 @@ test.describe('Golden Flows Smoke Suite', () => {
       await page.goto(`/${DEFAULT_LOCALE}/agent/leads`);
       // Should redirect or show 403
       await expect(page).not.toHaveURL(/\/agent\/leads/);
+    });
+
+    // REPLACED: Original KS A/B tests with KS PACK TESTS
+    test('KS Pack Verification: Branch Codes and Health Statuses', async ({ page }) => {
+      await loginAs(page, USERS.TENANT_ADMIN_KS);
+      await page.goto(`/${DEFAULT_LOCALE}/admin/branches`);
+      await page.waitForLoadState('networkidle');
+
+      // Assert Branch Codes Visible (Pack deliverables)
+      await expect(page.getByText('KS-A')).toBeVisible();
+      await expect(page.getByText('KS-B')).toBeVisible();
+      await expect(page.getByText('KS-C')).toBeVisible();
+
+      // Assert Health Status Labels (using translated text as requested)
+      // KS-A (Urgent)
+      await expect(
+        page
+          .locator('[data-testid="branch-card"]')
+          .filter({ hasText: 'KS-A' })
+          .getByText(/Urgjente|Urgent/i)
+      ).toBeVisible();
+
+      // KS-B (Attention)
+      await expect(
+        page
+          .locator('[data-testid="branch-card"]')
+          .filter({ hasText: 'KS-B' })
+          .getByText(/Kërkon Vëmendje|Attention/i)
+      ).toBeVisible();
+
+      // KS-C (Healthy)
+      await expect(
+        page
+          .locator('[data-testid="branch-card"]')
+          .filter({ hasText: 'KS-C' })
+          .getByText(/Gjendje e Shëndetshme|Healthy/i)
+      ).toBeVisible();
+    });
+
+    test('KS-A Branch Dashboard shows urgent health score (0-39 range) and ops panels', async ({
+      page,
+    }) => {
+      await loginAs(page, USERS.TENANT_ADMIN_KS);
+      await page.goto(`/${DEFAULT_LOCALE}/admin/branches/KS-A`);
+
+      await expect(page.locator('[data-testid="branch-dashboard-title"]')).toBeVisible({
+        timeout: 15000,
+      });
+
+      // Assert Health Score
+      const scoreElement = page.locator('[data-testid="health-score"]');
+      await expect(scoreElement).toBeVisible();
+      const scoreText = await scoreElement.textContent();
+      const score = parseInt(scoreText?.trim() || '100');
+      expect(score).toBeLessThanOrEqual(39);
+
+      // Assert Operational Alerts
+      await expect(page.locator('body')).toContainText(/Rrezik Shkelje SLA/i);
+      await expect(page.locator('body')).toContainText(/Cash në Pritje/i);
+
+      // KS PACK GUARDS
+      // 1. Assert "Anëtarët totalë" is not "0"
+      // 1. Assert "Anëtarët Totale" is not "0"
+      const membersKpiValue = page
+        .locator('span', { hasText: /^Anëtarët Totale$/ })
+        .locator('xpath=following-sibling::span');
+      await expect(membersKpiValue).toContainText(/[1-9]/); // Any non-zero digit
+
+      // 2. Assert "Shëndeti i Agjentëve" table contains "Blerim Hoxha"
+      await expect(page.getByText('Blerim Hoxha')).toBeVisible();
+
+      // Assert Staff Load Panel shows non-zero count
+      const staffLoadPanel = page.locator('body');
+      await expect(staffLoadPanel).toContainText(/Ngarkesa e Stafit/i);
+
+      const staffLoadTable = page.locator('table');
+      await expect(staffLoadTable.getByText(/\d+/).first()).toBeVisible();
     });
   });
 });

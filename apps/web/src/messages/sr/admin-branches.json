@@ -1,0 +1,204 @@
+{
+  "admin": {
+    "branches": {
+      "title": "Upravljanje filijalama",
+      "description": "Upravljajte filijalama vaše organizacije.",
+      "listTitle": "Filijale",
+      "createButton": "Nova filijala",
+      "createTitle": "Kreiraj novu filijalu",
+      "createDescription": "Dodajte novu filijalu vašoj organizaciji.",
+      "editTitle": "Izmeni filijalu",
+      "editDescription": "Ažurirajte detalje filijale.",
+      "createSuccess": "Filijala uspešno kreirana.",
+      "createError": "Neuspešno kreiranje filijale.",
+      "updateSuccess": "Filijala uspešno ažurirana.",
+      "updateError": "Neuspešno ažuriranje filijale.",
+      "deleteSuccess": "Filijala uspešno obrisana.",
+      "deleteError": "Neuspešno brisanje filijale.",
+      "fields": {
+        "name": "Naziv filijale",
+        "code": "Kod filijale",
+        "slug": "Slug",
+        "status": "Status",
+        "isActive": "Status aktivnosti"
+      },
+      "status": {
+        "active": "Aktivno",
+        "inactive": "Neaktivno"
+      },
+      "actions": {
+        "label": "Akcije",
+        "edit": "Izmeni",
+        "delete": "Obriši",
+        "open": "Otvori meni",
+        "showInactive": "Prikaži neaktivne"
+      },
+      "deleteTitle": "Da li ste sigurni?",
+      "deleteConfirm": "Ovo će 'meko' obrisati filijalu {name}. Aktivni članovi mogu biti pogođeni.",
+      "cancel": "Otkaži",
+      "save": "Sačuvaj",
+      "saving": "Čuvanje...",
+      "deleting": "Brisanje...",
+      "noResults": "Nema pronađenih filijala.",
+      "no_branches": "Nema pronađenih filijala.",
+      "status_active": "Aktivno",
+      "status_inactive": "Neaktivno",
+      "view_dashboard": "Vidi Panel",
+      "list_title": "Lista filijala",
+      "list_description": "Trenutno imate {count} registrovanih filijala.",
+      "table_name": "Naziv filijale",
+      "table_code": "Kod",
+      "table_status": "Status",
+      "table_kpis": "KPIs",
+      "table_open_claims": "Otvorene Štete",
+      "table_cash_pending": "Keš na Čekanju",
+      "table_sla_breaches": "SLA Prekršaji",
+      "table_actions": "Akcije",
+      "dashboard": {
+        "back_to_branches": "Nazad na filijale",
+        "status_active": "Aktivno",
+        "status_inactive": "Neaktivno",
+        "code_label": "Kod",
+        "stats_agents": "Agenti",
+        "stats_members": "Članovi",
+        "stats_total_claims": "Ukupno zahteva",
+        "stats_claims_this_month": "Ovaj mesec",
+        "stats_open_claims": "Otvoreni Zahtevi",
+        "stats_cash_pending": "Keš na Čekanju",
+        "stats_sla_breaches": "SLA Prekršaji",
+        "agents_title": "Agenti",
+        "agents_description": "{count, plural, =0 {Nema agenata} =1 {1 agent} other {# agenata}} u ovoj filijali",
+        "no_agents": "Nema agenata u ovoj filijali.",
+        "col_rank": "Rang",
+        "col_agent_name": "Agent",
+        "col_members": "Članovi",
+        "col_active_claims": "Aktivni",
+        "col_submitted_30d": "Podneti (30d)",
+        "unknown_agent": "Nepoznat"
+      },
+      "create_branch": "New Branch",
+      "create_branch_title": "Create New Branch",
+      "create_branch_description": "Add a new branch to your organization.",
+      "field_name": "Branch Name",
+      "placeholder_name": "e.g. Main Branch",
+      "field_code": "Branch Code",
+      "placeholder_code": "e.g. BR-001",
+      "submit": "Create",
+      "create_error": "Creation failed",
+      "create_success": "Branch created",
+      "create_success_description": "Branch {name} created successfully.",
+      "unexpected_error": "An unexpected error occurred.",
+      "active_operations": "Aktivne Operacije",
+      "inactive_branch": "Neaktivna Filijala",
+      "search_placeholder": "Pretraži filijale...",
+      "filter_status": "Status",
+      "filter_all": "Svi statusi",
+      "filter_attention": "Zahteva pažnju",
+      "sort_label": "Sortiraj po",
+      "sort_name_asc": "Ime (A-Ž)",
+      "sort_open_claims_desc": "Otvorene štete (Više-Niže)",
+      "sort_cash_pending_desc": "Keš na čekanju (Više-Niže)",
+      "sort_sla_breaches_desc": "SLA prekršaji (Više-Niže)",
+      "health": {
+        "healthy": "Zdravo Stanje",
+        "watch": "Zahteva Pažnju",
+        "urgent": "Hitno",
+        "inactive": "Neaktivno"
+      },
+      "health_score": "Zdravlje {score}/100",
+      "filters": {
+        "needs_attention": "Zahteva Pažnju"
+      },
+      "sort": {
+        "name_asc": "Naziv (A–Z)",
+        "open_claims_desc": "Otvorene Štete",
+        "cash_pending_desc": "Gotovina na Čekanju",
+        "sla_breaches_desc": "SLA Prekršaji",
+        "health_score_asc": "Zdravlje (Najgore Prvo)"
+      },
+      "kpis": {
+        "open_claims": "Otvorene Štete",
+        "cash_pending": "Gotovina na Čekanju",
+        "sla_breaches": "SLA Prekršaji",
+        "total_agents": "Ukupno Agenata",
+        "total_members": "Ukupno Članova"
+      },
+      "view_dashboard_subtitle": "Operativni i Rizični Pregled",
+      "back_to_branches": "Nazad na filijale",
+      "health_status_healthy": "Zdravo Stanje",
+      "health_status_attention": "Zahteva Pažnju",
+      "health_status_urgent": "Hitno",
+      "health_status_inactive": "Neaktivno",
+      "alerts": {
+        "title": "Operativna Upozorenja",
+        "no_alerts": "Nema kritičnih upozorenja",
+        "sla_breach_title": "Rizik od SLA Prekršaja",
+        "sla_breach_desc": "{count} zahteva su prekršili SLA",
+        "cash_pending_title": "Gotovina na Čekanju Autorizacije",
+        "cash_pending_desc": "{count} plaćanja čekaju verifikaciju"
+      },
+      "pipeline": {
+        "title": "Pipeline Šteta",
+        "empty": "Nema aktivnih šteta u pipeline-u"
+      },
+      "agent_health": {
+        "title": "Zdravlje Agenata",
+        "agent": "Agent",
+        "score": "Rezultat",
+        "open": "Otvoreni",
+        "cash": "Gotovina",
+        "sla": "SLA",
+        "table_status": "Status",
+        "status": {
+          "healthy": "Zdravo",
+          "attention": "Pažnja",
+          "urgent": "Hitno",
+          "inactive": "Neaktivno"
+        },
+        "no_agents": "Nisu pronađeni agenti"
+      },
+      "staff_load": {
+        "title": "Opterećenje Osoblja",
+        "name": "Član Osoblja",
+        "workload": "Aktivne Štete",
+        "no_staff": "Nisu pronađena dodeljivanja osoblja"
+      },
+      "health": {
+        "tooltip": {
+          "healthy": {
+            "title": "Operations are under control.",
+            "action": "No action needed.",
+            "bullets": [
+              "No critical delays",
+              "Payments are flowing normally",
+              "Claims are progressing on time"
+            ]
+          },
+          "attention": {
+            "title": "Some issues require monitoring.",
+            "action": "Review open items.",
+            "bullets": [
+              "A few claims or payments need follow-up",
+              "Minor delays detected",
+              "Risk is manageable if addressed early"
+            ]
+          },
+          "urgent": {
+            "title": "Immediate action required.",
+            "action": "Investigate and resolve today.",
+            "bullets": [
+              "Claims are delayed beyond acceptable limits",
+              "Payments are pending verification",
+              "Operational risk is high"
+            ]
+          },
+          "inactive": {
+            "title": "Branch is not currently operational.",
+            "action": "Verify branch status.",
+            "bullets": ["No active claims or activity detected"]
+          }
+        }
+      }
+    }
+  }
+}

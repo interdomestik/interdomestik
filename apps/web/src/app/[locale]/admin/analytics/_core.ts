@@ -1,5 +1,5 @@
 import { claims, db } from '@interdomestik/database';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 export type AdminAnalyticsStatusDistributionItem = {
   status: string | null;
@@ -46,14 +46,19 @@ export function normalizeTotalsRow(row?: {
   };
 }
 
-export async function getAdminAnalyticsDataCore(): Promise<AdminAnalyticsModel> {
+export async function getAdminAnalyticsDataCore(session: {
+  user: { tenantId: string };
+}): Promise<AdminAnalyticsModel> {
+  const { tenantId } = session.user;
+
   const [totalsResult] = await db
     .select({
       sum: sql<number>`COALESCE(SUM(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
       avg: sql<number>`COALESCE(AVG(CAST(${claims.claimAmount} AS NUMERIC)), 0)`,
       count: sql<number>`COUNT(*)`,
     })
-    .from(claims);
+    .from(claims)
+    .where(eq(claims.tenantId, tenantId));
 
   const totals = normalizeTotalsRow(totalsResult);
 
@@ -63,6 +68,7 @@ export async function getAdminAnalyticsDataCore(): Promise<AdminAnalyticsModel> 
       count: sql<number>`COUNT(*)`,
     })
     .from(claims)
+    .where(eq(claims.tenantId, tenantId))
     .groupBy(claims.status);
 
   const categoryDistributionRaw = await db
@@ -71,13 +77,15 @@ export async function getAdminAnalyticsDataCore(): Promise<AdminAnalyticsModel> 
       count: sql<number>`COUNT(*)`,
     })
     .from(claims)
+    .where(eq(claims.tenantId, tenantId))
     .groupBy(claims.category);
 
   const [activeClaimantsRow] = await db
     .select({
       count: sql<number>`COUNT(DISTINCT ${claims.userId})`,
     })
-    .from(claims);
+    .from(claims)
+    .where(eq(claims.tenantId, tenantId));
 
   const statusDistribution: AdminAnalyticsStatusDistributionItem[] = (
     statusDistributionRaw ?? []

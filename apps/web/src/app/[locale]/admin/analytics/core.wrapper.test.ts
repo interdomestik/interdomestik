@@ -12,6 +12,7 @@ vi.mock('@interdomestik/database', () => {
     select: vi.fn().mockReturnThis(),
     from: vi.fn().mockReturnThis(),
     groupBy: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
     then: mockDbResult.then,
   };
 
@@ -22,6 +23,7 @@ vi.mock('@interdomestik/database', () => {
       status: 'status',
       category: 'category',
       userId: 'userId',
+      tenantId: 'tenantId',
     },
     sql: (strings: any, ..._values: any[]) => strings[0],
   };
@@ -56,7 +58,7 @@ describe('admin analytics _core', () => {
         .mockImplementationOnce((cb: any) => cb([{ category: 'test', count: 2 }]))
         .mockImplementationOnce((cb: any) => cb([{ count: 1 }]));
 
-      const result = await getAdminAnalyticsDataCore();
+      const result = await getAdminAnalyticsDataCore({ user: { tenantId: 'tenant-1' } });
       expect(result.totals.count).toBe(2);
       expect(result.successRate).toBe(50);
     });

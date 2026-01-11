@@ -43,6 +43,24 @@ If you need to target a different SonarQube server (CI, remote instance, etc.), 
 SONAR_HOST_URL=https://your-sonarqube.example.com
 ```
 
+## CI (GitHub Actions)
+
+The CI workflow runs `pnpm test:coverage` and `pnpm sonar:scan` on every push/PR.
+
+1. In GitHub repo settings, add a secret:
+   - `SONAR_TOKEN` (generated in SonarQube → My Account → Security)
+
+2. Add a repo variable (or secret) for the host URL if SonarQube is not local:
+   - `SONAR_HOST_URL` (example: `https://sonar.your-domain.com`)
+
+3. If your SonarQube server is only reachable on your local network, use a
+   self-hosted GitHub runner in that network. GitHub-hosted runners cannot
+   reach local-only SonarQube instances.
+
+> Note: SonarQube Community Edition does not support PR/branch analysis.
+> Quality Gates will apply to the main branch only unless you upgrade to
+> Developer/Enterprise or use SonarCloud.
+
 ## Useful commands
 
 ```bash

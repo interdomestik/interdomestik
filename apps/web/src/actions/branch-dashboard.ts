@@ -70,9 +70,8 @@ export async function getBranchDashboard(
       return { success: false, error: 'Branch not found' };
     }
 
-    // Fetch stats and agents in parallel
     const [stats, agents] = await Promise.all([
-      getBranchStats(branchId, tenantId),
+      getBranchStats(branchId, tenantId, branch.isActive),
       getBranchAgents(branchId, tenantId),
     ]);
 

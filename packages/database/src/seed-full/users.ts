@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import * as schema from '../schema';
-import { SEED_PASSWORD, TENANTS, USERS } from './constants';
+import { KS_NAMES, MK_NAMES, SEED_PASSWORD, TENANTS, USERS } from './constants';
 import { hashPassword } from './helpers';
 
 export async function seedUsersAndAuth() {
@@ -50,26 +50,28 @@ export async function seedUsersAndAuth() {
       });
   }
 
-  // 2. Generate Members (Deterministic but with ID logic)
+  // 2. Generate Members (Deterministic with Regionalized Names)
   const members = [];
 
-  // MK Members
+  // MK Members (Macedonian Names)
   for (let i = 1; i <= 9; i++) {
     const isGolden = i <= 2; // Member 1 and 2 are in Golden
+    const name = MK_NAMES.memberNames[i - 1] || `MK Member ${i}`;
     members.push({
       id: isGolden ? `golden_mk_member_${i}` : `full_mk_member_${i}`,
       email: `member.mk.${i}@interdomestik.com`,
-      name: `MK Member ${i}`,
+      name,
       tenantId: TENANTS.MK,
     });
   }
-  // KS Members
+  // KS Members (Albanian Names)
   for (let i = 1; i <= 9; i++) {
-    const isGolden = i === 1; // Member 1 is in Golden
+    const isGolden = i <= 3; // Members 1-3 are in Golden
+    const name = KS_NAMES.memberNames[i - 1] || `KS Member ${i}`;
     members.push({
       id: isGolden ? `golden_ks_member_${i}` : `full_ks_member_${i}`,
       email: `member.ks.${i}@interdomestik.com`,
-      name: `KS Member ${i}`,
+      name,
       tenantId: TENANTS.KS,
     });
   }
@@ -122,10 +124,10 @@ export async function seedUsersAndAuth() {
       memberIds: ['full_mk_member_6', 'full_mk_member_7'],
       tenantId: TENANTS.MK,
     },
-    // KS
+    // KS (Members 1-3 are golden, 4-9 are full)
     {
       agentId: 'golden_ks_agent_a1',
-      memberIds: ['golden_ks_member_1', 'full_ks_member_2', 'full_ks_member_3'],
+      memberIds: ['golden_ks_member_1', 'golden_ks_member_2', 'golden_ks_member_3'],
       tenantId: TENANTS.KS,
     },
     {

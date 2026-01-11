@@ -1,0 +1,74 @@
+{
+  "admin": {
+    "dashboard": {
+      "title": "Admin Dashboard",
+      "recent_activity": "Recent Activity",
+      "unassigned_claims": "Unassigned Claims",
+      "quick_actions": "Quick Actions",
+      "view_all": "View All",
+      "no_recent_activity": "No recent activity found",
+      "no_unassigned_claims": "All claims have been assigned",
+      "create_user": "Create User",
+      "invite_agent": "Invite Agent",
+      "assign": "Assign",
+      "timeline": "Timeline",
+      "status_label": "Status",
+      "no_messages": "No interaction history yet.",
+      "message_placeholder": "Type a message or internal note...",
+      "internal_note": "Internal Note",
+      "send_message": "Send Message",
+      "view_details": "Види Детали"
+    },
+    "dashboard_v2": {
+      "header": {
+        "title": "Operations Overview",
+        "new_branch": "New Branch",
+        "agents": "Agents",
+        "verify_leads": "Verify Leads"
+      },
+      "kpis": {
+        "branches": "Total Branches",
+        "agents": "Active Agents",
+        "members": "Total Members",
+        "open_claims": "Open Claims",
+        "cash_pending": "Cash Pending",
+        "sla_breaches": "SLA Breaches"
+      },
+      "branches": {
+        "title": "Branch Health",
+        "active": "Active",
+        "active_users": "Active Users",
+        "no_branches": "No branches found."
+      },
+      "alerts": {
+        "title": "Operational Alerts",
+        "subtitle": "Critical system notifications requiring attention.",
+        "all_clear": "All systems operational."
+      },
+      "panels": {
+        "claims_pipeline": "Claims Pipeline",
+        "unassigned": "Unassigned",
+        "in_progress": "In Progress",
+        "in_review": "In Review",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "leads": "Leads & Conversion",
+        "conversion_rate": "Rate",
+        "recent_activity": "Recent Activity",
+        "no_recent_leads": "No recent leads",
+        "total": "Total Leads",
+        "top_performers": "Top Performers",
+        "no_agent_data": "No agent data available",
+        "agent": "Agent",
+        "sales": "Продажба",
+        "lead_status": {
+          "new": "Нов",
+          "payment_pending": "Чека Плаќање",
+          "converted": "Конвертиран",
+          "disqualified": "Дисквалификуван",
+          "expired": "Истечен"
+        }
+      }
+    }
+  }
+}

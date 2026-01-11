@@ -25,6 +25,7 @@ import {
   SidebarRail,
 } from '@interdomestik/ui';
 import {
+  Banknote,
   BarChart,
   Briefcase,
   Check,
@@ -109,6 +110,11 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
       title: 'claims',
       href: '/admin/claims',
       icon: FileText,
+    },
+    {
+      title: 'leads',
+      href: '/admin/leads',
+      icon: Banknote,
     },
     {
       title: 'members',

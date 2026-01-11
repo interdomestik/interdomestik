@@ -1,7 +1,9 @@
+import { auth } from '@/lib/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Progress } from '@interdomestik/ui/components/progress';
 import { BarChart3, Euro, TrendingUp, Users } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { redirect } from 'next/navigation';
 
 import { getAdminAnalyticsDataCore } from './_core';
 
@@ -9,8 +11,17 @@ export default async function AdminAnalyticsPage() {
   const t = await getTranslations('admin.analytics');
   const tStatus = await getTranslations('claims.status');
   const tCategory = await getTranslations('claims.category');
+
+  const session = await auth.api.getSession({
+    headers: await import('next/headers').then(m => m.headers()),
+  });
+
+  if (!session?.user?.tenantId) {
+    redirect('/login');
+  }
+
   const { totals, statusDistribution, categoryDistribution, activeClaimants, successRate } =
-    await getAdminAnalyticsDataCore();
+    await getAdminAnalyticsDataCore({ user: { tenantId: session.user.tenantId } });
 
   return (
     <div className="space-y-8">

@@ -1,0 +1,28 @@
+{
+  "admin": {
+    "leads": {
+      "title": "Verifikimi i Pagesave",
+      "subtitle": "Verifiko pagesat cash të mbledhura nga agjentët.",
+      "approve": "Aprovo",
+      "reject": "Refuzo",
+      "success": "Pagesa u verifikua",
+      "table": {
+        "amount": "Shuma",
+        "verification": "Verifikimi"
+      }
+    },
+    "analytics": {
+      "title": "Përmbledhja e Analitikës",
+      "description": "Performanca e platformës dhe metrikat e shpërndarjes së kërkesave për dëmshpërblim.",
+      "metrics": {
+        "total_value": "Vlera Totale e Kërkesave për Dëmshpërblim",
+        "avg_value": "Shuma Mesatare e Kërkesës për Dëmshpërblim",
+        "success_rate": "Shkalla e Zgjidhjes",
+        "active_users": "Ankuesit Aktivë"
+      },
+      "status_distribution": "Shpërndarja sipas Statusit",
+      "category_distribution": "Shpërndarja sipas Kategorisë",
+      "no_data": "Nuk ka të dhëna të mjaftueshme për vizualizim"
+    }
+  }
+}

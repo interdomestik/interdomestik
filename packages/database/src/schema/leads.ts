@@ -48,6 +48,9 @@ export const memberLeads = pgTable(
     index('idx_leads_status').on(table.status),
     // Ensure uniqueness of email per tenant to prevent duplicate leads/members
     uniqueIndex('idx_leads_tenant_email').on(table.tenantId, table.email),
+    // Performance indexes for branch dashboards
+    index('idx_member_leads_tenant_branch').on(table.tenantId, table.branchId),
+    index('idx_member_leads_tenant_agent').on(table.tenantId, table.agentId),
   ]
 );
 
@@ -94,6 +97,14 @@ export const leadPaymentAttempts = pgTable(
   table => [
     index('idx_lead_payments_lead').on(table.leadId),
     index('idx_lead_payments_tenant').on(table.tenantId),
+    // Performance index for cash pending KPI
+    index('idx_lead_payment_attempts_tenant_lead').on(table.tenantId, table.leadId),
+    index('idx_lead_payment_attempts_tenant_lead_method_status').on(
+      table.tenantId,
+      table.leadId,
+      table.method,
+      table.status
+    ),
   ]
 );
 

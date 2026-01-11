@@ -1,0 +1,74 @@
+{
+  "admin": {
+    "dashboard": {
+      "title": "Paneli i Adminit",
+      "recent_activity": "Aktiviteti i Fundit",
+      "unassigned_claims": "Kërkesat e Pacaktuara për Dëmshpërblim",
+      "quick_actions": "Veprime të Shpejta",
+      "view_all": "Shiko të Gjitha",
+      "no_recent_activity": "Nuk u gjet asnjë aktivitet i fundit",
+      "no_unassigned_claims": "Të gjitha kërkesat për dëmshpërblim janë caktuar",
+      "create_user": "Krijo Përdorues",
+      "invite_agent": "Fto Agjent",
+      "assign": "Cakto",
+      "timeline": "Kohëshënimet",
+      "status_label": "Statusi",
+      "no_messages": "Nuk ka ende histori ndërveprimesh.",
+      "message_placeholder": "Shkruani një mesazh ose shënim të brendshëm...",
+      "internal_note": "Shënim i Brendshëm",
+      "send_message": "Dërgo Mesazh",
+      "view_details": "Shiko Detajet"
+    },
+    "dashboard_v2": {
+      "header": {
+        "title": "Përmbledhje Operacionale",
+        "new_branch": "Degë e Re",
+        "agents": "Agjentët",
+        "verify_leads": "Verifiko Potencialët"
+      },
+      "kpis": {
+        "branches": "Degët Totale",
+        "agents": "Agjentët Aktivë",
+        "members": "Anëtarët Totalë",
+        "open_claims": "Dëmet e Hapura",
+        "cash_pending": "Kesh në Pritje",
+        "sla_breaches": "Shkeljet SLA"
+      },
+      "branches": {
+        "title": "Shëndeti i Degëve",
+        "active": "Aktive",
+        "active_users": "Përdorues Aktivë",
+        "no_branches": "Nuk u gjetën degë."
+      },
+      "alerts": {
+        "title": "Alarmet Operacionale",
+        "subtitle": "Njoftime kritike të sistemit që kërkojnë vëmendje.",
+        "all_clear": "Të gjitha sistemet janë operacionale."
+      },
+      "panels": {
+        "claims_pipeline": "Pipeline i Dëmeve",
+        "unassigned": "Pa Caktuar",
+        "in_progress": "Në Progres",
+        "in_review": "Në Shqyrtim",
+        "approved": "Aprovuar",
+        "rejected": "Refuzuar",
+        "leads": "Potencialët & Konversioni",
+        "conversion_rate": "Norma",
+        "recent_activity": "Aktiviteti i Fundit",
+        "no_recent_leads": "Nuk ka potencial të fundit",
+        "total": "Potencialët Totalë",
+        "top_performers": "Performuesit Më të Mirë",
+        "no_agent_data": "Nuk ka të dhëna për agjentë",
+        "agent": "Agjenti",
+        "sales": "Shitjet",
+        "lead_status": {
+          "new": "I Ri",
+          "payment_pending": "Pagesa në Pritje",
+          "converted": "Konvertuar",
+          "disqualified": "Skualifikuar",
+          "expired": "Skaduar"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "admin": {
+    "leads": {
+      "title": "Верификација на плаќање",
+      "subtitle": "Верификувајте ги готовинските плаќања собрани од агентите.",
+      "approve": "Одобри",
+      "reject": "Одбиј",
+      "success": "Плаќањето е верификувано",
+      "table": {
+        "amount": "Износ",
+        "verification": "Верификација"
+      }
+    },
+    "analytics": {
+      "title": "Analytics Overview",
+      "description": "Platform performance and claim distribution metrics.",
+      "metrics": {
+        "total_value": "Total Claim Value",
+        "avg_value": "Average Claim Amount",
+        "success_rate": "Resolution Rate",
+        "active_users": "Active Claimants"
+      },
+      "status_distribution": "Distribution by Status",
+      "category_distribution": "Distribution by Category",
+      "no_data": "Insufficient data for visualization"
+    }
+  }
+}

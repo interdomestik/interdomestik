@@ -1,0 +1,18 @@
+{
+  "admin": {
+    "sidebar": {
+      "title": "Paneli i Adminit",
+      "subtitle": "Paneli i Kontrollit",
+      "dashboard": "Paneli",
+      "claims": "Kërkesat",
+      "users": "Përdoruesit",
+      "members": "Anëtarë",
+      "agents": "Agjentë",
+      "staff": "Staf",
+      "analytics": "Analitika",
+      "branches": "Degët",
+      "leads": "Verifikimi i Lead-ve",
+      "settings": "Cilësimet"
+    }
+  }
+}

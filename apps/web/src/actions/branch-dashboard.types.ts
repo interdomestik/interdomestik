@@ -22,8 +22,11 @@ export interface BranchMetadata {
 export interface BranchStats {
   totalAgents: number;
   totalMembers: number;
-  totalClaimsAllTime: number;
-  claimsThisMonth: number;
+  openClaims: number;
+  cashPending: number;
+  slaBreaches: number;
+  healthScore: number;
+  severity: 'healthy' | 'watch' | 'urgent' | 'inactive';
 }
 
 export interface BranchAgentRow {

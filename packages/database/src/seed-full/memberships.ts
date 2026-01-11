@@ -52,10 +52,15 @@ export async function seedSubscriptionsAndCommissions() {
 
     for (const cfg of SUBS_CONFIG) {
       // Determine ID (must match users.ts)
+      // MK: members 1-2 are golden, 3-9 are full
+      // KS: members 1-3 are golden, 4-9 are full
       let memberId = `full_${tenantPrefix}_member_${cfg.suffix}`;
       if (tenant === TENANTS.MK && (cfg.suffix === '1' || cfg.suffix === '2')) {
         memberId = `golden_${tenantPrefix}_member_${cfg.suffix}`;
-      } else if (tenant === TENANTS.KS && cfg.suffix === '1') {
+      } else if (
+        tenant === TENANTS.KS &&
+        (cfg.suffix === '1' || cfg.suffix === '2' || cfg.suffix === '3')
+      ) {
         memberId = `golden_${tenantPrefix}_member_${cfg.suffix}`;
       }
 

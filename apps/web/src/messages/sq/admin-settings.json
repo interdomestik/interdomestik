@@ -1,0 +1,33 @@
+{
+  "admin": {
+    "settings_page": {
+      "title": "Cilësimet e Adminit",
+      "description": "Konfiguro parametrat e sistemit dhe sjelljen e platformës.",
+      "sections": {
+        "general": {
+          "title": "Të Përgjithshme",
+          "description": "Identifikimi bazë i platformës dhe info e kontaktit.",
+          "app_name": "Emri i Aplikacionit",
+          "support_email": "Email-i i Mbështetjes"
+        },
+        "claims": {
+          "title": "Procesimi i Kërkesave për Dëmshpërblim",
+          "description": "Rregullat dhe automatizimi për procesimin e kërkesave për dëmshpërblim.",
+          "auto_assignment": "Caktimi automatik i agjentëve",
+          "auto_assignment_desc": "Cakto automatikisht kërkesat e reja për dëmshpërblim te agjentët e disponueshëm.",
+          "default_expiry": "Skadimi parazgjedhur i kërkesës për dëmshpërblim (ditë)"
+        },
+        "system": {
+          "title": "Sistemi",
+          "description": "Kontrollet e shëndetit dhe mirëmbajtjes së sistemit.",
+          "maintenance_mode": "Mënyra e Mirëmbajtjes",
+          "maintenance_mode_desc": "Parandaloni aksesin e përdoruesve gjatë përditësimeve.",
+          "verbose_logging": "Gjurmimi i Detajuar (Logs)",
+          "verbose_logging_desc": "Aktivizoni loget e detajuara për qëllime korrigjimi."
+        }
+      },
+      "save_changes": "Ruaj Ndryshimet",
+      "success_message": "Cilësimet u përditësuan me sukses"
+    }
+  }
+}

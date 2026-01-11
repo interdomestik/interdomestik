@@ -25,7 +25,9 @@
     "type-check": "tsc --noEmit",
     "seed:e2e": "tsx src/seed-e2e.ts",
     "seed:golden": "tsx src/seed-golden.ts",
-    "seed:full": "tsx src/seed-full/index.ts"
+    "seed:workload": "tsx src/seed-workload/index.ts",
+    "seed:full": "tsx src/seed-full/index.ts",
+    "seed:pack:ks": "tsx src/seed-packs/ks-workflow-pack.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",

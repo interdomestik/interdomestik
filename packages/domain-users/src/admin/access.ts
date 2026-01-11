@@ -61,6 +61,12 @@ export async function requireTenantAdminSession(session: UserSession | null): Pr
     return session;
   }
 
+  // Tenant admin via user.role field (primary authz path for tenant_admin role).
+  if (session.user.role === 'tenant_admin') {
+    ensureTenantId(session);
+    return session;
+  }
+
   // Legacy global admin remains valid.
   if (session.user.role === 'admin') {
     ensureTenantId(session);
