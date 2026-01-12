@@ -54,6 +54,20 @@
         },
         "empty_state": "No operational claims for this filter."
       },
+      "source": {
+        "origin_label": "Origin",
+        "branch": "Branch",
+        "agent": "Agent",
+        "member": "Member",
+        "unknown": "Unknown",
+        "created": "Created",
+        "origin": {
+          "portal": "Portal",
+          "agent": "Agent",
+          "admin": "Admin",
+          "api": "API"
+        }
+      },
       "filters": {
         "status_label": "Lifecycle status",
         "assigned_label": "Assignment",
@@ -124,6 +138,81 @@
           "open_full": "Open full detail"
         },
         "refresh": "Refresh"
+      },
+      "next_actions": {
+        "title": "Next Step",
+        "secondary_label": "Also available",
+        "stuck": "Stuck",
+        "days": "days",
+        "status": "Status",
+        "actions": {
+          "assign": {
+            "label": "Assign to Me",
+            "description": "Take ownership to unblock this claim."
+          },
+          "update_status": {
+            "label": "Advance Status",
+            "description": "Move claim to next stage."
+          },
+          "ack_sla": { "label": "Acknowledge Breach", "description": "SLA missed. Note required." },
+          "escalate": { "label": "Escalate", "description": "Request manager attention." },
+          "message_poke": {
+            "label": "Send Reminder",
+            "description": "Member has been unresponsive."
+          },
+          "review_blockers": {
+            "label": "Review Blockers",
+            "description": "Check timeline for issues."
+          },
+          "reopen": { "label": "Reopen Claim", "description": "Move back to evaluation." },
+          "message_respond": {
+            "label": "Post Note",
+            "description": "Add an internal note for the assigned owner."
+          },
+          "reassign": {
+            "label": "Reassign",
+            "description": "Transfer ownership to another staff member."
+          }
+        },
+        "no_action": "No immediate actions required.",
+        "risk": {
+          "sla_breach": "SLA Breach",
+          "stuck": "Stuck",
+          "unassigned": "Unassigned",
+          "back_to_queue": "Back to Queue",
+          "sla": "SLA",
+          "breach": "Breach",
+          "days": "days",
+          "status": "Status"
+        },
+        "toast": {
+          "failed": "Action failed",
+          "completed": "Action completed",
+          "unexpected_error": "An unexpected error occurred"
+        }
+      },
+      "evidence": {
+        "title": "Evidence",
+        "upload_button": "Upload",
+        "no_docs": "No documents uploaded.",
+        "types": {
+          "image": "Image",
+          "audio": "Audio",
+          "document": "Document"
+        }
+      },
+      "timeline": {
+        "title": "Activity Timeline",
+        "empty": "No activity recorded yet."
+      },
+      "detail": {
+        "fields": {
+          "branch": "Branch",
+          "claim_limit": "Claim Limit"
+        },
+        "description": {
+          "empty": "No description provided."
+        }
       }
     }
   }

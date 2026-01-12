@@ -23,12 +23,16 @@ export const claims = pgTable(
     title: text('title').notNull(),
     description: text('description'),
     status: statusEnum('status').default('draft'),
+    origin: text('origin').default('portal').notNull(), // 'portal' | 'agent' | 'admin' | 'api'
+    originRefId: text('origin_ref_id'), // agentId or staffId
     category: text('category').notNull(), // e.g. 'retail', 'services'
     companyName: text('companyName').notNull(),
     claimAmount: decimal('amount', { precision: 10, scale: 2 }),
     currency: text('currency').default('EUR'),
     createdAt: timestamp('createdAt').defaultNow(),
     updatedAt: timestamp('updatedAt').$onUpdate(() => new Date()),
+    // Tracks when status was last changed (for accurate daysInStage calculation)
+    statusUpdatedAt: timestamp('statusUpdatedAt'),
   },
   table => [
     index('idx_claims_branch').on(table.branchId),

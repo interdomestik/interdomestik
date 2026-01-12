@@ -79,6 +79,7 @@
       "flight_delay": "Доцнење на лет",
       "damaged_goods": "Оштетена стока",
       "service_issue": "Проблем со услуга",
+      "test": "Test",
       "other": "Друго"
     },
     "priority": {

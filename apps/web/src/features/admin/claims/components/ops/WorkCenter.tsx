@@ -31,7 +31,7 @@ export function WorkCenter({ claims, hasMore, currentPage }: WorkCenterProps) {
   })();
 
   return (
-    <main className="flex-1 min-w-0 py-4 px-4 overflow-y-auto" data-testid="work-center">
+    <section className="flex-1 min-w-0 py-4 px-4 overflow-y-auto" data-testid="work-center">
       <h2 className="text-sm font-medium text-muted-foreground mb-4">
         {t('prioritized_list.title')}
       </h2>
@@ -44,6 +44,6 @@ export function WorkCenter({ claims, hasMore, currentPage }: WorkCenterProps) {
           </Button>
         </div>
       )}
-    </main>
+    </section>
   );
 }

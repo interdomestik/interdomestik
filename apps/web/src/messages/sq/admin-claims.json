@@ -54,6 +54,20 @@
         },
         "empty_state": "Nuk ka kërkesa operative për këtë filtër."
       },
+      "source": {
+        "origin_label": "Origjina",
+        "branch": "Dega",
+        "agent": "Agjenti",
+        "member": "Anëtari",
+        "unknown": "I panjohur",
+        "created": "Krijuar më",
+        "origin": {
+          "portal": "Portal",
+          "agent": "Agjent",
+          "admin": "Admin",
+          "api": "API"
+        }
+      },
       "filters": {
         "status_label": "Statusi i rrjedhës",
         "assigned_label": "Shpërndarja",
@@ -124,6 +138,84 @@
           "open_full": "Hap detajet e plota"
         },
         "refresh": "Rifresko"
+      },
+      "next_actions": {
+        "title": "Hapi i Radhës",
+        "secondary_label": "Gjithashtu të disponueshme",
+        "stuck": "Ngecur",
+        "days": "ditë",
+        "status": "Statusi",
+        "actions": {
+          "assign": {
+            "label": "Më cakto mua",
+            "description": "Merr përgjegjësinë për zhbllokimin e kërkesës."
+          },
+          "update_status": {
+            "label": "Avanco Statusin",
+            "description": "Kalo kërkesën në fazën tjetër."
+          },
+          "ack_sla": {
+            "label": "Prano shkeljen",
+            "description": "Afati u shkel. Kërkohet shënim."
+          },
+          "escalate": { "label": "Eskalo", "description": "Kërko vëmendjen e menaxherit." },
+          "message_poke": {
+            "label": "Dërgo Kujtesë",
+            "description": "Anëtari nuk është përgjigjur."
+          },
+          "review_blockers": {
+            "label": "Shiko Bllokuesit",
+            "description": "Kontrollo kronologjinë për probleme."
+          },
+          "reopen": { "label": "Rihap Kërkesën", "description": "Kthe në vlerësim." },
+          "message_respond": {
+            "label": "Shto shënim",
+            "description": "Shto një shënim të brendshëm për përgjegjësin e caktuar."
+          },
+          "reassign": {
+            "label": "Ricakto",
+            "description": "Transfero përgjegjësinë te një anëtar tjetër i stafit."
+          }
+        },
+        "no_action": "Nuk kërkohen veprime të menjëhershme.",
+        "risk": {
+          "sla_breach": "Tejkalim SLA",
+          "stuck": "Ngecur",
+          "unassigned": "Pa caktuar",
+          "back_to_queue": "Kthehu në Radhë",
+          "sla": "SLA",
+          "breach": "Tejkalim",
+          "days": "ditë",
+          "status": "Statusi"
+        },
+        "toast": {
+          "failed": "Veprimi dështoi",
+          "completed": "Veprimi u krye",
+          "unexpected_error": "Ndodhi një gabim i papritur"
+        }
+      },
+      "evidence": {
+        "title": "Evidenca",
+        "upload_button": "Ngarko",
+        "no_docs": "Nuk ka dokumente të ngarkuara.",
+        "types": {
+          "image": "Imazh",
+          "audio": "Audio",
+          "document": "Dokument"
+        }
+      },
+      "timeline": {
+        "title": "Kronologjia",
+        "empty": "Nuk ka aktivitet të regjistruar."
+      },
+      "detail": {
+        "fields": {
+          "branch": "Dega",
+          "claim_limit": "Limiti i Kërkesës"
+        },
+        "description": {
+          "empty": "Nuk ka përshkrim."
+        }
       }
     }
   }

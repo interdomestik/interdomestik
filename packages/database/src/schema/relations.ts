@@ -78,6 +78,7 @@ export const claimsRelations = relations(claims, ({ one, many }) => ({
     references: [user.id],
     relationName: 'claim_staff',
   }),
+  branch: one(branches, { fields: [claims.branchId], references: [branches.id] }),
   documents: many(claimDocuments),
   messages: many(claimMessages),
   stageHistory: many(claimStageHistory),

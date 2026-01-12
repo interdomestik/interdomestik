@@ -2,7 +2,7 @@
 import type { ClaimStatus } from '@interdomestik/database/constants';
 
 import { computeRiskFlags } from '@/features/claims/policy';
-import type { ClaimOperationalRow, LifecycleStage, OwnerRole } from '../types';
+import type { ClaimOperationalRow, ClaimOriginType, LifecycleStage, OwnerRole } from '../types';
 import { STATUS_TO_LIFECYCLE, STATUS_TO_OWNER } from '../types';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -30,6 +30,9 @@ export interface RawClaimRow {
     staffId: string | null;
     category: string | null;
     currency: string | null;
+    statusUpdatedAt: Date | null;
+    origin: string | null;
+    originRefId: string | null;
   };
   claimant: {
     name: string | null;
@@ -59,7 +62,10 @@ export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow 
   const status = claim.status as ClaimStatus;
 
   // Derive timing
-  const stageStartedAt = normalizeDate(claim.updatedAt ?? claim.assignedAt ?? claim.createdAt);
+  // Use statusUpdatedAt if available for accurate "time in stage", fallback to other dates
+  const stageStartedAt = normalizeDate(
+    claim.statusUpdatedAt ?? claim.updatedAt ?? claim.assignedAt ?? claim.createdAt
+  );
   const daysInStage = getDaysInStage(stageStartedAt);
 
   // Derive lifecycle semantics
@@ -88,6 +94,9 @@ export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow 
     memberEmail: claimant?.email ?? '',
     branchCode: branch?.code ?? null,
     agentName: agent?.name ?? null,
+    originType: (claim.origin as ClaimOriginType) ?? 'portal',
+    originRefId: claim.originRefId ?? null,
+    originDisplayName: agent?.name ?? null, // Default display for agent origin
     category: claim.category,
     status,
   };

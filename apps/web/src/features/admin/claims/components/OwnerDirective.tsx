@@ -3,7 +3,7 @@ import { useTranslations } from 'next-intl';
 
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { OwnerRole, WaitingOn } from '../types';
-import { STATUS_TO_OWNER } from '../types';
+import { isStaffOwnedStatus, isTerminalStatus, STATUS_TO_OWNER } from '../types';
 
 export interface OwnerDirectiveProps {
   ownerRole: OwnerRole;
@@ -13,22 +13,7 @@ export interface OwnerDirectiveProps {
   status: ClaimStatus;
 }
 
-// Terminal statuses where badge is never shown
-const TERMINAL_STATUSES: ClaimStatus[] = ['resolved', 'rejected'];
-
-/**
- * Check if status is staff-owned per STATUS_TO_OWNER mapping.
- */
-export function isStaffOwnedStatus(status: ClaimStatus): boolean {
-  return STATUS_TO_OWNER[status] === 'staff';
-}
-
-/**
- * Check if status is terminal (resolved/rejected).
- */
-export function isTerminalStatus(status: ClaimStatus): boolean {
-  return TERMINAL_STATUSES.includes(status);
-}
+// isStaffOwnedStatus and isTerminalStatus imported from types.ts (canonical)
 
 /**
  * Directive variant for the PRIMARY directive line.

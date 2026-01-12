@@ -1,16 +1,6 @@
 // Phase 2.7: Priority Sort Helper (Canonical Server Implementation)
-import type { ClaimStatus } from '@interdomestik/database/constants';
-
 import type { ClaimOperationalRow } from '../types';
-import { STAFF_OWNED_STATUSES } from '../types';
-
-/**
- * Check if status is staff-owned.
- * Uses canonical STAFF_OWNED_STATUSES array.
- */
-export function isStaffOwnedStatus(status: ClaimStatus): boolean {
-  return STAFF_OWNED_STATUSES.includes(status);
-}
+import { isStaffOwnedStatus } from '../types';
 
 /**
  * Computes priority score for a claim.

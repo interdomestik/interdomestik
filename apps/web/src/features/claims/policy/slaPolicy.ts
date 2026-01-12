@@ -151,6 +151,8 @@ export function getSlaThreshold(status: ClaimStatus): number {
 
 /**
  * Check if a status is terminal (no further action expected).
+ * @deprecated Use isTerminalStatus from features/admin/claims/types.ts for consistency.
+ * Kept here for backwards compatibility with existing imports.
  */
 export function isTerminalStatus(status: ClaimStatus): boolean {
   return status === 'resolved' || status === 'rejected';

@@ -97,9 +97,10 @@ export default async function AdminLayout({
               ) : null}
             </div>
           </header>
-          <main className="flex-1 overflow-y-auto p-6 md:p-8">
+          {/* SidebarInset renders as <main>, so use <div> here to avoid nested landmarks */}
+          <div className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="container mx-auto">{children}</div>
-          </main>
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </NextIntlClientProvider>

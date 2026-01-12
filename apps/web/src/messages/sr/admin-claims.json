@@ -54,6 +54,19 @@
         },
         "empty_state": "Нема оперативних захтева за овај филтер."
       },
+      "source": {
+        "origin_label": "Poreklo",
+        "branch": "Filijala",
+        "agent": "Agent",
+        "member": "Član",
+        "unknown": "Nepoznat",
+        "origin": {
+          "portal": "Portal",
+          "agent": "Agent",
+          "admin": "Admin",
+          "api": "API"
+        }
+      },
       "filters": {
         "status_label": "Статус животног циклуса",
         "assigned_label": "Додела",
@@ -124,6 +137,73 @@
           "open_full": "Отвори целе детаље"
         },
         "refresh": "Освежи"
+      },
+      "next_actions": {
+        "title": "Next Step",
+        "secondary_label": "Also available",
+        "actions": {
+          "assign": {
+            "label": "Assign to Me",
+            "description": "Take ownership to unblock this claim."
+          },
+          "update_status": {
+            "label": "Advance Status",
+            "description": "Move claim to next stage."
+          },
+          "ack_sla": { "label": "Acknowledge Breach", "description": "SLA missed. Note required." },
+          "escalate": { "label": "Escalate", "description": "Request manager attention." },
+          "message_poke": {
+            "label": "Send Reminder",
+            "description": "Member has been unresponsive."
+          },
+          "review_blockers": {
+            "label": "Review Blockers",
+            "description": "Check timeline for issues."
+          },
+          "reopen": { "label": "Reopen Claim", "description": "Move back to evaluation." },
+          "message_respond": {
+            "label": "Dodaj belešku",
+            "description": "Dodaj internu belešku za dodeljenog vlasnika."
+          },
+          "reassign": {
+            "label": "Ponovo dodeli",
+            "description": "Prenesi odgovornost na drugog člana osoblja."
+          }
+        },
+        "no_action": "Nije potrebna hitna akcija.",
+        "risk": {
+          "sla_breach": "SLA prekršaj",
+          "stuck": "Zaglavljeno ({days} dana)",
+          "unassigned": "Nedodeljeno"
+        },
+        "toast": {
+          "failed": "Akcija nije uspela",
+          "completed": "Akcija završena",
+          "unexpected_error": "Došlo je do neočekivane greške"
+        }
+      },
+      "evidence": {
+        "title": "Dokazi",
+        "upload_button": "Otpremi",
+        "no_docs": "Nema otpremljenih dokumenata.",
+        "types": {
+          "image": "Slika",
+          "audio": "Audio",
+          "document": "Dokument"
+        }
+      },
+      "timeline": {
+        "title": "Vremenska linija aktivnosti",
+        "empty": "Nema zabeleženih aktivnosti."
+      },
+      "detail": {
+        "fields": {
+          "branch": "Filijala",
+          "claim_limit": "Limit zahteva"
+        },
+        "description": {
+          "empty": "Nema opisa."
+        }
       }
     }
   }

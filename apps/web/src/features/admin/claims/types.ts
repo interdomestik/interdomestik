@@ -17,6 +17,7 @@ export type LifecycleStage =
   | 'completed';
 
 export type OwnerRole = 'staff' | 'agent' | 'member' | 'system';
+export type ClaimOriginType = 'portal' | 'agent' | 'admin' | 'api';
 
 /**
  * UI-ready operational row for admin claims.
@@ -41,6 +42,9 @@ export interface ClaimOperationalRow {
   memberEmail: string;
   branchCode: string | null;
   agentName: string | null;
+  originType: ClaimOriginType;
+  originRefId: string | null;
+  originDisplayName: string | null; // e.g., Agent Name or Integration ID
   category: string | null;
   status: ClaimStatus;
 }
@@ -138,6 +142,22 @@ export const STAFF_OWNED_STATUSES = Object.entries(STATUS_TO_OWNER)
 export const TERMINAL_STATUSES: ClaimStatus[] = ['resolved', 'rejected'];
 
 /**
+ * Check if a status is terminal (no further action expected).
+ * Canonical helper — import from here, do not duplicate.
+ */
+export function isTerminalStatus(status: ClaimStatus): boolean {
+  return TERMINAL_STATUSES.includes(status);
+}
+
+/**
+ * Check if a status is staff-owned.
+ * Canonical helper — import from here, do not duplicate.
+ */
+export function isStaffOwnedStatus(status: ClaimStatus): boolean {
+  return STAFF_OWNED_STATUSES.includes(status);
+}
+
+/**
  * Pool configuration constants.
  */
 export const OPS_POOL_LIMIT = 200;
@@ -165,6 +185,29 @@ export interface OpsCenterResponse {
   stats: LifecycleStats;
   fetchedAt: string;
   hasMore: boolean; // For load more
+}
+
+export type AdminClaimDocument = {
+  id: string;
+  name: string;
+  fileSize: number | null;
+  fileType: string | null;
+  createdAt: Date | null;
+  url: string;
+};
+
+/**
+ * Detailed operational view for a single claim.
+ * Extends the row with full description and documents.
+ */
+export interface ClaimOpsDetail extends ClaimOperationalRow {
+  description: string | null;
+  docs: AdminClaimDocument[];
+  // Visual fields for detail page
+  companyName: string | null;
+  claimAmount: string | null;
+  currency: string | null;
+  createdAt: Date | null;
 }
 
 /**

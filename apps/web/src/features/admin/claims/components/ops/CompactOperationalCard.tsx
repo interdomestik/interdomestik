@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import type { ClaimOperationalRow } from '../../types';
 import { OwnerDirective } from '../OwnerDirective';
 import { StateSpine } from '../StateSpine';
+import { ClaimOriginBadges } from '../shared/ClaimOriginBadges';
 
 interface CompactOperationalCardProps {
   claim: ClaimOperationalRow;
@@ -24,7 +25,7 @@ export function CompactOperationalCard({ claim, isSelected }: CompactOperational
     <Link
       href={href}
       className={cn(
-        'group relative flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-all block text-left',
+        'group relative flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-all text-left',
         'hover:bg-accent/50 hover:border-accent-foreground/20',
         isSelected
           ? 'bg-accent border-accent-foreground/30 ring-1 ring-inset ring-primary/20'
@@ -55,6 +56,16 @@ export function CompactOperationalCard({ claim, isSelected }: CompactOperational
           />
         </div>
 
+        {/* New 2.5: Source Badges (Dense) */}
+        <div className="py-0.5">
+          <ClaimOriginBadges
+            originType={claim.originType}
+            originDisplayName={claim.originDisplayName}
+            branchCode={claim.branchCode}
+            variant="list"
+          />
+        </div>
+
         {/* 3. Identity (Truncated) */}
         <div className="flex items-center gap-2">
           <span className="font-mono text-xs text-muted-foreground shrink-0">{claim.code}</span>
@@ -63,10 +74,9 @@ export function CompactOperationalCard({ claim, isSelected }: CompactOperational
           </h3>
         </div>
 
-        {/* 4. Minimal Metadata (One line) */}
+        {/* 4. Minimal Metadata (Member + Category) - Branch moved to badges */}
         <p className="text-xs text-muted-foreground truncate">
           {claim.memberName} • {claim.category}
-          {claim.branchCode && ` • ${claim.branchCode}`}
         </p>
       </div>
 

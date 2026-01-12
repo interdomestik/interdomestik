@@ -65,13 +65,15 @@ export function MessagingPanel({
   const handleMessageSent = handleRefresh;
 
   return (
-    <Card className="flex flex-col h-[500px]" data-testid="messaging-panel">
-      <CardHeader className="flex flex-row items-center justify-between py-3 px-4 border-b">
-        <CardTitle className="text-base flex items-center gap-2">
+    <Card className="flex flex-col h-[500px] shadow-sm" data-testid="messaging-panel">
+      <CardHeader className="flex flex-row items-center justify-between py-2.5 px-4 border-b">
+        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80 flex items-center gap-2">
           <MessageSquare className="h-4 w-4" />
           {t('title')}
           {messages.length > 0 && (
-            <span className="text-xs text-muted-foreground">({messages.length})</span>
+            <span className="text-xs text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+              {messages.length}
+            </span>
           )}
         </CardTitle>
         <Button

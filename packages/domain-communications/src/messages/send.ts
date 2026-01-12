@@ -58,7 +58,11 @@ export async function sendMessageDbCore(params: {
       return { success: false, error: 'Claim not found' };
     }
 
-    const isStaff = userRole === 'staff' || userRole === 'admin';
+    const isStaff =
+      userRole === 'staff' ||
+      userRole === 'admin' ||
+      userRole === 'tenant_admin' ||
+      userRole === 'super_admin';
 
     if (!isStaff && claim.userId !== userId) {
       return { success: false, error: 'Access denied' };

@@ -1,12 +1,9 @@
 // Phase 2.7: Priority Sort Unit Tests
 import { describe, expect, it } from 'vitest';
 
-import {
-  computePriorityScore,
-  isStaffOwnedStatus,
-  sortByPriority,
-} from '../../../server/prioritySort';
+import { computePriorityScore, sortByPriority } from '../../../server/prioritySort';
 import type { ClaimOperationalRow } from '../../../types';
+import { isStaffOwnedStatus } from '../../../types';
 
 // Test helper to create minimal claim row
 function createClaimRow(overrides: Partial<ClaimOperationalRow>): ClaimOperationalRow {
@@ -31,6 +28,9 @@ function createClaimRow(overrides: Partial<ClaimOperationalRow>): ClaimOperation
     agentName: null,
     category: null,
     status: 'evaluation',
+    originType: 'portal',
+    originRefId: null,
+    originDisplayName: null,
     ...overrides,
   };
 }

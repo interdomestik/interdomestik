@@ -1,12 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import {
-  getPrimaryDirectiveVariant,
-  isStaffOwnedStatus,
-  isTerminalStatus,
-  shouldShowUnassignedBadge,
-} from './OwnerDirective';
+import { isStaffOwnedStatus, isTerminalStatus } from '../types';
+import { getPrimaryDirectiveVariant, shouldShowUnassignedBadge } from './OwnerDirective';
 
 describe('OwnerDirective helpers', () => {
   describe('isStaffOwnedStatus', () => {

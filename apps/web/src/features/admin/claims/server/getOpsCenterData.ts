@@ -9,14 +9,19 @@ import { mapClaimsToOperationalRows, type RawClaimRow } from '../mappers';
 import type {
   ClaimOperationalRow,
   LifecycleStage,
-  OperationalKPIs,
   OpsCenterFilters,
   OpsCenterResponse,
 } from '../types';
-import { OPS_PAGE_SIZE, OPS_POOL_LIMIT, TERMINAL_STATUSES } from '../types';
+import {
+  isStaffOwnedStatus,
+  isTerminalStatus,
+  OPS_PAGE_SIZE,
+  OPS_POOL_LIMIT,
+  TERMINAL_STATUSES,
+} from '../types';
 import type { ClaimsVisibilityContext } from './claimVisibility';
 import { getAdminClaimStats } from './getAdminClaimStats';
-import { isStaffOwnedStatus, sortByPriority } from './prioritySort';
+import { sortByPriority } from './prioritySort';
 
 const LIFECYCLE_STATUS_MAP: Record<LifecycleStage, ClaimStatus[]> = {
   intake: ['draft', 'submitted'],
@@ -27,12 +32,7 @@ const LIFECYCLE_STATUS_MAP: Record<LifecycleStage, ClaimStatus[]> = {
   completed: ['resolved', 'rejected'],
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helper: Check if status is terminal
-// ─────────────────────────────────────────────────────────────────────────────
-function isTerminalStatus(status: string): boolean {
-  return (TERMINAL_STATUSES as string[]).includes(status);
-}
+// Helper uses canonical isTerminalStatus from types
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: Filter sorted pool by priority queue filter
@@ -58,7 +58,8 @@ function filterByPriority(
         r => r.hasSlaBreach || (r.isUnassigned && isStaffOwnedStatus(r.status)) || r.isStuck
       );
     case 'mine':
-      return rows.filter(r => r.assigneeId === userId);
+      // P1 fix: exclude terminal statuses from 'mine' filter
+      return rows.filter(r => r.assigneeId === userId && !isTerminalStatus(r.status));
     default:
       return rows;
   }
@@ -121,48 +122,7 @@ function buildPoolConditions(context: ClaimsVisibilityContext, filters: OpsCente
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Compute KPIs (global for lifecycle/branch/assignee, NOT priority)
-// ─────────────────────────────────────────────────────────────────────────────
-function computeKPIsFromPool(rows: ClaimOperationalRow[], _userId: string): OperationalKPIs {
-  let slaBreach = 0;
-  let unassigned = 0;
-  let stuck = 0;
-  let waitingOnMember = 0;
-  let assignedToMe = 0;
-  const needsActionSet = new Set<string>();
-
-  for (const row of rows) {
-    if (row.hasSlaBreach) {
-      slaBreach++;
-      needsActionSet.add(row.id);
-    }
-    if (row.isUnassigned && isStaffOwnedStatus(row.status)) {
-      unassigned++;
-      needsActionSet.add(row.id);
-    }
-    if (row.isStuck) {
-      stuck++;
-      needsActionSet.add(row.id);
-    }
-    if (row.waitingOn === 'member' && !isTerminalStatus(row.status)) {
-      waitingOnMember++;
-    }
-    // assignedToMe: staffOwned + non-terminal + assigned to user
-    if (row.assigneeId === _userId && isStaffOwnedStatus(row.status)) {
-      assignedToMe++;
-    }
-  }
-
-  return {
-    slaBreach,
-    unassigned,
-    stuck,
-    totalOpen: rows.length,
-    waitingOnMember,
-    assignedToMe,
-    needsAction: needsActionSet.size, // OR-based, no double count
-  };
-}
+import { computeKPIsFromPool } from './computeKPIs';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Loader: getOpsCenterData
@@ -176,6 +136,7 @@ export async function getOpsCenterData(
   try {
     const conditions = buildPoolConditions(context, filters);
     const staff = aliasedTable(user, 'staff');
+    const agent = aliasedTable(user, 'agent'); // Added agent alias
 
     // Step 1: Fetch bounded pool (DB ordering by updatedAt for stability)
     // Fetch LIMIT + 1 to detect if there are more items in the DB
@@ -188,8 +149,12 @@ export async function getOpsCenterData(
           createdAt: claims.createdAt,
           updatedAt: claims.updatedAt,
           assignedAt: claims.assignedAt,
+          staffId: claims.staffId, // Critical: needed for isUnassigned computation
           category: claims.category,
           currency: claims.currency,
+          statusUpdatedAt: claims.statusUpdatedAt,
+          origin: claims.origin,
+          originRefId: claims.originRefId,
         },
         claimant: {
           name: user.name,
@@ -204,11 +169,15 @@ export async function getOpsCenterData(
           code: branches.code,
           name: branches.name,
         },
+        agent: {
+          name: agent.name,
+        },
       })
       .from(claims)
       .leftJoin(user, eq(claims.userId, user.id))
       .leftJoin(staff, eq(claims.staffId, staff.id))
       .leftJoin(branches, eq(claims.branchId, branches.id))
+      .leftJoin(agent, eq(claims.agentId, agent.id)) // Join on agentId (indexed)
       .where(and(...conditions))
       .orderBy(desc(claims.updatedAt), desc(claims.id))
       .limit(OPS_POOL_LIMIT + 1);

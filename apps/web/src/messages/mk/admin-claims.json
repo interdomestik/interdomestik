@@ -54,6 +54,19 @@
         },
         "empty_state": "Нема оперативни барања за овој филтер."
       },
+      "source": {
+        "origin_label": "Потекло",
+        "branch": "Филијала",
+        "agent": "Агент",
+        "member": "Член",
+        "unknown": "Непознат",
+        "origin": {
+          "portal": "Портал",
+          "agent": "Агент",
+          "admin": "Admin",
+          "api": "API"
+        }
+      },
       "filters": {
         "status_label": "Статус на животен циклус",
         "assigned_label": "Назначување",
@@ -124,6 +137,73 @@
           "open_full": "Отвори целосни детали"
         },
         "refresh": "Освежи"
+      },
+      "next_actions": {
+        "title": "Next Step",
+        "secondary_label": "Also available",
+        "actions": {
+          "assign": {
+            "label": "Assign to Me",
+            "description": "Take ownership to unblock this claim."
+          },
+          "update_status": {
+            "label": "Advance Status",
+            "description": "Move claim to next stage."
+          },
+          "ack_sla": { "label": "Acknowledge Breach", "description": "SLA missed. Note required." },
+          "escalate": { "label": "Escalate", "description": "Request manager attention." },
+          "message_poke": {
+            "label": "Send Reminder",
+            "description": "Member has been unresponsive."
+          },
+          "review_blockers": {
+            "label": "Review Blockers",
+            "description": "Check timeline for issues."
+          },
+          "reopen": { "label": "Reopen Claim", "description": "Move back to evaluation." },
+          "message_respond": {
+            "label": "Додај белешка",
+            "description": "Додај внатрешна белешка за доделениот одговорен."
+          },
+          "reassign": {
+            "label": "Прераспредели",
+            "description": "Пренеси ја одговорноста на друг член од персоналот."
+          }
+        },
+        "no_action": "Не се потребни итни акции.",
+        "risk": {
+          "sla_breach": "SLA прекршок",
+          "stuck": "Заглавено ({days} дена)",
+          "unassigned": "Неназначено"
+        },
+        "toast": {
+          "failed": "Акцијата не успеа",
+          "completed": "Акцијата е завршена",
+          "unexpected_error": "Се појави неочекувана грешка"
+        }
+      },
+      "evidence": {
+        "title": "Докази",
+        "upload_button": "Прикачи",
+        "no_docs": "Нема прикачени документи.",
+        "types": {
+          "image": "Слика",
+          "audio": "Аудио",
+          "document": "Документ"
+        }
+      },
+      "timeline": {
+        "title": "Временска линија",
+        "empty": "Нема забележани активности."
+      },
+      "detail": {
+        "fields": {
+          "branch": "Филијала",
+          "claim_limit": "Лимит на барањето"
+        },
+        "description": {
+          "empty": "Нема опис."
+        }
       }
     }
   }
