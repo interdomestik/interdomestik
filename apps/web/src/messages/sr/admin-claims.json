@@ -1,56 +1,66 @@
 {
   "admin": {
     "claims_page": {
-      "title": "Claims Management",
-      "description": "View and manage all user claims.",
+      "title": "Управљање захтевима",
+      "description": "Прегледај и управљај свим захтевима корисника.",
       "assignment": {
-        "label": "Assigned staff",
-        "placeholder": "Select staff",
-        "unassigned": "Unassigned",
-        "success_message": "Claim assigned successfully"
+        "label": "Додељено особље",
+        "placeholder": "Изабери особље",
+        "unassigned": "Недодељено",
+        "success_message": "Захтев је успешно додељен"
       },
       "sections": {
-        "active": "Active",
-        "draft": "Drafts",
-        "resolved": "Resolved"
+        "active": "Активни",
+        "draft": "Нацрти",
+        "resolved": "Решени"
       },
-      "message_alert": "New message ({count})",
+      "message_alert": "Нова порука ({count})",
       "table": {
-        "title": "Title",
-        "amount": "Amount",
+        "title": "Наслов",
+        "amount": "Износ",
         "headers": {
-          "complainant": "Claimant",
-          "title": "Title",
-          "status": "Status",
-          "amount": "Amount",
-          "date": "Date",
-          "branch": "Branch",
-          "assignee": "Assignee",
-          "updated": "Updated",
-          "actions": "Open"
+          "complainant": "Подносилац",
+          "title": "Наслов",
+          "status": "Статус",
+          "amount": "Износ",
+          "date": "Датум",
+          "branch": "Филијала",
+          "assignee": "Додељено",
+          "updated": "Ажурирано",
+          "actions": "Отвори"
         },
         "groups": {
-          "submitted": "Submitted",
-          "verification": "Verification",
-          "evaluation": "Evaluation",
-          "negotiation": "Negotiation",
-          "court": "Court",
-          "resolved": "Resolved",
-          "rejected": "Rejected",
-          "draft": "Draft",
-          "other": "Other"
+          "submitted": "Поднети",
+          "verification": "Верификација",
+          "evaluation": "Евалуација",
+          "negotiation": "Преговори",
+          "court": "Судски",
+          "resolved": "Решени",
+          "rejected": "Одбијени",
+          "draft": "Нацрт",
+          "other": "Остали"
         },
         "group_header": "{label} • {count}",
         "row": {
-          "stage_line": "{stage} • {days} days",
-          "owner_waiting": "Waiting on {owner}",
-          "owner_assigned": "Owner: {name} ({role})",
-          "owner_system": "System hold",
-          "stuck": "Needs attention",
+          "stage_line": "{stage} • {days} дана",
+          "owner_waiting": "Чека се {owner}",
+          "owner_assigned": "Додељено: {name} ({role})",
+          "owner_system": "Системска пауза",
+          "stuck": "Захтева пажњу",
           "branch_type": "{branch} • {type}",
-          "member": "{name} ({email})"
+          "member": "{name} ({email})",
+          "amount_unknown": "—",
+          "metadata_condensed": "{member} • {branch}"
         },
-        "empty_state": "No operational claims for this filter."
+        "empty_state": "Нема оперативних захтева за овај филтер."
+      },
+      "filters": {
+        "status_label": "Статус животног циклуса",
+        "assigned_label": "Додела",
+        "assigned_all": "Све",
+        "assigned_only": "Додељено",
+        "unassigned_only": "Недодељено",
+        "assigned_to_me": "Додељено мени"
       },
       "lifecycle_tabs": {
         "all": "Све",
@@ -64,10 +74,57 @@
       "indicators": {
         "stuck": "Захтева пажњу",
         "sla_breach": "Прекорачење SLA",
-        "cash_pending": "Плаћање у току"
+        "cash_pending": "Плаћање у току",
+        "unassigned": "Недодељено",
+        "waiting_on_member": "Чека се члан",
+        "waiting_on_staff": "Чека се особље",
+        "waiting_on_system": "Обрада у току"
+      },
+      "operational_card": {
+        "view_claim": "Погледај захтев",
+        "directive": {
+          "staff_action_required": "Потребна акција особља",
+          "staff_action_with_name": "Акција особља — {name}",
+          "member_waiting": "Чека се члан",
+          "system_completed": "Завршено — без акције"
+        },
+        "badge": {
+          "unassigned": "Додели одговорног"
+        }
       },
       "pagination_info": "Страница {page} од {total} ({count} захтева)",
-      "access_denied": "Приступ одбијен. Немате дозволу за преглед захтева."
+      "access_denied": "Приступ одбијен. Немате дозволу за преглед захтева.",
+      "ops_center": {
+        "title": "Оперативни центар",
+        "data_age": "Ажурирано пре {seconds}с",
+        "kpi": {
+          "sla_breach": "SLA прекорачења",
+          "unassigned": "Недодељено",
+          "stuck": "Захтева пажњу",
+          "total_open": "Отворени захтеви",
+          "waiting_member": "Чека се члан",
+          "assigned_to_me": "Додељено мени"
+        },
+        "queue": {
+          "all": "Све",
+          "needs_action": "Тражи акцију",
+          "sla_breach": "SLA ризик",
+          "unassigned": "Недодељено",
+          "stuck": "Заглављено",
+          "waiting_member": "Чека се члан",
+          "mine": "Моји"
+        },
+        "prioritized_list": {
+          "title": "Највиши приоритет",
+          "load_more": "Учитај више",
+          "empty": "Нема захтева за овај филтер"
+        },
+        "preview": {
+          "loading": "Учитавање...",
+          "open_full": "Отвори целе детаље"
+        },
+        "refresh": "Освежи"
+      }
     }
   }
 }

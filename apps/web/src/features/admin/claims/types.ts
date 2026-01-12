@@ -1,6 +1,9 @@
 // v2.0.2-admin-claims-ops — Admin Claims Operational Center
 import type { ClaimStatus } from '@interdomestik/database/constants';
 
+// Re-export from policy for convenience
+export type { WaitingOn } from '@/features/claims/policy';
+
 /**
  * Lifecycle stages for operational admin view.
  * Maps to business lifecycle semantics, not raw statuses.
@@ -28,8 +31,11 @@ export interface ClaimOperationalRow {
   daysInStage: number;
   ownerRole: OwnerRole;
   ownerName: string | null;
+  assigneeId: string | null; // Added for KPI "Mine" calculation
   isStuck: boolean;
   hasSlaBreach: boolean;
+  isUnassigned: boolean;
+  waitingOn: 'member' | 'staff' | 'system' | null;
   hasCashPending: boolean;
   memberName: string;
   memberEmail: string;
@@ -114,3 +120,78 @@ export const STUCK_THRESHOLDS: Partial<Record<ClaimStatus, number>> = {
   court: 10,
   draft: 7,
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 2.7: Operational Center Dashboard Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Staff-owned statuses — derived from STATUS_TO_OWNER (single source).
+ */
+export const STAFF_OWNED_STATUSES = Object.entries(STATUS_TO_OWNER)
+  .filter(([, owner]) => owner === 'staff')
+  .map(([status]) => status as ClaimStatus);
+
+/**
+ * Terminal statuses — canonical source for isTerminal checks.
+ */
+export const TERMINAL_STATUSES: ClaimStatus[] = ['resolved', 'rejected'];
+
+/**
+ * Pool configuration constants.
+ */
+export const OPS_POOL_LIMIT = 200;
+export const OPS_PAGE_SIZE = 10;
+
+/**
+ * Operational KPIs for dashboard header.
+ */
+export interface OperationalKPIs {
+  slaBreach: number;
+  unassigned: number;
+  stuck: number;
+  totalOpen: number;
+  waitingOnMember: number;
+  assignedToMe: number;
+  needsAction: number; // OR-based: sla || unassigned || stuck
+}
+
+/**
+ * Operational Center response DTO.
+ */
+export interface OpsCenterResponse {
+  kpis: OperationalKPIs;
+  prioritized: ClaimOperationalRow[];
+  stats: LifecycleStats;
+  fetchedAt: string;
+  hasMore: boolean; // For load more
+}
+
+/**
+ * Filter parameters for Ops Center.
+ */
+export interface OpsCenterFilters {
+  lifecycle?: LifecycleStage;
+  priority?: 'sla' | 'unassigned' | 'stuck' | 'waiting_member' | 'needs_action';
+  assignee?: 'all' | 'unassigned' | 'me';
+  branch?: string;
+  page?: number;
+  poolAnchor?: OpsPoolAnchor;
+}
+
+/**
+ * Pool anchor for stable pagination across pages.
+ * All pool queries must enforce: (updatedAt, id) <= (anchor.updatedAt, anchor.id)
+ */
+export interface OpsPoolAnchor {
+  updatedAt: string; // ISO timestamp
+  id: string;
+}
+
+/**
+ * Pool hash for filter identity (invalidation).
+ */
+export function computePoolHash(filters: OpsCenterFilters): string {
+  const parts = [filters.lifecycle ?? '', filters.branch ?? '', filters.assignee ?? ''];
+  return parts.join('|');
+}

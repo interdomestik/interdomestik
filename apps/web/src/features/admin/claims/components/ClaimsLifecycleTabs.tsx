@@ -27,6 +27,7 @@ export function ClaimsLifecycleTabs({ stats, currentStage }: ClaimsLifecycleTabs
   const handleTabChange = (stage: LifecycleStage | 'all') => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page'); // Reset pagination
+    params.delete('poolAnchor'); // Reset pool anchor for new filter context
 
     if (stage === 'all') {
       params.delete('lifecycle');

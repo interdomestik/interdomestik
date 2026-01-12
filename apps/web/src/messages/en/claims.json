@@ -64,6 +64,7 @@
     },
     "category": {
       "consumer": "Consumer",
+      "consumer_rights": "Consumer Rights",
       "housing": "Housing",
       "insurance": "Insurance",
       "employment": "Employment",
@@ -117,6 +118,15 @@
       "claimAmount": "Claim Amount",
       "category": "Category",
       "evidence": "Attached Evidence"
+    },
+    "timeline": {
+      "title": "Timeline",
+      "empty": "No timeline entries yet",
+      "initial": "Created",
+      "actor_system": "System",
+      "actor_staff": "Staff",
+      "actor_member": "Member",
+      "actor_admin": "Admin"
     }
   }
 }

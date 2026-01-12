@@ -72,19 +72,116 @@ test.describe('Admin Claims V2', () => {
     // We trust backend filtering logic, smoke test verifies wiring.
   });
 
-  test('4. Data: Rows have testids and status badges', async ({ page }) => {
-    // Assert at least one row exists (seed data guarantees some claims)
-    const rows = page.locator('[data-testid^="admin-claim-row-"]');
-    const count = await rows.count();
+  test('4. Phase 2.5: OperationalCard structure exists', async ({ page }) => {
+    // Assert at least one OperationalCard exists
+    const cards = page.getByTestId('claim-operational-card');
+    await expect(cards.first()).toBeVisible({ timeout: 10000 });
 
-    if (count > 0) {
-      const firstId = await rows.first().getAttribute('data-testid');
-      const id = firstId?.replace('admin-claim-row-', '');
+    // 4a. StateSpine exists within the card
+    const stateSpine = page.getByTestId('state-spine');
+    await expect(stateSpine.first()).toBeVisible();
 
-      // Check Status Badge
-      await expect(page.getByTestId(`admin-claim-status-${id}`)).toBeVisible();
-      // Check Branch Cell
-      await expect(page.getByTestId(`admin-claim-branch-${id}`)).toBeVisible();
+    // 4b. StateSpine has responsive min-width (96px min)
+    const spineBox = await stateSpine.first().boundingBox();
+    expect(spineBox?.width).toBeGreaterThanOrEqual(96);
+
+    // 4c. OwnerDirective exists (one of the directive variants)
+    const directive = page.locator('[data-testid^="owner-directive-"]');
+    await expect(directive.first()).toBeVisible();
+
+    // 4d. Claim metadata exists
+    await expect(page.getByTestId('claim-metadata').first()).toBeVisible();
+  });
+
+  test('5. Phase 2.5: Directive is above ClaimIdentity (DOM order)', async ({ page }) => {
+    // Find the first operational card
+    const card = page.getByTestId('claim-operational-card').first();
+    await expect(card).toBeVisible({ timeout: 10000 });
+
+    // Get positions - directive should have lower Y than identity (appears first/above)
+    const directive = card.locator('[data-testid^="owner-directive-"]');
+    const identity = card.getByTestId('claim-identity');
+
+    const directiveBox = await directive.boundingBox();
+    const identityBox = await identity.boundingBox();
+
+    if (directiveBox && identityBox) {
+      expect(directiveBox.y).toBeLessThan(identityBox.y);
+    }
+  });
+
+  test('6. Phase 2.5: View button accessibility and navigation', async ({ page }) => {
+    // Wait for cards to load - asChild makes the Link the actual element
+    // The Button with data-testid wraps not nests the Link
+    const viewButton = page.getByTestId('view-claim').first();
+    await expect(viewButton).toBeVisible({ timeout: 10000 });
+
+    // 6a. Check hit target is ≥ 44x44
+    const buttonBox = await viewButton.boundingBox();
+    expect(buttonBox?.width).toBeGreaterThanOrEqual(44);
+    expect(buttonBox?.height).toBeGreaterThanOrEqual(44);
+
+    // 6b. Check that the element has aria-label (it's on the Link via asChild passthrough)
+    // With asChild, the Link becomes the button, so check the button itself
+    const hasAriaOrSrOnly = await viewButton.evaluate(el => {
+      return el.getAttribute('aria-label') !== null || el.querySelector('.sr-only') !== null;
+    });
+    expect(hasAriaOrSrOnly).toBeTruthy();
+
+    // 6c. Click and verify navigation to claim detail page
+    await viewButton.click();
+    // Claim IDs can contain letters, numbers, underscores, hyphens
+    await expect(page).toHaveURL(/\/admin\/claims\/[\w-]+/, { timeout: 10000 });
+  });
+
+  test('7. Phase 2.5: No i18n missing key warnings in console', async ({ page }) => {
+    // Collect console warnings
+    const missingKeyWarnings: string[] = [];
+    page.on('console', msg => {
+      if (
+        msg.type() === 'warning' &&
+        (msg.text().includes('MISSING_MESSAGE') || msg.text().includes('missing key'))
+      ) {
+        missingKeyWarnings.push(msg.text());
+      }
+    });
+
+    // Navigate to claims page (fresh load)
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    // Assert no missing key warnings
+    expect(missingKeyWarnings).toHaveLength(0);
+  });
+
+  test('8. Phase 2.6.1: Two-part directive DOM structure', async ({ page }) => {
+    // Wait for at least one card to be visible
+    const cards = page.getByTestId('claim-operational-card');
+    await expect(cards.first()).toBeVisible({ timeout: 10000 });
+
+    // Get all visible cards
+    const cardCount = await cards.count();
+
+    for (let i = 0; i < Math.min(cardCount, 5); i++) {
+      const card = cards.nth(i);
+
+      // 8a. Each row has exactly 1 primary directive element
+      const primaryDirective = card.getByTestId('primary-directive');
+      await expect(primaryDirective).toHaveCount(1);
+
+      // 8b. Each row has at most 1 unassigned badge
+      const unassignedBadge = card.getByTestId('unassigned-badge');
+      const badgeCount = await unassignedBadge.count();
+      expect(badgeCount).toBeLessThanOrEqual(1);
+
+      // 8c. Primary directive appears above title in DOM order
+      const title = card.getByTestId('claim-identity');
+      const primaryBox = await primaryDirective.boundingBox();
+      const titleBox = await title.boundingBox();
+
+      if (primaryBox && titleBox) {
+        expect(primaryBox.y).toBeLessThan(titleBox.y);
+      }
     }
   });
 });

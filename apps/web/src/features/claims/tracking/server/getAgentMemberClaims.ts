@@ -1,7 +1,7 @@
 import { db } from '@interdomestik/database';
 import { claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import 'server-only';
 import { ensureClaimsAccess } from '../../../../server/domains/claims/guards';
 import { buildClaimVisibilityWhere } from '../utils';
@@ -61,8 +61,7 @@ export async function getAgentMemberClaims(session: any): Promise<AgentMemberCla
 
       const memberIds = members.map(m => m.id);
 
-      // 3. Fetch Claims for these members
-      // We use the visibility helper to be safe, but we can also be explicit here since we have the list.
+      // 3. Fetch Claims for these members (excluding drafts per Phase 2.3 PRD)
       const visibilityCondition = buildClaimVisibilityWhere({
         tenantId,
         userId,
@@ -74,7 +73,8 @@ export async function getAgentMemberClaims(session: any): Promise<AgentMemberCla
       const memberClaims = await db.query.claims.findMany({
         where: and(
           visibilityCondition,
-          inArray(claims.userId, memberIds) // Optimization redundant but safe
+          inArray(claims.userId, memberIds), // Optimization redundant but safe
+          ne(claims.status, 'draft') // PRD: Agents must not see draft claims
         ),
         orderBy: desc(claims.updatedAt),
         columns: {

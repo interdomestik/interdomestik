@@ -1,56 +1,66 @@
 {
   "admin": {
     "claims_page": {
-      "title": "Claims Management",
-      "description": "View and manage all user claims.",
+      "title": "Управување со барања",
+      "description": "Прегледај и управувај со сите барања на корисници.",
       "assignment": {
-        "label": "Assigned staff",
-        "placeholder": "Select staff",
-        "unassigned": "Unassigned",
-        "success_message": "Claim assigned successfully"
+        "label": "Назначен персонал",
+        "placeholder": "Избери персонал",
+        "unassigned": "Неназначено",
+        "success_message": "Барањето е успешно назначено"
       },
       "sections": {
-        "active": "Active",
-        "draft": "Drafts",
-        "resolved": "Resolved"
+        "active": "Активни",
+        "draft": "Нацрти",
+        "resolved": "Решени"
       },
-      "message_alert": "New message ({count})",
+      "message_alert": "Нова порака ({count})",
       "table": {
-        "title": "Title",
-        "amount": "Amount",
+        "title": "Наслов",
+        "amount": "Износ",
         "headers": {
-          "complainant": "Claimant",
-          "title": "Title",
-          "status": "Status",
-          "amount": "Amount",
-          "date": "Date",
-          "branch": "Branch",
-          "assignee": "Assignee",
-          "updated": "Updated",
-          "actions": "Open"
+          "complainant": "Подносител",
+          "title": "Наслов",
+          "status": "Статус",
+          "amount": "Износ",
+          "date": "Датум",
+          "branch": "Филијала",
+          "assignee": "Назначен",
+          "updated": "Ажурирано",
+          "actions": "Отвори"
         },
         "groups": {
-          "submitted": "Submitted",
-          "verification": "Verification",
-          "evaluation": "Evaluation",
-          "negotiation": "Negotiation",
-          "court": "Court",
-          "resolved": "Resolved",
-          "rejected": "Rejected",
-          "draft": "Draft",
-          "other": "Other"
+          "submitted": "Поднесени",
+          "verification": "Верификација",
+          "evaluation": "Евалуација",
+          "negotiation": "Преговори",
+          "court": "Судски",
+          "resolved": "Решени",
+          "rejected": "Одбиени",
+          "draft": "Нацрт",
+          "other": "Други"
         },
         "group_header": "{label} • {count}",
         "row": {
-          "stage_line": "{stage} • {days} days",
-          "owner_waiting": "Waiting on {owner}",
-          "owner_assigned": "Owner: {name} ({role})",
-          "owner_system": "System hold",
-          "stuck": "Needs attention",
+          "stage_line": "{stage} • {days} дена",
+          "owner_waiting": "Се чека {owner}",
+          "owner_assigned": "Назначен: {name} ({role})",
+          "owner_system": "Системска пауза",
+          "stuck": "Бара внимание",
           "branch_type": "{branch} • {type}",
-          "member": "{name} ({email})"
+          "member": "{name} ({email})",
+          "amount_unknown": "—",
+          "metadata_condensed": "{member} • {branch}"
         },
-        "empty_state": "No operational claims for this filter."
+        "empty_state": "Нема оперативни барања за овој филтер."
+      },
+      "filters": {
+        "status_label": "Статус на животен циклус",
+        "assigned_label": "Назначување",
+        "assigned_all": "Сите",
+        "assigned_only": "Назначени",
+        "unassigned_only": "Неназначени",
+        "assigned_to_me": "Назначени на мене"
       },
       "lifecycle_tabs": {
         "all": "Сите",
@@ -64,10 +74,57 @@
       "indicators": {
         "stuck": "Бара внимание",
         "sla_breach": "Прекршување на SLA",
-        "cash_pending": "Плаќање во тек"
+        "cash_pending": "Плаќање во тек",
+        "unassigned": "Неназначени",
+        "waiting_on_member": "Се чека член",
+        "waiting_on_staff": "Се чека персонал",
+        "waiting_on_system": "Обработка во тек"
+      },
+      "operational_card": {
+        "view_claim": "Погледни барање",
+        "directive": {
+          "staff_action_required": "Потребна акција од персоналот",
+          "staff_action_with_name": "Акција на персоналот — {name}",
+          "member_waiting": "Се чека член",
+          "system_completed": "Завршено — без акција"
+        },
+        "badge": {
+          "unassigned": "Назначи одговорен"
+        }
       },
       "pagination_info": "Страна {page} од {total} ({count} барања)",
-      "access_denied": "Пристап одбиен. Немате дозвола за преглед на барања."
+      "access_denied": "Пристап одбиен. Немате дозвола за преглед на барања.",
+      "ops_center": {
+        "title": "Оперативен центар",
+        "data_age": "Ажурирано пред {seconds}с",
+        "kpi": {
+          "sla_breach": "SLA прекршоци",
+          "unassigned": "Неназначени",
+          "stuck": "Бара внимание",
+          "total_open": "Отворени барања",
+          "waiting_member": "Се чека член",
+          "assigned_to_me": "Назначени на мене"
+        },
+        "queue": {
+          "all": "Сите",
+          "needs_action": "Бара акција",
+          "sla_breach": "SLA ризик",
+          "unassigned": "Неназначени",
+          "stuck": "Заглавени",
+          "waiting_member": "Се чека член",
+          "mine": "Мои"
+        },
+        "prioritized_list": {
+          "title": "Највисок приоритет",
+          "load_more": "Вчитај повеќе",
+          "empty": "Нема барања за овој филтер"
+        },
+        "preview": {
+          "loading": "Се вчитува...",
+          "open_full": "Отвори целосни детали"
+        },
+        "refresh": "Освежи"
+      }
     }
   }
 }

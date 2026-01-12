@@ -64,6 +64,7 @@
     },
     "category": {
       "consumer": "Потрошувач",
+      "consumer_rights": "Потрошувачки права",
       "housing": "Домување",
       "insurance": "Осигурување",
       "employment": "Вработување",
@@ -117,6 +118,15 @@
       "claimAmount": "Баран Износ",
       "category": "Категорија",
       "evidence": "Приложени докази"
+    },
+    "timeline": {
+      "title": "Хронологија",
+      "empty": "Нема записи во хронологија",
+      "initial": "Креирано",
+      "actor_system": "Систем",
+      "actor_staff": "Персонал",
+      "actor_member": "Член",
+      "actor_admin": "Админ"
     }
   }
 }

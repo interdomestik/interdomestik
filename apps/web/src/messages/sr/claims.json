@@ -64,6 +64,7 @@
     },
     "category": {
       "consumer": "Potrošač",
+      "consumer_rights": "Prava potrošača",
       "housing": "Stanovanje",
       "insurance": "Osiguranje",
       "employment": "Zaposlenje",
@@ -117,6 +118,15 @@
       "claimAmount": "Traženi Iznos",
       "category": "Kategorija",
       "evidence": "Priloženi Dokazi"
+    },
+    "timeline": {
+      "title": "Hronologija",
+      "empty": "Nema zapisa u hronologiji",
+      "initial": "Kreirano",
+      "actor_system": "Sistem",
+      "actor_staff": "Osoblje",
+      "actor_member": "Član",
+      "actor_admin": "Admin"
     }
   }
 }

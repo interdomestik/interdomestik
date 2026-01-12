@@ -1,11 +1,14 @@
 import { useTranslations } from 'next-intl';
 import type { ClaimOperationalRow } from '../types';
-import { ClaimRow } from './ClaimRow';
+import { OperationalCard } from './OperationalCard';
 
 interface ClaimsOperationalListProps {
   claims: ClaimOperationalRow[];
 }
 
+/**
+ * ClaimsOperationalList — Renders list of OperationalCards (Phase 2.5)
+ */
 export function ClaimsOperationalList({ claims }: ClaimsOperationalListProps) {
   const tTable = useTranslations('admin.claims_page.table');
 
@@ -20,7 +23,7 @@ export function ClaimsOperationalList({ claims }: ClaimsOperationalListProps) {
   return (
     <div className="space-y-3">
       {claims.map(claim => (
-        <ClaimRow key={claim.id} claim={claim} />
+        <OperationalCard key={claim.id} claim={claim} />
       ))}
     </div>
   );

@@ -2,7 +2,9 @@ import { getStaff } from '@/actions/admin-users';
 import { ClaimAssignmentForm } from '@/components/admin/claims/claim-assignment-form';
 import { ClaimStatusForm } from '@/components/admin/claims/claim-status-form';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
+import { ClaimTimelineSection } from '@/features/claims/timeline/components';
 import { auth } from '@/lib/auth';
+import { ensureTenantId } from '@interdomestik/shared-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
@@ -12,6 +14,7 @@ import { Download, FileText } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 
 import { getAdminClaimDetailsCore } from './_core';
 
@@ -36,6 +39,7 @@ export default async function AdminClaimDetailPage({
 
   if (result.kind === 'not_found') return notFound();
   const data = result.data;
+  const tenantId = ensureTenantId(session);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -117,6 +121,23 @@ export default async function AdminClaimDetailPage({
               <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
                 {data.description}
               </p>
+            </CardContent>
+          </Card>
+
+          {/* Timeline */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium">{t('timeline')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={<div className="h-20 animate-pulse bg-muted/50 rounded" />}>
+                <ClaimTimelineSection
+                  claimId={data.id}
+                  tenantId={tenantId}
+                  viewerRole="admin"
+                  showNotes={true}
+                />
+              </Suspense>
             </CardContent>
           </Card>
         </div>

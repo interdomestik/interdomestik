@@ -1,6 +1,9 @@
+'use client';
+
 import { Badge } from '@interdomestik/ui/components/badge';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { Shield } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { ReactNode } from 'react';
 
 interface AdminPageHeaderProps {
@@ -11,6 +14,14 @@ interface AdminPageHeaderProps {
   className?: string;
 }
 
+// Map app locale codes to Intl.DateTimeFormat locale codes
+const LOCALE_MAP: Record<string, string> = {
+  en: 'en-US',
+  sq: 'sq-AL',
+  mk: 'mk-MK',
+  sr: 'sr-RS',
+};
+
 export function AdminPageHeader({
   title,
   subtitle,
@@ -18,8 +29,11 @@ export function AdminPageHeader({
   actions,
   className,
 }: AdminPageHeaderProps) {
+  const locale = useLocale();
+  const intlLocale = LOCALE_MAP[locale] ?? 'en-US';
+
   const today = new Date();
-  const formattedDate = new Intl.DateTimeFormat('mk-MK', {
+  const formattedDate = new Intl.DateTimeFormat(intlLocale, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -48,7 +62,7 @@ export function AdminPageHeader({
             </Badge>
           )}
         </div>
-        <p className="text-muted-foreground font-medium">
+        <p className="text-muted-foreground font-medium" suppressHydrationWarning>
           {formattedDate} • {subtitle}
         </p>
       </div>

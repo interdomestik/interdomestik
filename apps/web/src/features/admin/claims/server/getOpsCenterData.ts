@@ -1,0 +1,269 @@
+// Phase 2.7: Operational Center Data Loader (Option B: Pool → Sort → Slice)
+import { db } from '@interdomestik/database';
+import type { ClaimStatus } from '@interdomestik/database/constants';
+import { branches, claims, user } from '@interdomestik/database/schema';
+import * as Sentry from '@sentry/nextjs';
+import { aliasedTable, and, desc, eq, inArray, isNull, or, sql, SQL } from 'drizzle-orm';
+
+import { mapClaimsToOperationalRows, type RawClaimRow } from '../mappers';
+import type {
+  ClaimOperationalRow,
+  LifecycleStage,
+  OperationalKPIs,
+  OpsCenterFilters,
+  OpsCenterResponse,
+} from '../types';
+import { OPS_PAGE_SIZE, OPS_POOL_LIMIT, TERMINAL_STATUSES } from '../types';
+import type { ClaimsVisibilityContext } from './claimVisibility';
+import { getAdminClaimStats } from './getAdminClaimStats';
+import { isStaffOwnedStatus, sortByPriority } from './prioritySort';
+
+const LIFECYCLE_STATUS_MAP: Record<LifecycleStage, ClaimStatus[]> = {
+  intake: ['draft', 'submitted'],
+  verification: ['verification'],
+  processing: ['evaluation'],
+  negotiation: ['negotiation'],
+  legal: ['court'],
+  completed: ['resolved', 'rejected'],
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: Check if status is terminal
+// ─────────────────────────────────────────────────────────────────────────────
+function isTerminalStatus(status: string): boolean {
+  return (TERMINAL_STATUSES as string[]).includes(status);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: Filter sorted pool by priority queue filter
+// ─────────────────────────────────────────────────────────────────────────────
+function filterByPriority(
+  rows: ClaimOperationalRow[],
+  priority: OpsCenterFilters['priority']
+): ClaimOperationalRow[] {
+  if (!priority) return rows;
+
+  switch (priority) {
+    case 'sla':
+      return rows.filter(r => r.hasSlaBreach);
+    case 'unassigned':
+      return rows.filter(r => r.isUnassigned && isStaffOwnedStatus(r.status));
+    case 'stuck':
+      return rows.filter(r => r.isStuck);
+    case 'waiting_member':
+      return rows.filter(r => r.waitingOn === 'member');
+    case 'needs_action':
+      return rows.filter(
+        r => r.hasSlaBreach || (r.isUnassigned && isStaffOwnedStatus(r.status)) || r.isStuck
+      );
+    default:
+      return rows;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DB WHERE conditions for pool fetch
+// ─────────────────────────────────────────────────────────────────────────────
+function buildPoolConditions(context: ClaimsVisibilityContext, filters: OpsCenterFilters): SQL[] {
+  const { tenantId, role, branchId, userId } = context;
+  const conditions: SQL[] = [eq(claims.tenantId, tenantId)];
+
+  // Role-based scoping
+  if (role === 'branch_manager' && branchId) {
+    conditions.push(eq(claims.branchId, branchId));
+  } else if (role === 'staff') {
+    if (branchId) {
+      conditions.push(or(eq(claims.branchId, branchId), eq(claims.staffId, userId))!);
+    } else {
+      conditions.push(eq(claims.staffId, userId));
+    }
+  }
+
+  // Exclude terminal statuses (ops = open claims only)
+  conditions.push(
+    sql`${claims.status} NOT IN (${sql.join(
+      TERMINAL_STATUSES.map(s => sql`${s}`),
+      sql`, `
+    )})`
+  );
+
+  // Lifecycle filter (affects KPIs too)
+  if (filters.lifecycle) {
+    const statuses = LIFECYCLE_STATUS_MAP[filters.lifecycle];
+    if (statuses?.length) {
+      conditions.push(inArray(claims.status, statuses));
+    }
+  }
+
+  // Assignee filter (affects KPIs too)
+  if (filters.assignee === 'unassigned') {
+    conditions.push(isNull(claims.staffId));
+  } else if (filters.assignee === 'me' && userId) {
+    conditions.push(eq(claims.staffId, userId));
+  }
+
+  // Branch filter
+  if (filters.branch) {
+    conditions.push(eq(branches.code, filters.branch));
+  }
+
+  // Pool anchor for stable pagination
+  if (filters.poolAnchor) {
+    conditions.push(
+      sql`(${claims.updatedAt}, ${claims.id}) <= (${filters.poolAnchor.updatedAt}::timestamp, ${filters.poolAnchor.id})`
+    );
+  }
+
+  return conditions;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Compute KPIs (global for lifecycle/branch/assignee, NOT priority)
+// ─────────────────────────────────────────────────────────────────────────────
+function computeKPIsFromPool(rows: ClaimOperationalRow[], _userId: string): OperationalKPIs {
+  let slaBreach = 0;
+  let unassigned = 0;
+  let stuck = 0;
+  let waitingOnMember = 0;
+  let assignedToMe = 0;
+  const needsActionSet = new Set<string>();
+
+  for (const row of rows) {
+    if (row.hasSlaBreach) {
+      slaBreach++;
+      needsActionSet.add(row.id);
+    }
+    if (row.isUnassigned && isStaffOwnedStatus(row.status)) {
+      unassigned++;
+      needsActionSet.add(row.id);
+    }
+    if (row.isStuck) {
+      stuck++;
+      needsActionSet.add(row.id);
+    }
+    if (row.waitingOn === 'member' && !isTerminalStatus(row.status)) {
+      waitingOnMember++;
+    }
+    // assignedToMe: staffOwned + non-terminal + assigned to user
+    if (row.assigneeId === _userId && isStaffOwnedStatus(row.status)) {
+      assignedToMe++;
+    }
+  }
+
+  return {
+    slaBreach,
+    unassigned,
+    stuck,
+    totalOpen: rows.length,
+    waitingOnMember,
+    assignedToMe,
+    needsAction: needsActionSet.size, // OR-based, no double count
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Loader: getOpsCenterData
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getOpsCenterData(
+  context: ClaimsVisibilityContext,
+  filters: OpsCenterFilters = {}
+): Promise<OpsCenterResponse> {
+  const page = filters.page ?? 0;
+
+  try {
+    const conditions = buildPoolConditions(context, filters);
+    const staff = aliasedTable(user, 'staff');
+
+    // Step 1: Fetch bounded pool (DB ordering by updatedAt for stability)
+    // Fetch LIMIT + 1 to detect if there are more items in the DB
+    const rawRows = await db
+      .select({
+        claim: {
+          id: claims.id,
+          title: claims.title,
+          status: claims.status,
+          createdAt: claims.createdAt,
+          updatedAt: claims.updatedAt,
+          assignedAt: claims.assignedAt,
+          category: claims.category,
+          currency: claims.currency,
+        },
+        claimant: {
+          name: user.name,
+          email: user.email,
+        },
+        staff: {
+          name: staff.name,
+          email: staff.email,
+        },
+        branch: {
+          id: branches.id,
+          code: branches.code,
+          name: branches.name,
+        },
+      })
+      .from(claims)
+      .leftJoin(user, eq(claims.userId, user.id))
+      .leftJoin(staff, eq(claims.staffId, staff.id))
+      .leftJoin(branches, eq(claims.branchId, branches.id))
+      .where(and(...conditions))
+      .orderBy(desc(claims.updatedAt), desc(claims.id))
+      .limit(OPS_POOL_LIMIT + 1);
+
+    // Determine if pool logic was curtailed by limit
+    const poolMayHaveMore = rawRows.length > OPS_POOL_LIMIT;
+    const effectiveRows = poolMayHaveMore ? rawRows.slice(0, OPS_POOL_LIMIT) : rawRows;
+
+    // Step 2: Map to operational rows (computes risk flags)
+    const pool = mapClaimsToOperationalRows(effectiveRows as RawClaimRow[]);
+
+    // Step 3: Compute KPIs from pool (global, before priority filter)
+    const kpis = computeKPIsFromPool(pool, context.userId);
+
+    // Step 4: Sort by priority score (server-side canonical)
+    const sortedPool = sortByPriority(pool);
+
+    // Step 5: Filter by priority (queue filter, list only)
+    const sortedFilteredPool = filterByPriority(sortedPool, filters.priority);
+
+    // Step 6: Slice for current page
+    const startIdx = page * OPS_PAGE_SIZE;
+    const prioritized = sortedFilteredPool.slice(startIdx, startIdx + OPS_PAGE_SIZE);
+
+    // Step 7: Compute hasMore
+    // User can load more if:
+    // A) The filtered list has more items than shown on current page
+    // B) The underlying pool was truncated, so there MIGHT be matches in DB we haven't seen
+    const hasMore = (page + 1) * OPS_PAGE_SIZE < sortedFilteredPool.length || poolMayHaveMore;
+
+    // Get lifecycle stats
+    const stats = await getAdminClaimStats(context);
+
+    return {
+      kpis,
+      prioritized,
+      stats,
+      fetchedAt: new Date().toISOString(),
+      hasMore,
+    };
+  } catch (error) {
+    Sentry.captureException(error, {
+      extra: { tenantId: context.tenantId, action: 'getOpsCenterData', filters },
+    });
+    return {
+      kpis: {
+        slaBreach: 0,
+        unassigned: 0,
+        stuck: 0,
+        totalOpen: 0,
+        waitingOnMember: 0,
+        assignedToMe: 0,
+        needsAction: 0,
+      },
+      prioritized: [],
+      stats: { intake: 0, verification: 0, processing: 0, negotiation: 0, legal: 0, completed: 0 },
+      fetchedAt: new Date().toISOString(),
+      hasMore: false,
+    };
+  }
+}

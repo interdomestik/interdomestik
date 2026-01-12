@@ -48,7 +48,9 @@
           "owner_system": "Në pritje sistemike",
           "stuck": "Kërkon vëmendje",
           "branch_type": "{branch} • {type}",
-          "member": "{name} ({email})"
+          "member": "{name} ({email})",
+          "amount_unknown": "—",
+          "metadata_condensed": "{member} • {branch}"
         },
         "empty_state": "Nuk ka kërkesa operative për këtë filtër."
       },
@@ -72,10 +74,57 @@
       "indicators": {
         "stuck": "Kërkon vëmendje",
         "sla_breach": "Tejkalim afati",
-        "cash_pending": "Pagesa në pritje"
+        "cash_pending": "Pagesa në pritje",
+        "unassigned": "Pa caktuar",
+        "waiting_on_member": "Në pritje të anëtarit",
+        "waiting_on_staff": "Në pritje të stafit",
+        "waiting_on_system": "Në përpunim"
+      },
+      "operational_card": {
+        "view_claim": "Shiko kërkesën",
+        "directive": {
+          "staff_action_required": "Kërkohet veprim nga stafi",
+          "staff_action_with_name": "Veprim stafi — {name}",
+          "member_waiting": "Në pritje të anëtarit",
+          "system_completed": "Përfunduar — pa veprim"
+        },
+        "badge": {
+          "unassigned": "Cakto përgjegjësin"
+        }
       },
       "pagination_info": "Faqja {page} nga {total} ({count} kërkesa)",
-      "access_denied": "Qasja e refuzuar. Nuk keni leje për të parë kërkesat."
+      "access_denied": "Qasja e refuzuar. Nuk keni leje për të parë kërkesat.",
+      "ops_center": {
+        "title": "Qendra Operacionale e Kërkesave",
+        "data_age": "Përditësuar {seconds}s më parë",
+        "kpi": {
+          "sla_breach": "Tejkalime SLA",
+          "unassigned": "Pa caktuar",
+          "stuck": "Kërkon vëmendje",
+          "total_open": "Kërkesa të hapura",
+          "waiting_member": "Në pritje të anëtarit",
+          "assigned_to_me": "Të caktuara për mua"
+        },
+        "queue": {
+          "all": "Të gjitha",
+          "needs_action": "Kërkon veprim",
+          "sla_breach": "Rrezik SLA",
+          "unassigned": "Pa caktuar",
+          "stuck": "Ngecur",
+          "waiting_member": "Në pritje të anëtarit",
+          "mine": "Të miat"
+        },
+        "prioritized_list": {
+          "title": "Prioritet i lartë",
+          "load_more": "Ngarko më shumë",
+          "empty": "Nuk ka kërkesa për këtë filtër"
+        },
+        "preview": {
+          "loading": "Duke ngarkuar...",
+          "open_full": "Hap detajet e plota"
+        },
+        "refresh": "Rifresko"
+      }
     }
   }
 }

@@ -48,9 +48,19 @@
           "owner_system": "System hold",
           "stuck": "Needs attention",
           "branch_type": "{branch} • {type}",
-          "member": "{name} ({email})"
+          "member": "{name} ({email})",
+          "amount_unknown": "—",
+          "metadata_condensed": "{member} • {branch}"
         },
         "empty_state": "No operational claims for this filter."
+      },
+      "filters": {
+        "status_label": "Lifecycle status",
+        "assigned_label": "Assignment",
+        "assigned_all": "All",
+        "assigned_only": "Assigned",
+        "unassigned_only": "Unassigned",
+        "assigned_to_me": "Assigned to me"
       },
       "lifecycle_tabs": {
         "all": "All",
@@ -64,10 +74,57 @@
       "indicators": {
         "stuck": "Needs attention",
         "sla_breach": "SLA breach",
-        "cash_pending": "Cash pending"
+        "cash_pending": "Cash pending",
+        "unassigned": "Unassigned",
+        "waiting_on_member": "Waiting on member",
+        "waiting_on_staff": "Waiting on staff",
+        "waiting_on_system": "System processing"
+      },
+      "operational_card": {
+        "view_claim": "View claim",
+        "directive": {
+          "staff_action_required": "Staff action required",
+          "staff_action_with_name": "Staff action — {name}",
+          "member_waiting": "Waiting on member",
+          "system_completed": "Completed — no action"
+        },
+        "badge": {
+          "unassigned": "Assign owner"
+        }
       },
       "pagination_info": "Page {page} of {total} ({count} claims)",
-      "access_denied": "Access denied. You do not have permission to view claims."
+      "access_denied": "Access denied. You do not have permission to view claims.",
+      "ops_center": {
+        "title": "Operational Center",
+        "data_age": "Updated {seconds}s ago",
+        "kpi": {
+          "sla_breach": "SLA Breaches",
+          "unassigned": "Unassigned",
+          "stuck": "Needs Attention",
+          "total_open": "Open Claims",
+          "waiting_member": "Waiting on Member",
+          "assigned_to_me": "Assigned to Me"
+        },
+        "queue": {
+          "all": "All",
+          "needs_action": "Needs Action",
+          "sla_breach": "SLA Risk",
+          "unassigned": "Unassigned",
+          "stuck": "Stuck",
+          "waiting_member": "Waiting on Member",
+          "mine": "Assigned to Me"
+        },
+        "prioritized_list": {
+          "title": "Top Priority",
+          "load_more": "Load more claims",
+          "empty": "No claims match this filter"
+        },
+        "preview": {
+          "loading": "Loading details...",
+          "open_full": "Open full detail"
+        },
+        "refresh": "Refresh"
+      }
     }
   }
 }

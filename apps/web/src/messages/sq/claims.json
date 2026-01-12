@@ -118,6 +118,15 @@
       "claimAmount": "Shuma e Kërkesës për Dëmshpërblim",
       "category": "Kategoria",
       "evidence": "Dëshmi të bashkëngjitura"
+    },
+    "timeline": {
+      "title": "Kronologjia",
+      "empty": "Nuk ka hyrje në kronologji",
+      "initial": "Krijuar",
+      "actor_system": "Sistem",
+      "actor_staff": "Staf",
+      "actor_member": "Anëtar",
+      "actor_admin": "Admin"
     }
   }
 }

@@ -1,7 +1,9 @@
 // v2.0.2-admin-claims-ops — Pure mapper for operational rows
 import type { ClaimStatus } from '@interdomestik/database/constants';
+
+import { computeRiskFlags } from '@/features/claims/policy';
 import type { ClaimOperationalRow, LifecycleStage, OwnerRole } from '../types';
-import { STATUS_TO_LIFECYCLE, STATUS_TO_OWNER, STUCK_THRESHOLDS } from '../types';
+import { STATUS_TO_LIFECYCLE, STATUS_TO_OWNER } from '../types';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -17,12 +19,6 @@ function getDaysInStage(stageStart: Date | null): number {
   return Math.max(0, Math.floor(diff / MS_PER_DAY));
 }
 
-function isStageStuck(status: ClaimStatus, daysInStage: number): boolean {
-  const threshold = STUCK_THRESHOLDS[status];
-  if (threshold === undefined) return false;
-  return daysInStage >= threshold;
-}
-
 export interface RawClaimRow {
   claim: {
     id: string;
@@ -31,6 +27,7 @@ export interface RawClaimRow {
     createdAt: Date | null;
     updatedAt: Date | null;
     assignedAt: Date | null;
+    staffId: string | null;
     category: string | null;
     currency: string | null;
   };
@@ -47,22 +44,30 @@ export interface RawClaimRow {
     code: string | null;
     name: string | null;
   } | null;
+  agent?: {
+    name: string | null;
+  } | null;
 }
 
 /**
  * Maps raw DB row to operational row DTO.
  * Pure function — no JSX, no translations, no formatting.
+ * Uses policy module for all risk computations.
  */
 export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow {
-  const { claim, claimant, staff, branch } = row;
+  const { claim, claimant, staff, branch, agent } = row;
   const status = claim.status as ClaimStatus;
 
+  // Derive timing
   const stageStartedAt = normalizeDate(claim.updatedAt ?? claim.assignedAt ?? claim.createdAt);
   const daysInStage = getDaysInStage(stageStartedAt);
 
+  // Derive lifecycle semantics
   const lifecycleStage: LifecycleStage = STATUS_TO_LIFECYCLE[status] ?? 'intake';
   const ownerRole: OwnerRole = STATUS_TO_OWNER[status] ?? 'system';
-  const isStuck = isStageStuck(status, daysInStage);
+
+  // Compute risk flags using policy module
+  const riskFlags = computeRiskFlags(status, daysInStage, claim.staffId ?? null);
 
   return {
     id: claim.id,
@@ -73,13 +78,16 @@ export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow 
     daysInStage,
     ownerRole,
     ownerName: staff?.name ?? null,
-    isStuck,
-    hasSlaBreach: isStuck, // Reuse stuck logic for SLA (can be refined)
+    assigneeId: claim.staffId ?? null,
+    isStuck: riskFlags.isStuck,
+    hasSlaBreach: riskFlags.hasSlaBreach,
+    isUnassigned: riskFlags.isUnassigned,
+    waitingOn: riskFlags.waitingOn,
     hasCashPending: false, // Placeholder — no existing logic for this
     memberName: claimant?.name ?? 'Unknown',
     memberEmail: claimant?.email ?? '',
     branchCode: branch?.code ?? null,
-    agentName: null, // Placeholder — add agent join if needed
+    agentName: agent?.name ?? null,
     category: claim.category,
     status,
   };

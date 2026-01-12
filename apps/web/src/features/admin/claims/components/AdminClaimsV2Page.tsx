@@ -8,6 +8,7 @@ import { canViewAdminClaims, getAdminClaimsV2, resolveClaimsVisibility } from '.
 import type { LifecycleStage } from '../types';
 import { ClaimsLifecycleTabs } from './ClaimsLifecycleTabs';
 import { ClaimsOperationalList } from './ClaimsOperationalList';
+import OpsCenterPage from './ops/OpsCenterPage';
 
 interface AdminClaimsV2PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -34,12 +35,23 @@ export default async function AdminClaimsV2Page({ searchParams }: AdminClaimsV2P
 
   // Parse search params
   const params = await searchParams;
+  const view = params?.view as string | undefined;
+
+  // ROUTING SWITCH
+  // Default to Ops Center unless 'list' is explicitly requested
+  if (view !== 'list') {
+    // Import dynamically or use the component directly if no circular deps
+    // We reuse the same searchParams prop signature
+    return <OpsCenterPage searchParams={searchParams} />;
+  }
+
+  // --- LEGACY LIST VIEW (view=list) ---
   const page = Number(params?.page || 1);
   const lifecycleParam = params?.lifecycle as string | undefined;
   const lifecycleStage = lifecycleParam as LifecycleStage | undefined;
   const search = params?.search as string | undefined;
 
-  // Fetch data
+  // Fetch data for legacy list
   const data = await getAdminClaimsV2(context, {
     page,
     lifecycleStage,
