@@ -39,7 +39,8 @@ function isTerminalStatus(status: string): boolean {
 // ─────────────────────────────────────────────────────────────────────────────
 function filterByPriority(
   rows: ClaimOperationalRow[],
-  priority: OpsCenterFilters['priority']
+  priority: OpsCenterFilters['priority'],
+  userId: string
 ): ClaimOperationalRow[] {
   if (!priority) return rows;
 
@@ -56,6 +57,8 @@ function filterByPriority(
       return rows.filter(
         r => r.hasSlaBreach || (r.isUnassigned && isStaffOwnedStatus(r.status)) || r.isStuck
       );
+    case 'mine':
+      return rows.filter(r => r.assigneeId === userId);
     default:
       return rows;
   }
@@ -224,7 +227,7 @@ export async function getOpsCenterData(
     const sortedPool = sortByPriority(pool);
 
     // Step 5: Filter by priority (queue filter, list only)
-    const sortedFilteredPool = filterByPriority(sortedPool, filters.priority);
+    const sortedFilteredPool = filterByPriority(sortedPool, filters.priority, context.userId);
 
     // Step 6: Slice for current page
     const startIdx = page * OPS_PAGE_SIZE;

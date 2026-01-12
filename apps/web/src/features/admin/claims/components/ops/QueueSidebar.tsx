@@ -81,8 +81,8 @@ export function QueueSidebar({ kpis }: QueueSidebarProps) {
         label={t('queue.mine')}
         count={kpis.assignedToMe}
         icon={User}
-        filterKey="assignee"
-        filterValue="me"
+        filterKey="priority"
+        filterValue="mine"
         testId="queue-mine"
       />
     </aside>

@@ -172,7 +172,7 @@ export interface OpsCenterResponse {
  */
 export interface OpsCenterFilters {
   lifecycle?: LifecycleStage;
-  priority?: 'sla' | 'unassigned' | 'stuck' | 'waiting_member' | 'needs_action';
+  priority?: 'sla' | 'unassigned' | 'stuck' | 'waiting_member' | 'needs_action' | 'mine';
   assignee?: 'all' | 'unassigned' | 'me';
   branch?: string;
   page?: number;

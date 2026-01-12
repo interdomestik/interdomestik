@@ -6,14 +6,12 @@ import { CompactOperationalCard } from './CompactOperationalCard';
 
 interface PrioritizedListProps {
   claims: ClaimOperationalRow[];
-  selectedClaimId?: string;
-  onSelectClaim?: (claim: ClaimOperationalRow) => void;
 }
 
 /**
  * PrioritizedList — Top 10 claims display (Compact).
  */
-export function PrioritizedList({ claims, selectedClaimId, onSelectClaim }: PrioritizedListProps) {
+export function PrioritizedList({ claims }: PrioritizedListProps) {
   const t = useTranslations('admin.claims_page.ops_center');
 
   if (claims.length === 0) {
@@ -27,12 +25,7 @@ export function PrioritizedList({ claims, selectedClaimId, onSelectClaim }: Prio
   return (
     <div className="space-y-2 pr-1" data-testid="prioritized-list">
       {claims.map(claim => (
-        <CompactOperationalCard
-          key={claim.id}
-          claim={claim}
-          isSelected={claim.id === selectedClaimId}
-          onClick={() => onSelectClaim?.(claim)}
-        />
+        <CompactOperationalCard key={claim.id} claim={claim} />
       ))}
     </div>
   );

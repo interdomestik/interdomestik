@@ -1,9 +1,7 @@
 // Phase 2.7: Ops Center Dashboard Shell (Client)
 'use client';
 
-import { useState } from 'react';
 import type { ClaimOperationalRow, OperationalKPIs } from '../../types';
-import { ClaimPreviewDrawer } from './ClaimPreviewDrawer';
 import { QueueSidebar } from './QueueSidebar';
 import { WorkCenter } from './WorkCenter';
 
@@ -19,24 +17,13 @@ interface OpsDashboardProps {
  * Handles client-side state for preview drawer selection only.
  */
 export function OpsDashboard({ kpis, claims, hasMore, page }: OpsDashboardProps) {
-  const [selectedClaim, setSelectedClaim] = useState<ClaimOperationalRow | null>(null);
-
   return (
     <div className="flex h-[calc(100vh-140px)] overflow-hidden">
       {/* 1. Queue Sidebar (Fixed width) */}
       <QueueSidebar kpis={kpis} />
 
       {/* 2. Work Center (Fluid, scrollable) */}
-      <WorkCenter
-        claims={claims}
-        hasMore={hasMore}
-        currentPage={page}
-        onSelectClaim={setSelectedClaim}
-        selectedClaimId={selectedClaim?.id}
-      />
-
-      {/* 3. Preview Drawer (Right panel) */}
-      <ClaimPreviewDrawer claim={selectedClaim} onClose={() => setSelectedClaim(null)} />
+      <WorkCenter claims={claims} hasMore={hasMore} currentPage={page} />
     </div>
   );
 }

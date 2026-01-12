@@ -12,20 +12,12 @@ interface WorkCenterProps {
   claims: ClaimOperationalRow[];
   hasMore: boolean;
   currentPage: number;
-  selectedClaimId?: string;
-  onSelectClaim?: (claim: ClaimOperationalRow) => void;
 }
 
 /**
  * WorkCenter — Center pane containing prioritized claims (Scrollable).
  */
-export function WorkCenter({
-  claims,
-  hasMore,
-  currentPage,
-  selectedClaimId,
-  onSelectClaim,
-}: WorkCenterProps) {
+export function WorkCenter({ claims, hasMore, currentPage }: WorkCenterProps) {
   const t = useTranslations('admin.claims_page.ops_center');
   const searchParams = useSearchParams();
 
@@ -43,11 +35,7 @@ export function WorkCenter({
       <h2 className="text-sm font-medium text-muted-foreground mb-4">
         {t('prioritized_list.title')}
       </h2>
-      <PrioritizedList
-        claims={claims}
-        selectedClaimId={selectedClaimId}
-        onSelectClaim={onSelectClaim}
-      />
+      <PrioritizedList claims={claims} />
 
       {hasMore && (
         <div className="mt-4 flex justify-center pb-8">

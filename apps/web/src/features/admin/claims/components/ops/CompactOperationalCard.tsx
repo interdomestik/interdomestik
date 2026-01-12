@@ -1,4 +1,5 @@
-'use client';
+import { useLocale } from 'next-intl';
+import Link from 'next/link';
 
 import { cn } from '@/lib/utils';
 import type { ClaimOperationalRow } from '../../types';
@@ -8,7 +9,6 @@ import { StateSpine } from '../StateSpine';
 interface CompactOperationalCardProps {
   claim: ClaimOperationalRow;
   isSelected?: boolean;
-  onClick: () => void;
 }
 
 /**
@@ -16,16 +16,15 @@ interface CompactOperationalCardProps {
  * Height target: ~86px.
  * Truncates content to fit 5+ cards above fold.
  */
-export function CompactOperationalCard({
-  claim,
-  isSelected,
-  onClick,
-}: CompactOperationalCardProps) {
+export function CompactOperationalCard({ claim, isSelected }: CompactOperationalCardProps) {
+  const locale = useLocale();
+  const href = `/${locale}/admin/claims/${claim.id}`;
+
   return (
-    <div
-      onClick={onClick}
+    <Link
+      href={href}
       className={cn(
-        'group relative flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-all',
+        'group relative flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-all block text-left',
         'hover:bg-accent/50 hover:border-accent-foreground/20',
         isSelected
           ? 'bg-accent border-accent-foreground/30 ring-1 ring-inset ring-primary/20'
@@ -75,6 +74,6 @@ export function CompactOperationalCard({
       <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
         <span className="text-muted-foreground">→</span>
       </div>
-    </div>
+    </Link>
   );
 }
