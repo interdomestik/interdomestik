@@ -86,7 +86,7 @@ export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow 
     stageStartedAt,
     daysInStage,
     ownerRole,
-    ownerName: staff?.name ?? null,
+    ownerName: staff?.name || staff?.email || null,
     assigneeId: claim.staffId ?? null,
     isStuck: riskFlags.isStuck,
     hasSlaBreach: riskFlags.hasSlaBreach,

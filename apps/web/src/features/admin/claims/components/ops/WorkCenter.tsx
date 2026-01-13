@@ -1,4 +1,4 @@
-// Phase 2.7: Work Center Component
+// Phase 2.8: Work Center Component
 'use client';
 
 import { Button } from '@interdomestik/ui';
@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 
 import type { ClaimOperationalRow } from '../../types';
 import { PrioritizedList } from './PrioritizedList';
+import { buildQueueUrl } from './utils';
 
 interface WorkCenterProps {
   claims: ClaimOperationalRow[];
@@ -24,11 +25,11 @@ export function WorkCenter({ claims, hasMore, currentPage }: WorkCenterProps) {
   const locale = useLocale();
 
   // Build load more URL
-  const loadMoreUrl = (() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', String(currentPage + 1));
-    return `/${locale}/admin/claims?${params.toString()}`;
-  })();
+  // Build load more URL using centralized builder
+  // We pass 'page' explicitly, so it overrides the default page reset logic
+  const loadMoreUrl = buildQueueUrl(`/${locale}/admin/claims`, searchParams, {
+    page: String(currentPage + 1),
+  });
 
   return (
     <section className="flex-1 min-w-0 py-4 px-4 overflow-y-auto" data-testid="work-center">

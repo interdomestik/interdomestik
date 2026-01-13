@@ -1,4 +1,4 @@
-// Phase 2.7: Prioritized List Component
+// Phase 2.8: Prioritized List Component
 import { useTranslations } from 'next-intl';
 
 import type { ClaimOperationalRow } from '../../types';

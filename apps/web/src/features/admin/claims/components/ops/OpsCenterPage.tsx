@@ -1,4 +1,4 @@
-// Phase 2.7: Ops Center Page Component (RSC)
+// Phase 2.8: Ops Center Page Component (RSC)
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { GlassCard } from '@/components/ui/glass-card';
 import { auth } from '@/lib/auth';
@@ -33,7 +33,7 @@ function parsePoolAnchor(
 
 /**
  * OpsCenterPage — Main RSC layout for Ops Center.
- * Phase 2.7 implementation with pool anchor support.
+ * Phase 2.8 implementation with pool anchor support.
  */
 export default async function OpsCenterPage({ searchParams }: OpsCenterPageProps) {
   const t = await getTranslations('admin.claims_page');
@@ -81,6 +81,9 @@ export default async function OpsCenterPage({ searchParams }: OpsCenterPageProps
           claims={data.prioritized}
           hasMore={data.hasMore}
           page={page}
+          assignees={data.assignees}
+          unassignedSummary={data.unassignedSummary}
+          meSummary={data.meSummary}
         />
       </GlassCard>
     </div>

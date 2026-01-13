@@ -128,7 +128,7 @@ export const STUCK_THRESHOLDS: Partial<Record<ClaimStatus, number>> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Phase 2.7: Operational Center Dashboard Types
+// Phase 2.8: Operational Center Dashboard Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -179,12 +179,27 @@ export interface OperationalKPIs {
 }
 
 /**
+ * Assignee workload summary.
+ */
+export interface AssigneeSummary {
+  staffId: string;
+  name: string | null;
+  email: string | null;
+  countOpen: number; // Staff-owned + non-terminal
+  countNeedsAction: number; // Canonical needsAction + non-terminal
+}
+
+/**
  * Operational Center response DTO.
  */
 export interface OpsCenterResponse {
   kpis: OperationalKPIs;
   prioritized: ClaimOperationalRow[];
   stats: LifecycleStats;
+  // Phase 2.8: Assignee Overview Buckets
+  assignees: AssigneeSummary[];
+  unassignedSummary: { countOpen: number; countNeedsAction: number };
+  meSummary: { countOpen: number; countNeedsAction: number };
   fetchedAt: string;
   hasMore: boolean; // For load more
 }
@@ -219,7 +234,7 @@ export interface ClaimOpsDetail extends ClaimOperationalRow {
 export interface OpsCenterFilters {
   lifecycle?: LifecycleStage;
   priority?: 'sla' | 'unassigned' | 'stuck' | 'waiting_member' | 'needs_action' | 'mine';
-  assignee?: 'all' | 'unassigned' | 'me';
+  assignee?: 'all' | 'unassigned' | 'me' | string;
   branch?: string;
   page?: number;
   poolAnchor?: OpsPoolAnchor;

@@ -79,6 +79,7 @@
       "flight_delay": "Kašnjenje leta",
       "damaged_goods": "Oštećena roba",
       "service_issue": "Problem sa uslugom",
+      "liability": "Odgovornost",
       "test": "Test",
       "other": "Ostalo"
     },

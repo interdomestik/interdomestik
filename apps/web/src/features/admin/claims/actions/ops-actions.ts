@@ -39,16 +39,29 @@ export async function assignOwner(
         updatedAt: new Date(),
       })
       .where(and(eq(claims.id, claimId), eq(claims.tenantId, ctx.tenantId)))
-      .returning({ id: claims.id });
+      .returning({
+        id: claims.id,
+        staffId: claims.staffId,
+        assignedAt: claims.assignedAt,
+        assignedById: claims.assignedById,
+      });
 
     assertRowsAffected(updated);
+
     await logAudit(ctx.tenantId, ctx.session.user.id, 'assign_owner', claimId, {
       previousStaffId: claim.staffId,
       newStaffId: staffId,
       claimNumber: claim.claimNumber,
     });
+
+    // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
     revalidateClaim(locale, claimId);
-    return { success: true };
+
+    return {
+      success: true,
+      // Return updated fields for optimistic UI updates if needed
+      data: updated[0],
+    };
   } catch (error: unknown) {
     console.error('Action Failed:', error);
     return { success: false, error: (error as Error).message };
@@ -65,17 +78,30 @@ export async function unassignOwner(claimId: string, locale: string): Promise<Op
 
     const updated = await db
       .update(claims)
-      .set({ staffId: null, assignedAt: null, assignedById: null, updatedAt: new Date() })
+      .set({
+        staffId: null,
+        assignedAt: null,
+        assignedById: null,
+        updatedAt: new Date(),
+      })
       .where(and(eq(claims.id, claimId), eq(claims.tenantId, ctx.tenantId)))
-      .returning({ id: claims.id });
+      .returning({
+        id: claims.id,
+        staffId: claims.staffId,
+        assignedAt: claims.assignedAt, // Should be null
+      });
 
     assertRowsAffected(updated);
+
     await logAudit(ctx.tenantId, ctx.session.user.id, 'unassign_owner', claimId, {
       previousStaffId: claim.staffId,
       claimNumber: claim.claimNumber,
     });
+
+    // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
     revalidateClaim(locale, claimId);
-    return { success: true };
+
+    return { success: true, data: updated[0] };
   } catch (error: unknown) {
     return { success: false, error: (error as Error).message };
   }

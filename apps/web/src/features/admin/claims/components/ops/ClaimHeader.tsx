@@ -127,7 +127,10 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                 <InfoPill
                   icon={UserRound}
                   label={tFilters('handler_label')}
-                  value={allStaff.find(s => s.id === claim.assigneeId)?.name || tSource('unknown')}
+                  value={(() => {
+                    const staff = allStaff.find(s => s.id === claim.assigneeId);
+                    return staff?.name || staff?.email || tSource('unknown');
+                  })()}
                   variant="premium"
                   className="bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm"
                   separatorClassName="bg-indigo-200"

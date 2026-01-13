@@ -79,6 +79,7 @@
       "flight_delay": "Flight Delay",
       "damaged_goods": "Damaged Goods",
       "service_issue": "Service Issue",
+      "liability": "Liability",
       "test": "Test",
       "other": "Other"
     },

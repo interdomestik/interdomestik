@@ -100,7 +100,8 @@
           "staff_action_required": "Staff action required",
           "staff_action_with_name": "Staff action — {name}",
           "member_waiting": "Waiting on member",
-          "system_completed": "Completed — no action"
+          "system_completed": "Completed — no action",
+          "unknown_status": "Status needs review"
         },
         "badge": {
           "unassigned": "Assign owner"
@@ -126,7 +127,8 @@
           "unassigned": "Unassigned",
           "stuck": "Stuck",
           "waiting_member": "Waiting on Member",
-          "mine": "Assigned to Me"
+          "mine": "Assigned to Me",
+          "workload": "Workload"
         },
         "prioritized_list": {
           "title": "Top Priority",

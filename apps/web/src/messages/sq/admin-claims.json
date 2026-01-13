@@ -101,7 +101,8 @@
           "staff_action_required": "Kërkohet veprim nga stafi",
           "staff_action_with_name": "Veprim stafi — {name}",
           "member_waiting": "Në pritje të anëtarit",
-          "system_completed": "Përfunduar — pa veprim"
+          "system_completed": "Përfunduar — pa veprim",
+          "unknown_status": "Statusi kërkon shqyrtim"
         },
         "badge": {
           "unassigned": "Cakto përgjegjësin"
@@ -127,7 +128,8 @@
           "unassigned": "Pa caktuar",
           "stuck": "Ngecur",
           "waiting_member": "Në pritje të anëtarit",
-          "mine": "Të miat"
+          "mine": "Të miat",
+          "workload": "Ngarkesa e punës"
         },
         "prioritized_list": {
           "title": "Prioritet i lartë",

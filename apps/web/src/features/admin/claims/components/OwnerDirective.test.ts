@@ -69,7 +69,7 @@ describe('OwnerDirective helpers', () => {
     it('falls back to system_completed for unknown status', () => {
       // Test unknown status fallback (PRD rule 2)
       expect(getPrimaryDirectiveVariant('unknown_status' as ClaimStatus, undefined)).toBe(
-        'system_completed'
+        'unknown_status'
       );
     });
   });

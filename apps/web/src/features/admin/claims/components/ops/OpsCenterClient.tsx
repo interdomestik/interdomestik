@@ -1,4 +1,4 @@
-// Phase 2.7: Ops Center Client Component (handles drawer state)
+// Phase 2.8: Ops Center Client Component (handles drawer state)
 'use client';
 
 import { useState } from 'react';

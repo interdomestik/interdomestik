@@ -100,7 +100,8 @@
           "staff_action_required": "Потребна акција од персоналот",
           "staff_action_with_name": "Акција на персоналот — {name}",
           "member_waiting": "Се чека член",
-          "system_completed": "Завршено — без акција"
+          "system_completed": "Завршено — без акција",
+          "unknown_status": "Статусот бара преглед"
         },
         "badge": {
           "unassigned": "Назначи одговорен"
@@ -126,7 +127,8 @@
           "unassigned": "Неназначени",
           "stuck": "Заглавени",
           "waiting_member": "Се чека член",
-          "mine": "Мои"
+          "mine": "Мои",
+          "workload": "Обем на работа"
         },
         "prioritized_list": {
           "title": "Највисок приоритет",

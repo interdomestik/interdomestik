@@ -1,4 +1,4 @@
-// Phase 2.7: KPI Card Component
+// Phase 2.8: KPI Card Component
 import { Card } from '@interdomestik/ui';
 import type { LucideIcon } from 'lucide-react';
 
@@ -18,7 +18,7 @@ const VARIANT_STYLES = {
 
 /**
  * KPICard — Single KPI statistic display.
- * Phase 2.7 component, ≤50 LOC as per SonarQube guidelines.
+ * Phase 2.8 component, ≤50 LOC as per SonarQube guidelines.
  */
 export function KPICard({ label, value, icon: Icon, variant = 'default', testId }: KPICardProps) {
   return (

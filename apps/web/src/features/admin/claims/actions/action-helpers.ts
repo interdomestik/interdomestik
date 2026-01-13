@@ -15,7 +15,7 @@ import { TERMINAL_STATUSES } from '../types';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type OpsActionResponse =
-  | { success: true; message?: string }
+  | { success: true; message?: string; data?: any }
   | { success: false; error: string };
 
 export type MutationIntent = 'assign' | 'status_change' | 'poke' | 'sla_ack';
@@ -99,6 +99,7 @@ export async function logAudit(
   });
 }
 
+// CRITICAL: Invalidate BOTH the specific claim detail page AND the main list page (for KPIs)
 export function revalidateClaim(locale: string, claimId: string) {
   revalidatePath(`/${locale}/admin/claims/${claimId}`, 'page');
   revalidatePath(`/${locale}/admin/claims`, 'page');

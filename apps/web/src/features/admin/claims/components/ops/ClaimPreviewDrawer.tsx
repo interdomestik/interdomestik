@@ -1,4 +1,4 @@
-// Phase 2.7: Claim Preview Drawer Component
+// Phase 2.8: Claim Preview Drawer Component
 'use client';
 
 import { Button, Sheet, SheetContent, SheetHeader, SheetTitle, Skeleton } from '@interdomestik/ui';

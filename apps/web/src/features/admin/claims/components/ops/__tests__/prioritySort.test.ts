@@ -1,4 +1,4 @@
-// Phase 2.7: Priority Sort Unit Tests
+// Phase 2.8: Priority Sort Unit Tests
 import { describe, expect, it } from 'vitest';
 
 import { computePriorityScore, sortByPriority } from '../../../server/prioritySort';

@@ -100,7 +100,8 @@
           "staff_action_required": "Потребна акција особља",
           "staff_action_with_name": "Акција особља — {name}",
           "member_waiting": "Чека се члан",
-          "system_completed": "Завршено — без акције"
+          "system_completed": "Завршено — без акције",
+          "unknown_status": "Status zahteva pregled"
         },
         "badge": {
           "unassigned": "Додели одговорног"
@@ -126,7 +127,8 @@
           "unassigned": "Недодељено",
           "stuck": "Заглављено",
           "waiting_member": "Чека се члан",
-          "mine": "Моји"
+          "mine": "Моји",
+          "workload": "Opterećenje"
         },
         "prioritized_list": {
           "title": "Највиши приоритет",

@@ -24,5 +24,8 @@ export default defineConfig({
       reportsDirectory: './coverage',
       exclude: ['node_modules/', 'src/test/', '**/*.d.ts', '**/*.config.*', '**/types/**'],
     },
+    env: {
+      DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/interdomestik_test',
+    },
   },
 });

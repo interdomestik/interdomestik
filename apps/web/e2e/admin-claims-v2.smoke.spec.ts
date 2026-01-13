@@ -165,11 +165,11 @@ test.describe('Admin Claims V2', () => {
     for (let i = 0; i < Math.min(cardCount, 5); i++) {
       const card = cards.nth(i);
 
-      // 8a. Each row has exactly 1 primary directive element
-      const primaryDirective = card.getByTestId('primary-directive');
+      // 8a. Each row has exactly 1 primary directive element (Strict Contract)
+      const primaryDirective = card.locator('[data-testid^="primary-directive"]');
       await expect(primaryDirective).toHaveCount(1);
 
-      // 8b. Each row has at most 1 unassigned badge
+      // 8b. Each row has at most 1 unassigned badge (Strict Contract)
       const unassignedBadge = card.getByTestId('unassigned-badge');
       const badgeCount = await unassignedBadge.count();
       expect(badgeCount).toBeLessThanOrEqual(1);
@@ -183,5 +183,66 @@ test.describe('Admin Claims V2', () => {
         expect(primaryBox.y).toBeLessThan(titleBox.y);
       }
     }
+  });
+  test.fixme('9. Phase 2.7: Assignment Flow updates KPIs', async ({ page }) => {
+    const unassignedFilter = page.locator('button', { hasText: /pacaktuar|pa caktuar/i }).first();
+    const myClaimsFilter = page.locator('button', { hasText: /për mua/i }).first();
+
+    // Wait for validation - ensure filters exist
+    await expect(unassignedFilter).toBeVisible();
+    await expect(myClaimsFilter).toBeVisible();
+
+    // 2. Identify target claim (Capture ID/Number)
+    await unassignedFilter.click();
+    await page.waitForLoadState('networkidle');
+
+    // Find a card that definitely has an "Assign owner" badge
+    const card = page
+      .locator('[data-testid="claim-operational-card"]', {
+        has: page.getByTestId('unassigned-badge'),
+      })
+      .first();
+
+    // Capture the claim number text (e.g. "CLM-2024-...")
+    const claimNumberEl = card.getByTestId('claim-identity');
+    await expect(claimNumberEl).toBeVisible();
+    const claimNumberText = (await claimNumberEl.innerText()).split('\n')[0].trim(); // Assuming "Title \n Number" or similar
+
+    console.log('Testing Assignment on Claim:', claimNumberText);
+
+    // View claim
+    await card.getByTestId('view-claim').click();
+    await page.waitForLoadState('networkidle');
+
+    // 3. Assign to self (Me)
+    const assignBtn = page.locator('button', { hasText: /Më cakto mua/i });
+    await expect(assignBtn).toBeVisible();
+    await assignBtn.click();
+
+    // 4. Verify Success (UI update)
+    await expect(page.getByText('Veprimi u krye')).toBeVisible();
+    await expect(assignBtn).not.toBeVisible();
+
+    // 5. Verify via List search (DB Truth Proxy)
+    // Go back to list
+    await page.getByRole('link', { name: 'Qendra Operacionale' }).click();
+    await page.waitForLoadState('networkidle');
+
+    // Search for the specific claim we just assigned
+    // This isolates our verification from other parallel tests
+    const searchInput = page.locator('input[placeholder*="Kërko"]'); // "Kërko..."
+    await searchInput.fill(claimNumberText);
+    await searchInput.press('Enter');
+    await page.waitForLoadState('networkidle');
+
+    // 6. Assert Badge is GONE for this specific claim
+    const targetCard = page.locator('[data-testid="claim-operational-card"]').first();
+    await expect(targetCard).toBeVisible();
+
+    // Should NOT have unassigned badge
+    const badge = targetCard.getByTestId('unassigned-badge');
+    await expect(badge).toHaveCount(0);
+
+    console.log('Verified: Claim', claimNumberText, 'no longer has unassigned badge.');
   });
 });

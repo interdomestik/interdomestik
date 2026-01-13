@@ -1,4 +1,4 @@
-// Phase 2.7: KPI Header Component
+// Phase 2.8: KPI Header Component
 'use client';
 
 import { Button } from '@interdomestik/ui';

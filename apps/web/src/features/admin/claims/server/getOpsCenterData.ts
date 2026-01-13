@@ -1,9 +1,9 @@
-// Phase 2.7: Operational Center Data Loader (Option B: Pool → Sort → Slice)
+// Phase 2.8: Operational Center Data Loader (Option B: Pool → Sort → Slice)
 import { db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
-import { aliasedTable, and, desc, eq, ilike, inArray, isNull, or, sql, SQL } from 'drizzle-orm';
+import { aliasedTable, and, desc, eq, ilike, inArray, or, sql, SQL } from 'drizzle-orm';
 
 import { mapClaimsToOperationalRows, type RawClaimRow } from '../mappers';
 import type {
@@ -59,7 +59,10 @@ function filterByPriority(
       );
     case 'mine':
       // P1 fix: exclude terminal statuses from 'mine' filter
-      return rows.filter(r => r.assigneeId === userId && !isTerminalStatus(r.status));
+      // Strict Parity with computeKPIs: must be staff-owned
+      return rows.filter(
+        r => r.assigneeId === userId && isStaffOwnedStatus(r.status) && !isTerminalStatus(r.status)
+      );
     default:
       return rows;
   }
@@ -99,13 +102,6 @@ function buildPoolConditions(context: ClaimsVisibilityContext, filters: OpsCente
     }
   }
 
-  // Assignee filter (affects KPIs too)
-  if (filters.assignee === 'unassigned') {
-    conditions.push(isNull(claims.staffId));
-  } else if (filters.assignee === 'me' && userId) {
-    conditions.push(eq(claims.staffId, userId));
-  }
-
   // Branch filter
   if (filters.branch) {
     conditions.push(eq(branches.code, filters.branch));
@@ -137,7 +133,35 @@ function buildPoolConditions(context: ClaimsVisibilityContext, filters: OpsCente
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-import { computeKPIsFromPool } from './computeKPIs';
+// Helper: Filter sorted pool by assignee (In-Memory)
+// Phase 2.8: Decoupled from SQL to preserve Global KPIs in sidebar
+// ─────────────────────────────────────────────────────────────────────────────
+function filterByAssignee(
+  rows: ClaimOperationalRow[],
+  assigneeFilter: OpsCenterFilters['assignee'],
+  userId: string
+): ClaimOperationalRow[] {
+  if (!assigneeFilter || assigneeFilter === 'all') return rows;
+
+  if (assigneeFilter === 'unassigned') {
+    // Strict parity with KPI logic: Unassigned AND Staff-Owned
+    return rows.filter(r => r.isUnassigned && isStaffOwnedStatus(r.status));
+  } else if (assigneeFilter === 'me') {
+    // Strict parity with Workload Count: Match 'meSummary' logic
+    return rows.filter(r => r.assigneeId === userId && isStaffOwnedStatus(r.status));
+  } else if (assigneeFilter.startsWith('staff:')) {
+    const staffId = assigneeFilter.split(':')[1];
+    if (staffId) {
+      // Strict parity with Workload Count: Staff-ID AND Staff-Owned
+      return rows.filter(r => r.assigneeId === staffId && isStaffOwnedStatus(r.status));
+    }
+  }
+
+  return rows;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+import { computeAssigneeOverview, computeKPIsFromPool } from './computeKPIs';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Loader: getOpsCenterData
@@ -212,18 +236,39 @@ export async function getOpsCenterData(
     // Step 4: Sort by priority score (server-side canonical)
     const sortedPool = sortByPriority(pool);
 
-    // Step 5: Filter by priority (queue filter, list only)
-    const sortedFilteredPool = filterByPriority(sortedPool, filters.priority, context.userId);
+    // Step 5: Filter by Assignee (In-Memory, strictly for List View)
+    // Global Stats (kpis, assignees summary) use 'sortedPool' (unfiltered)
+    // List uses 'sortedAssigneePool'
+    const sortedAssigneePool = filterByAssignee(sortedPool, filters.assignee, context.userId);
+
+    // Step 6: Filter by priority (queue filter, list only)
+    const sortedFilteredPool = filterByPriority(
+      sortedAssigneePool,
+      filters.priority,
+      context.userId
+    );
 
     // Step 6: Slice for current page
     const startIdx = page * OPS_PAGE_SIZE;
     const prioritized = sortedFilteredPool.slice(startIdx, startIdx + OPS_PAGE_SIZE);
 
-    // Step 7: Compute hasMore
-    // User can load more if:
-    // A) The filtered list has more items than shown on current page
-    // B) The underlying pool was truncated, so there MIGHT be matches in DB we haven't seen
-    const hasMore = (page + 1) * OPS_PAGE_SIZE < sortedFilteredPool.length || poolMayHaveMore;
+    // Step 7: Compute Assignee Overview (Phase 2.8)
+    // Uses the full sorted pool (before priority filtering/slicing) to give global context
+    const { assignees, unassignedSummary, meSummary } = computeAssigneeOverview(
+      sortedPool,
+      context.userId
+    );
+
+    // Step 8: Compute hasMore
+    // Phase 2.8 Fix: Handle In-Memory filters (Assignee) preventing "Ghost Load"
+    // If filtering by assignee, we treat the current Global Pool as the definitive source.
+    // relying on 'poolMayHaveMore' would cause infinite "Load More" clicks that return empty results
+    // if the next DB page contains no claims for this assignee.
+    const isInMemoryFilterActive = !!filters.assignee && filters.assignee !== 'all';
+
+    const hasMore = isInMemoryFilterActive
+      ? (page + 1) * OPS_PAGE_SIZE < sortedFilteredPool.length
+      : (page + 1) * OPS_PAGE_SIZE < sortedFilteredPool.length || poolMayHaveMore;
 
     // Get lifecycle stats
     const stats = await getAdminClaimStats(context);
@@ -232,6 +277,9 @@ export async function getOpsCenterData(
       kpis,
       prioritized,
       stats,
+      assignees,
+      unassignedSummary,
+      meSummary,
       fetchedAt: new Date().toISOString(),
       hasMore,
     };
@@ -251,6 +299,9 @@ export async function getOpsCenterData(
       },
       prioritized: [],
       stats: { intake: 0, verification: 0, processing: 0, negotiation: 0, legal: 0, completed: 0 },
+      assignees: [],
+      unassignedSummary: { countOpen: 0, countNeedsAction: 0 },
+      meSummary: { countOpen: 0, countNeedsAction: 0 },
       fetchedAt: new Date().toISOString(),
       hasMore: false,
     };

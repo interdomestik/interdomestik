@@ -1,4 +1,4 @@
-// Phase 2.7: Priority Sort Helper (Canonical Server Implementation)
+// Phase 2.8: Priority Sort Helper (Canonical Server Implementation)
 import type { ClaimOperationalRow } from '../types';
 import { isStaffOwnedStatus } from '../types';
 
