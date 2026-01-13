@@ -56,6 +56,7 @@ export default async function AdminClaimDetailPage({
           <ClaimantInfoCard
             memberName={data.memberName}
             memberEmail={data.memberEmail}
+            memberNumber={data.memberNumber}
             branchCode={data.branchCode}
             claimAmount={data.claimAmount}
           />

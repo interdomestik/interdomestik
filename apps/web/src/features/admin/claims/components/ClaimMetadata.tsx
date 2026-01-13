@@ -2,6 +2,7 @@ import { useTranslations } from 'next-intl';
 
 interface ClaimMetadataProps {
   memberName: string;
+  memberNumber?: string | null;
   branchCode: string | null;
   category: string | null;
   amount?: number | null;
@@ -14,7 +15,13 @@ interface ClaimMetadataProps {
  * On mobile (<md): single-line truncated with tooltip.
  * Amount shows fallback "—" when null/zero.
  */
-export function ClaimMetadata({ memberName, branchCode, category, amount }: ClaimMetadataProps) {
+export function ClaimMetadata({
+  memberName,
+  memberNumber,
+  branchCode,
+  category,
+  amount,
+}: ClaimMetadataProps) {
   const tCommon = useTranslations('common');
   const tCategory = useTranslations('claims.category');
   const tRow = useTranslations('admin.claims_page.table.row');
@@ -50,7 +57,14 @@ export function ClaimMetadata({ memberName, branchCode, category, amount }: Clai
 
       {/* Desktop: full metadata */}
       <div className="hidden md:flex md:items-center md:gap-3">
-        <span>{memberName}</span>
+        <div className="flex items-center gap-1.5">
+          <span>{memberName}</span>
+          {memberNumber && (
+            <span className="font-mono text-[10px] text-amber-700/80 bg-amber-50 px-1 rounded border border-amber-200/50">
+              {memberNumber}
+            </span>
+          )}
+        </div>
         <span>•</span>
         <span>{branchLabel}</span>
         <span>•</span>

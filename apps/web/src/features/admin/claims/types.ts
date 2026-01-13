@@ -40,6 +40,7 @@ export interface ClaimOperationalRow {
   waitingOn: 'member' | 'staff' | 'system' | null;
   hasCashPending: boolean;
   memberId: string;
+  memberNumber: string | null; // Universal Member ID (MEM-...)
   memberName: string;
   memberEmail: string;
   branchCode: string | null;

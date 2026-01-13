@@ -1,27 +1,39 @@
-import { boolean, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { boolean, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { branches } from './rbac';
 import { tenants } from './tenants';
 
-export const user = pgTable('user', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('emailVerified').notNull(),
-  image: text('image'),
-  role: text('role').notNull().default('user'),
-  marketingOptIn: boolean('marketing_opt_in').default(false),
-  referralCode: text('referral_code').unique(),
-  consentAt: timestamp('consent_at'),
-  memberNumber: text('member_number').unique(),
-  createdAt: timestamp('createdAt').notNull(),
-  updatedAt: timestamp('updatedAt').notNull(),
-  agentId: text('agentId'), // Sales agent who referred this member (legacy mapping)
-  branchId: text('branch_id').references(() => branches.id), // Branch for staff/agents
-});
+export const user = pgTable(
+  'user',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    name: text('name').notNull(),
+    email: text('email').notNull().unique(),
+    emailVerified: boolean('emailVerified').notNull(),
+    image: text('image'),
+    role: text('role').notNull().default('user'),
+    marketingOptIn: boolean('marketing_opt_in').default(false),
+    referralCode: text('referral_code').unique(),
+    consentAt: timestamp('consent_at'),
+    memberNumber: text('member_number'),
+    memberNumberIssuedAt: timestamp('member_number_issued_at'),
+    createdAt: timestamp('createdAt').notNull(),
+    updatedAt: timestamp('updatedAt').notNull(),
+    agentId: text('agentId'), // Sales agent who referred this member (legacy mapping)
+    branchId: text('branch_id').references(() => branches.id), // Branch for staff/agents
+  },
+  table => {
+    return {
+      memberNumberIndex: uniqueIndex('user_member_number_idx')
+        .on(table.memberNumber)
+        .where(sql`role = 'member'`),
+    };
+  }
+);
 
 export const session = pgTable('session', {
   id: text('id').primaryKey(),

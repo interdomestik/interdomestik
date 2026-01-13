@@ -20,9 +20,11 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
     return null;
   }
 
-  // Only members should access this page
-  // Staff uses /staff/claims, agents don't handle claims
-  if (session.user.role !== 'user') {
+  // Only members (or default users) should access this page
+  // Staff uses /staff/claims, agents don't handle claims here
+  const isMember = session.user.role === 'user' || session.user.role === 'member';
+
+  if (!isMember) {
     if (session.user.role === 'agent') {
       redirect({ href: '/agent', locale });
     } else if (session.user.role === 'staff') {
@@ -30,6 +32,8 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
     } else if (session.user.role === 'admin') {
       redirect({ href: '/admin', locale });
     }
+    // Fallback for unknown roles
+    console.warn(`[ClaimsPage] Access denied for role: ${session.user.role}`);
     return null;
   }
 

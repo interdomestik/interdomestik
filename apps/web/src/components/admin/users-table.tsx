@@ -42,6 +42,7 @@ interface User {
   unreadCount?: number;
   unreadClaimId?: string | null;
   alertLink?: string | null;
+  memberNumber?: string | null;
 }
 
 interface Agent {
@@ -126,6 +127,7 @@ export function UsersTable({
         <TableRow className="hover:bg-transparent border-white/10">
           <TableHead>{t('headers.user')}</TableHead>
           <TableHead>{t('headers.role')}</TableHead>
+          <TableHead>Member ID</TableHead>
           <TableHead>{t('headers.assigned_agent')}</TableHead>
           <TableHead>{t('headers.joined')}</TableHead>
         </TableRow>
@@ -185,6 +187,15 @@ export function UsersTable({
               <Badge variant="outline" className="border-white/10 bg-white/5 text-muted-foreground">
                 {tCommon(`roles.${user.role}`)}
               </Badge>
+            </TableCell>
+            <TableCell>
+              {user.memberNumber ? (
+                <code className="text-xs font-mono bg-white/5 px-1.5 py-0.5 rounded text-muted-foreground">
+                  {user.memberNumber}
+                </code>
+              ) : (
+                <span className="text-muted-foreground text-xs">-</span>
+              )}
             </TableCell>
             <TableCell>
               {isMember(user.role) ? (

@@ -1,9 +1,10 @@
 import { sendMemberWelcomeEmail } from '@/lib/email';
-import { generateMemberNumber } from '@/utils/member';
+import { generateMemberNumber } from '@/server/domains/members/member-number';
 import { db } from '@interdomestik/database/db';
 import { agentClients, subscriptions, user as userTable } from '@interdomestik/database/schema';
 import { nanoid } from 'nanoid';
 import { registerMemberSchema } from './schemas';
+
 // Temporary retry implementation (will move to shared-utils)
 async function withTransactionRetry<T>(
   operation: (tx: any) => Promise<T>,
@@ -71,18 +72,25 @@ export async function registerMemberCore(
 
   try {
     await withTransactionRetry(async tx => {
+      const now = new Date();
+
+      // 1. Create User (Role must be 'member' for the unique index to eventually apply)
+      // We insert with null memberNumber first.
       await tx.insert(userTable).values({
         id: userId,
         tenantId,
         name: data.fullName,
         email: data.email,
         emailVerified: false,
-        memberNumber: generateMemberNumber(),
-        role: 'user',
+        role: 'member', // Critical change: was 'user'
         agentId: agent.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: now,
+        updatedAt: now,
       });
+
+      // 2. Generate and Assign Global Member Number
+      // This helper handles the atomic increment and updates the user record
+      await generateMemberNumber(tx, userId, now.getFullYear());
 
       await tx.insert(agentClients).values({
         id: nanoid(),
@@ -90,8 +98,8 @@ export async function registerMemberCore(
         agentId: agent.id,
         memberId: userId,
         status: 'active',
-        joinedAt: new Date(),
-        createdAt: new Date(),
+        joinedAt: now,
+        createdAt: now,
       });
 
       const expiry = new Date();
@@ -104,8 +112,8 @@ export async function registerMemberCore(
         planId: data.planId,
         status: 'active',
         currentPeriodEnd: expiry,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: now,
+        updatedAt: now,
       });
     });
 

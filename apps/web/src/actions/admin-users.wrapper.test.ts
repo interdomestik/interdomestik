@@ -91,14 +91,14 @@ describe('admin-users action wrappers', () => {
   });
 
   it('getStaff delegates to core', async () => {
-    // getStaff internally calls getUsersCore with role='staff'
+    // getStaff internally calls getUsersCore with all handler-capable roles
     mocks.getUsersCore.mockResolvedValue([{ id: 's1' }]);
 
     const result = await actions.getStaff();
 
     expect(mocks.getUsersCore).toHaveBeenCalledWith({
       session: { user: { id: 'admin-1', role: 'admin', tenantId: 't1' } },
-      filters: { role: 'staff' },
+      filters: { role: 'staff,tenant_admin,branch_manager' },
     });
     expect(result).toEqual({ success: true, data: [{ id: 's1' }] });
   });

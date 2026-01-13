@@ -57,11 +57,12 @@ export function OperationalCard({ claim }: OperationalCardProps) {
           />
 
           {/* Row 2: Identity (code + title) */}
-          <ClaimIdentity code={claim.code} title={claim.title} />
+          <ClaimIdentity code={claim.code} title={claim.title} memberNumber={claim.memberNumber} />
 
           {/* Row 3: Metadata (muted) */}
           <ClaimMetadata
             memberName={claim.memberName}
+            memberNumber={claim.memberNumber}
             branchCode={claim.branchCode}
             category={claim.category}
           />

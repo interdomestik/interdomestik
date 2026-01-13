@@ -61,9 +61,10 @@ export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUse
 
 export async function getStaff(): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(async ({ session }) => {
+    // Include all roles that can be assigned as claim handlers
     const data = await getUsersCore({
       session,
-      filters: { role: 'staff' },
+      filters: { role: 'staff,tenant_admin,branch_manager' },
     });
     return data;
   });

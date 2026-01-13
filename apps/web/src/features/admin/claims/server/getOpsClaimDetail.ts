@@ -118,6 +118,7 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
       ? {
           name: userData.name,
           email: userData.email,
+          memberNumber: userData.memberNumber,
         }
       : null,
     staff: claim.staff

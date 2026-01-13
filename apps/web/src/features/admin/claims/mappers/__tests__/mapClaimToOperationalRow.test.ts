@@ -23,7 +23,7 @@ function mockRawRow(overrides: Partial<RawClaimRow['claim']>): RawClaimRow {
       userId: 'user-1',
       ...overrides,
     },
-    claimant: { name: 'Claimant', email: 'c@test.com' },
+    claimant: { name: 'Claimant', email: 'c@test.com', memberNumber: 'MEM-2026-0001' },
     staff: overrides.staffId ? { name: 'Staff', email: 's@test.com' } : null,
     branch: { id: 'b1', code: 'B1', name: 'Branch 1' },
     agent: null,

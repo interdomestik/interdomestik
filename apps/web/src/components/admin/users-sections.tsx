@@ -21,6 +21,10 @@ type User = {
     name: string | null;
   } | null;
   createdAt: Date;
+  memberNumber?: string | null;
+  unreadCount?: number;
+  unreadClaimId?: string | null;
+  alertLink?: string | null;
 };
 
 type Agent = {

@@ -5,6 +5,7 @@ import { branches, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { aliasedTable, and, desc, eq, ilike, inArray, or, sql, SQL } from 'drizzle-orm';
 
+import { isMemberNumberSearch } from '../../members/utils/memberNumber';
 import { mapClaimsToOperationalRows, type RawClaimRow } from '../mappers';
 import type {
   ClaimOperationalRow,
@@ -119,13 +120,26 @@ function buildPoolConditions(context: ClaimsVisibilityContext, filters: OpsCente
   if (filters.search) {
     const term = filters.search.trim().toUpperCase();
     if (term) {
-      conditions.push(
-        or(
-          eq(claims.claimNumber, term), // Exact match (fastest)
-          ilike(claims.claimNumber, `${term}%`), // Prefix match
-          ilike(claims.title, `%${term}%`) // Fallback title match
-        )!
-      );
+      if (isMemberNumberSearch(term)) {
+        // Global Member Number Search (Tenant-Capped)
+        // Find users matching the MEM- prefix, then filter claims by those userIds.
+        // We use a subquery to keep it efficient and atomic in one query.
+        const memberSubquery = db
+          .select({ id: user.id })
+          .from(user)
+          .where(ilike(user.memberNumber, `${term}%`));
+
+        conditions.push(inArray(claims.userId, memberSubquery));
+      } else {
+        // Standard Claim Search
+        conditions.push(
+          or(
+            eq(claims.claimNumber, term), // Exact match (fastest)
+            ilike(claims.claimNumber, `${term}%`), // Prefix match
+            ilike(claims.title, `%${term}%`) // Fallback title match
+          )!
+        );
+      }
     }
   }
 
@@ -200,6 +214,7 @@ export async function getOpsCenterData(
         claimant: {
           name: user.name,
           email: user.email,
+          memberNumber: user.memberNumber,
         },
         staff: {
           name: staff.name,

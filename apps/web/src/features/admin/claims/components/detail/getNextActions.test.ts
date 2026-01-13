@@ -35,6 +35,7 @@ const mockClaim = (overrides: Partial<ClaimOpsDetail>): ClaimOpsDetail => ({
   originType: 'portal',
   originRefId: null,
   originDisplayName: null,
+  memberNumber: 'MEM-2026-0001',
   ...overrides,
 });
 

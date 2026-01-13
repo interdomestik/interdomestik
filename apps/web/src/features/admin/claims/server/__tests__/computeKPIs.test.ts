@@ -30,6 +30,7 @@ function mockRow(overrides: Partial<ClaimOperationalRow>): ClaimOperationalRow {
     originDisplayName: null,
     claimNumber: 'CLM-TEST',
     memberId: 'member-123',
+    memberNumber: 'MEM-2026-0001',
     ...overrides,
   };
 }

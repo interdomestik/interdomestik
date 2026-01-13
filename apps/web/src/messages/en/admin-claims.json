@@ -12,8 +12,11 @@
       "sections": {
         "active": "Active",
         "draft": "Drafts",
-        "resolved": "Resolved"
+        "resolved": "Closed"
       },
+      "member_number": "Member Number",
+      "copy_member_number": "Copy Member Number",
+      "copy_member_link": "Copy Member Link",
       "message_alert": "New message ({count})",
       "table": {
         "title": "Title",

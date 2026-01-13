@@ -12,7 +12,8 @@
     "./server": "./src/server.ts",
     "./db": "./src/db.ts",
     "./schema": "./src/schema.ts",
-    "./tenant-security": "./src/tenant-security.ts"
+    "./tenant-security": "./src/tenant-security.ts",
+    "./member-number": "./src/member-number.ts"
   },
   "scripts": {
     "db:generate": "echo 'Skipping supabase gen types (using Drizzle)' && exit 0",

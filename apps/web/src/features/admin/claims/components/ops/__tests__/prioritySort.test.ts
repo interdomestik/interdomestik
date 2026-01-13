@@ -33,6 +33,7 @@ function createClaimRow(overrides: Partial<ClaimOperationalRow>): ClaimOperation
     originDisplayName: null,
     claimNumber: 'CLM-TEST',
     memberId: 'member-123',
+    memberNumber: 'MEM-2026-0001',
     ...overrides,
   };
 }

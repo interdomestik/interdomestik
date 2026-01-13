@@ -17,7 +17,8 @@
     "./agent/get-users": "./src/agent/get-users.ts",
     "./user-settings/get": "./src/user-settings/get.ts",
     "./user-settings/update": "./src/user-settings/update.ts",
-    "./user-settings/types": "./src/user-settings/types.ts"
+    "./user-settings/types": "./src/user-settings/types.ts",
+    "./member-number": "./src/member-number.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",

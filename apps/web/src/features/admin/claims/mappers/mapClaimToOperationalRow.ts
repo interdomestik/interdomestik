@@ -39,6 +39,7 @@ export interface RawClaimRow {
   claimant: {
     name: string | null;
     email: string | null;
+    memberNumber: string | null;
   } | null;
   staff: {
     name: string | null;
@@ -95,6 +96,7 @@ export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow 
     hasCashPending: false, // Placeholder — no existing logic for this
     memberId: claim.userId,
     memberName: claimant?.name ?? 'Unknown',
+    memberNumber: claimant?.memberNumber ?? null,
     memberEmail: claimant?.email ?? '',
     branchCode: branch?.code ?? null,
     agentName: agent?.name ?? null,

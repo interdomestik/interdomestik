@@ -9,6 +9,7 @@ import { InfoPill } from '../shared/InfoPill';
 interface ClaimantInfoCardProps {
   memberName: string | null;
   memberEmail: string | null;
+  memberNumber?: string | null;
   branchCode: string | null;
   claimAmount: string | number | null;
 }
@@ -16,6 +17,7 @@ interface ClaimantInfoCardProps {
 export function ClaimantInfoCard({
   memberName,
   memberEmail,
+  memberNumber,
   branchCode,
   claimAmount,
 }: ClaimantInfoCardProps) {
@@ -41,6 +43,11 @@ export function ClaimantInfoCard({
           <div className="overflow-hidden space-y-0.5">
             <div className="font-semibold text-sm truncate leading-none">{memberName}</div>
             <div className="text-xs text-muted-foreground truncate font-mono">{memberEmail}</div>
+            {memberNumber && (
+              <div className="text-[10px] text-amber-700/80 font-mono bg-amber-50 inline-block px-1 rounded border border-amber-200/50 mt-0.5">
+                {memberNumber}
+              </div>
+            )}
           </div>
         </div>
 

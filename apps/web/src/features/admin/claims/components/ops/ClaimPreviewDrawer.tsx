@@ -52,6 +52,9 @@ export function ClaimPreviewDrawer({ claim, onClose }: ClaimPreviewDrawerProps) 
               <p className="text-sm font-medium">{claim?.title}</p>
               <p className="text-sm text-muted-foreground">{claim?.memberName}</p>
               <p className="text-sm text-muted-foreground">{claim?.memberEmail}</p>
+              {claim?.memberNumber && (
+                <p className="text-xs text-amber-700/80 font-mono mt-0.5">{claim.memberNumber}</p>
+              )}
             </div>
 
             {/* Status Info */}

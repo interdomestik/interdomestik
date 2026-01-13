@@ -24,8 +24,8 @@ vi.mock('@/lib/email', () => ({
   sendMemberWelcomeEmail: vi.fn(),
 }));
 
-vi.mock('@/utils/member', () => ({
-  generateMemberNumber: vi.fn().mockReturnValue('MEM123'),
+vi.mock('@/server/domains/members/member-number', () => ({
+  generateMemberNumber: vi.fn().mockResolvedValue('MEM-2026-000001'),
 }));
 
 vi.mock('nanoid', () => ({

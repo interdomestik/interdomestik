@@ -5,7 +5,6 @@ import { enUS, sq } from 'date-fns/locale';
 import {
   Activity,
   AlertTriangle,
-  ArrowLeft,
   Building2,
   ChevronRight,
   Clock,
@@ -37,6 +36,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
   const tSource = useTranslations('admin.claims_page.source');
   const tLifecycle = useTranslations('admin.claims_page.lifecycle_tabs');
   const tFilters = useTranslations('admin.claims_page.filters');
+  const tPage = useTranslations('admin.claims_page');
   const searchParams = useSearchParams();
 
   // Construct smart back URL: preserve filters/page, but drop poolAnchor to force refresh
@@ -61,24 +61,36 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
   return (
     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-4 pt-2 -mx-4 px-4 sm:-mx-8 sm:px-8 mb-6 transition-all">
       <div className="flex flex-col gap-4">
-        {/* Breadcrumbs / Top Line */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        {/* Breadcrumb Navigation */}
+        <nav className="flex items-center gap-1.5 text-sm" aria-label="Breadcrumb">
+          {/* Level 1: Claims List */}
           <Link
             href={createBackUrl()}
-            className="hover:text-foreground transition-colors flex items-center gap-1"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            {tBadge('back_to_queue')}
+            {tPage('title')}
           </Link>
-          <ChevronRight className="w-3.5 h-3.5 opacity-50" />
 
-          <div className="flex items-center gap-2 group">
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
+
+          {/* Level 2: Lifecycle Stage */}
+          <Link
+            href={`/admin/claims?lifecycle=${claim.lifecycleStage}`}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {tLifecycle(claim.lifecycleStage)}
+          </Link>
+
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
+
+          {/* Level 3: Current Claim (Active) */}
+          <div className="flex items-center gap-1 group/claim">
             <span className="font-mono font-medium text-foreground bg-slate-100 px-1.5 py-0.5 rounded text-xs border border-slate-200">
               {claim.claimNumber ?? claim.code}
             </span>
 
             {/* Copy Actions (Hover only) */}
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+            <div className="opacity-0 group-hover/claim:opacity-100 transition-opacity flex items-center gap-1">
               <button
                 onClick={() => copyToClipboard(resolverUrl, 'Claim Number Link')}
                 className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
@@ -95,7 +107,41 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
               </button>
             </div>
           </div>
-        </div>
+
+          {/* Global Member Number Badge */}
+          {claim.memberNumber && (
+            <div className="flex items-center gap-1 group/member ml-2 border-l pl-2 border-slate-200">
+              <span
+                className="font-mono font-medium text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded text-xs border border-amber-200"
+                title={tPage('member_number')}
+              >
+                {claim.memberNumber}
+              </span>
+
+              <div className="opacity-0 group-hover/member:opacity-100 transition-opacity flex items-center gap-1">
+                <button
+                  onClick={() => copyToClipboard(claim.memberNumber!, tPage('copy_member_number'))}
+                  className="p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700"
+                  title={tPage('copy_member_number')}
+                >
+                  <Copy className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() =>
+                    copyToClipboard(
+                      `${domain}/${locale}/admin/members/number/${claim.memberNumber}`,
+                      tPage('copy_member_link')
+                    )
+                  }
+                  className="p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700"
+                  title={tPage('copy_member_link')}
+                >
+                  <LinkIcon className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          )}
+        </nav>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           {/* Title Section */}

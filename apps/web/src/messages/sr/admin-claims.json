@@ -14,6 +14,9 @@
         "draft": "Нацрти",
         "resolved": "Решени"
       },
+      "member_number": "Број члана",
+      "copy_member_number": "Копирај број члана",
+      "copy_member_link": "Копирај линк члана",
       "message_alert": "Нова порука ({count})",
       "table": {
         "title": "Наслов",

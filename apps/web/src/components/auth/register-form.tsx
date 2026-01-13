@@ -1,6 +1,6 @@
 'use client';
 
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import {
   Button,
@@ -21,6 +21,7 @@ import * as React from 'react';
 export function RegisterForm() {
   const t = useTranslations('auth.register');
   const common = useTranslations('common');
+  const router = useRouter();
   const searchParams = useSearchParams();
   const tenantId = searchParams.get('tenantId') || undefined;
   const loginHref = tenantId ? `/login?tenantId=${tenantId}` : '/login';
@@ -63,11 +64,17 @@ export function RegisterForm() {
 
       if (signUpError) {
         setError(signUpError.message || 'Something went wrong');
+      } else {
+        // Success! Redirect to member dashboard
+        router.push('/member');
       }
     } catch {
       setError('An unexpected error occurred');
     } finally {
-      setLoading(false);
+      if (error) {
+        setLoading(false);
+      }
+      // If successful, leave loading true while redirecting to avoid flicker
     }
   };
 

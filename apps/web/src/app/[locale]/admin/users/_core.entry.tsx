@@ -33,7 +33,8 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   const [usersResult, agentsResult, branchesResult] = await Promise.all([
     getUsers({
       search,
-      role: selectedRole,
+      // Include 'member' role in the User tab so they are visible
+      role: selectedRole === 'user' ? 'user,member' : selectedRole,
       assignment: selectedRole === 'user' ? assignment : undefined,
     }),
     getAgents(),
