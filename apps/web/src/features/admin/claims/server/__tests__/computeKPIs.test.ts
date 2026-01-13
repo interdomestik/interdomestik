@@ -28,6 +28,8 @@ function mockRow(overrides: Partial<ClaimOperationalRow>): ClaimOperationalRow {
     originType: 'portal',
     originRefId: null,
     originDisplayName: null,
+    claimNumber: 'CLM-TEST',
+    memberId: 'member-123',
     ...overrides,
   };
 }

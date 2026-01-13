@@ -105,6 +105,8 @@ export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetail
       createdAt: claim.createdAt,
       updatedAt: claim.updatedAt,
       assignedAt: claim.assignedAt,
+      userId: claim.userId,
+      claimNumber: claim.claimNumber,
       staffId: claim.staffId,
       category: claim.category,
       currency: claim.currency,

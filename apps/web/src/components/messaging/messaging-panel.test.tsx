@@ -109,7 +109,7 @@ describe('MessagingPanel', () => {
       <MessagingPanel claimId="claim-1" currentUserId="user-1" initialMessages={initialMessages} />
     );
 
-    expect(screen.getByText('(1)')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 
   it('passes isAgent prop to child components', async () => {

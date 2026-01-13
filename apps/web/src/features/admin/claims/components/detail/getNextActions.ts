@@ -113,9 +113,15 @@ export function getNextActions(claim: ClaimOpsDetail, currentUserId: string): Ne
 
   // Always allow reassign if staff context and not terminal
   if (!isTerminal && claim.ownerRole === 'staff' && !isUnassigned) {
-    // Prevent duplicate if already pushed? No, array ensures uniqueness usually if distinct types
-    // but check logical duplicates.
     secondary.push({ type: 'reassign', isPrimary: false, variant: 'ghost' });
+  }
+
+  // Always allow manual status update if transitions exist and it's not already the primary action
+  if (!isTerminal && allowedTransitions.length > 0 && primary?.type !== 'update_status') {
+    // Only add if not already in secondary (to avoid duplicates)
+    if (!secondary.find(s => s.type === 'update_status')) {
+      secondary.push({ type: 'update_status', isPrimary: false, variant: 'ghost' });
+    }
   }
 
   return {

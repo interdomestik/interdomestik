@@ -1,4 +1,13 @@
-import { boolean, decimal, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  decimal,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { documentCategoryEnum, statusEnum } from './enums';
@@ -12,6 +21,7 @@ export const claims = pgTable(
     tenantId: text('tenant_id')
       .notNull()
       .references(() => tenants.id),
+    claimNumber: text('claim_number'), // Human readable ID, unique per tenant. Nullable for migration.
     userId: text('userId')
       .notNull()
       .references(() => user.id),
@@ -43,6 +53,8 @@ export const claims = pgTable(
     index('idx_claims_tenant_branch').on(table.tenantId, table.branchId),
     index('idx_claims_tenant_branch_status').on(table.tenantId, table.branchId, table.status),
     index('idx_claims_tenant_status_created').on(table.tenantId, table.status, table.createdAt),
+    // Uniqueness for human readable claim number per tenant
+    uniqueIndex('idx_claims_tenant_number').on(table.tenantId, table.claimNumber), // Enable after backfill
   ]
 );
 

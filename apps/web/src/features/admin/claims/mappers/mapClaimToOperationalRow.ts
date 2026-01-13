@@ -27,6 +27,8 @@ export interface RawClaimRow {
     createdAt: Date | null;
     updatedAt: Date | null;
     assignedAt: Date | null;
+    userId: string; // Added for linking
+    claimNumber: string | null;
     staffId: string | null;
     category: string | null;
     currency: string | null;
@@ -78,6 +80,7 @@ export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow 
   return {
     id: claim.id,
     code: claim.id.slice(0, 8).toUpperCase(),
+    claimNumber: claim.claimNumber ?? null,
     title: claim.title,
     lifecycleStage,
     stageStartedAt,
@@ -90,6 +93,7 @@ export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow 
     isUnassigned: riskFlags.isUnassigned,
     waitingOn: riskFlags.waitingOn,
     hasCashPending: false, // Placeholder — no existing logic for this
+    memberId: claim.userId,
     memberName: claimant?.name ?? 'Unknown',
     memberEmail: claimant?.email ?? '',
     branchCode: branch?.code ?? null,

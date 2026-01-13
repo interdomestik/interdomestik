@@ -74,7 +74,8 @@
         "assigned_all": "Të gjitha",
         "assigned_only": "Të caktuara",
         "unassigned_only": "Të pacaktuara",
-        "assigned_to_me": "Të caktuara për mua"
+        "assigned_to_me": "Të caktuara për mua",
+        "handler_label": "Përpunon"
       },
       "lifecycle_tabs": {
         "all": "Të gjitha",

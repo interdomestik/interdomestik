@@ -4,6 +4,7 @@ import { getActiveSubscription } from '@interdomestik/domain-membership-billing/
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
+import { generateClaimNumber } from '../utils/claim-number';
 
 import type { ClaimsDeps, ClaimsSession } from './types';
 
@@ -94,19 +95,24 @@ export async function createClaimCore(
   const claimId = nanoid();
 
   try {
-    await db.insert(claims).values({
-      id: claimId,
-      tenantId,
-      userId: session.user.id,
-      title,
-      description,
-      category,
-      companyName,
-      claimAmount: claimAmount || undefined,
-      currency,
-      status: 'draft',
-      branchId: subscription.branchId ?? defaultBranchId,
-      agentId: subscription.agentId,
+    await db.transaction(async tx => {
+      const claimNumber = await generateClaimNumber(tx, tenantId);
+
+      await tx.insert(claims).values({
+        id: claimId,
+        tenantId,
+        userId: session.user.id,
+        title,
+        claimNumber,
+        description,
+        category,
+        companyName,
+        claimAmount: claimAmount || undefined,
+        currency,
+        status: 'draft',
+        branchId: subscription.branchId ?? defaultBranchId,
+        agentId: subscription.agentId,
+      });
     });
 
     if (deps.logAuditEvent) {

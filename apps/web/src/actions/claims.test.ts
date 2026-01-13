@@ -6,7 +6,12 @@ import { createClaim, submitClaim, updateClaimStatus } from './claims';
 
 // Mocks
 const mockGetSession = vi.fn();
-const mockDbInsert = vi.fn();
+const mockDbInsert = vi.fn().mockReturnValue({
+  onConflictDoUpdate: vi.fn().mockReturnValue({
+    returning: vi.fn().mockResolvedValue([{ lastNumber: 1 }]),
+  }),
+  returning: vi.fn().mockResolvedValue([{ id: 'claim-1' }]),
+});
 const mockDbUpdate = vi.fn();
 const mockHasActiveMembership = vi.fn();
 const mockGetActiveSubscription = vi.fn();
@@ -37,11 +42,19 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     insert: () => ({ values: mockDbInsert }),
     update: () => ({ set: () => ({ where: mockDbUpdate }) }),
-    transaction: async (
-      fn: (tx: { insert: () => { values: typeof mockDbInsert } }) => Promise<void>
-    ) => {
+    transaction: async (fn: (tx: any) => Promise<void>) => {
       return fn({
-        insert: () => ({ values: mockDbInsert }),
+        insert: () => ({
+          values: mockDbInsert,
+        }),
+        query: {
+          tenants: {
+            findFirst: vi.fn().mockResolvedValue({
+              id: 'tenant_mk',
+              countryCode: 'MK',
+            }),
+          },
+        },
       });
     },
     query: {
@@ -69,6 +82,12 @@ vi.mock('@interdomestik/database', () => ({
           email: 'user@example.com',
         }),
       },
+      tenants: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'tenant_mk',
+          countryCode: 'MK',
+        }),
+      },
     },
   },
   subscriptions: {
@@ -86,8 +105,19 @@ vi.mock('@interdomestik/database', () => ({
     category: { name: 'category' },
     key: { name: 'key' },
   },
+  tenants: {
+    id: { name: 'id' },
+    code: { name: 'code' },
+    countryCode: { name: 'countryCode' },
+  },
+  claimCounters: {
+    tenantId: { name: 'tenantId' },
+    year: { name: 'year' },
+    lastNumber: { name: 'lastNumber' },
+  },
   and: vi.fn(),
   eq: vi.fn(),
+  sql: (strings: TemplateStringsArray, ...values: any[]) => 'sql-mock',
 }));
 
 // Mock nanoid

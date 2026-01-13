@@ -12,8 +12,12 @@ interface ClaimIdentityProps {
 export function ClaimIdentity({ code, title }: ClaimIdentityProps) {
   return (
     <div className="flex items-center gap-2" data-testid="claim-identity">
-      <span className="text-xs font-mono text-muted-foreground/60">{code}</span>
-      <h3 className="text-sm font-medium text-foreground truncate">{title}</h3>
+      <span className="font-mono text-[10px] text-muted-foreground/70 shrink-0 bg-slate-100 px-1 py-0.5 rounded border border-slate-200/50">
+        {code}
+      </span>
+      <h3 className="text-sm font-semibold tracking-tight text-slate-900 truncate" title={title}>
+        {title}
+      </h3>
     </div>
   );
 }

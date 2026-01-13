@@ -19,6 +19,8 @@ function mockRawRow(overrides: Partial<RawClaimRow['claim']>): RawClaimRow {
       statusUpdatedAt: null,
       origin: 'portal',
       originRefId: null,
+      claimNumber: 'CLM-TEST',
+      userId: 'user-1',
       ...overrides,
     },
     claimant: { name: 'Claimant', email: 'c@test.com' },

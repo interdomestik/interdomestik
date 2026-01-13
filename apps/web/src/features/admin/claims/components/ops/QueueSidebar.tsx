@@ -18,7 +18,7 @@ export function QueueSidebar({ kpis }: QueueSidebarProps) {
 
   return (
     <aside
-      className="w-60 flex-shrink-0 border-r border-white/5 py-4 pr-4 space-y-4"
+      className="hidden md:block w-60 flex-shrink-0 border-r border-white/5 py-4 pr-4 space-y-4"
       data-testid="queue-sidebar"
     >
       {/* Priority Filters */}

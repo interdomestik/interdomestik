@@ -100,6 +100,18 @@ export function NextActionsCard({
     });
   };
 
+  const handleStatusDirectUpdate = (status: string) => {
+    startTransition(async () => {
+      onAction?.('update_status_direct');
+      const result = await updateStatus(claim.id, status as any, locale);
+      if (!result.success) {
+        toast.error(result.error || t('toast.failed'));
+      } else {
+        toast.success(t('toast.completed'));
+      }
+    });
+  };
+
   return (
     <>
       <OpsStatusUpdateModal
@@ -128,9 +140,11 @@ export function NextActionsCard({
           <NextActionSecondary
             secondary={secondary}
             allStaff={allStaff}
+            allowedTransitions={nextActions.allowedTransitions}
             isPending={isPending}
             onAction={handleActionClick}
             onAssign={handleAssign}
+            onStatusUpdate={handleStatusDirectUpdate}
           />
         </CardContent>
       </Card>

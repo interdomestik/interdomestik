@@ -102,11 +102,36 @@ export function OwnerDirective({
   // Determine if badge should show (PRD rules)
   const showBadge = shouldShowUnassignedBadge(status, isUnassigned, waitingOn);
 
-  // Get translation for primary directive
+  // ...
   const primaryText =
     variant === 'staff_action_with_name'
       ? t(`operational_card.directive.${variant}`, { name: ownerName ?? '' })
       : t(`operational_card.directive.${variant}`);
+
+  if (variant === 'staff_action_with_name') {
+    return (
+      <div className="flex items-center gap-2" data-testid="owner-directive-container">
+        {/* PRIMARY DIRECTIVE — Screaming Badge for Assignee */}
+        <Badge
+          className="bg-indigo-600 hover:bg-indigo-700 text-white border-0 font-semibold shadow-sm px-2.5 py-0.5 h-6 transition-all"
+          data-testid="primary-directive-badge"
+        >
+          {primaryText}
+        </Badge>
+
+        {/* SECONDARY BADGE — conditional */}
+        {showBadge && (
+          <Badge
+            variant="outline"
+            className="text-[10px] px-1.5 py-0 h-5 text-orange-500 border-orange-500/30"
+            data-testid="unassigned-badge"
+          >
+            {t('operational_card.badge.unassigned')}
+          </Badge>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2" data-testid="owner-directive-container">

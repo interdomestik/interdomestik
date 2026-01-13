@@ -31,6 +31,8 @@ function createClaimRow(overrides: Partial<ClaimOperationalRow>): ClaimOperation
     originType: 'portal',
     originRefId: null,
     originDisplayName: null,
+    claimNumber: 'CLM-TEST',
+    memberId: 'member-123',
     ...overrides,
   };
 }

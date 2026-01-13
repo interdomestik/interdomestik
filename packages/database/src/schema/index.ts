@@ -9,6 +9,7 @@ export * from './agents';
 export * from './auth';
 export * from './automation';
 export * from './claims';
+export * from './counters';
 export * from './crm';
 export * from './leads';
 export * from './memberships';
@@ -22,5 +23,4 @@ export * from './webhooks';
 
 // Relations
 export * from './relations';
-export * from './tracking';
 export * from './tracking';

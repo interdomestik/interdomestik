@@ -6,6 +6,7 @@ import { getNextActions } from './getNextActions';
 const mockClaim = (overrides: Partial<ClaimOpsDetail>): ClaimOpsDetail => ({
   id: 'claim-123',
   code: 'CLAIM-123',
+  claimNumber: 'CLM-XK-KS01-2026-000001',
   title: 'Test Claim',
   lifecycleStage: 'processing',
   stageStartedAt: new Date(),
@@ -18,6 +19,7 @@ const mockClaim = (overrides: Partial<ClaimOpsDetail>): ClaimOpsDetail => ({
   isUnassigned: true,
   waitingOn: 'staff',
   hasCashPending: false,
+  memberId: 'member-123',
   memberName: 'John Doe',
   memberEmail: 'john@example.com',
   branchCode: 'B01',

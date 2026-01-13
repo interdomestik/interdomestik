@@ -47,11 +47,9 @@ export function AdminPageHeader({
         className
       )}
     >
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-400">
-            {title}
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
           {tenantName && (
             <Badge
               variant="outline"

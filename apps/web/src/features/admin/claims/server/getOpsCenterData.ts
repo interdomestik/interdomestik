@@ -3,7 +3,7 @@ import { db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { branches, claims, user } from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
-import { aliasedTable, and, desc, eq, inArray, isNull, or, sql, SQL } from 'drizzle-orm';
+import { aliasedTable, and, desc, eq, ilike, inArray, isNull, or, sql, SQL } from 'drizzle-orm';
 
 import { mapClaimsToOperationalRows, type RawClaimRow } from '../mappers';
 import type {
@@ -118,6 +118,21 @@ function buildPoolConditions(context: ClaimsVisibilityContext, filters: OpsCente
     );
   }
 
+  // Search filter (Pool Defining)
+  // Affects pool fetch and KPIs
+  if (filters.search) {
+    const term = filters.search.trim().toUpperCase();
+    if (term) {
+      conditions.push(
+        or(
+          eq(claims.claimNumber, term), // Exact match (fastest)
+          ilike(claims.claimNumber, `${term}%`), // Prefix match
+          ilike(claims.title, `%${term}%`) // Fallback title match
+        )!
+      );
+    }
+  }
+
   return conditions;
 }
 
@@ -149,6 +164,8 @@ export async function getOpsCenterData(
           createdAt: claims.createdAt,
           updatedAt: claims.updatedAt,
           assignedAt: claims.assignedAt,
+          userId: claims.userId, // Added for linking
+          claimNumber: claims.claimNumber,
           staffId: claims.staffId, // Critical: needed for isUnassigned computation
           category: claims.category,
           currency: claims.currency,

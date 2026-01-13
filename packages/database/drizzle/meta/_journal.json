@@ -148,6 +148,20 @@
       "when": 1768254832080,
       "tag": "0020_pink_cloak",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1768259151617,
+      "tag": "0021_confused_hellion",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1768259954681,
+      "tag": "0022_cloudy_weapon_omega",
+      "breakpoints": true
     }
   ]
 }

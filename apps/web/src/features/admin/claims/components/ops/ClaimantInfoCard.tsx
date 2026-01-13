@@ -52,10 +52,9 @@ export function ClaimantInfoCard({
             </span>
             <InfoPill
               icon={Building2}
-              label={tDetail('fields.branch')}
               value={branchCode || '—'}
               variant="premium"
-              className="h-[22px] bg-slate-50 border-slate-200 text-slate-700"
+              className="bg-slate-50 border-slate-200 text-slate-700"
               separatorClassName="bg-slate-300"
             />
           </div>
@@ -67,10 +66,9 @@ export function ClaimantInfoCard({
             {claimAmount ? (
               <InfoPill
                 icon={Wallet}
-                label={tDetail('fields.claim_limit')}
                 value={typeof claimAmount === 'number' ? `€${claimAmount.toFixed(2)}` : claimAmount}
                 variant="premium"
-                className="h-[22px] bg-emerald-50 border-emerald-200 text-emerald-700"
+                className="bg-emerald-50 border-emerald-200 text-emerald-700"
                 separatorClassName="bg-emerald-300"
               />
             ) : (

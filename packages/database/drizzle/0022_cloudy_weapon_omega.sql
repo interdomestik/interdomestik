@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "idx_claims_tenant_number" ON "claim" USING btree ("tenant_id","claim_number");

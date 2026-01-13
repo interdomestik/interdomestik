@@ -26,6 +26,7 @@ export type ClaimOriginType = 'portal' | 'agent' | 'admin' | 'api';
 export interface ClaimOperationalRow {
   id: string;
   code: string;
+  claimNumber: string | null; // The human readable ID (e.g. CLM-XK-KS01-2026-000123)
   title: string;
   lifecycleStage: LifecycleStage;
   stageStartedAt: Date | null;
@@ -38,6 +39,7 @@ export interface ClaimOperationalRow {
   isUnassigned: boolean;
   waitingOn: 'member' | 'staff' | 'system' | null;
   hasCashPending: boolean;
+  memberId: string;
   memberName: string;
   memberEmail: string;
   branchCode: string | null;
@@ -203,6 +205,7 @@ export type AdminClaimDocument = {
 export interface ClaimOpsDetail extends ClaimOperationalRow {
   description: string | null;
   docs: AdminClaimDocument[];
+  claimNumber: string | null;
   // Visual fields for detail page
   companyName: string | null;
   claimAmount: string | null;
@@ -220,6 +223,7 @@ export interface OpsCenterFilters {
   branch?: string;
   page?: number;
   poolAnchor?: OpsPoolAnchor;
+  search?: string;
 }
 
 /**

@@ -77,10 +77,11 @@ function daysAgo(days) {
 }
 
 /**
- * Generate test claims for all KPI categories
+ * Seed script for Ops Center test claims.
+ * Creates claims across all KPI categories for comprehensive testing.
  */
 async function seedOpsClaims() {
-  console.log('🌱 Seeding Ops Center test claims...\n');
+  console.log('🌱 Seeding Ops Center test claims (Enriched)...\n');
   console.log(`📍 Tenant: ${TENANT_ID}\n`);
 
   const staff = await getStaffUser();
@@ -92,167 +93,167 @@ async function seedOpsClaims() {
     process.exit(1);
   }
 
-  console.log(`👤 Staff: ${staff.name} (${staff.id})`);
-  console.log(`👤 Member: ${member.id}`);
-  console.log(`🏢 Branch: ${branchId || 'None'}\n`);
+  const staffId = staff.id;
+  const memberId = member.id;
 
-  // Define test scenarios
+  async function addDocuments(claimId, uploaderId, date) {
+    const docs = [
+      { name: 'invoice_repair.pdf', type: 'application/pdf', cat: 'receipt' },
+      { name: 'damage_photo_1.jpg', type: 'image/jpeg', cat: 'evidence' },
+      { name: 'identification_doc.png', type: 'image/png', cat: 'evidence' },
+    ];
+
+    for (const doc of docs) {
+      if (Math.random() > 0.5) {
+        await sql`
+          INSERT INTO claim_documents (
+            id, tenant_id, claim_id, name, file_path, file_type, file_size, category, uploaded_by, created_at
+          ) VALUES (
+            ${nanoid(12)}, ${TENANT_ID}, ${claimId}, ${doc.name}, ${`seeding/${doc.name}`}, 
+            ${doc.type}, ${Math.floor(Math.random() * 500000) + 100000}, ${doc.cat}, ${uploaderId}, ${date}
+          ) ON CONFLICT DO NOTHING;
+        `;
+      }
+    }
+  }
+
+  async function addMessages(claimId, mId, sId, date) {
+    const thread = [
+      {
+        senderId: mId,
+        content: 'Përshëndetje, po dërgoj kërkesën për rimbursim.',
+        internal: false,
+        offset: 0,
+      },
+      {
+        senderId: sId,
+        content: 'Faleminderit. Jemi duke e shqyrtuar dokumentacionin.',
+        internal: false,
+        offset: 10 * 60 * 1000,
+      },
+      {
+        senderId: sId,
+        content: 'SHËNIM: Dokumenti i ID-së duket i paqartë. Mund të kërkojmë prapë.',
+        internal: true,
+        offset: 30 * 60 * 1000,
+      },
+    ];
+
+    if (sId) {
+      for (const msg of thread) {
+        const msgDate = new Date(date.getTime() + msg.offset);
+        await sql`
+          INSERT INTO claim_messages (
+            id, tenant_id, claim_id, sender_id, content, is_internal, created_at
+          ) VALUES (
+            ${nanoid(12)}, ${TENANT_ID}, ${claimId}, ${msg.senderId}, ${msg.content}, ${msg.internal}, ${msgDate}
+          ) ON CONFLICT DO NOTHING;
+        `;
+      }
+    }
+  }
+
+  async function addHistory(claimId, finalStatus, sId, date) {
+    const stages = [
+      'draft',
+      'submitted',
+      'evaluation',
+      'negotiation',
+      'verification',
+      'resolved',
+      'rejected',
+    ];
+    const finalIdx = stages.indexOf(finalStatus);
+
+    if (finalIdx === -1) return;
+
+    for (let i = 0; i <= finalIdx; i++) {
+      const status = stages[i];
+      const stageDate = new Date(date.getTime() + i * 3600000); // 1 hour steps
+      await sql`
+        INSERT INTO claim_stage_history (
+          id, tenant_id, claim_id, to_status, from_status, changed_by_id, created_at, note
+        ) VALUES (
+          ${nanoid(12)}, ${TENANT_ID}, ${claimId}, ${status}, ${i > 0 ? stages[i - 1] : null}, ${sId || memberId}, ${stageDate}, 
+          ${`Tranzicion automatik në ${status}`}
+        ) ON CONFLICT DO NOTHING;
+      `;
+    }
+  }
+
   const scenarios = [
-    // SLA Breach claims (old + staff-owned)
     {
       prefix: 'sla',
       status: 'submitted',
       staffId: null,
       daysOld: 8,
       count: 2,
-      desc: 'SLA breach (unassigned)',
+      desc: 'Kërkesë e paprocesuar (SLA Breach)',
+      category: 'retail',
     },
-    {
-      prefix: 'sla-assigned',
-      status: 'evaluation',
-      staffId: staff.id,
-      daysOld: 10,
-      count: 2,
-      desc: 'SLA breach (assigned)',
-    },
-
-    // Unassigned staff-owned
-    {
-      prefix: 'unassigned',
-      status: 'submitted',
-      staffId: null,
-      daysOld: 1,
-      count: 3,
-      desc: 'Unassigned (fresh)',
-    },
-    {
-      prefix: 'unassigned-eval',
-      status: 'evaluation',
-      staffId: null,
-      daysOld: 2,
-      count: 2,
-      desc: 'Unassigned evaluation',
-    },
-
-    // Stuck claims (5+ days in stage)
     {
       prefix: 'stuck',
-      status: 'negotiation',
-      staffId: staff.id,
-      daysOld: 6,
-      count: 2,
-      desc: 'Stuck (6 days)',
-    },
-
-    // Assigned (happy path)
-    {
-      prefix: 'assigned',
       status: 'evaluation',
-      staffId: staff.id,
-      daysOld: 1,
-      count: 3,
-      desc: 'Assigned & active',
+      staffId: staffId,
+      daysOld: 12,
+      count: 2,
+      desc: 'Rast i bllokuar në vlerësim',
+      category: 'services',
     },
     {
-      prefix: 'assigned-neg',
+      prefix: 'negotiation',
       status: 'negotiation',
-      staffId: staff.id,
+      staffId: staffId,
       daysOld: 2,
-      count: 2,
-      desc: 'Assigned negotiation',
-    },
-
-    // Waiting on member (verification stage)
-    {
-      prefix: 'waiting',
-      status: 'verification',
-      staffId: null,
-      daysOld: 3,
       count: 3,
-      desc: 'Waiting on member',
-    },
-
-    // Terminal (should NOT appear in ops)
-    {
-      prefix: 'resolved',
-      status: 'resolved',
-      staffId: staff.id,
-      daysOld: 30,
-      count: 2,
-      desc: 'Resolved (terminal)',
+      desc: 'Në negocim me siguruesin',
+      category: 'retail',
     },
     {
-      prefix: 'rejected',
-      status: 'rejected',
-      staffId: staff.id,
-      daysOld: 30,
-      count: 1,
-      desc: 'Rejected (terminal)',
-    },
-
-    // Draft (member-owned, not in ops pool)
-    {
-      prefix: 'draft',
-      status: 'draft',
-      staffId: null,
+      prefix: 'verification',
+      status: 'verification',
+      staffId: staffId,
       daysOld: 1,
       count: 2,
-      desc: 'Draft (member-owned)',
-    },
-
-    // Court stage (rare but staff-owned)
-    {
-      prefix: 'court',
-      status: 'court',
-      staffId: staff.id,
-      daysOld: 15,
-      count: 1,
-      desc: 'Court stage',
+      desc: 'Duke pritur verifikimin nga klienti',
+      category: 'claims',
     },
   ];
 
   let totalCreated = 0;
 
   for (const scenario of scenarios) {
-    console.log(`📦 Creating ${scenario.count}x ${scenario.desc}...`);
-
     for (let i = 0; i < scenario.count; i++) {
-      const id = `ops-test-${scenario.prefix}-${i}-${nanoid(6)}`;
-      const createdAt = daysAgo(scenario.daysOld);
-      const updatedAt = createdAt; // Same as created for daysInStage accuracy
+      const id = `ops-enriched-${scenario.prefix}-${i}-${nanoid(4)}`;
+      const date = daysAgo(scenario.daysOld);
+      const title = `${scenario.desc} [${i + 1}]`;
+      const description = `Ky është një rast testues i pasuruar për skenarin: ${scenario.desc}. \n\nDetaje: Krijuar para ${scenario.daysOld} ditësh. Përmban dokumente, mesazhe dhe histori të plotë.`;
 
       await sql`
         INSERT INTO claim (
           id, tenant_id, "userId", branch_id, "staffId",
           title, description, status, category, "companyName", 
-          amount, currency, "createdAt", "updatedAt"
+          amount, currency, "createdAt", "updatedAt", "statusUpdatedAt"
         ) VALUES (
-          ${id}, ${TENANT_ID}, ${member.id}, ${branchId}, ${scenario.staffId},
-          ${`Test: ${scenario.desc} #${i + 1}`},
-          ${`Auto-generated claim for testing ${scenario.desc}. Created ${scenario.daysOld} days ago.`},
-          ${scenario.status}, ${'test'}, ${'Test Co'},
-          ${'100.00'}, ${'EUR'}, ${createdAt}, ${updatedAt}
+          ${id}, ${TENANT_ID}, ${memberId}, ${branchId}, ${scenario.staffId},
+          ${title}, ${description}, ${scenario.status}, ${scenario.category}, ${'Siguria Kosova'},
+          ${(Math.random() * 500).toFixed(2)}, ${'EUR'}, ${date}, ${date}, ${date}
         )
         ON CONFLICT (id) DO UPDATE SET
           status = excluded.status,
           "staffId" = excluded."staffId",
           "updatedAt" = excluded."updatedAt";
       `;
+
+      await addDocuments(id, memberId, date);
+      await addMessages(id, memberId, scenario.staffId, date);
+      await addHistory(id, scenario.status, scenario.staffId, date);
+
       totalCreated++;
     }
   }
 
-  console.log(`\n✅ Created ${totalCreated} test claims across ${scenarios.length} categories`);
-
-  // Print summary
-  console.log('\n📊 Expected KPI impact:');
-  console.log('  • SLA Breach: 4 (submitted/evaluation with 8-10 days)');
-  console.log('  • Unassigned: 5 (staff-owned without staffId)');
-  console.log('  • Stuck: 2 (6+ days in stage)');
-  console.log('  • Waiting on Member: 3 (verification status)');
-  console.log('  • Terminal (hidden): 3 (resolved/rejected)');
-  console.log('  • Draft (hidden): 2 (member-owned)');
-
+  console.log(`\n✅ Enriched ${totalCreated} claims with documents, messages, and history.`);
   await sql.end({ timeout: 5 });
 }
 

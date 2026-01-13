@@ -45,6 +45,7 @@ export async function assignOwner(
     await logAudit(ctx.tenantId, ctx.session.user.id, 'assign_owner', claimId, {
       previousStaffId: claim.staffId,
       newStaffId: staffId,
+      claimNumber: claim.claimNumber,
     });
     revalidateClaim(locale, claimId);
     return { success: true };
@@ -71,6 +72,7 @@ export async function unassignOwner(claimId: string, locale: string): Promise<Op
     assertRowsAffected(updated);
     await logAudit(ctx.tenantId, ctx.session.user.id, 'unassign_owner', claimId, {
       previousStaffId: claim.staffId,
+      claimNumber: claim.claimNumber,
     });
     revalidateClaim(locale, claimId);
     return { success: true };

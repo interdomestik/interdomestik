@@ -31,7 +31,7 @@ export function OperationalCard({ claim }: OperationalCardProps) {
 
   return (
     <Card
-      className="p-4 bg-background/40 backdrop-blur-sm border-white/5 hover:bg-white/5 transition-colors"
+      className="p-4 bg-white/80 border-slate-200/60 shadow-sm hover:shadow-md hover:border-primary/20 hover:bg-accent/40 transition-all cursor-pointer"
       data-testid="claim-operational-card"
     >
       <div className="flex gap-4">

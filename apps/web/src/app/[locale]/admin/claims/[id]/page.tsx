@@ -35,8 +35,8 @@ export default async function AdminClaimDetailPage({
   const data = result.data;
 
   // Fetch i18n & Context
-  const t = await getTranslations('agent.details');
-  const tDetail = await getTranslations('admin.claims_page.detail');
+  // const t = await getTranslations('agent.details'); // Unused
+  // const tDetail = await getTranslations('admin.claims_page.detail'); // Unused
   const tTimeline = await getTranslations('admin.claims_page.timeline');
   const staffResult = await getStaff();
   const staff = staffResult.success ? (staffResult.data ?? []) : [];
@@ -47,7 +47,7 @@ export default async function AdminClaimDetailPage({
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
       {/* Sticky Ops Header */}
-      <ClaimHeader claim={data} nextActions={nextActions} allStaff={staff} locale={locale} />
+      <ClaimHeader claim={data} allStaff={staff} locale={locale} />
 
       {/* 3-Pane Cockpit Layout: 3 | 6 | 3 */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">

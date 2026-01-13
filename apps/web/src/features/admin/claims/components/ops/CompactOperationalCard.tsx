@@ -25,11 +25,11 @@ export function CompactOperationalCard({ claim, isSelected }: CompactOperational
     <Link
       href={href}
       className={cn(
-        'group relative flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-all text-left',
-        'hover:bg-accent/50 hover:border-accent-foreground/20',
+        'group relative flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all text-left shadow-sm',
+        'hover:bg-accent/40 hover:border-accent-foreground/20 hover:shadow-md',
         isSelected
-          ? 'bg-accent border-accent-foreground/30 ring-1 ring-inset ring-primary/20'
-          : 'bg-card/50 border-white/5'
+          ? 'bg-accent/15 border-primary/20 ring-1 ring-inset ring-primary/10 shadow-md'
+          : 'bg-white/80 border-slate-200/60'
       )}
       data-testid="claim-operational-card"
     >
@@ -68,14 +68,21 @@ export function CompactOperationalCard({ claim, isSelected }: CompactOperational
 
         {/* 3. Identity (Truncated) */}
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-muted-foreground shrink-0">{claim.code}</span>
-          <h3 className="text-sm font-medium leading-none truncate" title={claim.title}>
+          <span className="font-mono text-[10px] font-medium tracking-tight text-slate-500 bg-slate-100/80 px-1.5 py-0.5 rounded border border-slate-200/60 shadow-[inset_0_1px_1px_rgba(0,0,0,0.02)]">
+            {claim.claimNumber ?? claim.code}
+          </span>
+          <h3
+            className={cn(
+              'text-sm font-medium tracking-tight truncate max-w-[180px]',
+              isSelected ? 'text-primary font-semibold' : 'text-slate-700'
+            )}
+          >
             {claim.title}
           </h3>
         </div>
 
         {/* 4. Minimal Metadata (Member + Category) - Branch moved to badges */}
-        <p className="text-xs text-muted-foreground truncate">
+        <p className="text-[11px] text-muted-foreground truncate font-medium opacity-80 pl-0.5">
           {claim.memberName} • {claim.category}
         </p>
       </div>

@@ -25,10 +25,31 @@ export async function cleanupByPrefixes(
 
   console.log(`🧹 Cleaning up data with prefixes: ${prefixes.join(', ')}...`);
 
-  // 1. Delete Claims and related children
-  // (Assuming cascade delete might handle some, but explicit is safer for seeds)
-  // Deleting claims by ID prefix
-  await db.delete(dbSchema.claims).where(or(...likePatterns.map(p => like(dbSchema.claims.id, p))));
+  // 1. Identify Claims and clean up related children first (Manual cascade)
+  const claimIdPrefixes = likePatterns;
+  const claimIdsToDelete = await db.query.claims.findMany({
+    where: or(...claimIdPrefixes.map(p => like(dbSchema.claims.id, p))),
+    columns: { id: true },
+  });
+
+  const allClaimIds = claimIdsToDelete.map(c => c.id);
+
+  if (allClaimIds.length > 0) {
+    await db
+      .delete(dbSchema.claimDocuments)
+      .where(inArray(dbSchema.claimDocuments.claimId, allClaimIds));
+    await db
+      .delete(dbSchema.claimMessages)
+      .where(inArray(dbSchema.claimMessages.claimId, allClaimIds));
+    await db
+      .delete(dbSchema.claimStageHistory)
+      .where(inArray(dbSchema.claimStageHistory.claimId, allClaimIds));
+  }
+
+  // Now delete the claims themselves
+  await db
+    .delete(dbSchema.claims)
+    .where(or(...claimIdPrefixes.map(p => like(dbSchema.claims.id, p))));
 
   // 2. Delete Lead Payment Attempts (Delete children first)
   await db
@@ -102,7 +123,23 @@ export async function cleanupByPrefixes(
     console.log(`  Found ${allUserIds.length} users to clean up. removing dependencies...`);
 
     // Helper for batching if needed, but for seeds 100-200 is fine in one IN clause usually.
-    // 1. Delete Claims by User ID
+    // 1. Identify and Clean up Claims by User ID
+    const userClaimIds = await db.query.claims.findMany({
+      where: inArray(dbSchema.claims.userId, allUserIds),
+      columns: { id: true },
+    });
+
+    const cIds = userClaimIds.map(c => c.id);
+    if (cIds.length > 0) {
+      await db
+        .delete(dbSchema.claimDocuments)
+        .where(inArray(dbSchema.claimDocuments.claimId, cIds));
+      await db.delete(dbSchema.claimMessages).where(inArray(dbSchema.claimMessages.claimId, cIds));
+      await db
+        .delete(dbSchema.claimStageHistory)
+        .where(inArray(dbSchema.claimStageHistory.claimId, cIds));
+    }
+
     await db.delete(dbSchema.claims).where(inArray(dbSchema.claims.userId, allUserIds));
 
     // 2. Delete Accounts & Sessions

@@ -3,7 +3,7 @@ import { LucideIcon } from 'lucide-react';
 
 interface InfoPillProps {
   icon?: LucideIcon;
-  label: string;
+  label?: string;
   value?: string | number | null;
   className?: string; // Wrapper class (+ bg/border colors)
   labelClassName?: string; // Text color/style
@@ -18,7 +18,7 @@ export function InfoPill({
   className,
   labelClassName,
   separatorClassName,
-  variant,
+  variant = 'ghost',
 }: InfoPillProps) {
   // Variant Presets
   const presets = {
@@ -41,31 +41,46 @@ export function InfoPill({
     },
   };
 
-  const currentPreset = variant ? presets[variant] : {};
+  const currentPreset = presets[variant];
 
   return (
     <div
       className={cn(
-        'inline-flex items-center rounded-md border select-none h-[22px]',
+        'inline-flex items-center rounded-md border select-none min-h-[22px] w-fit',
         currentPreset.wrapper,
         className
       )}
     >
       {/* Segment 1: Label + Icon */}
-      <div className="flex items-center gap-1.5 px-2 py-0.5">
-        {Icon && <Icon className="w-3 h-3" strokeWidth={2.5} />}
-        <span className={cn('text-[10px] uppercase tracking-wider font-bold', labelClassName)}>
-          {label}
-        </span>
-      </div>
+      {(Icon || label) && (
+        <div className="flex items-center gap-1.5 px-2 py-0.5 shrink-0">
+          {Icon && <Icon className="w-3 h-3" strokeWidth={2.5} />}
+          {label && (
+            <span
+              className={cn(
+                'text-[10px] uppercase tracking-wider font-bold whitespace-nowrap',
+                labelClassName
+              )}
+            >
+              {label}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Segment 2: Value (Optional) */}
       {value && (
         <>
           <div
-            className={cn('w-[1px] h-3 self-center', currentPreset.separator, separatorClassName)}
+            className={cn(
+              'w-[1px] h-3 self-center shrink-0',
+              currentPreset.separator,
+              separatorClassName
+            )}
           />
-          <span className="px-2 py-0.5 text-[10px] font-medium font-mono">{value}</span>
+          <span className="px-2 py-0.5 text-[10px] font-medium font-mono whitespace-nowrap">
+            {value}
+          </span>
         </>
       )}
     </div>
