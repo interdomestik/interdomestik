@@ -13,7 +13,8 @@
     "./db": "./src/db.ts",
     "./schema": "./src/schema.ts",
     "./tenant-security": "./src/tenant-security.ts",
-    "./member-number": "./src/member-number.ts"
+    "./member-number": "./src/member-number.ts",
+    "./claim-number": "./src/claim-number.ts"
   },
   "scripts": {
     "db:generate": "echo 'Skipping supabase gen types (using Drizzle)' && exit 0",
@@ -24,11 +25,11 @@
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
     "type-check": "tsc --noEmit",
-    "seed:e2e": "tsx src/seed-e2e.ts",
-    "seed:golden": "tsx src/seed-golden.ts",
-    "seed:workload": "tsx src/seed-workload/index.ts",
-    "seed:full": "tsx src/seed-full/index.ts",
-    "seed:pack:ks": "tsx src/seed-packs/ks-workflow-pack.ts"
+    "seed:golden": "tsx src/seed.ts golden",
+    "seed:workload": "tsx src/seed.ts workload",
+    "seed:full": "tsx src/seed.ts full",
+    "seed:e2e": "tsx src/seed.ts e2e",
+    "seed:assert-e2e": "tsx src/seed-assert.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
@@ -40,7 +41,9 @@
     "next": ">=14.0.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^22.19.2",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.8",
     "nanoid": "^5.1.6",

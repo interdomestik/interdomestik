@@ -1,0 +1,108 @@
+version: 1
+milestones:
+  - id: M1_member_number
+    title: Global Member Number
+    status: DONE
+    gates:
+      - member_number.schema_columns
+      - member_number.unique_partial_index
+      - member_number.generator_race_safe
+      - member_number.year_semantics_no_now_fallback
+
+  - id: M2_claim_traceability_option1
+    title: Claim Traceability (Option 1)
+    status: DONE
+    gates:
+      - claim_traceability.schema
+      - claim_traceability.generator_race_safe
+      - claim_traceability.tenant_code_required
+      - claim_traceability.resolver_tenant_scoped
+      - claim_traceability.guard_before_counter
+      - claim_traceability.transactional_creation
+      - claim_traceability.format_helper_exists
+      - pool_anchor.search_resets_anchor
+      - pool_anchor.priority_preserves_anchor
+      - pool_anchor.pool_defining_resets_anchor
+      - url_builder.centralized_usage
+      - lifecycle.no_hidden_transitions_assignment
+      - lifecycle.allowed_transitions_single_source
+      - claim_traceability.schema_counters_pk
+      - claim_traceability.schema_unique_index
+      - test.e2e.claim_creation
+      - test.e2e.resolver_isolation
+      - test.e2e.pool_anchor
+
+  # M0 Infrastructure Gates (Auth, Seeding, E2E Infra)
+  # ═══════════════════════════════════════════════════════════════════════════
+  - id: M0_infrastructure
+    title: Auth & Seeding Hardening
+    status: DONE
+    gates:
+      - auth.bcrypt_in_auth_core
+      - auth.bcrypt_in_seeder
+      - e2e.uses_storage_state
+      - e2e.no_global_setup_files
+      - e2e.playwright_config_single_path
+      - orchestration.root_scripts_no_duplicates
+      - orchestration.web_scripts_no_alt_e2e_modes
+      - orchestration.ci_green_path
+      # New Seeding Gates
+      - seeding.canonical_runner_exists
+      - seeding.seed_ts_must_use_argv_exit
+      - seeding.no_argv_exit_in_packs_helpers
+      - seeding.packs_helpers.no_entrypoint_or_env_loading
+      - seeding.packs.no_process_env
+      - seeding.no_seed_imports_outside_database
+      - seeding.no_legacy_seed_scripts
+      - seeding.seed_scripts_use_seed_ts
+      - seeding.seed_golden_entrypoint
+      - seeding.ks_workflow_pack_entrypoint
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # M3 External Communication & Document Vault
+  # ═══════════════════════════════════════════════════════════════════════════
+  - id: M3_external_communication
+    title: External Communication & Document Vault
+    status: DONE
+    sub_milestones:
+      - id: M3.1
+        title: Document Model + Storage Abstraction
+        status: DONE
+        description: |
+          Tables: claim_documents, member_documents (or unified documents with entityType/entityId).
+          Store metadata in Postgres (Supabase) + files in object storage.
+          MUST: tenant-scoped access + immutable audit log of uploads/changes.
+        gates:
+          - m3.documents.schema_exists
+          - m3.documents.tenant_scoped_access
+          - m3.documents.audit_log_on_upload
+          - m3.documents.storage_path_includes_tenant
+
+      - id: M3.2
+        title: External Communication Thread
+        status: DONE
+        description: |
+          Table: claim_threads + claim_messages.
+          Message types: note/email/phone/whatsapp-summary/system.
+          Attachments link to documents.
+          MUST: every outbound message has externalReference field (insurer policy/claim no.)
+        gates:
+          - m3.threads.schema_exists
+          - m3.threads.message_types_enum
+          - m3.threads.external_reference_field
+          - m3.threads.attachment_document_link
+
+      - id: M3.3
+        title: Deep Linking / Export Pack
+        status: DONE
+        description: |
+          "Share pack": generate a PDF bundle or a secure link with a time-limited token.
+          MUST: never leak cross-tenant; all accesses logged.
+        gates:
+          - m3.export.share_pack_endpoint
+          - m3.export.time_limited_token
+          - m3.export.tenant_scoped_access
+          - m3.export.access_audit_log
+          - m3.export.token_signed
+          - m3.export.token_payload_no_documentIds
+    gates: []

@@ -13,7 +13,7 @@ We have successfully transformed the application into a managed, insight-driven 
 - **Refactored**: `apps/web/src/actions/country-guidance.ts` to use strictly typed domain logic.
 - **Refactored**: `apps/web/src/actions/country-guidance.ts` to use strictly typed domain logic.
 - **Refactored**: `packages/domain-country-guidance/src/data.ts` to use a helper factory, strictly typing 20+ countries while reducing file size by 70%.
-- **Consolidated**: Merged i18n logic into `proxy.ts` and removed redundant `middleware.ts` to resolve build conflicts.
+- **Consolidated**: Merged i18n logic into `proxy.ts` and removed the redundant legacy edge entrypoint to resolve build conflicts.
 - **Added**: A robust `domain-analytics` package implementing V2 and V3 KPI engines.
 - **Enhanced**: Observability via Sentry context injection in the Server Action wrapper (`safe-action.ts`).
 - **Enforced**: RBAC via explicit checks in Server Actions and a new auto-redirect for Branch Managers.

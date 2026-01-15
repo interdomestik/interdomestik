@@ -38,12 +38,12 @@ CONSTRAINTS_FILE="$REPO_ROOT/.agent/constraints.md"
 # Commands - customize per repo (override via env)
 LINT_CMD="${LINT_CMD:-pnpm lint}"
 TYPECHECK_CMD="${TYPECHECK_CMD:-pnpm type-check}"
-TYPECHECK_FALLBACK_CMD="${TYPECHECK_FALLBACK_CMD:-pnpm typecheck}"
+TYPECHECK_FALLBACK_CMD="${TYPECHECK_FALLBACK_CMD:-pnpm type-check}"
 TEST_CMD="${TEST_CMD:-pnpm --filter @interdomestik/web test:unit --run}"
 E2E_SMOKE_CMD="${E2E_SMOKE_CMD:-pnpm --filter @interdomestik/web test:e2e -- --grep smoke}"
 BUILD_CMD="${BUILD_CMD:-pnpm build}"
-FULL_CHECK_CMD="${FULL_CHECK_CMD:-pnpm qa:full}"
-FORMAT_CMD="${FORMAT_CMD:-pnpm prettier --check . --cache}"
+FULL_CHECK_CMD="${FULL_CHECK_CMD:-pnpm check}"
+FORMAT_CMD="${FORMAT_CMD:-pnpm format:check}"
 COVERAGE_CMD="${COVERAGE_CMD:-pnpm --filter @interdomestik/web test:unit -- --coverage}"
 MAX_FILE_BYTES="${MAX_FILE_BYTES:-15000}"
 MAX_FILE_LINES="${MAX_FILE_LINES:-400}"
@@ -976,7 +976,7 @@ EOF
 - [ ] Formatter/Prettier check passes
 - [ ] \`pnpm type-check\` passes
 - [ ] No regressions from baseline
-- [ ] (Recommended) \`pnpm qa:full\` or full checks executed before PR
+- [ ] (Recommended) \`pnpm check\` executed before PR
 - [ ] Screenshots added for UI changes (if applicable)
 - [ ] Documentation updated (if applicable)
 - [ ] Code reviewed / self-reviewed

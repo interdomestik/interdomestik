@@ -242,7 +242,7 @@ CREATE TABLE subscriptions (
    - Event processing
    - Database sync
 
-5. **Middleware**: `apps/web/src/proxy.ts` (Next.js 16 Proxy)
+5. **Proxy**: `apps/web/src/proxy.ts` (Next.js 16 Proxy)
    - CSP configuration
    - Security headers
 

@@ -35,11 +35,10 @@ pnpm test                # Run unit tests for web app
 pnpm test:unit:domains   # Run unit tests for all domain packages
 pnpm test:e2e            # Run Playwright e2e tests
 pnpm qa                  # Run quality assurance checks
-pnpm qa:full             # Full quality pipeline (lint, type-check, tests, e2e)
 
 # Database
 pnpm db:generate         # Generate database client
-pnpm db:push             # Push schema changes to database
+pnpm db:push:local       # Push schema changes to local database
 pnpm db:studio           # Open Drizzle Studio
 ```
 
@@ -52,7 +51,7 @@ pnpm --filter @interdomestik/domain-users test:unit --run specific.test.ts
 
 # E2E tests (Playwright)
 pnpm --filter @interdomestik/web test:e2e -- --grep "test name"
-pnpm --filter @interdomestik/web test:e2e:chromium -- --grep "specific test"
+pnpm --filter @interdomestik/web test:e2e -- --project=chromium --grep "specific test"
 pnpm --filter @interdomestik/web test:e2e -- tests/auth/login.spec.ts
 ```
 

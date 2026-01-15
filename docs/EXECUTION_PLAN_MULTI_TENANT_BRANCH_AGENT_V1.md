@@ -198,7 +198,7 @@ Progress tracking:
 2. **Tenant column**: add a first-class `defaultBranchId` on tenants.
    - Update: `packages/database/src/schema/tenants.ts` (add `defaultBranchId: text('default_branch_id').references(() => branches.id)`)
    - Add migration: `packages/database/drizzle/0012_add_default_branch_to_tenants.sql`
-   - Backfill strategy: set the default for existing tenants based on a known branch (from `scripts/seed-branches-manual.mjs`) or a one-time manual update.
+   - Backfill strategy: set the default for existing tenants based on a known branch from the canonical seed dataset (`pnpm seed:e2e` / `pnpm --filter @interdomestik/database seed:golden`) or a one-time SQL update.
 3. **Convention**: pick the branch with `code='main'` (or similar) per tenant.
    - This is simpler but becomes brittle once you add more branches/countries.
 
@@ -257,12 +257,13 @@ Progress tracking:
 
 ### F2. [x] Branch seed
 
-- Manual branch seed script already exists: `scripts/seed-branches-manual.mjs`
-  - [x] Seed now also upserts `tenant_settings(category='rbac', key='default_branch_id')` for the tenant.
+- Branches and default-branch settings are seeded deterministically via the canonical seed runner:
+  - `pnpm seed:e2e` (for E2E)
+  - `pnpm --filter @interdomestik/database seed:full` (for larger datasets)
 
 ### F3. [x] E2E users + seeded claims
 
-- `scripts/seed-e2e-users.mjs`
+- `pnpm seed:e2e`
 
 **Recommended use**
 
@@ -352,14 +353,11 @@ The correct run order for CI and local E2E:
 # 1. Apply migrations
 pnpm db:migrate
 
-# 2. Seed branches (must run before E2E if tests depend on specific branches)
-node scripts/seed-branches-manual.mjs
+# 2. Seed (branches + users + baseline E2E dataset)
+pnpm seed:e2e
 
-# 3. Seed E2E users
-node scripts/seed-e2e-users.mjs
-
-# 4. Run E2E tests
+# 3. Run E2E tests
 pnpm test:e2e
 ```
 
-- **Playwright globalSetup**: Consider adding these seed steps to `playwright.config.ts` → `globalSetup` for full automation.
+- **Hard rule**: Do not add Playwright `globalSetup` for seeding/migration. Keep orchestration explicit.

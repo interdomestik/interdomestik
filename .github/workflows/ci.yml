@@ -16,6 +16,31 @@ concurrency:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interdomestik_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d interdomestik_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      # canonical DB URL for seed + app + tests
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      # Consistent origin
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      # Secrets (mocked or from secrets)
+      PADDLE_WEBHOOK_SECRET_KEY: test_secret
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,29 +61,31 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm lint
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            pg_isready -h 127.0.0.1 -p 5432 -U postgres -d interdomestik_test && exit 0
+            sleep 2
+          done
+          echo "Postgres not ready" && exit 1
 
-      - name: Type Check
-        run: pnpm type-check
+      - name: Delivery Contract Audit
+        run: pnpm track:audit
 
-      - name: i18n Check
-        run: pnpm i18n:check
-
-      - name: Unit Tests (Coverage)
-        run: pnpm test:coverage
-
-      - name: SonarQube Scan
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-        run: pnpm sonar:scan
+      - name: Golden Path - Check
+        run: pnpm check
 
       - name: Install Playwright Browsers
         run: pnpm --filter @interdomestik/web exec playwright install --with-deps
 
+      - name: DB migrations
+        run: pnpm db:migrate
+
+      - name: Seed E2E
+        run: pnpm seed:e2e
+
+      - name: Assert DB seeded
+        run: pnpm --filter @interdomestik/database seed:assert-e2e
+
       - name: E2E Smoke Tests
         run: pnpm --filter @interdomestik/web test:e2e -- --grep smoke
-
-      - name: Build
-        run: pnpm build

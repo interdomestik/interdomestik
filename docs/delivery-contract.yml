@@ -1,0 +1,718 @@
+version: 1
+invariants:
+  - id: member_number.immutable
+    text: Member Number is immutable once assigned.
+  - id: member_number.race_safe
+    text: Member Number generation must use conditional update (WHERE memberNumber IS NULL).
+  - id: member_number.partial_index
+    text: Member Number must have a partial unique index where role='member'.
+  - id: claim_traceability.immutable
+    text: Claim Number is immutable once assigned.
+  - id: claim_traceability.race_safe
+    text: Claim Number generation must use conditional update (WHERE claimNumber IS NULL).
+  - id: claim_traceability.tenant_isolation
+    text: Claim resolution must be strictly scoped to tenant.
+  - id: lifecycle.no_hidden_transitions
+    text: Status transitions must only happen via explicit updateStatus calls using ALLOWED_TRANSITIONS.
+  - id: pool_anchor.stability
+    text: Pool anchor must be preserved on priority changes but cleared on pool-defining changes.
+  # Auth & Seeding Invariants (M0 infra)
+  - id: auth.bcrypt_alignment
+    text: Password hashing must use bcryptjs with 10 rounds in both seeder and auth.
+  - id: seeding.single_source
+    text: E2E seeding must use a single canonical runner (packages/database/src/seed.ts) with no legacy entrypoints.
+  - id: seeding.idempotency
+    text: Seed pack must delete existing data by identifier before insert to ensure idempotency.
+  - id: e2e.auth_state_dependency
+    text: E2E tests must depend on shared storageState setup, not ad-hoc login in each spec.
+  - id: e2e.no_hidden_seeding
+    text: E2E must not seed implicitly; migration and seeding are explicit orchestration steps.
+
+checks:
+  # M1 Member Number
+  - id: member_number.schema_columns
+    description: Schema definition must include memberNumber and memberNumberIssuedAt.
+    type: regex
+    targets:
+      - packages/database/src/schema/auth.ts
+    must_match:
+      - "memberNumber: text\\('member_number'\\)"
+      - "memberNumberIssuedAt: timestamp\\('member_number_issued_at'\\)"
+
+  - id: member_number.unique_partial_index
+    description: A partial unique index for memberNumber (scoped to role='member') must exist.
+    type: regex
+    targets:
+      - packages/database/src/schema/auth.ts
+    must_match:
+      - "uniqueIndex\\([\\s\\S]*?\\)[\\s\\S]*?\\.on\\([\\s\\S]*?memberNumber[\\s\\S]*?\\)[\\s\\S]*?\\.where\\(sql[\\s\\S]*?role[\\s\\S]*?=[\\s\\S]*?'member'[\\s\\S]*?\\)"
+
+  - id: member_number.generator_race_safe
+    description: Generator must use atomic update on null column to prevent race conditions.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/database/src/member-number.ts
+    must_match:
+      - 'onConflictDoUpdate'
+      - "isNull\\(user\\.memberNumber\\)"
+      - "eq\\(user\\.role,\\s*'member'\\)"
+
+  - id: member_number.year_semantics_no_now_fallback
+    description: Member number generation must not pass year derived from "now" (must be joinedAt/createdAt driven).
+    type: regex
+    scope: ANY_TARGET
+    targets:
+      - apps/web/src/lib/auth.core.ts
+    must_not_match:
+      - "generateMemberNumberWithRetry\\([\\s\\S]*?\\{[\\s\\S]*?year:\\s*new Date\\(\\)\\.getFullYear\\(\\)[\\s\\S]*?\\}[\\s\\S]*?\\)"
+
+  # M2 Claim Traceability
+  - id: claim_traceability.schema
+    description: Schema must include claimNumber and tenants.code.
+    type: regex
+    targets:
+      - packages/database/src/schema/claims.ts
+      - packages/database/src/schema/tenants.ts
+    must_match:
+      - "claimNumber: text\\('claim_number'\\)"
+      - "code: text\\('code'\\)"
+
+  - id: claim_traceability.generator_race_safe
+    description: Claim generator must be race-safe (atomic counter + conditional UPDATE where claimNumber IS NULL).
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/database/src/claim-number.ts
+    must_match:
+      - 'onConflictDoUpdate'
+      - "update\\(claims\\)"
+      - "where\\([\\s\\S]*?isNull\\([^\\)]*claimNumber[^\\)]*\\)"
+
+  - id: claim_traceability.tenant_code_required
+    description: Claim generator must require tenant code and throw if missing.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/database/src/claim-number.ts
+    must_match:
+      - 'tenant.*code'
+      - "throw new Error\\("
+
+  - id: claim_traceability.guard_before_counter
+    description: Tenant code must be validated BEFORE counter increment (gap reduction).
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/database/src/claim-number.ts
+    must_match:
+      - "tenant[\\s\\S]*code[\\s\\S]*throw new Error\\("
+      - 'onConflictDoUpdate'
+    must_not_match:
+      - "onConflictDoUpdate[\\s\\S]*tenant[\\s\\S]*code[\\s\\S]*throw new Error\\("
+
+  - id: claim_traceability.transactional_creation
+    description: Claim numbering must occur in same tx scope as claim insert.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/domain-claims/src/claims/create.ts
+    must_match:
+      - "db\\.transaction\\([\\s\\S]*?tx\\.insert\\(claims\\)[\\s\\S]*?generateClaimNumber\\(tx"
+
+  - id: claim_traceability.resolver_tenant_scoped
+    description: Resolver must scope lookup by tenantId AND enforce auth.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - "apps/web/src/app/\\[locale\\]/admin/claims/number/\\[claimNumber\\]/page.tsx"
+    must_match:
+      - "where:[\\s\\S]*tenantId[\\s\\S]*claimNumber|withTenant\\(tenantId[\\s\\S]*?claimNumber"
+      - 'getSession|requirePermission|ALLOWED_ROLES'
+
+  - id: claim_traceability.format_helper_exists
+    description: Canonical formatter must exist and produce CLM-{TENANT}-{YYYY}-{NNNNNN}.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/database/src/claim-number.ts
+    must_match:
+      - 'formatClaimNumber'
+      - "CLM-\\$\\{"
+
+  - id: lifecycle.no_hidden_transitions_assignment
+    description: Assignment actions must not secretly update status.
+    type: regex
+    targets:
+      - apps/web/src/actions/admin-claims/**/assign.ts
+      - apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx
+    must_not_match:
+      - 'updateStatus'
+      - 'status:'
+
+  - id: lifecycle.allowed_transitions_single_source
+    description: UI status controls must derive options from ALLOWED_TRANSITIONS.
+    type: regex
+    targets:
+      - apps/web/src/features/admin/claims/components/ops/OpsStatusControl.tsx
+    must_match:
+      - 'allowedTransitions'
+      - "filter\\(s => s === currentStatus \\|\\| allowedTransitions\\.includes\\(s\\)\\)"
+
+  - id: pool_anchor.search_resets_anchor
+    description: Search operations must clear the poolAnchor to prevent stale view state.
+    type: regex
+    targets:
+      - apps/web/src/features/admin/claims/components/ops/utils.ts
+    must_match:
+      - "if \\(isPoolReset\\)"
+      - "newParams.delete\\('poolAnchor'\\)"
+
+  - id: pool_anchor.priority_preserves_anchor
+    description: Priority changes should NOT clear the poolAnchor.
+    type: regex
+    targets:
+      - apps/web/src/features/admin/claims/components/ops/utils.ts
+    must_match:
+      - "Rule 3 \\(Implicit\\): If only priority changed, poolAnchor is PRESERVED"
+
+  - id: pool_anchor.pool_defining_resets_anchor
+    description: Pool-defining parameters (lifecycle, assignee, etc) must reset the anchor.
+    type: regex
+    targets:
+      - apps/web/src/features/admin/claims/components/ops/utils.ts
+    must_match:
+      - "if \\(isPoolDefiningParam\\(key\\)\\) isPoolReset = true"
+
+  - id: url_builder.centralized_usage
+    description: WorkCenter and QueueItem must use the centralized buildQueueUrl helper.
+    type: regex
+    targets:
+      - apps/web/src/features/admin/claims/components/ops/WorkCenter.tsx
+      - apps/web/src/features/admin/claims/components/ops/QueueItem.tsx
+    must_match:
+      - 'buildQueueUrl'
+
+  - id: claim_traceability.schema_counters_pk
+    description: Claim counters table must exist with (tenantId, year) PK.
+    type: regex
+    targets:
+      - packages/database/src/schema/claim-counters.ts
+    must_match:
+      - 'claim_counters'
+      - "primaryKey\\(\\{ columns: \\[table\\.tenantId, table\\.year\\] \\}\\)"
+
+  - id: claim_traceability.schema_unique_index
+    description: Claims table must have unique index on (tenantId, claimNumber).
+    type: regex
+    targets:
+      - packages/database/src/schema/claims.ts
+    must_match:
+      - "uniqueIndex\\([\\s\\S]*?\\)\\.on\\(table\\.tenantId,\\s*table\\.claimNumber\\)"
+
+  - id: test.e2e.claim_creation
+    description: E2E Test must exist for 'Creation -> CLM-XK-YYYY-000001'.
+    type: file_exists
+    targets:
+      - apps/web/e2e/claim-creation-traceability.spec.ts
+
+  - id: test.e2e.resolver_isolation
+    description: E2E Test must exist for 'Resolver Tenant A vs B'.
+    type: file_exists
+    targets:
+      - apps/web/e2e/claim-resolver-isolation.spec.ts
+
+  - id: test.e2e.pool_anchor
+    description: E2E Test must exist for 'Search clears poolAnchor'.
+    type: file_exists
+    targets:
+      - apps/web/e2e/ops-pool-anchor.spec.ts
+
+  # M3 Checks
+  - id: m3.documents.schema_exists
+    description: Documents table must exist with entityType/entityId polymorphic pattern.
+    type: regex
+    targets:
+      - packages/database/src/schema/documents.ts
+    must_match:
+      - 'export const documents = pgTable'
+      - 'entityType:'
+      - 'entityId:'
+
+  - id: m3.documents.tenant_scoped_access
+    description: Document queries must include tenantId in WHERE clause.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/domain-documents/src/upload.ts
+    must_match:
+      - 'schema.documents.tenantId'
+
+  - id: m3.documents.audit_log_on_upload
+    description: Document uploads must fire an audit event.
+    type: regex
+    scope: ANY_TARGET
+    targets:
+      - packages/domain-documents/src/upload.ts
+    must_match:
+      - 'logAuditEvent|captureAudit|auditLog'
+
+  - id: m3.documents.storage_path_includes_tenant
+    description: Storage bucket path must include tenantId for isolation.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/domain-documents/src/storage.ts
+    must_match:
+      - "\\$\\{tenantId\\}|tenantId.*path|path.*tenantId"
+
+  - id: m3.threads.schema_exists
+    description: Claim threads and messages tables must exist.
+    type: regex
+    targets:
+      - packages/database/src/schema/claim-threads.ts
+    must_match:
+      - 'export const claimThreads = pgTable'
+      - 'claim_messages'
+
+  - id: m3.threads.message_types_enum
+    description: Message type must be an enum (note/email/phone/whatsapp/system).
+    type: regex
+    targets:
+      - packages/database/src/schema/claim-threads.ts
+    must_match:
+      - 'pgEnum.*message_type|messageType:.*enum'
+
+  - id: m3.threads.external_reference_field
+    description: Messages must have externalReference field for insurer tracking.
+    type: regex
+    targets:
+      - packages/database/src/schema/claim-threads.ts
+    must_match:
+      - 'externalReference|insurerClaimNo|policyNo'
+
+  - id: m3.threads.attachment_document_link
+    description: Message attachments must link to document IDs.
+    type: regex
+    targets:
+      - packages/database/src/schema/claim-threads.ts
+    must_match:
+      - "attachmentIds|documentId|references\\(documents"
+
+  - id: m3.export.share_pack_endpoint
+    description: Share pack API endpoint must exist.
+    type: file_exists
+    targets:
+      - apps/web/src/app/api/share-pack/route.ts
+
+  - id: m3.export.time_limited_token
+    description: Share links must use time-limited tokens.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/app/api/share-pack/route.ts
+    must_match:
+      - 'expiresAt|validUntil|tokenExpiry'
+
+  - id: m3.export.tenant_scoped_access
+    description: Export pack must verify tenantId before serving.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/app/api/share-pack/route.ts
+    must_match:
+      - 'tenantId.*===|verifyTenant|checkTenant'
+
+  - id: m3.export.access_audit_log
+    description: All share pack accesses must be logged.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/app/api/share-pack/route.ts
+    must_match:
+      - 'logAuditEvent|captureAudit|auditLog'
+
+  - id: m3.export.token_signed
+    description: Share tokens must be signed (HMAC/JWT) to prevent forgery.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/app/api/share-pack/route.ts
+    must_match:
+      - 'jwt\.sign|crypto\.createHmac'
+
+  - id: m3.export.token_payload_no_documentIds
+    description: Token payload MUST NOT contain documentIds (use packId instead).
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/app/api/share-pack/route.ts
+    must_not_match:
+      - 'documentIds.*[\[,]'
+
+  - id: m3.export.jwt_exp_required
+    description: JWT signature must enforce expiration.
+    type: regex
+    targets:
+      - apps/web/src/app/api/share-pack/route.ts
+    must_match:
+      - 'expiresIn:'
+
+  - id: m3.export.pack_lookup_tenant_scoped
+    description: Pack lookup must check tenantId AND packId.
+    type: regex
+    targets:
+      - apps/web/src/app/api/share-pack/route.ts
+    must_match:
+      - 'eq\(.*id, packId\)'
+      - 'eq\(.*tenantId, tenantId\)'
+
+  - id: m3.export.pack_revocation_supported
+    description: Pack lookup must check revokedAt is NULL.
+    type: regex
+    targets:
+      - apps/web/src/app/api/share-pack/route.ts
+    must_match:
+      - 'isNull\(.*revokedAt\)'
+
+  - id: m3.export.audit_logs_include_packId
+    description: Audit logs must include packId and shareToken.
+    type: regex
+    targets:
+      - apps/web/src/app/api/share-pack/route.ts
+    must_match:
+      - 'packId,'
+      - 'shareToken,'
+
+  # M0 Auth & Seeding
+  - id: auth.bcrypt_in_auth_core
+    description: auth.core.ts must use bcryptjs for password hashing.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/lib/auth.core.ts
+    must_match:
+      - "from\\s+['\"]bcryptjs['\"]"
+      - "hash\\(password,\\s*10\\)"
+      - "compare\\(password,\\s*hashedPassword\\)"
+
+  - id: auth.bcrypt_in_seeder
+    description: Seed hash utility must use bcryptjs with 10 rounds.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/database/src/seed-utils/hash-password.ts
+    must_match:
+      - "import\\s+.*bcryptjs"
+      - "hashSync\\(password,\\s*10\\)"
+
+  - id: e2e.uses_storage_state
+    description: E2E projects should depend on setup project for auth state generation.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/playwright.config.ts
+    must_match:
+      - "name:\\s*'setup'"
+      - "testMatch:\\s*/setup\\\\?\\.state\\\\?\\.spec\\\\?\\.ts/"
+      - "dependencies:\\s*\\['setup'\\]"
+
+  - id: i18n.app_namespaces_include_claims_tracking
+    description: App namespaces must include claims-tracking to load tracking UI messages.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/i18n/messages.ts
+    must_match:
+      - "'claims-tracking'"
+
+  - id: i18n.claims_tracking_files_exist
+    description: claims-tracking.json must exist for all supported locales.
+    type: file_exists
+    targets:
+      - apps/web/src/messages/en/claims-tracking.json
+      - apps/web/src/messages/sq/claims-tracking.json
+      - apps/web/src/messages/sr/claims-tracking.json
+      - apps/web/src/messages/mk/claims-tracking.json
+
+  - id: e2e.login_form_testids
+    description: Login form must expose stable test IDs for E2E.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/components/auth/login-form.tsx
+    must_match:
+      - 'data-testid="login-form"'
+      - 'data-testid="login-email"'
+      - 'data-testid="login-password"'
+      - 'data-testid="login-submit"'
+
+  - id: e2e.admin_claims_filters_testids
+    description: Admin claims filters must expose stable test IDs for E2E.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/components/admin/claims/claims-filters.tsx
+    must_match:
+      - 'data-testid="admin-claims-filters"'
+      - 'assigned-filter-'
+      - 'status-filter-'
+
+  - id: e2e.ops_center_page_testid
+    description: Ops Center page must expose a stable root test ID.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/features/admin/claims/components/ops/OpsCenterPage.tsx
+    must_match:
+      - 'data-testid="ops-center-page"'
+
+  - id: e2e.ops_center_kpi_testids
+    description: KPI header must expose stable test IDs for E2E.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/features/admin/claims/components/ops/KPIHeader.tsx
+    must_match:
+      - 'data-testid="kpi-header"'
+      - 'data-testid="refresh-button"'
+
+  - id: e2e.ops_center_queue_testid
+    description: Ops queue sidebar must expose a stable test ID.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/features/admin/claims/components/ops/QueueSidebar.tsx
+    must_match:
+      - 'data-testid="queue-sidebar"'
+
+  - id: e2e.ops_center_work_center_testid
+    description: Ops work center must expose a stable test ID.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - apps/web/src/features/admin/claims/components/ops/WorkCenter.tsx
+    must_match:
+      - 'data-testid="work-center"'
+
+  - id: automation.resend_disabled_in_automated
+    description: Resend client must be disabled in automated/Playwright mode.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/domain-communications/src/email.ts
+    must_match:
+      - 'INTERDOMESTIK_AUTOMATED'
+      - 'PLAYWRIGHT'
+
+  # M0 Seeding (NEW)
+  - id: seeding.canonical_runner_exists
+    description: The canonical unified seed runner must exist.
+    type: file_exists
+    targets:
+      - packages/database/src/seed.ts
+
+  - id: seeding.seed_ts_must_use_argv_exit
+    description: seed.ts is the only executable-style entrypoint and must use argv/exit.
+    type: regex
+    targets:
+      - packages/database/src/seed.ts
+    must_match:
+      - 'process\.argv'
+      - 'process\.exit'
+
+  - id: seeding.no_argv_exit_in_packs_helpers
+    description: Seed packs/helpers must not use argv/exit.
+    type: regex
+    scope: ANY_TARGET
+    targets:
+      - packages/database/src/seed-golden.ts
+      - packages/database/src/seed-full/**/*.ts
+      - packages/database/src/seed-workload/**/*.ts
+      - packages/database/src/seed-packs/**/*.ts
+      - packages/database/src/seed-utils/**/*.ts
+    must_not_match:
+      - 'process\.argv'
+      - 'process\.exit'
+
+  - id: seeding.packs_helpers.no_entrypoint_or_env_loading
+    description: Seed packs/helpers must not contain entrypoint guards or env loading.
+    type: regex
+    scope: ANY_TARGET
+    targets:
+      - packages/database/src/seed-golden.ts
+      - packages/database/src/seed-full/**/*.ts
+      - packages/database/src/seed-workload/**/*.ts
+      - packages/database/src/seed-packs/**/*.ts
+      - packages/database/src/seed-utils/**/*.ts
+    must_not_match:
+      - 'require\.main'
+      - 'import\.meta\.url'
+      - 'fileURLToPath'
+      - 'dotenv'
+      - 'loadEnvFromRoot|load-env'
+
+  - id: seeding.packs.no_process_env
+    description: Seed packs must not read process.env directly (runner may).
+    type: regex
+    scope: ANY_TARGET
+    targets:
+      - packages/database/src/seed-golden.ts
+      - packages/database/src/seed-full/**/*.ts
+      - packages/database/src/seed-workload/**/*.ts
+      - packages/database/src/seed-packs/**/*.ts
+    must_not_match:
+      - 'process\.env'
+
+  - id: seeding.no_seed_imports_outside_database
+    description: No apps/packages may import database seed modules or packs (alias or relative path).
+    type: regex
+    scope: ANY_TARGET
+    targets:
+      - apps/**/*.ts
+      - apps/**/*.tsx
+      - apps/**/*.js
+      - apps/**/*.mjs
+      - packages/**/*.ts
+      - packages/**/*.tsx
+      - packages/**/*.js
+      - packages/**/*.mjs
+    must_not_match:
+      - "from ['\"][^'\"]*@interdomestik/database(?:/src)?/(seed(?:-|/|\\.)|seed-packs)[^'\"]*['\"]"
+      - "from ['\"][^'\"]*packages/database/src/(seed(?:-|/|\\.)|seed-packs)[^'\"]*['\"]"
+      - "require\\(['\"][^'\"]*(/seed(?:-|/|\\.)|/seed-packs)[^'\"]*['\"]\\)"
+
+  - id: seeding.no_legacy_seed_scripts
+    description: Legacy ad-hoc seed scripts must not exist outside the canonical database runner.
+    type: file_not_exists
+    targets:
+      - scripts/seed-*.mjs
+      - scripts/check-seeds.mjs
+
+  - id: seeding.seed_scripts_use_seed_ts
+    description: All seed:* scripts must invoke src/seed.ts (no direct pack calls).
+    type: regex
+    targets:
+      - packages/database/package.json
+    must_not_match:
+      - '"scripts"[\s\S]*"seed:[^"]+"\s*:\s*"(?![^"]*src/seed(?:-assert)?\.ts)[^"]+"'
+
+  - id: seeding.seed_golden_entrypoint
+    description: seed-golden.ts must export seedGolden(config...).
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/database/src/seed-golden.ts
+    must_match:
+      - 'export\s+async\s+function\s+seedGolden\([^\)]*config'
+
+  - id: seeding.ks_workflow_pack_entrypoint
+    description: ks-workflow-pack.ts must export seedKsWorkflowPack(config...).
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/database/src/seed-packs/ks-workflow-pack.ts
+  - id: seeding.agent_pack_entrypoint
+    description: agent-pack.ts must export seedAgentPack(config...).
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/database/src/seed-packs/agent-pack.ts
+    must_match:
+      - 'export\s+async\s+function\s+seedAgentPack\([^\)]*config'
+
+  - id: e2e.no_global_setup_files
+    description: E2E must not rely on Playwright globalSetup (avoid hidden seeding/migration).
+    type: file_not_exists
+    targets:
+      - apps/web/e2e/global-setup.ts
+      - apps/web/e2e/global-setup.mjs
+
+  - id: e2e.playwright_config_single_path
+    description: Playwright config must manage a single production server mode (no external server toggles, no dotenv, no seeding/migration).
+    type: regex
+    targets:
+      - apps/web/playwright.config.ts
+    must_match:
+      - 'webServer'
+      - 'pnpm exec next start'
+      - "reuseExistingServer:\\s*false"
+    must_not_match:
+      - 'globalSetup'
+      - 'PLAYWRIGHT_EXTERNAL_SERVER'
+      - 'PLAYWRIGHT_BIND_HOST'
+      - "dotenv\\.config"
+      - 'seed:e2e'
+      - 'db:migrate'
+
+  - id: proxy.no_middleware_entrypoint_files
+    description: Proxy is the only supported edge entrypoint; deprecated middleware files must not exist.
+    type: file_not_exists
+    targets:
+      - apps/web/middleware.ts
+      - apps/web/middleware.js
+      - apps/web/src/middleware.ts
+      - apps/web/src/middleware.js
+
+  - id: proxy.no_middleware_path_references
+    description: Repo must not reference deprecated middleware.ts paths (proxy-only).
+    type: regex
+    scope: ANY_TARGET
+    targets:
+      - knip.json
+      - scripts/**/*.sh
+      - packages/qa/src/**/*.ts
+      - docs/**/*.md
+    must_not_match:
+      - 'src/middleware\.ts'
+      - 'apps/web/middleware\.ts'
+
+  - id: proxy.no_intl_middleware_references
+    description: Repo must not reference deprecated intlMiddleware identifiers (proxy-only).
+    type: regex
+    scope: ANY_TARGET
+    targets:
+      - apps/**/*.ts
+      - apps/**/*.tsx
+      - packages/**/*.ts
+      - packages/**/*.tsx
+      - scripts/**/*.sh
+      - docs/**/*.md
+    must_not_match:
+      - 'intlMiddleware'
+
+  - id: orchestration.root_scripts_no_duplicates
+    description: Root scripts must not expose duplicate/legacy orchestration entrypoints.
+    type: regex
+    targets:
+      - package.json
+    must_not_match:
+      - '"e2e:seed"'
+      - '"typecheck"'
+      - '"qa:full"'
+      - '"smoke:golden:mac"'
+
+  - id: orchestration.web_scripts_no_alt_e2e_modes
+    description: Web scripts must not expose alternate E2E modes (external server, one-by-one, fast/skip-seed variants).
+    type: regex
+    targets:
+      - apps/web/package.json
+    must_not_match:
+      - '"e2e:server"'
+      - '"e2e:reuse-server"'
+      - '"test:e2e:'
+
+  - id: orchestration.ci_green_path
+    description: CI must follow the same Golden Path (audit → check → migrate → seed → assert → e2e smoke).
+    type: regex
+    targets:
+      - .github/workflows/ci.yml
+    must_match:
+      - 'pnpm track:audit'
+      - 'pnpm check'
+      - 'pnpm db:migrate'
+      - 'pnpm seed:e2e'
+      - 'seed:assert-e2e'
+      - 'test:e2e[\s\S]*--grep smoke'
+    must_not_match:
+      - 'PLAYWRIGHT_HOST'

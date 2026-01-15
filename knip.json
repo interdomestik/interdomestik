@@ -9,7 +9,7 @@
       "entry": [
         "next.config.{js,mjs,ts}",
         "src/app/**/{page,layout,loading,error,not-found,global-error,route,template,default,icon,apple-icon,sitemap,robots}.{ts,tsx}",
-        "src/middleware.ts",
+        "src/proxy.ts",
         "src/instrumentation.ts"
       ],
       "project": ["src/**/*.{ts,tsx}"]

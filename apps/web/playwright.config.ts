@@ -1,18 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
-import * as dotenv from 'dotenv';
-import { resolve } from 'path';
-
-// Load .env.test BEFORE any other config to ensure E2E env vars take precedence
-dotenv.config({ path: resolve(__dirname, '../../.env.test'), override: true });
 
 const PORT = 3000;
-const HOST = process.env.PLAYWRIGHT_HOST ?? 'localhost';
-const BIND_HOST = process.env.PLAYWRIGHT_BIND_HOST ?? HOST;
-const BASE_URL = `http://${HOST}:${PORT}`;
+const BASE_HOST = 'localhost';
+const BIND_HOST = '127.0.0.1';
+const BASE_URL = `http://${BASE_HOST}:${PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
-  globalSetup: './e2e/global-setup.mjs',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -73,28 +67,30 @@ export default defineConfig({
       testIgnore: /setup\.state\.spec\.ts/,
     },
   ],
-  ...(process.env.PLAYWRIGHT_EXTERNAL_SERVER === '1'
-    ? {}
-    : {
-        webServer: {
-          // Use dev mode with explicit env vars to bypass rate limiting
-          command: `INTERDOMESTIK_AUTOMATED=1 PLAYWRIGHT=1 UPSTASH_REDIS_REST_URL= UPSTASH_REDIS_REST_TOKEN= pnpm -C ../../packages/database migrate && INTERDOMESTIK_AUTOMATED=1 PLAYWRIGHT=1 UPSTASH_REDIS_REST_URL= UPSTASH_REDIS_REST_TOKEN= pnpm exec next dev --hostname ${BIND_HOST} --port ${PORT}`,
-          url: BASE_URL,
-          reuseExistingServer: !process.env.CI,
-          timeout: 300 * 1000,
-          env: {
-            NEXT_PUBLIC_APP_URL: BASE_URL,
-            BETTER_AUTH_URL: BASE_URL,
-            INTERDOMESTIK_AUTOMATED: '1',
-            PLAYWRIGHT: '1',
-            // Disable rate limiting completely by unsetting Upstash vars
-            UPSTASH_REDIS_REST_URL: '',
-            UPSTASH_REDIS_REST_TOKEN: '',
-            // Required for Paddle webhook signature validation tests.
-            ...(process.env.PADDLE_WEBHOOK_SECRET_KEY
-              ? { PADDLE_WEBHOOK_SECRET_KEY: process.env.PADDLE_WEBHOOK_SECRET_KEY }
-              : {}),
-          },
-        },
-      }),
+  webServer: {
+    // E2E runs against a production server (Next `start`) for artifact consistency.
+    // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
+    command: `pnpm exec next start --hostname ${BIND_HOST} --port ${PORT}`,
+    url: BASE_URL,
+    reuseExistingServer: false,
+    timeout: 300 * 1000,
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      NEXT_PUBLIC_APP_URL: BASE_URL,
+      BETTER_AUTH_URL: BASE_URL,
+      INTERDOMESTIK_AUTOMATED: '1',
+      PLAYWRIGHT: '1',
+      // Disable Sentry noise in E2E (placeholder DSNs cause console errors that break tests).
+      SENTRY_DSN: '',
+      NEXT_PUBLIC_SENTRY_DSN: '',
+      // Disable rate limiting completely by unsetting Upstash vars
+      UPSTASH_REDIS_REST_URL: '',
+      UPSTASH_REDIS_REST_TOKEN: '',
+      // Required for Paddle webhook signature validation tests.
+      ...(process.env.PADDLE_WEBHOOK_SECRET_KEY
+        ? { PADDLE_WEBHOOK_SECRET_KEY: process.env.PADDLE_WEBHOOK_SECRET_KEY }
+        : {}),
+    },
+  },
 });

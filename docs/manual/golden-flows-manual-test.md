@@ -117,7 +117,7 @@ These flows are automated in `apps/web/e2e/golden-flows.smoke.spec.ts`.
 Run via:
 
 ```bash
-pnpm smoke:golden
+pnpm test:e2e -- --grep 'Golden Flows'
 ```
 
 ## Verification Summary

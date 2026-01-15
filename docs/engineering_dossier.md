@@ -8,8 +8,8 @@
 - **Frameworks**: Next.js 14+ (App Router), Drizzle ORM, Tailwind CSS, Better-Auth.
 - **Key Commands** (from `package.json`):
   - `db:migrate`: `pnpm --filter @interdomestik/database migrate`
-  - `e2e:seed`: `node scripts/seed-e2e-users.mjs`
-  - `qa:full`: Runs lint, type-check, unit, and e2e smoke tests.
+  - `seed:e2e`: `pnpm --filter @interdomestik/database seed:e2e`
+  - `check`: Runs format, lint, type-check, unit tests, and build.
   - `mcp:audit`: Runs QA MCP server audits.
 
 ## 1. Project Map
@@ -44,7 +44,7 @@
 6.  `apps/web/src/app/api/webhooks/paddle/route.ts`: **Payment Ingress**. Handling subscriptions and signatures.
 7.  `packages/shared-auth/src/permissions.ts`: **RBAC Spec**. Permission constants and role definitions.
 8.  `packages/database/src/tenant-security.ts`: **RLS Helpers**. `withTenant` and `assertTenant` utilities.
-9.  `apps/web/src/middleware.ts`: **Request Context**. Tenant resolution (subdomain/path) and route protection.
+9.  `apps/web/src/proxy.ts`: **Request Context**. i18n routing + security headers.
 10. `apps/web/e2e/production-smoke.spec.ts`: **Critical Test**. The "Is it down?" check.
 11. `apps/web/src/actions/admin-claims/update-status.core.ts`: **Staff Workflow**. How claims move through the system.
 12. `packages/database/drizzle.config.ts`: **DB Config**. Tables filter and credentials.
@@ -195,8 +195,8 @@
 ### A) Facts & Corrections
 
 - **Agent Intake**: **False**. Agents _cannot_ submit claims on behalf of members. `submitClaimCore` strictly enforces `userId: session.user.id`.
-- **Middleware**: **CRITICAL MISSING**. Both `apps/web/middleware.ts` and `apps/web/src/middleware.ts` are 0 bytes.
-  - _Correction_: No global tenant resolution or route protection exists at the edge. All security relies on `safe-action` wrappers.
+- **Proxy**: ✅ **VERIFIED**. `apps/web/src/proxy.ts` is the canonical edge entrypoint (i18n + security headers).
+  - _Correction_: Edge behavior is proxy-driven; business authorization remains enforced via `safe-action` wrappers.
 - **Staff Status Updates**: **Broken**. `update-status.core.ts` uses `requireTenantAdminSession`, which excludes standard Staff roles.
 - **Sentry**: **Gap**. `sentry.server.config.ts` is empty. Server-side exceptions are likely lost.
 
@@ -257,7 +257,7 @@ Sentry.init({
 
 **10 Key Decisions**:
 
-1.  **Middleware Strategy**: Do we restore `middleware.ts` for auth guards or stick to Action-only security (Action-only is safer for complexity but risky for UX redirects)?
+1.  **Proxy Strategy**: What edge responsibilities live in `proxy.ts` vs purely in actions/components?
 2.  **Staff Permissions**: Should we create a `requireStaffSession` helper or just check `claims.update` permission?
 3.  **Agent "On-Behalf"**: Is Agent submission a V2 requirement? If so, `submit.ts` needs a refactor.
 4.  **Sentry Sampling**: 100% or 10%? (Cost vs. Visibility).

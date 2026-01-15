@@ -86,9 +86,6 @@ test_api_security() {
     # Test 1: CSP headers
     ((tests_total++))
     local csp_file="apps/web/src/proxy.ts"
-    if [[ -f "apps/web/src/middleware.ts" ]]; then
-        csp_file="apps/web/src/middleware.ts"
-    fi
     if grep -q "script-src" "$csp_file"; then
         local unsafe_found=0
         if command -v rg &> /dev/null; then
