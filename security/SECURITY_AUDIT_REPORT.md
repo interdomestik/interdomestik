@@ -41,7 +41,7 @@ Failures in basic security controls (RLS, Middleware) prevent a safe launch. The
 
 - **Status:** ✅ **VERIFIED**
 - **Finding:** Project correctly uses `apps/web/src/proxy.ts`, aligned with Next.js 16 conventions.
-- **Note:** Previous "Missing Middleware" finding was a false positive based on deprecated `middleware.ts` conventions.
+- **Note:** Previous "Missing Edge Entrypoint" finding was a false positive based on deprecated conventions.
 - **Evidence:** Build output confirms `ƒ Proxy` is active. Edge headers and i18n are enforced.
 
 ### 3. [P1] Permissive Permissions-Policy

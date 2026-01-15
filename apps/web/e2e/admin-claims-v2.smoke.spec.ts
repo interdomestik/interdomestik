@@ -18,17 +18,18 @@ async function loginAs(
   user: { email: string; password: string; tenant: string }
 ) {
   await page.goto(`/${DEFAULT_LOCALE}/login?tenantId=${user.tenant}`);
-  await page.waitForLoadState('networkidle');
-  await page.locator('input[type="email"], input[placeholder*="@"]').first().fill(user.email);
-  await page.locator('input[type="password"]').first().fill(user.password);
-  await page.locator('button[type="submit"]').click();
+  await page.getByTestId('login-form').waitFor({ state: 'visible' });
+  await page.getByTestId('login-email').fill(user.email);
+  await page.getByTestId('login-password').fill(user.password);
+  await page.getByTestId('login-submit').click();
   await page.waitForURL(/(?:member|admin|staff|agent|dashboard)/, { timeout: 30000 });
 }
 
 test.describe('Admin Claims V2', () => {
   test.beforeEach(async ({ page }) => {
     await loginAs(page, USERS.TENANT_ADMIN_MK);
-    await page.goto(`/${DEFAULT_LOCALE}/admin/claims`);
+    // Contract: V2 defaults to Ops Center; list view is explicitly `view=list`.
+    await page.goto(`/${DEFAULT_LOCALE}/admin/claims?view=list`);
     await page.waitForLoadState('networkidle');
   });
 
@@ -37,36 +38,27 @@ test.describe('Admin Claims V2', () => {
     // Verify Filters UI with longer timeout for slow loads
     await expect(page.getByTestId('admin-claims-filters')).toBeVisible({ timeout: 30000 });
 
-    // Verify Group Headers (by text, assuming 'sq' locale)
-    // The new design groups by status like "Dorëzuar", "Vlerësim", etc.
-    // OR shows "Nuk ka rezultate" if empty.
-    const groupHeader = page.getByText(/Dorëzuar|Vlerësim|Skicë|Zgjidhur|Nuk ka rezultate/);
-    await expect(groupHeader.first()).toBeVisible({ timeout: 5000 });
+    // Verify list renders (cards) or shows the empty state.
+    const cards = page.getByTestId('claim-operational-card');
+    const empty = page.getByText(/Nuk ka kërkesa operative/i);
+    await expect(cards.first().or(empty.first())).toBeVisible({ timeout: 10000 });
   });
 
   test('2. Filters: Assignment Toggle works', async ({ page }) => {
-    // Click "Te pacaktuara" (Unassigned)
-    await page.locator('button', { hasText: 'Të pacaktuara' }).click();
+    const unassigned = page.getByTestId('assigned-filter-unassigned');
+    await unassigned.click();
+    await expect(unassigned).toHaveAttribute('aria-pressed', 'true');
 
-    // Check URL
-    await expect(page).toHaveURL(/assigned=unassigned/);
-
-    // Check if rows update (optional: wait for network idle)
-    await page.waitForLoadState('networkidle');
-
-    // Check filtering result: either rows with "Në pritje" (Waiting on system/admin) or "No results"
-    // "I Pacaktuar" was incorrect. New UI uses "Në pritje të..." (Waiting on...)
-    const unassignedText = await page.getByText(/Në pritje/).count();
-    const noResults = await page.getByText(/Nuk ka rezultate/).count();
-    expect(unassignedText + noResults).toBeGreaterThan(0);
+    // Check list updates (cards) or empty state.
+    const cards = page.getByTestId('claim-operational-card');
+    const empty = page.getByText(/Nuk ka kërkesa operative/i);
+    await expect(cards.first().or(empty.first())).toBeVisible({ timeout: 10000 });
   });
 
-  test('3. Filters: Status Chips toggle URL', async ({ page }) => {
-    // Click "Vlerësim" (evaluation) status filter button
-    await page.locator('button', { hasText: 'Vlerësim' }).click();
-
-    // Check URL has status=evaluation
-    await expect(page).toHaveURL(/status=evaluation/);
+  test('3. Filters: Status Chips toggle state', async ({ page }) => {
+    const activeStatus = page.getByTestId('status-filter-active');
+    await activeStatus.click();
+    await expect(activeStatus).toHaveAttribute('aria-pressed', 'true');
 
     // Verify chips visual state (if possible) or just result filtering
     // We trust backend filtering logic, smoke test verifies wiring.

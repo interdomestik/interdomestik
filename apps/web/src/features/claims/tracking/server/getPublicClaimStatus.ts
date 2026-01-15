@@ -6,7 +6,7 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 import 'server-only';
 import type { PublicClaimStatusDto } from '../types';
 
-// TODO: Replace with proper middleware or Redis rate limiter
+// TODO: Replace with proper proxy-level or Redis rate limiter
 const RATE_LIMIT_CACHE = new Map<string, { count: number; lastReset: number }>();
 
 export function checkRateLimit(identifier: string): boolean {
@@ -32,7 +32,7 @@ export async function getPublicClaimStatus(token: string): Promise<PublicClaimSt
     async () => {
       // 0. Rate Limit (Stub)
       // Implementation depends on how we get IP here. For now, we skip IP check in this loader
-      // and assume middleware handles DDoS.
+      // and assume proxy handles DDoS.
 
       // 1. Hash Token
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
@@ -68,9 +68,9 @@ export async function getPublicClaimStatus(token: string): Promise<PublicClaimSt
       return {
         claimId: claim.id,
         status: (claim.status || 'draft') as any, // Cast to any or explicit type to match DTO
-        statusLabelKey: `claims.status.${claim.status || 'draft'}`,
+        statusLabelKey: `claims-tracking.status.${claim.status || 'draft'}`,
         lastUpdatedAt: claim.updatedAt ?? new Date(),
-        nextStepKey: `claims.status.next_step.${claim.status}`,
+        nextStepKey: `claims-tracking.status.next_step.${claim.status}`,
       };
     }
   );

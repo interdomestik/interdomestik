@@ -6,8 +6,8 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   // Read initial value from window.localStorage
   // See: https://usehooks-ts.com/react-hook/use-local-storage
   const readValue = (): T => {
-    // Prevent build error "window is undefined" but keep keep working
-    if (typeof globalThis === 'undefined') {
+    // Prevent SSR errors when localStorage is unavailable
+    if (typeof window === 'undefined' || typeof globalThis.localStorage === 'undefined') {
       return initialValue;
     }
 
@@ -43,7 +43,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       setStoredValue(valueToStore);
 
       // Save to local storage
-      if (typeof globalThis !== 'undefined') {
+      if (typeof window !== 'undefined' && typeof globalThis.localStorage !== 'undefined') {
         globalThis.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
     } catch (error) {

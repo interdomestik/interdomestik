@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from '@/i18n/routing';
+import { usePathname, useRouter } from '@/i18n/routing';
 import { Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 
 export function AdminClaimsFilters() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const tAdmin = useTranslations('admin.claims_page');
@@ -43,7 +44,8 @@ export function AdminClaimsFilters() {
       }
     });
 
-    router.push(`?${params.toString()}`);
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
   };
 
   return (
@@ -72,6 +74,10 @@ export function AdminClaimsFilters() {
               <button
                 key={option.value}
                 onClick={() => updateFilters({ assigned: option.value })}
+                type="button"
+                aria-pressed={isActive}
+                data-state={isActive ? 'on' : 'off'}
+                data-testid={`assigned-filter-${option.value}`}
                 className={`
                             px-3 py-1.5 rounded-md text-sm font-medium transition-all
                             ${
@@ -95,6 +101,10 @@ export function AdminClaimsFilters() {
               <button
                 key={option.value}
                 onClick={() => updateFilters({ status: option.value })}
+                type="button"
+                aria-pressed={isActive}
+                data-state={isActive ? 'on' : 'off'}
+                data-testid={`status-filter-${option.value}`}
                 className={`
                   px-3 py-1.5 rounded-md text-sm font-medium transition-all
                   ${

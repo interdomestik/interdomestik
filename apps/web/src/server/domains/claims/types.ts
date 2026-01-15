@@ -20,6 +20,7 @@ export interface ClaimsListV2Filters {
 
 export interface ClaimsListV2Row {
   id: string;
+  claimNumber: string | null;
   title: string;
   status: ClaimStatus;
   statusLabelKey: string;

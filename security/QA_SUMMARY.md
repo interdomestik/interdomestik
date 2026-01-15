@@ -15,8 +15,8 @@
 
 - **Status:** ✅ PASSED (Verified)
 - **Findings:**
-  - Tool flagged "missing middleware.ts".
-  - **Verification:** Authentication is handled via `apps/web/src/proxy.ts` (Next.js 16 compatible), which correctly implements strict headers and session checks. False positive.
+  - Tool previously flagged a missing legacy edge entrypoint.
+  - **Verification:** Authentication is handled via `apps/web/src/proxy.ts` (Next.js 16 compatible), which correctly implements strict headers and session checks.
 
 ## 3. Environment & Config
 

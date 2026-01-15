@@ -2,6 +2,7 @@ import { db } from '@interdomestik/database/db';
 import { generateMemberNumberWithRetry } from '@interdomestik/database/member-number';
 import * as schema from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
+import { compare, hash } from 'bcryptjs';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sendPasswordResetEmail } from './email';
@@ -43,7 +44,8 @@ export const auth = betterAuth({
               // Strict requirement: User MUST have a createdAt date to determine the member year.
               // Logic: Use joinedAt if available (future-proof), fallback to createdAt.
               // We do NOT default to new Date() to prevent "year drift".
-              const dateSource = (user as any).joinedAt ?? user.createdAt;
+              const dateSource =
+                (user as typeof user & { joinedAt?: Date | string }).joinedAt ?? user.createdAt;
 
               if (!dateSource) {
                 throw new Error('User missing joinedAt/createdAt - cannot determine member year');
@@ -58,8 +60,9 @@ export const auth = betterAuth({
                 `[Auth] Member number ${result.memberNumber} assigned to user ${user.id}`
               );
             } catch (error) {
+              const err = error as Error;
               // Capture to Sentry with enriched context for fast triage
-              Sentry.captureException(error, {
+              Sentry.captureException(err, {
                 tags: {
                   component: 'auth.databaseHooks',
                   action: 'generateMemberNumber',
@@ -67,12 +70,13 @@ export const auth = betterAuth({
                 },
                 extra: {
                   userId: user.id,
-                  email: (user as any).email ?? null,
-                  tenantId: (user as any).tenantId ?? null,
-                  memberNumber: (user as any).memberNumber ?? null,
+                  email: (user as typeof user & { email?: string }).email ?? null,
+                  tenantId: (user as typeof user & { tenantId?: string }).tenantId ?? null,
+                  memberNumber:
+                    (user as typeof user & { memberNumber?: string }).memberNumber ?? null,
                 },
               });
-              console.error(`[Auth] Failed to assign member number to ${user.id}:`, error);
+              console.error(`[Auth] Failed to assign member number to ${user.id}:`, err);
               // Do NOT throw - registration should still succeed
             }
           }
@@ -111,7 +115,9 @@ export const auth = betterAuth({
 
               // Member needs a number - strictly use joinedAt ?? createdAt year
               // Note: joinedAt is not yet in schema, but logical precedence is prepared.
-              const dateSource = (existing[0] as any).joinedAt ?? existing[0].createdAt;
+              const dateSource =
+                (existing[0] as (typeof existing)[0] & { joinedAt?: Date | string }).joinedAt ??
+                existing[0].createdAt;
 
               if (!dateSource) {
                 throw new Error('User missing joinedAt/createdAt - cannot determine member year');
@@ -171,6 +177,11 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
+    password: {
+      hash: async (password: string) => hash(password, 10),
+      verify: async ({ hash: hashedPassword, password }: { hash: string; password: string }) =>
+        compare(password, hashedPassword),
+    },
     resetPasswordTokenExpiresIn: 60 * 60, // 1 hour
     sendResetPassword: async ({ user, url }) => {
       // Never throw here; the API handler already returns a generic response.
@@ -183,5 +194,12 @@ export const auth = betterAuth({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
     },
+  },
+  rateLimit: {
+    // Contract: Rate limiting must be disabled for deterministic automated runs (Playwright/CI),
+    // but remain enabled by default everywhere else.
+    enabled: !(process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1'),
+    window: 60, // 1 minute
+    max: 100, // 100 requests per minute per IP
   },
 });

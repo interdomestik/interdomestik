@@ -29,7 +29,7 @@ per module (for example: security/hardening/claims.md).
 
 ### Deep Authorization (RBAC)
 
-- [ ] Role checks exist inside domain logic, not only middleware/pages.
+- [ ] Role checks exist inside domain logic, not only proxy/pages.
 - [ ] Permission failures return 403 with consistent error type.
 - [ ] Tests cover a "permission denied" path.
 

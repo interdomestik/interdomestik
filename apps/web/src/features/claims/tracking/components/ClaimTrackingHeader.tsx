@@ -31,7 +31,7 @@ export function ClaimTrackingHeader({
   status,
   canShare,
 }: ClaimTrackingHeaderProps) {
-  const t = useTranslations('claims.tracking.header');
+  const t = useTranslations('claims-tracking.tracking.header');
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [link, setLink] = useState('');

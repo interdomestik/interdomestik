@@ -45,6 +45,7 @@ export function LoginForm() {
         <form
           method="POST"
           className="space-y-4"
+          data-testid="login-form"
           onSubmit={async e => {
             e.preventDefault();
             setError(null);
@@ -119,6 +120,7 @@ export function LoginForm() {
               className="bg-background/50"
               suppressHydrationWarning
               disabled={loading}
+              data-testid="login-email"
             />
           </div>
           <div className="space-y-2">
@@ -140,6 +142,7 @@ export function LoginForm() {
               className="bg-background/50"
               suppressHydrationWarning
               disabled={loading}
+              data-testid="login-password"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -157,6 +160,7 @@ export function LoginForm() {
               className="w-full font-semibold brand-gradient shadow-lg hover:opacity-90 transition-all border-none"
               size="lg"
               disabled={loading}
+              data-testid="login-submit"
             >
               {loading ? (
                 <div className="flex items-center gap-2">

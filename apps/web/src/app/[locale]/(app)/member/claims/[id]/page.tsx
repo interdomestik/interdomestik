@@ -29,7 +29,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   }
 
   // Use new feature loader
-  const trackingData = await getMemberClaimDetail(id, session.user.id);
+  const trackingData = await getMemberClaimDetail(session, id);
 
   if (!trackingData) {
     // If not found or access denied, returning notFound() is safer than redirecting blindly
@@ -37,7 +37,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   }
 
   const { timeline, documents, ...claim } = trackingData;
-  const t = await getTranslations('claims.tracking');
+  const t = await getTranslations('claims');
 
   return (
     <div className="flex flex-col h-full space-y-8 p-4 md:p-8 max-w-5xl mx-auto">
@@ -55,36 +55,36 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
           {/* Details Card */}
           <Card>
             <CardHeader>
-              <CardTitle>{t('details.title')}</CardTitle>
+              <CardTitle>{t('detail.caseDetails')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <h3 className="font-medium text-sm text-muted-foreground mb-1">
-                  {t('details.description')}
+                  {t('detail.description')}
                 </h3>
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {claim.description || t('details.noDescription')}
+                  {claim.description || '—'}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground mb-1">
-                    {t('details.company')}
+                    {t('table.company')}
                   </h3>
-                  <p className="font-medium">{t('not_specified')}</p>
+                  <p className="font-medium">—</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground mb-1">
-                    {t('details.amount')}
+                    {t('table.amount')}
                   </h3>
                   <p className="font-medium">
-                    {claim.amount ? `${claim.amount} ${claim.currency}` : t('details.notSpecified')}
+                    {claim.amount ? `${claim.amount} ${claim.currency}` : '—'}
                   </p>
                 </div>
                 <div>
                   <h3 className="font-medium text-sm text-muted-foreground mb-1">
-                    {t('details.category')}
+                    {t('detail.category')}
                   </h3>
                   <p className="capitalize">General</p>
                 </div>
@@ -95,7 +95,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
           {/* Evidence/Documents */}
           <Card>
             <CardHeader>
-              <CardTitle>{t('documents.title')}</CardTitle>
+              <CardTitle>{t('detail.evidence')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ClaimDocumentsList documents={documents} />

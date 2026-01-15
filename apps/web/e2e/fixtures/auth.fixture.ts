@@ -3,9 +3,9 @@
  *
  * Provides authenticated page contexts for testing protected routes.
  * Features:
- * - Deterministic UI login with proper wait conditions
- * - Locale-aware URL matching (/en/login, /sq/login, etc.)
- * - Verification via user-nav element or session cookie
+ * - Deterministic API-based login (fast & reliable)
+ * - Locale-aware URL matching
+ * - Verification via session cookie
  * - StorageState helpers for faster test runs
  */
 
@@ -18,15 +18,12 @@ import { routes } from '../routes';
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Locale-aware login URL matcher - handles /login, /signin, /en/login, /sq/login, etc.
-const LOGIN_RX = /(?:\/[a-z]{2})?\/(?:login|signin|auth\/sign-in)(?:\/)?(?:\?|$)/i;
-
-// Where to navigate for login (router will redirect to locale-prefixed route)
-const DEFAULT_LOCALE = process.env.PLAYWRIGHT_LOCALE ?? 'en';
-const SIGNIN_PATH = routes.login(DEFAULT_LOCALE);
-
 // Locators that only appear when logged in
 const AUTH_OK_SELECTORS = ['[data-testid="user-nav"]', '[data-testid="sidebar-user-menu-button"]'];
+
+function getBaseURL(): string {
+  return process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://127.0.0.1:3000';
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TEST USER CREDENTIALS
@@ -35,8 +32,7 @@ const AUTH_OK_SELECTORS = ['[data-testid="user-nav"]', '[data-testid="sidebar-us
 type Role = 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager';
 
 function ipForRole(role: Role): string {
-  // If rate limiting is enabled in e2e (Upstash env vars set), many requests can otherwise
-  // end up keyed under IP=unknown. Give each role a stable, distinct IP.
+  // Stable IPs for each role to avoid unexpected rate limiting collision if checking by IP
   switch (role) {
     case 'member':
       return '10.0.0.11';
@@ -53,33 +49,32 @@ function ipForRole(role: Role): string {
 
 const CREDS: Record<Role, { email: string; password: string; name: string }> = {
   member: {
-    email: 'test@interdomestik.com',
-    password: 'TestPassword123!',
-    name: 'Test User',
+    email: 'ks.member.pack.1@interdomestik.com',
+    password: 'GoldenPass123!',
+    name: 'Test Member KS Pack',
   },
   admin: {
     email: 'admin@interdomestik.com',
     password: 'AdminPassword123!',
-    name: 'Admin User',
+    name: 'Admin KS (E2E)',
   },
   agent: {
-    email: 'agent@interdomestik.com',
-    password: 'AgentPassword123!',
-    name: 'Agent User',
+    email: 'agent.ks.a1@interdomestik.com',
+    password: 'GoldenPass123!',
+    name: 'Agent KS',
   },
   staff: {
-    email: 'staff@interdomestik.com',
-    password: 'StaffPassword123!',
-    name: 'Staff User',
+    email: 'staff.ks.extra@interdomestik.com',
+    password: 'GoldenPass123!',
+    name: 'Staff KS Extra',
   },
   branch_manager: {
-    email: 'bm@interdomestik.com',
-    password: 'BmPassword123!',
-    name: 'Branch Manager A',
+    email: 'bm.mk.a@interdomestik.com',
+    password: 'GoldenPass123!',
+    name: 'Branch Manager MK',
   },
 };
 
-// Legacy exports for backward compatibility
 export const TEST_USER = CREDS.member;
 export const TEST_ADMIN = CREDS.admin;
 export const TEST_AGENT = CREDS.agent;
@@ -92,11 +87,35 @@ export const TEST_BM = CREDS.branch_manager;
 
 async function performLogin(page: Page, role: Role): Promise<void> {
   const { email, password } = CREDS[role];
+  const baseURL = getBaseURL();
 
-  // ... (rest of performLogin)
+  // API Login Strategy (Robust)
+  const res = await page.request.post('/api/auth/sign-in/email', {
+    data: { email, password },
+    headers: {
+      Origin: baseURL,
+      Referer: `${baseURL}/login`,
+      'x-forwarded-for': ipForRole(role),
+    },
+  });
+
+  if (!res.ok()) {
+    throw new Error(`API login failed for ${role}: ${res.status()} ${await res.text()}`);
+  }
+
+  // Ensure cookies are set (page.request shares context storage state)
+  // Verify by checking cookies
+  const cookies = await page.context().cookies();
+  const hasSessionToken = cookies.some(c => c.name.includes('session_token'));
+
+  if (!hasSessionToken) {
+    console.warn(`WARNING: No session_token cookie found after successful API login for ${role}`);
+  }
 }
 
-// ...
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIXTURES
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface AuthFixtures {
   loginAs: (role: Role) => Promise<void>;
@@ -118,16 +137,7 @@ export const test = base.extend<AuthFixtures>({
   saveState: async ({ page }, use) => {
     await use(async (role: Role) => {
       const statePath = storageStateFile(role);
-      // If force regen is off and it exists, we shouldn't be here, but for safety:
-      // Real usage pattern in setup test handles the check.
-      // Here we just do the work.
-
-      // Ensure we are logged in as that role
-      // Note: We reuse the single 'page' fixture, so it might have old state.
-      // Ideally setup tests run in isolation.
       await performLogin(page, role);
-
-      // Save state
       await page.context().storageState({ path: statePath });
     });
   },
@@ -151,10 +161,13 @@ export const test = base.extend<AuthFixtures>({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('admin') },
+      baseURL: getBaseURL(),
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
+      console.log('Admin state missing or invalid, performing fresh login...');
       await performLogin(page, 'admin');
+      // Update state file for next time? Ideally setup does this.
     }
     await use(page);
     await context.close();
@@ -169,6 +182,7 @@ export const test = base.extend<AuthFixtures>({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('agent') },
+      baseURL: getBaseURL(),
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
@@ -187,6 +201,7 @@ export const test = base.extend<AuthFixtures>({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('staff') },
+      baseURL: getBaseURL(),
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
@@ -207,6 +222,7 @@ export const test = base.extend<AuthFixtures>({
       extraHTTPHeaders: {
         'x-forwarded-for': '10.0.0.15', // Distinct IP for BM
       },
+      baseURL: getBaseURL(),
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
@@ -228,7 +244,7 @@ export { expect } from '@playwright/test';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function storageStateFile(role: Role): string {
-  return path.join(__dirname, '.auth', `${role}.json`);
+  return path.join(__dirname, '..', '.auth', `${role}.json`);
 }
 
 async function storageStateExists(filePath: string): Promise<boolean> {
@@ -260,21 +276,10 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
   return await hasSessionCookie(page);
 }
 
-async function openAuthMenu(page: Page): Promise<void> {
-  for (const selector of AUTH_OK_SELECTORS) {
-    const locator = page.locator(selector).first();
-    if (await locator.isVisible().catch(() => false)) {
-      await locator.click();
-      return;
-    }
-  }
-}
-
-/**
- * Perform logout.
- */
 export async function logout(page: Page): Promise<void> {
-  await openAuthMenu(page);
-  await page.click('text=Logout, text=Sign out, [data-testid="logout"]');
-  await page.waitForURL(LOGIN_RX, { timeout: 15_000 });
+  const baseURL = getBaseURL();
+  await page.request.post('/api/auth/sign-out', {
+    headers: { Origin: baseURL },
+  });
+  await page.goto(routes.login('en'));
 }

@@ -101,6 +101,7 @@ export function mapClaimsToDto(
 
     return {
       id: claim.id,
+      claimNumber: claim.claimNumber,
       title: claim.title,
       status: status,
       statusLabelKey: statusLabelKey,

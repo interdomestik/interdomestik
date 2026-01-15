@@ -80,7 +80,7 @@ export function mapClaimToOperationalRow(row: RawClaimRow): ClaimOperationalRow 
 
   return {
     id: claim.id,
-    code: claim.id.slice(0, 8).toUpperCase(),
+    code: claim.claimNumber ?? claim.id.slice(0, 8).toUpperCase(),
     claimNumber: claim.claimNumber ?? null,
     title: claim.title,
     lifecycleStage,

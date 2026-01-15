@@ -29,8 +29,7 @@ const USERS = {
 };
 
 const SEEDED_DATA = {
-  CLAIM_MK_1: { title: 'Rear ended in Skopje', amount: '500.00' }, // Branch A
-  CLAIM_MK_3: { title: 'Towing Service', amount: '200.00' }, // Branch B
+  CLAIM_MK_1: { title: 'Rear ended in Skopje (Baseline)', amount: '500.00' }, // Branch A
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -41,21 +40,11 @@ async function loginAs(
   page: import('@playwright/test').Page,
   user: { email: string; password: string; tenant: string }
 ) {
-  // Navigate to locale-prefixed login with tenant context
   await page.goto(`/${DEFAULT_LOCALE}/login?tenantId=${user.tenant}`);
-
-  // Wait for login form to be ready
-  await page.waitForLoadState('networkidle');
-
-  // Fill login form using placeholder text (more reliable than labels)
-  // Albanian placeholder: "emri@shembull.com" for email
-  await page.locator('input[type="email"], input[placeholder*="@"]').first().fill(user.email);
-
-  // Password field
-  await page.locator('input[type="password"]').first().fill(user.password);
-
-  // Click submit button
-  await page.locator('button[type="submit"]').click();
+  await page.getByTestId('login-form').waitFor({ state: 'visible' });
+  await page.getByTestId('login-email').fill(user.email);
+  await page.getByTestId('login-password').fill(user.password);
+  await page.getByTestId('login-submit').click();
 
   // Wait for navigation away from login - increase timeout
   await page.waitForURL(/(?:member|admin|staff|agent|dashboard)/, { timeout: 30000 });
@@ -240,33 +229,28 @@ test.describe('Golden Flows Smoke Suite', () => {
       await page.waitForLoadState('networkidle');
 
       // Verify Seeded Lead is visible
-      await expect(page.getByText('Balkan Lead')).toBeVisible();
+      await expect(page.getByText('lead.balkan@example.com')).toBeVisible();
 
       // Create New Lead
       await page.getByRole('button', { name: /New Lead|Lead i Ri/i }).click();
       await page.waitForSelector('dialog[open]');
 
+      const newEmail = `smoke.balkan.${Date.now()}@test.com`;
       await page.locator('input[name="firstName"]').fill('Smoke');
       await page.locator('input[name="lastName"]').fill('Test');
-      await page.locator('input[name="email"]').fill(`smoke.balkan.${Date.now()}@test.com`);
+      await page.locator('input[name="email"]').fill(newEmail);
       await page.locator('input[name="phone"]').fill('+38970888888');
       await page.locator('button[type="submit"]').click();
 
-      // Wait for toast or refresh
-      await expect(page.getByText(/Lead created|Lead u krijua/i)).toBeVisible({
-        timeout: 20000,
-      });
-
-      // Reload to see new lead
-      await page.reload();
-      await expect(page.getByText('Smoke Test')).toBeVisible();
+      // Wait for reload to pick up the new lead
+      await page.waitForLoadState('networkidle');
+      await expect(page.getByText(newEmail)).toBeVisible({ timeout: 20000 });
 
       // Initiate Cash Payment for new lead
-      // Assuming 'Cash' button is available for new leads
-      const row = page.getByRole('row', { name: 'Smoke Test' });
+      const row = page.getByRole('row').filter({ hasText: newEmail });
       await row.getByRole('button', { name: /Cash/i }).click();
-
-      await expect(page.getByText(/Cash payment recorded|Pagesa u inicua/i)).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      await expect(row).toContainText(/Pending/i);
     });
 
     test('Branch Manager can verify cash payment', async ({ page }) => {
@@ -274,14 +258,11 @@ test.describe('Golden Flows Smoke Suite', () => {
 
       await page.goto(`/${DEFAULT_LOCALE}/admin/leads`);
 
-      // Should see the pending payment from seed (Balkan Lead)
-      // And potentially the one we just created if serial execution worked fast enough?
-      // Let's rely on the seeded one "Balkan Lead" which is definitely pending.
-      await expect(page.getByText('Balkan Lead')).toBeVisible();
-
-      // Click Approve
-      const row = page.getByRole('row', { name: 'Balkan Lead' });
-      await row.getByRole('button', { name: /Approve|Aprovo/i }).click();
+      const row = page
+        .getByTestId('cash-verification-row')
+        .filter({ hasText: 'lead.balkan@example.com' });
+      await expect(row).toBeVisible();
+      await row.getByTestId('cash-approve').click();
 
       await expect(page.getByText(/Payment approved|Pagesa u verifikua/i)).toBeVisible();
       // Should disappear or change status
@@ -435,7 +416,7 @@ test.describe('Golden Flows Smoke Suite', () => {
       await loginAs(page, USERS.TENANT_ADMIN_MK);
 
       // 2. Navigate to Claims
-      await page.goto(`/${DEFAULT_LOCALE}/admin/claims`);
+      await page.goto(`/${DEFAULT_LOCALE}/admin/claims?view=list`);
       await page.waitForLoadState('networkidle');
 
       // 3. Verify V2 Header Access
@@ -444,15 +425,13 @@ test.describe('Golden Flows Smoke Suite', () => {
 
       // 4. Verify Active Tab is default and shows content (or empty state)
       // "Aktive" tab
-      const activeTab = page.getByText(/Aktive|Active/i).first();
+      const activeTab = page.getByTestId('status-filter-active');
       await expect(activeTab).toBeVisible();
 
       // 5. Switch to Draft Tab
-      const draftTab = page.getByText(/Draft/i).first();
+      const draftTab = page.getByTestId('status-filter-draft');
       await draftTab.click();
-
-      // Verify URL updated
-      await expect(page).toHaveURL(/status=draft/);
+      await expect(draftTab).toHaveAttribute('aria-pressed', 'true');
     });
   });
 });

@@ -23,7 +23,7 @@ const STATUS_VARIANTS: Record<ClaimStatus, 'default' | 'secondary' | 'destructiv
 // TODO: If we have custom colors, use them. For now, map to standard badge variants.
 
 export function ClaimStatusBadge({ status, className }: ClaimStatusBadgeProps) {
-  const t = useTranslations('claims.status'); // Ensure keys exist or fallback
+  const t = useTranslations('claims-tracking.status');
   const variant = STATUS_VARIANTS[status] || 'default';
 
   return (

@@ -75,6 +75,7 @@ export function buildClaimsQuery(filters: ClaimsListV2Filters) {
         ilike(claims.id, searchPattern),
         ilike(user.email, searchPattern),
         ilike(user.name, searchPattern),
+        ilike(claims.claimNumber, searchPattern),
         ilike(branches.code, searchPattern)
       )!
     );

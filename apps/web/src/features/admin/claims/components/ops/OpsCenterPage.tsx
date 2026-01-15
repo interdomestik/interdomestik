@@ -68,7 +68,7 @@ export default async function OpsCenterPage({ searchParams }: OpsCenterPageProps
   const data = await getOpsCenterData(context, filters);
 
   return (
-    <div className="space-y-0 animate-in fade-in duration-500">
+    <div className="space-y-0 animate-in fade-in duration-500" data-testid="ops-center-page">
       <AdminPageHeader title={t('ops_center.title')} />
 
       {/* Sticky KPI Header with Refresh */}

@@ -1,6 +1,6 @@
 import { db } from '@interdomestik/database';
+import { isValidClaimNumber } from '@interdomestik/database/claim-number';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { isValidClaimNumber } from '@interdomestik/domain-claims/utils/claim-number';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';

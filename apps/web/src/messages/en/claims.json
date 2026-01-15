@@ -80,6 +80,7 @@
       "damaged_goods": "Damaged Goods",
       "service_issue": "Service Issue",
       "liability": "Liability",
+      "medical": "Medical",
       "test": "Test",
       "other": "Other"
     },

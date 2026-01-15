@@ -22,7 +22,7 @@ test.describe('Security Headers', () => {
     expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
 
     // Check if nonce matches in the HTML (optional deep verify)
-    // The proxy sets middleware request header, which RootLayout should read.
+    // The proxy sets an internal request header, which RootLayout should read.
     // We can check if a script tag has a nonce attribute.
     // Note: Playwright might not easily see the nonce attribute value if it's hidden or if we just check page content.
     // But checking the header is the primary goal here.

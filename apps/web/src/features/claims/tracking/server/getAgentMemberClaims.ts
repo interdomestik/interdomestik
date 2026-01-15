@@ -96,7 +96,7 @@ export async function getAgentMemberClaims(session: any): Promise<AgentMemberCla
               id: c.id,
               title: c.title,
               status: c.status || 'draft',
-              statusLabelKey: `claims.status.${c.status || 'draft'}`,
+              statusLabelKey: `claims-tracking.status.${c.status || 'draft'}`,
               createdAt: c.createdAt ?? new Date(),
               updatedAt: c.updatedAt,
             }));

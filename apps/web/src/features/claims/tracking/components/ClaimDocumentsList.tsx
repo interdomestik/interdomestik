@@ -12,7 +12,7 @@ interface ClaimDocumentsListProps {
 }
 
 export function ClaimDocumentsList({ documents, className }: ClaimDocumentsListProps) {
-  const t = useTranslations('claims.tracking.documents');
+  const t = useTranslations('claims-tracking.tracking.documents');
 
   if (!documents.length) {
     return (

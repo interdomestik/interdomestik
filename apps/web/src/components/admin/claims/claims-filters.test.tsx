@@ -5,6 +5,7 @@ import { AdminClaimsFilters } from './claims-filters';
 // Mock specific imports used by the component
 vi.mock('@/i18n/routing', () => ({
   useRouter: vi.fn(),
+  usePathname: vi.fn(),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -29,7 +30,7 @@ vi.mock('@/components/ui/glass-card', () => ({
   GlassCard: ({ children }: any) => <div>{children}</div>,
 }));
 
-import { useRouter } from '@/i18n/routing';
+import { usePathname, useRouter } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
 
 describe('AdminClaimsFilters', () => {
@@ -40,6 +41,7 @@ describe('AdminClaimsFilters', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useRouter as any).mockReturnValue(mockRouter);
+    (usePathname as any).mockReturnValue('/admin/claims');
     (useSearchParams as any).mockReturnValue(createMockParams());
   });
 

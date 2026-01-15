@@ -80,6 +80,7 @@
       "damaged_goods": "Оштетена стока",
       "service_issue": "Проблем со услуга",
       "liability": "Одговорност",
+      "medical": "Медицински",
       "test": "Test",
       "other": "Друго"
     },

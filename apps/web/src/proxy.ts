@@ -1,10 +1,10 @@
 import { Logger } from 'next-axiom';
-import createMiddleware from 'next-intl/middleware';
-import { NextRequest } from 'next/server';
+import createIntlRouter from 'next-intl/middleware';
+import { NextRequest, NextResponse } from 'next/server';
 
 import { routing } from './i18n/routing';
 
-const intlMiddleware = createMiddleware(routing);
+const handleIntlRouting = createIntlRouter(routing);
 
 function createNonce() {
   const bytes = new Uint8Array(16);
@@ -14,16 +14,20 @@ function createNonce() {
 
 export default async function proxy(request: NextRequest) {
   const nonce = createNonce();
+  const pathname = request.nextUrl.pathname;
 
   // Axiom structured logging
   const logger = new Logger({ source: 'proxy', req: request });
   logger.info('Request', {
-    path: request.nextUrl.pathname,
+    path: pathname,
     method: request.method,
   });
 
   // 1. Handle i18n routing
-  const response = intlMiddleware(request);
+  // Some routes intentionally live outside locale-prefixed routing.
+  // Example: `/track/:token` uses `?lang=` and must not be redirected to `/<locale>/...`.
+  const isLocaleAgnosticRoute = pathname.startsWith('/track/');
+  const response = isLocaleAgnosticRoute ? NextResponse.next() : handleIntlRouting(request);
 
   // 2. Security Headers
   // Content Security Policy
@@ -65,7 +69,7 @@ export default async function proxy(request: NextRequest) {
   ];
   const styleElemSrc = [
     "'self'",
-    ...(isDev ? ["'unsafe-inline'"] : [`'nonce-${nonce}'`]),
+    "'unsafe-inline'",
     'https://fonts.googleapis.com',
     'https://sandbox-cdn.paddle.com',
   ];

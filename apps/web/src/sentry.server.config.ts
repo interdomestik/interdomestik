@@ -1,12 +1,15 @@
 import * as Sentry from '@sentry/nextjs';
 
-Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  // Adjust this value in production, or use tracesSampler for greater control
-  tracesSampleRate: 1.0,
-  // Define environment from standard NODE_ENV usually
-  environment: process.env.NODE_ENV || 'development',
+const dsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
+const isAutomated = process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1';
+const isPlaceholder = dsn === 'https://your-dsn@sentry.io/project-id';
+const isEnabled = process.env.NODE_ENV === 'production' && !isAutomated && !!dsn && !isPlaceholder;
 
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: false,
-});
+if (isEnabled) {
+  Sentry.init({
+    dsn,
+    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0),
+    environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV,
+    debug: false,
+  });
+}

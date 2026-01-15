@@ -79,6 +79,8 @@ export async function getAdminClaimsV2(
       .select({
         claim: {
           id: claims.id,
+          claimNumber: claims.claimNumber,
+          userId: claims.userId,
           title: claims.title,
           status: claims.status,
           createdAt: claims.createdAt,

@@ -71,7 +71,7 @@ export async function getMemberClaimDetail(
         date: row.createdAt ?? new Date(),
         statusFrom: row.fromStatus || null,
         statusTo: row.toStatus,
-        labelKey: `claims.status.${row.toStatus}`,
+        labelKey: `claims-tracking.status.${row.toStatus}`,
         note: row.note,
         isPublic: row.isPublic,
       }));
@@ -97,7 +97,7 @@ export async function getMemberClaimDetail(
         id: claim.id,
         title: claim.title,
         status: (claim.status || 'draft') as ClaimStatus,
-        statusLabelKey: `claims.status.${claim.status}`,
+        statusLabelKey: `claims-tracking.status.${claim.status}`,
         createdAt: claim.createdAt ?? new Date(),
         updatedAt: claim.updatedAt,
         description: claim.description,

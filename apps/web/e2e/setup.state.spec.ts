@@ -10,7 +10,7 @@ import path from 'node:path';
 import { test as authTest } from './fixtures/auth.fixture';
 
 function stateFile(role: string): string {
-  return path.join(__dirname, 'fixtures', '.auth', `${role}.json`);
+  return path.join(__dirname, '.auth', `${role}.json`);
 }
 
 async function stateExists(role: string): Promise<boolean> {

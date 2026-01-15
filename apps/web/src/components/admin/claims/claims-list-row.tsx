@@ -113,6 +113,11 @@ export function ClaimsListRow({ row, showEmphasis }: ClaimsListRowProps) {
             testId={`admin-claim-status-${row.id}`}
           />
           <div className="space-y-1">
+            {row.claimNumber && (
+              <div className="text-xs font-mono text-muted-foreground mb-0.5">
+                {row.claimNumber}
+              </div>
+            )}
             <div className="text-sm font-medium text-foreground">{row.title}</div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>{tTable('row.stage_line', { stage: stageLabel, days: daysInStage })}</span>

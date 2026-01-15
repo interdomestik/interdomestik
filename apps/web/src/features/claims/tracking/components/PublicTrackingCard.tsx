@@ -11,7 +11,8 @@ interface PublicTrackingCardProps {
 }
 
 export function PublicTrackingCard({ data }: PublicTrackingCardProps) {
-  const t = useTranslations('claims.tracking.public');
+  const t = useTranslations('claims-tracking.tracking.public');
+  const tNextStep = useTranslations('claims-tracking.status.next_step');
 
   return (
     <Card className="w-full max-w-md mx-auto shadow-lg" data-testid="public-tracking-card">
@@ -27,9 +28,7 @@ export function PublicTrackingCard({ data }: PublicTrackingCardProps) {
       <CardContent className="space-y-4">
         <div className="p-4 bg-muted/50 rounded-lg">
           <h4 className="font-semibold mb-1">{t('next_step_title')}</h4>
-          <p className="text-sm text-muted-foreground">
-            {useTranslations('claims.status.next_step')(`${data.status}`)}
-          </p>
+          <p className="text-sm text-muted-foreground">{tNextStep(`${data.status}`)}</p>
         </div>
 
         <div className="text-xs text-center text-muted-foreground pt-4">{t('no_pii_notice')}</div>

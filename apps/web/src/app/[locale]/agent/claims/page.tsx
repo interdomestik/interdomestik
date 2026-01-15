@@ -2,7 +2,6 @@ import { ClaimStatusBadge } from '@/features/claims/tracking/components/ClaimSta
 import { getAgentMemberClaims } from '@/features/claims/tracking/server/getAgentMemberClaims';
 import { Avatar, AvatarFallback } from '@interdomestik/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/card';
-import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -39,7 +38,6 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
   if (!session) redirect('/login');
 
   const groups = await getAgentMemberClaims(session);
-  const t = await getTranslations('tracking.agent_claims'); // Need to add this key or reuse
 
   return (
     <div className="container py-8 space-y-8" data-testid="agent-claims-page">
@@ -48,7 +46,9 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
       </div>
 
       {groups.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">No clients with claims found.</div>
+        <div className="text-center py-12 text-muted-foreground" data-testid="agent-claims-empty">
+          No clients with claims found.
+        </div>
       ) : (
         <div className="grid gap-6">
           {groups.map(group => (
@@ -71,6 +71,7 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
                       href={`/${locale}/member/claims/${claim.id}`}
                       key={claim.id}
                       className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
+                      data-testid="agent-claim-row"
                     >
                       <div className="space-y-1">
                         <p className="font-medium">{claim.title}</p>

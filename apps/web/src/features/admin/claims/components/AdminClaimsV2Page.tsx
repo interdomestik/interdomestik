@@ -1,4 +1,5 @@
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { AdminClaimsFilters } from '@/components/admin/claims/claims-filters';
 import { GlassCard } from '@/components/ui/glass-card';
 import { auth } from '@/lib/auth';
 import { getTranslations } from 'next-intl/server';
@@ -64,6 +65,9 @@ export default async function AdminClaimsV2Page({ searchParams }: AdminClaimsV2P
 
       <GlassCard className="p-6">
         <div className="space-y-6">
+          {/* Filters (Search, Status, Assignment) */}
+          <AdminClaimsFilters />
+
           {/* Lifecycle Tabs */}
           <ClaimsLifecycleTabs stats={data.stats} currentStage={lifecycleStage} />
 

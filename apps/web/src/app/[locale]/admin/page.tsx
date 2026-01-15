@@ -29,10 +29,8 @@ export default async function AdminDashboardPage({
     redirect({ href: `/admin/branches/${session.user.branchId}`, locale });
   }
 
-  // Forbidden for non-admins (Double check, although middleware should handle this)
-  console.log('[DEBUG] AdminDashboardPage session role:', session?.user?.role);
+  // Forbidden for non-admins (defense in depth; proxy should also enforce)
   if (!['admin', 'tenant_admin', 'super_admin'].includes(session?.user?.role || '')) {
-    console.log('[DEBUG] AdminDashboardPage Access Denied for role:', session?.user?.role);
     return <div>Access Denied (Role: {session?.user?.role || 'none'})</div>;
   }
 
