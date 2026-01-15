@@ -1,46 +1,44 @@
 {
-  "claims-tracking": {
-    "tracking": {
-      "header": {
-        "share_link": "Podeli link za praćenje",
-        "link_copied": "Link je kopiran",
-        "error_generating_link": "Generisanje linka nije uspelo",
-        "share_dialog_title": "Podeli status zahteva",
-        "share_dialog_desc": "Svako sa ovim linkom može videti status. Link ističe za 7 dana."
-      },
-      "timeline": {
-        "empty": "Nema događaja u vremenskoj liniji."
-      },
-      "documents": {
-        "title": "Dokumenti",
-        "empty": "Još uvek nema otpremljenih dokumenata."
-      },
-      "public": {
-        "title": "Status zahteva",
-        "last_updated": "Poslednje ažuriranje {date}",
-        "next_step_title": "Šta sledi?",
-        "no_pii_notice": "Ovo je ograničen pregled. Za pune detalje, molimo prijavite se."
-      }
+  "tracking": {
+    "header": {
+      "share_link": "Podeli link za praćenje",
+      "link_copied": "Link je kopiran",
+      "error_generating_link": "Generisanje linka nije uspelo",
+      "share_dialog_title": "Podeli status zahteva",
+      "share_dialog_desc": "Svako sa ovim linkom može videti status. Link ističe za 7 dana."
     },
-    "status": {
-      "draft": "Nacrt",
-      "submitted": "Podneto",
-      "verification": "Verifikacija",
-      "evaluation": "Evaluacija",
-      "negotiation": "Pregovaranje",
-      "court": "Sud",
-      "resolved": "Rešeno",
-      "rejected": "Odbijeno",
-      "next_step": {
-        "draft": "Molimo podnesite vaš zahtev na pregled.",
-        "submitted": "Primili smo vaš zahtev i uskoro ćemo ga dodeliti menadžeru slučaja.",
-        "verification": "Proveravamo dostavljena dokumenta i dokaze.",
-        "evaluation": "Naši stručnjaci procenjuju štetu i odgovornost.",
-        "negotiation": "Pregovaramo sa osiguravajućom kućom za pravično rešenje.",
-        "court": "Pravni postupci su pokrenuti.",
-        "resolved": "Zahtev je finalizovan.",
-        "rejected": "Zahtev nije mogao biti procesuiran."
-      }
+    "timeline": {
+      "empty": "Nema događaja u vremenskoj liniji."
+    },
+    "documents": {
+      "title": "Dokumenti",
+      "empty": "Još uvek nema otpremljenih dokumenata."
+    },
+    "public": {
+      "title": "Status zahteva",
+      "last_updated": "Poslednje ažuriranje {date}",
+      "next_step_title": "Šta sledi?",
+      "no_pii_notice": "Ovo je ograničen pregled. Za pune detalje, molimo prijavite se."
+    }
+  },
+  "status": {
+    "draft": "Nacrt",
+    "submitted": "Podneto",
+    "verification": "Verifikacija",
+    "evaluation": "Evaluacija",
+    "negotiation": "Pregovaranje",
+    "court": "Sud",
+    "resolved": "Rešeno",
+    "rejected": "Odbijeno",
+    "next_step": {
+      "draft": "Molimo podnesite vaš zahtev na pregled.",
+      "submitted": "Primili smo vaš zahtev i uskoro ćemo ga dodeliti menadžeru slučaja.",
+      "verification": "Proveravamo dostavljena dokumenta i dokaze.",
+      "evaluation": "Naši stručnjaci procenjuju štetu i odgovornost.",
+      "negotiation": "Pregovaramo sa osiguravajućom kućom za pravično rešenje.",
+      "court": "Pravni postupci su pokrenuti.",
+      "resolved": "Zahtev je finalizovan.",
+      "rejected": "Zahtev nije mogao biti procesuiran."
     }
   }
 }
