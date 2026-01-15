@@ -1,11 +1,13 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import * as schema from '../schema';
+import type { SeedConfig } from '../seed-types';
 import { KS_NAMES, MK_NAMES, SEED_PASSWORD, TENANTS, USERS } from './constants';
 import { hashPassword } from './helpers';
 
-export async function seedUsersAndAuth() {
+export async function seedUsersAndAuth(config: SeedConfig) {
   console.log('👥 Seeding Users and Auth...');
+  const { at } = config;
   const hashedPassword = hashPassword(SEED_PASSWORD);
 
   // 1. Core Users
@@ -15,8 +17,8 @@ export async function seedUsersAndAuth() {
       .values({
         ...u,
         emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: at(),
+        updatedAt: at(),
       })
       .onConflictDoUpdate({
         target: schema.user.id,
@@ -37,15 +39,15 @@ export async function seedUsersAndAuth() {
         providerId: 'credential',
         userId: u.id,
         password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: at(),
+        updatedAt: at(),
       })
       // If credential exists, update password to ensure we can login
       .onConflictDoUpdate({
         target: schema.account.id,
         set: {
           password: hashedPassword,
-          updatedAt: new Date(),
+          updatedAt: at(),
         },
       });
   }
@@ -83,8 +85,8 @@ export async function seedUsersAndAuth() {
         ...m,
         role: 'user',
         emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: at(),
+        updatedAt: at(),
       })
       .onConflictDoUpdate({
         target: schema.user.id,
@@ -99,8 +101,8 @@ export async function seedUsersAndAuth() {
         providerId: 'credential',
         userId: m.id,
         password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: at(),
+        updatedAt: at(),
       })
       .onConflictDoUpdate({ target: schema.account.id, set: { password: hashedPassword } });
   }

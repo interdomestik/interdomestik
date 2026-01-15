@@ -2,8 +2,11 @@ import { db } from '../db';
 import * as schema from '../schema';
 import { BRANCHES, TENANTS } from './constants';
 
-export async function seedClaimsAndFlows() {
+import type { SeedConfig } from '../seed-types';
+
+export async function seedClaimsAndFlows(config: SeedConfig) {
   console.log('📝 Seeding Claims and Workflows...');
+  const { at } = config;
 
   const branchesMK = BRANCHES.filter(b => b.tenantId === TENANTS.MK);
   const branchesKS = BRANCHES.filter(b => b.tenantId === TENANTS.KS);
@@ -80,8 +83,8 @@ export async function seedClaimsAndFlows() {
         description: 'Seeded claim for testing.',
         category: 'vehicle',
         companyName: 'Test Insurer',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: at(),
+        updatedAt: at(),
       })
       .onConflictDoUpdate({ target: schema.claims.id, set: { status: c.status as any } });
 
@@ -100,7 +103,7 @@ export async function seedClaimsAndFlows() {
           fileSize: 1024,
           bucket: 'claim-evidence',
           classification: 'pii',
-          createdAt: new Date(),
+          createdAt: at(),
         })
         .onConflictDoNothing();
     }

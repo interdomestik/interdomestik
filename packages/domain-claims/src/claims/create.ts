@@ -1,10 +1,10 @@
 import { claims, db } from '@interdomestik/database';
+import { generateClaimNumber } from '@interdomestik/database/claim-number';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
-import { generateClaimNumber } from '../utils/claim-number';
 
 import type { ClaimsDeps, ClaimsSession } from './types';
 
@@ -93,17 +93,17 @@ export async function createClaimCore(
   const { title, description, category, companyName, claimAmount, currency } = result.data;
 
   const claimId = nanoid();
+  const now = new Date();
 
   try {
     await db.transaction(async tx => {
-      const claimNumber = await generateClaimNumber(tx, tenantId);
-
+      // 1. Insert first (claimNumber null)
       await tx.insert(claims).values({
         id: claimId,
         tenantId,
         userId: session.user.id,
         title,
-        claimNumber,
+        claimNumber: null, // explicit null
         description,
         category,
         companyName,
@@ -112,6 +112,15 @@ export async function createClaimCore(
         status: 'draft',
         branchId: subscription.branchId ?? defaultBranchId,
         agentId: subscription.agentId,
+        createdAt: now, // Sync with generator year
+        updatedAt: now,
+      });
+
+      // 2. Generate and Assign (updates the row)
+      await generateClaimNumber(tx, {
+        tenantId,
+        claimId,
+        createdAt: now,
       });
     });
 

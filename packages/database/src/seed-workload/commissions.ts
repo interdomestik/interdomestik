@@ -1,12 +1,15 @@
+import type { SeedConfig } from '../seed-types';
 import { TENANTS, WORKLOAD_PREFIX } from './constants';
 
 export async function seedWorkloadCommissions(
   db: any,
   schema: any,
   subscriptions: any[],
-  agents: any[]
+  agents: any[],
+  config: SeedConfig
 ) {
   console.log('💰 Seeding Workload Commissions...');
+  const { at } = config;
 
   const commissions: any[] = [];
 
@@ -26,8 +29,8 @@ export async function seedWorkloadCommissions(
       status: i % 3 === 0 ? 'paid' : i % 3 === 1 ? 'approved' : 'pending',
       amount: '30.00',
       currency: sub.tenantId === TENANTS.MK ? 'MKD' : 'EUR', // Simplified
-      earnedAt: new Date(),
-      paidAt: i % 3 === 0 ? new Date() : null,
+      earnedAt: at(),
+      paidAt: i % 3 === 0 ? at() : null,
     });
   }
 

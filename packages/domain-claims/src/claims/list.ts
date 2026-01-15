@@ -34,6 +34,7 @@ export type ClaimItem = {
   category: string | null;
   claimantName?: string | null;
   claimantEmail?: string | null;
+  claimNumber?: string | null;
   unreadCount?: number;
 };
 
@@ -235,6 +236,7 @@ function buildSearchConditions(scope: ClaimsScope, searchQuery: string) {
   return or(
     ilike(claims.title, term),
     ilike(claims.companyName, term),
+    ilike(claims.claimNumber, term),
     ilike(user.name, term),
     ilike(user.email, term)
   );
@@ -294,6 +296,7 @@ async function fetchClaimRows(params: {
       category: claims.category,
       claimantName: user.name,
       claimantEmail: user.email,
+      claimNumber: claims.claimNumber,
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id));
@@ -367,6 +370,7 @@ function mapClaimsToResponse(
     category: redactForAgent ? null : row.category,
     claimantName: redactForAgent ? null : row.claimantName,
     claimantEmail: redactForAgent ? null : row.claimantEmail,
+    claimNumber: row.claimNumber,
     unreadCount: scope === 'member' || redactForAgent ? 0 : unreadCounts.get(row.id) || 0,
   }));
 }

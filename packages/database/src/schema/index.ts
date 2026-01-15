@@ -8,9 +8,11 @@ export * from './enums';
 export * from './agents';
 export * from './auth';
 export * from './automation';
+export * from './claim-threads';
 export * from './claims';
 export * from './counters';
 export * from './crm';
+export * from './documents';
 export * from './leads';
 export * from './member-counters';
 export * from './memberships';
@@ -25,3 +27,6 @@ export * from './webhooks';
 // Relations
 export * from './relations';
 export * from './tracking';
+
+// Seed infrastructure
+export * from './seed-meta';

@@ -4,20 +4,19 @@
  * - seed:workload is additive and self-cleaning
  * - seeds must never reference each other's IDs
  */
+import type { SeedConfig } from './seed-types';
 import { cleanupByPrefixes } from './seed-utils/cleanup';
 import { hashPassword } from './seed-utils/hash-password';
-import { loadEnvFromRoot } from './seed-utils/load-env';
 import { goldenId } from './seed-utils/seed-ids';
 
-// Force load .env from project root
-loadEnvFromRoot();
-
-async function seedGolden() {
+// Export for composition
+export async function seedGolden(config: SeedConfig) {
   console.log('🌱 Starting Golden Seed (Baseline)...');
 
   const { db } = await import('./db');
   const schema = await import('./schema');
   const { inArray } = await import('drizzle-orm');
+  const { at } = config;
 
   const TENANTS = {
     MK: 'tenant_mk',
@@ -204,6 +203,7 @@ async function seedGolden() {
       role: 'user',
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_a',
+      agentId: goldenId('ks_agent_a1'),
     },
   ];
 
@@ -253,8 +253,8 @@ async function seedGolden() {
       .values({
         ...u,
         emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: at(),
+        updatedAt: at(),
       })
       .onConflictDoUpdate({
         target: schema.user.id,
@@ -262,6 +262,7 @@ async function seedGolden() {
           name: u.name,
           role: u.role,
           branchId: 'branchId' in u ? (u.branchId as string) : null,
+          agentId: 'agentId' in u ? (u.agentId as string) : null,
           tenantId: u.tenantId,
         },
       });
@@ -274,15 +275,15 @@ async function seedGolden() {
         providerId: 'credential',
         userId: u.id,
         password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: at(),
+        updatedAt: at(),
       })
       .onConflictDoUpdate({
         target: schema.account.id,
         set: {
           password: hashedPassword,
           accountId: u.email,
-          updatedAt: new Date(),
+          updatedAt: at(),
         },
       });
   }
@@ -386,7 +387,7 @@ async function seedGolden() {
         status: 'active',
         planId: s.plan,
         agentId: goldenId(s.agent),
-        currentPeriodStart: new Date(),
+        currentPeriodStart: at(),
       })
       .onConflictDoUpdate({ target: schema.subscriptions.id, set: { status: 'active' } });
 
@@ -406,7 +407,7 @@ async function seedGolden() {
 
   // 7. Claims Pack (KS-A Urgent, KS-B Attention, KS-C Healthy)
   console.log('📝 Seeding Claims Pack (Ops Verification)...');
-  const now = new Date();
+  const now = at();
   const claimsToSeed: (typeof schema.claims.$inferInsert)[] = [];
 
   // KS-A (Urgent): 21 claims
@@ -436,11 +437,11 @@ async function seedGolden() {
 
   ksAStatuses.forEach((status, i) => {
     const dayOffset = i < 9 ? i % 3 : i % 21;
-    let createdAt = new Date(now.getTime() - dayOffset * 24 * 60 * 60 * 1000);
+    let createdAt = at(-dayOffset * 24 * 60 * 60 * 1000);
 
     // SLA Breaches in KS-A
-    if (i === 0) createdAt = new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000);
-    if (i === 1) createdAt = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000);
+    if (i === 0) createdAt = at(-35 * 24 * 60 * 60 * 1000);
+    if (i === 1) createdAt = at(-45 * 24 * 60 * 60 * 1000);
 
     const claimId = `ks_a_claim_${(i + 1).toString().padStart(2, '0')}`;
     const staffId = i < 7 ? goldenId('ks_staff') : i < 12 ? goldenId('ks_staff_2') : null;
@@ -477,7 +478,7 @@ async function seedGolden() {
       category: 'vehicle',
       companyName: 'KS West Insurer',
       claimAmount: '800.00',
-      createdAt: new Date(now.getTime() - (i + 1) * 24 * 60 * 60 * 1000),
+      createdAt: at(-(i + 1) * 24 * 60 * 60 * 1000),
       staffId,
       assignedAt: staffId ? now : null,
       assignedById: staffId ? goldenId('ks_admin') : null,
@@ -497,7 +498,7 @@ async function seedGolden() {
       category: 'vehicle',
       companyName: 'Peja local',
       claimAmount: '450.00',
-      createdAt: new Date(now.getTime() - i * 12 * 60 * 60 * 1000), // very recent
+      createdAt: at(-i * 12 * 60 * 60 * 1000), // very recent
     });
   });
 
@@ -530,10 +531,10 @@ async function seedGolden() {
     companyName: 'KS Insurance Co',
     claimAmount: '250.00',
     currency: 'EUR',
-    createdAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+    createdAt: at(-7 * 24 * 60 * 60 * 1000),
+    updatedAt: at(-1 * 24 * 60 * 60 * 1000),
     staffId: goldenId('ks_staff'),
-    assignedAt: new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000),
+    assignedAt: at(-6 * 24 * 60 * 60 * 1000),
     assignedById: goldenId('ks_admin'),
   });
 
@@ -549,8 +550,8 @@ async function seedGolden() {
     category: 'property',
     companyName: 'KS Insurance Co',
     claimAmount: '120.00',
-    createdAt: new Date(now.getTime() - 40 * 24 * 60 * 60 * 1000), // >30 days
-    updatedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
+    createdAt: at(-40 * 24 * 60 * 60 * 1000), // >30 days
+    updatedAt: at(-10 * 24 * 60 * 60 * 1000),
     staffId: null,
   });
 
@@ -566,8 +567,8 @@ async function seedGolden() {
     category: 'other',
     companyName: 'KS Insurance Co',
     claimAmount: '90.00',
-    createdAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
+    createdAt: at(-20 * 24 * 60 * 60 * 1000),
+    updatedAt: at(-15 * 24 * 60 * 60 * 1000),
   });
 
   for (const c of claimsToSeed) {
@@ -616,7 +617,7 @@ async function seedGolden() {
         method: 'cash',
         status: 'pending',
         amount: 15000,
-        createdAt: new Date(now.getTime() - (ksLeads.indexOf(l) + 1) * 2 * 24 * 60 * 60 * 1000),
+        createdAt: at(-(ksLeads.indexOf(l) + 1) * 2 * 24 * 60 * 60 * 1000),
       })
       .onConflictDoNothing();
   }
@@ -646,7 +647,7 @@ async function seedGolden() {
       method: 'cash',
       status: 'pending',
       amount: 12000,
-      createdAt: new Date(),
+      createdAt: at(),
     })
     .onConflictDoNothing();
 
@@ -668,7 +669,7 @@ async function seedGolden() {
       claimId: goldenId('ks_track_claim_001'),
       tokenHash: tokenHash,
       // Expires in 30 days
-      expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+      expiresAt: at(30 * 24 * 60 * 60 * 1000),
     })
     .onConflictDoNothing();
 
@@ -681,11 +682,6 @@ async function seedGolden() {
   console.log('     /sq/member/claims/golden_ks_track_claim_001');
   console.log(`     /track/${rawToken}?lang=sq`);
   console.log('     /sq/agent/claims');
-
-  process.exit(0);
 }
 
-seedGolden().catch(e => {
-  console.error(e);
-  process.exit(1);
-});
+// Pure module - CLI execution removed. Use seed.ts runner only.

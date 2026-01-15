@@ -1,7 +1,7 @@
 export const tools = [
   {
     name: 'audit_auth',
-    description: 'Verify Better Auth configuration (files, env, middleware)',
+    description: 'Verify Better Auth configuration (files, env, proxy)',
     inputSchema: { type: 'object', properties: {} },
   },
   {

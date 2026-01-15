@@ -26,6 +26,10 @@ let resendClient: Resend | null = null;
 function getResendClient() {
   if (resendClient) return resendClient;
 
+  if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1') {
+    return null;
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn('Resend API key not configured. Emails will be skipped.');

@@ -2,8 +2,11 @@ import { db } from '../db';
 import * as schema from '../schema';
 import { TENANTS } from './constants';
 
-export async function seedBalkanFlows() {
+import type { SeedConfig } from '../seed-types';
+
+export async function seedBalkanFlows(config: SeedConfig) {
   console.log('🇧🇦 Seeding Balkan Agent Flows...');
+  const { at } = config;
 
   // 1. CASH FLOW: Lead -> Verified -> Converted
   const agentId = 'golden_mk_agent_a1';
@@ -21,8 +24,8 @@ export async function seedBalkanFlows() {
       email: 'lead.cash.mk@example.com',
       phone: '+38970111222',
       status: 'converted',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: at(),
+      updatedAt: at(),
     })
     .onConflictDoNothing();
 
@@ -37,8 +40,8 @@ export async function seedBalkanFlows() {
       amount: 12000,
       currency: 'EUR',
       verifiedBy: 'golden_mk_bm_a',
-      verifiedAt: new Date(),
-      createdAt: new Date(),
+      verifiedAt: at(),
+      createdAt: at(),
     })
     .onConflictDoNothing();
 
@@ -56,8 +59,8 @@ export async function seedBalkanFlows() {
       email: 'lead.card.mk@example.com',
       phone: '+38970333444',
       status: 'converted',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: at(),
+      updatedAt: at(),
     })
     .onConflictDoNothing();
 
@@ -72,7 +75,7 @@ export async function seedBalkanFlows() {
       amount: 12000,
       currency: 'EUR',
       paddleTransactionId: 'txn_simulated_full_seed',
-      createdAt: new Date(),
+      createdAt: at(),
     })
     .onConflictDoNothing();
 }

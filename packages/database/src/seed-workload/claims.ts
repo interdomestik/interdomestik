@@ -1,10 +1,18 @@
+import type { SeedConfig } from '../seed-types';
 import { statuses, TENANTS, WORKLOAD_PREFIX } from './constants';
 
-export async function seedWorkloadClaims(db: any, schema: any, members: any[], staff: any[]) {
+export async function seedWorkloadClaims(
+  db: any,
+  schema: any,
+  members: any[],
+  staff: any[],
+  config: SeedConfig
+) {
   console.log('📝 Seeding Workload Claims...');
 
   const claims: any[] = [];
-  const now = new Date();
+  const { at } = config;
+  const now = at();
 
   // KS: 45 claims
   const ksMembers = members.filter(m => m.tenantId === TENANTS.KS);
@@ -16,8 +24,8 @@ export async function seedWorkloadClaims(db: any, schema: any, members: any[], s
     const status = statuses[i % statuses.length];
     const isSlaBreach = i < 5; // First 5 KS claims are SLA breaches (old)
     const createdAt = isSlaBreach
-      ? new Date(now.getTime() - 40 * 24 * 60 * 60 * 1000) // 40 days ago
-      : new Date(now.getTime() - (i % 30) * 24 * 60 * 60 * 1000);
+      ? at(-40 * 24 * 60 * 60 * 1000) // 40 days ago
+      : at(-(i % 30) * 24 * 60 * 60 * 1000);
 
     claims.push({
       id: `${WORKLOAD_PREFIX}ks_claim_${i + 1}`,
@@ -49,8 +57,8 @@ export async function seedWorkloadClaims(db: any, schema: any, members: any[], s
     const status = statuses[i % statuses.length];
     const isSlaBreach = i < 3; // First 3 MK claims are SLA breaches
     const createdAt = isSlaBreach
-      ? new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000)
-      : new Date(now.getTime() - (i % 20) * 24 * 60 * 60 * 1000);
+      ? at(-45 * 24 * 60 * 60 * 1000)
+      : at(-(i % 20) * 24 * 60 * 60 * 1000);
 
     claims.push({
       id: `${WORKLOAD_PREFIX}mk_claim_${i + 1}`,

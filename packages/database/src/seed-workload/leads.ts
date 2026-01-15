@@ -1,11 +1,13 @@
+import type { SeedConfig } from '../seed-types';
 import { TENANTS, WORKLOAD_PREFIX } from './constants';
 
-export async function seedWorkloadLeads(db: any, schema: any, agents: any[]) {
+export async function seedWorkloadLeads(db: any, schema: any, agents: any[], config: SeedConfig) {
   console.log('💰 Seeding Workload Leads...');
 
   const leads: any[] = [];
   const payments: any[] = [];
-  const now = new Date();
+  const { at } = config;
+  const now = at();
 
   // KS: 5 cash pending
   const ksAgents = agents.filter(a => a.tenantId === TENANTS.KS);

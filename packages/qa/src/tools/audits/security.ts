@@ -5,8 +5,7 @@ import { checkFileContains, checkFileExists } from './utils.js';
 
 export async function auditCsp() {
   const proxyPath = path.join(WEB_APP, 'src/proxy.ts');
-  const middlewarePath = path.join(WEB_APP, 'src/middleware.ts');
-  const targetPath = fs.existsSync(middlewarePath) ? middlewarePath : proxyPath;
+  const targetPath = proxyPath;
 
   const checks: string[] = [];
   const issues: string[] = [];
@@ -21,7 +20,7 @@ export async function auditCsp() {
       issues.push(`⚠️ CSP header not explicitly set in ${filename}`);
     }
   } else {
-    issues.push('❌ Security entry point (middleware.ts or proxy.ts) missing');
+    issues.push('❌ Security entry point (proxy.ts) missing');
   }
 
   const status = issues.length === 0 ? 'SUCCESS' : 'WARNING';
@@ -50,13 +49,11 @@ function checkAuthFiles(checks: string[], issues: string[]) {
   if (clientFile.issue) issues.push(clientFile.issue);
 }
 
-function checkMiddleware(checks: string[], issues: string[]) {
+function checkProxy(checks: string[], issues: string[]) {
   const proxyPath = path.join(WEB_APP, 'src/proxy.ts');
-  const middlewarePath = path.join(WEB_APP, 'src/middleware.ts');
-  const targetPath = fs.existsSync(middlewarePath) ? middlewarePath : proxyPath;
-  const middlewareCheck = checkFileExists(targetPath, 'Route Protection');
-  if (middlewareCheck.check) checks.push(middlewareCheck.check);
-  if (middlewareCheck.issue) issues.push(middlewareCheck.issue);
+  const proxyCheck = checkFileExists(proxyPath, 'Proxy');
+  if (proxyCheck.check) checks.push(proxyCheck.check);
+  if (proxyCheck.issue) issues.push(proxyCheck.issue);
 }
 
 function checkEnvVars(checks: string[], issues: string[]) {
@@ -80,7 +77,7 @@ export async function auditAuth() {
   const issues: string[] = [];
 
   checkAuthFiles(checks, issues);
-  checkMiddleware(checks, issues);
+  checkProxy(checks, issues);
   checkEnvVars(checks, issues);
 
   const status = issues.length === 0 ? 'SUCCESS' : 'WARNING';

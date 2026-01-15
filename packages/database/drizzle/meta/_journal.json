@@ -169,6 +169,27 @@
       "when": 1768305086791,
       "tag": "0023_wise_sway",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1768379767152,
+      "tag": "0024_complete_longshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1768380515750,
+      "tag": "0025_swift_baron_strucker",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1768407485472,
+      "tag": "0026_panoramic_genesis",
+      "breakpoints": true
     }
   ]
 }

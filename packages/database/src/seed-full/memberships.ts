@@ -3,8 +3,11 @@ import { db } from '../db';
 import * as schema from '../schema';
 import { TENANTS } from './constants';
 
-export async function seedSubscriptionsAndCommissions() {
+import type { SeedConfig } from '../seed-types';
+
+export async function seedSubscriptionsAndCommissions(config: SeedConfig) {
   console.log('💳 Seeding Subscriptions and Commissions...');
+  const { at } = config;
 
   // Plans
   const PLANS = {
@@ -85,8 +88,8 @@ export async function seedSubscriptionsAndCommissions() {
           status: cfg.status as any,
           planId: planId,
           agentId: agentId,
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          currentPeriodStart: at(),
+          currentPeriodEnd: at(365 * 24 * 60 * 60 * 1000),
         })
         .onConflictDoUpdate({
           target: schema.subscriptions.id,
@@ -104,7 +107,7 @@ export async function seedSubscriptionsAndCommissions() {
           status: cfg.status === 'active' ? 'active' : 'expired',
           cardNumber: `${tenantPrefix.toUpperCase()}-1000-${cfg.suffix.padStart(4, '0')}`,
           qrCodeToken: `qr_${tenantPrefix}_${cfg.suffix}`,
-          issuedAt: new Date(),
+          issuedAt: at(),
         })
         .onConflictDoNothing();
 
@@ -124,7 +127,7 @@ export async function seedSubscriptionsAndCommissions() {
             type: 'new_membership',
             status: commStatus,
             metadata: { source: 'seed' },
-            earnedAt: new Date(),
+            earnedAt: at(),
           })
           .onConflictDoNothing();
       }

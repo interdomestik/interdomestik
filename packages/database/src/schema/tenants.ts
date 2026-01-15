@@ -4,7 +4,7 @@ export const tenants = pgTable('tenants', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   legalName: text('legal_name').notNull(),
-  code: text('code'), // Short tenant code (e.g. KS01) - Nullable for migration, will be unique later
+  code: text('code').unique(), // Short tenant code (e.g. KS01) - Nullable for migration, will be unique later
   countryCode: text('country_code').notNull(),
   currency: text('currency').default('EUR').notNull(),
   taxId: text('tax_id'),

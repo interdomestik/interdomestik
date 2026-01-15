@@ -1,7 +1,15 @@
+import type { SeedConfig } from '../seed-types';
 import { TENANTS, WORKLOAD_PREFIX } from './constants';
 
-export async function seedWorkloadMemberships(db: any, schema: any, members: any[], agents: any[]) {
+export async function seedWorkloadMemberships(
+  db: any,
+  schema: any,
+  members: any[],
+  agents: any[],
+  config: SeedConfig
+) {
   console.log('💳 Seeding Workload Memberships...');
+  const { at } = config;
 
   const PLAN_MK = `${WORKLOAD_PREFIX}mk_plan`;
   const PLAN_KS = `${WORKLOAD_PREFIX}ks_plan`;
@@ -50,10 +58,10 @@ export async function seedWorkloadMemberships(db: any, schema: any, members: any
         tenantId: member.tenantId,
         planId,
         status,
-        currentPeriodStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        currentPeriodStart: at(-30 * 24 * 60 * 60 * 1000),
+        currentPeriodEnd: at(30 * 24 * 60 * 60 * 1000),
+        createdAt: at(),
+        updatedAt: at(),
       });
 
       if (isActive) {
@@ -65,7 +73,7 @@ export async function seedWorkloadMemberships(db: any, schema: any, members: any
           cardNumber: `W-${member.id.slice(-8).toUpperCase()}`,
           qrCodeToken: `QR-${subId}`,
           status: 'active',
-          issuedAt: new Date(),
+          issuedAt: at(),
         });
       }
 

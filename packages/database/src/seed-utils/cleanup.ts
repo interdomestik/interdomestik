@@ -35,6 +35,11 @@ export async function cleanupByPrefixes(
   const allClaimIds = claimIdsToDelete.map(c => c.id);
 
   if (allClaimIds.length > 0) {
+    if (dbSchema.claimTrackingTokens) {
+      await db
+        .delete(dbSchema.claimTrackingTokens)
+        .where(inArray(dbSchema.claimTrackingTokens.claimId, allClaimIds));
+    }
     await db
       .delete(dbSchema.claimDocuments)
       .where(inArray(dbSchema.claimDocuments.claimId, allClaimIds));
@@ -215,6 +220,13 @@ export async function cleanupByPrefixes(
     await db
       .delete(dbSchema.leadPaymentAttempts)
       .where(inArray(dbSchema.leadPaymentAttempts.verifiedBy, allUserIds));
+
+    // 7c. Delete Member Notes (authored by these users)
+    // authorId does not cascade, so we must delete these notes manually
+    await db.delete(dbSchema.memberNotes).where(inArray(dbSchema.memberNotes.authorId, allUserIds));
+
+    // 7d. Delete Audit Logs (performed by these users)
+    await db.delete(dbSchema.auditLog).where(inArray(dbSchema.auditLog.actorId, allUserIds));
 
     // Finally delete the users
     await db.delete(dbSchema.user).where(inArray(dbSchema.user.id, allUserIds));

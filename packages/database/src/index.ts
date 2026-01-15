@@ -11,4 +11,4 @@ export { db } from './db';
 export * from './schema';
 
 // Re-export Drizzle helpers so consumers use the same module instance
-export { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+export { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';

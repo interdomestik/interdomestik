@@ -1,3 +1,4 @@
+import type { SeedConfig } from '../seed-types';
 import { hashPassword } from '../seed-utils/hash-password';
 import {
   ALBANIAN_NAMES,
@@ -7,8 +8,9 @@ import {
   WORKLOAD_PREFIX,
 } from './constants';
 
-export async function seedWorkloadUsers(db: any, schema: any) {
+export async function seedWorkloadUsers(db: any, schema: any, config: SeedConfig) {
   console.log('👥 Seeding Workload Users...');
+  const { at } = config;
   const hashedPassword = hashPassword(WORKLOAD_PASSWORD);
 
   const usersToSeed: any[] = [];
@@ -31,8 +33,8 @@ export async function seedWorkloadUsers(db: any, schema: any) {
       tenantId,
       branchId: branchId || null,
       emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: at(),
+      updatedAt: at(),
     });
     accountsToSeed.push({
       id: `${id}-credential`,
@@ -40,8 +42,8 @@ export async function seedWorkloadUsers(db: any, schema: any) {
       accountId: email,
       providerId: 'credential',
       password: hashedPassword,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: at(),
+      updatedAt: at(),
     });
   };
 

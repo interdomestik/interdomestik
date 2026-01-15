@@ -4,9 +4,6 @@
  * - seed:workload is additive and self-cleaning
  * - seeds must never reference each other's IDs
  */
-import { loadEnvFromRoot } from './load-env';
-loadEnvFromRoot();
-
 async function assertNoGoldenMutation(db: any, initialCount?: number): Promise<number> {
   const { sql } = await import('drizzle-orm');
   const result = await db.execute(sql`SELECT count(*) FROM "user" WHERE id LIKE 'golden_%'`);
@@ -20,7 +17,9 @@ async function assertNoGoldenMutation(db: any, initialCount?: number): Promise<n
   return currentCount;
 }
 
-async function seedWorkload() {
+import type { SeedConfig } from '../seed-types';
+
+export async function seedWorkload(config: SeedConfig) {
   console.log('🚀 Starting Workload Seed...');
 
   // Dynamic imports to ensure ENV is loaded
@@ -46,19 +45,19 @@ async function seedWorkload() {
     await upsertTenantsAndBranches(db, schema);
 
     // 3. Users
-    const { agents, staff, members } = await seedWorkloadUsers(db, schema);
+    const { agents, staff, members } = await seedWorkloadUsers(db, schema, config);
 
     // 4. Memberships
-    const { subscriptions } = await seedWorkloadMemberships(db, schema, members, agents);
+    const { subscriptions } = await seedWorkloadMemberships(db, schema, members, agents, config);
 
     // 5. Claims
-    await seedWorkloadClaims(db, schema, members, staff);
+    await seedWorkloadClaims(db, schema, members, staff, config);
 
     // 6. Leads
-    await seedWorkloadLeads(db, schema, agents);
+    await seedWorkloadLeads(db, schema, agents, config);
 
     // 7. Commissions
-    await seedWorkloadCommissions(db, schema, subscriptions, agents);
+    await seedWorkloadCommissions(db, schema, subscriptions, agents, config);
 
     // Runtime Assertion: Verify No Mutation
     await assertNoGoldenMutation(db, baselineGoldenUsers);
@@ -71,12 +70,10 @@ async function seedWorkload() {
     console.log(`- Branches: 3 KS, 2 MK`);
     console.log(`- Claims: 45 KS, 25 MK`);
     console.log(`- Leads: 5 KS, 8 MK`);
-
-    process.exit(0);
   } catch (error) {
     console.error('❌ Workload Seed Failed:', error);
-    process.exit(1);
+    throw error; // Re-throw for caller to handle
   }
 }
 
-seedWorkload();
+// Pure module - CLI execution removed. Use seed.ts runner only.

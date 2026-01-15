@@ -1,22 +1,52 @@
 import { cleanupByPrefixes } from '../seed-utils/cleanup';
 import { hashPassword } from '../seed-utils/hash-password';
-import { loadEnvFromRoot } from '../seed-utils/load-env';
 import { packId } from '../seed-utils/seed-ids';
 // Needed imports for sanity check
-import { sql } from 'drizzle-orm';
+import { inArray, sql } from 'drizzle-orm';
+import type { SeedConfig } from '../seed-types';
 
-// Force load .env
-loadEnvFromRoot();
-
-async function seedKsWorkflowPack() {
+export async function seedKsWorkflowPack(config: SeedConfig) {
   console.log('🇽🇰 Seeding Kosovo Workflow Pack (Overlay)...');
 
   const { db } = await import('../db');
   const schema = await import('../schema');
+  const { at } = config;
 
   const TENANTS = {
     KS: 'tenant_ks',
   };
+
+  // 1.0 Ensure Tenants Exist (Both KS and MK for Isolation Testing)
+  const allTenants = [
+    {
+      id: TENANTS.KS,
+      name: 'Interdomestik (KS)',
+      legalName: 'Interdomestik Kosova',
+      countryCode: 'XK',
+      currency: 'EUR',
+      isActive: true,
+      createdAt: at(),
+      updatedAt: at(),
+    },
+    {
+      id: 'tenant_mk',
+      name: 'Interdomestik (MK)',
+      legalName: 'Interdomestik Makedonija',
+      countryCode: 'MK',
+      currency: 'EUR',
+      isActive: true,
+      createdAt: at(),
+      updatedAt: at(),
+    },
+  ];
+
+  await db
+    .insert(schema.tenants)
+    .values(allTenants)
+    .onConflictDoUpdate({
+      target: schema.tenants.id,
+      set: { name: sql`excluded.name` },
+    });
 
   // 1. Cleanup previous Pack Data specifically
   await cleanupByPrefixes(db, schema, ['pack_ks_'], false);
@@ -59,6 +89,8 @@ async function seedKsWorkflowPack() {
   console.log('👥 Seeding Pack Users...');
   const PACK_PASSWORD = 'GoldenPass123!';
   const hashedPass = hashPassword(PACK_PASSWORD);
+  // Separate admin password for clarity or reuse
+  const ADMIN_PASS = hashPassword('AdminPassword123!');
 
   const ALBANIAN_NAMES = [
     'Arianit Gashi',
@@ -86,35 +118,124 @@ async function seedKsWorkflowPack() {
     'Zana Avdiu',
     'Arber Zeqiri',
     'Blerta Ismaili',
+    'Arta Dobroshec',
   ];
 
   // Seed 25 members to cycle through
   const packUsers = [
+    // 3.1 Admins for E2E
+    {
+      id: 'admin-ks',
+      name: 'Admin KS',
+      email: 'admin-ks@interdomestik.com',
+      role: 'admin',
+      tenantId: TENANTS.KS,
+      passHash: ADMIN_PASS,
+    },
+    {
+      id: 'admin-mk', // Explicit ID for MK Admin - now points to KS for E2E compat
+      name: 'Admin User',
+      email: 'admin@interdomestik.com', // E2E fixture expects this email
+      role: 'admin',
+      tenantId: TENANTS.KS, // Changed from tenant_mk to align with E2E expectations
+      passHash: ADMIN_PASS,
+    },
+    // 3.2 Pack Staff
     {
       id: packId('ks', 'staff_extra'),
       name: 'Agim Ramadani',
       email: 'staff.ks.extra@interdomestik.com',
       role: 'staff',
       tenantId: TENANTS.KS,
+      passHash: hashedPass,
     },
+    // 3.3 Members
     ...ALBANIAN_NAMES.map((name, i) => ({
       id: packId('ks', 'member', i + 1),
       name: name,
       email: `ks.member.pack.${i + 1}@interdomestik.com`,
       role: 'user',
       tenantId: TENANTS.KS,
+      passHash: hashedPass,
     })),
   ];
 
   // Upsert users
+  // 3.0 Clean up potential ID conflicts (by Email)
+  // Upsert users
+  // 3.0 Clean up potential ID conflicts (by Email)
+  const allEmails = packUsers.map(u => u.email);
+  if (allEmails.length > 0) {
+    // Find existing users by email to get their IDs (for FK cleanup)
+    const usersToDelete = await db
+      .select({ id: schema.user.id })
+      .from(schema.user)
+      .where(inArray(schema.user.email, allEmails));
+
+    if (usersToDelete.length > 0) {
+      const idsToDelete = usersToDelete.map(u => u.id);
+
+      // Delete sessions first
+      await db.delete(schema.session).where(inArray(schema.session.userId, idsToDelete));
+      // Delete accounts
+      await db.delete(schema.account).where(inArray(schema.account.userId, idsToDelete));
+      // Delete subscriptions
+      if (schema.subscriptions) {
+        await db
+          .delete(schema.subscriptions)
+          .where(inArray(schema.subscriptions.userId, idsToDelete));
+      }
+      // Delete access logs & audit logs
+      if (schema.documentAccessLog) {
+        await db
+          .delete(schema.documentAccessLog)
+          .where(inArray(schema.documentAccessLog.accessedBy, idsToDelete));
+      }
+      if (schema.auditLog) {
+        await db.delete(schema.auditLog).where(inArray(schema.auditLog.actorId, idsToDelete));
+      }
+      if (schema.memberNotes) {
+        await db
+          .delete(schema.memberNotes)
+          .where(inArray(schema.memberNotes.authorId, idsToDelete));
+      }
+      if (schema.sharePacks) {
+        await db
+          .delete(schema.sharePacks)
+          .where(inArray(schema.sharePacks.createdByUserId, idsToDelete));
+        await db
+          .delete(schema.sharePacks)
+          .where(inArray(schema.sharePacks.revokedByUserId, idsToDelete));
+      }
+      if (schema.documents) {
+        const userDocIds = await db
+          .select({ id: schema.documents.id })
+          .from(schema.documents)
+          .where(inArray(schema.documents.uploadedBy, idsToDelete));
+
+        const docIds = userDocIds.map(d => d.id);
+        if (docIds.length > 0) {
+          if (schema.documentAccessLog) {
+            await db
+              .delete(schema.documentAccessLog)
+              .where(inArray(schema.documentAccessLog.documentId, docIds));
+          }
+          await db.delete(schema.documents).where(inArray(schema.documents.id, docIds));
+        }
+      }
+      // Delete users
+      await db.delete(schema.user).where(inArray(schema.user.id, idsToDelete));
+    }
+  }
+
   for (const u of packUsers) {
     await db
       .insert(schema.user)
       .values({
         ...u,
         emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: at(),
+        updatedAt: at(),
       })
       .onConflictDoUpdate({ target: schema.user.id, set: { role: u.role, name: u.name } });
 
@@ -125,11 +246,55 @@ async function seedKsWorkflowPack() {
         accountId: u.email,
         providerId: 'credential',
         userId: u.id,
-        password: hashedPass,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        password: u.passHash || hashedPass,
+        createdAt: at(),
+        updatedAt: at(),
       })
-      .onConflictDoUpdate({ target: schema.account.id, set: { password: hashedPass } });
+      .onConflictDoUpdate({
+        target: schema.account.id,
+        set: { password: u.passHash || hashedPass },
+      });
+  }
+
+  // 3a. Seed Documents for Vault/SharePack
+  console.log('📄 Seeding Documents for Vault...');
+  if (schema.documents) {
+    console.log('   Inserting 2 documents...');
+    await db
+      .insert(schema.documents)
+      .values([
+        {
+          id: 'doc-ks-1',
+          tenantId: 'tenant_ks',
+          fileName: 'Policy_Manual_KS.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 1024 * 500,
+          category: 'other',
+          uploadedBy: 'admin-ks',
+          uploadedAt: at(),
+          entityType: 'member',
+          entityId: 'admin-ks',
+          storagePath: 'ks/admin-ks/Policy_Manual_KS.pdf',
+          description: 'Standard Policy Manual',
+        },
+        {
+          id: 'doc-ks-2',
+          tenantId: 'tenant_ks',
+          fileName: 'Claim_Form_Template.docx',
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          fileSize: 1024 * 20,
+          category: 'other',
+          uploadedBy: 'admin-ks',
+          uploadedAt: at(),
+          entityType: 'member',
+          entityId: 'admin-ks',
+          storagePath: 'ks/admin-ks/Claim_Form_Template.docx',
+          description: 'Empty Claim Form',
+        },
+      ])
+      .onConflictDoNothing();
+  } else {
+    console.warn('⚠️ schema.documents is undefined! check imports');
   }
 
   // Helper to get random member ID
@@ -198,7 +363,7 @@ async function seedKsWorkflowPack() {
             senderId: msg.senderId,
             content: msg.content,
             isInternal: msg.internal,
-            createdAt: new Date(date.getTime() + idx * 600000),
+            createdAt: at(idx * 600000),
           })
           .onConflictDoNothing();
       }
@@ -218,7 +383,7 @@ async function seedKsWorkflowPack() {
             toStatus: stages[i] as any,
             fromStatus: i > 0 ? (stages[i - 1] as any) : null,
             changedById: sId || mId,
-            createdAt: new Date(date.getTime() + i * 3600000),
+            createdAt: at(i * 3600000),
             note: `Tranzicion automatik në ${stages[i]}`,
           })
           .onConflictDoNothing();
@@ -232,7 +397,7 @@ async function seedKsWorkflowPack() {
 
   const randomItem = <T>(arr: T[] | readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
   const randomDatePast = (daysMax: number) => {
-    const d = new Date();
+    const d = at();
     d.setDate(d.getDate() - Math.floor(Math.random() * daysMax));
     return d;
   };
@@ -313,7 +478,7 @@ async function seedKsWorkflowPack() {
   for (let i = 0; i < 3; i++) {
     globalClaimIdx++;
     const days = 35 + i * 5;
-    const date = new Date();
+    const date = at();
     date.setDate(date.getDate() - days);
     await db
       .insert(schema.claims)
@@ -402,10 +567,6 @@ async function seedKsWorkflowPack() {
   console.log(`KS Peja:      ~${await countClaims(packId('ks', 'branch_c'))} claims`);
 
   console.log('🇽🇰 KS Extended Workflow Pack Applied!');
-  process.exit(0);
 }
 
-seedKsWorkflowPack().catch(e => {
-  console.error(e);
-  process.exit(1);
-});
+// Pure module - CLI execution removed. Use seed.ts runner only.

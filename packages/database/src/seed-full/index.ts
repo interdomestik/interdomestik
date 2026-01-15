@@ -1,6 +1,6 @@
-import './load-env'; // Must be first to ensure env vars are loaded before DB connection
+import type { SeedConfig } from '../seed-types';
 
-async function seedFull() {
+export async function seedFull(config: SeedConfig) {
   console.log('🌱 Starting Full System Seed (Modular)...');
 
   try {
@@ -14,17 +14,16 @@ async function seedFull() {
 
     await cleanup();
     await seedTenantsAndBranches();
-    await seedUsersAndAuth(); // Includes creating members
-    await seedSubscriptionsAndCommissions(); // Includes agent assignments logic if we moved it? No, assignments are in users.ts. Subs are here.
-    await seedClaimsAndFlows();
-    await seedBalkanFlows();
+    await seedUsersAndAuth(config); // Includes creating members
+    await seedSubscriptionsAndCommissions(config); // Includes agent assignments logic if we moved it? No, assignments are in users.ts. Subs are here.
+    await seedClaimsAndFlows(config);
+    await seedBalkanFlows(config);
 
     console.log('✅ Full System Seed Complete!');
-    process.exit(0);
   } catch (error) {
     console.error('❌ Full System Seed Failed:', error);
-    process.exit(1);
+    throw error; // Re-throw for caller to handle
   }
 }
 
-seedFull();
+// Pure module - CLI execution removed. Use seed.ts runner only.
