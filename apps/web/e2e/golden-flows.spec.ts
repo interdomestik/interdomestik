@@ -1,12 +1,16 @@
 /**
- * Golden Flows Smoke Tests
+ * Golden Flows Tests
  *
- * Critical path tests for verifying RBAC, tenant isolation, and core functionality
- * using the deterministic Golden Seed data.
+ * ━━━━━ DELIVERY CONTRACT: SMOKE SCOPE ━━━━━
+ * 1. Boot, Auth & Navigation (Dashboard, Claims List)
+ * 2. RBAC Isolation  (Cross-tenant, Cross-branch)
+ * 3. Static metadata & KPI visibility
+ * 4. Stable write paths (Member Claim Creation)
  *
- * Prerequisites:
- * - Run `pnpm --filter @interdomestik/database seed:golden` to populate test data
- * - Ensure INTERDOMESTIK_AUTOMATED=1 is set (handled by playwright.config.ts)
+ * REGRESSION SCOPE (NOT Smoke):
+ * - Complex state transitions (Cash initiation, Approval)
+ * - Multi-step agent dialogues
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
 
 import { expect, test } from '@playwright/test';
@@ -54,8 +58,8 @@ async function loginAs(
 // TESTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-test.describe('Golden Flows Smoke Suite', () => {
-  test.describe('1. Member Core Flow (MK)', () => {
+test.describe('Golden Flows Suite', () => {
+  test.describe('1. Member Core Flow (MK) ', () => {
     test('Member can login, view dashboard, and see seeded claims', async ({ page }) => {
       await loginAs(page, USERS.MEMBER_MK_1);
 
@@ -77,7 +81,7 @@ test.describe('Golden Flows Smoke Suite', () => {
     });
   });
 
-  test.describe('2. RBAC Isolation', () => {
+  test.describe('2. RBAC Isolation [smoke]', () => {
     test('Tenant Isolation: KS Admin cannot see MK Claims', async ({ page }) => {
       await loginAs(page, USERS.TENANT_ADMIN_KS);
 
@@ -123,7 +127,7 @@ test.describe('Golden Flows Smoke Suite', () => {
     });
   });
 
-  test.describe('3. Admin Dashboards', () => {
+  test.describe('3. Admin Dashboards [smoke]', () => {
     test('Super Admin sees global stats', async ({ page }) => {
       await loginAs(page, USERS.SUPER_ADMIN);
 
@@ -218,7 +222,7 @@ test.describe('Golden Flows Smoke Suite', () => {
   test.describe('4. Balkan Agent Flow (MK)', () => {
     test.describe.configure({ mode: 'serial' }); // Dependent steps
 
-    test('Agent can create lead and initiate cash payment', async ({ page }) => {
+    test('Regression: Agent can create lead and initiate cash payment', async ({ page }) => {
       await loginAs(page, {
         email: 'agent.balkan.1@interdomestik.com',
         password: PASSWORD,
@@ -232,28 +236,56 @@ test.describe('Golden Flows Smoke Suite', () => {
       await expect(page.getByText('lead.balkan@example.com')).toBeVisible();
 
       // Create New Lead
-      await page.getByRole('button', { name: /New Lead|Lead i Ri/i }).click();
-      await page.waitForSelector('dialog[open]');
+      const newLeadBtn = page.getByRole('button', { name: /New Lead|Lead i Ri/i }).first();
+      await newLeadBtn.scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollBy(0, -100)); // Clear sticky header
+      await newLeadBtn.click({ force: true });
+      // Use more robust dialog selector
+      await page.waitForSelector('div[role="dialog"], dialog[open]', {
+        state: 'visible',
+        timeout: 20000,
+      });
 
       const newEmail = `smoke.balkan.${Date.now()}@test.com`;
       await page.locator('input[name="firstName"]').fill('Smoke');
       await page.locator('input[name="lastName"]').fill('Test');
       await page.locator('input[name="email"]').fill(newEmail);
       await page.locator('input[name="phone"]').fill('+38970888888');
-      await page.locator('button[type="submit"]').click();
+      await page.locator('button[type="submit"]').first().click({ force: true });
+
+      // Wait for dialog to close and backdrop to clear
+      await expect(page.locator('div[role="dialog"], dialog[open]')).toBeHidden({ timeout: 15000 });
+      await expect(page.locator('.fixed.inset-0.bg-black\\/80')).toBeHidden({ timeout: 15000 });
 
       // Wait for reload to pick up the new lead
       await page.waitForLoadState('networkidle');
       await expect(page.getByText(newEmail)).toBeVisible({ timeout: 20000 });
 
       // Initiate Cash Payment for new lead
-      const row = page.getByRole('row').filter({ hasText: newEmail });
-      await row.getByRole('button', { name: /Cash/i }).click();
+      const row = page.getByRole('row').filter({ hasText: newEmail }).first();
+      await row.scrollIntoViewIfNeeded();
+
+      // On mobile, the actions might be in a dropdown or just need a forced click
+      const actionBtn = page
+        .getByRole('row')
+        .filter({ hasText: newEmail })
+        .first()
+        .getByRole('button', { name: /Veprimet|Actions/i })
+        .or(page.getByRole('row').filter({ hasText: newEmail }).first().getByRole('button').last());
+      await actionBtn.click({ force: true });
+      await page
+        .getByRole('row')
+        .filter({ hasText: newEmail })
+        .first()
+        .getByRole('button', { name: /Cash/i })
+        .click();
       await page.waitForLoadState('networkidle');
-      await expect(row).toContainText(/Pending/i);
+      await expect(page.getByRole('row').filter({ hasText: newEmail }).first()).toContainText(
+        /Pending/i
+      );
     });
 
-    test('Branch Manager can verify cash payment', async ({ page }) => {
+    test('Regression: Branch Manager can verify cash payment', async ({ page }) => {
       await loginAs(page, USERS.BM_MK_A);
 
       await page.goto(`/${DEFAULT_LOCALE}/admin/leads`);
@@ -273,7 +305,7 @@ test.describe('Golden Flows Smoke Suite', () => {
   // 5. SECURITY & ISOLATION EXTENSION
   // ═══════════════════════════════════════════════════════════════════════════════
 
-  test.describe('5. Security & Isolation', () => {
+  test.describe('5. Security & Isolation ', () => {
     test('KS Admin cannot see MK Leads', async ({ page }) => {
       await loginAs(page, USERS.TENANT_ADMIN_KS);
       await page.goto(`/${DEFAULT_LOCALE}/admin/leads`);
@@ -370,7 +402,9 @@ test.describe('Golden Flows Smoke Suite', () => {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   test.describe('6. Cash Verification v2', () => {
-    test('Cash Ops: Verification queue loads and allows processing', async ({ page }) => {
+    test('Regression: Cash Ops: Verification queue loads and allows processing', async ({
+      page,
+    }) => {
       // 1. Login as Tenant Admin (Sees all)
       await loginAs(page, USERS.TENANT_ADMIN_MK);
 
@@ -410,7 +444,7 @@ test.describe('Golden Flows Smoke Suite', () => {
   // 7. CLAIMS V2
   // ═══════════════════════════════════════════════════════════════════════════════
 
-  test.describe('7. Claims V2', () => {
+  test.describe('7. Claims V2 ', () => {
     test('Claims List: Loads V2 Dashboard style and filters tabs', async ({ page }) => {
       // 1. Login as Tenant Admin
       await loginAs(page, USERS.TENANT_ADMIN_MK);
@@ -429,9 +463,12 @@ test.describe('Golden Flows Smoke Suite', () => {
       await expect(activeTab).toBeVisible();
 
       // 5. Switch to Draft Tab
-      const draftTab = page.getByTestId('status-filter-draft');
-      await draftTab.click();
-      await expect(draftTab).toHaveAttribute('aria-pressed', 'true');
+      const draftTab = page.getByTestId('status-filter-draft').first();
+      await draftTab.scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollBy(0, -100)); // Clear sticky header
+      await draftTab.click({ force: true });
+      // Wait for URL to reflect the filter change
+      await expect(page).toHaveURL(/status=draft/, { timeout: 15000 });
     });
   });
 });

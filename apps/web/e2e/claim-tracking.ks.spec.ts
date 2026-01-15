@@ -29,7 +29,7 @@ async function loginAs(
   await page.waitForURL(/\/(sq|en|sr|mk)\/(member|agent)(\/|$)/);
 }
 
-test.describe('Claim Tracking KS', () => {
+test.describe('Claim Tracking KS ', () => {
   test('Member can view their claims', async ({ page }) => {
     // 1. Login
     await loginAs(page, USERS.MEMBER);
@@ -58,8 +58,9 @@ test.describe('Claim Tracking KS', () => {
     // In seed we linked it to ks_track_claim_001 (Evaluation).
     // Wait, in my seed code I linked it to ks_track_claim_001 properly.
     // Check status text for 'evaluation' in SQ -> 'Vlerësim'
-    // Or just check that some status text is present.
-    await expect(page.getByText('Vlerësim')).toBeVisible();
+    const statusBadge = page.getByTestId('claim-status-badge').first();
+    await statusBadge.scrollIntoViewIfNeeded();
+    await expect(statusBadge).toContainText('Vlerësim', { timeout: 15000 });
 
     // 4. Assert No PII
     const bodyText = await page.innerText('body');

@@ -29,7 +29,7 @@ function getBaseURL(): string {
 // TEST USER CREDENTIALS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type Role = 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager';
+type Role = 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
 
 function ipForRole(role: Role): string {
   // Stable IPs for each role to avoid unexpected rate limiting collision if checking by IP
@@ -73,6 +73,11 @@ const CREDS: Record<Role, { email: string; password: string; name: string }> = {
     password: 'GoldenPass123!',
     name: 'Branch Manager MK',
   },
+  admin_mk: {
+    email: 'admin.mk@interdomestik.com',
+    password: 'GoldenPass123!',
+    name: 'Admin MK (E2E Scan)',
+  },
 };
 
 export const TEST_USER = CREDS.member;
@@ -80,6 +85,7 @@ export const TEST_ADMIN = CREDS.admin;
 export const TEST_AGENT = CREDS.agent;
 export const TEST_STAFF = CREDS.staff;
 export const TEST_BM = CREDS.branch_manager;
+export const TEST_ADMIN_MK = CREDS.admin_mk;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOGIN HELPER

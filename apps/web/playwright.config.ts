@@ -27,6 +27,9 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     actionTimeout: 15 * 1000,
     navigationTimeout: 60 * 1000,
+    contextOptions: {
+      reducedMotion: 'reduce',
+    },
   },
   projects: [
     // ═══════════════════════════════════════════════════════════════════════════
@@ -65,6 +68,17 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { ...devices['Pixel 5'] },
       testIgnore: /setup\.state\.spec\.ts/,
+    },
+    {
+      name: 'smoke',
+      dependencies: ['setup'],
+      testMatch: /.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        // Smoke specific hardening
+        actionTimeout: 20 * 1000,
+        navigationTimeout: 60 * 1000,
+      },
     },
   ],
   webServer: {

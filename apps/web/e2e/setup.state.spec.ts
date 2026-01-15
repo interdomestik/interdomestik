@@ -23,7 +23,7 @@ async function stateExists(role: string): Promise<boolean> {
 }
 
 async function stateIsValidForRole(opts: {
-  role: 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager';
+  role: 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
   browser: import('@playwright/test').Browser;
   baseURL: string;
 }): Promise<boolean> {
@@ -100,5 +100,14 @@ authTest.describe('Generate StorageState Files', () => {
       if (ok) return;
     }
     await saveState('branch_manager');
+  });
+
+  authTest('Setup admin_mk auth state', async ({ saveState, browser }, testInfo) => {
+    const baseURL = (testInfo.project.use.baseURL ?? 'http://localhost:3000').toString();
+    if (!process.env.FORCE_REGEN_STATE && (await stateExists('admin_mk'))) {
+      const ok = await stateIsValidForRole({ role: 'admin_mk', browser, baseURL });
+      if (ok) return;
+    }
+    await saveState('admin_mk');
   });
 });

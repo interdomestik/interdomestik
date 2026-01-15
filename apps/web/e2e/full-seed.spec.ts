@@ -24,15 +24,15 @@ async function loginAs(
   await page.waitForURL(/(?:member|admin|staff|agent|dashboard)/, { timeout: 30000 });
 }
 
-test.describe('Full System Seed Smoke Tests', () => {
+test.describe('Full System Seed Smoke Tests ', () => {
   // 1. Super Admin: Tenant-scoped branches (current behavior)
   test('Super Admin sees MK branches only', async ({ page }) => {
     await loginAs(page, USERS.super);
 
     await expect(page).toHaveURL(/\/admin/);
     await page.goto(`/${DEFAULT_LOCALE}/admin/branches`);
-    await expect(page.getByText('MK-A')).toBeVisible();
-    await expect(page.getByText('MK-B')).toBeVisible();
+    await expect(page.getByText('MK-A', { exact: true })).toBeVisible();
+    await expect(page.getByText('MK-B', { exact: true })).toBeVisible();
     await expect(page.getByText('KS-A')).not.toBeVisible();
   });
 
