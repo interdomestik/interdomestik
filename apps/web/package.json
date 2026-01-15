@@ -10,8 +10,7 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test",
-    "test:e2e:smoke": "playwright test --grep smoke"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

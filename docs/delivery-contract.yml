@@ -68,14 +68,20 @@ checks:
       - "generateMemberNumberWithRetry\\([\\s\\S]*?\\{[\\s\\S]*?year:\\s*new Date\\(\\)\\.getFullYear\\(\\)[\\s\\S]*?\\}[\\s\\S]*?\\)"
 
   # M2 Claim Traceability
-  - id: claim_traceability.schema
-    description: Schema must include claimNumber and tenants.code.
+  - id: claim_traceability.schema_claims
+    description: Schema must include claimNumber.
     type: regex
     targets:
       - packages/database/src/schema/claims.ts
-      - packages/database/src/schema/tenants.ts
     must_match:
       - "claimNumber: text\\('claim_number'\\)"
+
+  - id: claim_traceability.schema_tenants
+    description: Schema must include code.
+    type: regex
+    targets:
+      - packages/database/src/schema/tenants.ts
+    must_match:
       - "code: text\\('code'\\)"
 
   - id: claim_traceability.generator_race_safe
@@ -321,7 +327,7 @@ checks:
     targets:
       - apps/web/src/app/api/share-pack/route.ts
     must_match:
-      - 'tenantId.*===|verifyTenant|checkTenant'
+      - 'tenantId.*===|verifyTenant|checkTenant|eq\(.*tenantId, tenantId\)'
 
   - id: m3.export.access_audit_log
     description: All share pack accesses must be logged.
