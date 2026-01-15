@@ -45,7 +45,12 @@ export async function logAuditEvent({
     const resolvedTenantId = tenantId || (combinedMetadata.tenantId as string | undefined) || null;
 
     if (!resolvedTenantId) {
-      console.error('Audit log failed: Missing tenantId', { action, entityType, entityId });
+      const errorMsg = `Audit log failed: Missing tenantId for action: ${action}`;
+      console.error(errorMsg, { action, entityType, entityId });
+
+      if (process.env.INTERDOMESTIK_AUTOMATED === '1') {
+        throw new Error(errorMsg);
+      }
       return;
     }
 

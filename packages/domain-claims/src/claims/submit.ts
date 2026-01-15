@@ -122,6 +122,7 @@ export async function submitClaimCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
+        tenantId,
         action: 'claim.submitted',
         entityType: 'claim',
         entityId: claimId,

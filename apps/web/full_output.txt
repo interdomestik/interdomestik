@@ -1,0 +1,26 @@
+[dotenv@17.2.3] injecting env (42) from .env.local -- tip: ⚙️  override existing env vars with { override: true }
+✅ db.ts initialized with DATABASE_URL length: 55
+
+Running 19 tests using 5 workers
+
+  ✓   5 [setup] › e2e/setup.state.spec.ts:78:11 › Generate StorageState Files › Setup agent auth state (670ms)
+  ✓   4 [setup] › e2e/setup.state.spec.ts:60:11 › Generate StorageState Files › Setup member auth state (675ms)
+  ✓   2 [setup] › e2e/setup.state.spec.ts:69:11 › Generate StorageState Files › Setup admin auth state (702ms)
+  ✓   1 [setup] › e2e/setup.state.spec.ts:87:11 › Generate StorageState Files › Setup staff auth state (704ms)
+  ✓   3 [setup] › e2e/setup.state.spec.ts:96:11 › Generate StorageState Files › Setup branch_manager auth state (701ms)
+  ✓   6 [setup] › e2e/setup.state.spec.ts:105:11 › Generate StorageState Files › Setup admin_mk auth state (236ms)
+  ✓  10 [smoke] › e2e/golden-flows.spec.ts:131:9 › Golden Flows Suite › 3. Admin Dashboards [smoke] › Super Admin sees global stats (3.1s)
+  ✓   7 [smoke] › e2e/golden-flows.spec.ts:85:9 › Golden Flows Suite › 2. RBAC Isolation [smoke] › Tenant Isolation: KS Admin cannot see MK Claims (3.3s)
+  ✓   9 [smoke] › e2e/golden-flows.spec.ts:92:9 › Golden Flows Suite › 2. RBAC Isolation [smoke] › Branch Isolation: MK BM (Branch A) cannot see Branch B Claims (4.8s)
+  ✓   8 [smoke] › e2e/golden-flows.spec.ts:118:9 › Golden Flows Suite › 2. RBAC Isolation [smoke] › Agent Scoping: Agent sees only assigned members claims (5.1s)
+  ✓  11 [smoke] › e2e/golden-flows.spec.ts:102:9 › Golden Flows Suite › 2. RBAC Isolation [smoke] › Staff (MK) can process claims but has restricted access (5.1s)
+  ✓  13 [smoke] › e2e/golden-flows.spec.ts:179:9 › Golden Flows Suite › 3. Admin Dashboards [smoke] › Branch Dashboard V2 shows KPI panels and health indicators (3.2s)
+  ✓  15 [smoke] › e2e/production.spec.ts:27:9 › Production Smoke Test Plan [smoke] › Phase A: Authentication & Routing (Member) [smoke] › Member (KS) can login, see dashboard, and create a claim (1.8s)
+  ✓  12 [smoke] › e2e/golden-flows.spec.ts:139:9 › Golden Flows Suite › 3. Admin Dashboards [smoke] › Tenant Admin SEES all branches and can navigate to V2 Dashboard (4.0s)
+  ✓  14 [smoke] › e2e/golden-flows.spec.ts:197:9 › Golden Flows Suite › 3. Admin Dashboards [smoke] › Risk signaling appears for seeded risky branch (KS-A with 20+ open claims) (2.6s)
+  ✓  16 [smoke] › e2e/production.spec.ts:75:9 › Production Smoke Test Plan [smoke] › Phase B: Administrative Visibility › Admin (KS) can find the newly created claim (1.6s)
+  ✓  17 [smoke] › e2e/production.spec.ts:92:9 › Production Smoke Test Plan [smoke] › Phase C: Manager & Isolation › Admin (KS) can access dashboard metrics (678ms)
+  ✓  18 [smoke] › e2e/production.spec.ts:99:9 › Production Smoke Test Plan [smoke] › Phase C: Manager & Isolation › Admin (MK) CANNOT view KS claims (Isolation) (1.5s)
+  ✓  19 [smoke] › e2e/production.spec.ts:117:9 › Production Smoke Test Plan [smoke] › Phase D: Negative Tests & API › Cross-Tenant API access should allow 403/404 only (1ms)
+
+  19 passed (14.9s)

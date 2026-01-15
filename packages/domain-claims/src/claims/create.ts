@@ -128,6 +128,7 @@ export async function createClaimCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
+        tenantId,
         action: 'claim.created',
         entityType: 'claim',
         entityId: claimId,

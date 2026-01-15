@@ -75,6 +75,7 @@ export async function updateDraftClaimCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
+        tenantId,
         action: 'claim.updated',
         entityType: 'claim',
         entityId: claimId,
@@ -146,6 +147,7 @@ export async function cancelClaimCore(
       await deps.logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role,
+        tenantId,
         action: 'claim.cancelled',
         entityType: 'claim',
         entityId: claimId,
