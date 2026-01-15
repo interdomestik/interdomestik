@@ -3,6 +3,8 @@ import { enforceRateLimit } from '@/lib/rate-limit';
 import { getClaimsListV2 } from '@/server/domains/claims';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   const limited = await enforceRateLimit({
     name: 'api/claims',

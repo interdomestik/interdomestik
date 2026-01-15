@@ -51,8 +51,8 @@ export function buildClaimsQuery(filters: ClaimsListV2Filters) {
     if (branchId) {
       conditions.push(or(eq(claims.branchId, branchId), eq(claims.staffId, userId))!);
     } else {
-      // No branch staff -> only assigned?
-      conditions.push(eq(claims.staffId, userId));
+      // No branch staff (HQ) -> See assigned to me OR unassigned (triage)
+      conditions.push(or(eq(claims.staffId, userId), isNull(claims.staffId))!);
     }
   } else if (['admin', 'tenant_admin', 'super_admin'].includes(role || '')) {
     // No extra filters, sees all in tenant

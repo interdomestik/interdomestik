@@ -37,7 +37,6 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   // Use effect to update state with localStorage value on client mount
   useEffect(() => {
     setStoredValue(readValue());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run once on mount
 
   // Return a wrapped version of useState's setter function that ...

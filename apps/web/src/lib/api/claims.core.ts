@@ -77,6 +77,7 @@ export async function fetchClaims({
   const response = await fetch(`/api/claims?${params.toString()}`, {
     signal,
     credentials: 'include',
+    cache: 'no-store',
   });
 
   if (!response.ok) {

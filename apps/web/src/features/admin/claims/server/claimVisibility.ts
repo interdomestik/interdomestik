@@ -35,7 +35,7 @@ export async function resolveClaimsVisibility(
     return null;
   }
 
-  const user = sessionData.user;
+  const { user } = sessionData;
   const tenantId = ensureTenantId(sessionData);
 
   if (!tenantId) {

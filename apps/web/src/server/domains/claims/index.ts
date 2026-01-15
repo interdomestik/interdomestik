@@ -37,15 +37,15 @@ export async function getClaimsListV2(
         // LEAK SENTINEL: Confirm result purity (Dev/Stage/Test check)
         // In production this might be expensive if many rows, but critical for multi-tenant safety.
         if (rows.length > 0) {
-          const leakingRow = rows.find(r => r.tenantId !== accessConfig.tenantId);
+          const leakingRow = rows.find(r => r.claim.tenantId !== accessConfig.tenantId);
           if (leakingRow) {
             console.error('🚨 TENANT LEAK DETECTED', {
               userTenant: accessConfig.tenantId,
-              leakedRowId: leakingRow.id,
-              leakedRowTenant: leakingRow.tenantId,
+              leakedRowId: leakingRow.claim.id,
+              leakedRowTenant: leakingRow.claim.tenantId,
             });
             throw new Error(
-              `CRITICAL: Tenant Data Leak Detected! User ${accessConfig.tenantId} saw data from ${leakingRow.tenantId}`
+              `CRITICAL: Tenant Data Leak Detected! User ${accessConfig.tenantId} saw data from ${leakingRow.claim.tenantId}`
             );
           }
         }
