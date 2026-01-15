@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
   // Read initial value from window.localStorage
@@ -29,7 +29,16 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     }
   };
 
-  const [storedValue, setStoredValue] = useState<T>(readValue);
+  // State to store our value
+  // Pass initial state function to useState so logic is only executed once
+  // Initialize with initialValue on server to match hydration
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+
+  // Use effect to update state with localStorage value on client mount
+  useEffect(() => {
+    setStoredValue(readValue());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
 
   // Return a wrapped version of useState's setter function that ...
   // ... persists the new value to localStorage.
