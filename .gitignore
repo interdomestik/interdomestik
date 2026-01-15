@@ -74,3 +74,4 @@ measures.json
 sonar_*.json
 final_medium_cleanup.json
 apps/web/e2e/fixtures/.auth/
+.tmp/
