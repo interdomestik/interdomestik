@@ -6,9 +6,10 @@ import {
   getSlaBreachesFilter,
 } from '@/features/admin/kpis/kpi-definitions';
 import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
-import { db } from '@interdomestik/database';
+import { db } from '@interdomestik/database/db';
 import { branches, claims, leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
 import { ROLES } from '@interdomestik/shared-auth';
+import * as Sentry from '@sentry/nextjs';
 import { and, count, eq } from 'drizzle-orm';
 
 export interface BranchWithKpis {
@@ -22,8 +23,6 @@ export interface BranchWithKpis {
     slaBreaches: number;
   };
 }
-
-import * as Sentry from '@sentry/nextjs';
 
 export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
   return runAuthenticatedAction<BranchWithKpis[]>(async ({ session }) => {
@@ -45,8 +44,7 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
         Sentry.setTag('tenantId', tenantId);
         Sentry.setTag('role', session.user.role);
 
-        console.log('[DEBUG-BRANCHES] tenantId:', tenantId);
-        console.log('[DEBUG-BRANCHES] role:', session.user.role);
+        // 2. Mock Return for Debugging (REMOVED)
 
         // 2. Fetch all branches for this tenant (base list)
         const tenantBranches = await db
@@ -59,8 +57,6 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
           .from(branches)
           .where(eq(branches.tenantId, tenantId))
           .orderBy(branches.name);
-
-        console.log('[DEBUG-BRANCHES] Fetch result count:', tenantBranches.length);
 
         if (tenantBranches.length === 0) {
           return [];

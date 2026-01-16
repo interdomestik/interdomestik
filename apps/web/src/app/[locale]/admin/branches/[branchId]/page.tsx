@@ -47,7 +47,7 @@ export default async function BranchDashboardPage({
   return (
     <div className="space-y-6">
       {/* Back navigation */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4" data-testid="branches-back-link">
         <Button asChild variant="ghost" size="sm">
           <Link href="/admin/branches">
             <ArrowLeft className="mr-2 h-4 w-4" />

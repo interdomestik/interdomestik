@@ -11,6 +11,18 @@ const BASE_HOST = 'localhost';
 const BIND_HOST = '127.0.0.1';
 const BASE_URL = `http://${BASE_HOST}:${PORT}`;
 
+// If the caller runs Playwright with `--project=ks-sq` (or `mk-mk`) but forgets
+// to set `PLAYWRIGHT_LOCALE`, default it here so URL helpers (e.g. e2e/routes.ts)
+// generate the right locale-prefixed paths.
+if (!process.env.PLAYWRIGHT_LOCALE) {
+  const argv = process.argv.join(' ');
+  if (argv.includes('ks-sq') || argv.includes('setup-ks') || argv.includes('smoke')) {
+    process.env.PLAYWRIGHT_LOCALE = 'sq';
+  } else if (argv.includes('mk-mk') || argv.includes('setup-mk')) {
+    process.env.PLAYWRIGHT_LOCALE = 'mk';
+  }
+}
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -98,7 +110,7 @@ export default defineConfig({
   webServer: {
     // E2E runs against a production server (Next `start`) for artifact consistency.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: `pnpm exec next start --hostname ${BIND_HOST} --port ${PORT}`,
+    command: `pnpm build && pnpm exec next start --hostname ${BIND_HOST} --port ${PORT}`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 300 * 1000,

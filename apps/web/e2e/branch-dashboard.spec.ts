@@ -9,14 +9,12 @@ test.describe('Branch Dashboard RBAC', () => {
     await page.goto(routes.adminBranches());
     await page.waitForLoadState('domcontentloaded');
 
-    // Find first branch row and click to navigate to dashboard
-    const firstBranchRow = page
-      .getByRole('row')
-      .filter({ hasNot: page.getByRole('columnheader') })
-      .first();
-    if (await firstBranchRow.isVisible()) {
-      // Click on the branch name to navigate to dashboard
-      await firstBranchRow.getByRole('cell').first().click();
+    // Find first branch card and click to navigate to dashboard
+    const firstBranchCard = page.getByTestId('branch-card').first();
+
+    if (await firstBranchCard.isVisible()) {
+      // Click on the branch link to navigate to dashboard
+      await firstBranchCard.getByRole('link').click();
 
       // Should be on branch dashboard page
       await expect(page).toHaveURL(/\/admin\/branches\/.+/);
@@ -24,6 +22,9 @@ test.describe('Branch Dashboard RBAC', () => {
   });
 
   test('Branch manager can only access their own branch', async ({ branchManagerPage: page }) => {
+    // Verify access for Branch Manager
+    // This fixture now intelligently selects KS or MK BM based on the project URL.
+
     // Navigate to branches list
     await page.goto(routes.adminBranches());
     await page.waitForLoadState('domcontentloaded');
@@ -52,35 +53,27 @@ test.describe('Branch Dashboard Navigation Smoke', () => {
     await page.goto(routes.adminBranches());
     await page.waitForLoadState('domcontentloaded');
 
-    // Check if any branches exist
-    const branchRow = page
-      .getByRole('row')
-      .filter({ hasNot: page.getByRole('columnheader') })
-      .first();
+    // Check if any branches exist (UI uses Cards now)
+    const branchCard = page.getByTestId('branch-card').first();
 
-    if (await branchRow.isVisible({ timeout: 5000 }).catch(() => false)) {
-      // Click branch name to navigate
-      await branchRow.getByRole('cell').first().click();
-      await page.waitForLoadState('domcontentloaded');
+    // Force wait/assert - fail if not found
+    await expect(branchCard).toBeVisible({ timeout: 10000 });
 
-      // Verify we're on a branch dashboard page
-      await expect(page).toHaveURL(/\/admin\/branches\/[a-zA-Z0-9-]+/);
+    // Navigate
+    await branchCard.getByRole('link').click();
+    await page.waitForLoadState('domcontentloaded');
 
-      // Verify key UI elements render (no need to validate exact numbers)
-      // Back button should be visible
-      await expect(page.getByRole('link', { name: /back/i })).toBeVisible();
+    // Verify we're on a branch dashboard page
+    await expect(page).toHaveURL(/\/admin\/branches\/[a-zA-Z0-9-]+/);
 
-      // Branch header with name should render
-      const heading = page.locator('h1, h2').first();
-      await expect(heading).toBeVisible();
+    // Verify key UI elements render
+    await expect(page.getByTestId('branches-back-link')).toBeVisible();
 
-      // Stats cards should be present
-      const statsSection = page.locator('[class*="grid"]').first();
-      await expect(statsSection).toBeVisible();
-    } else {
-      // No branches in test data - skip gracefully
-      test.skip();
-    }
+    const heading = page.locator('h1, h2').first();
+    await expect(heading).toBeVisible();
+
+    const statsSection = page.locator('[class*="grid"]').first();
+    await expect(statsSection).toBeVisible();
   });
 
   test('Staff can access branches list', async ({ staffPage: page }) => {
