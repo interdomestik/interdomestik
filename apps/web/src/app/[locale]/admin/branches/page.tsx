@@ -22,12 +22,13 @@ export default async function AdminBranchesPage({
     redirect(`/${locale}/login`);
   }
 
-  // Only Admin/SuperAdmin/TenantAdmin should access this list page
+  // Only Admin/SuperAdmin/TenantAdmin/Staff should access this list page
   const userRole = session.user.role;
   if (
     userRole !== ROLES.super_admin &&
     userRole !== ROLES.admin &&
-    userRole !== ROLES.tenant_admin
+    userRole !== ROLES.tenant_admin &&
+    userRole !== ROLES.staff
   ) {
     // Branch manager should be redirected to their specific dashboard if they try to access list
     if (userRole === ROLES.branch_manager && session.user.branchId) {

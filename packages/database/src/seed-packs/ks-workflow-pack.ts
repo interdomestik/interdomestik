@@ -1,6 +1,6 @@
 import { cleanupByPrefixes } from '../seed-utils/cleanup';
 import { hashPassword } from '../seed-utils/hash-password';
-import { packId } from '../seed-utils/seed-ids';
+import { goldenId, packId } from '../seed-utils/seed-ids';
 // Needed imports for sanity check
 import { inArray, sql } from 'drizzle-orm';
 import type { SeedConfig } from '../seed-types';
@@ -123,23 +123,6 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
 
   // Seed 25 members to cycle through
   const packUsers = [
-    // 3.1 Admins for E2E
-    {
-      id: 'admin-ks',
-      name: 'Admin KS',
-      email: 'admin-ks@interdomestik.com',
-      role: 'admin',
-      tenantId: TENANTS.KS,
-      passHash: ADMIN_PASS,
-    },
-    {
-      id: 'admin-mk', // Explicit ID for MK Admin - now points to KS for E2E compat
-      name: 'Admin User',
-      email: 'admin@interdomestik.com', // E2E fixture expects this email
-      role: 'admin',
-      tenantId: TENANTS.KS, // Changed from tenant_mk to align with E2E expectations
-      passHash: ADMIN_PASS,
-    },
     // 3.2 Pack Staff
     {
       id: packId('ks', 'staff_extra'),
@@ -283,11 +266,11 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
           mimeType: 'application/pdf',
           fileSize: 1024 * 500,
           category: 'other',
-          uploadedBy: 'admin-ks',
+          uploadedBy: goldenId('ks_admin'),
           uploadedAt: at(),
           entityType: 'member',
-          entityId: 'admin-ks',
-          storagePath: 'ks/admin-ks/Policy_Manual_KS.pdf',
+          entityId: goldenId('ks_admin'),
+          storagePath: `ks/${goldenId('ks_admin')}/Policy_Manual_KS.pdf`,
           description: 'Standard Policy Manual',
         },
         {
@@ -297,11 +280,11 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
           mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           fileSize: 1024 * 20,
           category: 'other',
-          uploadedBy: 'admin-ks',
+          uploadedBy: goldenId('ks_admin'),
           uploadedAt: at(),
           entityType: 'member',
-          entityId: 'admin-ks',
-          storagePath: 'ks/admin-ks/Claim_Form_Template.docx',
+          entityId: goldenId('ks_admin'),
+          storagePath: `ks/${goldenId('ks_admin')}/Claim_Form_Template.docx`,
           description: 'Empty Claim Form',
         },
       ])
@@ -542,7 +525,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
         id: leadId,
         tenantId: TENANTS.KS,
         branchId: packId('ks', 'branch_a'), // Assign mostly to main
-        agentId: 'golden_ks_admin',
+        agentId: 'golden_ks_agent_a1',
         firstName: lead.first,
         lastName: lead.last,
         email: `lead.${i}@ks.pack`,

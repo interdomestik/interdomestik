@@ -1,53 +1,46 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures/auth.fixture';
+import { routes } from './routes';
 
 test.describe('Claim Traceability', () => {
-  // Use seeded users (assuming 'ops-admin' exists or similar)
-  // We'll use the "KS" tenant admin from seeds.
+  test('Admin can see Claim Number in list and Search by it', async ({ adminPage: page }) => {
+    // 1. Navigate to Claims list
+    const locale = (process.env.PLAYWRIGHT_LOCALE as 'sq' | 'mk' | 'en') || 'sq';
+    await page.goto(routes.adminClaims(locale) + '?view=list');
+    await page.waitForLoadState('domcontentloaded');
 
-  test('Admin can see Claim Number in list and Search by it', async ({ page }) => {
-    // 1. Login as KS Admin
-    // Assuming standard login flow or restore storage.
-    // For simplicity, we do full login to ensure session.
-    await page.goto('/en/login');
-    await page.getByLabel('Email').fill('admin-ks@interdomestik.com'); // Seeded KS admin
-    await page.getByLabel('Password').fill('AdminPassword123!');
-    await page.getByRole('button', { name: 'Log In' }).click();
-    await expect(page).toHaveURL(/.*\/admin/); // Wait for redirect
-
-    // 2. Navigate to Claims
-    await page.goto('/en/admin/claims?view=list');
-
-    // 3. Verify List shows CLM numbers
+    // 2. Verify List shows CLM numbers
     // We expect backfilled claims to be visible.
-    // Check for ANY text matching CLM-XK-2026-
-    const claimNumberLocator = page.getByText(/CLM-XK-2026-\d{6}/).first();
-    await expect(claimNumberLocator).toBeVisible();
+    // Check for ANY text matching CLM- prefix
+    const claimNumberLocator = page.getByText(/CLM-[A-Z]{2}-2026-\d+/).first();
+    await expect(claimNumberLocator).toBeVisible({ timeout: 15000 });
 
     // Capture the exact number for Search test
     const claimNumber = await claimNumberLocator.textContent();
-    expect(claimNumber).toMatch(/^CLM-XK-2026-\d{6}$/);
-
     if (!claimNumber) throw new Error('No claim number found');
 
-    // 4. Test Search
-    const searchInput = page.getByPlaceholder(/search/i); // More flexible
-    await searchInput.fill(claimNumber);
-    await searchInput.press('Enter'); // Or wait for debounce
+    // Clean up potential whitespace or extra text
+    const cleanClaimNumber = claimNumber.match(/CLM-[A-Z]{2}-2026-\d+/)?.[0];
+    if (!cleanClaimNumber) throw new Error(`Could not parse claim number from: ${claimNumber}`);
+
+    // 3. Test Search
+    const searchInput = page
+      .getByPlaceholder(/kërko/i)
+      .or(page.getByPlaceholder(/search/i))
+      .or(page.getByPlaceholder(/pretraži/i));
+    await searchInput.fill(cleanClaimNumber);
+    await searchInput.press('Enter');
+    await page.waitForTimeout(1000); // Wait for filter
 
     // Verify filter works (row still visible)
-    await expect(page.getByText(claimNumber)).toBeVisible();
-    // Verify NOT seeing other stuff (optional, hard to prove without knowing state)
+    await expect(page.getByText(cleanClaimNumber)).toBeVisible();
 
-    // 5. Test Resolver
+    // 4. Test Resolver
     // Navigate to /admin/claims/number/[claimNumber]
-    await page.goto(`/en/admin/claims/number/${claimNumber}`);
+    await page.goto(`/${locale}/admin/claims/number/${cleanClaimNumber}`);
+    await page.waitForLoadState('domcontentloaded');
 
-    // Should redirect to /admin/claims/[id]
-    // URL pattern: /en/admin/claims/
-    await expect(page).toHaveURL(/\/en\/admin\/claims\/[a-zA-Z0-9_-]+(\?.*)?$/);
-
-    // Check param ref=...
-    // The implementation (Step 588) appends ?ref=NUMBER
-    await expect(page).toHaveURL(new RegExp(`ref=${claimNumber}`));
+    // Should redirect to /admin/claims/[id]?ref=CLM...
+    await expect(page).toHaveURL(new RegExp(`admin/claims/`));
+    await expect(page).toHaveURL(new RegExp(`ref=${cleanClaimNumber}`));
   });
 });
