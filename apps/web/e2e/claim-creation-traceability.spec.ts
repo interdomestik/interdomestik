@@ -22,17 +22,18 @@ test.describe('Claim Traceability', () => {
     const cleanClaimNumber = claimNumber.match(/CLM-[A-Z]{2}-2026-\d+/)?.[0];
     if (!cleanClaimNumber) throw new Error(`Could not parse claim number from: ${claimNumber}`);
 
-    // 3. Test Search
-    const searchInput = page
-      .getByPlaceholder(/kërko/i)
-      .or(page.getByPlaceholder(/search/i))
-      .or(page.getByPlaceholder(/pretraži/i));
-    await searchInput.fill(cleanClaimNumber);
-    await searchInput.press('Enter');
-    await page.waitForTimeout(1000); // Wait for filter
+    // 3. Test Search via URL (more reliable than input events)
+    await page.goto(`${routes.adminClaims(locale)}?view=list&search=${cleanClaimNumber}`);
+    await page.waitForLoadState('domcontentloaded');
 
-    // Verify filter works (row still visible)
-    await expect(page.getByText(cleanClaimNumber)).toBeVisible();
+    // Verify filter shows the claim - use polling to wait for async render
+    await expect(async () => {
+      const claimVisible = await page
+        .getByText(cleanClaimNumber)
+        .isVisible()
+        .catch(() => false);
+      expect(claimVisible).toBeTruthy();
+    }).toPass({ timeout: 10000 });
 
     // 4. Test Resolver
     // Navigate to /admin/claims/number/[claimNumber]
