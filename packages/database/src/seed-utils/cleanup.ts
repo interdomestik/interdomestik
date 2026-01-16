@@ -56,6 +56,15 @@ export async function cleanupByPrefixes(
     .delete(dbSchema.claims)
     .where(or(...claimIdPrefixes.map(p => like(dbSchema.claims.id, p))));
 
+  // 1b. Delete Claim Counters (Reset generation state) for cleanliness
+  // We delete all claimCounters if this looks like a full reset (golden/pack prefixes)
+  // This ensures generateClaimNumber starts fresh for the tenant.
+  const isGoldenReset = prefixes.some(p => p.includes('golden') || p.includes('pack'));
+  if (isGoldenReset && dbSchema.claimCounters) {
+    // We can't easily filter by tenant without knowing them, implies full reset is safe for these prefixes
+    await db.delete(dbSchema.claimCounters);
+  }
+
   // 2. Delete Lead Payment Attempts (Delete children first)
   await db
     .delete(dbSchema.leadPaymentAttempts)

@@ -391,7 +391,9 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
     }
   };
 
-  let globalClaimIdx = 0;
+  // Offset to avoid colliding with Golden Pack's single claim (800001)
+  // Golden Pack uses 800001 explicitly. We start at 800010 to be safe.
+  let globalClaimIdx = 10;
   const makeClaimNumber = (idx: number) =>
     `CLM-XK-2026-${(800000 + idx).toString().padStart(6, '0')}`;
 
