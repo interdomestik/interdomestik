@@ -28,13 +28,32 @@ function getExampleUser(roleKey: string) {
       return E2E_USERS.KS_AGENT;
     case 'staff':
       return E2E_USERS.KS_STAFF;
-    case 'admin_mk':
-      return E2E_USERS.MK_ADMIN;
     case 'branch_manager':
       return E2E_USERS.MK_BRANCH_MANAGER;
     default:
       throw new Error(`Unknown role key: ${roleKey}`);
   }
+}
+
+function getExampleUserForTenant(roleKey: string, tenant: 'ks' | 'mk') {
+  if (tenant === 'mk') {
+    switch (roleKey) {
+      case 'member':
+        return E2E_USERS.MK_MEMBER;
+      case 'admin':
+        return E2E_USERS.MK_ADMIN;
+      case 'agent':
+        return E2E_USERS.MK_AGENT;
+      case 'staff':
+        return E2E_USERS.MK_STAFF;
+      case 'branch_manager':
+        return E2E_USERS.MK_BRANCH_MANAGER;
+      default:
+        throw new Error(`Unknown role key for mk: ${roleKey}`);
+    }
+  }
+
+  return getExampleUser(roleKey);
 }
 
 function stateFile(role: string, tenant: 'ks' | 'mk'): string {
@@ -87,7 +106,7 @@ async function stateIsValidForRole(opts: {
     const userTenant = data?.user?.tenantId;
 
     // Strict validation against golden path truth
-    const expected = getExampleUser(role);
+    const expected = getExampleUserForTenant(role, tenant);
 
     // Check match
     const roleMatches = userRole === expected.dbRole;
@@ -131,7 +150,7 @@ authTest.describe('Generate StorageState Files', () => {
     if (tenant !== 'mk') return;
 
     const baseURL = (testInfo.project.use.baseURL ?? 'http://localhost:3000/mk').toString();
-    const roles = ['admin_mk', 'branch_manager'] as const;
+    const roles = ['member', 'admin', 'agent', 'staff', 'branch_manager'] as const;
 
     for (const role of roles) {
       if (!process.env.FORCE_REGEN_STATE && (await stateExists(role, tenant))) {

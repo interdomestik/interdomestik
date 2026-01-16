@@ -1,12 +1,12 @@
 import { AgentSidebar } from '@/components/agent/agent-sidebar';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { AGENT_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function AgentLayout({
   children,
@@ -18,12 +18,18 @@ export default async function AgentLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await (async () => {
+    try {
+      return await auth.api.getSession({
+        headers: await headers(),
+      });
+    } catch {
+      return null;
+    }
+  })();
 
   if (!session) {
-    redirect({ href: '/login', locale });
+    redirect(`/${locale}/login`);
     return null;
   }
 
@@ -31,11 +37,11 @@ export default async function AgentLayout({
   if (session.user.role !== 'agent') {
     // Redirect non-agents to their appropriate portal
     if (session.user.role === 'admin') {
-      redirect({ href: '/admin', locale });
+      redirect(`/${locale}/admin`);
     } else if (session.user.role === 'staff') {
-      redirect({ href: '/staff', locale });
+      redirect(`/${locale}/staff`);
     } else {
-      redirect({ href: '/member', locale });
+      redirect(`/${locale}/member`);
     }
     return null;
   }

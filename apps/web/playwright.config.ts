@@ -89,7 +89,8 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         baseURL: 'http://localhost:3000/mk',
       },
-      testMatch: [/claim-resolver-isolation\.spec\.ts/], // Or specific MK tests
+      // Mirror the ks-sq lane: run the normal E2E suite against the MK tenant + mk locale.
+      testIgnore: [/setup\.state\.spec\.ts/],
     },
 
     // ═══════════════════════════════════════════════════════════════════════════

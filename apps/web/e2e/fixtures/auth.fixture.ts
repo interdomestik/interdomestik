@@ -10,7 +10,7 @@
  */
 
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
-import { test as base, Page } from '@playwright/test';
+import { test as base, Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { routes } from '../routes';
@@ -30,7 +30,15 @@ function getBaseURL(): string {
 // TEST USER CREDENTIALS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+type Tenant = 'ks' | 'mk';
+
 type Role = 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
+
+function getTenantFromTestInfo(testInfo: TestInfo): Tenant {
+  const name = testInfo.project.name;
+  if (name.includes('mk')) return 'mk';
+  return 'ks';
+}
 
 function ipForRole(role: Role): string {
   // Stable IPs for each role to avoid unexpected rate limiting collision if checking by IP
@@ -48,45 +56,50 @@ function ipForRole(role: Role): string {
   }
 }
 
-const CREDS: Record<Role, { email: string; password: string; name: string }> = {
-  member: {
-    email: E2E_USERS.KS_MEMBER.email,
-    password: E2E_PASSWORD,
-    name: E2E_USERS.KS_MEMBER.name,
-  },
-  admin: {
-    email: E2E_USERS.KS_ADMIN.email,
-    password: E2E_PASSWORD,
-    name: E2E_USERS.KS_ADMIN.name,
-  },
-  agent: {
-    email: E2E_USERS.KS_AGENT.email,
-    password: E2E_PASSWORD,
-    name: E2E_USERS.KS_AGENT.name,
-  },
-  staff: {
-    email: E2E_USERS.KS_STAFF.email,
-    password: E2E_PASSWORD,
-    name: E2E_USERS.KS_STAFF.name,
-  },
-  branch_manager: {
-    email: E2E_USERS.MK_BRANCH_MANAGER.email,
-    password: E2E_PASSWORD,
-    name: E2E_USERS.MK_BRANCH_MANAGER.name,
-  },
-  admin_mk: {
-    email: E2E_USERS.MK_ADMIN.email,
-    password: E2E_PASSWORD,
-    name: E2E_USERS.MK_ADMIN.name,
-  },
-};
+function getUserForTenant(role: Role, tenant: Tenant) {
+  // Keep `admin_mk` as a legacy alias for MK admin.
+  if (role === 'admin_mk') return E2E_USERS.MK_ADMIN;
+  if (role === 'branch_manager') return E2E_USERS.MK_BRANCH_MANAGER;
 
-export const TEST_USER = CREDS.member;
-export const TEST_ADMIN = CREDS.admin;
-export const TEST_AGENT = CREDS.agent;
-export const TEST_STAFF = CREDS.staff;
-export const TEST_BM = CREDS.branch_manager;
-export const TEST_ADMIN_MK = CREDS.admin_mk;
+  if (tenant === 'mk') {
+    switch (role) {
+      case 'member':
+        return E2E_USERS.MK_MEMBER;
+      case 'admin':
+        return E2E_USERS.MK_ADMIN;
+      case 'agent':
+        return E2E_USERS.MK_AGENT;
+      case 'staff':
+        return E2E_USERS.MK_STAFF;
+    }
+  }
+
+  switch (role) {
+    case 'member':
+      return E2E_USERS.KS_MEMBER;
+    case 'admin':
+      return E2E_USERS.KS_ADMIN;
+    case 'agent':
+      return E2E_USERS.KS_AGENT;
+    case 'staff':
+      return E2E_USERS.KS_STAFF;
+    default:
+      return E2E_USERS.KS_MEMBER;
+  }
+}
+
+function credsFor(role: Role, tenant: Tenant): { email: string; password: string; name: string } {
+  const u = getUserForTenant(role, tenant);
+  return { email: u.email, password: E2E_PASSWORD, name: u.name };
+}
+
+// Backwards-compatible exports (default to KS).
+export const TEST_USER = credsFor('member', 'ks');
+export const TEST_ADMIN = credsFor('admin', 'ks');
+export const TEST_AGENT = credsFor('agent', 'ks');
+export const TEST_STAFF = credsFor('staff', 'ks');
+export const TEST_BM = credsFor('branch_manager', 'mk');
+export const TEST_ADMIN_MK = credsFor('admin', 'mk');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOGIN HELPER
@@ -95,9 +108,10 @@ export const TEST_ADMIN_MK = CREDS.admin_mk;
 async function performLogin(
   page: Page,
   role: Role,
-  authorizedBaseURL?: string | null
+  authorizedBaseURL?: string | null,
+  tenant: Tenant = 'ks'
 ): Promise<void> {
-  const { email, password } = CREDS[role];
+  const { email, password } = credsFor(role, tenant);
   const baseURL = authorizedBaseURL ?? getBaseURL();
 
   // API Login Strategy (Robust)
@@ -143,13 +157,14 @@ interface AuthFixtures {
 }
 
 export const test = base.extend<AuthFixtures>({
-  loginAs: async ({ page, baseURL }, use) => {
+  loginAs: async ({ page, baseURL }, use, testInfo) => {
     await use(async (role: Role) => {
+      const tenant = getTenantFromTestInfo(testInfo);
       // Pass baseURL explicitly if needed, but page.request uses context baseURL
-      await performLogin(page, role, baseURL);
+      await performLogin(page, role, baseURL, tenant);
 
       // Fix for Blocker 2: Always navigate after login to avoid about:blank
-      const locale = process.env.PLAYWRIGHT_LOCALE || (role.includes('mk') ? 'mk' : 'sq');
+      const locale = process.env.PLAYWRIGHT_LOCALE || (tenant === 'mk' ? 'mk' : 'sq');
       let target = `/${locale}`;
       if (role.includes('admin')) target += '/admin';
       else if (role === 'agent') target += '/agent';
@@ -160,10 +175,11 @@ export const test = base.extend<AuthFixtures>({
     });
   },
 
-  saveState: async ({ page }, use) => {
+  saveState: async ({ page }, use, testInfo) => {
     await use(async (role: Role) => {
-      const statePath = storageStateFile(role);
-      await performLogin(page, role);
+      const tenant = getTenantFromTestInfo(testInfo);
+      const statePath = storageStateFile(role, tenant);
+      await performLogin(page, role, undefined, tenant);
       await page.context().storageState({ path: statePath });
     });
   },
@@ -171,9 +187,10 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Generic authenticated page (defaults to member if not specified)
    */
-  authenticatedPage: async ({ page }, use) => {
+  authenticatedPage: async ({ page }, use, testInfo) => {
+    const tenant = getTenantFromTestInfo(testInfo);
     if (!(await isLoggedIn(page))) {
-      await performLogin(page, 'member');
+      await performLogin(page, 'member', undefined, tenant);
     }
     await use(page);
   },
@@ -181,8 +198,9 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Page authenticated as admin
    */
-  adminPage: async ({ browser, baseURL }, use) => {
-    const statePath = storageStateFile('admin');
+  adminPage: async ({ browser, baseURL }, use, testInfo) => {
+    const tenant = getTenantFromTestInfo(testInfo);
+    const statePath = storageStateFile('admin', tenant);
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
@@ -192,7 +210,7 @@ export const test = base.extend<AuthFixtures>({
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
       console.log('Admin state missing or invalid, performing fresh login...');
-      await performLogin(page, 'admin', baseURL);
+      await performLogin(page, 'admin', baseURL, tenant);
       // Update state file for next time? Ideally setup does this.
     }
     await use(page);
@@ -202,8 +220,9 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Page authenticated as agent
    */
-  agentPage: async ({ browser }, use) => {
-    const statePath = storageStateFile('agent');
+  agentPage: async ({ browser }, use, testInfo) => {
+    const tenant = getTenantFromTestInfo(testInfo);
+    const statePath = storageStateFile('agent', tenant);
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
@@ -212,7 +231,7 @@ export const test = base.extend<AuthFixtures>({
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
-      await performLogin(page, 'agent');
+      await performLogin(page, 'agent', undefined, tenant);
     }
     await use(page);
     await context.close();
@@ -221,8 +240,9 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Page authenticated as staff
    */
-  staffPage: async ({ browser }, use) => {
-    const statePath = storageStateFile('staff');
+  staffPage: async ({ browser }, use, testInfo) => {
+    const tenant = getTenantFromTestInfo(testInfo);
+    const statePath = storageStateFile('staff', tenant);
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
@@ -231,7 +251,7 @@ export const test = base.extend<AuthFixtures>({
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
-      await performLogin(page, 'staff');
+      await performLogin(page, 'staff', undefined, tenant);
     }
     await use(page);
     await context.close();
@@ -241,7 +261,7 @@ export const test = base.extend<AuthFixtures>({
    * Page authenticated as a branch manager
    */
   branchManagerPage: async ({ browser }, use) => {
-    const statePath = storageStateFile('branch_manager');
+    const statePath = storageStateFile('branch_manager', 'mk');
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
@@ -252,7 +272,7 @@ export const test = base.extend<AuthFixtures>({
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
-      await performLogin(page, 'branch_manager');
+      await performLogin(page, 'branch_manager', undefined, 'mk');
     }
     await use(page);
     await context.close();
@@ -269,15 +289,10 @@ export { expect } from '@playwright/test';
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Helper to map role to tenant folder
-function getTenantForRole(role: Role): 'ks' | 'mk' {
-  if (role === 'admin_mk' || role === 'branch_manager') return 'mk';
-  return 'ks';
-}
-
-function storageStateFile(role: Role): string {
-  const tenant = getTenantForRole(role);
-  return path.join(__dirname, '..', '.auth', tenant, `${role}.json`);
+function storageStateFile(role: Role, tenant: Tenant): string {
+  // Keep legacy `admin_mk` file name for backwards-compat with existing state files.
+  const filename = role === 'admin_mk' ? 'admin' : role;
+  return path.join(__dirname, '..', '.auth', tenant, `${filename}.json`);
 }
 
 async function storageStateExists(filePath: string): Promise<boolean> {
