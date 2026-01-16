@@ -19,6 +19,7 @@ const nextConfig = {
       },
     ],
   },
+  output: 'standalone',
   // Silence Next.js dev origin warning for local dev and Playwright
   allowedDevOrigins: ['http://127.0.0.1:3000', 'http://localhost:3000'],
   experimental: {

@@ -1,3 +1,4 @@
+import * as nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 import {
   renderAnnualReportEmail,
@@ -22,9 +23,24 @@ import {
 } from './email-templates';
 
 let resendClient: Resend | null = null;
+let smtpTransporter: nodemailer.Transporter | null = null;
 
-function getResendClient() {
-  if (resendClient) return resendClient;
+function getEmailClient() {
+  // Priority 1: SMTP (Docker / Local Dev)
+  if (process.env.SMTP_HOST) {
+    if (!smtpTransporter) {
+      smtpTransporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '1025'),
+        secure: false, // Mailpit usually runs plain or Upgrade
+        ignoreTLS: true,
+      });
+    }
+    return { type: 'smtp', client: smtpTransporter };
+  }
+
+  // Priority 2: Resend (Production / Preview)
+  if (resendClient) return { type: 'resend', client: resendClient };
 
   if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1') {
     return null;
@@ -38,7 +54,7 @@ function getResendClient() {
 
   try {
     resendClient = new Resend(apiKey);
-    return resendClient;
+    return { type: 'resend', client: resendClient };
   } catch (error) {
     console.warn('Failed to initialize Resend client:', error);
     return null;
@@ -61,31 +77,50 @@ export async function sendEmail(
   template: { subject: string; html: string; text: string },
   options: { attachments?: { filename: string; content: Buffer | string }[] } = {}
 ): Promise<EmailResult> {
-  const client = getResendClient();
-  if (!client) {
-    return { success: false, error: 'Resend not configured' };
+  const provider = getEmailClient();
+  if (!provider) {
+    // If testing and no provider, just mock success
+    if (process.env.INTERDOMESTIK_AUTOMATED === '1') {
+      console.log(`[MockEmail] To: ${to}, Subject: ${template.subject}`);
+      return { success: true, id: 'mock-id' };
+    }
+    return { success: false, error: 'Email provider not configured' };
   }
 
   try {
-    const response = await client.emails.send({
-      from: getSenderAddress(),
-      to,
-      subject: template.subject,
-      html: template.html,
-      text: template.text,
-      attachments: options.attachments,
-    });
+    if (provider.type === 'smtp') {
+      const info = await (provider.client as nodemailer.Transporter).sendMail({
+        from: getSenderAddress(),
+        to,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        attachments: options.attachments,
+      });
+      console.log(`[SMTP] Email sent to ${to}: ${info.messageId}`);
+      return { success: true, id: info.messageId };
+    } else {
+      const client = provider.client as Resend;
+      const response = await client.emails.send({
+        from: getSenderAddress(),
+        to,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        attachments: options.attachments,
+      });
 
-    if (response.error) {
-      console.error('Resend error:', response.error);
-      return { success: false, error: response.error.message };
+      if (response.error) {
+        console.error('Resend error:', response.error);
+        return { success: false, error: response.error.message };
+      }
+
+      if (!response.data?.id) {
+        return { success: false, error: 'No email ID returned from Resend' };
+      }
+
+      return { success: true, id: response.data.id };
     }
-
-    if (!response.data?.id) {
-      return { success: false, error: 'No email ID returned from Resend' };
-    }
-
-    return { success: true, id: response.data.id };
   } catch (error) {
     console.error('Failed to send email:', error);
     return { success: false, error: 'Failed to send email' };

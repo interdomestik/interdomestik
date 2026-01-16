@@ -1,0 +1,7 @@
+FROM mcr.microsoft.com/playwright:v1.57.0-jammy
+
+RUN npm install -g pnpm@latest
+WORKDIR /app
+
+# Ensure we have access to all directories
+# COPY . . # We mount volumes instead for dev
