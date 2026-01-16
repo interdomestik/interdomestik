@@ -48,7 +48,7 @@ export const E2E_USERS = {
   MK_MEMBER: {
     email: 'member.mk.1@interdomestik.com',
     name: 'Aleksandar Stojanovski',
-    dbRole: 'user',
+    dbRole: 'member',
     tenantId: 'tenant_mk',
   },
 

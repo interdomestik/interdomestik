@@ -27,6 +27,20 @@ async function loginAs(
 
 test.describe('Admin Claims V2 ', () => {
   test.beforeEach(async ({ page }) => {
+    // Diagnostics: Console & Network (with noise filtering)
+    page.on('console', msg => {
+      const text = msg.text();
+      // Filter out standard React/Next.js dev noise
+      if (
+        text.includes('React DevTools') ||
+        text.includes('[HMR]') ||
+        text.includes('[Fast Refresh]')
+      ) {
+        return;
+      }
+      console.log(`[BROWSER]: ${text}`);
+    });
+
     await loginAs(page, USERS.TENANT_ADMIN_MK);
     // Contract: V2 defaults to Ops Center; list view is explicitly `view=list`.
     await page.goto(`/${DEFAULT_LOCALE}/admin/claims?view=list`);

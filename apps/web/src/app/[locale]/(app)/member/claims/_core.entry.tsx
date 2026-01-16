@@ -44,7 +44,7 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight" data-testid="claims-title">
+          <h2 className="text-3xl font-bold tracking-tight" data-testid="page-title">
             {t('title')}
           </h2>
           <p className="text-muted-foreground mt-1">{t('description')}</p>

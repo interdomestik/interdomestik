@@ -1,16 +1,31 @@
 import { expect, test } from '../fixtures/auth.fixture';
 
 test.describe('Claims Dashboard Visual Regression', () => {
+  test.beforeEach(({ page }) => {
+    page.on('console', msg => {
+      const text = msg.text();
+      // Filter out standard React/Next.js dev noise
+      if (
+        text.includes('React DevTools') ||
+        text.includes('[HMR]') ||
+        text.includes('[Fast Refresh]')
+      ) {
+        return;
+      }
+      console.log(`[BROWSER]: ${text}`);
+    });
+  });
+
   // 1. Standard Member View
   test('member views claims dashboard', async ({ page, loginAs }) => {
     // Login as member
     await loginAs('member');
 
     // Navigate to claims
-    await page.goto('/dashboard/claims');
+    await page.goto('/member/claims');
 
     // Wait for content to load
-    await expect(page.getByRole('heading', { name: 'My Claims' })).toBeVisible();
+    await expect(page.getByTestId('page-title')).toBeVisible();
     await page.waitForLoadState('networkidle');
 
     // Take screenshot
@@ -25,11 +40,11 @@ test.describe('Claims Dashboard Visual Regression', () => {
     // Login as staff
     await loginAs('staff');
 
-    // Navigate to admin claims
-    await page.goto('/admin/claims');
+    // Navigate to staff claims
+    await page.goto('/staff/claims');
 
     // Wait for content to load
-    await expect(page.getByRole('heading', { name: 'Claims Management' })).toBeVisible();
+    await expect(page.getByTestId('page-title')).toBeVisible();
     await page.waitForLoadState('networkidle');
 
     // Take screenshot

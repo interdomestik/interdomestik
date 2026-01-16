@@ -64,7 +64,10 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{tClaims('queue')}</h1>
+        <h1 className="text-3xl font-bold tracking-tight" data-testid="page-title">
+          {tClaims('queue')}
+        </h1>
+
         <p className="text-muted-foreground">{tClaims('manage_triage')}</p>
       </div>
 

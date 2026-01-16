@@ -7,18 +7,32 @@ import { eq } from 'drizzle-orm';
 test.use({ trace: 'on' });
 
 test.describe('Member Number Hardening', () => {
+  test.beforeEach(({ page }) => {
+    // Diagnostics: Console & Network (with noise filtering)
+    page.on('console', msg => {
+      const text = msg.text();
+      // Filter out standard React/Next.js dev noise
+      if (
+        text.includes('React DevTools') ||
+        text.includes('[HMR]') ||
+        text.includes('[Fast Refresh]')
+      ) {
+        return;
+      }
+      console.log(`[BROWSER]: ${text}`);
+    });
+    page.on('pageerror', err => console.error(`[BROWSER ERROR]: ${err}`));
+    page.on('response', async resp => {
+      if (resp.status() >= 400 && resp.url().includes('/api')) {
+        const body = await resp.text().catch(() => 'no-body');
+        console.log(`[API ERROR ${resp.status()}]: ${resp.url()} - ${body}`);
+      }
+    });
+  });
+
   test('should assign member number immediately upon registration (Production Grade)', async ({
     page,
   }) => {
-    // Diagnostics: Console & Network
-    page.on('console', msg => console.log(`[BROWSER]: ${msg.text()}`));
-    page.on('pageerror', err => console.error(`[BROWSER ERROR]: ${err}`));
-    page.on('response', resp => {
-      if (resp.status() >= 400 && resp.url().includes('/api')) {
-        console.log(`[API ERROR ${resp.status()}]: ${resp.url()}`);
-      }
-    });
-
     // 0. Get a valid tenant
     const tenant = await db.query.tenants.findFirst({
       where: eq(tenants.isActive, true),

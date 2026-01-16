@@ -154,9 +154,11 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
       id: packId('ks', 'member', i + 1),
       name: name,
       email: `ks.member.pack.${i + 1}@interdomestik.com`,
-      role: 'user',
+      role: 'member',
       tenantId: TENANTS.KS,
       passHash: hashedPass,
+      memberNumber: `MEM-2026-000${101 + i}`,
+      memberNumberIssuedAt: at(),
     })),
   ];
 
@@ -234,10 +236,21 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
       .values({
         ...u,
         emailVerified: true,
+        memberNumber: 'memberNumber' in u ? (u.memberNumber as string) : null,
+        memberNumberIssuedAt: 'memberNumberIssuedAt' in u ? (u.memberNumberIssuedAt as Date) : null,
         createdAt: at(),
         updatedAt: at(),
       })
-      .onConflictDoUpdate({ target: schema.user.id, set: { role: u.role, name: u.name } });
+      .onConflictDoUpdate({
+        target: schema.user.id,
+        set: {
+          role: u.role,
+          name: u.name,
+          memberNumber: 'memberNumber' in u ? (u.memberNumber as string) : null,
+          memberNumberIssuedAt:
+            'memberNumberIssuedAt' in u ? (u.memberNumberIssuedAt as Date) : null,
+        },
+      });
 
     await db
       .insert(schema.account)
@@ -567,6 +580,19 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
   console.log(`KS Prishtina: ~${await countClaims(packId('ks', 'branch_a'))} claims`);
   console.log(`KS Prizren:   ~${await countClaims(packId('ks', 'branch_b'))} claims`);
   console.log(`KS Peja:      ~${await countClaims(packId('ks', 'branch_c'))} claims`);
+
+  // Update counters to reflect pack users (starting from 101, ending ~126)
+  await db
+    .insert(schema.memberCounters)
+    .values({
+      year: 2026,
+      lastNumber: 150,
+      updatedAt: at(),
+    })
+    .onConflictDoUpdate({
+      target: schema.memberCounters.year,
+      set: { lastNumber: sql`GREATEST(${schema.memberCounters.lastNumber}, 150)` },
+    });
 
   console.log('🇽🇰 KS Extended Workflow Pack Applied!');
 }

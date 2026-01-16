@@ -113,8 +113,10 @@ export async function seedGolden(config: SeedConfig) {
       id: goldenId('mk_member_1'),
       name: E2E_USERS.MK_MEMBER.name,
       email: E2E_USERS.MK_MEMBER.email,
-      role: 'user', // Explicit override in seed for MK Member if strictly 'user'
+      role: 'member',
       tenantId: TENANTS.MK,
+      memberNumber: 'MEM-2026-000001',
+      memberNumberIssuedAt: at(),
     },
     // KS Users & Staff
     {
@@ -170,6 +172,8 @@ export async function seedGolden(config: SeedConfig) {
       role: 'member' as const,
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_a',
+      memberNumber: `MEM-2026-00000${i + 2}`,
+      memberNumberIssuedAt: at(),
     })),
     ...Array.from({ length: 4 }).map((_, i) => ({
       id: goldenId(`ks_b_member_${i + 1}`),
@@ -178,14 +182,18 @@ export async function seedGolden(config: SeedConfig) {
       role: 'member' as const,
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_b',
+      memberNumber: `MEM-2026-0000${8 + i}`,
+      memberNumberIssuedAt: at(),
     })),
     ...Array.from({ length: 2 }).map((_, i) => ({
       id: goldenId(`ks_c_member_${i + 1}`),
       name: `KS C-Member ${i + 1}`,
       email: `member.ks.c${i + 1}@interdomestik.com`,
-      role: 'user' as const,
+      role: 'member' as const,
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_c',
+      memberNumber: `MEM-2026-0000${12 + i}`,
+      memberNumberIssuedAt: at(),
     })),
     // Balkan Agent
     {
@@ -201,10 +209,12 @@ export async function seedGolden(config: SeedConfig) {
       id: goldenId('ks_member_tracking'),
       name: 'KS Tracking Demo',
       email: 'member.tracking.ks@interdomestik.com',
-      role: 'user',
+      role: 'member',
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_a',
       agentId: goldenId('ks_agent_a1'),
+      memberNumber: 'MEM-2026-000014',
+      memberNumberIssuedAt: at(),
     },
   ];
 
@@ -274,6 +284,9 @@ export async function seedGolden(config: SeedConfig) {
           branchId: 'branchId' in u ? (u.branchId as string) : null,
           agentId: 'agentId' in u ? (u.agentId as string) : null,
           tenantId: u.tenantId,
+          memberNumber: 'memberNumber' in u ? (u.memberNumber as string) : null,
+          memberNumberIssuedAt:
+            'memberNumberIssuedAt' in u ? (u.memberNumberIssuedAt as Date) : null,
         },
       });
 
@@ -691,15 +704,21 @@ export async function seedGolden(config: SeedConfig) {
     })
     .onConflictDoNothing();
 
+  // 10. Member Counters
+  console.log('🔢 Initializing Member Counters...');
+  await db
+    .insert(schema.memberCounters)
+    .values({
+      year: 2026,
+      lastNumber: 100, // Reserve first 100 for Golden/Static members
+      updatedAt: at(),
+    })
+    .onConflictDoUpdate({
+      target: schema.memberCounters.year,
+      set: { lastNumber: sql`GREATEST(${schema.memberCounters.lastNumber}, 100)` },
+    });
+
   console.log('✅ Golden Seed Baseline & KS Pack Complete!');
-  console.log(
-    '   Seeded Claims: ks_track_claim_001 (Evaluation), ks_track_claim_002 (Submitted >30d), ks_track_claim_003 (Resolved)'
-  );
-  console.log(`   Public Token for demo: ${rawToken}`);
-  console.log('   Routes to verify:');
-  console.log('     /sq/member/claims/golden_ks_track_claim_001');
-  console.log(`     /track/${rawToken}?lang=sq`);
-  console.log('     /sq/agent/claims');
 }
 
 // Pure module - CLI execution removed. Use seed.ts runner only.
