@@ -58,8 +58,6 @@ ALTER TABLE "crm_activities"
   ADD COLUMN IF NOT EXISTS "tenant_id" text NOT NULL DEFAULT 'tenant_mk' REFERENCES "tenants"("id");
 ALTER TABLE "crm_deals"
   ADD COLUMN IF NOT EXISTS "tenant_id" text NOT NULL DEFAULT 'tenant_mk' REFERENCES "tenants"("id");
-ALTER TABLE "member_activities"
-  ADD COLUMN IF NOT EXISTS "tenant_id" text NOT NULL DEFAULT 'tenant_mk' REFERENCES "tenants"("id");
 ALTER TABLE "leads"
   ADD COLUMN IF NOT EXISTS "tenant_id" text NOT NULL DEFAULT 'tenant_mk' REFERENCES "tenants"("id");
 ALTER TABLE "agent_clients"
@@ -109,7 +107,6 @@ CREATE INDEX IF NOT EXISTS "idx_claim_stage_history_tenant_id" ON "claim_stage_h
 CREATE INDEX IF NOT EXISTS "idx_crm_leads_tenant_id" ON "crm_leads" ("tenant_id");
 CREATE INDEX IF NOT EXISTS "idx_crm_activities_tenant_id" ON "crm_activities" ("tenant_id");
 CREATE INDEX IF NOT EXISTS "idx_crm_deals_tenant_id" ON "crm_deals" ("tenant_id");
-CREATE INDEX IF NOT EXISTS "idx_member_activities_tenant_id" ON "member_activities" ("tenant_id");
 CREATE INDEX IF NOT EXISTS "idx_agent_clients_tenant_id" ON "agent_clients" ("tenant_id");
 CREATE INDEX IF NOT EXISTS "idx_agent_commissions_tenant_id" ON "agent_commissions" ("tenant_id");
 CREATE INDEX IF NOT EXISTS "idx_agent_settings_tenant_id" ON "agent_settings" ("tenant_id");

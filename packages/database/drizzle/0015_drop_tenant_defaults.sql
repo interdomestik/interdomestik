@@ -161,11 +161,6 @@ from "crm_leads" l
 where d.tenant_id is null
   and d.lead_id = l.id;
 
-update "member_activities" m
-set tenant_id = u.tenant_id
-from "user" u
-where m.tenant_id is null
-  and (m.agent_id = u.id or m.member_id = u.id);
 
 update "leads"
 set tenant_id = 'tenant_mk'
@@ -237,7 +232,6 @@ alter table "nps_survey_responses" alter column "tenant_id" drop default;
 alter table "crm_leads" alter column "tenant_id" drop default;
 alter table "crm_activities" alter column "tenant_id" drop default;
 alter table "crm_deals" alter column "tenant_id" drop default;
-alter table "member_activities" alter column "tenant_id" drop default;
 alter table "leads" alter column "tenant_id" drop default;
 alter table "referrals" alter column "tenant_id" drop default;
 alter table "service_usage" alter column "tenant_id" drop default;
