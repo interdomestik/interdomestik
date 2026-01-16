@@ -72,6 +72,13 @@ export const E2E_USERS = {
     tenantId: 'tenant_ks',
     branchId: 'ks_branch_a',
   },
+  KS_BRANCH_MANAGER: {
+    email: 'bm.ks.a@interdomestik.com',
+    name: 'Liridon Kastrati',
+    dbRole: 'branch_manager',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_a',
+  },
   KS_MEMBER: {
     email: 'member.ks.a1@interdomestik.com',
     name: 'KS A-Member 1',

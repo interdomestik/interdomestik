@@ -59,7 +59,11 @@ function ipForRole(role: Role): string {
 function getUserForTenant(role: Role, tenant: Tenant) {
   // Keep `admin_mk` as a legacy alias for MK admin.
   if (role === 'admin_mk') return E2E_USERS.MK_ADMIN;
-  if (role === 'branch_manager') return E2E_USERS.MK_BRANCH_MANAGER;
+
+  // Branch manager per tenant
+  if (role === 'branch_manager') {
+    return tenant === 'mk' ? E2E_USERS.MK_BRANCH_MANAGER : E2E_USERS.KS_BRANCH_MANAGER;
+  }
 
   if (tenant === 'mk') {
     switch (role) {
@@ -260,8 +264,9 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Page authenticated as a branch manager
    */
-  branchManagerPage: async ({ browser }, use) => {
-    const statePath = storageStateFile('branch_manager', 'mk');
+  branchManagerPage: async ({ browser }, use, testInfo) => {
+    const tenant = getTenantFromTestInfo(testInfo);
+    const statePath = storageStateFile('branch_manager', tenant);
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
@@ -272,7 +277,7 @@ export const test = base.extend<AuthFixtures>({
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
-      await performLogin(page, 'branch_manager', undefined, 'mk');
+      await performLogin(page, 'branch_manager', undefined, tenant);
     }
     await use(page);
     await context.close();
