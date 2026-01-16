@@ -1,5 +1,7 @@
 services:
   web:
+    # Parity Gate Mode: Runs production build
+    profiles: ['gate']
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -32,6 +34,7 @@ services:
       - interdomestik-net
 
   playwright:
+    profiles: ['gate']
     build:
       context: .
       dockerfile: docker/Dockerfile.test
@@ -61,6 +64,7 @@ services:
     shm_size: '1gb'
 
   redis:
+    profiles: ['infra', 'gate']
     image: redis:alpine
     container_name: interdomestik-redis
     ports:
@@ -69,6 +73,7 @@ services:
       - interdomestik-net
 
   mailpit:
+    profiles: ['infra', 'gate']
     image: axllent/mailpit
     container_name: interdomestik-mailpit
     ports:
@@ -78,6 +83,7 @@ services:
       - interdomestik-net
 
   minio:
+    profiles: ['infra', 'gate']
     image: minio/minio
     container_name: interdomestik-minio
     command: server /data --console-address ":9001"
@@ -95,6 +101,7 @@ services:
       - interdomestik-net
 
   createbuckets:
+    profiles: ['infra', 'gate']
     image: minio/mc
     container_name: interdomestik-createbuckets
     depends_on:
