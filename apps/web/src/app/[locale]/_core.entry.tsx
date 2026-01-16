@@ -107,3 +107,5 @@ export default async function RootLayout({ children, params }: Props) {
     </html>
   );
 }
+
+export { generateViewport } from '@/app/_segment-exports';

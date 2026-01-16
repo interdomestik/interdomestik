@@ -81,3 +81,5 @@ export default async function DocumentsPage() {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

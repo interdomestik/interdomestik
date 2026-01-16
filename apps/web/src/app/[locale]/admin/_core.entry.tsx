@@ -2,7 +2,6 @@ import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import type { AdminTenantOption } from '@/components/admin/admin-tenant-selector';
 import { AdminTenantSelector } from '@/components/admin/admin-tenant-selector';
 import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
 import type { UserSession } from '@interdomestik/domain-users/types';
@@ -10,6 +9,9 @@ import { Separator, SidebarInset, SidebarProvider, SidebarTrigger } from '@inter
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
 export default async function AdminLayout({
   children,
@@ -19,12 +21,19 @@ export default async function AdminLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await (async () => {
+    try {
+      return await auth.api.getSession({
+        headers: await headers(),
+      });
+    } catch {
+      return null;
+    }
+  })();
 
   if (!session) {
-    redirect({ href: '/login', locale });
+    redirect(`/${locale}/login`);
+    return null;
   }
 
   const sessionNonNull = session as NonNullable<typeof session>;
@@ -38,7 +47,7 @@ export default async function AdminLayout({
     }
   } catch {
     const fallback = '/member';
-    redirect({ href: fallback, locale });
+    redirect(`/${locale}${fallback}`);
   }
 
   const allMessages = await getMessages();

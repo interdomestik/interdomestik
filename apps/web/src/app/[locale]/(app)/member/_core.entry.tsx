@@ -58,3 +58,5 @@ export default async function DashboardLayout({
     </NextIntlClientProvider>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

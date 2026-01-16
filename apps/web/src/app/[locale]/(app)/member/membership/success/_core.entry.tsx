@@ -153,3 +153,5 @@ function ShieldCheck({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

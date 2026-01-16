@@ -73,3 +73,5 @@ export default async function NewClaimPage({ searchParams }: Props) {
     </div>
   );
 }
+
+export { generateViewport } from '@/app/_segment-exports';

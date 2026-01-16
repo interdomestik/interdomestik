@@ -91,3 +91,5 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

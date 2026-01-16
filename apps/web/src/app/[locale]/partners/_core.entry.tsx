@@ -2,6 +2,8 @@ import { Building2, Car, Heart, Percent, Scale, Shield } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 
+export { generateMetadata } from '@/app/_segment-exports';
+
 export function generateViewport() {
   return {
     themeColor: [

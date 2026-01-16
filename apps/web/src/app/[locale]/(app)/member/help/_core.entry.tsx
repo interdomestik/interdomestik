@@ -10,6 +10,8 @@ import {
 import { Mail, MessageSquare, Phone } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';
+
 export default async function HelpPage() {
   const t = await getTranslations('help');
 

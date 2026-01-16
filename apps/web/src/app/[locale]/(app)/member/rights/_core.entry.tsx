@@ -16,3 +16,5 @@ export async function generateMetadata(props: {
 export default function RightsPage() {
   return <RightsContent />;
 }
+
+export { generateViewport } from '@/app/_segment-exports';

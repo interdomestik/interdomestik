@@ -49,3 +49,4 @@ export default async function AdminClaimsPage({
     </div>
   );
 }
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

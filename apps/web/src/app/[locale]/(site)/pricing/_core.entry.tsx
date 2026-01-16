@@ -38,3 +38,5 @@ export default async function PricingPage({ params }: PricingPageProps) {
     </div>
   );
 }
+
+export { generateViewport } from '@/app/_segment-exports';

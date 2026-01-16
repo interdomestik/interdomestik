@@ -1,19 +1,28 @@
 import { MemberDashboardView } from '@/components/dashboard/member-dashboard-view';
-import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { ErrorBoundary } from '@interdomestik/ui';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const requestHeaders = await headers();
+
+  const session = await (async () => {
+    try {
+      return await auth.api.getSession({
+        headers: requestHeaders,
+      });
+    } catch {
+      return null;
+    }
+  })();
 
   if (!session) {
+    redirect(`/${locale}/login`);
     return null;
   }
 
@@ -21,17 +30,20 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
   // Redirect agents to their sales portal
   if (role === 'agent') {
-    redirect({ href: '/agent', locale });
+    redirect(`/${locale}/agent`);
+    return null;
   }
 
   // Redirect staff to their operations portal
   if (role === 'staff') {
-    redirect({ href: '/staff', locale });
+    redirect(`/${locale}/staff`);
+    return null;
   }
 
   // Redirect admin to admin portal
   if (role === 'admin') {
-    redirect({ href: '/admin', locale });
+    redirect(`/${locale}/admin`);
+    return null;
   }
 
   // Members see their personal dashboard

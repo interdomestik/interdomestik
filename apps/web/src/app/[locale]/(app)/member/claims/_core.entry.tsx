@@ -64,3 +64,5 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

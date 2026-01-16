@@ -21,3 +21,5 @@ export default async function SiteLayout({ children, params }: Props) {
     </NextIntlClientProvider>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

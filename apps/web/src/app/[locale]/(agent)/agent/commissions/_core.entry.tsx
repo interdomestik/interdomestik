@@ -44,3 +44,5 @@ export default async function AgentCommissionsPage() {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

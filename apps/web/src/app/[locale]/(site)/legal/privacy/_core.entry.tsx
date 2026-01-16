@@ -29,3 +29,5 @@ export default function PrivacyPage() {
     </div>
   );
 }
+
+export { generateViewport } from '@/app/_segment-exports';

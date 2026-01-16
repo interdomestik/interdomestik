@@ -25,3 +25,5 @@ export default async function RegisterMemberPage({ params }: Readonly<Props>) {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

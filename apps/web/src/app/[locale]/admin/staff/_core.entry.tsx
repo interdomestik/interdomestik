@@ -30,3 +30,4 @@ export default async function AdminStaffPage({ params, searchParams }: Props) {
   const query = merged.toString();
   redirect({ href: query ? `/admin/users?${query}` : '/admin/users?role=admin,staff', locale });
 }
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

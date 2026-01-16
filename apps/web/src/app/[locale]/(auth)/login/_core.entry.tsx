@@ -29,3 +29,5 @@ export default async function LoginPage({ params }: Props) {
     </main>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

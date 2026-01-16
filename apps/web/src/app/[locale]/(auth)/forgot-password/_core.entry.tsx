@@ -15,3 +15,5 @@ export default async function ForgotPasswordPage({ params }: Props) {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

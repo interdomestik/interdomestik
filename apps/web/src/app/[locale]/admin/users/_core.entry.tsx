@@ -7,6 +7,8 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui/components/button';
 import { getTranslations } from 'next-intl/server';
 
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';
+
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
@@ -95,7 +97,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="admin-users-page">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{tSidebar('users')}</h1>

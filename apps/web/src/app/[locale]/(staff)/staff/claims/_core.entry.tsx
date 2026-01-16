@@ -100,3 +100,5 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

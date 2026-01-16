@@ -31,3 +31,5 @@ export default async function DashboardRedirectPage({ params, searchParams }: Pr
 
   redirect({ href, locale });
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

@@ -29,3 +29,5 @@ export default async function RegisterPage({ params }: Props) {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

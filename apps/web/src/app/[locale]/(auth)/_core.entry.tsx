@@ -21,3 +21,5 @@ export default async function AuthLayout({ children, params }: Props) {
     </NextIntlClientProvider>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

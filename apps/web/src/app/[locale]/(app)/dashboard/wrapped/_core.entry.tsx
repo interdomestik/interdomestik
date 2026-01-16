@@ -24,3 +24,5 @@ export default async function WrappedPage({ params }: Props) {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

@@ -138,3 +138,5 @@ export default async function MemberCardPage({ params }: { params: Promise<{ loc
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

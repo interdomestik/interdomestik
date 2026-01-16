@@ -1,9 +1,11 @@
 import { APP_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
 type Props = {
   children: React.ReactNode;
@@ -14,12 +16,18 @@ export default async function AppProtectedLayout({ children, params }: Readonly<
   const { locale } = await params;
 
   // Enforce authentication for all routes in the (app) group
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await (async () => {
+    try {
+      return await auth.api.getSession({
+        headers: await headers(),
+      });
+    } catch {
+      return null;
+    }
+  })();
 
   if (!session) {
-    redirect({ href: '/login', locale });
+    redirect(`/${locale}/login`);
   }
 
   const allMessages = await getMessages();

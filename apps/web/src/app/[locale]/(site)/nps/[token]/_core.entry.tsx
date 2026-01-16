@@ -28,3 +28,5 @@ export default async function NpsSurveyPage({
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

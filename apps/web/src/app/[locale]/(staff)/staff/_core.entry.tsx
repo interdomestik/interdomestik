@@ -1,12 +1,14 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { StaffSidebar } from '@/components/staff/staff-sidebar';
 import { BASE_NAMESPACES, STAFF_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
 export default async function StaffLayout({
   children,
@@ -18,22 +20,28 @@ export default async function StaffLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await (async () => {
+    try {
+      return await auth.api.getSession({
+        headers: await headers(),
+      });
+    } catch {
+      return null;
+    }
+  })();
 
   if (!session) {
-    redirect({ href: '/login', locale });
+    redirect(`/${locale}/login`);
     return null;
   }
 
   if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
     if (session.user.role === 'admin') {
-      redirect({ href: '/admin', locale });
+      redirect(`/${locale}/admin`);
     } else if (session.user.role === 'agent') {
-      redirect({ href: '/agent', locale });
+      redirect(`/${locale}/agent`);
     } else {
-      redirect({ href: '/member', locale });
+      redirect(`/${locale}/member`);
     }
     return null;
   }

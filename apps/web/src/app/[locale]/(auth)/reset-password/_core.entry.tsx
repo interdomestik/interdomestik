@@ -18,3 +18,5 @@ export default async function ResetPasswordPage({ params }: Props) {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

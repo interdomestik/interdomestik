@@ -7,6 +7,8 @@ import {
 } from '@interdomestik/ui/components/card';
 import { useTranslations } from 'next-intl';
 
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';
+
 export default function AboutPage() {
   const t = useTranslations('about');
 

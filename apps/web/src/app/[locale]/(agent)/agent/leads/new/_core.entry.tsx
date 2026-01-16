@@ -32,3 +32,5 @@ export default async function NewLeadPage() {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

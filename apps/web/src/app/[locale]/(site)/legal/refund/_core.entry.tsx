@@ -30,3 +30,5 @@ export default function RefundPage() {
     </div>
   );
 }
+
+export { generateViewport } from '@/app/_segment-exports';

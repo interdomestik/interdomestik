@@ -82,3 +82,5 @@ export default async function AgentSettingsPage({ params }: Readonly<SettingsPag
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

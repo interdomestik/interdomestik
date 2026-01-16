@@ -40,3 +40,5 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     </div>
   );
 }
+
+export { generateMetadata, generateViewport } from '@/app/_segment-exports';

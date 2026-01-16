@@ -32,3 +32,5 @@ export default function TermsPage() {
     </div>
   );
 }
+
+export { generateViewport } from '@/app/_segment-exports';
