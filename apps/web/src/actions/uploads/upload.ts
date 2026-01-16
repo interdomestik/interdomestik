@@ -116,6 +116,10 @@ function inferExtFromMagicBytes(buf: Uint8Array): string | null {
   return null;
 }
 
+// S3 / MinIO Support
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
 async function uploadToStorage(params: {
   buffer: Buffer;
   ext: string;
@@ -124,6 +128,83 @@ async function uploadToStorage(params: {
 }): Promise<UploadResult> {
   const { buffer, ext, userId, tenantId } = params;
 
+  // 1. MinIO / S3 Path (Docker / Local)
+  if (process.env.S3_ENDPOINT) {
+    try {
+      const s3 = new S3Client({
+        region: process.env.S3_REGION || 'us-east-1',
+        endpoint: process.env.S3_ENDPOINT,
+        forcePathStyle: true, // Required for MinIO
+        credentials: {
+          accessKeyId: process.env.S3_ACCESS_KEY || 'minioadmin',
+          secretAccessKey: process.env.S3_SECRET_KEY || 'minioadmin',
+        },
+      });
+
+      const bucketName = process.env.S3_BUCKET_NAME || 'claim-evidence';
+      const fileName = `pii/tenants/${tenantId}/claims/${userId}/voice-notes/${crypto.randomUUID()}.${ext}`;
+      const contentType =
+        {
+          webm: 'audio/webm',
+          mp4: 'audio/mp4',
+          ogg: 'audio/ogg',
+          mp3: 'audio/mpeg',
+          wav: 'audio/wav',
+        }[ext] || 'application/octet-stream';
+
+      // Upload
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: fileName,
+          Body: buffer,
+          ContentType: contentType,
+        })
+      );
+
+      // Sign URL
+      // Note: In Docker, S3_ENDPOINT is internal (minio:9000).
+      // For the browser to access it, we likely need a public URL (localhost:9000).
+      // Ideally S3_PUBLIC_URL is set to http://localhost:9000
+      const publicEndpoint = process.env.S3_PUBLIC_URL || process.env.S3_ENDPOINT;
+
+      // Signing with S3Client connected to internal endpoint usually produces internal URL.
+      // We might need to construct it manually or configure a separate client for signing if endpoint differs.
+      // For simplicity in this stack, we assume direct access or mapped ports.
+      // Actually, pre-signed URLs embed the host. If host is "minio", browser fails.
+      // Workaround: We use a separate "signer" client configured with localhost if running locally.
+
+      const signer = new S3Client({
+        region: process.env.S3_REGION || 'us-east-1',
+        endpoint: process.env.S3_PUBLIC_URL || 'http://localhost:9000',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: process.env.S3_ACCESS_KEY || 'minioadmin',
+          secretAccessKey: process.env.S3_SECRET_KEY || 'minioadmin',
+        },
+      });
+
+      const command = new PutObjectCommand({ Bucket: bucketName, Key: fileName });
+      const signedUrl = await getSignedUrl(signer, command, { expiresIn: 60 * 10 }); // Not PutObject, we need GetObject for viewing?
+      // Wait, uploadToStorage returns success and URL. Is the URL for viewing or just confirming?
+      // "url: signedData.signedUrl" implies returnable view URL.
+      // But we just uploaded it.
+      // The original code does `createSignedUrl` which corresponds to GET access.
+
+      const getCommand = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: fileName,
+      });
+      const viewUrl = await getSignedUrl(signer, getCommand, { expiresIn: 60 * 10 });
+
+      return { success: true, url: viewUrl, path: fileName };
+    } catch (err) {
+      console.error('S3/MinIO upload error:', err);
+      return { success: false, error: 'Upload failed (S3)' };
+    }
+  }
+
+  // 2. Supabase Storage (Default)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

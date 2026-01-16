@@ -4,6 +4,7 @@
  * - seed:workload is additive and self-cleaning
  * - seeds must never reference each other's IDs
  */
+import { E2E_PASSWORD, E2E_USERS } from './e2e-users';
 import type { SeedConfig } from './seed-types';
 import { cleanupByPrefixes } from './seed-utils/cleanup';
 import { hashPassword } from './seed-utils/hash-password';
@@ -15,7 +16,7 @@ export async function seedGolden(config: SeedConfig) {
 
   const { db } = await import('./db');
   const schema = await import('./schema');
-  const { inArray } = await import('drizzle-orm');
+  const { inArray, sql } = await import('drizzle-orm');
   const { at } = config;
 
   const TENANTS = {
@@ -72,62 +73,62 @@ export async function seedGolden(config: SeedConfig) {
     // Super Admin
     {
       id: goldenId('super_admin'),
-      name: 'Super Admin',
-      email: 'super@interdomestik.com',
-      role: 'super_admin',
+      name: E2E_USERS.SUPER_ADMIN.name,
+      email: E2E_USERS.SUPER_ADMIN.email,
+      role: E2E_USERS.SUPER_ADMIN.dbRole,
       tenantId: TENANTS.MK,
     },
     // MK Users
     {
       id: goldenId('mk_admin'),
-      name: 'Aleksandar Stojanovski',
-      email: 'admin.mk@interdomestik.com',
-      role: 'tenant_admin',
+      name: E2E_USERS.MK_ADMIN.name,
+      email: E2E_USERS.MK_ADMIN.email,
+      role: E2E_USERS.MK_ADMIN.dbRole,
       tenantId: TENANTS.MK,
     },
     {
       id: goldenId('mk_staff'),
-      name: 'Elena Petrovska',
-      email: 'staff.mk@interdomestik.com',
-      role: 'staff',
+      name: E2E_USERS.MK_STAFF.name,
+      email: E2E_USERS.MK_STAFF.email,
+      role: E2E_USERS.MK_STAFF.dbRole,
       tenantId: TENANTS.MK,
     },
     {
       id: goldenId('mk_bm_a'),
-      name: 'Marko Dimitrioski',
-      email: 'bm.mk.a@interdomestik.com',
-      role: 'branch_manager',
+      name: E2E_USERS.MK_BRANCH_MANAGER.name,
+      email: E2E_USERS.MK_BRANCH_MANAGER.email,
+      role: E2E_USERS.MK_BRANCH_MANAGER.dbRole,
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
     },
     {
       id: goldenId('mk_agent_a1'),
-      name: 'Stefan Dimitrioski',
-      email: 'agent.mk.a1@interdomestik.com',
-      role: 'agent',
+      name: E2E_USERS.MK_AGENT.name,
+      email: E2E_USERS.MK_AGENT.email,
+      role: E2E_USERS.MK_AGENT.dbRole,
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
     },
     {
       id: goldenId('mk_member_1'),
-      name: 'Aleksandar Stojanovski',
-      email: 'member.mk.1@interdomestik.com',
-      role: 'user',
+      name: E2E_USERS.MK_MEMBER.name,
+      email: E2E_USERS.MK_MEMBER.email,
+      role: 'user', // Explicit override in seed for MK Member if strictly 'user'
       tenantId: TENANTS.MK,
     },
     // KS Users & Staff
     {
       id: goldenId('ks_admin'),
-      name: 'Arbër Krasniqi',
-      email: 'admin.ks@interdomestik.com',
-      role: 'tenant_admin',
+      name: E2E_USERS.KS_ADMIN.name,
+      email: E2E_USERS.KS_ADMIN.email,
+      role: E2E_USERS.KS_ADMIN.dbRole,
       tenantId: TENANTS.KS,
     },
     {
       id: goldenId('ks_staff'),
-      name: 'Drita Gashi',
-      email: 'staff.ks@interdomestik.com',
-      role: 'staff',
+      name: E2E_USERS.KS_STAFF.name,
+      email: E2E_USERS.KS_STAFF.email,
+      role: E2E_USERS.KS_STAFF.dbRole,
       tenantId: TENANTS.KS,
     },
     {
@@ -139,9 +140,9 @@ export async function seedGolden(config: SeedConfig) {
     },
     {
       id: goldenId('ks_agent_a1'),
-      name: 'Blerim Hoxha',
-      email: 'agent.ks.a1@interdomestik.com',
-      role: 'agent',
+      name: E2E_USERS.KS_AGENT.name,
+      email: E2E_USERS.KS_AGENT.email,
+      role: E2E_USERS.KS_AGENT.dbRole,
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_a',
     },
@@ -210,6 +211,11 @@ export async function seedGolden(config: SeedConfig) {
   // 1. Cleanup
   await cleanupByPrefixes(db, schema, ['golden_', 'pack_ks_', 'member_']);
 
+  // Pre-emptive cleanup for specific claim numbers that might conflict if they exist with non-prefixed IDs
+  await db
+    .delete(schema.claims)
+    .where(inArray(schema.claims.claimNumber, ['CLM-MK-2026-000001', 'CLM-XK-2026-800001']));
+
   // 2. Upsert Tenants
   console.log('🏢 Seeding Tenants...');
   await db
@@ -220,6 +226,7 @@ export async function seedGolden(config: SeedConfig) {
         name: 'North Macedonia',
         contact: { email: 'support.mk@interdomestik.com' },
         legalName: 'Interdomestik MK DOOEL',
+        code: 'MK',
         countryCode: 'MK',
       },
       {
@@ -227,10 +234,14 @@ export async function seedGolden(config: SeedConfig) {
         name: 'Kosovo',
         contact: { email: 'support.ks@interdomestik.com' },
         legalName: 'Interdomestik KS LLC',
+        code: 'KS',
         countryCode: 'XK',
       },
     ])
-    .onConflictDoUpdate({ target: schema.tenants.id, set: { name: schema.tenants.name } });
+    .onConflictDoUpdate({
+      target: schema.tenants.id,
+      set: { name: schema.tenants.name, code: sql`excluded.code` },
+    });
 
   // 3. Upsert Branches
   console.log('🌿 Seeding Branches...');
@@ -244,8 +255,7 @@ export async function seedGolden(config: SeedConfig) {
 
   // 4. Upsert Users & Accounts
   console.log('👥 Seeding Users & Credentials...');
-  const GOLDEN_PASSWORD = 'GoldenPass123!';
-  const hashedPassword = hashPassword(GOLDEN_PASSWORD);
+  const hashedPassword = hashPassword(E2E_PASSWORD);
 
   for (const u of USERS) {
     await db
@@ -513,6 +523,7 @@ export async function seedGolden(config: SeedConfig) {
     category: 'vehicle',
     companyName: 'Test Insurer',
     claimAmount: '500.00',
+    claimNumber: 'CLM-MK-2026-000001',
   });
 
   // CLAIM TRACKING PACK (Strict Deterministic)
@@ -536,6 +547,7 @@ export async function seedGolden(config: SeedConfig) {
     staffId: goldenId('ks_staff'),
     assignedAt: at(-6 * 24 * 60 * 60 * 1000),
     assignedById: goldenId('ks_admin'),
+    claimNumber: 'CLM-XK-2026-800001',
   });
 
   // 2) SLA Breach (Open + Old)
@@ -577,7 +589,13 @@ export async function seedGolden(config: SeedConfig) {
       .values(c)
       .onConflictDoUpdate({
         target: schema.claims.id,
-        set: { status: c.status, staffId: c.staffId, branchId: c.branchId, createdAt: c.createdAt },
+        set: {
+          status: c.status,
+          staffId: c.staffId,
+          branchId: c.branchId,
+          createdAt: c.createdAt,
+          claimNumber: c.claimNumber,
+        },
       });
   }
 

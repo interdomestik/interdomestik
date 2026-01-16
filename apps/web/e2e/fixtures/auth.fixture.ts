@@ -9,6 +9,7 @@
  * - StorageState helpers for faster test runs
  */
 
+import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { test as base, Page } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -49,34 +50,34 @@ function ipForRole(role: Role): string {
 
 const CREDS: Record<Role, { email: string; password: string; name: string }> = {
   member: {
-    email: 'ks.member.pack.1@interdomestik.com',
-    password: 'GoldenPass123!',
-    name: 'Test Member KS Pack',
+    email: E2E_USERS.KS_MEMBER.email,
+    password: E2E_PASSWORD,
+    name: E2E_USERS.KS_MEMBER.name,
   },
   admin: {
-    email: 'admin@interdomestik.com',
-    password: 'AdminPassword123!',
-    name: 'Admin KS (E2E)',
+    email: E2E_USERS.KS_ADMIN.email,
+    password: E2E_PASSWORD,
+    name: E2E_USERS.KS_ADMIN.name,
   },
   agent: {
-    email: 'agent.ks.a1@interdomestik.com',
-    password: 'GoldenPass123!',
-    name: 'Agent KS',
+    email: E2E_USERS.KS_AGENT.email,
+    password: E2E_PASSWORD,
+    name: E2E_USERS.KS_AGENT.name,
   },
   staff: {
-    email: 'staff.ks.extra@interdomestik.com',
-    password: 'GoldenPass123!',
-    name: 'Staff KS Extra',
+    email: E2E_USERS.KS_STAFF.email,
+    password: E2E_PASSWORD,
+    name: E2E_USERS.KS_STAFF.name,
   },
   branch_manager: {
-    email: 'bm.mk.a@interdomestik.com',
-    password: 'GoldenPass123!',
-    name: 'Branch Manager MK',
+    email: E2E_USERS.MK_BRANCH_MANAGER.email,
+    password: E2E_PASSWORD,
+    name: E2E_USERS.MK_BRANCH_MANAGER.name,
   },
   admin_mk: {
-    email: 'admin.mk@interdomestik.com',
-    password: 'GoldenPass123!',
-    name: 'Admin MK (E2E Scan)',
+    email: E2E_USERS.MK_ADMIN.email,
+    password: E2E_PASSWORD,
+    name: E2E_USERS.MK_ADMIN.name,
   },
 };
 
@@ -91,9 +92,13 @@ export const TEST_ADMIN_MK = CREDS.admin_mk;
 // LOGIN HELPER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function performLogin(page: Page, role: Role): Promise<void> {
+async function performLogin(
+  page: Page,
+  role: Role,
+  authorizedBaseURL?: string | null
+): Promise<void> {
   const { email, password } = CREDS[role];
-  const baseURL = getBaseURL();
+  const baseURL = authorizedBaseURL ?? getBaseURL();
 
   // API Login Strategy (Robust)
   const res = await page.request.post('/api/auth/sign-in/email', {
@@ -106,7 +111,11 @@ async function performLogin(page: Page, role: Role): Promise<void> {
   });
 
   if (!res.ok()) {
-    throw new Error(`API login failed for ${role}: ${res.status()} ${await res.text()}`);
+    const text = await res.text();
+    console.error(`❌ API login failed for ${role}: ${res.status()} ${text}`);
+    throw new Error(`API login failed for ${role}: ${res.status()} ${text}`);
+  } else {
+    console.log(`✅ API login matched for ${role} (${email})`);
   }
 
   // Ensure cookies are set (page.request shares context storage state)
@@ -134,9 +143,20 @@ interface AuthFixtures {
 }
 
 export const test = base.extend<AuthFixtures>({
-  loginAs: async ({ page }, use) => {
+  loginAs: async ({ page, baseURL }, use) => {
     await use(async (role: Role) => {
-      await performLogin(page, role);
+      // Pass baseURL explicitly if needed, but page.request uses context baseURL
+      await performLogin(page, role, baseURL);
+
+      // Fix for Blocker 2: Always navigate after login to avoid about:blank
+      const locale = process.env.PLAYWRIGHT_LOCALE || (role.includes('mk') ? 'mk' : 'sq');
+      let target = `/${locale}`;
+      if (role.includes('admin')) target += '/admin';
+      else if (role === 'agent') target += '/agent';
+      else if (role === 'staff') target += '/staff';
+      else target += '/member';
+
+      await page.goto(target, { waitUntil: 'domcontentloaded' });
     });
   },
 
@@ -161,18 +181,18 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Page authenticated as admin
    */
-  adminPage: async ({ browser }, use) => {
+  adminPage: async ({ browser, baseURL }, use) => {
     const statePath = storageStateFile('admin');
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('admin') },
-      baseURL: getBaseURL(),
+      baseURL: baseURL ?? getBaseURL(),
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
       console.log('Admin state missing or invalid, performing fresh login...');
-      await performLogin(page, 'admin');
+      await performLogin(page, 'admin', baseURL);
       // Update state file for next time? Ideally setup does this.
     }
     await use(page);
@@ -249,8 +269,15 @@ export { expect } from '@playwright/test';
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Helper to map role to tenant folder
+function getTenantForRole(role: Role): 'ks' | 'mk' {
+  if (role === 'admin_mk' || role === 'branch_manager') return 'mk';
+  return 'ks';
+}
+
 function storageStateFile(role: Role): string {
-  return path.join(__dirname, '..', '.auth', `${role}.json`);
+  const tenant = getTenantForRole(role);
+  return path.join(__dirname, '..', '.auth', tenant, `${role}.json`);
 }
 
 async function storageStateExists(filePath: string): Promise<boolean> {
