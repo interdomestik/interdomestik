@@ -36,6 +36,7 @@
     "roles": {
       "admin": "Administrator",
       "agent": "Agjent",
+      "member": "Anëtar",
       "staff": "Staf",
       "user": "Anëtar"
     },
