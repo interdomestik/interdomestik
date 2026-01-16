@@ -39,10 +39,12 @@ export default async function AdminLayout({
   const sessionNonNull = session as NonNullable<typeof session>;
 
   try {
-    // Basic check: Must be at least a branch manager to enter.
+    // Basic check: Allow staff, branch_manager, or tenant_admin to enter admin area.
     // Specific page access (e.g., /admin/users vs /admin/branches) is handled by page-level RBAC.
-    const isBranchManager = sessionNonNull.user.role === 'branch_manager';
-    if (!isBranchManager) {
+    const role = sessionNonNull.user.role;
+    const isStaffOrBranchManager = role === 'staff' || role === 'branch_manager';
+
+    if (!isStaffOrBranchManager) {
       await requireTenantAdminSession(sessionNonNull as unknown as UserSession);
     }
   } catch {
