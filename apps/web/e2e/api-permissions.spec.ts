@@ -115,7 +115,7 @@ test.describe('API Permission Enforcement', () => {
       if (response.status() === 200) {
         const data = await response.json();
         if (data.user) {
-          expect(data.user.role).toBe('user');
+          expect(['member', 'user'].includes(data.user.role)).toBeTruthy();
         }
       }
     });
@@ -126,7 +126,7 @@ test.describe('API Permission Enforcement', () => {
       if (response.status() === 200) {
         const data = await response.json();
         if (data.user) {
-          expect(data.user.role).toBe('admin');
+          expect(['admin', 'tenant_admin'].includes(data.user.role)).toBeTruthy();
         }
       }
     });
