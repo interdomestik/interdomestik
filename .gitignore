@@ -75,3 +75,4 @@ sonar_*.json
 final_medium_cleanup.json
 apps/web/e2e/fixtures/.auth/
 .tmp/
+apps/web/e2e-results.json

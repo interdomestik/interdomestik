@@ -1,44 +1,46 @@
 {
-  "tracking": {
-    "header": {
-      "share_link": "Ndaj linkun e gjurmimit",
-      "link_copied": "Linku u kopjoa në clipboard",
-      "error_generating_link": "Gjenerimi i linkut dështoi",
-      "share_dialog_title": "Ndaj Statusin e Kërkesës",
-      "share_dialog_desc": "Kushdo me këtë link mund të shohë statusin aktual. Linku skadon në 7 ditë."
+  "claims-tracking": {
+    "tracking": {
+      "header": {
+        "share_link": "Ndaj linkun e gjurmimit",
+        "link_copied": "Linku u kopjoa në clipboard",
+        "error_generating_link": "Gjenerimi i linkut dështoi",
+        "share_dialog_title": "Ndaj Statusin e Kërkesës",
+        "share_dialog_desc": "Kushdo me këtë link mund të shohë statusin aktual. Linku skadon në 7 ditë."
+      },
+      "timeline": {
+        "empty": "Nuk ka ngjarje në kohështrirje."
+      },
+      "documents": {
+        "title": "Dokumentet",
+        "empty": "Asnjë dokument i ngarkuar ende."
+      },
+      "public": {
+        "title": "Statusi i Kërkesës",
+        "last_updated": "Përditësuar më {date}",
+        "next_step_title": "Çfarë ndodh më pas?",
+        "no_pii_notice": "Kjo është një pamje e kufizuar. Për detaje të plota, ju lutemi kyçuni."
+      }
     },
-    "timeline": {
-      "empty": "Nuk ka ngjarje në kohështrirje."
-    },
-    "documents": {
-      "title": "Dokumentet",
-      "empty": "Asnjë dokument i ngarkuar ende."
-    },
-    "public": {
-      "title": "Statusi i Kërkesës",
-      "last_updated": "Përditësuar më {date}",
-      "next_step_title": "Çfarë ndodh më pas?",
-      "no_pii_notice": "Kjo është një pamje e kufizuar. Për detaje të plota, ju lutemi kyçuni."
-    }
-  },
-  "status": {
-    "draft": "Draft",
-    "submitted": "E dorëzuar",
-    "verification": "Verifikim",
-    "evaluation": "Vlerësim",
-    "negotiation": "Negociim",
-    "court": "Gjykatë",
-    "resolved": "E Zgjidhur",
-    "rejected": "E Refuzuar",
-    "next_step": {
-      "draft": "Ju lutemi dorëzoni kërkesën tuaj për shqyrtim.",
-      "submitted": "Kemi marrë kërkesën tuaj dhe do ta caktojmë te një menaxher rasti së shpejti.",
-      "verification": "Po verifikojmë dokumentet dhe provat e ofruara.",
-      "evaluation": "Ekspertët tanë po vlerësojnë dëmet dhe përgjegjësinë.",
-      "negotiation": "Po negociojmë me kompaninë e sigurimeve për një zgjidhje të drejtë.",
-      "court": "Procedurat ligjore kanë filluar.",
-      "resolved": "Kërkesa është finalizuar.",
-      "rejected": "Kërkesa nuk mund të procesohej."
+    "status": {
+      "draft": "Draft",
+      "submitted": "E dorëzuar",
+      "verification": "Verifikim",
+      "evaluation": "Vlerësim",
+      "negotiation": "Negociim",
+      "court": "Gjykatë",
+      "resolved": "E Zgjidhur",
+      "rejected": "E Refuzuar",
+      "next_step": {
+        "draft": "Ju lutemi dorëzoni kërkesën tuaj për shqyrtim.",
+        "submitted": "Kemi marrë kërkesën tuaj dhe do ta caktojmë te një menaxher rasti së shpejti.",
+        "verification": "Po verifikojmë dokumentet dhe provat e ofruara.",
+        "evaluation": "Ekspertët tanë po vlerësojnë dëmet dhe përgjegjësinë.",
+        "negotiation": "Po negociojmë me kompaninë e sigurimeve për një zgjidhje të drejtë.",
+        "court": "Procedurat ligjore kanë filluar.",
+        "resolved": "Kërkesa është finalizuar.",
+        "rejected": "Kërkesa nuk mund të procesohej."
+      }
     }
   }
 }

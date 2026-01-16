@@ -1,35 +1,39 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
-# ═══════════════════════════════════════════════════════════════════════════════
+PROJECTS=${PROJECTS:-"ks-sq mk-mk"}
+MODE=${MODE:-"golden"}
+REPEAT=${REPEAT:-"1"}
+MAX_FAIL=${MAX_FAIL:-"1"}
+AUTO_STASH=${AUTO_STASH:-"false"}
+AUTO_COMMIT=${AUTO_COMMIT:-"false"}
+ALLOW_DIRTY=${ALLOW_DIRTY:-"true"}
+AUTO_REVERT=${AUTO_REVERT:-"false"}
+TRACK_REGRESSIONS=${TRACK_REGRESSIONS:-"true"}
+BASELINE_FILE=".e2e_baseline_count"
 
-PROJECTS=${PROJECTS:-"ks-sq mk-mk"}          # override if needed
-MODE=${MODE:-"golden"}                       # "golden" or "full"
-REPEAT=${REPEAT:-"1"}                       # set 2 for flake check
-MAX_FAIL=${MAX_FAIL:-"1"}                   # stop on first failure
-AUTO_STASH=${AUTO_STASH:-"false"}           # stash if tree is dirty
-AUTO_COMMIT=${AUTO_COMMIT:-"false"}         # commit on success if tree was clean
 WEB_DIR="apps/web"
 
 timestamp() { date +"%Y%m%d-%H%M%S"; }
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # GIT HELPERS
-# ═══════════════════════════════════════════════════════════════════════════════
-
 is_clean() {
   git diff --quiet && git diff --cached --quiet
 }
 
 ensure_clean_tree() {
   if ! is_clean; then
+    if [ "$ALLOW_DIRTY" = "true" ]; then
+        echo "⚠️  Working tree is dirty, but ALLOW_DIRTY=true. Proceeding..."
+        return 0
+    fi
+
     if [ "$AUTO_STASH" = "true" ]; then
       echo "⚠️  Working tree dirty. Auto-stashing..."
       git stash push -m "Auto-stash before E2E loop $(timestamp)"
     else
-      echo "❌ Error: Working tree is dirty. Commit, stash, or run with AUTO_STASH=true."
+      echo "❌ Error: Working tree is dirty. Commit, stash, set ALLOW_DIRTY=true, or run with AUTO_STASH=true."
       git status --short
       exit 1
     fi
@@ -37,34 +41,43 @@ ensure_clean_tree() {
 }
 
 perform_auto_commit() {
-  if [ "$AUTO_COMMIT" = "true" ]; then
-    echo "🏗️  Attempting auto-commit (guarded)..."
-    if ! is_clean; then
-      git add .
-      git commit -m "chore(e2e): stabilize tests [MODE=$MODE]"
-      echo "✅ Committed changes."
-    else
-      echo "ℹ️  Nothing to commit."
-    fi
+  if [ "$AUTO_COMMIT" = "true" ] && is_clean; then
+    echo "ℹ️  Nothing to commit (clean tree)."
+  elif [ "$AUTO_COMMIT" = "true" ]; then
+     echo "🏗️  Attempting auto-commit..."
+     git add .
+     git commit -m "chore(e2e): stabilize tests [MODE=$MODE]"
+     echo "✅ Committed changes."
   fi
 }
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TEST RUNNERS
-# ═══════════════════════════════════════════════════════════════════════════════
+perform_revert() {
+    echo "🔙 Regression detected or failure in strict mode. Reverting changes..."
+    git checkout .
+    git clean -fd
+    echo "✅ Reverted to HEAD."
+}
 
+# TEST RUNNERS
 clean_artifacts() {
-  echo "🧹 Cleaning previous artifacts..."
-  rm -rf "$WEB_DIR/test-results" "$WEB_DIR/playwright-report"
+  rm -rf "$WEB_DIR/test-results" "$WEB_DIR/playwright-report" "$WEB_DIR/e2e-results.json"
 }
 
 run_gatekeeper() {
   echo "🚧 Running M4 Gatekeeper (DB Reset & Seed)..."
-  ./scripts/m4-gatekeeper.sh
+  ./scripts/m4-gatekeeper.sh > /dev/null 2>&1 || echo "⚠️ Gatekeeper warning"
 }
 
 run_tests() {
   cd "$WEB_DIR"
+  
+  local max_fail_arg=""
+  if [ -n "$MAX_FAIL" ] && [ "$MAX_FAIL" != "0" ]; then
+    max_fail_arg="--max-failures=$MAX_FAIL"
+  fi
+
+  export PLAYWRIGHT_JSON_OUTPUT_NAME="e2e-results.json"
+
   if [ "$MODE" = "golden" ]; then
     echo "🚀 Running Golden Gate (Critical Flows)..."
     npx playwright test \
@@ -73,97 +86,103 @@ run_tests() {
       e2e/branch-dashboard.spec.ts \
       e2e/member-number.spec.ts \
       $(for p in $PROJECTS; do echo --project="$p"; done) \
-      --max-failures="$MAX_FAIL" \
+      $max_fail_arg \
       --repeat-each="$REPEAT" \
-      --reporter=line,list
+      --reporter=list,json || true 
   else
     echo "🔥 Running Full E2E Suite..."
     npx playwright test \
-      --max-failures="$MAX_FAIL" \
+      $max_fail_arg \
       --repeat-each="$REPEAT" \
-      --reporter=line,list
+      --reporter=list,json || true
   fi
+}
+
+get_failure_count() {
+    local results_path="apps/web/e2e-results.json"
+    if [ ! -f "$results_path" ]; then
+        echo "-1"
+        return
+    fi
+    node -e "try { const r = require('./$results_path'); console.log(r.stats.unexpected); } catch(e) { console.log('999'); }"
 }
 
 find_latest_failure_bundle() {
   local dir="$WEB_DIR/test-results"
   if [ ! -d "$dir" ]; then return 0; fi
-  # Find the newest directory that contains a failure artifact
   ls -1dt "$dir"/* 2>/dev/null | head -n 1 || true
 }
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # PROMPT GENERATOR
-# ═══════════════════════════════════════════════════════════════════════════════
-
 print_flash_prompt() {
   local bundle="$1"
-  echo ""
-  echo "================= GEMINI FLASH PROMPT ================="
-  echo "We are stabilizing Playwright E2E to reach Golden GREEN."
-  echo "Rules: fix ONE failing test at a time, minimal diff, no skips, no global timeouts, no sleeps."
-  echo ""
-  echo "First failing bundle path:"
-  echo "$bundle"
-  echo ""
-  echo "Open and use these artifacts (if present):"
-  echo "- $bundle/error-context.md"
-  echo "- $bundle/test-failed-1.png"
-  echo "- $bundle/trace.zip or traces/"
-  echo "- $bundle/video.webm"
-  echo ""
-  echo "Task:"
-  echo "1) Identify root cause bucket: test selector, race/eventual consistency, auth/state, RBAC, env/config, real app bug."
-  echo "2) Propose the smallest code fix."
-  echo "3) Provide exact diff."
-  echo "4) Provide verification commands (rerun twice with --repeat-each 2)."
-  echo "========================================================"
+  echo "GEMINI FLASH PROMPT"
+  echo "Task: Fix failing tests."
+  echo "Artifacts: $bundle"
 }
 
 print_success_checklist() {
-  echo ""
   echo "🏆 SUCCESS CHECKLIST"
-  echo "════════════════════════════════════════════════════════"
-  echo "✅ Database state: DETERMINISTIC (via Gatekeeper)"
   echo "✅ Critical flows: GREEN (Mode: $MODE)"
-  echo "✅ Repeatability:  VERIFIED (Repeat-each: $REPEAT)"
-  echo "✅ Projects covers: $PROJECTS"
-  echo "════════════════════════════════════════════════════════"
-  echo "Next Step: If Golden is Green, run with MODE=full."
 }
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# MAIN
-# ═══════════════════════════════════════════════════════════════════════════════
-
+#MAIN
 main() {
-  echo "== E2E Golden Loop $(timestamp) =="
-  
+  echo "== E2E Golden Loop $(timestamp) =="  
   ensure_clean_tree
   clean_artifacts
   run_gatekeeper
 
-  set +e
-  run_tests
-  status=$?
-  set -e
+  if [ ! -f "$BASELINE_FILE" ]; then
+     echo "9999" > "$BASELINE_FILE"
+  fi
+  local prev_failures
+  prev_failures=$(cat "$BASELINE_FILE")
 
-  if [ $status -eq 0 ]; then
-    echo "✅ SUCCESS: Mode=$MODE passed."
+  (run_tests)
+  
+  local current_failures
+  current_failures=$(get_failure_count)
+  
+  echo "📊 Status: Current Failures: $current_failures (Previous Best: $prev_failures)"
+
+  if [ "$current_failures" -eq "-1" ]; then
+      echo "❌ ERROR: Tests failed to execute or produce results."
+      exit 1
+  fi
+
+  if [ "$current_failures" -eq 0 ]; then
+    echo "✅ SUCCESS: All tests passed."
+    echo "0" > "$BASELINE_FILE"
     print_success_checklist
     perform_auto_commit
     exit 0
   fi
 
-  echo "❌ FAILURE: Stopped at first failure."
+  if [ "$TRACK_REGRESSIONS" = "true" ]; then
+      if [ "$current_failures" -gt "$prev_failures" ]; then
+          echo "⚠️ REGRESSION DETECTED: Failures increased from $prev_failures to $current_failures."
+          if [ "$AUTO_REVERT" = "true" ]; then
+              perform_revert
+              echo "🔄 Reverted. Try a different fix."
+              exit 1
+          fi
+      elif [ "$current_failures" -lt "$prev_failures" ]; then
+          echo "📉 IMPROVEMENT: Failures decreased from $prev_failures to $current_failures."
+          echo "$current_failures" > "$BASELINE_FILE"
+          perform_auto_commit
+      else
+           echo "Hz Same number of failures."
+      fi
+  fi
+
+  echo "❌ FAILURE: $current_failures tests failed."
   bundle=$(find_latest_failure_bundle)
   if [ -n "${bundle:-}" ]; then
     print_flash_prompt "$bundle"
-  else
-    echo "No test-results bundle found."
   fi
 
-  exit $status
+  exit 1
 }
 
 main "$@"

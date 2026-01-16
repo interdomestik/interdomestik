@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test';
 import path from 'path';
 
 const DEFAULT_LOCALE = 'sq';
-const ADMIN_MK_STATE = path.join(__dirname, '.auth', 'admin_mk.json');
+const ADMIN_MK_STATE = path.join(__dirname, '.auth', 'mk', 'admin.json');
 
 test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
   // Inject storage state for all tests in this block

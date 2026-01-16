@@ -31,7 +31,9 @@ test.describe('Claim routing (member → staff queue)', () => {
     await memberPage.getByTestId('wizard-next').click();
 
     // Submit
-    await memberPage.getByTestId('wizard-submit').click();
+    const submitBtn = memberPage.getByTestId('wizard-submit');
+    await expect(submitBtn).toBeEnabled();
+    await submitBtn.click();
 
     // Redirect to member claims list
     await memberPage.waitForURL(url => url.pathname === routes.memberClaims('en'), {
@@ -47,7 +49,7 @@ test.describe('Claim routing (member → staff queue)', () => {
       await staffPage.waitForLoadState('domcontentloaded');
       await expect(staffPage.getByText(claimTitle)).toBeVisible({ timeout: 10_000 });
       // Verify Tenant/Status correctness implicitly by visibility in the queue
-      await expect(staffPage.getByRole('cell', { name: 'Submitted' })).toBeVisible();
+      await expect(staffPage.getByRole('cell', { name: 'Submitted' }).first()).toBeVisible();
     }).toPass({ timeout: 20_000 });
   });
 });

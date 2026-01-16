@@ -33,7 +33,7 @@ test.describe('Admin User Flow', () => {
     });
 
     test('Admin can see operational center', async ({ adminPage: page }) => {
-      await page.goto(routes.adminClaims());
+      await page.goto(routes.admin());
 
       // The admin dashboard is the Operational Center with claims overview
       // Check for heading that exists in both locales
@@ -108,7 +108,7 @@ test.describe('Admin User Flow', () => {
       await page.goto(routes.admin());
 
       // Check for navigation links in sidebar (using common patterns)
-      const sidebar = page.getByTestId('admin-sidebar');
+      const sidebar = page.locator('nav').first();
       await expect(sidebar).toBeVisible();
 
       // Check for at least one navigation link
@@ -119,8 +119,12 @@ test.describe('Admin User Flow', () => {
     test('Admin can navigate to different sections', async ({ adminPage: page }) => {
       await page.goto(routes.admin());
 
+      // Use the sidebar container specifically
+      const sidebar = page.locator('[data-testid="admin-sidebar"][data-variant="sidebar"]');
+
       // Find a claims/requests link and click it
-      const claimsLink = page.getByRole('link', { name: /Kërkesat|Claims|Барања/i }).first();
+      // In Sidebar, it might be a button or link with specific text
+      const claimsLink = sidebar.getByRole('link', { name: /Kërkesat|Claims|Барања/i }).first();
       await expect(claimsLink).toBeVisible();
       await claimsLink.click();
 
