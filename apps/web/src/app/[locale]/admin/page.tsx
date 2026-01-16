@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm';
 import { Loader2 } from 'lucide-react';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
+import { redirect as nextRedirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 export default async function AdminDashboardPage({
@@ -18,15 +19,37 @@ export default async function AdminDashboardPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  const tenantId = ensureTenantId(session);
+  const requestHeaders = await headers();
+  const session = await (async () => {
+    try {
+      return await auth.api.getSession({
+        headers: requestHeaders,
+      });
+    } catch {
+      return null;
+    }
+  })();
+
+  if (!session) {
+    nextRedirect(`/${locale}/login`);
+    return null;
+  }
+
+  const tenantId = (() => {
+    try {
+      return ensureTenantId(session);
+    } catch {
+      nextRedirect(`/${locale}/login`);
+      return null;
+    }
+  })();
+
+  if (!tenantId) return null;
 
   // Branch Manager Redirect (Rule: "Branch auto-redirect for branch managers")
   if (session?.user?.role === 'branch_manager' && session?.user?.branchId) {
-    const { redirect } = await import('@/i18n/routing');
-    redirect({ href: `/admin/branches/${session.user.branchId}`, locale });
+    nextRedirect(`/${locale}/admin/branches/${session.user.branchId}`);
+    return null;
   }
 
   // Forbidden for non-admins (defense in depth; proxy should also enforce)

@@ -6,6 +6,31 @@ import { routing } from './i18n/routing';
 
 const handleIntlRouting = createIntlRouter(routing);
 
+const PROTECTED_TOP_LEVEL = new Set(['member', 'admin', 'staff', 'agent']);
+const SESSION_COOKIE_NAMES = [
+  'better-auth.session_token',
+  '__Secure-better-auth.session_token',
+  '__Host-better-auth.session_token',
+] as const;
+
+function getLocaleAndTopLevelPath(pathname: string): {
+  locale: string | null;
+  topLevel: string | null;
+} {
+  const re = /^\/([a-z]{2})(?:\/([^/]+))?(?:\/|$)/i;
+  const match = re.exec(pathname);
+  if (!match) return { locale: null, topLevel: null };
+  return { locale: match[1] ?? null, topLevel: match[2] ?? null };
+}
+
+function hasSessionCookie(request: NextRequest): boolean {
+  for (const name of SESSION_COOKIE_NAMES) {
+    const value = request.cookies.get(name)?.value;
+    if (value) return true;
+  }
+  return false;
+}
+
 function createNonce() {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -23,11 +48,29 @@ export default async function proxy(request: NextRequest) {
     method: request.method,
   });
 
+  // 0. Pre-render auth guard (Golden Path)
+  // IMPORTANT: Must run before any React rendering and must not hit the DB.
+  // We intentionally only check presence of the Better Auth session cookie.
+  const { locale, topLevel } = getLocaleAndTopLevelPath(pathname);
+  const isProtected = Boolean(locale && topLevel && PROTECTED_TOP_LEVEL.has(topLevel));
+  if (isProtected && !hasSessionCookie(request)) {
+    const loginUrl = new URL(`/${locale}/login`, request.url);
+    const response = NextResponse.redirect(loginUrl, 307);
+    response.headers.set('x-auth-guard', 'middleware');
+    // Flush Axiom logs before returning
+    await logger.flush();
+    return response;
+  }
+
   // 1. Handle i18n routing
   // Some routes intentionally live outside locale-prefixed routing.
   // Example: `/track/:token` uses `?lang=` and must not be redirected to `/<locale>/...`.
   const isLocaleAgnosticRoute = pathname.startsWith('/track/');
   const response = isLocaleAgnosticRoute ? NextResponse.next() : handleIntlRouting(request);
+
+  if (isProtected) {
+    response.headers.set('x-auth-guard', 'middleware');
+  }
 
   // 2. Security Headers
   // Content Security Policy
@@ -91,7 +134,7 @@ export default async function proxy(request: NextRequest) {
     base-uri 'self';
     form-action 'self';
   `
-    .replace(/\s{2,}/g, ' ')
+    .replaceAll(/\s{2,}/g, ' ')
     .trim();
 
   response.headers.set('Content-Security-Policy', cspHeader);

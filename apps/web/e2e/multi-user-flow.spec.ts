@@ -69,9 +69,17 @@ test.describe('Multi-User Claim Workflow', () => {
       await page.goto(routes.adminClaims());
       await page.waitForLoadState('domcontentloaded');
 
-      // Staff is redirected - verify they end up on staff workspace
-      const url = page.url();
-      expect(url).toContain('/staff');
+      // Staff is denied from admin claims routes (defense-in-depth).
+      // Can be 404 OR redirect to home/dashboard depending on layout guards.
+      await expect(async () => {
+        const url = page.url();
+        const isRedirected = !url.includes('/admin');
+        const isNotFound = await page
+          .getByTestId('not-found-page')
+          .isVisible()
+          .catch(() => false);
+        expect(isRedirected || isNotFound).toBeTruthy();
+      }).toPass();
     });
 
     test('Staff can view claims via staff workspace', async ({ staffPage: page }) => {
@@ -91,16 +99,16 @@ test.describe('Multi-User Claim Workflow', () => {
       await page.goto(routes.adminClaims());
       await page.waitForLoadState('domcontentloaded');
 
-      // Admin should see claims management UI
-      await expect(page.getByRole('heading', { name: /Claims Management/i })).toBeVisible();
+      // Locale-agnostic: assert the Ops Center container renders.
+      // (The visible heading is localized, e.g. "Qendra Operacionale e Kërkesave" in sq.)
+      await expect(page.getByTestId('ops-center-page').first()).toBeVisible();
     });
 
     test('Admin can see all users', async ({ adminPage: page }) => {
       await page.goto(routes.adminUsers());
       await page.waitForLoadState('domcontentloaded');
-      await expect(page.getByRole('heading', { name: /Users|Members/i, level: 1 })).toBeVisible({
-        timeout: 10000,
-      });
+      // Locale-agnostic: assert users page root renders.
+      await expect(page.getByTestId('admin-users-page')).toBeVisible({ timeout: 10000 });
     });
 
     test('Admin can access any claim details', async ({ adminPage: page }) => {
@@ -155,7 +163,16 @@ test.describe('Cross-Role Data Isolation', () => {
     await page.goto(routes.staffClaimDetail('claim-1-worker9'));
     await page.waitForLoadState('domcontentloaded');
 
-    expect(page.url()).not.toContain('/staff/claims');
+    // Access is denied. Can be 404 or redirect to agent dashboard.
+    await expect(async () => {
+      const url = page.url();
+      const isRedirected = url.includes('/agent') || url.includes('/member');
+      const isNotFound = await page
+        .getByTestId('not-found-page')
+        .isVisible()
+        .catch(() => false);
+      expect(isRedirected || isNotFound).toBeTruthy();
+    }).toPass();
   });
 
   test('Staff can access claims via staff workspace', async ({ staffPage: page }) => {
@@ -165,31 +182,49 @@ test.describe('Cross-Role Data Isolation', () => {
     expect(page.url()).toContain('/staff');
   });
 
-  test('Unauthenticated user cannot access protected routes', async ({ page }) => {
-    // Do not log in
-    await page.goto(routes.member());
-    await page.waitForLoadState('domcontentloaded');
+  test('Unauthenticated user cannot access protected routes', async ({ request }) => {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const memberUrl = `${baseUrl}${routes.member()}`;
 
-    // Should be redirected to login
-    const url = page.url();
-    const isProtected =
-      url.includes('/login') || url.includes('/sign-in') || !url.includes('/member');
+    // Golden path determinism: middleware must return a redirect BEFORE any React rendering.
+    const res = await request.get(memberUrl, { maxRedirects: 0 });
+    expect(res.status(), `Expected 307 redirect for ${memberUrl}`).toBe(307);
 
-    expect(isProtected).toBeTruthy();
+    const headers = res.headers();
+    expect(headers['x-auth-guard']).toBe('middleware');
+
+    const location = headers.location;
+    expect(location, 'Expected Location header on redirect').toBeTruthy();
+    expect(location).toContain(`${routes.login()}`);
   });
 
-  test('Unauthenticated user cannot access admin routes', async ({ page }) => {
-    await page.goto(routes.admin());
-    await page.waitForLoadState('domcontentloaded');
+  test('Unauthenticated user cannot access admin routes', async ({ request }) => {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const adminUrl = `${baseUrl}${routes.admin()}`;
 
-    expect(page.url()).not.toMatch(/\/admin$/);
+    const res = await request.get(adminUrl, { maxRedirects: 0 });
+    expect(res.status(), `Expected 307 redirect for ${adminUrl}`).toBe(307);
+
+    const headers = res.headers();
+    expect(headers['x-auth-guard']).toBe('middleware');
+
+    const location = headers.location;
+    expect(location, 'Expected Location header on redirect').toBeTruthy();
+    expect(location).toContain(`${routes.login()}`);
   });
 
-  test('Unauthenticated user cannot access staff routes', async ({ page }) => {
-    await page.goto(routes.staffClaims());
-    await page.waitForLoadState('domcontentloaded');
+  test('Unauthenticated user cannot access staff routes', async ({ request }) => {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const staffUrl = `${baseUrl}${routes.staffClaims()}`;
 
-    const url = page.url();
-    expect(url.includes('/login') || !url.includes('/staff')).toBeTruthy();
+    const res = await request.get(staffUrl, { maxRedirects: 0 });
+    expect(res.status(), `Expected 307 redirect for ${staffUrl}`).toBe(307);
+
+    const headers = res.headers();
+    expect(headers['x-auth-guard']).toBe('middleware');
+
+    const location = headers.location;
+    expect(location, 'Expected Location header on redirect').toBeTruthy();
+    expect(location).toContain(`${routes.login()}`);
   });
 });
