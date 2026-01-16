@@ -54,6 +54,6 @@ export async function resolveClaimsVisibility(
  * Checks if user has permission to view admin claims.
  */
 export function canViewAdminClaims(context: ClaimsVisibilityContext): boolean {
-  const allowedRoles = ['admin', 'tenant_admin', 'super_admin', 'branch_manager', 'staff'];
+  const allowedRoles = ['admin', 'tenant_admin', 'super_admin', 'branch_manager'];
   return context.role !== null && allowedRoles.includes(context.role);
 }

@@ -4,6 +4,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { auth } from '@/lib/auth';
 import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 
 import { canViewAdminClaims, getAdminClaimsV2, resolveClaimsVisibility } from '../server';
 import type { LifecycleStage } from '../types';
@@ -27,11 +28,7 @@ export default async function AdminClaimsV2Page({ searchParams }: AdminClaimsV2P
   const context = await resolveClaimsVisibility(session);
 
   if (!context || !canViewAdminClaims(context)) {
-    return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground">
-        {t('access_denied')}
-      </div>
-    );
+    notFound();
   }
 
   // Parse search params

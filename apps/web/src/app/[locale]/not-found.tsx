@@ -7,7 +7,10 @@ export default async function NotFound() {
   const tNav = await getTranslations('nav');
 
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center space-y-4">
+    <div
+      className="flex min-h-[60vh] flex-col items-center justify-center text-center space-y-4"
+      data-testid="not-found-page"
+    >
       <div>
         <p className="text-sm uppercase tracking-wide text-muted-foreground">404</p>
         <h1 className="text-3xl font-bold">{tCommon('notFound.title')}</h1>
