@@ -14,11 +14,11 @@ test.describe('Claims v2 Admin', () => {
     await page.locator('button[type="submit"]').click();
     await page.waitForURL(/(?:admin)/, { timeout: 30000 });
 
-    // 2. Navigate to admin claims
-    await page.goto('/sq/admin/claims');
+    // 2. Navigate to admin claims (Legacy List View)
+    await page.goto('/sq/admin/claims?view=list');
 
-    // Assert page title
-    await expect(page.getByRole('heading', { name: /kërkesat/i })).toBeVisible();
+    // Assert page title "Qendra Operacionale"
+    await expect(page.getByRole('heading', { name: /Qendra Operacionale/i })).toBeVisible();
 
     // 3. Assert Status Groups (Tabs) are visible
     // "Të gjitha", "Aktive", "Draft", "Të zgjidhura"
