@@ -89,6 +89,7 @@ export default async function RootLayout({ children, params }: Props) {
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
+        {process.env.NODE_ENV === 'development' && <script src="http://localhost:8097"></script>}
         <Suspense>
           <PostHogProvider>
             <NextIntlClientProvider messages={messages} locale={locale}>
