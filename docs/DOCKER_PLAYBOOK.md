@@ -1,82 +1,80 @@
-# Docker Golden Path Playbook
+# Docker Daily Playbook
 
-This document describes how to run the `interdomestikv2` environment in a deterministic, containerized stack. This ensures parity between local dev and CI.
+## 1. Daily Development (Fastest Workflow)
 
-## Ports & Services
+This workflow optimizes for iteration speed. You run the App locally but use instant, isolated Docker infrastructure.
 
-| Service      | Internal        | Host Port                      | Login                       |
-| ------------ | --------------- | ------------------------------ | --------------------------- |
-| **Web**      | `web:3000`      | `3000`                         | -                           |
-| **Mailpit**  | `mailpit:1025`  | `8025` (UI)                    | -                           |
-| **MinIO**    | `minio:9000`    | `9000` (API), `9001` (Console) | `minioadmin` / `minioadmin` |
-| **Redis**    | `redis:6379`    | `6379`                         | -                           |
-| **Postgres** | `postgres:5432` | `5432` (Optional)              | `postgres` / `password`     |
+### Start Infrastructure Only
 
-## Prerequisites
+```bash
+docker compose up -d redis mailpit minio
+# (Optional: add 'postgres' if you need the isolated DB)
+```
 
-1.  Docker & Docker Compose installed.
-2.  `docker/.env` file exists (copy from `docker/.env.example`).
-3.  Host `.env` configured with `DATABASE_URL`.
+### Run App on Host
 
-## Fresh Machine Verification
+```bash
+pnpm dev
+# App: http://localhost:3000
+# Mailpit: http://localhost:8025
+# MinIO: http://localhost:9001
+```
 
-1.  **Clone Repo**: `git clone ...`
-2.  **Setup Env**:
-    ```bash
-    cp .env.example .env
-    cp docker/.env.example docker/.env
-    ```
-3.  **Start Stack**:
-    ```bash
-    docker compose up -d --build
-    ```
-4.  **Install Deps (Container Isolation)**:
-    Since `node_modules` are valid only for linux, install them inside the runner:
-    ```bash
-    ./scripts/docker-run.sh pnpm install
-    ```
+## 2. Parity Checks (Golden Path)
 
-## Golden Commands
+When you need to verify your code works in a production-like environment (equivalent to CI/CD), use the full container stack.
 
-### 1. Database & Seed
+### Boot Full Stack
 
-Connects to host or optional container DB.
+```bash
+docker compose up -d --build
+# --build ensures the Playwright runner and Web app are fresh
+```
+
+### Run Migrations & Seeds (Inside Container)
+
+This ensures the DB is in a known state compatible with the containerized app.
 
 ```bash
 ./scripts/docker-run.sh pnpm db:migrate
 ./scripts/docker-run.sh pnpm --filter @interdomestik/database seed:e2e -- --reset
-./scripts/docker-run.sh pnpm --filter @interdomestik/database seed:assert-e2e
 ```
 
-### 2. Run Smoke Tests
-
-Runs the E2E smoke suite (headless) within the container.
+### Run Tests
 
 ```bash
+# Smoke Test (Fast check)
 ./scripts/docker-run.sh pnpm test:smoke
-```
 
-### 3. Run Full E2E Suite
-
-```bash
+# Full E2E (Comprehensive)
 ./scripts/docker-run.sh pnpm test:e2e
 ```
 
-### 4. Optional: Self-contained Postgres
+## 3. CI-Parity Gate
 
-To run a fully isolated stack including database:
+This single command sequence replicates exactly what should happen in CI to approve a PR. If this passes, your branch is safe to merge.
+
+**Usage:**
 
 ```bash
-docker compose --profile db up -d
+# From repo root
+./scripts/safe-gate.sh
 ```
 
-_Note: Update `docker/.env` to point to `postgresql://postgres:password@postgres:5432/interdomestik`_
+## 4. Troubleshooting
 
-## Troubleshooting
+| Symptom                           | Cause                                                  | Fix                                                                                 |
+| :-------------------------------- | :----------------------------------------------------- | :---------------------------------------------------------------------------------- |
+| **"ELF header" or binary error**  | Host `node_modules` (macOS) visible to Linux container | Run `./scripts/docker-run.sh pnpm install` to hydrate Linux binaries in the volume. |
+| **Tests flake / crashing**        | Playwright running out of shared memory                | Ensure `shm_size: '1gb'` is in `docker-compose.yml`.                                |
+| **Browser: "Connection Refused"** | MinIO URL points to docker network name                | Set `MINIO_SERVER_URL=http://localhost:9000` in compose.                            |
+| **Build: "Heap out of memory"**   | Next.js build needs more RAM                           | Ensure `NODE_OPTIONS="--max-old-space-size=4096"` in `apps/web/Dockerfile`.         |
+| **"No space left on device"**     | Docker VM disk full                                    | `docker system prune -a --volumes`                                                  |
 
-- **"Connection refused" to DB**:
-  - **Host Mac/Win**: Use `host.docker.internal` in `DATABASE_URL`.
-  - **Linux**: Use `172.17.0.1` or `--net=host`.
-- **"MinIO URL errors"**: Ensure `S3_PUBLIC_URL=http://localhost:9000` matches your browser access.
-- **"Missing Modules"**: Run `./scripts/docker-run.sh pnpm install` again.
-- **"Docker permissions"**: If `node_modules` appear on host owned by root, run `sudo chown -R $USER .` (Anonymous volumes should prevent this, but bind mounts for source code remain).
+## 5. Environment Reference
+
+See `docker-compose.yml` for exact ports.
+
+- **Web**: `web:3000` (internal), `localhost:3000` (browser)
+- **Mailpit**: `mailpit:1025` (smtp), `localhost:8025` (ui)
+- **MinIO**: `minio:9000` (api), `localhost:9001` (console)

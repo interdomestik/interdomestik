@@ -20,6 +20,7 @@ ENV NEXT_TELEMETRY_DISABLED 1
 # Skip linting during build to speed up
 ENV NEXT_IGNORE_ESLINT 1
 ENV INTERDOMESTIK_BUILDING 1
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 RUN pnpm --filter @interdomestik/web build
 
