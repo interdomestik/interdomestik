@@ -1,46 +1,44 @@
 {
-  "claims-tracking": {
-    "tracking": {
-      "header": {
-        "share_link": "Share Tracking Link",
-        "link_copied": "Link copied to clipboard",
-        "error_generating_link": "Failed to generate link",
-        "share_dialog_title": "Share Claim Status",
-        "share_dialog_desc": "Anyone with this link can view the current status of this claim. The link expires in 7 days."
-      },
-      "timeline": {
-        "empty": "No timeline events available."
-      },
-      "documents": {
-        "title": "Documents",
-        "empty": "No documents uploaded yet."
-      },
-      "public": {
-        "title": "Claim Status",
-        "last_updated": "Last updated on {date}",
-        "next_step_title": "What happens next?",
-        "no_pii_notice": "This is a secure, limited view. For full details, please log in."
-      }
+  "tracking": {
+    "header": {
+      "share_link": "Share Tracking Link",
+      "link_copied": "Link copied to clipboard",
+      "error_generating_link": "Failed to generate link",
+      "share_dialog_title": "Share Claim Status",
+      "share_dialog_desc": "Anyone with this link can view the current status of this claim. The link expires in 7 days."
     },
-    "status": {
-      "draft": "Draft",
-      "submitted": "Submitted",
-      "verification": "Verification",
-      "evaluation": "Evaluation",
-      "negotiation": "Negotiation",
-      "court": "Court",
-      "resolved": "Resolved",
-      "rejected": "Rejected",
-      "next_step": {
-        "draft": "Please submit your claim for review.",
-        "submitted": "We have received your claim and will assign it to a case manager shortly.",
-        "verification": "We are verifying the provided documents and evidence.",
-        "evaluation": "Our experts are evaluating the damages and liability.",
-        "negotiation": "We are negotiating with the insurance company for a fair settlement.",
-        "court": "Legal proceedings have been initiated.",
-        "resolved": "The claim has been finalized.",
-        "rejected": "The claim could not be processed."
-      }
+    "timeline": {
+      "empty": "No timeline events available."
+    },
+    "documents": {
+      "title": "Documents",
+      "empty": "No documents uploaded yet."
+    },
+    "public": {
+      "title": "Claim Status",
+      "last_updated": "Last updated on {date}",
+      "next_step_title": "What happens next?",
+      "no_pii_notice": "This is a secure, limited view. For full details, please log in."
+    }
+  },
+  "status": {
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "verification": "Verification",
+    "evaluation": "Evaluation",
+    "negotiation": "Negotiation",
+    "court": "Court",
+    "resolved": "Resolved",
+    "rejected": "Rejected",
+    "next_step": {
+      "draft": "Please submit your claim for review.",
+      "submitted": "We have received your claim and will assign it to a case manager shortly.",
+      "verification": "We are verifying the provided documents and evidence.",
+      "evaluation": "Our experts are evaluating the damages and liability.",
+      "negotiation": "We are negotiating with the insurance company for a fair settlement.",
+      "court": "Legal proceedings have been initiated.",
+      "resolved": "The claim has been finalized.",
+      "rejected": "The claim could not be processed."
     }
   }
 }
