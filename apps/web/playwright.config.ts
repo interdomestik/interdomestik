@@ -1,4 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from root (prioritize .env.local)
+dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), quiet: true });
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 
 const PORT = 3000;
 const BASE_HOST = 'localhost';
@@ -33,49 +39,57 @@ export default defineConfig({
   },
   projects: [
     // ═══════════════════════════════════════════════════════════════════════════
-    // SETUP PROJECT - Run first to generate auth states
-    // Usage: pnpm exec playwright test --project=setup
+    // SETUP PROJECTS - Generate auth states per tenant
     // ═══════════════════════════════════════════════════════════════════════════
     {
-      name: 'setup',
+      name: 'setup-ks',
       testMatch: /setup\.state\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3000',
+      },
+    },
+    {
+      name: 'setup-mk',
+      testMatch: /setup\.state\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3000',
+      },
     },
 
-    // Main project - run each spec once by default.
-    // Authenticated flows should use e2e/fixtures/auth.fixture.ts, which loads
-    // per-role storageState into isolated browser contexts (fast, no UI login).
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TEST LANES - Isolated by Tenant + Locale
+    // ═══════════════════════════════════════════════════════════════════════════
     {
-      name: 'chromium',
-      dependencies: ['setup'],
-      use: { ...devices['Desktop Chrome'] },
-      testIgnore: /setup\.state\.spec\.ts/,
+      name: 'ks-sq',
+      dependencies: ['setup-ks'],
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3000/sq',
+      },
+      testIgnore: [/setup\.state\.spec\.ts/, /claim-resolver-isolation\.spec\.ts/], // Ignore MK tests
     },
     {
-      name: 'firefox',
-      dependencies: ['setup'],
-      use: { ...devices['Desktop Firefox'] },
-      testIgnore: /setup\.state\.spec\.ts/,
+      name: 'mk-mk',
+      dependencies: ['setup-mk'],
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3000/mk',
+      },
+      testMatch: [/claim-resolver-isolation\.spec\.ts/], // Or specific MK tests
     },
-    {
-      name: 'webkit',
-      dependencies: ['setup'],
-      use: { ...devices['Desktop Safari'] },
-      testIgnore: /setup\.state\.spec\.ts/,
-    },
-    {
-      name: 'mobile-chrome',
-      dependencies: ['setup'],
-      use: { ...devices['Pixel 5'] },
-      testIgnore: /setup\.state\.spec\.ts/,
-    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SMOKE (Legacy/Cross-Check)
+    // ═══════════════════════════════════════════════════════════════════════════
     {
       name: 'smoke',
-      dependencies: ['setup'],
+      dependencies: ['setup-ks'], // Default to KS for general smoke
       testMatch: /.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        // Smoke specific hardening
+        baseURL: 'http://localhost:3000/sq',
         actionTimeout: 20 * 1000,
         navigationTimeout: 60 * 1000,
       },
@@ -86,7 +100,7 @@ export default defineConfig({
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
     command: `pnpm exec next start --hostname ${BIND_HOST} --port ${PORT}`,
     url: BASE_URL,
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
     timeout: 300 * 1000,
     env: {
       ...process.env,
