@@ -39,9 +39,10 @@ test.describe('Admin User Flow', () => {
       // Check for heading that exists in both locales
       await expect(page.locator('main').first()).toBeVisible();
 
-      // Check for any status filter buttons (common UI pattern)
-      const statusButtons = page.locator('button').filter({ hasText: /Të gjitha|All|Сите/i });
-      await expect(statusButtons.first()).toBeVisible({ timeout: 10000 });
+      // Check for Ops Center queue sidebar and "All" item (verifies the new UI structure)
+      const queueAll = page.getByTestId('queue-all');
+      await expect(queueAll).toBeVisible({ timeout: 10000 });
+      await expect(queueAll).toContainText(/Të gjitha|All|Сите/i);
     });
   });
 
