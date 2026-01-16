@@ -122,12 +122,8 @@ test.describe('Admin User Flow', () => {
       // Use the sidebar container specifically
       const sidebar = page.getByTestId('admin-sidebar').first();
 
-      // Find a claims/requests link and click it
-      // Filter by text content rather than aria-name to be more robust
-      const claimsLink = sidebar
-        .getByRole('link')
-        .filter({ hasText: /Kërkesat|Claims|Барања/i })
-        .first();
+      // Find a claims/requests link using href attribute which is safer than text
+      const claimsLink = sidebar.locator('a[href*="/admin/claims"]').first();
       await expect(claimsLink).toBeVisible();
       await claimsLink.click();
 
