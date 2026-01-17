@@ -12,6 +12,7 @@
         "branch": "Branch",
         "lead": "Lead",
         "agent": "Agent",
+        "proof": "Proof",
         "actions": "Actions"
       },
       "stats": {
@@ -25,11 +26,27 @@
       "toasts": {
         "approve_success": "Payment approved.",
         "reject_success": "Payment rejected.",
+        "needs_info_success": "Info request sent.",
+        "note_required": "Note is required.",
         "error": "An error occurred during verification."
       },
       "actions": {
         "approve": "Approve",
-        "reject": "Reject"
+        "reject": "Reject",
+        "view_proof": "View Proof",
+        "needs_info": "Needs Info",
+        "cancel": "Cancel",
+        "submit": "Submit"
+      },
+      "labels": {
+        "missing_proof": "Proof Missing",
+        "note": "Note"
+      },
+      "dialogs": {
+        "needs_info_title": "Request Additional Info"
+      },
+      "placeholders": {
+        "needs_info_note": "Describe what info is missing..."
       },
       "empty_state": "No pending cash verification requests found."
     },

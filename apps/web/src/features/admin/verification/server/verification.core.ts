@@ -1,6 +1,6 @@
 import { ProtectedActionContext } from '@/lib/safe-action';
 import { db } from '@interdomestik/database';
-import { auditLog, branches, user } from '@interdomestik/database/schema';
+import { auditLog, branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -9,7 +9,8 @@ import { z } from 'zod';
 // Input Schemas
 export const verifyCashSchema = z.object({
   attemptId: z.string(),
-  decision: z.enum(['approve', 'reject']),
+  decision: z.enum(['approve', 'reject', 'needs_info']),
+  note: z.string().optional(),
 });
 
 export type CashVerificationRequestDTO = {
@@ -27,6 +28,8 @@ export type CashVerificationRequestDTO = {
   agentId: string;
   agentName: string;
   agentEmail: string;
+  documentId: string | null;
+  documentPath: string | null;
 };
 
 // 1. Query: Get Pending Cash Attempts
@@ -39,6 +42,15 @@ export async function getPendingCashAttempts(
   const conditions = [
     eq(leadPaymentAttempts.tenantId, tenantId),
     eq(leadPaymentAttempts.method, 'cash'),
+    // We show pending and needs_info in the queue?
+    // Usually 'needs_info' means agent needs to act.
+    // Admin queue typically shows 'pending' (waiting for admin).
+    // If admin sets 'needs_info', it disappears from 'pending' queue until agent updates it?
+    // Or it stays but with status 'needs_info'?
+    // For now, let's keep it simple: show 'pending'.
+    // If status is 'needs_info', it's waiting on agent, so maybe not in this specific "Verification" queue unless filtered.
+    // But the prompt says "Verification item can be set to NEEDS_INFO".
+    // I'll stick to 'pending' for the main queue query as per original logic.
     eq(leadPaymentAttempts.status, 'pending'),
     // Join condition safety
     eq(memberLeads.id, leadPaymentAttempts.leadId),
@@ -73,52 +85,78 @@ export async function getPendingCashAttempts(
       agentId: user.id,
       agentName: user.name,
       agentEmail: user.email,
+      // Document Info
+      documentId: documents.id,
+      documentPath: documents.storagePath,
     })
     .from(leadPaymentAttempts)
     .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
     .innerJoin(branches, eq(memberLeads.branchId, branches.id))
     .innerJoin(user, eq(memberLeads.agentId, user.id))
+    .leftJoin(
+      documents,
+      and(
+        eq(documents.entityId, leadPaymentAttempts.id),
+        eq(documents.entityType, 'payment_attempt')
+      )
+    )
     .where(and(...conditions))
     .orderBy(asc(leadPaymentAttempts.createdAt)); // Oldest first for Ops queue
 
   return rows as CashVerificationRequestDTO[];
 }
 
-// 2. Action: Verify (Approve/Reject)
+// 2. Action: Verify (Approve/Reject/NeedsInfo)
 // OPS-GRADE: Transaction + Idempotency + Audit
 export async function verifyCashAttemptCore(
   ctx: ProtectedActionContext,
   input: z.infer<typeof verifyCashSchema>
 ) {
   const { tenantId, session } = ctx;
-  const { attemptId, decision } = input;
+  const { attemptId, decision, note } = input;
+
+  // Validation: Note required for reject/needs_info
+  if ((decision === 'reject' || decision === 'needs_info') && !note?.trim()) {
+    throw new Error('A note is required for this decision.');
+  }
 
   return await db.transaction(async tx => {
-    // A. Fetch & Lock (or just fetch) to validate state
-    const [attempt] = await tx
-      .select()
+    // A. Fetch & Lock to validate state
+    const [result] = await tx
+      .select({
+        attempt: leadPaymentAttempts,
+        lead: memberLeads,
+      })
       .from(leadPaymentAttempts)
+      .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
       .where(and(eq(leadPaymentAttempts.id, attemptId), eq(leadPaymentAttempts.tenantId, tenantId)))
       .limit(1);
 
-    // B. Validation (Idempotency)
-    if (!attempt) throw new Error('Payment attempt not found.');
+    if (!result) throw new Error('Payment attempt not found.');
+    const { attempt, lead } = result;
+
+    // B. Security: Self-Verification Check
+    // An agent cannot verify their own payment, even if they have admin rights (separation of duties)
+    if (lead.agentId === session.user.id) {
+      throw new Error('Conflict of Interest: You cannot verify payments for your own leads.');
+    }
+
+    // C. Validation (Idempotency)
     if (attempt.status !== 'pending') {
-      // Idempotent success if already in desired state?
-      // If we wanted to approve and it's succeeded, cool.
-      // If we wanted to reject and it's rejected, cool.
       if (decision === 'approve' && attempt.status === 'succeeded')
         return { success: true, message: 'Already approved' };
       if (decision === 'reject' && attempt.status === 'rejected')
         return { success: true, message: 'Already rejected' };
-
+      // Allow re-decisioning? Generally no for strict audit.
       throw new Error(`Attempt is already processed as ${attempt.status}`);
     }
 
-    // C. Determine Updates
-    const newStatus = decision === 'approve' ? 'succeeded' : 'rejected';
+    // D. Determine Status
+    let newStatus: 'succeeded' | 'rejected' | 'needs_info' = 'succeeded';
+    if (decision === 'reject') newStatus = 'rejected';
+    else if (decision === 'needs_info') newStatus = 'needs_info';
 
-    // D. Update Attempt
+    // E. Update Attempt
     await tx
       .update(leadPaymentAttempts)
       .set({
@@ -126,10 +164,11 @@ export async function verifyCashAttemptCore(
         verifiedBy: session.user.id,
         verifiedAt: new Date(),
         updatedAt: new Date(),
+        verificationNote: note || null,
       })
       .where(eq(leadPaymentAttempts.id, attemptId));
 
-    // E. Audit Log
+    // F. Audit Log
     await tx.insert(auditLog).values({
       id: nanoid(),
       tenantId,
@@ -144,15 +183,13 @@ export async function verifyCashAttemptCore(
         leadId: attempt.leadId,
         previousStatus: attempt.status,
         newStatus,
+        note,
       },
       createdAt: new Date(),
     });
 
-    // F. Minimal Lead Update (Only if Approved)
-    // Rule: We only move lead to 'converted' if it's currently 'new' or 'payment_pending'.
-    // We do NOT modify 'disqualified' or existing 'converted'.
+    // G. Minimal Lead Update (Only if Approved)
     if (decision === 'approve') {
-      // We should fetch lead status to be safe, but a direct update with where clause is efficient
       await tx
         .update(memberLeads)
         .set({
@@ -162,9 +199,6 @@ export async function verifyCashAttemptCore(
         .where(
           and(
             eq(memberLeads.id, attempt.leadId),
-            // Only auto-upgrade if waiting for payment
-            // Use SQL 'IN' equivalent or explicit checks
-            // Safest to strictly target payment_pending or new
             sql`${memberLeads.status} IN ('new', 'payment_pending')`
           )
         );

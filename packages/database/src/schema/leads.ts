@@ -73,6 +73,7 @@ export const leadPaymentAttempts = pgTable(
         'failed', // Card failed
         'canceled', // User/Agent canceled
         'rejected', // BM rejected cash
+        'needs_info', // Ops requested more info
       ],
     })
       .notNull()
@@ -88,6 +89,7 @@ export const leadPaymentAttempts = pgTable(
     // Cash Specific
     verifiedBy: text('verified_by').references(() => user.id),
     verifiedAt: timestamp('verified_at'),
+    verificationNote: text('verification_note'),
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')

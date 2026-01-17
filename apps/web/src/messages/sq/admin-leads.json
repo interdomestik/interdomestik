@@ -12,6 +12,7 @@
         "branch": "Dega",
         "lead": "Klienti Potencial",
         "agent": "Agjenti",
+        "proof": "Prova",
         "actions": "Veprime"
       },
       "stats": {
@@ -25,11 +26,27 @@
       "toasts": {
         "approve_success": "Pagesa u aprovua.",
         "reject_success": "Pagesa u refuzua.",
+        "needs_info_success": "Kërkesa për info u dërgua.",
+        "note_required": "Shënimi është i detyrueshëm.",
         "error": "Ndodhi një gabim gjatë verifikimit."
       },
       "actions": {
         "approve": "Aprovo",
-        "reject": "Refuzo"
+        "reject": "Refuzo",
+        "view_proof": "Shiko Provën",
+        "needs_info": "Kërko Info",
+        "cancel": "Anulo",
+        "submit": "Dërgo"
+      },
+      "labels": {
+        "missing_proof": "Mungon Prova",
+        "note": "Shënim"
+      },
+      "dialogs": {
+        "needs_info_title": "Kërko Informacion Shtesë"
+      },
+      "placeholders": {
+        "needs_info_note": "Përshkruaj çfarë informacioni mungon..."
       },
       "empty_state": "Nuk ka kërkesa për verifikim të pagesave cash."
     },

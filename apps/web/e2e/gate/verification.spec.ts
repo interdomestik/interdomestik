@@ -36,15 +36,36 @@ test.describe('Admin Verification Queue (Cash)', () => {
     if (await row.isVisible()) {
       const initialCount = await page.getByTestId('cash-verification-row').count();
       const approveBtn = row.getByTestId('cash-approve');
+      const needsInfoBtn = row.getByTestId('cash-needs-info');
+
       await expect(approveBtn).toBeVisible();
+      await expect(needsInfoBtn).toBeVisible();
 
       // 5. Approve
+
       await approveBtn.click();
 
-      // 6. Verify Success Toast
-      await expect(
-        page.getByText(/Payment approved/i).or(page.getByText(/Pagesa u aprovua/i))
-      ).toBeVisible();
+      // 6. Verify Success Toast or Error
+
+      const successToast = page
+        .getByText(/Payment approved/i)
+        .or(page.getByText(/Pagesa u aprovua/i));
+
+      const errorToast = page.getByText(/Error|Gabim|Conflict|Konflikt|Failed/i);
+
+      // Wait for either
+
+      await expect(successToast.or(errorToast)).toBeVisible({ timeout: 10000 });
+
+      // Assert it was success (if error, this message will help debug)
+
+      if (await errorToast.isVisible()) {
+        const text = await errorToast.innerText();
+
+        throw new Error(`Verification failed with toast: ${text}`);
+      }
+
+      await expect(successToast).toBeVisible();
 
       // 7. Verify Row Count Decreased
       await expect(async () => {

@@ -549,6 +549,26 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
         createdAt: date,
       })
       .onConflictDoNothing();
+
+    // Attach proof to the first lead only
+    if (i === 0 && schema.documents) {
+      await db
+        .insert(schema.documents)
+        .values({
+          id: packId('ks', 'doc', 'pay', i),
+          tenantId: TENANTS.KS,
+          entityType: 'payment_attempt',
+          entityId: packId('ks', 'pay', i),
+          fileName: 'payment_receipt.jpg',
+          mimeType: 'image/jpeg',
+          fileSize: 1024 * 50,
+          storagePath: `ks/payments/${packId('ks', 'pay', i)}/payment_receipt.jpg`,
+          category: 'receipt',
+          uploadedBy: 'golden_ks_agent_a1',
+          uploadedAt: date,
+        })
+        .onConflictDoNothing();
+    }
   }
 
   console.log('\n🔍 --- KS Pack Summary ---');

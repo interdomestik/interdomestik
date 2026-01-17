@@ -14,6 +14,7 @@ export const documentEntityTypeEnum = pgEnum('document_entity_type', [
   'member',
   'thread',
   'share_pack',
+  'payment_attempt',
 ]);
 
 // Document storage category

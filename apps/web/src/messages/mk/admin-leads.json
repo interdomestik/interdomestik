@@ -12,6 +12,7 @@
         "branch": "Филијала",
         "lead": "Потенцијален Клиент",
         "agent": "Агент",
+        "proof": "Доказ",
         "actions": "Акции"
       },
       "stats": {
@@ -25,11 +26,27 @@
       "toasts": {
         "approve_success": "Плаќањето е одобрено.",
         "reject_success": "Плаќањето е одбиено.",
+        "needs_info_success": "Барањето е испратено.",
+        "note_required": "Забелешката е задолжителна.",
         "error": "Настана грешка при верификацијата."
       },
       "actions": {
         "approve": "Одобри",
-        "reject": "Одбиј"
+        "reject": "Одбиј",
+        "view_proof": "Види Доказ",
+        "needs_info": "Потребно Инфо",
+        "cancel": "Откажи",
+        "submit": "Испрати"
+      },
+      "labels": {
+        "missing_proof": "Нема Доказ",
+        "note": "Забелешка"
+      },
+      "dialogs": {
+        "needs_info_title": "Побарај Додатно Инфо"
+      },
+      "placeholders": {
+        "needs_info_note": "Опиши што недостасува..."
       },
       "empty_state": "Нема барања за верификација на готовински плаќања."
     },

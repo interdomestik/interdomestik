@@ -24,8 +24,15 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Label,
+  Textarea,
 } from '@interdomestik/ui';
-import { Check, Info, Shield, X, Filter } from 'lucide-react';
+import { Check, Info, Shield, X, Filter, FileText, HelpCircle } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
@@ -34,6 +41,11 @@ export function VerificationList({ initialLeads }: { initialLeads: CashVerificat
   const t = useTranslations('admin.leads');
   const [requests, setRequests] = useState(initialLeads);
   const [branchFilter, setBranchFilter] = useState<string>('all');
+
+  // Needs Info Dialog State
+  const [needsInfoOpen, setNeedsInfoOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [note, setNote] = useState('');
 
   // Derive unique branches for filter
   const branches = useMemo(() => {
@@ -51,10 +63,15 @@ export function VerificationList({ initialLeads }: { initialLeads: CashVerificat
 
   const totalAmount = filteredRequests.reduce((sum, r) => sum + r.amount, 0);
 
-  const handleVerify = async (attemptId: string, decision: 'approve' | 'reject') => {
+  const handleVerify = async (
+    attemptId: string,
+    decision: 'approve' | 'reject' | 'needs_info',
+    note?: string
+  ) => {
     const res = await verifyCashAttemptAction({
       attemptId,
       decision,
+      note,
     });
 
     if (res.success) {
@@ -64,6 +81,22 @@ export function VerificationList({ initialLeads }: { initialLeads: CashVerificat
     } else {
       toast.error(res.error || t('toasts.error'));
     }
+  };
+
+  const openNeedsInfo = (id: string) => {
+    setSelectedId(id);
+    setNote('');
+    setNeedsInfoOpen(true);
+  };
+
+  const submitNeedsInfo = async () => {
+    if (!selectedId) return;
+    if (!note.trim()) {
+      toast.error(t('toasts.note_required'));
+      return;
+    }
+    await handleVerify(selectedId, 'needs_info', note);
+    setNeedsInfoOpen(false);
   };
 
   return (
@@ -118,6 +151,7 @@ export function VerificationList({ initialLeads }: { initialLeads: CashVerificat
               <TableHead>{t('table.branch')}</TableHead>
               <TableHead>{t('table.lead')}</TableHead>
               <TableHead>{t('table.agent')}</TableHead>
+              <TableHead>{t('table.proof')}</TableHead>
               <TableHead>{t('table.amount')}</TableHead>
               <TableHead className="text-right">{t('table.actions')}</TableHead>
             </TableRow>
@@ -125,7 +159,7 @@ export function VerificationList({ initialLeads }: { initialLeads: CashVerificat
           <TableBody>
             {filteredRequests.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                   {t('empty_state')}
                 </TableCell>
               </TableRow>
@@ -161,6 +195,29 @@ export function VerificationList({ initialLeads }: { initialLeads: CashVerificat
                       </Tooltip>
                     </TooltipProvider>
                   </TableCell>
+                  <TableCell>
+                    {req.documentPath ? (
+                      <Button variant="ghost" size="sm" asChild className="h-8">
+                        <a
+                          href={`/api/documents/${req.documentId}/download`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FileText className="w-4 h-4 mr-2 text-blue-600" />
+                          <span className="text-blue-600 underline-offset-4 hover:underline">
+                            {t('actions.view_proof')}
+                          </span>
+                        </a>
+                      </Button>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-yellow-600 border-yellow-600 bg-yellow-50"
+                      >
+                        {t('labels.missing_proof')}
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="font-bold text-green-600">
                     {(req.amount / 100).toLocaleString('de-DE', {
                       style: 'currency',
@@ -180,8 +237,24 @@ export function VerificationList({ initialLeads }: { initialLeads: CashVerificat
                       </Button>
                       <Button
                         size="sm"
+                        variant="outline"
+                        onClick={() => openNeedsInfo(req.id)}
+                        data-testid="cash-needs-info"
+                      >
+                        <HelpCircle className="w-4 h-4 mr-1" /> {t('actions.needs_info')}
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="destructive"
-                        onClick={() => handleVerify(req.id, 'reject')}
+                        onClick={() => handleVerify(req.id, 'reject')} // Reject can also have note? Yes, but usually needs info is for fixing. Reject is final? Prompt says "rejected ... and note".
+                        // Should reject also open modal? Or simple reject?
+                        // Usually Rejection requires reason too.
+                        // I'll make Reject require note too?
+                        // Prompt requirement 2: "Verification item can be set to NEEDS_INFO with a required note".
+                        // Requirement 3: "Audit trail: ... note".
+                        // It doesn't explicitly say Reject requires note, but it's good practice.
+                        // I'll keep Reject simple for now as per previous implementation, but maybe add optional note?
+                        // For this iteration, I'll stick to Needs Info having the modal.
                         data-testid="cash-reject"
                       >
                         <X className="w-4 h-4 mr-1" /> {t('actions.reject')}
@@ -194,6 +267,28 @@ export function VerificationList({ initialLeads }: { initialLeads: CashVerificat
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={needsInfoOpen} onOpenChange={setNeedsInfoOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('dialogs.needs_info_title')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label>{t('labels.note')}</Label>
+            <Textarea
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder={t('placeholders.needs_info_note')}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNeedsInfoOpen(false)}>
+              {t('actions.cancel')}
+            </Button>
+            <Button onClick={submitNeedsInfo}>{t('actions.submit')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
