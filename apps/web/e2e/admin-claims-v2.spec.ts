@@ -4,7 +4,7 @@
  * Verifies new columns, filtering, and assignment logic.
  */
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const PASSWORD = 'GoldenPass123!';
 const DEFAULT_LOCALE = 'sq';

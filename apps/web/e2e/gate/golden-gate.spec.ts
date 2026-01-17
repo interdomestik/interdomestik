@@ -1,7 +1,6 @@
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { type TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
-import { assertSeededEmail } from '../fixtures/seed-guard';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROJECT-AWARE HELPERS
@@ -11,10 +10,6 @@ type Tenant = 'ks' | 'mk';
 
 function getTenantFromTestInfo(testInfo: TestInfo): Tenant {
   return testInfo.project.name.includes('mk') ? 'mk' : 'ks';
-}
-
-function isKsProject(testInfo: TestInfo): boolean {
-  return getTenantFromTestInfo(testInfo) === 'ks';
 }
 
 function getTargetLocale(user: { tenant: string }): string {
@@ -347,7 +342,7 @@ test.describe('Golden Gate: Critical Path', () => {
       // Try verifying via URL first, fallback to visual indication
       try {
         await expect(page).toHaveURL(/status=draft/, { timeout: 5000 });
-      } catch (e) {
+      } catch {
         // Check if tab appears active via data-state or class
         // This is a robust fallback if URL state is delayed or managed via shallow routing without URL change
         const isDraftActive =

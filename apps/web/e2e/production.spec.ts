@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const DEFAULT_LOCALE = 'sq';
 // Credentials from seed script
@@ -9,7 +9,7 @@ const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: 'GoldenPass123
 // Claim Data - use a static but unique-enough timestamp for the whole run
 const CLAIM_TITLE = `Auto Smoke ${Date.now()}`;
 
-async function loginAs(page: Page, user: { email: string; password?: string }) {
+async function loginAs(page: Page, user: { email: string; password?: string; tenant?: string }) {
   const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
   const loginURL = `${baseURL}/api/auth/sign-in/email`;
 
