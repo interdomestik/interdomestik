@@ -22,8 +22,8 @@ async function loginAs(
 }
 
 // Use serial to ensure Phase A creates claim before Phase B/C try to view it
-test.describe.serial('Production Smoke Test Plan [smoke]', () => {
-  test.describe('Phase A: Authentication & Routing (Member) [smoke]', () => {
+test.describe.serial('@smoke Production Smoke Test Plan', () => {
+  test.describe('Phase A: Authentication & Routing (Member) @smoke', () => {
     test('Member (KS) can login, see dashboard, and create a claim', async ({ page }) => {
       // 1. Login
       await loginAs(page, { ...MEMBER_KS, tenant: 'tenant_ks' });

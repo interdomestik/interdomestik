@@ -152,7 +152,9 @@ test.describe('Settings Page', () => {
     });
 
     // TODO: Fix application bug - Notification preferences are not persisting after save/reload
-    test.skip('should save notification preferences', async ({ authenticatedPage }) => {
+    test.fixme('Known bug: notification preferences not persisting', async ({
+      authenticatedPage,
+    }) => {
       await authenticatedPage.goto(routes.memberSettings('en'));
       await authenticatedPage.waitForLoadState('networkidle');
 

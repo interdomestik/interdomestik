@@ -10,17 +10,17 @@ import { expect, test } from './fixtures/auth.fixture';
 const SEEDED_KS_DOC_IDS = ['doc-ks-1', 'doc-ks-2'];
 
 test.describe('Share Pack API', () => {
-  // Skip for MK project as seed data for docs is KS-specific
-  test.beforeEach(({}, testInfo) => {
-    if (testInfo.project.name.includes('mk')) {
-      test.skip(true, 'Seed data (docs) is KS-specific');
-    }
-  });
+  test('should create and access a share pack', async ({ request, adminPage }, testInfo) => {
+    // 1. Create Share Pack using project-aware document IDs
+    const isMk = testInfo.project.name.includes('mk');
+    // TODO: Seed 'doc-mk-1' in database/src/seed-packs/mk-workflow-pack.ts
+    test.skip(isMk, 'MK seed missing doc-mk-1');
 
-  test('should create and access a share pack', async ({ request, adminPage }) => {
-    // 1. Create Share Pack using seeded document IDs
+    // Use seeded documents: 'doc-ks-1' for KS
+    const docIds = SEEDED_KS_DOC_IDS;
+
     const createRes = await adminPage.request.post('/api/share-pack', {
-      data: { documentIds: SEEDED_KS_DOC_IDS },
+      data: { documentIds: docIds },
     });
 
     // Debug logging on failure

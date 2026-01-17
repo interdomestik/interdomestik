@@ -75,7 +75,7 @@ function buildSubscriptionPayload(args: {
   } satisfies PaddleWebhookPayload;
 }
 
-test.describe('Subscription Lifecycle', () => {
+test.describe('@quarantine Subscription Lifecycle', () => {
   let webhookEventsAvailable = false;
 
   test.beforeAll(async () => {

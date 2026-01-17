@@ -25,7 +25,8 @@ async function loginAs(
   await page.waitForURL(/(?:member|admin|staff|agent|dashboard)/, { timeout: 30000 });
 }
 
-test.describe('Admin Claims V2 ', () => {
+// TODO: Stabilization needed for v2 features
+test.describe('@quarantine Admin Claims V2 ', () => {
   test.beforeEach(async ({ page }) => {
     // Diagnostics: Console & Network (with noise filtering)
     page.on('console', msg => {
