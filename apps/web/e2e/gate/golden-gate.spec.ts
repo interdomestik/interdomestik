@@ -1,5 +1,6 @@
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test, TestInfo } from '@playwright/test';
+import { assertSeededEmail } from '../fixtures/seed-guard';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROJECT-AWARE HELPERS
@@ -45,6 +46,7 @@ async function loginAs(
   page: import('@playwright/test').Page,
   user: { email: string; password: string; tenant: string }
 ) {
+  assertSeededEmail(user.email);
   await page.goto(`/${DEFAULT_LOCALE}/login?tenantId=${user.tenant}`);
   await page.getByTestId('login-form').waitFor({ state: 'visible' });
   await page.getByTestId('login-email').fill(user.email);

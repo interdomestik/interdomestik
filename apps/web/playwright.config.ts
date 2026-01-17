@@ -111,13 +111,15 @@ export default defineConfig({
   webServer: {
     // E2E runs against a production server (Next `start`) for artifact consistency.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: `pnpm build && pnpm exec next start --hostname ${BIND_HOST} --port ${PORT}`,
+    command: `pnpm build && node .next/standalone/apps/web/server.js`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 300 * 1000,
     env: {
       ...process.env,
       NODE_ENV: 'production',
+      PORT: String(PORT),
+      HOSTNAME: BIND_HOST,
       NEXT_PUBLIC_APP_URL: BASE_URL,
       BETTER_AUTH_URL: BASE_URL,
       INTERDOMESTIK_AUTOMATED: '1',
