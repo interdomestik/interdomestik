@@ -42,6 +42,7 @@
     "test:unit:domains": "pnpm --filter @interdomestik/domain-claims test:unit && pnpm --filter @interdomestik/domain-users test:unit && pnpm --filter @interdomestik/domain-communications test:unit",
     "test:coverage": "pnpm --filter @interdomestik/web test:unit --coverage && pnpm --filter @interdomestik/domain-* test:unit --coverage",
     "test:e2e": "pnpm --filter @interdomestik/web test:e2e",
+    "e2e:gate": "./scripts/m4-gatekeeper.sh && pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=ks-sq --project=mk-mk --max-failures=1 --trace=retain-on-failure --reporter=line",
     "check:fast": "pnpm format:check && pnpm lint && pnpm type-check && pnpm i18n:check && pnpm check:entrypoints && pnpm test:unit:domains && pnpm test",
     "check": "pnpm check:fast && pnpm build",
     "sonar:start": "docker compose up -d sonarqube db",
