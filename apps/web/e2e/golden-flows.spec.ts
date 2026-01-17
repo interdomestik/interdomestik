@@ -261,7 +261,7 @@ test.describe('Golden Flows Suite', () => {
     test.describe.configure({ mode: 'serial' }); // Dependent steps
 
     // TODO: This test is stateful and creates leads - not suitable for smoke runs
-    test.skip('Regression: Agent can create lead and initiate cash payment', async ({
+    test('@quarantine Regression: Agent can create lead and initiate cash payment', async ({
       page,
     }, testInfo) => {
       // This test is MK-tenant-specific
@@ -330,7 +330,9 @@ test.describe('Golden Flows Suite', () => {
     });
 
     // TODO: Rewrite - UI removed data-testid="cash-verification-row" and "cash-approve"
-    test.skip('Regression: Branch Manager can verify cash payment', async ({ page }, testInfo) => {
+    test('@quarantine Regression: Branch Manager can verify cash payment', async ({
+      page,
+    }, testInfo) => {
       // This test is MK-tenant-specific
       test.skip(isKsProject(testInfo), 'MK-only test');
 
@@ -456,7 +458,7 @@ test.describe('Golden Flows Suite', () => {
 
   test.describe('6. Cash Verification v2', () => {
     // TODO: Rewrite - UI removed data-testid="cash-verification-row"
-    test.skip('Regression: Cash Ops: Verification queue loads and allows processing', async ({
+    test('@quarantine Regression: Cash Ops: Verification queue loads and allows processing', async ({
       page,
     }) => {
       // 1. Login as Tenant Admin (Sees all)
