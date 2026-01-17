@@ -33,17 +33,14 @@ export default async function AgentLayout({
     return null;
   }
 
+  // Logging for RBAC debugging
+  console.log(`[AgentLayout] Guard | User: ${session.user.email} | Role: ${session.user.role}`);
+
   // Only agents can access this portal
   if (session.user.role !== 'agent') {
-    // Redirect non-agents to their appropriate portal
-    if (session.user.role === 'admin') {
-      redirect(`/${locale}/admin`);
-    } else if (session.user.role === 'staff') {
-      redirect(`/${locale}/staff`);
-    } else {
-      redirect(`/${locale}/member`);
-    }
-    return null;
+    // Strict Isolation: 404 for everyone else
+    const { notFound } = await import('next/navigation');
+    notFound();
   }
 
   // Load agent-specific messages for client components

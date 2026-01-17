@@ -96,7 +96,13 @@ export async function runAuthenticatedAction<T>(
     }
 
     // This throws if tenant is missing, enforcing safety
-    const tenantId = ensureTenantId(session);
+    let tenantId: string;
+    try {
+      tenantId = ensureTenantId(session);
+    } catch (error) {
+      console.error('[SafeAction] Missing Tenant Context:', error);
+      return { success: false, error: 'Missing tenant context', code: 'MISSING_TENANT' };
+    }
 
     // Set Sentry Context
     Sentry.setUser({
@@ -138,20 +144,42 @@ export async function runAuthenticatedAction<T>(
 
     return { success: true, data };
   } catch (error) {
-    if (error instanceof Error) {
-      // Handle known errors (like our custom validation errors)
-      if (error.name === 'MissingTenantError') {
-        return { success: false, error: 'Missing tenant context', code: 'MISSING_TENANT' };
-      }
-      const err = error as Error & { code?: string };
-      if (err.code?.startsWith('FORBIDDEN')) {
-        return { success: false, error: err.message, code: err.code };
-      }
+    // Handle Unauthorized/Forbidden errors generically (robust against instance mismatch)
+    const errorObj = error as any;
+    const code = errorObj?.code;
+    const name = errorObj?.name;
+    const message = errorObj?.message || 'Unknown error';
+
+    // 1. Explicit UNAUTHORIZED / FORBIDDEN codes
+    if (typeof code === 'string' && (code === 'UNAUTHORIZED' || code.startsWith('FORBIDDEN'))) {
+      return { success: false, error: message, code: code };
     }
 
-    // Capture unexpected errors to Sentry
+    // 2. Known Error Classes OR Generic Messages (Widen for safety)
+    if (
+      name === 'UnauthorizedError' ||
+      name === 'AccessDeniedError' ||
+      (message && typeof message === 'string' && message.toLowerCase().includes('unauthorized'))
+    ) {
+      return { success: false, error: message || 'Unauthorized', code: 'UNAUTHORIZED' };
+    }
+
+    if (name === 'MissingTenantError') {
+      return { success: false, error: 'Missing tenant context', code: 'MISSING_TENANT' };
+    }
+
+    // 3. Digest check (Next.js redirects are thrown errors, we must rethrow them)
+    if (
+      message === 'NEXT_REDIRECT' ||
+      (errorObj.digest && errorObj.digest.startsWith('NEXT_REDIRECT'))
+    ) {
+      throw error;
+    }
+
+    // 4. Capture unexpected errors to Sentry but return generic 500 to client
     Sentry.captureException(error);
-    console.error('Action failed:', error);
-    return { success: false, error: 'Internal Server Error' };
+    console.error('[SafeAction] Unexpected failure:', error);
+
+    return { success: false, error: 'Internal Server Error', code: 'INTERNAL_SERVER_ERROR' };
   }
 }

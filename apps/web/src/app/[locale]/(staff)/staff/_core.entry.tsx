@@ -35,15 +35,13 @@ export default async function StaffLayout({
     return null;
   }
 
+  // Logging for RBAC debugging
+  console.log(`[StaffLayout] Guard | User: ${session.user.email} | Role: ${session.user.role}`);
+
   if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
-    if (session.user.role === 'admin') {
-      redirect(`/${locale}/admin`);
-    } else if (session.user.role === 'agent') {
-      redirect(`/${locale}/agent`);
-    } else {
-      redirect(`/${locale}/member`);
-    }
-    return null;
+    // Strict Isolation: 404 for everyone else
+    const { notFound } = await import('next/navigation');
+    notFound();
   }
 
   const allMessages = await getMessages();

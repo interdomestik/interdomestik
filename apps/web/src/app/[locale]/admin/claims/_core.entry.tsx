@@ -30,13 +30,33 @@ export default async function AdminClaimsPage({
   const assignmentParam = params?.assigned as string | undefined;
   const search = params?.search as string | undefined;
 
-  const claimsData = await getClaimsListV2(session, {
-    page,
-    statusFilter,
-    statuses,
-    assignment: assignmentParam as any,
-    search,
-  });
+  let claimsData;
+  try {
+    claimsData = await getClaimsListV2(session, {
+      page,
+      statusFilter,
+      statuses,
+      assignment: assignmentParam as any,
+      search,
+    });
+  } catch (err: any) {
+    const name = err?.name;
+    const msg = err?.message;
+    const code = err?.code;
+
+    // Widen checks to catch any flavor of unauthorized
+    if (
+      name === 'UnauthorizedError' ||
+      name === 'AccessDeniedError' ||
+      msg === 'Unauthorized' ||
+      code === 'UNAUTHORIZED' ||
+      code === 'FORBIDDEN'
+    ) {
+      const { notFound } = await import('next/navigation');
+      notFound();
+    }
+    throw err;
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

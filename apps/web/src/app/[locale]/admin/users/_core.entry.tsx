@@ -7,6 +7,8 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui/components/button';
 import { getTranslations } from 'next-intl/server';
 
+import { notFound } from 'next/navigation';
+
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
 type Props = {
@@ -48,10 +50,24 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   const branches = branchesResult.success ? (branchesResult.data ?? []) : [];
 
   if (!usersResult.success) {
+    if (
+      usersResult.code === 'UNAUTHORIZED' ||
+      usersResult.code === 'FORBIDDEN' ||
+      usersResult.code?.startsWith('FORBIDDEN')
+    ) {
+      notFound();
+    }
     console.error('Failed to load users:', usersResult.error);
   }
 
   if (!agentsResult.success) {
+    if (
+      agentsResult.code === 'UNAUTHORIZED' ||
+      agentsResult.code === 'FORBIDDEN' ||
+      agentsResult.code?.startsWith('FORBIDDEN')
+    ) {
+      notFound();
+    }
     console.error('Failed to load agents:', agentsResult.error);
   }
 

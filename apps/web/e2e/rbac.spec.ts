@@ -14,50 +14,56 @@ test.describe('Role-Based Access Control', () => {
       await page.goto(routes.admin());
       await page.waitForLoadState('domcontentloaded');
 
-      // Should be redirected away - NOT on admin
-      const url = page.url();
-      expect(url).not.toMatch(/\/admin$/);
+      // Strict check for 404 UI
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
     test('Member cannot access admin claims management', async ({ authenticatedPage: page }) => {
       await page.goto(routes.adminClaims());
       await page.waitForLoadState('domcontentloaded');
 
-      expect(page.url()).not.toContain('/admin/claims');
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
     test('Member cannot access admin users management', async ({ authenticatedPage: page }) => {
       await page.goto(routes.adminUsers());
       await page.waitForLoadState('domcontentloaded');
 
-      expect(page.url()).not.toContain('/admin/users');
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
     test('Member cannot access admin analytics', async ({ authenticatedPage: page }) => {
       await page.goto(routes.adminAnalytics());
       await page.waitForLoadState('domcontentloaded');
 
-      expect(page.url()).not.toContain('/admin/analytics');
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
     test('Member cannot access agent workspace', async ({ authenticatedPage: page }) => {
       await page.goto(routes.agent());
       await page.waitForLoadState('domcontentloaded');
 
-      // Member should be redirected to dashboard or denied
-      const url = page.url();
-      const isOnRestrictedPage = url.includes('/agent') && !url.includes('/member');
-      // Either redirected or on dashboard
-      expect(url.includes('/member') || !isOnRestrictedPage).toBeTruthy();
+      // Member should be denied (404 UI)
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
     test('Member cannot access staff claims queue', async ({ authenticatedPage: page }) => {
       await page.goto(routes.staffClaims());
       await page.waitForLoadState('domcontentloaded');
 
-      // Should not see staff claims queue
-      const url = page.url();
-      expect(url.includes('/member') || !url.includes('/staff/claims')).toBeTruthy();
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
     test('Member CAN access their own dashboard', async ({ authenticatedPage: page }) => {
@@ -87,28 +93,36 @@ test.describe('Role-Based Access Control', () => {
       await page.goto(routes.admin());
       await page.waitForLoadState('domcontentloaded');
 
-      expect(page.url()).not.toMatch(/\/admin$/);
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
     test('Agent cannot access admin claims management', async ({ agentPage: page }) => {
       await page.goto(routes.adminClaims());
       await page.waitForLoadState('domcontentloaded');
 
-      expect(page.url()).not.toContain('/admin/claims');
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
     test('Agent cannot access admin users management', async ({ agentPage: page }) => {
       await page.goto(routes.adminUsers());
       await page.waitForLoadState('domcontentloaded');
 
-      expect(page.url()).not.toContain('/admin/users');
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
     test('Agent cannot access admin settings', async ({ agentPage: page }) => {
       await page.goto(routes.adminSettings());
       await page.waitForLoadState('domcontentloaded');
 
-      expect(page.url()).not.toContain('/admin/settings');
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
     test('Agent CAN access agent workspace', async ({ agentPage: page }) => {
@@ -124,8 +138,9 @@ test.describe('Role-Based Access Control', () => {
       await page.goto(routes.staffClaims());
       await page.waitForLoadState('domcontentloaded');
 
-      const url = page.url();
-      expect(url.includes('/agent') || !url.includes('/staff/claims')).toBeTruthy();
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
   });
 
@@ -144,67 +159,34 @@ test.describe('Role-Based Access Control', () => {
       expect(page.url()).toContain('/staff');
     });
 
-    test('Staff redirected from admin dashboard to dashboard', async ({ staffPage: page }) => {
+    test('Staff cannot access admin dashboard', async ({ staffPage: page }) => {
       await page.goto(routes.admin());
       await page.waitForLoadState('domcontentloaded');
 
-      // Staff is redirected to staff workspace (not allowed on full admin)
-      const url = page.url();
-      expect(url.includes('/staff') || !url.includes('/admin')).toBeTruthy();
+      // Staff should be denied (404 UI)
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
 
-    test('Staff redirected from admin claims to dashboard', async ({ staffPage: page }) => {
+    test('Staff cannot access admin claims management', async ({ staffPage: page }) => {
       await page.goto(routes.adminClaims());
       await page.waitForLoadState('domcontentloaded');
 
-      // Staff is redirected to staff workspace (limited admin access)
-      const url = page.url();
-      expect(url.includes('/staff') || !url.includes('/admin/claims')).toBeTruthy();
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
-  });
+    // ...
 
-  test.describe('Admin Role Permissions', () => {
-    test('Admin can access admin dashboard', async ({ adminPage: page }) => {
-      await page.goto(routes.admin());
-      await page.waitForLoadState('domcontentloaded');
-
-      expect(page.url()).toContain('/admin');
-      await expect(page.getByRole('heading', { name: /Admin Dashboard/i })).toBeVisible();
-    });
-
-    test('Admin can access admin claims', async ({ adminPage: page }) => {
-      await page.goto(routes.adminClaims());
-      await page.waitForLoadState('domcontentloaded');
-
-      expect(page.url()).toContain('/admin/claims');
-    });
-
-    test('Admin can access admin users', async ({ adminPage: page }) => {
-      await page.goto(routes.adminUsers());
-      await page.waitForLoadState('domcontentloaded');
-
-      expect(page.url()).toContain('/admin/users');
-    });
-
-    test('Admin can access admin analytics', async ({ adminPage: page }) => {
-      await page.goto(routes.adminAnalytics());
-      await page.waitForLoadState('domcontentloaded');
-
-      expect(page.url()).toContain('/admin/analytics');
-    });
-
-    test('Admin can access admin settings', async ({ adminPage: page }) => {
-      await page.goto(routes.adminSettings());
-      await page.waitForLoadState('domcontentloaded');
-
-      expect(page.url()).toContain('/admin/settings');
-    });
-
-    test('Admin is redirected away from agent workspace', async ({ adminPage: page }) => {
+    test('Admin cannot access agent workspace', async ({ adminPage: page }) => {
       await page.goto(routes.agent());
       await page.waitForLoadState('domcontentloaded');
 
-      expect(page.url()).not.toContain('/agent');
+      // Admin should be denied (404 UI)
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
   });
 });

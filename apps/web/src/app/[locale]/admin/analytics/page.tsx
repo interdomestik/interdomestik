@@ -20,8 +20,24 @@ export default async function AdminAnalyticsPage() {
     redirect('/login');
   }
 
-  const { totals, statusDistribution, categoryDistribution, activeClaimants, successRate } =
-    await getAdminAnalyticsDataCore({ user: { tenantId: session.user.tenantId } });
+  // Strict RBAC: Members cannot access admin analytics
+  if (session.user.role === 'member') {
+    const { notFound } = await import('next/navigation');
+    notFound();
+  }
+
+  let data;
+  try {
+    data = await getAdminAnalyticsDataCore({ user: { tenantId: session.user.tenantId } });
+  } catch (err: any) {
+    if (err?.name === 'UnauthorizedError' || err?.message === 'Unauthorized') {
+      const { notFound } = await import('next/navigation');
+      notFound();
+    }
+    throw err;
+  }
+
+  const { totals, statusDistribution, categoryDistribution, activeClaimants, successRate } = data;
 
   return (
     <div className="space-y-8">

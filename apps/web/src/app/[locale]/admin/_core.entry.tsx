@@ -3,8 +3,6 @@ import type { AdminTenantOption } from '@/components/admin/admin-tenant-selector
 import { AdminTenantSelector } from '@/components/admin/admin-tenant-selector';
 import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { auth } from '@/lib/auth';
-import { requireTenantAdminSession } from '@interdomestik/domain-users/admin/access';
-import type { UserSession } from '@interdomestik/domain-users/types';
 import { Separator, SidebarInset, SidebarProvider, SidebarTrigger } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -38,19 +36,30 @@ export default async function AdminLayout({
 
   const sessionNonNull = session as NonNullable<typeof session>;
 
-  try {
-    // Basic check: Allow staff, branch_manager, or tenant_admin to enter admin area.
-    // Specific page access (e.g., /admin/users vs /admin/branches) is handled by page-level RBAC.
-    const role = sessionNonNull.user.role;
-    const isStaffOrBranchManager = role === 'staff' || role === 'branch_manager';
+  // Central Portal Guard
+  const role = sessionNonNull.user.role;
+  console.log(`[AdminLayout] Guard Check | Role: ${role} | Path: ${locale}/admin`);
 
-    if (!isStaffOrBranchManager) {
-      await requireTenantAdminSession(sessionNonNull as unknown as UserSession);
-    }
-  } catch {
-    const fallback = '/member';
-    redirect(`/${locale}${fallback}`);
+  // 1. Staff -> 404 Not Found (Strict Isolation)
+  if (role === 'staff') {
+    const { notFound } = await import('next/navigation');
+    notFound();
   }
+
+  // 2. Agent -> 404 Not Found (Strict Isolation)
+  if (role === 'agent') {
+    const { notFound } = await import('next/navigation');
+    notFound();
+  }
+
+  // 3. Member -> 404 Not Found (Strict Isolation)
+  if (role === 'member') {
+    const { notFound } = await import('next/navigation');
+    notFound();
+  }
+
+  // 4. Default Allow: tenant_admin, super_admin, branch_manager
+  // (Branch Manager specific page access is handled deeper, but they can enter "Admin" portal broadly)
 
   const allMessages = await getMessages();
   const messages = {
@@ -62,20 +71,26 @@ export default async function AdminLayout({
 
   let tenantOptions: AdminTenantOption[] = [];
   if (isSuperAdmin) {
-    const [{ db }, { tenants }, drizzle] = await Promise.all([
-      import('@interdomestik/database/db'),
-      import('@interdomestik/database/schema'),
-      import('drizzle-orm'),
-    ]);
+    try {
+      const [{ db }, { tenants }, drizzle] = await Promise.all([
+        import('@interdomestik/database/db'),
+        import('@interdomestik/database/schema'),
+        import('drizzle-orm'),
+      ]);
 
-    // Keep selector lightweight: only active tenants.
-    const rows = await db
-      .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
-      .from(tenants)
-      .where(drizzle.eq(tenants.isActive, true))
-      .orderBy(drizzle.asc(tenants.name));
+      // Keep selector lightweight: only active tenants.
+      const rows = await db
+        .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
+        .from(tenants)
+        .where(drizzle.eq(tenants.isActive, true))
+        .orderBy(drizzle.asc(tenants.name));
 
-    tenantOptions = rows;
+      tenantOptions = rows;
+    } catch (err) {
+      console.error('[AdminLayout] SuperAdmin DB fetch failed:', err);
+      // Fallback to empty to prevent 500
+      tenantOptions = [];
+    }
   }
 
   return (
