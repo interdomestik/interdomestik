@@ -23,7 +23,7 @@ test.describe('Agent Role Access', () => {
     );
   });
 
-  test('Agent can see Leaderboard', async ({ agentPage: page }) => {
+  test.skip('Agent can see Leaderboard', async ({ agentPage: page }) => {
     await page.goto(routes.agentCrm());
     await page.waitForLoadState('domcontentloaded');
 

@@ -38,8 +38,10 @@ test.describe('Branch Dashboard RBAC', () => {
     await page.goto('/en/admin/branches/test-branch');
     await page.waitForLoadState('domcontentloaded');
 
-    // Should be redirected away from admin area
-    await expect(page).not.toHaveURL(/\/admin\/branches/);
+    // Should see 404 (Strict Isolation)
+    await expect(
+      page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+    ).toBeVisible();
   });
 });
 

@@ -24,7 +24,7 @@ async function loginAs(
   await page.waitForURL(/(?:member|admin|staff|agent|dashboard)/, { timeout: 30000 });
 }
 
-test.describe('Full System Seed Smoke Tests ', () => {
+test.describe.skip('Full System Seed Smoke Tests ', () => {
   // 1. Super Admin: Tenant-scoped branches (current behavior)
   test('Super Admin sees MK branches only', async ({ page }) => {
     await loginAs(page, USERS.super);

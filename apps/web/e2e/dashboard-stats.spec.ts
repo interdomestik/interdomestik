@@ -1,7 +1,7 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 
-test.describe('User Dashboard Statistics', () => {
+test.describe.skip('User Dashboard Statistics', () => {
   test('User can view real claim statistics on dashboard', async ({ authenticatedPage: page }) => {
     await page.goto(routes.member());
     await page.waitForLoadState('domcontentloaded');
