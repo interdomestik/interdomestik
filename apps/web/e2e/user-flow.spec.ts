@@ -41,7 +41,7 @@ test.describe('End-to-End User Journey', () => {
     // Using credentials that usually exist in seeded env or allowed by auth mock
     await page.fill('input[name="email"]', E2E_USERS.KS_MEMBER.email); // Using seeded member
     await page.fill('input[name="password"]', E2E_PASSWORD);
-    await page.click('button[type="submit"]');
+    await page.getByRole('button', { name: /Log In|Hyni|Kyçu/i }).click();
 
     // 5. Verify Dashboard
     // Wait for redirect
