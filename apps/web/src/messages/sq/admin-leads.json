@@ -6,6 +6,16 @@
       "approve": "Aprovo",
       "reject": "Refuzo",
       "success": "Pagesa u verifikua",
+      "tabs": {
+        "queue": "Radha",
+        "history": "Historiku"
+      },
+      "status": {
+        "pending": "Në Pritje",
+        "succeeded": "Aprovuar",
+        "rejected": "Refuzuar",
+        "needs_info": "Kërkohet Info"
+      },
       "table": {
         "amount": "Shuma",
         "verification": "Verifikimi",
@@ -13,11 +23,17 @@
         "lead": "Klienti Potencial",
         "agent": "Agjenti",
         "proof": "Prova",
+        "status": "Statusi",
+        "verifier": "Verifikuesi",
+        "date": "Data",
+        "note": "Shënim",
         "actions": "Veprime"
       },
       "stats": {
+        "count": "Kërkesa Totale",
         "pending_count": "Kërkesa në Pritje",
-        "pending_value": "Vlera Totale"
+        "pending_value": "Vlera Totale",
+        "total_value": "Vlera Totale"
       },
       "filters": {
         "branch_placeholder": "Zgjidh Degën",
@@ -46,6 +62,7 @@
         "needs_info_title": "Kërko Informacion Shtesë"
       },
       "placeholders": {
+        "search": "Kërko (Emri, Email, ID)...",
         "needs_info_note": "Përshkruaj çfarë informacioni mungon..."
       },
       "empty_state": "Nuk ka kërkesa për verifikim të pagesave cash."

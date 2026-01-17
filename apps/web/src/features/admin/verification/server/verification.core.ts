@@ -2,7 +2,7 @@ import { ProtectedActionContext } from '@/lib/safe-action';
 import { db } from '@interdomestik/database';
 import { auditLog, branches, documents, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { aliasedTable, and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
@@ -21,7 +21,9 @@ export type CashVerificationRequestDTO = {
   email: string;
   amount: number;
   currency: string;
+  status: string; // Added status for display
   createdAt: Date;
+  updatedAt: Date;
   branchId: string;
   branchCode: string;
   branchName: string;
@@ -30,44 +32,65 @@ export type CashVerificationRequestDTO = {
   agentEmail: string;
   documentId: string | null;
   documentPath: string | null;
+  verificationNote: string | null;
+  verifierName: string | null;
 };
 
-// 1. Query: Get Pending Cash Attempts
-// OPS-GRADE: Strict tenant + RBAC scoping
-export async function getPendingCashAttempts(
-  ctx: ProtectedActionContext
+export type VerificationView = 'queue' | 'history';
+
+// 1. Query: Get Verification Requests (Queue or History)
+// OPS-GRADE: Strict tenant + RBAC scoping + Search + Pagination(limit)
+export async function getVerificationRequests(
+  ctx: ProtectedActionContext,
+  params: { view: VerificationView; query?: string }
 ): Promise<CashVerificationRequestDTO[]> {
   const { tenantId, userRole, scope } = ctx;
+  const { view, query } = params;
 
   const conditions = [
     eq(leadPaymentAttempts.tenantId, tenantId),
     eq(leadPaymentAttempts.method, 'cash'),
-    // We show pending and needs_info in the queue?
-    // Usually 'needs_info' means agent needs to act.
-    // Admin queue typically shows 'pending' (waiting for admin).
-    // If admin sets 'needs_info', it disappears from 'pending' queue until agent updates it?
-    // Or it stays but with status 'needs_info'?
-    // For now, let's keep it simple: show 'pending'.
-    // If status is 'needs_info', it's waiting on agent, so maybe not in this specific "Verification" queue unless filtered.
-    // But the prompt says "Verification item can be set to NEEDS_INFO".
-    // I'll stick to 'pending' for the main queue query as per original logic.
-    eq(leadPaymentAttempts.status, 'pending'),
     // Join condition safety
     eq(memberLeads.id, leadPaymentAttempts.leadId),
   ];
+
+  // View Filter
+  if (view === 'queue') {
+    conditions.push(
+      or(eq(leadPaymentAttempts.status, 'pending'), eq(leadPaymentAttempts.status, 'needs_info'))
+    );
+  } else {
+    conditions.push(
+      or(eq(leadPaymentAttempts.status, 'succeeded'), eq(leadPaymentAttempts.status, 'rejected'))
+    );
+  }
+
+  // Search Filter (Lead Name, Email, ID)
+  if (query && query.trim().length > 0) {
+    const q = `%${query.trim()}%`;
+    conditions.push(
+      or(
+        ilike(memberLeads.firstName, q),
+        ilike(memberLeads.lastName, q),
+        ilike(memberLeads.email, q),
+        ilike(leadPaymentAttempts.id, q)
+      )
+    );
+  }
 
   // RBAC Filter
   if (userRole === 'branch_manager' || userRole === 'staff') {
     // If staff/BM, strictly limit to their branch
     if (!scope.branchId) {
-      // Defensive: if no branch assigned, see nothing
       return [];
     }
     conditions.push(eq(memberLeads.branchId, scope.branchId));
   }
-  // Tenant Admin / Super Admin see all in tenant (already filtered by tenantId)
 
-  const rows = await db
+  // Verifier Alias for History Join
+  const verifier = aliasedTable(user, 'verifier');
+
+  let queryBuilder = db
     .select({
       id: leadPaymentAttempts.id,
       leadId: memberLeads.id,
@@ -76,32 +99,56 @@ export async function getPendingCashAttempts(
       email: memberLeads.email,
       amount: leadPaymentAttempts.amount,
       currency: leadPaymentAttempts.currency,
+      status: leadPaymentAttempts.status,
       createdAt: leadPaymentAttempts.createdAt,
+      updatedAt: leadPaymentAttempts.updatedAt,
       // Branch Info
       branchId: branches.id,
       branchCode: branches.code,
       branchName: branches.name,
       // Agent Info
-      agentId: user.id,
+      agentId: user.id, // Original 'user' table is Agent via join below
       agentName: user.name,
       agentEmail: user.email,
       // Document Info
       documentId: documents.id,
       documentPath: documents.storagePath,
+      // Audit Info
+      verificationNote: leadPaymentAttempts.verificationNote,
+      verifierName: view === 'history' ? verifier.name : sql<null>`null`,
     })
     .from(leadPaymentAttempts)
     .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
     .innerJoin(branches, eq(memberLeads.branchId, branches.id))
-    .innerJoin(user, eq(memberLeads.agentId, user.id))
+    .innerJoin(user, eq(memberLeads.agentId, user.id)) // Join agent
     .leftJoin(
       documents,
       and(
         eq(documents.entityId, leadPaymentAttempts.id),
         eq(documents.entityType, 'payment_attempt')
       )
-    )
+    );
+
+  // Conditional Join for Verifier (Only in History)
+  if (view === 'history') {
+    // We need to cast queryBuilder to any or use a dynamic join construction that TS accepts
+    // Drizzle chain allows dynamic joins.
+    // @ts-expect-error - dynamic join typing is tricky
+    queryBuilder = queryBuilder.leftJoin(verifier, eq(leadPaymentAttempts.verifiedBy, verifier.id));
+  }
+
+  // Sorting: Queue = FIFO (Oldest First), History = LIFO (Newest First)
+  const orderBy =
+    view === 'queue' ? asc(leadPaymentAttempts.createdAt) : desc(leadPaymentAttempts.updatedAt);
+
+  // Limit: Keep UI fast
+  const limit = view === 'history' ? 50 : 100;
+
+  // @ts-expect-error - queryBuilder type inference with conditional join
+  const rows = await queryBuilder
     .where(and(...conditions))
-    .orderBy(asc(leadPaymentAttempts.createdAt)); // Oldest first for Ops queue
+    .orderBy(orderBy)
+    .limit(limit);
 
   return rows as CashVerificationRequestDTO[];
 }
@@ -142,12 +189,17 @@ export async function verifyCashAttemptCore(
     }
 
     // C. Validation (Idempotency)
-    if (attempt.status !== 'pending') {
+    // Allow transitioning from 'needs_info' to 'succeeded'/'rejected' if Agent re-submitted?
+    // Actually, if it's 'needs_info', it's still "pending" verification action effectively (Agent provided info).
+    // The previous logic blocked non-pending.
+    // If status is 'needs_info', we SHOULD allow actioning it again (to Approve or Reject).
+    // So we allow 'pending' OR 'needs_info'.
+    if (attempt.status !== 'pending' && attempt.status !== 'needs_info') {
       if (decision === 'approve' && attempt.status === 'succeeded')
         return { success: true, message: 'Already approved' };
       if (decision === 'reject' && attempt.status === 'rejected')
         return { success: true, message: 'Already rejected' };
-      // Allow re-decisioning? Generally no for strict audit.
+
       throw new Error(`Attempt is already processed as ${attempt.status}`);
     }
 

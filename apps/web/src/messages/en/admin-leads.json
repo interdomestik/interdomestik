@@ -6,6 +6,16 @@
       "approve": "Approve",
       "reject": "Reject",
       "success": "Payment verified",
+      "tabs": {
+        "queue": "Queue",
+        "history": "History"
+      },
+      "status": {
+        "pending": "Pending",
+        "succeeded": "Approved",
+        "rejected": "Rejected",
+        "needs_info": "Needs Info"
+      },
       "table": {
         "amount": "Amount",
         "verification": "Verification",
@@ -13,11 +23,17 @@
         "lead": "Lead",
         "agent": "Agent",
         "proof": "Proof",
+        "status": "Status",
+        "verifier": "Verifier",
+        "date": "Date",
+        "note": "Note",
         "actions": "Actions"
       },
       "stats": {
+        "count": "Total Requests",
         "pending_count": "Pending Requests",
-        "pending_value": "Total Value"
+        "pending_value": "Total Value",
+        "total_value": "Total Value"
       },
       "filters": {
         "branch_placeholder": "Select Branch",
@@ -46,6 +62,7 @@
         "needs_info_title": "Request Additional Info"
       },
       "placeholders": {
+        "search": "Search (Name, Email, ID)...",
         "needs_info_note": "Describe what info is missing..."
       },
       "empty_state": "No pending cash verification requests found."

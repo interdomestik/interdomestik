@@ -2,7 +2,7 @@ import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 
 test.describe('Admin Verification Flow (Golden)', () => {
-  test('Tenant Admin can request info for pending cash payment', async ({ page, loginAs }) => {
+  test('Tenant Admin can request info, search, and toggle views', async ({ page, loginAs }) => {
     // 1. Login as Tenant Admin (KS)
     await loginAs('admin', 'ks');
 
@@ -10,8 +10,11 @@ test.describe('Admin Verification Flow (Golden)', () => {
     await page.goto('/sq/admin/leads');
     await page.waitForLoadState('networkidle');
 
-    // 3. Find a pending request
-    const row = page.getByTestId('cash-verification-row').first();
+    // 3. Find a pending request (that is NOT already needs_info)
+    const row = page
+      .getByTestId('cash-verification-row')
+      .filter({ has: page.getByTestId('cash-needs-info') })
+      .first();
     await expect(row).toBeVisible();
 
     // 3a. Verify Proof Link (if available) or Missing Badge
@@ -53,10 +56,32 @@ test.describe('Admin Verification Flow (Golden)', () => {
     // 9. Verify Modal Closed
     await expect(dialog).not.toBeVisible();
 
-    // 10. Verify Row Disappears (Optimistic UI)
-    // Note: If multiple rows exist, 'row' variable might point to the next one.
-    // So we can't assert 'row' is hidden if there are others.
-    // But we can check count decreased or specific item gone.
-    // For simplicity in Golden, just success toast is strong signal.
+    // 10. Verify Item status updated to "Needs Info" (It stays in Queue now)
+    await expect(page.getByText(/Needs Info|Kërkohet Info/i).first()).toBeVisible();
+
+    // 11. Test Search
+    const searchInput = page.getByPlaceholder(/Kërko|Search/i);
+    await searchInput.fill('NonExistentName123');
+    await page.waitForTimeout(1000); // Wait for debounce and fetch
+
+    // Should be empty
+    await expect(page.getByText(/Nuk ka kërkesa|No pending/i)).toBeVisible();
+
+    // Clear search
+    await searchInput.fill('');
+    await page.waitForTimeout(1000);
+    // Should see list again
+    await expect(page.getByTestId('cash-verification-row').first()).toBeVisible();
+
+    // 12. Test History Tab
+    const historyTab = page.getByRole('tab', { name: /History|Historiku/i });
+    await historyTab.click();
+
+    // URL update
+    await expect(page).toHaveURL(/view=history/);
+
+    // Check for History specific columns (Status, Verifier)
+    await expect(page.getByRole('columnheader', { name: /Status/i })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: /Verifikuesi|Verifier/i })).toBeVisible();
   });
 });

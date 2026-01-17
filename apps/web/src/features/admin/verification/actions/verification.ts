@@ -2,14 +2,18 @@
 
 import { runAuthenticatedAction } from '@/lib/safe-action';
 import {
-  getPendingCashAttempts,
+  getVerificationRequests,
   verifyCashAttemptCore,
   verifyCashSchema,
+  type VerificationView,
 } from '../server/verification.core';
 
-export async function getPendingCashAttemptsAction() {
+export async function getVerificationRequestsAction(params: {
+  view: VerificationView;
+  query?: string;
+}) {
   return runAuthenticatedAction(async ctx => {
-    return await getPendingCashAttempts(ctx);
+    return await getVerificationRequests(ctx, params);
   });
 }
 

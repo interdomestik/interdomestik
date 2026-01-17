@@ -6,6 +6,16 @@
       "approve": "Одобри",
       "reject": "Одбиј",
       "success": "Плаќањето е верификувано",
+      "tabs": {
+        "queue": "Ред",
+        "history": "Историја"
+      },
+      "status": {
+        "pending": "Во Чекање",
+        "succeeded": "Одобрено",
+        "rejected": "Одбиено",
+        "needs_info": "Потребно Инфо"
+      },
       "table": {
         "amount": "Износ",
         "verification": "Верификација",
@@ -13,11 +23,17 @@
         "lead": "Потенцијален Клиент",
         "agent": "Агент",
         "proof": "Доказ",
+        "status": "Статус",
+        "verifier": "Верификатор",
+        "date": "Датум",
+        "note": "Забелешка",
         "actions": "Акции"
       },
       "stats": {
+        "count": "Вкупно Барања",
         "pending_count": "Барања во Чекање",
-        "pending_value": "Вкупна Вредност"
+        "pending_value": "Вкупна Вредност",
+        "total_value": "Вкупна Вредност"
       },
       "filters": {
         "branch_placeholder": "Избери Филијала",
@@ -46,6 +62,7 @@
         "needs_info_title": "Побарај Додатно Инфо"
       },
       "placeholders": {
+        "search": "Пребарај (Име, Емаил, ID)...",
         "needs_info_note": "Опиши што недостасува..."
       },
       "empty_state": "Нема барања за верификација на готовински плаќања."
