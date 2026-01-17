@@ -45,7 +45,7 @@ export function OpsAssignmentControl({
         } else {
           toast.success(tClaims('assignment.success_message'));
         }
-      } catch (error) {
+      } catch (_error) {
         toast.error(tCommon('errors.generic'));
       }
     });

@@ -38,7 +38,7 @@ export function OpsStatusControl({
         } else {
           toast.success('Status updated successfully');
         }
-      } catch (error) {
+      } catch (_error) {
         toast.error('An unexpected error occurred');
       }
     });

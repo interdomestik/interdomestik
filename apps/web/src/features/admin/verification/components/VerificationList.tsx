@@ -42,7 +42,6 @@ import {
   Info,
   Shield,
   X,
-  Filter,
   FileText,
   HelpCircle,
   Search,
@@ -149,8 +148,6 @@ export function VerificationList({
     await handleVerify(selectedId, 'needs_info', note);
     setNeedsInfoOpen(false);
   };
-
-  const isHistory = initialParams.view === 'history';
 
   const getStatusBadge = (status: string) => {
     switch (status) {

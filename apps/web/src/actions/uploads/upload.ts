@@ -166,7 +166,6 @@ async function uploadToStorage(params: {
       // Note: In Docker, S3_ENDPOINT is internal (minio:9000).
       // For the browser to access it, we likely need a public URL (localhost:9000).
       // Ideally S3_PUBLIC_URL is set to http://localhost:9000
-      const publicEndpoint = process.env.S3_PUBLIC_URL || process.env.S3_ENDPOINT;
 
       // Signing with S3Client connected to internal endpoint usually produces internal URL.
       // We might need to construct it manually or configure a separate client for signing if endpoint differs.
@@ -184,8 +183,7 @@ async function uploadToStorage(params: {
         },
       });
 
-      const command = new PutObjectCommand({ Bucket: bucketName, Key: fileName });
-      const signedUrl = await getSignedUrl(signer, command, { expiresIn: 60 * 10 }); // Not PutObject, we need GetObject for viewing?
+      // Not PutObject, we need GetObject for viewing?
       // Wait, uploadToStorage returns success and URL. Is the URL for viewing or just confirming?
       // "url: signedData.signedUrl" implies returnable view URL.
       // But we just uploaded it.

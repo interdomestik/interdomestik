@@ -27,8 +27,6 @@ export async function updateClaimStatusCore(params: {
     throw new Error('Unauthorized');
   }
 
-  const tenantId = session.user.tenantId;
-
   // Manual RBAC check: Must be Tenant Admin OR Staff with permission
   // We can use shared-auth helpers if available, or manual role check.
   // Ideally: hasPermission(session.user.role, 'claims.update')

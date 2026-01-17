@@ -1,9 +1,4 @@
-import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
-
-const USERS = {
-  TENANT_ADMIN_KS: { email: E2E_USERS.KS_ADMIN.email, password: E2E_PASSWORD, tenant: 'tenant_ks' },
-};
 
 test.describe('Admin Verification Queue (Cash)', () => {
   test('Tenant Admin can view queue and approve pending cash payment', async ({

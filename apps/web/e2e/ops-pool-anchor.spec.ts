@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.describe('Ops Center: Pool Anchor', () => {
   // Requirement: test.e2e.pool_anchor
-  test('Search clears poolAnchor', async ({ page }) => {
+  test('Search clears poolAnchor', async ({ page: _page }) => {
     // TODO: Implement once M2 B5 is ready.
 
     // Example logic:
@@ -14,7 +14,7 @@ test.describe('Ops Center: Pool Anchor', () => {
     expect(true).toBe(true);
   });
 
-  test('Priority change preserves poolAnchor', async ({ page }) => {
+  test('Priority change preserves poolAnchor', async ({ page: _page }) => {
     // TODO: Implement once M2 B5 is ready.
 
     // Example logic:

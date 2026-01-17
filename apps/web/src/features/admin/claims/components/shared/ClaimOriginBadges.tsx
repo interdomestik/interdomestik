@@ -16,7 +16,7 @@ export function ClaimOriginBadges({
   originDisplayName,
   branchCode,
   className,
-  variant = 'list',
+  variant: _variant = 'list',
 }: ClaimOriginBadgesProps) {
   const t = useTranslations('admin.claims_page.source');
 

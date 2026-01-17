@@ -1,4 +1,3 @@
-import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 
 test.describe('Admin Verification Flow (Golden)', () => {

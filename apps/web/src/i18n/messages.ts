@@ -144,7 +144,7 @@ export async function loadAllMessages(locale: string) {
           try {
             const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
             messages = mergeMessages(fallback.default, messages);
-          } catch (e) {
+          } catch {
             // Fallback might fail if the file doesn't exist, just use what we have
           }
         }
@@ -161,7 +161,7 @@ export async function loadAllMessages(locale: string) {
         }
 
         return messages;
-      } catch (error) {
+      } catch {
         // console.error(`Error loading namespace ${namespace} for locale ${locale}`, error);
         try {
           // Try loading fallback locale if main failed entirely

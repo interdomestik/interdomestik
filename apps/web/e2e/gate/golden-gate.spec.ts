@@ -1,16 +1,7 @@
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
-import { type TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// PROJECT-AWARE HELPERS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-type Tenant = 'ks' | 'mk';
-
-function getTenantFromTestInfo(testInfo: TestInfo): Tenant {
-  return testInfo.project.name.includes('mk') ? 'mk' : 'ks';
-}
 
 function getTargetLocale(user: { tenant: string }): string {
   return user.tenant === 'tenant_mk' ? 'mk' : 'sq';
