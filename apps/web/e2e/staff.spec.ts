@@ -1,9 +1,8 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 
-test.describe('Staff Claim Management', () => {
+test.describe('@legacy Staff Claim Management', () => {
   // TODO: Update for locale support - uses English text. Use golden-flows for coverage.
-  test.skip(true, 'Legacy tests with hardcoded English text');
   test('Staff can view dashboard stats and recent claims', async ({ staffPage: page }) => {
     await page.goto(routes.staff());
 

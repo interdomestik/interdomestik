@@ -2,7 +2,7 @@ import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 
 // TODO: Rewrite for reliability and locale support. Covered by golden-flows.
-test.describe.skip('Claim routing (member → staff queue)', () => {
+test.describe('@legacy Claim routing (member → staff queue)', () => {
   test('member submission appears in staff claims queue', async ({
     authenticatedPage: memberPage,
     staffPage,

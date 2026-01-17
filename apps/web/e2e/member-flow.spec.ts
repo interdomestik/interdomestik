@@ -11,7 +11,7 @@ import { expect, isLoggedIn, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 
 // TODO: Legacy tests - superseded by golden-flows.spec.ts
-test.describe.skip('Member User Flow', () => {
+test.describe('@legacy Member User Flow', () => {
   test.describe('Dashboard', () => {
     test('Member can access dashboard after login', async ({ authenticatedPage: page }) => {
       await page.goto(routes.member(), { waitUntil: 'domcontentloaded' });
