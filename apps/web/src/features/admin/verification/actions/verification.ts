@@ -5,7 +5,7 @@ import {
   getPendingCashAttempts,
   verifyCashAttemptCore,
   verifyCashSchema,
-} from './verification.core';
+} from '../server/verification.core';
 
 export async function getPendingCashAttemptsAction() {
   return runAuthenticatedAction(async ctx => {

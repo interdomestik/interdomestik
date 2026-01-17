@@ -8,8 +8,30 @@
       "success": "Payment verified",
       "table": {
         "amount": "Amount",
-        "verification": "Verification"
-      }
+        "verification": "Verification",
+        "branch": "Branch",
+        "lead": "Lead",
+        "agent": "Agent",
+        "actions": "Actions"
+      },
+      "stats": {
+        "pending_count": "Pending Requests",
+        "pending_value": "Total Value"
+      },
+      "filters": {
+        "branch_placeholder": "Select Branch",
+        "all_branches": "All Branches"
+      },
+      "toasts": {
+        "approve_success": "Payment approved.",
+        "reject_success": "Payment rejected.",
+        "error": "An error occurred during verification."
+      },
+      "actions": {
+        "approve": "Approve",
+        "reject": "Reject"
+      },
+      "empty_state": "No pending cash verification requests found."
     },
     "analytics": {
       "title": "Analytics Overview",

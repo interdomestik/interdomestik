@@ -1,15 +1,37 @@
 {
   "admin": {
     "leads": {
-      "title": "Верификација на плаќање",
+      "title": "Верификација на Плаќања",
       "subtitle": "Верификувајте ги готовинските плаќања собрани од агентите.",
       "approve": "Одобри",
       "reject": "Одбиј",
       "success": "Плаќањето е верификувано",
       "table": {
         "amount": "Износ",
-        "verification": "Верификација"
-      }
+        "verification": "Верификација",
+        "branch": "Филијала",
+        "lead": "Потенцијален Клиент",
+        "agent": "Агент",
+        "actions": "Акции"
+      },
+      "stats": {
+        "pending_count": "Барања во Чекање",
+        "pending_value": "Вкупна Вредност"
+      },
+      "filters": {
+        "branch_placeholder": "Избери Филијала",
+        "all_branches": "Сите Филијали"
+      },
+      "toasts": {
+        "approve_success": "Плаќањето е одобрено.",
+        "reject_success": "Плаќањето е одбиено.",
+        "error": "Настана грешка при верификацијата."
+      },
+      "actions": {
+        "approve": "Одобри",
+        "reject": "Одбиј"
+      },
+      "empty_state": "Нема барања за верификација на готовински плаќања."
     },
     "analytics": {
       "title": "Analytics Overview",

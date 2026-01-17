@@ -8,8 +8,30 @@
       "success": "Pagesa u verifikua",
       "table": {
         "amount": "Shuma",
-        "verification": "Verifikimi"
-      }
+        "verification": "Verifikimi",
+        "branch": "Dega",
+        "lead": "Klienti Potencial",
+        "agent": "Agjenti",
+        "actions": "Veprime"
+      },
+      "stats": {
+        "pending_count": "Kërkesa në Pritje",
+        "pending_value": "Vlera Totale"
+      },
+      "filters": {
+        "branch_placeholder": "Zgjidh Degën",
+        "all_branches": "Të Gjitha Degët"
+      },
+      "toasts": {
+        "approve_success": "Pagesa u aprovua.",
+        "reject_success": "Pagesa u refuzua.",
+        "error": "Ndodhi një gabim gjatë verifikimit."
+      },
+      "actions": {
+        "approve": "Aprovo",
+        "reject": "Refuzo"
+      },
+      "empty_state": "Nuk ka kërkesa për verifikim të pagesave cash."
     },
     "analytics": {
       "title": "Përmbledhja e Analitikës",

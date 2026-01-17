@@ -1,8 +1,9 @@
 import { ProtectedActionContext } from '@/lib/safe-action';
 import { db } from '@interdomestik/database';
-import { branches, user } from '@interdomestik/database/schema';
+import { auditLog, branches, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
 import { and, asc, eq, sql } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
 // Input Schemas
@@ -128,7 +129,26 @@ export async function verifyCashAttemptCore(
       })
       .where(eq(leadPaymentAttempts.id, attemptId));
 
-    // E. Minimal Lead Update (Only if Approved)
+    // E. Audit Log
+    await tx.insert(auditLog).values({
+      id: nanoid(),
+      tenantId,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      action: `VERIFY_PAYMENT_${decision.toUpperCase()}`,
+      entityType: 'payment_attempt',
+      entityId: attemptId,
+      metadata: {
+        amount: attempt.amount,
+        currency: attempt.currency,
+        leadId: attempt.leadId,
+        previousStatus: attempt.status,
+        newStatus,
+      },
+      createdAt: new Date(),
+    });
+
+    // F. Minimal Lead Update (Only if Approved)
     // Rule: We only move lead to 'converted' if it's currently 'new' or 'payment_pending'.
     // We do NOT modify 'disqualified' or existing 'converted'.
     if (decision === 'approve') {
