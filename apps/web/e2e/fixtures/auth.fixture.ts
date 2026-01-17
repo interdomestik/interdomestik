@@ -23,7 +23,7 @@ import { routes } from '../routes';
 const AUTH_OK_SELECTORS = ['[data-testid="user-nav"]', '[data-testid="sidebar-user-menu-button"]'];
 
 function getBaseURL(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://127.0.0.1:3000';
+  return process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -116,14 +116,16 @@ async function performLogin(
   tenant: Tenant = 'ks'
 ): Promise<void> {
   const { email, password } = credsFor(role, tenant);
-  const baseURL = authorizedBaseURL ?? getBaseURL();
 
   // API Login Strategy (Robust)
-  const res = await page.request.post('/api/auth/sign-in/email', {
+  // Use absolute URL to bypass project-specific baseURL (e.g. .../sq)
+  const rootURL = getBaseURL();
+  const loginURL = `${rootURL}/api/auth/sign-in/email`;
+  const res = await page.request.post(loginURL, {
     data: { email, password },
     headers: {
-      Origin: baseURL,
-      Referer: `${baseURL}/login`,
+      Origin: rootURL,
+      Referer: `${rootURL}/login`,
       'x-forwarded-for': ipForRole(role),
     },
   });
@@ -169,13 +171,15 @@ export const test = base.extend<AuthFixtures>({
 
       // Fix for Blocker 2: Always navigate after login to avoid about:blank
       const locale = process.env.PLAYWRIGHT_LOCALE || (tenant === 'mk' ? 'mk' : 'sq');
-      let target = `/${locale}`;
-      if (role.includes('admin')) target += '/admin';
-      else if (role === 'agent') target += '/agent';
-      else if (role === 'staff') target += '/staff';
-      else target += '/member';
+      let targetPath = `/${locale}`;
+      if (role.includes('admin')) targetPath += '/admin';
+      else if (role === 'agent') targetPath += '/agent';
+      else if (role === 'staff') targetPath += '/staff';
+      else targetPath += '/member';
 
-      await page.goto(target, { waitUntil: 'domcontentloaded' });
+      // Use absolute URL to bypass project-specific baseURL (e.g. .../sq)
+      const absURL = `${getBaseURL()}${targetPath}`;
+      await page.goto(absURL, { waitUntil: 'domcontentloaded' });
     });
   },
 

@@ -8,7 +8,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 
 const PORT = 3000;
 const BASE_HOST = 'localhost';
-const BIND_HOST = '127.0.0.1';
+const BIND_HOST = 'localhost';
 const BASE_URL = `http://${BASE_HOST}:${PORT}`;
 
 // If the caller runs Playwright with `--project=ks-sq` (or `mk-mk`) but forgets
@@ -111,7 +111,7 @@ export default defineConfig({
   webServer: {
     // E2E runs against a production server (Next `start`) for artifact consistency.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: `pnpm build && node .next/standalone/apps/web/server.js`,
+    command: `pnpm build && INTERDOMESTIK_AUTOMATED=1 PLAYWRIGHT=1 CI=true node .next/standalone/apps/web/server.js`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 300 * 1000,
