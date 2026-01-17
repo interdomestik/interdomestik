@@ -5,82 +5,14 @@
  * All operations are tenant-scoped and access-audited.
  * Uses server-side share_packs table for state, allowing revocation.
  */
+import {
+  createSharePack,
+  getSharePack,
+  logAuditEvent,
+} from '@/features/share-pack/share-pack.service';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import * as schema from '@interdomestik/database/schema';
-import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
-import jwt from 'jsonwebtoken';
-import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
-
-// Token expiration in milliseconds (24 hours default)
-const TOKEN_EXPIRY_MS = parseInt(
-  process.env.SHARE_PACK_TOKEN_EXPIRY_MS ?? String(24 * 60 * 60 * 1000),
-  10
-);
-
-const JWT_SECRET =
-  process.env.SHARE_PACK_SECRET ?? process.env.BETTER_AUTH_SECRET ?? 'fallback-secret-dev-only';
-
-interface SharePackPayload {
-  packId: string;
-  tenantId: string;
-}
-
-/**
- * Generate a signed time-limited share token (JWT).
- */
-function generateShareToken(params: { packId: string; tenantId: string }): string {
-  const { packId, tenantId } = params;
-
-  return jwt.sign(
-    { packId, tenantId },
-    JWT_SECRET,
-    { expiresIn: '24h' } // Enforces exp claim
-  );
-}
-
-/**
- * Verify and decode a share token.
- * @returns payload if valid, null if invalid/expired
- */
-function verifyShareToken(token: string): SharePackPayload | null {
-  try {
-    return jwt.verify(token, JWT_SECRET) as SharePackPayload;
-  } catch {
-    return null; // jwt.verify throws on invalid signature or expiration
-  }
-}
-
-/**
- * Log access audit event for share pack.
- */
-async function logAuditEvent(params: {
-  tenantId: string;
-  ids: string[];
-  accessedBy?: string;
-  shareToken: string;
-  ipAddress?: string;
-  userAgent?: string;
-}): Promise<void> {
-  const { tenantId, ids, accessedBy, shareToken, ipAddress, userAgent } = params;
-
-  // Log access for each document in the pack
-  for (const documentId of ids) {
-    await db.insert(schema.documentAccessLog).values({
-      id: nanoid(),
-      tenantId,
-      documentId,
-      accessType: 'share',
-      accessedBy: accessedBy ?? null,
-      accessedAt: new Date(),
-      ipAddress: ipAddress ?? null,
-      userAgent: userAgent ?? null,
-      shareToken: shareToken,
-    });
-  }
-}
 
 /**
  * POST /api/share-pack - Create a share pack link
@@ -104,53 +36,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'IDs required' }, { status: 400 });
     }
 
-    // Verify all documents belong to this tenant
-    const docsExport = await db
-      .select({ id: schema.documents.id })
-      .from(schema.documents)
-      .where(and(eq(schema.documents.tenantId, tenantId)));
+    try {
+      const result = await createSharePack({
+        tenantId,
+        userId: session.user.id,
+        documentIds: ids,
+      });
 
-    const validDocIds = new Set(docsExport.map(d => d.id));
-    const allValid = ids.every(id => validDocIds.has(id));
+      // Log creation
+      await logAuditEvent({
+        tenantId,
+        ids,
+        accessedBy: session.user.id,
+        shareToken: result.token,
+        ipAddress: request.headers.get('x-forwarded-for') ?? undefined,
+        userAgent: request.headers.get('user-agent') ?? undefined,
+      });
 
-    if (!allValid) {
-      return NextResponse.json({ error: 'Invalid IDs' }, { status: 403 });
+      return NextResponse.json({
+        packId: result.packId,
+        token: result.token,
+        expiresAt: result.expiresAt.getTime(),
+        validUntil: result.expiresAt.toISOString(),
+      });
+    } catch (error: any) {
+      if (error.message === 'Invalid IDs') {
+        return NextResponse.json({ error: 'Invalid IDs' }, { status: 403 });
+      }
+      throw error;
     }
-
-    const packId = nanoid();
-    const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_MS);
-
-    // Store pack state server-side
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const packValues: any = {
-      id: packId,
-      tenantId,
-      createdByUserId: session.user.id,
-      createdAt: new Date(),
-      expiresAt: expiresAt,
-    };
-    packValues['document' + 'Ids'] = ids;
-
-    await db.insert(schema.sharePacks).values(packValues);
-
-    const token = generateShareToken({ packId, tenantId });
-
-    // Log creation
-    await logAuditEvent({
-      tenantId,
-      ids,
-      accessedBy: session.user.id,
-      shareToken: token,
-      ipAddress: request.headers.get('x-forwarded-for') ?? undefined,
-      userAgent: request.headers.get('user-agent') ?? undefined,
-    });
-
-    return NextResponse.json({
-      packId,
-      token,
-      expiresAt: expiresAt.getTime(),
-      validUntil: expiresAt.toISOString(),
-    });
   } catch (error) {
     console.error('Share pack creation failed:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
@@ -170,38 +84,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Token required' }, { status: 400 });
     }
 
-    const payload = verifyShareToken(token);
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+    const result = await getSharePack({ token });
+
+    if (!result) {
+      return NextResponse.json({ error: 'Pack not found, expired, or revoked' }, { status: 404 }); // Could also be 401/403 but 404 is safer
     }
 
-    const { packId, tenantId } = payload;
-
-    // Verify pack exists and is not expired/revoked
-    const pack = await db.query.sharePacks.findFirst({
-      where: and(
-        eq(schema.sharePacks.id, packId),
-        eq(schema.sharePacks.tenantId, tenantId),
-        gt(schema.sharePacks.expiresAt, new Date()),
-        isNull(schema.sharePacks.revokedAt)
-      ),
-    });
-
-    if (!pack) {
-      return NextResponse.json({ error: 'Pack not found, expired, or revoked' }, { status: 404 });
-    }
-
-    // Fetch documents with tenant scoping
-    const docs = await db
-      .select()
-      .from(schema.documents)
-      .where(
-        and(
-          eq(schema.documents.tenantId, tenantId), // MUST verify tenantId
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          inArray(schema.documents.id, (pack as any)['document' + 'Ids'])
-        )
-      );
+    const { pack, docs, tenantId } = result;
 
     // Log the access
     await logAuditEvent({
@@ -213,7 +102,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      packId,
+      packId: pack.id,
       documents: docs.map(d => ({
         id: d.id,
         fileName: d.fileName,

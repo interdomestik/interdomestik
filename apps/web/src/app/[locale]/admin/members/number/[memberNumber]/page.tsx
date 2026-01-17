@@ -1,8 +1,6 @@
 import { parseMemberNumber } from '@/features/admin/members/utils/memberNumber';
+import { findMemberByNumber } from '@/features/admin/members.service';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database';
-import { user } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
@@ -41,12 +39,7 @@ export default async function MemberNumberResolverPage({ params }: ResolverPageP
 
   // 3. Global Lookup
   // Member Number is unique (via Partial Index), so we expect at most one result.
-  const foundUser = await db.query.user.findFirst({
-    where: eq(user.memberNumber, memberNumber),
-    columns: {
-      id: true,
-    },
-  });
+  const foundUser = await findMemberByNumber(memberNumber);
 
   if (!foundUser) {
     notFound();
