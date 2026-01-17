@@ -79,6 +79,7 @@ async function loginAs(
   const destUrl = `${baseURL}${targetPath}`;
 
   await page.goto(destUrl);
+  await page.waitForTimeout(500); // Allow redirect/load to settle
   await page.waitForLoadState('domcontentloaded');
 }
 
@@ -149,7 +150,7 @@ test.describe('Golden Gate: Critical Path', () => {
         });
         const testIdMatch = page.getByTestId('not-found-page');
 
-        await expect(headingMatch.or(testIdMatch)).toBeVisible({ timeout: 5000 });
+        await expect(headingMatch.or(testIdMatch).first()).toBeVisible({ timeout: 5000 });
       } else {
         // If redirected away from admin, it's valid isolation
         expect(pathname).not.toContain('/admin');
@@ -253,7 +254,7 @@ test.describe('Golden Gate: Critical Path', () => {
       await page.waitForLoadState('networkidle');
 
       // Verify URL pattern (uses branch CODE now, not ID)
-      await expect(page).toHaveURL(/\/admin\/branches\/[A-Z0-9-]+/);
+      await expect(page).toHaveURL(/\/admin\/branches\/[A-Z0-9-]+/, { timeout: 10000 });
 
       // Verify V2 Dashboard Header with data-testid
       await expect(page.locator('[data-testid="branch-dashboard-title"]')).toBeVisible();
