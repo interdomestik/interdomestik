@@ -1,6 +1,8 @@
 import { expect, test } from '../fixtures/auth.fixture';
 
 test.describe('Claims Dashboard Visual Regression', () => {
+  // TODO: Re-enable when visual snapshots are standardized in Docker
+  test.skip(true, 'Visual tests require consistent environment');
   test.beforeEach(({ page }) => {
     page.on('console', msg => {
       const text = msg.text();
