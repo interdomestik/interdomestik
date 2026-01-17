@@ -56,7 +56,9 @@
     "release": "release-it",
     "release:dry": "release-it --dry-run",
     "prepare": "husky",
-    "track:audit": "node scripts/track-audit.mjs"
+    "track:audit": "node scripts/track-audit.mjs",
+    "start:system": "./scripts/start-system.sh",
+    "start:system:quick": "./scripts/start-system-quick.sh"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
