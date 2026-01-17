@@ -1,6 +1,25 @@
 export function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     import('../sentry.server.config');
+
+    // Hardening: Prevent process crash on client disconnects during E2E/Load tests
+    process.on('uncaughtException', (err: any) => {
+      if (
+        err?.code === 'ECONNRESET' ||
+        err?.message === 'aborted' ||
+        err?.message?.includes?.('EPIPE')
+      ) {
+        // Ignore client disconnects
+        return;
+      }
+      console.error('Uncaught Exception:', err);
+      process.exit(1);
+    });
+
+    process.on('unhandledRejection', (reason: any) => {
+      if (reason?.code === 'ECONNRESET' || reason?.message === 'aborted') return;
+      console.error('Unhandled Rejection:', reason);
+    });
   }
 
   if (process.env.NEXT_RUNTIME === 'edge') {
