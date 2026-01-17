@@ -1,4 +1,4 @@
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { ensureTenantId, UnauthorizedError } from '@interdomestik/shared-auth';
 
 // Define a minimal session interface that matches what we expect from auth()
 // Adapting to your project's `Session` type which seems to be from 'better-auth' or 'next-auth'
@@ -14,7 +14,7 @@ export interface ClaimsAccessContext {
 
 export function ensureClaimsAccess(session: any): ClaimsAccessContext {
   if (!session || !session.user) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError();
   }
 
   const tenantId = ensureTenantId(session);
@@ -23,12 +23,8 @@ export function ensureClaimsAccess(session: any): ClaimsAccessContext {
   const branchId = user.branchId || null;
   const userId = user.id;
 
-  // Basic role check - members have their own portal, this is for admin execution mainly?
-  // The Prompt: "Upgrade the old Claims admin list" -> Implies Admin/Staff context.
-  // But we should be safe.
-  // If role is member -> they shouldn't be calling this admin-scoped domain function usually?
-  // But if they do, we scope to their ID?
-  // Prompt says: "Claims must be branch-scoped where relevant... staff sees claims assigned..."
+  // Member access is allowed here because getClaimsListV2 is used by the universal /api/claims endpoint.
+  // The query builder in queries.ts enforces strict owner-scoping (eq(claims.userId, userId)) for members.
 
   // We return the context, the Query Builder will apply the strict filters.
   return {
