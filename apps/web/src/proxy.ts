@@ -94,7 +94,7 @@ export default async function proxy(request: NextRequest) {
   const scriptSrc = [
     "'self'",
     `'nonce-${nonce}'`,
-    ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'"] : []),
+    ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'", 'http://localhost:8097'] : []),
     'https://va.vercel-scripts.com',
     'https://www.googletagmanager.com',
     'https://connect.facebook.net',

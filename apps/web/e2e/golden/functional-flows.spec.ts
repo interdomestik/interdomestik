@@ -1,5 +1,6 @@
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
-import { expect, test, TestInfo } from '@playwright/test';
+import { expect, test, type TestInfo } from '@playwright/test';
+import { assertAccessDenied } from '../utils/rbac';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROJECT-AWARE HELPERS
@@ -75,11 +76,8 @@ test.describe('Golden Flows: Functional Depth', () => {
       const staff = isKsProject(testInfo) ? USERS.STAFF_KS : USERS.STAFF_MK;
       await loginAs(page, staff);
       await page.goto(`/${DEFAULT_LOCALE}/agent/leads`);
-      // Should redirect or show 403
-      // Should see 404 (Strict Isolation)
-      await expect(
-        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
-      ).toBeVisible();
+      // Should redirect or show 403/404
+      await assertAccessDenied(page);
     });
 
     // REPLACED: Original KS A/B tests with KS PACK TESTS

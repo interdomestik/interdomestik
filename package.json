@@ -43,6 +43,7 @@
     "test:coverage": "pnpm --filter @interdomestik/web test:unit --coverage && pnpm --filter @interdomestik/domain-* test:unit --coverage",
     "test:e2e": "pnpm --filter @interdomestik/web test:e2e",
     "e2e:gate": "./scripts/m4-gatekeeper.sh && pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=ks-sq --project=mk-mk --max-failures=1 --trace=retain-on-failure --reporter=line",
+    "e2e:merge": "./scripts/m4-gatekeeper.sh && pnpm --filter @interdomestik/web exec playwright test e2e/gate e2e/golden --grep-invert \"@quarantine|@visual|@legacy\" --project=ks-sq --project=mk-mk --trace=retain-on-failure --reporter=line",
     "e2e:gate:ks": "./scripts/m4-gatekeeper.sh && pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=ks-sq --max-failures=1 --trace=retain-on-failure --reporter=line",
     "e2e:gate:mk": "./scripts/m4-gatekeeper.sh && pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=mk-mk --max-failures=1 --trace=retain-on-failure --reporter=line",
     "check:fast": "pnpm format:check && pnpm lint && pnpm type-check && pnpm i18n:check && pnpm check:entrypoints && pnpm test:unit:domains && pnpm test",
