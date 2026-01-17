@@ -14,7 +14,8 @@
         "pending": "Në Pritje",
         "succeeded": "Aprovuar",
         "rejected": "Refuzuar",
-        "needs_info": "Kërkohet Info"
+        "needs_info": "Kërkohet Info",
+        "resubmitted": "Ridorëzuar"
       },
       "table": {
         "amount": "Shuma",

@@ -1,5 +1,13 @@
 import { relations } from 'drizzle-orm';
-import { index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { user } from './auth';
 import { branches } from './rbac';
 import { tenants } from './tenants';
@@ -90,6 +98,7 @@ export const leadPaymentAttempts = pgTable(
     verifiedBy: text('verified_by').references(() => user.id),
     verifiedAt: timestamp('verified_at'),
     verificationNote: text('verification_note'),
+    isResubmission: boolean('is_resubmission').default(false).notNull(),
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')

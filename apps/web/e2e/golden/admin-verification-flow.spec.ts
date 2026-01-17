@@ -1,4 +1,4 @@
-import { db, notifications } from '@interdomestik/database';
+import { db, leadPaymentAttempts, notifications } from '@interdomestik/database';
 import { eq } from 'drizzle-orm';
 import { expect, test } from '../fixtures/auth.fixture';
 
@@ -69,6 +69,27 @@ test.describe('Admin Verification Flow (Golden)', () => {
 
     // 10. Verify Item status updated to "Needs Info" (It stays in Queue)
     await expect(page.getByText(/Needs Info|Kërkohet Info/i).first()).toBeVisible();
+
+    // 10a. Simulate Agent Resubmission (DB Hack for speed)
+    const [needsInfoAttempt] = await db
+      .select()
+      .from(leadPaymentAttempts)
+      .where(eq(leadPaymentAttempts.status, 'needs_info'))
+      .limit(1);
+
+    if (needsInfoAttempt) {
+      await db
+        .update(leadPaymentAttempts)
+        .set({
+          status: 'pending',
+          isResubmission: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(leadPaymentAttempts.id, needsInfoAttempt.id));
+
+      await page.reload();
+      await expect(page.getByText(/Resubmitted|Ridorëzuar/i)).toBeVisible();
+    }
 
     // 11. Test Search
     const searchInput = page.getByPlaceholder(/Kërko|Search/i);

@@ -1,0 +1,1 @@
+ALTER TABLE "lead_payment_attempts" ADD COLUMN "is_resubmission" boolean DEFAULT false NOT NULL;

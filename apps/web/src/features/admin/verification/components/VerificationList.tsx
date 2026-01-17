@@ -160,7 +160,15 @@ export function VerificationList({
     setActionDialogOpen(false);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, isResubmission?: boolean) => {
+    if (status === 'pending' && isResubmission) {
+      return (
+        <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+          {t('status.resubmitted')}
+        </Badge>
+      );
+    }
+
     switch (status) {
       case 'succeeded':
         return (
@@ -385,7 +393,7 @@ export function VerificationList({
 
                   {historyMode && (
                     <>
-                      <TableCell>{getStatusBadge(req.status)}</TableCell>
+                      <TableCell>{getStatusBadge(req.status, req.isResubmission)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <UserCheck className="w-3 h-3 text-muted-foreground" />
@@ -421,6 +429,11 @@ export function VerificationList({
                   {!historyMode && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2 items-center">
+                        {req.isResubmission && (
+                          <Badge className="bg-purple-100 text-purple-700 border-purple-200 mr-2">
+                            {t('status.resubmitted')}
+                          </Badge>
+                        )}
                         {req.status === 'needs_info' && (
                           <Badge variant="secondary" className="bg-orange-100 text-orange-700 mr-2">
                             {t('status.needs_info')}

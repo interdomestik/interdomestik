@@ -14,7 +14,8 @@
         "pending": "Во Чекање",
         "succeeded": "Одобрено",
         "rejected": "Одбиено",
-        "needs_info": "Потребно Инфо"
+        "needs_info": "Потребно Инфо",
+        "resubmitted": "Повторно поднесено"
       },
       "table": {
         "amount": "Износ",

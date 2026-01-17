@@ -14,6 +14,11 @@ export const verifyCashSchema = z.object({
   note: z.string().optional(),
 });
 
+export const resubmitCashSchema = z.object({
+  attemptId: z.string(),
+  note: z.string().optional(),
+});
+
 export type CashVerificationRequestDTO = {
   id: string; // attemptId
   leadId: string;
@@ -23,6 +28,7 @@ export type CashVerificationRequestDTO = {
   amount: number;
   currency: string;
   status: string; // Added status for display
+  isResubmission: boolean; // Added for UI badge
   createdAt: Date;
   updatedAt: Date;
   branchId: string;
@@ -101,6 +107,7 @@ export async function getVerificationRequests(
       amount: leadPaymentAttempts.amount,
       currency: leadPaymentAttempts.currency,
       status: leadPaymentAttempts.status,
+      isResubmission: leadPaymentAttempts.isResubmission,
       createdAt: leadPaymentAttempts.createdAt,
       updatedAt: leadPaymentAttempts.updatedAt,
       // Branch Info
@@ -139,8 +146,13 @@ export async function getVerificationRequests(
   }
 
   // Sorting: Queue = FIFO (Oldest First), History = LIFO (Newest First)
+  // For Resubmission: Should bubble to top?
+  // Usually Queue is FIFO. But Resubmitted items are "urgent".
+  // If we want Resubmitted at top, we sort by isResubmission DESC, then createdAt ASC.
   const orderBy =
-    view === 'queue' ? asc(leadPaymentAttempts.createdAt) : desc(leadPaymentAttempts.updatedAt);
+    view === 'queue'
+      ? [desc(leadPaymentAttempts.isResubmission), asc(leadPaymentAttempts.createdAt)]
+      : [desc(leadPaymentAttempts.updatedAt)];
 
   // Limit: Keep UI fast
   const limit = view === 'history' ? 50 : 100;
@@ -148,7 +160,7 @@ export async function getVerificationRequests(
   // @ts-expect-error - queryBuilder type inference with conditional join
   const rows = await queryBuilder
     .where(and(...conditions))
-    .orderBy(orderBy)
+    .orderBy(...orderBy)
     .limit(limit);
 
   return rows as CashVerificationRequestDTO[];
@@ -175,10 +187,6 @@ export async function getVerificationRequestDetails(
 ): Promise<CashVerificationDetailsDTO | null> {
   const { tenantId } = ctx;
 
-  // Reuse logic from list query but single item
-  // We can just call getVerificationRequests but we need extra joins (documents list, audit log)
-  // So better to write specific query.
-
   const verifier = aliasedTable(user, 'verifier');
 
   const [row] = await db
@@ -192,6 +200,7 @@ export async function getVerificationRequestDetails(
       amount: leadPaymentAttempts.amount,
       currency: leadPaymentAttempts.currency,
       status: leadPaymentAttempts.status,
+      isResubmission: leadPaymentAttempts.isResubmission,
       createdAt: leadPaymentAttempts.createdAt,
       updatedAt: leadPaymentAttempts.updatedAt,
       branchId: branches.id,
@@ -202,7 +211,6 @@ export async function getVerificationRequestDetails(
       agentEmail: user.email,
       verificationNote: leadPaymentAttempts.verificationNote,
       verifierName: verifier.name,
-      // We don't select single document here, we fetch all below
     })
     .from(leadPaymentAttempts)
     .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
@@ -267,7 +275,6 @@ export async function getVerificationRequestDetails(
       title: 'Proof Uploaded',
       description: d.fileName,
       date: d.uploadedAt,
-      // We could join uploader name but for now assume Agent
     });
   });
 
@@ -278,6 +285,7 @@ export async function getVerificationRequestDetails(
     if (l.action.includes('APPROVE')) title = 'Approved';
     if (l.action.includes('REJECT')) title = 'Rejected';
     if (l.action.includes('NEEDS_INFO')) title = 'Requested Info';
+    if (l.action.includes('RESUBMIT')) title = 'Resubmitted';
 
     timeline.push({
       id: `log-${l.id}`,
@@ -300,20 +308,18 @@ export async function getVerificationRequestDetails(
     uploadedAt: d.uploadedAt,
   }));
 
-  // Attach latest doc info to base DTO fields for compatibility
   const latestDoc = documentList[0];
 
   return {
     ...row,
     documentId: latestDoc?.id || null,
-    documentPath: null, // Legacy field, not needed for details
+    documentPath: null,
     documents: documentList,
     timeline,
   };
 }
 
 // 3. Action: Verify (Approve/Reject/NeedsInfo)
-// OPS-GRADE: Transaction + Idempotency + Audit
 export async function verifyCashAttemptCore(
   ctx: ProtectedActionContext,
   input: z.infer<typeof verifyCashSchema>
@@ -321,13 +327,12 @@ export async function verifyCashAttemptCore(
   const { tenantId, session } = ctx;
   const { attemptId, decision, note } = input;
 
-  // Validation: Note required for reject/needs_info
   if ((decision === 'reject' || decision === 'needs_info') && !note?.trim()) {
     throw new Error('A note is required for this decision.');
   }
 
   return await db.transaction(async tx => {
-    // A. Fetch & Lock to validate state
+    // A. Fetch
     const [result] = await tx
       .select({
         attempt: leadPaymentAttempts,
@@ -343,18 +348,12 @@ export async function verifyCashAttemptCore(
     if (!result) throw new Error('Payment attempt not found.');
     const { attempt, lead, agentEmail } = result;
 
-    // B. Security: Self-Verification Check
-    // An agent cannot verify their own payment, even if they have admin rights (separation of duties)
+    // B. Security
     if (lead.agentId === session.user.id) {
       throw new Error('Conflict of Interest: You cannot verify payments for your own leads.');
     }
 
-    // C. Validation (Idempotency)
-    // Allow transitioning from 'needs_info' to 'succeeded'/'rejected' if Agent re-submitted?
-    // Actually, if it's 'needs_info', it's still "pending" verification action effectively (Agent provided info).
-    // The previous logic blocked non-pending.
-    // If status is 'needs_info', we SHOULD allow actioning it again (to Approve or Reject).
-    // So we allow 'pending' OR 'needs_info'.
+    // C. Validation
     if (attempt.status !== 'pending' && attempt.status !== 'needs_info') {
       if (decision === 'approve' && attempt.status === 'succeeded')
         return { success: true, message: 'Already approved' };
@@ -364,16 +363,17 @@ export async function verifyCashAttemptCore(
       throw new Error(`Attempt is already processed as ${attempt.status}`);
     }
 
-    // D. Determine Status
+    // D. Status
     let newStatus: 'succeeded' | 'rejected' | 'needs_info' = 'succeeded';
     if (decision === 'reject') newStatus = 'rejected';
     else if (decision === 'needs_info') newStatus = 'needs_info';
 
-    // E. Update Attempt
+    // E. Update
     await tx
       .update(leadPaymentAttempts)
       .set({
         status: newStatus,
+        isResubmission: false, // RESET FLAG
         verifiedBy: session.user.id,
         verifiedAt: new Date(),
         updatedAt: new Date(),
@@ -381,7 +381,7 @@ export async function verifyCashAttemptCore(
       })
       .where(eq(leadPaymentAttempts.id, attemptId));
 
-    // F. Audit Log
+    // F. Audit
     await tx.insert(auditLog).values({
       id: nanoid(),
       tenantId,
@@ -401,7 +401,7 @@ export async function verifyCashAttemptCore(
       createdAt: new Date(),
     });
 
-    // G. Notify Agent (If Needs Info or Rejected)
+    // G. Notify
     if (newStatus === 'needs_info' || newStatus === 'rejected') {
       await notifyPaymentVerificationUpdate(lead.agentId, agentEmail, {
         leadName: `${lead.firstName} ${lead.lastName}`,
@@ -413,7 +413,7 @@ export async function verifyCashAttemptCore(
       });
     }
 
-    // H. Minimal Lead Update (Only if Approved)
+    // H. Lead Update
     if (decision === 'approve') {
       await tx
         .update(memberLeads)
@@ -430,5 +430,72 @@ export async function verifyCashAttemptCore(
     }
 
     return { success: true, status: newStatus };
+  });
+}
+
+// 4. Action: Resubmit (Agent)
+export async function resubmitCashAttemptCore(
+  ctx: ProtectedActionContext,
+  input: z.infer<typeof resubmitCashSchema>
+) {
+  const { tenantId, session } = ctx;
+  const { attemptId, note } = input;
+
+  return await db.transaction(async tx => {
+    // A. Fetch
+    const [result] = await tx
+      .select({
+        attempt: leadPaymentAttempts,
+        lead: memberLeads,
+      })
+      .from(leadPaymentAttempts)
+      .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
+      .where(and(eq(leadPaymentAttempts.id, attemptId), eq(leadPaymentAttempts.tenantId, tenantId)))
+      .limit(1);
+
+    if (!result) throw new Error('Payment attempt not found.');
+    const { attempt, lead } = result;
+
+    // B. Security: Only assigned agent
+    if (lead.agentId !== session.user.id) {
+      throw new Error('Only the assigned agent can resubmit this verification.');
+    }
+
+    // C. Validation
+    if (attempt.status !== 'needs_info' && attempt.status !== 'rejected') {
+      throw new Error(`Cannot resubmit verification with status: ${attempt.status}`);
+    }
+
+    // D. Update
+    await tx
+      .update(leadPaymentAttempts)
+      .set({
+        status: 'pending',
+        isResubmission: true, // SET FLAG
+        updatedAt: new Date(),
+        // verificationNote: Do not clear admin note? Or clear it?
+        // Usually we keep admin note so history shows "Why it was rejected".
+        // But status is now pending.
+        // I'll keep it.
+      })
+      .where(eq(leadPaymentAttempts.id, attemptId));
+
+    // E. Audit
+    await tx.insert(auditLog).values({
+      id: nanoid(),
+      tenantId,
+      actorId: session.user.id,
+      actorRole: session.user.role,
+      action: 'PAYMENT_RESUBMITTED',
+      entityType: 'payment_attempt',
+      entityId: attemptId,
+      metadata: {
+        note,
+        previousStatus: attempt.status,
+      },
+      createdAt: new Date(),
+    });
+
+    return { success: true };
   });
 }

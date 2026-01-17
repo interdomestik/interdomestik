@@ -14,7 +14,8 @@
         "pending": "Pending",
         "succeeded": "Approved",
         "rejected": "Rejected",
-        "needs_info": "Needs Info"
+        "needs_info": "Needs Info",
+        "resubmitted": "Resubmitted"
       },
       "table": {
         "amount": "Amount",
