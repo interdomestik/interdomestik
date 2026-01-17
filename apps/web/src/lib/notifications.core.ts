@@ -2,6 +2,7 @@ import {
   notifyClaimAssigned as notifyClaimAssignedDomain,
   notifyClaimSubmitted as notifyClaimSubmittedDomain,
   notifyNewMessage as notifyNewMessageDomain,
+  notifyPaymentVerificationUpdate as notifyPaymentVerificationUpdateDomain,
   notifyStatusChanged as notifyStatusChangedDomain,
   sendNotification as sendNotificationDomain,
 } from '@interdomestik/domain-communications/notifications';
@@ -62,4 +63,19 @@ export function notifyNewMessage(
   return notifyNewMessageDomain(recipientId, recipientEmail, claim, senderName, messagePreview, {
     sendPushToUser,
   });
+}
+
+export function notifyPaymentVerificationUpdate(
+  agentId: string,
+  agentEmail: string,
+  props: {
+    leadName: string;
+    amount: number;
+    currency: string;
+    status: 'needs_info' | 'rejected';
+    note?: string;
+    link: string;
+  }
+) {
+  return notifyPaymentVerificationUpdateDomain(agentId, agentEmail, props);
 }

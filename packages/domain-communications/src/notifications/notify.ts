@@ -6,6 +6,7 @@ import {
   sendClaimAssignedEmail,
   sendClaimSubmittedEmail,
   sendNewMessageEmail,
+  sendPaymentVerificationEmail,
   sendStatusChangedEmail,
 } from '../email';
 import { sendPushToUser } from '../push';
@@ -18,7 +19,8 @@ export type NotificationEvent =
   | 'claim_status_changed'
   | 'new_message'
   | 'sla_warning'
-  | 'sla_breached';
+  | 'sla_breached'
+  | 'payment_verification_update';
 
 type NotificationDeps = {
   sendPushToUser?: typeof sendPushToUser;
@@ -220,6 +222,40 @@ export async function notifyNewMessage(
     {
       title: 'New Message',
       actionUrl: `/dashboard/claims/${claim.id}`,
+    }
+  );
+}
+
+/**
+ * Notify agent about payment verification update
+ */
+export async function notifyPaymentVerificationUpdate(
+  agentId: string,
+  agentEmail: string,
+  props: {
+    leadName: string;
+    amount: number;
+    currency: string;
+    status: 'needs_info' | 'rejected';
+    note?: string;
+    link: string;
+  }
+) {
+  sendPaymentVerificationEmail(agentEmail, props).catch(error =>
+    console.error('Failed to send payment verification email:', error)
+  );
+
+  return sendNotification(
+    agentId,
+    'payment_verification_update',
+    {
+      leadName: props.leadName,
+      status: props.status,
+      note: props.note || '',
+    },
+    {
+      title: `Payment ${props.status === 'needs_info' ? 'Needs Info' : 'Rejected'}`,
+      actionUrl: props.link,
     }
   );
 }

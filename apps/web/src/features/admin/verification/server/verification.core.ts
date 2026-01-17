@@ -1,3 +1,4 @@
+import { notifyPaymentVerificationUpdate } from '@/lib/notifications';
 import { ProtectedActionContext } from '@/lib/safe-action';
 import { db } from '@interdomestik/database';
 import { auditLog, branches, documents, user } from '@interdomestik/database/schema';
@@ -331,14 +332,16 @@ export async function verifyCashAttemptCore(
       .select({
         attempt: leadPaymentAttempts,
         lead: memberLeads,
+        agentEmail: user.email,
       })
       .from(leadPaymentAttempts)
       .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
+      .innerJoin(user, eq(memberLeads.agentId, user.id))
       .where(and(eq(leadPaymentAttempts.id, attemptId), eq(leadPaymentAttempts.tenantId, tenantId)))
       .limit(1);
 
     if (!result) throw new Error('Payment attempt not found.');
-    const { attempt, lead } = result;
+    const { attempt, lead, agentEmail } = result;
 
     // B. Security: Self-Verification Check
     // An agent cannot verify their own payment, even if they have admin rights (separation of duties)
@@ -398,7 +401,19 @@ export async function verifyCashAttemptCore(
       createdAt: new Date(),
     });
 
-    // G. Minimal Lead Update (Only if Approved)
+    // G. Notify Agent (If Needs Info or Rejected)
+    if (newStatus === 'needs_info' || newStatus === 'rejected') {
+      await notifyPaymentVerificationUpdate(lead.agentId, agentEmail, {
+        leadName: `${lead.firstName} ${lead.lastName}`,
+        amount: attempt.amount,
+        currency: attempt.currency,
+        status: newStatus,
+        note: note || undefined,
+        link: `/agent/leads`,
+      });
+    }
+
+    // H. Minimal Lead Update (Only if Approved)
     if (decision === 'approve') {
       await tx
         .update(memberLeads)

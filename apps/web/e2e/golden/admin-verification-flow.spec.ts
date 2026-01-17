@@ -1,3 +1,5 @@
+import { db, notifications } from '@interdomestik/database';
+import { eq } from 'drizzle-orm';
 import { expect, test } from '../fixtures/auth.fixture';
 
 test.describe('Admin Verification Flow (Golden)', () => {
@@ -92,5 +94,16 @@ test.describe('Admin Verification Flow (Golden)', () => {
     // Check for History specific columns (Status, Verifier)
     await expect(page.getByRole('columnheader', { name: /Status/i })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: /Verifikuesi|Verifier/i })).toBeVisible();
+
+    // 13. Verify Notification in DB
+    await expect(async () => {
+      const notifs = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.type, 'payment_verification_update'));
+      expect(notifs.length).toBeGreaterThan(0);
+      const latest = notifs[notifs.length - 1];
+      expect(latest.title).toMatch(/Needs Info|Kërkohet Info/i);
+    }).toPass({ timeout: 10000 });
   });
 });
