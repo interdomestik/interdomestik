@@ -42,7 +42,6 @@ import {
   Clock,
   Eye,
   FileText,
-  Filter,
   HelpCircle,
   Info,
   MessageSquare,
@@ -78,9 +77,10 @@ export function VerificationList({
     setRequests(initialLeads);
   }, [initialLeads]);
 
-  // Needs Info Dialog State (For inline actions)
-  const [needsInfoOpen, setNeedsInfoOpen] = useState(false);
+  // Action Dialog State (Needs Info / Reject)
+  const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pendingDecision, setPendingDecision] = useState<'reject' | 'needs_info' | null>(null);
   const [note, setNote] = useState('');
 
   // Search Debounce
@@ -130,9 +130,6 @@ export function VerificationList({
 
     if (res.success) {
       toast.success(t(`toasts.${decision}_success`));
-      // Optimistic update
-      // If approved/rejected, remove from queue view. If needs_info, update status.
-      // But simple filter:
       if (decision === 'needs_info') {
         setRequests(prev =>
           prev.map(r => (r.id === attemptId ? { ...r, status: 'needs_info' } : r))
@@ -146,20 +143,21 @@ export function VerificationList({
     }
   };
 
-  const openNeedsInfo = (id: string) => {
+  const initiateAction = (id: string, decision: 'reject' | 'needs_info') => {
     setSelectedId(id);
+    setPendingDecision(decision);
     setNote('');
-    setNeedsInfoOpen(true);
+    setActionDialogOpen(true);
   };
 
-  const submitNeedsInfo = async () => {
-    if (!selectedId) return;
+  const submitAction = async () => {
+    if (!selectedId || !pendingDecision) return;
     if (!note.trim()) {
       toast.error(t('toasts.note_required'));
       return;
     }
-    await handleVerify(selectedId, 'needs_info', note);
-    setNeedsInfoOpen(false);
+    await handleVerify(selectedId, pendingDecision, note);
+    setActionDialogOpen(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -187,8 +185,6 @@ export function VerificationList({
 
   const handleDrawerActionComplete = () => {
     router.refresh();
-    // Re-fetch logic implied by refresh, but state sync?
-    // Refresh updates 'initialLeads', useEffect updates state.
   };
 
   return (
@@ -260,10 +256,12 @@ export function VerificationList({
         </Tabs>
       </div>
 
-      <Dialog open={needsInfoOpen} onOpenChange={setNeedsInfoOpen}>
+      <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('dialogs.needs_info_title')}</DialogTitle>
+            <DialogTitle>
+              {pendingDecision === 'reject' ? t('actions.reject') : t('dialogs.needs_info_title')}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-2 py-4">
             <Label>{t('labels.note')}</Label>
@@ -274,10 +272,15 @@ export function VerificationList({
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNeedsInfoOpen(false)}>
+            <Button variant="outline" onClick={() => setActionDialogOpen(false)}>
               {t('actions.cancel')}
             </Button>
-            <Button onClick={submitNeedsInfo}>{t('actions.submit')}</Button>
+            <Button
+              onClick={submitAction}
+              variant={pendingDecision === 'reject' ? 'destructive' : 'default'}
+            >
+              {t('actions.submit')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -446,7 +449,7 @@ export function VerificationList({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => openNeedsInfo(req.id)}
+                          onClick={() => initiateAction(req.id, 'needs_info')}
                           data-testid="cash-needs-info"
                         >
                           <HelpCircle className="w-4 h-4 mr-1" />
@@ -454,7 +457,7 @@ export function VerificationList({
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleVerify(req.id, 'reject')}
+                          onClick={() => initiateAction(req.id, 'reject')}
                           data-testid="cash-reject"
                         >
                           <X className="w-4 h-4 mr-1" />
