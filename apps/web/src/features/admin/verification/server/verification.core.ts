@@ -153,7 +153,165 @@ export async function getVerificationRequests(
   return rows as CashVerificationRequestDTO[];
 }
 
-// 2. Action: Verify (Approve/Reject/NeedsInfo)
+export type VerificationTimelineEvent = {
+  id: string;
+  type: 'created' | 'document_upload' | 'action';
+  title: string;
+  description?: string;
+  date: Date;
+  actorName?: string;
+};
+
+export type CashVerificationDetailsDTO = CashVerificationRequestDTO & {
+  documents: { id: string; name: string; url: string; uploadedAt: Date }[];
+  timeline: VerificationTimelineEvent[];
+};
+
+// 2. Query: Get Details with Timeline
+export async function getVerificationRequestDetails(
+  ctx: ProtectedActionContext,
+  attemptId: string
+): Promise<CashVerificationDetailsDTO | null> {
+  const { tenantId } = ctx;
+
+  // Reuse logic from list query but single item
+  // We can just call getVerificationRequests but we need extra joins (documents list, audit log)
+  // So better to write specific query.
+
+  const verifier = aliasedTable(user, 'verifier');
+
+  const [row] = await db
+    .select({
+      // Base DTO
+      id: leadPaymentAttempts.id,
+      leadId: memberLeads.id,
+      firstName: memberLeads.firstName,
+      lastName: memberLeads.lastName,
+      email: memberLeads.email,
+      amount: leadPaymentAttempts.amount,
+      currency: leadPaymentAttempts.currency,
+      status: leadPaymentAttempts.status,
+      createdAt: leadPaymentAttempts.createdAt,
+      updatedAt: leadPaymentAttempts.updatedAt,
+      branchId: branches.id,
+      branchCode: branches.code,
+      branchName: branches.name,
+      agentId: user.id,
+      agentName: user.name,
+      agentEmail: user.email,
+      verificationNote: leadPaymentAttempts.verificationNote,
+      verifierName: verifier.name,
+      // We don't select single document here, we fetch all below
+    })
+    .from(leadPaymentAttempts)
+    .innerJoin(memberLeads, eq(memberLeads.id, leadPaymentAttempts.leadId))
+    .innerJoin(branches, eq(memberLeads.branchId, branches.id))
+    .innerJoin(user, eq(memberLeads.agentId, user.id))
+    .leftJoin(verifier, eq(leadPaymentAttempts.verifiedBy, verifier.id))
+    .where(and(eq(leadPaymentAttempts.id, attemptId), eq(leadPaymentAttempts.tenantId, tenantId)));
+
+  if (!row) return null;
+
+  // Fetch all documents
+  const docs = await db
+    .select()
+    .from(documents)
+    .where(
+      and(
+        eq(documents.entityType, 'payment_attempt'),
+        eq(documents.entityId, attemptId),
+        eq(documents.tenantId, tenantId)
+      )
+    )
+    .orderBy(desc(documents.uploadedAt));
+
+  // Fetch Audit Log for Timeline
+  const logs = await db
+    .select({
+      id: auditLog.id,
+      action: auditLog.action,
+      createdAt: auditLog.createdAt,
+      metadata: auditLog.metadata,
+      actorName: user.name,
+    })
+    .from(auditLog)
+    .leftJoin(user, eq(auditLog.actorId, user.id))
+    .where(
+      and(
+        eq(auditLog.entityType, 'payment_attempt'),
+        eq(auditLog.entityId, attemptId),
+        eq(auditLog.tenantId, tenantId)
+      )
+    )
+    .orderBy(desc(auditLog.createdAt));
+
+  // Construct Timeline
+  const timeline: VerificationTimelineEvent[] = [];
+
+  // 1. Creation
+  timeline.push({
+    id: `create-${row.id}`,
+    type: 'created',
+    title: 'Payment Attempt Created',
+    description: `Cash payment recorded by ${row.agentName}`,
+    date: row.createdAt,
+    actorName: row.agentName,
+  });
+
+  // 2. Documents
+  docs.forEach(d => {
+    timeline.push({
+      id: `doc-${d.id}`,
+      type: 'document_upload',
+      title: 'Proof Uploaded',
+      description: d.fileName,
+      date: d.uploadedAt,
+      // We could join uploader name but for now assume Agent
+    });
+  });
+
+  // 3. Actions
+  logs.forEach(l => {
+    const meta = l.metadata as any;
+    let title = l.action;
+    if (l.action.includes('APPROVE')) title = 'Approved';
+    if (l.action.includes('REJECT')) title = 'Rejected';
+    if (l.action.includes('NEEDS_INFO')) title = 'Requested Info';
+
+    timeline.push({
+      id: `log-${l.id}`,
+      type: 'action',
+      title,
+      description: meta?.note || undefined,
+      date: l.createdAt!,
+      actorName: l.actorName || 'Unknown',
+    });
+  });
+
+  // Sort Descending
+  timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  // Map docs to simple structure
+  const documentList = docs.map(d => ({
+    id: d.id,
+    name: d.fileName,
+    url: `/api/documents/${d.id}/download`,
+    uploadedAt: d.uploadedAt,
+  }));
+
+  // Attach latest doc info to base DTO fields for compatibility
+  const latestDoc = documentList[0];
+
+  return {
+    ...row,
+    documentId: latestDoc?.id || null,
+    documentPath: null, // Legacy field, not needed for details
+    documents: documentList,
+    timeline,
+  };
+}
+
+// 3. Action: Verify (Approve/Reject/NeedsInfo)
 // OPS-GRADE: Transaction + Idempotency + Audit
 export async function verifyCashAttemptCore(
   ctx: ProtectedActionContext,

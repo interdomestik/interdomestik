@@ -31,19 +31,19 @@ describe('permissions', () => {
     } as any;
 
     it('should filter by branchId if present', () => {
-      const res = scopeFilter(mockCtx, { branchId: mockCol });
+      scopeFilter(mockCtx, { branchId: mockCol });
       expect(eq).toHaveBeenCalledWith(mockCol, 'branch_1');
     });
 
     it('should filter by agentId if acting as agent', () => {
       const agentCtx = { scope: { actorAgentId: 'agent_1' } } as any;
-      const res = scopeFilter(agentCtx, { agentId: mockCol });
+      scopeFilter(agentCtx, { agentId: mockCol });
       expect(eq).toHaveBeenCalledWith(mockCol, 'agent_1');
     });
 
     it('should fallback to userId if agentId column missing but user acting as agent', () => {
       const agentCtx = { scope: { actorAgentId: 'agent_1' } } as any;
-      const res = scopeFilter(agentCtx, { userId: mockCol });
+      scopeFilter(agentCtx, { userId: mockCol });
       expect(eq).toHaveBeenCalledWith(mockCol, 'agent_1');
     });
 
@@ -81,14 +81,12 @@ describe('permissions', () => {
 
     it('assertAgentClientAccess should pass for non-agents', () => {
       // Should not throw
-      const res = assertAgentClientAccess({ scope: {} } as any, 'u1');
-      expect(res).toBeUndefined();
+      assertAgentClientAccess({ scope: {} } as any, 'u1');
     });
 
     it('assertAgentClientAccess should pass for agents (placeholder logic)', () => {
       // Current impl does nothing even for agents
-      const res = assertAgentClientAccess({ scope: { actorAgentId: 'a1' } } as any, 'u1');
-      expect(res).toBeUndefined();
+      assertAgentClientAccess({ scope: { actorAgentId: 'a1' } } as any, 'u1');
     });
   });
 });

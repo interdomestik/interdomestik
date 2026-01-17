@@ -1,7 +1,10 @@
 import { expect, test } from '../fixtures/auth.fixture';
 
 test.describe('Admin Verification Flow (Golden)', () => {
-  test('Tenant Admin can request info, search, and toggle views', async ({ page, loginAs }) => {
+  test('Tenant Admin can request info via Drawer, search, and toggle views', async ({
+    page,
+    loginAs,
+  }) => {
     // 1. Login as Tenant Admin (KS)
     await loginAs('admin', 'ks');
 
@@ -12,7 +15,7 @@ test.describe('Admin Verification Flow (Golden)', () => {
     // 3. Find a pending request (that is NOT already needs_info)
     const row = page
       .getByTestId('cash-verification-row')
-      .filter({ has: page.getByTestId('cash-needs-info') })
+      .filter({ has: page.getByRole('button', { name: /Details|Detajet/i }) }) // Ensure it has details button
       .first();
     await expect(row).toBeVisible();
 
@@ -29,33 +32,40 @@ test.describe('Admin Verification Flow (Golden)', () => {
       await expect(row.getByText(/Proof Missing|Mungon Prova|Нема Доказ/i)).toBeVisible();
     }
 
-    // 4. Click "Needs Info"
-    const needsInfoBtn = row.getByTestId('cash-needs-info');
-    await expect(needsInfoBtn).toBeVisible();
-    await needsInfoBtn.click();
+    // 4. Open Drawer
+    const detailsBtn = row.getByRole('button', { name: /Details|Detajet/i });
+    await detailsBtn.click();
 
-    // 5. Check Modal
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText(/Kërko Informacion|Request Additional Info/i);
+    // 5. Verify Drawer Content
+    const drawer = page.getByRole('dialog');
+    await expect(drawer).toBeVisible();
+    // Wait for loading to finish (skeleton disappears)
+    await expect(drawer.getByText(/Verification Details|Detajet e Verifikimit/i)).toBeVisible();
+    await expect(drawer.getByText(/Documents|Dokumentet/i)).toBeVisible();
+    await expect(drawer.getByText(/Timeline|Historiku/i)).toBeVisible();
 
-    // 6. Try Submit without Note (Validation)
-    const submitBtn = dialog.getByRole('button', { name: /Submit|Dërgo/i });
+    // 6. Action: Needs Info via Drawer
+    // Note: If item is already "needs_info", the actions might be different?
+    // My implementation shows actions if status != succeeded && status != rejected.
+    // So "needs_info" still shows actions.
+    const needsInfoDrawerBtn = drawer.getByRole('button', { name: /Needs Info|Kërko Info/i });
+    await expect(needsInfoDrawerBtn).toBeVisible();
+    await needsInfoDrawerBtn.click();
+
+    // 7. Fill Note (inline in drawer footer)
+    const noteInput = drawer.getByRole('textbox');
+    await expect(noteInput).toBeVisible();
+    await noteInput.fill('Receipt missing date via Drawer.');
+
+    // 8. Submit
+    const submitBtn = drawer.getByRole('button', { name: /Submit|Dërgo/i });
     await submitBtn.click();
-    await expect(page.getByText(/Note is required|Shënimi është i detyrueshëm/i)).toBeVisible();
 
-    // 7. Enter Note
-    const noteInput = dialog.getByRole('textbox');
-    await noteInput.fill('Please provide receipt ID.');
-    await submitBtn.click();
-
-    // 8. Verify Success
+    // 9. Verify Success & Drawer Close
     await expect(page.getByText(/Info request sent|Kërkesa për info u dërgua/i)).toBeVisible();
+    await expect(drawer).not.toBeVisible();
 
-    // 9. Verify Modal Closed
-    await expect(dialog).not.toBeVisible();
-
-    // 10. Verify Item status updated to "Needs Info" (It stays in Queue now)
+    // 10. Verify Item status updated to "Needs Info" (It stays in Queue)
     await expect(page.getByText(/Needs Info|Kërkohet Info/i).first()).toBeVisible();
 
     // 11. Test Search

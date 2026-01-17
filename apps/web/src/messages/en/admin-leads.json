@@ -52,7 +52,13 @@
         "view_proof": "View Proof",
         "needs_info": "Needs Info",
         "cancel": "Cancel",
-        "submit": "Submit"
+        "submit": "Submit",
+        "details": "Details"
+      },
+      "drawer": {
+        "title": "Verification Details",
+        "documents": "Documents",
+        "timeline": "Event Timeline"
       },
       "labels": {
         "missing_proof": "Proof Missing",

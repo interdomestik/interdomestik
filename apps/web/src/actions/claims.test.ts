@@ -117,7 +117,7 @@ vi.mock('@interdomestik/database', () => ({
   },
   and: vi.fn(),
   eq: vi.fn(),
-  sql: (strings: TemplateStringsArray, ...values: any[]) => 'sql-mock',
+  sql: (_strings: TemplateStringsArray, ..._values: any[]) => 'sql-mock',
 }));
 
 // Mock nanoid

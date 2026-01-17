@@ -38,7 +38,7 @@ vi.mock('lucide-react', () => ({
 
 // Mock translations
 vi.mock('next-intl', () => ({
-  useTranslations: (namespace: string) => (key: string, params?: any) => {
+  useTranslations: (_namespace: string) => (key: string, params?: any) => {
     // Return key for simple assertions, or interpolated string for params
     if (params) {
       if (key === 'group_header') return `${params.label} • ${params.count}`;

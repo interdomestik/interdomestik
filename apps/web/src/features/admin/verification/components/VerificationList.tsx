@@ -3,56 +3,59 @@
 import { verifyCashAttemptAction } from '../actions/verification';
 import { type CashVerificationRequestDTO } from '../server/verification.core';
 import {
+  Badge,
   Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Badge,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Textarea,
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  Label,
-  Textarea,
-  Input,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
 } from '@interdomestik/ui';
 import {
   Check,
-  Info,
-  Shield,
-  X,
-  FileText,
-  HelpCircle,
-  Search,
   Clock,
-  UserCheck,
+  Eye,
+  FileText,
+  Filter,
+  HelpCircle,
+  Info,
   MessageSquare,
+  Search,
+  Shield,
+  UserCheck,
+  X,
 } from 'lucide-react';
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { VerificationDetailsDrawer } from './VerificationDetailsDrawer';
 
 export function VerificationList({
   initialLeads,
@@ -68,13 +71,14 @@ export function VerificationList({
 
   const [requests, setRequests] = useState(initialLeads);
   const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
 
   // Sync prop to state
   useEffect(() => {
     setRequests(initialLeads);
   }, [initialLeads]);
 
-  // Needs Info Dialog State
+  // Needs Info Dialog State (For inline actions)
   const [needsInfoOpen, setNeedsInfoOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [note, setNote] = useState('');
@@ -127,7 +131,16 @@ export function VerificationList({
     if (res.success) {
       toast.success(t(`toasts.${decision}_success`));
       // Optimistic update
-      setRequests(prev => prev.filter(r => r.id !== attemptId));
+      // If approved/rejected, remove from queue view. If needs_info, update status.
+      // But simple filter:
+      if (decision === 'needs_info') {
+        setRequests(prev =>
+          prev.map(r => (r.id === attemptId ? { ...r, status: 'needs_info' } : r))
+        );
+      } else {
+        setRequests(prev => prev.filter(r => r.id !== attemptId));
+      }
+      router.refresh();
     } else {
       toast.error(res.error || t('toasts.error'));
     }
@@ -170,6 +183,12 @@ export function VerificationList({
       default:
         return <Badge variant="outline">{t('status.pending')}</Badge>;
     }
+  };
+
+  const handleDrawerActionComplete = () => {
+    router.refresh();
+    // Re-fetch logic implied by refresh, but state sync?
+    // Refresh updates 'initialLeads', useEffect updates state.
   };
 
   return (
@@ -233,11 +252,9 @@ export function VerificationList({
           </div>
 
           <TabsContent value="queue" className="mt-0">
-            {/* Queue Table */}
             {renderTable(filteredRequests, false)}
           </TabsContent>
           <TabsContent value="history" className="mt-0">
-            {/* History Table */}
             {renderTable(filteredRequests, true)}
           </TabsContent>
         </Tabs>
@@ -264,6 +281,13 @@ export function VerificationList({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <VerificationDetailsDrawer
+        attemptId={selectedAttemptId}
+        isOpen={!!selectedAttemptId}
+        onClose={() => setSelectedAttemptId(null)}
+        onActionComplete={handleDrawerActionComplete}
+      />
     </div>
   );
 
@@ -393,49 +417,49 @@ export function VerificationList({
 
                   {!historyMode && (
                     <TableCell className="text-right">
-                      {req.status === 'needs_info' ? (
-                        <div className="flex justify-end gap-2 items-center">
-                          <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                      <div className="flex justify-end gap-2 items-center">
+                        {req.status === 'needs_info' && (
+                          <Badge variant="secondary" className="bg-orange-100 text-orange-700 mr-2">
                             {t('status.needs_info')}
                           </Badge>
-                          {/* Allow re-decision? Yes, Approve or Reject final */}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleVerify(req.id, 'approve')}
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-green-600 border-green-600 hover:bg-green-50"
-                            onClick={() => handleVerify(req.id, 'approve')}
-                            data-testid="cash-approve"
-                          >
-                            <Check className="w-4 h-4 mr-1" /> {t('actions.approve')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openNeedsInfo(req.id)}
-                            data-testid="cash-needs-info"
-                          >
-                            <HelpCircle className="w-4 h-4 mr-1" /> {t('actions.needs_info')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleVerify(req.id, 'reject')}
-                            data-testid="cash-reject"
-                          >
-                            <X className="w-4 h-4 mr-1" /> {t('actions.reject')}
-                          </Button>
-                        </div>
-                      )}
+                        )}
+
+                        {/* Details Button */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedAttemptId(req.id)}
+                          title={t('actions.details')}
+                        >
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-green-600 border-green-600 hover:bg-green-50"
+                          onClick={() => handleVerify(req.id, 'approve')}
+                          data-testid="cash-approve"
+                        >
+                          <Check className="w-4 h-4 mr-1" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openNeedsInfo(req.id)}
+                          data-testid="cash-needs-info"
+                        >
+                          <HelpCircle className="w-4 h-4 mr-1" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleVerify(req.id, 'reject')}
+                          data-testid="cash-reject"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                        </Button>
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>

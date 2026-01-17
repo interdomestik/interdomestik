@@ -52,7 +52,13 @@
         "view_proof": "Види Доказ",
         "needs_info": "Потребно Инфо",
         "cancel": "Откажи",
-        "submit": "Испрати"
+        "submit": "Испрати",
+        "details": "Детали"
+      },
+      "drawer": {
+        "title": "Детали за Верификација",
+        "documents": "Документи",
+        "timeline": "Временска Линија"
       },
       "labels": {
         "missing_proof": "Нема Доказ",

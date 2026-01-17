@@ -52,7 +52,13 @@
         "view_proof": "Shiko Provën",
         "needs_info": "Kërko Info",
         "cancel": "Anulo",
-        "submit": "Dërgo"
+        "submit": "Dërgo",
+        "details": "Detajet"
+      },
+      "drawer": {
+        "title": "Detajet e Verifikimit",
+        "documents": "Dokumentet",
+        "timeline": "Historiku i Ngjarjeve"
       },
       "labels": {
         "missing_proof": "Mungon Prova",
