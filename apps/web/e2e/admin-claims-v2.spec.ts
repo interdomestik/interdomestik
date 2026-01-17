@@ -13,16 +13,24 @@ const USERS = {
   TENANT_ADMIN_MK: { email: 'admin.mk@interdomestik.com', password: PASSWORD, tenant: 'tenant_mk' },
 };
 
-async function loginAs(
-  page: import('@playwright/test').Page,
-  user: { email: string; password: string; tenant: string }
-) {
-  await page.goto(`/${DEFAULT_LOCALE}/login?tenantId=${user.tenant}`);
-  await page.getByTestId('login-form').waitFor({ state: 'visible' });
-  await page.getByTestId('login-email').fill(user.email);
-  await page.getByTestId('login-password').fill(user.password);
-  await page.getByTestId('login-submit').click();
-  await page.waitForURL(/(?:member|admin|staff|agent|dashboard)/, { timeout: 30000 });
+async function loginAs(page: Page, user: (typeof USERS)[keyof typeof USERS]) {
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+  const loginURL = `${baseURL}/api/auth/sign-in/email`;
+
+  const res = await page.request.post(loginURL, {
+    data: { email: user.email, password: PASSWORD },
+    headers: {
+      Origin: baseURL,
+      Referer: `${baseURL}/login`,
+    },
+  });
+
+  if (!res.ok()) {
+    throw new Error(`API login failed for ${user.email}: ${res.status()} ${await res.text()}`);
+  }
+
+  await page.goto(`${baseURL}/sq/admin`);
+  await page.waitForLoadState('domcontentloaded');
 }
 
 // TODO: Stabilization needed for v2 features

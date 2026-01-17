@@ -9,16 +9,30 @@ const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: 'GoldenPass123
 // Claim Data - use a static but unique-enough timestamp for the whole run
 const CLAIM_TITLE = `Auto Smoke ${Date.now()}`;
 
-async function loginAs(
-  page: import('@playwright/test').Page,
-  user: { email: string; password: string; tenant: string }
-) {
-  await page.goto(`/${DEFAULT_LOCALE}/login?tenantId=${user.tenant}`);
-  await page.getByTestId('login-form').first().waitFor({ state: 'visible' });
-  await page.getByTestId('login-email').first().fill(user.email);
-  await page.getByTestId('login-password').first().fill(user.password);
-  await page.getByTestId('login-submit').first().click({ force: true });
-  await page.waitForURL(/(member|admin|staff|agent|dashboard)/, { timeout: 45000 });
+async function loginAs(page: Page, user: { email: string; password?: string }) {
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+  const loginURL = `${baseURL}/api/auth/sign-in/email`;
+
+  const res = await page.request.post(loginURL, {
+    data: { email: user.email, password: user.password || 'GoldenPass123!' },
+    headers: {
+      Origin: baseURL,
+      Referer: `${baseURL}/login`,
+    },
+  });
+
+  if (!res.ok()) {
+    throw new Error(`API login failed for ${user.email}: ${res.status()} ${await res.text()}`);
+  }
+
+  let targetPath = '/sq';
+  if (user.email.includes('admin')) targetPath += '/admin';
+  else if (user.email.includes('agent')) targetPath += '/agent';
+  else if (user.email.includes('staff')) targetPath += '/staff';
+  else targetPath += '/member';
+
+  await page.goto(`${baseURL}${targetPath}`);
+  await page.waitForLoadState('domcontentloaded');
 }
 
 // Use serial to ensure Phase A creates claim before Phase B/C try to view it

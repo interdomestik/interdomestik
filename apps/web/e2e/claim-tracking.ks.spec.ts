@@ -21,12 +21,26 @@ async function loginAs(
   page: import('@playwright/test').Page,
   user: { email: string; password: string }
 ) {
-  await page.goto(`/${DEFAULT_LOCALE}/login?tenantId=tenant_ks`);
-  await page.getByTestId('login-form').waitFor({ state: 'visible' });
-  await page.getByTestId('login-email').fill(user.email);
-  await page.getByTestId('login-password').fill(user.password);
-  await page.getByTestId('login-submit').click();
-  await page.waitForURL(/\/(sq|en|sr|mk)\/(member|agent)(\/|$)/);
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+  const loginURL = `${baseURL}/api/auth/sign-in/email`;
+
+  const res = await page.request.post(loginURL, {
+    data: { email: user.email, password: user.password },
+    headers: {
+      Origin: baseURL,
+      Referer: `${baseURL}/login`,
+    },
+  });
+
+  if (!res.ok()) {
+    throw new Error(`API login failed for ${user.email}: ${res.status()} ${await res.text()}`);
+  }
+
+  let targetPath = '/sq/member';
+  if (user.email.includes('agent')) targetPath = '/sq/agent';
+
+  await page.goto(`${baseURL}${targetPath}`);
+  await page.waitForLoadState('domcontentloaded');
 }
 
 test.describe('Claim Tracking KS ', () => {

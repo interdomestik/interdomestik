@@ -35,14 +35,30 @@ async function loginAs(
   page: import('@playwright/test').Page,
   user: { email: string; password: string; tenant: string }
 ) {
-  await page.goto(`/${DEFAULT_LOCALE}/login?tenantId=${user.tenant}`);
-  await page.getByTestId('login-form').waitFor({ state: 'visible' });
-  await page.getByTestId('login-email').fill(user.email);
-  await page.getByTestId('login-password').fill(user.password);
-  await page.getByTestId('login-submit').click();
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+  const loginURL = `${baseURL}/api/auth/sign-in/email`;
 
-  // Wait for navigation away from login
-  await page.waitForURL(/(?:member|admin|staff|agent|dashboard)/, { timeout: 30000 });
+  const res = await page.request.post(loginURL, {
+    data: { email: user.email, password: user.password },
+    headers: {
+      Origin: baseURL,
+      Referer: `${baseURL}/login`,
+    },
+  });
+
+  if (!res.ok()) {
+    throw new Error(`API login failed for ${user.email}: ${res.status()} ${await res.text()}`);
+  }
+
+  const locale = user.tenant === 'tenant_mk' ? 'mk' : 'sq';
+  let targetPath = `/${locale}`;
+  if (user.email.includes('admin')) targetPath += '/admin';
+  else if (user.email.includes('agent')) targetPath += '/agent';
+  else if (user.email.includes('staff')) targetPath += '/staff';
+  else targetPath += '/member';
+
+  await page.goto(`${baseURL}${targetPath}`);
+  await page.waitForLoadState('domcontentloaded');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
