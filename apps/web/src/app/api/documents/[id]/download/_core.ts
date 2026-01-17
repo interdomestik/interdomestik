@@ -72,6 +72,21 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   });
 
   if (!file.ok) {
+    // DEV DX: Return dummy content for seeded data if storage is missing file
+    if (process.env.NODE_ENV === 'development' && id.startsWith('pack_')) {
+      return new Response(
+        'Dummy Seed Content for Development\n(Real file missing in local storage)',
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/plain',
+            'Content-Disposition': `${disposition}; filename="dummy_seed.txt"`,
+            'Cache-Control': 'private, no-store',
+          },
+        }
+      );
+    }
+
     console.error('Failed to download document from storage');
     return NextResponse.json({ error: 'Failed to download document' }, { status: 500 });
   }

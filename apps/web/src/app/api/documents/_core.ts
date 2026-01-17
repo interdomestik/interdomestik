@@ -1,4 +1,4 @@
-import { claimDocuments, claims, createAdminClient, db } from '@interdomestik/database';
+import { claimDocuments, claims, createAdminClient, db, documents } from '@interdomestik/database';
 import { ensureTenantId, isStaffOrHigher } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
@@ -69,6 +69,66 @@ export async function getDocumentAccessCore(args: {
   const { session, documentId, mode, disposition } = args;
   const tenantId = ensureTenantId(session);
 
+  // 1. Try Polymorphic Documents Table
+  const [polyDoc] = await db
+    .select()
+    .from(documents)
+    .where(and(eq(documents.id, documentId), eq(documents.tenantId, tenantId)));
+
+  if (polyDoc) {
+    const userRole = (session.user.role as string | undefined) ?? undefined;
+    const isPrivileged = isStaffOrHigher(userRole);
+    const isUploader = polyDoc.uploadedBy === session.user.id;
+
+    if (!isPrivileged && !isUploader) {
+      return {
+        ok: false,
+        status: 403,
+        error: 'Forbidden',
+        audit: {
+          action: 'document.forbidden',
+          entityType: 'document',
+          entityId: documentId,
+          metadata: {
+            bucket: 'claim-evidence',
+            filePath: polyDoc.storagePath,
+          },
+        },
+      };
+    }
+
+    const finalDisposition: 'inline' | 'attachment' =
+      disposition === 'inline' ? 'inline' : 'attachment';
+
+    return {
+      ok: true,
+      document: {
+        id: polyDoc.id,
+        claimId: null,
+        bucket: 'claim-evidence', // Default bucket for now
+        filePath: polyDoc.storagePath,
+        uploadedBy: polyDoc.uploadedBy,
+        name: polyDoc.fileName,
+        fileType: polyDoc.mimeType,
+        fileSize: polyDoc.fileSize,
+      },
+      audit: {
+        action: finalDisposition === 'inline' ? 'document.view' : 'document.download',
+        entityType: 'document',
+        entityId: documentId,
+        actorRole: userRole ?? null,
+        metadata: {
+          bucket: 'claim-evidence',
+          filePath: polyDoc.storagePath,
+          fileType: polyDoc.mimeType,
+          fileSize: polyDoc.fileSize,
+          disposition: finalDisposition,
+        },
+      },
+    };
+  }
+
+  // 2. Legacy Claim Documents
   // Fetch document metadata + claim ownership for RBAC
   const [row] = await db
     .select({
