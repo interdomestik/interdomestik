@@ -1,3 +1,4 @@
+import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 
@@ -38,8 +39,8 @@ test.describe('End-to-End User Journey', () => {
 
     // 4. Perform Login
     // Using credentials that usually exist in seeded env or allowed by auth mock
-    await page.fill('input[name="email"]', 'test@interdomestik.com'); // Using fixed test user
-    await page.fill('input[name="password"]', 'TestPassword123!');
+    await page.fill('input[name="email"]', E2E_USERS.KS_MEMBER.email); // Using seeded member
+    await page.fill('input[name="password"]', E2E_PASSWORD);
     await page.click('button[type="submit"]');
 
     // 5. Verify Dashboard

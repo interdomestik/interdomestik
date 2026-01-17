@@ -4,6 +4,8 @@
  * End-to-end tests for authentication flows including login, logout, and registration.
  */
 
+import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
+
 import { expect, isLoggedIn, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
 
@@ -152,8 +154,8 @@ test.describe('Authentication', () => {
       await page.goto(routes.login('sq'));
 
       // Fill form and submit
-      await page.fill('input[name="email"], input[type="email"]', 'test@interdomestik.com');
-      await page.fill('input[name="password"], input[type="password"]', 'TestPassword123!');
+      await page.fill('input[name="email"], input[type="email"]', E2E_USERS.KS_MEMBER.email);
+      await page.fill('input[name="password"], input[type="password"]', E2E_PASSWORD);
       await page.click('button[type="submit"]');
 
       // Wait for response
