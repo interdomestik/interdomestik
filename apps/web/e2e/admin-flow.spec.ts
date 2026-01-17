@@ -136,8 +136,10 @@ test.describe('Admin User Flow', () => {
     test('Non-admin is denied access to admin routes', async ({ authenticatedPage: page }) => {
       await page.goto(routes.admin());
 
-      // Regular user should be redirected away from admin
-      await expect(page).not.toHaveURL(/\/admin$/);
+      // Regular user should see 404 (Strict Isolation) - URL remains, content changes
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible();
     });
   });
 });
