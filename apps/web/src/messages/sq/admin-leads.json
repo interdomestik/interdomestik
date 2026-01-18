@@ -72,7 +72,14 @@
         "search": "Kërko (Emri, Email, ID)...",
         "needs_info_note": "Përshkruaj çfarë informacioni mungon..."
       },
-      "empty_state": "Nuk ka kërkesa për verifikim të pagesave cash."
+      "empty_state": "Nuk ka kërkesa për verifikim të pagesave cash.",
+      "search_placeholder": "Kërko (Emri, Email, Dega)...",
+      "kpis": {
+        "pending": "Në Pritje",
+        "needs_info": "Kërkohet Info",
+        "resubmitted": "Ridorëzuar",
+        "approved": "Aprovuar"
+      }
     },
     "analytics": {
       "title": "Përmbledhja e Analitikës",

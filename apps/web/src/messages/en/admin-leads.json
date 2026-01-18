@@ -72,7 +72,14 @@
         "search": "Search (Name, Email, ID)...",
         "needs_info_note": "Describe what info is missing..."
       },
-      "empty_state": "No pending cash verification requests found."
+      "empty_state": "No pending cash verification requests found.",
+      "search_placeholder": "Search (Name, Email, Branch)...",
+      "kpis": {
+        "pending": "Pending",
+        "needs_info": "Needs Info",
+        "resubmitted": "Resubmitted",
+        "approved": "Approved"
+      }
     },
     "analytics": {
       "title": "Analytics Overview",
