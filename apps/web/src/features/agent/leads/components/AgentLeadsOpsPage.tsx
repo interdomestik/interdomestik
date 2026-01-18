@@ -1,5 +1,7 @@
 'use client';
 
+import { getLeadActions } from '@/components/ops/adapters/leads';
+import { OpsActionBar } from '@/components/ops/OpsActionBar';
 import { OpsDrawer } from '@/components/ops/OpsDrawer';
 import { OpsTable } from '@/components/ops/OpsTable';
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
@@ -38,29 +40,36 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
     clearSelectedId();
   };
 
-  const handleStatusChange = (status: string) => {
+  const handleAction = (id: string) => {
     if (!selectedLead) return;
+
     startTransition(async () => {
       try {
-        await updateLeadStatus(selectedLead.id, status);
-        toast.success('Status updated');
+        if (id === 'convert') {
+          await convertLeadToClient(selectedLead.id);
+          toast.success('Lead converted successfully');
+        } else if (id === 'mark_qualified') {
+          await updateLeadStatus(selectedLead.id, 'qualified');
+          toast.success('Status updated');
+        } else if (id === 'mark_lost') {
+          await updateLeadStatus(selectedLead.id, 'lost');
+          toast.success('Status updated');
+        }
       } catch (e) {
-        toast.error('Failed to update status');
+        toast.error('Action failed');
       }
     });
   };
 
-  const handleConvert = () => {
-    if (!selectedLead) return;
-    startTransition(async () => {
-      try {
-        await convertLeadToClient(selectedLead.id);
-        toast.success('Lead converted successfully');
-      } catch (e) {
-        toast.error('Failed to convert lead');
-      }
-    });
-  };
+  // Get actions from policy
+  const { primary, secondary } = getLeadActions(selectedLead);
+
+  // Map to OpsActionBar format (inject onClick and disabled state)
+  const mapAction = (config: any) => ({
+    ...config,
+    onClick: () => handleAction(config.id),
+    disabled: isPending || config.disabled,
+  });
 
   // Map leads to OpsTable rows
   const tableRows = leads.map(lead => ({
@@ -114,35 +123,10 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
             </div>
 
             <div className="border-t pt-4">
-              <h4 className="mb-2 text-sm font-semibold">Actions</h4>
-              <div className="flex gap-2">
-                <button
-                  className="bg-primary text-primary-foreground px-4 py-2 rounded text-sm disabled:opacity-50"
-                  onClick={handleConvert}
-                  disabled={isPending || selectedLead.status === 'converted'}
-                >
-                  {isPending ? 'Processing...' : 'Convert to Client'}
-                </button>
-
-                {selectedLead.status !== 'converted' && (
-                  <button
-                    className="border px-4 py-2 rounded text-sm disabled:opacity-50"
-                    onClick={() => handleStatusChange('qualified')}
-                    disabled={isPending}
-                  >
-                    Mark Qualified
-                  </button>
-                )}
-                {selectedLead.status !== 'lost' && (
-                  <button
-                    className="border border-destructive text-destructive px-4 py-2 rounded text-sm disabled:opacity-50"
-                    onClick={() => handleStatusChange('lost')}
-                    disabled={isPending}
-                  >
-                    Mark Lost
-                  </button>
-                )}
-              </div>
+              <OpsActionBar
+                primary={primary ? mapAction(primary) : undefined}
+                secondary={secondary.map(mapAction)}
+              />
             </div>
           </div>
         )}
