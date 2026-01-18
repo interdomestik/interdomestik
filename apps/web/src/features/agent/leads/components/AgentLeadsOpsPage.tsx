@@ -28,12 +28,12 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
 
   const selectedLead = leads.find(l => l.id === selectedId);
 
-  // Fallback: If invalid selection (and leads exist), select first
+  // Fallback: If selected ID exists but lead not found, clear selection
   useEffect(() => {
-    if (leads.length > 0 && (!selectedId || !leads.find(l => l.id === selectedId))) {
-      setSelectedId(leads[0].id);
+    if (selectedId && leads.length > 0 && !leads.find(l => l.id === selectedId)) {
+      clearSelectedId();
     }
-  }, [selectedId, leads, setSelectedId]);
+  }, [selectedId, leads, clearSelectedId]);
 
   const handleRowClick = (leadId: string) => {
     setSelectedId(leadId === selectedId ? null : leadId);
@@ -51,12 +51,15 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
         if (id === 'convert') {
           await convertLeadToClient(selectedLead.id);
           toast.success('Lead converted successfully');
-        } else if (id === 'mark_qualified') {
-          await updateLeadStatus(selectedLead.id, 'qualified');
-          toast.success('Status updated');
+        } else if (id === 'mark_contacted') {
+          await updateLeadStatus(selectedLead.id, 'contacted');
+          toast.success('Lead marked as contacted');
+        } else if (id === 'mark_payment_pending') {
+          await updateLeadStatus(selectedLead.id, 'payment_pending');
+          toast.success('Payment requested');
         } else if (id === 'mark_lost') {
           await updateLeadStatus(selectedLead.id, 'lost');
-          toast.success('Status updated');
+          toast.success('Lead marked as lost');
         }
       } catch (e) {
         toast.error('Action failed');
@@ -87,6 +90,7 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
       </span>,
     ],
     onClick: () => handleRowClick(lead.id),
+    testId: `lead-row-${lead.id}`,
   }));
 
   return (
@@ -97,7 +101,12 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
           emptyTitle="No leads found"
           emptySubtitle="Get started by creating a new lead or waiting for incoming leads."
         >
-          <OpsTable columns={columns} rows={tableRows} emptyLabel="No leads found" />
+          <OpsTable
+            columns={columns}
+            rows={tableRows}
+            emptyLabel="No leads found"
+            rowTestId="lead-row"
+          />
         </OpsQueryState>
       </div>
 
@@ -108,9 +117,22 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
       >
         {selectedLead && (
           <div className="space-y-6">
-            <p className="text-sm text-muted-foreground">Manage lead information and status.</p>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                <OpsStatusBadge {...toOpsStatus(selectedLead.status)} />
+              </div>
+              <div className="text-right space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Created</p>
+                <span className="text-sm" data-testid="lead-created-at">
+                  {selectedLead.createdAt
+                    ? new Date(selectedLead.createdAt).toLocaleDateString()
+                    : '-'}
+                </span>
+              </div>
+            </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-2 gap-4 text-sm border-t pt-4">
               <div>
                 <span className="block text-muted-foreground">Email</span>
                 <span className="font-medium">{selectedLead.email}</span>
@@ -120,14 +142,24 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
                 <span className="font-medium">{selectedLead.phone || '-'}</span>
               </div>
               <div>
-                <span className="block text-muted-foreground">Status</span>
-                <OpsStatusBadge {...toOpsStatus(selectedLead.status)} />
+                <span className="block text-muted-foreground">Source</span>
+                <span className="font-medium capitalize">{selectedLead.source || '-'}</span>
               </div>
               <div>
-                <span className="block text-muted-foreground">Source</span>
-                <span className="font-medium capitalize">{selectedLead.source}</span>
+                <span className="block text-muted-foreground">Branch</span>
+                {/* Assuming branch is joined or available, fallback if not */}
+                <span className="font-medium">
+                  {selectedLead.branch?.name || selectedLead.branchId || '-'}
+                </span>
               </div>
             </div>
+
+            {selectedLead.notes && (
+              <div className="border-t pt-4">
+                <span className="block text-sm font-medium text-muted-foreground mb-2">Notes</span>
+                <p className="text-sm bg-muted/50 p-3 rounded-md">{selectedLead.notes}</p>
+              </div>
+            )}
 
             <div className="border-t pt-4">
               <OpsActionBar
