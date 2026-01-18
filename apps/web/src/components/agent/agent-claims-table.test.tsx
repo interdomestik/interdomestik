@@ -112,7 +112,7 @@ describe('AgentClaimsTable', () => {
 
     render(<AgentClaimsTable />);
 
-    expect(screen.getByText('An error occurred')).toBeInTheDocument();
+    expect(screen.getByText('Failed to load data')).toBeInTheDocument();
     expect(screen.getByText('Try Again')).toBeInTheDocument();
   });
 

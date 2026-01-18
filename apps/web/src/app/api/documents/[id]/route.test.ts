@@ -35,6 +35,7 @@ vi.mock('@interdomestik/database', () => ({
   db: {
     select: hoisted.dbSelect,
   },
+  documents: { id: 'id', tenantId: 'tenant_id' },
   claimDocuments: { tenantId: 'claim_documents.tenant_id' },
   claims: { userId: 'user_id' },
   createAdminClient: () => ({
@@ -131,7 +132,9 @@ describe('GET /api/documents/[id]', () => {
     hoisted.getSession.mockResolvedValue({
       user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
     });
-    mockSelectChain.where.mockResolvedValue([
+    // First query (Polymorphic Docs) returns empty
+    // Second query (Legacy ClaimDocs) returns found doc
+    mockSelectChain.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
       {
         doc: {
           id: 'doc-1',

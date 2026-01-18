@@ -22,6 +22,7 @@ vi.mock('next-intl', () => ({
 
 // Mock UI components
 vi.mock('@interdomestik/ui', () => ({
+  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
   Badge: ({ children, ...props }: any) => <span {...props}>{children}</span>,
   Input: (props: any) => <input {...props} />,
   // GlassCard is just a div in test
@@ -74,8 +75,7 @@ describe('AdminClaimsFilters', () => {
     render(<AdminClaimsFilters />);
 
     // Get the status 'All' tab (last one in the status group)
-    const allTabs = screen.getAllByText('All');
-    const statusAllTab = allTabs[allTabs.length - 1];
+    const statusAllTab = screen.getByTestId('status-filter-all');
     fireEvent.click(statusAllTab);
 
     // Should push URL without status param

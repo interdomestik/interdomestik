@@ -402,6 +402,7 @@ describe('Claim Actions', () => {
       expect(result).toEqual({
         success: false,
         error: 'Internal Server Error',
+        code: 'INTERNAL_SERVER_ERROR',
       });
 
       consoleErrorSpy.mockRestore();
