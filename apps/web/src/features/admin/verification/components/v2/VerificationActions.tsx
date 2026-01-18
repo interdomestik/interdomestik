@@ -24,7 +24,9 @@ export function VerificationActions({
       <Button
         variant="ghost"
         size="icon"
+        type="button"
         onClick={() => onViewDetails(id)}
+        data-testid="verification-details-button"
         title={t('details')}
         className="h-8 w-8"
       >

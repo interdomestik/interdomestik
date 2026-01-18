@@ -1,20 +1,11 @@
 'use client';
 
-import {
-  Button,
-  Label,
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  Skeleton,
-  Textarea,
-} from '@interdomestik/ui';
+import { Button, Label, Skeleton, Textarea } from '@interdomestik/ui';
 import { Check, HelpCircle, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { OpsActionBar, OpsDrawer } from '@/components/ops';
 import { verifyCashAttemptAction } from '../actions/verification';
 import { type CashVerificationDetailsDTO } from '../server/types';
 import { VerificationDocuments } from './VerificationDocuments';
@@ -93,68 +84,68 @@ export function VerificationDetailsDrawer({
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={open => !open && onClose()}>
-      <SheetContent className="sm:max-w-md md:max-w-lg flex flex-col h-full">
-        <SheetHeader>
-          <SheetTitle>{t('drawer.title')}</SheetTitle>
-        </SheetHeader>
-
-        <div className="flex-1 overflow-y-auto py-4 space-y-6">
-          {loading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-40 w-full" />
-            </div>
-          ) : data ? (
-            <>
-              <VerificationSummary data={data} />
-              <VerificationDocuments documents={data.documents} />
-              <VerificationTimeline timeline={data.timeline} />
-            </>
-          ) : (
-            <div className="text-center py-10 text-muted-foreground">Failed to load details</div>
-          )}
+    <OpsDrawer open={isOpen} onOpenChange={open => !open && onClose()} title={t('drawer.title')}>
+      {loading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-40 w-full" />
         </div>
+      ) : data ? (
+        <>
+          <VerificationSummary data={data} />
+          <VerificationDocuments documents={data.documents} />
+          <VerificationTimeline timeline={data.timeline} />
+        </>
+      ) : (
+        <div className="text-center py-10 text-muted-foreground">Failed to load details</div>
+      )}
 
-        {/* Footer Actions */}
-        {data && data.status !== 'succeeded' && data.status !== 'rejected' && (
-          <SheetFooter className="pt-4 border-t mt-auto">
-            {showNoteInput ? (
-              <div className="w-full space-y-3">
-                <Label>{t('labels.note')}</Label>
-                <Textarea
-                  value={note}
-                  onChange={e => setNote(e.target.value)}
-                  placeholder={t('placeholders.needs_info_note')}
-                />
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setShowNoteInput(false)}>
-                    {t('actions.cancel')}
-                  </Button>
-                  <Button onClick={() => executeVerify(pendingDecision!)} disabled={actionPending}>
-                    {t('actions.submit')}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-2 w-full justify-end">
-                <Button variant="outline" onClick={() => initiateAction('needs_info')}>
-                  <HelpCircle className="w-4 h-4 mr-2" /> {t('actions.needs_info')}
+      {data && data.status !== 'succeeded' && data.status !== 'rejected' && (
+        <OpsActionBar>
+          {showNoteInput ? (
+            <div className="w-full space-y-3">
+              <Label>{t('labels.note')}</Label>
+              <Textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder={t('placeholders.needs_info_note')}
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowNoteInput(false)}>
+                  {t('actions.cancel')}
                 </Button>
-                <Button variant="destructive" onClick={() => initiateAction('reject')}>
-                  <X className="w-4 h-4 mr-2" /> {t('actions.reject')}
-                </Button>
-                <Button
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={() => executeVerify('approve')}
-                >
-                  <Check className="w-4 h-4 mr-2" /> {t('actions.approve')}
+                <Button onClick={() => executeVerify(pendingDecision!)} disabled={actionPending}>
+                  {t('actions.submit')}
                 </Button>
               </div>
-            )}
-          </SheetFooter>
-        )}
-      </SheetContent>
-    </Sheet>
+            </div>
+          ) : (
+            <div className="flex gap-2 w-full justify-end">
+              <Button
+                variant="outline"
+                onClick={() => initiateAction('needs_info')}
+                data-testid="ops-action-needs-info"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" /> {t('actions.needs_info')}
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => initiateAction('reject')}
+                data-testid="ops-action-reject"
+              >
+                <X className="w-4 h-4 mr-2" /> {t('actions.reject')}
+              </Button>
+              <Button
+                className="bg-green-600 hover:bg-green-700"
+                onClick={() => executeVerify('approve')}
+                data-testid="ops-action-approve"
+              >
+                <Check className="w-4 h-4 mr-2" /> {t('actions.approve')}
+              </Button>
+            </div>
+          )}
+        </OpsActionBar>
+      )}
+    </OpsDrawer>
   );
 }
