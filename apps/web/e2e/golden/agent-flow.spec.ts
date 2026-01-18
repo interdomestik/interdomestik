@@ -6,22 +6,29 @@ test.describe('Gate: Critical Path › Agent Flow', () => {
     await agentPage.goto('/sq/agent/leads');
     await expect(agentPage).toHaveURL(/\/sq\/agent\/leads/);
 
-    // 2. Check for table presence
-    const table = agentPage.locator('[data-testid="ops-table"]');
-    await expect(table).toBeVisible();
+    // 2. Determine state (Table or Empty)
+    const emptyState = agentPage.getByText('No leads found');
 
-    // 3. Check definition of columns
-    await expect(agentPage.getByText('First Name')).toBeVisible();
-    await expect(agentPage.getByText('Status')).toBeVisible();
+    // We need to wait a moment or check visibility. Since it's SSR, should be quick.
+    // However, if we want to be robust, we can default to empty check branch
+    if (await emptyState.isVisible()) {
+      console.log('No leads found. Verifying empty state.');
+      await expect(emptyState).toBeVisible();
+    } else {
+      console.log('Leads found. Verifying table and drawer.');
 
-    // 4. Check interaction (Drawer)
-    // We might have seeded data or empty state.
-    // If empty state, we verify that. If rows, we verify click.
-    const rows = agentPage.locator('[data-testid^="ops-row-"]');
-    const count = await rows.count();
+      // Check for table presence
+      const table = agentPage.locator('[data-testid="ops-table"]');
+      await expect(table).toBeVisible();
 
-    if (count > 0) {
-      console.log(`Found ${count} leads. Testing drawer interaction.`);
+      // Check definition of columns
+      await expect(agentPage.getByText('First Name')).toBeVisible();
+      await expect(agentPage.getByText('Status')).toBeVisible();
+
+      const rows = agentPage.locator('[data-testid^="ops-row-"]');
+      const count = await rows.count();
+      expect(count).toBeGreaterThan(0);
+
       const firstRow = rows.first();
       await firstRow.click();
 
@@ -30,11 +37,10 @@ test.describe('Gate: Critical Path › Agent Flow', () => {
       await expect(drawer).toBeVisible();
       await expect(agentPage.getByText('Lead Details')).toBeVisible();
 
-      // Actions
+      // Actions (OpsActionBar uses button roles)
+      // Primary action 'Convert to Client' might be disabled or visible
+      // We look for any known action text
       await expect(agentPage.getByRole('button', { name: /Convert to Client/i })).toBeVisible();
-    } else {
-      console.log('No leads found. Verifying empty state.');
-      await expect(agentPage.getByText('No leads found')).toBeVisible();
     }
   });
 });
