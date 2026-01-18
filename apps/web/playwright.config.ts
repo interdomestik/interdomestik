@@ -10,6 +10,7 @@ const PORT = 3000;
 const BASE_HOST = '127.0.0.1';
 const BIND_HOST = '127.0.0.1';
 const BASE_URL = `http://${BASE_HOST}:${PORT}`;
+const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
 
 process.env.NEXT_PUBLIC_APP_URL = BASE_URL;
 process.env.BETTER_AUTH_URL = BASE_URL;
@@ -114,9 +115,10 @@ export default defineConfig({
   webServer: {
     // E2E runs against a production server (Next `start`) for artifact consistency.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: `pnpm build && rm -rf .next/standalone/apps/web/.next/static && cp -R .next/static .next/standalone/apps/web/.next/static && INTERDOMESTIK_AUTOMATED=1 PLAYWRIGHT=1 CI=true node .next/standalone/apps/web/server.js`,
+    command: `bash "${WEB_SERVER_SCRIPT}"`,
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
+    // Never reuse a stale server by default (prevents origin/env mismatches).
+    reuseExistingServer: process.env.PW_REUSE_SERVER === '1' && !process.env.CI,
     timeout: 300 * 1000,
     env: {
       ...process.env,
