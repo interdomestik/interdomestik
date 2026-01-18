@@ -7,9 +7,12 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), quiet: true }
 dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 
 const PORT = 3000;
-const BASE_HOST = 'localhost';
-const BIND_HOST = 'localhost';
+const BASE_HOST = '127.0.0.1';
+const BIND_HOST = '127.0.0.1';
 const BASE_URL = `http://${BASE_HOST}:${PORT}`;
+
+process.env.NEXT_PUBLIC_APP_URL = BASE_URL;
+process.env.BETTER_AUTH_URL = BASE_URL;
 
 // If the caller runs Playwright with `--project=ks-sq` (or `mk-mk`) but forgets
 // to set `PLAYWRIGHT_LOCALE`, default it here so URL helpers (e.g. e2e/routes.ts)
@@ -58,7 +61,7 @@ export default defineConfig({
       testMatch: /setup\.state\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3000',
+        baseURL: 'http://127.0.0.1:3000',
       },
     },
     {
@@ -66,7 +69,7 @@ export default defineConfig({
       testMatch: /setup\.state\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3000',
+        baseURL: 'http://127.0.0.1:3000',
       },
     },
 
@@ -78,7 +81,7 @@ export default defineConfig({
       dependencies: ['setup-ks'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3000/sq',
+        baseURL: 'http://127.0.0.1:3000/sq',
       },
       testIgnore: [/setup\.state\.spec\.ts/, /claim-resolver-isolation\.spec\.ts/], // Ignore MK tests
     },
@@ -87,7 +90,7 @@ export default defineConfig({
       dependencies: ['setup-mk'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3000/mk',
+        baseURL: 'http://127.0.0.1:3000/mk',
       },
       // Mirror the ks-sq lane: run the normal E2E suite against the MK tenant + mk locale.
       testIgnore: [/setup\.state\.spec\.ts/],
@@ -102,7 +105,7 @@ export default defineConfig({
       testMatch: /.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3000/sq',
+        baseURL: 'http://127.0.0.1:3000/sq',
         actionTimeout: 20 * 1000,
         navigationTimeout: 60 * 1000,
       },
@@ -120,6 +123,7 @@ export default defineConfig({
       NODE_ENV: 'production',
       PORT: String(PORT),
       HOSTNAME: BIND_HOST,
+      NODE_OPTIONS: '--dns-result-order=ipv4first',
       NEXT_PUBLIC_APP_URL: BASE_URL,
       BETTER_AUTH_URL: BASE_URL,
       INTERDOMESTIK_AUTOMATED: '1',
