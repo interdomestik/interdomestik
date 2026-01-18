@@ -21,6 +21,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
+import { getCustomerPortalUrl, requestCancellation } from '@/actions/memberships';
+import { toast } from 'sonner';
+
 export function MembershipOpsPage({
   subscriptions,
   documents,
@@ -115,6 +118,8 @@ export function MembershipOpsPage({
   );
 }
 
+// ...
+
 function DetailView({
   subscription,
   documents,
@@ -128,9 +133,28 @@ function DetailView({
 
   const { primary, secondary } = getMembershipActions(subscription, t);
 
-  const handleAction = (id: string) => {
-    // 10B: Safe handlers
-    console.log('[Membership Action]', id, subscription.id);
+  const handleAction = async (id: string) => {
+    try {
+      if (id === 'renew' || id === 'update_payment') {
+        const { url } = await getCustomerPortalUrl(subscription.id);
+        window.location.href = url;
+        return;
+      }
+
+      if (id === 'cancel') {
+        // Simple confirm for now
+        if (!confirm(t('actions.confirm_cancel'))) return;
+
+        await requestCancellation(subscription.id);
+        toast.success(t('actions.cancel_requested'));
+        return;
+      }
+
+      console.log('[Membership Action] Unhandled:', id);
+    } catch (err) {
+      console.error(err);
+      toast.error(t('errors.action_failed'));
+    }
   };
 
   const mapAction = (config: OpsActionConfig) => ({
