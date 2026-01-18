@@ -1,0 +1,77 @@
+'use client';
+
+import type { ReactNode } from 'react';
+import { Button, Input } from '@interdomestik/ui';
+import { Search } from 'lucide-react';
+
+export type OpsFilterTab = {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  testId?: string;
+};
+
+interface OpsFiltersBarProps {
+  tabs: OpsFilterTab[];
+  activeTab: string;
+  onTabChange: (tabId: string) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  searchPlaceholder: string;
+  searchInputTestId?: string;
+  rightActions?: ReactNode;
+  className?: string;
+}
+
+export function OpsFiltersBar({
+  tabs,
+  activeTab,
+  onTabChange,
+  searchQuery,
+  onSearchChange,
+  searchPlaceholder,
+  searchInputTestId,
+  rightActions,
+  className,
+}: OpsFiltersBarProps) {
+  const containerClasses = [
+    'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-white/5 bg-card/30 backdrop-blur-sm',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <div className={containerClasses} data-testid="ops-filters-bar">
+      <div className="flex gap-2">
+        {tabs.map(tab => (
+          <Button
+            key={tab.id}
+            variant={tab.id === activeTab ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => onTabChange(tab.id)}
+            className="gap-2"
+            data-testid={tab.testId ?? `ops-tab-${tab.id}`}
+          >
+            {tab.icon}
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+      <div className="flex w-full sm:w-auto items-center gap-3">
+        <div className="relative w-full sm:w-auto sm:min-w-[280px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder={searchPlaceholder}
+            value={searchQuery}
+            onChange={event => onSearchChange(event.target.value)}
+            className="pl-9 bg-background/50"
+            data-testid={searchInputTestId ?? 'ops-search-input'}
+          />
+        </div>
+        {rightActions}
+      </div>
+    </div>
+  );
+}

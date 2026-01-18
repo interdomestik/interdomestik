@@ -1,5 +1,6 @@
 'use client';
 
+import { OpsActionBar } from '@/components/ops';
 import { Card, CardContent } from '@interdomestik/ui/components/card';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { useTranslations } from 'next-intl';
@@ -135,17 +136,24 @@ export function NextActionsCard({
         <CardContent className="p-4 flex flex-col gap-4">
           <NextActionBadges claim={claim} nextActions={nextActions} />
 
-          <NextActionPrimary primary={primary} isPending={isPending} onAction={handleActionClick} />
-
-          <NextActionSecondary
-            secondary={secondary}
-            allStaff={allStaff}
-            allowedTransitions={nextActions.allowedTransitions}
-            isPending={isPending}
-            onAction={handleActionClick}
-            onAssign={handleAssign}
-            onStatusUpdate={handleStatusDirectUpdate}
-          />
+          <OpsActionBar className="border-0 pt-0 mt-0">
+            <div className="flex flex-col gap-4 w-full">
+              <NextActionPrimary
+                primary={primary}
+                isPending={isPending}
+                onAction={handleActionClick}
+              />
+              <NextActionSecondary
+                secondary={secondary}
+                allStaff={allStaff}
+                allowedTransitions={nextActions.allowedTransitions}
+                isPending={isPending}
+                onAction={handleActionClick}
+                onAssign={handleAssign}
+                onStatusUpdate={handleStatusDirectUpdate}
+              />
+            </div>
+          </OpsActionBar>
         </CardContent>
       </Card>
     </>

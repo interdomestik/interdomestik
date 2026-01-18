@@ -1,7 +1,7 @@
 'use client';
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@interdomestik/ui';
 import { useTranslations } from 'next-intl';
+import { OpsTable } from '@/components/ops';
 import { CashVerificationRequestDTO } from '../../server/types';
 import { ProofCell } from './ProofCell';
 import { VerificationActions } from './VerificationActions';
@@ -26,73 +26,48 @@ export function VerificationTableV2({
 }: VerificationTableV2Props) {
   const t = useTranslations('admin.leads');
 
+  const columns = [
+    { key: 'status', header: t('table.status'), className: 'w-[120px]' },
+    { key: 'branch', header: t('table.branch') },
+    { key: 'lead', header: t('table.lead') },
+    { key: 'proof', header: t('table.proof') },
+    { key: 'amount', header: t('table.amount') },
+  ];
+
+  if (historyMode) {
+    columns.push({ key: 'verifier', header: t('table.verifier') });
+  }
+
+  const rows = data.map(req => ({
+    id: req.id,
+    testId: 'cash-verification-row',
+    onClick: () => onViewDetails(req.id),
+    cells: [
+      <div key={`${req.id}-status`} className="py-3 pl-4">
+        <VerificationStatusSpine status={req.status} isResubmission={req.isResubmission} compact />
+      </div>,
+      <BranchCell key={`${req.id}-branch`} request={req} />,
+      <LeadCell key={`${req.id}-lead`} request={req} />,
+      <ProofCell key={`${req.id}-proof`} request={req} />,
+      <AmountCell key={`${req.id}-amount`} request={req} />,
+      ...(historyMode ? [<VerifierCell key={`${req.id}-verifier`} request={req} />] : []),
+    ],
+    actions: historyMode ? null : (
+      <VerificationActions
+        id={req.id}
+        onViewDetails={onViewDetails}
+        onVerify={onVerify}
+        onAction={onAction}
+      />
+    ),
+  }));
+
   return (
-    <div className="rounded-md border bg-card/50 backdrop-blur-sm">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent border-b border-white/5">
-            <TableHead className="w-[120px]">{t('table.status')}</TableHead>
-            <TableHead>{t('table.branch')}</TableHead>
-            <TableHead>{t('table.lead')}</TableHead>
-            <TableHead>{t('table.proof')}</TableHead>
-            <TableHead>{t('table.amount')}</TableHead>
-            {historyMode && <TableHead>{t('table.verifier')}</TableHead>}
-            {!historyMode && <TableHead className="text-right">{t('table.actions')}</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                {t('empty_state')}
-              </TableCell>
-            </TableRow>
-          ) : (
-            data.map(req => (
-              <TableRow
-                key={req.id}
-                data-testid="cash-verification-row"
-                className="group transition-colors hover:bg-muted/30"
-              >
-                <TableCell className="py-3 pl-4">
-                  <VerificationStatusSpine
-                    status={req.status}
-                    isResubmission={req.isResubmission}
-                    compact
-                  />
-                </TableCell>
-                <TableCell>
-                  <BranchCell request={req} />
-                </TableCell>
-                <TableCell>
-                  <LeadCell request={req} />
-                </TableCell>
-                <TableCell>
-                  <ProofCell request={req} />
-                </TableCell>
-                <TableCell>
-                  <AmountCell request={req} />
-                </TableCell>
-                {historyMode && (
-                  <TableCell>
-                    <VerifierCell request={req} />
-                  </TableCell>
-                )}
-                {!historyMode && (
-                  <TableCell className="text-right pr-4">
-                    <VerificationActions
-                      id={req.id}
-                      onViewDetails={onViewDetails}
-                      onVerify={onVerify}
-                      onAction={onAction}
-                    />
-                  </TableCell>
-                )}
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <OpsTable
+      columns={columns}
+      rows={rows}
+      emptyLabel={t('empty_state')}
+      actionsHeader={historyMode ? undefined : t('table.actions')}
+    />
   );
 }

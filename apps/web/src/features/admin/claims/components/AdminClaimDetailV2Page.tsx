@@ -1,5 +1,6 @@
 import { getStaff } from '@/actions/admin-users';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
+import { ClaimOpsTimelineSection } from '@/features/admin/claims/components/detail/ClaimOpsTimelineSection';
 import { getNextActions } from '@/features/admin/claims/components/detail/getNextActions';
 import { ClaimDescriptionCard } from '@/features/admin/claims/components/ops/ClaimDescriptionCard';
 import { ClaimHeader } from '@/features/admin/claims/components/ops/ClaimHeader';
@@ -7,11 +8,10 @@ import { ClaimantInfoCard } from '@/features/admin/claims/components/ops/Claiman
 import { EvidencePanel } from '@/features/admin/claims/components/ops/EvidencePanel';
 import { NextActionsCard } from '@/features/admin/claims/components/ops/NextActionsCard';
 import { getOpsClaimDetail } from '@/features/admin/claims/server/getOpsClaimDetail';
-import { ClaimTimelineSection } from '@/features/claims/timeline/components';
 import { auth } from '@/lib/auth';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { Card, CardContent } from '@interdomestik/ui/components/card';
+import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -27,8 +27,6 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
   if (result.kind === 'not_found') return notFound();
 
   const data = result.data;
-
-  const tTimeline = await getTranslations('admin.claims_page.timeline');
   const staffResult = await getStaff();
   const staff = staffResult.success ? (staffResult.data ?? []) : [];
 
@@ -72,14 +70,9 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
           {/* 3. Timeline (Audit Trail) */}
           <div id="timeline-section">
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/80">
-                  {tTimeline('title')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <Suspense fallback={<div className="h-20 animate-pulse bg-muted/50 rounded" />}>
-                  <ClaimTimelineSection
+                  <ClaimOpsTimelineSection
                     claimId={data.id}
                     tenantId={tenantId}
                     viewerRole="admin"
@@ -99,7 +92,6 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
               id: d.id,
               url: d.url,
               name: d.name,
-              fileType: d.fileType || 'application/octet-stream',
             }))}
           />
         </div>

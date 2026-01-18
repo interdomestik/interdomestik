@@ -17,7 +17,9 @@ export function OpsTimeline({ title, events, emptyLabel, formatTimestamp }: OpsT
         <Clock className="w-4 h-4" /> {title}
       </h4>
       {events.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">{emptyLabel}</p>
+        <p className="text-sm text-muted-foreground italic" data-testid="ops-timeline-empty">
+          {emptyLabel}
+        </p>
       ) : (
         <div className="border-l-2 border-muted ml-2 space-y-6 pl-4 py-2">
           {events.map(event => (

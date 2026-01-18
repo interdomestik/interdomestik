@@ -2,6 +2,7 @@
 
 import { Button, Separator } from '@interdomestik/ui';
 import { FileText } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { OpsDocument } from './types';
 
 interface OpsDocumentsPanelProps {
@@ -9,6 +10,8 @@ interface OpsDocumentsPanelProps {
   documents: OpsDocument[];
   emptyLabel: string;
   viewLabel: string;
+  headerActions?: ReactNode;
+  className?: string;
 }
 
 export function OpsDocumentsPanel({
@@ -16,12 +19,19 @@ export function OpsDocumentsPanel({
   documents,
   emptyLabel,
   viewLabel,
+  headerActions,
+  className,
 }: OpsDocumentsPanelProps) {
+  const containerClassName = ['space-y-3', className].filter(Boolean).join(' ');
+
   return (
-    <div className="space-y-3" data-testid="ops-documents-panel">
-      <h4 className="font-medium flex items-center gap-2">
-        <FileText className="w-4 h-4" /> {title}
-      </h4>
+    <div className={containerClassName} data-testid="ops-documents-panel">
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="font-medium flex items-center gap-2">
+          <FileText className="w-4 h-4" /> {title}
+        </h4>
+        {headerActions}
+      </div>
       {documents.length === 0 ? (
         <p className="text-sm text-muted-foreground italic" data-testid="ops-documents-empty">
           {emptyLabel}

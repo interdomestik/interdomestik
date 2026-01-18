@@ -1,10 +1,10 @@
 'use client';
 
-import { usePathname, useRouter } from '@/i18n/routing';
-import { Input } from '@interdomestik/ui';
-import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
+
+import { OpsFiltersBar } from '@/components/ops';
+import { usePathname, useRouter } from '@/i18n/routing';
 
 export function AdminClaimsFilters() {
   const router = useRouter();
@@ -49,77 +49,46 @@ export function AdminClaimsFilters() {
   };
 
   return (
-    <div
-      className="flex flex-col lg:flex-row gap-4 p-4 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm"
-      data-testid="admin-claims-filters"
-    >
-      {/* Search */}
-      <div className="relative flex-1 sm:max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder={`${tCommon('search')}...`}
-          className="pl-9 bg-black/20 border-white/10 focus:bg-black/40 transition-colors h-10"
-          defaultValue={currentSearch}
-          onChange={e => updateFilters({ search: e.target.value || null })}
-        />
-      </div>
-
-      <div className="flex flex-1 flex-col sm:flex-row gap-4 items-start sm:items-center justify-between lg:justify-end">
-        {/* Assignment Filter - Using Tabs/Buttons style for visibility as per smoke test requirement */}
-        {/* Test expects button with text "Të pacaktuara" (Unassigned) */}
-        <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
-          {assignmentOptions.map(option => {
-            const isActive = currentAssignment === option.value;
-            return (
-              <button
-                key={option.value}
-                onClick={() => updateFilters({ assigned: option.value })}
-                type="button"
-                aria-pressed={isActive}
-                data-state={isActive ? 'on' : 'off'}
-                data-testid={`assigned-filter-${option.value}`}
-                className={`
-                            px-3 py-1.5 rounded-md text-sm font-medium transition-all
-                            ${
-                              isActive
-                                ? 'bg-background shadow-sm text-foreground ring-1 ring-white/10'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-                            }
-                        `}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Status Filter */}
-        <div className="flex flex-wrap gap-1.5 bg-black/20 p-1 rounded-lg border border-white/5">
-          {statusOptions.map(option => {
-            const isActive = currentStatus === option.value;
-            return (
-              <button
-                key={option.value}
-                onClick={() => updateFilters({ status: option.value })}
-                type="button"
-                aria-pressed={isActive}
-                data-state={isActive ? 'on' : 'off'}
-                data-testid={`status-filter-${option.value}`}
-                className={`
-                  px-3 py-1.5 rounded-md text-sm font-medium transition-all
-                  ${
+    <div data-testid="admin-claims-filters">
+      <OpsFiltersBar
+        tabs={statusOptions.map(option => ({
+          id: option.value,
+          label: option.label,
+          testId: `status-filter-${option.value}`,
+        }))}
+        activeTab={currentStatus}
+        onTabChange={tabId => updateFilters({ status: tabId })}
+        searchQuery={currentSearch}
+        onSearchChange={query => updateFilters({ search: query || null })}
+        searchPlaceholder={`${tCommon('search')}...`}
+        searchInputTestId="claims-search-input"
+        rightActions={
+          <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
+            {assignmentOptions.map(option => {
+              const isActive = currentAssignment === option.value;
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => updateFilters({ assigned: option.value })}
+                  type="button"
+                  aria-pressed={isActive}
+                  data-state={isActive ? 'on' : 'off'}
+                  data-testid={`assigned-filter-${option.value}`}
+                  className={[
+                    'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
                     isActive
                       ? 'bg-background shadow-sm text-foreground ring-1 ring-white/10'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-                  }
-                `}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                      : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
+                  ].join(' ')}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        }
+        className="rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm"
+      />
     </div>
   );
 }
