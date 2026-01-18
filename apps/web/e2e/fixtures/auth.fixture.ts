@@ -170,7 +170,7 @@ export const test = base.extend<AuthFixtures>({
       await performLogin(page, role, baseURL, tenant);
 
       // Fix for Blocker 2: Always navigate after login to avoid about:blank
-      const locale = process.env.PLAYWRIGHT_LOCALE || (tenant === 'mk' ? 'mk' : 'sq');
+      const locale = tenant === 'mk' ? 'mk' : 'sq';
       let targetPath = `/${locale}`;
       if (role.includes('admin')) targetPath += '/admin';
       else if (role === 'agent') targetPath += '/agent';

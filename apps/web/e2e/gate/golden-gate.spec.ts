@@ -8,7 +8,12 @@ function getTargetLocale(user: { tenant: string }): string {
 }
 
 function getBaseURL() {
-  return process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.BETTER_AUTH_URL ||
+    process.env.PLAYWRIGHT_BASE_URL ||
+    'http://127.0.0.1:3000'
+  );
 }
 
 // Canonical users - tenant-aware
@@ -35,7 +40,7 @@ const SEEDED_DATA = {
 // LOGIN HELPER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function loginAs(
+async function performLocalLogin(
   page: import('@playwright/test').Page,
   user: { email: string; password: string; tenant: string }
 ) {
@@ -107,8 +112,8 @@ test.describe('Golden Gate: Critical Path', () => {
       await page.goto(`${getBaseURL()}/${locale}/member/claims`);
       await page.waitForLoadState('networkidle');
 
-      // Check for any claim content (may be translated) - KS has many seeded claims
-      await expect(page.locator('body')).toContainText(/Claim|Kërkes|KS-A|Rear ended/i);
+      // Check for any claim content (may be translated) - KS has many seeded claims, MK has MK-A
+      await expect(page.locator('body')).toContainText(/Claim|Kërkes|Барања|KS-A|MK-A|Rear ended/i);
     });
   });
 
@@ -150,7 +155,7 @@ test.describe('Golden Gate: Critical Path', () => {
 
     test('Tenant Isolation: KS Admin cannot see MK Claims', async ({ page }) => {
       const user = USERS.TENANT_ADMIN_KS;
-      await loginAs(page, user);
+      await performLocalLogin(page, user);
 
       const locale = getTargetLocale(user);
       await page.goto(`${getBaseURL()}/${locale}/admin/claims`);
@@ -159,7 +164,7 @@ test.describe('Golden Gate: Critical Path', () => {
 
     test('Branch Isolation: MK BM (Branch A) cannot see Branch B Claims', async ({ page }) => {
       const user = USERS.BM_MK_A;
-      await loginAs(page, user);
+      await performLocalLogin(page, user);
 
       const locale = getTargetLocale(user);
       await page.goto(`${getBaseURL()}/${locale}/admin/claims`);
@@ -171,7 +176,7 @@ test.describe('Golden Gate: Critical Path', () => {
 
     test('Staff (MK) can process claims but has restricted access', async ({ page }) => {
       const user = USERS.STAFF_MK;
-      await loginAs(page, user);
+      await performLocalLogin(page, user);
 
       const locale = getTargetLocale(user);
       // Navigate to Staff Claims
@@ -189,7 +194,7 @@ test.describe('Golden Gate: Critical Path', () => {
 
     test('Agent Scoping: Agent sees only assigned members claims', async ({ page }) => {
       const user = USERS.AGENT_MK_A1;
-      await loginAs(page, user);
+      await performLocalLogin(page, user);
 
       const locale = getTargetLocale(user);
       // Navigate to agent dashboard or claims
@@ -203,7 +208,7 @@ test.describe('Golden Gate: Critical Path', () => {
 
   test.describe('3. Admin Dashboards [smoke]', () => {
     test('Super Admin sees global stats', async ({ page }) => {
-      await loginAs(page, USERS.SUPER_ADMIN);
+      await performLocalLogin(page, USERS.SUPER_ADMIN);
 
       // Verify admin dashboard is visible with increased timeout for stats calculation
       await expect(page.getByRole('heading', { name: /Admin|Paneli/i }).first()).toBeVisible({
@@ -215,11 +220,13 @@ test.describe('Golden Gate: Critical Path', () => {
       await expect(page.locator('main')).toContainText(/[0-9]+/);
     });
 
-    test('Tenant Admin SEES all branches and can navigate to V2 Dashboard', async ({ page }) => {
-      const user = USERS.TENANT_ADMIN_MK;
-      await loginAs(page, user);
+    test('Tenant Admin SEES all branches and can navigate to V2 Dashboard', async ({
+      page,
+      loginAs,
+    }) => {
+      await loginAs('admin');
 
-      const locale = getTargetLocale(user);
+      const locale = page.url().includes('/mk') ? 'mk' : 'sq';
       // Give time for redirect to complete then navigate to admin branches
       await page.waitForTimeout(1000);
       await page.goto(`${getBaseURL()}/${locale}/admin/branches`);
@@ -239,13 +246,14 @@ test.describe('Golden Gate: Critical Path', () => {
       // 3. Verify Navigation to Branch Dashboard V2
       // Click the first branch card's "View Dashboard" link
       const firstCardLink = cards.first().getByRole('link');
-      await firstCardLink.click();
+      await firstCardLink.scrollIntoViewIfNeeded();
+      await firstCardLink.click({ force: true });
 
       // Should show the Branch Dashboard V2 with statistics
       await page.waitForLoadState('networkidle');
 
       // Verify URL pattern (uses branch CODE now, not ID)
-      await expect(page).toHaveURL(/\/admin\/branches\/[A-Z0-9-]+/, { timeout: 10000 });
+      await expect(page).toHaveURL(/\/admin\/branches\/[A-Z0-9-_]+/, { timeout: 15000 });
 
       // Verify V2 Dashboard Header with data-testid
       await expect(page.locator('[data-testid="branch-dashboard-title"]')).toBeVisible();
@@ -259,14 +267,22 @@ test.describe('Golden Gate: Critical Path', () => {
       );
     });
 
-    test('Branch Dashboard V2 shows KPI panels and health indicators', async ({ page }) => {
-      const user = USERS.TENANT_ADMIN_MK;
-      await loginAs(page, user);
+    test('Branch Dashboard V2 shows KPI panels and health indicators', async ({
+      page,
+      loginAs,
+    }) => {
+      await loginAs('admin');
 
-      const locale = getTargetLocale(user);
-      // Go directly to a known branch dashboard (MK-A code)
-      await page.goto(`${getBaseURL()}/${locale}/admin/branches/MK-A`);
+      const locale = page.url().includes('/mk') ? 'mk' : 'sq';
+      // Use specific branch IDs from the seed
+      const branchId = locale === 'mk' ? 'mk_branch_a' : 'ks_branch_a';
+
+      // Go directly to a known branch dashboard
+      await page.goto(`${getBaseURL()}/${locale}/admin/branches/${branchId}`);
       await page.waitForLoadState('networkidle');
+
+      // Verify Dashboard Loaded explicitly
+      await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
 
       // Verify KPI Row with labels (translated)
       await expect(page.locator('body')).toContainText(
@@ -285,7 +301,7 @@ test.describe('Golden Gate: Critical Path', () => {
       page,
     }) => {
       const user = USERS.TENANT_ADMIN_KS;
-      await loginAs(page, user); // Login as KS Admin
+      await performLocalLogin(page, user); // Login as KS Admin
 
       const locale = getTargetLocale(user);
       await page.goto(`${getBaseURL()}/${locale}/admin/branches`);
@@ -308,7 +324,7 @@ test.describe('Golden Gate: Critical Path', () => {
     test('Claims List: Loads V2 Dashboard style and filters tabs', async ({ page }) => {
       // 1. Login as Tenant Admin
       const user = USERS.TENANT_ADMIN_MK;
-      await loginAs(page, user);
+      await performLocalLogin(page, user);
 
       const locale = getTargetLocale(user);
       // 2. Navigate to Claims

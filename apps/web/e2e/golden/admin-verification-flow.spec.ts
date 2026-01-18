@@ -8,7 +8,7 @@ test.describe('Admin Verification Flow (Golden)', () => {
     loginAs,
   }) => {
     // 1. Login as Tenant Admin (KS)
-    await loginAs('admin', 'ks');
+    await loginAs('admin');
 
     // 2. Navigate to Verification Queue
     await page.goto('/sq/admin/leads');
