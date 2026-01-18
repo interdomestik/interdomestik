@@ -7,10 +7,12 @@ test.describe('Gate: Critical Path › Agent Flow', () => {
     await expect(agentPage).toHaveURL(/\/sq\/agent\/leads/);
 
     // 2. Determine state (Table or Empty)
+    // Wait for either the empty state message or the table to be visible to ensure hydration/load is complete
     const emptyState = agentPage.getByText('No leads found');
+    const table = agentPage.locator('[data-testid="ops-table"]');
 
-    // We need to wait a moment or check visibility. Since it's SSR, should be quick.
-    // However, if we want to be robust, we can default to empty check branch
+    await expect(emptyState.or(table)).toBeVisible();
+
     if (await emptyState.isVisible()) {
       console.log('No leads found. Verifying empty state.');
       await expect(emptyState).toBeVisible();
