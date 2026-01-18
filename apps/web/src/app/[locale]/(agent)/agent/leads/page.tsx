@@ -1,31 +1,26 @@
-import { listLeadsAction } from '@/actions/leads/dashboard';
+import { AgentLeadsOpsPage } from '@/features/agent/leads/components/AgentLeadsOpsPage';
 import { auth } from '@/lib/auth';
-import { getTranslations } from 'next-intl/server';
+import { db, leads } from '@interdomestik/database';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { AgentLeadsClient } from './_client';
 
-export default async function AgentLeadsPage() {
-  const t = await getTranslations('agent.leads_list');
-  const session = await auth.api.getSession({ headers: await headers() });
+export default async function Page() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-  if (!session || session.user.role !== 'agent') {
-    redirect('/dashboard');
+  if (!session) {
+    redirect('/login');
   }
 
-  const leadsResult = await listLeadsAction({ status: undefined });
-  const leads = leadsResult.success ? leadsResult.data : [];
+  const tenantId = ensureTenantId(session);
 
-  return (
-    <div className="container py-8 space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-          <p className="text-muted-foreground">{t('subtitle')}</p>
-        </div>
-      </div>
+  const leadsData = await db.query.leads.findMany({
+    where: eq(leads.tenantId, tenantId),
+    orderBy: (leads, { desc }) => [desc(leads.createdAt)],
+  });
 
-      <AgentLeadsClient initialLeads={leads as any} />
-    </div>
-  );
+  return <AgentLeadsOpsPage leads={leadsData} />;
 }
