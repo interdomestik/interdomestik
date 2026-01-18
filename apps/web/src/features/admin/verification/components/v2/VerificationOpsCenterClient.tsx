@@ -28,7 +28,16 @@ export function VerificationOpsCenterClient({
   const searchParams = useSearchParams();
 
   const [requests, setRequests] = useState(initialData);
-  const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
+  // Selection via URL
+  const selectedAttemptId = searchParams.get('selected');
+
+  const handleSelect = (id: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('selected', id);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  // Search State
   const [searchQuery, setSearchQuery] = useState(initialParams.query);
 
   // Sync prop to state
@@ -41,6 +50,12 @@ export function VerificationOpsCenterClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<'reject' | 'needs_info' | null>(null);
   const [note, setNote] = useState('');
+
+  const handleCloseDetails = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('selected');
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   // Search Debounce
   const debounceRef = useRef<NodeJS.Timeout>(null);
@@ -58,6 +73,7 @@ export function VerificationOpsCenterClient({
   const handleViewChange = (view: 'queue' | 'history') => {
     const params = new URLSearchParams(searchParams);
     params.set('view', view);
+    params.delete('selected'); // Clear selection on view change
     router.replace(`${pathname}?${params.toString()}`);
   };
 
@@ -90,6 +106,10 @@ export function VerificationOpsCenterClient({
         );
       } else {
         setRequests(prev => prev.filter(r => r.id !== attemptId));
+      }
+      // If we vetted the currently selected item, close the drawer
+      if (selectedAttemptId === attemptId) {
+        handleCloseDetails();
       }
       router.refresh();
     } else {
@@ -143,7 +163,7 @@ export function VerificationOpsCenterClient({
       <VerificationTableV2
         data={requests}
         historyMode={initialParams.view === 'history'}
-        onViewDetails={setSelectedAttemptId}
+        onViewDetails={handleSelect}
         onVerify={id => handleVerify(id, 'approve')}
         onAction={initiateAction}
       />
@@ -162,7 +182,7 @@ export function VerificationOpsCenterClient({
       <VerificationDetailsDrawer
         attemptId={selectedAttemptId}
         isOpen={!!selectedAttemptId}
-        onClose={() => setSelectedAttemptId(null)}
+        onClose={handleCloseDetails}
         onActionComplete={handleDrawerActionComplete}
       />
     </div>
