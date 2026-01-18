@@ -128,7 +128,11 @@ export const leadPaymentAttempts = pgTable(
   ]
 );
 
-export const memberLeadsRelations = relations(memberLeads, ({ many }) => ({
+export const memberLeadsRelations = relations(memberLeads, ({ one, many }) => ({
+  branch: one(branches, {
+    fields: [memberLeads.branchId],
+    references: [branches.id],
+  }),
   leadPaymentAttempts: many(leadPaymentAttempts),
 }));
 

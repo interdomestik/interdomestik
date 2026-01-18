@@ -75,17 +75,26 @@ export function getLeadActions(lead: any | undefined): {
     };
   }
 
-  // Secondary: Qualify
-  if (!isConverted && lead.status !== 'qualified' && !isLost) {
+  // Secondary: Mark Contacted
+  if (lead.status === 'new') {
     secondary.push({
-      id: 'mark_qualified',
-      label: 'Mark Qualified',
+      id: 'mark_contacted',
+      label: 'Mark Contacted',
       variant: 'outline',
     });
   }
 
+  // Secondary: Advance to Payment/Qualified
+  if (!isConverted && lead.status === 'contacted') {
+    secondary.push({
+      id: 'mark_payment_pending',
+      label: 'Request Payment',
+      variant: 'default',
+    });
+  }
+
   // Secondary: Mark Lost
-  if (!isLost && !isConverted) {
+  if (!isLost && !isConverted && lead.status !== 'expired') {
     secondary.push({
       id: 'mark_lost',
       label: 'Mark Lost',
