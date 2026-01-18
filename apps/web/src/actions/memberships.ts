@@ -33,7 +33,17 @@ export async function requestCancellation(subscriptionId: string) {
     throw new Error('Unauthorized');
   }
 
-  const _tenantId = ensureTenantId(session);
+  ensureTenantId(session);
+
+  // Authorization: Ensure subscription belongs to user
+  const subscription = await db.query.subscriptions.findFirst({
+    where: (subscriptions, { eq, and }) =>
+      and(eq(subscriptions.id, subscriptionId), eq(subscriptions.userId, session.user.id)),
+  });
+
+  if (!subscription) {
+    throw new Error('Unauthorized');
+  }
 
   // Mark as cancel_at_period_end = true in DB
   // or insert into a requests table.
