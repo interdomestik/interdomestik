@@ -1,5 +1,6 @@
 'use client';
 
+import { OpsEmptyState } from '@/components/ops';
 import { BranchWithKpis } from '@/features/admin/branches/server/getBranchesWithKpis';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -79,9 +80,10 @@ export function BranchHealthView({ initialBranches }: BranchHealthViewProps) {
       </div>
 
       {filteredBranches.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 border border-dashed border-white/10 rounded-xl bg-white/5">
-          <p className="text-muted-foreground">{t('no_branches')}</p>
-        </div>
+        <OpsEmptyState
+          title={t('no_branches')}
+          subtitle={t('no_branches_subtitle', { defaultValue: 'Try adjusting your filters' })}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredBranches.map(branch => (

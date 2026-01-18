@@ -1,4 +1,5 @@
 import type { BranchAgentRow } from '@/actions/branch-dashboard.types';
+import { OpsTable } from '@/components/ops';
 import { Badge } from '@interdomestik/ui/components/badge';
 import {
   Card,
@@ -7,14 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui/components/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@interdomestik/ui/components/table';
 import { getTranslations } from 'next-intl/server';
 
 interface BranchAgentsProps {
@@ -51,6 +44,54 @@ export async function BranchAgents({ agents }: BranchAgentsProps) {
     );
   }
 
+  const columns = [
+    { key: 'rank', header: t('col_rank') },
+    { key: 'name', header: t('col_agent_name') },
+    { key: 'members', header: t('col_members'), className: 'text-right' },
+    { key: 'active_claims', header: t('col_active_claims'), className: 'text-right' },
+    { key: 'submitted_30d', header: t('col_submitted_30d'), className: 'text-right' },
+  ];
+
+  const rows = agents.map((agent, index) => {
+    const rank = index + 1;
+    const rankBadge = getRankBadge(rank);
+
+    return {
+      id: agent.agentId,
+      cells: [
+        rankBadge ? (
+          <span className="text-lg" key="rank">
+            {rankBadge}
+          </span>
+        ) : (
+          <span className="text-muted-foreground" key="rank">
+            #{rank}
+          </span>
+        ),
+        <span key="name">{agent.agentName || t('unknown_agent')}</span>,
+        <span key="members">{agent.memberCount}</span>,
+        agent.activeClaimCount > 0 ? (
+          <Badge variant="secondary" key="active_claims">
+            {agent.activeClaimCount}
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground" key="active_claims">
+            0
+          </span>
+        ),
+        agent.submittedClaimsLast30Days > 0 ? (
+          <Badge variant="default" key="submitted_30d">
+            {agent.submittedClaimsLast30Days}
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground" key="submitted_30d">
+            0
+          </span>
+        ),
+      ],
+    };
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -58,53 +99,12 @@ export async function BranchAgents({ agents }: BranchAgentsProps) {
         <CardDescription>{t('agents_description', { count: agents.length })}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('col_rank')}</TableHead>
-              <TableHead>{t('col_agent_name')}</TableHead>
-              <TableHead className="text-right">{t('col_members')}</TableHead>
-              <TableHead className="text-right">{t('col_active_claims')}</TableHead>
-              <TableHead className="text-right">{t('col_submitted_30d')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {agents.map((agent, index) => {
-              const rank = index + 1;
-              const rankBadge = getRankBadge(rank);
-
-              return (
-                <TableRow key={agent.agentId}>
-                  <TableCell className="font-medium">
-                    {rankBadge ? (
-                      <span className="text-lg">{rankBadge}</span>
-                    ) : (
-                      <span className="text-muted-foreground">#{rank}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {agent.agentName || t('unknown_agent')}
-                  </TableCell>
-                  <TableCell className="text-right">{agent.memberCount}</TableCell>
-                  <TableCell className="text-right">
-                    {agent.activeClaimCount > 0 ? (
-                      <Badge variant="secondary">{agent.activeClaimCount}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">0</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {agent.submittedClaimsLast30Days > 0 ? (
-                      <Badge variant="default">{agent.submittedClaimsLast30Days}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">0</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+        <OpsTable
+          columns={columns}
+          rows={rows}
+          emptyLabel={t('no_agents')}
+          containerClassName="border-none bg-transparent backdrop-blur-none"
+        />
       </CardContent>
     </Card>
   );

@@ -1,15 +1,7 @@
-import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
+import { OpsStatusBadge, OpsTable, toOpsBadgeVariant } from '@/components/ops';
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@interdomestik/ui/components/table';
 import { getTranslations } from 'next-intl/server';
 import { formatDate } from './utils';
 
@@ -53,58 +45,49 @@ export async function RecentClaimsCard({
     return next ? `${path}?${next}` : path;
   };
 
+  const columns = [
+    { key: 'title', header: tClaims('table.title') },
+    { key: 'status', header: tClaims('table.status') },
+    { key: 'created', header: tClaims('table.created') },
+  ];
+
+  const rows = recentClaims.map(claim => ({
+    id: claim.id,
+    cells: [
+      <div key="title" className="max-w-[240px]">
+        <div className="truncate" title={claim.title ?? undefined}>
+          {claim.title}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {claim.claimAmount ? `${claim.claimAmount} ${claim.currency || 'EUR'}` : tCommon('none')}
+        </div>
+      </div>,
+      <OpsStatusBadge
+        key="status"
+        variant={toOpsBadgeVariant(claim.status)}
+        label={tClaims(`status.${claim.status}` as any)}
+      />,
+      <span key="created">{formatDate(claim.createdAt || undefined, tCommon('none'))}</span>,
+    ],
+    actions: (
+      <Button asChild size="sm" variant="outline">
+        <Link href={withAdminContext(`/admin/claims/${claim.id}`)}>{tCommon('view')}</Link>
+      </Button>
+    ),
+  }));
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-sm font-medium">{t('sections.recent_claims')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{tClaims('table.title')}</TableHead>
-                <TableHead>{tClaims('table.status')}</TableHead>
-                <TableHead>{tClaims('table.created')}</TableHead>
-                <TableHead className="text-right">{t('actions.view_claim')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentClaims.map(claim => (
-                <TableRow key={claim.id}>
-                  <TableCell className="max-w-[240px]">
-                    <div className="truncate" title={claim.title ?? undefined}>
-                      {claim.title}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {claim.claimAmount
-                        ? `${claim.claimAmount} ${claim.currency || 'EUR'}`
-                        : tCommon('none')}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <ClaimStatusBadge status={claim.status} />
-                  </TableCell>
-                  <TableCell>{formatDate(claim.createdAt || undefined, tCommon('none'))}</TableCell>
-                  <TableCell className="text-right">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={withAdminContext(`/admin/claims/${claim.id}`)}>
-                        {tCommon('view')}
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {recentClaims.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                    {t('labels.no_claims')}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <OpsTable
+          columns={columns}
+          rows={rows}
+          emptyLabel={t('labels.no_claims')}
+          actionsHeader={t('actions.view_claim')}
+        />
       </CardContent>
     </Card>
   );

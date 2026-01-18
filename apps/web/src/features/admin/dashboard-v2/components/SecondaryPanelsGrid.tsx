@@ -1,5 +1,6 @@
 'use client';
 
+import { OpsTable } from '@/components/ops';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { BarChart3, Clock, FileCheck } from 'lucide-react';
@@ -104,7 +105,6 @@ export function SecondaryPanelsGrid({
         </div>
       </GlassCard>
 
-      {/* Agent Performance Panel */}
       <GlassCard className="p-0 overflow-hidden">
         <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/5">
           <h3 className="font-semibold text-sm flex items-center gap-2">
@@ -113,40 +113,35 @@ export function SecondaryPanelsGrid({
           </h3>
         </div>
         <div className="p-0">
-          {agents.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground text-sm">
-              {t('no_agent_data')}
-            </div>
-          ) : (
-            <table className="w-full text-sm text-left">
-              <thead className="bg-white/5 text-muted-foreground text-xs uppercase">
-                <tr>
-                  <th className="px-4 py-2 font-medium">{t('agent')}</th>
-                  <th className="px-4 py-2 font-medium text-right">{t('sales')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {agents.map((agent, i) => (
-                  <tr key={agent.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-4 py-3 flex items-center gap-2">
-                      {i < 3 && (
-                        <Badge
-                          variant="secondary"
-                          className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]"
-                        >
-                          {i + 1}
-                        </Badge>
-                      )}
-                      <span className={i < 3 ? 'font-medium' : 'text-muted-foreground'}>
-                        {agent.name}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium">{agent.sales}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <OpsTable
+            columns={[
+              { key: 'agent', header: t('agent') },
+              { key: 'sales', header: t('sales'), className: 'text-right' },
+            ]}
+            rows={agents.map((agent, i) => ({
+              id: agent.id,
+              cells: [
+                <div key="agent" className="flex items-center gap-2">
+                  {i < 3 && (
+                    <Badge
+                      variant="secondary"
+                      className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]"
+                    >
+                      {i + 1}
+                    </Badge>
+                  )}
+                  <span className={i < 3 ? 'font-medium' : 'text-muted-foreground'}>
+                    {agent.name}
+                  </span>
+                </div>,
+                <span key="sales" className="font-medium">
+                  {agent.sales}
+                </span>,
+              ],
+            }))}
+            emptyLabel={t('no_agent_data')}
+            containerClassName="border-none bg-transparent backdrop-blur-none"
+          />
         </div>
       </GlassCard>
     </div>

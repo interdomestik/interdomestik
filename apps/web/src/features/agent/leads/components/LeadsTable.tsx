@@ -1,6 +1,5 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@interdomestik/ui';
+import { OpsStatusBadge, OpsTable, toOpsBadgeVariant } from '@/components/ops';
 import { LeadActions } from './LeadActions';
-import { StatusBadge } from './StatusBadge';
 
 export type Lead = {
   id: string;
@@ -19,48 +18,35 @@ interface LeadsTableProps {
 }
 
 export function LeadsTable({ leads, isLoading, onUpdate }: LeadsTableProps) {
+  const columns = [
+    { key: 'name', header: 'Name' },
+    { key: 'email', header: 'Email' },
+    { key: 'status', header: 'Status' },
+  ];
+
+  const rows = leads.map(lead => ({
+    id: lead.id,
+    cells: [
+      `${lead.firstName} ${lead.lastName}`,
+      lead.email,
+      <OpsStatusBadge
+        key="status"
+        variant={toOpsBadgeVariant(lead.status)}
+        label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1).replace('_', ' ')}
+      />,
+    ],
+    actions: <LeadActions leadId={lead.id} status={lead.status} onUpdate={onUpdate} />,
+  }));
+
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Next Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center">
-                Searching...
-              </TableCell>
-            </TableRow>
-          ) : leads.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                No leads found.
-              </TableCell>
-            </TableRow>
-          ) : (
-            leads.map(lead => (
-              <TableRow key={lead.id}>
-                <TableCell className="font-medium">
-                  {lead.firstName} {lead.lastName}
-                </TableCell>
-                <TableCell>{lead.email}</TableCell>
-                <TableCell>
-                  <StatusBadge status={lead.status} />
-                </TableCell>
-                <TableCell className="text-right">
-                  <LeadActions leadId={lead.id} status={lead.status} onUpdate={onUpdate} />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <OpsTable
+      columns={columns}
+      rows={rows}
+      loading={isLoading}
+      loadingLabel="Searching..."
+      emptyLabel="No leads found."
+      actionsHeader="Next Action"
+      rowTestId="lead-row"
+    />
   );
 }

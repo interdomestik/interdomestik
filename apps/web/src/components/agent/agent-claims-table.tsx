@@ -1,17 +1,9 @@
 'use client';
 
-import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
+import { OpsStatusBadge, OpsTable, toOpsBadgeVariant } from '@/components/ops';
 import { Link } from '@/i18n/routing';
 import { fetchClaims, type ClaimsScope } from '@/lib/api/claims';
-import {
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@interdomestik/ui';
+import { Button } from '@interdomestik/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -88,10 +80,6 @@ export function AgentClaimsTable({
   const searchParams = useSearchParams();
 
   const isAgent = userRole === 'agent';
-
-  // ... (omitted)
-
-  // inside return
   const statusFilter = searchParams.get('status') || undefined;
   const searchQuery = searchParams.get('search') || undefined;
   const page = Math.max(1, Number(searchParams.get('page') || 1));
@@ -120,122 +108,83 @@ export function AgentClaimsTable({
     return queryString ? `?${queryString}` : '';
   };
 
-  if (isLoading) {
-    return (
-      <div className="rounded-md border bg-background p-6 text-sm text-muted-foreground">
-        {tCommon('loading')}
-      </div>
-    );
-  }
+  const columns = [
+    { key: 'claimant', header: t('table.claimant') },
+    { key: 'claim', header: t('table.claim') },
+    { key: 'status', header: t('table.status') },
+    { key: 'amount', header: t('table.amount') },
+    { key: 'date', header: t('table.date') },
+  ];
 
-  if (isError || !data) {
-    return (
-      <div className="rounded-md border bg-background p-6 text-sm text-muted-foreground">
-        <div>{tCommon('errors.generic')}</div>
-        <Button className="mt-4" variant="outline" onClick={() => refetch()}>
-          {tCommon('tryAgain')}
-        </Button>
-      </div>
-    );
-  }
+  const rows =
+    data?.claims.map(claim => ({
+      id: claim.id,
+      className: claim.unreadCount
+        ? 'bg-amber-50/50 hover:bg-amber-50/80 transition-colors duration-200'
+        : 'hover:bg-slate-50/80 transition-colors duration-200',
+      cells: [
+        <div key="claimant" className="flex flex-col gap-0.5">
+          <span className="font-semibold text-slate-900 text-sm tracking-tight">
+            {claim.claimantName || 'Unknown'}
+          </span>
+          <span
+            className="text-xs text-slate-500 font-medium truncate max-w-[200px]"
+            title={claim.claimantEmail || ''}
+          >
+            {claim.claimantEmail}
+          </span>
+        </div>,
+        <div key="claim" className="flex flex-col gap-0.5 max-w-[260px]">
+          <span
+            className="font-medium text-slate-900 text-sm truncate tracking-tight"
+            title={claim.title}
+          >
+            {claim.title}
+          </span>
+          <span
+            className="text-xs text-slate-500 truncate font-medium"
+            title={claim.companyName || ''}
+          >
+            {claim.companyName}
+          </span>
+        </div>,
+        <OpsStatusBadge
+          key="status"
+          variant={toOpsBadgeVariant(claim.status)}
+          label={t(`status.${claim.status}` as any)}
+        />,
+        <span
+          key="amount"
+          className="text-sm font-semibold text-slate-700 font-mono tracking-tight"
+        >
+          {claim.claimAmount ? `${claim.claimAmount} ${claim.currency || 'EUR'}` : '-'}
+        </span>,
+        <span key="date" className="text-sm text-slate-500 font-medium">
+          {claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : '-'}
+        </span>,
+      ],
+      actions: renderActionButtons({
+        isAgent,
+        unreadCount: claim.unreadCount || 0,
+        claimId: claim.id,
+        detailBasePath,
+        t,
+      }),
+    })) || [];
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('table.claimant')}</TableHead>
-              <TableHead>{t('table.claim')}</TableHead>
-              <TableHead>{t('table.status')}</TableHead>
-              <TableHead>{t('table.amount')}</TableHead>
-              <TableHead>{t('table.date')}</TableHead>
-              <TableHead className="text-right">{t('table.actions')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.claims.map(claim => (
-              <TableRow
-                key={claim.id}
-                className={
-                  claim.unreadCount
-                    ? 'bg-amber-50/50 hover:bg-amber-50/80 transition-colors duration-200'
-                    : 'hover:bg-slate-50/80 transition-colors duration-200'
-                }
-              >
-                <TableCell>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-semibold text-slate-900 text-sm tracking-tight">
-                      {claim.claimantName || 'Unknown'}
-                    </span>
-                    <span
-                      className="text-xs text-slate-500 font-medium truncate max-w-[200px]"
-                      title={claim.claimantEmail || ''}
-                    >
-                      {claim.claimantEmail}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="max-w-[260px]">
-                  <div className="flex flex-col gap-0.5">
-                    <span
-                      className="font-medium text-slate-900 text-sm truncate tracking-tight"
-                      title={claim.title}
-                    >
-                      {claim.title}
-                    </span>
-                    <span
-                      className="text-xs text-slate-500 truncate font-medium"
-                      title={claim.companyName || ''}
-                    >
-                      {claim.companyName}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <ClaimStatusBadge status={claim.status} />
-                </TableCell>
-                <TableCell className="text-sm font-semibold text-slate-700 font-mono tracking-tight">
-                  {claim.claimAmount ? (
-                    `${claim.claimAmount} ${claim.currency || 'EUR'}`
-                  ) : (
-                    <span className="text-slate-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-sm text-slate-500 font-medium">
-                  {claim.createdAt ? new Date(claim.createdAt).toLocaleDateString() : '-'}
-                </TableCell>
-                <TableCell className="text-right">
-                  {renderActionButtons({
-                    isAgent,
-                    unreadCount: claim.unreadCount || 0,
-                    claimId: claim.id,
-                    detailBasePath,
-                    t,
-                  })}
-                </TableCell>
-              </TableRow>
-            ))}
-            {data.claims.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="h-48 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
-                    <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center mb-2">
-                      <span className="text-2xl">📭</span>
-                    </div>
-                    <span className="font-medium text-lg">{t('table.no_claims')}</span>
-                    <span className="text-sm text-slate-400">
-                      Claims will appear here once submitted.
-                    </span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <OpsTable
+        columns={columns}
+        rows={rows}
+        loading={isLoading}
+        error={isError}
+        onRetry={refetch}
+        emptyLabel={t('table.no_claims')}
+        actionsHeader={t('table.actions')}
+      />
 
-      {data.totalPages > 1 && (
+      {data && data.totalPages > 1 && (
         <div className="flex items-center justify-end gap-2">
           <Button asChild variant="outline" size="sm" disabled={page <= 1}>
             <Link href={buildPageLink(page - 1)}>{tCommon('previous')}</Link>

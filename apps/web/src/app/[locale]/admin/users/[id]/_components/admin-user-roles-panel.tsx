@@ -7,6 +7,7 @@ import {
   listUserRoles,
   revokeUserRole,
 } from '@/actions/admin-rbac';
+import { OpsTable } from '@/components/ops';
 import {
   ROLE_BRANCH_MANAGER,
   ROLE_MEMBER,
@@ -30,14 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@interdomestik/ui/components/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@interdomestik/ui/components/table';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -268,46 +261,32 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
           </div>
         </div>
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Role</TableHead>
-                <TableHead>Branch</TableHead>
-                <TableHead className="w-[120px]" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {roles.map(r => {
-                const branch = r.branchId ? branches.find(b => b.id === r.branchId) : null;
-                return (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-medium">{r.role}</TableCell>
-                    <TableCell>{branch ? formatBranchName(branch) : '—'}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleRevoke(r)}
-                      >
-                        Revoke
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-
-              {!loading && roles.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3} className="h-20 text-center text-sm text-muted-foreground">
-                    No roles assigned
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-        </div>
+        <OpsTable
+          columns={[
+            { key: 'role', header: 'Role' },
+            { key: 'branch', header: 'Branch' },
+          ]}
+          rows={roles.map(r => {
+            const branch = r.branchId ? branches.find(b => b.id === r.branchId) : null;
+            return {
+              id: r.id,
+              cells: [
+                <span key="role" className="font-medium">
+                  {r.role}
+                </span>,
+                <span key="branch">{branch ? formatBranchName(branch) : '—'}</span>,
+              ],
+              actions: (
+                <Button type="button" size="sm" variant="ghost" onClick={() => handleRevoke(r)}>
+                  Revoke
+                </Button>
+              ),
+            };
+          })}
+          loading={loading}
+          emptyLabel="No roles assigned"
+          actionsHeader=""
+        />
       </CardContent>
     </Card>
   );
