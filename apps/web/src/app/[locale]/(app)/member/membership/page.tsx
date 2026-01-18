@@ -1,8 +1,8 @@
+import { MembershipOpsPage } from '@/features/member/membership/components/MembershipOpsPage';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getMemberSubscriptionsCore } from './_core';
-import { MembershipOpsPage } from '@/features/member/membership/components/MembershipOpsPage';
+import { getMemberDocumentsCore, getMemberSubscriptionsCore } from './_core';
 
 export default async function MembershipPage() {
   const session = await auth.api.getSession({
@@ -14,6 +14,7 @@ export default async function MembershipPage() {
   }
 
   const subscriptions = await getMemberSubscriptionsCore(session.user.id);
+  const documents = await getMemberDocumentsCore(session.user.id);
 
-  return <MembershipOpsPage subscriptions={subscriptions} />;
+  return <MembershipOpsPage subscriptions={subscriptions} documents={documents} />;
 }

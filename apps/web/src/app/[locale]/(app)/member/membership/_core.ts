@@ -90,3 +90,10 @@ type SubscriptionDunningInput =
     }
   | null
   | undefined;
+
+export async function getMemberDocumentsCore(userId: string) {
+  return db.query.documents.findMany({
+    where: (docs, { and, eq }) => and(eq(docs.entityType, 'member'), eq(docs.entityId, userId)),
+    orderBy: (docs, { desc }) => [desc(docs.uploadedAt)],
+  });
+}

@@ -1,42 +1,48 @@
 'use client';
 
-import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import {
-  OpsTable,
+  OpsActionBar,
+  OpsDocumentsPanel,
   OpsDrawer,
   OpsStatusBadge,
+  OpsTable,
   OpsTimeline,
-  OpsDocumentsPanel,
-  OPS_TEST_IDS,
 } from '@/components/ops';
 import {
+  getMembershipActions,
+  OpsActionConfig,
+  toOpsDocuments,
   toOpsStatus,
   toOpsTimelineEvents,
-  toOpsDocuments,
 } from '@/components/ops/adapters/membership';
-import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@interdomestik/ui';
+import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
+import { useTranslations } from 'next-intl';
+import { useEffect } from 'react';
 
-// Mock data for skeleton
-const MOCK_EVENTS = [
-  {
-    id: '1',
-    type: 'activated',
-    date: new Date().toISOString(),
-    description: 'Membership activated',
-  },
-];
-const MOCK_DOCS = [
-  { id: '1', name: 'Welcome Packet', url: '#', createdAt: new Date().toISOString() },
-];
-
-export function MembershipOpsPage({ subscriptions }: { subscriptions: any[] }) {
+export function MembershipOpsPage({
+  subscriptions,
+  documents,
+}: {
+  subscriptions: any[];
+  documents: any[];
+}) {
   const t = useTranslations('membership');
   const { selectedId, setSelectedId } = useOpsSelectionParam();
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   const selectedSubscription = subscriptions.find(s => s.id === selectedId);
+
+  // 10D: Fall back gracefully to first item if selection invalid or missing
+  useEffect(() => {
+    if (
+      subscriptions.length > 0 &&
+      (!selectedId || !subscriptions.find(s => s.id === selectedId))
+    ) {
+      setSelectedId(subscriptions[0].id);
+    }
+  }, [selectedId, subscriptions, setSelectedId]);
 
   const handleSelect = (id: string) => {
     setSelectedId(id === selectedId ? null : id);
@@ -89,7 +95,7 @@ export function MembershipOpsPage({ subscriptions }: { subscriptions: any[] }) {
       {/* Detail Panel (Desktop) */}
       {selectedId && isDesktop && (
         <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-right-4">
-          <DetailView subscription={selectedSubscription} t={t} />
+          <DetailView subscription={selectedSubscription} documents={documents} t={t} />
         </div>
       )}
 
@@ -100,15 +106,37 @@ export function MembershipOpsPage({ subscriptions }: { subscriptions: any[] }) {
           onOpenChange={open => !open && closeDetail()}
           title={selectedSubscription?.plan?.name || t('plan.title')}
         >
-          {selectedSubscription && <DetailView subscription={selectedSubscription} t={t} />}
+          {selectedSubscription && (
+            <DetailView subscription={selectedSubscription} documents={documents} t={t} />
+          )}
         </OpsDrawer>
       )}
     </div>
   );
 }
 
-function DetailView({ subscription, t }: { subscription: any; t: any }) {
+function DetailView({
+  subscription,
+  documents,
+  t,
+}: {
+  subscription: any;
+  documents: any[];
+  t: any;
+}) {
   if (!subscription) return null;
+
+  const { primary, secondary } = getMembershipActions(subscription, t);
+
+  const handleAction = (id: string) => {
+    // 10B: Safe handlers
+    console.log('[Membership Action]', id, subscription.id);
+  };
+
+  const mapAction = (config: OpsActionConfig) => ({
+    ...config,
+    onClick: () => handleAction(config.id),
+  });
 
   return (
     <div className="space-y-4 h-full overflow-y-auto pr-2">
@@ -128,24 +156,23 @@ function DetailView({ subscription, t }: { subscription: any; t: any }) {
                 : '-'}
             </p>
           </div>
-          {/* Skeleton Actions */}
-          <div className="flex gap-2" data-testid={OPS_TEST_IDS.ACTION_BAR}>
-            <Button variant="outline" size="sm">
-              Manage Plan
-            </Button>
-          </div>
+
+          <OpsActionBar
+            primary={primary ? mapAction(primary) : undefined}
+            secondary={secondary.map(mapAction)}
+          />
         </CardContent>
       </Card>
 
       <div className="space-y-4">
         <OpsTimeline
           title="Timeline"
-          events={toOpsTimelineEvents(MOCK_EVENTS)}
+          events={toOpsTimelineEvents(subscription)}
           emptyLabel="No events"
         />
         <OpsDocumentsPanel
           title="Documents"
-          documents={toOpsDocuments(MOCK_DOCS)}
+          documents={toOpsDocuments(documents)}
           emptyLabel="No documents"
           viewLabel="View"
         />

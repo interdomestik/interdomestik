@@ -1,17 +1,17 @@
 'use client';
 
+import { OpsActionBar, OpsDocumentsPanel, OpsStatusBadge, OpsTimeline } from '@/components/ops';
 import {
-  OpsActionBar,
-  OpsDocumentsPanel,
-  OpsStatusBadge,
-  OpsTimeline,
-  OPS_TEST_IDS,
-} from '@/components/ops';
-import { toOpsDocuments, toOpsStatus, toOpsTimelineEvents } from '@/components/ops/adapters/claims';
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@interdomestik/ui';
+  getClaimActions,
+  OpsActionConfig,
+  toOpsDocuments,
+  toOpsStatus,
+  toOpsTimelineEvents,
+} from '@/components/ops/adapters/claims';
+import type { ClaimTrackingDetailDto } from '@/features/claims/tracking/types';
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ClaimTrackingDetailDto } from '@/features/claims/tracking/types';
 
 interface MemberClaimDetailOpsPageProps {
   claim: ClaimTrackingDetailDto;
@@ -28,21 +28,20 @@ export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProp
 
   const opsDocuments = toOpsDocuments(claim.documents);
 
-  // Policy-driven actions (Skeleton)
-  const actions = [
-    {
-      label: 'Upload Evidence',
-      onClick: () => console.log('Upload'),
-      variant: 'default' as const,
-      disabled: false,
-    },
-    {
-      label: 'Send Message',
-      onClick: () => console.log('Message'),
-      variant: 'outline' as const,
-      disabled: false,
-    },
-  ];
+  // Policy-driven actions
+  const { secondary } = getClaimActions(claim, t);
+
+  const handleAction = (id: string) => {
+    // 10C: Safe wiring
+    console.log('[Claim Action]', id, claim.id);
+  };
+
+  const mapAction = (config: OpsActionConfig) => ({
+    ...config,
+    onClick: () => handleAction(config.id),
+  });
+
+  const secondaryActions = secondary.map(mapAction);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-8">
@@ -55,7 +54,7 @@ export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProp
             <OpsStatusBadge {...toOpsStatus(claim.status)} />
           </div>
         </div>
-        <OpsActionBar secondary={actions} />
+        <OpsActionBar secondary={secondaryActions} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

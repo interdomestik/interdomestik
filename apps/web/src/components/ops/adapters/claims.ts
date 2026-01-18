@@ -1,4 +1,4 @@
-import { OpsDocument, OpsTimelineEvent } from '../types';
+import { OpsAction, OpsDocument, OpsTimelineEvent } from '../types';
 import { toOpsBadgeVariant } from './status';
 import { toOpsTimelineTone } from './timeline';
 
@@ -44,9 +44,38 @@ export function toOpsTimelineEvents(events: ClaimTimelineEvent[]): OpsTimelineEv
   }));
 }
 
+export type OpsActionConfig = Omit<OpsAction, 'onClick'> & { id: string };
+
 export function toOpsStatus(status: ClaimStatus) {
   return {
     label: status.replace(/_/g, ' ').toUpperCase(),
     variant: toOpsBadgeVariant(status),
   };
+}
+
+export function getClaimActions(
+  claim: { status: string; id: string } | undefined,
+  _t: (key: string) => string
+): { secondary: OpsActionConfig[] } {
+  if (!claim) return { secondary: [] };
+
+  const secondary: OpsActionConfig[] = [];
+
+  // Safe actions only
+  // If active/open, allow message/upload
+  if (!['closed', 'paid', 'denied'].includes(claim.status)) {
+    secondary.push({
+      id: 'upload',
+      label: 'Upload Evidence',
+      variant: 'default', // Button variant
+    });
+
+    secondary.push({
+      id: 'message',
+      label: 'Send Message',
+      variant: 'outline',
+    });
+  }
+
+  return { secondary };
 }

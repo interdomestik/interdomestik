@@ -1,21 +1,23 @@
-import { OpsDocument, OpsTimelineEvent } from '../types';
+import { OpsAction, OpsDocument, OpsTimelineEvent } from '../types';
 import { toOpsBadgeVariant } from './status';
-import { toOpsTimelineTone } from './timeline';
 
-type MembershipDocument = {
+type DbDocument = {
   id: string;
-  name: string;
-  url: string;
-  createdAt?: string | Date;
+  fileName: string;
+  storagePath: string;
+  uploadedAt: Date;
 };
 
-type MembershipEvent = {
+type SubscriptionLike = {
   id: string;
-  type: string;
-  date: string | Date;
-  description?: string;
-  actorName?: string;
+  status: string | null;
+  createdAt: Date | null;
+  currentPeriodEnd: Date | null;
+  canceledAt?: Date | null;
+  cancelAtPeriodEnd?: boolean | null;
 };
+
+export type OpsActionConfig = Omit<OpsAction, 'onClick'> & { id: string };
 
 export function toOpsStatus(status: string | null | undefined) {
   const safeStatus = status || 'none';
@@ -25,38 +27,103 @@ export function toOpsStatus(status: string | null | undefined) {
   };
 }
 
-export function toOpsDocuments(docs: MembershipDocument[] | undefined): OpsDocument[] {
+export function toOpsDocuments(docs: DbDocument[] | undefined): OpsDocument[] {
   if (!docs || !Array.isArray(docs)) return [];
   return docs.map(d => ({
     id: d.id,
-    name: d.name,
-    url: d.url,
-    uploadedAt: d.createdAt,
+    name: d.fileName,
+    url: '#', // TODO: Implement secure download link generation
+    uploadedAt: d.uploadedAt,
   }));
 }
 
-export function toOpsTimelineEvents(events: MembershipEvent[] | undefined): OpsTimelineEvent[] {
-  if (!events || !Array.isArray(events)) return [];
-  return events.map(e => ({
-    id: e.id,
-    title: formatEventTitle(e.type),
-    description: e.description,
-    date: new Date(e.date).toLocaleString(),
-    actorName: e.actorName,
-    tone: toOpsTimelineTone(mapEventTypeToTone(e.type)),
-  }));
+export function toOpsTimelineEvents(sub: SubscriptionLike | undefined): OpsTimelineEvent[] {
+  if (!sub) return [];
+
+  const events: OpsTimelineEvent[] = [];
+
+  // Creation event
+  if (sub.createdAt) {
+    events.push({
+      id: `${sub.id}-created`,
+      title: 'Membership Created',
+      description: 'Initial subscription created',
+      date: new Date(sub.createdAt).toLocaleString(),
+      tone: 'neutral',
+    });
+  }
+
+  // Renewal/Expirations
+  if (sub.currentPeriodEnd) {
+    const isPast = new Date(sub.currentPeriodEnd) < new Date();
+    const title = isPast ? 'Period Ended' : 'Renews On';
+    events.push({
+      id: `${sub.id}-cycle`,
+      title,
+      description: `Period end date`,
+      date: new Date(sub.currentPeriodEnd).toLocaleString(),
+      tone: isPast ? 'warning' : 'neutral',
+    });
+  }
+
+  // Cancellation
+  if (sub.canceledAt) {
+    events.push({
+      id: `${sub.id}-canceled`,
+      title: 'Canceled',
+      description: 'Membership canceled',
+      date: new Date(sub.canceledAt).toLocaleString(),
+      tone: 'danger',
+    });
+  }
+
+  // Sort detailed timeline (newest first)
+  return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-function formatEventTitle(type: string): string {
-  return type
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
+export function getMembershipActions(
+  sub: SubscriptionLike | undefined,
+  _t: (key: string) => string
+): { primary?: OpsActionConfig; secondary: OpsActionConfig[] } {
+  if (!sub) return { secondary: [] };
 
-function mapEventTypeToTone(type: string): string {
-  if (['activated', 'renewed', 'upgraded'].includes(type)) return 'success';
-  if (['cancelled', 'expired', 'suspended'].includes(type)) return 'danger';
-  if (['payment_failed', 'past_due'].includes(type)) return 'warning';
-  return 'neutral';
+  const secondary: OpsActionConfig[] = [];
+  let primary: OpsActionConfig | undefined;
+
+  const now = new Date();
+  const currentPeriodEnd = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
+  const isPastDue = sub.status === 'past_due';
+  const isActive = sub.status === 'active';
+  const daysToRenewal = currentPeriodEnd
+    ? Math.ceil((currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : 999;
+
+  // 10B SAFE actions
+  // If status === 'past_due' => show primary "Update payment method"
+  if (isPastDue) {
+    primary = {
+      id: 'update_payment',
+      label: 'Update Payment Method',
+      variant: 'default',
+    };
+  } else if (isActive && daysToRenewal <= 30 && daysToRenewal >= 0) {
+    // If within 30 days of currentPeriodEnd AND active => show "Renew"
+    primary = {
+      id: 'renew',
+      label: 'Renew',
+      variant: 'default',
+    };
+  }
+
+  // Cancellation: show "Request cancellation"
+  // Should allow cancellation if not already canceled
+  if ((isActive || isPastDue) && !sub.canceledAt && !sub.cancelAtPeriodEnd) {
+    secondary.push({
+      id: 'cancel',
+      label: 'Request Cancellation',
+      variant: 'destructive',
+    });
+  }
+
+  return { primary, secondary };
 }
