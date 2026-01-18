@@ -1,4 +1,5 @@
-import { OpsDocumentsPanel, toOpsDocuments } from '@/components/ops';
+import { OpsDocumentsPanel } from '@/components/ops';
+import { toOpsDocuments } from '@/components/ops/adapters/verification';
 import { useTranslations } from 'next-intl';
 
 interface VerificationDocumentsProps {

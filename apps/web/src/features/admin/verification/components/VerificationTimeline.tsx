@@ -1,4 +1,5 @@
-import { OpsTimeline, toOpsTimelineEvents } from '@/components/ops';
+import { OpsTimeline } from '@/components/ops';
+import { toOpsTimelineEvents } from '@/components/ops/adapters/verification';
 import { useTranslations } from 'next-intl';
 import { VerificationTimelineEvent } from '../server/types';
 
