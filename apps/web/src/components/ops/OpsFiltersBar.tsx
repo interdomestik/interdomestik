@@ -1,8 +1,8 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import { Button, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 export type OpsFilterTab = {
   id: string;
@@ -68,6 +68,7 @@ export function OpsFiltersBar({
             onChange={event => onSearchChange(event.target.value)}
             className="pl-9 bg-background/50"
             data-testid={searchInputTestId ?? 'ops-search-input'}
+            aria-label={searchPlaceholder}
           />
         </div>
         {rightActions}
