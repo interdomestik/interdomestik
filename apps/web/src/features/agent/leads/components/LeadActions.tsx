@@ -3,7 +3,7 @@
 import { startPaymentAction } from '@/actions/leads/payment';
 import { updateLeadStatusAction } from '@/actions/leads/update';
 import { Button } from '@interdomestik/ui';
-import { CheckCircle, Clock, DollarSign, MessageSquare, UserX } from 'lucide-react';
+import { Ban, CheckCircle, Clock, DollarSign, MessageSquare, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface LeadActionsProps {
@@ -13,7 +13,7 @@ interface LeadActionsProps {
 }
 
 export function LeadActions({ leadId, status, onUpdate }: LeadActionsProps) {
-  const handleUpdateStatus = async (status: 'contacted' | 'lost') => {
+  const handleUpdateStatus = async (status: 'contacted' | 'lost' | 'disqualified') => {
     const res = await updateLeadStatusAction({ leadId, status });
     if (res.success) {
       toast.success(`Lead marked as ${status}`);
@@ -27,12 +27,12 @@ export function LeadActions({ leadId, status, onUpdate }: LeadActionsProps) {
     const res = await startPaymentAction({
       leadId,
       method: 'cash',
-      amountCents: 12000,
-      priceId: 'standard_plan_price',
+      amountCents: 15000,
+      priceId: 'golden_ks_plan_basic',
     });
 
     if (res.success) {
-      toast.success('Cash payment recorded. Pending verification.');
+      toast.success('Cash payment recorded');
       onUpdate();
     } else {
       toast.error(res.error || 'Failed to record payment');
@@ -53,6 +53,19 @@ export function LeadActions({ leadId, status, onUpdate }: LeadActionsProps) {
           <DollarSign className="w-3.5 h-3.5 mr-1" />
           Pay Cash
         </Button>
+      )}
+
+      {['new', 'contacted'].includes(status) && (
+        <>
+          <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus('lost')}>
+            <UserX className="w-3.5 h-3.5 mr-1" />
+            Mark Lost
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus('disqualified')}>
+            <Ban className="w-3.5 h-3.5 mr-1" />
+            Mark Disqualified
+          </Button>
+        </>
       )}
 
       {status === 'payment_pending' && (

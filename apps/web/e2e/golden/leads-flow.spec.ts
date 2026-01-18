@@ -11,11 +11,18 @@ test.describe('Leads & Conversion Flow (Golden)', () => {
     notes: 'Interested in annual plan',
   };
 
+  const localeFromPage = (page: { url: () => string }) => {
+    const pathname = new URL(page.url()).pathname;
+    const locale = pathname.split('/')[1];
+    return locale || 'sq';
+  };
+
   test('Agent creates lead, takes cash payment, and Admin converts', async ({ page, loginAs }) => {
     // 1. Agent Login & Lead Creation
     await test.step('Agent creates a new lead', async () => {
       await loginAs('agent');
-      await page.goto('/agent/leads');
+      const locale = localeFromPage(page);
+      await page.goto(`/${locale}/agent/leads`);
 
       // Open Create Dialog
       await page.getByRole('button', { name: 'New Lead' }).click();
@@ -74,46 +81,36 @@ test.describe('Leads & Conversion Flow (Golden)', () => {
 
     // 4. Admin Verification
     await test.step('Admin approves payment and converts lead', async () => {
-      await loginAs('admin'); // Re-login as Admin
-      // assuming /admin/verification is the path, or via dashboard.
-      // Based on previous contexts, verify page is at /admin/verification or similar.
-      // Let's check routes. But usually it's /admin/verification/cash-queue or similar?
-      // Let's check apps/web/src/app/[locale]/(dashboard)/admin/verification/page.tsx or sidebar.
-      // Actually I saw 'Admin Verification Queue (Cash)' in verify.spec.ts pointing to /admin/verification
+      await loginAs('admin');
+      // In V2, verification ops center is at /admin/leads
+      const locale = localeFromPage(page);
+      await page.goto(`/${locale}/admin/leads`);
 
-      await page.goto('/admin/leads');
-
-      // Find the verification item. It might be by lead name or amount.
-      // The list likely shows 'Lead Name' or similar.
+      // Find the row in the V2 table
       const verificationRow = page
-        .getByRole('row')
+        .getByTestId('cash-verification-row')
         .filter({ hasText: `${leadData.firstName} ${leadData.lastName}` });
 
-      // Click specific Verify button or link.
-      // In `admin-verification-flow.spec.ts`: await page.getByRole('link', { name: 'Verify' }).first().click();
-      // Assuming row action:
-      await verificationRow.getByRole('link', { name: 'Verify' }).click();
+      await expect(verificationRow).toBeVisible();
 
-      // On Detail Page
-      await expect(page.getByText('Cash Payment Verification')).toBeVisible();
-      await page.getByRole('button', { name: 'Approve Payment' }).click();
+      // In V2, we approve directly from the row
+      await verificationRow.getByTestId('cash-approve').click();
 
-      // Confirm dialog if any, or simple action.
-      // Assuming simple action or standard dialog.
-      // Checking verify.spec.ts: await page.getByRole('button', { name: 'Approve' }).click();
-
-      // Wait for success
-      await expect(page.getByText('Payment verified')).toBeVisible();
+      // Wait for success toast
+      await expect(page.getByText('Pagesa u aprovua.')).toBeVisible();
     });
 
     // 5. Verify Conversion
     await test.step('Verify lead is converted', async () => {
       await loginAs('agent');
-      await page.goto('/agent/leads');
+      const locale = localeFromPage(page);
+      await page.goto(`/${locale}/agent/leads`);
 
       const row = page.getByRole('row').filter({ hasText: leadData.email });
-      await expect(row.getByText('Complete')).toBeVisible(); // 'Member' badge
+      // Badge text in StatusBadge.tsx is 'Member' for 'converted'
       await expect(row.getByText('Member', { exact: true })).toBeVisible();
+      // Action text in LeadActions.tsx is 'Complete' for 'converted'
+      await expect(row.getByText('Complete', { exact: true })).toBeVisible();
     });
   });
 });

@@ -23,7 +23,7 @@ import { routes } from '../routes';
 const AUTH_OK_SELECTORS = ['[data-testid="user-nav"]', '[data-testid="sidebar-user-menu-button"]'];
 
 function getBaseURL(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
+  return process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://127.0.0.1:3000';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -139,12 +139,15 @@ async function performLogin(
   }
 
   // Ensure cookies are set (page.request shares context storage state)
-  // Verify by checking cookies
   const cookies = await page.context().cookies();
-  const hasSessionToken = cookies.some(c => c.name.includes('session_token'));
+  const sessionCookies = cookies.filter(c => c.name.includes('session_token'));
 
-  if (!hasSessionToken) {
-    console.warn(`WARNING: No session_token cookie found after successful API login for ${role}`);
+  if (sessionCookies.length === 0) {
+    console.warn(`❌ No session_token cookie found after successful API login for ${role}`);
+    console.log('All cookies:', JSON.stringify(cookies, null, 2));
+  } else {
+    console.log(`✅ Session cookies found for ${role}:`);
+    console.log(JSON.stringify(sessionCookies, null, 2));
   }
 }
 

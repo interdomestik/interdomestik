@@ -8,7 +8,16 @@ import { z } from 'zod';
 
 const updateLeadStatusSchema = z.object({
   leadId: z.string(),
-  status: z.enum(['contacted', 'lost', 'disqualified']),
+  status: z.enum([
+    'new',
+    'contacted',
+    'payment_pending',
+    'paid',
+    'converted',
+    'lost',
+    'disqualified',
+    'expired',
+  ]),
   notes: z.string().optional(),
 });
 
@@ -34,7 +43,7 @@ export async function updateLeadStatusAction(input: unknown) {
       .update(memberLeads)
       .set({
         status,
-        notes: notes ? `${lead.notes ? lead.notes + '\n' : ''}${notes}` : undefined,
+        notes: notes ? `${lead.notes ? lead.notes + '\n' : ''}${notes}` : lead.notes,
         updatedAt: new Date(),
       })
       .where(eq(memberLeads.id, leadId));
