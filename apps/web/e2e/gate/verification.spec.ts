@@ -6,12 +6,11 @@ test.describe('Admin Verification Queue (Cash)', () => {
     loginAs,
   }) => {
     // 1. Login as Tenant Admin
-    await loginAs('admin', 'ks');
+    await loginAs('admin');
 
     // 2. Navigate to Leads / Verification
     // (Assuming the route is /admin/leads based on previous file analysis)
     const locale = page.url().includes('/mk') ? 'mk' : 'sq';
-    const tenantId = locale === 'mk' ? 'tenant_mk' : 'tenant_ks';
     await page.goto(`/${locale}/admin/leads`);
     await page.waitForLoadState('networkidle');
 

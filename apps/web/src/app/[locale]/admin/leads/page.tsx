@@ -1,1 +1,1 @@
-export { default } from '@/features/admin/verification/components/VerificationPage';
+export { default } from '@/features/admin/verification/components/v2/VerificationOpsCenterPage';
