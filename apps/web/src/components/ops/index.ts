@@ -10,3 +10,4 @@ export { OpsTable } from './OpsTable';
 export { OpsTimeline, toOpsTimelineEvents } from './OpsTimeline';
 export { OPS_TEST_IDS } from './testids';
 export type * from './types';
+export { useOpsSelectionParam } from './useOpsSelectionParam';

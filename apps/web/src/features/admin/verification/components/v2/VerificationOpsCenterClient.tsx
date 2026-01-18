@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
+import { useOpsSelectionParam } from '@/components/ops';
 import { verifyCashAttemptAction } from '../../actions/verification';
 import { type CashVerificationRequestDTO } from '../../server/types';
 import { VerificationActionDialog } from '../VerificationActionDialog';
@@ -26,16 +27,13 @@ export function VerificationOpsCenterClient({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const {
+    selectedId: selectedAttemptId,
+    setSelectedId: handleSelect,
+    clearSelectedId: handleCloseDetails,
+  } = useOpsSelectionParam();
 
   const [requests, setRequests] = useState(initialData);
-  // Selection via URL
-  const selectedAttemptId = searchParams.get('selected');
-
-  const handleSelect = (id: string) => {
-    const params = new URLSearchParams(searchParams);
-    params.set('selected', id);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
 
   // Search State
   const [searchQuery, setSearchQuery] = useState(initialParams.query);
@@ -50,12 +48,6 @@ export function VerificationOpsCenterClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<'reject' | 'needs_info' | null>(null);
   const [note, setNote] = useState('');
-
-  const handleCloseDetails = () => {
-    const params = new URLSearchParams(searchParams);
-    params.delete('selected');
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
 
   // Search Debounce
   const debounceRef = useRef<NodeJS.Timeout>(null);
