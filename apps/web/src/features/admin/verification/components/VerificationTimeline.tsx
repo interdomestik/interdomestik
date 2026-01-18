@@ -1,5 +1,5 @@
+import { OpsTimeline, toOpsTimelineEvents } from '@/components/ops';
 import { useTranslations } from 'next-intl';
-import { OpsTimeline } from '@/components/ops';
 import { VerificationTimelineEvent } from '../server/types';
 
 interface VerificationTimelineProps {
@@ -8,13 +8,7 @@ interface VerificationTimelineProps {
 
 export function VerificationTimeline({ timeline }: VerificationTimelineProps) {
   const t = useTranslations('admin.leads');
-  const events = timeline.map(event => ({
-    id: event.id,
-    title: event.title,
-    description: event.description,
-    date: typeof event.date === 'string' ? event.date : event.date.toISOString(),
-    actorName: event.actorName,
-  }));
+  const events = toOpsTimelineEvents(timeline);
 
   return <OpsTimeline title={t('drawer.timeline')} events={events} emptyLabel={t('empty_state')} />;
 }

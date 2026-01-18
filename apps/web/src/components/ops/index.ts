@@ -11,6 +11,7 @@ export { OpsTimeline } from './OpsTimeline';
 // Adapters
 export * from './adapters/status';
 export * from './adapters/timeline';
+export * from './adapters/verification';
 
 export type { OpsFilterTab } from './OpsFiltersBar';
 export type { OpsAction, OpsDocument, OpsTimelineEvent } from './types';
