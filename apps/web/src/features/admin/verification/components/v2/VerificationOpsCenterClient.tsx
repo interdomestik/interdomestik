@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { useOpsSelectionParam } from '@/components/ops';
+import { useOpsSelectionParam, trackOpsEvent } from '@/components/ops';
 import { verifyCashAttemptAction } from '../../actions/verification';
 import { type CashVerificationRequestDTO } from '../../server/types';
 import { VerificationActionDialog } from '../VerificationActionDialog';
@@ -29,9 +29,14 @@ export function VerificationOpsCenterClient({
   const searchParams = useSearchParams();
   const {
     selectedId: selectedAttemptId,
-    setSelectedId: handleSelect,
+    setSelectedId: baseSetSelectedId,
     clearSelectedId: handleCloseDetails,
   } = useOpsSelectionParam();
+
+  const handleSelect = (id: string) => {
+    trackOpsEvent({ surface: 'verification', action: 'select', entityId: id });
+    baseSetSelectedId(id);
+  };
 
   const [requests, setRequests] = useState(initialData);
 
@@ -91,6 +96,7 @@ export function VerificationOpsCenterClient({
     });
 
     if (res.success) {
+      trackOpsEvent({ surface: 'verification', action: decision, entityId: attemptId });
       toast.success(t(`toasts.${decision}_success`));
       if (decision === 'needs_info') {
         setRequests(prev =>
