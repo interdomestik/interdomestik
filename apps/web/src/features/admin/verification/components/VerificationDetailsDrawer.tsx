@@ -1,12 +1,8 @@
 'use client';
 
-import { verifyCashAttemptAction } from '../actions/verification';
-import { type CashVerificationDetailsDTO } from '../server/verification.core';
 import {
-  Badge,
   Button,
   Label,
-  Separator,
   Sheet,
   SheetContent,
   SheetFooter,
@@ -15,10 +11,15 @@ import {
   Skeleton,
   Textarea,
 } from '@interdomestik/ui';
-import { Check, Clock, FileText, HelpCircle, User, X } from 'lucide-react';
+import { Check, HelpCircle, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { verifyCashAttemptAction } from '../actions/verification';
+import { type CashVerificationDetailsDTO } from '../server/types';
+import { VerificationDocuments } from './VerificationDocuments';
+import { VerificationSummary } from './VerificationSummary';
+import { VerificationTimeline } from './VerificationTimeline';
 
 interface VerificationDetailsDrawerProps {
   attemptId: string | null;
@@ -91,29 +92,6 @@ export function VerificationDetailsDrawer({
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'succeeded':
-        return (
-          <Badge className="bg-green-100 text-green-700 border-green-200">
-            {t('status.succeeded')}
-          </Badge>
-        );
-      case 'rejected':
-        return (
-          <Badge className="bg-red-100 text-red-700 border-red-200">{t('status.rejected')}</Badge>
-        );
-      case 'needs_info':
-        return (
-          <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-            {t('status.needs_info')}
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{t('status.pending')}</Badge>;
-    }
-  };
-
   return (
     <Sheet open={isOpen} onOpenChange={open => !open && onClose()}>
       <SheetContent className="sm:max-w-md md:max-w-lg flex flex-col h-full">
@@ -129,101 +107,9 @@ export function VerificationDetailsDrawer({
             </div>
           ) : data ? (
             <>
-              {/* Summary */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-lg">
-                      {data.firstName} {data.lastName}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">{data.email}</p>
-                  </div>
-                  {getStatusBadge(data.status)}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="p-3 bg-muted/50 rounded-md">
-                    <span className="text-muted-foreground block text-xs uppercase">
-                      {t('table.amount')}
-                    </span>
-                    <span className="font-medium text-lg">
-                      {(data.amount / 100).toLocaleString('de-DE', {
-                        style: 'currency',
-                        currency: data.currency,
-                      })}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-muted/50 rounded-md">
-                    <span className="text-muted-foreground block text-xs uppercase">
-                      {t('table.branch')}
-                    </span>
-                    <span className="font-medium">{data.branchName}</span>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Documents */}
-              <div className="space-y-3">
-                <h4 className="font-medium flex items-center gap-2">
-                  <FileText className="w-4 h-4" /> {t('drawer.documents')}
-                </h4>
-                {data.documents.length === 0 ? (
-                  <p className="text-sm text-muted-foreground italic">
-                    {t('labels.missing_proof')}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {data.documents.map(doc => (
-                      <div
-                        key={doc.id}
-                        className="flex items-center justify-between p-2 border rounded-md text-sm"
-                      >
-                        <span className="truncate max-w-[200px]" title={doc.name}>
-                          {doc.name}
-                        </span>
-                        <Button variant="ghost" size="sm" asChild className="h-7">
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                            {t('actions.view_proof')}
-                          </a>
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              {/* Timeline */}
-              <div className="space-y-3">
-                <h4 className="font-medium flex items-center gap-2">
-                  <Clock className="w-4 h-4" /> {t('drawer.timeline')}
-                </h4>
-                <div className="border-l-2 border-muted ml-2 space-y-6 pl-4 py-2">
-                  {data.timeline.map(event => (
-                    <div key={event.id} className="relative">
-                      <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-muted-foreground/30 ring-4 ring-background" />
-                      <p className="text-sm font-medium">{event.title}</p>
-                      {event.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{event.description}</p>
-                      )}
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        <span>{new Date(event.date).toLocaleString()}</span>
-                        {event.actorName && (
-                          <>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <User className="w-3 h-3" /> {event.actorName}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <VerificationSummary data={data} />
+              <VerificationDocuments documents={data.documents} />
+              <VerificationTimeline timeline={data.timeline} />
             </>
           ) : (
             <div className="text-center py-10 text-muted-foreground">Failed to load details</div>

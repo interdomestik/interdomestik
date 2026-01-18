@@ -5,7 +5,7 @@
       "subtitle": "Verifiko pagesat cash të mbledhura nga agjentët.",
       "approve": "Aprovo",
       "reject": "Refuzo",
-      "success": "Pagesa u verifikua",
+      "approve_success": "Pagesa u aprovua.",
       "tabs": {
         "queue": "Radha",
         "history": "Historiku"

@@ -90,14 +90,18 @@ export async function getBranchDashboardV2Data(
           },
         });
 
-        if (!branchResult) return null;
+        if (!branchResult) {
+          return null; // Return null if not found, allowing 404 handler to take over
+        }
 
         // If user is super_admin (cross-tenant), ensure we use the branch's tenantId
         if (scope.isCrossTenantScope) {
           tenantId = branchResult.tenantId;
         } else {
           // Verify branch belongs to user's tenant
-          if (branchResult.tenantId !== tenantId) throw new Error('Forbidden: Tenant Mismatch');
+          if (branchResult.tenantId !== tenantId) {
+            throw new Error('Forbidden: Tenant Mismatch');
+          }
         }
         const resolvedBranchId = branchResult.id;
 
