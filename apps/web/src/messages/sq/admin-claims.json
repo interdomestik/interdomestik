@@ -1,4 +1,7 @@
 {
+  "admin_claims": {
+    "claim": "Kërkesa"
+  },
   "admin": {
     "claims_page": {
       "title": "Qendra Operacionale",

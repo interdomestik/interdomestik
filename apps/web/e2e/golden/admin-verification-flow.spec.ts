@@ -88,7 +88,9 @@ test.describe('Admin Verification Flow (Golden)', () => {
         .where(eq(leadPaymentAttempts.id, needsInfoAttempt.id));
 
       await page.reload();
-      await expect(page.getByText(/Resubmitted|Ridorëzuar/i)).toBeVisible();
+      await expect(
+        page.getByTestId('ops-table').getByText(/Resubmitted|Ridorëzuar/i)
+      ).toBeVisible();
     }
 
     // 11. Test Search
@@ -106,7 +108,7 @@ test.describe('Admin Verification Flow (Golden)', () => {
     await expect(page.getByTestId('cash-verification-row').first()).toBeVisible();
 
     // 12. Test History Tab
-    const historyTab = page.getByRole('tab', { name: /History|Historiku/i });
+    const historyTab = page.getByRole('button', { name: /History|Historiku/i });
     await historyTab.click();
 
     // URL update
