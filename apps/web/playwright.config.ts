@@ -126,6 +126,7 @@ export default defineConfig({
       NODE_OPTIONS: '--dns-result-order=ipv4first',
       NEXT_PUBLIC_APP_URL: BASE_URL,
       BETTER_AUTH_URL: BASE_URL,
+      BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,${BASE_URL}`,
       INTERDOMESTIK_AUTOMATED: '1',
       PLAYWRIGHT: '1',
       // Disable Sentry noise in E2E (placeholder DSNs cause console errors that break tests).
