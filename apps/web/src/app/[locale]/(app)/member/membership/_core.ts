@@ -31,6 +31,16 @@ export async function getMembershipPageModelCore(args: {
   };
 }
 
+export async function getMemberSubscriptionsCore(userId: string) {
+  return db.query.subscriptions.findMany({
+    where: eq(subscriptions.userId, userId),
+    with: {
+      plan: true,
+    },
+    orderBy: (subscriptions, { desc }) => [desc(subscriptions.createdAt)],
+  });
+}
+
 export function computeDunningState(args: {
   subscription: SubscriptionDunningInput;
   now?: Date;

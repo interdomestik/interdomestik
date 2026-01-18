@@ -2,42 +2,45 @@ import { OpsDocument, OpsTimelineEvent } from '../types';
 import { toOpsBadgeVariant } from './status';
 import { toOpsTimelineTone } from './timeline';
 
-// Stub types for now until we have actual Claims DTOs imported
-type ClaimDocument = {
+// Types from features/claims/tracking/types.ts
+type ClaimTrackingDocument = {
   id: string;
-  fileName: string;
-  fileUrl: string;
-  uploadedAt: string;
+  name: string;
+  category: string;
+  createdAt: Date | string;
+  fileType: string;
+  fileSize: number;
+  url?: string; // Optional URL for display
 };
 
-type ClaimEvent = {
+type ClaimTimelineEvent = {
   id: string;
-  action: string;
-  note?: string;
-  createdAt: string;
-  performedBy?: string;
-  type?: string;
+  date: Date | string;
+  statusFrom: string | null;
+  statusTo: string;
+  labelKey: string;
+  note: string | null;
+  isPublic: boolean;
 };
 
 type ClaimStatus = string;
 
-export function toOpsDocuments(docs: ClaimDocument[]): OpsDocument[] {
+export function toOpsDocuments(docs: ClaimTrackingDocument[]): OpsDocument[] {
   return docs.map(d => ({
     id: d.id,
-    name: d.fileName,
-    url: d.fileUrl,
-    uploadedAt: d.uploadedAt,
+    name: d.name,
+    url: d.url || `/api/documents/${d.id}/download?disposition=inline`, // Fallback or standard route
+    uploadedAt: d.createdAt,
   }));
 }
 
-export function toOpsTimelineEvents(events: ClaimEvent[]): OpsTimelineEvent[] {
+export function toOpsTimelineEvents(events: ClaimTimelineEvent[]): OpsTimelineEvent[] {
   return events.map(e => ({
     id: e.id,
-    title: e.action,
-    description: e.note,
-    date: new Date(e.createdAt).toLocaleString(),
-    actorName: e.performedBy,
-    tone: toOpsTimelineTone(e.type || 'neutral'),
+    title: e.labelKey, // In real app, translate this using t(e.labelKey) before passing or handle in component
+    description: e.note || undefined,
+    date: new Date(e.date).toLocaleString(),
+    tone: toOpsTimelineTone('neutral'), // Map status changes to tone if needed
   }));
 }
 
