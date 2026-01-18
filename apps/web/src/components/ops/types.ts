@@ -22,6 +22,8 @@ export type OpsAction = {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  disabledReason?: string;
+  visible?: boolean;
   variant?: 'default' | 'outline' | 'destructive' | 'ghost';
   icon?: ReactNode;
   testId?: string;

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { OpsActionBar, OpsDrawer, OpsQueryState } from '@/components/ops';
+import { getVerificationActions } from '@/components/ops/adapters/verification';
 import { verifyCashAttemptAction } from '../actions/verification';
 import { type CashVerificationDetailsDTO } from '../server/types';
 import { VerificationDocuments } from './VerificationDocuments';
@@ -89,6 +90,25 @@ export function VerificationDetailsDrawer({
     }
   };
 
+  const actions = data
+    ? getVerificationActions({
+        status: data.status,
+        onApprove: () => executeVerify('approve'),
+        onReject: () => initiateAction('reject'),
+        onNeedsInfo: () => initiateAction('needs_info'),
+        labels: {
+          approve: t('actions.approve'),
+          reject: t('actions.reject'),
+          needsInfo: t('actions.needs_info'),
+        },
+        icons: {
+          approve: <Check className="w-4 h-4 mr-2" />,
+          reject: <X className="w-4 h-4 mr-2" />,
+          needsInfo: <HelpCircle className="w-4 h-4 mr-2" />,
+        },
+      })
+    : null;
+
   return (
     <OpsDrawer open={isOpen} onOpenChange={open => !open && onClose()} title={t('drawer.title')}>
       <OpsQueryState
@@ -103,9 +123,9 @@ export function VerificationDetailsDrawer({
             <VerificationDocuments documents={data.documents} />
             <VerificationTimeline timeline={data.timeline} />
 
-            {data.status !== 'succeeded' && data.status !== 'rejected' && (
-              <OpsActionBar>
-                {showNoteInput ? (
+            {actions && (
+              <OpsActionBar primary={actions.primary} secondary={actions.secondary}>
+                {showNoteInput && (
                   <div className="w-full space-y-3">
                     <Label>{t('labels.note')}</Label>
                     <Textarea
@@ -124,30 +144,6 @@ export function VerificationDetailsDrawer({
                         {t('actions.submit')}
                       </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex gap-2 w-full justify-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => initiateAction('needs_info')}
-                      data-testid="ops-action-needs-info"
-                    >
-                      <HelpCircle className="w-4 h-4 mr-2" /> {t('actions.needs_info')}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => initiateAction('reject')}
-                      data-testid="ops-action-reject"
-                    >
-                      <X className="w-4 h-4 mr-2" /> {t('actions.reject')}
-                    </Button>
-                    <Button
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => executeVerify('approve')}
-                      data-testid="ops-action-approve"
-                    >
-                      <Check className="w-4 h-4 mr-2" /> {t('actions.approve')}
-                    </Button>
                   </div>
                 )}
               </OpsActionBar>

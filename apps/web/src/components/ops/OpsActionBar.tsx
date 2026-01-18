@@ -29,23 +29,27 @@ export function OpsActionBar({
         children
       ) : (
         <div className={`flex gap-2 w-full ${justify}`}>
-          {secondary.map(action => (
-            <Button
-              key={action.id ?? action.label}
-              variant={action.variant ?? 'outline'}
-              onClick={action.onClick}
-              disabled={action.disabled}
-              data-testid={action.testId}
-            >
-              {action.icon}
-              {action.label}
-            </Button>
-          ))}
-          {primary && (
+          {secondary
+            .filter(a => a.visible !== false)
+            .map(action => (
+              <Button
+                key={action.id ?? action.label}
+                variant={action.variant ?? 'outline'}
+                onClick={action.onClick}
+                disabled={action.disabled}
+                title={action.disabledReason}
+                data-testid={action.testId}
+              >
+                {action.icon}
+                {action.label}
+              </Button>
+            ))}
+          {primary && primary.visible !== false && (
             <Button
               variant={primary.variant ?? 'default'}
               onClick={primary.onClick}
               disabled={primary.disabled}
+              title={primary.disabledReason}
               data-testid={primary.testId}
             >
               {primary.icon}
