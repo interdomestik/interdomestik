@@ -1,9 +1,11 @@
 'use client';
 
-import { getLeadActions } from '@/components/ops/adapters/leads';
 import { OpsActionBar } from '@/components/ops/OpsActionBar';
 import { OpsDrawer } from '@/components/ops/OpsDrawer';
+import { OpsStatusBadge } from '@/components/ops/OpsStatusBadge';
 import { OpsTable } from '@/components/ops/OpsTable';
+import { OpsTimeline } from '@/components/ops/OpsTimeline';
+import { getLeadActions, toOpsStatus, toOpsTimelineEvents } from '@/components/ops/adapters/leads';
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { useEffect, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -78,9 +80,7 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
       lead.firstName,
       lead.lastName,
       lead.email,
-      <span key="status" className="capitalize">
-        {lead.status}
-      </span>,
+      <OpsStatusBadge key="status" {...toOpsStatus(lead.status)} />,
       <span key="source" className="capitalize">
         {lead.source}
       </span>,
@@ -114,7 +114,7 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
               </div>
               <div>
                 <span className="block text-muted-foreground">Status</span>
-                <span className="font-medium capitalize">{selectedLead.status}</span>
+                <OpsStatusBadge {...toOpsStatus(selectedLead.status)} />
               </div>
               <div>
                 <span className="block text-muted-foreground">Source</span>
@@ -126,6 +126,14 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
               <OpsActionBar
                 primary={primary ? mapAction(primary) : undefined}
                 secondary={secondary.map(mapAction)}
+              />
+            </div>
+
+            <div className="border-t pt-4">
+              <OpsTimeline
+                title="Timeline"
+                events={toOpsTimelineEvents(selectedLead)}
+                emptyLabel="No events yet"
               />
             </div>
           </div>
