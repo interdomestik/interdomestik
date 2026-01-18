@@ -189,5 +189,28 @@ export async function seedAgentPack(config: SeedConfig) {
       .onConflictDoNothing();
   }
 
+  // 6. Guarantee Golden Agent Context (Fix-up)
+  // Ensure agent.ks.a1 (E2E User) is firmly rooted in a branch
+  const goldenAgentId = 'golden_ks_agent_a1'; // Hardcoded or imported
+  const targetBranchId = 'ks_branch_a'; // Match Golden Seed definition
+
+  // 6a. Ensure Branch Exists (Safety Net)
+  // If seed-golden ran, this exists. If not, this prevents FK error.
+  const { branches } = await import('../schema');
+  await db
+    .insert(branches)
+    .values({
+      id: targetBranchId,
+      name: 'KS Branch A (Agent Pack Guaranteed)',
+      tenantId: TENANT_ID,
+      slug: 'ks-branch-a-guaranteed',
+      code: 'KS-A-FIX',
+    })
+    .onConflictDoNothing();
+
+  // 6b. Force Assignment
+  const { eq } = await import('drizzle-orm');
+  await db.update(ctx.user).set({ branchId: targetBranchId }).where(eq(ctx.user.id, goldenAgentId));
+
   console.log('✅ Agent Pack Applied!');
 }

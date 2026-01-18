@@ -34,7 +34,16 @@ export const memberLeads = pgTable(
 
     // State Machine
     status: text('status', {
-      enum: ['new', 'payment_pending', 'converted', 'disqualified', 'expired'],
+      enum: [
+        'new',
+        'contacted',
+        'payment_pending',
+        'paid',
+        'converted',
+        'lost', // Generic for disqualified/expired/rejected
+        'disqualified', // Keep for backward compat if needed
+        'expired',
+      ],
     })
       .notNull()
       .default('new'),
