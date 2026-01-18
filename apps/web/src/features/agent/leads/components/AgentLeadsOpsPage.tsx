@@ -2,6 +2,7 @@
 
 import { OpsActionBar } from '@/components/ops/OpsActionBar';
 import { OpsDrawer } from '@/components/ops/OpsDrawer';
+import { OpsQueryState } from '@/components/ops/OpsQueryState';
 import { OpsStatusBadge } from '@/components/ops/OpsStatusBadge';
 import { OpsTable } from '@/components/ops/OpsTable';
 import { OpsTimeline } from '@/components/ops/OpsTimeline';
@@ -91,7 +92,13 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
   return (
     <div className="h-full flex flex-col">
       <div className="flex-1 overflow-hidden p-4">
-        <OpsTable columns={columns} rows={tableRows} emptyLabel="No leads found" />
+        <OpsQueryState
+          isEmpty={leads.length === 0}
+          emptyTitle="No leads found"
+          emptySubtitle="Get started by creating a new lead or waiting for incoming leads."
+        >
+          <OpsTable columns={columns} rows={tableRows} emptyLabel="No leads found" />
+        </OpsQueryState>
       </div>
 
       <OpsDrawer

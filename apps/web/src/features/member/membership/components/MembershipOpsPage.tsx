@@ -4,6 +4,7 @@ import {
   OpsActionBar,
   OpsDocumentsPanel,
   OpsDrawer,
+  OpsQueryState,
   OpsStatusBadge,
   OpsTable,
   OpsTimeline,
@@ -84,13 +85,20 @@ export function MembershipOpsPage({
             <CardTitle>{t('page.title')}</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 min-h-0 p-0">
-            <OpsTable
-              columns={columns}
-              rows={rows}
-              loading={false}
-              emptyLabel={t('plan.no_membership')}
+            <OpsQueryState
+              isEmpty={rows.length === 0}
+              emptyTitle={t('plan.no_membership')}
               emptySubtitle={t('plan.description')}
-            />
+              className="h-full"
+            >
+              <OpsTable
+                columns={columns}
+                rows={rows}
+                loading={false}
+                emptyLabel={t('plan.no_membership')}
+                emptySubtitle={t('plan.description')}
+              />
+            </OpsQueryState>
           </CardContent>
         </Card>
       </div>
