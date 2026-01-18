@@ -13,6 +13,7 @@ import { RefreshCw } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { OpsEmptyState } from './OpsEmptyState';
 import { OpsLoadingState } from './OpsLoadingState';
+import { OPS_TEST_IDS } from './testids';
 
 export type OpsTableColumn = {
   key: string;
@@ -62,7 +63,7 @@ export function OpsTable({
     .join(' ');
 
   return (
-    <div className={containerClasses} data-testid="ops-table">
+    <div className={containerClasses} data-testid={OPS_TEST_IDS.TABLE.ROOT}>
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent border-b border-white/5">
@@ -78,7 +79,7 @@ export function OpsTable({
           {loading ? (
             <TableRow>
               <TableCell colSpan={colCount} className="p-0 border-none">
-                <OpsLoadingState label={loadingLabel} testId="ops-table-loading" />
+                <OpsLoadingState label={loadingLabel} testId={OPS_TEST_IDS.TABLE.LOADING} />
               </TableCell>
             </TableRow>
           ) : error ? (
@@ -100,7 +101,7 @@ export function OpsTable({
                 <OpsEmptyState
                   title={emptyLabel}
                   subtitle={emptySubtitle}
-                  testId="ops-table-empty"
+                  testId={OPS_TEST_IDS.TABLE.EMPTY}
                 />
               </TableCell>
             </TableRow>
@@ -129,7 +130,7 @@ export function OpsTable({
                   onClick={handleClick}
                   onKeyDown={handleKeyDown}
                   tabIndex={handleClick ? 0 : undefined}
-                  data-testid={row.testId ?? rowTestId ?? 'ops-table-row'}
+                  data-testid={row.testId ?? rowTestId ?? OPS_TEST_IDS.TABLE.ROW}
                 >
                   {row.cells.map((cell, index) => (
                     <TableCell key={`${row.id}-${index}`}>{cell}</TableCell>
@@ -137,7 +138,7 @@ export function OpsTable({
                   {actionsHeader && (
                     <TableCell
                       className="text-right"
-                      data-testid="ops-table-actions"
+                      data-testid={OPS_TEST_IDS.TABLE.ACTIONS}
                       onClick={event => event.stopPropagation()}
                     >
                       {row.actions}

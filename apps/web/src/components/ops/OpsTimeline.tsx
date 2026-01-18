@@ -2,6 +2,7 @@
 
 import { Clock, User } from 'lucide-react';
 import { OpsEmptyState } from './OpsEmptyState';
+import { OPS_TEST_IDS } from './testids';
 import type { OpsTimelineEvent } from './types';
 
 interface OpsTimelineProps {
@@ -20,7 +21,7 @@ export function OpsTimeline({
   formatTimestamp,
 }: OpsTimelineProps) {
   return (
-    <div className="space-y-3" data-testid="ops-timeline">
+    <div className="space-y-3" data-testid={OPS_TEST_IDS.TIMELINE.ROOT}>
       <h4 className="font-medium flex items-center gap-2">
         <Clock className="w-4 h-4" /> {title}
       </h4>
@@ -29,12 +30,12 @@ export function OpsTimeline({
           title={emptyLabel}
           subtitle={emptySubtitle}
           className="py-6 bg-muted/10 rounded-lg border border-dashed"
-          testId="ops-timeline-empty"
+          testId={OPS_TEST_IDS.TIMELINE.EMPTY}
         />
       ) : (
         <div className="border-l-2 border-muted ml-2 space-y-6 pl-4 py-2">
           {events.map(event => (
-            <div key={event.id} className="relative" data-testid="ops-timeline-item">
+            <div key={event.id} className="relative" data-testid={OPS_TEST_IDS.TIMELINE.ITEM}>
               <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-muted-foreground/30 ring-4 ring-background" />
               <p className="text-sm font-medium">{event.title}</p>
               {event.description && (

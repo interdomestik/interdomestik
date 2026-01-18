@@ -2,6 +2,7 @@
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@interdomestik/ui';
 import type { ReactNode } from 'react';
+import { OPS_TEST_IDS } from './testids';
 
 interface OpsDrawerProps {
   open: boolean;
@@ -26,7 +27,7 @@ export function OpsDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         className={contentClassName ?? 'sm:max-w-md md:max-w-lg flex flex-col h-full'}
-        data-testid={testId ?? 'ops-drawer'}
+        data-testid={testId ?? OPS_TEST_IDS.DRAWER}
       >
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>

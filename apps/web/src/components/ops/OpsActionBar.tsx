@@ -2,6 +2,7 @@
 
 import { Button } from '@interdomestik/ui';
 import type { ReactNode } from 'react';
+import { OPS_TEST_IDS } from './testids';
 import type { OpsAction } from './types';
 
 interface OpsActionBarProps {
@@ -23,7 +24,7 @@ export function OpsActionBar({
   const justify = align === 'start' ? 'justify-start' : 'justify-end';
 
   return (
-    <div className={classes} data-testid="ops-action-bar">
+    <div className={classes} data-testid={OPS_TEST_IDS.ACTION_BAR}>
       {children ? (
         children
       ) : (

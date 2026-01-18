@@ -3,6 +3,7 @@
 import { Button, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { OPS_TEST_IDS } from './testids';
 
 export type OpsFilterTab = {
   id: string;
@@ -42,7 +43,7 @@ export function OpsFiltersBar({
     .join(' ');
 
   return (
-    <div className={containerClasses} data-testid="ops-filters-bar">
+    <div className={containerClasses} data-testid={OPS_TEST_IDS.FILTERS.BAR}>
       <div className="flex gap-2">
         {tabs.map(tab => (
           <Button
@@ -51,7 +52,7 @@ export function OpsFiltersBar({
             size="sm"
             onClick={() => onTabChange(tab.id)}
             className="gap-2"
-            data-testid={tab.testId ?? `ops-tab-${tab.id}`}
+            data-testid={tab.testId ?? OPS_TEST_IDS.FILTERS.TAB(tab.id)}
           >
             {tab.icon}
             {tab.label}
@@ -67,7 +68,7 @@ export function OpsFiltersBar({
             value={searchQuery}
             onChange={event => onSearchChange(event.target.value)}
             className="pl-9 bg-background/50"
-            data-testid={searchInputTestId ?? 'ops-search-input'}
+            data-testid={searchInputTestId ?? OPS_TEST_IDS.FILTERS.SEARCH}
             aria-label={searchPlaceholder}
           />
         </div>
