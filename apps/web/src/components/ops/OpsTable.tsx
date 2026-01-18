@@ -1,17 +1,26 @@
 'use client';
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@interdomestik/ui';
+import {
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@interdomestik/ui';
+import { RefreshCw } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { OpsEmptyState } from './OpsEmptyState';
 import { OpsLoadingState } from './OpsLoadingState';
 
-type OpsTableColumn = {
+export type OpsTableColumn = {
   key: string;
   header: ReactNode;
   className?: string;
 };
 
-type OpsTableRow = {
+export type OpsTableRow = {
   id: string;
   cells: ReactNode[];
   actions?: ReactNode;
@@ -20,13 +29,15 @@ type OpsTableRow = {
   testId?: string;
 };
 
-interface OpsTableProps {
+export interface OpsTableProps {
   columns: OpsTableColumn[];
   rows: OpsTableRow[];
   emptyLabel: string;
   emptySubtitle?: string;
   loading?: boolean;
   loadingLabel?: string;
+  error?: boolean;
+  onRetry?: () => void;
   actionsHeader?: ReactNode;
   rowTestId?: string;
   containerClassName?: string;
@@ -39,6 +50,8 @@ export function OpsTable({
   emptySubtitle,
   loading,
   loadingLabel,
+  error,
+  onRetry,
   actionsHeader,
   rowTestId,
   containerClassName,
@@ -66,6 +79,19 @@ export function OpsTable({
             <TableRow>
               <TableCell colSpan={colCount} className="p-0 border-none">
                 <OpsLoadingState label={loadingLabel} testId="ops-table-loading" />
+              </TableCell>
+            </TableRow>
+          ) : error ? (
+            <TableRow>
+              <TableCell colSpan={colCount} className="h-64 text-center border-none">
+                <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <span>Failed to load data</span>
+                  {onRetry && (
+                    <Button variant="outline" size="sm" onClick={onRetry} className="mt-2">
+                      <RefreshCw className="mr-2 h-4 w-4" /> Try Again
+                    </Button>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ) : rows.length === 0 ? (

@@ -10,9 +10,10 @@ export function toOpsBadgeVariant(input: string | undefined | null): OpsStatusVa
   const status = input.toLowerCase();
 
   // Verification statuses
-  if (['approved', 'verified', 'active', 'completed', 'paid'].includes(status)) return 'success';
+  if (['approved', 'verified', 'active', 'completed', 'paid', 'succeeded'].includes(status))
+    return 'success';
   if (['pending', 'in_progress', 'draft', 'started'].includes(status)) return 'info';
-  if (['waiting', 'under_review', 'manual_check'].includes(status)) return 'warning';
+  if (['waiting', 'under_review', 'manual_check', 'needs_info'].includes(status)) return 'warning';
   if (['rejected', 'failed', 'cancelled', 'error', 'expired'].includes(status)) return 'danger';
 
   // Claims specific
@@ -22,6 +23,12 @@ export function toOpsBadgeVariant(input: string | undefined | null): OpsStatusVa
   // Membership specific
   if (status === 'past_due') return 'warning';
   if (status === 'unpaid') return 'danger';
+
+  // Leads specific
+  if (['new', 'contacted'].includes(status)) return 'info';
+  if (['payment_pending'].includes(status)) return 'warning';
+  if (['converted'].includes(status)) return 'success';
+  if (['lost', 'disqualified'].includes(status)) return 'neutral';
 
   return 'neutral';
 }
