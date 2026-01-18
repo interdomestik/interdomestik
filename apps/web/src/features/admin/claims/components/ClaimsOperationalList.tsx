@@ -4,7 +4,7 @@ import { Button } from '@interdomestik/ui';
 import { Eye } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { OpsTable } from '@/components/ops';
+import { OpsQueryState, OpsTable } from '@/components/ops';
 import { Link, useRouter } from '@/i18n/routing';
 
 import type { ClaimOperationalRow } from '../types';
@@ -15,12 +15,14 @@ import { StateSpine } from './StateSpine';
 
 interface ClaimsOperationalListProps {
   claims: ClaimOperationalRow[];
+  loading?: boolean;
+  error?: boolean;
 }
 
 /**
  * ClaimsOperationalList — Renders list of OperationalCards (Phase 2.5)
  */
-export function ClaimsOperationalList({ claims }: ClaimsOperationalListProps) {
+export function ClaimsOperationalList({ claims, loading, error }: ClaimsOperationalListProps) {
   const router = useRouter();
   const tTable = useTranslations('admin.claims_page.table');
   const tCard = useTranslations('admin.claims_page.operational_card');
@@ -78,12 +80,19 @@ export function ClaimsOperationalList({ claims }: ClaimsOperationalListProps) {
   }));
 
   return (
-    <OpsTable
-      columns={columns}
-      rows={rows}
-      emptyLabel={tTable('empty_state')}
-      actionsHeader={tTable('headers.actions')}
-      rowTestId="claim-operational-card"
-    />
+    <OpsQueryState
+      loading={loading}
+      error={error}
+      isEmpty={claims.length === 0}
+      emptyTitle={tTable('empty_state')}
+    >
+      <OpsTable
+        columns={columns}
+        rows={rows}
+        emptyLabel={tTable('empty_state')}
+        actionsHeader={tTable('headers.actions')}
+        rowTestId="claim-operational-card"
+      />
+    </OpsQueryState>
   );
 }
