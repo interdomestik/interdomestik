@@ -2,8 +2,8 @@
 
 import { OpsDrawer } from '@/components/ops/OpsDrawer';
 import { OpsTable } from '@/components/ops/OpsTable';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useTransition } from 'react';
+import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
+import { useEffect, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
 
@@ -18,24 +18,24 @@ const columns = [
 ];
 
 export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
+  const { selectedId, setSelectedId, clearSelectedId } = useOpsSelectionParam();
   const [isPending, startTransition] = useTransition();
 
-  const selectedLeadId = searchParams.get('leadId');
-  const selectedLead = leads.find(l => l.id === selectedLeadId);
+  const selectedLead = leads.find(l => l.id === selectedId);
+
+  // Fallback: If invalid selection (and leads exist), select first
+  useEffect(() => {
+    if (leads.length > 0 && (!selectedId || !leads.find(l => l.id === selectedId))) {
+      setSelectedId(leads[0].id);
+    }
+  }, [selectedId, leads, setSelectedId]);
 
   const handleRowClick = (leadId: string) => {
-    const params = new URLSearchParams(searchParams);
-    params.set('leadId', leadId);
-    router.push(`${pathname}?${params.toString()}`);
+    setSelectedId(leadId === selectedId ? null : leadId);
   };
 
   const handleCloseDrawer = () => {
-    const params = new URLSearchParams(searchParams);
-    params.delete('leadId');
-    router.push(`${pathname}?${params.toString()}`);
+    clearSelectedId();
   };
 
   const handleStatusChange = (status: string) => {
@@ -86,7 +86,7 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
       </div>
 
       <OpsDrawer
-        open={!!selectedLeadId}
+        open={!!selectedId}
         onOpenChange={open => !open && handleCloseDrawer()}
         title={selectedLead ? `${selectedLead.firstName} ${selectedLead.lastName}` : 'Lead Details'}
       >
