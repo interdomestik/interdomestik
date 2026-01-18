@@ -20,3 +20,15 @@ export function OpsStatusBadge({ label, variant = 'neutral', className }: OpsSta
   const classes = [VARIANTS[variant], className].filter(Boolean).join(' ');
   return <Badge className={classes}>{label}</Badge>;
 }
+
+export function toOpsBadgeVariant(
+  status: string | null | undefined
+): OpsStatusBadgeProps['variant'] {
+  if (!status) return 'neutral';
+  const s = status.toLowerCase();
+  if (['approved', 'succeeded', 'paid', 'active'].includes(s)) return 'success';
+  if (['rejected', 'failed', 'cancelled', 'banned'].includes(s)) return 'danger';
+  if (['pending', 'submitted', 'reviewing'].includes(s)) return 'warning';
+  if (['needs_info', 'info'].includes(s)) return 'info';
+  return 'neutral';
+}

@@ -66,3 +66,13 @@ export function OpsDocumentsPanel({
     </div>
   );
 }
+
+export function toOpsDocuments(docs: any[]): OpsDocument[] {
+  if (!Array.isArray(docs)) return [];
+  return docs.map(d => ({
+    id: d.id,
+    name: d.name || d.fileName || 'Document',
+    url: d.url || d.path,
+    uploadedAt: d.createdAt || d.uploadedAt,
+  }));
+}

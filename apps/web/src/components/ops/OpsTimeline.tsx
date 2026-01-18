@@ -63,3 +63,14 @@ export function OpsTimeline({
     </div>
   );
 }
+
+export function toOpsTimelineEvents(events: any[]): OpsTimelineEvent[] {
+  if (!Array.isArray(events)) return [];
+  return events.map(e => ({
+    id: e.id,
+    title: e.title || e.action || 'Event',
+    description: e.description || e.note,
+    date: e.createdAt || e.date,
+    actorName: e.actorName || e.performedBy,
+  }));
+}
