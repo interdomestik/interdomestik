@@ -12,6 +12,7 @@ import type { ClaimTrackingDetailDto } from '@/features/claims/tracking/types';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 
 interface MemberClaimDetailOpsPageProps {
   claim: ClaimTrackingDetailDto;
@@ -85,9 +86,14 @@ export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProp
             emptyLabel="No documents uploaded"
             viewLabel="View"
             headerActions={
-              <Button size="sm" variant="outline" onClick={() => console.log('Upload clicked')}>
-                <Upload className="w-4 h-4 mr-2" /> Upload
-              </Button>
+              <ClaimEvidenceUploadDialog
+                claimId={claim.id}
+                trigger={
+                  <Button size="sm" variant="outline">
+                    <Upload className="w-4 h-4 mr-2" /> Upload
+                  </Button>
+                }
+              />
             }
           />
         </div>
