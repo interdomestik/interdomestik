@@ -21,8 +21,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     tenantId: session.user.tenantId,
     userId: session.user.id,
     userRole: session.user.role as any,
-    scope: { branchId: session.user.branchId || undefined },
+    scope: {
+      branchId: session.user.branchId || null,
+      actorAgentId: null,
+      attributedAgentId: null,
+    },
     session,
+    requestHeaders: request.headers,
   };
 
   const details = await getVerificationRequestDetails(ctx, id);

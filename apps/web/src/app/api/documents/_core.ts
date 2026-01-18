@@ -87,7 +87,7 @@ export async function getDocumentAccessCore(args: {
         error: 'Forbidden',
         audit: {
           action: 'document.forbidden',
-          entityType: 'document',
+          entityType: 'claim_document',
           entityId: documentId,
           metadata: {
             bucket: 'claim-evidence',
@@ -114,7 +114,7 @@ export async function getDocumentAccessCore(args: {
       },
       audit: {
         action: finalDisposition === 'inline' ? 'document.view' : 'document.download',
-        entityType: 'document',
+        entityType: 'claim_document',
         entityId: documentId,
         actorRole: userRole ?? null,
         metadata: {

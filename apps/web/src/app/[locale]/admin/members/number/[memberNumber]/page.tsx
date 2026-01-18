@@ -7,7 +7,7 @@ import { notFound, redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 // Roles allowed to access this resolver
-const ALLOWED_ROLES = ['staff', 'branch_manager', 'tenant_admin'];
+const ALLOWED_ROLES = ['tenant_admin', 'super_admin'];
 
 interface ResolverPageProps {
   params: Promise<{
@@ -25,10 +25,15 @@ interface ResolverPageProps {
 export default async function MemberNumberResolverPage({ params }: ResolverPageProps) {
   const { locale, memberNumber } = await params;
 
-  // 1. Auth Guard (Staff/Admin only)
+  // 1. Auth Guard (Tenant/Super Admin only)
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session || !ALLOWED_ROLES.includes(session.user.role)) {
     notFound(); // Return 404 for unauthorized (security by obscurity)
+  }
+
+  const tenantId = session.user.tenantId;
+  if (!tenantId) {
+    notFound();
   }
 
   // 2. Validate Format (Fast fail)
@@ -39,7 +44,7 @@ export default async function MemberNumberResolverPage({ params }: ResolverPageP
 
   // 3. Global Lookup
   // Member Number is unique (via Partial Index), so we expect at most one result.
-  const foundUser = await findMemberByNumber(memberNumber);
+  const foundUser = await findMemberByNumber(memberNumber, tenantId);
 
   if (!foundUser) {
     notFound();
