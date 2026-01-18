@@ -20,7 +20,7 @@ export async function verifyCashAttemptCore(
     throw new Error('A note is required for this decision.');
   }
 
-  return await db.transaction(async tx => {
+  const txResult = await db.transaction(async tx => {
     // A. Fetch
     const [result] = await tx
       .select({
@@ -45,9 +45,9 @@ export async function verifyCashAttemptCore(
     // C. Validation
     if (attempt.status !== 'pending' && attempt.status !== 'needs_info') {
       if (decision === 'approve' && attempt.status === 'succeeded')
-        return { success: true, message: 'Already approved' };
+        return { success: true, message: 'Already approved', leadId: null, decision };
       if (decision === 'reject' && attempt.status === 'rejected')
-        return { success: true, message: 'Already rejected' };
+        return { success: true, message: 'Already rejected', leadId: null, decision };
 
       throw new Error(`Attempt is already processed as ${attempt.status}`);
     }
@@ -102,7 +102,7 @@ export async function verifyCashAttemptCore(
       });
     }
 
-    // H. Lead Update
+    // H. Lead Status Update on Approval
     if (decision === 'approve') {
       await tx
         .update(memberLeads)
@@ -118,6 +118,28 @@ export async function verifyCashAttemptCore(
         );
     }
 
-    return { success: true, status: newStatus };
+    return { success: true, status: newStatus, leadId: attempt.leadId, decision };
   });
+
+  // I. Create Member User (outside tx for better retry semantics)
+  if (txResult.decision === 'approve' && txResult.leadId) {
+    try {
+      const { convertLeadToMember } = await import('@interdomestik/domain-leads/convert');
+      const conversionResult = await convertLeadToMember({ tenantId }, { leadId: txResult.leadId });
+      if (conversionResult) {
+        return {
+          success: true,
+          status: 'succeeded' as const,
+          memberNumber: conversionResult.memberNumber,
+          userId: conversionResult.userId,
+        };
+      }
+    } catch (err) {
+      console.error('Lead conversion failed:', err);
+      // Payment is verified, but conversion failed - log for manual intervention
+      // Don't fail the overall verification
+    }
+  }
+
+  return txResult;
 }
