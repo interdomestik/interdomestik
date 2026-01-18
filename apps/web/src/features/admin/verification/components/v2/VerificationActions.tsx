@@ -20,7 +20,7 @@ export function VerificationActions({
   const t = useTranslations('admin.leads.actions');
 
   return (
-    <div className="flex justify-end items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex justify-end items-center gap-2">
       <Button
         variant="ghost"
         size="icon"
