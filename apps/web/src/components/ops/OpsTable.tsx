@@ -1,7 +1,9 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@interdomestik/ui';
+import type { ReactNode } from 'react';
+import { OpsEmptyState } from './OpsEmptyState';
+import { OpsLoadingState } from './OpsLoadingState';
 
 type OpsTableColumn = {
   key: string;
@@ -22,7 +24,9 @@ interface OpsTableProps {
   columns: OpsTableColumn[];
   rows: OpsTableRow[];
   emptyLabel: string;
+  emptySubtitle?: string;
   loading?: boolean;
+  loadingLabel?: string;
   actionsHeader?: ReactNode;
   rowTestId?: string;
   containerClassName?: string;
@@ -32,7 +36,9 @@ export function OpsTable({
   columns,
   rows,
   emptyLabel,
+  emptySubtitle,
   loading,
+  loadingLabel,
   actionsHeader,
   rowTestId,
   containerClassName,
@@ -58,40 +64,45 @@ export function OpsTable({
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell
-                colSpan={colCount}
-                className="text-center py-12 text-muted-foreground"
-                data-testid="ops-table-loading"
-              >
-                Loading...
+              <TableCell colSpan={colCount} className="p-0 border-none">
+                <OpsLoadingState label={loadingLabel} testId="ops-table-loading" />
               </TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow>
-              <TableCell
-                colSpan={colCount}
-                className="text-center py-12 text-muted-foreground"
-                data-testid="ops-table-empty"
-              >
-                {emptyLabel}
+              <TableCell colSpan={colCount} className="p-0 border-none">
+                <OpsEmptyState
+                  title={emptyLabel}
+                  subtitle={emptySubtitle}
+                  testId="ops-table-empty"
+                />
               </TableCell>
             </TableRow>
           ) : (
             rows.map(row => {
               const handleClick = row.onClick;
               const rowClasses = [
-                'group transition-colors',
+                'group transition-colors outline-none focus-within:bg-muted/40 focus-within:ring-1 focus-within:ring-primary/20',
                 handleClick ? 'cursor-pointer hover:bg-muted/30' : 'hover:bg-muted/30',
                 row.className,
               ]
                 .filter(Boolean)
                 .join(' ');
 
+              const handleKeyDown = (e: React.KeyboardEvent) => {
+                if (handleClick && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  handleClick();
+                }
+              };
+
               return (
                 <TableRow
                   key={row.id}
                   className={rowClasses}
                   onClick={handleClick}
+                  onKeyDown={handleKeyDown}
+                  tabIndex={handleClick ? 0 : undefined}
                   data-testid={row.testId ?? rowTestId ?? 'ops-table-row'}
                 >
                   {row.cells.map((cell, index) => (
