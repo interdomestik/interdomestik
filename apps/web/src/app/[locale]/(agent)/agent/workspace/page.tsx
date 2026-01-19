@@ -31,9 +31,9 @@ export default async function AgentWorkspacePage() {
             <p className="text-xs text-muted-foreground mb-4">
               Advanced filtering, bulk actions, and exports.
             </p>
-            <Button disabled variant="secondary" className="w-full">
-              Coming Soon
-            </Button>
+            <Link href="/agent/workspace/leads">
+              <Button className="w-full">Open Leads</Button>
+            </Link>
           </CardContent>
         </Card>
 
