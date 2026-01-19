@@ -42,7 +42,10 @@ test.describe('Admin Verification Queue (Cash)', () => {
     } else {
       // Fallback: Verify Empty State
       await expect(
-        page.getByText(/No pending cash verification/i).or(page.getByText(/Nuk u gjetën/i))
+        page
+          .getByText(/No pending cash verification/i)
+          .or(page.getByText(/Nuk u gjetën/i))
+          .or(page.getByText(/Нема барања за верификација/i))
       ).toBeVisible();
       console.log('⚠️ No pending cash requests found in seed data. Skipped approval action.');
     }
