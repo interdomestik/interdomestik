@@ -101,6 +101,7 @@ export function MessagingPanel({
         <MessageInput
           claimId={claimId}
           allowInternal={allowInternal}
+          isAgent={isAgent}
           onMessageSent={handleMessageSent}
         />
       </CardContent>

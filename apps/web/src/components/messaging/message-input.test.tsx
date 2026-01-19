@@ -50,7 +50,7 @@ describe('MessageInput', () => {
   });
 
   it('renders internal note toggle for agents', () => {
-    render(<MessageInput claimId="claim-1" isAgent />);
+    render(<MessageInput claimId="claim-1" allowInternal={true} />);
 
     expect(screen.getByTestId('internal-note-toggle')).toBeInTheDocument();
     expect(screen.getByText('Internal note (only visible to staff)')).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe('MessageInput', () => {
   it('sends internal note when toggle is checked', async () => {
     mockSendMessage.mockResolvedValue({ success: true });
 
-    render(<MessageInput claimId="claim-1" isAgent />);
+    render(<MessageInput claimId="claim-1" allowInternal={true} />);
 
     const input = screen.getByTestId('message-input');
     fireEvent.change(input, { target: { value: 'Internal note content' } });

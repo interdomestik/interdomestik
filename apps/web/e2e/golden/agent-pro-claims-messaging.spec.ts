@@ -30,6 +30,13 @@ test.describe('Agent Pro Claims Messaging (Golden)', () => {
     // Verify internal note toggle is NOT visible for agent
     await expect(messagingPanel.getByTestId('internal-note-toggle')).not.toBeVisible();
 
+    // Verify Quick Replies
+    const quickReplyGreeting = messagingPanel.getByTestId('quick-reply-greeting');
+    await expect(quickReplyGreeting).toBeVisible();
+    await quickReplyGreeting.click();
+    await expect(messageInput).toHaveValue('Hello, how can I help you?');
+    await messageInput.clear();
+
     await messageInput.fill('Hello from Agent E2E');
     await messagingPanel.getByTestId('send-message-button').click();
 

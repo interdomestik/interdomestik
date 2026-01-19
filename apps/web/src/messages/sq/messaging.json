@@ -13,6 +13,12 @@
     "empty": {
       "title": "Nuk ka mesazhe ende",
       "description": "Filloni një bisedë me agjentin tuaj të caktuar. Ai do të përgjigjet brenda 24 orëve."
+    },
+    "quickReplies": {
+      "greeting": "Përshendetje, si mund t'ju ndihmoj?",
+      "docs_request": "Ju lutemi ngarkoni dokumentet e kërkuara.",
+      "status_update": "Kërkesa juaj është duke u procesuar.",
+      "closing": "Faleminderit që na kontaktuat."
     }
   }
 }

@@ -13,10 +13,16 @@ import { toast } from 'sonner';
 interface MessageInputProps {
   claimId: string;
   allowInternal?: boolean;
+  isAgent?: boolean;
   onMessageSent?: () => void;
 }
 
-export function MessageInput({ claimId, allowInternal = false, onMessageSent }: MessageInputProps) {
+export function MessageInput({
+  claimId,
+  allowInternal = false,
+  isAgent = false,
+  onMessageSent,
+}: MessageInputProps) {
   const t = useTranslations('messaging');
   const [content, setContent] = useState('');
   const [isInternal, setIsInternal] = useState(false);
@@ -49,8 +55,34 @@ export function MessageInput({ claimId, allowInternal = false, onMessageSent }: 
     }
   };
 
+  const QUICK_REPLIES = ['greeting', 'docs_request', 'status_update', 'closing'] as const;
+
+  const handleQuickReply = (key: string) => {
+    const text = t(`quickReplies.${key}`);
+    setContent(prev => (prev ? `${prev}\n${text}` : text));
+  };
+
   return (
     <form onSubmit={handleSubmit} className="border-t p-4 space-y-3">
+      {isAgent && (
+        <div className="flex gap-2 mb-2 overflow-x-auto pb-2 scrollbar-thin">
+          {QUICK_REPLIES.map(key => (
+            <Button
+              key={key}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap h-7 text-xs px-2.5 rounded-full"
+              onClick={() => handleQuickReply(key)}
+              disabled={isPending}
+              data-testid={`quick-reply-${key}`}
+            >
+              {t(`quickReplies.${key}`)}
+            </Button>
+          ))}
+        </div>
+      )}
+
       <div className="relative">
         <Textarea
           data-testid="message-input"

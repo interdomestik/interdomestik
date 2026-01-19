@@ -13,6 +13,12 @@
     "empty": {
       "title": "No messages yet",
       "description": "Start a conversation with your assigned agent. They will respond within 24 hours."
+    },
+    "quickReplies": {
+      "greeting": "Hello, how can I help you?",
+      "docs_request": "Please upload the required documents.",
+      "status_update": "Your claim is being processed.",
+      "closing": "Thank you for reaching out."
     }
   }
 }
