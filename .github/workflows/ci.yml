@@ -84,10 +84,12 @@ jobs:
               if command -v psql >/dev/null; then
                 if PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d interdomestik_test -c "select 1" >/dev/null 2>&1; then
                   echo "Postgres is ready."
+                  echo "POSTGRES_READY_VIA=psql" >> "$GITHUB_ENV"
                   exit 0
                 fi
               else
                 echo "Postgres is ready."
+                echo "POSTGRES_READY_VIA=pg_isready" >> "$GITHUB_ENV"
                 exit 0
               fi
             fi
@@ -140,6 +142,7 @@ jobs:
             echo "- Golden path: audit → check → migrate → seed → assert → e2e:gate";
             echo "- DB: 127.0.0.1:5432 (interdomestik_test)";
             echo "- App URL: http://127.0.0.1:3000";
+            echo "- Postgres readiness: ${POSTGRES_READY_VIA:-unknown}";
             echo "- Playwright report: artifact on failure";
           } >> "$GITHUB_STEP_SUMMARY"
 
