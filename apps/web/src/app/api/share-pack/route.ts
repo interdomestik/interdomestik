@@ -1,10 +1,3 @@
-/**
- * Share Pack API - M3.3 (Updated)
- *
- * Generates secure, time-limited share links for document bundles.
- * All operations are tenant-scoped and access-audited.
- * Uses server-side share_packs table for state, allowing revocation.
- */
 import {
   createSharePack,
   getSharePack,
@@ -13,6 +6,13 @@ import {
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
+import { createSharePackCore, getSharePackCore } from './_core';
+
+const services = {
+  createSharePack,
+  getSharePack,
+  logAuditEvent,
+};
 
 /**
  * POST /api/share-pack - Create a share pack link
@@ -27,44 +27,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tenantId = session.user.tenantId;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const body = (await request.json()) as any;
-    const ids = body['document' + 'Ids'] as Array<string>;
+    const documentIds = body['document' + 'Ids'] as Array<string>;
 
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ error: 'IDs required' }, { status: 400 });
+    const result = await createSharePackCore({
+      tenantId: session.user.tenantId,
+      userId: session.user.id,
+      documentIds,
+      ipAddress: request.headers.get('x-forwarded-for') ?? undefined,
+      userAgent: request.headers.get('user-agent') ?? undefined,
+      services,
+    });
+
+    if (!result.ok) {
+      const status = result.error === 'Invalid IDs' ? 403 : 400;
+      return NextResponse.json({ error: result.error }, { status });
     }
 
-    try {
-      const result = await createSharePack({
-        tenantId,
-        userId: session.user.id,
-        documentIds: ids,
-      });
-
-      // Log creation
-      await logAuditEvent({
-        tenantId,
-        ids,
-        accessedBy: session.user.id,
-        shareToken: result.token,
-        ipAddress: request.headers.get('x-forwarded-for') ?? undefined,
-        userAgent: request.headers.get('user-agent') ?? undefined,
-      });
-
-      return NextResponse.json({
-        packId: result.packId,
-        token: result.token,
-        expiresAt: result.expiresAt.getTime(),
-        validUntil: result.expiresAt.toISOString(),
-      });
-    } catch (error: any) {
-      if (error.message === 'Invalid IDs') {
-        return NextResponse.json({ error: 'Invalid IDs' }, { status: 403 });
-      }
-      throw error;
-    }
+    return NextResponse.json(result.data);
   } catch (error) {
     console.error('Share pack creation failed:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
@@ -80,37 +60,19 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
-    if (!token) {
-      return NextResponse.json({ error: 'Token required' }, { status: 400 });
-    }
-
-    const result = await getSharePack({ token });
-
-    if (!result) {
-      return NextResponse.json({ error: 'Pack not found, expired, or revoked' }, { status: 404 }); // Could also be 401/403 but 404 is safer
-    }
-
-    const { pack, docs, tenantId } = result;
-
-    // Log the access
-    await logAuditEvent({
-      tenantId,
-      ids: docs.map(d => d.id),
-      shareToken: token,
+    const result = await getSharePackCore({
+      token: token || '',
       ipAddress: request.headers.get('x-forwarded-for') ?? undefined,
       userAgent: request.headers.get('user-agent') ?? undefined,
+      services,
     });
 
-    return NextResponse.json({
-      packId: pack.id,
-      documents: docs.map(d => ({
-        id: d.id,
-        fileName: d.fileName,
-        mimeType: d.mimeType,
-        fileSize: d.fileSize,
-      })),
-      validUntil: pack.expiresAt,
-    });
+    if (!result.ok) {
+      const status = result.error?.includes('Token required') ? 400 : 404;
+      return NextResponse.json({ error: result.error }, { status });
+    }
+
+    return NextResponse.json(result.data);
   } catch (error) {
     console.error('Share pack access failed:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
