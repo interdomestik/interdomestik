@@ -237,6 +237,24 @@ export async function cleanupByPrefixes(
     // 7d. Delete Audit Logs (performed by these users)
     await db.delete(dbSchema.auditLog).where(inArray(dbSchema.auditLog.actorId, allUserIds));
 
+    // 7e. Delete Documents uploaded by these users
+    if (dbSchema.documents) {
+      const userDocIds = await db
+        .select({ id: dbSchema.documents.id })
+        .from(dbSchema.documents)
+        .where(inArray(dbSchema.documents.uploadedBy, allUserIds));
+
+      const docIds = userDocIds.map(d => d.id);
+      if (docIds.length > 0) {
+        if (dbSchema.documentAccessLog) {
+          await db
+            .delete(dbSchema.documentAccessLog)
+            .where(inArray(dbSchema.documentAccessLog.documentId, docIds));
+        }
+        await db.delete(dbSchema.documents).where(inArray(dbSchema.documents.id, docIds));
+      }
+    }
+
     // Finally delete the users
     await db.delete(dbSchema.user).where(inArray(dbSchema.user.id, allUserIds));
   }

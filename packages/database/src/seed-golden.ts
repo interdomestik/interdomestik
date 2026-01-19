@@ -604,6 +604,23 @@ export async function seedGolden(config: SeedConfig) {
     updatedAt: at(-15 * 24 * 60 * 60 * 1000),
   });
 
+  // 4) MK Tracking Claim (Critical for E2E Determinism)
+  claimsToSeed.push({
+    id: goldenId('mk_track_claim_001'),
+    userId: goldenId('mk_member_1'),
+    tenantId: TENANTS.MK,
+    branchId: 'mk_branch_a',
+    agentId: goldenId('mk_agent_a1'),
+    status: 'submitted',
+    title: 'MK Deterministic Claim',
+    category: 'vehicle',
+    companyName: 'MK Auto Osiguruvanje',
+    claimAmount: '300.00',
+    currency: 'EUR',
+    createdAt: at(-2 * 24 * 60 * 60 * 1000),
+    claimNumber: 'CLM-MK-2026-900001', // Special range
+  });
+
   for (const c of claimsToSeed) {
     await db
       .insert(schema.claims)
