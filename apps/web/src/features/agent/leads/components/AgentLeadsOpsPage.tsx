@@ -12,14 +12,10 @@ import { useEffect, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
 
-// Mock columns for now or import from definition if available
-// Assuming leads schema: name, email, phone, status, source
+// Lite columns
 const columns = [
-  { key: 'firstName', header: 'First Name' },
-  { key: 'lastName', header: 'Last Name' },
-  { key: 'email', header: 'Email' },
-  { key: 'status', header: 'Status' },
-  { key: 'source', header: 'Source' },
+  { key: 'lead', header: 'Lead' },
+  { key: 'status', header: 'Status & Next Step' },
 ];
 
 export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
@@ -78,23 +74,36 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
   });
 
   // Map leads to OpsTable rows
-  const tableRows = leads.map(lead => ({
-    id: lead.id,
-    cells: [
-      lead.firstName,
-      lead.lastName,
-      lead.email,
-      <OpsStatusBadge key="status" {...toOpsStatus(lead.status)} />,
-      <span key="source" className="capitalize">
-        {lead.source}
-      </span>,
-    ],
-    onClick: () => handleRowClick(lead.id),
-    testId: `lead-row-${lead.id}`,
-  }));
+  const tableRows = leads.map(lead => {
+    // Compute primary action for this specific lead (not selectedLead)
+    const { primary: rowPrimary, secondary: rowSecondary } = getLeadActions(lead);
+    const nextActionLabel = rowPrimary?.label || rowSecondary[0]?.label || null;
+
+    return {
+      id: lead.id,
+      cells: [
+        <div key="lead" className="flex flex-col py-1">
+          <span className="font-medium text-foreground">
+            {lead.firstName} {lead.lastName}
+          </span>
+          <span className="text-sm text-muted-foreground">{lead.email}</span>
+        </div>,
+        <div key="status" className="flex items-center gap-3">
+          <OpsStatusBadge {...toOpsStatus(lead.status)} />
+          {nextActionLabel && lead.status !== 'converted' && lead.status !== 'lost' && (
+            <span className="text-xs font-medium text-primary animate-pulse">
+              → {nextActionLabel}
+            </span>
+          )}
+        </div>,
+      ],
+      onClick: () => handleRowClick(lead.id),
+      testId: `lead-row-${lead.id}`,
+    };
+  });
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" data-testid="agent-leads-lite">
       <div className="flex-1 overflow-hidden p-4">
         <OpsQueryState
           isEmpty={leads.length === 0}
