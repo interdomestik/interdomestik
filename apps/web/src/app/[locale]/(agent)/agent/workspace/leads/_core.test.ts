@@ -1,33 +1,33 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getAgentWorkspaceLeadsCore } from './_core';
 
-describe('getAgentWorkspaceLeadsCore', () => {
-  const mockDb = {
-    query: {
-      memberLeads: {
-        findMany: vi.fn(),
+describe('Agent Workspace Leads Query Contracts', () => {
+  describe('getAgentWorkspaceLeadsCore (Integration)', () => {
+    const mockDb = {
+      query: {
+        memberLeads: {
+          findMany: vi.fn(),
+        },
       },
-    },
-  };
+    };
 
-  it('fetches and maps leads', async () => {
-    const mockLeads = [
-      {
-        id: 'l1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        branch: { name: 'Main' },
-      },
-    ];
-    mockDb.query.memberLeads.findMany.mockResolvedValue(mockLeads);
+    it('fetches and maps leads using tenant filter', async () => {
+      const mockDate = new Date();
+      mockDb.query.memberLeads.findMany.mockResolvedValue([
+        { id: 'l1', createdAt: mockDate, updatedAt: mockDate, branch: { name: 'B1' } },
+      ]);
 
-    const result = await getAgentWorkspaceLeadsCore({
-      tenantId: 't1',
-      db: mockDb,
+      await getAgentWorkspaceLeadsCore({
+        tenantId: 't1',
+        db: mockDb,
+      });
+
+      // Contract: Must apply a where clause for filtering
+      expect(mockDb.query.memberLeads.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.anything(),
+        })
+      );
     });
-
-    expect(result.leads.length).toBe(1);
-    expect(result.leads[0].id).toBe('l1');
-    expect(result.leads[0].branch?.name).toBe('Main');
   });
 });

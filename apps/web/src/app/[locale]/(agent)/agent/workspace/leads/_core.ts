@@ -18,6 +18,13 @@ export interface AgentWorkspaceLeadsResult {
 }
 
 /**
+ * Pure helper for the leads where clause.
+ */
+export function buildAgentWorkspaceLeadsWhere(params: { tenantId: string }) {
+  return eq(memberLeads.tenantId, params.tenantId);
+}
+
+/**
  * Pure core logic for the Agent Workspace Leads Page.
  * Fetches leads for the agent's tenant.
  */
@@ -28,7 +35,7 @@ export async function getAgentWorkspaceLeadsCore(params: {
   const { tenantId, db } = params;
 
   const leadsData = await db.query.memberLeads.findMany({
-    where: eq(memberLeads.tenantId, tenantId),
+    where: buildAgentWorkspaceLeadsWhere({ tenantId }),
     orderBy: (leads: any, { desc }: any) => [desc(leads.createdAt)],
     with: {
       branch: true,

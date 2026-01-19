@@ -25,6 +25,14 @@ export type StaffDashboardResult =
   | { ok: true; data: StaffDashboardDTO }
   | { ok: false; code: 'UNAUTHORIZED' | 'FORBIDDEN' | 'INTERNAL' };
 
+/**
+ * Pure helper for the staff dashboard where clause.
+ * Ensures multi-tenant isolation.
+ */
+export function buildStaffDashboardWhere(params: { tenantId: string }) {
+  return eq(claims.tenantId, params.tenantId);
+}
+
 export async function getStaffDashboardCore(params: {
   tenantId: string;
   userId: string;
@@ -46,14 +54,14 @@ export async function getStaffDashboardCore(params: {
       status => status !== 'draft' && status !== newStatus && !completedStatuses.includes(status)
     );
 
-    const whereClause = eq(claims.tenantId, tenantId);
+    const baseWhere = buildStaffDashboardWhere({ tenantId });
 
     // Queries
-    const [totalRes] = await db.select({ val: count() }).from(claims).where(whereClause);
+    const [totalRes] = await db.select({ val: count() }).from(claims).where(baseWhere);
     const [newRes] = await db
       .select({ val: count() })
       .from(claims)
-      .where(and(whereClause, eq(claims.status, newStatus)));
+      .where(and(baseWhere, eq(claims.status, newStatus)));
 
     const inProgressCondition =
       inProgressStatuses.length > 0 ? inArray(claims.status, inProgressStatuses) : sql`false`;
@@ -61,15 +69,15 @@ export async function getStaffDashboardCore(params: {
     const [inProgressRes] = await db
       .select({ val: count() })
       .from(claims)
-      .where(and(whereClause, inProgressCondition));
+      .where(and(baseWhere, inProgressCondition));
 
     const [completedRes] = await db
       .select({ val: count() })
       .from(claims)
-      .where(and(whereClause, inArray(claims.status, completedStatuses)));
+      .where(and(baseWhere, inArray(claims.status, completedStatuses)));
 
     const recentClaimsRaw = await db.query.claims.findMany({
-      where: whereClause,
+      where: baseWhere,
       orderBy: [desc(claims.updatedAt)],
       limit: 5,
       with: { user: true },

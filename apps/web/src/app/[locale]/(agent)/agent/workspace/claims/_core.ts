@@ -25,6 +25,25 @@ export interface AgentWorkspaceClaimsResult {
 }
 
 /**
+ * Pure helper for the claims where clause.
+ */
+export function buildAgentWorkspaceClaimsWhere(params: { tenantId: string }) {
+  return eq(claims.tenantId, params.tenantId);
+}
+
+/**
+ * Pure helper for unread messages where clause.
+ * Must exclude agent's own messages and scope to specific claims.
+ */
+export function buildUnreadMessagesWhere(params: { userId: string; claimIds: string[] }) {
+  return and(
+    inArray(claimMessages.claimId, params.claimIds),
+    isNull(claimMessages.readAt),
+    ne(claimMessages.senderId, params.userId)
+  );
+}
+
+/**
  * Pure core logic for the Agent Workspace Claims Page.
  * Fetches claims, unread counts, and last message snippets.
  */
@@ -37,7 +56,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
 
   // 1. Fetch Claims for Agent's Tenant
   const claimsData = await db.query.claims.findMany({
-    where: eq(claims.tenantId, tenantId),
+    where: buildAgentWorkspaceClaimsWhere({ tenantId }),
     orderBy: [desc(claims.createdAt)],
     with: {
       user: {
@@ -68,13 +87,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
         count: count(claimMessages.id),
       })
       .from(claimMessages)
-      .where(
-        and(
-          inArray(claimMessages.claimId, claimIds),
-          isNull(claimMessages.readAt),
-          ne(claimMessages.senderId, userId)
-        )
-      )
+      .where(buildUnreadMessagesWhere({ userId, claimIds }))
       .groupBy(claimMessages.claimId);
 
     unreadCounts.forEach((row: Record<string, unknown>) =>
@@ -82,7 +95,6 @@ export async function getAgentWorkspaceClaimsCore(params: {
     );
 
     // 3. Fetch Last Messages (using selectDistinctOn for PG or manual aggregation if needed)
-    // Reusing the page's logic for selectDistinctOn which is supported by the project driver
     const lastMessages = await db
       .selectDistinctOn([claimMessages.claimId], {
         claimId: claimMessages.claimId,
