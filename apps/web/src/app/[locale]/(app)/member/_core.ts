@@ -19,13 +19,13 @@ export function getMemberDashboardCore(params: {
     return { kind: 'redirect', to: `/${locale}/agent` };
   }
 
-  // Redirect staff to their operations portal
-  if (role === 'staff') {
+  // Redirect staff / operations to their portal
+  if (role === 'staff' || role === 'branch_manager') {
     return { kind: 'redirect', to: `/${locale}/staff` };
   }
 
-  // Redirect admin to admin portal
-  if (role === 'admin') {
+  // Redirect admin / super-admin to admin portal
+  if (role === 'admin' || role === 'super_admin' || role === 'tenant_admin') {
     return { kind: 'redirect', to: `/${locale}/admin` };
   }
 

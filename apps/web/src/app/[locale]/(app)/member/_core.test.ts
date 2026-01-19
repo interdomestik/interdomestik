@@ -12,13 +12,28 @@ describe('getMemberDashboardCore', () => {
     expect(result).toEqual({ kind: 'redirect', to: '/sq/agent' });
   });
 
-  it('redirects staff to staff portal', () => {
-    const result = getMemberDashboardCore({ role: 'staff', userId: 's1', locale: 'mk' });
-    expect(result).toEqual({ kind: 'redirect', to: '/mk/staff' });
+  it('redirects staff and branch managers to staff portal', () => {
+    expect(getMemberDashboardCore({ role: 'staff', userId: 's1', locale: 'mk' })).toEqual({
+      kind: 'redirect',
+      to: '/mk/staff',
+    });
+    expect(getMemberDashboardCore({ role: 'branch_manager', userId: 'bm1', locale: 'en' })).toEqual(
+      { kind: 'redirect', to: '/en/staff' }
+    );
   });
 
-  it('redirects admin to admin portal', () => {
-    const result = getMemberDashboardCore({ role: 'admin', userId: 'adm1', locale: 'en' });
-    expect(result).toEqual({ kind: 'redirect', to: '/en/admin' });
+  it('redirects admin, super_admin, and tenant_admin to admin portal', () => {
+    expect(getMemberDashboardCore({ role: 'admin', userId: 'adm1', locale: 'en' })).toEqual({
+      kind: 'redirect',
+      to: '/en/admin',
+    });
+    expect(getMemberDashboardCore({ role: 'super_admin', userId: 'sa1', locale: 'sq' })).toEqual({
+      kind: 'redirect',
+      to: '/sq/admin',
+    });
+    expect(getMemberDashboardCore({ role: 'tenant_admin', userId: 'ta1', locale: 'mk' })).toEqual({
+      kind: 'redirect',
+      to: '/mk/admin',
+    });
   });
 });
