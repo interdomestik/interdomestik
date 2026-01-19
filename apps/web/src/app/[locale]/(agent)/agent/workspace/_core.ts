@@ -1,20 +1,4 @@
-export interface AgentWorkspaceCardDTO {
-  id: string;
-  title: string;
-  iconRequest: 'users' | 'file-text' | 'bar-chart';
-  headline: string;
-  description: string;
-  actionText: string;
-  href?: string;
-  disabled: boolean;
-  testId?: string;
-}
-
-export interface AgentWorkspaceDTO {
-  pageTitle: string;
-  pageSubtitle: string;
-  cards: AgentWorkspaceCardDTO[];
-}
+import { WorkspaceNavDTO } from '@/core-contracts';
 
 /**
  * Pure core logic for Agnet Workspace Dashboard.
@@ -23,7 +7,7 @@ export interface AgentWorkspaceDTO {
 export function getAgentWorkspaceNavCore(_params: {
   role?: string;
   flags?: Record<string, boolean>;
-}): AgentWorkspaceDTO {
+}): WorkspaceNavDTO {
   return {
     pageTitle: 'Agent Pro Workspace',
     pageSubtitle: 'Advanced tools and controls for power users.',

@@ -1,5 +1,5 @@
 import { ClaimStatusBadge } from '@/features/claims/tracking/components/ClaimStatusBadge';
-import { db } from '@interdomestik/database';
+import { db } from '@/lib/db.server';
 import { Avatar, AvatarFallback } from '@interdomestik/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/card';
 import { headers } from 'next/headers';

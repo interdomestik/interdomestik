@@ -1,1 +1,1 @@
-export { POST } from './_core';
+export { POST } from './_handler';

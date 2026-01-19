@@ -1,7 +1,7 @@
 import { AgentStatsCards } from '@/components/agent/agent-stats-cards';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
-import { db } from '@interdomestik/database';
+import { db } from '@/lib/db.server';
 import {
   Button,
   Card,

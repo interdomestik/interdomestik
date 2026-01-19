@@ -1,4 +1,4 @@
-export type LocaleLandingDecision = { kind: 'render' } | { kind: 'redirect'; destination: string };
+import { LandingDecisionDTO } from '@/core-contracts';
 
 /**
  * Pure core decision logic for the locale landing page.
@@ -7,7 +7,7 @@ export type LocaleLandingDecision = { kind: 'render' } | { kind: 'redirect'; des
 export function getLocaleLandingCore(_params: {
   locale: string;
   session: { userId?: string } | null; // Typed loosely to accept AuthSession or null
-}): LocaleLandingDecision {
+}): LandingDecisionDTO {
   // Logic placeholder:
   // if (_params.session?.userId) {
   //   return { kind: 'redirect', destination: '/dashboard' };

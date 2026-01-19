@@ -34,7 +34,7 @@ export default async function AgentWorkspacePage() {
         {data.cards.map(card => {
           const Icon = ICON_MAP[card.iconRequest] || FileText;
           return (
-            <Card key={card.id}>
+            <Card key={card.id} data-testid={`workspace-card-${card.id}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
                 <Icon className="h-4 w-4 text-muted-foreground" />

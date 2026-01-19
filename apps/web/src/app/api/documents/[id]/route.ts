@@ -1,1 +1,1 @@
-export { GET } from './_core';
+export { GET } from './_handler';

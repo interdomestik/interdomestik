@@ -1,6 +1,6 @@
 import { AgentClaimsProPage } from '@/features/agent/claims/components/AgentClaimsProPage';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database';
+import { db } from '@/lib/db.server';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';

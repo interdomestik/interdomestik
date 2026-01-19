@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database';
+import { db } from '@/lib/db.server';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';

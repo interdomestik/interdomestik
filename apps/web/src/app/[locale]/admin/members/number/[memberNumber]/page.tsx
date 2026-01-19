@@ -1,6 +1,6 @@
 import { parseMemberNumber } from '@/features/admin/members/utils/memberNumber';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database';
+import { db } from '@/lib/db.server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getMemberNumberResolverCore } from './_core';
