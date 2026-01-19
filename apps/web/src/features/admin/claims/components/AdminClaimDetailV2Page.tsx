@@ -65,7 +65,16 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
           />
 
           {/* 2. Messaging (Communication) */}
-          <MessagingPanel claimId={data.id} currentUserId={session.user.id} isAgent={true} />
+          <MessagingPanel
+            claimId={data.id}
+            currentUser={{
+              id: session.user.id,
+              name: session.user.name,
+              image: session.user.image ?? null,
+              role: session.user.role || 'admin',
+            }}
+            isAgent={true}
+          />
 
           {/* 3. Timeline (Audit Trail) */}
           <div id="timeline-section">

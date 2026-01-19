@@ -112,5 +112,15 @@ export default async function AgentWorkspaceClaimsPage() {
     policy: null,
   }));
 
-  return <AgentClaimsProPage claims={mappedClaims} userId={session.user.id} />;
+  return (
+    <AgentClaimsProPage
+      claims={mappedClaims}
+      currentUser={{
+        id: session.user.id,
+        name: session.user.name,
+        image: session.user.image ?? null,
+        role: session.user.role || 'agent',
+      }}
+    />
+  );
 }

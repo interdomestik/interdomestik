@@ -43,10 +43,15 @@ export type AgentProClaim = {
 
 interface AgentClaimsProPageProps {
   claims: AgentProClaim[];
-  userId: string;
+  currentUser: {
+    id: string;
+    name: string;
+    image: string | null;
+    role: string;
+  };
 }
 
-export function AgentClaimsProPage({ claims, userId }: AgentClaimsProPageProps) {
+export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -253,7 +258,11 @@ export function AgentClaimsProPage({ claims, userId }: AgentClaimsProPageProps) 
                     Close Messaging
                   </Button>
                 </div>
-                <MessagingPanel claimId={selectedClaim.id} currentUserId={userId} isAgent={true} />
+                <MessagingPanel
+                  claimId={selectedClaim.id}
+                  currentUser={currentUser}
+                  isAgent={true}
+                />
               </div>
             )}
           </div>

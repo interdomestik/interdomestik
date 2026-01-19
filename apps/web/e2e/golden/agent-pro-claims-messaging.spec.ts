@@ -1,24 +1,42 @@
 import { expect, test } from '../fixtures/auth.fixture';
 
+const DETERMINISTIC_IDS = {
+  'ks-sq': {
+    claimId: 'golden_ks_track_claim_001',
+    urlParam: '?selected=golden_ks_track_claim_001',
+  },
+  'mk-mk': {
+    claimId: 'golden_mk_track_claim_001',
+    urlParam: '?selected=golden_mk_track_claim_001',
+  },
+  smoke: {
+    claimId: 'golden_ks_track_claim_001',
+    urlParam: '?selected=golden_ks_track_claim_001',
+  },
+};
+
 test.describe('Agent Pro Claims Messaging (Golden)', () => {
-  test('Agent can send a message on a claim', async ({ page, loginAs }) => {
+  test('Agent can send a message on a claim', async ({ page, loginAs }, testInfo) => {
+    // 0. Determine Seed Config based on Project
+    const projectName = testInfo.project.name || 'ks-sq';
+    const config =
+      DETERMINISTIC_IDS[projectName as keyof typeof DETERMINISTIC_IDS] ||
+      DETERMINISTIC_IDS['ks-sq'];
+
     // 1. Login as Agent
     await loginAs('agent');
 
-    // 2. Navigate to Claims Queue
-    await page.goto('/en/agent/workspace/claims');
+    // 2. Navigate Directly to Claims Page with Selected Claim
+    // This removes reliance on list rendering/order and ensures we target a specific known claim.
+    await page.goto(`/agent/workspace/claims${config.urlParam}`);
 
-    // 3. Open first claim Drawer
-    await expect(page.getByRole('columnheader', { name: 'Claim' })).toBeVisible();
-    const firstRow = page.getByTestId('claim-row').first();
-    await firstRow.click();
-
+    // 3. Verify Drawer is Open (Deterministic)
     const drawer = page.getByTestId('ops-drawer');
-    await expect(drawer).toBeVisible();
+    await expect(drawer).toBeVisible({ timeout: 15000 });
 
     // 4. Click "Send Message" action
-    // Note: This action doesn't exist yet, test will fail here first (Red)
-    await drawer.getByRole('button', { name: 'Send Message' }).click();
+    // Use stable ID from OpsActionBar
+    await drawer.getByTestId('action-message').click();
 
     // 5. Verify Messaging Panel
     const messagingPanel = page.getByTestId('messaging-panel');
@@ -40,40 +58,24 @@ test.describe('Agent Pro Claims Messaging (Golden)', () => {
     await messageInput.fill('Hello from Agent E2E');
     await messagingPanel.getByTestId('send-message-button').click();
 
-    // 7. Verify Unread Badge Logic (requires simulating inbound message or checking seed)
-    // Since we can't easily switch users mid-test without setup, we'll verify the badge is NOT present for our own message
-    // Assuming the claim row we clicked is still roughly in the same place or we can find it by ID?
-    // We didn't capture the ID easily.
-    // However, we just sent a message. It's OUR message. So readAt is null but sender is US.
-    // So Unread Count should remain 0 (or unchanged).
-    // Let's verify no "new" badge appears for our own message.
-    // Note: We need a Stable ID for the row.
-    // The row click handler uses `handleSelect(claim.id)`.
-    // We can check if any unread badge exists.
-    // But better:
-    // We can verify that "unread-badge-..." does NOT exist for the claim we just messaged.
-    // But we don't know the claim ID in the test easily unless we extract it from URL or UI.
-    // Let's extract claim ID from URL when drawer is open.
+    // 7. Verify Optimistic Pending State
+    const newBubble = messagingPanel.getByText('Hello from Agent E2E');
+    await expect(newBubble).toBeVisible();
 
-    // Check URL
-    const url = page.url();
-    const claimId = new URL(url).searchParams.get('selected');
-    expect(claimId).toBeTruthy();
+    // 8. Verify Unread Badge Logic / Closing Drawer
+    // Use OpsDrawer X button (Stable Selector by Role + Exact)
+    // This is the most reliable way without modifying the shared UI package.
+    await drawer.getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(drawer).not.toBeVisible();
 
-    await page.getByTestId('close-ops-drawer-button').click();
+    // 9. Re-open to verify persistence
+    // We can just reload the URL or click the row if visible.
+    // Since we are deterministic, let's just reload to prove backend persistence.
+    await page.reload();
+    await expect(drawer).toBeVisible(); // Should handle 'selected' param persistence if URL state is kept?
+    // Actually, on reload, URL param ?selected=... stays, so drawer opens.
 
-    // Verify badge is NOT visible (since we sent it)
-    // await expect(page.getByTestId(`unread-badge-${claimId}`)).not.toBeVisible();
-
-    // 8. Verify Last Message Snippet update (optimistic or revalidate)
-    // The page might not have revalidated immediately without refresh.
-    // We can try to reload.
-    // await page.reload();
-    // TODO: Fix brittle text assertion. Snapshot shows it works, but test fails.
-    // await expect(page.getByText(/Hello from Agent E2E/)).toBeVisible();
-
-    // 9. Close Drawer to cleanup
-    // Optional, but good practice
-    // await drawer.getByRole('button', { name: 'Close' }).click();
+    await drawer.getByTestId('action-message').click();
+    await expect(messagingPanel.getByText('Hello from Agent E2E')).toBeVisible();
   });
 });

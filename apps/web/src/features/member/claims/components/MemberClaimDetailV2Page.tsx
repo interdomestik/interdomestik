@@ -96,7 +96,16 @@ export async function MemberClaimDetailV2Page({ id, locale }: { id: string; loca
 
           {/* Messaging Panel for desktop */}
           <div className="hidden lg:block">
-            <MessagingPanel claimId={claim.id} currentUserId={session.user.id} isAgent={false} />
+            <MessagingPanel
+              claimId={claim.id}
+              currentUser={{
+                id: session.user.id,
+                name: session.user.name,
+                image: session.user.image ?? null,
+                role: session.user.role || 'member',
+              }}
+              isAgent={false}
+            />
           </div>
         </div>
 
@@ -113,7 +122,16 @@ export async function MemberClaimDetailV2Page({ id, locale }: { id: string; loca
 
           {/* Messaging Mobile */}
           <div className="lg:hidden">
-            <MessagingPanel claimId={claim.id} currentUserId={session.user.id} isAgent={false} />
+            <MessagingPanel
+              claimId={claim.id}
+              currentUser={{
+                id: session.user.id,
+                name: session.user.name,
+                image: session.user.image ?? null,
+                role: session.user.role || 'member',
+              }}
+              isAgent={false}
+            />
           </div>
         </div>
       </div>
