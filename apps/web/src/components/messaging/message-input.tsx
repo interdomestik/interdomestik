@@ -12,11 +12,11 @@ import { toast } from 'sonner';
 
 interface MessageInputProps {
   claimId: string;
-  isAgent?: boolean;
+  allowInternal?: boolean;
   onMessageSent?: () => void;
 }
 
-export function MessageInput({ claimId, isAgent = false, onMessageSent }: MessageInputProps) {
+export function MessageInput({ claimId, allowInternal = false, onMessageSent }: MessageInputProps) {
   const t = useTranslations('messaging');
   const [content, setContent] = useState('');
   const [isInternal, setIsInternal] = useState(false);
@@ -72,7 +72,7 @@ export function MessageInput({ claimId, isAgent = false, onMessageSent }: Messag
         </Button>
       </div>
 
-      {isAgent && (
+      {allowInternal && (
         <div className="flex items-center gap-2">
           <Checkbox
             id="internal"

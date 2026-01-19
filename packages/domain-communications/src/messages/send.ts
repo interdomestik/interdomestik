@@ -49,6 +49,10 @@ export async function sendMessageDbCore(params: {
       return { success: false, error: 'Message cannot be empty' };
     }
 
+    if (trimmed.length > 5000) {
+      return { success: false, error: 'Message too long (max 5000 characters)' };
+    }
+
     const claim = await db.query.claims.findFirst({
       where: (claimsTable, { eq }) =>
         withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),

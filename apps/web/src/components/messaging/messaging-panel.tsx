@@ -17,6 +17,7 @@ interface MessagingPanelProps {
   readonly claimId: string;
   readonly currentUserId: string;
   readonly isAgent?: boolean;
+  readonly allowInternal?: boolean;
   readonly initialMessages?: MessageWithSender[];
 }
 
@@ -24,6 +25,7 @@ export function MessagingPanel({
   claimId,
   currentUserId,
   isAgent = false,
+  allowInternal = false,
   initialMessages = [],
 }: MessagingPanelProps) {
   const t = useTranslations('messaging');
@@ -96,7 +98,11 @@ export function MessagingPanel({
           <MessageThread messages={messages} currentUserId={currentUserId} isAgent={isAgent} />
         )}
 
-        <MessageInput claimId={claimId} isAgent={isAgent} onMessageSent={handleMessageSent} />
+        <MessageInput
+          claimId={claimId}
+          allowInternal={allowInternal}
+          onMessageSent={handleMessageSent}
+        />
       </CardContent>
     </Card>
   );

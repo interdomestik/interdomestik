@@ -26,6 +26,10 @@ test.describe('Agent Pro Claims Messaging (Golden)', () => {
 
     // 6. Send a message
     const messageInput = messagingPanel.getByRole('textbox', { name: 'Type your message...' });
+
+    // Verify internal note toggle is NOT visible for agent
+    await expect(messagingPanel.getByTestId('internal-note-toggle')).not.toBeVisible();
+
     await messageInput.fill('Hello from Agent E2E');
     await messagingPanel.getByTestId('send-message-button').click();
 
