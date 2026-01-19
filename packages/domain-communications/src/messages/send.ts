@@ -74,6 +74,26 @@ export async function sendMessageDbCore(params: {
       return { success: false, error: 'Access denied' };
     }
 
+    if (isAgent) {
+      // Agents can only message their own clients
+      const linkedClient = await db.query.agentClients.findFirst({
+        where: (table, { and, eq }) =>
+          and(
+            eq(table.tenantId, tenantId),
+            eq(table.agentId, userId),
+            eq(table.memberId, claim.userId),
+            eq(table.status, 'active')
+          ),
+      });
+
+      if (!linkedClient) {
+        return {
+          success: false,
+          error: 'Access denied: You can only message your assigned clients',
+        };
+      }
+    }
+
     if (isInternal && !isStaff) {
       return { success: false, error: 'Only staff can send internal messages' };
     }

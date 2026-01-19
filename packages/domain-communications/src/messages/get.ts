@@ -36,8 +36,26 @@ export async function getMessagesForClaimCore(params: {
     }
 
     const isStaff = userRole === 'staff' || userRole === 'admin';
-    if (!isStaff && claim.userId !== userId) {
+    const isAgent = userRole === 'agent';
+
+    if (!isStaff && !isAgent && claim.userId !== userId) {
       return { success: false, error: 'Access denied' };
+    }
+
+    if (isAgent) {
+      const linkedClient = await db.query.agentClients.findFirst({
+        where: (table, { and, eq }) =>
+          and(
+            eq(table.tenantId, tenantId),
+            eq(table.agentId, userId),
+            eq(table.memberId, claim.userId),
+            eq(table.status, 'active')
+          ),
+      });
+
+      if (!linkedClient) {
+        return { success: false, error: 'Access denied' };
+      }
     }
 
     const visibilityCondition = isStaff
