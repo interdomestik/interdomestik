@@ -71,7 +71,12 @@ describe('MessageThread', () => {
   });
 
   it('renders empty state when no messages', () => {
-    render(<MessageThread messages={[]} currentUserId="user-1" />);
+    render(
+      <MessageThread
+        messages={[]}
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     expect(screen.getByText('No messages yet')).toBeInTheDocument();
     expect(
@@ -80,14 +85,24 @@ describe('MessageThread', () => {
   });
 
   it('renders messages from different senders', () => {
-    render(<MessageThread messages={mockMessages} currentUserId="user-1" />);
+    render(
+      <MessageThread
+        messages={mockMessages}
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     expect(screen.getByText('Hello, I need help with my claim')).toBeInTheDocument();
     expect(screen.getByText('Hi John, I am here to help')).toBeInTheDocument();
   });
 
   it('shows agent badge for agent messages', () => {
-    render(<MessageThread messages={mockMessages} currentUserId="user-1" />);
+    render(
+      <MessageThread
+        messages={mockMessages}
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     // Multiple agent messages may show multiple badges
     const badges = screen.getAllByText('Agent');
@@ -95,7 +110,12 @@ describe('MessageThread', () => {
   });
 
   it('shows sender name for other users messages', () => {
-    render(<MessageThread messages={mockMessages} currentUserId="user-1" />);
+    render(
+      <MessageThread
+        messages={mockMessages}
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     // Agent Smith appears multiple times (for each message)
     const names = screen.getAllByText('Agent Smith');
@@ -103,14 +123,25 @@ describe('MessageThread', () => {
   });
 
   it('shows internal note indicator for agents', () => {
-    render(<MessageThread messages={mockMessages} currentUserId="user-1" isAgent />);
+    render(
+      <MessageThread
+        messages={mockMessages}
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+        isAgent
+      />
+    );
 
     expect(screen.getByText('Internal Note')).toBeInTheDocument();
     expect(screen.getByText('This is an internal note')).toBeInTheDocument();
   });
 
   it('shows user initials in avatar fallback', () => {
-    render(<MessageThread messages={mockMessages} currentUserId="user-1" />);
+    render(
+      <MessageThread
+        messages={mockMessages}
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     // Agent Smith's messages should show 'A' for first letter
     const initials = screen.getAllByText('A');
@@ -118,7 +149,12 @@ describe('MessageThread', () => {
   });
 
   it('shows message timestamps', () => {
-    render(<MessageThread messages={mockMessages} currentUserId="user-1" />);
+    render(
+      <MessageThread
+        messages={mockMessages}
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     // Messages have time displayed
     const timeElements = screen.getAllByText(/\d{1,2}:\d{2}/);
@@ -133,7 +169,12 @@ describe('MessageThread', () => {
       },
     ];
 
-    render(<MessageThread messages={messagesWithRead} currentUserId="user-1" />);
+    render(
+      <MessageThread
+        messages={messagesWithRead}
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     // Check mark should be shown for read messages
     expect(screen.getByText('✓')).toBeInTheDocument();

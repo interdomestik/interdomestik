@@ -2,14 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MessageInput } from './message-input';
 
-// Mock sendMessage action
-vi.mock('@/actions/messages', () => ({
-  sendMessage: vi.fn(),
-}));
-
-// Import after mocking
-import { sendMessage } from '@/actions/messages';
-const mockSendMessage = vi.mocked(sendMessage);
+// Mock sendMessage action removed as it's no longer used directly
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
@@ -39,7 +32,8 @@ describe('MessageInput', () => {
   });
 
   it('renders correctly for regular users', () => {
-    render(<MessageInput claimId="claim-1" />);
+    const onSendMessage = vi.fn();
+    render(<MessageInput onSendMessage={onSendMessage} />);
 
     expect(screen.getByTestId('message-input')).toBeInTheDocument();
     expect(screen.getByTestId('send-message-button')).toBeInTheDocument();
@@ -50,21 +44,24 @@ describe('MessageInput', () => {
   });
 
   it('renders internal note toggle for agents', () => {
-    render(<MessageInput claimId="claim-1" allowInternal={true} />);
+    const onSendMessage = vi.fn();
+    render(<MessageInput isAgent={true} allowInternal={true} onSendMessage={onSendMessage} />);
 
     expect(screen.getByTestId('internal-note-toggle')).toBeInTheDocument();
     expect(screen.getByText('Internal note (only visible to staff)')).toBeInTheDocument();
   });
 
   it('disables send button when message is empty', () => {
-    render(<MessageInput claimId="claim-1" />);
+    const onSendMessage = vi.fn();
+    render(<MessageInput onSendMessage={onSendMessage} />);
 
     const sendButton = screen.getByTestId('send-message-button');
     expect(sendButton).toBeDisabled();
   });
 
   it('enables send button when message has content', () => {
-    render(<MessageInput claimId="claim-1" />);
+    const onSendMessage = vi.fn();
+    render(<MessageInput onSendMessage={onSendMessage} />);
 
     const input = screen.getByTestId('message-input');
     fireEvent.change(input, { target: { value: 'Hello' } });
@@ -74,10 +71,9 @@ describe('MessageInput', () => {
   });
 
   it('sends message on form submit', async () => {
-    mockSendMessage.mockResolvedValue({ success: true });
-    const onMessageSent = vi.fn();
+    const onSendMessage = vi.fn().mockResolvedValue(true);
 
-    render(<MessageInput claimId="claim-1" onMessageSent={onMessageSent} />);
+    render(<MessageInput onSendMessage={onSendMessage} />);
 
     const input = screen.getByTestId('message-input');
     fireEvent.change(input, { target: { value: 'Hello world' } });
@@ -86,15 +82,14 @@ describe('MessageInput', () => {
     fireEvent.click(sendButton);
 
     await waitFor(() => {
-      expect(mockSendMessage).toHaveBeenCalledWith('claim-1', 'Hello world', false);
-      expect(onMessageSent).toHaveBeenCalled();
+      expect(onSendMessage).toHaveBeenCalledWith('Hello world', false);
     });
   });
 
   it('sends internal note when toggle is checked', async () => {
-    mockSendMessage.mockResolvedValue({ success: true });
+    const onSendMessage = vi.fn().mockResolvedValue(true);
 
-    render(<MessageInput claimId="claim-1" allowInternal={true} />);
+    render(<MessageInput isAgent={true} allowInternal={true} onSendMessage={onSendMessage} />);
 
     const input = screen.getByTestId('message-input');
     fireEvent.change(input, { target: { value: 'Internal note content' } });
@@ -106,14 +101,14 @@ describe('MessageInput', () => {
     fireEvent.click(sendButton);
 
     await waitFor(() => {
-      expect(mockSendMessage).toHaveBeenCalledWith('claim-1', 'Internal note content', true);
+      expect(onSendMessage).toHaveBeenCalledWith('Internal note content', true);
     });
   });
 
   it('clears input after successful send', async () => {
-    mockSendMessage.mockResolvedValue({ success: true });
+    const onSendMessage = vi.fn().mockResolvedValue(true);
 
-    render(<MessageInput claimId="claim-1" />);
+    render(<MessageInput onSendMessage={onSendMessage} />);
 
     const input = screen.getByTestId('message-input') as HTMLTextAreaElement;
     fireEvent.change(input, { target: { value: 'Hello' } });
@@ -128,7 +123,8 @@ describe('MessageInput', () => {
   });
 
   it('does not send whitespace-only messages', () => {
-    render(<MessageInput claimId="claim-1" />);
+    const onSendMessage = vi.fn();
+    render(<MessageInput onSendMessage={onSendMessage} />);
 
     const input = screen.getByTestId('message-input');
     fireEvent.change(input, { target: { value: '   ' } });

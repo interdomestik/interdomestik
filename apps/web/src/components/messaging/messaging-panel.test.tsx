@@ -42,19 +42,34 @@ describe('MessagingPanel', () => {
   });
 
   it('renders the messaging panel', async () => {
-    render(<MessagingPanel claimId="claim-1" currentUserId="user-1" />);
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     expect(screen.getByTestId('messaging-panel')).toBeInTheDocument();
   });
 
   it('shows title with messages icon', async () => {
-    render(<MessagingPanel claimId="claim-1" currentUserId="user-1" />);
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     expect(screen.getByText('Messages')).toBeInTheDocument();
   });
 
   it('renders message input', async () => {
-    render(<MessagingPanel claimId="claim-1" currentUserId="user-1" />);
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('message-input')).toBeInTheDocument();
@@ -62,7 +77,12 @@ describe('MessagingPanel', () => {
   });
 
   it('shows loading state initially when no initial messages', async () => {
-    render(<MessagingPanel claimId="claim-1" currentUserId="user-1" />);
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     // Loading spinner should show briefly
     await waitFor(() => {
@@ -85,7 +105,11 @@ describe('MessagingPanel', () => {
     ];
 
     render(
-      <MessagingPanel claimId="claim-1" currentUserId="user-1" initialMessages={initialMessages} />
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+        initialMessages={initialMessages}
+      />
     );
 
     expect(screen.getByText('Thread (1 messages)')).toBeInTheDocument();
@@ -106,14 +130,24 @@ describe('MessagingPanel', () => {
     ];
 
     render(
-      <MessagingPanel claimId="claim-1" currentUserId="user-1" initialMessages={initialMessages} />
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+        initialMessages={initialMessages}
+      />
     );
 
     expect(screen.getByText('1')).toBeInTheDocument();
   });
 
   it('passes isAgent prop to child components', async () => {
-    render(<MessagingPanel claimId="claim-1" currentUserId="user-1" isAgent />);
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+        isAgent
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('message-thread')).toBeInTheDocument();
@@ -121,7 +155,12 @@ describe('MessagingPanel', () => {
   });
 
   it('has refresh button', () => {
-    render(<MessagingPanel claimId="claim-1" currentUserId="user-1" />);
+    render(
+      <MessagingPanel
+        claimId="claim-1"
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
 
     // Refresh button should be present
     const buttons = screen.getAllByRole('button');

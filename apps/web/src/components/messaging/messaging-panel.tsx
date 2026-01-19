@@ -13,9 +13,19 @@ import { useCallback, useEffect, useState, useTransition } from 'react';
 import { MessageInput } from './message-input';
 import { MessageThread } from './message-thread';
 
+export type OptimisticMessage = MessageWithSender & {
+  status?: 'pending' | 'failed';
+  tempId?: string;
+};
+
 interface MessagingPanelProps {
   readonly claimId: string;
-  readonly currentUserId: string;
+  readonly currentUser: {
+    id: string;
+    name: string;
+    image: string | null;
+    role: string;
+  };
   readonly isAgent?: boolean;
   readonly allowInternal?: boolean;
   readonly initialMessages?: MessageWithSender[];
@@ -23,24 +33,33 @@ interface MessagingPanelProps {
 
 export function MessagingPanel({
   claimId,
-  currentUserId,
+  currentUser,
   isAgent = false,
   allowInternal = false,
   initialMessages = [],
 }: MessagingPanelProps) {
   const t = useTranslations('messaging');
   const [messages, setMessages] = useState<MessageWithSender[]>(initialMessages);
+  const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
   const [isLoading, setIsLoading] = useState(initialMessages.length === 0);
   const [isPending, startTransition] = useTransition();
 
   const fetchMessages = useCallback(async () => {
+    // Only fetch if tab is visible? For now simplistic.
     const result = await getMessagesForClaim(claimId);
     if (result.success && result.messages) {
       setMessages(result.messages);
 
+      // Simple conflict resolution: Remove optimistic if real message arrived
+      // We assume real message matches content? Or just clear all optimistic on sync?
+      // Clearing all optimistic on sync might cause flickering if the sync happens before the send completes.
+      // Better: MessageInput handles the "send complete" and tells us to remove specific optimistic ID.
+      // But if fetch happens, we might have duplicates.
+      // For now, E1 (minimal) -> we'll handle optimistic removal via callbacks.
+
       // Mark unread messages as read
       const unreadIds = result.messages
-        .filter(m => m.senderId !== currentUserId && !m.readAt)
+        .filter(m => m.senderId !== currentUser.id && !m.readAt)
         .map(m => m.id);
 
       if (unreadIds.length > 0) {
@@ -48,7 +67,7 @@ export function MessagingPanel({
       }
     }
     setIsLoading(false);
-  }, [claimId, currentUserId]);
+  }, [claimId, currentUser.id]);
 
   useEffect(() => {
     fetchMessages();
@@ -64,7 +83,62 @@ export function MessagingPanel({
     });
   }, [fetchMessages]);
 
-  const handleMessageSent = handleRefresh;
+  const handleSendMessage = async (content: string, isInternal: boolean): Promise<boolean> => {
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage: OptimisticMessage = {
+      id: tempId,
+      claimId,
+      senderId: currentUser.id,
+      content,
+      isInternal,
+      readAt: null,
+      createdAt: new Date(),
+      sender: {
+        id: currentUser.id,
+        name: currentUser.name,
+        image: currentUser.image,
+        role: currentUser.role,
+      },
+      status: 'pending',
+      tempId,
+    };
+
+    setOptimisticMessages(prev => [...prev, optimisticMessage]);
+
+    try {
+      const { sendMessage } = await import('@/actions/messages');
+      const result = await sendMessage(claimId, content, isInternal);
+
+      if (result.success) {
+        // Remove optimistic message and refresh
+        setOptimisticMessages(prev => prev.filter(m => m.id !== tempId));
+        handleRefresh();
+        return true;
+      } else {
+        // Mark as failed
+        setOptimisticMessages(prev =>
+          prev.map(m => (m.id === tempId ? { ...m, status: 'failed' } : m))
+        );
+        return false;
+      }
+    } catch {
+      setOptimisticMessages(prev =>
+        prev.map(m => (m.id === tempId ? { ...m, status: 'failed' } : m))
+      );
+      return false;
+    }
+  };
+
+  const handleRetry = (message: OptimisticMessage) => {
+    // Remove failed message and try again (UI will populate input? Or just re-send?)
+    // Easiest for "Retry": Just re-trigger send with same content.
+    setOptimisticMessages(prev => prev.filter(m => m.id !== message.id));
+    handleSendMessage(message.content, message.isInternal);
+  };
+
+  const allMessages = [...messages, ...optimisticMessages].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
 
   return (
     <Card className="flex flex-col h-[500px] shadow-sm" data-testid="messaging-panel">
@@ -95,14 +169,18 @@ export function MessagingPanel({
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <MessageThread messages={messages} currentUserId={currentUserId} isAgent={isAgent} />
+          <MessageThread
+            messages={allMessages}
+            currentUser={currentUser}
+            isAgent={isAgent}
+            onRetry={handleRetry}
+          />
         )}
 
         <MessageInput
-          claimId={claimId}
           allowInternal={allowInternal}
           isAgent={isAgent}
-          onMessageSent={handleMessageSent}
+          onSendMessage={handleSendMessage}
         />
       </CardContent>
     </Card>

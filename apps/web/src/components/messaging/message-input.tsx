@@ -1,54 +1,48 @@
 'use client';
 
-import { sendMessage } from '@/actions/messages';
 import { Button } from '@interdomestik/ui/components/button';
 import { Checkbox } from '@interdomestik/ui/components/checkbox';
 import { Label } from '@interdomestik/ui/components/label';
 import { Textarea } from '@interdomestik/ui/components/textarea';
 import { Loader2, Lock, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
-import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface MessageInputProps {
-  claimId: string;
   allowInternal?: boolean;
   isAgent?: boolean;
-  onMessageSent?: () => void;
+  onSendMessage: (content: string, isInternal: boolean) => Promise<boolean>;
 }
 
 export function MessageInput({
-  claimId,
   allowInternal = false,
   isAgent = false,
-  onMessageSent,
+  onSendMessage,
 }: MessageInputProps) {
   const t = useTranslations('messaging');
   const [content, setContent] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!content.trim()) return;
+    if (!content.trim() || isSending) return;
 
-    startTransition(async () => {
-      const result = await sendMessage(claimId, content, isInternal);
+    setIsSending(true);
+    setError(null);
 
-      if (result.success) {
-        setContent('');
-        setIsInternal(false);
-        setError(null);
-        onMessageSent?.();
-        toast.success(t('sent'));
-      } else {
-        const errorMsg = result.error || t('sendError');
-        setError(errorMsg);
-        toast.error(errorMsg);
-      }
-    });
+    const success = await onSendMessage(content, isInternal);
+
+    if (success) {
+      setContent('');
+      setIsInternal(false);
+    } else {
+      // Error handling
+      setError(t('sendError')); // Generic error, parent handles specific logic if needed
+    }
+    setIsSending(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -78,7 +72,7 @@ export function MessageInput({
               size="sm"
               className="whitespace-nowrap h-7 text-xs px-2.5 rounded-full"
               onClick={() => handleQuickReply(key)}
-              disabled={isPending}
+              disabled={isSending}
               data-testid={`quick-reply-${key}`}
             >
               {t(`quickReplies.${key}`)}
@@ -98,16 +92,16 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
           placeholder={t('placeholder')}
           className="min-h-[80px] pr-12 resize-none"
-          disabled={isPending}
+          disabled={isSending}
         />
         <Button
           type="submit"
           size="icon"
           className="absolute bottom-2 right-2"
-          disabled={isPending || !content.trim()}
+          disabled={isSending || !content.trim()}
           data-testid="send-message-button"
         >
-          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
 
@@ -124,6 +118,7 @@ export function MessageInput({
             data-testid="internal-note-toggle"
             checked={isInternal}
             onCheckedChange={checked => setIsInternal(checked === true)}
+            disabled={isSending}
           />
           <Label
             htmlFor="internal"
