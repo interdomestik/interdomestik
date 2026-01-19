@@ -1,95 +1,41 @@
+import { claims, memberLeads } from '@interdomestik/database/schema';
 import { describe, expect, it, vi } from 'vitest';
+import { getAgentDashboardLiteCore } from './_core';
 
-const hoisted = vi.hoisted(() => ({
-  dbSelect: vi.fn(),
-}));
-
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    select: hoisted.dbSelect,
-  },
-}));
-
-vi.mock('@interdomestik/database/schema', () => ({
-  agentCommissions: {
-    amount: 'agentCommissions.amount',
-    agentId: 'agentCommissions.agentId',
-    status: 'agentCommissions.status',
-  },
-  crmDeals: {
-    agentId: 'crmDeals.agentId',
-    stage: 'crmDeals.stage',
-  },
-  crmLeads: {
-    agentId: 'crmLeads.agentId',
-    stage: 'crmLeads.stage',
-  },
-  subscriptions: {
-    referredByAgentId: 'subscriptions.referredByAgentId',
-  },
-}));
-
-vi.mock('@interdomestik/database/constants', () => ({}));
-
-vi.mock('drizzle-orm', () => ({
-  and: vi.fn(),
-  count: vi.fn(() => 'count()'),
-  eq: vi.fn(),
-  sql: vi.fn((strings: TemplateStringsArray) => strings.join('')),
-}));
-
-import { getAgentDashboardStatsCore } from './_core';
-
-type FromWhereResult<T> = {
-  from: () => {
-    where: () => Promise<T[]>;
+describe('getAgentDashboardLiteCore', () => {
+  const mockDb = {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn(),
   };
-};
 
-function makeFromWhereResult<T>(rows: T[]): FromWhereResult<T> {
-  return {
-    from: () => ({
-      where: async () => rows,
-    }),
-  };
-}
+  const services = { db: mockDb as any };
 
-describe('getAgentDashboardStatsCore', () => {
-  it('returns counts and totals', async () => {
-    hoisted.dbSelect
-      .mockReturnValueOnce(makeFromWhereResult([{ count: 2 }]))
-      .mockReturnValueOnce(makeFromWhereResult([{ count: 5 }]))
-      .mockReturnValueOnce(makeFromWhereResult([{ count: 1 }]))
-      .mockReturnValueOnce(makeFromWhereResult([{ total: 12.34 }]))
-      .mockReturnValueOnce(makeFromWhereResult([{ count: 9 }]));
+  it('calculates counts correctly for an agent', async () => {
+    // Mock leads count
+    mockDb.where.mockResolvedValueOnce([{ count: 5 }]);
+    // Mock claims count
+    mockDb.where.mockResolvedValueOnce([{ count: 3 }]);
 
-    const stats = await getAgentDashboardStatsCore({ agentId: 'agent-1' });
+    const result = await getAgentDashboardLiteCore({ agentId: 'agent-1' }, services);
 
-    expect(stats).toEqual({
-      newLeads: 2,
-      contactedLeads: 5,
-      wonDeals: 1,
-      totalPaidCommission: 12.34,
-      clientCount: 9,
-    });
+    expect(result.newLeadsCount).toBe(5);
+    expect(result.activeClaimsCount).toBe(3);
+    expect(result.followUpsCount).toBe(0);
+
+    // Verify lead query
+    expect(mockDb.from).toHaveBeenCalledWith(memberLeads);
+    // Verify claim query
+    expect(mockDb.from).toHaveBeenCalledWith(claims);
   });
 
-  it('defaults missing rows to zero', async () => {
-    hoisted.dbSelect
-      .mockReturnValueOnce(makeFromWhereResult([]))
-      .mockReturnValueOnce(makeFromWhereResult([]))
-      .mockReturnValueOnce(makeFromWhereResult([]))
-      .mockReturnValueOnce(makeFromWhereResult([]))
-      .mockReturnValueOnce(makeFromWhereResult([]));
+  it('handles empty results', async () => {
+    mockDb.where.mockResolvedValueOnce([]);
+    mockDb.where.mockResolvedValueOnce([]);
 
-    const stats = await getAgentDashboardStatsCore({ agentId: 'agent-1' });
+    const result = await getAgentDashboardLiteCore({ agentId: 'agent-1' }, services);
 
-    expect(stats).toEqual({
-      newLeads: 0,
-      contactedLeads: 0,
-      wonDeals: 0,
-      totalPaidCommission: 0,
-      clientCount: 0,
-    });
+    expect(result.newLeadsCount).toBe(0);
+    expect(result.activeClaimsCount).toBe(0);
   });
 });

@@ -1,10 +1,11 @@
 import { getMyCommissionSummary } from '@/actions/commissions';
-import { getAgentDashboardStatsCore } from '@/app/[locale]/(agent)/agent/_core';
+import { getAgentDashboardV2StatsCore } from '@/app/[locale]/(agent)/agent/_core';
 import { LeaderboardCard } from '@/components/agent/leaderboard-card';
 import { PipelineChart } from '@/components/agent/pipeline-chart';
 import { ReferralLinkCard } from '@/components/agent/referral-link-card';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
+import { db } from '@interdomestik/database/db';
 import {
   Button,
   Card,
@@ -33,7 +34,7 @@ export async function AgentDashboardV2Page({ locale }: { locale: string }) {
 
   const agentId = session.user.id;
 
-  const stats = await getAgentDashboardStatsCore({ agentId });
+  const stats = await getAgentDashboardV2StatsCore({ agentId }, { db });
 
   // Get commission summary
   const summaryResult = await getMyCommissionSummary();

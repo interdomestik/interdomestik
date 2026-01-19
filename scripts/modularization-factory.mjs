@@ -92,14 +92,28 @@ async function walk(dir) {
   return results;
 }
 
-function scoreEntry({ lineCount, signals }) {
+function scoreEntry({ lineCount, signals, hasCore }) {
   // A simple scoring model: line count + weighted “server/data complexity” signals.
   let score = lineCount;
+
+  // 1. Discovery Signals
   if (signals.importsDb) score += 300;
   if (signals.importsSchemaOrOrm) score += 150;
   if (signals.callsNotFound) score += 50;
   if (signals.usesNextServer) score += 50;
   if (signals.manyAwait) score += 50;
+
+  // 2. State-Based Weighting
+  if (hasCore) {
+    // If it has core but still imports DB - that's a "Hybrid" that needs urgent cleanup (breaking purity)
+    if (signals.importsDb || signals.importsSchemaOrOrm) {
+      score += 1000;
+    } else {
+      // If it's modularized and clean, push it to the bottom
+      score -= 500;
+    }
+  }
+
   return score;
 }
 
@@ -112,7 +126,8 @@ function detectSignals(text) {
   const usesNextServer =
     /next\/navigation/u.test(text) ||
     /next-intl\/server/u.test(text) ||
-    /next\/headers/u.test(text);
+    /next\/headers/u.test(text) ||
+    /next\/server/u.test(text); // Added next/server for API routes
   const awaitCount = (text.match(/\bawait\b/gu) ?? []).length;
   const manyAwait = awaitCount >= 8;
 
@@ -230,7 +245,7 @@ async function main() {
       lineCount,
       signals,
       hasCore,
-      score: scoreEntry({ lineCount, signals }),
+      score: scoreEntry({ lineCount, signals, hasCore }),
     });
   }
 
