@@ -16,22 +16,30 @@ echo "🧹 Resetting Supabase DB (clean slate)..."
 MAX_RETRIES=3
 RETRY_COUNT=0
 RESET_SUCCESS=false
+RESET_PATH="UNKNOWN"
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+  RETRY_COUNT=$((RETRY_COUNT+1))
+  echo "📍 Attempt $RETRY_COUNT/$MAX_RETRIES..."
+  
   if npx supabase db reset --no-seed; then
     RESET_SUCCESS=true
-    echo "✅ RESET OK (Attempt $((RETRY_COUNT+1)))"
+    RESET_PATH="RESET_OK"
+    echo "✅ Supabase reset succeeded (Attempt $RETRY_COUNT)"
     break
   else
-    echo "⚠️  Reset failed (Attempt $((RETRY_COUNT+1))/$MAX_RETRIES). Retrying in 2s..."
-    RETRY_COUNT=$((RETRY_COUNT+1))
-    sleep 2
+    echo "⚠️  Reset failed (Attempt $RETRY_COUNT/$MAX_RETRIES)"
+    if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+      echo "   Retrying in 2s..."
+      sleep 2
+    fi
   fi
 done
 
 if [ "$RESET_SUCCESS" = false ]; then
   echo "❌ RESET FAILED after $MAX_RETRIES attempts."
-  echo "🔄 ACTIVATING FALLBACK MODE: Manual Migrate & Seed..."
+  echo "🔄 ACTIVATING FALLBACK MODE..."
+  RESET_PATH="FALLBACK"
 
   # Ensure Supabase is up (this is the key reliability gain)
   echo "fallback: ▶️  Ensuring Supabase is running..."
@@ -43,16 +51,20 @@ if [ "$RESET_SUCCESS" = false ]; then
   echo "fallback: 🌱 Seeding Data (Mode: E2E, Reset: True)..."
   pnpm seed:e2e -- --reset
 
-  echo "✅ FALLBACK SEQUENCE COMPLETE. Proceeding to tests..."
-  exit 0
+  echo "✅ FALLBACK SEQUENCE COMPLETE."
+  # NOTE: Do NOT exit here - allow tests to proceed
+else
+  # Normal path: Migrate and Seed after successful reset
+  echo "🏗️  Applying Application Schema (Drizzle)..."
+  pnpm db:migrate
+
+  echo "🌱 Seeding Data (Mode: E2E, Reset: True)..."
+  pnpm seed:e2e -- --reset
 fi
 
-# 2. Migrate Schema
-echo "🏗️  Applying Application Schema (Drizzle)..."
-pnpm db:migrate
-
-# 3. Seed Data
-echo "🌱 Seeding Data (Mode: E2E, Reset: True)..."
-pnpm seed:e2e -- --reset
-
-echo "✅ Gatekeeper Ready! Database is clean, migrated, and deterministically seeded."
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "✅ Gatekeeper Ready! Path: $RESET_PATH | Attempts: $RETRY_COUNT"
+echo "   Database is clean, migrated, and deterministically seeded."
+echo "   Proceeding to tests..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
