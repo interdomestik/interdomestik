@@ -5,18 +5,53 @@ echo "🚧 Starting M4 Gatekeeper Reset..."
 
 # 0. Kill stale processes to ensure fresh env/config
 echo "💀 Killing any stale processes on port 3000..."
-lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+PIDS="$(lsof -ti:3000 2>/dev/null || true)"
+if [ -n "$PIDS" ]; then
+  kill -9 $PIDS 2>/dev/null || true
+fi
 echo "✅ Port 3000 clear."
 
-# 1. Stop and Reset DB (This wipes the DB and applies ONLY Supabase Storage/Infra migrations)
 echo "🧹 Resetting Supabase DB (clean slate)..."
-npx supabase db reset --no-seed
 
-# 2. Migrate Schema (Applies Drizzle Schema - Tables, Enums, Relations)
+MAX_RETRIES=3
+RETRY_COUNT=0
+RESET_SUCCESS=false
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+  if npx supabase db reset --no-seed; then
+    RESET_SUCCESS=true
+    echo "✅ RESET OK (Attempt $((RETRY_COUNT+1)))"
+    break
+  else
+    echo "⚠️  Reset failed (Attempt $((RETRY_COUNT+1))/$MAX_RETRIES). Retrying in 2s..."
+    RETRY_COUNT=$((RETRY_COUNT+1))
+    sleep 2
+  fi
+done
+
+if [ "$RESET_SUCCESS" = false ]; then
+  echo "❌ RESET FAILED after $MAX_RETRIES attempts."
+  echo "🔄 ACTIVATING FALLBACK MODE: Manual Migrate & Seed..."
+
+  # Ensure Supabase is up (this is the key reliability gain)
+  echo "fallback: ▶️  Ensuring Supabase is running..."
+  npx supabase start >/dev/null 2>&1 || true
+
+  echo "fallback: 🏗️  Applying Application Schema (Drizzle)..."
+  pnpm db:migrate
+
+  echo "fallback: 🌱 Seeding Data (Mode: E2E, Reset: True)..."
+  pnpm seed:e2e -- --reset
+
+  echo "✅ FALLBACK SEQUENCE COMPLETE. Proceeding to tests..."
+  exit 0
+fi
+
+# 2. Migrate Schema
 echo "🏗️  Applying Application Schema (Drizzle)..."
 pnpm db:migrate
 
-# 3. Seed Data (Deterministic E2E Seed)
+# 3. Seed Data
 echo "🌱 Seeding Data (Mode: E2E, Reset: True)..."
 pnpm seed:e2e -- --reset
 

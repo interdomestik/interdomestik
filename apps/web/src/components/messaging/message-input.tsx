@@ -26,6 +26,7 @@ export function MessageInput({
   const t = useTranslations('messaging');
   const [content, setContent] = useState('');
   const [isInternal, setIsInternal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -39,10 +40,13 @@ export function MessageInput({
       if (result.success) {
         setContent('');
         setIsInternal(false);
+        setError(null);
         onMessageSent?.();
         toast.success(t('sent'));
       } else {
-        toast.error(result.error || t('sendError'));
+        const errorMsg = result.error || t('sendError');
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     });
   };
@@ -87,7 +91,10 @@ export function MessageInput({
         <Textarea
           data-testid="message-input"
           value={content}
-          onChange={e => setContent(e.target.value)}
+          onChange={e => {
+            setContent(e.target.value);
+            if (error) setError(null);
+          }}
           onKeyDown={handleKeyDown}
           placeholder={t('placeholder')}
           className="min-h-[80px] pr-12 resize-none"
@@ -103,6 +110,12 @@ export function MessageInput({
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </div>
+
+      {error && (
+        <p className="text-xs text-destructive font-medium" data-testid="message-inline-error">
+          {error}
+        </p>
+      )}
 
       {allowInternal && (
         <div className="flex items-center gap-2">

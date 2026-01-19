@@ -29,7 +29,10 @@ export function MessageThread({ messages, currentUserId, isAgent = false }: Mess
 
   if (messages.length === 0) {
     return (
-      <Card className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+      <Card
+        className="flex-1 flex flex-col items-center justify-center p-8 text-center"
+        data-testid="messaging-empty-state"
+      >
         <div className="p-4 rounded-full bg-[hsl(var(--muted))] mb-4">
           <MessageSquare className="h-8 w-8 text-[hsl(var(--muted-foreground))]" />
         </div>
