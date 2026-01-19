@@ -2,6 +2,8 @@ import { PublicTrackingCard } from '@/features/claims/tracking/components/Public
 import { getPublicClaimStatus } from '@/features/claims/tracking/server/getPublicClaimStatus';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
+import { headers } from 'next/headers';
+import { getTrackingViewCore } from './_core';
 
 interface PageProps {
   params: Promise<{
@@ -14,17 +16,27 @@ interface PageProps {
 
 export default async function PublicTrackingPage({ params, searchParams }: PageProps) {
   const { token } = await params;
-  const { lang } = await searchParams; // Default to en
+  const { lang } = await searchParams;
+  const headerList = await headers();
+  const ipAddress = headerList.get('x-forwarded-for') || 'unknown';
+  const userAgent = headerList.get('user-agent') || 'unknown';
 
   // Validate locale simple check
-  const locale = (['en', 'sq', 'mk', 'sr'].includes(lang || '') ? lang : 'en') as any;
+  const locale = (['en', 'sq', 'mk', 'sr'].includes(lang || '') ? lang : 'en') as
+    | 'en'
+    | 'sq'
+    | 'mk'
+    | 'sr';
 
-  const data = await getPublicClaimStatus(token);
+  const result = await getTrackingViewCore(
+    { token, ipAddress, userAgent },
+    {
+      getPublicClaimStatusFn: getPublicClaimStatus,
+      // logTrackingAttemptFn could be added here if we have a separate action for it
+    }
+  );
 
-  if (!data) {
-    // If invalid token, show generic 404 or specific error page
-    // For security, just 404 is often best to prevent enumeration,
-    // but user experience might prefer "Invalid Link"
+  if (!result.ok) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
         <div className="text-center space-y-4">
@@ -35,26 +47,13 @@ export default async function PublicTrackingPage({ params, searchParams }: PageP
     );
   }
 
-  // Load messages for the isolated page
-  // We need specific namespaces
+  const data = result.data;
   const messages = await getMessages({ locale });
-  const pick = (obj: any, keys: string[]) => {
-    // minimal pick
-    const ret: any = {};
-    keys.forEach(k => {
-      if (obj[k]) ret[k] = obj[k];
-    });
-    return ret;
-  };
-
-  // We can pass all messages or just relevant ones
-  // NextIntlClientProvider needs messages to work for useTranslations
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <div className="min-h-screen bg-gray-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
-          {/* Brand / Logo */}
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Interdomestik</h2>
           <p className="mt-2 text-sm text-gray-600">Claim Tracking Portal</p>
         </div>

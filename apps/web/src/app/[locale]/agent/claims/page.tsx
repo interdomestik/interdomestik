@@ -1,10 +1,11 @@
 import { ClaimStatusBadge } from '@/features/claims/tracking/components/ClaimStatusBadge';
-import { getAgentMemberClaims } from '@/features/claims/tracking/server/getAgentMemberClaims';
+import { db } from '@interdomestik/database';
 import { Avatar, AvatarFallback } from '@interdomestik/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/card';
 import { headers } from 'next/headers';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { getAgentClaimsCore } from './_core';
 
 // Helper for initials
 function getInitials(name: string) {
@@ -16,7 +17,7 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-// Minimal placeholder auth if standard fails (reuse pattern from member page)
+// Minimal placeholder auth
 async function getAuth() {
   try {
     const { auth } = await import('@/lib/auth');
@@ -35,9 +36,22 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
   const { locale } = await params;
   await searchParams;
   const session = await getAuth();
-  if (!session) redirect('/login');
+  if (!session) redirect(`/${locale}/login`);
 
-  const groups = await getAgentMemberClaims(session);
+  const result = await getAgentClaimsCore({
+    tenantId: session.user.tenantId,
+    userId: session.user.id,
+    role: session.user.role,
+    branchId: session.user.branchId,
+    db,
+  });
+
+  if (!result.ok) {
+    if (result.code === 'FORBIDDEN') return notFound();
+    throw new Error('Internal Server Error');
+  }
+
+  const groups = result.data;
 
   return (
     <div className="container py-8 space-y-8" data-testid="agent-claims-page">
@@ -76,10 +90,14 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
                       <div className="space-y-1">
                         <p className="font-medium">{claim.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(claim.createdAt).toLocaleDateString()}
+                          {new Date(claim.createdAt).toLocaleDateString(locale)}
                         </p>
                       </div>
-                      <ClaimStatusBadge status={claim.status as any} />
+                      <ClaimStatusBadge
+                        status={
+                          claim.status as import('@interdomestik/database/constants').ClaimStatus
+                        }
+                      />
                     </Link>
                   ))}
                 </div>
