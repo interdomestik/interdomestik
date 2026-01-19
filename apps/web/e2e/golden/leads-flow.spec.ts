@@ -4,11 +4,10 @@ import { test } from '../fixtures/auth.fixture';
 /**
  * Leads & Conversion Flow
  *
- * @quarantine - Requires UI elements (New Lead button) and specific lead creation flow
  * @ticket INTERDO-Q004: Re-enable after leads creation UI is stabilized
  * @expiry 2026-02-15
  */
-test.describe('Leads & Conversion Flow (Golden) @quarantine', () => {
+test.describe('Leads & Conversion Flow (Golden)', () => {
   const uniqueId = Date.now().toString(36);
   const leadData = {
     firstName: `Lead${uniqueId}`,
@@ -60,24 +59,47 @@ test.describe('Leads & Conversion Flow (Golden) @quarantine', () => {
       }
 
       // Verify in list
-      await expect(page.getByRole('cell', { name: leadData.email })).toBeVisible();
-      await expect(page.getByRole('cell', { name: 'New', exact: true })).toBeVisible();
+      const row = page.getByRole('row').filter({ hasText: leadData.email });
+      await expect(row).toBeVisible();
+      await expect(row).toContainText('New', { ignoreCase: true });
     });
 
     // 2. Mark Contacted
     await test.step('Agent marks lead as contacted', async () => {
       const row = page.getByRole('row').filter({ hasText: leadData.email });
-      await row.getByRole('button', { name: 'Mark Contacted' }).click();
+      await row.click();
+
+      const drawer = page.getByRole('dialog');
+      await expect(drawer).toBeVisible();
+
+      // Expand More Actions
+      await drawer.getByText('More Actions').click();
+      await drawer.getByRole('button', { name: 'Mark Contacted' }).click();
       await expect(page.getByText('Lead marked as contacted')).toBeVisible();
-      await expect(row.getByText('Contacted', { exact: true })).toBeVisible();
+
+      await page.keyboard.press('Escape');
+      await expect(row).toContainText('Contacted', { ignoreCase: true });
     });
 
     // 3. Cash Payment
     await test.step('Agent initiates cash payment', async () => {
       const row = page.getByRole('row').filter({ hasText: leadData.email });
-      await row.getByRole('button', { name: 'Pay Cash' }).click();
-      await expect(page.getByText('Cash payment recorded')).toBeVisible();
-      await expect(row.getByText('Waiting Approval')).toBeVisible();
+      await row.click();
+
+      const drawer = page.getByRole('dialog');
+      await expect(drawer).toBeVisible();
+
+      // Verify status updated in drawer to ensure actions are refreshed
+      await expect(drawer).toContainText('Contacted', { ignoreCase: true });
+
+      // Expand More Actions
+      await drawer.getByText('More Actions').click();
+      await expect(drawer.getByRole('button', { name: 'Request Payment' })).toBeVisible();
+      await drawer.getByRole('button', { name: 'Request Payment' }).click();
+      await expect(page.getByText('Payment requested')).toBeVisible();
+
+      await page.keyboard.press('Escape');
+      await expect(row).toContainText('Payment Pending', { ignoreCase: true });
     });
 
     // 4. Admin Verification

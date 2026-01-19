@@ -9,9 +9,11 @@ import { OpsTimeline } from '@/components/ops/OpsTimeline';
 import { getLeadActions, toOpsStatus, toOpsTimelineEvents } from '@/components/ops/adapters/leads';
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
+import { CreateLeadDialog } from './CreateLeadDialog';
 
 // Lite columns
 const columns = [
@@ -20,6 +22,7 @@ const columns = [
 ];
 
 export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
+  const router = useRouter();
   const { selectedId, setSelectedId, clearSelectedId } = useOpsSelectionParam();
   const [isPending, startTransition] = useTransition();
   const [showSecondary, setShowSecondary] = useState(false);
@@ -59,6 +62,7 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
           await updateLeadStatus(selectedLead.id, 'lost');
           toast.success('Lead marked as lost');
         }
+        router.refresh();
       } catch (e) {
         toast.error('Action failed');
       }
@@ -106,6 +110,11 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
 
   return (
     <div className="h-full flex flex-col" data-testid="agent-leads-lite">
+      <div className="flex items-center justify-between p-4 pb-0">
+        <h1 className="text-xl font-bold tracking-tight">My Leads</h1>
+        <CreateLeadDialog onSuccess={() => router.refresh()} />
+      </div>
+
       <div className="flex-1 overflow-hidden p-4">
         <OpsQueryState
           isEmpty={leads.length === 0}

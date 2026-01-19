@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { db, leads } from '@interdomestik/database';
+import { db, memberLeads } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -23,8 +23,8 @@ export async function updateLeadStatus(leadId: string, status: string) {
   const tenantId = ensureTenantId(session);
 
   // Authz: Lead must belong to tenant
-  const lead = await db.query.leads.findFirst({
-    where: and(eq(leads.id, leadId), eq(leads.tenantId, tenantId)),
+  const lead = await db.query.memberLeads.findFirst({
+    where: and(eq(memberLeads.id, leadId), eq(memberLeads.tenantId, tenantId)),
   });
 
   if (!lead) {
@@ -32,12 +32,12 @@ export async function updateLeadStatus(leadId: string, status: string) {
   }
 
   await db
-    .update(leads)
+    .update(memberLeads)
     .set({
       status: status as any,
       updatedAt: new Date(),
     })
-    .where(eq(leads.id, leadId));
+    .where(eq(memberLeads.id, leadId));
 
   revalidatePath('/[locale]/(app)/agent/leads');
   return { success: true };
