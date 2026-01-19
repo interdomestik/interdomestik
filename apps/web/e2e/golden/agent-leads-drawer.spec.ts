@@ -70,7 +70,13 @@ test.describe('Agent Leads Drawer (Golden)', () => {
 
     // 7. Verify Actions
     const actionBar = drawer.getByTestId(OPS_TEST_IDS.ACTION_BAR);
-    await expect(actionBar).toBeVisible();
+    // Note: We might see multiple action bars due to the split (primary vs secondary).
+    // Ideally we check specific sections.
+
+    // Check for "Next Step" guided section
+    const nextStepSection = drawer.getByTestId('agent-lead-next-step');
+    // Since seed status is 'new', Convert is primary, so next step should be visible
+    await expect(nextStepSection).toBeVisible();
 
     // Check for "Convert to Client" button (primary action)
     // Note: If lead is already converted, this might be hidden, so we check availability based on status.

@@ -8,7 +8,8 @@ import { OpsTable } from '@/components/ops/OpsTable';
 import { OpsTimeline } from '@/components/ops/OpsTimeline';
 import { getLeadActions, toOpsStatus, toOpsTimelineEvents } from '@/components/ops/adapters/leads';
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
-import { useEffect, useTransition } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
 
@@ -21,6 +22,7 @@ const columns = [
 export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
   const { selectedId, setSelectedId, clearSelectedId } = useOpsSelectionParam();
   const [isPending, startTransition] = useTransition();
+  const [showSecondary, setShowSecondary] = useState(false);
 
   const selectedLead = leads.find(l => l.id === selectedId);
 
@@ -170,12 +172,52 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
               </div>
             )}
 
-            <div className="border-t pt-4">
-              <OpsActionBar
-                primary={primary ? mapAction(primary) : undefined}
-                secondary={secondary.map(mapAction)}
-              />
-            </div>
+            {/* Guided Next Step */}
+            {primary && (
+              <div className="border-t pt-4" data-testid="agent-lead-next-step">
+                <span className="block text-sm font-medium text-muted-foreground mb-3">
+                  Next Step
+                </span>
+                <OpsActionBar
+                  primary={!!primary ? mapAction(primary) : undefined}
+                  className="pt-0 border-0 mt-0"
+                  align="start"
+                >
+                  {/* OpsActionBar typically renders buttons in a row. 
+                       We want primary to be full width or prominent. 
+                       OpsActionBar renders children if provided, or buttons if not.
+                       Let's rely on standard rendering but passing ONLY primary first. 
+                   */}
+                </OpsActionBar>
+              </div>
+            )}
+
+            {/* Secondary Actions (Collapsible) */}
+            {secondary.length > 0 && (
+              <div className="border-t pt-4">
+                <button
+                  onClick={() => setShowSecondary(!showSecondary)}
+                  className="flex items-center justify-between w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  More Actions
+                  {showSecondary ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+
+                {showSecondary && (
+                  <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
+                    <OpsActionBar
+                      secondary={secondary.map(mapAction)}
+                      className="pt-0 border-0 mt-0"
+                      align="start"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="border-t pt-4">
               <OpsTimeline
