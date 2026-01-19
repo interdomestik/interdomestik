@@ -17,15 +17,22 @@ test.describe('Security & Isolation Smoke Tests', () => {
     // Product rule: "You don't see what you don't own". So empty list or 404 is correct.
     // If it returns the MK claim, FAIL.
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({})); // Handle non-JSON 404 response
+
     if (response.ok()) {
-      // If OK, data must NOT contain the MK claim
+      // If OK, we must verify we didn't receive the sensitive object
+      const list = data.claims || [];
       const hasMKClaim =
-        Array.isArray(data) && data.some((c: any) => c.claimNumber === MK_CLAIM_NUMBER);
-      expect(hasMKClaim, 'Security Breach: KS user retrieved MK claim via API').toBe(false);
+        Array.isArray(list) && list.some((c: any) => c.claimNumber === MK_CLAIM_NUMBER);
+
+      expect(hasMKClaim, `Security Breach: KS user retrieved MK claim ${MK_CLAIM_NUMBER}`).toBe(
+        false
+      );
     } else {
-      // 403/404 is also acceptable security
-      expect([403, 404]).toContain(response.status());
+      // Strict Policy: 404 to prevent enumeration
+      expect(response.status(), `Cross-tenant access should be 404, got ${response.status()}`).toBe(
+        404
+      );
     }
   });
 
@@ -33,16 +40,38 @@ test.describe('Security & Isolation Smoke Tests', () => {
   // Requirement: Agent cannot access Admin Dashboard
   test('Role Privilege Enforcement (Agent -> Admin)', async ({ agentPage }) => {
     // Agent attempts to visit Admin Dashboard
-    await agentPage.goto('/en/admin');
+    const response = await agentPage.goto('/en/admin');
+    await agentPage.waitForLoadState('domcontentloaded');
 
-    // Should be redirected or show Forbidden
-    const url = agentPage.url();
-    // Expect redirect to agent dashboard or login
-    const isSafe = url.includes('/agent') || url.includes('/login') || url.includes('/error');
-    expect(isSafe, `Security Breach: Agent accessed Admin URL: ${url}`).toBe(true);
+    const adminSidebar = agentPage.locator('[data-testid="admin-sidebar"]');
+    const notFound = agentPage.locator('[data-testid="not-found-page"]');
 
-    // Use strict locator check for absence of admin elements
-    await expect(agentPage.locator('[data-testid="admin-sidebar"]')).not.toBeVisible();
+    const outcome = await Promise.any([
+      agentPage
+        .waitForURL(/\/(agent|login)(\/|$)/, { timeout: 8_000, waitUntil: 'domcontentloaded' })
+        .then(() => 'redirect'),
+      notFound.waitFor({ state: 'visible', timeout: 8_000 }).then(() => 'not-found'),
+      adminSidebar.waitFor({ state: 'visible', timeout: 8_000 }).then(() => 'admin'),
+    ]).catch(() => 'unknown');
+
+    expect(outcome, 'Expected redirect or 404, but admin UI was reachable.').not.toBe('admin');
+    expect(outcome, 'Expected redirect or 404, but no stable state was detected.').not.toBe(
+      'unknown'
+    );
+
+    if (outcome === 'redirect') {
+      const finalUrl = agentPage.url();
+      expect(finalUrl).not.toContain('/admin');
+    } else {
+      await expect(notFound).toBeVisible();
+      await expect(adminSidebar).not.toBeVisible();
+      if (response) {
+        expect(
+          response.status(),
+          `Expected 404 on forbidden admin access, got ${response.status()}`
+        ).toBe(404);
+      }
+    }
   });
 
   // Test 3: Public Token Isolation

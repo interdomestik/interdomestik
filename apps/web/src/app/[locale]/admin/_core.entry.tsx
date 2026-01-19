@@ -38,24 +38,17 @@ export default async function AdminLayout({
 
   // Central Portal Guard
   const role = sessionNonNull.user.role;
-  console.log(`[AdminLayout] Guard Check | Role: ${role} | Path: ${locale}/admin`);
+  const { isAllowedInAdmin, getPortalHome } = await import('@/lib/rbac-portals');
 
-  // 1. Staff -> 404 Not Found (Strict Isolation)
-  if (role === 'staff') {
-    const { notFound } = await import('next/navigation');
-    notFound();
-  }
-
-  // 2. Agent -> 404 Not Found (Strict Isolation)
-  if (role === 'agent') {
-    const { notFound } = await import('next/navigation');
-    notFound();
-  }
-
-  // 3. Member -> 404 Not Found (Strict Isolation)
-  if (role === 'member') {
-    const { notFound } = await import('next/navigation');
-    notFound();
+  if (!isAllowedInAdmin(role)) {
+    const home = getPortalHome(role);
+    // Redirect to home if known, otherwise NOT FOUND (safe default)
+    if (home) {
+      redirect(`/${locale}${home}`);
+    } else {
+      const { notFound } = await import('next/navigation');
+      notFound();
+    }
   }
 
   // 4. Default Allow: tenant_admin, super_admin, branch_manager
