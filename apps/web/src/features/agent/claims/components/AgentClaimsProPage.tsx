@@ -1,0 +1,237 @@
+'use client';
+
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
+
+import { MessagingPanel } from '@/components/messaging/messaging-panel';
+import {
+  OpsActionBar,
+  OpsDrawer,
+  OpsFiltersBar,
+  OpsStatusBadge,
+  OpsTable,
+  toOpsBadgeVariant,
+} from '@/components/ops';
+import { getClaimActions } from '@/components/ops/adapters/claims';
+import { Link } from '@/i18n/routing';
+import { Button } from '@interdomestik/ui';
+import { format } from 'date-fns';
+import { ArrowLeft } from 'lucide-react';
+
+// Define minimal Claim type for Pro table
+export type AgentProClaim = {
+  id: string;
+  claimNumber: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  member: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  branch: {
+    name: string;
+  } | null;
+  _count?: {
+    documents: number;
+    timelineEvents: number;
+  };
+};
+
+interface AgentClaimsProPageProps {
+  claims: AgentProClaim[];
+  userId: string;
+}
+
+export function AgentClaimsProPage({ claims, userId }: AgentClaimsProPageProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // URL Selection for Drawer
+  const selectedId = searchParams.get('selected');
+  // Drawer View Mode
+  const [viewMode, setViewMode] = useState<'details' | 'messaging'>('details');
+
+  const handleSelect = (id: string) => {
+    setViewMode('details'); // Reset view on new selection
+    const params = new URLSearchParams(searchParams);
+    params.set('selected', id);
+    router.replace(`?${params.toString()}`);
+  };
+
+  const handleClose = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('selected');
+    router.replace(`?${params.toString()}`);
+  };
+
+  // Local Filter State
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter Logic
+  const filteredClaims = claims.filter(claim => {
+    // 1. Tab Filter
+    if (activeTab === 'open' && ['closed', 'rejected', 'resolved'].includes(claim.status))
+      return false;
+    if (activeTab === 'closed' && !['closed', 'rejected', 'resolved'].includes(claim.status))
+      return false;
+
+    // 2. Search Filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matches =
+        claim.claimNumber.toLowerCase().includes(q) ||
+        claim.member?.name.toLowerCase().includes(q) ||
+        claim.member?.email.toLowerCase().includes(q);
+      if (!matches) return false;
+    }
+    return true;
+  });
+
+  // Table Configuration
+  const columns = [
+    { key: 'claim', header: 'Claim' },
+    { key: 'status', header: 'Status' },
+    { key: 'member', header: 'Member' },
+    { key: 'meta', header: 'Created / Last Update' },
+  ];
+
+  const rows = filteredClaims.map(claim => ({
+    id: claim.id,
+    cells: [
+      // Claim
+      <div key="claim">
+        <div className="font-medium">{claim.claimNumber}</div>
+        <div className="text-xs text-muted-foreground">ID: {claim.id.slice(0, 8)}</div>
+      </div>,
+      // Status
+      <OpsStatusBadge
+        key="status"
+        label={claim.status}
+        variant={toOpsBadgeVariant(claim.status)}
+      />,
+      // Member
+      <div key="member">
+        <div className="font-medium">{claim.member?.name || 'Unknown'}</div>
+        <div className="text-xs text-muted-foreground">{claim.member?.email}</div>
+      </div>,
+      // Meta
+      <div key="meta" className="text-xs text-muted-foreground">
+        <div>{format(new Date(claim.createdAt), 'MMM d, yyyy')}</div>
+        <div className="opacity-70">Upd: {format(new Date(claim.updatedAt), 'MMM d')}</div>
+      </div>,
+    ],
+    onClick: () => handleSelect(claim.id),
+    testId: 'claim-row',
+  }));
+
+  const selectedClaim = claims.find(c => c.id === selectedId);
+
+  // Actions Logic
+  const actions = useMemo(() => {
+    if (!selectedClaim) return { secondary: [] };
+
+    // Use adapter to get standard actions (including message)
+    const available = getClaimActions(selectedClaim, k => k); // Mock t function
+
+    return {
+      secondary: available.secondary.map(action => ({
+        ...action,
+        onClick:
+          action.id === 'message'
+            ? () => setViewMode('messaging')
+            : action.id === 'upload'
+              ? () => console.log('Upload clicked')
+              : () => {},
+      })),
+    };
+  }, [selectedClaim]);
+
+  // Drawer Footer (Only show when in details mode?)
+  // Actually OpsActionBar usually lives in the body or footer.
+  // OpsDrawer has a `footer` prop. Let's put OpsActionBar there for Details mode.
+
+  return (
+    <div className="space-y-6" data-testid="agent-claims-pro-page">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Claims Worklist (Pro)</h1>
+          <p className="text-muted-foreground">Monitor and track member claims.</p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/agent/workspace">
+            <Button variant="outline" size="sm" className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Workspace
+            </Button>
+          </Link>
+          <Link href="/agent">
+            <Button variant="ghost" size="sm">
+              Switch to Lite
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <OpsFiltersBar
+        tabs={[
+          { id: 'all', label: 'All Claims' },
+          { id: 'open', label: 'Open / Active' },
+          { id: 'closed', label: 'Closed / Resolved' },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search by Claim # or Member..."
+        searchInputTestId="claims-search"
+      />
+
+      {/* Table */}
+      <OpsTable columns={columns} rows={rows} emptyLabel="No claims found matching filters." />
+
+      {/* Drawer */}
+      <OpsDrawer
+        open={!!selectedClaim}
+        onOpenChange={open => !open && handleClose()}
+        title={selectedClaim ? `Claim ${selectedClaim.claimNumber}` : ''}
+        footer={
+          viewMode === 'details' && selectedClaim ? (
+            <OpsActionBar secondary={actions.secondary} />
+          ) : undefined
+        }
+      >
+        {selectedClaim && (
+          <div className="space-y-6" data-testid="ops-drawer-content">
+            {viewMode === 'details' ? (
+              <div className="space-y-6">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h3 className="font-medium mb-2">Details (Read Only)</h3>
+                  <p className="text-sm">Status: {selectedClaim.status}</p>
+                  <p className="text-sm">Branch: {selectedClaim.branch?.name || 'N/A'}</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Timeline and Documents are coming soon in next update.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium">Messages</h3>
+                  <Button variant="ghost" size="sm" onClick={() => setViewMode('details')}>
+                    Close Messaging
+                  </Button>
+                </div>
+                <MessagingPanel claimId={selectedClaim.id} currentUserId={userId} isAgent={true} />
+              </div>
+            )}
+          </div>
+        )}
+      </OpsDrawer>
+    </div>
+  );
+}

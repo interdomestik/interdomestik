@@ -64,7 +64,9 @@ export async function sendMessageDbCore(params: {
       userRole === 'tenant_admin' ||
       userRole === 'super_admin';
 
-    if (!isStaff && claim.userId !== userId) {
+    const isAgent = userRole === 'agent';
+
+    if (!isStaff && !isAgent && claim.userId !== userId) {
       return { success: false, error: 'Access denied' };
     }
 

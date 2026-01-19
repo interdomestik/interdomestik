@@ -48,9 +48,9 @@ export default async function AgentWorkspacePage() {
             <p className="text-xs text-muted-foreground mb-4">
               Detailed claim review and adjudication tools.
             </p>
-            <Button disabled variant="secondary" className="w-full">
-              Coming Soon
-            </Button>
+            <Link href="/agent/workspace/claims">
+              <Button className="w-full">Open Queue</Button>
+            </Link>
           </CardContent>
         </Card>
 
