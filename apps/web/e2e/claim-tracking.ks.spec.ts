@@ -1,4 +1,17 @@
+/**
+ * Claim Tracking KS E2E Tests
+ *
+ * @quarantine - Requires specialized seed pack (ks-tracking-pack) not in standard e2e seed
+ * @ticket INTERDO-Q001: Re-enable after seed:golden is integrated
+ * @expiry 2026-02-15
+ */
 import { expect, test } from '@playwright/test';
+
+// NOTE: This file is quarantined because it requires:
+// 1. member.tracking.ks@interdomestik.com user to exist
+// 2. golden_ks_track_claim_001 claim to exist
+// 3. demo-ks-track-token-001 tracking token to exist
+// These are not part of the standard seed:e2e pack.
 
 // Deterministic data from seed:golden (KS Pack)
 const DEFAULT_LOCALE = 'sq';
@@ -11,8 +24,6 @@ const USERS = {
   AGENT: { email: 'agent.ks.a1@interdomestik.com', password: 'GoldenPass123!' },
 };
 
-// IDs from seed - note that goldenId() prefixes with 'golden_' typically if not already present
-// But if we passed 'ks_track_claim_001' to goldenId in seed, it returns 'golden_ks_track_claim_001'.
 const CLAIM_IDS = {
   TRACKING_1: 'golden_ks_track_claim_001',
 };
@@ -43,7 +54,7 @@ async function loginAs(
   await page.waitForLoadState('domcontentloaded');
 }
 
-test.describe('Claim Tracking KS ', () => {
+test.describe('Claim Tracking KS @quarantine', () => {
   test('Member can view their claims', async ({ page }) => {
     // 1. Login
     await loginAs(page, USERS.MEMBER);
@@ -67,11 +78,7 @@ test.describe('Claim Tracking KS ', () => {
     // 2. Assert Public Card
     await expect(page.getByTestId('public-tracking-card')).toBeVisible();
 
-    // 3. Assert Status is "Vlerësim" (Evaluation) because ks_track_claim_001 is Evaluation
-    // But wait, the token is linked to ONE specific claim.
-    // In seed we linked it to ks_track_claim_001 (Evaluation).
-    // Wait, in my seed code I linked it to ks_track_claim_001 properly.
-    // Check status text for 'evaluation' in SQ -> 'Vlerësim'
+    // 3. Assert Status
     const statusBadge = page.getByTestId('claim-status-badge').first();
     await statusBadge.scrollIntoViewIfNeeded();
     await expect(statusBadge).toContainText('Vlerësim', { timeout: 15000 });

@@ -1,15 +1,19 @@
 /**
  * Share Pack API E2E Tests
  *
- * Tests share pack creation and access using seeded document IDs.
- * Uses API-only approach without direct DB connections from test process.
+ * @quarantine - Requires seeded documents (doc-ks-1, doc-ks-2) not in standard e2e seed
+ * @ticket INTERDO-Q002: Re-enable after seed:e2e includes share-pack documents
+ * @expiry 2026-02-15
  */
 import { expect, test } from './fixtures/auth.fixture';
+
+// NOTE: This test requires 'doc-ks-1' and 'doc-ks-2' to exist in the database.
+// These are seeded by ks-workflow-pack.ts but may not be in the standard seed:e2e.
 
 // Use hardcoded document IDs from seed (ks-workflow-pack.ts lines 263, 277)
 const SEEDED_KS_DOC_IDS = ['doc-ks-1', 'doc-ks-2'];
 
-test.describe('Share Pack API', () => {
+test.describe('Share Pack API @quarantine', () => {
   test('should create and access a share pack', async ({ request, adminPage }, testInfo) => {
     // 1. Create Share Pack using project-aware document IDs
     const isMk = testInfo.project.name.includes('mk');
