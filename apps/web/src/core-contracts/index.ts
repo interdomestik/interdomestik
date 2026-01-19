@@ -2,9 +2,21 @@
  * Common Result type for all Core interactions.
  * Helps standardize success/failure handling without throwing.
  */
+export type ApiErrorCode =
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'BAD_REQUEST'
+  | 'CONFLICT'
+  | 'RATE_LIMIT'
+  | 'INTERNAL_ERROR'
+  | 'TIMEOUT'
+  | 'PAYLOAD_TOO_LARGE'
+  | 'UNPROCESSABLE_ENTITY';
+
 export type ApiResult<T> =
   | { ok: true; data: T }
-  | { ok: false; code: string; message?: string; error?: unknown };
+  | { ok: false; code: ApiErrorCode; message?: string; error?: unknown };
 
 /**
  * Common Decision type for Landing pages.
