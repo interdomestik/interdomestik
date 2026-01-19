@@ -23,6 +23,7 @@ export async function sendMessageCore(params: {
 
   revalidatePath(`/member/claims/${params.claimId}`);
   revalidatePath(`/staff/claims/${params.claimId}`);
+  revalidatePath('/agent/workspace/claims');
 
   if (result.claimOwnerEmail && !result.isInternal && result.isStaff) {
     notifyNewMessage(

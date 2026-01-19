@@ -91,6 +91,7 @@ export async function sendMessageDbCore(params: {
 
     if (params.deps?.logAuditEvent) {
       await params.deps.logAuditEvent({
+        tenantId,
         actorId: session.user.id,
         actorRole: session.user.role,
         action: 'claim.message_sent',

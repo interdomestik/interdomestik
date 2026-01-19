@@ -10,6 +10,7 @@ export type Session = {
 } | null;
 
 export type AuditEvent = {
+  tenantId?: string;
   actorId?: string | null;
   actorRole?: string | null;
   action: string;
