@@ -8,6 +8,8 @@ test.describe('Agent Pro Scaffold (Golden)', () => {
     // 2. Start at Lite Dashboard
     await expect(page).toHaveURL(/\/agent$/);
     await expect(page.getByTestId('agent-home')).toBeVisible();
+    // Verify Lite Sidebar (Clients should be hidden)
+    await expect(page.getByRole('link', { name: 'Clients' })).not.toBeVisible();
 
     // 3. Switch to Pro
     const switchProBtn = page.getByTestId('agent-switch-pro');
@@ -18,6 +20,8 @@ test.describe('Agent Pro Scaffold (Golden)', () => {
     await expect(page).toHaveURL(/\/agent\/workspace/);
     await expect(page.getByTestId('agent-pro-shell')).toBeVisible();
     await expect(page.getByText('Agent Pro Workspace')).toBeVisible();
+    // Verify Pro Sidebar (Clients should be visible)
+    await expect(page.getByRole('link', { name: 'Clients' })).toBeVisible();
 
     // 5. Switch back to Lite
     const switchLiteBtn = page.getByTestId('agent-switch-lite');

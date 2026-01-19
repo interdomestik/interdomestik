@@ -47,6 +47,11 @@ export function AgentSidebar() {
       icon: Home,
     },
     {
+      title: 'Workspace (Pro)',
+      href: '/agent/workspace',
+      icon: BarChart3,
+    },
+    {
       title: t('agentCrm'),
       href: '/agent/crm',
       icon: BarChart3,
@@ -72,6 +77,17 @@ export function AgentSidebar() {
       icon: Settings,
     },
   ];
+
+  const showProSidebar =
+    pathname.startsWith('/agent/workspace') ||
+    pathname.startsWith('/agent/crm') ||
+    pathname.startsWith('/agent/clients') ||
+    pathname.startsWith('/agent/commissions');
+
+  // Filter items for Lite view
+  const displayItems = showProSidebar
+    ? navItems
+    : navItems.filter(item => ['/agent', '/agent/leads', '/agent/settings'].includes(item.href));
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -102,7 +118,7 @@ export function AgentSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map(item => {
+              {displayItems.map(item => {
                 const isActive =
                   item.href === '/agent' ? pathname === '/agent' : pathname.startsWith(item.href);
 
