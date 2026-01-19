@@ -160,6 +160,7 @@ export function AgentClaimsProPage({ claims, userId }: AgentClaimsProPageProps) 
     return {
       secondary: available.secondary.map(action => ({
         ...action,
+        testId: `action-${action.id}`,
         onClick:
           action.id === 'message'
             ? () => setViewMode('messaging')
@@ -243,7 +244,12 @@ export function AgentClaimsProPage({ claims, userId }: AgentClaimsProPageProps) 
               <div className="h-full flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-medium">Messages</h3>
-                  <Button variant="ghost" size="sm" onClick={() => setViewMode('details')}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewMode('details')}
+                    data-testid="close-messaging-view"
+                  >
                     Close Messaging
                   </Button>
                 </div>
