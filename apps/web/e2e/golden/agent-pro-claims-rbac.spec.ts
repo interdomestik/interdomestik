@@ -3,14 +3,18 @@ import { expect, test } from '../fixtures/auth.fixture';
 /**
  * Agent Pro Claims RBAC Test
  *
- * @quarantine - Requires specific seed data (KS-A SUBMITTED Claim 1, golden_ks_b_claim_01)
  * @ticket INTERDO-Q003: Re-enable after seed:e2e includes RBAC test claims
  * @expiry 2026-02-15
  */
-test.describe('Agent Pro Claims RBAC @quarantine', () => {
+test.describe('Agent Pro Claims RBAC', () => {
   test('Agent CAN access linked member claim but CANNOT access unlinked claim', async ({
     agentPage,
-  }) => {
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name.includes('mk'),
+      'Test designed for KS dataset (Agent A vs Agent B)'
+    );
+
     // 1. Navigate to Claims Workspace
     await agentPage.goto('/en/agent/workspace/claims');
     await agentPage.waitForLoadState('domcontentloaded');
@@ -45,8 +49,8 @@ test.describe('Agent Pro Claims RBAC @quarantine', () => {
     // Verify message appears in list (scoped to panel)
     await expect(messagingPanel.getByText(testMessage)).toBeVisible();
 
-    // Close drawer to reset state for negative test
-    await agentPage.keyboard.press('Escape');
+    // Reset state for negative test
+    await agentPage.goto('/en/agent/workspace/claims');
     await expect(drawer).not.toBeVisible();
 
     // --- NEGATIVE CASE (Unlinked Claim) ---

@@ -182,6 +182,7 @@ export function AgentClaimsTable({
         onRetry={refetch}
         emptyLabel={t('table.no_claims')}
         actionsHeader={t('table.actions')}
+        rowTestId="claim-row"
       />
 
       {data && data.totalPages > 1 && (

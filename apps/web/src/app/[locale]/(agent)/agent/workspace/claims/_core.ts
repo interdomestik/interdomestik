@@ -1,8 +1,9 @@
-import { claimMessages, claims } from '@interdomestik/database/schema';
+import { claimMessages, claims, user } from '@interdomestik/database/schema';
 import { and, count, desc, eq, inArray, isNull, ne } from 'drizzle-orm';
 
 export interface AgentProClaimDTO {
   id: string;
+  title: string;
   claimNumber: string;
   status: string;
   createdAt: Date;
@@ -27,7 +28,13 @@ export interface AgentWorkspaceClaimsResult {
 /**
  * Pure helper for the claims where clause.
  */
-export function buildAgentWorkspaceClaimsWhere(params: { tenantId: string }) {
+export function buildAgentWorkspaceClaimsWhere(params: {
+  tenantId: string;
+  branchId?: string | null;
+}) {
+  if (params.branchId) {
+    return and(eq(claims.tenantId, params.tenantId), eq(claims.branchId, params.branchId));
+  }
   return eq(claims.tenantId, params.tenantId);
 }
 
@@ -54,9 +61,15 @@ export async function getAgentWorkspaceClaimsCore(params: {
 }): Promise<AgentWorkspaceClaimsResult> {
   const { tenantId, userId, db } = params;
 
-  // 1. Fetch Claims for Agent's Tenant
+  // 0. Fetch Agent Context (Branch)
+  const agent = await db.query.user.findFirst({
+    where: eq(user.id, userId),
+    columns: { branchId: true },
+  });
+
+  // 1. Fetch Claims for Agent's Scope
   const claimsData = await db.query.claims.findMany({
-    where: buildAgentWorkspaceClaimsWhere({ tenantId }),
+    where: buildAgentWorkspaceClaimsWhere({ tenantId, branchId: agent?.branchId }),
     orderBy: [desc(claims.createdAt)],
     with: {
       user: {
@@ -113,6 +126,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
   // 4. Map to DTOs
   const mappedClaims: AgentProClaimDTO[] = (claimsData as any[]).map((c: any) => ({
     id: c.id,
+    title: c.title ?? 'Untitled',
     claimNumber: c.claimNumber ?? 'N/A',
     status: c.status ?? 'draft',
     createdAt: c.createdAt instanceof Date ? c.createdAt : new Date(c.createdAt),
