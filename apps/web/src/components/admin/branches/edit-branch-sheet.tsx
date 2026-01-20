@@ -111,13 +111,13 @@ export function EditBranchSheet({ branch, isOpen, onClose, onUpdate }: EditBranc
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pt-6">
           <div className="space-y-2">
             <Label htmlFor="edit-branch-name">{t('fields.name')}</Label>
-            <Input id="edit-branch-name" {...register('name')} />
+            <Input id="edit-branch-name" {...register('name')} data-testid="branch-name-input" />
             {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="edit-branch-code">{t('fields.code')}</Label>
-            <Input id="edit-branch-code" {...register('code')} />
+            <Input id="edit-branch-code" {...register('code')} data-testid="branch-code-input" />
             {errors.code && <p className="text-sm text-red-500">{errors.code.message}</p>}
           </div>
 
@@ -134,7 +134,7 @@ export function EditBranchSheet({ branch, isOpen, onClose, onUpdate }: EditBranc
             <Button type="button" variant="outline" onClick={onClose}>
               {t('cancel')}
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending} data-testid="branch-submit-button">
               {isPending ? t('saving') : t('save')}
             </Button>
           </SheetFooter>
