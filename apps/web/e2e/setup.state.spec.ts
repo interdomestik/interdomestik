@@ -16,27 +16,7 @@ function getTenants(projectName: string): Array<'ks' | 'mk'> {
   return projectName.includes('mk') ? ['mk'] : ['ks'];
 }
 
-/**
- * Maps the legacy test role keys (e.g. 'member', 'admin_mk') to the strict E2E identity.
- */
-function getExampleUser(roleKey: string) {
-  switch (roleKey) {
-    case 'member':
-      return E2E_USERS.KS_MEMBER;
-    case 'admin':
-      return E2E_USERS.KS_ADMIN;
-    case 'agent':
-      return E2E_USERS.KS_AGENT;
-    case 'staff':
-      return E2E_USERS.KS_STAFF;
-    case 'branch_manager':
-      return E2E_USERS.MK_BRANCH_MANAGER;
-    default:
-      throw new Error(`Unknown role key: ${roleKey}`);
-  }
-}
-
-function getExampleUserForTenant(roleKey: string, tenant: 'ks' | 'mk') {
+function getUserForTenant(roleKey: string, tenant: 'ks' | 'mk') {
   if (tenant === 'mk') {
     switch (roleKey) {
       case 'member':
@@ -54,7 +34,21 @@ function getExampleUserForTenant(roleKey: string, tenant: 'ks' | 'mk') {
     }
   }
 
-  return getExampleUser(roleKey);
+  // KS Tenant
+  switch (roleKey) {
+    case 'member':
+      return E2E_USERS.KS_MEMBER;
+    case 'admin':
+      return E2E_USERS.KS_ADMIN;
+    case 'agent':
+      return E2E_USERS.KS_AGENT;
+    case 'staff':
+      return E2E_USERS.KS_STAFF;
+    case 'branch_manager':
+      return E2E_USERS.KS_BRANCH_MANAGER;
+    default:
+      throw new Error(`Unknown role key for ks: ${roleKey}`);
+  }
 }
 
 function stateFile(role: string, tenant: 'ks' | 'mk'): string {
@@ -107,7 +101,7 @@ async function stateIsValidForRole(opts: {
     const userTenant = data?.user?.tenantId;
 
     // Strict validation against golden path truth
-    const expected = getExampleUserForTenant(role, tenant);
+    const expected = getUserForTenant(role as any, tenant);
 
     // Check match
     const roleMatches = userRole === expected.dbRole;
