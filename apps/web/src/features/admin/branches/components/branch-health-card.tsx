@@ -96,7 +96,7 @@ export function BranchHealthCard({ branch, onEdit, onDelete }: BranchHealthCardP
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" data-testid="branch-actions-menu">
                   <DropdownMenuLabel>{t('actions.label')}</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => onEdit(branch)} data-testid="branch-edit-button">
                     <Pencil className="mr-2 h-4 w-4" /> {t('actions.edit')}

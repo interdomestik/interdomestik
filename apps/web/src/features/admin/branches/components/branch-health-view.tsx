@@ -146,7 +146,10 @@ export function BranchHealthView({ initialBranches }: BranchHealthViewProps) {
                 key={branch.id}
                 branch={branch}
                 onEdit={setEditingBranch}
-                onDelete={setDeletingBranch}
+                onDelete={b => {
+                  console.log('[BranchHealthView] Deleting branch:', b.name);
+                  setDeletingBranch(b);
+                }}
               />
             ))}
           </div>

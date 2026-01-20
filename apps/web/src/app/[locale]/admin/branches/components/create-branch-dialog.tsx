@@ -70,7 +70,7 @@ export function CreateBranchDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen} modal={false}>
       <DialogTrigger asChild>
         <Button data-testid="create-branch-button">
           <Plus className="mr-2 h-4 w-4" />

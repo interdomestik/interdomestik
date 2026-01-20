@@ -143,12 +143,21 @@ export function BranchesTable({ initialData }: BranchesTableProps) {
                         variant="ghost"
                         className="h-8 w-8 p-0"
                         data-testid="branch-actions-trigger"
+                        type="button"
+                        onPointerDown={event => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }}
+                        onClick={event => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }}
                       >
                         <span className="sr-only">{t('actions.open')}</span>
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" data-testid="branch-actions-menu">
                       <DropdownMenuLabel>{t('actions.label')}</DropdownMenuLabel>
                       <DropdownMenuItem
                         onClick={() => setEditingBranch(branch)}
