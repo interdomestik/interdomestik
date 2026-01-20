@@ -34,8 +34,8 @@ interface EditBranchSheetProps {
     name: string;
     code: string | null;
     isActive: boolean;
-    tenantId: string;
-    slug: string;
+    tenantId?: string;
+    slug?: string;
   };
   isOpen: boolean;
   onClose: () => void;
