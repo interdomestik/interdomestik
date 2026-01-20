@@ -255,6 +255,13 @@ export async function cleanupByPrefixes(
       }
     }
 
+    // 7f. Delete Share Packs created by these users
+    if (dbSchema.sharePacks) {
+      await db
+        .delete(dbSchema.sharePacks)
+        .where(inArray(dbSchema.sharePacks.createdByUserId, allUserIds));
+    }
+
     // Finally delete the users
     await db.delete(dbSchema.user).where(inArray(dbSchema.user.id, allUserIds));
   }

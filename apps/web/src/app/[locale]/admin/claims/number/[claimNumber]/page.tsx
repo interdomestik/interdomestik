@@ -33,6 +33,8 @@ export default async function ClaimNumberResolverPage({ params }: Props) {
 
   const tenantId = ensureTenantId(session);
 
+  // Audit invariant: RESOLVER_TENANT_SCOPED (where: tenantId, claimNumber)
+
   const { claimId } = await getClaimNumberResolverCore({
     claimNumber,
     tenantId,

@@ -23,6 +23,9 @@ describe('Agent Workspace Claims Query Contracts', () => {
         claims: {
           findMany: vi.fn(),
         },
+        user: {
+          findFirst: vi.fn(),
+        },
       },
       select: vi.fn().mockReturnThis(),
       from: vi.fn().mockReturnThis(),

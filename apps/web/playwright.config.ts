@@ -1,16 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
-import dotenv from 'dotenv';
 import path from 'path';
-
-// Load environment variables from root (prioritize .env.local)
-dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), quiet: true });
-dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 
 const PORT = 3000;
 const BASE_HOST = '127.0.0.1';
 const BIND_HOST = '127.0.0.1';
 const BASE_URL = `http://${BASE_HOST}:${PORT}`;
-const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
 
 process.env.NEXT_PUBLIC_APP_URL = BASE_URL;
 process.env.BETTER_AUTH_URL = BASE_URL;
@@ -58,6 +52,14 @@ export default defineConfig({
     // SETUP PROJECTS - Generate auth states per tenant
     // ═══════════════════════════════════════════════════════════════════════════
     {
+      name: 'setup',
+      testMatch: /setup\.state\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://127.0.0.1:3000',
+      },
+    },
+    {
       name: 'setup-ks',
       testMatch: /setup\.state\.spec\.ts/,
       use: {
@@ -79,7 +81,7 @@ export default defineConfig({
     // ═══════════════════════════════════════════════════════════════════════════
     {
       name: 'ks-sq',
-      dependencies: ['setup-ks'],
+      dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:3000/sq',
@@ -88,7 +90,7 @@ export default defineConfig({
     },
     {
       name: 'mk-mk',
-      dependencies: ['setup-mk'],
+      dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:3000/mk',
@@ -102,7 +104,7 @@ export default defineConfig({
     // ═══════════════════════════════════════════════════════════════════════════
     {
       name: 'smoke',
-      dependencies: ['setup-ks'], // Default to KS for general smoke
+      dependencies: ['setup'], // Default to generic setup
       testMatch: /.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
@@ -115,10 +117,10 @@ export default defineConfig({
   webServer: {
     // E2E runs against a production server (Next `start`) for artifact consistency.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: `bash "${WEB_SERVER_SCRIPT}"`,
+    command: 'node .next/standalone/apps/web/server.js # pnpm exec next start',
     url: BASE_URL,
     // Never reuse a stale server by default (prevents origin/env mismatches).
-    reuseExistingServer: process.env.PW_REUSE_SERVER === '1' && !process.env.CI,
+    reuseExistingServer: false,
     timeout: 300 * 1000,
     env: {
       ...process.env,

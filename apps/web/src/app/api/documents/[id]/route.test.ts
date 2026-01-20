@@ -50,8 +50,8 @@ vi.mock('@interdomestik/database', () => ({
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
   and: vi.fn(),
+  relations: vi.fn(),
 }));
-
 describe('GET /api/documents/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
