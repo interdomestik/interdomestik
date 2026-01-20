@@ -58,7 +58,7 @@ export class BranchesScreen {
       console.log(`[BranchesScreen] Cleaning up ${count} existing branches...`);
       const item = items.first();
       await this.openActionsMenu(item);
-      await this.page.getByTestId('branch-delete-button').first().click();
+      await this.openMenuItem('branch-delete-button').click();
       await this.page.getByTestId('branch-delete-confirm-button').click();
       await expect(item).not.toBeVisible();
       await this.page.waitForTimeout(500);
@@ -76,7 +76,7 @@ export class BranchesScreen {
 
   async editBranchName(currentText: string, nextName: string): Promise<void> {
     await this.openBranchActions(currentText);
-    await this.page.getByTestId('branch-edit-button').click();
+    await this.openMenuItem('branch-edit-button').click();
     const nameInput = this.page.getByTestId('branch-name-input');
     await expect(nameInput).toBeVisible();
     await nameInput.fill(nextName);
@@ -86,7 +86,7 @@ export class BranchesScreen {
 
   async deleteBranch(text: string): Promise<void> {
     await this.openBranchActions(text);
-    await this.page.getByTestId('branch-delete-button').click();
+    await this.openMenuItem('branch-delete-button').click();
     await this.page.getByTestId('branch-delete-confirm-button').click();
     await expect(await this.branchItems(text)).not.toBeVisible();
   }
@@ -114,13 +114,16 @@ export class BranchesScreen {
 
   private async openActionsMenu(item: Locator): Promise<void> {
     const trigger = item.getByTestId('branch-actions-trigger');
-    const deleteButton = this.page.getByTestId('branch-delete-button').first();
+    const openMenu = this.page
+      .locator('[data-state="open"]')
+      .filter({ has: this.page.getByTestId('branch-delete-button') })
+      .first();
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await trigger.scrollIntoViewIfNeeded();
       await trigger.click({ force: true });
       try {
-        await deleteButton.waitFor({ state: 'visible', timeout: 1000 });
+        await openMenu.waitFor({ state: 'visible', timeout: 1000 });
         return;
       } catch {
         await this.page.waitForTimeout(250);
@@ -128,5 +131,13 @@ export class BranchesScreen {
     }
 
     throw new Error('Branch actions menu did not open.');
+  }
+
+  private openMenuItem(testId: 'branch-edit-button' | 'branch-delete-button'): Locator {
+    return this.page
+      .locator('[data-state="open"]')
+      .filter({ has: this.page.getByTestId(testId) })
+      .first()
+      .getByTestId(testId);
   }
 }
