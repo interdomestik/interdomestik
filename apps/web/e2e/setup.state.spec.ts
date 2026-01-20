@@ -11,8 +11,9 @@ import path from 'node:path';
 import { test as authTest } from './fixtures/auth.fixture';
 
 // Helper to determine tenant from project name
-function getTenant(projectName: string): 'ks' | 'mk' {
-  return projectName.includes('mk') ? 'mk' : 'ks';
+function getTenants(projectName: string): Array<'ks' | 'mk'> {
+  if (projectName === 'setup') return ['ks', 'mk'];
+  return projectName.includes('mk') ? ['mk'] : ['ks'];
 }
 
 /**
@@ -121,44 +122,30 @@ async function stateIsValidForRole(opts: {
 }
 
 authTest.describe('Generate StorageState Files', () => {
-  // KS ROLES
-  authTest('Setup KS roles', async ({ saveState, browser }, testInfo) => {
-    const tenant = getTenant(testInfo.project.name);
-    // Only run for KS project
-    if (tenant !== 'ks') return;
+  authTest('Setup roles', async ({ saveState, browser }, testInfo) => {
+    const targetTenants = getTenants(testInfo.project.name);
 
-    const baseURL = (testInfo.project.use.baseURL ?? 'http://localhost:3000/sq').toString();
-    const roles = ['member', 'admin', 'agent', 'staff'] as const;
+    for (const tenant of targetTenants) {
+      const defaultLocale = tenant === 'mk' ? 'mk' : 'sq';
+      const baseURL = (
+        testInfo.project.use.baseURL ?? `http://localhost:3000/${defaultLocale}`
+      ).toString();
 
-    for (const role of roles) {
-      if (!process.env.FORCE_REGEN_STATE && (await stateExists(role, tenant))) {
-        const ok = await stateIsValidForRole({ role, tenant, browser, baseURL });
-        if (ok) continue;
+      const roles =
+        tenant === 'mk'
+          ? (['member', 'admin', 'agent', 'staff', 'branch_manager'] as const)
+          : (['member', 'admin', 'agent', 'staff'] as const);
+
+      for (const role of roles) {
+        process.env.TEST_TENANT = tenant;
+        if (!process.env.FORCE_REGEN_STATE && (await stateExists(role, tenant))) {
+          const ok = await stateIsValidForRole({ role, tenant, browser, baseURL });
+          if (ok) continue;
+        }
+        await ensureDir(stateFile(role, tenant));
+        process.env.PLAYWRIGHT_LOCALE = defaultLocale;
+        await saveState(role);
       }
-      await ensureDir(stateFile(role, tenant));
-      // Pass tenant to saveState via fixture or handle logic here?
-      // NOTE: The saveState fixture in auth.fixture.ts is generic.
-      // We will call it directly using the logic below to avoid strict deps on old fixture.
-      await saveState(role);
-    }
-  });
-
-  // MK ROLES
-  authTest('Setup MK roles', async ({ saveState, browser }, testInfo) => {
-    const tenant = getTenant(testInfo.project.name);
-    // Only run for MK project
-    if (tenant !== 'mk') return;
-
-    const baseURL = (testInfo.project.use.baseURL ?? 'http://localhost:3000/mk').toString();
-    const roles = ['member', 'admin', 'agent', 'staff', 'branch_manager'] as const;
-
-    for (const role of roles) {
-      if (!process.env.FORCE_REGEN_STATE && (await stateExists(role, tenant))) {
-        const ok = await stateIsValidForRole({ role, tenant, browser, baseURL });
-        if (ok) continue;
-      }
-      await ensureDir(stateFile(role, tenant));
-      await saveState(role);
     }
   });
 });

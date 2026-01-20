@@ -35,6 +35,9 @@ type Tenant = 'ks' | 'mk';
 type Role = 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
 
 function getTenantFromTestInfo(testInfo: TestInfo): Tenant {
+  if (process.env.TEST_TENANT === 'mk' || process.env.TEST_TENANT === 'ks') {
+    return process.env.TEST_TENANT as Tenant;
+  }
   const name = testInfo.project.name;
   if (name.includes('mk')) return 'mk';
   return 'ks';
