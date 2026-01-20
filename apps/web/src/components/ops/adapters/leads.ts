@@ -81,6 +81,7 @@ export function getLeadActions(lead: any | undefined): {
       id: 'mark_contacted',
       label: 'Mark Contacted',
       variant: 'outline',
+      testId: 'action-mark-contacted',
     });
   }
 
@@ -90,6 +91,7 @@ export function getLeadActions(lead: any | undefined): {
       id: 'mark_payment_pending',
       label: 'Request Payment',
       variant: 'default',
+      testId: 'action-request-payment',
     });
   }
 
@@ -99,6 +101,7 @@ export function getLeadActions(lead: any | undefined): {
       id: 'mark_lost',
       label: 'Mark Lost',
       variant: 'destructive',
+      testId: 'action-mark-lost',
     });
   }
 
