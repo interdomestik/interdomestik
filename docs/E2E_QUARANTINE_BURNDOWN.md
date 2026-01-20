@@ -14,12 +14,12 @@
 
 ## Quarantine Registry
 
-| Test File                       | Status     | Owner | Cause                                 | Fix Plan                                   | Expiry     |
-| ------------------------------- | ---------- | ----- | ------------------------------------- | ------------------------------------------ | ---------- |
-| `share-pack.spec.ts`            | ✅ DONE    | AI    | Test assertion drift                  | Fixed 404 vs 401 acceptance                | 2026-01-19 |
-| `claim-tracking.ks.spec.ts`     | ✅ DONE    | AI    | Uses custom login instead of fixtures | Rewrote to use auth fixtures               | 2026-01-19 |
-| `agent-pro-claims-rbac.spec.ts` | ⏳ PENDING | -     | Expects specific claim titles         | Match seed data or use flexible assertions | 2026-02-15 |
-| `leads-flow.spec.ts`            | ⏳ PENDING | -     | UI elements changed (New Lead button) | Update selectors to current UI             | 2026-02-15 |
+| Test File                       | Status  | Owner | Cause                                 | Fix Plan                                 | Expiry     |
+| ------------------------------- | ------- | ----- | ------------------------------------- | ---------------------------------------- | ---------- |
+| `share-pack.spec.ts`            | ✅ DONE | AI    | Test assertion drift                  | Fixed 404 vs 401 acceptance              | 2026-01-19 |
+| `claim-tracking.ks.spec.ts`     | ✅ DONE | AI    | Uses custom login instead of fixtures | Rewrote to use auth fixtures             | 2026-01-19 |
+| `agent-pro-claims-rbac.spec.ts` | ✅ DONE | AI    | Expects specific claim titles         | Enforced branch isolation, updated seed  | 2026-01-19 |
+| `leads-flow.spec.ts`            | ✅ DONE | AI    | UI elements changed (New Lead button) | Updated selectors, table schema, asserts | 2026-01-19 |
 
 ---
 
@@ -35,7 +35,7 @@
 
 | Test File                            | Symptom                        | Root Cause                     | Fix                     |
 | ------------------------------------ | ------------------------------ | ------------------------------ | ----------------------- |
-| `agent-home-lite.spec.ts`            | `agent-leads-lite` not visible | Testid missing from UI         | Add testid              |
+| `agent-home-lite.spec.ts`            | `agent-leads-lite` not visible | Testid missing from UI         | ✅ Fixed                |
 | `agent-pro-claims.spec.ts`           | Timeout on isolated runs       | Race condition with drawer     | Add explicit wait       |
 | `agent-pro-claims-messaging.spec.ts` | Intermittent failure           | Depends on claim data          | Use deterministic claim |
 | `member-number.spec.ts:33`           | Registration timing            | Async member number assignment | Add retry logic         |
@@ -44,20 +44,20 @@
 
 ## Progress Timeline
 
-| Date                       | Passed | Failed | Skipped | Notes                        |
-| -------------------------- | ------ | ------ | ------- | ---------------------------- |
-| 2026-01-19 Start           | 370    | 0      | 50      | Initial state                |
-| 2026-01-19 +share-pack     | 375    | 0      | 51      | Unquarantined share-pack     |
-| 2026-01-19 +claim-tracking | 380    | 1      | 51      | Unquarantined claim-tracking |
+| Date                       | Passed | Failed | Skipped | Notes                               |
+| -------------------------- | ------ | ------ | ------- | ----------------------------------- |
+| 2026-01-19 Start           | 370    | 0      | 50      | Initial state                       |
+| 2026-01-19 +share-pack     | 375    | 0      | 51      | Unquarantined share-pack            |
+| 2026-01-19 +claim-tracking | 380    | 1      | 51      | Unquarantined claim-tracking        |
+| 2026-01-19 +agent-claims   | 381    | 0      | 52      | Unquarantined agent-pro-claims-rbac |
+| 2026-01-19 +leads-flow     | 381    | 0      | 52      | Unquarantined leads-flow            |
 
 ---
 
 ## Next Actions
 
-1. **Fix agent-home-lite.spec.ts** - Add `agent-leads-lite` testid or update assertion
-2. **Fix flaky tests** - Add retry logic and explicit waits
-3. **Unquarantine agent-pro-claims-rbac** - Update seed assertions
-4. **Unquarantine leads-flow** - Update UI selectors
+1. **Fix flaky tests** - Add retry logic and explicit waits to remaining flakies
+2. **Full Regression** - Run full suite overnight to verify stability
 
 ---
 
