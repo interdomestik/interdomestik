@@ -1,51 +1,31 @@
-import { expect, test } from './fixtures/auth.fixture';
-import { routes } from './routes';
+import { test } from './fixtures/auth.fixture';
+import { BranchesScreen } from './screens/branches.screen';
 
 test.describe('Branch Management', () => {
-  const branchName = `Test Branch ${Date.now()}`;
-  const branchCode = `TB-${Date.now()}`;
+  // V2 UI uses Card-based layout with stable test-ids.
+  test('Admin can CRUD branches', async ({ adminPage: page }, testInfo) => {
+    const branchName = `Test Branch ${testInfo.project.name} CRUD`;
+    const branchCode = `TB-${testInfo.project.name}-CRUD`;
+    const branches = new BranchesScreen(page);
 
-  // TODO: Rewrite for Card-based UI. Legacy test expects Table.
-  test.skip('Admin can CRUD branches', async ({ adminPage: page }) => {
     // 1. Navigate to Branches page
-    await page.goto(routes.adminBranches());
-    await page.waitForLoadState('domcontentloaded');
-    expect(page.url()).toContain('/admin/branches');
+    await branches.goto();
+    await branches.assertLoaded();
+
+    // Idempotency: cleanup ALL existing branches with this code
+    // Loop ensures we clean up duplicates from failed prior runs
+    await branches.cleanupByCode(branchCode);
 
     // 2. Create Branch
-    await page.getByRole('button', { name: /create branch/i }).click();
-    await page.getByLabel(/name/i).fill(branchName);
-    await page.getByLabel(/code/i).fill(branchCode);
-    await page.getByRole('button', { name: /create/i }).click();
-
-    // Verify creation (check toast or table presence)
-    await expect(page.getByText(branchName)).toBeVisible();
-    await expect(page.getByText(branchCode)).toBeVisible();
+    await branches.createBranch({ name: branchName, code: branchCode });
+    await branches.assertBranchVisible(branchName);
+    await branches.assertBranchVisible(branchCode);
 
     // 3. Edit Branch
-    await page
-      .getByRole('row', { name: branchName })
-      .getByRole('button', { name: /actions/i })
-      .click();
-    await page.getByRole('menuitem', { name: /edit/i }).click();
-
     const updatedName = `${branchName} Updated`;
-    await page.getByLabel(/name/i).fill(updatedName);
-    // Code might be read-only or editable, check implementation. Assuming editable.
-    await page.getByRole('button', { name: /update/i }).click();
-
-    await expect(page.getByText(updatedName)).toBeVisible();
+    await branches.editBranchName(branchName, updatedName);
 
     // 4. Delete Branch
-    await page
-      .getByRole('row', { name: updatedName })
-      .getByRole('button', { name: /actions/i })
-      .click();
-    await page.getByRole('menuitem', { name: /delete/i }).click();
-
-    // Confirm dialog
-    await page.getByRole('button', { name: /delete/i, exact: true }).click(); // Select destroy button in dialog
-
-    await expect(page.getByText(updatedName)).not.toBeVisible();
+    await branches.deleteBranch(updatedName);
   });
 });
