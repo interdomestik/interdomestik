@@ -39,9 +39,7 @@ async function expectAccessDenied(
 
   if (isOnForbiddenPath) {
     // If still on forbidden path, expect 404 UI
-    await expect(
-      page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('not-found-page')).toBeVisible({ timeout: 5000 });
   } else {
     // Redirected away — verify we're at the expected destination
     if (expectedRedirectPattern) {

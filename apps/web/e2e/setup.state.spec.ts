@@ -131,14 +131,14 @@ authTest.describe('Generate StorageState Files', () => {
           : (['member', 'admin', 'agent', 'staff'] as const);
 
       for (const role of roles) {
-        process.env.TEST_TENANT = tenant;
+        // Explicitly pass tenant to helpers and fixtures instead of mutating env
         if (!process.env.FORCE_REGEN_STATE && (await stateExists(role, tenant))) {
           const ok = await stateIsValidForRole({ role, tenant, browser, baseURL });
           if (ok) continue;
         }
         await ensureDir(stateFile(role, tenant));
-        process.env.PLAYWRIGHT_LOCALE = defaultLocale;
-        await saveState(role);
+        process.env.PLAYWRIGHT_LOCALE = defaultLocale; // This might still be risky if reused, but less critical than tenant. Ideally pass locale too.
+        await saveState(role, tenant);
       }
     }
   });

@@ -47,7 +47,9 @@ test.describe('Agent Pro Claims RBAC', () => {
     await messagingPanel.getByTestId('send-message-button').click();
 
     // Verify message appears in list (scoped to panel)
-    await expect(messagingPanel.getByText(testMessage)).toBeVisible();
+    await expect(
+      messagingPanel.getByRole('paragraph').filter({ hasText: testMessage })
+    ).toBeVisible();
 
     // Reset state for negative test
     await agentPage.goto('/en/agent/workspace/claims');

@@ -45,7 +45,7 @@ test.describe('Agent Pro Claims Messaging (Golden)', () => {
     await messagingPanel.getByTestId('send-message-button').click();
 
     // 11. Verify message appears (optimistic update - core functionality)
-    const newBubble = messagingPanel.getByText(testMessage);
+    const newBubble = messagingPanel.getByRole('paragraph').filter({ hasText: testMessage });
     await expect(newBubble).toBeVisible({ timeout: 5000 });
 
     // Test complete: Message sending verified
