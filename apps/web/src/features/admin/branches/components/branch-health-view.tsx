@@ -34,10 +34,15 @@ export function BranchHealthView({ initialBranches }: BranchHealthViewProps) {
   const [editingBranch, setEditingBranch] = useState<BranchWithKpis | null>(null);
   const [deletingBranch, setDeletingBranch] = useState<BranchWithKpis | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setBranches(initialBranches);
   }, [initialBranches]);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   const [filters, setFilters] = useState<BranchFiltersState>({
     search: '',
@@ -133,7 +138,7 @@ export function BranchHealthView({ initialBranches }: BranchHealthViewProps) {
         <span>{t('list_description', { count: filteredBranches.length })}</span>
       </div>
 
-      <div data-testid="branches-cards">
+      <div data-testid="branches-cards" data-hydrated={hydrated ? 'true' : 'false'}>
         {filteredBranches.length === 0 ? (
           <OpsEmptyState
             title={t('no_branches')}

@@ -23,6 +23,7 @@ export class BranchesScreen {
   async assertLoaded(): Promise<void> {
     await expect(this.page).toHaveURL(/\/(sq|mk|en)\/admin\/branches/);
     await expect(this.page.getByTestId('branches-screen')).toBeVisible();
+    await expect(this.page.getByTestId('branches-cards')).toHaveAttribute('data-hydrated', 'true');
     await this.ensureLayout();
   }
 
