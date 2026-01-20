@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import path from 'path';
+import './playwright.env';
 
 const PORT = 3000;
 const BASE_HOST = '127.0.0.1';
