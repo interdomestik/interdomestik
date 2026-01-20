@@ -47,9 +47,12 @@ test.describe('Agent Pro Claims RBAC', () => {
     await messagingPanel.getByTestId('send-message-button').click();
 
     // Verify message appears in list (scoped to panel)
-    await expect(
-      messagingPanel.getByRole('paragraph').filter({ hasText: testMessage })
-    ).toBeVisible();
+
+    // Fix: Target only the bubble paragraph to avoid matching the disabled textarea input
+
+    const bubble = messagingPanel.locator('p').filter({ hasText: testMessage }).first();
+
+    await expect(bubble).toBeVisible();
 
     // Reset state for negative test
     await agentPage.goto('/en/agent/workspace/claims');
