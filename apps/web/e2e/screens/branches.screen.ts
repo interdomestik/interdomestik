@@ -18,12 +18,13 @@ export class BranchesScreen {
   async goto(): Promise<void> {
     await this.page.goto(routes.adminBranches());
     await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('networkidle');
   }
 
   async assertLoaded(): Promise<void> {
     await expect(this.page).toHaveURL(/\/(sq|mk|en)\/admin\/branches/);
     await expect(this.page.getByTestId('branches-screen')).toBeVisible();
-    await expect(this.page.getByTestId('branches-cards')).toHaveAttribute('data-hydrated', 'true');
+    await expect(this.page.getByTestId('branch-actions-trigger').first()).toBeVisible();
     await this.ensureLayout();
   }
 
