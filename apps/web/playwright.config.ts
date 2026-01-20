@@ -117,7 +117,7 @@ export default defineConfig({
   webServer: {
     // E2E runs against a production server (Next `start`) for artifact consistency.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: 'node .next/standalone/apps/web/server.js # pnpm exec next start',
+    command: 'pnpm exec next start -p 3000',
     url: BASE_URL,
     // Never reuse a stale server by default (prevents origin/env mismatches).
     reuseExistingServer: false,
@@ -139,6 +139,8 @@ export default defineConfig({
       // Disable rate limiting completely by unsetting Upstash vars
       UPSTASH_REDIS_REST_URL: '',
       UPSTASH_REDIS_REST_TOKEN: '',
+      // Secure the test-only API route
+      E2E_API_SECRET: 'test-secret-123',
       // Required for Paddle webhook signature validation tests.
       ...(process.env.PADDLE_WEBHOOK_SECRET_KEY
         ? { PADDLE_WEBHOOK_SECRET_KEY: process.env.PADDLE_WEBHOOK_SECRET_KEY }

@@ -4,38 +4,17 @@
  * Verifies new columns, filtering, and assignment logic.
  */
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './fixtures/auth.fixture';
 
-const PASSWORD = 'GoldenPass123!';
 const DEFAULT_LOCALE = 'sq';
-
-const USERS = {
-  TENANT_ADMIN_MK: { email: 'admin.mk@interdomestik.com', password: PASSWORD, tenant: 'tenant_mk' },
-};
-
-async function loginAs(page: Page, user: (typeof USERS)[keyof typeof USERS]) {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
-  const loginURL = `${baseURL}/api/auth/sign-in/email`;
-
-  const res = await page.request.post(loginURL, {
-    data: { email: user.email, password: PASSWORD },
-    headers: {
-      Origin: baseURL,
-      Referer: `${baseURL}/login`,
-    },
-  });
-
-  if (!res.ok()) {
-    throw new Error(`API login failed for ${user.email}: ${res.status()} ${await res.text()}`);
-  }
-
-  await page.goto(`${baseURL}/sq/admin`);
-  await page.waitForLoadState('domcontentloaded');
-}
 
 // TODO: Stabilization needed for v2 features
 test.describe('@quarantine Admin Claims V2 ', () => {
-  test.beforeEach(async ({ page }) => {
+  let missing: string[] = [];
+
+  test.beforeEach(async ({ page, loginAs }) => {
+    missing = [];
     // Diagnostics: Console & Network (with noise filtering)
     page.on('console', msg => {
       const text = msg.text();
@@ -47,23 +26,52 @@ test.describe('@quarantine Admin Claims V2 ', () => {
       ) {
         return;
       }
+      if (msg.type() === 'error') console.log('[console.error]', text);
       console.log(`[BROWSER]: ${text}`);
     });
 
-    await loginAs(page, USERS.TENANT_ADMIN_MK);
+    page.on('response', res => {
+      const url = res.url();
+      if (res.status() === 404) {
+        missing.push(url);
+        if (url.includes('/_next/static/')) {
+          throw new Error(`FATAL: Next static asset 404: ${url}`);
+        }
+      }
+    });
+
+    page.on('pageerror', err => {
+      console.log('[pageerror]', err.message);
+    });
+
+    // Use fixture login (Robust, handles domain/headers/cookies)
+    await loginAs('admin', 'mk');
+
     // Contract: V2 defaults to Ops Center; list view is explicitly `view=list`.
-    await page.goto(`/${DEFAULT_LOCALE}/admin/claims?view=list`);
+    await page.goto(`/${DEFAULT_LOCALE}/admin/claims?view=list`, { waitUntil: 'domcontentloaded' });
+
+    // Navigation Health Guards
+    await expect(page).not.toHaveURL(new RegExp('/login', 'i'));
+    // Use [?] to match literal question mark safely in RegExp
+    await expect(page).toHaveURL(new RegExp('/admin/claims[?]view=list', 'i'));
+    await expect(page.getByTestId('not-found-page')).toHaveCount(0);
+
     await page.waitForLoadState('networkidle');
   });
 
   test('1. UI: Table has new columns and filters', async ({ page }) => {
+    // Debug 404s
+    const fatal404s = missing.filter(u => u.includes('/_next/static/') || u.includes('/api/'));
+    console.log('[404 summary]', { total: missing.length, fatal: fatal404s.slice(0, 10) });
+    console.log('[url]', page.url());
+
     // Verify Filters UI
     // Verify Filters UI with longer timeout for slow loads
     await expect(page.getByTestId('admin-claims-filters')).toBeVisible({ timeout: 30000 });
 
     // Verify list renders (cards) or shows the empty state.
     const cards = page.getByTestId('claim-operational-card');
-    const empty = page.getByText(/Nuk ka kërkesa operative/i);
+    const empty = page.getByText(new RegExp('Nuk ka kërkesa operative', 'i'));
     await expect(cards.first().or(empty.first())).toBeVisible({ timeout: 10000 });
   });
 
@@ -72,11 +80,11 @@ test.describe('@quarantine Admin Claims V2 ', () => {
     await unassigned.scrollIntoViewIfNeeded();
     await page.evaluate(() => window.scrollBy(0, -100)); // Clear sticky header
     await unassigned.click({ force: true });
-    await expect(page).toHaveURL(/assigned=unassigned/, { timeout: 15000 });
+    await expect(page).toHaveURL(new RegExp('assigned=unassigned'), { timeout: 15000 });
 
     // Check list updates (cards) or empty state.
     const cards = page.getByTestId('claim-operational-card');
-    const empty = page.getByText(/Nuk ka kërkesa operative/i);
+    const empty = page.getByText(new RegExp('Nuk ka kërkesa operative', 'i'));
     await expect(cards.first().or(empty.first())).toBeVisible({ timeout: 10000 });
   });
 
@@ -85,7 +93,7 @@ test.describe('@quarantine Admin Claims V2 ', () => {
     await activeStatus.scrollIntoViewIfNeeded();
     await page.evaluate(() => window.scrollBy(0, -100)); // Clear sticky header
     await activeStatus.click({ force: true });
-    await expect(page).toHaveURL(/status=active/, { timeout: 15000 });
+    await expect(page).toHaveURL(new RegExp('status=active'), { timeout: 15000 });
 
     // Verify chips visual state (if possible) or just result filtering
     // We trust backend filtering logic, smoke test verifies wiring.
@@ -151,7 +159,7 @@ test.describe('@quarantine Admin Claims V2 ', () => {
     // 6c. Click and verify navigation to claim detail page
     await page.getByTestId('view-claim').first().click({ force: true });
     // Claim IDs can contain letters, numbers, underscores, hyphens
-    await expect(page).toHaveURL(/\/admin\/claims\/[\w-]+/, { timeout: 10000 });
+    await expect(page).toHaveURL(new RegExp('/admin/claims/[\\w-]+'), { timeout: 10000 });
   });
 
   test('7. Phase 2.5: No i18n missing key warnings in console', async ({ page }) => {
@@ -205,8 +213,10 @@ test.describe('@quarantine Admin Claims V2 ', () => {
     }
   });
   test.fixme('9. Phase 2.7: Assignment Flow updates KPIs', async ({ page }) => {
-    const unassignedFilter = page.locator('button', { hasText: /pacaktuar|pa caktuar/i }).first();
-    const myClaimsFilter = page.locator('button', { hasText: /për mua/i }).first();
+    const unassignedFilter = page
+      .locator('button', { hasText: new RegExp('pacaktuar|pa caktuar', 'i') })
+      .first();
+    const myClaimsFilter = page.locator('button', { hasText: new RegExp('për mua', 'i') }).first();
 
     // Wait for validation - ensure filters exist
     await expect(unassignedFilter).toBeVisible();
@@ -235,7 +245,7 @@ test.describe('@quarantine Admin Claims V2 ', () => {
     await page.waitForLoadState('networkidle');
 
     // 3. Assign to self (Me)
-    const assignBtn = page.locator('button', { hasText: /Më cakto mua/i });
+    const assignBtn = page.locator('button', { hasText: new RegExp('Më cakto mua', 'i') });
     await expect(assignBtn).toBeVisible();
     await assignBtn.click();
 
