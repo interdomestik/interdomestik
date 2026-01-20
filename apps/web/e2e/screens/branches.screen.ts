@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { routes } from '../routes';
 import { detectBranchesLayout, type BranchesLayout } from '../utils/layout';
 
@@ -55,8 +55,8 @@ export class BranchesScreen {
 
       console.log(`[BranchesScreen] Cleaning up ${count} existing branches...`);
       const item = items.first();
-      await item.getByTestId('branch-actions-trigger').click();
-      await this.page.getByTestId('branch-delete-button').click();
+      await this.openActionsMenu(item);
+      await this.page.getByTestId('branch-delete-button').first().click();
       await this.page.getByTestId('branch-delete-confirm-button').click();
       await expect(item).not.toBeVisible();
       await this.page.waitForTimeout(500);
@@ -69,7 +69,7 @@ export class BranchesScreen {
 
   async openBranchActions(text: string): Promise<void> {
     const item = (await this.branchItems(text)).first();
-    await item.getByTestId('branch-actions-trigger').click();
+    await this.openActionsMenu(item);
   }
 
   async editBranchName(currentText: string, nextName: string): Promise<void> {
@@ -108,5 +108,18 @@ export class BranchesScreen {
         .filter({ hasText: text });
     }
     return this.page.getByTestId('branch-item').filter({ hasText: text });
+  }
+
+  private async openActionsMenu(item: Locator): Promise<void> {
+    const trigger = item.getByTestId('branch-actions-trigger');
+    const editButton = this.page.getByTestId('branch-edit-button').first();
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await trigger.click();
+      if (await editButton.isVisible().catch(() => false)) return;
+      await this.page.waitForTimeout(250);
+    }
+
+    throw new Error('Branch actions menu did not open.');
   }
 }
