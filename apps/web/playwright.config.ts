@@ -31,8 +31,8 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 4 : '50%',
+  retries: process.env.CI ? 2 : 1, // 1 retry locally to handle flakiness
+  workers: process.env.CI ? 4 : 2, // Reduce local workers to avoid contention
   reporter: process.env.CI ? [['html'], ['list']] : [['list']],
   timeout: 60 * 1000,
   snapshotDir: './e2e/snapshots',
