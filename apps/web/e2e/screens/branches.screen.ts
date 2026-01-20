@@ -112,12 +112,17 @@ export class BranchesScreen {
 
   private async openActionsMenu(item: Locator): Promise<void> {
     const trigger = item.getByTestId('branch-actions-trigger');
-    const editButton = this.page.getByTestId('branch-edit-button').first();
+    const deleteButton = this.page.getByTestId('branch-delete-button').first();
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      await trigger.click();
-      if (await editButton.isVisible().catch(() => false)) return;
-      await this.page.waitForTimeout(250);
+      await trigger.scrollIntoViewIfNeeded();
+      await trigger.click({ force: true });
+      try {
+        await deleteButton.waitFor({ state: 'visible', timeout: 1000 });
+        return;
+      } catch {
+        await this.page.waitForTimeout(250);
+      }
     }
 
     throw new Error('Branch actions menu did not open.');
