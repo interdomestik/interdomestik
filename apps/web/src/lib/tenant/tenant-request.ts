@@ -9,6 +9,7 @@ import {
 
 export type ResolveTenantOptions = {
   tenantIdFromQuery?: string | null;
+  locale?: string | null;
 };
 
 function getRequestHost(h: Headers): string {
@@ -38,6 +39,13 @@ export async function resolveTenantIdFromRequest(
 
   const queryTenant = coerceTenantId(options.tenantIdFromQuery ?? undefined);
   if (queryTenant) return queryTenant;
+
+  // Optional fallback for neutral hosts in dev (or as a controlled UX choice).
+  // Keep this last: host/cookie/header/query remain the primary sources of truth.
+  let localeTenant: TenantId | null = null;
+  if (options.locale === 'mk') localeTenant = 'tenant_mk';
+  if (options.locale === 'sq') localeTenant = 'tenant_ks';
+  if (localeTenant) return localeTenant;
 
   return null;
 }
