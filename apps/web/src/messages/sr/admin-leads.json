@@ -1,11 +1,24 @@
 {
   "admin": {
     "leads": {
-      "title": "Payment Verification",
-      "subtitle": "Verify cash payments collected by agents.",
-      "approve": "Approve",
-      "reject": "Reject",
-      "success": "Payment verified",
+      "title": "Verifikacija plaćanja",
+      "subtitle": "Verifikujte gotovinska plaćanja koja su prikupili agenti.",
+      "approve": "Odobri",
+      "reject": "Odbij",
+      "success": "Plaćanje verifikovano",
+      "table": {
+        "amount": "Iznos",
+        "verification": "Verifikacija",
+        "branch": "Branch",
+        "lead": "Lead",
+        "agent": "Agent",
+        "proof": "Proof",
+        "status": "Status",
+        "verifier": "Verifier",
+        "date": "Date",
+        "note": "Note",
+        "actions": "Actions"
+      },
       "tabs": {
         "queue": "Queue",
         "history": "History"
@@ -16,19 +29,6 @@
         "rejected": "Rejected",
         "needs_info": "Needs Info",
         "resubmitted": "Resubmitted"
-      },
-      "table": {
-        "amount": "Amount",
-        "verification": "Verification",
-        "branch": "Branch",
-        "lead": "Lead",
-        "agent": "Agent",
-        "proof": "Proof",
-        "status": "Status",
-        "verifier": "Verifier",
-        "date": "Date",
-        "note": "Note",
-        "actions": "Actions"
       },
       "stats": {
         "count": "Total Requests",

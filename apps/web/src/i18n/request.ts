@@ -1,6 +1,7 @@
 import { getRequestConfig } from 'next-intl/server';
-import { routing } from './routing';
+import { getIntlMessageFallback, isStrictI18n, onIntlError } from './error-handling';
 import { loadAllMessages } from './messages';
+import { routing } from './routing';
 
 export default getRequestConfig(async ({ requestLocale }) => {
   // Get the locale from the request
@@ -11,8 +12,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
     locale = routing.defaultLocale;
   }
 
+  const strict = isStrictI18n();
+
   return {
     locale,
-    messages: await loadAllMessages(locale),
+    messages: await loadAllMessages(locale, { strict }),
+    onError: onIntlError,
+    getMessageFallback: getIntlMessageFallback,
   };
 });

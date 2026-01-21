@@ -79,7 +79,8 @@
         "needs_info": "Kërkohet Info",
         "resubmitted": "Ridorëzuar",
         "approved": "Aprovuar"
-      }
+      },
+      "success": "Payment verified"
     },
     "analytics": {
       "title": "Përmbledhja e Analitikës",
