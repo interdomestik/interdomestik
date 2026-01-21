@@ -13,21 +13,36 @@ export const dynamic = 'force-dynamic';
  */
 
 export async function POST(req: NextRequest) {
+  const env = process.env as Record<string, string | undefined>;
+  const nodeEnv = env['NODE_ENV'];
+  const e2eApiSecret = env['E2E_API_SECRET'];
+  const isAutomated = !!env['INTERDOMESTIK_AUTOMATED'];
+  const isPlaywright = !!env['PLAYWRIGHT'];
+
   // 🛡️ SECURITY: Environment guard
-  // Strictly disable in production builds, regardless of secrets.
-  if (process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'development') {
+  // Normally we disable E2E routes in production builds. For local E2E runs
+  // we allow the route when one of the following test flags is present so
+  // the standalone `next start` used by Playwright can still expose the
+  // test-only endpoints (controlled by `E2E_API_SECRET`).
+  if (
+    nodeEnv !== 'test' &&
+    nodeEnv !== 'development' &&
+    !e2eApiSecret &&
+    !isAutomated &&
+    !isPlaywright
+  ) {
     return notFound();
   }
 
   // 🛡️ SECURITY: Server-side enable check
   // The route is only active if E2E_API_SECRET is set in the server environment.
-  if (!process.env.E2E_API_SECRET) {
+  if (!e2eApiSecret) {
     return notFound();
   }
 
   // 🛡️ SECURITY: Request authorization
   const secret = req.headers.get('x-e2e-secret');
-  if (secret !== process.env.E2E_API_SECRET) {
+  if (secret !== e2eApiSecret) {
     // Return 404 to avoid leaking existence
     return notFound();
   }

@@ -1,0 +1,7 @@
+# Stability suite: rerun these whenever shared E2E infra changes.
+# Paths are relative to apps/web (Playwright config lives here).
+
+e2e/branches.spec.ts
+e2e/claim-routing.spec.ts
+e2e/admin-claims-v2.spec.ts
+e2e/quarantine/regressions.spec.ts

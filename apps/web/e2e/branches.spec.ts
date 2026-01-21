@@ -1,11 +1,11 @@
 import { E2E_USERS } from '@interdomestik/database';
+import { BranchesApi } from './api/branches.api';
 import { test } from './fixtures/auth.fixture';
 import { BranchesScreen } from './screens/branches.screen';
-import { BranchesApi } from './api/branches.api';
 
 test.describe('Branch Management', () => {
   test('Admin can CRUD branches', async ({ adminPage: page, request }, testInfo) => {
-    const api = new BranchesApi(page.request); // Use authenticated request context from page
+    const api = new BranchesApi(request); // Use project-scoped request (honors project baseURL)
     const branches = new BranchesScreen(page);
 
     // Determine tenant context

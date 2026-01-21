@@ -22,19 +22,23 @@ export class BranchesApi {
    * If not, we'll need to create one. For now, I'll assume we can use the `e2e/api` route I will create.
    */
   async createBranch(params: CreateBranchParams) {
-    const res = await this.request.post('/api/e2e/branches', {
+    const res = await this.request.post('api/e2e/branches', {
       headers: this.headers,
       data: {
         action: 'create',
         ...params,
       },
     });
-    expect(res.ok(), `Create Branch API failed: ${await res.text()}`).toBeTruthy();
+    const body = await res.text().catch(() => '');
+    expect(
+      res.ok(),
+      `Create Branch API failed: status=${res.status()} url=${res.url()} body=${body || '<empty>'}`
+    ).toBeTruthy();
     return await res.json();
   }
 
   async updateBranch(code: string, name: string) {
-    const res = await this.request.post('/api/e2e/branches', {
+    const res = await this.request.post('api/e2e/branches', {
       headers: this.headers,
       data: {
         action: 'update',
@@ -46,7 +50,7 @@ export class BranchesApi {
   }
 
   async deleteBranch(code: string) {
-    const res = await this.request.post('/api/e2e/branches', {
+    const res = await this.request.post('api/e2e/branches', {
       headers: this.headers,
       data: {
         action: 'delete',
@@ -61,7 +65,7 @@ export class BranchesApi {
     // This requires a "list" or "delete by pattern" capability.
     // For now, we'll delete the specific code if known.
     // If we need bulk cleanup, the API route should support it.
-    await this.request.post('/api/e2e/branches', {
+    await this.request.post('api/e2e/branches', {
       headers: this.headers,
       data: {
         action: 'cleanup',
