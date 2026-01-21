@@ -7,8 +7,30 @@
  * - Profile and settings
  */
 
+import type { Page } from '@playwright/test';
 import { expect, isLoggedIn, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+
+async function isUserNavVisible(page: Page): Promise<boolean> {
+  const userNav = page.locator('[data-testid="user-nav"]');
+  const sidebarUserMenu = page.locator('[data-testid="sidebar-user-menu-button"]');
+  const avatarButton = page.locator('button:has(img)');
+  const avatarText = page.locator('button').filter({ hasText: /^[A-Z]{1,2}$/ });
+
+  const navVisible = await userNav.isVisible().catch(() => false);
+  const sidebarVisible = await sidebarUserMenu.isVisible().catch(() => false);
+  const btnVisible = await avatarButton
+    .first()
+    .isVisible()
+    .catch(() => false);
+  const textVisible = await avatarText
+    .first()
+    .isVisible()
+    .catch(() => false);
+  const sessionReady = await isLoggedIn(page);
+
+  return navVisible || sidebarVisible || btnVisible || textVisible || sessionReady;
+}
 
 // TODO: Legacy tests - superseded by golden-flows.spec.ts
 test.describe('@legacy Member User Flow', () => {
@@ -169,30 +191,14 @@ test.describe('@legacy Member User Flow', () => {
 
     test('Member can access user menu', async ({ authenticatedPage: page }) => {
       await page.goto(routes.member(), { waitUntil: 'domcontentloaded' });
-      await page.waitForLoadState('networkidle');
 
-      // Look for user nav or avatar button or image
-      const userNav = page.locator('[data-testid="user-nav"]');
-      const sidebarUserMenu = page.locator('[data-testid="sidebar-user-menu-button"]');
-      const avatarButton = page.locator('button:has(img)');
-      const avatarText = page.locator('button').filter({ hasText: /^[A-Z]{1,2}$/ });
+      // Avoid `networkidle` in SPA apps (polling/SSE/analytics can keep the network busy forever).
+      await expect(page.locator('main').first()).toBeVisible({ timeout: 15000 });
 
-      // Wait for any of them to be visible
+      // Wait for any of the user nav variants to be visible
       await expect(async () => {
-        const navVisible = await userNav.isVisible().catch(() => false);
-        const sidebarVisible = await sidebarUserMenu.isVisible().catch(() => false);
-        const btnVisible = await avatarButton
-          .first()
-          .isVisible()
-          .catch(() => false);
-        const textVisible = await avatarText
-          .first()
-          .isVisible()
-          .catch(() => false);
-        const sessionReady = await isLoggedIn(page);
-        expect(
-          navVisible || sidebarVisible || btnVisible || textVisible || sessionReady
-        ).toBeTruthy();
+        const anyVisible = await isUserNavVisible(page);
+        expect(anyVisible).toBeTruthy();
       }).toPass({ timeout: 15000 });
     });
   });

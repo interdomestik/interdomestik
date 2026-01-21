@@ -13,6 +13,12 @@
     "empty": {
       "title": "Nuk ka mesazhe ende",
       "description": "Filloni një bisedë me agjentin tuaj të caktuar. Ai do të përgjigjet brenda 24 orëve."
+    },
+    "quickReplies": {
+      "greeting": "Hello, how can I help you?",
+      "docs_request": "Please upload the required documents.",
+      "status_update": "Your claim is being processed.",
+      "closing": "Thank you for reaching out."
     }
   }
 }

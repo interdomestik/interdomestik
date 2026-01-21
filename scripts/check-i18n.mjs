@@ -5,14 +5,40 @@ import fs from 'fs';
 import path from 'path';
 
 const ROOT = process.cwd();
-const locales = ['en', 'sq', 'sr', 'mk'];
+const DEFAULT_LOCALES = ['en', 'sq', 'mk', 'sr'];
+
+function parseArgs(argv) {
+  const out = { locales: DEFAULT_LOCALES, baseLocale: 'en' };
+
+  for (const arg of argv) {
+    if (arg.startsWith('--locales=')) {
+      out.locales = arg
+        .replace('--locales=', '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+
+    if (arg.startsWith('--base=')) {
+      out.baseLocale = arg.replace('--base=', '').trim();
+    }
+  }
+
+  if (!out.locales.includes(out.baseLocale)) {
+    out.locales = [out.baseLocale, ...out.locales];
+  }
+
+  return out;
+}
+
+const { locales, baseLocale } = parseArgs(process.argv.slice(2));
 
 const MESSAGES_DIR = path.join(ROOT, 'apps/web/src/messages');
-const EN_DIR = path.join(MESSAGES_DIR, 'en');
+const BASE_DIR = path.join(MESSAGES_DIR, baseLocale);
 
 // Auto-discover namespaces from 'en' directory
 const namespaces = fs
-  .readdirSync(EN_DIR)
+  .readdirSync(BASE_DIR)
   .filter(f => f.endsWith('.json'))
   .map(f => f.replace('.json', ''));
 
@@ -41,11 +67,13 @@ function flatten(obj, prefix = '') {
 
 let failures = [];
 
-console.log(`Checking ${namespaces.length} namespaces across locales: ${locales.join(', ')}...`);
+console.log(
+  `Checking ${namespaces.length} namespaces across locales: ${locales.join(', ')} (base=${baseLocale})...`
+);
 
 for (const ns of namespaces) {
-  const enFile = fileFor('en', ns);
-  const base = readJson(enFile);
+  const baseFile = fileFor(baseLocale, ns);
+  const base = readJson(baseFile);
   if (!base) {
     // Should not happen as we just read dir
     failures.push(`Base locale missing file: ${ns}`);
@@ -57,7 +85,7 @@ for (const ns of namespaces) {
   // The flattening should handle both, but we need to compare keys.
   const baseKeys = flatten(base);
 
-  for (const locale of locales.filter(l => l !== 'en')) {
+  for (const locale of locales.filter(l => l !== baseLocale)) {
     const file = fileFor(locale, ns);
     const data = readJson(file);
 

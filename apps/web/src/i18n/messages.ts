@@ -133,7 +133,12 @@ export const ADMIN_NAMESPACES = [
 
 import { mergeMessages } from './utils/merge';
 
-export async function loadAllMessages(locale: string) {
+type LoadAllMessagesOptions = {
+  strict?: boolean;
+};
+
+export async function loadAllMessages(locale: string, options: LoadAllMessagesOptions = {}) {
+  const strict = options.strict === true;
   const modules = await Promise.all(
     MESSAGE_NAMESPACES.map(async namespace => {
       try {
@@ -145,7 +150,13 @@ export async function loadAllMessages(locale: string) {
             const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);
             messages = mergeMessages(fallback.default, messages);
           } catch {
-            // Fallback might fail if the file doesn't exist, just use what we have
+            if (strict) {
+              throw new Error(
+                `[i18n] Missing fallback messages file for locale=${routing.defaultLocale} namespace=${namespace}`
+              );
+            }
+
+            // Fallback might fail if the file doesn't exist, just use what we have.
           }
         }
 
@@ -162,7 +173,12 @@ export async function loadAllMessages(locale: string) {
 
         return messages;
       } catch {
-        // console.error(`Error loading namespace ${namespace} for locale ${locale}`, error);
+        if (strict) {
+          throw new Error(
+            `[i18n] Missing messages file for locale=${locale} namespace=${namespace}`
+          );
+        }
+
         try {
           // Try loading fallback locale if main failed entirely
           const fallback = await import(`../messages/${routing.defaultLocale}/${namespace}.json`);

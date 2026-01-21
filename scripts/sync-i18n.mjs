@@ -1,10 +1,49 @@
+#!/usr/bin/env node
+
 import fs from 'fs';
 import path from 'path';
 
 const ROOT = process.cwd();
 const MESSAGES_DIR = path.join(ROOT, 'apps/web/src/messages');
-const EN_DIR = path.join(MESSAGES_DIR, 'en');
-const TARGET_LOCALES = ['sr', 'mk']; // sq seems fine mostly or we trust it
+
+const DEFAULT_BASE_LOCALE = 'en';
+const DEFAULT_TARGET_LOCALES = ['sq', 'mk', 'sr'];
+
+function parseArgs(argv) {
+  const out = {
+    baseLocale: DEFAULT_BASE_LOCALE,
+    locales: DEFAULT_TARGET_LOCALES,
+    dryRun: false,
+  };
+
+  for (const arg of argv) {
+    if (arg.startsWith('--base=')) {
+      out.baseLocale = arg.replace('--base=', '').trim();
+    }
+
+    if (arg.startsWith('--locales=')) {
+      out.locales = arg
+        .replace('--locales=', '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+
+    if (arg === '--dry-run') {
+      out.dryRun = true;
+    }
+  }
+
+  return out;
+}
+
+const { baseLocale, locales: targetLocales, dryRun } = parseArgs(process.argv.slice(2));
+const BASE_DIR = path.join(MESSAGES_DIR, baseLocale);
+
+if (!fs.existsSync(BASE_DIR)) {
+  console.error(`[i18n:sync] Base locale directory not found: ${BASE_DIR}`);
+  process.exit(1);
+}
 
 // Helper to read JSON
 function readJson(file) {
@@ -14,6 +53,8 @@ function readJson(file) {
 
 // Helper to write JSON
 function writeJson(file, data) {
+  if (dryRun) return;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
 }
 
@@ -44,40 +85,51 @@ function merge(target, source) {
 }
 
 const namespaces = fs
-  .readdirSync(EN_DIR)
+  .readdirSync(BASE_DIR)
   .filter(f => f.endsWith('.json'))
   .map(f => f.replace('.json', ''));
 
-console.log(`Syncing ${namespaces.length} namespaces to [${TARGET_LOCALES.join(', ')}]...`);
+console.log(
+  `Syncing ${namespaces.length} namespaces from [${baseLocale}] to [${targetLocales.join(', ')}]${
+    dryRun ? ' (dry-run)' : ''
+  }...`
+);
+
+const actions = [];
 
 for (const ns of namespaces) {
-  const enPath = path.join(EN_DIR, `${ns}.json`);
-  const enData = readJson(enPath);
+  const basePath = path.join(BASE_DIR, `${ns}.json`);
+  const baseData = readJson(basePath);
 
-  if (!enData) continue;
+  if (!baseData) continue;
 
-  for (const locale of TARGET_LOCALES) {
-    const targetDir = path.join(MESSAGES_DIR, locale);
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
-    }
-
-    const targetPath = path.join(targetDir, `${ns}.json`);
+  for (const locale of targetLocales) {
+    const targetPath = path.join(MESSAGES_DIR, locale, `${ns}.json`);
     const targetData = readJson(targetPath);
 
     let newData;
     if (!targetData) {
-      console.log(`[${locale}] Creating missing file: ${ns}.json`);
-      newData = enData; // Copy full English data
+      actions.push({ type: 'create', locale, ns });
+      newData = baseData; // Copy full base data
     } else {
       // Merge missing keys
-      newData = merge(targetData, enData);
+      newData = merge(targetData, baseData);
 
-      // Check if actually changed? (Optimization: skipped for now, just overwrite)
+      const changed = JSON.stringify(targetData) !== JSON.stringify(newData);
+      if (changed) actions.push({ type: 'update', locale, ns });
+      if (!changed) continue;
     }
 
     writeJson(targetPath, newData);
   }
 }
 
-console.log('✅ Sync complete!');
+if (!actions.length) {
+  console.log('✅ Sync complete! No changes needed.');
+  process.exit(0);
+}
+
+console.log(`✅ Sync complete! ${dryRun ? 'Planned' : 'Applied'} ${actions.length} change(s):`);
+for (const a of actions) {
+  console.log(` - ${a.type} [${a.locale}] ${a.ns}.json`);
+}
