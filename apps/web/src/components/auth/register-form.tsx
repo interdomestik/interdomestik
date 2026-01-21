@@ -18,13 +18,14 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
-export function RegisterForm() {
+export function RegisterForm({ tenantId }: { tenantId?: string }) {
   const t = useTranslations('auth.register');
   const common = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tenantId = searchParams.get('tenantId') || undefined;
-  const loginHref = tenantId ? `/login?tenantId=${tenantId}` : '/login';
+  const tenantIdFromQuery = searchParams.get('tenantId') || undefined;
+  const resolvedTenantId = tenantId ?? tenantIdFromQuery;
+  const loginHref = resolvedTenantId ? `/login?tenantId=${resolvedTenantId}` : '/login';
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -45,7 +46,7 @@ export function RegisterForm() {
       return;
     }
 
-    if (!tenantId) {
+    if (!resolvedTenantId) {
       setError('Missing tenant context. Please select a tenant to continue.');
       setLoading(false);
       return;
@@ -57,7 +58,7 @@ export function RegisterForm() {
         password,
         name,
         callbackURL: '/member',
-        tenantId,
+        tenantId: resolvedTenantId,
       };
 
       const { error: signUpError } = await authClient.signUp.email(signUpPayload);
@@ -82,7 +83,7 @@ export function RegisterForm() {
     await authClient.signIn.social({
       provider,
       callbackURL: `${window.location.origin}/member`,
-      ...(tenantId ? { additionalData: { tenantId } } : {}),
+      ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
     });
   };
 

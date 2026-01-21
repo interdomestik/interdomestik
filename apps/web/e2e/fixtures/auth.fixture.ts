@@ -10,7 +10,7 @@
  */
 
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
-import { test as base, Page, type TestInfo } from '@playwright/test';
+import { test as base, expect, Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { routes } from '../routes';
@@ -24,6 +24,19 @@ const AUTH_OK_SELECTORS = ['[data-testid="user-nav"]', '[data-testid="sidebar-us
 
 function getBaseURL(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://127.0.0.1:3000';
+}
+
+function getRootURL(baseURL?: string | null): string {
+  const raw = baseURL ?? getBaseURL();
+  const url = new URL(raw);
+  url.pathname = '';
+  url.search = '';
+  url.hash = '';
+  return url.toString().replace(/\/$/, '');
+}
+
+async function assertNoTenantChooser(page: Page): Promise<void> {
+  await expect(page.getByRole('heading', { name: /choose your country/i })).toHaveCount(0);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -119,13 +132,13 @@ async function performLogin(
 
   // API Login Strategy (Robust)
   // Use absolute URL to bypass project-specific baseURL (e.g. .../sq)
-  const rootURL = getBaseURL();
+  const rootURL = getRootURL(authorizedBaseURL);
   const loginURL = `${rootURL}/api/auth/sign-in/email`;
   const res = await page.request.post(loginURL, {
     data: { email, password },
     headers: {
       Origin: rootURL,
-      Referer: `${rootURL}/login`,
+      Referer: `${rootURL}/`,
       'x-forwarded-for': ipForRole(role),
     },
   });
@@ -180,17 +193,17 @@ export const test = base.extend<AuthFixtures>({
       else if (role === 'staff') targetPath += '/staff';
       else targetPath += '/member';
 
-      // Use absolute URL to bypass project-specific baseURL (e.g. .../sq)
-      const absURL = `${getBaseURL()}${targetPath}`;
+      const absURL = `${getRootURL(baseURL ?? null)}${targetPath}`;
       await page.goto(absURL, { waitUntil: 'domcontentloaded' });
+      await assertNoTenantChooser(page);
     });
   },
 
-  saveState: async ({ page }, use, testInfo) => {
+  saveState: async ({ page, baseURL }, use, testInfo) => {
     await use(async (role: Role) => {
       const tenant = getTenantFromTestInfo(testInfo);
       const statePath = storageStateFile(role, tenant);
-      await performLogin(page, role, undefined, tenant);
+      await performLogin(page, role, baseURL, tenant);
       await page.context().storageState({ path: statePath });
     });
   },
@@ -198,10 +211,10 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Generic authenticated page (defaults to member if not specified)
    */
-  authenticatedPage: async ({ page }, use, testInfo) => {
+  authenticatedPage: async ({ page, baseURL }, use, testInfo) => {
     const tenant = getTenantFromTestInfo(testInfo);
     if (!(await isLoggedIn(page))) {
-      await performLogin(page, 'member', undefined, tenant);
+      await performLogin(page, 'member', baseURL, tenant);
     }
     await use(page);
   },
@@ -238,7 +251,7 @@ export const test = base.extend<AuthFixtures>({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('agent') },
-      baseURL: getBaseURL(),
+      baseURL: (testInfo.project.use.baseURL ?? getBaseURL()).toString(),
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
@@ -258,7 +271,7 @@ export const test = base.extend<AuthFixtures>({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('staff') },
-      baseURL: getBaseURL(),
+      baseURL: (testInfo.project.use.baseURL ?? getBaseURL()).toString(),
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
@@ -280,7 +293,7 @@ export const test = base.extend<AuthFixtures>({
       extraHTTPHeaders: {
         'x-forwarded-for': '10.0.0.15', // Distinct IP for BM
       },
-      baseURL: getBaseURL(),
+      baseURL: (testInfo.project.use.baseURL ?? getBaseURL()).toString(),
     });
     const page = await context.newPage();
     if (!(await hasSessionCookie(page))) {
@@ -337,9 +350,10 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
 }
 
 export async function logout(page: Page): Promise<void> {
-  const baseURL = getBaseURL();
-  await page.request.post('/api/auth/sign-out', {
-    headers: { Origin: baseURL },
+  const current = page.url() && page.url() !== 'about:blank' ? page.url() : null;
+  const origin = current ? new URL(current).origin : getRootURL(null);
+  await page.request.post(new URL('/api/auth/sign-out', origin).toString(), {
+    headers: { Origin: origin },
   });
   await page.goto(routes.login('en'));
 }

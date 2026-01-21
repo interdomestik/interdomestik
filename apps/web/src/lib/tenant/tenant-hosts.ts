@@ -1,0 +1,67 @@
+export type TenantId = 'tenant_mk' | 'tenant_ks';
+
+export const TENANT_COOKIE_NAME = 'tenantId';
+export const TENANT_HEADER_NAME = 'x-tenant-id';
+
+function normalizeHost(host: string): string {
+  const raw = host.split(',')[0]?.trim() ?? '';
+  const withoutPort = raw.replace(/:\d+$/, '');
+  return withoutPort.toLowerCase().replace(/\.$/, '');
+}
+
+function normalizeHostWithPort(host: string): string {
+  const raw = host.split(',')[0]?.trim() ?? '';
+  return raw.toLowerCase().replace(/\.$/, '');
+}
+
+function isTenantId(value: string | null | undefined): value is TenantId {
+  return value === 'tenant_mk' || value === 'tenant_ks';
+}
+
+function hostsForTenant(tenantId: TenantId): string[] {
+  const envHosts: string[] = [];
+
+  if (tenantId === 'tenant_mk' && process.env.MK_HOST) envHosts.push(process.env.MK_HOST);
+  if (tenantId === 'tenant_ks' && process.env.KS_HOST) envHosts.push(process.env.KS_HOST);
+
+  // Canonical production hosts
+  const canonical =
+    tenantId === 'tenant_mk'
+      ? ['mk.interdomestik.com']
+      : tenantId === 'tenant_ks'
+        ? ['ks.interdomestik.com']
+        : [];
+
+  // Local development convenience (documented in docs/tenant-domains.md)
+  const local = tenantId === 'tenant_mk' ? ['mk.localhost'] : ['ks.localhost'];
+
+  // Include both host-only and host:port variants from env.
+  // We match against both because `Host` may include a port in dev.
+  return [...canonical, ...local, ...envHosts].filter(Boolean);
+}
+
+export function resolveTenantFromHost(host: string): TenantId | null {
+  const normalized = normalizeHost(host);
+  const normalizedWithPort = normalizeHostWithPort(host);
+
+  for (const tenantId of ['tenant_mk', 'tenant_ks'] as const) {
+    for (const candidate of hostsForTenant(tenantId)) {
+      const candidateNormalized = normalizeHost(candidate);
+      const candidateWithPort = normalizeHostWithPort(candidate);
+
+      if (normalized === candidateNormalized) return tenantId;
+      if (normalizedWithPort === candidateWithPort) return tenantId;
+    }
+  }
+
+  return null;
+}
+
+export function isTenantHost(host: string): boolean {
+  return resolveTenantFromHost(host) !== null;
+}
+
+export function coerceTenantId(value: string | null | undefined): TenantId | null {
+  if (!value) return null;
+  return isTenantId(value) ? value : null;
+}
