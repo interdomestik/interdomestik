@@ -13,9 +13,12 @@ export default async function RegisterPage({ params, searchParams }: Props) {
   setRequestLocale(locale);
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const resolvedTenantId = await resolveTenantIdFromRequest({
-    tenantIdFromQuery: resolvedSearchParams?.tenantId ?? null,
-  });
+  const tenantFromLocale = locale === 'mk' ? 'tenant_mk' : locale === 'sq' ? 'tenant_ks' : null;
+
+  const resolvedTenantId =
+    (await resolveTenantIdFromRequest({
+      tenantIdFromQuery: resolvedSearchParams?.tenantId ?? null,
+    })) ?? tenantFromLocale;
 
   const [{ db }, { tenants }, drizzle] = await Promise.all([
     import('@interdomestik/database/db'),
