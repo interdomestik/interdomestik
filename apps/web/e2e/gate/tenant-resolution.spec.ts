@@ -33,9 +33,16 @@ test.describe('Tenant resolution contract', () => {
 
   test('Neutral host shows chooser when no tenant context', async ({ page }) => {
     const neutral = 'http://127.0.0.1:3000';
-    await page.goto(`${neutral}/sq/login`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${neutral}/en/login`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', { name: /choose your country/i })).toBeVisible();
+  });
+
+  test('Neutral host infers tenant from locale (sq → KS)', async ({ page }) => {
+    const neutral = 'http://127.0.0.1:3000';
+    await page.goto(`${neutral}/sq/login`, { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByRole('heading', { name: /choose your country/i })).toHaveCount(0);
   });
 
   test('Neutral host skips chooser when tenantId cookie exists', async ({ browser }) => {
