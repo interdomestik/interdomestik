@@ -13,6 +13,36 @@ const SESSION_COOKIE_NAMES = [
   '__Host-better-auth.session_token',
 ] as const;
 
+function getRequestOriginFromHeaders(request: NextRequest): string | null {
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  const proto = forwardedProto ?? request.nextUrl.protocol.replace(/:$/, '');
+
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const host = forwardedHost ?? request.headers.get('host');
+  if (!host) return null;
+
+  return `${proto}://${host}`;
+}
+
+function createAbsoluteUrl(request: NextRequest, pathname: string): URL {
+  const origin = getRequestOriginFromHeaders(request) ?? request.nextUrl.origin;
+  return new URL(pathname, origin);
+}
+
+function normalizeRequestForRouting(request: NextRequest): NextRequest {
+  // Avoid re-creating requests with bodies (stream can only be read once).
+  if (request.method !== 'GET' && request.method !== 'HEAD') return request;
+
+  const origin = getRequestOriginFromHeaders(request);
+  if (!origin) return request;
+
+  const normalizedUrl = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, origin);
+  return new NextRequest(normalizedUrl, {
+    headers: request.headers,
+    method: request.method,
+  });
+}
+
 function getLocaleAndTopLevelPath(pathname: string): {
   locale: string | null;
   topLevel: string | null;
@@ -41,6 +71,11 @@ export default async function proxy(request: NextRequest) {
   const nonce = createNonce();
   const pathname = request.nextUrl.pathname;
 
+  // In Next standalone (used by Playwright), the internally initialized request.url/origin can
+  // default to localhost/127.0.0.1 even when Host is mk.localhost/ks.localhost. Normalize
+  // routing/redirects to the incoming host so we never drift origins.
+  const routingRequest = normalizeRequestForRouting(request);
+
   // Axiom structured logging
   const logger = new Logger({ source: 'proxy', req: request });
   logger.info('Request', {
@@ -54,7 +89,7 @@ export default async function proxy(request: NextRequest) {
   const { locale, topLevel } = getLocaleAndTopLevelPath(pathname);
   const isProtected = Boolean(locale && topLevel && PROTECTED_TOP_LEVEL.has(topLevel));
   if (isProtected && !hasSessionCookie(request)) {
-    const loginUrl = new URL(`/${locale}/login`, request.url);
+    const loginUrl = createAbsoluteUrl(request, `/${locale}/login`);
     const response = NextResponse.redirect(loginUrl, 307);
     response.headers.set('x-auth-guard', 'middleware');
     // Flush Axiom logs before returning
@@ -66,7 +101,7 @@ export default async function proxy(request: NextRequest) {
   // Some routes intentionally live outside locale-prefixed routing.
   // Example: `/track/:token` uses `?lang=` and must not be redirected to `/<locale>/...`.
   const isLocaleAgnosticRoute = pathname.startsWith('/track/');
-  const response = isLocaleAgnosticRoute ? NextResponse.next() : handleIntlRouting(request);
+  const response = isLocaleAgnosticRoute ? NextResponse.next() : handleIntlRouting(routingRequest);
 
   if (isProtected) {
     response.headers.set('x-auth-guard', 'middleware');
