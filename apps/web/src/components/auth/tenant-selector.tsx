@@ -10,13 +10,6 @@ export type TenantOption = {
   countryCode: string;
 };
 
-// Map tenant IDs to their default locale
-function getTenantLocale(tenantId: string): string {
-  if (tenantId === 'tenant_mk') return 'mk';
-  if (tenantId === 'tenant_ks') return 'sq';
-  return 'sq'; // Default to Albanian
-}
-
 export function TenantSelector({
   tenants,
   title = 'Select your country',
@@ -31,21 +24,32 @@ export function TenantSelector({
 
   // Extract the path without locale prefix (e.g., /login from /sq/login)
   const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '/login';
+  const locale = (/^\/([a-z]{2})(?=\/|$)/i.exec(pathname)?.[1] ?? 'en').toLowerCase();
 
   return (
-    <Card className="w-full max-w-md border-none shadow-xl ring-1 ring-white/10 bg-white/5 backdrop-blur-lg">
+    <Card
+      data-testid="tenant-chooser"
+      className="w-full max-w-md border-none shadow-xl ring-1 ring-white/10 bg-white/5 backdrop-blur-lg"
+    >
       <CardHeader className="text-center space-y-1">
-        <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+        <CardTitle data-testid="tenant-chooser-title" className="text-lg font-semibold">
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3">
         {tenants.map(tenant => {
-          const locale = getTenantLocale(tenant.id);
           const params = new URLSearchParams(searchParams);
           params.set('tenantId', tenant.id);
-          // Build href with explicit locale prefix
+          // Keep current locale; locale is language-only and must never imply tenant.
           const href = `/${locale}${pathWithoutLocale}?${params.toString()}`;
           return (
-            <Button key={tenant.id} asChild variant="outline" className="w-full justify-between">
+            <Button
+              key={tenant.id}
+              asChild
+              variant="outline"
+              className="w-full justify-between"
+              data-testid={`tenant-option-${tenant.id}`}
+            >
               <Link href={href}>
                 <span>{tenant.name}</span>
                 <span className="text-xs text-muted-foreground">
