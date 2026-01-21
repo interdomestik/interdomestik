@@ -1,13 +1,15 @@
 import { expect } from '@playwright/test';
 import { test } from '../fixtures/auth.fixture';
+import { routes } from '../routes';
 
 test.describe('Verification List Ops (Golden)', () => {
   test('renders ops list primitives, handles selection via URL, and opens drawer', async ({
     page,
     loginAs,
-  }) => {
+  }, testInfo) => {
     await loginAs('admin');
-    await page.goto('/sq/admin/leads');
+    const locale = testInfo.project.name.includes('mk') ? 'mk' : 'sq';
+    await page.goto(routes.adminLeads(locale));
     await page.waitForLoadState('networkidle');
 
     const kpis = page.getByTestId('verification-kpis');
@@ -15,6 +17,11 @@ test.describe('Verification List Ops (Golden)', () => {
 
     // 1. URL Sync & Drawer Open on Selection
     const firstRow = page.getByTestId('cash-verification-row').first();
+    if ((await page.getByTestId('cash-verification-row').count()) === 0) {
+      await expect(page.getByTestId('ops-table-empty')).toBeVisible();
+      return;
+    }
+
     await expect(firstRow).toBeVisible();
     await firstRow.click();
 

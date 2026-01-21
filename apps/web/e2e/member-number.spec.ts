@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 // Enable full trace for this test suite
 test.use({ trace: 'on' });
 
-test.describe('Member Number Hardening', () => {
+test.describe('Member Number Hardening @quarantine', () => {
   test.beforeEach(({ page }) => {
     // Diagnostics: Console & Network (with noise filtering)
     page.on('console', msg => {

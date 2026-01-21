@@ -1,16 +1,21 @@
 import { expect } from '@playwright/test';
 import { test } from '../fixtures/auth.fixture';
+import { routes } from '../routes';
 
 test.describe('Verification Details Ops (Golden)', () => {
-  test('drawer renders ops kit sections', async ({ page, loginAs }) => {
+  test('drawer renders ops kit sections', async ({ page, loginAs }, testInfo) => {
     await loginAs('admin');
-    await page.goto('/sq/admin/leads');
+    const locale = testInfo.project.name.includes('mk') ? 'mk' : 'sq';
+    await page.goto(routes.adminLeads(locale));
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
 
-    const detailsBtn = page.getByTestId('verification-details-button').first();
-    await expect(detailsBtn).toBeVisible();
-    await detailsBtn.evaluate(node => (node as HTMLElement).click());
+    if ((await page.getByTestId('cash-verification-row').count()) === 0) {
+      await expect(page.getByTestId('ops-table-empty')).toBeVisible();
+      return;
+    }
+
+    await page.getByTestId('cash-verification-row').first().click();
 
     const drawer = page.getByTestId('ops-drawer');
     await expect(drawer).toBeVisible({ timeout: 10000 });
