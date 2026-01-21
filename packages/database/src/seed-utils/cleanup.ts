@@ -237,6 +237,19 @@ export async function cleanupByPrefixes(
     // 7d. Delete Audit Logs (performed by these users)
     await db.delete(dbSchema.auditLog).where(inArray(dbSchema.auditLog.actorId, allUserIds));
 
+    // 7d2. Delete Share Packs created/revoked by these users
+    // share_packs.created_by_user_id does not cascade; without this, user deletion can fail.
+    if (dbSchema.sharePacks) {
+      await db
+        .delete(dbSchema.sharePacks)
+        .where(
+          or(
+            inArray(dbSchema.sharePacks.createdByUserId, allUserIds),
+            inArray(dbSchema.sharePacks.revokedByUserId, allUserIds)
+          )
+        );
+    }
+
     // 7e. Delete Documents uploaded by these users
     if (dbSchema.documents) {
       const userDocIds = await db

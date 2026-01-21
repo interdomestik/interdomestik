@@ -28,9 +28,9 @@
 
 ## Non-Quarantine Skips (Project-Level)
 
-| Test File                       | Reason                 | Fix                       |
-| ------------------------------- | ---------------------- | ------------------------- |
-| `share-pack.spec.ts` MK project | No MK documents seeded | Add `doc-mk-1` to MK seed |
+| Test File                       | Status  | Resolution                                                              |
+| ------------------------------- | ------- | ----------------------------------------------------------------------- |
+| `share-pack.spec.ts` MK project | ✅ DONE | Seed includes `doc-mk-1` (validated via `seed:e2e` + `--project=mk-mk`) |
 
 ---
 

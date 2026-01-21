@@ -255,7 +255,7 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
   // 3a. Seed Documents for Vault/SharePack
   console.log('📄 Seeding Documents for Vault...');
   if (schema.documents) {
-    console.log('   Inserting 2 documents...');
+    console.log('   Inserting 3 documents...');
     await db
       .insert(schema.documents)
       .values([
@@ -286,6 +286,20 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
           entityId: goldenId('ks_admin'),
           storagePath: `ks/${goldenId('ks_admin')}/Claim_Form_Template.docx`,
           description: 'Empty Claim Form',
+        },
+        {
+          id: 'doc-mk-1',
+          tenantId: 'tenant_mk',
+          fileName: 'Policy_Manual_MK.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 1024 * 450,
+          category: 'other',
+          uploadedBy: goldenId('mk_admin'),
+          uploadedAt: at(),
+          entityType: 'member',
+          entityId: goldenId('mk_admin'),
+          storagePath: `mk/${goldenId('mk_admin')}/Policy_Manual_MK.pdf`,
+          description: 'Standard Policy Manual (MK)',
         },
       ])
       .onConflictDoNothing();
