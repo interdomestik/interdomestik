@@ -14,6 +14,7 @@ import { test as base, Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { routes } from '../routes';
+import { installNetworkTruthProbes } from '../utils/truth-checks';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -213,6 +214,15 @@ interface AuthFixtures {
 
 export const test = base.extend<AuthFixtures>({
   loginAs: async ({ page, baseURL }, use, testInfo) => {
+    installNetworkTruthProbes(page, testInfo, {
+      logUrlIf: url =>
+        url.includes('/api') ||
+        url.includes('/trpc') ||
+        url.includes('/actions') ||
+        url.includes('/admin') ||
+        url.includes('/agent'),
+    });
+
     await use(async (role: Role, tenantOverride?: Tenant) => {
       const tenant = tenantOverride ?? getTenantFromTestInfo(testInfo);
       // Pass baseURL explicitly if needed, but page.request uses context baseURL
@@ -265,6 +275,14 @@ export const test = base.extend<AuthFixtures>({
       baseURL: baseURL ?? getBaseURL(),
     });
     const page = await context.newPage();
+    installNetworkTruthProbes(page, testInfo, {
+      logUrlIf: url =>
+        url.includes('/api') ||
+        url.includes('/trpc') ||
+        url.includes('/actions') ||
+        url.includes('/admin') ||
+        url.includes('/agent'),
+    });
     if (!(await hasSessionCookie(page))) {
       console.log('Admin state missing or invalid, performing fresh login...');
       await performLogin(page, 'admin', baseURL, tenant);
@@ -287,6 +305,14 @@ export const test = base.extend<AuthFixtures>({
       baseURL: getBaseURL(),
     });
     const page = await context.newPage();
+    installNetworkTruthProbes(page, testInfo, {
+      logUrlIf: url =>
+        url.includes('/api') ||
+        url.includes('/trpc') ||
+        url.includes('/actions') ||
+        url.includes('/admin') ||
+        url.includes('/agent'),
+    });
     if (!(await hasSessionCookie(page))) {
       await performLogin(page, 'agent', undefined, tenant);
     }
@@ -307,6 +333,14 @@ export const test = base.extend<AuthFixtures>({
       baseURL: getBaseURL(),
     });
     const page = await context.newPage();
+    installNetworkTruthProbes(page, testInfo, {
+      logUrlIf: url =>
+        url.includes('/api') ||
+        url.includes('/trpc') ||
+        url.includes('/actions') ||
+        url.includes('/admin') ||
+        url.includes('/agent'),
+    });
     if (!(await hasSessionCookie(page))) {
       await performLogin(page, 'staff', undefined, tenant);
     }
@@ -329,6 +363,14 @@ export const test = base.extend<AuthFixtures>({
       baseURL: getBaseURL(),
     });
     const page = await context.newPage();
+    installNetworkTruthProbes(page, testInfo, {
+      logUrlIf: url =>
+        url.includes('/api') ||
+        url.includes('/trpc') ||
+        url.includes('/actions') ||
+        url.includes('/admin') ||
+        url.includes('/agent'),
+    });
     if (!(await hasSessionCookie(page))) {
       await performLogin(page, 'branch_manager', undefined, tenant);
     }
