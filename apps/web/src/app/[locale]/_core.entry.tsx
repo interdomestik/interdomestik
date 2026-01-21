@@ -89,6 +89,19 @@ export default async function RootLayout({ children, params }: Props) {
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
+        <div
+          data-testid="page-ready"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: 1,
+            height: 1,
+            opacity: 0.01,
+            pointerEvents: 'none',
+            zIndex: -1,
+          }}
+        />
         {process.env.NODE_ENV === 'development' && (
           <script src="http://localhost:8097" async></script>
         )}

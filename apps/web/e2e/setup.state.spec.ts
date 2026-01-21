@@ -29,7 +29,7 @@ function getExampleUser(roleKey: string) {
     case 'staff':
       return E2E_USERS.KS_STAFF;
     case 'branch_manager':
-      return E2E_USERS.MK_BRANCH_MANAGER;
+      return E2E_USERS.KS_BRANCH_MANAGER;
     default:
       throw new Error(`Unknown role key: ${roleKey}`);
   }
@@ -60,6 +60,10 @@ function stateFile(role: string, tenant: 'ks' | 'mk'): string {
   return path.join(__dirname, '.auth', tenant, `${role}.json`);
 }
 
+function gateStateFile(tenant: 'ks' | 'mk'): string {
+  return path.join(__dirname, '..', '.playwright', 'state', `${tenant}.json`);
+}
+
 async function ensureDir(filePath: string) {
   const dir = path.dirname(filePath);
   try {
@@ -67,6 +71,13 @@ async function ensureDir(filePath: string) {
   } catch {
     await fs.mkdir(dir, { recursive: true });
   }
+}
+
+async function syncGateStateFromMember(tenant: 'ks' | 'mk') {
+  const memberPath = stateFile('member', tenant);
+  const gatePath = gateStateFile(tenant);
+  await ensureDir(gatePath);
+  await fs.copyFile(memberPath, gatePath);
 }
 
 async function stateExists(role: string, tenant: 'ks' | 'mk'): Promise<boolean> {
@@ -128,7 +139,7 @@ authTest.describe('Generate StorageState Files', () => {
     if (tenant !== 'ks') return;
 
     const baseURL = (testInfo.project.use.baseURL ?? 'http://localhost:3000/sq').toString();
-    const roles = ['member', 'admin', 'agent', 'staff'] as const;
+    const roles = ['member', 'admin', 'agent', 'staff', 'branch_manager'] as const;
 
     for (const role of roles) {
       if (!process.env.FORCE_REGEN_STATE && (await stateExists(role, tenant))) {
@@ -141,6 +152,9 @@ authTest.describe('Generate StorageState Files', () => {
       // We will call it directly using the logic below to avoid strict deps on old fixture.
       await saveState(role);
     }
+
+    // Fast gate lanes use .playwright/state/{tenant}.json
+    await syncGateStateFromMember(tenant);
   });
 
   // MK ROLES
@@ -160,5 +174,8 @@ authTest.describe('Generate StorageState Files', () => {
       await ensureDir(stateFile(role, tenant));
       await saveState(role);
     }
+
+    // Fast gate lanes use .playwright/state/{tenant}.json
+    await syncGateStateFromMember(tenant);
   });
 });

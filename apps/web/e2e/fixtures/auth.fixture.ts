@@ -22,21 +22,82 @@ import { routes } from '../routes';
 // Locators that only appear when logged in
 const AUTH_OK_SELECTORS = ['[data-testid="user-nav"]', '[data-testid="sidebar-user-menu-button"]'];
 
-function getBaseURL(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://127.0.0.1:3000';
+type ProjectUrlInfo = {
+  baseURL: string;
+  origin: string;
+  locale: string;
+};
+
+type GlobalE2E = typeof globalThis & {
+  __E2E_BASE_URL?: string;
+};
+
+function getProjectUrlInfo(testInfo: TestInfo, baseURLFromFixture?: string | null): ProjectUrlInfo {
+  const baseURL = (testInfo.project.use.baseURL ?? baseURLFromFixture)?.toString();
+  if (!baseURL) {
+    throw new Error(
+      'Playwright baseURL is required for auth fixtures. Set project.use.baseURL in playwright.config.ts.'
+    );
+  }
+
+  const url = new URL(baseURL);
+  const firstSegment = url.pathname.split('/').find(Boolean) ?? 'en';
+  const locale = /^(sq|mk|en)$/i.test(firstSegment) ? firstSegment.toLowerCase() : 'en';
+
+  return {
+    baseURL,
+    origin: url.origin,
+    locale,
+  };
 }
 
-function getRootURL(baseURL?: string | null): string {
-  const raw = baseURL ?? getBaseURL();
-  const url = new URL(raw);
-  url.pathname = '';
-  url.search = '';
-  url.hash = '';
-  return url.toString().replace(/\/$/, '');
+function setWorkerE2EBaseURL(info: ProjectUrlInfo): void {
+  // Each Playwright worker runs a single project; stash baseURL so e2e/routes.ts
+  // can derive the correct default locale per worker (no cross-project leakage).
+  (globalThis as GlobalE2E).__E2E_BASE_URL = info.baseURL;
+}
+
+function buildUiLoginUrl(info: ProjectUrlInfo): string {
+  return `${info.origin}/${info.locale}/login`;
 }
 
 async function assertNoTenantChooser(page: Page): Promise<void> {
-  await expect(page.getByRole('heading', { name: /choose your country/i })).toHaveCount(0);
+  await expect(page.getByTestId('tenant-chooser')).toHaveCount(0);
+}
+
+function attachDialogDiagnostics(page: Page): void {
+  page.on('dialog', async dialog => {
+    const type = dialog.type();
+    const message = dialog.message();
+    console.warn(`[E2E Dialog] type=${type} message=${JSON.stringify(message)}`);
+    try {
+      await dialog.dismiss();
+    } catch {
+      // Ignore dialog dismissal errors (best-effort).
+    }
+  });
+
+  page.on('framenavigated', frame => {
+    if (frame === page.mainFrame()) {
+      console.log(`[E2E Nav] ${frame.url()}`);
+    }
+  });
+
+  page.on('requestfailed', request => {
+    if (request.resourceType() !== 'document') return;
+    const failure = request.failure();
+    console.warn(
+      `[E2E RequestFailed] ${request.method()} ${request.url()} ${failure?.errorText ?? ''}`
+    );
+  });
+
+  page.on('response', response => {
+    const req = response.request();
+    if (req.resourceType() !== 'document') return;
+    const url = response.url();
+    if (!/\/admin\/branches|\/login/i.test(url)) return;
+    console.log(`[E2E DocResponse] ${response.status()} ${url}`);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -125,35 +186,39 @@ export const TEST_ADMIN_MK = credsFor('admin', 'mk');
 async function performLogin(
   page: Page,
   role: Role,
-  authorizedBaseURL?: string | null,
+  info: ProjectUrlInfo,
   tenant: Tenant = 'ks'
 ): Promise<void> {
   const { email, password } = credsFor(role, tenant);
 
   // API Login Strategy (Robust)
-  // Use absolute URL to bypass project-specific baseURL (e.g. .../sq)
-  const rootURL = getRootURL(authorizedBaseURL);
-  const loginURL = `${rootURL}/api/auth/sign-in/email`;
+  // Use absolute URL and ALWAYS preserve project origin (never fall back to localhost).
+  const loginURL = `${info.origin}/api/auth/sign-in/email`;
   const res = await page.request.post(loginURL, {
     data: { email, password },
     headers: {
-      Origin: rootURL,
-      Referer: `${rootURL}/`,
+      Origin: info.origin,
+      Referer: buildUiLoginUrl(info),
       'x-forwarded-for': ipForRole(role),
     },
   });
 
-  if (!res.ok()) {
-    const text = await res.text();
-    console.error(`❌ API login failed for ${role}: ${res.status()} ${text}`);
-    throw new Error(`API login failed for ${role}: ${res.status()} ${text}`);
-  } else {
+  if (res.ok()) {
     console.log(`✅ API login matched for ${role} (${email})`);
+  } else {
+    const text = await res.text();
+    console.error(`❌ API login failed for ${role}: ${res.status()} ${res.url()} ${text}`);
+    throw new Error(`API login failed for ${role}: ${res.status()} ${res.url()} ${text}`);
   }
 
   // Ensure cookies are set (page.request shares context storage state)
   const cookies = await page.context().cookies();
   const sessionCookies = cookies.filter(c => c.name.includes('session_token'));
+
+  const expectedHost = new URL(info.origin).hostname;
+  const hasCookieForHost = sessionCookies.some(
+    c => c.domain === expectedHost || c.domain === `.${expectedHost}`
+  );
 
   if (sessionCookies.length === 0) {
     console.warn(`❌ No session_token cookie found after successful API login for ${role}`);
@@ -161,6 +226,47 @@ async function performLogin(
   } else {
     console.log(`✅ Session cookies found for ${role}:`);
     console.log(JSON.stringify(sessionCookies, null, 2));
+
+    if (!hasCookieForHost) {
+      console.warn(
+        `⚠️ Session cookie domain mismatch for ${role}. Expected host ${expectedHost}. Session cookies:`
+      );
+      console.log(JSON.stringify(sessionCookies, null, 2));
+    }
+  }
+
+  // Deterministic post-login navigation to validate cookie actually applies on this origin.
+  let targetPath = `/${info.locale}`;
+  if (role.includes('admin')) targetPath += '/admin';
+  else if (role === 'agent') targetPath += '/agent';
+  else if (role === 'staff') targetPath += '/staff';
+  else if (role === 'branch_manager') targetPath += '/admin';
+  else targetPath += '/member';
+
+  const targetUrl = new URL(targetPath, info.origin).toString();
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('page-ready')).toBeVisible();
+  await assertNoTenantChooser(page);
+
+  // Diagnostics: if we still landed on login, dump useful details.
+  const currentUrl = page.url();
+  const currentPath = new URL(currentUrl).pathname;
+  if (currentPath === `/${info.locale}/login`) {
+    const title = await page.title().catch(() => '<no title>');
+    const errorLocator = page
+      .locator('.text-red-500, [data-testid="auth-error"], [data-testid="login-error"]')
+      .first();
+    const errorText = await errorLocator
+      .innerText()
+      .then(t => t.trim())
+      .catch(() => '');
+
+    console.error('[Auth Diagnostics] Still on login after API auth');
+    console.error(`  role=${role} tenant=${tenant}`);
+    console.error(`  authResponse=${res.status()} ${res.url()}`);
+    console.error(`  document.title=${title}`);
+    console.error(`  currentUrl=${currentUrl}`);
+    if (errorText) console.error(`  visibleError=${errorText}`);
   }
 }
 
@@ -181,29 +287,22 @@ interface AuthFixtures {
 export const test = base.extend<AuthFixtures>({
   loginAs: async ({ page, baseURL }, use, testInfo) => {
     await use(async (role: Role) => {
+      attachDialogDiagnostics(page);
       const tenant = getTenantFromTestInfo(testInfo);
-      // Pass baseURL explicitly if needed, but page.request uses context baseURL
-      await performLogin(page, role, baseURL, tenant);
-
-      // Fix for Blocker 2: Always navigate after login to avoid about:blank
-      const locale = tenant === 'mk' ? 'mk' : 'sq';
-      let targetPath = `/${locale}`;
-      if (role.includes('admin')) targetPath += '/admin';
-      else if (role === 'agent') targetPath += '/agent';
-      else if (role === 'staff') targetPath += '/staff';
-      else targetPath += '/member';
-
-      const absURL = `${getRootURL(baseURL ?? null)}${targetPath}`;
-      await page.goto(absURL, { waitUntil: 'domcontentloaded' });
-      await assertNoTenantChooser(page);
+      const info = getProjectUrlInfo(testInfo, baseURL);
+      setWorkerE2EBaseURL(info);
+      await performLogin(page, role, info, tenant);
     });
   },
 
   saveState: async ({ page, baseURL }, use, testInfo) => {
     await use(async (role: Role) => {
+      attachDialogDiagnostics(page);
       const tenant = getTenantFromTestInfo(testInfo);
       const statePath = storageStateFile(role, tenant);
-      await performLogin(page, role, baseURL, tenant);
+      const info = getProjectUrlInfo(testInfo, baseURL);
+      setWorkerE2EBaseURL(info);
+      await performLogin(page, role, info, tenant);
       await page.context().storageState({ path: statePath });
     });
   },
@@ -212,9 +311,12 @@ export const test = base.extend<AuthFixtures>({
    * Generic authenticated page (defaults to member if not specified)
    */
   authenticatedPage: async ({ page, baseURL }, use, testInfo) => {
+    attachDialogDiagnostics(page);
     const tenant = getTenantFromTestInfo(testInfo);
     if (!(await isLoggedIn(page))) {
-      await performLogin(page, 'member', baseURL, tenant);
+      const info = getProjectUrlInfo(testInfo, baseURL);
+      setWorkerE2EBaseURL(info);
+      await performLogin(page, 'member', info, tenant);
     }
     await use(page);
   },
@@ -224,17 +326,20 @@ export const test = base.extend<AuthFixtures>({
    */
   adminPage: async ({ browser, baseURL }, use, testInfo) => {
     const tenant = getTenantFromTestInfo(testInfo);
+    const info = getProjectUrlInfo(testInfo, baseURL);
+    setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('admin', tenant);
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('admin') },
-      baseURL: baseURL ?? getBaseURL(),
+      baseURL: info.baseURL,
     });
     const page = await context.newPage();
+    attachDialogDiagnostics(page);
     if (!(await hasSessionCookie(page))) {
       console.log('Admin state missing or invalid, performing fresh login...');
-      await performLogin(page, 'admin', baseURL, tenant);
+      await performLogin(page, 'admin', info, tenant);
       // Update state file for next time? Ideally setup does this.
     }
     await use(page);
@@ -246,16 +351,19 @@ export const test = base.extend<AuthFixtures>({
    */
   agentPage: async ({ browser }, use, testInfo) => {
     const tenant = getTenantFromTestInfo(testInfo);
+    const info = getProjectUrlInfo(testInfo, null);
+    setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('agent', tenant);
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('agent') },
-      baseURL: (testInfo.project.use.baseURL ?? getBaseURL()).toString(),
+      baseURL: info.baseURL,
     });
     const page = await context.newPage();
+    attachDialogDiagnostics(page);
     if (!(await hasSessionCookie(page))) {
-      await performLogin(page, 'agent', undefined, tenant);
+      await performLogin(page, 'agent', info, tenant);
     }
     await use(page);
     await context.close();
@@ -266,16 +374,19 @@ export const test = base.extend<AuthFixtures>({
    */
   staffPage: async ({ browser }, use, testInfo) => {
     const tenant = getTenantFromTestInfo(testInfo);
+    const info = getProjectUrlInfo(testInfo, null);
+    setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('staff', tenant);
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('staff') },
-      baseURL: (testInfo.project.use.baseURL ?? getBaseURL()).toString(),
+      baseURL: info.baseURL,
     });
     const page = await context.newPage();
+    attachDialogDiagnostics(page);
     if (!(await hasSessionCookie(page))) {
-      await performLogin(page, 'staff', undefined, tenant);
+      await performLogin(page, 'staff', info, tenant);
     }
     await use(page);
     await context.close();
@@ -286,6 +397,8 @@ export const test = base.extend<AuthFixtures>({
    */
   branchManagerPage: async ({ browser }, use, testInfo) => {
     const tenant = getTenantFromTestInfo(testInfo);
+    const info = getProjectUrlInfo(testInfo, null);
+    setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('branch_manager', tenant);
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
@@ -293,11 +406,12 @@ export const test = base.extend<AuthFixtures>({
       extraHTTPHeaders: {
         'x-forwarded-for': '10.0.0.15', // Distinct IP for BM
       },
-      baseURL: (testInfo.project.use.baseURL ?? getBaseURL()).toString(),
+      baseURL: info.baseURL,
     });
     const page = await context.newPage();
+    attachDialogDiagnostics(page);
     if (!(await hasSessionCookie(page))) {
-      await performLogin(page, 'branch_manager', undefined, tenant);
+      await performLogin(page, 'branch_manager', info, tenant);
     }
     await use(page);
     await context.close();
@@ -351,7 +465,7 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
 
 export async function logout(page: Page): Promise<void> {
   const current = page.url() && page.url() !== 'about:blank' ? page.url() : null;
-  const origin = current ? new URL(current).origin : getRootURL(null);
+  const origin = current ? new URL(current).origin : 'http://127.0.0.1:3000';
   await page.request.post(new URL('/api/auth/sign-out', origin).toString(), {
     headers: { Origin: origin },
   });

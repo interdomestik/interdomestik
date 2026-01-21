@@ -15,7 +15,6 @@ export default async function LoginPage({ params, searchParams }: Props) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const resolvedTenantId = await resolveTenantIdFromRequest({
     tenantIdFromQuery: resolvedSearchParams?.tenantId ?? null,
-    locale,
   });
 
   const [{ db }, { tenants }, drizzle] = await Promise.all([

@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Load environment variables from root (prioritize .env.local)
 dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), quiet: true });
@@ -14,20 +15,34 @@ const KS_HOST = process.env.KS_HOST ?? `ks.localhost:${PORT}`;
 const MK_HOST = process.env.MK_HOST ?? `mk.localhost:${PORT}`;
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
 
+const AUTH_DIR = path.resolve(__dirname, './e2e/.auth');
+const KS_MEMBER_STATE = path.join(AUTH_DIR, 'ks', 'member.json');
+const MK_MEMBER_STATE = path.join(AUTH_DIR, 'mk', 'member.json');
+
+const GATE_STATE_DIR = path.resolve(__dirname, '.playwright', 'state');
+const GATE_KS_STATE = path.join(GATE_STATE_DIR, 'ks.json');
+const GATE_MK_STATE = path.join(GATE_STATE_DIR, 'mk.json');
+
+function requireState(statePath: string) {
+  if (fs.existsSync(statePath)) return;
+  throw new Error(
+    [
+      `Missing storageState: ${statePath}`,
+      'Generate it with:',
+      '  pnpm --filter @interdomestik/web test:e2e -- e2e/setup.state.spec.ts --project=setup-ks --project=setup-mk',
+    ].join('\n')
+  );
+}
+
+// Fail fast when running the fast gate lanes locally/CI.
+// This prevents confusing auth redirect cascades.
+if (process.env.PW_FAST_GATES === '1') {
+  requireState(GATE_KS_STATE);
+  requireState(GATE_MK_STATE);
+}
+
 process.env.NEXT_PUBLIC_APP_URL = BASE_URL;
 process.env.BETTER_AUTH_URL = BASE_URL;
-
-// If the caller runs Playwright with `--project=ks-sq` (or `mk-mk`) but forgets
-// to set `PLAYWRIGHT_LOCALE`, default it here so URL helpers (e.g. e2e/routes.ts)
-// generate the right locale-prefixed paths.
-if (!process.env.PLAYWRIGHT_LOCALE) {
-  const argv = process.argv.join(' ');
-  if (argv.includes('ks-sq') || argv.includes('setup-ks') || argv.includes('smoke')) {
-    process.env.PLAYWRIGHT_LOCALE = 'sq';
-  } else if (argv.includes('mk-mk') || argv.includes('setup-mk')) {
-    process.env.PLAYWRIGHT_LOCALE = 'mk';
-  }
-}
 
 export default defineConfig({
   testDir: './e2e',
@@ -57,6 +72,36 @@ export default defineConfig({
   },
   projects: [
     // ═══════════════════════════════════════════════════════════════════════════
+    // FAST GATE LANES (No deps)
+    // - Runs only e2e/gate/**
+    // - Does not generate state
+    // - Uses prebuilt storageState under .playwright/state
+    // Enable fail-fast state validation by setting PW_FAST_GATES=1.
+    // ═══════════════════════════════════════════════════════════════════════════
+    {
+      name: 'gate-ks-sq',
+      testMatch: ['gate/**/*.spec.ts'],
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: `http://${KS_HOST}/sq`,
+        storageState: GATE_KS_STATE,
+        actionTimeout: 20 * 1000,
+        navigationTimeout: 60 * 1000,
+      },
+    },
+    {
+      name: 'gate-mk-mk',
+      testMatch: ['gate/**/*.spec.ts'],
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: `http://${MK_HOST}/mk`,
+        storageState: GATE_MK_STATE,
+        actionTimeout: 20 * 1000,
+        navigationTimeout: 60 * 1000,
+      },
+    },
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // SETUP PROJECTS - Generate auth states per tenant
     // ═══════════════════════════════════════════════════════════════════════════
     {
@@ -85,6 +130,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${KS_HOST}/sq`,
+        storageState: KS_MEMBER_STATE,
       },
       testIgnore: [/setup\.state\.spec\.ts/, /claim-resolver-isolation\.spec\.ts/], // Ignore MK tests
     },
@@ -94,6 +140,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${MK_HOST}/mk`,
+        storageState: MK_MEMBER_STATE,
       },
       // Mirror the ks-sq lane: run the normal E2E suite against the MK tenant + mk locale.
       testIgnore: [/setup\.state\.spec\.ts/],
@@ -109,6 +156,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${KS_HOST}/sq`,
+        storageState: KS_MEMBER_STATE,
         actionTimeout: 20 * 1000,
         navigationTimeout: 60 * 1000,
       },
