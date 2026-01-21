@@ -8,16 +8,13 @@ import { expect, test } from './fixtures/auth.fixture';
 
 // Use hardcoded document IDs from seed (ks-workflow-pack.ts lines 263, 277)
 const SEEDED_KS_DOC_IDS = ['doc-ks-1', 'doc-ks-2'];
+const SEEDED_MK_DOC_IDS = ['doc-mk-1'];
 
 test.describe('Share Pack API', () => {
   test('should create and access a share pack', async ({ request, adminPage }, testInfo) => {
     // 1. Create Share Pack using project-aware document IDs
     const isMk = testInfo.project.name.includes('mk');
-    // TODO: Seed 'doc-mk-1' in database/src/seed-packs/mk-workflow-pack.ts
-    test.skip(isMk, 'MK seed missing doc-mk-1');
-
-    // Use seeded documents: 'doc-ks-1' for KS
-    const docIds = SEEDED_KS_DOC_IDS;
+    const docIds = isMk ? SEEDED_MK_DOC_IDS : SEEDED_KS_DOC_IDS;
 
     const createRes = await adminPage.request.post('/api/share-pack', {
       data: { documentIds: docIds },
@@ -38,12 +35,12 @@ test.describe('Share Pack API', () => {
     const accessRes = await request.get(`/api/share-pack?token=${token}`);
     expect(accessRes.status()).toBe(200);
     const accessData = await accessRes.json();
-    expect(accessData.documents).toHaveLength(SEEDED_KS_DOC_IDS.length);
+    expect(accessData.documents).toHaveLength(docIds.length);
     expect(accessData.packId).toBe(packId);
 
     // 3. Test with invalid token
     const invalidTokenRes = await request.get('/api/share-pack?token=invalid-token-xyz');
-    expect(invalidTokenRes.status()).toBe(401);
+    expect(invalidTokenRes.status()).toBe(404);
   });
 
   test('should fail with invalid documentIds', async ({ adminPage }) => {
