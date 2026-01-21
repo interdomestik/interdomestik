@@ -115,9 +115,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // E2E runs against a production server (Next `start`) for artifact consistency.
+    // E2E runs against a production server for artifact consistency.
+    // This app is configured with `output: "standalone"`, so `next start` is not supported.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: 'pnpm exec next start -H 127.0.0.1 -p 3000',
+    command: 'HOSTNAME=127.0.0.1 PORT=3000 node .next/standalone/apps/web/server.js',
     url: BASE_URL,
     // Never reuse a stale server by default (prevents origin/env mismatches).
     reuseExistingServer: false,

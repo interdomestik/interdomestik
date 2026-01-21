@@ -641,7 +641,7 @@ checks:
       - apps/web/playwright.config.ts
     must_match:
       - 'webServer'
-      - 'pnpm exec next start'
+      - 'node \.next/standalone/apps/web/server\.js'
       - "reuseExistingServer:\\s*false"
     must_not_match:
       - 'globalSetup'
