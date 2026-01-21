@@ -1,5 +1,6 @@
-import type { Page } from '@playwright/test';
-import { expect, test, type TestInfo } from '../fixtures/auth.fixture';
+import type { Page, TestInfo } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from '../fixtures/auth.fixture';
 import {
   assertClickableTarget,
   assertNoNextStatic404s,
