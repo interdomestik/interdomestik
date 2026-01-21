@@ -7,7 +7,17 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sendPasswordResetEmail } from './email';
 
+function getTrustedOrigins(): string[] | undefined {
+  const raw = process.env.BETTER_AUTH_TRUSTED_ORIGINS;
+  if (!raw) return undefined;
+  return raw
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 export const auth = betterAuth({
+  trustedOrigins: getTrustedOrigins(),
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema: {

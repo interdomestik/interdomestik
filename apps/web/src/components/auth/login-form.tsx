@@ -19,13 +19,14 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
-export function LoginForm() {
+export function LoginForm({ tenantId }: { tenantId?: string }) {
   const t = useTranslations('auth.login');
   const common = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tenantId = searchParams.get('tenantId') || undefined;
-  const registerHref = tenantId ? `/register?tenantId=${tenantId}` : '/register';
+  const tenantIdFromQuery = searchParams.get('tenantId') || undefined;
+  const resolvedTenantId = tenantId ?? tenantIdFromQuery;
+  const registerHref = resolvedTenantId ? `/register?tenantId=${resolvedTenantId}` : '/register';
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -191,7 +192,7 @@ export function LoginForm() {
               await authClient.signIn.social({
                 provider: 'github',
                 callbackURL: `${window.location.origin}/member`,
-                ...(tenantId ? { additionalData: { tenantId } } : {}),
+                ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
               });
             }}
           >

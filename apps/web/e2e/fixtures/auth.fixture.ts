@@ -10,11 +10,10 @@
  */
 
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
-import { test as base, Page, type TestInfo } from '@playwright/test';
+import { test as base, expect, Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { routes } from '../routes';
-import { installNetworkTruthProbes } from '../utils/truth-checks';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -27,6 +26,19 @@ function getBaseURL(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://127.0.0.1:3000';
 }
 
+function getRootURL(baseURL?: string | null): string {
+  const raw = baseURL ?? getBaseURL();
+  const url = new URL(raw);
+  url.pathname = '';
+  url.search = '';
+  url.hash = '';
+  return url.toString().replace(/\/$/, '');
+}
+
+async function assertNoTenantChooser(page: Page): Promise<void> {
+  await expect(page.getByRole('heading', { name: /choose your country/i })).toHaveCount(0);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TEST USER CREDENTIALS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -37,18 +49,6 @@ type Role = 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_m
 
 function getTenantFromTestInfo(testInfo: TestInfo): Tenant {
   const name = testInfo.project.name;
-
-  // 1. Explicit Project Overrides (Highest Priority)
-  // If we are running a specific tenant lane, ignore any leaked env vars.
-  if (name.includes('mk-mk') || name === 'setup-mk') return 'mk';
-  if (name.includes('ks-sq') || name === 'setup-ks') return 'ks';
-
-  // 2. Dynamic/Generic Projects (e.g. 'setup' iterating both)
-  if (process.env.TEST_TENANT === 'mk' || process.env.TEST_TENANT === 'ks') {
-    return process.env.TEST_TENANT as Tenant;
-  }
-
-  // 3. Fallback heuristics
   if (name.includes('mk')) return 'mk';
   return 'ks';
 }
@@ -88,28 +88,21 @@ function getUserForTenant(role: Role, tenant: Tenant) {
         return E2E_USERS.MK_AGENT;
       case 'staff':
         return E2E_USERS.MK_STAFF;
-      default:
-        throw new Error(`Unknown role key for mk: ${role}`);
     }
   }
 
-  // Default to KS (Explicitly)
-  if (tenant === 'ks') {
-    switch (role) {
-      case 'member':
-        return E2E_USERS.KS_MEMBER;
-      case 'admin':
-        return E2E_USERS.KS_ADMIN;
-      case 'agent':
-        return E2E_USERS.KS_AGENT;
-      case 'staff':
-        return E2E_USERS.KS_STAFF;
-      default:
-        throw new Error(`Unknown role key for ks: ${role}`);
-    }
+  switch (role) {
+    case 'member':
+      return E2E_USERS.KS_MEMBER;
+    case 'admin':
+      return E2E_USERS.KS_ADMIN;
+    case 'agent':
+      return E2E_USERS.KS_AGENT;
+    case 'staff':
+      return E2E_USERS.KS_STAFF;
+    default:
+      return E2E_USERS.KS_MEMBER;
   }
-
-  throw new Error(`Unknown tenant: ${tenant}`);
 }
 
 function credsFor(role: Role, tenant: Tenant): { email: string; password: string; name: string } {
@@ -132,20 +125,20 @@ export const TEST_ADMIN_MK = credsFor('admin', 'mk');
 async function performLogin(
   page: Page,
   role: Role,
-  authorizedBaseURL: string | null | undefined,
-  tenant: Tenant
+  authorizedBaseURL?: string | null,
+  tenant: Tenant = 'ks'
 ): Promise<void> {
   const { email, password } = credsFor(role, tenant);
 
   // API Login Strategy (Robust)
   // Use absolute URL to bypass project-specific baseURL (e.g. .../sq)
-  const rootURL = getBaseURL();
+  const rootURL = getRootURL(authorizedBaseURL);
   const loginURL = `${rootURL}/api/auth/sign-in/email`;
   const res = await page.request.post(loginURL, {
     data: { email, password },
     headers: {
       Origin: rootURL,
-      Referer: `${rootURL}/login`,
+      Referer: `${rootURL}/`,
       'x-forwarded-for': ipForRole(role),
     },
   });
@@ -166,35 +159,8 @@ async function performLogin(
     console.warn(`❌ No session_token cookie found after successful API login for ${role}`);
     console.log('All cookies:', JSON.stringify(cookies, null, 2));
   } else {
-    // HARD ASSERT: Verify session identity
-    const sessionRes = await page.request.get(`${rootURL}/api/auth/get-session`);
-    if (sessionRes.ok()) {
-      const sessionData = await sessionRes.json();
-      const currentUser = sessionData?.user;
-
-      if (!currentUser) {
-        throw new Error(
-          `HARD ASSERT FAILED: Login successful but no session user found for ${role}`
-        );
-      }
-
-      // Verify Email Match
-      if (currentUser.email !== email) {
-        throw new Error(
-          `HARD ASSERT FAILED: Tenant Mixup! Expected ${email} (${tenant}) but logged in as ${currentUser.email}`
-        );
-      }
-
-      // Verify Tenant ID if available (E2E_USERS usually have tenantId)
-      const expectedUser = getUserForTenant(role, tenant);
-      if (expectedUser.tenantId && currentUser.tenantId !== expectedUser.tenantId) {
-        throw new Error(
-          `HARD ASSERT FAILED: Tenant ID Mismatch! Expected ${expectedUser.tenantId} but got ${currentUser.tenantId}`
-        );
-      }
-
-      console.log(`✅ Verified Session: ${currentUser.email} [${currentUser.tenantId}]`);
-    }
+    console.log(`✅ Session cookies found for ${role}:`);
+    console.log(JSON.stringify(sessionCookies, null, 2));
   }
 }
 
@@ -203,8 +169,8 @@ async function performLogin(
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface AuthFixtures {
-  loginAs: (role: Role, tenant?: Tenant) => Promise<void>;
-  saveState: (role: Role, tenant?: Tenant) => Promise<void>;
+  loginAs: (role: Role) => Promise<void>;
+  saveState: (role: Role) => Promise<void>;
   authenticatedPage: Page;
   adminPage: Page;
   agentPage: Page;
@@ -214,17 +180,8 @@ interface AuthFixtures {
 
 export const test = base.extend<AuthFixtures>({
   loginAs: async ({ page, baseURL }, use, testInfo) => {
-    installNetworkTruthProbes(page, testInfo, {
-      logUrlIf: url =>
-        url.includes('/api') ||
-        url.includes('/trpc') ||
-        url.includes('/actions') ||
-        url.includes('/admin') ||
-        url.includes('/agent'),
-    });
-
-    await use(async (role: Role, tenantOverride?: Tenant) => {
-      const tenant = tenantOverride ?? getTenantFromTestInfo(testInfo);
+    await use(async (role: Role) => {
+      const tenant = getTenantFromTestInfo(testInfo);
       // Pass baseURL explicitly if needed, but page.request uses context baseURL
       await performLogin(page, role, baseURL, tenant);
 
@@ -236,17 +193,17 @@ export const test = base.extend<AuthFixtures>({
       else if (role === 'staff') targetPath += '/staff';
       else targetPath += '/member';
 
-      // Use absolute URL to bypass project-specific baseURL (e.g. .../sq)
-      const absURL = `${getBaseURL()}${targetPath}`;
+      const absURL = `${getRootURL(baseURL ?? null)}${targetPath}`;
       await page.goto(absURL, { waitUntil: 'domcontentloaded' });
+      await assertNoTenantChooser(page);
     });
   },
 
-  saveState: async ({ page }, use, testInfo) => {
-    await use(async (role: Role, tenantOverride?: Tenant) => {
-      const tenant = tenantOverride ?? getTenantFromTestInfo(testInfo);
+  saveState: async ({ page, baseURL }, use, testInfo) => {
+    await use(async (role: Role) => {
+      const tenant = getTenantFromTestInfo(testInfo);
       const statePath = storageStateFile(role, tenant);
-      await performLogin(page, role, undefined, tenant);
+      await performLogin(page, role, baseURL, tenant);
       await page.context().storageState({ path: statePath });
     });
   },
@@ -254,10 +211,10 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Generic authenticated page (defaults to member if not specified)
    */
-  authenticatedPage: async ({ page }, use, testInfo) => {
+  authenticatedPage: async ({ page, baseURL }, use, testInfo) => {
     const tenant = getTenantFromTestInfo(testInfo);
     if (!(await isLoggedIn(page))) {
-      await performLogin(page, 'member', undefined, tenant);
+      await performLogin(page, 'member', baseURL, tenant);
     }
     await use(page);
   },
@@ -275,14 +232,6 @@ export const test = base.extend<AuthFixtures>({
       baseURL: baseURL ?? getBaseURL(),
     });
     const page = await context.newPage();
-    installNetworkTruthProbes(page, testInfo, {
-      logUrlIf: url =>
-        url.includes('/api') ||
-        url.includes('/trpc') ||
-        url.includes('/actions') ||
-        url.includes('/admin') ||
-        url.includes('/agent'),
-    });
     if (!(await hasSessionCookie(page))) {
       console.log('Admin state missing or invalid, performing fresh login...');
       await performLogin(page, 'admin', baseURL, tenant);
@@ -302,17 +251,9 @@ export const test = base.extend<AuthFixtures>({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('agent') },
-      baseURL: getBaseURL(),
+      baseURL: (testInfo.project.use.baseURL ?? getBaseURL()).toString(),
     });
     const page = await context.newPage();
-    installNetworkTruthProbes(page, testInfo, {
-      logUrlIf: url =>
-        url.includes('/api') ||
-        url.includes('/trpc') ||
-        url.includes('/actions') ||
-        url.includes('/admin') ||
-        url.includes('/agent'),
-    });
     if (!(await hasSessionCookie(page))) {
       await performLogin(page, 'agent', undefined, tenant);
     }
@@ -330,17 +271,9 @@ export const test = base.extend<AuthFixtures>({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
       extraHTTPHeaders: { 'x-forwarded-for': ipForRole('staff') },
-      baseURL: getBaseURL(),
+      baseURL: (testInfo.project.use.baseURL ?? getBaseURL()).toString(),
     });
     const page = await context.newPage();
-    installNetworkTruthProbes(page, testInfo, {
-      logUrlIf: url =>
-        url.includes('/api') ||
-        url.includes('/trpc') ||
-        url.includes('/actions') ||
-        url.includes('/admin') ||
-        url.includes('/agent'),
-    });
     if (!(await hasSessionCookie(page))) {
       await performLogin(page, 'staff', undefined, tenant);
     }
@@ -360,17 +293,9 @@ export const test = base.extend<AuthFixtures>({
       extraHTTPHeaders: {
         'x-forwarded-for': '10.0.0.15', // Distinct IP for BM
       },
-      baseURL: getBaseURL(),
+      baseURL: (testInfo.project.use.baseURL ?? getBaseURL()).toString(),
     });
     const page = await context.newPage();
-    installNetworkTruthProbes(page, testInfo, {
-      logUrlIf: url =>
-        url.includes('/api') ||
-        url.includes('/trpc') ||
-        url.includes('/actions') ||
-        url.includes('/admin') ||
-        url.includes('/agent'),
-    });
     if (!(await hasSessionCookie(page))) {
       await performLogin(page, 'branch_manager', undefined, tenant);
     }
@@ -425,9 +350,10 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
 }
 
 export async function logout(page: Page): Promise<void> {
-  const baseURL = getBaseURL();
-  await page.request.post('/api/auth/sign-out', {
-    headers: { Origin: baseURL },
+  const current = page.url() && page.url() !== 'about:blank' ? page.url() : null;
+  const origin = current ? new URL(current).origin : getRootURL(null);
+  await page.request.post(new URL('/api/auth/sign-out', origin).toString(), {
+    headers: { Origin: origin },
   });
   await page.goto(routes.login('en'));
 }

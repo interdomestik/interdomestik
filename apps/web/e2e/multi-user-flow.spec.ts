@@ -182,9 +182,19 @@ test.describe('Cross-Role Data Isolation', () => {
     expect(page.url()).toContain('/staff');
   });
 
-  test('Unauthenticated user cannot access protected routes', async ({ request }) => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const memberUrl = `${baseUrl}${routes.member()}`;
+  function getRootURLFromBaseURL(baseURL: string | undefined): string {
+    if (baseURL) return new URL(baseURL).origin;
+    return (
+      process.env.PLAYWRIGHT_BASE_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.BETTER_AUTH_URL ||
+      'http://localhost:3000'
+    );
+  }
+
+  test('Unauthenticated user cannot access protected routes', async ({ request }, testInfo) => {
+    const rootURL = getRootURLFromBaseURL(testInfo.project.use.baseURL?.toString());
+    const memberUrl = `${rootURL}${routes.member()}`;
 
     // Golden path determinism: middleware must return a redirect BEFORE any React rendering.
     const res = await request.get(memberUrl, { maxRedirects: 0 });
@@ -198,9 +208,9 @@ test.describe('Cross-Role Data Isolation', () => {
     expect(location).toContain(`${routes.login()}`);
   });
 
-  test('Unauthenticated user cannot access admin routes', async ({ request }) => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const adminUrl = `${baseUrl}${routes.admin()}`;
+  test('Unauthenticated user cannot access admin routes', async ({ request }, testInfo) => {
+    const rootURL = getRootURLFromBaseURL(testInfo.project.use.baseURL?.toString());
+    const adminUrl = `${rootURL}${routes.admin()}`;
 
     const res = await request.get(adminUrl, { maxRedirects: 0 });
     expect(res.status(), `Expected 307 redirect for ${adminUrl}`).toBe(307);
@@ -213,9 +223,9 @@ test.describe('Cross-Role Data Isolation', () => {
     expect(location).toContain(`${routes.login()}`);
   });
 
-  test('Unauthenticated user cannot access staff routes', async ({ request }) => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const staffUrl = `${baseUrl}${routes.staffClaims()}`;
+  test('Unauthenticated user cannot access staff routes', async ({ request }, testInfo) => {
+    const rootURL = getRootURLFromBaseURL(testInfo.project.use.baseURL?.toString());
+    const staffUrl = `${rootURL}${routes.staffClaims()}`;
 
     const res = await request.get(staffUrl, { maxRedirects: 0 });
     expect(res.status(), `Expected 307 redirect for ${staffUrl}`).toBe(307);

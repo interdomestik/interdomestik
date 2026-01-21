@@ -11,8 +11,14 @@ function getLocaleForProject(projectName: string): string {
   return projectName.includes('mk') ? 'mk' : 'sq';
 }
 
-function getRootURL(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? 'http://127.0.0.1:3000';
+function getRootURLFromBaseURL(baseURL: string | undefined): string {
+  if (baseURL) return new URL(baseURL).origin;
+  return (
+    process.env.PLAYWRIGHT_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.BETTER_AUTH_URL ||
+    'http://127.0.0.1:3000'
+  );
 }
 
 // Stabilization needed for v2 features
@@ -33,7 +39,8 @@ test.describe('@quarantine Admin Claims V2 ', () => {
     });
 
     const locale = getLocaleForProject(testInfo.project.name);
-    const url = new URL(`${routes.adminClaims(locale)}?view=list`, getRootURL()).toString();
+    const rootURL = getRootURLFromBaseURL(testInfo.project.use.baseURL?.toString());
+    const url = new URL(`${routes.adminClaims(locale)}?view=list`, rootURL).toString();
 
     // adminPage is already authenticated by fixture; navigate to claims list explicitly.
     await adminPage.goto(url, { waitUntil: 'domcontentloaded' });
