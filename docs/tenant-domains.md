@@ -45,6 +45,29 @@ If your system doesn’t resolve `*.localhost`, add entries to `/etc/hosts`:
 - `127.0.0.1 ks.localhost`
 - `127.0.0.1 mk.localhost`
 
+## Production DNS
+
+You typically want **two tenant subdomains** that both point at the same Next.js app deployment:
+
+- `ks.interdomestik.com`
+- `mk.interdomestik.com`
+
+Depending on where you host DNS and your deployment target:
+
+- **Vercel-managed domains**: follow Vercel’s UI prompts and add the suggested records.
+- **External DNS provider**:
+  - If you can use CNAMEs: point `ks` and `mk` to the target Vercel domain (often `cname.vercel-dns.com`).
+  - If apex constraints apply: use A/ALIAS/ANAME records per your provider’s guidance.
+
+The application itself determines the tenant from the incoming `Host` header.
+
+## Vercel domains
+
+Add both `ks.interdomestik.com` and `mk.interdomestik.com` to the same Vercel project.
+
+- Ensure your reverse proxy/CDN preserves `x-forwarded-host` (or at least `host`).
+- If you use custom edge routing, avoid rewriting away the host header.
+
 ## Playwright / E2E
 
 Playwright lanes use tenant hosts to avoid the chooser screen:
@@ -53,6 +76,22 @@ Playwright lanes use tenant hosts to avoid the chooser screen:
 - `mk-mk` uses `http://mk.localhost:3000/mk`
 
 Override with `KS_HOST` / `MK_HOST` if you need different local domains/ports.
+
+## Better Auth trusted origins
+
+Better Auth validates request origins. In environments where you use tenant hosts, include them in `BETTER_AUTH_TRUSTED_ORIGINS`.
+
+Examples:
+
+- Local dev: `http://localhost:3000,http://127.0.0.1:3000,http://ks.localhost:3000,http://mk.localhost:3000`
+- Production: `https://ks.interdomestik.com,https://mk.interdomestik.com,https://interdomestik.com`
+
+The Playwright webServer already sets this automatically for local E2E.
+
+## Next.js host/origin notes
+
+- Local dev uses `next dev --hostname 127.0.0.1` (see `apps/web/package.json`). This still accepts requests for `*.localhost` as long as DNS resolves to `127.0.0.1`.
+- In Next.js 16, `allowedDevOrigins` in `apps/web/next.config.mjs` is used to silence dev-origin warnings for additional local origins like `http://ks.localhost:3000`.
 
 ## Deployment notes
 

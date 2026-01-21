@@ -3,6 +3,7 @@ import {
   coerceTenantId,
   resolveTenantFromHost,
   TENANT_COOKIE_NAME,
+  type TenantId,
 } from './src/lib/tenant/tenant-hosts';
 import proxy from './src/proxy';
 
@@ -10,12 +11,23 @@ function getRequestHost(req: NextRequest): string {
   return req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '';
 }
 
+function tenantFromLocalePath(pathname: string): TenantId | null {
+  const seg = pathname.split('/')[1]?.toLowerCase();
+  if (seg === 'mk') return 'tenant_mk';
+  if (seg === 'sq') return 'tenant_ks';
+  return null;
+}
+
 export default async function middleware(req: NextRequest) {
   const response = await proxy(req);
 
   const hostTenant = resolveTenantFromHost(getRequestHost(req));
+  const cookieTenant = coerceTenantId(req.cookies.get(TENANT_COOKIE_NAME)?.value);
   const queryTenant = coerceTenantId(req.nextUrl.searchParams.get('tenantId'));
-  const resolvedTenant = hostTenant ?? queryTenant;
+  const localeTenant = tenantFromLocalePath(req.nextUrl.pathname);
+
+  // Keep priority aligned with the documented contract.
+  const resolvedTenant = hostTenant ?? cookieTenant ?? queryTenant ?? localeTenant;
 
   if (resolvedTenant) {
     const existingCookie = req.cookies.get(TENANT_COOKIE_NAME)?.value;
