@@ -1,12 +1,24 @@
 import { expect, test } from '../fixtures/auth.fixture';
 
+/**
+ * Agent Pro Claims RBAC Test
+ *
+ * @ticket INTERDO-Q003: Re-enable after seed:e2e includes RBAC test claims
+ * @expiry 2026-02-15
+ */
 test.describe('Agent Pro Claims RBAC', () => {
   test('Agent CAN access linked member claim but CANNOT access unlinked claim', async ({
     agentPage,
-  }) => {
+  }, testInfo) => {
+    test.skip(
+      testInfo.project.name.includes('mk'),
+      'Test designed for KS dataset (Agent A vs Agent B)'
+    );
+
     // 1. Navigate to Claims Workspace
-    // Uses API-based login for Agent A via fixture
     await agentPage.goto('/en/agent/workspace/claims');
+    await agentPage.waitForLoadState('domcontentloaded');
+
     const table = agentPage.getByTestId('ops-table');
     const drawer = agentPage.getByTestId('ops-drawer-content');
 
@@ -35,28 +47,26 @@ test.describe('Agent Pro Claims RBAC', () => {
     await messagingPanel.getByTestId('send-message-button').click();
 
     // Verify message appears in list (scoped to panel)
-    await expect(messagingPanel.getByText(testMessage)).toBeVisible();
 
-    // Close drawer to reset state for negative test
-    // OpsDrawer usually relies on Sheet primitive, Escape is robust standard
-    await agentPage.keyboard.press('Escape');
+    // Fix: Target only the bubble paragraph to avoid matching the disabled textarea input
+
+    const bubble = messagingPanel.locator('p').filter({ hasText: testMessage }).first();
+
+    await expect(bubble).toBeVisible();
+
+    // Reset state for negative test
+    await agentPage.goto('/en/agent/workspace/claims');
     await expect(drawer).not.toBeVisible();
 
     // --- NEGATIVE CASE (Unlinked Claim) ---
-    // "KS-B Claim 1" belongs to a different agent (ks_b_agent_1) and member (ks_b_member_1).
-    // Agent A (current user) should NOT see it in the list.
     const unlinkedClaimTitle = 'KS-B Claim 1';
     await expect(table.getByText(unlinkedClaimTitle)).not.toBeVisible();
 
     // Verify Direct Access Protection
-    // Attempt to force-open the drawer via URL parameter for the unlinked claim.
-    // ID 'golden_ks_b_claim_01' is deterministic from seed-golden.ts
     const unlinkedClaimId = 'golden_ks_b_claim_01';
     await agentPage.goto(`/en/agent/workspace/claims?selected=${unlinkedClaimId}`);
 
-    // Since the server-side query filters out unlinked claims, the "selectedClaim"
-    // in the component will be undefined, and the drawer should NOT open.
-    // We assert that the drawer content is explicitly NOT attached/visible.
+    // Drawer should NOT open for unlinked claim
     await expect(drawer).not.toBeVisible();
   });
 });

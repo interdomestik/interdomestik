@@ -18,6 +18,15 @@ function isKsProject(testInfo: TestInfo): boolean {
 
 const DEFAULT_LOCALE = 'sq';
 
+function getBaseURL() {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.BETTER_AUTH_URL ||
+    process.env.PLAYWRIGHT_BASE_URL ||
+    'http://127.0.0.1:3000'
+  );
+}
+
 // Canonical users - tenant-aware
 const USERS = {
   TENANT_ADMIN_KS: { email: E2E_USERS.KS_ADMIN.email, password: E2E_PASSWORD, tenant: 'tenant_ks' },
@@ -33,7 +42,7 @@ async function loginAs(
   page: import('@playwright/test').Page,
   user: { email: string; password: string; tenant: string }
 ) {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+  const baseURL = getBaseURL();
   const loginURL = `${baseURL}/api/auth/sign-in/email`;
 
   const res = await page.request.post(loginURL, {

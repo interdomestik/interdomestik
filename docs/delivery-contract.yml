@@ -641,7 +641,7 @@ checks:
       - apps/web/playwright.config.ts
     must_match:
       - 'webServer'
-      - 'pnpm exec next start'
+      - 'node \.next/standalone/apps/web/server\.js'
       - "reuseExistingServer:\\s*false"
     must_not_match:
       - 'globalSetup'
@@ -709,7 +709,7 @@ checks:
       - '"test:e2e:'
 
   - id: orchestration.ci_green_path
-    description: CI must follow the same Golden Path (audit → check → migrate → seed → assert → e2e smoke).
+    description: CI must follow the same Golden Path (audit → check → migrate → seed → assert → e2e gate).
     type: regex
     targets:
       - .github/workflows/ci.yml
@@ -719,6 +719,6 @@ checks:
       - 'pnpm db:migrate'
       - 'pnpm seed:e2e'
       - 'seed:assert-e2e'
-      - 'test:e2e[\s\S]*--grep smoke'
+      - 'e2e:gate'
     must_not_match:
       - 'PLAYWRIGHT_HOST'

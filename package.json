@@ -62,7 +62,8 @@
     "prepare": "husky",
     "track:audit": "node scripts/track-audit.mjs",
     "start:system": "./scripts/start-system.sh",
-    "start:system:quick": "./scripts/start-system-quick.sh"
+    "start:system:quick": "./scripts/start-system-quick.sh",
+    "purity:audit": "node scripts/purity-audit.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

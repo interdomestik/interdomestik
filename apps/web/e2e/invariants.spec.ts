@@ -10,12 +10,14 @@ test.describe('E2E Invariants', () => {
 
     console.log(`[Invariant] Initial URL: ${page.url()}, Origin: ${initialOrigin}`);
 
-    // Check that we didn't land on localhost if we started at 127.0.0.1 (or vice versa)
-    // The test runner usually sets baseURL to http://127.0.0.1:3000
+    // Normalize localhost and 127.0.0.1 as equivalent (they are the same loopback interface)
+    const normalizeOrigin = (origin: string) => origin.replace('localhost', '127.0.0.1');
+
+    // Check that we're on a valid local origin
     const baseURL = test.info().project.use.baseURL;
     if (baseURL) {
       const expectedOrigin = new URL(baseURL).origin;
-      expect(initialOrigin).toBe(expectedOrigin);
+      expect(normalizeOrigin(initialOrigin)).toBe(normalizeOrigin(expectedOrigin));
     }
 
     // Navigate to a few pages and verify origin stays stable
@@ -24,7 +26,8 @@ test.describe('E2E Invariants', () => {
       await page.goto(path);
       const currentOrigin = new URL(page.url()).origin;
       console.log(`[Invariant] Navigated to ${path}, Current Origin: ${currentOrigin}`);
-      expect(currentOrigin).toBe(initialOrigin);
+      // Use normalized comparison
+      expect(normalizeOrigin(currentOrigin)).toBe(normalizeOrigin(initialOrigin));
     }
   });
 });

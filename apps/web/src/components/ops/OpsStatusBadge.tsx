@@ -18,7 +18,11 @@ const VARIANTS: Record<NonNullable<OpsStatusBadgeProps['variant']>, string> = {
 
 export function OpsStatusBadge({ label, variant = 'neutral', className }: OpsStatusBadgeProps) {
   const classes = [VARIANTS[variant], className].filter(Boolean).join(' ');
-  return <Badge className={classes}>{label}</Badge>;
+  return (
+    <Badge className={classes} data-testid="claim-status-badge">
+      {label}
+    </Badge>
+  );
 }
 
 export function toOpsBadgeVariant(

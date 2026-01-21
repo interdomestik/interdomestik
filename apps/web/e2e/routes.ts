@@ -48,6 +48,7 @@ export const routes = {
 
   admin: (locale?: Locale) => withLocale('/admin', locale),
   adminClaims: (locale?: Locale) => withLocale('/admin/claims', locale),
+  adminLeads: (locale?: Locale) => withLocale('/admin/leads', locale),
   adminUsers: (locale?: Locale) => withLocale('/admin/users', locale),
   adminAnalytics: (locale?: Locale) => withLocale('/admin/analytics', locale),
   adminSettings: (locale?: Locale) => withLocale('/admin/settings', locale),

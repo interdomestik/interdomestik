@@ -1,7 +1,7 @@
-import { getAgentDashboardData } from '@/actions/agent-dashboard';
 import { AgentStatsCards } from '@/components/agent/agent-stats-cards';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
+import { db } from '@/lib/db.server';
 import {
   Button,
   Card,
@@ -12,6 +12,19 @@ import {
 } from '@interdomestik/ui';
 import { ArrowRight, FileText } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
+import { notFound, redirect } from 'next/navigation';
+import { getStaffDashboardCore } from './_core';
+
+// Minimal placeholder auth
+async function getAuth() {
+  try {
+    const { auth } = await import('@/lib/auth');
+    return await auth.api.getSession({ headers: await headers() });
+  } catch {
+    return null;
+  }
+}
 
 export default async function StaffDashboardPage({
   params,
@@ -21,11 +34,26 @@ export default async function StaffDashboardPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const session = await getAuth();
+  if (!session) redirect(`/${locale}/login`);
+
+  const result = await getStaffDashboardCore({
+    tenantId: session.user.tenantId,
+    userId: session.user.id,
+    role: session.user.role,
+    db,
+  });
+
+  if (!result.ok) {
+    if (result.code === 'FORBIDDEN') return notFound();
+    throw new Error('Internal Server Error');
+  }
+
+  const { stats, recentClaims } = result.data;
+
   const tNav = await getTranslations('nav');
   const tCommon = await getTranslations('common');
   const tClaims = await getTranslations('agent-claims.claims');
-
-  const { stats, recentClaims } = await getAgentDashboardData();
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -70,7 +98,9 @@ export default async function StaffDashboardPage({
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <ClaimStatusBadge status={claim.status} />
+                  <ClaimStatusBadge
+                    status={claim.status as import('@interdomestik/database/constants').ClaimStatus}
+                  />
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/staff/claims/${claim.id}`}>{tCommon('view')}</Link>
                   </Button>

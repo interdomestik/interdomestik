@@ -29,6 +29,13 @@ export default async function VerificationOpsCenterPage({ searchParams }: Props)
   const result = await getVerificationRequestsAction({ view, query });
   const leads = (result?.success ? result.data : []) as CashVerificationRequestDTO[];
 
+  console.log(
+    `[VerificationOpsCenterPage] Loaded ${leads.length} requests for tenant ${session.user.tenantId}`
+  );
+  if (leads.length > 0) {
+    console.log('[VerificationOpsCenterPage] First lead:', leads[0].firstName, leads[0].lastName);
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500" data-testid="verification-ops-page">
       <AdminPageHeader title={t('title')} subtitle={t('subtitle')} />

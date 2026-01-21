@@ -10,7 +10,12 @@ const bundleAnalyzer = withBundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@interdomestik/ui', '@interdomestik/database'],
+  transpilePackages: [
+    '@interdomestik/ui',
+    '@interdomestik/database',
+    '@interdomestik/domain-claims',
+    '@interdomestik/domain-communications',
+  ],
   images: {
     remotePatterns: [
       {

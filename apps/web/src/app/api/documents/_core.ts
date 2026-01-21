@@ -1,8 +1,26 @@
-import { claimDocuments, claims, createAdminClient, db, documents } from '@interdomestik/database';
+import { ApiErrorCode } from '@/core-contracts';
+import { claimDocuments, claims, documents } from '@interdomestik/database/schema';
 import { ensureTenantId, isStaffOrHigher } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
-type Session = {
+// Define DB Interface (minimal part of Drizzle we use)
+export interface DB {
+  select: (args?: any) => any;
+}
+
+export interface DocumentAccessDeps {
+  db: any; // Injected Drizzle DB instance
+  storage: {
+    createSignedUrl: (
+      bucket: string,
+      path: string,
+      expiresIn: number
+    ) => Promise<{ signedUrl?: string; error?: any }>;
+    download: (bucket: string, path: string) => Promise<{ data?: Blob; error?: any }>;
+  };
+}
+
+type SessionDTO = {
   user: {
     id: string;
     role?: string | null;
@@ -23,51 +41,32 @@ type DocumentRow = {
 
 type DocumentAccessMode = 'signed_url' | 'download';
 
-type ForbiddenResult = {
-  ok: false;
-  status: 403;
-  error: 'Forbidden';
-  audit: {
-    action: 'document.forbidden';
-    entityType: 'claim_document';
-    entityId: string;
-    metadata: Record<string, unknown>;
-  };
-};
+export type DocumentAccessResult =
+  | { ok: true; document: DocumentRow; audit: AuditContext }
+  | { ok: false; code: ApiErrorCode; message?: string };
 
-type NotFoundResult = {
-  ok: false;
-  status: 404;
-  error: 'Document not found';
+type AuditContext = {
+  action: string;
+  entityType: 'claim_document';
+  entityId: string;
+  actorRole: string | null;
+  metadata: Record<string, unknown>;
 };
-
-type OkResult = {
-  ok: true;
-  document: DocumentRow;
-  audit: {
-    action: 'document.signed_url_issued' | 'document.view' | 'document.download';
-    entityType: 'claim_document';
-    entityId: string;
-    actorRole: string | null;
-    metadata: Record<string, unknown>;
-  };
-};
-
-type DocumentAccessResult = ForbiddenResult | NotFoundResult | OkResult;
 
 export function safeFilename(value: string) {
-  // Keep it simple; rely on filename* encoding for non-ascii.
   return value.replaceAll(/[\r\n"]/g, '_');
 }
 
 export async function getDocumentAccessCore(args: {
-  session: Session;
+  session: SessionDTO;
   documentId: string;
   mode: DocumentAccessMode;
   disposition?: 'inline' | 'attachment';
+  deps: DocumentAccessDeps;
 }): Promise<DocumentAccessResult> {
-  const { session, documentId, mode, disposition } = args;
+  const { session, documentId, mode, disposition, deps } = args;
   const tenantId = ensureTenantId(session);
+  const { db } = deps;
 
   // 1. Try Polymorphic Documents Table
   const [polyDoc] = await db
@@ -81,31 +80,17 @@ export async function getDocumentAccessCore(args: {
     const isUploader = polyDoc.uploadedBy === session.user.id;
 
     if (!isPrivileged && !isUploader) {
-      return {
-        ok: false,
-        status: 403,
-        error: 'Forbidden',
-        audit: {
-          action: 'document.forbidden',
-          entityType: 'claim_document',
-          entityId: documentId,
-          metadata: {
-            bucket: 'claim-evidence',
-            filePath: polyDoc.storagePath,
-          },
-        },
-      };
+      return { ok: false, code: 'FORBIDDEN', message: 'Forbidden' };
     }
 
-    const finalDisposition: 'inline' | 'attachment' =
-      disposition === 'inline' ? 'inline' : 'attachment';
+    const finalDisposition = disposition === 'inline' ? 'inline' : 'attachment';
 
     return {
       ok: true,
       document: {
         id: polyDoc.id,
         claimId: null,
-        bucket: 'claim-evidence', // Default bucket for now
+        bucket: 'claim-evidence',
         filePath: polyDoc.storagePath,
         uploadedBy: polyDoc.uploadedBy,
         name: polyDoc.fileName,
@@ -129,7 +114,6 @@ export async function getDocumentAccessCore(args: {
   }
 
   // 2. Legacy Claim Documents
-  // Fetch document metadata + claim ownership for RBAC
   const [row] = await db
     .select({
       doc: claimDocuments,
@@ -140,38 +124,17 @@ export async function getDocumentAccessCore(args: {
     .where(and(eq(claimDocuments.id, documentId), eq(claimDocuments.tenantId, tenantId)));
 
   if (!row?.doc) {
-    return { ok: false, status: 404, error: 'Document not found' };
+    return { ok: false, code: 'NOT_FOUND', message: 'Document not found' };
   }
 
   const doc = row.doc as unknown as DocumentRow;
-
   const userRole = (session.user.role as string | undefined) ?? undefined;
-  // Permissions: Admin/Staff can read any. User must own it.
   const isPrivileged = isStaffOrHigher(userRole);
   const isClaimOwner = row.claimOwnerId === session.user.id;
   const isUploader = doc.uploadedBy === session.user.id;
 
-  // Allow staff/admin access, or the member who owns the claim, or the uploader.
-  // (Uploader check is retained for backward compatibility with any legacy flows.)
   if (!isPrivileged && !isClaimOwner && !isUploader) {
-    return {
-      ok: false,
-      status: 403,
-      error: 'Forbidden',
-      audit: {
-        action: 'document.forbidden',
-        entityType: 'claim_document',
-        entityId: documentId,
-        metadata: {
-          claimId: doc.claimId,
-          bucket: doc.bucket,
-          filePath: doc.filePath,
-          ...(mode === 'signed_url'
-            ? { mode: 'signed_url' }
-            : { disposition: disposition ?? 'attachment' }),
-        },
-      },
-    };
+    return { ok: false, code: 'FORBIDDEN', message: 'Forbidden' };
   }
 
   if (mode === 'signed_url') {
@@ -193,9 +156,7 @@ export async function getDocumentAccessCore(args: {
     };
   }
 
-  const finalDisposition: 'inline' | 'attachment' =
-    disposition === 'inline' ? 'inline' : 'attachment';
-
+  const finalDisposition = disposition === 'inline' ? 'inline' : 'attachment';
   return {
     ok: true,
     document: doc,
@@ -220,26 +181,26 @@ export async function createSignedDownloadUrlCore(args: {
   bucket: string;
   filePath: string;
   expiresInSeconds: number;
+  deps: DocumentAccessDeps;
 }): Promise<{ ok: true; signedUrl: string } | { ok: false }> {
-  const { bucket, filePath, expiresInSeconds } = args;
+  const { bucket, filePath, expiresInSeconds, deps } = args;
+  const { signedUrl, error } = await deps.storage.createSignedUrl(
+    bucket,
+    filePath,
+    expiresInSeconds
+  );
 
-  const adminClient = createAdminClient();
-  const { data, error } = await adminClient.storage
-    .from(bucket)
-    .createSignedUrl(filePath, expiresInSeconds);
-
-  if (error || !data?.signedUrl) return { ok: false };
-  return { ok: true, signedUrl: data.signedUrl };
+  if (error || !signedUrl) return { ok: false };
+  return { ok: true, signedUrl };
 }
 
 export async function downloadStorageFileCore(args: {
   bucket: string;
   filePath: string;
+  deps: DocumentAccessDeps;
 }): Promise<{ ok: true; data: Blob } | { ok: false }> {
-  const { bucket, filePath } = args;
-
-  const adminClient = createAdminClient();
-  const { data, error } = await adminClient.storage.from(bucket).download(filePath);
+  const { bucket, filePath, deps } = args;
+  const { data, error } = await deps.storage.download(bucket, filePath);
 
   if (error || !data) return { ok: false };
   return { ok: true, data };

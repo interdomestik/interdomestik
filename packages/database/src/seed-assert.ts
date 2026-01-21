@@ -79,6 +79,23 @@ async function assertSeed() {
     }
 
     console.log(`✅ KS agent A1 visible claims: ${claims.length}`);
+
+    // Assert Share Pack documents exist
+    console.log('🔍 Asserting Share Pack documents exist...');
+    const docIds = ['doc-ks-1', 'doc-ks-2'];
+    const docs = await db.query.documents.findMany({
+      where: inArray(schema.documents.id, docIds),
+      columns: { id: true },
+    });
+
+    if (docs.length !== docIds.length) {
+      console.error(
+        `❌ Seed invariant failed: Expected ${docIds.length} share-pack documents, found ${docs.length}`
+      );
+      process.exit(1);
+    }
+
+    console.log(`✅ Share Pack documents: ${docs.length} found`);
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails

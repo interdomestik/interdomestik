@@ -1,10 +1,10 @@
 import { AgentLeadsProPage } from '@/features/agent/leads/components/AgentLeadsProPage';
 import { auth } from '@/lib/auth';
-import { db, memberLeads } from '@interdomestik/database';
+import { db } from '@/lib/db.server';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { getAgentWorkspaceLeadsCore } from './_core';
 
 export default async function AgentWorkspaceLeadsPage() {
   const session = await auth.api.getSession({
@@ -17,14 +17,10 @@ export default async function AgentWorkspaceLeadsPage() {
 
   const tenantId = ensureTenantId(session);
 
-  // Reusing same optimized query as Lite, client side filtering for now as requested
-  const leadsData = await db.query.memberLeads.findMany({
-    where: eq(memberLeads.tenantId, tenantId),
-    orderBy: (leads, { desc }) => [desc(leads.createdAt)],
-    with: {
-      branch: true,
-    },
+  const { leads } = await getAgentWorkspaceLeadsCore({
+    tenantId,
+    db,
   });
 
-  return <AgentLeadsProPage leads={leadsData} />;
+  return <AgentLeadsProPage leads={leads} />;
 }

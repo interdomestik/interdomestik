@@ -21,6 +21,7 @@ import { ArrowLeft } from 'lucide-react';
 // Define minimal Claim type for Pro table
 export type AgentProClaim = {
   id: string;
+  title: string;
   claimNumber: string;
   status: string;
   createdAt: Date;
@@ -90,6 +91,7 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
       const q = searchQuery.toLowerCase();
       const matches =
         claim.claimNumber.toLowerCase().includes(q) ||
+        claim.title.toLowerCase().includes(q) ||
         claim.member?.name.toLowerCase().includes(q) ||
         claim.member?.email.toLowerCase().includes(q);
       if (!matches) return false;
@@ -120,6 +122,9 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
               {claim.unreadCount}
             </span>
           )}
+        </div>
+        <div className="text-sm text-foreground/90 truncate w-48 font-medium" title={claim.title}>
+          {claim.title}
         </div>
         <div className="text-xs text-muted-foreground w-48 truncate">
           {claim.lastMessage ? (

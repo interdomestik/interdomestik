@@ -38,7 +38,7 @@ export async function AdminBranchesV2Page({ locale }: { locale: string }) {
   const branches = result.success ? (result.data ?? []) : [];
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
+    <div className="space-y-6 max-w-[1600px] mx-auto" data-testid="branches-screen">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-indigo-400">

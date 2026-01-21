@@ -1,25 +1,56 @@
 import type { LeadStage } from '@interdomestik/database/constants';
-import { db } from '@interdomestik/database/db';
 import {
   agentCommissions,
+  claims,
   crmDeals,
   crmLeads,
+  memberLeads,
   subscriptions,
 } from '@interdomestik/database/schema';
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, not, sql } from 'drizzle-orm';
 
-export type AgentDashboardStats = {
-  newLeads: number;
-  contactedLeads: number;
-  wonDeals: number;
-  totalPaidCommission: number;
-  clientCount: number;
-};
+export interface AgentDashboardServices {
+  db: {
+    select: any;
+  };
+}
 
-export async function getAgentDashboardStatsCore(args: {
-  agentId: string;
-}): Promise<AgentDashboardStats> {
-  const { agentId } = args;
+/**
+ * LITE: Logic for the standard Agent Dashboard (using MemberLeads/Claims).
+ */
+export async function getAgentDashboardLiteCore(
+  params: { agentId: string },
+  services: AgentDashboardServices
+) {
+  const { agentId } = params;
+  const { db } = services;
+
+  const [newLeads] = await db
+    .select({ count: count() })
+    .from(memberLeads)
+    .where(and(eq(memberLeads.agentId, agentId), eq(memberLeads.status, 'new')));
+
+  const [activeClaims] = await db
+    .select({ count: count() })
+    .from(claims)
+    .where(and(eq(claims.agentId, agentId), not(inArray(claims.status, ['resolved', 'rejected']))));
+
+  return {
+    newLeadsCount: Number(newLeads?.count ?? 0),
+    activeClaimsCount: Number(activeClaims?.count ?? 0),
+    followUpsCount: 0,
+  };
+}
+
+/**
+ * V2: Logic for the Pro/V2 Agent Dashboard (using CRM schema).
+ */
+export async function getAgentDashboardV2StatsCore(
+  params: { agentId: string },
+  services: AgentDashboardServices
+) {
+  const { agentId } = params;
+  const { db } = services;
 
   const STAGE_NEW: LeadStage = 'new';
   const STAGE_CONTACTED: LeadStage = 'contacted';
@@ -50,10 +81,10 @@ export async function getAgentDashboardStatsCore(args: {
     .where(eq(subscriptions.referredByAgentId, agentId));
 
   return {
-    newLeads: newLeads?.count ?? 0,
-    contactedLeads: contactedLeads?.count ?? 0,
-    wonDeals: wonDeals?.count ?? 0,
+    newLeads: Number(newLeads?.count ?? 0),
+    contactedLeads: Number(contactedLeads?.count ?? 0),
+    wonDeals: Number(wonDeals?.count ?? 0),
     totalPaidCommission: Number(totalCommission?.total ?? 0),
-    clientCount: clientCount?.count ?? 0,
+    clientCount: Number(clientCount?.count ?? 0),
   };
 }

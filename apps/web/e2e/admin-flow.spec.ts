@@ -135,11 +135,24 @@ test.describe('Admin User Flow', () => {
   test.describe('Access Control', () => {
     test('Non-admin is denied access to admin routes', async ({ authenticatedPage: page }) => {
       await page.goto(routes.admin());
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(500); // Allow redirect to complete
 
-      // Regular user should see 404 (Strict Isolation) - URL remains, content changes
-      await expect(
-        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
-      ).toBeVisible();
+      // App uses redirect-first strategy: members are sent to /member, not shown 404
+      const currentPath = new URL(page.url()).pathname;
+      // Normalize: remove locale prefix like /sq/ or /mk/ for comparison
+      const normalizedPath = currentPath.replace(/^\/[a-z]{2}\//, '/').replace(/^\/[a-z]{2}$/, '/');
+      const isOnAdmin = normalizedPath.startsWith('/admin');
+
+      if (isOnAdmin) {
+        // If still on admin path, expect 404 UI
+        await expect(
+          page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+        ).toBeVisible({ timeout: 5000 });
+      } else {
+        // Redirected away from admin (to /member) is valid denial
+        expect(normalizedPath).toMatch(/^\/member/);
+      }
     });
   });
 });

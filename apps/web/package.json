@@ -11,11 +11,12 @@
     "type-check": "tsc --noEmit",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:ks": "PLAYWRIGHT_LOCALE=sq playwright test --project=ks-sq",
-    "test:e2e:mk": "PLAYWRIGHT_LOCALE=mk playwright test --project=mk-mk",
+    "e2e:ks": "PLAYWRIGHT_LOCALE=sq playwright test --project=ks-sq",
+    "e2e:mk": "PLAYWRIGHT_LOCALE=mk playwright test --project=mk-mk",
     "e2e:gate": "playwright test --grep-invert \"@quarantine|@legacy|@smoke\" --project=ks-sq --project=mk-mk",
     "e2e:smoke": "playwright test --grep \"@smoke\" --project=ks-sq --project=mk-mk",
     "e2e:quarantine": "playwright test --grep \"@quarantine|@legacy\"",
+    "e2e:stability": "node e2e/quarantine/run-stability.mjs --project=ks-sq --project=mk-mk",
     "test:smoke": "playwright test --project=smoke --grep '@smoke'"
   },
   "dependencies": {

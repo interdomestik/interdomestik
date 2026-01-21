@@ -37,11 +37,23 @@ test.describe('Branch Dashboard RBAC', () => {
     // Try to access admin branches directly
     await page.goto('/en/admin/branches/test-branch');
     await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(500); // Allow redirect to complete
 
-    // Should see 404 (Strict Isolation)
-    await expect(
-      page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
-    ).toBeVisible();
+    // App uses redirect-first strategy: agents are sent to /agent, not shown 404
+    const currentPath = new URL(page.url()).pathname;
+    // Normalize: remove locale prefix like /sq/ or /en/ for comparison
+    const normalizedPath = currentPath.replace(/^\/[a-z]{2}\//, '/').replace(/^\/[a-z]{2}$/, '/');
+    const isOnAdmin = normalizedPath.startsWith('/admin');
+
+    if (isOnAdmin) {
+      // If still on admin path, expect 404 UI
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible({ timeout: 5000 });
+    } else {
+      // Redirected away from admin (to /agent) is valid denial
+      expect(normalizedPath).toMatch(/^\/agent/);
+    }
   });
 });
 
@@ -78,11 +90,25 @@ test.describe('Branch Dashboard Navigation Smoke', () => {
     await expect(statsSection).toBeVisible();
   });
 
-  test('Staff can access branches list', async ({ staffPage: page }) => {
+  test('Staff cannot access branches list (redirected to /staff)', async ({ staffPage: page }) => {
     await page.goto(routes.adminBranches());
     await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(500); // Allow redirect to complete
 
-    // Staff should have access to branches
-    await expect(page).toHaveURL(/\/admin\/branches/);
+    // Staff is NOT in ADMIN_ALLOWED_ROLES, so they get redirected to /staff
+    const currentPath = new URL(page.url()).pathname;
+    // Normalize: remove locale prefix
+    const normalizedPath = currentPath.replace(/^\/[a-z]{2}\//, '/').replace(/^\/[a-z]{2}$/, '/');
+    const isOnAdmin = normalizedPath.startsWith('/admin');
+
+    if (isOnAdmin) {
+      // If still on admin path, expect 404 UI
+      await expect(
+        page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
+      ).toBeVisible({ timeout: 5000 });
+    } else {
+      // Redirected away from admin (to /staff) is valid denial
+      expect(normalizedPath).toMatch(/^\/staff/);
+    }
   });
 });

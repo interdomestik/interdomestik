@@ -114,7 +114,7 @@ export function BranchesTable({ initialData }: BranchesTableProps) {
         <Label htmlFor="show-inactive">{t('actions.showInactive') || 'Show Inactive'}</Label>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border" data-testid="branches-table">
         <Table>
           <TableHeader>
             <TableRow>
@@ -127,7 +127,7 @@ export function BranchesTable({ initialData }: BranchesTableProps) {
           </TableHeader>
           <TableBody>
             {data.map(branch => (
-              <TableRow key={branch.id}>
+              <TableRow key={branch.id} data-testid="branch-item">
                 <TableCell className="font-medium">{branch.name}</TableCell>
                 <TableCell>{branch.code || '-'}</TableCell>
                 <TableCell>{branch.slug}</TableCell>
@@ -139,20 +139,37 @@ export function BranchesTable({ initialData }: BranchesTableProps) {
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
+                      <Button
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        data-testid="branch-actions-trigger"
+                        type="button"
+                        onPointerDown={event => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }}
+                        onClick={event => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }}
+                      >
                         <span className="sr-only">{t('actions.open')}</span>
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" data-testid="branch-actions-menu">
                       <DropdownMenuLabel>{t('actions.label')}</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => setEditingBranch(branch)}>
+                      <DropdownMenuItem
+                        onClick={() => setEditingBranch(branch)}
+                        data-testid="branch-edit-button"
+                      >
                         <Pencil className="mr-2 h-4 w-4" /> {t('actions.edit')}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-red-600 focus:text-red-500"
                         onClick={() => setDeletingBranch(branch)}
+                        data-testid="branch-delete-button"
                       >
                         <Trash className="mr-2 h-4 w-4" /> {t('actions.delete')}
                       </DropdownMenuItem>
@@ -191,6 +208,7 @@ export function BranchesTable({ initialData }: BranchesTableProps) {
                 handleDelete();
               }}
               disabled={isDeleting}
+              data-testid="branch-delete-confirm-button"
             >
               {isDeleting ? t('deleting') : t('actions.delete')}
             </Button>

@@ -1,13 +1,35 @@
-import { db } from '@interdomestik/database/db';
-import { crmLeads } from '@interdomestik/database/schema';
-import { desc, eq } from 'drizzle-orm';
+export interface AgentLeadsServices {
+  db: {
+    query: {
+      memberLeads: {
+        findMany: (args: any) => Promise<any[]>;
+      };
+    };
+  };
+}
 
-export type AgentLeadRow = typeof crmLeads.$inferSelect;
+/**
+ * Pure core logic for the Agent Leads page.
+ * Fetches leads for a tenant with branch relations.
+ */
+export async function getAgentLeadsCore(
+  params: {
+    tenantId: string;
+    agentId?: string; // Optional: can be used for further isolation if needed
+  },
+  services: AgentLeadsServices
+): Promise<any[]> {
+  const { tenantId } = params;
+  const { db } = services;
 
-export async function getAgentLeadsCore(args: { agentId: string }): Promise<AgentLeadRow[]> {
-  return db
-    .select()
-    .from(crmLeads)
-    .where(eq(crmLeads.agentId, args.agentId))
-    .orderBy(desc(crmLeads.updatedAt));
+  // Use the query builder to keep the "with branch" logic clean as per original route
+  // Note: Original route ONLY filtered by tenantId, not agentId.
+  // We keep this behavior but allow agentId for future refinement.
+  return db.query.memberLeads.findMany({
+    where: (leads: any, { eq }: any) => eq(leads.tenantId, tenantId),
+    orderBy: (leads: any, { desc }: any) => [desc(leads.createdAt)],
+    with: {
+      branch: true,
+    },
+  });
 }

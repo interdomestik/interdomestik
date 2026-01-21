@@ -1,37 +1,27 @@
 import { registerUser } from '@/features/auth/registration.service';
 import { NextRequest, NextResponse } from 'next/server';
+import { simpleRegisterApiCore } from './_core';
 
-// Simple registration endpoint for testing
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, name, role = 'user', password } = body;
 
-    // Basic validation
-    if (!email || !name || !password || password.length < 6) {
-      return NextResponse.json(
-        { error: 'Invalid input: email, name, and password (min 6 chars) required' },
-        { status: 400 }
-      );
-    }
+    const result = await simpleRegisterApiCore(body, {
+      registerUserFn: registerUser,
+    });
 
-    try {
-      const user = await registerUser({ email, name, role });
-      return NextResponse.json(
-        {
-          success: true,
-          data: user,
-        },
-        { status: 201 }
-      );
-    } catch (error: any) {
-      if (error.message === 'Email already exists') {
-        return NextResponse.json({ error: 'Email already exists' }, { status: 409 });
-      }
-      throw error;
+    switch (result.kind) {
+      case 'ok':
+        return NextResponse.json({ success: true, data: result.data }, { status: 201 });
+      case 'badRequest':
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      case 'conflict':
+        return NextResponse.json({ error: result.error }, { status: 409 });
+      default:
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Simple registration API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
