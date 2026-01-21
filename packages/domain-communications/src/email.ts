@@ -26,6 +26,12 @@ let resendClient: Resend | null = null;
 let smtpTransporter: nodemailer.Transporter | null = null;
 
 function getEmailClient() {
+  // Priority 0: Automated Testing (Mock)
+  // Always return null to force mock path in sendEmail
+  if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1') {
+    return null;
+  }
+
   // Priority 1: SMTP (Docker / Local Dev)
   if (process.env.SMTP_HOST) {
     if (!smtpTransporter) {
@@ -41,10 +47,6 @@ function getEmailClient() {
 
   // Priority 2: Resend (Production / Preview)
   if (resendClient) return { type: 'resend', client: resendClient };
-
-  if (process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1') {
-    return null;
-  }
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {

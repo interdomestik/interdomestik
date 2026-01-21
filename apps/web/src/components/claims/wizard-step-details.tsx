@@ -54,6 +54,7 @@ export function WizardStepDetails() {
               <FormLabel>{t('claim_title')}</FormLabel>
               <FormControl>
                 <Input
+                  data-testid="claim-title-input"
                   placeholder={
                     hasCategory
                       ? tFields(`${safeCategory}.titlePlaceholder`)
@@ -78,6 +79,7 @@ export function WizardStepDetails() {
               <FormLabel>{t('company')}</FormLabel>
               <FormControl>
                 <Input
+                  data-testid="claim-company-input"
                   placeholder={
                     hasCategory
                       ? tFields(`${safeCategory}.companyPlaceholder`)
@@ -99,7 +101,12 @@ export function WizardStepDetails() {
               <FormItem>
                 <FormLabel>{t('amount')}</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="200" {...field} />
+                  <Input
+                    data-testid="claim-amount-input"
+                    type="number"
+                    placeholder="200"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -112,7 +119,7 @@ export function WizardStepDetails() {
               <FormItem>
                 <FormLabel>{t('currency')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="EUR" disabled {...field} />
+                  <Input data-testid="claim-currency-input" placeholder="EUR" disabled {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -127,7 +134,7 @@ export function WizardStepDetails() {
             <FormItem>
               <FormLabel>{t('date')}</FormLabel>
               <FormControl>
-                <Input type="date" {...field} />
+                <Input data-testid="claim-date-input" type="date" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -142,6 +149,7 @@ export function WizardStepDetails() {
               <FormLabel>{t('description')}</FormLabel>
               <FormControl>
                 <Textarea
+                  data-testid="claim-description-input"
                   placeholder={
                     hasCategory
                       ? tFields(`${safeCategory}.descriptionPlaceholder`)

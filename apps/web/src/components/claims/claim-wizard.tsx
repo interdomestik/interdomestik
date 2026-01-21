@@ -93,7 +93,8 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
     return () => subscription.unsubscribe();
   }, [form.watch, setDraft, isLoaded]);
 
-  const nextStep = async () => {
+  const nextStep = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
     const validator = STEP_VALIDATION[currentStep];
     if (!validator || (await validator(form as any))) {
       ClaimsEvents.stepCompleted(currentStep, STEP_NAMES[currentStep]);
@@ -162,7 +163,7 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
             </Button>
 
             {currentStep < steps.length - 1 ? (
-              <Button type="button" onClick={nextStep} data-testid="wizard-next">
+              <Button type="button" onClick={e => nextStep(e)} data-testid="wizard-next">
                 {tCommon('next')}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
