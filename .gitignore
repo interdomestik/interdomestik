@@ -69,6 +69,7 @@ supabase/.branches
 .agent/tasks/archive/
 .agent/tasks/logs/
 .agent/tasks/.qa_baseline
+.agent/contract-check/
 .scannerwork/
 measures.json
 sonar_*.json
