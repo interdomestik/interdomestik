@@ -1,0 +1,93 @@
+name: PR E2E (Strict Gate + Key Golden)
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+
+concurrency:
+  group: e2e-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interdomestik_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d interdomestik_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      CI: '1'
+      PLAYWRIGHT: '1'
+      NEXT_PUBLIC_BILLING_TEST_MODE: '1'
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+
+    steps:
+      - uses: actions/checkout @v4
+
+      - uses: actions/setup-node @v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - uses: pnpm/action-setup @v4
+        with:
+          version: '9'
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @interdomestik/web exec playwright install --with-deps
+
+      - name: DB migrations
+        run: pnpm db:migrate
+
+      - name: Strict Rule Guards (golden/gate)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
+            | grep -v "apps/web/e2e/gate/tenant-resolution.spec.ts" ; then
+            echo "❌ raw page.goto found in golden/gate"
+            exit 1
+          fi
+
+          if grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" ; then
+            echo "❌ locale-prefixed /<locale>/api detected"
+            exit 1
+          fi
+
+          grep -n "paddle.com" apps/web/src/lib/proxy.ts >/dev/null
+
+      - name: Seed E2E DB
+        run: pnpm seed:e2e
+
+      - name: E2E Gate (KS+MK)
+        run: pnpm --filter @interdomestik/web run e2e:gate
+
+      - name: E2E Subscription Lifecycle (KS+MK)
+        run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk
+
+      - name: Upload Playwright Artifacts
+        if: always()
+        uses: actions/upload-artifact @v4
+        with:
+          name: playwright-pr-artifacts
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 7

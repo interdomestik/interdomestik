@@ -1,0 +1,122 @@
+name: Nightly E2E (Strict)
+
+on:
+  schedule:
+    # Every night at 02:10 UTC
+    - cron: '10 2 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: e2e-nightly
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interdomestik_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d interdomestik_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      CI: '1'
+      PLAYWRIGHT: '1'
+      NEXT_PUBLIC_BILLING_TEST_MODE: '1'
+      PW_REUSE_SERVER: '1'
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout @v4
+
+      - name: Setup Node
+        uses: actions/setup-node @v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup @v4
+        with:
+          version: '9'
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @interdomestik/web exec playwright install --with-deps
+
+      - name: DB migrations
+        run: pnpm db:migrate
+
+      # ---- Strict-rule guards (fail fast before burning minutes) ----
+      - name: Strict Rule Guards (golden/gate)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Guard: No raw page.goto in golden/gate (exception only in tenant-resolution.spec.ts)"
+          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
+            | grep -v "apps/web/e2e/gate/tenant-resolution.spec.ts" ; then
+            echo "❌ Found raw page.goto in golden/gate"
+            exit 1
+          fi
+          echo "✅ page.goto guard OK"
+
+          echo "Guard: No locale-prefixed API calls like /sq/api"
+          if grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" ; then
+            echo "❌ Found locale-prefixed API calls"
+            exit 1
+          fi
+          echo "✅ API prefix guard OK"
+
+          echo "Guard: CSP must keep paddle allowlist"
+          grep -n "paddle.com" apps/web/src/lib/proxy.ts >/dev/null
+          echo "✅ CSP paddle guard OK"
+
+      # ---- Seed (always) ----
+      - name: Seed E2E DB
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm seed:e2e
+
+      # ---- Run suites ----
+      # Gate is fast and tells you immediately if infra drifted.
+      - name: E2E Gate (KS+MK)
+        run: pnpm --filter @interdomestik/web run e2e:gate
+
+      # Core subscription lifecycle (Phase 4B)
+      - name: E2E Subscription Lifecycle (KS+MK)
+        run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk
+
+      # Phase 5 deterministic batch
+      - name: E2E Phase 5 Deterministic Batch
+        run: pnpm --filter @interdomestik/web run test:e2e:phase5
+
+      # Smoke as final sanity
+      - name: E2E Smoke
+        run: pnpm --filter @interdomestik/web run test:smoke
+
+      # ---- Artifacts (always) ----
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact @v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14

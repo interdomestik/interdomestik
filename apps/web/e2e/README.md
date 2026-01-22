@@ -94,7 +94,18 @@ pnpm --filter @interdomestik/web test:e2e -- e2e/golden/functional-flows.spec.ts
 pnpm --filter @interdomestik/database seed:e2e && pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk
 ```
 
-### 7. Rule of thumb / enforcement note
+### 7. Resume Debugging Cheat Sheet
+
+- **Start Fresh (Recommended):**
+  `pnpm seed:e2e` then `pnpm e2e:gate`
+- **Resume (if data changed):**
+  `pnpm seed:e2e`
+- **Phase 5 Deterministic Batch:**
+  `pnpm --filter @interdomestik/web run test:e2e:phase5`
+- **Subscription Lifecycle:**
+  `pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk`
+
+### 8. Rule of thumb / enforcement note
 
 If running any specs under `e2e/gate/**` or `e2e/golden/**`, you must use `seed:e2e` + `seed-contract` gate + gate projects (`gate-ks-sq`, `gate-mk-mk`).
 
