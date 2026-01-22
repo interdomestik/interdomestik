@@ -1,4 +1,6 @@
 import { expect, test } from '../fixtures/auth.fixture';
+import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 
 /**
  * Agent Pro Scaffold Test
@@ -6,36 +8,36 @@ import { expect, test } from '../fixtures/auth.fixture';
  * Tests the ability to switch between Lite and Pro agent workspaces.
  */
 test.describe('Agent Pro Scaffold (Golden)', () => {
-  test('Agent can navigate to Pro workspace', async ({ page, loginAs }) => {
-    // 1. Login as Agent
-    await loginAs('agent');
-    await page.waitForLoadState('domcontentloaded');
+  test('Agent can navigate to Pro workspace', async ({ agentPage: page }, testInfo) => {
+    // 1. Login handled by agentPage fixture (asserts dashboard marker)
 
-    // 2. Verify we're on agent dashboard
-    await expect(page).toHaveURL(/\/agent/);
-
-    // 3. Navigate to Pro Workspace directly
-    await page.goto('/en/agent/workspace');
-    await page.waitForLoadState('domcontentloaded');
-
-    // 4. Verify Pro Workspace loaded
+    // 2. Navigate to Pro Workspace
+    await gotoApp(page, routes.agentWorkspace(testInfo), testInfo, {
+      marker: 'agent-workspace-page',
+    });
     await expect(page).toHaveURL(/\/agent\/workspace/);
 
-    // 5. Verify main content renders
+    // 3. Verify main content renders
     const mainContent = page.locator('main').first();
     await expect(mainContent).toBeVisible();
 
-    // 6. Verify we can navigate to sub-pages
+    // 4. Verify we can navigate to sub-pages
     // Try claims
-    await page.goto('/en/agent/workspace/claims');
+    await gotoApp(page, routes.agentWorkspaceClaims(testInfo), testInfo, {
+      marker: 'agent-claims-pro-page',
+    });
     await expect(page).toHaveURL(/\/agent\/workspace\/claims/);
 
     // Try leads
-    await page.goto('/en/agent/workspace/leads');
+    await gotoApp(page, routes.agentWorkspaceLeads(testInfo), testInfo, {
+      marker: 'agent-leads-pro-page',
+    });
     await expect(page).toHaveURL(/\/agent\/workspace\/leads/);
 
-    // 7. Navigate back to lite dashboard
-    await page.goto('/en/agent');
+    // 5. Navigate back to lite dashboard
+    await gotoApp(page, routes.agent(testInfo), testInfo, {
+      marker: 'agent-dashboard-page',
+    });
     await expect(page).toHaveURL(/\/agent$/);
   });
 });

@@ -5,17 +5,27 @@ import { type BranchWithKpis } from '@/features/admin/branches/server/getBranche
 import { Link } from '@/i18n/routing';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@interdomestik/ui/components/dropdown-menu';
 import { cn } from '@interdomestik/ui/lib/utils';
-import { Activity, ArrowRight } from 'lucide-react';
+import { Activity, ArrowRight, MoreHorizontal, Pencil, Trash } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { analyzeBranchRisk } from '../utils/branch-risk';
 import { BranchKpiBadge } from './branch-kpi-badge';
 
 interface BranchHealthCardProps {
   branch: BranchWithKpis;
+  onEdit: (branch: BranchWithKpis) => void;
+  onDelete: (branch: BranchWithKpis) => void;
 }
 
-export function BranchHealthCard({ branch }: BranchHealthCardProps) {
+export function BranchHealthCard({ branch, onEdit, onDelete }: BranchHealthCardProps) {
   const t = useTranslations('admin.branches');
   // Compute risk profile on render (lightweight)
   const risk = analyzeBranchRisk(branch);
@@ -37,7 +47,7 @@ export function BranchHealthCard({ branch }: BranchHealthCardProps) {
       {/* Header Section */}
       <div className="p-5 pb-0">
         <div className="flex items-start justify-between gap-2">
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h3
                 className="font-semibold text-lg text-foreground truncate pr-2"
@@ -61,15 +71,45 @@ export function BranchHealthCard({ branch }: BranchHealthCardProps) {
             </div>
           </div>
 
-          {/* Health Score Mini-Indicator */}
-          <div
-            className={cn(
-              'flex items-center justify-center w-8 h-8 rounded-full border text-xs font-bold',
-              risk.badgeClass
-            )}
-            title={t('health_score', { score: risk.healthScore })}
-          >
-            {risk.healthScore}
+          <div className="flex items-center gap-1">
+            {/* Health Score Mini-Indicator */}
+            <div
+              className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-full border text-xs font-bold mr-1',
+                risk.badgeClass
+              )}
+              title={t('health_score', { score: risk.healthScore })}
+            >
+              {risk.healthScore}
+            </div>
+
+            {/* Actions Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="h-8 w-8 p-0"
+                  data-testid="branch-actions-trigger"
+                >
+                  <span className="sr-only">{t('actions.open')}</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" data-testid="branch-actions-menu">
+                <DropdownMenuLabel>{t('actions.label')}</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => onEdit(branch)} data-testid="branch-edit-button">
+                  <Pencil className="mr-2 h-4 w-4" /> {t('actions.edit')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-red-600 focus:text-red-500"
+                  onClick={() => onDelete(branch)}
+                  data-testid="branch-delete-button"
+                >
+                  <Trash className="mr-2 h-4 w-4" /> {t('actions.delete')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

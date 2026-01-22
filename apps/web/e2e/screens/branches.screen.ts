@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { routes } from '../routes';
 import { detectBranchesLayout, type BranchesLayout } from '../utils/layout';
 
@@ -19,8 +19,8 @@ export class BranchesScreen {
     this.page = page;
   }
 
-  async goto(): Promise<void> {
-    await this.page.goto(routes.adminBranches());
+  async goto(testInfo: TestInfo): Promise<void> {
+    await this.page.goto(routes.adminBranches(testInfo));
     // Disable animations to reduce flakiness
     await this.page.addStyleTag({
       content:

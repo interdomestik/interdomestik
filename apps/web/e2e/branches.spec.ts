@@ -20,7 +20,7 @@ test.describe('Branch Management', () => {
     await api.cleanup(branchCode);
 
     // 2. Navigate to Branches page
-    await branches.goto();
+    await branches.goto(testInfo);
     await branches.assertLoaded();
 
     // 3. Create Branch via API

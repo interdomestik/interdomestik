@@ -5,9 +5,11 @@ test.describe('@quarantine UI Overlays Sanity', () => {
   // FIXME: Radix UI overlays (DropdownMenu, Dialog) are currently flaky in E2E
   // environment due to interaction with Next.js 16/React 19 hydration.
   // See: docs/E2E_QUARANTINE_BURNDOWN.md
-  test.fixme('Admin can open branch actions menu (Known Issue)', async ({ adminPage: page }) => {
+  test.fixme('Admin can open branch actions menu (Known Issue)', async ({
+    adminPage: page,
+  }, testInfo) => {
     const branches = new BranchesScreen(page);
-    await branches.goto();
+    await branches.goto(testInfo);
     await branches.assertLoaded();
 
     // Check if we have any branch to test on
