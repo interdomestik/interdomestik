@@ -41,6 +41,7 @@ function withLocale(pathname: string, locale?: string): string {
 
 export const routes = {
   locale: normalizeLocale,
+  path: (pathname: string, locale?: string) => withLocale(pathname, locale),
 
   home: (locale?: string) => withLocale('/', locale),
   stats: (locale?: string) => withLocale('/stats', locale),

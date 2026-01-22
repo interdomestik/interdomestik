@@ -1,13 +1,14 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
+import { assertAccessDenied } from './utils/rbac';
 
 test.describe('Branch Dashboard RBAC', () => {
   test.describe.configure({ mode: 'serial' });
 
-  test('Admin can access branch dashboard', async ({ adminPage: page }) => {
+  test('Admin can access branch dashboard', async ({ adminPage: page }, testInfo) => {
     // First go to branches list
-    await page.goto(routes.adminBranches());
-    await page.waitForLoadState('domcontentloaded');
+    await gotoApp(page, routes.adminBranches, testInfo, { marker: 'page-ready' });
 
     // Find first branch card and click to navigate to dashboard
     const firstBranchCard = page.getByTestId('branch-card').first();
@@ -21,27 +22,27 @@ test.describe('Branch Dashboard RBAC', () => {
     }
   });
 
-  test('Branch manager can only access their own branch', async ({ branchManagerPage: page }) => {
+  test('Branch manager can only access their own branch', async ({
+    branchManagerPage: page,
+  }, testInfo) => {
     // Verify access for Branch Manager
     // This fixture now intelligently selects KS or MK BM based on the project URL.
 
     // Navigate to branches list
-    await page.goto(routes.adminBranches());
-    await page.waitForLoadState('domcontentloaded');
+    await gotoApp(page, routes.adminBranches, testInfo, { marker: 'page-ready' });
 
     // BM should see their branch or be redirected
     await expect(page).toHaveURL(/\/admin/);
   });
 
-  test('Agent cannot access branch dashboard', async ({ agentPage: page }) => {
+  test('Agent cannot access branch dashboard', async ({ agentPage: page }, testInfo) => {
     // Try to access admin branches directly
-    await page.goto('/en/admin/branches/test-branch');
-    await page.waitForLoadState('domcontentloaded');
+    await gotoApp(page, l => `${routes.adminBranches(l)}/test-branch`, testInfo, {
+      marker: 'page-ready',
+    });
 
     // Should see 404 (Strict Isolation)
-    await expect(
-      page.getByRole('heading', { name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i })
-    ).toBeVisible();
+    await assertAccessDenied(page);
   });
 });
 
@@ -50,10 +51,11 @@ test.describe('Branch Dashboard RBAC', () => {
  * Verifies happy-path rendering of branch dashboard UI
  */
 test.describe('Branch Dashboard Navigation Smoke', () => {
-  test('Admin navigates to branch dashboard and sees UI elements', async ({ adminPage: page }) => {
+  test('Admin navigates to branch dashboard and sees UI elements', async ({
+    adminPage: page,
+  }, testInfo) => {
     // Go to branches list
-    await page.goto(routes.adminBranches());
-    await page.waitForLoadState('domcontentloaded');
+    await gotoApp(page, routes.adminBranches, testInfo, { marker: 'page-ready' });
 
     // Check if any branches exist (UI uses Cards now)
     const branchCard = page.getByTestId('branch-card').first();
@@ -78,9 +80,8 @@ test.describe('Branch Dashboard Navigation Smoke', () => {
     await expect(statsSection).toBeVisible();
   });
 
-  test('Staff can access branches list', async ({ staffPage: page }) => {
-    await page.goto(routes.adminBranches());
-    await page.waitForLoadState('domcontentloaded');
+  test('Staff can access branches list', async ({ staffPage: page }, testInfo) => {
+    await gotoApp(page, routes.adminBranches, testInfo, { marker: 'page-ready' });
 
     // Staff should have access to branches
     await expect(page).toHaveURL(/\/admin\/branches/);
