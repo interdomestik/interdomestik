@@ -52,6 +52,52 @@ These are non-negotiable standards required for all PRs involving E2E changes.
 - **Gate:** Fast (<90s), minimal, contract-level verification (e.g., "does the pricing page load?").
 - **Golden:** Full "Happy Path" lifecycle flows (e.g., Signup -> Subscribe -> Active Dashboard).
 
+## E2E Bootstrap and Resume Contract (Required)
+
+### 1. Canonical Start/Resume Sequence (Non-Negotiable)
+
+When starting E2E work OR resuming after a restart or database reset, you **MUST** run the Golden E2E seed and verify the Seed Contract before any Golden flow.
+
+> **IMPORTANT:** Do NOT run the generic app seed for E2E.
+
+### 2. Seed the Golden E2E dataset
+
+Seeds Golden tenants and branches for KS/MK required by Gate and Golden flows.
+
+```bash
+pnpm --filter @interdomestik/database seed:e2e
+```
+
+### 3. Verify the Seed Contract (must be green)
+
+If this fails, **STOP** and fix the seed or tenant resolution before proceeding.
+
+```bash
+pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk
+```
+
+### 4. Run Golden flows only after gate is green
+
+```bash
+pnpm --filter @interdomestik/web test:e2e -- e2e/golden/functional-flows.spec.ts --project gate-ks-sq --project gate-mk-mk
+```
+
+### 5. Common Pitfall: "Restart -> failures despite seed"
+
+- **Symptom:** `/admin/branches` (or similar) returns 200 but shows an empty state (no branch cards).
+- **Cause:** Using the wrong seed (generic seed) or an unseeded database used by the webServer.
+- **Fix:** Re-run `seed:e2e` then verify the `seed-contract` gate.
+
+### 6. One-liner "resume" command
+
+```bash
+pnpm --filter @interdomestik/database seed:e2e && pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk
+```
+
+### 7. Rule of thumb / enforcement note
+
+If running any specs under `e2e/gate/**` or `e2e/golden/**`, you must use `seed:e2e` + `seed-contract` gate + gate projects (`gate-ks-sq`, `gate-mk-mk`).
+
 ## Scope & Governance
 
 Strict rules apply to:
