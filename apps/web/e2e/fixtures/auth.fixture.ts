@@ -179,6 +179,10 @@ export const TEST_STAFF = credsFor('staff', 'ks');
 export const TEST_BM = credsFor('branch_manager', 'mk');
 export const TEST_ADMIN_MK = credsFor('admin', 'mk');
 
+function getApiOrigin(baseURL: string): string {
+  return new URL(baseURL).origin;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOGIN HELPER
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -193,7 +197,9 @@ async function performLogin(
 
   // API Login Strategy (Robust)
   // Use absolute URL and ALWAYS preserve project origin (never fall back to localhost).
-  const loginURL = `${info.origin}/api/auth/sign-in/email`;
+  // FIX: Use origin, not baseURL/info.origin if info.origin was derived incorrectly
+  const apiBase = getApiOrigin(info.baseURL);
+  const loginURL = `${apiBase}/api/auth/sign-in/email`;
   const res = await page.request.post(loginURL, {
     data: { email, password },
     headers: {

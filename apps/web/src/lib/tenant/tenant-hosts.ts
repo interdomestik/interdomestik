@@ -54,6 +54,11 @@ export function resolveTenantFromHost(host: string): TenantId | null {
     }
   }
 
+  // Robust CI/Local fallback using nip.io (wildcard-like)
+  // Matches: ks.127.0.0.1.nip.io, mk.127.0.0.1.nip.io, etc.
+  if (/^mk\./i.test(normalized)) return 'tenant_mk';
+  if (/^ks\./i.test(normalized)) return 'tenant_ks';
+
   return null;
 }
 

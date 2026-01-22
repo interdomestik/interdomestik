@@ -55,13 +55,15 @@ test.describe('Tenant resolution contract', () => {
     test.skip(!targetLocale || !expectedTenant, 'Only enforced for tenant hosts in this suite');
 
     // Use a fresh context to ensure we prove host-only resolution (no pre-seeded tenant cookie).
-    const context = await browser.newContext();
+    const context = await browser.newContext({ storageState: undefined });
     const page = await context.newPage();
 
     // Ensure middleware sees our debug header even on the main document request.
     await page.route('**/*', async route => {
       const headers = {
         ...route.request().headers(),
+        ...(testInfo.project.use.extraHTTPHeaders as Record<string, string>),
+        'x-forwarded-host': host, // Hardcoded fallback
         'x-e2e-debug': '1',
       };
       await route.continue({ headers });
@@ -122,6 +124,8 @@ test.describe('Tenant resolution contract', () => {
   });
 
   test('Neutral host shows chooser when no tenant context', async ({ page }) => {
+    // Override project-level x-forwarded-host which forces a tenant
+    await page.setExtraHTTPHeaders({ 'x-forwarded-host': '127.0.0.1:3000' });
     const neutral = 'http://127.0.0.1:3000';
     await page.goto(`${neutral}/en/login`, { waitUntil: 'domcontentloaded' });
 
@@ -129,6 +133,8 @@ test.describe('Tenant resolution contract', () => {
   });
 
   test('Neutral host keeps chooser even if locale is /sq', async ({ page }) => {
+    // Override project-level x-forwarded-host which forces a tenant
+    await page.setExtraHTTPHeaders({ 'x-forwarded-host': '127.0.0.1:3000' });
     const neutral = 'http://127.0.0.1:3000';
     await page.goto(`${neutral}/sq/login`, { waitUntil: 'domcontentloaded' });
 
@@ -151,6 +157,9 @@ test.describe('Tenant resolution contract', () => {
     ]);
 
     const page = await context.newPage();
+    // Override project-level x-forwarded-host which forces a tenant (we want to rely on cookie here)
+    await page.setExtraHTTPHeaders({ 'x-forwarded-host': '127.0.0.1:3000' });
+
     await page.goto(`${neutral}/sq/login`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByTestId('tenant-chooser')).toHaveCount(0);

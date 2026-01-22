@@ -25,7 +25,9 @@ echo "  BETTER_AUTH_TRUSTED_ORIGINS=${BETTER_AUTH_TRUSTED_ORIGINS}"
 echo "  HOSTNAME=${HOSTNAME}"
 echo "  PORT=${PORT}"
 
+rm -rf .next
 pnpm build
-rm -rf .next/standalone/apps/web/.next/static
-cp -R .next/static .next/standalone/apps/web/.next/static
-node .next/standalone/apps/web/server.js
+# rm -rf .next/standalone/apps/web/.next/static
+# cp -R .next/static .next/standalone/apps/web/.next/static
+# node .next/standalone/apps/web/server.js
+pnpm start

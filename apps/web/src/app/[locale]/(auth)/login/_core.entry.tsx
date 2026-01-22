@@ -32,7 +32,10 @@ export default async function LoginPage({ params, searchParams }: Props) {
         .orderBy(drizzle.asc(tenants.name));
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-[hsl(var(--background))] to-[hsl(var(--surface-strong))] p-4">
+    <main
+      data-testid="auth-ready"
+      className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-[hsl(var(--background))] to-[hsl(var(--surface-strong))] p-4"
+    >
       {resolvedTenantId ? null : (
         <TenantSelector tenants={tenantOptions} title="Choose your country" />
       )}

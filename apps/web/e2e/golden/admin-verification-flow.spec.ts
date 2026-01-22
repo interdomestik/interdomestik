@@ -1,18 +1,25 @@
 import { db, leadPaymentAttempts, notifications } from '@interdomestik/database';
 import { eq } from 'drizzle-orm';
 import { expect, test } from '../fixtures/auth.fixture';
+import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 
 test.describe('Admin Verification Flow (Golden)', () => {
   test('Tenant Admin can request info via Drawer, search, and toggle views', async ({
     page,
     loginAs,
-  }) => {
+  }, testInfo) => {
     // 1. Login as Tenant Admin (KS)
     await loginAs('admin');
 
     // 2. Navigate to Verification Queue
-    await page.goto('/sq/admin/leads');
-    await page.waitForLoadState('networkidle');
+    await gotoApp(
+      page,
+      l => `${routes.admin(l)}/leads`,
+      testInfo,
+      { marker: 'page-ready' } // Use page-ready for dashboard pages
+    );
+    // await page.waitForLoadState('networkidle'); // gotoApp handles wait via marker
 
     // 3. Find a pending request (that is NOT already needs_info)
     const row = page

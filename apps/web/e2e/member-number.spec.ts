@@ -2,6 +2,8 @@ import { db } from '@interdomestik/database/db';
 import { tenants, user } from '@interdomestik/database/schema';
 import { expect, test } from '@playwright/test';
 import { eq } from 'drizzle-orm';
+import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 // Enable full trace for this test suite
 test.use({ trace: 'on' });
@@ -43,7 +45,9 @@ test.describe('Member Number Hardening', () => {
     const email = `mem-prod-${Date.now()}@example.com`;
     const password = 'Password123!';
 
-    await page.goto(`/en/register?tenantId=${tenant.id}`);
+    await gotoApp(page, l => `${routes.register(l)}?tenantId=${tenant.id}`, test.info(), {
+      marker: 'auth-ready',
+    });
 
     await page.fill('input[name="fullName"]', 'Test ProdMember');
     await page.fill('input[name="email"]', email);
@@ -109,7 +113,7 @@ test.describe('Member Number Hardening', () => {
     // 4. Immutability Check (Relogin)
     console.log('Immutability Check: Re-logging in...');
     await page.context().clearCookies();
-    await page.goto('/en/login');
+    await gotoApp(page, routes.login, test.info(), { marker: 'auth-ready' });
     await page.fill('input[name="email"]', email);
     await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
@@ -137,7 +141,9 @@ test.describe('Member Number Hardening', () => {
     const password = 'Password123!';
 
     // Register normally first
-    await page.goto(`/en/register?tenantId=${tenant.id}`);
+    await gotoApp(page, l => `${routes.register(l)}?tenantId=${tenant.id}`, test.info(), {
+      marker: 'auth-ready',
+    });
     await page.fill('input[name="fullName"]', 'Heal Member');
     await page.fill('input[name="email"]', email);
     await page.fill('input[name="password"]', password);
@@ -176,8 +182,7 @@ test.describe('Member Number Hardening', () => {
 
     // Logout
     await page.context().clearCookies();
-    await page.goto('/en/login');
-    await page.waitForURL(/\/login/);
+    await gotoApp(page, routes.login, test.info(), { marker: 'auth-ready' });
 
     // 2. Login again to trigger self-heal
     await page.fill('input[name="email"]', email);
