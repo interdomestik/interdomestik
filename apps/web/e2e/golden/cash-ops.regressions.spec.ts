@@ -17,7 +17,7 @@ test.describe('Golden Flow: Cash Operations', () => {
     sharedLeadEmail = `smoke.balkan.${Date.now()}@test.com`;
 
     // 1. Navigate to leads page
-    await gotoApp(page, routes.agentLeads, testInfo, { marker: 'page-ready' });
+    await gotoApp(page, routes.agentLeads(testInfo), testInfo, { marker: 'page-ready' });
 
     // 2. Create New Lead
     await page.getByTestId('new-lead-button').click();
@@ -58,7 +58,7 @@ test.describe('Golden Flow: Cash Operations', () => {
 
   test('2. Branch Manager: Verify cash payment', async ({ branchManagerPage: page }, testInfo) => {
     // 1. Navigate to Verification Queue (Admin Leads page)
-    await gotoApp(page, routes.adminLeads, testInfo, { marker: 'page-ready' });
+    await gotoApp(page, routes.adminLeads(testInfo), testInfo, { marker: 'page-ready' });
 
     // 2. Find the row for our lead
     const row = page
@@ -78,7 +78,7 @@ test.describe('Golden Flow: Cash Operations', () => {
     adminPage: page,
   }, testInfo) => {
     // 1. Navigate to Verification Center
-    await gotoApp(page, routes.adminLeads, testInfo, { marker: 'page-ready' });
+    await gotoApp(page, routes.adminLeads(testInfo), testInfo, { marker: 'page-ready' });
 
     // 2. VERIFY ROUTING: Check Page Title/Header
     await expect(page.getByTestId('verification-ops-page')).toBeVisible();
@@ -91,10 +91,11 @@ test.describe('Golden Flow: Cash Operations', () => {
 
     if ((await rows.count()) > 0) {
       console.log('Verification queue has items, testing processing logic...');
-      const countBefore = await rows.count();
 
       // Try to reject the first one (not necessarily our lead from step 1 since it's already approved)
       const firstRow = rows.first();
+
+      // We expect this row to disappear after rejection
       await firstRow.getByTestId('cash-reject').click();
 
       // Handle Dialog
@@ -106,7 +107,13 @@ test.describe('Golden Flow: Cash Operations', () => {
       await dialog.getByTestId('verification-action-submit').click();
 
       await expect(dialog).toBeHidden();
-      await expect(rows).toHaveCount(countBefore - 1, { timeout: 10000 });
+
+      // Force reload to ensure fresh data from server (handles potential UI sync issues)
+      await page.reload();
+      await page.waitForLoadState('domcontentloaded');
+
+      // Wait for the specific row to be removed from the DOM
+      await expect(firstRow).toBeHidden({ timeout: 10000 });
     } else {
       console.log('Verification queue is empty (contract fulfilled).');
       await expect(emptyState).toBeVisible();

@@ -86,5 +86,8 @@ export const routes = {
     withLocale(`/member/claims/${encodeURIComponent(claimId)}`, l),
   staff: (l: Locale | string | TestInfo) => withLocale('/staff', l),
   admin: (l: Locale | string | TestInfo) => withLocale('/admin', l),
+  adminBranches: (l: Locale | string | TestInfo) => withLocale('/admin/branches', l),
+  adminLeads: (l: Locale | string | TestInfo) => withLocale('/admin/leads', l),
   agent: (l: Locale | string | TestInfo) => withLocale('/agent', l),
+  agentLeads: (l: Locale | string | TestInfo) => withLocale('/agent/leads', l),
 } as const;

@@ -11,14 +11,18 @@ test.describe('Golden Flows: Functional Depth', () => {
   test.describe('5. Security & Isolation ', () => {
     test('KS Admin cannot see MK Leads', async ({ adminPage }, testInfo) => {
       // Use adminPage fixture which handles tenant-aware login
-      await gotoApp(adminPage, l => `${routes.admin(l)}/leads`, testInfo, { marker: 'page-ready' });
+      await gotoApp(adminPage, `${routes.admin(testInfo)}/leads`, testInfo, {
+        marker: 'page-ready',
+      });
       await expect(adminPage.getByText('Balkan Lead')).not.toBeVisible();
     });
 
     test('Staff forbidden from Agent Onboarding', async ({ staffPage }, testInfo) => {
       // Staff trying to access Agent route
       // Note: gotoApp will wait for page-ready. If 404/403 renders within layout, it works.
-      await gotoApp(staffPage, l => `${routes.agent(l)}/leads`, testInfo, { marker: 'page-ready' });
+      await gotoApp(staffPage, `${routes.agent(testInfo)}/leads`, testInfo, {
+        marker: 'page-ready',
+      });
       await assertAccessDenied(staffPage);
     });
 
@@ -28,7 +32,7 @@ test.describe('Golden Flows: Functional Depth', () => {
       // Skip on MK tenant as this checks specific KS seed data
       test.skip(testInfo.project.name.includes('mk'), 'KS-specific pack verification');
 
-      await gotoApp(adminPage, routes.adminBranches, testInfo, { marker: 'page-ready' });
+      await gotoApp(adminPage, routes.adminBranches(testInfo), testInfo, { marker: 'page-ready' });
       // await page.waitForLoadState('networkidle'); // Removed per policy
 
       // Assert Branch Codes Visible (Pack deliverables)
@@ -55,7 +59,7 @@ test.describe('Golden Flows: Functional Depth', () => {
     }, testInfo) => {
       test.skip(testInfo.project.name.includes('mk'), 'KS-specific branch verification');
 
-      await gotoApp(adminPage, l => `${routes.adminBranches(l)}/KS-A`, testInfo, {
+      await gotoApp(adminPage, `${routes.adminBranches(testInfo)}/KS-A`, testInfo, {
         marker: 'page-ready',
       });
 

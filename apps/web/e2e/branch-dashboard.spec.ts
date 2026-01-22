@@ -8,10 +8,10 @@ test.describe('Branch Dashboard RBAC', () => {
 
   test('Admin can access branch dashboard', async ({ adminPage: page }, testInfo) => {
     // First go to branches list
-    await gotoApp(page, routes.adminBranches, testInfo, { marker: 'page-ready' });
+    await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'page-ready' });
 
     // Find first branch card and click to navigate to dashboard
-    const firstBranchCard = page.getByTestId('branch-card').first();
+    const firstBranchCard = page.locator('[data-testid^="branch-card-"]').first();
 
     if (await firstBranchCard.isVisible()) {
       // Click on the branch link to navigate to dashboard
@@ -29,7 +29,7 @@ test.describe('Branch Dashboard RBAC', () => {
     // This fixture now intelligently selects KS or MK BM based on the project URL.
 
     // Navigate to branches list
-    await gotoApp(page, routes.adminBranches, testInfo, { marker: 'page-ready' });
+    await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'page-ready' });
 
     // BM should see their branch or be redirected
     await expect(page).toHaveURL(/\/admin/);
@@ -37,7 +37,7 @@ test.describe('Branch Dashboard RBAC', () => {
 
   test('Agent cannot access branch dashboard', async ({ agentPage: page }, testInfo) => {
     // Try to access admin branches directly
-    await gotoApp(page, l => `${routes.adminBranches(l)}/test-branch`, testInfo, {
+    await gotoApp(page, `${routes.adminBranches(testInfo)}/test-branch`, testInfo, {
       marker: 'page-ready',
     });
 
@@ -55,10 +55,10 @@ test.describe('Branch Dashboard Navigation Smoke', () => {
     adminPage: page,
   }, testInfo) => {
     // Go to branches list
-    await gotoApp(page, routes.adminBranches, testInfo, { marker: 'page-ready' });
+    await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'page-ready' });
 
     // Check if any branches exist (UI uses Cards now)
-    const branchCard = page.getByTestId('branch-card').first();
+    const branchCard = page.locator('[data-testid^="branch-card-"]').first();
 
     // Force wait/assert - fail if not found
     await expect(branchCard).toBeVisible({ timeout: 10000 });
@@ -81,7 +81,7 @@ test.describe('Branch Dashboard Navigation Smoke', () => {
   });
 
   test('Staff can access branches list', async ({ staffPage: page }, testInfo) => {
-    await gotoApp(page, routes.adminBranches, testInfo, { marker: 'page-ready' });
+    await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'page-ready' });
 
     // Staff should have access to branches
     await expect(page).toHaveURL(/\/admin\/branches/);
