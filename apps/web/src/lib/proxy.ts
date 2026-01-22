@@ -2,7 +2,7 @@ import { Logger } from 'next-axiom';
 import createIntlRouter from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { routing } from './i18n/routing';
+import { routing } from '../i18n/routing';
 
 const handleIntlRouting = createIntlRouter(routing);
 

@@ -11,8 +11,9 @@ const PORT = 3000;
 const BASE_HOST = '127.0.0.1';
 const BIND_HOST = '127.0.0.1';
 const BASE_URL = `http://${BASE_HOST}:${PORT}`;
-const KS_HOST = process.env.KS_HOST ?? `ks.localhost:${PORT}`;
-const MK_HOST = process.env.MK_HOST ?? `mk.localhost:${PORT}`;
+// Use nip.io to avoid /etc/hosts dependency in CI
+const KS_HOST = process.env.KS_HOST ?? `ks.${BIND_HOST}.nip.io:${PORT}`;
+const MK_HOST = process.env.MK_HOST ?? `mk.${BIND_HOST}.nip.io:${PORT}`;
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
 
 const AUTH_DIR = path.resolve(__dirname, './e2e/.auth');
@@ -84,6 +85,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${KS_HOST}/sq`,
+        extraHTTPHeaders: {
+          'x-forwarded-host': KS_HOST,
+        },
         storageState: GATE_KS_STATE,
         actionTimeout: 20 * 1000,
         navigationTimeout: 60 * 1000,
@@ -95,6 +99,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${MK_HOST}/mk`,
+        extraHTTPHeaders: {
+          'x-forwarded-host': MK_HOST,
+        },
         storageState: GATE_MK_STATE,
         actionTimeout: 20 * 1000,
         navigationTimeout: 60 * 1000,
@@ -110,6 +117,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${KS_HOST}/sq`,
+        extraHTTPHeaders: {
+          'x-forwarded-host': KS_HOST,
+        },
       },
     },
     {
@@ -118,6 +128,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${MK_HOST}/mk`,
+        extraHTTPHeaders: {
+          'x-forwarded-host': MK_HOST,
+        },
       },
     },
 
@@ -130,6 +143,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${KS_HOST}/sq`,
+        extraHTTPHeaders: {
+          'x-forwarded-host': KS_HOST,
+        },
         storageState: KS_MEMBER_STATE,
       },
       testIgnore: [/setup\.state\.spec\.ts/, /claim-resolver-isolation\.spec\.ts/], // Ignore MK tests
@@ -140,6 +156,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${MK_HOST}/mk`,
+        extraHTTPHeaders: {
+          'x-forwarded-host': MK_HOST,
+        },
         storageState: MK_MEMBER_STATE,
       },
       // Mirror the ks-sq lane: run the normal E2E suite against the MK tenant + mk locale.
@@ -156,6 +175,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${KS_HOST}/sq`,
+        extraHTTPHeaders: {
+          'x-forwarded-host': KS_HOST,
+        },
         storageState: KS_MEMBER_STATE,
         actionTimeout: 20 * 1000,
         navigationTimeout: 60 * 1000,
