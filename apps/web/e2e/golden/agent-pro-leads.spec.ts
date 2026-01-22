@@ -26,7 +26,8 @@ test.describe('Agent Pro Leads (Golden)', () => {
 
     // 4. Verify Filters (Click a tab)
     const convertedTab = page.getByTestId('ops-tab-converted');
-    await convertedTab.click();
+    // Use evaluate click to avoid "detached from DOM" flake during list re-renders
+    await convertedTab.evaluate(el => (el as HTMLElement).click());
 
     // UI should reflect active state
     await expect(convertedTab).toHaveClass(/bg-.*primary/);

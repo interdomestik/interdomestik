@@ -14,15 +14,20 @@ test.describe('Agent Pro Claims Messaging (Golden)', () => {
       });
     }).toPass({ timeout: 10000 });
 
-    // 2. Click on the first available claim row to open drawer
+    // 2. Click on the target claim row (preferring known seeded claim) to open drawer
+    const isMK = testInfo.project.name.includes('mk');
+    const targetTitle = isMK ? 'MK SUBMITTED Claim 1' : 'KS-A SUBMITTED Claim 1';
+    const specificRow = page.getByTestId('claim-row').filter({ hasText: targetTitle }).first();
     const firstRow = page.getByTestId('claim-row').first();
 
-    if (!(await firstRow.isVisible())) {
+    const rowToClick = (await specificRow.isVisible()) ? specificRow : firstRow;
+
+    if (!(await rowToClick.isVisible())) {
       test.skip(true, 'No claims available to test messaging');
       return;
     }
 
-    await firstRow.click();
+    await rowToClick.click();
 
     // 3. Verify Drawer is Open
     const drawer = page.getByTestId(OPS_TEST_IDS.DRAWER);
@@ -31,11 +36,9 @@ test.describe('Agent Pro Claims Messaging (Golden)', () => {
 
     // 4. Click "Send Message" action and wait for panel
     // Use evaluate click as a stabilizer for animation-heavy drawer footer
-    await expect(async () => {
-      const messageAction = page.getByTestId('action-message').first();
-      await messageAction.evaluate(el => (el as HTMLElement).click());
-      await expect(page.getByTestId('messaging-panel')).toBeVisible();
-    }).toPass({ timeout: 15000 });
+    const messageAction = page.getByTestId('action-message').first();
+    await messageAction.evaluate(el => (el as HTMLElement).click());
+    await expect(page.getByTestId('messaging-panel')).toBeVisible({ timeout: 15000 });
 
     // 5. Send message
     const messagingPanel = page.getByTestId('messaging-panel');
