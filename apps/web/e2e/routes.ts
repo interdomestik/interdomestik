@@ -90,4 +90,7 @@ export const routes = {
   adminLeads: (l: Locale | string | TestInfo) => withLocale('/admin/leads', l),
   agent: (l: Locale | string | TestInfo) => withLocale('/agent', l),
   agentLeads: (l: Locale | string | TestInfo) => withLocale('/agent/leads', l),
+  agentWorkspace: (l: Locale | string | TestInfo) => withLocale('/agent/workspace', l),
+  agentWorkspaceLeads: (l: Locale | string | TestInfo) => withLocale('/agent/workspace/leads', l),
+  agentWorkspaceClaims: (l: Locale | string | TestInfo) => withLocale('/agent/workspace/claims', l),
 } as const;
