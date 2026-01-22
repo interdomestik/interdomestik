@@ -24,7 +24,7 @@ export default async function PricingPage({ params }: PricingPageProps) {
   const t = await getTranslations({ locale, namespace: 'pricing' });
 
   return (
-    <div className="container py-20 px-4 md:px-6">
+    <div className="container py-20 px-4 md:px-6" data-testid="pricing-page-ready">
       <div className="text-center mb-12 max-w-2xl mx-auto">
         <h1 className="text-4xl font-bold tracking-tight mb-4">{t('title')}</h1>
         <p className="text-xl text-muted-foreground">{t('subtitle')}</p>

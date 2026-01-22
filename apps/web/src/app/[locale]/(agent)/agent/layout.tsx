@@ -33,9 +33,6 @@ export default async function AgentLayout({
     return null;
   }
 
-  // Logging for RBAC debugging
-  console.log(`[AgentLayout] Guard | User: ${session.user.email} | Role: ${session.user.role}`);
-
   // Only agents can access this portal
   if (session.user.role !== 'agent') {
     // Strict Isolation: 404 for everyone else
@@ -49,13 +46,16 @@ export default async function AgentLayout({
 
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
-      <SidebarProvider defaultOpen={true}>
-        <AgentSidebar />
-        <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-          <DashboardHeader />
-          <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>
-        </SidebarInset>
-      </SidebarProvider>
+      {/* E2E contract: ensureAuthenticated waits for dashboard-page-ready across all portals */}
+      <div data-testid="dashboard-page-ready">
+        <SidebarProvider defaultOpen={true}>
+          <AgentSidebar />
+          <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+            <DashboardHeader />
+            <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>
+          </SidebarInset>
+        </SidebarProvider>
+      </div>
     </NextIntlClientProvider>
   );
 }

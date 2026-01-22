@@ -43,6 +43,7 @@ export function VerificationActionDialog({
             value={note}
             onChange={e => onNoteChange(e.target.value)}
             placeholder={t('placeholders.needs_info_note')}
+            data-testid="verification-action-note"
           />
         </div>
         <DialogFooter>
@@ -52,6 +53,7 @@ export function VerificationActionDialog({
           <Button
             onClick={onSubmit}
             variant={pendingDecision === 'reject' ? 'destructive' : 'default'}
+            data-testid="verification-action-submit"
           >
             {t('actions.submit')}
           </Button>

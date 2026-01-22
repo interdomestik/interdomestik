@@ -294,7 +294,7 @@ async function performLogin(
 
   const targetUrl = new URL(targetPath, info.origin).toString();
   await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('page-ready')).toBeVisible();
+  await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
   await assertNoTenantChooser(page);
 
   // Diagnostics
@@ -314,11 +314,11 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   else if (role === 'staff') targetPath = '/staff';
 
   // Navigate using gotoApp (handles locale)
-  await gotoApp(page, targetPath, testInfo, { marker: 'page-ready' });
+  await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
 
-  // Check if we bounced to login (auth-ready visible)
+  // Check if we bounced to login (registration-page-ready visible)
   const isLoginPage = await page
-    .getByTestId('auth-ready')
+    .getByTestId('registration-page-ready')
     .isVisible({ timeout: 2000 })
     .catch(() => false);
 

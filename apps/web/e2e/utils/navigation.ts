@@ -1,39 +1,61 @@
-import { Page, expect, TestInfo } from '@playwright/test';
-import { routes } from '../routes';
-
-type GlobalE2E = typeof globalThis & {
-  __E2E_BASE_URL?: string;
-};
+import { expect, type Page, type TestInfo } from '@playwright/test';
 
 /**
- * Robust navigation helper that:
- * 1. Ensures routes.ts has the correct project context (baseURL).
- * 2. Navigates to the route (prepending locale if string path provided).
- * 3. Waits for a deterministic readiness marker (default: 'page-ready').
+ * Re-export getLocale for convenience
+ */
+export { getLocale } from '../routes';
+
+// Supported locales for detecting locale-prefixed paths
+const SUPPORTED_LOCALES = ['sq', 'en', 'mk', 'sr', 'de', 'hr'];
+
+/**
+ * Check if a path starts with a supported locale segment.
+ */
+function pathHasLocalePrefix(path: string): boolean {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const firstSegment = normalized.split('/')[1];
+  return SUPPORTED_LOCALES.includes(firstSegment);
+}
+
+/**
+ * Navigates to a path using project-derived baseURL and waits for a marker.
+ * Strictly enforces Rule #2: No ad-hoc URL building.
+ *
+ * If path already includes a locale prefix (e.g., /sq/pricing from routes helpers),
+ * we use the origin only to avoid double-locale URLs.
  */
 export async function gotoApp(
   page: Page,
-  routeOrBuilder: string | ((locale?: string) => string),
+  path: string,
   testInfo: TestInfo,
-  options?: {
-    locale?: string;
-    marker?: string;
-  }
+  options?: { marker?: string }
 ) {
-  // Ensure global is set for routes.ts to work correctly
-  if (testInfo.project.use.baseURL) {
-    (globalThis as GlobalE2E).__E2E_BASE_URL = testInfo.project.use.baseURL;
-  }
+  const baseUrl = testInfo.project.use.baseURL || '';
+  const origin = new URL(baseUrl).origin;
 
-  let url: string;
-  if (typeof routeOrBuilder === 'string') {
-    url = routes.path(routeOrBuilder, options?.locale);
+  let targetUrl: string;
+
+  if (pathHasLocalePrefix(path)) {
+    // Path already has locale (e.g., /sq/pricing from routes.pricing(testInfo))
+    // Use origin only to avoid double-locale like /sq/sq/pricing
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    targetUrl = `${origin}${normalizedPath}`;
   } else {
-    url = routeOrBuilder(options?.locale);
+    // Path is locale-agnostic (e.g., /member from ensureAuthenticated)
+    // Append to locale-prefixed baseURL
+    const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
+    const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+    targetUrl = new URL(normalizedPath, normalizedBase).toString();
   }
 
-  await page.goto(url);
+  console.log(`[E2E Nav] ${targetUrl}`);
+  await page.goto(targetUrl);
 
   const marker = options?.marker ?? 'page-ready';
-  await expect(page.getByTestId(marker)).toBeVisible();
+
+  if (marker === 'body') {
+    await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
+  } else {
+    await expect(page.getByTestId(marker)).toBeVisible({ timeout: 15000 });
+  }
 }

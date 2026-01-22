@@ -32,7 +32,10 @@ export default async function RegisterPage({ params, searchParams }: Props) {
         .orderBy(drizzle.asc(tenants.name));
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-[hsl(var(--background))] to-[hsl(var(--surface-strong))] p-4">
+    <div
+      data-testid="registration-page-ready"
+      className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-[hsl(var(--background))] to-[hsl(var(--surface-strong))] p-4"
+    >
       {resolvedTenantId ? null : <TenantSelector tenants={tenantOptions} />}
       <RegisterForm tenantId={resolvedTenantId ?? undefined} />
     </div>

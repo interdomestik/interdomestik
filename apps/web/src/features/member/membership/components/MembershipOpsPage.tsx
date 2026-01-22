@@ -57,8 +57,9 @@ export function MembershipOpsPage({
   // Map subscriptions to OpsTableRow
   const rows = subscriptions.map(sub => ({
     id: sub.id,
+    testId: 'subscription-item',
     cells: [
-      <span key="plan" className="font-medium">
+      <span key="plan" className="font-medium" data-testid="subscription-plan-name">
         {sub.plan?.name || sub.planId}
       </span>,
       <OpsStatusBadge key="status" {...toOpsStatus(sub.status)} />,
@@ -77,7 +78,7 @@ export function MembershipOpsPage({
   ];
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] gap-4 p-4">
+    <div className="flex h-[calc(100vh-4rem)] gap-4 p-4" data-testid="membership-page-ready">
       {/* List Panel */}
       <div className={`flex-1 min-w-0 ${selectedId && isDesktop ? 'max-w-md' : ''}`}>
         <Card className="h-full flex flex-col">

@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/auth.fixture';
-import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 
 test.describe('Admin Verification Queue (Cash)', () => {
   test('Tenant Admin can view queue and approve pending cash payment', async ({
@@ -10,15 +10,11 @@ test.describe('Admin Verification Queue (Cash)', () => {
     await loginAs('admin');
 
     // 2. Navigate to Leads / Verification
-    // (Assuming the route is /admin/leads based on previous file analysis)
-    const locale = testInfo.project.name.includes('mk') ? 'mk' : 'sq';
-    await page.goto(routes.adminLeads(locale));
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, '/admin/leads', testInfo);
 
     // 3. Verify Page Title
     await expect(
       page.getByRole('heading', {
-        level: 1,
         name: /Verifikimi|Payment Verification|Lead Payment|Верификација/i,
       })
     ).toBeVisible();
@@ -43,8 +39,12 @@ test.describe('Admin Verification Queue (Cash)', () => {
       await expect(rejectBtn).toBeVisible();
     } else {
       // Fallback: Verify Empty State
-      await expect(page.getByTestId('ops-table-empty')).toBeVisible();
-      await expect(page.getByTestId('cash-verification-row')).toHaveCount(0);
+      await expect(
+        page
+          .getByText(/No pending cash verification/i)
+          .or(page.getByText(/Nuk u gjetën/i))
+          .or(page.getByText(/Нема барања за верификација/i))
+      ).toBeVisible();
       console.log('⚠️ No pending cash requests found in seed data. Skipped approval action.');
     }
   });

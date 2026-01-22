@@ -35,9 +35,6 @@ export default async function StaffLayout({
     return null;
   }
 
-  // Logging for RBAC debugging
-  console.log(`[StaffLayout] Guard | User: ${session.user.email} | Role: ${session.user.role}`);
-
   if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
     // Strict Isolation: 404 for everyone else
     const { notFound } = await import('next/navigation');
@@ -52,13 +49,16 @@ export default async function StaffLayout({
 
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
-      <SidebarProvider defaultOpen={true}>
-        <StaffSidebar />
-        <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-          <DashboardHeader />
-          <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
-        </SidebarInset>
-      </SidebarProvider>
+      {/* E2E contract: ensureAuthenticated waits for dashboard-page-ready across all portals */}
+      <div data-testid="dashboard-page-ready">
+        <SidebarProvider defaultOpen={true}>
+          <StaffSidebar />
+          <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+            <DashboardHeader />
+            <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
+          </SidebarInset>
+        </SidebarProvider>
+      </div>
     </NextIntlClientProvider>
   );
 }

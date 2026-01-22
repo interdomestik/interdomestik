@@ -6,7 +6,8 @@ import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Link, useRouter } from '@/i18n/routing';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 interface PricingTableProps {
@@ -87,14 +88,19 @@ export function PricingTable({ userId, email }: PricingTableProps) {
 
   const handleAction = async (planId: string, priceId: string) => {
     if (!userId) {
-      const params = new URLSearchParams({ plan: planId });
-      if (tenantId) params.set('tenantId', tenantId);
-      router.push(`/register?${params.toString()}`);
+      router.push(`/register?plan=${planId}`);
       return;
     }
 
     setLoading(priceId);
     try {
+      if (process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1') {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Simulate redirect to success page with dummy data
+        router.push(`/member/membership/success?test=true&priceId=${priceId}&planId=${planId}`);
+        return;
+      }
+
       console.log('🏷️ Opening Paddle checkout with Price ID:', priceId);
       console.log('📦 Environment check:', {
         STANDARD_YEAR: process.env.NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR,
@@ -165,6 +171,7 @@ export function PricingTable({ userId, email }: PricingTableProps) {
         {PLANS.map(plan => (
           <div
             key={plan.id}
+            data-testid={`plan-card-${plan.id}`}
             className={`bg-white rounded-[2rem] p-10 relative transition-all duration-300 border-2 ${
               plan.popular
                 ? 'border-primary shadow-2xl shadow-primary/10 md:scale-105 z-10'
@@ -222,6 +229,7 @@ export function PricingTable({ userId, email }: PricingTableProps) {
 
             <Button
               size="xl"
+              data-testid={`plan-cta-${plan.id}`}
               className={`w-full h-16 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 ${
                 plan.popular
                   ? 'bg-primary hover:bg-primary/90 shadow-primary/30 border-0'

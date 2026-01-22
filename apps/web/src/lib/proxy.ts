@@ -126,6 +126,8 @@ export default async function proxy(request: NextRequest) {
   }
 
   const isDev = process.env.NODE_ENV !== 'production';
+  const isE2E = process.env.PLAYWRIGHT === '1' || process.env.INTERDOMESTIK_AUTOMATED === '1';
+
   const scriptSrc = [
     "'self'",
     `'nonce-${nonce}'`,
@@ -153,6 +155,22 @@ export default async function proxy(request: NextRequest) {
   ];
   const styleAttrSrc = ["'unsafe-inline'"];
 
+  const connectSrc = [
+    "'self'",
+    'https://*.supabase.co',
+    'wss://*.supabase.co',
+    ...supabaseConnectSrc,
+    'https://vitals.vercel-insights.com',
+    'https://*.paddle.com',
+    'https://sandbox-buy.paddle.com',
+    'https://api.novu.co',
+    'https://*.novu.co',
+    'wss://*.novu.co',
+    'https://api.openai.com',
+    'https://api.resend.com',
+    ...(isE2E ? ['http://*.127.0.0.1.nip.io:3000', 'ws://*.127.0.0.1.nip.io:3000'] : []),
+  ];
+
   const cspHeader = `
     default-src 'self';
     script-src ${scriptSrc.join(' ')};
@@ -161,9 +179,7 @@ export default async function proxy(request: NextRequest) {
     style-src-attr ${styleAttrSrc.join(' ')};
     img-src 'self' blob: data: https://*.supabase.co https://*.paddle.com https://*.githubusercontent.com;
     font-src 'self' https://fonts.gstatic.com https://sandbox-cdn.paddle.com;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co ${supabaseConnectSrc.join(
-      ' '
-    )} https://vitals.vercel-insights.com https://*.paddle.com https://sandbox-buy.paddle.com https://api.novu.co https://*.novu.co wss://*.novu.co https://api.openai.com https://api.resend.com;
+    connect-src ${connectSrc.join(' ')};
     frame-src 'self' https://*.paddle.com https://sandbox-buy.paddle.com;
     object-src 'none';
     base-uri 'self';

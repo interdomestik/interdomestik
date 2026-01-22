@@ -81,17 +81,16 @@ export function getLeadActions(lead: any | undefined): {
       id: 'mark_contacted',
       label: 'Mark Contacted',
       variant: 'outline',
-      testId: 'action-mark-contacted',
     });
   }
 
   // Secondary: Advance to Payment/Qualified
-  if (!isConverted && lead.status === 'contacted') {
+  if (!isConverted && ['new', 'contacted'].includes(lead.status)) {
     secondary.push({
-      id: 'mark_payment_pending',
-      label: 'Request Payment',
-      variant: 'default',
-      testId: 'action-request-payment',
+      id: 'pay_cash',
+      label: 'Pay Cash',
+      variant: 'outline',
+      testId: 'pay-cash-button',
     });
   }
 
@@ -101,7 +100,6 @@ export function getLeadActions(lead: any | undefined): {
       id: 'mark_lost',
       label: 'Mark Lost',
       variant: 'destructive',
-      testId: 'action-mark-lost',
     });
   }
 

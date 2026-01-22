@@ -1,8 +1,11 @@
 import { expect, test } from '../fixtures/auth.fixture';
+import { gotoApp } from '../utils/navigation';
 
 test.describe('Gate: Critical Path › Member Actions & Uploads', () => {
-  test.fixme('Member can see action buttons on subscription', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/member/membership');
+  test.fixme('Member can see action buttons on subscription', async ({
+    authenticatedPage,
+  }, testInfo) => {
+    await gotoApp(authenticatedPage, '/member/membership', testInfo);
 
     // Check if we have subscriptions OR empty state
     const rows = authenticatedPage.locator('[data-testid^="ops-row-"]');
@@ -26,8 +29,10 @@ test.describe('Gate: Critical Path › Member Actions & Uploads', () => {
     }
   });
 
-  test('Member can see Upload Evidence button on claim', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/member/claims');
+  test('Member can see Upload Evidence button on claim', async ({
+    authenticatedPage,
+  }, testInfo) => {
+    await gotoApp(authenticatedPage, '/member/claims', testInfo);
 
     // Find a claim link
     const validClaimLink = authenticatedPage

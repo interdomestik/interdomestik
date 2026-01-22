@@ -47,7 +47,7 @@ export function CreateLeadDialog({ onSuccess }: CreateLeadDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button data-testid="new-lead-button">
           <Plus className="w-4 h-4 mr-2" /> New Lead
         </Button>
       </DialogTrigger>
@@ -55,28 +55,28 @@ export function CreateLeadDialog({ onSuccess }: CreateLeadDialogProps) {
         <DialogHeader>
           <DialogTitle>Create New Lead</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-4" data-testid="create-lead-form">
           <div className="grid gap-2">
             <Label htmlFor="firstName">First Name</Label>
-            <Input id="firstName" name="firstName" required />
+            <Input id="firstName" name="firstName" required data-testid="lead-form-firstname" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="lastName">Last Name</Label>
-            <Input id="lastName" name="lastName" required />
+            <Input id="lastName" name="lastName" required data-testid="lead-form-lastname" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" required />
+            <Input id="email" name="email" type="email" required data-testid="lead-form-email" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" name="phone" required />
+            <Input id="phone" name="phone" required data-testid="lead-form-phone" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="notes">Notes</Label>
-            <Input id="notes" name="notes" />
+            <Input id="notes" name="notes" data-testid="lead-form-notes" />
           </div>
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full" data-testid="lead-form-submit">
             Create Lead
           </Button>
         </form>

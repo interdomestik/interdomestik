@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 import { test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 
 test.describe('Member Plan Ops (Golden)', () => {
-  test('renders ops master-detail plan view', async ({ page, loginAs }) => {
+  test('renders ops master-detail plan view', async ({ page, loginAs }, testInfo) => {
     await loginAs('member');
-    await page.goto(`${routes.member()}/membership`);
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, `${routes.member(testInfo)}/membership`, testInfo);
 
     // Check Ops Table
     const table = page.getByTestId('ops-table');

@@ -4,9 +4,7 @@ import { createAuthClient } from 'better-auth/react';
 import { useEffect, useState } from 'react';
 import { NotificationCenter } from './notification-center';
 
-const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-});
+const authClient = createAuthClient();
 
 /**
  * NotificationBell - A self-contained notification bell that fetches user session

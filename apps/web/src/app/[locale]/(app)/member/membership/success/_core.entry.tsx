@@ -6,12 +6,14 @@ import { getTranslations } from 'next-intl/server';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { MockActivationTrigger } from '@/components/billing/mock-activation-trigger';
 
 interface SuccessPageProps {
   params: Promise<{ locale: string }>;
+  searchParams?: Promise<{ test?: string; planId?: string; priceId?: string }>;
 }
 
-export default async function MembershipSuccessPage({ params }: SuccessPageProps) {
+export default async function MembershipSuccessPage({ params, searchParams }: SuccessPageProps) {
   const { locale } = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -21,10 +23,21 @@ export default async function MembershipSuccessPage({ params }: SuccessPageProps
     redirect('/login');
   }
 
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const isTest = resolvedSearchParams.test === 'true';
+  const { planId, priceId } = resolvedSearchParams;
+
   const t = await getTranslations({ locale, namespace: 'membership.success' });
 
   return (
-    <div className="container max-w-4xl py-12 px-4">
+    <div className="container max-w-4xl py-12 px-4" data-testid="success-page-ready">
+      {/* 
+          🧪 BILLING TEST MODE TRIGGER
+          If we are in test mode and have plan info, trigger the activation 
+          on the client side to avoid revalidatePath-during-render errors.
+      */}
+      {isTest && planId && priceId && <MockActivationTrigger planId={planId} priceId={priceId} />}
+
       <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-50 mb-6">
           <CheckCircle2 className="w-10 h-10 text-green-600" />
@@ -35,27 +48,36 @@ export default async function MembershipSuccessPage({ params }: SuccessPageProps
 
       <div className="grid gap-8 md:grid-cols-2">
         {/* Hotline Promo */}
-        <Card className="border-primary shadow-xl overflow-hidden group hover:scale-[1.01] transition-transform duration-300">
-          <div className="bg-primary px-6 py-2 text-primary-foreground text-xs font-bold tracking-widest text-center uppercase">
-            {t('hotline_label')}
-          </div>
-          <CardContent className="p-8 text-center flex flex-col items-center justify-center space-y-4">
-            <div className="p-4 bg-primary/5 rounded-full group-hover:bg-primary/10 transition-colors">
-              <Phone className="w-12 h-12 text-primary animate-pulse" />
+        <Card
+          data-testid="success-hotline"
+          className="border-primary shadow-xl overflow-hidden group hover:scale-[1.01] transition-transform duration-300"
+        >
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Phone className="w-5 h-5 text-primary" />
+              {t('hotline_label')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
+                <p className="text-sm font-bold text-primary uppercase tracking-wider mb-1">
+                  24/7 Support
+                </p>
+                <p className="text-2xl font-black tracking-tighter text-foreground">
+                  +389 70 337 140
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">{t('hotline_desc')}</p>
             </div>
-            <div className="text-3xl font-black text-primary tracking-tighter">
-              {t('hotline_number')}
-            </div>
-            <p className="text-sm text-muted-foreground">{t('hotline_hint')}</p>
-            <Button className="w-full h-12 text-base shadow-lg shadow-primary/20">
-              <Smartphone className="mr-2 h-5 w-5" />
-              {t('cta_save_contact')}
-            </Button>
           </CardContent>
         </Card>
 
         {/* Digital Card Promo */}
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 border-2">
+        <Card
+          data-testid="success-card"
+          className="shadow-lg hover:shadow-xl transition-shadow duration-300 border-2"
+        >
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center justify-between">
               {t('card_label')}
@@ -63,10 +85,8 @@ export default async function MembershipSuccessPage({ params }: SuccessPageProps
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {/* The "Card" UI */}
             <div className="px-6 pb-6 pt-2">
               <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white shadow-2xl relative overflow-hidden aspect-[1.586/1]">
-                {/* Glossy overlay */}
                 <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/5 skew-y-[-15deg] origin-top-left" />
 
                 <div className="flex justify-between items-start relative z-10">
@@ -79,7 +99,7 @@ export default async function MembershipSuccessPage({ params }: SuccessPageProps
                 <div className="mt-8 relative z-10">
                   <div className="text-xs opacity-50 mb-1">{t('card_id_prefix')}</div>
                   <div className="text-lg font-mono tracking-widest">
-                    {(session.user as { memberNumber?: string }).memberNumber ||
+                    {(session.user as any).memberNumber ||
                       `ID-${session.user.id.slice(0, 8).toUpperCase()}`}
                   </div>
                 </div>
@@ -113,9 +133,7 @@ export default async function MembershipSuccessPage({ params }: SuccessPageProps
               <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center">
                 <span className="text-primary font-bold">{i}</span>
               </div>
-              <p className="text-sm font-medium leading-relaxed">
-                {t(`benefits_${i}` as Parameters<typeof t>[0])}
-              </p>
+              <p className="text-sm font-medium leading-relaxed">{t(`benefits_${i}` as any)}</p>
             </div>
           ))}
         </div>
@@ -135,7 +153,6 @@ export default async function MembershipSuccessPage({ params }: SuccessPageProps
   );
 }
 
-// Minimal ShieldCheck for the card since lucide-react mock in tests used it
 function ShieldCheck({ className }: { className?: string }) {
   return (
     <svg

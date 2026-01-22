@@ -1,21 +1,9 @@
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
+import { gotoApp } from '../utils/navigation';
+import { routes } from '../routes';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-
-function getTargetLocale(user: { tenant: string }): string {
-  return user.tenant === 'tenant_mk' ? 'mk' : 'sq';
-}
-
-function getRootURL(baseURL?: string): string {
-  const fallback =
-    process.env.PLAYWRIGHT_BASE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.BETTER_AUTH_URL ||
-    'http://127.0.0.1:3000';
-
-  return new URL(baseURL ?? fallback).origin;
-}
 
 // Canonical users - tenant-aware
 const USERS = {
@@ -44,10 +32,11 @@ const SEEDED_DATA = {
 async function performLocalLogin(
   page: import('@playwright/test').Page,
   user: { email: string; password: string; tenant: string },
-  baseURL?: string
+  testInfo: import('@playwright/test').TestInfo
 ) {
   // API Login Strategy (Fast & Reliable)
-  const rootURL = getRootURL(baseURL);
+  const baseUrl = testInfo.project.use.baseURL || '';
+  const rootURL = new URL(baseUrl).origin;
   const loginURL = `${rootURL}/api/auth/sign-in/email`;
 
   const res = await page.request.post(loginURL, {
@@ -66,19 +55,25 @@ async function performLocalLogin(
   }
 
   // Determine locale and dashboard path
+  // We can use the user's tenant preference or default to EN if unknown,
+  // but better to match the project locale if possible or just hardcode based on user tenant.
+  // The original code mapped tenant_mk -> mk, else sq.
   const locale = user.tenant === 'tenant_mk' ? 'mk' : 'sq';
-  let targetPath = `/${locale}`;
 
-  if (user.email.includes('admin') || user.email.includes('super')) targetPath += '/admin';
-  else if (user.email.includes('agent')) targetPath += '/agent';
-  else if (user.email.includes('staff')) targetPath += '/staff';
-  else targetPath += '/member'; // Default to member
+  let targetPath = '/';
 
-  const destUrl = `${rootURL}${targetPath}`;
+  if (user.email.includes('admin') || user.email.includes('super')) targetPath += 'admin';
+  else if (user.email.includes('agent')) targetPath += 'agent';
+  else if (user.email.includes('staff')) targetPath += 'staff';
+  else targetPath += 'member'; // Default to member
 
-  await page.goto(destUrl);
-  await page.waitForTimeout(500); // Allow redirect/load to settle
-  await page.waitForLoadState('domcontentloaded');
+  // Use gotoApp which handles the locale prefixing if we pass the raw path,
+  // BUT gotoApp expects we pass a path.
+  // However, gotoApp logic: "If path starts with locale... use origin only".
+  // So we can construct the path with locale manually to be safe or use routes helper.
+  // Let's use the locale explicitly constructed.
+
+  await gotoApp(page, `/${locale}${targetPath}`, testInfo);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -114,9 +109,7 @@ test.describe('Golden Gate: Critical Path', () => {
 
       // Navigate to claims list and wait for it to load
       const locale = page.url().includes('/mk') ? 'mk' : 'sq';
-      const rootURL = getRootURL(testInfo.project.use.baseURL?.toString());
-      await page.goto(`${rootURL}/${locale}/member/claims`);
-      await page.waitForLoadState('networkidle');
+      await gotoApp(page, `/${locale}/member/claims`, testInfo);
 
       // Check for any claim content (may be translated) - KS has many seeded claims, MK has MK-A
       await expect(page.locator('body')).toContainText(/Claim|Kërkes|Барања|KS-A|MK-A|Rear ended/i);
@@ -129,9 +122,7 @@ test.describe('Golden Gate: Critical Path', () => {
       const locale = page.url().includes('/mk') ? 'mk' : 'sq';
 
       // Verify NO access to admin - should redirect or show 404
-      const rootURL = getRootURL(testInfo.project.use.baseURL?.toString());
-      await page.goto(`${rootURL}/${locale}/admin`);
-      await page.waitForLoadState('domcontentloaded');
+      await gotoApp(page, `/${locale}/admin`, testInfo, { marker: 'body' });
 
       // Use pathname to avoid matching query params like ?callbackURL=/admin
       const pathname = new URL(page.url()).pathname;
@@ -162,11 +153,10 @@ test.describe('Golden Gate: Critical Path', () => {
 
     test('Tenant Isolation: KS Admin cannot see MK Claims', async ({ page }, testInfo) => {
       const user = USERS.TENANT_ADMIN_KS;
-      await performLocalLogin(page, user, testInfo.project.use.baseURL?.toString());
+      await performLocalLogin(page, user, testInfo);
 
-      const locale = getTargetLocale(user);
-      const rootURL = getRootURL(testInfo.project.use.baseURL?.toString());
-      await page.goto(`${rootURL}/${locale}/admin/claims`);
+      const locale = user.tenant === 'tenant_mk' ? 'mk' : 'sq';
+      await gotoApp(page, `/${locale}/admin/claims`, testInfo);
       await expect(page.getByText(SEEDED_DATA.CLAIM_MK_1.title)).not.toBeVisible();
     });
 
@@ -174,12 +164,10 @@ test.describe('Golden Gate: Critical Path', () => {
       page,
     }, testInfo) => {
       const user = USERS.BM_MK_A;
-      await performLocalLogin(page, user, testInfo.project.use.baseURL?.toString());
+      await performLocalLogin(page, user, testInfo);
 
-      const locale = getTargetLocale(user);
-      const rootURL = getRootURL(testInfo.project.use.baseURL?.toString());
-      await page.goto(`${rootURL}/${locale}/admin/claims`);
-      await page.waitForLoadState('networkidle');
+      const locale = user.tenant === 'tenant_mk' ? 'mk' : 'sq';
+      await gotoApp(page, `/${locale}/admin/claims`, testInfo);
 
       // Verify we're on claims page and it loaded
       await expect(page.locator('body')).toContainText(/Claim|Kërkes|Admin/i);
@@ -187,32 +175,28 @@ test.describe('Golden Gate: Critical Path', () => {
 
     test('Staff (MK) can process claims but has restricted access', async ({ page }, testInfo) => {
       const user = USERS.STAFF_MK;
-      await performLocalLogin(page, user, testInfo.project.use.baseURL?.toString());
+      await performLocalLogin(page, user, testInfo);
 
-      const locale = getTargetLocale(user);
+      const locale = user.tenant === 'tenant_mk' ? 'mk' : 'sq';
       // Navigate to Staff Claims
-      const rootURL = getRootURL(testInfo.project.use.baseURL?.toString());
-      await page.goto(`${rootURL}/${locale}/staff/claims`);
-      await page.waitForLoadState('networkidle');
+      await gotoApp(page, `/${locale}/staff/claims`, testInfo);
 
       // Verify we landed on staff claims page
       await expect(page.locator('body')).toContainText(/Claim|Kërkes|Staff/i);
 
       // Verify Restrictions - Try Admin Branches (should redirect)
-      await page.goto(`${rootURL}/${locale}/admin/branches`);
+      await gotoApp(page, `/${locale}/admin/branches`, testInfo, { marker: 'body' });
       // Staff shouldn't have full admin access
       await expect(page.locator('body')).not.toContainText(/Create Branch|Krijo Degë/i);
     });
 
     test('Agent Scoping: Agent sees only assigned members claims', async ({ page }, testInfo) => {
       const user = USERS.AGENT_MK_A1;
-      await performLocalLogin(page, user, testInfo.project.use.baseURL?.toString());
+      await performLocalLogin(page, user, testInfo);
 
-      const locale = getTargetLocale(user);
+      const locale = user.tenant === 'tenant_mk' ? 'mk' : 'sq';
       // Navigate to agent dashboard or claims
-      const rootURL = getRootURL(testInfo.project.use.baseURL?.toString());
-      await page.goto(`${rootURL}/${locale}/agent`);
-      await page.waitForLoadState('networkidle');
+      await gotoApp(page, `/${locale}/agent`, testInfo);
 
       // Verify agent dashboard loads
       await expect(page.locator('body')).toContainText(/Agent|CRM|Dashboard|Paneli/i);
@@ -221,7 +205,7 @@ test.describe('Golden Gate: Critical Path', () => {
 
   test.describe('3. Admin Dashboards [smoke]', () => {
     test('Super Admin sees global stats', async ({ page }, testInfo) => {
-      await performLocalLogin(page, USERS.SUPER_ADMIN, testInfo.project.use.baseURL?.toString());
+      await performLocalLogin(page, USERS.SUPER_ADMIN, testInfo);
 
       // Verify admin dashboard is visible with increased timeout for stats calculation
       await expect(page.getByRole('heading', { name: /Admin|Paneli/i }).first()).toBeVisible({
@@ -240,21 +224,20 @@ test.describe('Golden Gate: Critical Path', () => {
       await loginAs('admin');
 
       const locale = page.url().includes('/mk') ? 'mk' : 'sq';
-      const rootURL = getRootURL(testInfo.project.use.baseURL?.toString());
+
       // Give time for redirect to complete then navigate to admin branches
       await page.waitForTimeout(1000);
-      await page.goto(`${rootURL}/${locale}/admin/branches`);
-      await page.waitForLoadState('networkidle');
+      await gotoApp(page, `/${locale}/admin/branches`, testInfo);
 
       // The page should either show branches OR indicate no branches exist
       // Check we're on the right page
       await expect(page.locator('body')).toContainText(/Branch|Degë|Admin|Подружници/i);
 
       // 1. Verify at least one branch card is present
-      await expect(page.locator('[data-testid="branch-card"]').first()).toBeVisible();
+      await expect(page.locator('[data-testid^="branch-card-"]').first()).toBeVisible();
 
       // 2. Verify total count of cards matches expectation if possible, or just > 0
-      const cards = page.locator('[data-testid="branch-card"]');
+      const cards = page.locator('[data-testid^="branch-card-"]');
       expect(await cards.count()).toBeGreaterThan(0);
 
       // 3. Verify Navigation to Branch Dashboard V2
@@ -288,16 +271,13 @@ test.describe('Golden Gate: Critical Path', () => {
       await loginAs('admin');
 
       const locale = page.url().includes('/mk') ? 'mk' : 'sq';
-      const rootURL = getRootURL(testInfo.project.use.baseURL?.toString());
       // Use specific branch IDs from the seed
       const branchId = locale === 'mk' ? 'mk_branch_a' : 'ks_branch_a';
 
       // Go directly to a known branch dashboard
-      await page.goto(`${rootURL}/${locale}/admin/branches/${branchId}`);
-      await page.waitForLoadState('networkidle');
-
-      // Verify Dashboard Loaded explicitly
-      await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
+      await gotoApp(page, `/${locale}/admin/branches/${branchId}`, testInfo, {
+        marker: 'branch-dashboard-title',
+      });
 
       // Verify KPI Row with labels (translated)
       await expect(page.locator('body')).toContainText(
@@ -316,16 +296,13 @@ test.describe('Golden Gate: Critical Path', () => {
       page,
     }, testInfo) => {
       const user = USERS.TENANT_ADMIN_KS;
-      const baseURL = testInfo.project.use.baseURL?.toString();
-      await performLocalLogin(page, user, baseURL); // Login as KS Admin
+      await performLocalLogin(page, user, testInfo); // Login as KS Admin
 
-      const locale = getTargetLocale(user);
-      const rootURL = getRootURL(baseURL);
-      await page.goto(`${rootURL}/${locale}/admin/branches`);
-      await page.waitForLoadState('networkidle');
+      const locale = user.tenant === 'tenant_mk' ? 'mk' : 'sq';
+      await gotoApp(page, `/${locale}/admin/branches`, testInfo);
 
       // Find the KS-A branch card (should be "urgent" due to high open claims)
-      const ksBranchACard = page.locator('[data-testid="branch-card"]', {
+      const ksBranchACard = page.locator('[data-testid^="branch-card-"]', {
         hasText: /KS Branch A|KS-A/i,
       });
 
@@ -341,14 +318,11 @@ test.describe('Golden Gate: Critical Path', () => {
     test('Claims List: Loads V2 Dashboard style and filters tabs', async ({ page }, testInfo) => {
       // 1. Login as Tenant Admin
       const user = USERS.TENANT_ADMIN_MK;
-      const baseURL = testInfo.project.use.baseURL?.toString();
-      await performLocalLogin(page, user, baseURL);
+      await performLocalLogin(page, user, testInfo);
 
-      const locale = getTargetLocale(user);
+      const locale = user.tenant === 'tenant_mk' ? 'mk' : 'sq';
       // 2. Navigate to Claims
-      const rootURL = getRootURL(baseURL);
-      await page.goto(`${rootURL}/${locale}/admin/claims?view=list`);
-      await page.waitForLoadState('networkidle');
+      await gotoApp(page, `/${locale}/admin/claims?view=list`, testInfo);
 
       // 3. Verify V2 Header Access
       // "Kërkesat" is the title in Albanian

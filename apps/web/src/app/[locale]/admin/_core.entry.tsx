@@ -38,17 +38,23 @@ export default async function AdminLayout({
 
   // Central Portal Guard
   const role = sessionNonNull.user.role;
-  const { isAllowedInAdmin, getPortalHome } = await import('@/lib/rbac-portals');
 
-  if (!isAllowedInAdmin(role)) {
-    const home = getPortalHome(role);
-    // Redirect to home if known, otherwise NOT FOUND (safe default)
-    if (home) {
-      redirect(`/${locale}${home}`);
-    } else {
-      const { notFound } = await import('next/navigation');
-      notFound();
-    }
+  // 1. Staff -> 404 Not Found (Strict Isolation)
+  if (role === 'staff') {
+    const { notFound } = await import('next/navigation');
+    notFound();
+  }
+
+  // 2. Agent -> 404 Not Found (Strict Isolation)
+  if (role === 'agent') {
+    const { notFound } = await import('next/navigation');
+    notFound();
+  }
+
+  // 3. Member -> 404 Not Found (Strict Isolation)
+  if (role === 'member') {
+    const { notFound } = await import('next/navigation');
+    notFound();
   }
 
   // 4. Default Allow: tenant_admin, super_admin, branch_manager
@@ -88,40 +94,43 @@ export default async function AdminLayout({
 
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
-      <SidebarProvider defaultOpen={true}>
-        <AdminSidebar
-          user={{
-            name: sessionNonNull.user.name || 'Admin',
-            email: sessionNonNull.user.email,
-            role: sessionNonNull.user.role,
-          }}
-        />
-        <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 transition-all">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
+      {/* E2E contract: ensureAuthenticated waits for dashboard-page-ready across all portals */}
+      <div data-testid="dashboard-page-ready">
+        <SidebarProvider defaultOpen={true}>
+          <AdminSidebar
+            user={{
+              name: sessionNonNull.user.name || 'Admin',
+              email: sessionNonNull.user.email,
+              role: sessionNonNull.user.role,
+            }}
+          />
+          <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+            <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 transition-all">
+              <div className="flex items-center gap-2">
+                <SidebarTrigger className="-ml-1" />
+                <Separator orientation="vertical" className="mr-2 h-4" />
+              </div>
+              <div className="flex-1 flex items-center justify-between">
+                <h1 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  Admin Panel
+                </h1>
+                {isSuperAdmin ? (
+                  <div className="flex items-center gap-2">
+                    <AdminTenantSelector
+                      tenants={tenantOptions}
+                      defaultTenantId={sessionNonNull.user.tenantId}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </header>
+            {/* SidebarInset renders as <main>, so use <div> here to avoid nested landmarks */}
+            <div className="flex-1 overflow-y-auto p-6 md:p-8">
+              <div className="container mx-auto">{children}</div>
             </div>
-            <div className="flex-1 flex items-center justify-between">
-              <h1 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Admin Panel
-              </h1>
-              {isSuperAdmin ? (
-                <div className="flex items-center gap-2">
-                  <AdminTenantSelector
-                    tenants={tenantOptions}
-                    defaultTenantId={sessionNonNull.user.tenantId}
-                  />
-                </div>
-              ) : null}
-            </div>
-          </header>
-          {/* SidebarInset renders as <main>, so use <div> here to avoid nested landmarks */}
-          <div className="flex-1 overflow-y-auto p-6 md:p-8">
-            <div className="container mx-auto">{children}</div>
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+          </SidebarInset>
+        </SidebarProvider>
+      </div>
     </NextIntlClientProvider>
   );
 }

@@ -203,6 +203,7 @@ export default defineConfig({
       BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},${BASE_URL}`,
       INTERDOMESTIK_AUTOMATED: '1',
       PLAYWRIGHT: '1',
+      NEXT_PUBLIC_BILLING_TEST_MODE: '1',
       // Disable Sentry noise in E2E (placeholder DSNs cause console errors that break tests).
       SENTRY_DSN: '',
       NEXT_PUBLIC_SENTRY_DSN: '',

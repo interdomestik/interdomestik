@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 import { test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 
 test.describe('Claims Detail Ops (Golden)', () => {
-  test('renders ops kit sections', async ({ page, loginAs }) => {
+  test('renders ops kit sections', async ({ page, loginAs }, testInfo) => {
     await loginAs('admin');
-    await page.goto(`${routes.adminClaims()}?view=list`);
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo);
 
     const viewButton = page.getByTestId('view-claim').first();
     await expect(viewButton).toBeVisible();

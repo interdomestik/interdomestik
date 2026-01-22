@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
 import { test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 
 test.describe('Member Claim Detail Ops (Golden)', () => {
-  test('renders ops claim detail view', async ({ page, loginAs }) => {
+  test('renders ops claim detail view', async ({ page, loginAs }, testInfo) => {
     await loginAs('member');
-    await page.goto(routes.memberClaims());
-    await page.waitForLoadState('networkidle');
+    await gotoApp(page, routes.memberClaims(testInfo), testInfo);
 
     // We look for a link to a claim detail, avoiding the /new link.
     const claimLink = page

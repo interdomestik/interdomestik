@@ -49,7 +49,12 @@ export function LeadActions({ leadId, status, onUpdate }: LeadActionsProps) {
       )}
 
       {['new', 'contacted'].includes(status) && (
-        <Button size="sm" variant="outline" onClick={handleCashPayment}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleCashPayment}
+          data-testid="pay-cash-button"
+        >
           <DollarSign className="w-3.5 h-3.5 mr-1" />
           Pay Cash
         </Button>

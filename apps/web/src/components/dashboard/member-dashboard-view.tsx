@@ -74,7 +74,10 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
         </div>
 
         {/* Protection Status Badge */}
-        <div className="flex items-center gap-2 px-4 py-2 bg-white/50 backdrop-blur-sm border rounded-2xl shadow-sm">
+        <div
+          data-testid="protection-status"
+          className="flex items-center gap-2 px-4 py-2 bg-white/50 backdrop-blur-sm border rounded-2xl shadow-sm"
+        >
           <div
             className={`p-1.5 rounded-full ${isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}
           >

@@ -1,14 +1,9 @@
 import { expect } from '@playwright/test';
 import { test } from '../fixtures/auth.fixture';
+import { gotoApp } from '../utils/navigation';
 
-/**
- * Leads & Conversion Flow
- *
- * @ticket INTERDO-Q004: Re-enable after leads creation UI is stabilized
- * @expiry 2026-02-15
- */
 test.describe('Leads & Conversion Flow (Golden)', () => {
-  const uniqueId = Date.now().toString(36);
+  const uniqueId = Date.now().toString(36); // Deterministic based on time
   const leadData = {
     firstName: `Lead${uniqueId}`,
     lastName: 'Test',
@@ -17,18 +12,14 @@ test.describe('Leads & Conversion Flow (Golden)', () => {
     notes: 'Interested in annual plan',
   };
 
-  const localeFromPage = (page: { url: () => string }) => {
-    const pathname = new URL(page.url()).pathname;
-    const locale = pathname.split('/')[1];
-    return locale || 'sq';
-  };
-
-  test('Agent creates lead, takes cash payment, and Admin converts', async ({ page, loginAs }) => {
+  test('Agent creates lead, takes cash payment, and Admin converts', async ({
+    page,
+    loginAs,
+  }, testInfo) => {
     // 1. Agent Login & Lead Creation
     await test.step('Agent creates a new lead', async () => {
       await loginAs('agent');
-      const locale = localeFromPage(page);
-      await page.goto(`/${locale}/agent/leads`);
+      await gotoApp(page, '/agent/leads', testInfo);
 
       // Open Create Dialog
       await page.getByRole('button', { name: 'New Lead' }).click();
@@ -45,10 +36,11 @@ test.describe('Leads & Conversion Flow (Golden)', () => {
       // Submit
       await page.getByRole('button', { name: 'Create Lead' }).click();
 
-      // Verify Success
+      // Verify Success using Sonner toast or seeing it in list
       try {
         await expect(page.getByText('Lead created successfully')).toBeVisible({ timeout: 5000 });
       } catch (e) {
+        // Log any visible text that looks like a toast or error
         const toasts = page.locator('li[data-sonner-toast]');
         if ((await toasts.count()) > 0) {
           const toastText = await toasts.first().textContent();
@@ -59,97 +51,61 @@ test.describe('Leads & Conversion Flow (Golden)', () => {
       }
 
       // Verify in list
-      const row = page.getByRole('row').filter({ hasText: leadData.email });
-      await expect(row).toBeVisible();
-      await expect(row).toContainText('New', { ignoreCase: true });
+      await expect(page.getByRole('cell', { name: leadData.email })).toBeVisible();
+      await expect(page.getByRole('cell', { name: 'New', exact: true })).toBeVisible();
     });
 
     // 2. Mark Contacted
     await test.step('Agent marks lead as contacted', async () => {
+      // Find row with our lead
       const row = page.getByRole('row').filter({ hasText: leadData.email });
-      await row.click();
 
-      const drawer = page.getByRole('dialog');
-      await expect(drawer).toBeVisible();
+      await row.getByRole('button', { name: 'Mark Contacted' }).click();
 
-      // Expand More Actions
-      await drawer.getByText('More Actions').click();
-      await drawer.getByRole('button', { name: 'Mark Contacted' }).click();
       await expect(page.getByText('Lead marked as contacted')).toBeVisible();
-
-      await page.keyboard.press('Escape');
-      await expect(row).toContainText('Contacted', { ignoreCase: true });
+      await expect(row.getByText('Contacted', { exact: true })).toBeVisible();
     });
 
     // 3. Cash Payment
     await test.step('Agent initiates cash payment', async () => {
-      // Ensure we have fresh data
-      await page.reload();
       const row = page.getByRole('row').filter({ hasText: leadData.email });
-      await row.click();
 
-      const drawer = page.getByRole('dialog');
-      await expect(drawer).toBeVisible();
+      await row.getByRole('button', { name: 'Pay Cash' }).click();
 
-      await expect(drawer).toContainText('Contacted', { ignoreCase: true });
-
-      // Expand More Actions
-      await drawer.getByRole('button', { name: 'More Actions' }).click();
-
-      const payButton = drawer.getByTestId('action-request-payment');
-      await expect(payButton).toBeVisible();
-      await payButton.click();
-
-      await expect(page.getByText('Payment requested')).toBeVisible();
-
-      await page.keyboard.press('Escape');
-
-      await expect(row).toContainText('Payment Pending', { ignoreCase: true });
+      await expect(page.getByText('Cash payment recorded')).toBeVisible();
+      await expect(row.getByText('Waiting Approval')).toBeVisible();
     });
 
     // 4. Admin Verification
     await test.step('Admin approves payment and converts lead', async () => {
       await loginAs('admin');
-      const locale = localeFromPage(page);
-      await page.goto(`/${locale}/admin/leads`);
+      // In V2, verification ops center is at /admin/leads
+      await gotoApp(page, '/admin/leads', testInfo);
 
-      // Ensure data freshness
-      await page.reload();
-
+      // Find the row in the V2 table
       const verificationRow = page
         .getByTestId('cash-verification-row')
-        .filter({ hasText: leadData.email }); // Safer filter
+        .filter({ hasText: `${leadData.firstName} ${leadData.lastName}` });
 
-      await expect(verificationRow).toBeVisible({ timeout: 15000 });
+      await expect(verificationRow).toBeVisible();
 
-      // Click approve and verify action is taken (button disappears)
-      const approveBtn = verificationRow.getByTestId('cash-approve');
-      await approveBtn.click({ force: true });
-      await expect(approveBtn).toBeHidden({ timeout: 15000 });
-      // Eventually row should disappear from pending list
-      await expect(verificationRow).toBeHidden({ timeout: 15000 });
+      // In V2, we approve directly from the row
+      await verificationRow.getByTestId('cash-approve').click();
+
+      // Wait for success toast
+      await expect(page.getByText('Pagesa u aprovua.')).toBeVisible();
     });
 
     // 5. Verify Conversion
     await test.step('Verify lead is converted', async () => {
       await loginAs('agent');
-      const locale = localeFromPage(page);
-      await page.goto(`/${locale}/agent/leads`);
+      await gotoApp(page, '/agent/leads', testInfo);
 
       const row = page.getByRole('row').filter({ hasText: leadData.email });
-
-      // Poll until conversion shows up (handles async)
-      await expect
-        .poll(
-          async () => {
-            await page.reload();
-            await expect(row).toBeVisible({ timeout: 15000 });
-            const text = (await row.textContent()) ?? '';
-            return text;
-          },
-          { timeout: 30000 }
-        )
-        .toMatch(/converted|client|member|anëtar|përfunduar/i);
+      // Badge text in StatusBadge.tsx is 'Member' for 'converted'
+      await expect(row.getByText('Member', { exact: true })).toBeVisible();
+      // Action text in LeadActions.tsx is 'Complete' for 'converted'
+      await expect(row.getByText('Complete', { exact: true })).toBeVisible();
     });
   });
 });

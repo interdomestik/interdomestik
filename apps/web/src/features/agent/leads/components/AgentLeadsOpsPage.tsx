@@ -8,12 +8,13 @@ import { OpsTable } from '@/components/ops/OpsTable';
 import { OpsTimeline } from '@/components/ops/OpsTimeline';
 import { getLeadActions, toOpsStatus, toOpsTimelineEvents } from '@/components/ops/adapters/leads';
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
+import { CreateLeadDialog } from './CreateLeadDialog';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
-import { CreateLeadDialog } from './CreateLeadDialog';
+import { startPaymentAction } from '@/actions/leads/payment';
 
 // Lite columns
 const columns = [
@@ -28,6 +29,10 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
   const [showSecondary, setShowSecondary] = useState(false);
 
   const selectedLead = leads.find(l => l.id === selectedId);
+
+  const handleRefresh = () => {
+    router.refresh();
+  };
 
   // Fallback: If selected ID exists but lead not found, clear selection
   useEffect(() => {
@@ -55,16 +60,25 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
         } else if (id === 'mark_contacted') {
           await updateLeadStatus(selectedLead.id, 'contacted');
           toast.success('Lead marked as contacted');
-        } else if (id === 'mark_payment_pending') {
-          await updateLeadStatus(selectedLead.id, 'payment_pending');
-          toast.success('Payment requested');
+        } else if (id === 'pay_cash') {
+          const res = await startPaymentAction({
+            leadId: selectedLead.id,
+            method: 'cash',
+            amountCents: 15000,
+            priceId: 'golden_ks_plan_basic',
+          });
+          if (res.success) {
+            toast.success('Cash payment recorded');
+          } else {
+            throw new Error(res.error);
+          }
         } else if (id === 'mark_lost') {
           await updateLeadStatus(selectedLead.id, 'lost');
           toast.success('Lead marked as lost');
         }
-        router.refresh();
-      } catch (e) {
-        toast.error('Action failed');
+        handleRefresh();
+      } catch (e: any) {
+        toast.error(e.message || 'Action failed');
       }
     });
   };
@@ -77,11 +91,11 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
     ...config,
     onClick: () => handleAction(config.id),
     disabled: isPending || config.disabled,
+    testId: config.testId || `${config.id}-button`,
   });
 
   // Map leads to OpsTable rows
   const tableRows = leads.map(lead => {
-    // Compute primary action for this specific lead (not selectedLead)
     const { primary: rowPrimary, secondary: rowSecondary } = getLeadActions(lead);
     const nextActionLabel = rowPrimary?.label || rowSecondary[0]?.label || null;
 
@@ -104,17 +118,16 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
         </div>,
       ],
       onClick: () => handleRowClick(lead.id),
-      testId: `lead-row-${lead.id}`,
+      testId: `lead-row`,
     };
   });
 
   return (
     <div className="h-full flex flex-col" data-testid="agent-leads-lite">
-      <div className="flex items-center justify-between p-4 pb-0">
-        <h1 className="text-xl font-bold tracking-tight">My Leads</h1>
-        <CreateLeadDialog onSuccess={() => router.refresh()} />
+      <div className="p-4 pb-0 flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Leads</h1>
+        <CreateLeadDialog onSuccess={handleRefresh} />
       </div>
-
       <div className="flex-1 overflow-hidden p-4">
         <OpsQueryState
           isEmpty={leads.length === 0}
@@ -167,7 +180,6 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
               </div>
               <div>
                 <span className="block text-muted-foreground">Branch</span>
-                {/* Assuming branch is joined or available, fallback if not */}
                 <span className="font-medium">
                   {selectedLead.branch?.name || selectedLead.branchId || '-'}
                 </span>
@@ -191,13 +203,7 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
                   primary={!!primary ? mapAction(primary) : undefined}
                   className="pt-0 border-0 mt-0"
                   align="start"
-                >
-                  {/* OpsActionBar typically renders buttons in a row. 
-                       We want primary to be full width or prominent. 
-                       OpsActionBar renders children if provided, or buttons if not.
-                       Let's rely on standard rendering but passing ONLY primary first. 
-                   */}
-                </OpsActionBar>
+                />
               </div>
             )}
 
@@ -206,6 +212,7 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
               <div className="border-t pt-4">
                 <button
                   onClick={() => setShowSecondary(!showSecondary)}
+                  data-testid="more-actions-button"
                   className="flex items-center justify-between w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
                   More Actions
