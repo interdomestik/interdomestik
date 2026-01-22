@@ -5,7 +5,7 @@ set -e
 # 1. Path segments: /sq/, /mk/, /en/
 # 2. page.goto with hardcoded locale start: page.goto('/en', page.goto('/sq', etc.
 # 3. Usage of DEFAULT_LOCALE constant in e2e (should derive from testInfo)
-PATTERN="(/sq/|/mk/|/en/|page\.goto\(['"]/(sq|mk|en)|DEFAULT_LOCALE)"
+PATTERN="(/sq/|/mk/|/en/|page\.goto\(['\"]/(sq|mk|en)|DEFAULT_LOCALE)"
 
 echo "🔍 Checking for hardcoded locales in E2E tests..."
 
