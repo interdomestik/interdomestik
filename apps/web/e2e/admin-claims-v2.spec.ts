@@ -6,23 +6,10 @@
 
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
-
-function getLocaleForProject(projectName: string): string {
-  return projectName.includes('mk') ? 'mk' : 'sq';
-}
-
-function getRootURLFromBaseURL(baseURL: string | undefined): string {
-  if (baseURL) return new URL(baseURL).origin;
-  return (
-    process.env.PLAYWRIGHT_BASE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.BETTER_AUTH_URL ||
-    'http://127.0.0.1:3000'
-  );
-}
+import { gotoApp } from './utils/navigation';
 
 // Stabilization needed for v2 features
-test.describe('@quarantine Admin Claims V2 ', () => {
+test.describe('Admin Claims V2', () => {
   test.beforeEach(async ({ adminPage }, testInfo) => {
     // Diagnostics: Console & Network (with noise filtering)
     adminPage.on('console', msg => {
@@ -38,12 +25,10 @@ test.describe('@quarantine Admin Claims V2 ', () => {
       console.log(`[BROWSER]: ${text}`);
     });
 
-    const locale = getLocaleForProject(testInfo.project.name);
-    const rootURL = getRootURLFromBaseURL(testInfo.project.use.baseURL?.toString());
-    const url = new URL(`${routes.adminClaims(locale)}?view=list`, rootURL).toString();
-
     // adminPage is already authenticated by fixture; navigate to claims list explicitly.
-    await adminPage.goto(url, { waitUntil: 'domcontentloaded' });
+    await gotoApp(adminPage, l => `${routes.adminClaims(l)}?view=list`, testInfo, {
+      marker: 'page-ready',
+    });
     await expect(adminPage).toHaveURL(/\/admin\/claims/, { timeout: 15000 });
   });
 

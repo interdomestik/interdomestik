@@ -1,15 +1,15 @@
 import { expect, test } from '@playwright/test';
+import { TEST_ADMIN_MK } from './fixtures/auth.fixture';
 import { routes } from './routes';
 import { gotoApp } from './utils/navigation';
 
-test.describe('@quarantine Claim Resolver Isolation', () => {
-  // TODO: Fix test logic - currently uses KS Admin creds to test MK Admin isolation
+test.describe('Claim Resolver Isolation', () => {
   test('MK Admin cannot access KS Claim via Resolver', async ({ page }, testInfo) => {
     // 1. Login as MK Admin
     await gotoApp(page, routes.login, testInfo, { marker: 'auth-ready' });
-    await page.getByLabel('Email').fill('admin@interdomestik.com');
-    await page.getByLabel('Password').fill('AdminPassword123!');
-    await page.getByRole('button', { name: 'Log In' }).click();
+    await page.getByTestId('login-email').fill(TEST_ADMIN_MK.email);
+    await page.getByTestId('login-password').fill(TEST_ADMIN_MK.password);
+    await page.getByTestId('login-submit').click();
     await expect(page).toHaveURL(/.*\/admin/);
 
     // 2. Try to access known KS Claim
@@ -28,7 +28,7 @@ test.describe('@quarantine Claim Resolver Isolation', () => {
 
     // 3. Expect 404
     // Checks for specific 404 content or title
-    await expect(page.getByRole('heading', { name: 'Page Not Found' })).toBeVisible();
+    await expect(page.getByTestId('not-found-page')).toBeVisible();
     // OR check URL didn't redirect to claim details
   });
 });
