@@ -14,6 +14,7 @@ import { test as base, expect, Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -31,6 +32,14 @@ type ProjectUrlInfo = {
 type GlobalE2E = typeof globalThis & {
   __E2E_BASE_URL?: string;
 };
+
+type Tenant = 'ks' | 'mk';
+
+type Role = 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS (Pure / Utils)
+// ═══════════════════════════════════════════════════════════════════════════════
 
 function getProjectUrlInfo(testInfo: TestInfo, baseURLFromFixture?: string | null): ProjectUrlInfo {
   const baseURL = (testInfo.project.use.baseURL ?? baseURLFromFixture)?.toString();
@@ -100,14 +109,6 @@ function attachDialogDiagnostics(page: Page): void {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TEST USER CREDENTIALS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-type Tenant = 'ks' | 'mk';
-
-type Role = 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
-
 function getTenantFromTestInfo(testInfo: TestInfo): Tenant {
   const name = testInfo.project.name;
   if (name.includes('mk')) return 'mk';
@@ -171,268 +172,9 @@ function credsFor(role: Role, tenant: Tenant): { email: string; password: string
   return { email: u.email, password: E2E_PASSWORD, name: u.name };
 }
 
-// Backwards-compatible exports (default to KS).
-export const TEST_USER = credsFor('member', 'ks');
-export const TEST_ADMIN = credsFor('admin', 'ks');
-export const TEST_AGENT = credsFor('agent', 'ks');
-export const TEST_STAFF = credsFor('staff', 'ks');
-export const TEST_BM = credsFor('branch_manager', 'mk');
-export const TEST_ADMIN_MK = credsFor('admin', 'mk');
-
 function getApiOrigin(baseURL: string): string {
   return new URL(baseURL).origin;
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// LOGIN HELPER
-// ═══════════════════════════════════════════════════════════════════════════════
-
-async function performLogin(
-  page: Page,
-  role: Role,
-  info: ProjectUrlInfo,
-  tenant: Tenant = 'ks'
-): Promise<void> {
-  const { email, password } = credsFor(role, tenant);
-
-  // API Login Strategy (Robust)
-  // Use absolute URL and ALWAYS preserve project origin (never fall back to localhost).
-  // FIX: Use origin, not baseURL/info.origin if info.origin was derived incorrectly
-  const apiBase = getApiOrigin(info.baseURL);
-  const loginURL = `${apiBase}/api/auth/sign-in/email`;
-  const res = await page.request.post(loginURL, {
-    data: { email, password },
-    headers: {
-      Origin: info.origin,
-      Referer: buildUiLoginUrl(info),
-      'x-forwarded-for': ipForRole(role),
-    },
-  });
-
-  if (res.ok()) {
-    console.log(`✅ API login matched for ${role} (${email})`);
-  } else {
-    const text = await res.text();
-    console.error(`❌ API login failed for ${role}: ${res.status()} ${res.url()} ${text}`);
-    throw new Error(`API login failed for ${role}: ${res.status()} ${res.url()} ${text}`);
-  }
-
-  // Ensure cookies are set (page.request shares context storage state)
-  const cookies = await page.context().cookies();
-  const sessionCookies = cookies.filter(c => c.name.includes('session_token'));
-
-  const expectedHost = new URL(info.origin).hostname;
-  const hasCookieForHost = sessionCookies.some(
-    c => c.domain === expectedHost || c.domain === `.${expectedHost}`
-  );
-
-  if (sessionCookies.length === 0) {
-    console.warn(`❌ No session_token cookie found after successful API login for ${role}`);
-    console.log('All cookies:', JSON.stringify(cookies, null, 2));
-  } else {
-    console.log(`✅ Session cookies found for ${role}:`);
-    console.log(JSON.stringify(sessionCookies, null, 2));
-
-    if (!hasCookieForHost) {
-      console.warn(
-        `⚠️ Session cookie domain mismatch for ${role}. Expected host ${expectedHost}. Session cookies:`
-      );
-      console.log(JSON.stringify(sessionCookies, null, 2));
-    }
-  }
-
-  // Deterministic post-login navigation to validate cookie actually applies on this origin.
-  let targetPath = `/${info.locale}`;
-  if (role.includes('admin')) targetPath += '/admin';
-  else if (role === 'agent') targetPath += '/agent';
-  else if (role === 'staff') targetPath += '/staff';
-  else if (role === 'branch_manager') targetPath += '/admin';
-  else targetPath += '/member';
-
-  const targetUrl = new URL(targetPath, info.origin).toString();
-  await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('page-ready')).toBeVisible();
-  await assertNoTenantChooser(page);
-
-  // Diagnostics: if we still landed on login, dump useful details.
-  const currentUrl = page.url();
-  const currentPath = new URL(currentUrl).pathname;
-  if (currentPath === `/${info.locale}/login`) {
-    const title = await page.title().catch(() => '<no title>');
-    const errorLocator = page
-      .locator('.text-red-500, [data-testid="auth-error"], [data-testid="login-error"]')
-      .first();
-    const errorText = await errorLocator
-      .innerText()
-      .then(t => t.trim())
-      .catch(() => '');
-
-    console.error('[Auth Diagnostics] Still on login after API auth');
-    console.error(`  role=${role} tenant=${tenant}`);
-    console.error(`  authResponse=${res.status()} ${res.url()}`);
-    console.error(`  document.title=${title}`);
-    console.error(`  currentUrl=${currentUrl}`);
-    if (errorText) console.error(`  visibleError=${errorText}`);
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// FIXTURES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-interface AuthFixtures {
-  loginAs: (role: Role) => Promise<void>;
-  saveState: (role: Role) => Promise<void>;
-  authenticatedPage: Page;
-  adminPage: Page;
-  agentPage: Page;
-  staffPage: Page;
-  branchManagerPage: Page;
-}
-
-export const test = base.extend<AuthFixtures>({
-  loginAs: async ({ page, baseURL }, use, testInfo) => {
-    await use(async (role: Role) => {
-      attachDialogDiagnostics(page);
-      const tenant = getTenantFromTestInfo(testInfo);
-      const info = getProjectUrlInfo(testInfo, baseURL);
-      setWorkerE2EBaseURL(info);
-      await performLogin(page, role, info, tenant);
-    });
-  },
-
-  saveState: async ({ page, baseURL }, use, testInfo) => {
-    await use(async (role: Role) => {
-      attachDialogDiagnostics(page);
-      const tenant = getTenantFromTestInfo(testInfo);
-      const statePath = storageStateFile(role, tenant);
-      const info = getProjectUrlInfo(testInfo, baseURL);
-      setWorkerE2EBaseURL(info);
-      await performLogin(page, role, info, tenant);
-      await page.context().storageState({ path: statePath });
-    });
-  },
-
-  /**
-   * Generic authenticated page (defaults to member if not specified)
-   */
-  authenticatedPage: async ({ page, baseURL }, use, testInfo) => {
-    attachDialogDiagnostics(page);
-    const tenant = getTenantFromTestInfo(testInfo);
-    if (!(await isLoggedIn(page))) {
-      const info = getProjectUrlInfo(testInfo, baseURL);
-      setWorkerE2EBaseURL(info);
-      await performLogin(page, 'member', info, tenant);
-    }
-    await use(page);
-  },
-
-  /**
-   * Page authenticated as admin
-   */
-  adminPage: async ({ browser, baseURL }, use, testInfo) => {
-    const tenant = getTenantFromTestInfo(testInfo);
-    const info = getProjectUrlInfo(testInfo, baseURL);
-    setWorkerE2EBaseURL(info);
-    const statePath = storageStateFile('admin', tenant);
-    const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
-      locale: 'en-US',
-      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('admin') },
-      baseURL: info.baseURL,
-    });
-    const page = await context.newPage();
-    attachDialogDiagnostics(page);
-    if (!(await hasSessionCookie(page))) {
-      console.log('Admin state missing or invalid, performing fresh login...');
-      await performLogin(page, 'admin', info, tenant);
-      // Update state file for next time? Ideally setup does this.
-    }
-    await use(page);
-    await context.close();
-  },
-
-  /**
-   * Page authenticated as agent
-   */
-  agentPage: async ({ browser }, use, testInfo) => {
-    const tenant = getTenantFromTestInfo(testInfo);
-    const info = getProjectUrlInfo(testInfo, null);
-    setWorkerE2EBaseURL(info);
-    const statePath = storageStateFile('agent', tenant);
-    const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
-      locale: 'en-US',
-      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('agent') },
-      baseURL: info.baseURL,
-    });
-    const page = await context.newPage();
-    attachDialogDiagnostics(page);
-    if (!(await hasSessionCookie(page))) {
-      await performLogin(page, 'agent', info, tenant);
-    }
-    await use(page);
-    await context.close();
-  },
-
-  /**
-   * Page authenticated as staff
-   */
-  staffPage: async ({ browser }, use, testInfo) => {
-    const tenant = getTenantFromTestInfo(testInfo);
-    const info = getProjectUrlInfo(testInfo, null);
-    setWorkerE2EBaseURL(info);
-    const statePath = storageStateFile('staff', tenant);
-    const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
-      locale: 'en-US',
-      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('staff') },
-      baseURL: info.baseURL,
-    });
-    const page = await context.newPage();
-    attachDialogDiagnostics(page);
-    if (!(await hasSessionCookie(page))) {
-      await performLogin(page, 'staff', info, tenant);
-    }
-    await use(page);
-    await context.close();
-  },
-
-  /**
-   * Page authenticated as a branch manager
-   */
-  branchManagerPage: async ({ browser }, use, testInfo) => {
-    const tenant = getTenantFromTestInfo(testInfo);
-    const info = getProjectUrlInfo(testInfo, null);
-    setWorkerE2EBaseURL(info);
-    const statePath = storageStateFile('branch_manager', tenant);
-    const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
-      locale: 'en-US',
-      extraHTTPHeaders: {
-        'x-forwarded-for': '10.0.0.15', // Distinct IP for BM
-      },
-      baseURL: info.baseURL,
-    });
-    const page = await context.newPage();
-    attachDialogDiagnostics(page);
-    if (!(await hasSessionCookie(page))) {
-      await performLogin(page, 'branch_manager', info, tenant);
-    }
-    await use(page);
-    await context.close();
-  },
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// RE-EXPORT EXPECT
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export { expect } from '@playwright/test';
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// HELPER FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 function storageStateFile(role: Role, tenant: Tenant): string {
   // Keep legacy `admin_mk` file name for backwards-compat with existing state files.
@@ -477,3 +219,258 @@ export async function logout(page: Page): Promise<void> {
   });
   await page.goto(routes.login('en'));
 }
+
+// Backwards-compatible exports (default to KS).
+export const TEST_USER = credsFor('member', 'ks');
+export const TEST_ADMIN = credsFor('admin', 'ks');
+export const TEST_AGENT = credsFor('agent', 'ks');
+export const TEST_STAFF = credsFor('staff', 'ks');
+export const TEST_BM = credsFor('branch_manager', 'mk');
+export const TEST_ADMIN_MK = credsFor('admin', 'mk');
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOGIN & AUTH LOGIC
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function performLogin(
+  page: Page,
+  role: Role,
+  info: ProjectUrlInfo,
+  tenant: Tenant = 'ks'
+): Promise<void> {
+  const { email, password } = credsFor(role, tenant);
+
+  // API Login Strategy (Robust)
+  const apiBase = getApiOrigin(info.baseURL);
+  const loginURL = `${apiBase}/api/auth/sign-in/email`;
+  const res = await page.request.post(loginURL, {
+    data: { email, password },
+    headers: {
+      Origin: info.origin,
+      Referer: buildUiLoginUrl(info),
+      'x-forwarded-for': ipForRole(role),
+    },
+  });
+
+  if (res.ok()) {
+    console.log(`✅ API login matched for ${role} (${email})`);
+  } else {
+    const text = await res.text();
+    console.error(`❌ API login failed for ${role}: ${res.status()} ${res.url()} ${text}`);
+    throw new Error(`API login failed for ${role}: ${res.status()} ${res.url()} ${text}`);
+  }
+
+  // Ensure cookies are set
+  const cookies = await page.context().cookies();
+  const sessionCookies = cookies.filter(c => c.name.includes('session_token'));
+
+  const expectedHost = new URL(info.origin).hostname;
+  const hasCookieForHost = sessionCookies.some(
+    c => c.domain === expectedHost || c.domain === `.${expectedHost}`
+  );
+
+  if (sessionCookies.length === 0) {
+    console.warn(`❌ No session_token cookie found after successful API login for ${role}`);
+    console.log('All cookies:', JSON.stringify(cookies, null, 2));
+  } else {
+    console.log(`✅ Session cookies found for ${role}:`);
+    console.log(JSON.stringify(sessionCookies, null, 2));
+
+    if (!hasCookieForHost) {
+      console.warn(
+        `⚠️ Session cookie domain mismatch for ${role}. Expected host ${expectedHost}. Session cookies:`
+      );
+      console.log(JSON.stringify(sessionCookies, null, 2));
+    }
+  }
+
+  // Deterministic post-login navigation
+  let targetPath = `/${info.locale}`;
+  if (role.includes('admin')) targetPath += '/admin';
+  else if (role === 'agent') targetPath += '/agent';
+  else if (role === 'staff') targetPath += '/staff';
+  else if (role === 'branch_manager') targetPath += '/admin';
+  else targetPath += '/member';
+
+  const targetUrl = new URL(targetPath, info.origin).toString();
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('page-ready')).toBeVisible();
+  await assertNoTenantChooser(page);
+
+  // Diagnostics
+  const currentUrl = page.url();
+  const currentPath = new URL(currentUrl).pathname;
+  if (currentPath === `/${info.locale}/login`) {
+    // ... diag logic ...
+    console.error('[Auth Diagnostics] Still on login after API auth');
+  }
+}
+
+async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, tenant: Tenant) {
+  // Determine target based on role
+  let targetPath = '/member';
+  if (role.includes('admin') || role === 'branch_manager') targetPath = '/admin';
+  else if (role === 'agent') targetPath = '/agent';
+  else if (role === 'staff') targetPath = '/staff';
+
+  // Navigate using gotoApp (handles locale)
+  await gotoApp(page, targetPath, testInfo, { marker: 'page-ready' });
+
+  // Check if we bounced to login (auth-ready visible)
+  const isLoginPage = await page
+    .getByTestId('auth-ready')
+    .isVisible({ timeout: 2000 })
+    .catch(() => false);
+
+  if (isLoginPage) {
+    console.log(`[Auth] Session invalid/missing for ${role}, re-logging in...`);
+    const info = getProjectUrlInfo(testInfo, null);
+    await performLogin(page, role, info, tenant);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIXTURES (test.extend)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface AuthFixtures {
+  loginAs: (role: Role) => Promise<void>;
+  saveState: (role: Role) => Promise<void>;
+  authenticatedPage: Page;
+  adminPage: Page;
+  agentPage: Page;
+  staffPage: Page;
+  branchManagerPage: Page;
+}
+
+export const test = base.extend<AuthFixtures>({
+  loginAs: async ({ page, baseURL }, use, testInfo) => {
+    await use(async (role: Role) => {
+      attachDialogDiagnostics(page);
+      const tenant = getTenantFromTestInfo(testInfo);
+      const info = getProjectUrlInfo(testInfo, baseURL);
+      setWorkerE2EBaseURL(info);
+      await performLogin(page, role, info, tenant);
+    });
+  },
+
+  saveState: async ({ page, baseURL }, use, testInfo) => {
+    await use(async (role: Role) => {
+      attachDialogDiagnostics(page);
+      const tenant = getTenantFromTestInfo(testInfo);
+      const statePath = storageStateFile(role, tenant);
+      const info = getProjectUrlInfo(testInfo, baseURL);
+      setWorkerE2EBaseURL(info);
+      await performLogin(page, role, info, tenant);
+      await page.context().storageState({ path: statePath });
+    });
+  },
+
+  /**
+   * Generic authenticated page (defaults to member if not specified)
+   */
+  authenticatedPage: async ({ page, baseURL }, use, testInfo) => {
+    attachDialogDiagnostics(page);
+    const tenant = getTenantFromTestInfo(testInfo);
+    // Use ensureAuthenticated instead of raw check
+    await ensureAuthenticated(page, testInfo, 'member', tenant);
+    await use(page);
+  },
+
+  /**
+   * Page authenticated as admin
+   */
+  adminPage: async ({ browser, baseURL }, use, testInfo) => {
+    const tenant = getTenantFromTestInfo(testInfo);
+    const info = getProjectUrlInfo(testInfo, baseURL);
+    setWorkerE2EBaseURL(info);
+    const statePath = storageStateFile('admin', tenant);
+    const context = await browser.newContext({
+      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      locale: 'en-US',
+      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('admin') },
+      baseURL: info.baseURL,
+    });
+    const page = await context.newPage();
+    attachDialogDiagnostics(page);
+
+    await ensureAuthenticated(page, testInfo, 'admin', tenant);
+
+    await use(page);
+    await context.close();
+  },
+
+  /**
+   * Page authenticated as agent
+   */
+  agentPage: async ({ browser }, use, testInfo) => {
+    const tenant = getTenantFromTestInfo(testInfo);
+    const info = getProjectUrlInfo(testInfo, null);
+    setWorkerE2EBaseURL(info);
+    const statePath = storageStateFile('agent', tenant);
+    const context = await browser.newContext({
+      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      locale: 'en-US',
+      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('agent') },
+      baseURL: info.baseURL,
+    });
+    const page = await context.newPage();
+    attachDialogDiagnostics(page);
+
+    await ensureAuthenticated(page, testInfo, 'agent', tenant);
+
+    await use(page);
+    await context.close();
+  },
+
+  /**
+   * Page authenticated as staff
+   */
+  staffPage: async ({ browser }, use, testInfo) => {
+    const tenant = getTenantFromTestInfo(testInfo);
+    const info = getProjectUrlInfo(testInfo, null);
+    setWorkerE2EBaseURL(info);
+    const statePath = storageStateFile('staff', tenant);
+    const context = await browser.newContext({
+      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      locale: 'en-US',
+      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('staff') },
+      baseURL: info.baseURL,
+    });
+    const page = await context.newPage();
+    attachDialogDiagnostics(page);
+
+    await ensureAuthenticated(page, testInfo, 'staff', tenant);
+
+    await use(page);
+    await context.close();
+  },
+
+  /**
+   * Page authenticated as a branch manager
+   */
+  branchManagerPage: async ({ browser }, use, testInfo) => {
+    const tenant = getTenantFromTestInfo(testInfo);
+    const info = getProjectUrlInfo(testInfo, null);
+    setWorkerE2EBaseURL(info);
+    const statePath = storageStateFile('branch_manager', tenant);
+    const context = await browser.newContext({
+      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      locale: 'en-US',
+      extraHTTPHeaders: {
+        'x-forwarded-for': '10.0.0.15', // Distinct IP for BM
+      },
+      baseURL: info.baseURL,
+    });
+    const page = await context.newPage();
+    attachDialogDiagnostics(page);
+
+    await ensureAuthenticated(page, testInfo, 'branch_manager', tenant);
+
+    await use(page);
+    await context.close();
+  },
+});
+
+// Re-export expect
+export { expect } from '@playwright/test';

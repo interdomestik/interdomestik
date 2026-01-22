@@ -23,7 +23,17 @@ export async function assertAccessDenied(page: Page, mode: DenyMode = 'flexible'
   }
 
   if (mode === 'ui' || mode === 'flexible') {
-    // Check for standard 404/403 UI indicators
+    // Check for explicit error testids first (Preferred)
+    const errorPage = page.getByTestId('error-page');
+    const notFoundPage = page.getByTestId('not-found-page');
+    const accessDeniedPage = page.getByTestId('access-denied-page');
+
+    if (await errorPage.or(notFoundPage).or(accessDeniedPage).isVisible()) {
+      console.log('[RBAC] Access denied confirmed via error/not-found testid.');
+      return;
+    }
+
+    // Fallback: Check for standard 404/403 UI indicators (Legacy)
     // Matches Albanian (sq), Macedonian (mk), and English (en)
     const heading = page.getByRole('heading', {
       name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet|Страницата не е пронајдена/i,
