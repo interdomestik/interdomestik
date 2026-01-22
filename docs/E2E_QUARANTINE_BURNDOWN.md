@@ -14,15 +14,17 @@
 
 ## Quarantine Registry
 
-| Test File                       | Status     | Owner | Cause                                 | Fix Plan                                                              | Expiry     |
-| ------------------------------- | ---------- | ----- | ------------------------------------- | --------------------------------------------------------------------- | ---------- |
-| `share-pack.spec.ts`            | ✅ DONE    | AI    | Test assertion drift                  | Fixed 404 vs 401 acceptance                                           | 2026-01-19 |
-| `claim-tracking.ks.spec.ts`     | ✅ DONE    | AI    | Uses custom login instead of fixtures | Rewrote to use auth fixtures                                          | 2026-01-19 |
-| `agent-pro-claims-rbac.spec.ts` | ✅ DONE    | AI    | Expects specific claim titles         | Enforced branch isolation, updated seed                               | 2026-01-19 |
-| `leads-flow.spec.ts`            | ✅ DONE    | AI    | UI elements changed (New Lead button) | Updated selectors, table schema, asserts                              | 2026-01-19 |
-| `branches.spec.ts`              | ✅ DONE    | AI    | Flaky Radix UI overlays               | Implemented Hybrid E2E (API write/UI read)                            | 2026-01-20 |
-| `ui-overlays.spec.ts`           | ⏳ PENDING | AI    | Radix/Next/React interaction          | Documented systemic failure of overlays                               | TBD        |
-| `member-number.spec.ts`         | ⏳ PENDING | AI    | Prod-grade registration/login flake   | Convert to API-only or add deterministic seed + fix assignment timing | 2026-01-28 |
+| Test File                          | Status     | Owner | Cause                                 | Fix Plan                                                              | Expiry     |
+| ---------------------------------- | ---------- | ----- | ------------------------------------- | --------------------------------------------------------------------- | ---------- |
+| `share-pack.spec.ts`               | ✅ DONE    | AI    | Test assertion drift                  | Fixed 404 vs 401 acceptance                                           | 2026-01-19 |
+| `claim-tracking.ks.spec.ts`        | ✅ DONE    | AI    | Uses custom login instead of fixtures | Rewrote to use auth fixtures                                          | 2026-01-19 |
+| `agent-pro-claims-rbac.spec.ts`    | ✅ DONE    | AI    | Expects specific claim titles         | Enforced branch isolation, updated seed                               | 2026-01-19 |
+| `leads-flow.spec.ts`               | ✅ DONE    | AI    | UI elements changed (New Lead button) | Updated selectors, table schema, asserts                              | 2026-01-19 |
+| `branches.spec.ts`                 | ✅ DONE    | AI    | Flaky Radix UI overlays               | Implemented Hybrid E2E (API write/UI read)                            | 2026-01-20 |
+| `admin-claims-v2.spec.ts`          | ✅ DONE    | AI    | V2 UI elements & locale drift         | Refactored to gotoApp + testids, verified on KS                       | 2026-01-22 |
+| `claim-resolver-isolation.spec.ts` | ✅ DONE    | AI    | Tenant leakage/auth mismatch          | Refactored to gotoApp + TEST_ADMIN_MK, verified on MK                 | 2026-01-22 |
+| `ui-overlays.spec.ts`              | ⏳ PENDING | AI    | Radix/Next/React interaction          | Documented systemic failure of overlays                               | TBD        |
+| `member-number.spec.ts`            | ⏳ PENDING | AI    | Prod-grade registration/login flake   | Convert to API-only or add deterministic seed + fix assignment timing | 2026-01-28 |
 
 ---
 
