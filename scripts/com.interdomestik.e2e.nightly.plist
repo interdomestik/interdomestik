@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.interdomestik.e2e.nightly</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <!-- Replace with absolute path if needed, usually $HOME works in bash -c context but explicit is safer -->
+        <string>cd $HOME/development/interdomestikv2 && ./scripts/e2e-nightly-local.sh</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>2</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>~/Library/Logs/interdomestik/e2e-nightly.stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>~/Library/Logs/interdomestik/e2e-nightly.stderr.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.pnpm-global/bin:$HOME/Library/pnpm</string>
+    </dict>
+</dict>
+</plist>
