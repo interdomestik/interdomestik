@@ -32,30 +32,21 @@ test.describe('Golden Flows: Functional Depth', () => {
       // await page.waitForLoadState('networkidle'); // Removed per policy
 
       // Assert Branch Codes Visible (Pack deliverables)
-      await expect(adminPage.getByText('KS-A')).toBeVisible();
-      await expect(adminPage.getByText('KS-B')).toBeVisible();
-      await expect(adminPage.getByText('KS-C')).toBeVisible();
+      await expect(adminPage.getByTestId('branch-card-KS-A')).toBeVisible();
+      await expect(adminPage.getByTestId('branch-card-KS-B')).toBeVisible();
+      await expect(adminPage.getByTestId('branch-card-KS-C')).toBeVisible();
 
       // Assert Health Status Labels
       await expect(
-        adminPage
-          .locator('[data-testid="branch-card"]')
-          .filter({ hasText: 'KS-A' })
-          .getByText(/Urgjente|Urgent/i)
+        adminPage.getByTestId('branch-card-KS-A').getByText(/Urgjente|Urgent/i)
       ).toBeVisible();
 
       await expect(
-        adminPage
-          .locator('[data-testid="branch-card"]')
-          .filter({ hasText: 'KS-B' })
-          .getByText(/Kërkon Vëmendje|Attention/i)
+        adminPage.getByTestId('branch-card-KS-B').getByText(/Kërkon Vëmendje|Attention/i)
       ).toBeVisible();
 
       await expect(
-        adminPage
-          .locator('[data-testid="branch-card"]')
-          .filter({ hasText: 'KS-C' })
-          .getByText(/Gjendje e Shëndetshme|Healthy/i)
+        adminPage.getByTestId('branch-card-KS-C').getByText(/Gjendje e Shëndetshme|Healthy/i)
       ).toBeVisible();
     });
 

@@ -327,6 +327,20 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
     const info = getProjectUrlInfo(testInfo, null);
     await performLogin(page, role, info, tenant);
   }
+
+  // Phase 3: Post-ensure validation (Contract guarantee)
+  const apiBase = getApiOrigin(testInfo.project.use.baseURL!);
+  const sessionRes = await page.request.get(`${apiBase}/api/auth/get-session`);
+  expect(
+    sessionRes.status(),
+    `Session should be valid (200 OK) after ensuring auth for ${role}`
+  ).toBe(200);
+
+  const currentUrl = page.url();
+  expect(
+    currentUrl,
+    `Should not be on login page after ensureAuthenticated (URL: ${currentUrl})`
+  ).not.toContain('/login');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
