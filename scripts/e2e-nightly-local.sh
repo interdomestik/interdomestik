@@ -34,18 +34,13 @@ echo "✅ Guards Passed."
 echo -e "\n${GREEN}🌱 Seeding E2E Database...${NC}"
 pnpm --filter @interdomestik/database seed:e2e
 
-# 3. Test Suites
-echo -e "\n${GREEN}🚀 Running E2E Gate (KS + MK)...${NC}"
-pnpm --filter @interdomestik/web run e2e:gate
+# 2.5 Generate Auth States (Required after fresh seed)
+echo -e "\n${GREEN}🔑 Generating Auth StorageStates...${NC}"
+pnpm --filter @interdomestik/web test:e2e -- e2e/setup.state.spec.ts --project=setup-ks --project=setup-mk
 
-echo -e "\n${GREEN}🚀 Running Subscription Lifecycle...${NC}"
-pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk
-
-echo -e "\n${GREEN}🚀 Running Phase 5 Deterministic Batch...${NC}"
-pnpm --filter @interdomestik/web run test:e2e:phase5
-
-echo -e "\n${GREEN}🚀 Running Smoke Tests...${NC}"
-pnpm --filter @interdomestik/web run test:smoke
+# 3. Full Test Execution
+echo -e "\n${GREEN}🚀 Running Full E2E Suite (All Projects)...${NC}"
+pnpm --filter @interdomestik/web test:e2e
 
 echo -e "\n${GREEN}✨ Nightly Run Complete! All systems operational.${NC}"
 echo "📝 Full log saved to: $PWD/$LOG_FILE"

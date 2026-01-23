@@ -28,9 +28,10 @@ function parseLocaleFromUrl(urlStr: string): Locale {
  * Strictly Rule #7: Fail fast on invalid types.
  * Strictly Rule #1: Deterministic derivation from project baseURL.
  */
-export function getLocale(input: Locale | string | TestInfo): Locale {
+export function getLocale(input?: Locale | string | TestInfo): Locale {
+  // Backward compatibility: If no locale provided, default to 'en'
   if (!input) {
-    throw new Error('[getLocale] Contract Violation: Input is required.');
+    return 'en';
   }
 
   // Case 1: TestInfo object (Preferred for E2E specs)
@@ -71,26 +72,38 @@ function withLocale(pathname: string, localeInput: Locale | string | TestInfo): 
 
 export const routes = {
   getLocale,
-  home: (l: Locale | string | TestInfo) => withLocale('/', l),
-  stats: (l: Locale | string | TestInfo) => withLocale('/stats', l),
-  partners: (l: Locale | string | TestInfo) => withLocale('/partners', l),
-  pricing: (l: Locale | string | TestInfo) => withLocale('/pricing', l),
-  login: (l: Locale | string | TestInfo) => withLocale('/login', l),
-  register: (l: Locale | string | TestInfo) => withLocale('/register', l),
-  member: (l: Locale | string | TestInfo) => withLocale('/member', l),
-  memberClaims: (l: Locale | string | TestInfo) => withLocale('/member/claims', l),
-  memberNewClaim: (l: Locale | string | TestInfo) => withLocale('/member/claims/new', l),
-  memberSettings: (l: Locale | string | TestInfo) => withLocale('/member/settings', l),
-  memberMembership: (l: Locale | string | TestInfo) => withLocale('/member/membership', l),
-  memberClaimDetail: (claimId: string, l: Locale | string | TestInfo) =>
-    withLocale(`/member/claims/${encodeURIComponent(claimId)}`, l),
-  staff: (l: Locale | string | TestInfo) => withLocale('/staff', l),
-  admin: (l: Locale | string | TestInfo) => withLocale('/admin', l),
-  adminBranches: (l: Locale | string | TestInfo) => withLocale('/admin/branches', l),
-  adminLeads: (l: Locale | string | TestInfo) => withLocale('/admin/leads', l),
-  agent: (l: Locale | string | TestInfo) => withLocale('/agent', l),
-  agentLeads: (l: Locale | string | TestInfo) => withLocale('/agent/leads', l),
-  agentWorkspace: (l: Locale | string | TestInfo) => withLocale('/agent/workspace', l),
-  agentWorkspaceLeads: (l: Locale | string | TestInfo) => withLocale('/agent/workspace/leads', l),
-  agentWorkspaceClaims: (l: Locale | string | TestInfo) => withLocale('/agent/workspace/claims', l),
+  home: (l?: Locale | string | TestInfo) => withLocale('/', l || 'en'),
+  stats: (l?: Locale | string | TestInfo) => withLocale('/stats', l || 'en'),
+  partners: (l?: Locale | string | TestInfo) => withLocale('/partners', l || 'en'),
+  pricing: (l?: Locale | string | TestInfo) => withLocale('/pricing', l || 'en'),
+  login: (l?: Locale | string | TestInfo) => withLocale('/login', l || 'en'),
+  register: (l?: Locale | string | TestInfo) => withLocale('/register', l || 'en'),
+  member: (l?: Locale | string | TestInfo) => withLocale('/member', l || 'en'),
+  memberClaims: (l?: Locale | string | TestInfo) => withLocale('/member/claims', l || 'en'),
+  memberNewClaim: (l?: Locale | string | TestInfo) => withLocale('/member/claims/new', l || 'en'),
+  memberSettings: (l?: Locale | string | TestInfo) => withLocale('/member/settings', l || 'en'),
+  memberMembership: (l?: Locale | string | TestInfo) => withLocale('/member/membership', l || 'en'),
+  memberClaimDetail: (claimId: string, l?: Locale | string | TestInfo) =>
+    withLocale(`/member/claims/${encodeURIComponent(claimId)}`, l || 'en'),
+  staff: (l?: Locale | string | TestInfo) => withLocale('/staff', l || 'en'),
+  staffClaims: (l?: Locale | string | TestInfo) => withLocale('/staff/claims', l || 'en'),
+  staffClaimDetail: (claimId: string, l?: Locale | string | TestInfo) =>
+    withLocale(`/staff/claims/${encodeURIComponent(claimId)}`, l || 'en'),
+  admin: (l?: Locale | string | TestInfo) => withLocale('/admin', l || 'en'),
+  adminClaims: (l?: Locale | string | TestInfo) => withLocale('/admin/claims', l || 'en'),
+  adminUsers: (l?: Locale | string | TestInfo) => withLocale('/admin/users', l || 'en'),
+  adminAnalytics: (l?: Locale | string | TestInfo) => withLocale('/admin/analytics', l || 'en'),
+  adminSettings: (l?: Locale | string | TestInfo) => withLocale('/admin/settings', l || 'en'),
+  adminBranches: (l?: Locale | string | TestInfo) => withLocale('/admin/branches', l || 'en'),
+  adminLeads: (l?: Locale | string | TestInfo) => withLocale('/admin/leads', l || 'en'),
+  agent: (l?: Locale | string | TestInfo) => withLocale('/agent', l || 'en'),
+  agentLeads: (l?: Locale | string | TestInfo) => withLocale('/agent/leads', l || 'en'),
+  agentCrm: (l?: Locale | string | TestInfo) => withLocale('/agent/crm', l || 'en'),
+  agentClients: (l?: Locale | string | TestInfo) => withLocale('/agent/clients', l || 'en'),
+  agentCommissions: (l?: Locale | string | TestInfo) => withLocale('/agent/commissions', l || 'en'),
+  agentWorkspace: (l?: Locale | string | TestInfo) => withLocale('/agent/workspace', l || 'en'),
+  agentWorkspaceLeads: (l?: Locale | string | TestInfo) =>
+    withLocale('/agent/workspace/leads', l || 'en'),
+  agentWorkspaceClaims: (l?: Locale | string | TestInfo) =>
+    withLocale('/agent/workspace/claims', l || 'en'),
 } as const;

@@ -45,7 +45,7 @@ test.describe('Member Number Hardening @quarantine', () => {
     const email = `mem-prod-${Date.now()}@example.com`;
     const password = 'Password123!';
 
-    await gotoApp(page, l => `${routes.register(l)}?tenantId=${tenant.id}`, test.info(), {
+    await gotoApp(page, `${routes.register(test.info())}?tenantId=${tenant.id}`, test.info(), {
       marker: 'auth-ready',
     });
 
@@ -141,7 +141,7 @@ test.describe('Member Number Hardening @quarantine', () => {
     const password = 'Password123!';
 
     // Register normally first
-    await gotoApp(page, l => `${routes.register(l)}?tenantId=${tenant.id}`, test.info(), {
+    await gotoApp(page, `${routes.register(test.info())}?tenantId=${tenant.id}`, test.info(), {
       marker: 'auth-ready',
     });
     await page.fill('input[name="fullName"]', 'Heal Member');

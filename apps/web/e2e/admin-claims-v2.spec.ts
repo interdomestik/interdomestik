@@ -26,7 +26,7 @@ test.describe('Admin Claims V2', () => {
     });
 
     // adminPage is already authenticated by fixture; navigate to claims list explicitly.
-    await gotoApp(adminPage, l => `${routes.adminClaims(l)}?view=list`, testInfo, {
+    await gotoApp(adminPage, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
       marker: 'page-ready',
     });
     await expect(adminPage).toHaveURL(/\/admin\/claims/, { timeout: 15000 });

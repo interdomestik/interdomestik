@@ -6,7 +6,7 @@ import { gotoApp } from './utils/navigation';
 test.describe('Claim Resolver Isolation', () => {
   test('MK Admin cannot access KS Claim via Resolver', async ({ page }, testInfo) => {
     // 1. Login as MK Admin
-    await gotoApp(page, routes.login, testInfo, { marker: 'auth-ready' });
+    await gotoApp(page, routes.login(testInfo), testInfo, { marker: 'auth-ready' });
     await page.getByTestId('login-email').fill(TEST_ADMIN_MK.email);
     await page.getByTestId('login-password').fill(TEST_ADMIN_MK.password);
     await page.getByTestId('login-submit').click();

@@ -5,7 +5,7 @@ import { gotoApp } from '../utils/navigation';
 test.describe('Gate: Critical Path › Agent Flow', () => {
   test('Agent can view leads and open details drawer', async ({ agentPage }, testInfo) => {
     // 1. Navigate to leads page (dynamic locale)
-    await gotoApp(agentPage, l => `${routes.agent(l)}/leads`, testInfo, { marker: 'page-ready' });
+    await gotoApp(agentPage, `${routes.agent(testInfo)}/leads`, testInfo, { marker: 'page-ready' });
     // await expect(agentPage).toHaveURL(/\/sq\/agent\/leads/); // URL is dynamic now, skip explicit path check or use regex
 
     // 2. Determine state (Table or Empty)
