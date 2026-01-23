@@ -19,9 +19,9 @@
         <integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>~/Library/Logs/interdomestik/e2e-nightly.stdout.log</string>
+    <string>/Users/arbenl/Library/Logs/interdomestik/e2e-nightly.stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>~/Library/Logs/interdomestik/e2e-nightly.stderr.log</string>
+    <string>/Users/arbenl/Library/Logs/interdomestik/e2e-nightly.stderr.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
