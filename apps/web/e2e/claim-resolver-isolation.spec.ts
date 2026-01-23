@@ -21,7 +21,7 @@ test.describe('Claim Resolver Isolation', () => {
 
     await gotoApp(
       page,
-      l => `${routes.admin(l)}/claims/number/${targetClaimNumber}`,
+      `${routes.admin(testInfo)}/claims/number/${targetClaimNumber}`,
       testInfo,
       { marker: 'page-ready' } // Assuming 404 page also has page-ready or similar layout
     );
