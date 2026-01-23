@@ -5,16 +5,35 @@ import { expect, type Page, type TestInfo } from '@playwright/test';
  */
 export { getLocale } from '../routes';
 
-// Supported locales for detecting locale-prefixed paths
-const SUPPORTED_LOCALES = ['sq', 'en', 'mk', 'sr', 'de', 'hr'];
+type PathLike = string | URL | { pathname: string; search?: string; hash?: string };
+
+function normalizePath(input: unknown): string {
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return `${input.pathname}${input.search}${input.hash}`;
+
+  if (input && typeof input === 'object' && 'pathname' in input) {
+    const o = input as any;
+    if (typeof o.pathname === 'string') {
+      const search = typeof o.search === 'string' ? o.search : '';
+      const hash = typeof o.hash === 'string' ? o.hash : '';
+      return `${o.pathname}${search}${hash}`;
+    }
+  }
+
+  // strict + actionable error
+  throw new TypeError(
+    `[gotoApp] Invalid path input: expected string|URL|{pathname,...} but got ${Object.prototype.toString.call(
+      input
+    )}`
+  );
+}
 
 /**
- * Check if a path starts with a supported locale segment.
+ * Check if path already starts with a supported locale
  */
 function pathHasLocalePrefix(path: string): boolean {
   const normalized = path.startsWith('/') ? path : `/${path}`;
-  const firstSegment = normalized.split('/')[1];
-  return SUPPORTED_LOCALES.includes(firstSegment);
+  return /^\/(sq|mk|en|sr|de|hr)(\/|$)/.test(normalized);
 }
 
 /**
@@ -26,24 +45,27 @@ function pathHasLocalePrefix(path: string): boolean {
  */
 export async function gotoApp(
   page: Page,
-  path: string,
+  path: PathLike,
   testInfo: TestInfo,
   options?: { marker?: string }
 ) {
+  const raw = path; // wherever you currently take it from
+  const pathStr = normalizePath(raw);
+
   const baseUrl = testInfo.project.use.baseURL || '';
   const origin = new URL(baseUrl).origin;
 
   let targetUrl: string;
 
-  if (pathHasLocalePrefix(path)) {
+  if (pathHasLocalePrefix(pathStr)) {
     // Path already has locale (e.g., /sq/pricing from routes.pricing(testInfo))
     // Use origin only to avoid double-locale like /sq/sq/pricing
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const normalizedPath = pathStr.startsWith('/') ? pathStr : `/${pathStr}`;
     targetUrl = `${origin}${normalizedPath}`;
   } else {
     // Path is locale-agnostic (e.g., /member from ensureAuthenticated)
     // Append to locale-prefixed baseURL
-    const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
+    const normalizedPath = pathStr.startsWith('/') ? pathStr.slice(1) : pathStr;
     const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
     targetUrl = new URL(normalizedPath, normalizedBase).toString();
   }
