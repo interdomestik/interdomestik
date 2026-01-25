@@ -3,6 +3,13 @@
     "title": "Agent Workspace",
     "crm": "Pregled CRM-a",
     "dashboard": "Kontrolna tabla",
+    "proWorkspace": "Pro Workspace",
+    "myNewLeads": "My New Leads",
+    "reviewAndContact": "Review and contact",
+    "myFollowUps": "My Follow-ups",
+    "followUpsTitle": "My Follow-ups",
+    "comingSoon": "Coming soon",
+    "myActiveClaims": "My Active Claims",
     "leads": "Potencijalni klijenti",
     "leads_list": {
       "title": "Upravljanje potencijalnim klijentima",

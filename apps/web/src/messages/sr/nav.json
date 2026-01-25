@@ -3,6 +3,7 @@
     "home": "Home",
     "services": "Services",
     "dashboard": "Dashboard",
+
     "claims": "Claims",
     "newClaim": "New Claim",
     "documents": "Documents",
@@ -30,6 +31,10 @@
     "memberPortal": "Member Portal",
     "memberRole": "Member",
     "myAccount": "My Account",
-    "toggleMenu": "Toggle menu"
+    "toggleMenu": "Toggle menu",
+    "salesDashboard": "Sales Dashboard",
+    "workspacePro": "Workspace (Pro)",
+    "clients": "Clients",
+    "commissions": "Commissions"
   }
 }

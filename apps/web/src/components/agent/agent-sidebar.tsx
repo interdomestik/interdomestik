@@ -47,7 +47,7 @@ export function AgentSidebar() {
       icon: Home,
     },
     {
-      title: 'Workspace (Pro)',
+      title: t('workspacePro'),
       href: '/agent/workspace',
       icon: BarChart3,
     },
@@ -62,12 +62,12 @@ export function AgentSidebar() {
       icon: Briefcase,
     },
     {
-      title: 'Clients',
+      title: t('clients'),
       href: '/agent/clients',
       icon: Users,
     },
     {
-      title: 'Commissions',
+      title: t('commissions'),
       href: '/agent/commissions',
       icon: DollarSign,
     },
@@ -105,8 +105,8 @@ export function AgentSidebar() {
                   <Shield className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Agent Portal</span>
-                  <span className="truncate text-xs">Sales Dashboard</span>
+                  <span className="truncate font-semibold">{t('agentPortal')}</span>
+                  <span className="truncate text-xs">{t('salesDashboard')}</span>
                 </div>
               </Link>
             </SidebarMenuButton>

@@ -743,6 +743,50 @@ export async function seedGolden(config: SeedConfig) {
       set: { lastNumber: sql`GREATEST(${schema.memberCounters.lastNumber}, 100)` },
     });
 
+  // 11. Follow-up Leads
+  console.log('📅 Seeding Agent Follow-up Leads...');
+  const followUpLeads = [
+    {
+      id: 'ks_followup_lead_1',
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_a',
+      agentId: 'ks_agent_a1',
+      firstName: 'FollowUp',
+      lastName: 'Due KS',
+      email: 'followup.ks@example.com',
+      note: 'Call to finalize deal',
+    },
+    {
+      id: 'mk_followup_lead_1',
+      tenantId: TENANTS.MK,
+      branchId: 'mk_branch_a',
+      agentId: 'mk_agent_a1',
+      firstName: 'FollowUp',
+      lastName: 'Due MK',
+      email: 'followup.mk@example.com',
+      note: 'Collect documents',
+    },
+  ];
+
+  for (const l of followUpLeads) {
+    await db
+      .insert(schema.memberLeads)
+      .values({
+        id: goldenId(l.id),
+        tenantId: l.tenantId,
+        branchId: l.branchId,
+        agentId: goldenId(l.agentId),
+        firstName: l.firstName,
+        lastName: l.lastName,
+        email: l.email,
+        phone: '+000000000',
+        status: 'contacted',
+        nextStepAt: at(-1 * 24 * 60 * 60 * 1000), // Due yesterday
+        nextStepNote: l.note,
+      })
+      .onConflictDoNothing();
+  }
+
   console.log('✅ Golden Seed Baseline & KS Pack Complete!');
 }
 

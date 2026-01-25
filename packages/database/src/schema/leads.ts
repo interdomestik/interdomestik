@@ -52,6 +52,10 @@ export const memberLeads = pgTable(
     notes: text('notes'),
     convertedUserId: text('converted_user_id').references(() => user.id), // If converted
 
+    // Next Step / Follow-up
+    nextStepAt: timestamp('next_step_at'),
+    nextStepNote: text('next_step_note'),
+
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .$onUpdate(() => new Date())
@@ -68,6 +72,7 @@ export const memberLeads = pgTable(
     // Performance indexes for branch dashboards
     index('idx_member_leads_tenant_branch').on(table.tenantId, table.branchId),
     index('idx_member_leads_tenant_agent').on(table.tenantId, table.agentId),
+    index('idx_member_leads_next_step').on(table.tenantId, table.agentId, table.nextStepAt),
   ]
 );
 

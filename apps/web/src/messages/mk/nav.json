@@ -30,6 +30,10 @@
     "memberPortal": "Портал за членови",
     "memberRole": "Член",
     "myAccount": "Моја сметка",
-    "toggleMenu": "Отвори/затвори мени"
+    "toggleMenu": "Отвори/затвори мени",
+    "salesDashboard": "Sales Dashboard",
+    "workspacePro": "Workspace (Pro)",
+    "clients": "Clients",
+    "commissions": "Commissions"
   }
 }

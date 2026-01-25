@@ -30,6 +30,10 @@
     "memberPortal": "Member Portal",
     "memberRole": "Member",
     "myAccount": "My Account",
-    "toggleMenu": "Toggle menu"
+    "toggleMenu": "Toggle menu",
+    "salesDashboard": "Sales Dashboard",
+    "workspacePro": "Workspace (Pro)",
+    "clients": "Clients",
+    "commissions": "Commissions"
   }
 }

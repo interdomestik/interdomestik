@@ -3,6 +3,13 @@
     "title": "Agent Workspace",
     "crm": "Преглед на CRM",
     "dashboard": "Dashboard",
+    "proWorkspace": "Pro Workspace",
+    "myNewLeads": "My New Leads",
+    "reviewAndContact": "Review and contact",
+    "myFollowUps": "My Follow-ups",
+    "followUpsTitle": "My Follow-ups",
+    "comingSoon": "Coming soon",
+    "myActiveClaims": "My Active Claims",
     "claims": "Claims",
     "members": "Members",
     "stats": {

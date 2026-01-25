@@ -30,6 +30,10 @@
     "memberPortal": "Portali i Anëtarit",
     "memberRole": "Anëtar",
     "myAccount": "Llogaria Ime",
-    "toggleMenu": "Hap/mbyll menunë"
+    "toggleMenu": "Hap/mbyll menunë",
+    "salesDashboard": "Paneli i Shitjeve",
+    "workspacePro": "Hapësira Pro",
+    "clients": "Klientët",
+    "commissions": "Komisionet"
   }
 }
