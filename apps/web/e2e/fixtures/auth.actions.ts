@@ -70,7 +70,6 @@ export async function performLogin(
 
   await gotoApp(page, targetPath, testInfo, {
     marker: 'dashboard-page-ready',
-    waitUntil: 'domcontentloaded',
   });
   await assertNoTenantChooser(page);
 }
@@ -110,7 +109,6 @@ export async function ensureAuthenticated(
   // Ensure we're on the intended role landing page.
   await gotoApp(page, targetPath, testInfo, {
     marker: 'dashboard-page-ready',
-    waitUntil: 'domcontentloaded',
   });
 
   // Phase 3: Post-ensure validation (Contract guarantee)

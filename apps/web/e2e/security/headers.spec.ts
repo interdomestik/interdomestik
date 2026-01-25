@@ -5,11 +5,11 @@ import { gotoApp } from '../utils/navigation';
 
 test.describe('Security Headers', () => {
   test('should have strict security headers', async ({ page }, testInfo) => {
-    const response = await gotoApp(page, routes.home(testInfo), testInfo, { marker: 'body' });
-    expect(response?.ok()).toBeTruthy();
+    await gotoApp(page, routes.home(testInfo), testInfo, { marker: 'body' });
+    const response = await page.request.get(page.url());
+    expect(response.ok()).toBeTruthy();
 
-    const headers = response?.headers();
-    if (!headers) throw new Error('No headers found');
+    const headers = response.headers();
 
     // CSP
     const csp = headers['content-security-policy'];

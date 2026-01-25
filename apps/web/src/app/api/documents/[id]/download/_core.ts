@@ -1,9 +1,20 @@
 import { logAuditEvent } from '@/lib/audit';
 import { auth } from '@/lib/auth';
+import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { createAdminClient } from '@interdomestik/database';
 import { NextResponse } from 'next/server';
 
 import { downloadStorageFileCore, getDocumentAccessCore, safeFilename } from '../../_core';
+
+const storageService = {
+  createSignedUrl: async (_bucket: string, _path: string, _expiresIn: number) => ({}),
+  download: async (bucket: string, path: string) => {
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient.storage.from(bucket).download(path);
+    return { data: data ?? undefined, error: error ?? undefined };
+  },
+};
 
 // GET /api/documents/[id]/download
 // Streams the file via Supabase Admin client so we can enforce RBAC and write access logs.
@@ -34,28 +45,40 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     documentId: id,
     mode: 'download',
     disposition,
+    deps: { db, storage: storageService },
   });
 
   const userRole = (session.user.role as string | undefined) ?? undefined;
   const tenantId = (session.user as { tenantId?: string | null }).tenantId ?? null;
 
   if (!access.ok) {
-    if (access.status === 404) {
-      return NextResponse.json({ error: access.error }, { status: 404 });
+    const statusMap: Record<string, number> = {
+      FORBIDDEN: 403,
+      NOT_FOUND: 404,
+      UNAUTHORIZED: 401,
+      BAD_REQUEST: 400,
+      CONFLICT: 409,
+      RATE_LIMIT: 429,
+      INTERNAL_ERROR: 500,
+      TIMEOUT: 504,
+      PAYLOAD_TOO_LARGE: 413,
+      UNPROCESSABLE_ENTITY: 422,
+    };
+
+    if (access.code === 'FORBIDDEN') {
+      await logAuditEvent({
+        actorId: session.user.id,
+        actorRole: userRole ?? null,
+        tenantId,
+        action: 'document.forbidden',
+        entityType: 'claim_document',
+        entityId: id,
+        metadata: { error: access.message },
+        headers: request.headers,
+      });
     }
 
-    await logAuditEvent({
-      actorId: session.user.id,
-      actorRole: userRole ?? null,
-      tenantId,
-      action: access.audit.action,
-      entityType: access.audit.entityType,
-      entityId: access.audit.entityId,
-      metadata: access.audit.metadata,
-      headers: request.headers,
-    });
-
-    return NextResponse.json({ error: access.error }, { status: 403 });
+    return NextResponse.json({ error: access.message }, { status: statusMap[access.code] || 500 });
   }
 
   await logAuditEvent({
@@ -72,6 +95,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const file = await downloadStorageFileCore({
     bucket: access.document.bucket,
     filePath: access.document.filePath,
+    deps: { db, storage: storageService },
   });
 
   if (!file.ok) {

@@ -59,7 +59,7 @@ test.describe('Quarantine: Regressions & Flaky Flows', () => {
       }
 
       const locale = 'mk';
-      await loginAs('agent', 'mk');
+      await loginAs('agent');
 
       await page.goto(`/${locale}/agent/leads`);
       await page.waitForLoadState('networkidle');
@@ -197,7 +197,7 @@ test.describe('Quarantine: Regressions & Flaky Flows', () => {
         return;
       }
 
-      await loginAs('branch_manager', 'mk');
+      await loginAs('branch_manager');
 
       // Use dynamic URL to avoid route helper issues if any
       const locale = getLocaleFromTestInfo(testInfo);
