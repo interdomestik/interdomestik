@@ -38,6 +38,8 @@ jobs:
       PW_REUSE_SERVER: '1'
       CI_POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
       DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}@127.0.0.1:5432/interdomestik_test
+      PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
+      BETTER_AUTH_SECRET: test_secret_ci
 
     steps:
       - name: Checkout
