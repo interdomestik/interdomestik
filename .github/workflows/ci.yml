@@ -47,7 +47,7 @@ jobs:
       # Secrets (mocked or from secrets)
       PADDLE_WEBHOOK_SECRET_KEY: test_secret
       PLAYWRIGHT_BROWSERS_PATH: ~/.cache/ms-playwright
-      NODE_OPTIONS: --max-old-space-size=4096
+      NODE_OPTIONS: --max-old-space-size=8192
 
     steps:
       - name: Checkout
