@@ -20,8 +20,9 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
           POSTGRES_DB: interdomestik_test
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -35,7 +36,8 @@ jobs:
       PLAYWRIGHT: '1'
       NEXT_PUBLIC_BILLING_TEST_MODE: '1'
       PW_REUSE_SERVER: '1'
-      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD }}@127.0.0.1:5432/interdomestik_test
+      CI_POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
+      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}@127.0.0.1:5432/interdomestik_test
 
     steps:
       - name: Checkout
@@ -68,9 +70,9 @@ jobs:
           set -euo pipefail
 
           echo "Guard: No raw page.goto in golden/gate (exception only in tenant-resolution.spec.ts)"
-          GOTO_FOUND=$(grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
+          GOTO_FOUND=$(grep -R -E "\bpage\.goto\s*\(" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
             | grep -vE "apps/web/e2e/gate/tenant-resolution.spec.ts|apps/web/e2e/golden/legacy/" || true)
-          
+
           if [ -n "$GOTO_FOUND" ]; then
             echo "❌ Found raw page.goto in golden/gate:"
             echo "$GOTO_FOUND"

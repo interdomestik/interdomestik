@@ -27,7 +27,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
           POSTGRES_DB: interdomestik_test
         ports:
           - 5432:5432
@@ -38,8 +38,9 @@ jobs:
           --health-retries=10
 
     env:
+      CI_POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
       # canonical DB URL for seed + app + tests
-      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD }}@127.0.0.1:5432/interdomestik_test
+      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}@127.0.0.1:5432/interdomestik_test
       # Consistent origin
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       BETTER_AUTH_URL: http://127.0.0.1:3000
@@ -82,7 +83,7 @@ jobs:
           for i in {1..30}; do
             if pg_isready -h 127.0.0.1 -p 5432 -U postgres -d interdomestik_test; then
               if command -v psql >/dev/null; then
-                if PGPASSWORD=${{ secrets.CI_POSTGRES_PASSWORD }} psql -h 127.0.0.1 -U postgres -d interdomestik_test -c "select 1" >/dev/null 2>&1; then
+                if PGPASSWORD=${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }} psql -h 127.0.0.1 -U postgres -d interdomestik_test -c "select 1" >/dev/null 2>&1; then
                   echo "Postgres is ready."
                   echo "POSTGRES_READY_VIA=psql" >> "$GITHUB_ENV"
                   exit 0

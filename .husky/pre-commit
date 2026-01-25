@@ -9,7 +9,7 @@ STAGED="$(git diff --cached --name-only)"
 
 # 1. E2E specs touched => strict gate + static
 if echo "$STAGED" | grep -Eq '^apps/web/e2e/'; then
-  echo "⚡ E2E files changed. Running check:fast + check:static..."
+  echo "⚡ E2E files changed. Running check:fast AND check:static..."
   pnpm check:fast
   pnpm check:static
   exit 0
@@ -26,8 +26,9 @@ fi
 if echo "$STAGED" | grep -Eq '^(README\.md|AGENTS\.md|apps/web/e2e/README\.md)$'; then
   echo "🛡️ Docs changed. Running check-docs-contract.mjs --strict..."
   node scripts/check-docs-contract.mjs --strict
+  exit 0
 fi
 
-# 4. Everything else (Docs/Config) => Skip
-echo "⏩ No code/E2E changes. Skipping checks."
+# 4. Everything else (Config) => Skip
+echo "⏩ No code/E2E/Docs changes requiring special checks. Skipping."
 exit 0
