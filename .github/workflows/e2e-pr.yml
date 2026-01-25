@@ -39,6 +39,8 @@ jobs:
       DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}@127.0.0.1:5432/interdomestik_test
       PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
       BETTER_AUTH_SECRET: test_secret_ci_please_rotate_32chars_minimum_1234
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
 
     steps:
       - uses: actions/checkout@v4
@@ -113,12 +115,6 @@ jobs:
 
       - name: Verify Seed Contract
         run: pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk
-
-      - name: Check Fast
-        run: pnpm check:fast
-
-      - name: E2E Gate (KS+MK)
-        run: pnpm --filter @interdomestik/web run e2e:gate
 
       - name: E2E Subscription Lifecycle (KS+MK)
         run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk

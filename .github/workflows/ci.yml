@@ -152,7 +152,7 @@ jobs:
           {
             echo "## CI summary";
             echo "";
-            echo "- Golden path: audit → check → migrate → seed → assert → e2e:gate";
+            echo "- Golden path: audit → migrate → seed → assert → check → e2e:gate";
             echo "- DB: 127.0.0.1:5432 (interdomestik_test)";
             echo "- App URL: http://127.0.0.1:3000";
             echo "- Postgres readiness: ${POSTGRES_READY_VIA:-unknown}";

@@ -42,6 +42,9 @@ jobs:
       DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}@127.0.0.1:5432/interdomestik_test
       PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
       BETTER_AUTH_SECRET: test_secret_ci_please_rotate_32chars_minimum_1234
+      # Consistent origin (Parity with CI)
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
 
     steps:
       - name: Checkout
@@ -116,6 +119,12 @@ jobs:
         run: |
           set -euo pipefail
           pnpm seed:e2e
+
+      - name: Assert DB seeded (Parity)
+        run: pnpm --filter @interdomestik/database seed:assert-e2e
+
+      - name: Golden Path - Check (Parity)
+        run: pnpm check
 
       # ---- Run suites ----
       # Gate is fast and tells you immediately if infra drifted.
