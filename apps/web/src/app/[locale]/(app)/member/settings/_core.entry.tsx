@@ -35,10 +35,12 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   const t = await getTranslations('settings');
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-testid="settings-page-ready">
       {/* Page Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
+        <h2 className="text-2xl font-bold tracking-tight" data-testid="member-settings-title">
+          {t('title')}
+        </h2>
         <p className="text-muted-foreground">{t('description')}</p>
       </div>
 

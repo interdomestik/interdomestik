@@ -25,6 +25,8 @@ import { useEffect } from 'react';
 import { getCustomerPortalUrl, requestCancellation } from '@/actions/memberships';
 import { toast } from 'sonner';
 
+import { OPS_TEST_IDS } from '@/components/ops/testids';
+
 export function MembershipOpsPage({
   subscriptions,
   documents,
@@ -57,9 +59,14 @@ export function MembershipOpsPage({
   // Map subscriptions to OpsTableRow
   const rows = subscriptions.map(sub => ({
     id: sub.id,
-    testId: 'subscription-item',
+    testId: OPS_TEST_IDS.TABLE.ROW,
     cells: [
-      <span key="plan" className="font-medium" data-testid="subscription-plan-name">
+      <span
+        key="plan"
+        className="font-medium"
+        data-testid="subscription-plan-name"
+        data-plan={sub.planId}
+      >
         {sub.plan?.name || sub.planId}
       </span>,
       <OpsStatusBadge key="status" {...toOpsStatus(sub.status)} />,
@@ -90,6 +97,7 @@ export function MembershipOpsPage({
               isEmpty={rows.length === 0}
               emptyTitle={t('plan.no_membership')}
               emptySubtitle={t('plan.description')}
+              emptyTestId="no-membership-empty"
               className="h-full"
             >
               <OpsTable

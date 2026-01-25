@@ -168,7 +168,10 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
 
   if (isLoading) {
     return (
-      <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-premium relative overflow-hidden">
+      <Card
+        className="border-border/50 bg-card/30 backdrop-blur-md shadow-premium relative overflow-hidden"
+        data-testid="notifications-loading"
+      >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -189,7 +192,10 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
   }
 
   return (
-    <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-premium relative overflow-hidden">
+    <Card
+      className="border-border/50 bg-card/30 backdrop-blur-md shadow-premium relative overflow-hidden"
+      data-testid="notifications-loaded"
+    >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
       <CardHeader>
         <div className="flex items-center gap-2">
@@ -200,7 +206,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Email Notifications */}
-        <div className="space-y-4">
+        <div className="space-y-4" data-testid="notification-section-email">
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4 text-muted-foreground" />
             <h4 className="text-sm font-medium">{t('notifications.email.title')}</h4>
@@ -210,6 +216,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
             <div className="flex items-center space-x-3">
               <Checkbox
                 id="email-claim-updates"
+                data-testid="checkbox-email-claim-updates"
                 checked={preferences.emailClaimUpdates}
                 onCheckedChange={() => handleToggle('emailClaimUpdates')}
               />
@@ -226,6 +233,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
             <div className="flex items-center space-x-3">
               <Checkbox
                 id="email-newsletter"
+                data-testid="checkbox-email-newsletter"
                 checked={preferences.emailNewsletter}
                 onCheckedChange={() => handleToggle('emailNewsletter')}
               />
@@ -242,6 +250,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
             <div className="flex items-center space-x-3">
               <Checkbox
                 id="email-marketing"
+                data-testid="checkbox-email-marketing"
                 checked={preferences.emailMarketing}
                 onCheckedChange={() => handleToggle('emailMarketing')}
               />
@@ -260,7 +269,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
         <Separator />
 
         {/* Push Notifications */}
-        <div className="space-y-4">
+        <div className="space-y-4" data-testid="notification-section-push">
           <div className="flex items-center gap-2">
             <Smartphone className="h-4 w-4 text-muted-foreground" />
             <h4 className="text-sm font-medium">{t('notifications.push.title')}</h4>
@@ -270,6 +279,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
             <div className="flex items-center space-x-3">
               <Checkbox
                 id="push-claim-updates"
+                data-testid="checkbox-push-claim-updates"
                 checked={preferences.pushClaimUpdates}
                 onCheckedChange={() => handleToggle('pushClaimUpdates')}
               />
@@ -286,6 +296,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
             <div className="flex items-center space-x-3">
               <Checkbox
                 id="push-messages"
+                data-testid="checkbox-push-messages"
                 checked={preferences.pushMessages}
                 onCheckedChange={() => handleToggle('pushMessages')}
               />
@@ -304,7 +315,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
         <Separator />
 
         {/* In-App Notifications */}
-        <div className="space-y-4">
+        <div className="space-y-4" data-testid="notification-section-inapp">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
             <h4 className="text-sm font-medium">{t('notifications.inApp.title')}</h4>
@@ -314,6 +325,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
             <div className="flex items-center space-x-3">
               <Checkbox
                 id="in-app-all"
+                data-testid="checkbox-in-app-all"
                 checked={preferences.inAppAll}
                 onCheckedChange={() => handleToggle('inAppAll')}
               />
@@ -333,6 +345,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
             onClick={handleSave}
             disabled={isPending}
             className="shadow-lg hover:shadow-primary/25 transition-all duration-300"
+            data-testid="notification-settings-save"
           >
             {isPending ? t('notifications.saving') : t('notifications.save')}
           </Button>

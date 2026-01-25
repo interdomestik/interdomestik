@@ -68,7 +68,9 @@ export function ClaimRow({ claim }: ClaimRowProps) {
 
           {/* Row 2: Identity (code + title) */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-muted-foreground/60">{claim.code}</span>
+            <span data-testid="claim-number" className="text-xs font-mono text-muted-foreground/60">
+              {claim.code}
+            </span>
             <h3 className="text-sm font-medium text-foreground truncate">{claim.title}</h3>
           </div>
 

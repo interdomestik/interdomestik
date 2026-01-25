@@ -42,7 +42,7 @@ export default async function HomePage({ params }: Props) {
 
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
-      <main className="min-h-screen">
+      <main className="min-h-screen" data-testid="landing-page-ready">
         <Header />
         <HeroSection />
         <TrustStrip />

@@ -15,6 +15,7 @@ const BASE_URL = `http://${BASE_HOST}:${PORT}`;
 const KS_HOST = process.env.KS_HOST ?? `ks.${BIND_HOST}.nip.io:${PORT}`;
 const MK_HOST = process.env.MK_HOST ?? `mk.${BIND_HOST}.nip.io:${PORT}`;
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
+const DEFAULT_E2E_AUTH_SECRET = 'test_secret_ci_please_rotate_32chars_minimum_1234';
 
 const AUTH_DIR = path.resolve(__dirname, './e2e/.auth');
 const KS_MEMBER_STATE = path.join(AUTH_DIR, 'ks', 'member.json');
@@ -44,6 +45,19 @@ if (process.env.PW_FAST_GATES === '1') {
 
 process.env.NEXT_PUBLIC_APP_URL = BASE_URL;
 process.env.BETTER_AUTH_URL = BASE_URL;
+process.env.BETTER_AUTH_SECRET = process.env.BETTER_AUTH_SECRET ?? DEFAULT_E2E_AUTH_SECRET;
+
+const baseNodeOptions = (process.env.NODE_OPTIONS ?? '')
+  .replace(/--max-old-space-size=\d+/g, '')
+  .replace(/--dns-result-order=ipv4first/g, '')
+  .trim();
+const e2eNodeOptions = [
+  baseNodeOptions,
+  '--dns-result-order=ipv4first',
+  '--max-old-space-size=8192',
+]
+  .filter(Boolean)
+  .join(' ');
 
 export default defineConfig({
   testDir: './e2e',
@@ -82,6 +96,7 @@ export default defineConfig({
     {
       name: 'gate-ks-sq',
       testMatch: ['gate/**/*.spec.ts'],
+      dependencies: ['setup-ks'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${KS_HOST}/sq`,
@@ -96,6 +111,7 @@ export default defineConfig({
     {
       name: 'gate-mk-mk',
       testMatch: ['gate/**/*.spec.ts'],
+      dependencies: ['setup-mk'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${MK_HOST}/mk`,
@@ -191,15 +207,16 @@ export default defineConfig({
     url: BASE_URL,
     // Never reuse a stale server by default (prevents origin/env mismatches).
     reuseExistingServer: process.env.PW_REUSE_SERVER === '1' && !process.env.CI,
-    timeout: 300 * 1000,
+    timeout: 600 * 1000,
     env: {
       ...process.env,
       NODE_ENV: 'production',
       PORT: String(PORT),
       HOSTNAME: BIND_HOST,
-      NODE_OPTIONS: '--dns-result-order=ipv4first',
+      NODE_OPTIONS: e2eNodeOptions,
       NEXT_PUBLIC_APP_URL: BASE_URL,
       BETTER_AUTH_URL: BASE_URL,
+      BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? DEFAULT_E2E_AUTH_SECRET,
       BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},${BASE_URL}`,
       INTERDOMESTIK_AUTOMATED: '1',
       PLAYWRIGHT: '1',

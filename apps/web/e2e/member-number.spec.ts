@@ -113,7 +113,7 @@ test.describe('Member Number Hardening @quarantine', () => {
     // 4. Immutability Check (Relogin)
     console.log('Immutability Check: Re-logging in...');
     await page.context().clearCookies();
-    await gotoApp(page, routes.login, test.info(), { marker: 'auth-ready' });
+    await gotoApp(page, routes.login(test.info()), test.info(), { marker: 'auth-ready' });
     await page.fill('input[name="email"]', email);
     await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
@@ -182,7 +182,7 @@ test.describe('Member Number Hardening @quarantine', () => {
 
     // Logout
     await page.context().clearCookies();
-    await gotoApp(page, routes.login, test.info(), { marker: 'auth-ready' });
+    await gotoApp(page, routes.login(test.info()), test.info(), { marker: 'auth-ready' });
 
     // 2. Login again to trigger self-heal
     await page.fill('input[name="email"]', email);

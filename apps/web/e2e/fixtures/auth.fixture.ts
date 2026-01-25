@@ -313,12 +313,13 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   else if (role === 'agent') targetPath = '/agent';
   else if (role === 'staff') targetPath = '/staff';
 
-  // Navigate using gotoApp (handles locale)
-  await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
+  // Navigate using gotoApp (handles locale). Use a permissive marker first so
+  // we can detect auth redirects (e.g., bounced to /login).
+  await gotoApp(page, targetPath, testInfo, { marker: 'body' });
 
-  // Check if we bounced to login (registration-page-ready visible)
+  // Check if we bounced to login (auth-ready visible)
   const isLoginPage = await page
-    .getByTestId('registration-page-ready')
+    .getByTestId('auth-ready')
     .isVisible({ timeout: 2000 })
     .catch(() => false);
 
@@ -327,6 +328,8 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
     const info = getProjectUrlInfo(testInfo, null);
     await performLogin(page, role, info, tenant);
   }
+
+  await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
 
   // Phase 3: Post-ensure validation (Contract guarantee)
   const apiBase = getApiOrigin(testInfo.project.use.baseURL!);

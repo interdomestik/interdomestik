@@ -43,6 +43,11 @@ vi.mock('lucide-react', () => ({
   Building2: () => <span>🏢</span>,
 }));
 
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children }: { children: ReactNode }) => <a>{children}</a>,
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
   useRouter: () => ({ push: vi.fn() }),

@@ -119,6 +119,9 @@ export function AgentClaimsTable({
   const rows =
     data?.claims.map(claim => ({
       id: claim.id,
+      dataAttributes: {
+        'data-title': claim.title || '',
+      },
       className: claim.unreadCount
         ? 'bg-amber-50/50 hover:bg-amber-50/80 transition-colors duration-200'
         : 'hover:bg-slate-50/80 transition-colors duration-200',
@@ -152,6 +155,7 @@ export function AgentClaimsTable({
           key="status"
           variant={toOpsBadgeVariant(claim.status)}
           label={t(`status.${claim.status}` as any)}
+          status={claim.status ?? undefined}
         />,
         <span
           key="amount"

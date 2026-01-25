@@ -144,7 +144,7 @@ export function BranchHealthCard({ branch, onEdit, onDelete }: BranchHealthCardP
           className="w-full justify-between hover:bg-primary/5 hover:text-primary mt-3 group/btn"
           asChild
         >
-          <Link href={`/admin/branches/${branch.code}`}>
+          <Link href={`/admin/branches/${branch.code}`} data-testid="branch-link">
             <span className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
               {t('view_dashboard')}

@@ -4,7 +4,7 @@ import { Button } from '@interdomestik/ui';
 import { Eye } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { OpsQueryState, OpsTable } from '@/components/ops';
+import { OPS_TEST_IDS, OpsQueryState, OpsTable } from '@/components/ops';
 import { Link, useRouter } from '@/i18n/routing';
 
 import type { ClaimOperationalRow } from '../types';
@@ -35,6 +35,9 @@ export function ClaimsOperationalList({ claims, loading, error }: ClaimsOperatio
   const rows = claims.map(claim => ({
     id: claim.id,
     testId: 'claim-operational-card',
+    dataAttributes: {
+      'data-title': claim.title || '',
+    },
     onClick: () => router.push(`/admin/claims/${claim.id}`),
     cells: [
       <div key={`${claim.id}-spine`} className="py-2 pl-4">
@@ -85,6 +88,7 @@ export function ClaimsOperationalList({ claims, loading, error }: ClaimsOperatio
       error={error}
       isEmpty={claims.length === 0}
       emptyTitle={tTable('empty_state')}
+      emptyTestId={OPS_TEST_IDS.TABLE.EMPTY}
     >
       <OpsTable
         columns={columns}

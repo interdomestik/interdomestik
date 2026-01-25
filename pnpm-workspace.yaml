@@ -2,4 +2,4 @@ packages:
   - apps/*
   - packages/*
 
-storeDir: /Users/arbenlila/Library/pnpm/store/v10
+storeDir: .pnpm-store

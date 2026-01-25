@@ -1,70 +1,54 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
-test.describe.skip('User Dashboard Statistics', () => {
-  test('User can view real claim statistics on dashboard', async ({ authenticatedPage: page }) => {
-    await page.goto(routes.member());
-    await page.waitForLoadState('domcontentloaded');
+test.describe('User Dashboard Statistics', () => {
+  test('User can view real claim statistics on dashboard', async ({
+    authenticatedPage: page,
+  }, testInfo) => {
+    await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'dashboard-heading' });
 
     // Check page title
-    // await expect(page.getByText(/Overview/i)).toBeVisible();
+    await expect(page.getByTestId('dashboard-heading')).toBeVisible();
 
     // Check statistics cards exist
-    await expect(page.getByText('Active Claims')).toBeVisible();
-    await expect(page.getByText('Total Saved')).toBeVisible();
-
-    // Verify statistics show numbers (not hardcoded 0)
-    // The stats should be visible as text content
-    const statsCards = page.locator('[class*="text-3xl"][class*="font-bold"]');
-    await expect(statsCards.first()).toBeVisible();
+    await expect(page.getByTestId('stats-card-active-claims')).toBeVisible();
+    await expect(page.getByTestId('stats-card-total-saved')).toBeVisible();
 
     // Check that at least one stat card has content
-    const firstStatValue = await statsCards.first().textContent();
-    expect(firstStatValue).toBeTruthy();
+    const statsValue = page.getByTestId('stats-value-active-claims');
+    await expect(statsValue).toBeVisible();
+    expect(await statsValue.textContent()).toBeTruthy();
   });
 
-  test('Dashboard statistics update based on user claims', async ({ authenticatedPage: page }) => {
-    await page.goto(routes.member());
-    await page.waitForLoadState('domcontentloaded');
+  test('Dashboard statistics update based on user claims', async ({
+    authenticatedPage: page,
+  }, testInfo) => {
+    await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'dashboard-heading' });
 
     // Get initial active claims count
-    // Use a clearer selector hierarchy: Find the card that has the title "Active Claims"
-    // We use the specific class we know exists on these cards
-    const activeClaimsCard = page
-      .locator('.shadow-premium')
-      .filter({ hasText: 'Active Claims' })
-      .first();
-
-    // Ensure card is visible before querying children
-    await expect(activeClaimsCard).toBeVisible();
-
-    // Get the number
-    const initialCount = await activeClaimsCard.locator('.text-3xl').textContent();
+    const activeClaimsValue = page.getByTestId('stats-value-active-claims');
+    await expect(activeClaimsValue).toBeVisible();
+    const initialCount = await activeClaimsValue.textContent();
 
     // Navigate to claims page to verify consistency
-    await page.goto(routes.memberClaims());
-    await page.waitForLoadState('domcontentloaded');
-
-    // Count actual claims in the table
-    // const claimRows = page.getByRole('row');
-    // const rowCount = await claimRows.count();
+    await gotoApp(page, routes.memberClaims(testInfo), testInfo, { marker: 'claims-page-ready' });
 
     // Go back to dashboard
-    await page.goto(routes.member());
-    await page.waitForLoadState('domcontentloaded');
+    await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'dashboard-heading' });
 
     // Verify the count is still the same
-    const currentCount = await activeClaimsCard.locator('.text-3xl').textContent();
+    const currentCount = await activeClaimsValue.textContent();
     expect(currentCount).toBe(initialCount);
   });
 
-  test.skip('Dashboard shows correct empty state when no claims', async ({ page }) => {
+  test('Dashboard shows correct empty state when no claims', async ({ page }, testInfo) => {
     // Register a NEW user to guarantee 0 claims
     const cleanEmail = `empty${Date.now()}@test.com`;
     const cleanPass = 'TestPass123!';
     const cleanName = 'Empty State User';
 
-    await page.goto(routes.register('en'));
+    await gotoApp(page, routes.register(testInfo), testInfo, { marker: 'body' });
 
     // Fill register form
     await page.fill('input[name="fullName"]', cleanName);
@@ -72,45 +56,27 @@ test.describe.skip('User Dashboard Statistics', () => {
     await page.fill('input[name="password"]', cleanPass);
     await page.fill('input[name="confirmPassword"]', cleanPass);
     // Check terms
-    await page.click('label[for="terms"]'); // Click label to check invisible checkbox if needed, or use .check()
+    await page.click('label[for="terms"]');
     // Submit
-    // Wait for button to be enabled and click
     const submitButton = page.locator('button[type="submit"]');
     await expect(submitButton).toBeEnabled();
     await submitButton.click({ force: true });
 
     // Should redirect to dashboard (or login then dashboard)
-    // Assuming register auto-logs in or redirects to login
-    // If it redirects to login, we log in.
-    // Try waiting for member first, if not try login
-
     try {
-      await page.waitForURL('**/member', { timeout: 5000 });
+      await expect(page.getByTestId('dashboard-heading')).toBeVisible({ timeout: 10000 });
     } catch {
       // If we are at login page, log in
       if (page.url().includes('login')) {
         await page.fill('input[name="email"]', cleanEmail);
         await page.fill('input[name="password"]', cleanPass);
         await page.click('button[type="submit"]');
-        await page.waitForURL('**/member');
+        await expect(page.getByTestId('dashboard-heading')).toBeVisible();
       }
     }
 
-    await page.waitForLoadState('domcontentloaded');
-
     // Stats should show 0 for new users
-    // We expect "0" or "No Active Protection" depending on the implementation
-    // The previous test expects .text-3xl to be visible.
-
-    // Check "Active Claims" card - should exist but show 0
-    await expect(page.getByText('Active Claims')).toBeVisible();
-
-    const activeClaimsCard = page
-      .locator('.shadow-premium')
-      .filter({ hasText: 'Active Claims' })
-      .first();
-
-    await expect(activeClaimsCard).toBeVisible();
-    await expect(activeClaimsCard.locator('.text-3xl')).toHaveText('0');
+    await expect(page.getByTestId('stats-card-active-claims')).toBeVisible();
+    await expect(page.getByTestId('stats-value-active-claims')).toHaveText('0');
   });
 });

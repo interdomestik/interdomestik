@@ -24,13 +24,13 @@ describe('Leads Adapter Policies', () => {
     });
 
     describe('contacted status', () => {
-      it('should show convert as primary and mark_payment_pending as secondary', () => {
+      it('should show convert as primary and pay_cash as secondary', () => {
         const lead = { id: 'lead-1', status: 'contacted' };
 
         const result = getLeadActions(lead);
 
         expect(result.primary?.id).toBe('convert');
-        expect(result.secondary.some(a => a.id === 'mark_payment_pending')).toBe(true);
+        expect(result.secondary.some(a => a.id === 'pay_cash')).toBe(true);
         expect(result.secondary.some(a => a.id === 'mark_lost')).toBe(true);
 
         // mark_contacted should NOT be present for contacted status
