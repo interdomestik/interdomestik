@@ -82,7 +82,7 @@ jobs:
           for i in {1..30}; do
             if pg_isready -h 127.0.0.1 -p 5432 -U postgres -d interdomestik_test; then
               if command -v psql >/dev/null; then
-                if PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d interdomestik_test -c "select 1" >/dev/null 2>&1; then
+                if PGPASSWORD=${{ secrets.CI_POSTGRES_PASSWORD }} psql -h 127.0.0.1 -U postgres -d interdomestik_test -c "select 1" >/dev/null 2>&1; then
                   echo "Postgres is ready."
                   echo "POSTGRES_READY_VIA=psql" >> "$GITHUB_ENV"
                   exit 0
