@@ -106,6 +106,14 @@
   },
   "packageManager": "pnpm@10.25.0",
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@sentry/cli",
+      "@swc/core",
+      "esbuild",
+      "sharp",
+      "supabase"
+    ],
     "overrides": {
       "esbuild": "^0.25.0",
       "zod": "4.2.1"
