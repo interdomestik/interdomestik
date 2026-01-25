@@ -37,14 +37,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.25.0'
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: '10.25.0'
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
@@ -60,18 +60,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
-            | grep -vE "apps/web/e2e/gate/tenant-resolution.spec.ts|apps/web/e2e/golden/legacy/" ; then
-            echo "❌ raw page.goto found in golden/gate"
+          echo "Checking for raw page.goto in golden/gate..."
+          GOTO_FOUND=$(grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
+            | grep -vE "apps/web/e2e/gate/tenant-resolution.spec.ts|apps/web/e2e/golden/legacy/" || true)
+          
+          if [ -n "$GOTO_FOUND" ]; then
+            echo "❌ raw page.goto found in golden/gate:"
+            echo "$GOTO_FOUND"
             exit 1
           fi
 
-          if grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" ; then
-            echo "❌ locale-prefixed /<locale>/api detected"
+          echo "Checking for locale-prefixed API calls..."
+          API_FOUND=$(grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" || true)
+          if [ -n "$API_FOUND" ]; then
+            echo "❌ locale-prefixed /<locale>/api detected:"
+            echo "$API_FOUND"
             exit 1
           fi
 
           grep -n "paddle.com" apps/web/src/lib/proxy.ts >/dev/null
+          echo "✅ Strict Rule Guards passed."
 
       - name: Seed E2E DB
         run: pnpm seed:e2e

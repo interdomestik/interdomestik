@@ -41,16 +41,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.25.0'
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: '10.25.0'
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
@@ -68,16 +68,21 @@ jobs:
           set -euo pipefail
 
           echo "Guard: No raw page.goto in golden/gate (exception only in tenant-resolution.spec.ts)"
-          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
-            | grep -vE "apps/web/e2e/gate/tenant-resolution.spec.ts|apps/web/e2e/golden/legacy/" ; then
-            echo "❌ Found raw page.goto in golden/gate"
+          GOTO_FOUND=$(grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
+            | grep -vE "apps/web/e2e/gate/tenant-resolution.spec.ts|apps/web/e2e/golden/legacy/" || true)
+          
+          if [ -n "$GOTO_FOUND" ]; then
+            echo "❌ Found raw page.goto in golden/gate:"
+            echo "$GOTO_FOUND"
             exit 1
           fi
           echo "✅ page.goto guard OK"
 
           echo "Guard: No locale-prefixed API calls like /sq/api"
-          if grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" ; then
-            echo "❌ Found locale-prefixed API calls"
+          API_FOUND=$(grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" || true)
+          if [ -n "$API_FOUND" ]; then
+            echo "❌ Found locale-prefixed API calls:"
+            echo "$API_FOUND"
             exit 1
           fi
           echo "✅ API prefix guard OK"
