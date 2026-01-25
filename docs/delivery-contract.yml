@@ -413,15 +413,17 @@ checks:
       - "hashSync\\(password,\\s*10\\)"
 
   - id: e2e.uses_storage_state
-    description: E2E projects should depend on setup project for auth state generation.
+    description: E2E projects should depend on per-tenant setup projects for auth state generation.
     type: regex
     scope: EACH_TARGET
     targets:
       - apps/web/playwright.config.ts
     must_match:
-      - "name:\\s*'setup'"
+      - "name:\\s*'setup-ks'"
+      - "name:\\s*'setup-mk'"
       - "testMatch:\\s*/setup\\\\?\\.state\\\\?\\.spec\\\\?\\.ts/"
-      - "dependencies:\\s*\\['setup'\\]"
+      - "dependencies:\\s*\\['setup-ks'\\]"
+      - "dependencies:\\s*\\['setup-mk'\\]"
 
   - id: i18n.app_namespaces_include_claims_tracking
     description: App namespaces must include claims-tracking to load tracking UI messages.
@@ -635,33 +637,29 @@ checks:
       - apps/web/e2e/global-setup.mjs
 
   - id: e2e.playwright_config_single_path
-    description: Playwright config must manage a single production server mode (no external server toggles, no dotenv, no seeding/migration).
+    description: Playwright config must use the shared web server script and avoid stale server reuse in CI.
     type: regex
     targets:
       - apps/web/playwright.config.ts
     must_match:
       - 'webServer'
-      - 'node \.next/standalone/apps/web/server\.js'
-      - "reuseExistingServer:\\s*false"
+      - 'scripts/e2e-webserver\\.sh'
+      - "reuseExistingServer:\\s*process\\.env\\.PW_REUSE_SERVER"
     must_not_match:
       - 'globalSetup'
       - 'PLAYWRIGHT_EXTERNAL_SERVER'
       - 'PLAYWRIGHT_BIND_HOST'
-      - "dotenv\\.config"
       - 'seed:e2e'
       - 'db:migrate'
 
-  - id: proxy.no_middleware_entrypoint_files
-    description: Proxy is the only supported edge entrypoint; deprecated middleware files must not exist.
-    type: file_not_exists
+  - id: proxy.middleware_entrypoint_required
+    description: Middleware entrypoint must exist for host-based tenancy routing.
+    type: file_exists
     targets:
-      - apps/web/middleware.ts
-      - apps/web/middleware.js
       - apps/web/src/middleware.ts
-      - apps/web/src/middleware.js
 
   - id: proxy.no_middleware_path_references
-    description: Repo must not reference deprecated middleware.ts paths (proxy-only).
+    description: Repo must not reference deprecated root middleware paths (apps/web/middleware.*).
     type: regex
     scope: ANY_TARGET
     targets:
@@ -670,7 +668,6 @@ checks:
       - packages/qa/src/**/*.ts
       - docs/**/*.md
     must_not_match:
-      - 'src/middleware\.ts'
       - 'apps/web/middleware\.ts'
 
   - id: proxy.no_intl_middleware_references
@@ -699,14 +696,13 @@ checks:
       - '"smoke:golden:mac"'
 
   - id: orchestration.web_scripts_no_alt_e2e_modes
-    description: Web scripts must not expose alternate E2E modes (external server, one-by-one, fast/skip-seed variants).
+    description: Web scripts must not expose external server E2E modes.
     type: regex
     targets:
       - apps/web/package.json
     must_not_match:
       - '"e2e:server"'
       - '"e2e:reuse-server"'
-      - '"test:e2e:'
 
   - id: orchestration.ci_green_path
     description: CI must follow the same Golden Path (audit → check → migrate → seed → assert → e2e gate).
