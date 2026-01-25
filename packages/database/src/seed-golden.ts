@@ -752,9 +752,21 @@ export async function seedGolden(config: SeedConfig) {
       branchId: 'ks_branch_a',
       agentId: 'ks_agent_a1',
       firstName: 'FollowUp',
-      lastName: 'Due KS',
-      email: 'followup.ks@example.com',
+      lastName: 'Due Today KS',
+      email: 'followup.ks.1@example.com',
       note: 'Call to finalize deal',
+      nextStepAt: at(), // Today (due)
+    },
+    {
+      id: 'ks_followup_lead_2',
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_a',
+      agentId: 'ks_agent_a1',
+      firstName: 'FollowUp',
+      lastName: 'Overdue KS',
+      email: 'followup.ks.2@example.com',
+      note: 'Urgent check-in',
+      nextStepAt: at(-3 * 24 * 60 * 60 * 1000), // 3 days ago
     },
     {
       id: 'mk_followup_lead_1',
@@ -765,6 +777,7 @@ export async function seedGolden(config: SeedConfig) {
       lastName: 'Due MK',
       email: 'followup.mk@example.com',
       note: 'Collect documents',
+      nextStepAt: at(-1 * 24 * 60 * 60 * 1000), // Yesterday
     },
   ];
 
@@ -781,7 +794,7 @@ export async function seedGolden(config: SeedConfig) {
         email: l.email,
         phone: '+000000000',
         status: 'contacted',
-        nextStepAt: at(-1 * 24 * 60 * 60 * 1000), // Due yesterday
+        nextStepAt: l.nextStepAt,
         nextStepNote: l.note,
       })
       .onConflictDoNothing();

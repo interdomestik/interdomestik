@@ -66,7 +66,8 @@
           "payment_pending": "Čeka Plaćanje",
           "converted": "Konvertovan",
           "disqualified": "Diskvalifikovan",
-          "expired": "Istekao"
+          "expired": "Istekao",
+          "contacted": "Kontaktirano"
         }
       }
     }

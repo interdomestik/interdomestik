@@ -66,7 +66,8 @@
           "payment_pending": "Payment Pending",
           "converted": "Converted",
           "disqualified": "Disqualified",
-          "expired": "Expired"
+          "expired": "Expired",
+          "contacted": "Contacted"
         }
       }
     }

@@ -24,7 +24,7 @@ loadEnvFromRoot();
 async function assertSeed() {
   const { db } = await import('./db');
   const schema = await import('./schema');
-  const { and, eq, inArray, ne } = await import('drizzle-orm');
+  const { and, eq, inArray, isNotNull, lte, ne } = await import('drizzle-orm');
   // We can use a raw query or import schema if needed, but raw is safer for a quick check.
   // seed_meta table: id, version, mode, run_at
 
@@ -96,6 +96,48 @@ async function assertSeed() {
     }
 
     console.log(`✅ Share Pack documents: ${docs.length} found`);
+    console.log(`✅ Share Pack documents: ${docs.length} found`);
+
+    // Monitor Follow-Ups
+    console.log('🔍 Asserting Agent Follow-ups exist...');
+    const ksFollowUps = await db
+      .select({ count: isNotNull(schema.memberLeads.id) })
+      .from(schema.memberLeads)
+      .where(
+        and(
+          eq(schema.memberLeads.tenantId, 'tenant_ks'),
+          eq(schema.memberLeads.agentId, goldenId('ks_agent_a1')),
+          isNotNull(schema.memberLeads.nextStepAt),
+          lte(schema.memberLeads.nextStepAt, new Date())
+        )
+      );
+
+    const mkFollowUps = await db
+      .select({ count: isNotNull(schema.memberLeads.id) })
+      .from(schema.memberLeads)
+      .where(
+        and(
+          eq(schema.memberLeads.tenantId, 'tenant_mk'),
+          eq(schema.memberLeads.agentId, goldenId('mk_agent_a1')),
+          isNotNull(schema.memberLeads.nextStepAt),
+          lte(schema.memberLeads.nextStepAt, new Date())
+        )
+      );
+
+    if (ksFollowUps.length !== 2) {
+      console.error(
+        `❌ Seed invariant failed: Expected 2 KS follow-ups, found ${ksFollowUps.length}`
+      );
+      process.exit(1);
+    }
+    if (mkFollowUps.length !== 1) {
+      console.error(
+        `❌ Seed invariant failed: Expected 1 MK follow-up, found ${mkFollowUps.length}`
+      );
+      process.exit(1);
+    }
+    console.log(`✅ Follow-ups verified: KS=${ksFollowUps.length}, MK=${mkFollowUps.length}`);
+
     process.exit(0);
   } catch (err: any) {
     // If table doesn't exist or query fails

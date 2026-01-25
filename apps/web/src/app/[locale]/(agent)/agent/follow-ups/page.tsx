@@ -61,7 +61,7 @@ export default async function AgentFollowUpsPage() {
             </TableHeader>
             <TableBody>
               {leads.map(lead => (
-                <TableRow key={lead.id} data-testid="followups-item">
+                <TableRow key={lead.id} data-testid={`followup-row-${lead.id}`}>
                   <TableCell>{lead.firstName}</TableCell>
                   <TableCell>{lead.lastName}</TableCell>
                   <TableCell>{lead.status}</TableCell>
