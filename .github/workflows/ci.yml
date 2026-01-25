@@ -134,14 +134,14 @@ jobs:
       - name: DB migrations
         run: pnpm db:migrate
 
-      - name: Golden Path - Check
-        run: pnpm check
-
       - name: Seed E2E
         run: pnpm seed:e2e
 
       - name: Assert DB seeded
         run: pnpm --filter @interdomestik/database seed:assert-e2e
+
+      - name: Golden Path - Check
+        run: pnpm check
 
       - name: E2E Gate Tests
         run: pnpm --filter @interdomestik/web e2e:gate
