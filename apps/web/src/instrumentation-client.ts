@@ -12,3 +12,5 @@ Sentry.init({
   environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || process.env.NODE_ENV,
   enabled: isEnabled,
 });
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
