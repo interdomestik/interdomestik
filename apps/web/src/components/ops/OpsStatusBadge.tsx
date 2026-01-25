@@ -6,6 +6,7 @@ interface OpsStatusBadgeProps {
   label: string;
   variant?: 'neutral' | 'info' | 'warning' | 'success' | 'danger';
   className?: string;
+  status?: string;
 }
 
 const VARIANTS: Record<NonNullable<OpsStatusBadgeProps['variant']>, string> = {
@@ -16,10 +17,15 @@ const VARIANTS: Record<NonNullable<OpsStatusBadgeProps['variant']>, string> = {
   danger: 'bg-red-100 text-red-700 border-red-200',
 };
 
-export function OpsStatusBadge({ label, variant = 'neutral', className }: OpsStatusBadgeProps) {
+export function OpsStatusBadge({
+  label,
+  variant = 'neutral',
+  className,
+  status,
+}: OpsStatusBadgeProps) {
   const classes = [VARIANTS[variant], className].filter(Boolean).join(' ');
   return (
-    <Badge className={classes} data-testid="ops-status-badge">
+    <Badge className={classes} data-testid="ops-status-badge" data-status={status}>
       {label}
     </Badge>
   );

@@ -61,6 +61,7 @@ export function LanguageSettings() {
             <SelectTrigger
               id="language-select"
               className="w-full max-w-xs bg-background/50 border-border/50 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
+              data-testid="language-select"
             >
               <SelectValue>
                 {currentLocale ? (
@@ -75,7 +76,11 @@ export function LanguageSettings() {
             </SelectTrigger>
             <SelectContent>
               {SUPPORTED_LOCALES.map(loc => (
-                <SelectItem key={loc.code} value={loc.code}>
+                <SelectItem
+                  key={loc.code}
+                  value={loc.code}
+                  data-testid={`language-option-${loc.code}`}
+                >
                   <span className="flex items-center gap-2">
                     <span>{loc.flag}</span>
                     <span>{loc.name}</span>

@@ -119,6 +119,9 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
       ],
       onClick: () => handleRowClick(lead.id),
       testId: `lead-row-${lead.id}`,
+      dataAttributes: {
+        'data-email': lead.email,
+      },
     };
   });
 

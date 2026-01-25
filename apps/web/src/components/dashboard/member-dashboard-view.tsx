@@ -69,13 +69,19 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
     <div className="space-y-8 animate-fade-in pb-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('overview')}</h1>
+          <h1
+            className="text-3xl font-bold tracking-tight text-foreground"
+            data-testid="dashboard-heading"
+          >
+            {t('overview')}
+          </h1>
           <p className="text-muted-foreground">{t('welcome_back')}</p>
         </div>
 
         {/* Protection Status Badge */}
         <div
           data-testid="protection-status"
+          data-status={isActive ? 'active' : 'inactive'}
           className="flex items-center gap-2 px-4 py-2 bg-white/50 backdrop-blur-sm border rounded-2xl shadow-sm"
         >
           <div
@@ -161,7 +167,10 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
           </Card>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="shadow-premium hover:shadow-premium-hover transition-all duration-300 group border-none bg-white/50 backdrop-blur-sm">
+            <Card
+              className="shadow-premium hover:shadow-premium-hover transition-all duration-300 group border-none bg-white/50 backdrop-blur-sm"
+              data-testid="stats-card-active-claims"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="space-y-1">
                   <CardTitle className="text-sm font-medium">{t('activeClaims')}</CardTitle>
@@ -172,12 +181,17 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold">{stats.active}</p>
+                  <p className="text-3xl font-bold" data-testid="stats-value-active-claims">
+                    {stats.active}
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="shadow-premium hover:shadow-premium-hover transition-all duration-300 group border-none bg-white/50 backdrop-blur-sm">
+            <Card
+              className="shadow-premium hover:shadow-premium-hover transition-all duration-300 group border-none bg-white/50 backdrop-blur-sm"
+              data-testid="stats-card-total-saved"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="space-y-1">
                   <CardTitle className="text-sm font-medium">{t('totalSaved')}</CardTitle>
@@ -188,12 +202,17 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold">€{stats.recovered.toFixed(2)}</p>
+                  <p className="text-3xl font-bold" data-testid="stats-value-total-saved">
+                    €{stats.recovered.toFixed(2)}
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="shadow-premium hover:shadow-premium-hover transition-all duration-300 group border-none bg-white/50 backdrop-blur-sm">
+            <Card
+              className="shadow-premium hover:shadow-premium-hover transition-all duration-300 group border-none bg-white/50 backdrop-blur-sm"
+              data-testid="stats-card-action-items"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="space-y-1">
                   <CardTitle className="text-sm font-medium">{t('actionItems')}</CardTitle>
@@ -204,7 +223,9 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold">{stats.active}</p>
+                  <p className="text-3xl font-bold" data-testid="stats-value-action-items">
+                    {stats.active}
+                  </p>
                 </div>
               </CardContent>
             </Card>

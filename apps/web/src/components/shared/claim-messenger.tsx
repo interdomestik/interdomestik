@@ -118,6 +118,7 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
                       msg.senderId === currentUserId,
                       msg.isInternal
                     )}`}
+                    data-testid="message-content"
                   >
                     {msg.content}
                   </div>
@@ -155,8 +156,13 @@ export function ClaimMessenger({ claimId, currentUserId, userRole }: ClaimMessen
               onChange={e => setNewMessage(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
               disabled={isPending}
+              data-testid="message-input"
             />
-            <Button onClick={handleSend} disabled={!newMessage.trim() || isPending}>
+            <Button
+              onClick={handleSend}
+              disabled={!newMessage.trim() || isPending}
+              data-testid="send-message-button"
+            >
               {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

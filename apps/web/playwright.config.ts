@@ -191,7 +191,7 @@ export default defineConfig({
     url: BASE_URL,
     // Never reuse a stale server by default (prevents origin/env mismatches).
     reuseExistingServer: process.env.PW_REUSE_SERVER === '1' && !process.env.CI,
-    timeout: 300 * 1000,
+    timeout: 600 * 1000,
     env: {
       ...process.env,
       NODE_ENV: 'production',

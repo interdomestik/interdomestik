@@ -1,8 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
+
 test.describe('Security Headers', () => {
-  test('should have strict security headers', async ({ page }) => {
-    const response = await page.goto('/');
+  test('should have strict security headers', async ({ page }, testInfo) => {
+    const response = await gotoApp(page, routes.home(testInfo), testInfo, { marker: 'body' });
     expect(response?.ok()).toBeTruthy();
 
     const headers = response?.headers();

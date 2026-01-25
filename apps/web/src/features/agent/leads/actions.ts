@@ -2,7 +2,6 @@
 
 import { auth } from '@/lib/auth';
 import { db, memberLeads } from '@interdomestik/database';
-import { startPayment } from '@interdomestik/domain-leads';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -32,29 +31,16 @@ export async function updateLeadStatus(leadId: string, status: string) {
     throw new Error('Lead not found or access denied');
   }
 
-  // If requesting payment, we MUST create a payment attempt record
-  if (status === 'payment_pending') {
-    // Default to Cash 150 EUR for Ops Flow MVP
-    await startPayment(
-      { tenantId },
-      {
-        leadId,
-        method: 'cash',
-        amountCents: 15000,
-        priceId: 'default_membership',
-      }
-    );
-  } else {
-    await db
-      .update(memberLeads)
-      .set({
-        status: status as any,
-        updatedAt: new Date(),
-      })
-      .where(eq(memberLeads.id, leadId));
-  }
+  await db
+    .update(memberLeads)
+    .set({
+      status: status as any,
+      updatedAt: new Date(),
+    })
+    .where(eq(memberLeads.id, leadId));
 
-  revalidatePath('/[locale]/(app)/agent/leads');
+  // Revalidate the agent leads list across locales.
+  revalidatePath('/agent/leads');
   return { success: true };
 }
 

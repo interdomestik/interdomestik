@@ -26,7 +26,7 @@ export default async function CRMPage({
   const stats = await getAgentCrmStatsCore({ agentId });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="crm-page-ready">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">{t('crm')}</h1>
       </div>

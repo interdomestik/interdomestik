@@ -49,13 +49,15 @@ export default async function DashboardLayout({
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
       <div data-testid="dashboard-page-ready">
-        <SidebarProvider defaultOpen={true}>
-          <DashboardSidebar />
-          <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-            <DashboardHeader />
-            <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
-          </SidebarInset>
-        </SidebarProvider>
+        <div data-testid="member-dashboard-ready">
+          <SidebarProvider defaultOpen={true}>
+            <DashboardSidebar />
+            <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+              <DashboardHeader />
+              <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
+            </SidebarInset>
+          </SidebarProvider>
+        </div>
       </div>
     </NextIntlClientProvider>
   );
