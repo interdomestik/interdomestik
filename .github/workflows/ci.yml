@@ -131,11 +131,11 @@ jobs:
       - name: Delivery Contract Audit
         run: pnpm track:audit
 
-      - name: Golden Path - Check
-        run: pnpm check
-
       - name: DB migrations
         run: pnpm db:migrate
+
+      - name: Golden Path - Check
+        run: pnpm check
 
       - name: Seed E2E
         run: pnpm seed:e2e
