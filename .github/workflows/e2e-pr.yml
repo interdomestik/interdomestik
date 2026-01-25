@@ -60,7 +60,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts"
+          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
             | grep -vE "apps/web/e2e/gate/tenant-resolution.spec.ts|apps/web/e2e/golden/legacy/" ; then
             echo "❌ raw page.goto found in golden/gate"
             exit 1
