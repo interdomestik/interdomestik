@@ -643,7 +643,7 @@ checks:
       - apps/web/playwright.config.ts
     must_match:
       - 'webServer'
-      - 'scripts/e2e-webserver\\.sh'
+      - 'scripts/e2e-webserver\.sh'
       - "reuseExistingServer:\\s*process\\.env\\.PW_REUSE_SERVER"
     must_not_match:
       - 'globalSetup'
