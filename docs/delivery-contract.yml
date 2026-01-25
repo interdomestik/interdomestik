@@ -652,9 +652,15 @@ checks:
       - 'seed:e2e'
       - 'db:migrate'
 
-  - id: proxy.middleware_entrypoint_required
-    description: Middleware entrypoint must exist for host-based tenancy routing.
+  - id: proxy.proxy_entrypoint_required
+    description: Proxy entrypoint must exist for host-based tenancy routing.
     type: file_exists
+    targets:
+      - apps/web/src/proxy.ts
+
+  - id: proxy.middleware_entrypoint_removed
+    description: Middleware entrypoint must be removed (proxy-only migration).
+    type: file_not_exists
     targets:
       - apps/web/src/middleware.ts
 
