@@ -5,7 +5,7 @@ import {
   TENANT_COOKIE_NAME,
   TENANT_HEADER_NAME,
 } from './lib/tenant/tenant-hosts';
-import proxy from './lib/proxy';
+import libProxy from './lib/proxy';
 
 function getRequestHost(req: NextRequest): string {
   const headerHost = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
@@ -26,7 +26,7 @@ function getRequestHost(req: NextRequest): string {
   return '';
 }
 
-export default async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const requestHost = getRequestHost(req);
   const hostTenant = resolveTenantFromHost(requestHost);
 
@@ -49,7 +49,7 @@ export default async function middleware(req: NextRequest) {
   }
 
   // 2. Chain to Proxy (next-intl + security) with updated headers
-  const response = await proxy(
+  const response = await libProxy(
     new NextRequest(req.url, {
       ...req,
       headers: requestHeaders,
