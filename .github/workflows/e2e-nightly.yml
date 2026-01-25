@@ -20,7 +20,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
           POSTGRES_DB: interdomestik_test
         ports:
           - 5432:5432
@@ -35,7 +35,7 @@ jobs:
       PLAYWRIGHT: '1'
       NEXT_PUBLIC_BILLING_TEST_MODE: '1'
       PW_REUSE_SERVER: '1'
-      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}@127.0.0.1:5432/interdomestik_test
+      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD }}@127.0.0.1:5432/interdomestik_test
 
     steps:
       - name: Checkout
