@@ -41,6 +41,14 @@ jobs:
         with:
           version: '10.25.0'
 
+      - name: Check Docs Contract
+        run: |
+          STRICT_FLAG=""
+          if git diff --name-only origin/main...HEAD | grep -E "README.md|AGENTS.md|apps/web/e2e/README.md"; then
+            STRICT_FLAG="--strict"
+          fi
+          node scripts/check-docs-contract.mjs $STRICT_FLAG
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -63,7 +71,7 @@ jobs:
           echo "Checking for raw page.goto in golden/gate..."
           GOTO_FOUND=$(grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
             | grep -vE "apps/web/e2e/gate/tenant-resolution.spec.ts|apps/web/e2e/golden/legacy/" || true)
-          
+
           if [ -n "$GOTO_FOUND" ]; then
             echo "❌ raw page.goto found in golden/gate:"
             echo "$GOTO_FOUND"

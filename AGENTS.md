@@ -41,8 +41,7 @@ We enforce strict E2E contracts to ensure stability across tenants (ks/mk) and l
 
    ```bash
    pnpm --filter @interdomestik/database seed:e2e
-   pnpm --filter @interdomestik/database seed:e2e
-   pnpm --filter @interdomestik/web test:e2e -- apps/web/e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk
+   pnpm boot:e2e
    ```
 
 4. **Full Suite (stabilization lane)**

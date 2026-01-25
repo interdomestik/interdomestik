@@ -162,13 +162,12 @@ We enforce strict E2E guidelines to ensure stability in our multi-tenant, multi-
 3.  **Seed / Resume Contract**:
 
     ```bash
-    pnpm --filter @interdomestik/database seed:e2e
-    pnpm --filter @interdomestik/web test:e2e -- apps/web/e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk
+    pnpm boot:e2e
     ```
 
 4.  **Full Suite (Optional)**:
     ```bash
-    PW_REUSE_SERVER=1 pnpm --filter @interdomestik/web test:e2e -- --max-failures=20 --trace=retain-on-failure --reporter=line
+    pnpm test:e2e
     ```
 
 ## 🏠 Local Multi-Tenant Hosts

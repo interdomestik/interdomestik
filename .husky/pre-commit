@@ -22,6 +22,12 @@ if echo "$STAGED" | grep -Eq '(\.ts|\.tsx|\.js|\.jsx|\.mjs|\.cjs)$'; then
   exit 0
 fi
 
-# 3. Everything else (Docs/Config) => Skip
+# 3. Docs changed => run contract check
+if echo "$STAGED" | grep -Eq '^(README\.md|AGENTS\.md|apps/web/e2e/README\.md)$'; then
+  echo "🛡️ Docs changed. Running check-docs-contract.mjs --strict..."
+  node scripts/check-docs-contract.mjs --strict
+fi
+
+# 4. Everything else (Docs/Config) => Skip
 echo "⏩ No code/E2E changes. Skipping checks."
 exit 0

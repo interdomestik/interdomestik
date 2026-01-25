@@ -92,7 +92,7 @@ export async function ensureAuthenticated(
   );
   // Navigate using gotoApp (handles locale). Use a permissive marker first so
   // we can detect auth redirects (e.g., bounced to /login).
-  await gotoApp(page, targetPath, testInfo, { marker: 'body', waitUntil: 'domcontentloaded' });
+  await gotoApp(page, targetPath, testInfo, { marker: 'body' });
 
   // Check if we bounced to login (login page uses auth-ready)
   const isLoginPage = await page
