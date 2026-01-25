@@ -96,6 +96,7 @@ export default defineConfig({
     {
       name: 'gate-ks-sq',
       testMatch: ['gate/**/*.spec.ts'],
+      dependencies: ['setup-ks'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${KS_HOST}/sq`,
@@ -110,6 +111,7 @@ export default defineConfig({
     {
       name: 'gate-mk-mk',
       testMatch: ['gate/**/*.spec.ts'],
+      dependencies: ['setup-mk'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${MK_HOST}/mk`,

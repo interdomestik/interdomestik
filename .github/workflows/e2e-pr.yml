@@ -63,6 +63,19 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
+      - name: Verify supabase CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -x node_modules/.bin/supabase ] || [ -x packages/database/node_modules/.bin/supabase ]; then
+            echo "✅ supabase CLI present"
+          else
+            echo "❌ supabase CLI missing"
+            ls -la node_modules/.bin || true
+            ls -la packages/database/node_modules/.bin || true
+            exit 1
+          fi
+
       - name: Install Playwright browsers
         run: pnpm --filter @interdomestik/web exec playwright install --with-deps
 
