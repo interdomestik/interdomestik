@@ -47,7 +47,7 @@ jobs:
       # Secrets (mocked or from secrets)
       PADDLE_WEBHOOK_SECRET_KEY: test_secret
       PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
-      BETTER_AUTH_SECRET: test_secret_ci
+      BETTER_AUTH_SECRET: test_secret_ci_please_rotate_32chars_minimum_1234
       NODE_OPTIONS: --max-old-space-size=8192
 
     steps:
