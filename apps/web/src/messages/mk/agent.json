@@ -6,10 +6,26 @@
     "proWorkspace": "Pro Workspace",
     "myNewLeads": "My New Leads",
     "reviewAndContact": "Review and contact",
-    "myFollowUps": "My Follow-ups",
-    "followUpsTitle": "My Follow-ups",
-    "comingSoon": "Coming soon",
-    "myActiveClaims": "My Active Claims",
+    "myFollowUps": "Мои следења",
+    "followUpsTitle": "Мои следења",
+    "comingSoon": "Наскоро",
+    "follow_ups": {
+      "dueForAction": "Следења во тек",
+      "noFollowUps": "Нема продолженија за приказ",
+      "status": {
+        "pending": "Во чекање",
+        "completed": "Завршено"
+      },
+      "tabs": {
+        "pending": "Во чекање",
+        "done": "Завршени"
+      },
+      "markDone": "Заврши",
+      "markDoneSuccess": "Следењето е означено како завршено",
+      "note": "Белешка"
+    },
+
+    "myActiveClaims": "Мои активни барања",
     "claims": "Claims",
     "members": "Members",
     "stats": {
@@ -292,6 +308,19 @@
       "you": "You",
       "deals": "deals",
       "yourRank": "Your rank"
+    },
+    "dailyFocus": {
+      "priority": "Приоритет",
+      "start": "Нов Почеток",
+      "greatJob": "Одлична Работа!",
+      "followupTitle": "{count, plural, =1 {1 Заостаната задача} other {# Заостанати задачи}}",
+      "followupDesc": "Овие членови го чекаат вашиот одговор. Контактирајте ги сега.",
+      "leadsTitle": "{count, plural, =1 {1 Нов Потенцијален Клиент} other {# Нови Потенцијални Клиенти}}",
+      "leadsDesc": "Потенцијални нови членови! Прегледајте и контактирајте.",
+      "emptyTitle": "Се е завршено!",
+      "emptyDesc": "Нема итни задачи во моментот. Проверете подоцна.",
+      "actionFollowUp": "Види Задачи",
+      "actionLeads": "Види Клиенти"
     }
   }
 }

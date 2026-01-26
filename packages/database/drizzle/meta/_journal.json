@@ -218,6 +218,13 @@
       "when": 1769371413976,
       "tag": "0030_late_psynapse",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1769378842569,
+      "tag": "0031_add_member_followups",
+      "breakpoints": true
     }
   ]
 }

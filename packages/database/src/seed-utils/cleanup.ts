@@ -75,6 +75,11 @@ export async function cleanupByPrefixes(
     .delete(dbSchema.memberLeads)
     .where(or(...likePatterns.map(p => like(dbSchema.memberLeads.id, p))));
 
+  // 3b. Delete Member Followups
+  await db
+    .delete(dbSchema.memberFollowups)
+    .where(or(...likePatterns.map(p => like(dbSchema.memberFollowups.id, p))));
+
   // 4. Delete Subscriptions & Cards
   await db
     .delete(dbSchema.membershipCards)
@@ -274,6 +279,16 @@ export async function cleanupByPrefixes(
         .delete(dbSchema.sharePacks)
         .where(inArray(dbSchema.sharePacks.createdByUserId, allUserIds));
     }
+
+    // 7g. Delete Member Followups related to these users
+    await db
+      .delete(dbSchema.memberFollowups)
+      .where(
+        or(
+          inArray(dbSchema.memberFollowups.agentId, allUserIds),
+          inArray(dbSchema.memberFollowups.memberId, allUserIds)
+        )
+      );
 
     // Finally delete the users
     await db.delete(dbSchema.user).where(inArray(dbSchema.user.id, allUserIds));

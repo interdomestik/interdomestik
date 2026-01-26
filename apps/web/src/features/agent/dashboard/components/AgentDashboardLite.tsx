@@ -2,6 +2,7 @@ import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { ArrowRight, ClipboardList, TrendingUp, Users } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { DailyFocus } from './DailyFocus';
 
 interface AgentDashboardLiteProps {
   newLeadsCount: number;
@@ -40,6 +41,8 @@ export async function AgentDashboardLite({
           {t('proWorkspace')} <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
+
+      <DailyFocus followUpsCount={followUpsCount} newLeadsCount={newLeadsCount} />
 
       <div className="grid gap-6 md:grid-cols-3">
         {/* My New Leads */}

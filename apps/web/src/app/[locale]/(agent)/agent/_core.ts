@@ -4,10 +4,11 @@ import {
   claims,
   crmDeals,
   crmLeads,
+  memberFollowups,
   memberLeads,
   subscriptions,
 } from '@interdomestik/database/schema';
-import { and, count, eq, inArray, isNotNull, lte, not, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, not, sql } from 'drizzle-orm';
 
 export interface AgentDashboardServices {
   db: {
@@ -37,14 +38,8 @@ export async function getAgentDashboardLiteCore(
 
   const [followUps] = await db
     .select({ count: count() })
-    .from(memberLeads)
-    .where(
-      and(
-        eq(memberLeads.agentId, agentId),
-        isNotNull(memberLeads.nextStepAt),
-        lte(memberLeads.nextStepAt, new Date())
-      )
-    );
+    .from(memberFollowups)
+    .where(and(eq(memberFollowups.agentId, agentId), eq(memberFollowups.status, 'pending')));
 
   return {
     newLeadsCount: Number(newLeads?.count ?? 0),

@@ -9,6 +9,21 @@
     "myFollowUps": "Ndjekjet e mia",
     "followUpsTitle": "Ndjekjet e mia",
     "comingSoon": "Së shpejti",
+    "follow_ups": {
+      "dueForAction": "Ndjekjet në pritje",
+      "noFollowUps": "Nuk ka ndjekje në pritje.",
+      "markDone": "Përfundo",
+      "markDoneSuccess": "Ndjekja u shënua si e përfunduar",
+      "note": "Shënim",
+      "status": {
+        "pending": "Në pritje",
+        "completed": "E përfunduar"
+      },
+      "tabs": {
+        "pending": "Në pritje",
+        "done": "Të përfunduara"
+      }
+    },
     "myActiveClaims": "Dëmet e mia aktive",
     "leads": "Lead-et",
     "leads_list": {
@@ -149,6 +164,19 @@
         "won": "Fituar",
         "lost": "Humbur"
       }
+    },
+    "dailyFocus": {
+      "priority": "Prioritet",
+      "start": "Fillim i Mbarë",
+      "greatJob": "Punë e Shkëlqyer!",
+      "followupTitle": "{count, plural, =1 {1 Ndjekje e Vonuar} other {# Ndjekje të Vonuara}}",
+      "followupDesc": "Këta anëtarë po presin përgjigjen tuaj. Kontaktoni tani.",
+      "leadsTitle": "{count, plural, =1 {1 Lead i Ri} other {# Leade të Reja}}",
+      "leadsDesc": "Anëtarë të mundshëm! Rishikoni dhe kontaktoni menjeherë.",
+      "emptyTitle": "Jeni në rregull!",
+      "emptyDesc": "Nuk ka detyra urgjente. Kontrolloni më vonë ose rishikoni dëmet aktive.",
+      "actionFollowUp": "Shiko Ndjekjet",
+      "actionLeads": "Shiko Lead-et"
     }
   }
 }

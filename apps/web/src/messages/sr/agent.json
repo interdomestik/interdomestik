@@ -6,10 +6,26 @@
     "proWorkspace": "Pro Workspace",
     "myNewLeads": "My New Leads",
     "reviewAndContact": "Review and contact",
-    "myFollowUps": "My Follow-ups",
-    "followUpsTitle": "My Follow-ups",
-    "comingSoon": "Coming soon",
-    "myActiveClaims": "My Active Claims",
+    "myFollowUps": "Moja praćenja",
+    "followUpsTitle": "Moja praćenja",
+    "comingSoon": "Uskoro",
+    "follow_ups": {
+      "dueForAction": "Praćenja u toku",
+      "noFollowUps": "Нема наставака за приказ",
+      "status": {
+        "pending": "На чекању",
+        "completed": "Завршено"
+      },
+      "tabs": {
+        "pending": "На чекању",
+        "done": "Завршени"
+      },
+
+      "markDone": "Završi",
+      "markDoneSuccess": "Praćenje je označeno kao završeno",
+      "note": "Beleška"
+    },
+    "myActiveClaims": "Moja aktivna potraživanja",
     "leads": "Potencijalni klijenti",
     "leads_list": {
       "title": "Upravljanje potencijalnim klijentima",
@@ -295,6 +311,19 @@
       "you": "You",
       "deals": "deals",
       "yourRank": "Your rank"
+    },
+    "dailyFocus": {
+      "priority": "Prioritet",
+      "start": "Novi Početak",
+      "greatJob": "Odličan Posao!",
+      "followupTitle": "{count, plural, =1 {1 Zaostali zadatak} other {# Zaostalih zadataka}}",
+      "followupDesc": "Ovi članovi čekaju vaš odgovor. Kontaktirajte ih odmah.",
+      "leadsTitle": "{count, plural, =1 {1 Novi Potencijalni Klijent} other {# Novih Potencijalnih Klijenata}}",
+      "leadsDesc": "Potencijalni novi članovi! Pregledajte i kontaktirajte.",
+      "emptyTitle": "Sve je završeno!",
+      "emptyDesc": "Nema hitnih zadataka trenutno. Proverite kasnije.",
+      "actionFollowUp": "Vidi Zadatke",
+      "actionLeads": "Vidi Klijente"
     }
   }
 }

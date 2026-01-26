@@ -9,6 +9,22 @@
     "myFollowUps": "My Follow-ups",
     "followUpsTitle": "My Follow-ups",
     "comingSoon": "Coming soon",
+    "follow_ups": {
+      "dueForAction": "Due for Action",
+      "noFollowUps": "No follow-ups due.",
+      "markDone": "Done",
+      "markDoneSuccess": "Follow-up marked as completed",
+      "note": "Note",
+      "status": {
+        "pending": "Pending",
+        "completed": "Done"
+      },
+      "tabs": {
+        "pending": "Pending",
+        "done": "Done"
+      }
+    },
+
     "myActiveClaims": "My Active Claims",
     "leads": "Leads",
     "leads_list": {
@@ -150,6 +166,19 @@
         "won": "Won",
         "lost": "Lost"
       }
+    },
+    "dailyFocus": {
+      "priority": "Priority Focus",
+      "start": "Fresh Start",
+      "greatJob": "Great Job!",
+      "followupTitle": "{count, plural, =1 {1 Follow-up Overdue} other {# Follow-ups Overdue}}",
+      "followupDesc": "These members are waiting for your response. Contact them now.",
+      "leadsTitle": "{count, plural, =1 {1 New Lead Assigned} other {# New Leads Assigned}}",
+      "leadsDesc": "Potential new members! Review and reach out to them.",
+      "emptyTitle": "You're all caught up!",
+      "emptyDesc": "No urgent tasks right now. Check back later or review your active claims.",
+      "actionFollowUp": "View Follow-ups",
+      "actionLeads": "View New Leads"
     }
   }
 }

@@ -227,7 +227,7 @@ export async function seedGolden(config: SeedConfig) {
   ];
 
   // 1. Cleanup
-  await cleanupByPrefixes(db, schema, ['golden_', 'pack_ks_', 'member_']);
+  await cleanupByPrefixes(db, schema, ['golden_', 'pack_ks_', 'member_followups', 'member_']);
 
   // Pre-emptive cleanup for specific claim numbers that might conflict if they exist with non-prefixed IDs
   await db
@@ -798,6 +798,60 @@ export async function seedGolden(config: SeedConfig) {
         nextStepNote: l.note,
       })
       .onConflictDoNothing();
+  }
+
+  // 12. Real Member Follow-ups
+  console.log('📅 Seeding Real Member Follow-ups...');
+  const realMemberFollowups = [
+    {
+      id: goldenId('ks_member_followup_1'),
+      tenantId: TENANTS.KS,
+      agentId: goldenId('ks_agent_a1'),
+      memberId: goldenId('ks_a_member_1'),
+      note: 'Kontrollo nëse anëtari e ka marrë policën e sigurimit',
+      dueAt: at(), // Today
+    },
+    {
+      id: goldenId('ks_member_followup_2'),
+      tenantId: TENANTS.KS,
+      agentId: goldenId('ks_agent_a1'),
+      memberId: goldenId('ks_a_member_2'),
+      note: 'Përditësim mbi vlerësimin e dëmit në proces',
+      dueAt: at(-2 * 24 * 60 * 60 * 1000), // 2 days ago
+    },
+    {
+      id: goldenId('mk_member_followup_1'),
+      tenantId: TENANTS.MK,
+      agentId: goldenId('mk_agent_a1'),
+      memberId: goldenId('mk_member_1'),
+      note: 'Welcome call for new member',
+      dueAt: at(-1 * 24 * 60 * 60 * 1000), // Yesterday
+    },
+    {
+      id: goldenId('ks_member_followup_workflow'),
+      tenantId: TENANTS.KS,
+      agentId: goldenId('ks_agent_a1'),
+      memberId: goldenId('ks_a_member_1'),
+      note: 'Workflow Test Item',
+      dueAt: at(-1 * 24 * 60 * 60 * 1000), // Yesterday (Always Overdue)
+    },
+  ];
+
+  // Explicitly delete to ensure fresh state (reset status to pending)
+  const followupIds = realMemberFollowups.map(f => f.id);
+  await db.delete(schema.memberFollowups).where(inArray(schema.memberFollowups.id, followupIds));
+
+  for (const f of realMemberFollowups) {
+    await db
+      .insert(schema.memberFollowups)
+      .values({
+        ...f,
+        status: 'pending',
+      })
+      .onConflictDoUpdate({
+        target: schema.memberFollowups.id,
+        set: { status: 'pending', dueAt: f.dueAt, note: f.note },
+      });
   }
 
   console.log('✅ Golden Seed Baseline & KS Pack Complete!');

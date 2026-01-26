@@ -43,6 +43,7 @@ export const memberLeads = pgTable(
         'lost', // Generic for disqualified/expired/rejected
         'disqualified', // Keep for backward compat if needed
         'expired',
+        'completed',
       ],
     })
       .notNull()
@@ -133,12 +134,59 @@ export const leadPaymentAttempts = pgTable(
   ]
 );
 
+export const memberFollowups = pgTable(
+  'member_followups',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => user.id),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => user.id),
+    status: text('status', {
+      enum: ['pending', 'completed', 'canceled'],
+    })
+      .notNull()
+      .default('pending'),
+    note: text('note'),
+    dueAt: timestamp('due_at').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => [
+    index('idx_member_followups_tenant').on(table.tenantId),
+    index('idx_member_followups_agent').on(table.agentId),
+    index('idx_member_followups_member').on(table.memberId),
+    index('idx_member_followups_status').on(table.status),
+    index('idx_member_followups_due').on(table.dueAt),
+  ]
+);
+
 export const memberLeadsRelations = relations(memberLeads, ({ one, many }) => ({
   branch: one(branches, {
     fields: [memberLeads.branchId],
     references: [branches.id],
   }),
   leadPaymentAttempts: many(leadPaymentAttempts),
+}));
+
+export const memberFollowupsRelations = relations(memberFollowups, ({ one }) => ({
+  agent: one(user, {
+    fields: [memberFollowups.agentId],
+    references: [user.id],
+    relationName: 'agent_followups',
+  }),
+  member: one(user, {
+    fields: [memberFollowups.memberId],
+    references: [user.id],
+    relationName: 'member_followups',
+  }),
 }));
 
 export const leadPaymentAttemptsRelations = relations(leadPaymentAttempts, ({ one }) => ({
