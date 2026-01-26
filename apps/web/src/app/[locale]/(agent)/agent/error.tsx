@@ -20,7 +20,7 @@ export default function AgentError({
   }, [error]);
 
   return (
-    <div className="container max-w-4xl py-12">
+    <div className="container max-w-4xl py-12" data-testid="agent-portal-error">
       <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-900/10">
         <CardHeader className="flex flex-row items-center gap-4 pb-2">
           <div className="p-2 rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-400">

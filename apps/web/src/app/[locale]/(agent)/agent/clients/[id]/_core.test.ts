@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAgentClientProfileCore } from './_core';
 
 const { mockDb } = vi.hoisted(() => {
@@ -43,6 +43,10 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 describe('getAgentClientProfileCore', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('returns not_found if member does not exist', async () => {
     mockDb.query.user.findFirst.mockResolvedValue(null);
 
@@ -60,7 +64,7 @@ describe('getAgentClientProfileCore', () => {
 
     // Mock assignment query returning empty
     // Chain: select().from().where().limit() -> []
-    mockDb.limit.mockResolvedValue([]);
+    mockDb.limit.mockResolvedValueOnce([]);
 
     const result = await getAgentClientProfileCore({
       memberId: 'mem_1',
@@ -70,39 +74,23 @@ describe('getAgentClientProfileCore', () => {
     expect(result).toEqual({ kind: 'forbidden' });
   });
 
-  it('returns ok with data if assigned', async () => {
+  it('returns ok with activities for assigned agent', async () => {
     mockDb.query.user.findFirst.mockResolvedValue({ id: 'mem_1', name: 'Member 1' });
 
-    // Mock assignment found
-    mockDb.limit.mockResolvedValueOnce([{ id: 'assign_1' }]); // assignment check
-
-    // Mock parallel queries
     mockDb.query.subscriptions.findFirst.mockResolvedValue(null);
     mockDb.query.userNotificationPreferences.findFirst.mockResolvedValue(null);
-    mockDb.query.memberActivities.findMany.mockResolvedValue([]);
+    mockDb.query.memberActivities.findMany.mockResolvedValue([{ id: 'activity_1' }]);
 
-    // Mock claims counts (first select chain after assignment)
-    // We need to be careful with chaining mocks in parallel.
-    // Vitest mocks are stateful.
-    // For simplicity in this unit test, let's assume the chained mocks return something appropriate
-    // or we mock the implementation of Promise.all components if simpler.
-    // But since we mocked `db.select`, it returns `mockDb` (this).
-    // The `limit` or `groupBy` needs to return the final data.
-
-    // Reset and refine select mock for multiple calls
     mockDb.select.mockReturnThis();
     mockDb.from.mockReturnThis();
     mockDb.where.mockReturnThis();
     mockDb.groupBy.mockReturnThis();
     mockDb.orderBy.mockReturnThis();
 
-    // 1. Assignment check (limit 1)
     mockDb.limit.mockResolvedValueOnce([{ id: 'assign_1' }]);
 
-    // 2. Claims count (groupBy) -> returns []
     mockDb.groupBy.mockResolvedValueOnce([]);
 
-    // 3. Recent claims (limit RECENT_CLAIMS_LIMIT)
     mockDb.limit.mockResolvedValueOnce([]);
 
     const result = await getAgentClientProfileCore({
@@ -110,6 +98,11 @@ describe('getAgentClientProfileCore', () => {
       viewer: { id: 'agent_1', role: 'agent' },
     });
 
-    expect(result).toMatchObject({ kind: 'ok', member: { id: 'mem_1' } });
+    expect(result).toMatchObject({
+      kind: 'ok',
+      member: { id: 'mem_1' },
+      activities: [{ id: 'activity_1' }],
+    });
+    expect(mockDb.query.memberActivities.findMany).toHaveBeenCalled();
   });
 });

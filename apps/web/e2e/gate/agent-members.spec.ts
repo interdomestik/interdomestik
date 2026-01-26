@@ -98,6 +98,14 @@ test.describe('Agent Members List (Gate)', () => {
     await expect(heading).toHaveText('Anëtarët potencial');
   });
 
+  test('Agent can open leads page without portal error', async ({ page, loginAs }, testInfo) => {
+    await loginAs('agent');
+    await gotoApp(page, '/agent/leads', testInfo, { marker: 'agent-leads-lite' });
+
+    await expect(page.getByTestId('agent-leads-lite')).toBeVisible();
+    await expect(page.getByTestId('agent-portal-error')).toHaveCount(0);
+  });
+
   test('Agent can navigate to member profile', async ({ page, loginAs }, testInfo) => {
     const isMK = testInfo.project.name.includes('mk');
     // const tenant = isMK ? 'mk' : 'ks';
@@ -110,6 +118,8 @@ test.describe('Agent Members List (Gate)', () => {
     await page.getByTestId(`view-profile-${memberId}`).click();
 
     // Assert navigation to profile
+    await page.waitForURL(/\/agent\/clients\//);
     await expect(page.getByTestId('agent-client-profile-page')).toBeVisible();
+    await expect(page.getByTestId('agent-portal-error')).toHaveCount(0);
   });
 });
