@@ -42,7 +42,7 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
   const translationProps = { t, tCommon, tClaims };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-testid="agent-client-profile-page">
       <MemberHeader member={member} membership={membership} {...translationProps} />
 
       <div className="grid gap-6 lg:grid-cols-3">

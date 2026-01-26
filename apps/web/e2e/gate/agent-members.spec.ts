@@ -85,4 +85,31 @@ test.describe('Agent Members List (Gate)', () => {
     // 4. Assert page ready (Pro)
     await expect(page.getByTestId('agent-members-pro-page-ready')).toBeVisible();
   });
+
+  test('SQ Leads page has correct localized heading', async ({ page, loginAs }, testInfo) => {
+    // This test is only relevant for SQ locale
+    if (!testInfo.project.name.includes('sq')) return;
+
+    await loginAs('agent');
+    await gotoApp(page, '/agent/leads', testInfo, { marker: 'agent-leads-lite' });
+
+    // Check heading
+    const heading = page.getByTestId('agent-leads-title');
+    await expect(heading).toHaveText('Anëtarët potencial');
+  });
+
+  test('Agent can navigate to member profile', async ({ page, loginAs }, testInfo) => {
+    const isMK = testInfo.project.name.includes('mk');
+    // const tenant = isMK ? 'mk' : 'ks';
+    const memberId = isMK ? 'golden_mk_member_1' : 'golden_ks_a_member_1';
+
+    await loginAs('agent');
+    await gotoApp(page, '/agent/members', testInfo, { marker: 'agent-members-pro-page-ready' });
+
+    // Click the view profile button for the specific member
+    await page.getByTestId(`view-profile-${memberId}`).click();
+
+    // Assert navigation to profile
+    await expect(page.getByTestId('agent-client-profile-page')).toBeVisible();
+  });
 });

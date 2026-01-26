@@ -15,24 +15,14 @@ import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
-
-// Pro columns
-const columns = [
-  { key: 'lead', header: 'Lead Name & Email' },
-  { key: 'status', header: 'Status' },
-  { key: 'details', header: 'Phone & Branch' },
-  { key: 'meta', header: 'Created / Last Touch' },
-];
-
-const TABS: OpsFilterTab[] = [
-  { id: 'all', label: 'All Leads' },
-  { id: 'new', label: 'New' },
-  { id: 'contacted', label: 'In Progress' },
-  { id: 'converted', label: 'Clients' },
-  { id: 'lost', label: 'Lost' },
-];
+import { useTranslations } from 'next-intl';
 
 export function AgentLeadsProPage({ leads }: { leads: any[] }) {
+  const t = useTranslations('agent.leads_list');
+  const tFilters = useTranslations('agent.leads_list.filters');
+  const tActions = useTranslations('agent.leads_list.actions');
+  const tStatus = useTranslations('agent.leads_list.status');
+
   const { selectedId, setSelectedId, clearSelectedId } = useOpsSelectionParam();
   const [isPending, startTransition] = useTransition();
   const [showSecondary, setShowSecondary] = useState(false);
@@ -42,6 +32,22 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const selectedLead = leads.find(l => l.id === selectedId);
+
+  // Pro columns
+  const columns = [
+    { key: 'lead', header: t('table.name_email') },
+    { key: 'status', header: t('table.status') },
+    { key: 'details', header: t('table.phone_branch') },
+    { key: 'meta', header: t('table.meta') },
+  ];
+
+  const TABS: OpsFilterTab[] = [
+    { id: 'all', label: tFilters('all') },
+    { id: 'new', label: tFilters('new') },
+    { id: 'contacted', label: tFilters('contacted') },
+    { id: 'converted', label: tFilters('converted') },
+    { id: 'lost', label: tFilters('lost') },
+  ];
 
   // Fallback: If selected ID exists but lead not found, clear selection
   useEffect(() => {
@@ -66,19 +72,19 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
       try {
         if (id === 'convert') {
           await convertLeadToClient(selectedLead.id);
-          toast.success('Lead converted successfully');
+          toast.success(t('success_converted'));
         } else if (id === 'mark_contacted') {
           await updateLeadStatus(selectedLead.id, 'contacted');
-          toast.success('Lead marked as contacted');
+          toast.success(t('success_contacted'));
         } else if (id === 'mark_payment_pending') {
           await updateLeadStatus(selectedLead.id, 'payment_pending');
-          toast.success('Payment requested');
+          toast.success(t('paymentSuccess'));
         } else if (id === 'mark_lost') {
           await updateLeadStatus(selectedLead.id, 'lost');
-          toast.success('Lead marked as lost');
+          toast.success(t('success_lost'));
         }
       } catch (e) {
-        toast.error('Action failed');
+        toast.error(t('error_action'));
       }
     });
   };
@@ -86,9 +92,9 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
   // Get actions from policy
   const { primary, secondary } = getLeadActions(selectedLead);
 
-  // Map to OpsActionBar format (inject onClick and disabled state)
-  const mapAction = (config: any) => ({
+  const translateAction = (config: any) => ({
     ...config,
+    label: tActions(config.id),
     onClick: () => handleAction(config.id),
     disabled: isPending || config.disabled,
   });
@@ -118,6 +124,12 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
 
   // Map leads to OpsTable rows
   const tableRows = filteredLeads.map(lead => {
+    const opsStatus = toOpsStatus(lead.status);
+    const translatedStatus = {
+      ...opsStatus,
+      label: tStatus(lead.status),
+    };
+
     return {
       id: lead.id,
       cells: [
@@ -128,7 +140,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
           <span className="text-sm text-muted-foreground">{lead.email}</span>
         </div>,
         <div key="status">
-          <OpsStatusBadge {...toOpsStatus(lead.status)} />
+          <OpsStatusBadge {...translatedStatus} />
         </div>,
         <div key="details" className="flex flex-col text-sm">
           <span>{lead.phone || '-'}</span>
@@ -165,13 +177,13 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Leads Worklist (Pro)</h1>
-            <p className="text-sm text-muted-foreground">Manage and track all your leads.</p>
+            <h1 className="text-2xl font-bold tracking-tight">{t('title_pro')}</h1>
+            <p className="text-sm text-muted-foreground">{t('subtitle_pro')}</p>
           </div>
         </div>
         <Link href="/agent/leads">
           <Button variant="outline" size="sm">
-            Switch to Lite
+            {t('switch_lite')}
           </Button>
         </Link>
       </div>
@@ -183,14 +195,14 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
         onTabChange={setActiveTab}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search leads by name, email, or phone..."
+        searchPlaceholder={t('filters.search_placeholder')}
         searchInputTestId="leads-pro-search"
       />
 
       <div className="flex-1 overflow-hidden border rounded-lg bg-card">
         <OpsQueryState
           isEmpty={filteredLeads.length === 0}
-          emptyTitle="No leads found"
+          emptyTitle={t('filters.search_placeholder')}
           emptySubtitle="Adjust your filters or search query."
         >
           <OpsTable
@@ -211,8 +223,10 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <OpsStatusBadge {...toOpsStatus(selectedLead.status)} />
+                <p className="text-sm font-medium text-muted-foreground">{t('table.status')}</p>
+                <OpsStatusBadge
+                  {...{ ...toOpsStatus(selectedLead.status), label: tStatus(selectedLead.status) }}
+                />
               </div>
               <div className="text-right space-y-1">
                 {/* Reusing details view similar to OpsPage but can be expanded */}
@@ -257,10 +271,10 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
             {primary && (
               <div className="border-t pt-4" data-testid="agent-lead-next-step">
                 <span className="block text-sm font-medium text-muted-foreground mb-3">
-                  Next Step
+                  {t('actions.next_step')}
                 </span>
                 <OpsActionBar
-                  primary={!!primary ? mapAction(primary) : undefined}
+                  primary={!!primary ? translateAction(primary) : undefined}
                   className="pt-0 border-0 mt-0"
                   align="start"
                 />
@@ -273,7 +287,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
                   onClick={() => setShowSecondary(!showSecondary)}
                   className="flex items-center justify-between w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  More Actions
+                  {t('actions.more_actions')}
                   {showSecondary ? (
                     <ChevronUp className="h-4 w-4" />
                   ) : (
@@ -283,7 +297,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
                 {showSecondary && (
                   <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
                     <OpsActionBar
-                      secondary={secondary.map(mapAction)}
+                      secondary={secondary.map(translateAction)}
                       className="pt-0 border-0 mt-0"
                       align="start"
                     />

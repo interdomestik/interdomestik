@@ -39,7 +39,7 @@ export function AgentMembersTable({ users }: AgentMembersTableProps) {
         <TableHeader>
           <TableRow className="hover:bg-transparent border-white/10">
             <TableHead>{t('table.headers.user')}</TableHead>
-            <TableHead>Member ID</TableHead>
+            <TableHead>{t('table.headers.member_id')}</TableHead>
             <TableHead>{t('table.headers.active_claims')}</TableHead>
             <TableHead>{tCommon('joined')}</TableHead>
             <TableHead className="text-right">{t('table.headers.actions')}</TableHead>
@@ -103,6 +103,7 @@ export function AgentMembersTable({ users }: AgentMembersTableProps) {
                     size="sm"
                     variant="ghost"
                     className="h-7 px-2 text-xs hover:bg-blue-500/10 hover:text-blue-500 border border-white/10"
+                    data-testid={`view-profile-${user.id}`}
                   >
                     <Link href={`/agent/clients/${user.id}`}>{t('table.view_profile')}</Link>
                   </Button>

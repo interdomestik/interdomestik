@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database/db';
+import { db } from '@interdomestik/database';
 import {
   agentClients,
   claims,

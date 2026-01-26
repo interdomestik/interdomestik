@@ -11,7 +11,7 @@ import { useEffect, useRef } from 'react';
 export function AgentMembersFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const t = useTranslations('admin.users_filters');
+  const t = useTranslations('agent-members.members.filters');
   const tCommon = useTranslations('common');
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

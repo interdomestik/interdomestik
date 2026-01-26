@@ -26,19 +26,56 @@
       }
     },
     "myActiveClaims": "Dëmet e mia aktive",
-    "leads": "Lead-et",
+    "leads": "Anëtarët potencial",
     "leads_list": {
-      "title": "Menaxhimi i Lead-ve",
+      "title": "Anëtarët potencial",
       "subtitle": "Krijo dhe konverto lead-et në anëtarë.",
+      "title_pro": "Anëtarët potencial (Pro)",
+      "subtitle_pro": "Menaxho dhe gjurmo të gjithë anëtarët potencial.",
+      "switch_lite": "Kalo në Lite",
       "create": "Lead i Ri",
       "createSuccess": "Lead u krijua me sukses",
       "paymentSuccess": "Pagesa u inicua",
+      "success_converted": "Lead u konvertua me sukses",
+      "success_contacted": "Lead u shënua si i kontaktuar",
+      "success_cash": "Pagesa në kesh u regjistrua",
+      "success_lost": "Lead u shënua si i humbur",
+      "error_action": "Veprimi dështoi",
       "table": {
+        "lead": "Lead",
+        "status_next": "Statusi & Hapi Tjetër",
+        "name_email": "Emri & Email",
+        "status": "Statusi",
+        "phone_branch": "Telefoni & Dega",
+        "meta": "Krijuar / Prekja e Fundit",
         "firstName": "Emri",
         "lastName": "Mbiemri",
         "email": "Email",
-        "status": "Statusi",
         "actions": "Veprimet"
+      },
+      "filters": {
+        "all": "Të Gjithë",
+        "new": "Të Reja",
+        "contacted": "Në Proces",
+        "converted": "Klientë",
+        "lost": "Humbur",
+        "search_placeholder": "Kërko sipas emrit, email-it ose telefonit..."
+      },
+      "actions": {
+        "convert": "Konverto në Klient",
+        "mark_contacted": "Shëno të Kontaktuar",
+        "pay_cash": "Paguaj Kesh",
+        "mark_lost": "Shëno Humbur",
+        "next_step": "Hapi Tjetër",
+        "more_actions": "Veprime të Tjera"
+      },
+      "status": {
+        "new": "I/E RE",
+        "contacted": "KONTAKUAR",
+        "payment_pending": "PAGESA NË PRITJE",
+        "converted": "KONVERTUAR",
+        "lost": "HUMBUR",
+        "expired": "SKADUAR"
       },
       "form": {
         "firstName": "Emri",

@@ -94,6 +94,7 @@
         },
         "headers": {
           "user": "Emri",
+          "member_id": "ID Anëtarit",
           "status": "Statusi",
           "active_claims": "Dëme aktive",
           "plan": "Plani",

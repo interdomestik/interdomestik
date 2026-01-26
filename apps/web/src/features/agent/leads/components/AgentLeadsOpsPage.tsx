@@ -15,20 +15,25 @@ import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { convertLeadToClient, updateLeadStatus } from '../actions';
 import { startPaymentAction } from '@/actions/leads/payment';
-
-// Lite columns
-const columns = [
-  { key: 'lead', header: 'Lead' },
-  { key: 'status', header: 'Status & Next Step' },
-];
+import { useTranslations } from 'next-intl';
 
 export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
   const router = useRouter();
+  const t = useTranslations('agent.leads_list');
+  const tActions = useTranslations('agent.leads_list.actions');
+  const tStatus = useTranslations('agent.leads_list.status');
+
   const { selectedId, setSelectedId, clearSelectedId } = useOpsSelectionParam();
   const [isPending, startTransition] = useTransition();
   const [showSecondary, setShowSecondary] = useState(false);
 
   const selectedLead = leads.find(l => l.id === selectedId);
+
+  // Lite columns
+  const columns = [
+    { key: 'lead', header: t('table.lead') },
+    { key: 'status', header: t('table.status_next') },
+  ];
 
   const handleRefresh = () => {
     router.refresh();
@@ -56,10 +61,10 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
       try {
         if (id === 'convert') {
           await convertLeadToClient(selectedLead.id);
-          toast.success('Lead converted successfully');
+          toast.success(t('success_converted'));
         } else if (id === 'mark_contacted') {
           await updateLeadStatus(selectedLead.id, 'contacted');
-          toast.success('Lead marked as contacted');
+          toast.success(t('success_contacted'));
         } else if (id === 'pay_cash') {
           const res = await startPaymentAction({
             leadId: selectedLead.id,
@@ -68,17 +73,17 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
             priceId: 'golden_ks_plan_basic',
           });
           if (res.success) {
-            toast.success('Cash payment recorded');
+            toast.success(t('success_cash'));
           } else {
             throw new Error(res.error);
           }
         } else if (id === 'mark_lost') {
           await updateLeadStatus(selectedLead.id, 'lost');
-          toast.success('Lead marked as lost');
+          toast.success(t('success_lost'));
         }
         handleRefresh();
       } catch (e: any) {
-        toast.error(e.message || 'Action failed');
+        toast.error(e.message || t('error_action'));
       }
     });
   };
@@ -86,9 +91,9 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
   // Get actions from policy
   const { primary, secondary } = getLeadActions(selectedLead);
 
-  // Map to OpsActionBar format (inject onClick and disabled state)
-  const mapAction = (config: any) => ({
+  const translateAction = (config: any) => ({
     ...config,
+    label: tActions(config.id),
     onClick: () => handleAction(config.id),
     disabled: isPending || config.disabled,
     testId: config.testId || `${config.id}-button`,
@@ -97,7 +102,14 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
   // Map leads to OpsTable rows
   const tableRows = leads.map(lead => {
     const { primary: rowPrimary, secondary: rowSecondary } = getLeadActions(lead);
-    const nextActionLabel = rowPrimary?.label || rowSecondary[0]?.label || null;
+    const nextActionConfig = rowPrimary || rowSecondary[0];
+    const nextActionLabel = nextActionConfig ? tActions(nextActionConfig.id) : null;
+
+    const opsStatus = toOpsStatus(lead.status);
+    const translatedStatus = {
+      ...opsStatus,
+      label: tStatus(lead.status),
+    };
 
     return {
       id: lead.id,
@@ -109,7 +121,7 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
           <span className="text-sm text-muted-foreground">{lead.email}</span>
         </div>,
         <div key="status" className="flex items-center gap-3">
-          <OpsStatusBadge {...toOpsStatus(lead.status)} />
+          <OpsStatusBadge {...translatedStatus} />
           {nextActionLabel && lead.status !== 'converted' && lead.status !== 'lost' && (
             <span className="text-xs font-medium text-primary animate-pulse">
               → {nextActionLabel}
@@ -128,13 +140,15 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
   return (
     <div className="h-full flex flex-col" data-testid="agent-leads-lite">
       <div className="p-4 pb-0 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Leads</h1>
+        <h1 className="text-2xl font-bold" data-testid="agent-leads-title">
+          {t('title')}
+        </h1>
         <CreateLeadDialog onSuccess={handleRefresh} />
       </div>
       <div className="flex-1 overflow-hidden p-4">
         <OpsQueryState
           isEmpty={leads.length === 0}
-          emptyTitle="No leads found"
+          emptyTitle={t('filters.search_placeholder')}
           emptySubtitle="Get started by creating a new lead or waiting for incoming leads."
         >
           <OpsTable
@@ -155,8 +169,10 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Status</p>
-                <OpsStatusBadge {...toOpsStatus(selectedLead.status)} />
+                <p className="text-sm font-medium text-muted-foreground">{t('table.status')}</p>
+                <OpsStatusBadge
+                  {...{ ...toOpsStatus(selectedLead.status), label: tStatus(selectedLead.status) }}
+                />
               </div>
               <div className="text-right space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Created</p>
@@ -200,10 +216,10 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
             {primary && (
               <div className="border-t pt-4" data-testid="agent-lead-next-step">
                 <span className="block text-sm font-medium text-muted-foreground mb-3">
-                  Next Step
+                  {t('actions.next_step')}
                 </span>
                 <OpsActionBar
-                  primary={!!primary ? mapAction(primary) : undefined}
+                  primary={!!primary ? translateAction(primary) : undefined}
                   className="pt-0 border-0 mt-0"
                   align="start"
                 />
@@ -218,7 +234,7 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
                   data-testid="more-actions-button"
                   className="flex items-center justify-between w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  More Actions
+                  {t('actions.more_actions')}
                   {showSecondary ? (
                     <ChevronUp className="h-4 w-4" />
                   ) : (
@@ -229,7 +245,7 @@ export function AgentLeadsOpsPage({ leads }: { leads: any[] }) {
                 {showSecondary && (
                   <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
                     <OpsActionBar
-                      secondary={secondary.map(mapAction)}
+                      secondary={secondary.map(translateAction)}
                       className="pt-0 border-0 mt-0"
                       align="start"
                     />
