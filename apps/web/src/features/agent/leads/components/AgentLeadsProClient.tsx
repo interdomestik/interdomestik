@@ -167,16 +167,17 @@ export function AgentLeadsProClient({ leads }: { leads: any[] }) {
         {/* Header / Nav */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Link href="/agent/workspace">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                data-testid="agent-pro-back-button"
-              >
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              data-testid="agent-pro-back-button"
+              asChild
+            >
+              <Link href="/agent/workspace">
                 <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">{t('title_pro')}</h1>
               <p className="text-sm text-muted-foreground">{t('subtitle_pro')}</p>

@@ -80,3 +80,5 @@ apps/web/e2e-results.json
 # Playwright fast-gate cached auth state
 apps/web/.playwright/
 git_log.txt
+
+GEMINI.md

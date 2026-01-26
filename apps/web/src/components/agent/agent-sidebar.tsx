@@ -1,6 +1,6 @@
 'use client';
 
-import { Link, usePathname } from '@/i18n/routing';
+import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import {
   DropdownMenu,
@@ -32,7 +32,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 
 export function AgentSidebar() {
   const pathname = usePathname();

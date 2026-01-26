@@ -33,11 +33,9 @@ export default async function AgentWorkspacePage() {
             <p className="text-xs text-muted-foreground mb-4">
               Advanced filtering, bulk actions, and exports.
             </p>
-            <Link href="/agent/workspace/leads">
-              <Button className="w-full" data-testid="agent-pro-open-leads-link">
-                Open Leads
-              </Button>
-            </Link>
+            <Button className="w-full" data-testid="agent-pro-open-leads-link" asChild>
+              <Link href="/agent/workspace/leads">Open Leads</Link>
+            </Button>
           </CardContent>
         </Card>
 
@@ -52,11 +50,9 @@ export default async function AgentWorkspacePage() {
             <p className="text-xs text-muted-foreground mb-4">
               Detailed claim review and adjudication tools.
             </p>
-            <Link href="/agent/workspace/claims">
-              <Button className="w-full" data-testid="agent-pro-open-queue-link">
-                Open Queue
-              </Button>
-            </Link>
+            <Button className="w-full" data-testid="agent-pro-open-queue-link" asChild>
+              <Link href="/agent/workspace/claims">Open Queue</Link>
+            </Button>
           </CardContent>
         </Card>
 

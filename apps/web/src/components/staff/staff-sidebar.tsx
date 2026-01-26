@@ -1,6 +1,6 @@
 'use client';
 
-import { Link, usePathname } from '@/i18n/routing';
+import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import {
   DropdownMenu,
@@ -21,7 +21,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { ChevronUp, FileText, Home, LogOut, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 
 export function StaffSidebar() {
   const pathname = usePathname();

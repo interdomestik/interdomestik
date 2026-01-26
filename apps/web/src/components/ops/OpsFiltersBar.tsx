@@ -53,6 +53,7 @@ export function OpsFiltersBar({
             onClick={() => onTabChange(tab.id)}
             className="gap-2"
             data-testid={tab.testId ?? OPS_TEST_IDS.FILTERS.TAB(tab.id)}
+            data-state={tab.id === activeTab ? 'active' : 'inactive'}
           >
             {tab.icon}
             {tab.label}
