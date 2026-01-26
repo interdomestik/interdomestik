@@ -7,6 +7,7 @@ import { DailyFocus } from './DailyFocus';
 interface AgentDashboardLiteProps {
   newLeadsCount: number;
   activeClaimsCount: number;
+  assignedMembersCount: number;
   followUpsCount: number;
   locale: string;
 }
@@ -14,6 +15,7 @@ interface AgentDashboardLiteProps {
 export async function AgentDashboardLite({
   newLeadsCount,
   activeClaimsCount,
+  assignedMembersCount,
   followUpsCount,
   locale,
 }: AgentDashboardLiteProps) {
@@ -44,7 +46,7 @@ export async function AgentDashboardLite({
 
       <DailyFocus followUpsCount={followUpsCount} newLeadsCount={newLeadsCount} />
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {/* My New Leads */}
         <Link
           href="/agent/leads?status=new"
@@ -60,6 +62,25 @@ export async function AgentDashboardLite({
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold mb-2">{newLeadsCount}</div>
+              <p className="text-sm text-muted-foreground flex items-center">
+                {t('reviewAndContact')} <ArrowRight className="ml-1 h-3 w-3" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* My Members */}
+        <Link href="/agent/members" className="block transition-transform hover:scale-[1.02]">
+          <Card
+            className="h-full border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md"
+            data-testid="agent-tile-my-members"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-lg font-medium">{t('myMembers')}</CardTitle>
+              <Users className="h-5 w-5 text-indigo-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold mb-2">{assignedMembersCount}</div>
               <p className="text-sm text-muted-foreground flex items-center">
                 {t('reviewAndContact')} <ArrowRight className="ml-1 h-3 w-3" />
               </p>

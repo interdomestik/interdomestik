@@ -1,5 +1,6 @@
 import type { LeadStage } from '@interdomestik/database/constants';
 import {
+  agentClients,
   agentCommissions,
   claims,
   crmDeals,
@@ -41,10 +42,16 @@ export async function getAgentDashboardLiteCore(
     .from(memberFollowups)
     .where(and(eq(memberFollowups.agentId, agentId), eq(memberFollowups.status, 'pending')));
 
+  const [assignedMembers] = await db
+    .select({ count: count() })
+    .from(agentClients)
+    .where(and(eq(agentClients.agentId, agentId), eq(agentClients.status, 'active')));
+
   return {
     newLeadsCount: Number(newLeads?.count ?? 0),
     activeClaimsCount: Number(activeClaims?.count ?? 0),
     followUpsCount: Number(followUps?.count ?? 0),
+    assignedMembersCount: Number(assignedMembers?.count ?? 0),
   };
 }
 

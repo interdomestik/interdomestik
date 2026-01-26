@@ -1,10 +1,10 @@
-import { and, claimMessages, claims, db, desc, eq } from '@interdomestik/database';
+import { and, claimMessages, claims, db, desc, eq, inArray } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { scopeFilter } from '@interdomestik/shared-auth';
-import { isNull, type SQL } from 'drizzle-orm';
+import { isNull, not, type SQL } from 'drizzle-orm';
 
 import type { UserSession } from '../types';
-import { requireTenantAdminSession } from './access';
+import { requireMembersReadSession } from './access';
 import { buildUserConditions, type GetUsersFilters } from './user-filters';
 
 export type { GetUsersFilters } from './user-filters';
@@ -14,8 +14,8 @@ export async function getUsersCore(params: {
   filters?: GetUsersFilters;
 }) {
   const { session, filters } = params;
-  const adminSession = await requireTenantAdminSession(session);
-  const scope = scopeFilter(adminSession);
+  const authSession = await requireMembersReadSession(session);
+  const scope = scopeFilter(authSession);
 
   // Build filter conditions
   const conditions = buildUserConditions(scope, filters);
@@ -33,6 +33,7 @@ export async function getUsersCore(params: {
   });
 
   const unreadByUser = await fetchUnreadCounts(scope.tenantId);
+  const activeClaimsByUser = await fetchActiveClaimsCounts(scope.tenantId);
 
   const alertBase = '/admin/claims/';
 
@@ -43,6 +44,7 @@ export async function getUsersCore(params: {
       unreadCount: unread?.count ?? 0,
       unreadClaimId: unread?.claimId ?? null,
       alertLink: unread ? `${alertBase}${unread.claimId}` : null,
+      activeClaimsCount: activeClaimsByUser.get(userRow.id) ?? 0,
     };
   });
 }
@@ -74,4 +76,23 @@ async function fetchUnreadCounts(tenantId: string) {
     }
   }
   return unreadByUser;
+}
+
+async function fetchActiveClaimsCounts(tenantId: string) {
+  const counts = new Map<string, number>();
+
+  const activeClaims = await db.query.claims.findMany({
+    where: (c, { and, eq, not, inArray }) =>
+      and(eq(c.tenantId, tenantId), not(inArray(c.status, ['resolved', 'rejected', 'draft']))),
+    columns: {
+      userId: true,
+    },
+  });
+
+  for (const row of activeClaims) {
+    if (!row.userId) continue;
+    counts.set(row.userId, (counts.get(row.userId) ?? 0) + 1);
+  }
+
+  return counts;
 }

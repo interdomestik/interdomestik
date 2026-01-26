@@ -16,7 +16,7 @@ export async function seedGolden(config: SeedConfig) {
 
   const { db } = await import('./db');
   const schema = await import('./schema');
-  const { inArray, sql } = await import('drizzle-orm');
+  const { eq, inArray, sql } = await import('drizzle-orm');
   const { at } = config;
 
   const TENANTS = {
@@ -220,7 +220,6 @@ export async function seedGolden(config: SeedConfig) {
       role: 'member',
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_a',
-      agentId: goldenId('ks_agent_a1'),
       memberNumber: 'MEM-2026-000014',
       memberNumberIssuedAt: at(),
     },
@@ -328,7 +327,7 @@ export async function seedGolden(config: SeedConfig) {
       member: 'mk_member_1',
       tenant: TENANTS.MK,
     },
-    ...Array.from({ length: 4 }).map((_, i) => ({
+    ...Array.from({ length: 2 }).map((_, i) => ({
       id: goldenId(`assign_ks_a_${i + 1}`),
       agent: 'ks_agent_a1',
       member: `ks_a_member_${i + 1}`,
@@ -347,6 +346,12 @@ export async function seedGolden(config: SeedConfig) {
         status: 'active',
       })
       .onConflictDoUpdate({ target: schema.agentClients.id, set: { status: 'active' } });
+
+    // SYNC: Ensure user.agentId is set for canonical lists
+    await db
+      .update(schema.user)
+      .set({ agentId: goldenId(a.agent) })
+      .where(eq(schema.user.id, goldenId(a.member)));
   }
 
   // 6. Subscriptions & Plans

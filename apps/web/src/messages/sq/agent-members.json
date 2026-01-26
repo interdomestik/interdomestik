@@ -93,11 +93,12 @@
           "all": "Të gjithë anëtarët"
         },
         "headers": {
-          "user": "Anëtari",
+          "user": "Emri",
           "status": "Statusi",
+          "active_claims": "Dëme aktive",
           "plan": "Plani",
           "period_end": "Skadimi",
-          "actions": "Veprime"
+          "actions": "Veprimet"
         },
         "view_profile": "Shiko profilin",
         "view_claims": "Shiko kërkesat",

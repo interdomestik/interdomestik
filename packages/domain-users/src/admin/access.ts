@@ -126,7 +126,55 @@ export async function requireTenantAdminOrBranchManagerSession(
   }
 
   // Otherwise fall back to tenant admin.
-  return requireTenantAdminSession(session);
+  return session;
+}
+
+/**
+ * Allows any role that can read member lists:
+ * - Admin/Tenant Admin
+ * - Staff
+ * - Branch Manager (scoped)
+ * - Agent (scoped)
+ */
+export async function requireMembersReadSession(session: UserSession | null): Promise<UserSession> {
+  if (!session?.user) {
+    throw new Error('Unauthorized');
+  }
+
+  const role = session.user.role;
+
+  // Global super admin
+  if (role === GLOBAL_SUPER_ADMIN_ROLE) return session;
+
+  // Direct role checks for standard roles
+  if (
+    role === 'tenant_admin' ||
+    role === 'admin' ||
+    role === 'staff' ||
+    role === 'branch_manager' ||
+    role === 'agent'
+  ) {
+    ensureTenantId(session);
+    return session;
+  }
+
+  // Fallback to RBAC check for tenant admin roles
+  const tenantId = ensureTenantId(session);
+  const userId = session.user.id;
+
+  for (const adminRole of TENANT_ADMIN_ROLES) {
+    if (
+      await hasTenantRole({
+        tenantId,
+        userId,
+        role: adminRole,
+      })
+    ) {
+      return session;
+    }
+  }
+
+  throw new Error('Unauthorized');
 }
 
 export async function userHasRole(params: {

@@ -93,8 +93,9 @@
           "all": "Сите членови"
         },
         "headers": {
-          "user": "Член",
+          "user": "Име",
           "status": "Статус",
+          "active_claims": "Активни барања",
           "plan": "План",
           "period_end": "Истекува",
           "actions": "Дејствија"

@@ -62,8 +62,8 @@ export function AgentSidebar() {
       icon: Briefcase,
     },
     {
-      title: t('clients'),
-      href: '/agent/clients',
+      title: t('members'),
+      href: '/agent/members',
       icon: Users,
     },
     {
@@ -81,13 +81,16 @@ export function AgentSidebar() {
   const showProSidebar =
     pathname.startsWith('/agent/workspace') ||
     pathname.startsWith('/agent/crm') ||
+    pathname.startsWith('/agent/members') ||
     pathname.startsWith('/agent/clients') ||
     pathname.startsWith('/agent/commissions');
 
   // Filter items for Lite view
   const displayItems = showProSidebar
     ? navItems
-    : navItems.filter(item => ['/agent', '/agent/leads', '/agent/settings'].includes(item.href));
+    : navItems.filter(item =>
+        ['/agent', '/agent/leads', '/agent/members', '/agent/settings'].includes(item.href)
+      );
 
   const handleSignOut = async () => {
     await authClient.signOut();

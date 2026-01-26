@@ -93,8 +93,9 @@
           "all": "Svi članovi"
         },
         "headers": {
-          "user": "Član",
+          "user": "Ime",
           "status": "Status",
+          "active_claims": "Aktivni zahtevi",
           "plan": "Plan",
           "period_end": "Ističe",
           "actions": "Radnje"

@@ -27,6 +27,7 @@ export default async function AgentDashboardEntry({
       locale={locale}
       newLeadsCount={result.newLeadsCount}
       activeClaimsCount={result.activeClaimsCount}
+      assignedMembersCount={result.assignedMembersCount}
       followUpsCount={result.followUpsCount}
     />
   );

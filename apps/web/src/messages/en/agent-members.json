@@ -93,8 +93,9 @@
           "all": "All members"
         },
         "headers": {
-          "user": "Member",
+          "user": "Name",
           "status": "Status",
+          "active_claims": "Active claims",
           "plan": "Plan",
           "period_end": "Expires",
           "actions": "Actions"
