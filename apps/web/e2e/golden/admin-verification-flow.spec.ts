@@ -15,7 +15,7 @@ test.describe('Admin Verification Flow (Golden)', () => {
     // 2. Navigate to Verification Queue
     await gotoApp(
       page,
-      l => `${routes.admin(l)}/leads`,
+      `${routes.admin(testInfo)}/leads`,
       testInfo,
       { marker: 'page-ready' } // Use page-ready for dashboard pages
     );

@@ -48,6 +48,16 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+  redirect: vi.fn(),
+  usePathname: () => '/',
+  useRouter: () => ({ push: vi.fn() }),
+  getPathname: vi.fn(),
+}));
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));

@@ -1,0 +1,24 @@
+{
+  "diaspora": {
+    "title": "Paket za Dijasporu",
+    "description": "Sveobuhvatna rešenja za vaš život između dve zemlje.",
+    "cards": {
+      "green_card": {
+        "title": "Nezgoda u inostranstvu (Zeleni Karton)",
+        "description": "Pravna i tehnička pomoć ako doživite nezgodu u Evropi. Mi se brinemo o dokumentaciji i odšteti."
+      },
+      "travel": {
+        "title": "Putovanje / Avio",
+        "description": "Kompenzacija za kašnjenje letova, otkazivanja ili izgubljen prtljag. Zaštita tokom vašeg putovanja."
+      },
+      "family": {
+        "title": "Porodica na Kosovu",
+        "description": "Kako pomoći iz daleka? Dokumenta, uputstva i direktna linija za bilo kakve kućne hitne slučajeve."
+      }
+    },
+    "cta": {
+      "title": "Spremni za zaštitu?",
+      "button": "Postanite član / Ažurirajte članstvo"
+    }
+  }
+}

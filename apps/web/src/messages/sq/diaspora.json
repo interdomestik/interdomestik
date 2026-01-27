@@ -1,0 +1,24 @@
+{
+  "diaspora": {
+    "title": "Paketa për Diasporën",
+    "description": "Zgjidhje gjithëpërfshirëse për jetën tuaj mes dy vendeve.",
+    "cards": {
+      "green_card": {
+        "title": "Aksident jashtë vendit (Green Card)",
+        "description": "Asistencë ligjore dhe teknike nëse pësoni aksident në Evropë. Ne merremi me dokumentacionin dhe dëmshpërblimin."
+      },
+      "travel": {
+        "title": "Udhëtim / Avio",
+        "description": "Kompensim për vonesa fluturimi, anulime ose bagazh të humbur. Mbrojtje gjatë rrugëtimit tuaj."
+      },
+      "family": {
+        "title": "Familja në Kosovë",
+        "description": "Si t'i ndihmoni nga larg? Dokumente, udhëzime dhe linjë direkte për çdo emergjencë shtëpiake."
+      }
+    },
+    "cta": {
+      "title": "Gati për t'u mbrojtur?",
+      "button": "Bëhu anëtar / Përditëso anëtarësinë"
+    }
+  }
+}
