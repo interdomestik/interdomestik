@@ -26,6 +26,12 @@
       "shareTitle": "Bashkohu me Asistenca",
       "shareText": "Mbro familjen tënde me anëtarësimin Asistenca!",
       "rewardInfo": "Fitoni €5 kur miku juaj aktivizon anëtarësimin"
+    },
+    "home_grid": {
+      "cta_incident": "NDODHI AKSIDENT – ÇKA TANI?",
+      "cta_report": "RAPORTO DËMIN (60 sek)",
+      "cta_green_card": "GREEN CARD – Jashtë vendit",
+      "cta_benefits": "10 PËRFITIMET E ANËTARËSISË"
     }
   }
 }

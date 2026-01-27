@@ -26,6 +26,12 @@
       "shareTitle": "Join Asistenca",
       "shareText": "Get protection for your family with Asistenca membership!",
       "rewardInfo": "You earn €5 when your friend activates their membership"
+    },
+    "home_grid": {
+      "cta_incident": "ACCIDENT? WHAT NOW?",
+      "cta_report": "REPORT DAMAGE (60 sec)",
+      "cta_green_card": "GREEN CARD – Abroad",
+      "cta_benefits": "10 MEMBERSHIP BENEFITS"
     }
   }
 }
