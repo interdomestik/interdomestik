@@ -8,7 +8,6 @@ import { Link } from '@/i18n/routing';
 
 export async function MemberDashboardView({ userId }: { userId: string }) {
   const t = await getTranslations('dashboard');
-  const tGrid = await getTranslations('dashboard.home_grid');
 
   const subscription = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, userId),
@@ -61,7 +60,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
         >
           <Link href="/member/incident-guide">
             <span className="text-3xl">🔴</span>
-            <span>{tGrid('cta_incident')}</span>
+            <span>{t('home_grid.cta_incident')}</span>
           </Link>
         </Button>
 
@@ -72,7 +71,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
         >
           <Link href="/member/report">
             <span className="text-3xl">🟦</span>
-            <span>{tGrid('cta_report')}</span>
+            <span>{t('home_grid.cta_report')}</span>
           </Link>
         </Button>
 
@@ -83,7 +82,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
         >
           <Link href="/member/green-card">
             <span className="text-3xl">🟩</span>
-            <span>{tGrid('cta_green_card')}</span>
+            <span>{t('home_grid.cta_green_card')}</span>
           </Link>
         </Button>
 
@@ -94,7 +93,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
         >
           <Link href="/member/benefits">
             <span className="text-3xl">⭐</span>
-            <span>{tGrid('cta_benefits')}</span>
+            <span>{t('home_grid.cta_benefits')}</span>
           </Link>
         </Button>
       </HomeGrid>
