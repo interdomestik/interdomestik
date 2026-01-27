@@ -9,7 +9,7 @@ interface User {
   name: string | null;
   email: string;
   image: string | null;
-  createdAt: Date;
+  createdAt: string | null;
   activeClaimsCount?: number;
   memberNumber?: string | null;
 }
@@ -22,7 +22,7 @@ export function AgentMembersProPage({ members }: AgentMembersProPageProps) {
   const t = useTranslations('agent-members.members');
 
   return (
-    <div className="space-y-6" data-testid="agent-members-pro-page-ready">
+    <div className="space-y-6" data-testid="agent-members-pro-ready">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('page.title')}</h1>

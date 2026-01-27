@@ -35,7 +35,15 @@ type GlobalE2E = typeof globalThis & {
 
 type Tenant = 'ks' | 'mk';
 
-type Role = 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
+type Role =
+  | 'member'
+  | 'admin'
+  | 'agent'
+  | 'agent_lite'
+  | 'agent_pro'
+  | 'staff'
+  | 'branch_manager'
+  | 'admin_mk';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS (Pure / Utils)
@@ -72,6 +80,21 @@ function buildUiLoginUrl(info: ProjectUrlInfo): string {
 
 async function assertNoTenantChooser(page: Page): Promise<void> {
   await expect(page.getByTestId('tenant-chooser')).toHaveCount(0);
+}
+
+async function performUiLogin(opts: {
+  page: Page;
+  info: ProjectUrlInfo;
+  email: string;
+  password: string;
+}) {
+  const { page, info, email, password } = opts;
+  await page.goto(buildUiLoginUrl(info), { waitUntil: 'domcontentloaded' });
+  await page.getByTestId('login-email').fill(email);
+  await page.getByTestId('login-password').fill(password);
+  await page.getByTestId('login-submit').click();
+  await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
+  await assertNoTenantChooser(page);
 }
 
 function attachDialogDiagnostics(page: Page): void {
@@ -123,6 +146,8 @@ function ipForRole(role: Role): string {
     case 'admin':
       return '10.0.0.12';
     case 'agent':
+    case 'agent_lite':
+    case 'agent_pro':
       return '10.0.0.13';
     case 'staff':
       return '10.0.0.14';
@@ -147,7 +172,10 @@ function getUserForTenant(role: Role, tenant: Tenant) {
       case 'admin':
         return E2E_USERS.MK_ADMIN;
       case 'agent':
+      case 'agent_lite':
         return E2E_USERS.MK_AGENT;
+      case 'agent_pro':
+        return E2E_USERS.MK_AGENT_PRO;
       case 'staff':
         return E2E_USERS.MK_STAFF;
     }
@@ -159,7 +187,10 @@ function getUserForTenant(role: Role, tenant: Tenant) {
     case 'admin':
       return E2E_USERS.KS_ADMIN;
     case 'agent':
+    case 'agent_pro':
       return E2E_USERS.KS_AGENT;
+    case 'agent_lite':
+      return E2E_USERS.KS_AGENT_LITE;
     case 'staff':
       return E2E_USERS.KS_STAFF;
     default:
@@ -240,25 +271,38 @@ async function performLogin(
 ): Promise<void> {
   const { email, password } = credsFor(role, tenant);
 
+  if (process.env.E2E_FORCE_UI_LOGIN === '1') {
+    await performUiLogin({ page, info, email, password });
+    console.log(`✅ UI login (forced) for ${role} (${email})`);
+    return;
+  }
+
   // API Login Strategy (Robust)
   const apiBase = getApiOrigin(info.baseURL);
   const loginURL = `${apiBase}/api/auth/sign-in/email`;
+  const originUrl = new URL(info.origin);
+  const originValue = originUrl.origin;
+  const refererValue = `${originUrl.origin}/${info.locale}/login`;
+  const baseHeaders = {
+    Origin: originValue,
+    Referer: refererValue,
+    'x-forwarded-for': ipForRole(role),
+    'x-forwarded-host': originUrl.host,
+    'x-forwarded-proto': originUrl.protocol.replace(':', ''),
+  } as const;
+
   const res = await page.request.post(loginURL, {
     data: { email, password },
-    headers: {
-      Origin: info.origin,
-      Referer: buildUiLoginUrl(info),
-      'x-forwarded-for': ipForRole(role),
-    },
+    headers: baseHeaders,
   });
 
-  if (res.ok()) {
-    console.log(`✅ API login matched for ${role} (${email})`);
-  } else {
+  if (!res.ok()) {
     const text = await res.text();
     console.error(`❌ API login failed for ${role}: ${res.status()} ${res.url()} ${text}`);
     throw new Error(`API login failed for ${role}: ${res.status()} ${res.url()} ${text}`);
   }
+
+  console.log(`✅ API login matched for ${role} (${email})`);
 
   // Ensure cookies are set
   const cookies = await page.context().cookies();
@@ -287,7 +331,8 @@ async function performLogin(
   // Deterministic post-login navigation
   let targetPath = `/${info.locale}`;
   if (role.includes('admin')) targetPath += '/admin';
-  else if (role === 'agent') targetPath += '/agent';
+  else if (role === 'agent' || role === 'agent_lite' || role === 'agent_pro')
+    targetPath += '/agent';
   else if (role === 'staff') targetPath += '/staff';
   else if (role === 'branch_manager') targetPath += '/admin';
   else targetPath += '/member';
@@ -310,7 +355,7 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   // Determine target based on role
   let targetPath = '/member';
   if (role.includes('admin') || role === 'branch_manager') targetPath = '/admin';
-  else if (role === 'agent') targetPath = '/agent';
+  else if (role === 'agent' || role === 'agent_lite' || role === 'agent_pro') targetPath = '/agent';
   else if (role === 'staff') targetPath = '/staff';
 
   // Navigate using gotoApp (handles locale). Use a permissive marker first so
@@ -386,7 +431,7 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Generic authenticated page (defaults to member if not specified)
    */
-  authenticatedPage: async ({ page, baseURL }, use, testInfo) => {
+  authenticatedPage: async ({ page, baseURL: _baseURL }, use, testInfo) => {
     attachDialogDiagnostics(page);
     const tenant = getTenantFromTestInfo(testInfo);
     // Use ensureAuthenticated instead of raw check

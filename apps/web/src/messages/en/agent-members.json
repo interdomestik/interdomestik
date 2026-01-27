@@ -6,6 +6,11 @@
         "description": "Your assigned members and active conversations.",
         "register_member": "Register Member"
       },
+      "pro_required": {
+        "title": "Agent Pro required",
+        "description": "Upgrade to access advanced member tools and filters.",
+        "cta": "Back to Lite members"
+      },
       "register": {
         "title": "Register New Member",
         "description": "Manually register a member and activate their membership.",

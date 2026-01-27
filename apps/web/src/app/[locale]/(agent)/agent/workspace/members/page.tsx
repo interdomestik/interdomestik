@@ -1,27 +1,25 @@
-import { AgentLeadsProPage } from '@/features/agent/leads/components/AgentLeadsProPage';
-import { auth } from '@/lib/auth';
-import { db } from '@/lib/db.server';
-import { requireAgentPro } from '@/lib/agent-tier';
+import { AgentMembersProPage } from '@/features/agent/clients/components/AgentMembersProPage';
+import { getAgentMembers } from '@/features/agent/clients/server/get-agent-members';
 import { Link } from '@/i18n/routing';
+import { auth } from '@/lib/auth';
+import { requireAgentPro } from '@/lib/agent-tier';
 import { Button } from '@interdomestik/ui/components/button';
-import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getAgentWorkspaceLeadsCore } from './_core';
 
-export default async function AgentWorkspaceLeadsPage({
-  params,
-}: {
+type Props = {
   params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  searchParams: Promise<{ search?: string }>;
+};
 
-  if (!session) {
+export default async function Page({ params, searchParams }: Props) {
+  const { locale } = await params;
+  const { search } = await searchParams;
+  setRequestLocale(locale);
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) {
     redirect(`/${locale}/login`);
   }
 
@@ -35,17 +33,22 @@ export default async function AgentWorkspaceLeadsPage({
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
         <Button asChild>
-          <Link href="/agent/leads">{t('cta')}</Link>
+          <Link href="/agent/members">{t('cta')}</Link>
         </Button>
       </div>
     );
   }
 
-  const tenantId = ensureTenantId(session as any);
-  const { leads } = await getAgentWorkspaceLeadsCore({
-    tenantId,
-    db,
-  });
+  let members = [];
+  try {
+    const result = await getAgentMembers({
+      session: session as any,
+      search,
+    });
+    members = result ?? [];
+  } catch {
+    redirect(`/${locale}/login`);
+  }
 
-  return <AgentLeadsProPage leads={leads} />;
+  return <AgentMembersProPage members={members} />;
 }

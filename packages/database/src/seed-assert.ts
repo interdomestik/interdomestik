@@ -80,6 +80,60 @@ async function assertSeed() {
 
     console.log(`✅ KS agent A1 visible claims: ${claims.length}`);
 
+    console.log('🔍 Asserting agent tier settings exist (lite/pro) ...');
+    const tierRows = await db.query.agentSettings.findMany({
+      where: inArray(schema.agentSettings.agentId, [
+        goldenId('ks_agent_a1'),
+        goldenId('ks_agent_lite_1'),
+        goldenId('mk_agent_a1'),
+        goldenId('mk_agent_pro_1'),
+      ]),
+      columns: { agentId: true, tier: true },
+    });
+
+    const tierByAgent = new Map(tierRows.map(r => [r.agentId, r.tier]));
+    const expectedTiers: Array<[string, string]> = [
+      [goldenId('ks_agent_a1'), 'premium'],
+      [goldenId('ks_agent_lite_1'), 'standard'],
+      [goldenId('mk_agent_a1'), 'standard'],
+      [goldenId('mk_agent_pro_1'), 'premium'],
+    ];
+
+    for (const [agentId, tier] of expectedTiers) {
+      if (tierByAgent.get(agentId) !== tier) {
+        console.error(`❌ Seed invariant failed: Agent ${agentId} tier expected ${tier}`);
+        process.exit(1);
+      }
+    }
+    console.log('✅ Agent tier settings verified');
+
+    console.log('🔍 Asserting each seeded agent has assigned members...');
+    const agentAssignments = await db.query.agentClients.findMany({
+      where: inArray(schema.agentClients.agentId, [
+        goldenId('ks_agent_a1'),
+        goldenId('ks_agent_lite_1'),
+        goldenId('mk_agent_a1'),
+        goldenId('mk_agent_pro_1'),
+      ]),
+      columns: { agentId: true },
+    });
+    const assignmentCounts = agentAssignments.reduce<Record<string, number>>((acc, row) => {
+      acc[row.agentId] = (acc[row.agentId] ?? 0) + 1;
+      return acc;
+    }, {});
+    for (const agentId of [
+      goldenId('ks_agent_a1'),
+      goldenId('ks_agent_lite_1'),
+      goldenId('mk_agent_a1'),
+      goldenId('mk_agent_pro_1'),
+    ]) {
+      if (!assignmentCounts[agentId]) {
+        console.error(`❌ Seed invariant failed: Agent ${agentId} has no assigned members.`);
+        process.exit(1);
+      }
+    }
+    console.log('✅ Agent assignments verified');
+
     // Assert Share Pack documents exist
     console.log('🔍 Asserting Share Pack documents exist...');
     const docIds = ['doc-ks-1', 'doc-ks-2'];

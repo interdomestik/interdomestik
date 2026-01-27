@@ -4,7 +4,7 @@ import { gotoApp } from '../utils/navigation';
 test.describe('Agent Daily Focus (Gate)', () => {
   test('Daily Focus widget prioritizes Follow-ups', async ({ page, loginAs }, testInfo) => {
     // 1. Login as Agent
-    await loginAs('agent');
+    await loginAs('agent_lite');
 
     // 2. Navigate to Dashboard (default view likely contains the widget)
     // We navigate to /agent explicitly to be safe, or just rely on login landing page.

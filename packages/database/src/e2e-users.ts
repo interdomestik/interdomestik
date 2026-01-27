@@ -45,6 +45,13 @@ export const E2E_USERS = {
     tenantId: 'tenant_mk',
     branchId: 'mk_branch_a',
   },
+  MK_AGENT_PRO: {
+    email: 'agent.mk.p1@interdomestik.com',
+    name: 'Viktor Ristovski',
+    dbRole: 'agent',
+    tenantId: 'tenant_mk',
+    branchId: 'mk_branch_a',
+  },
   MK_MEMBER: {
     email: 'member.mk.1@interdomestik.com',
     name: 'Aleksandar Stojanovski',
@@ -68,6 +75,13 @@ export const E2E_USERS = {
   KS_AGENT: {
     email: 'agent.ks.a1@interdomestik.com',
     name: 'Blerim Hoxha',
+    dbRole: 'agent',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_a',
+  },
+  KS_AGENT_LITE: {
+    email: 'agent.ks.l1@interdomestik.com',
+    name: 'Arta Berisha',
     dbRole: 'agent',
     tenantId: 'tenant_ks',
     branchId: 'ks_branch_a',

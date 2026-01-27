@@ -290,6 +290,18 @@ export async function cleanupByPrefixes(
         )
       );
 
+    // 7h. Delete Member Activities linked to these users
+    if (dbSchema.memberActivities) {
+      await db
+        .delete(dbSchema.memberActivities)
+        .where(
+          or(
+            inArray(dbSchema.memberActivities.agentId, allUserIds),
+            inArray(dbSchema.memberActivities.memberId, allUserIds)
+          )
+        );
+    }
+
     // Finally delete the users
     await db.delete(dbSchema.user).where(inArray(dbSchema.user.id, allUserIds));
   }

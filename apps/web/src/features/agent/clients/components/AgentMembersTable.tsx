@@ -20,7 +20,7 @@ interface User {
   name: string | null;
   email: string;
   image: string | null;
-  createdAt: Date;
+  createdAt: string | null;
   activeClaimsCount?: number;
   memberNumber?: string | null;
 }
@@ -95,7 +95,7 @@ export function AgentMembersTable({ users }: AgentMembersTableProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {new Date(user.createdAt).toLocaleDateString()}
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
@@ -103,9 +103,13 @@ export function AgentMembersTable({ users }: AgentMembersTableProps) {
                     size="sm"
                     variant="ghost"
                     className="h-7 px-2 text-xs hover:bg-blue-500/10 hover:text-blue-500 border border-white/10"
-                    data-testid={`view-profile-${user.id}`}
                   >
-                    <Link href={`/agent/clients/${user.id}`}>{t('table.view_profile')}</Link>
+                    <Link
+                      href={`/agent/clients/${user.id}`}
+                      data-testid={`view-profile-${user.id}`}
+                    >
+                      {t('table.view_profile')}
+                    </Link>
                   </Button>
                 </TableCell>
               </TableRow>

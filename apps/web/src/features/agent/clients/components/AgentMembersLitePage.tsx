@@ -25,7 +25,7 @@ export function AgentMembersLitePage({ members }: { members: Member[] }) {
   const t = useTranslations('agent-members.members');
 
   return (
-    <div className="space-y-6" data-testid="agent-members-lite-page-ready">
+    <div className="space-y-6" data-testid="agent-members-lite-ready">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t('page.title')} (Lite)</h1>
@@ -70,7 +70,12 @@ export function AgentMembersLitePage({ members }: { members: Member[] }) {
                   <TableCell>{member.activeClaimsCount}</TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="ghost" size="sm">
-                      <Link href={`/agent/clients/${member.id}`}>{t('table.view_profile')}</Link>
+                      <Link
+                        href={`/agent/clients/${member.id}`}
+                        data-testid={`view-profile-${member.id}`}
+                      >
+                        {t('table.view_profile')}
+                      </Link>
                     </Button>
                   </TableCell>
                 </TableRow>

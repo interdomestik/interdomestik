@@ -33,11 +33,16 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-export function AgentSidebar() {
+export function AgentSidebar({ isPro }: { isPro: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations('nav');
   const { data: session } = authClient.useSession();
+
+  const showProSidebar = isPro;
+
+  const leadsHref = '/agent/leads';
+  const membersHref = '/agent/members';
 
   const navItems = [
     {
@@ -46,23 +51,18 @@ export function AgentSidebar() {
       icon: Home,
     },
     {
-      title: t('workspacePro'),
-      href: '/agent/workspace',
-      icon: BarChart3,
-    },
-    {
       title: t('agentCrm'),
       href: '/agent/crm',
       icon: BarChart3,
     },
     {
       title: t('agentLeads'),
-      href: '/agent/leads',
+      href: leadsHref,
       icon: Briefcase,
     },
     {
       title: t('members'),
-      href: '/agent/members',
+      href: membersHref,
       icon: Users,
     },
     {
@@ -77,18 +77,36 @@ export function AgentSidebar() {
     },
   ];
 
-  const showProSidebar =
-    pathname.startsWith('/agent/workspace') ||
-    pathname.startsWith('/agent/crm') ||
-    pathname.startsWith('/agent/members') ||
-    pathname.startsWith('/agent/clients') ||
-    pathname.startsWith('/agent/commissions');
+  const proItems = [
+    {
+      title: t('workspacePro'),
+      href: '/agent/workspace',
+      icon: BarChart3,
+    },
+    {
+      title: t('agentLeads'),
+      href: '/agent/workspace/leads',
+      icon: Briefcase,
+    },
+    {
+      title: t('members'),
+      href: '/agent/workspace/members',
+      icon: Users,
+    },
+  ];
 
   // Filter items for Lite view
   const displayItems = showProSidebar
-    ? navItems
+    ? navItems.filter(item => ![leadsHref, membersHref].includes(item.href))
     : navItems.filter(item =>
-        ['/agent', '/agent/leads', '/agent/members', '/agent/settings'].includes(item.href)
+        [
+          '/agent',
+          '/agent/crm',
+          '/agent/leads',
+          '/agent/members',
+          '/agent/commissions',
+          '/agent/settings',
+        ].includes(item.href)
       );
 
   const handleSignOut = async () => {
@@ -138,6 +156,27 @@ export function AgentSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {showProSidebar ? (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {proItems.map(item => {
+                  const isActive = pathname.startsWith(item.href);
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                        <Link href={item.href}>
+                          <item.icon className="size-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
       </SidebarContent>
 
       <SidebarFooter>

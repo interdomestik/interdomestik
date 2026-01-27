@@ -1,31 +1,37 @@
-import { getUsers } from '@/actions/admin-users';
-import { AgentMembersProPage } from '@/features/agent/clients/components/AgentMembersProPage';
+import { AgentMembersLitePage } from '@/features/agent/clients/components/AgentMembersLitePage';
+import { getAgentMembers } from '@/features/agent/clients/server/get-agent-members';
+import { auth } from '@/lib/auth';
 import { setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ search?: string }>;
+  searchParams?: Promise<{ search?: string }>;
 };
 
 export default async function Page({ params, searchParams }: Props) {
   const { locale } = await params;
-  const { search } = await searchParams;
+  const { search } = (await searchParams) ?? {};
   setRequestLocale(locale);
 
-  // Fetch users with search filter, scoped to agent by the updated domain logic
-  const result = await getUsers({
-    search,
-  });
-
-  if (!result.success) {
-    if (result.code === 'UNAUTHORIZED' || result.code === 'FORBIDDEN') {
-      redirect('/auth/login');
-    }
-    throw new Error(result.error);
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) {
+    redirect(`/${locale}/login`);
   }
 
-  const members = result.data ?? [];
+  let members = [];
+  try {
+    const result = await getAgentMembers({
+      session: session as any,
+      search,
+    });
+    members = result ?? [];
+  } catch {
+    redirect(`/${locale}/login`);
+  }
 
-  return <AgentMembersProPage members={members} />;
+  return <AgentMembersLitePage members={members} />;
 }

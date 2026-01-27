@@ -70,11 +70,12 @@ export async function AgentDashboardLite({
         </Link>
 
         {/* My Members */}
-        <Link href="/agent/members" className="block transition-transform hover:scale-[1.02]">
-          <Card
-            className="h-full border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md"
-            data-testid="agent-tile-my-members"
-          >
+        <Link
+          href="/agent/members"
+          className="block transition-transform hover:scale-[1.02]"
+          data-testid="agent-tile-my-members"
+        >
+          <Card className="h-full border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-medium">{t('myMembers')}</CardTitle>
               <Users className="h-5 w-5 text-indigo-500" />

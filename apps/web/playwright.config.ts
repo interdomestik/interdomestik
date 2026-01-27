@@ -218,6 +218,8 @@ export default defineConfig({
       BETTER_AUTH_URL: BASE_URL,
       BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? DEFAULT_E2E_AUTH_SECRET,
       BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},${BASE_URL}`,
+      AUTH_TEST_MODE: '1',
+      E2E: '1',
       INTERDOMESTIK_AUTOMATED: '1',
       PLAYWRIGHT: '1',
       NEXT_PUBLIC_BILLING_TEST_MODE: '1',

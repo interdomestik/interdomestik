@@ -6,6 +6,11 @@
         "description": "Vaši dodeljeni članovi i aktivni razgovori.",
         "register_member": "Registruj člana"
       },
+      "pro_required": {
+        "title": "Potreban je Agent Pro",
+        "description": "Nadogradite da biste pristupili naprednim alatima i filtrima.",
+        "cta": "Nazad na Lite članove"
+      },
       "register": {
         "title": "Registruj novog člana",
         "description": "Ručno registrujte člana i aktivirajte njegovo članstvo.",

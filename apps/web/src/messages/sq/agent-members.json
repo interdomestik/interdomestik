@@ -6,6 +6,11 @@
         "description": "Anëtarët tuaj të caktuar dhe bisedat aktive.",
         "register_member": "Regjistro Anëtar"
       },
+      "pro_required": {
+        "title": "Kërkohet Agent Pro",
+        "description": "Përditësoni për të aksesuar mjetet dhe filtrat e avancuar.",
+        "cta": "Kthehu te anëtarët Lite"
+      },
       "register": {
         "title": "Regjistro Anëtar të Ri",
         "description": "Regjistro manualisht një anëtar dhe aktivizo anëtarësimin e tyre.",

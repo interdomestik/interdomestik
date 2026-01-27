@@ -1,7 +1,41 @@
+import { auth } from '@/lib/auth';
+import { requireAgentPro } from '@/lib/agent-tier';
 import { Link } from '@/i18n/routing';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { ArrowLeft, BarChart3, FileText, Users } from 'lucide-react';
-export default async function AgentWorkspacePage() {
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+export default async function AgentWorkspacePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) {
+    redirect(`/${locale}/login`);
+  }
+
+  const { isPro } = await requireAgentPro(session);
+  if (!isPro) {
+    const t = await getTranslations('agent-members.members.pro_required');
+    return (
+      <div className="space-y-4" data-testid="agent-pro-required">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('description')}</p>
+        </div>
+        <Button asChild>
+          <Link href="/agent">{t('cta')}</Link>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="container py-6 space-y-8" data-testid="agent-pro-shell">
       {/* Header with Switch to Lite */}

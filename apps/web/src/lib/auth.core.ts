@@ -9,11 +9,29 @@ import { sendPasswordResetEmail } from './email';
 
 function getTrustedOrigins(): string[] | undefined {
   const raw = process.env.BETTER_AUTH_TRUSTED_ORIGINS;
-  if (!raw) return undefined;
-  return raw
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+  const configured = raw
+    ? raw
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+    : [];
+
+  const isTestMode =
+    process.env.AUTH_TEST_MODE === '1' || process.env.E2E === '1' || process.env.PLAYWRIGHT === '1';
+
+  if (!isTestMode) {
+    return configured.length ? configured : undefined;
+  }
+
+  const defaults = [
+    process.env.E2E_AUTH_ORIGIN,
+    'http://127.0.0.1:3000',
+    'http://ks.127.0.0.1.nip.io:3000',
+    'http://mk.127.0.0.1.nip.io:3000',
+  ].filter(Boolean) as string[];
+
+  const trusted = Array.from(new Set([...configured, ...defaults]));
+  return trusted.length ? trusted : undefined;
 }
 
 export const auth = betterAuth({

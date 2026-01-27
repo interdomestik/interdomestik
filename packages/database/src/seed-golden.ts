@@ -110,12 +110,29 @@ export async function seedGolden(config: SeedConfig) {
       branchId: 'mk_branch_a',
     },
     {
+      id: goldenId('mk_agent_pro_1'),
+      name: E2E_USERS.MK_AGENT_PRO.name,
+      email: E2E_USERS.MK_AGENT_PRO.email,
+      role: E2E_USERS.MK_AGENT_PRO.dbRole,
+      tenantId: TENANTS.MK,
+      branchId: 'mk_branch_a',
+    },
+    {
       id: goldenId('mk_member_1'),
       name: E2E_USERS.MK_MEMBER.name,
       email: E2E_USERS.MK_MEMBER.email,
       role: 'member',
       tenantId: TENANTS.MK,
       memberNumber: 'MEM-2026-000001',
+      memberNumberIssuedAt: at(),
+    },
+    {
+      id: goldenId('mk_member_2'),
+      name: 'MK Member 2',
+      email: 'member.mk.2@interdomestik.com',
+      role: 'member',
+      tenantId: TENANTS.MK,
+      memberNumber: 'MEM-2026-000015',
       memberNumberIssuedAt: at(),
     },
     // KS Users & Staff
@@ -153,6 +170,14 @@ export async function seedGolden(config: SeedConfig) {
       name: E2E_USERS.KS_AGENT.name,
       email: E2E_USERS.KS_AGENT.email,
       role: E2E_USERS.KS_AGENT.dbRole,
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_a',
+    },
+    {
+      id: goldenId('ks_agent_lite_1'),
+      name: E2E_USERS.KS_AGENT_LITE.name,
+      email: E2E_USERS.KS_AGENT_LITE.email,
+      role: E2E_USERS.KS_AGENT_LITE.dbRole,
       tenantId: TENANTS.KS,
       branchId: 'ks_branch_a',
     },
@@ -327,12 +352,24 @@ export async function seedGolden(config: SeedConfig) {
       member: 'mk_member_1',
       tenant: TENANTS.MK,
     },
+    {
+      id: goldenId('assign_mk_2'),
+      agent: 'mk_agent_pro_1',
+      member: 'mk_member_2',
+      tenant: TENANTS.MK,
+    },
     ...Array.from({ length: 2 }).map((_, i) => ({
       id: goldenId(`assign_ks_a_${i + 1}`),
       agent: 'ks_agent_a1',
       member: `ks_a_member_${i + 1}`,
       tenant: TENANTS.KS,
     })),
+    {
+      id: goldenId('assign_ks_a_lite_1'),
+      agent: 'ks_agent_lite_1',
+      member: 'ks_a_member_3',
+      tenant: TENANTS.KS,
+    },
   ];
 
   for (const a of assignmentData) {
@@ -353,6 +390,44 @@ export async function seedGolden(config: SeedConfig) {
       .set({ agentId: goldenId(a.agent) })
       .where(eq(schema.user.id, goldenId(a.member)));
   }
+
+  // 5b. Agent Settings (Pro/Lite gating)
+  await db
+    .insert(schema.agentSettings)
+    .values([
+      {
+        id: goldenId('agent_settings_mk_a1'),
+        tenantId: TENANTS.MK,
+        agentId: goldenId('mk_agent_a1'),
+        tier: 'standard',
+        commissionRates: {},
+      },
+      {
+        id: goldenId('agent_settings_mk_p1'),
+        tenantId: TENANTS.MK,
+        agentId: goldenId('mk_agent_pro_1'),
+        tier: 'premium',
+        commissionRates: {},
+      },
+      {
+        id: goldenId('agent_settings_ks_a1'),
+        tenantId: TENANTS.KS,
+        agentId: goldenId('ks_agent_a1'),
+        tier: 'premium',
+        commissionRates: {},
+      },
+      {
+        id: goldenId('agent_settings_ks_l1'),
+        tenantId: TENANTS.KS,
+        agentId: goldenId('ks_agent_lite_1'),
+        tier: 'standard',
+        commissionRates: {},
+      },
+    ])
+    .onConflictDoUpdate({
+      target: schema.agentSettings.agentId,
+      set: { tier: sql`excluded.tier` },
+    });
 
   // 6. Subscriptions & Plans
   console.log('💳 Seeding Subscriptions...');
@@ -389,6 +464,13 @@ export async function seedGolden(config: SeedConfig) {
       plan: PLAN_MK,
       agent: 'mk_agent_a1',
     },
+    {
+      id: goldenId('sub_mk_2'),
+      user: 'mk_member_2',
+      tenant: TENANTS.MK,
+      plan: PLAN_MK,
+      agent: 'mk_agent_pro_1',
+    },
     // Target KS Members for "Members total" > 0
     {
       id: goldenId('sub_ks_a_1'),
@@ -403,6 +485,13 @@ export async function seedGolden(config: SeedConfig) {
       tenant: TENANTS.KS,
       plan: PLAN_KS,
       agent: 'ks_agent_a1',
+    },
+    {
+      id: goldenId('sub_ks_a_3'),
+      user: 'ks_a_member_3',
+      tenant: TENANTS.KS,
+      plan: PLAN_KS,
+      agent: 'ks_agent_lite_1',
     },
     {
       id: goldenId('sub_ks_b_1'),
@@ -839,6 +928,14 @@ export async function seedGolden(config: SeedConfig) {
       memberId: goldenId('ks_a_member_1'),
       note: 'Workflow Test Item',
       dueAt: at(-1 * 24 * 60 * 60 * 1000), // Yesterday (Always Overdue)
+    },
+    {
+      id: goldenId('ks_member_followup_lite_1'),
+      tenantId: TENANTS.KS,
+      agentId: goldenId('ks_agent_lite_1'),
+      memberId: goldenId('ks_a_member_3'),
+      note: 'Lite agent follow-up (E2E)',
+      dueAt: at(), // Today
     },
   ];
 

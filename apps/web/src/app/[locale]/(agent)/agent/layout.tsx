@@ -3,6 +3,7 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { AGENT_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { auth } from '@/lib/auth';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
+import { getAgentTier } from '@/lib/agent-tier';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -44,12 +45,14 @@ export default async function AgentLayout({
   const allMessages = await getMessages();
   const messages = pickMessages(allMessages, AGENT_NAMESPACES);
 
+  const { isPro } = await getAgentTier(session);
+
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
       {/* E2E contract: ensureAuthenticated waits for dashboard-page-ready across all portals */}
       <div data-testid="dashboard-page-ready">
         <SidebarProvider defaultOpen={true}>
-          <AgentSidebar />
+          <AgentSidebar isPro={isPro} />
           <SidebarInset className="bg-mesh flex flex-col min-h-screen">
             <DashboardHeader />
             <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>
