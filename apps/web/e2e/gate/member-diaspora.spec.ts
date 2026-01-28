@@ -11,9 +11,9 @@ test.describe('Diaspora Feature', () => {
     // Assert we are on the dashboard
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
 
-    // 2. Check for Diaspora ribbon
-    // Using regex to handle both languages or just one if the test runner is locked to a locale
-    const ribbonText = page.getByText(/Diaspor/i);
+    // 2. Check for Diaspora ribbon/section
+    // Use a more specific locator to avoid ambiguity with the new Crystal Home cards
+    const ribbonText = page.getByRole('heading', { name: /Diaspor/i }).first();
     await expect(ribbonText).toBeVisible();
 
     // 3. Navigate to Diaspora page

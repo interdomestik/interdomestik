@@ -183,9 +183,9 @@ export default defineConfig({
     // E2E runs against a production server (Next `start`) for artifact consistency.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
     command: 'node .next/standalone/apps/web/server.js',
-    url: BASE_URL,
-    // Never reuse a stale server by default (prevents origin/env mismatches).
-    reuseExistingServer: false,
+    url: `${BASE_URL}/api/health`,
+    // Reuse existing server in local dev to avoid EADDRINUSE/zombie conflicts.
+    reuseExistingServer: !process.env.CI,
     timeout: 300 * 1000,
     env: {
       ...process.env,
