@@ -31,7 +31,12 @@ export async function getBranchesWithKpis(): ActionResult<BranchWithKpis[]> {
       { recordResponse: true },
       async () => {
         // 1. RBAC & Tenant Check
-        const allowedRoles = [ROLES.super_admin, ROLES.admin, ROLES.tenant_admin];
+        const allowedRoles = [
+          ROLES.super_admin,
+          ROLES.admin,
+          ROLES.tenant_admin,
+          ROLES.staff, // Staff needs visibility into branch health
+        ];
         if (!allowedRoles.includes(session.user.role as any)) {
           throw new Error('Unauthorized');
         }
