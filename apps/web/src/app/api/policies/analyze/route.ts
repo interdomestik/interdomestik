@@ -1,71 +1,11 @@
 import { ApiErrorCode } from '@/core-contracts';
 import { analyzePolicyImages, analyzePolicyText } from '@/lib/ai/policy-analyzer';
 import { auth } from '@/lib/auth';
-import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { createAdminClient } from '@interdomestik/database';
-import { policies } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { nanoid } from 'nanoid';
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzePolicyCore } from './_core';
-
-const POLICIES_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || 'policies';
-
-// Dependency Implementation: Upload
-async function uploadPolicyFileService(args: {
-  userId: string;
-  tenantId: string;
-  file: File;
-  buffer: Buffer;
-  safeName: string;
-}) {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return {
-      ok: false as const,
-      error: 'Supabase service role key is required for policy uploads.',
-    };
-  }
-
-  const filePath = `pii/tenants/${args.tenantId}/policies/${args.userId}/${Date.now()}_${args.safeName}`;
-  const adminClient = createAdminClient();
-  const { error } = await adminClient.storage.from(POLICIES_BUCKET).upload(filePath, args.buffer, {
-    contentType: args.file.type || 'application/octet-stream',
-    upsert: false,
-  });
-
-  if (error) {
-    console.error('Supabase policy upload error:', error);
-    return { ok: false as const, error: 'Failed to upload policy file' };
-  }
-
-  return { ok: true as const, filePath };
-}
-
-// Dependency Implementation: PDF Analysis
-async function analyzePdfService(buffer: Buffer): Promise<string> {
-  try {
-    const pdfModule = await import('pdf-parse');
-    const pdf = pdfModule.default ?? pdfModule;
-    const pdfData = await pdf(buffer);
-    return pdfData.text;
-  } catch (pdfError: unknown) {
-    console.error('PDF Parse Error:', pdfError);
-    return '';
-  }
-}
-
-// Dependency Implementation: DB
-async function savePolicyService(data: any) {
-  const [inserted] = await db
-    .insert(policies)
-    .values({
-      id: nanoid(),
-      ...data,
-    })
-    .returning();
-  return inserted;
-}
+import { analyzePdfService, savePolicyService, uploadPolicyFileService } from './_services';
 
 // Timeout Wrapper Helper
 const ANALYSIS_TIMEOUT_MS =
