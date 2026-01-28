@@ -6,12 +6,11 @@ import { LandingDecisionDTO } from '@/core-contracts';
  */
 export function getLocaleLandingCore(_params: {
   locale: string;
-  session: { userId?: string } | null; // Typed loosely to accept AuthSession or null
+  session: { userId?: string } | null;
 }): LandingDecisionDTO {
-  // Logic placeholder:
-  // if (_params.session?.userId) {
-  //   return { kind: 'redirect', destination: '/dashboard' };
-  // }
+  if (_params.session?.userId) {
+    return { kind: 'redirect', destination: `/${_params.locale}/member` };
+  }
 
   return { kind: 'render' };
 }
