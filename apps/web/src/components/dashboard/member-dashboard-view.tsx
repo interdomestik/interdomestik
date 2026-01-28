@@ -1,30 +1,30 @@
-import { ReferralCard } from '@/components/member/referral-card';
+import { DigitalIDCard } from '@/app/[locale]/components/home/digital-id-card';
 import { HomeGrid } from '@/components/member/HomeGrid';
+import { ReferralCard } from '@/components/member/referral-card';
+import { Link } from '@/i18n/routing';
 import { db, eq, subscriptions, user } from '@interdomestik/database';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import {
-  Phone,
-  ShieldCheck,
-  ShieldAlert,
+  Activity,
   AlertCircle,
-  FileText,
-  CreditCard,
-  Star,
-  Globe,
   ArrowRight,
   ClipboardList,
+  CreditCard,
+  FileText,
+  Globe,
+  Headphones,
   HeartPulse,
   LayoutDashboard,
-  Headphones,
-  Activity,
+  Phone,
+  ShieldAlert,
+  ShieldCheck,
+  Star,
   Zap,
 } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import { Link } from '@/i18n/routing';
-import { cache } from 'react';
-import Image from 'next/image';
-import { DigitalIDCard } from '@/app/[locale]/components/home/digital-id-card';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
+import { MatteAnchorCard } from './matte-anchor-card';
 
 const getCachedUser = cache(async (userId: string) => {
   return db.query.user.findFirst({
@@ -212,7 +212,6 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 label: t('home_grid.cta_incident'),
                 icon: AlertCircle,
                 color: 'from-red-600 to-red-700',
-                shadow: 'shadow-red-500/20',
                 description: 'SOS / EMERGENCY',
               },
               {
@@ -221,7 +220,6 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 label: t('home_grid.cta_report'),
                 icon: ClipboardList,
                 color: 'from-blue-600 to-blue-700',
-                shadow: 'shadow-blue-500/20',
                 description: 'NEW REPORT',
               },
               {
@@ -230,7 +228,6 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 label: t('home_grid.cta_green_card'),
                 icon: CreditCard,
                 color: 'from-emerald-600 to-emerald-700',
-                shadow: 'shadow-emerald-500/20',
                 description: 'TRAVEL DOCS',
               },
               {
@@ -239,37 +236,17 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 label: t('home_grid.cta_benefits'),
                 icon: Star,
                 color: 'from-amber-400 to-orange-400',
-                shadow: 'shadow-amber-500/20',
-                textColor: 'text-amber-950',
                 description: 'EXCLUSIVE ACCESS',
               },
-            ].map((action, idx) => (
-              <Button
+            ].map(action => (
+              <MatteAnchorCard
                 key={action.id}
-                asChild
-                className={`h-auto min-h-[160px] p-0 overflow-hidden flex-col items-stretch shadow-2xl transition-all duration-500 rounded-[2.5rem] border-none hover:-translate-y-2 active:scale-95 animate-in fade-in zoom-in-95 delay-${idx * 100} ${action.shadow}`}
-                data-testid={`home-cta-${action.id}`}
-              >
-                <Link
-                  href={action.href}
-                  className={`w-full h-full p-8 flex flex-col bg-gradient-to-br ${action.color}`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="bg-white/20 p-3.5 rounded-2xl backdrop-blur-md shadow-inner">
-                      <action.icon className="w-7 h-7 text-white" />
-                    </div>
-                    <Zap className="w-5 h-5 text-white opacity-30" />
-                  </div>
-                  <div className="mt-auto min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-1 truncate">
-                      {action.description}
-                    </p>
-                    <span className="text-xl font-display font-black leading-tight block truncate text-white">
-                      {action.label}
-                    </span>
-                  </div>
-                </Link>
-              </Button>
+                href={action.href}
+                label={action.label}
+                icon={action.icon}
+                description={action.description}
+                colorClassName={action.color}
+              />
             ))}
           </HomeGrid>
         </div>

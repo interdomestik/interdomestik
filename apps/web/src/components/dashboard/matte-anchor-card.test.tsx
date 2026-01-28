@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { Shield } from 'lucide-react';
-import { vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { MatteAnchorCard } from './matte-anchor-card';
 
 // Mock routing
