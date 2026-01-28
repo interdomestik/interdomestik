@@ -294,7 +294,18 @@ async function performLogin(
 
   const targetUrl = new URL(targetPath, info.origin).toString();
   await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
+  const marker = role === 'member' ? 'member-dashboard-ready' : 'dashboard-page-ready';
+
+  try {
+    await expect(page.getByTestId(marker)).toBeVisible({ timeout: 10000 });
+  } catch (e) {
+    console.error(`[Auth Diagnostics] Marker "${marker}" NOT FOUND for ${role}`);
+    console.error(`[Auth Diagnostics] Current URL: ${page.url()}`);
+    const html = await page.content();
+    console.error(`[Auth Diagnostics] Page HTML preview (first 500 chars): ${html.slice(0, 500)}`);
+    throw e;
+  }
+
   await assertNoTenantChooser(page);
 
   // Diagnostics
@@ -307,6 +318,14 @@ async function performLogin(
 }
 
 async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, tenant: Tenant) {
+  // Phase 0: Debug Config
+  const info = getProjectUrlInfo(testInfo, null);
+  const debugRes = await page.request.get(new URL('/api/_debug/auth', info.origin).toString());
+  if (debugRes.ok()) {
+    const debugData = await debugRes.json();
+    console.log('[E2E Debug] Auth Config:', JSON.stringify(debugData, null, 2));
+  }
+
   // Determine target based on role
   let targetPath = '/member';
   if (role.includes('admin') || role === 'branch_manager') targetPath = '/admin';
@@ -314,7 +333,19 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   else if (role === 'staff') targetPath = '/staff';
 
   // Navigate using gotoApp (handles locale)
-  await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
+  const marker = role === 'member' ? 'member-dashboard-ready' : 'dashboard-page-ready';
+
+  try {
+    await gotoApp(page, targetPath, testInfo, { marker });
+  } catch (e) {
+    console.warn(
+      `[Auth Diagnostics] ensureAuthenticated failed to find marker "${marker}" for ${role}`
+    );
+    console.warn(`[Auth Diagnostics] Current URL: ${page.url()}`);
+    const html = await page.content();
+    console.warn(`[Auth Diagnostics] Page HTML preview (first 500 chars): ${html.slice(0, 500)}`);
+    // Fall through to registration-page-ready check below
+  }
 
   // Check if we bounced to login (registration-page-ready visible)
   const isLoginPage = await page

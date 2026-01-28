@@ -3,7 +3,19 @@
 import { CreditCard, QrCode, Shield, Wifi } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
-export function DigitalIDCard() {
+interface DigitalIDCardProps {
+  name?: string;
+  memberNumber?: string;
+  validThru?: string;
+  isActive?: boolean;
+}
+
+export function DigitalIDCard({
+  name = 'ESTIR RAMA',
+  memberNumber = 'PRT-0492-X',
+  validThru = '12/25',
+  isActive = true,
+}: DigitalIDCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
 
@@ -102,20 +114,20 @@ export function DigitalIDCard() {
 
           {/* Bottom Row: Holder & ID (Credit Card Style) */}
           <div className="relative z-10 flex justify-between items-end">
-            <div>
-              <p className="text-white/40 text-[9px] font-mono mb-1 tracking-widest uppercase">
+            <div className="min-w-0 flex-1">
+              <p className="text-white/40 text-[9px] font-mono mb-1 tracking-widest uppercase truncate">
                 Member Name
               </p>
-              <p className="text-lg text-white font-medium tracking-wider drop-shadow-md font-mono">
-                ESTIR RAMA
+              <p className="text-lg text-white font-medium tracking-wider drop-shadow-md font-mono truncate uppercase">
+                {name}
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-right ml-4">
               <p className="text-white/40 text-[9px] font-mono mb-1 tracking-widest uppercase">
                 Valid Thru
               </p>
               <p className="text-lg text-white font-medium tracking-widest drop-shadow-md font-mono">
-                12/25
+                {validThru}
               </p>
             </div>
           </div>
@@ -126,9 +138,11 @@ export function DigitalIDCard() {
 
         {/* Floating Verification Badge (Cleaner) */}
         <div className="absolute -bottom-6 -right-6 lg:-right-10 bg-white rounded-full px-6 py-3 shadow-[0_20px_40px_rgba(0,0,0,0.2)] border border-slate-100 z-30 transform group-hover:-translate-y-2 transition-transform duration-700 ease-out flex items-center gap-3">
-          <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+          <div
+            className={`h-3 w-3 rounded-full animate-pulse ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`}
+          />
           <span className="text-xs text-slate-900 font-bold uppercase tracking-wider">
-            Active Member
+            {isActive ? 'Active Member' : 'Protection Paused'}
           </span>
         </div>
       </div>

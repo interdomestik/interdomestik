@@ -23,6 +23,15 @@ export default async function DashboardLayout({
     headers: await headers(),
   });
 
+  if (process.env.PLAYWRIGHT === '1' || process.env.INTERDOMESTIK_AUTOMATED === '1') {
+    console.log('[E2E Debug] Member Layout Session:', {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      role: session?.user?.role,
+      path: `/${locale}/member`,
+    });
+  }
+
   if (!session) {
     redirect({ href: '/login', locale });
     return null;
