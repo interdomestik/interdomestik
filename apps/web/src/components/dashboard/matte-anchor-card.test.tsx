@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import { Shield } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
 import { MatteAnchorCard } from './matte-anchor-card';
 
@@ -23,7 +22,12 @@ vi.mock('@/i18n/routing', () => ({
 describe('MatteAnchorCard', () => {
   it('renders the label and description', () => {
     render(
-      <MatteAnchorCard label="Test Label" description="Test Desc" icon={Shield} href="/test" />
+      <MatteAnchorCard
+        label="Test Label"
+        description="Test Desc"
+        iconName="incident"
+        href="/test"
+      />
     );
     expect(screen.getByText('Test Label')).toBeInTheDocument();
     expect(screen.getByText('Test Desc')).toBeInTheDocument();

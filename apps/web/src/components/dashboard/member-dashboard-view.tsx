@@ -210,7 +210,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 href: '/member/incident-guide',
                 id: 'incident',
                 label: t('home_grid.cta_incident'),
-                icon: AlertCircle,
+                iconName: 'incident',
                 color: 'from-red-600 to-red-700',
                 description: 'SOS / EMERGENCY',
               },
@@ -218,7 +218,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 href: '/member/report',
                 id: 'report',
                 label: t('home_grid.cta_report'),
-                icon: ClipboardList,
+                iconName: 'report',
                 color: 'from-blue-600 to-blue-700',
                 description: 'NEW REPORT',
               },
@@ -226,7 +226,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 href: '/member/green-card',
                 id: 'green-card',
                 label: t('home_grid.cta_green_card'),
-                icon: CreditCard,
+                iconName: 'green-card',
                 color: 'from-emerald-600 to-emerald-700',
                 description: 'TRAVEL DOCS',
               },
@@ -234,7 +234,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 href: '/member/benefits',
                 id: 'benefits',
                 label: t('home_grid.cta_benefits'),
-                icon: Star,
+                iconName: 'benefits',
                 color: 'from-amber-400 to-orange-400',
                 description: 'EXCLUSIVE ACCESS',
               },
@@ -243,7 +243,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 key={action.id}
                 href={action.href}
                 label={action.label}
-                icon={action.icon}
+                iconName={action.iconName}
                 description={action.description}
                 colorClassName={action.color}
               />

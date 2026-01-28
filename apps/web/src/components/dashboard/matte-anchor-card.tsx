@@ -2,12 +2,19 @@
 
 import { Link } from '@/i18n/routing';
 import { motion } from 'framer-motion';
-import { LucideIcon } from 'lucide-react';
+import { AlertCircle, ClipboardList, CreditCard, Star, type LucideIcon } from 'lucide-react';
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  incident: AlertCircle,
+  report: ClipboardList,
+  'green-card': CreditCard,
+  benefits: Star,
+};
 
 interface MatteAnchorCardProps {
   label: string;
   description: string;
-  icon: LucideIcon;
+  iconName: string;
   href: string;
   colorClassName?: string;
 }
@@ -15,10 +22,12 @@ interface MatteAnchorCardProps {
 export function MatteAnchorCard({
   label,
   description,
-  icon: Icon,
+  iconName,
   href,
   colorClassName = 'from-slate-900 to-slate-800',
 }: MatteAnchorCardProps) {
+  const Icon = ICON_MAP[iconName] || AlertCircle;
+
   return (
     <motion.div
       whileHover={{ y: -8 }}
@@ -37,10 +46,12 @@ export function MatteAnchorCard({
           <div className="bg-white/10 p-4 rounded-2xl w-fit mb-6">
             <Icon className="w-7 h-7 text-white" />
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-1">
-            {description}
-          </p>
-          <span className="text-2xl font-black text-white leading-tight block">{label}</span>
+          <div className="mt-auto">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-1">
+              {description}
+            </p>
+            <span className="text-2xl font-black text-white leading-tight block">{label}</span>
+          </div>
         </div>
       </Link>
     </motion.div>
