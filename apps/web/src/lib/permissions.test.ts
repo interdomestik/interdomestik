@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { PgColumn } from 'drizzle-orm/pg-core';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   allowedClaimStatusTransitions,
   assertAgentClientAccess,
@@ -9,6 +9,7 @@ import {
   scopeFilter,
 } from './permissions';
 import { ROLE_AGENT, ROLE_STAFF } from './roles.core';
+import { db } from '@interdomestik/database/db';
 
 // Mock drizzle-orm
 vi.mock('drizzle-orm', async () => {
@@ -20,7 +21,34 @@ vi.mock('drizzle-orm', async () => {
   };
 });
 
+// Mock database
+vi.mock('@interdomestik/database/db', () => {
+  const mockDb = {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    then: vi.fn(), // Necessary for Awaitable
+  };
+  return { db: mockDb };
+});
+
+// Mock database schema
+vi.mock('@interdomestik/database/schema', () => ({
+  agentClients: {
+    id: { name: 'id' },
+    tenantId: { name: 'tenantId' },
+    agentId: { name: 'agentId' },
+    memberId: { name: 'memberId' },
+    status: { name: 'status' },
+  },
+}));
+
 describe('permissions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('scopeFilter', () => {
     const mockCol = { name: 'col' } as unknown as PgColumn;
     const mockCtx = {
@@ -50,8 +78,6 @@ describe('permissions', () => {
     it('should combine filters', () => {
       const fullCtx = { scope: { branchId: 'branch_1', actorAgentId: 'agent_1' } } as any;
       scopeFilter(fullCtx, { branchId: mockCol, agentId: mockCol });
-      // Logic calls eq twice, then and
-      // exact call verification is tricky with mocks, but ensuring it runs without error is key for coverage
       expect(eq).toHaveBeenCalledWith(mockCol, 'branch_1');
       expect(eq).toHaveBeenCalledWith(mockCol, 'agent_1');
     });
@@ -79,14 +105,71 @@ describe('permissions', () => {
       expect(allowedClaimStatusTransitions(ROLE_STAFF)).toContain('paid');
     });
 
-    it('assertAgentClientAccess should pass for non-agents', () => {
-      // Should not throw
-      assertAgentClientAccess({ scope: {} } as any, 'u1');
-    });
+    describe('assertAgentClientAccess', () => {
+      it('should pass for non-agents (e.g. admin/staff)', async () => {
+        await assertAgentClientAccess({ scope: {} } as any, 'u1');
+        expect(db.select).not.toHaveBeenCalled();
+      });
 
-    it('assertAgentClientAccess should pass for agents (placeholder logic)', () => {
-      // Current impl does nothing even for agents
-      assertAgentClientAccess({ scope: { actorAgentId: 'a1' } } as any, 'u1');
+      it('✅ Allowed: Active assignment exists', async () => {
+        // Mock DB finding a valid link
+        (db as any).limit.mockResolvedValue([{ id: 'link1' }]);
+
+        await expect(
+          assertAgentClientAccess(
+            { tenantId: 't1', scope: { actorAgentId: 'a1' } } as any,
+            'client1'
+          )
+        ).resolves.not.toThrow();
+
+        // Verify the query structure
+        expect(db.select).toHaveBeenCalled();
+        expect((db as any).from).toHaveBeenCalled();
+        expect((db as any).where).toHaveBeenCalled();
+      });
+
+      it('❌ Denied: Unassigned agent (no link found)', async () => {
+        // Mock DB returning empty (no match)
+        (db as any).limit.mockResolvedValue([]);
+
+        const promise = assertAgentClientAccess(
+          { tenantId: 't1', scope: { actorAgentId: 'a1' } } as any,
+          'client1'
+        );
+
+        await expect(promise).rejects.toThrow('Security Violation: Unauthorized client access.');
+      });
+
+      it('🔍 Verify Strict Query Filters (Tenant, Agent, Client, Active)', async () => {
+        (db as any).limit.mockResolvedValue([{ id: 'link1' }]);
+
+        await assertAgentClientAccess(
+          { tenantId: 'tenant_X', scope: { actorAgentId: 'agent_Y' } } as any,
+          'client_Z'
+        );
+
+        // Capture the 'where' call arguments to verify strict filtering
+        const whereCall = (db as any).where.mock.calls[0][0];
+        // Based on our mock at top: and(...) returns { op: 'and', args: [...] }
+        expect(whereCall.op).toBe('and');
+        const filters = whereCall.args;
+
+        // We expect 4 conditions: tenantId, agentId, memberId, status
+        expect(filters).toHaveLength(4);
+
+        // Helper to find filter for a specific column name
+        const findFilter = (colName: string) => filters.find((f: any) => f.col.name === colName);
+
+        const tenantFilter = findFilter('tenantId');
+        const agentFilter = findFilter('agentId');
+        const memberFilter = findFilter('memberId');
+        const statusFilter = findFilter('status');
+
+        expect(tenantFilter).toMatchObject({ val: 'tenant_X' });
+        expect(agentFilter).toMatchObject({ val: 'agent_Y' });
+        expect(memberFilter).toMatchObject({ val: 'client_Z' });
+        expect(statusFilter).toMatchObject({ val: 'active' });
+      });
     });
   });
 });

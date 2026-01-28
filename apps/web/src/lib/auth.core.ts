@@ -208,7 +208,11 @@ export const auth = betterAuth({
   rateLimit: {
     // Contract: Rate limiting must be disabled for deterministic automated runs (Playwright/CI),
     // but remain enabled by default everywhere else.
-    enabled: !(process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1'),
+    enabled: !(
+      process.env.INTERDOMESTIK_AUTOMATED === '1' ||
+      process.env.PLAYWRIGHT === '1' ||
+      !!process.env.CI
+    ),
     window: 60, // 1 minute
     max: 100, // 100 requests per minute per IP
   },
