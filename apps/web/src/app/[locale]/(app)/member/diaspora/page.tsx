@@ -1,14 +1,13 @@
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { ShieldCheck, Plane, Users, ArrowRight } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
 
 export default async function DiasporaPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const t = useTranslations('diaspora');
+  const t = await getTranslations('diaspora');
 
   const cards = [
     {
