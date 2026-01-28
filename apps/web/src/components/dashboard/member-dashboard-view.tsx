@@ -89,7 +89,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
     <div className="space-y-10 pb-10" data-testid="member-dashboard-ready">
       {/* Adaptive Header Section */}
 
-      <div className="relative overflow-hidden rounded-[3rem] bg-slate-900 border border-white/5 p-8 sm:p-12 shadow-2xl">
+      <div className="relative overflow-hidden rounded-[3rem] bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 sm:p-12 shadow-2xl">
         {/* Animated Mesh Background */}
 
         <div className="absolute inset-0 z-0">
