@@ -2,13 +2,29 @@
 
 import { Link } from '@/i18n/routing';
 import { motion } from 'framer-motion';
-import { AlertCircle, ClipboardList, CreditCard, Star, type LucideIcon } from 'lucide-react';
+import {
+  AlertCircle,
+  ClipboardList,
+  CreditCard,
+  Globe,
+  Share2,
+  Star,
+  TrendingUp,
+  UserPlus,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   incident: AlertCircle,
   report: ClipboardList,
   'green-card': CreditCard,
   benefits: Star,
+  globe: Globe,
+  share: Share2,
+  'trending-up': TrendingUp,
+  'user-plus': UserPlus,
+  zap: Zap,
 };
 
 interface MatteAnchorCardProps {
