@@ -27,7 +27,7 @@ jobs:
         run: |
           pnpm track:audit
           pnpm purity:audit
-          pnpm check
+          # Contract Compliance: pnpm check is covered by e2e-gate job
 
   static:
     runs-on: ubuntu-latest
@@ -45,6 +45,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - name: Unit Tests
+        env:
+          BETTER_AUTH_SECRET: dummy-secret-for-tests
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          UPSTASH_REDIS_REST_URL: http://localhost:8080
+          UPSTASH_REDIS_REST_TOKEN: dummy-token
         run: pnpm test
 
   e2e-gate:
@@ -70,9 +75,17 @@ jobs:
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       BETTER_AUTH_URL: http://127.0.0.1:3000
       NODE_OPTIONS: --max-old-space-size=4096
+      E2E_API_SECRET: test-secret-placeholder
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
+
+      - name: Enforce E2E Best Practices
+        run: |
+          if grep -r "page.goto" apps/web/e2e/gate apps/web/e2e/golden | grep -v "tenant-resolution.spec.ts"; then
+            echo "❌ Strict Gate Violation: Raw page.goto found. Use gotoApp() instead."
+            exit 1
+          fi
 
       - name: Install Playwright OS Deps
         run: pnpm --filter @interdomestik/web exec playwright install-deps
@@ -85,6 +98,7 @@ jobs:
 
       - name: DB Setup
         run: |
+          until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do echo "Waiting for postgres..."; sleep 2; done
           pnpm db:migrate
           pnpm seed:e2e
           pnpm seed:assert-e2e
