@@ -1,31 +1,24 @@
-import { ReferralCard } from '@/components/member/referral-card';
 import { HomeGrid } from '@/components/member/HomeGrid';
+import { ReferralCard } from '@/components/member/referral-card';
+import { Link } from '@/i18n/routing';
 import { db, eq, subscriptions } from '@interdomestik/database';
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@interdomestik/ui';
-import {
-  Phone,
-  ShieldCheck,
-  ShieldAlert,
   AlertCircle,
-  FileText,
-  CreditCard,
-  Star,
-  Globe,
   ArrowRight,
   ClipboardList,
+  CreditCard,
+  FileText,
+  Globe,
+  Headphones,
   HeartPulse,
   LayoutDashboard,
-  Headphones,
+  Phone,
+  ShieldAlert,
+  ShieldCheck,
+  Star,
 } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import { Link } from '@/i18n/routing';
 
 export async function MemberDashboardView({ userId }: { userId: string }) {
   const t = await getTranslations('dashboard');
@@ -91,7 +84,10 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
       {/* Diaspora Ribbon - Modernized */}
       <div className="relative group">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-blue-600 rounded-2xl blur opacity-10 group-hover:opacity-20 transition duration-1000 group-hover:duration-200"></div>
-        <div className="relative bg-card border border-border/50 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm transition-all duration-300 hover:shadow-md">
+        <div
+          className="relative bg-card border border-border/50 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm transition-all duration-300 hover:shadow-md"
+          data-testid="diaspora-ribbon"
+        >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
               <Globe className="w-6 h-6" />
@@ -104,7 +100,11 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
             </div>
           </div>
           <Button asChild className="rounded-xl px-6 group/btn">
-            <Link href="/member/diaspora" className="flex items-center gap-2">
+            <Link
+              href="/member/diaspora"
+              className="flex items-center gap-2"
+              data-testid="diaspora-ribbon-cta"
+            >
               {t('diaspora_ribbon.cta')}
               <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
             </Link>

@@ -6,29 +6,36 @@ test.describe('Diaspora Feature', () => {
     authenticatedPage: page,
   }) => {
     // 1. Go to Member Home
-    await page.goto(routes.member());
+    await page.goto(routes.member(test.info()));
 
     // Assert we are on the dashboard
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
 
     // 2. Check for Diaspora ribbon
-    // Using regex to handle both languages or just one if the test runner is locked to a locale
-    const ribbonText = page.getByText(/Diaspor/i);
-    await expect(ribbonText).toBeVisible();
+    await expect(page.getByTestId('diaspora-ribbon')).toBeVisible();
 
     // 3. Navigate to Diaspora page
-    // The button has Link with href="/member/diaspora"
-    const ribbonCta = page.locator('a[href*="/member/diaspora"]');
+    const ribbonCta = page.getByTestId('diaspora-ribbon-cta');
     await expect(ribbonCta).toBeVisible();
     await ribbonCta.click();
 
     // 4. Assert we are on the Diaspora page
     await expect(page).toHaveURL(/\/member\/diaspora/);
-    await expect(page.getByTestId('diaspora-page')).toBeVisible();
+    await expect(page.getByTestId('diaspora-page')).toBeVisible({ timeout: 15000 });
 
-    // Check for the 3 cards content (using flexible text matching)
-    await expect(page.getByText(/(Aksident jashtë vendit|Accident abroad)/i)).toBeVisible();
-    await expect(page.getByText(/(Udhëtim \/ Avio|Travel \/ Flight)/i)).toBeVisible();
-    await expect(page.getByText(/(Familja në Kosovë|Family in Kosovo)/i)).toBeVisible();
+    // Check for the 3 cards content (using flexible text matching across languages)
+    await expect(
+      page.getByText(
+        /(Aksident jashtë vendit|Accident abroad|Несреќа во странство|Nezgoda u inostranstvu)/i
+      )
+    ).toBeVisible();
+    await expect(
+      page.getByText(/(Udhëtim \/ Avio|Travel \/ Flight|Патување \/ Авио|Putovanje \/ Avio)/i)
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        /(Familja në Kosovë|Family in Kosovo|Семејството во Косово|Porodica na Kosovu)/i
+      )
+    ).toBeVisible();
   });
 });

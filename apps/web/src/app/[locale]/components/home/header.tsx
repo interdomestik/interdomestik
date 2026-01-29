@@ -46,7 +46,6 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className="text-sm font-bold text-slate-800 hover:text-primary transition-colors"
-                data-testid={`nav-link-${link.href.replace('/', '') || 'home'}`}
               >
                 {link.label}
               </Link>
@@ -79,17 +78,12 @@ export function Header() {
                 variant="ghost"
                 size="sm"
                 className="font-bold text-slate-800 hover:text-primary"
-                data-testid="nav-login"
               >
                 {t('login')}
               </Button>
             </Link>
             <Link href="/register">
-              <Button
-                size="sm"
-                className="font-bold shadow-md shadow-primary/20"
-                data-testid="nav-register"
-              >
+              <Button size="sm" className="font-bold shadow-md shadow-primary/20">
                 {t('register')}
               </Button>
             </Link>
@@ -111,7 +105,6 @@ export function Header() {
               className="flex items-center justify-center h-10 w-10 rounded-xl bg-slate-100 text-slate-800"
               aria-label={t('toggleMenu')}
               aria-expanded={mobileMenuOpen}
-              data-testid="mobile-menu-trigger"
             >
               {mobileMenuOpen ? (
                 <X className="h-5 w-5" aria-hidden="true" />
@@ -132,7 +125,6 @@ export function Header() {
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className="px-4 py-3 rounded-xl text-sm font-bold text-slate-800 hover:bg-slate-50 transition-colors"
-                  data-testid={`mobile-nav-link-${link.href.replace('/', '') || 'home'}`}
                 >
                   {link.label}
                 </Link>
@@ -140,19 +132,12 @@ export function Header() {
             </nav>
             <div className="flex flex-col gap-2 px-4">
               <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                <Button
-                  variant="outline"
-                  className="w-full font-semibold"
-                  data-testid="mobile-nav-login"
-                >
+                <Button variant="outline" className="w-full font-semibold">
                   {t('login')}
                 </Button>
               </Link>
               <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                <Button
-                  className="w-full font-bold shadow-md shadow-primary/20"
-                  data-testid="mobile-nav-register"
-                >
+                <Button className="w-full font-bold shadow-md shadow-primary/20">
                   {t('register')}
                 </Button>
               </Link>

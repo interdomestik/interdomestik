@@ -49,7 +49,7 @@ test.describe('Golden Flow: Subscription Lifecycle', () => {
       marker: 'membership-page-ready',
     });
 
-    const subItem = page.getByTestId('ops-table-row').first();
+    const subItem = page.getByTestId('subscription-item').first();
     await expect(subItem).toBeVisible();
     await expect(subItem).toContainText(/ACTIVE/i);
     await expect(subItem.getByTestId('subscription-plan-name')).toContainText(/Standard/i);

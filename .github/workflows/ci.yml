@@ -27,7 +27,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: interdomestik_test
         ports:
           - 5432:5432
@@ -38,19 +38,14 @@ jobs:
           --health-retries=10
 
     env:
-      CI_POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
-      NEXT_TELEMETRY_DISABLED: '1'
-      TURBO_TELEMETRY_DISABLED: '1'
       # canonical DB URL for seed + app + tests
-      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}@127.0.0.1:5432/interdomestik_test
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
       # Consistent origin
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       BETTER_AUTH_URL: http://127.0.0.1:3000
       # Secrets (mocked or from secrets)
       PADDLE_WEBHOOK_SECRET_KEY: test_secret
-      PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
-      BETTER_AUTH_SECRET: test_secret_ci_please_rotate_32chars_minimum_1234
-      NODE_OPTIONS: --max-old-space-size=8192
+      PLAYWRIGHT_BROWSERS_PATH: ~/.cache/ms-playwright
 
     steps:
       - name: Checkout
@@ -67,7 +62,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # cache: 'pnpm'
+          cache: 'pnpm'
 
       - name: Cache Playwright browsers
         uses: actions/cache@v4
@@ -81,29 +76,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify supabase CLI
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -x node_modules/.bin/supabase ] || [ -x packages/database/node_modules/.bin/supabase ]; then
-            echo "✅ supabase CLI present"
-          else
-            echo "❌ supabase CLI missing"
-            ls -la node_modules/.bin || true
-            ls -la packages/database/node_modules/.bin || true
-            exit 1
-          fi
-
-      - name: Install Playwright Browsers
-        run: pnpm --filter @interdomestik/web exec playwright install --with-deps
-
       - name: Wait for Postgres
         run: |
           set -euo pipefail
           for i in {1..30}; do
             if pg_isready -h 127.0.0.1 -p 5432 -U postgres -d interdomestik_test; then
               if command -v psql >/dev/null; then
-                if PGPASSWORD=${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }} psql -h 127.0.0.1 -U postgres -d interdomestik_test -c "select 1" >/dev/null 2>&1; then
+                if PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d interdomestik_test -c "select 1" >/dev/null 2>&1; then
                   echo "Postgres is ready."
                   echo "POSTGRES_READY_VIA=psql" >> "$GITHUB_ENV"
                   exit 0
@@ -131,6 +110,17 @@ jobs:
       - name: Delivery Contract Audit
         run: pnpm track:audit
 
+      - name: Golden Path - Check
+        run: pnpm check
+
+      - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @interdomestik/web exec playwright install --with-deps
+
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @interdomestik/web exec playwright install-deps
+
       - name: DB migrations
         run: pnpm db:migrate
 
@@ -139,9 +129,6 @@ jobs:
 
       - name: Assert DB seeded
         run: pnpm --filter @interdomestik/database seed:assert-e2e
-
-      - name: Golden Path - Check
-        run: pnpm check
 
       - name: E2E Gate Tests
         run: pnpm --filter @interdomestik/web e2e:gate
@@ -152,7 +139,7 @@ jobs:
           {
             echo "## CI summary";
             echo "";
-            echo "- Golden path: audit → migrate → seed → assert → check → e2e:gate";
+            echo "- Golden path: audit → check → migrate → seed → assert → e2e:gate";
             echo "- DB: 127.0.0.1:5432 (interdomestik_test)";
             echo "- App URL: http://127.0.0.1:3000";
             echo "- Postgres readiness: ${POSTGRES_READY_VIA:-unknown}";

@@ -9,9 +9,5 @@ export function ClaimStatusBadge({ status }: { status: string | null }) {
 
   const variant = getClaimStatusBadgeVariant(status);
 
-  return (
-    <Badge variant={variant} data-testid="claim-status-badge" data-status={status}>
-      {t(status)}
-    </Badge>
-  );
+  return <Badge variant={variant}>{t(status)}</Badge>;
 }

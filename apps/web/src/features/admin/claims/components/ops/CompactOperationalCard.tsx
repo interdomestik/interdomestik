@@ -68,10 +68,7 @@ export function CompactOperationalCard({ claim, isSelected }: CompactOperational
 
         {/* 3. Identity (Truncated) */}
         <div className="flex items-center gap-2">
-          <span
-            data-testid="claim-number"
-            className="font-mono text-[10px] font-medium tracking-tight text-slate-500 bg-slate-100/80 px-1.5 py-0.5 rounded border border-slate-200/60 shadow-[inset_0_1px_1px_rgba(0,0,0,0.02)]"
-          >
+          <span className="font-mono text-[10px] font-medium tracking-tight text-slate-500 bg-slate-100/80 px-1.5 py-0.5 rounded border border-slate-200/60 shadow-[inset_0_1px_1px_rgba(0,0,0,0.02)]">
             {claim.claimNumber ?? claim.code}
           </span>
           <h3

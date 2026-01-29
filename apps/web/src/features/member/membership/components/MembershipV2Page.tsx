@@ -126,11 +126,7 @@ function PlanStatusCard({ subscription, dunning, t, isGraceExpired }: any) {
         </div>
       );
     }
-    return (
-      <div className="text-muted-foreground" data-testid="no-membership-empty">
-        {t('plan.no_membership')}
-      </div>
-    );
+    return <div className="text-muted-foreground">{t('plan.no_membership')}</div>;
   };
 
   return (
@@ -155,7 +151,7 @@ function PlanStatusCard({ subscription, dunning, t, isGraceExpired }: any) {
             }}
           />
         ) : (
-          <Button asChild data-testid="view-plans-button">
+          <Button asChild>
             <Link href="/pricing">{t('plan.view_plans_button')}</Link>
           </Button>
         )}
