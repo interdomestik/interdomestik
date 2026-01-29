@@ -3,7 +3,6 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { createAdminClient } from '@interdomestik/database';
-import { NextResponse } from 'next/server';
 
 import { downloadStorageFileCore, getDocumentAccessCore, safeFilename } from '../../_core';
 
@@ -32,7 +31,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const session = await auth.api.getSession({ headers: request.headers });
 
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const url = new URL(request.url);
@@ -78,7 +77,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       });
     }
 
-    return NextResponse.json({ error: access.message }, { status: statusMap[access.code] || 500 });
+    return Response.json({ error: access.message }, { status: statusMap[access.code] || 500 });
   }
 
   await logAuditEvent({
@@ -118,7 +117,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     console.error('Failed to download document from storage');
-    return NextResponse.json({ error: 'Failed to download document' }, { status: 500 });
+    return Response.json({ error: 'Failed to download document' }, { status: 500 });
   }
 
   const filename = safeFilename(access.document.name || 'document');
