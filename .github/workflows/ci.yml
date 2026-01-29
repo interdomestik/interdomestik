@@ -27,6 +27,7 @@ jobs:
         run: |
           pnpm track:audit
           pnpm purity:audit
+          pnpm check
 
   static:
     runs-on: ubuntu-latest
@@ -84,8 +85,8 @@ jobs:
       - name: DB Setup
         run: |
           pnpm db:migrate
-          pnpm --filter @interdomestik/database seed:e2e
-          pnpm --filter @interdomestik/database seed:assert-e2e
+          pnpm seed:e2e
+          pnpm seed:assert-e2e
 
       - name: E2E Contract Check (Auth Rendering)
         run: |
@@ -93,4 +94,4 @@ jobs:
 
       - name: E2E Gate Suite
         run: |
-          pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-ks-sq --project=gate-mk-mk --max-failures=1 --trace=retain-on-failure
+          pnpm e2e:gate

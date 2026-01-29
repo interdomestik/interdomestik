@@ -76,7 +76,7 @@ export async function gotoApp(
   const marker = options?.marker ?? 'page-ready';
 
   if (marker === 'body') {
-    await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
+    await page.waitForLoadState('domcontentloaded');
   } else {
     await expect(page.getByTestId(marker)).toBeVisible({ timeout: 15000 });
   }

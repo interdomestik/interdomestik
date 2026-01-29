@@ -70,10 +70,16 @@
     "prepare": "husky && husky install",
     "track:audit": "node scripts/track-audit.mjs",
     "purity:audit": "node scripts/purity-audit.mjs",
+    "db:migrate": "pnpm --filter @interdomestik/database migrate",
+    "db:generate": "pnpm --filter @interdomestik/database generate",
+    "db:push": "pnpm --filter @interdomestik/database push",
+    "db:studio": "pnpm --filter @interdomestik/database studio",
     "start:system": "./scripts/start-system.sh",
     "start:system:quick": "./scripts/start-system-quick.sh",
     "boot:dev": "pnpm dev",
-    "boot:e2e": "pnpm --filter @interdomestik/database seed:e2e && pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk",
+    "boot:e2e": "pnpm seed:e2e && pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk",
+    "seed:e2e": "pnpm --filter @interdomestik/database seed:e2e",
+    "seed:assert-e2e": "pnpm --filter @interdomestik/database seed:assert-e2e",
     "check:golden": "pnpm --filter @interdomestik/web test:e2e:phase5"
   },
   "devDependencies": {
@@ -89,7 +95,7 @@
     "dotenv": "^17.2.3",
     "glob": "^13.0.0",
     "gzip-size": "^7.0.0",
-    "hono": "^4.11.1",
+    "hono": "^4.11.7",
     "husky": "^8.0.0",
     "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.3",
@@ -117,7 +123,12 @@
     ],
     "overrides": {
       "esbuild": "^0.25.0",
-      "zod": "4.2.1"
+      "zod": "4.2.1",
+      "seroval": "^1.4.1",
+      "next": "^16.1.6",
+      "tar": "^7.5.7",
+      "cross-spawn": "^7.0.6",
+      "@modelcontextprotocol/sdk": "1.25.3"
     }
   },
   "dependencies": {
