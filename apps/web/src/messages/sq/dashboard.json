@@ -26,6 +26,22 @@
       "shareTitle": "Bashkohu me Asistenca",
       "shareText": "Mbro familjen tënde me anëtarësimin Asistenca!",
       "rewardInfo": "Fitoni €5 kur miku juaj aktivizon anëtarësimin"
+    },
+    "diaspora_ribbon": {
+      "text": "🇩🇪🇨🇭 Për Diasporën: Ndihmë kur je jashtë vendit + udhëzime për avio/udhëtim + Green Card",
+      "cta": "Shiko paketën"
+    },
+    "home_grid": {
+      "cta_incident": "NDODHI AKSIDENT – ÇKA TANI?",
+      "cta_report": "RAPORTO DËMIN (60 sek)",
+      "cta_green_card": "GREEN CARD – Jashtë vendit (Diaspora)",
+      "cta_benefits": "10 PËRFITIMET E ANËTARËSISË"
+    },
+    "categories": {
+      "property_damage": "Dëmet në Pronë",
+      "health_safety": "Shëndeti dhe Siguria",
+      "my_documents": "Dokumentet e Mia",
+      "contact_center": "Qendra e Kontaktit"
     }
   }
 }
