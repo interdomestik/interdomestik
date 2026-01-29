@@ -1,14 +1,13 @@
 'use client';
 
-import { OpsActionBar, OpsDocumentsPanel, OpsTimeline } from '@/components/ops';
+import { OpsActionBar, OpsDocumentsPanel, OpsStatusBadge, OpsTimeline } from '@/components/ops';
 import {
   getClaimActions,
   OpsActionConfig,
   toOpsDocuments,
+  toOpsStatus,
   toOpsTimelineEvents,
 } from '@/components/ops/adapters/claims';
-import { ClaimMessenger } from '@/components/shared/claim-messenger';
-import { ClaimTrackingHeader } from '@/features/claims/tracking/components/ClaimTrackingHeader';
 import type { ClaimTrackingDetailDto } from '@/features/claims/tracking/types';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { Upload } from 'lucide-react';
@@ -17,10 +16,9 @@ import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 
 interface MemberClaimDetailOpsPageProps {
   claim: ClaimTrackingDetailDto;
-  userId: string;
 }
 
-export function MemberClaimDetailOpsPage({ claim, userId }: MemberClaimDetailOpsPageProps) {
+export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProps) {
   const t = useTranslations('claims');
 
   // Transform events and translate titles
@@ -48,14 +46,17 @@ export function MemberClaimDetailOpsPage({ claim, userId }: MemberClaimDetailOps
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-8">
-      <ClaimTrackingHeader
-        claimId={claim.id}
-        title={claim.title}
-        status={claim.status}
-        canShare={claim.canShare}
-      />
-
-      <OpsActionBar secondary={secondaryActions} />
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{claim.title}</h1>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-muted-foreground text-sm">{claim.id}</span>
+            <OpsStatusBadge {...toOpsStatus(claim.status)} />
+          </div>
+        </div>
+        <OpsActionBar secondary={secondaryActions} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
@@ -95,21 +96,11 @@ export function MemberClaimDetailOpsPage({ claim, userId }: MemberClaimDetailOps
               />
             }
           />
-
-          <div className="mt-8">
-            <ClaimMessenger claimId={claim.id} currentUserId={userId} userRole="user" />
-          </div>
         </div>
 
         {/* Sidebar */}
         <div className="lg:col-span-1">
-          <div data-testid="claim-timeline">
-            <OpsTimeline
-              title={t('timeline.title')}
-              events={opsEvents}
-              emptyLabel="No history yet"
-            />
-          </div>
+          <OpsTimeline title={t('timeline.title')} events={opsEvents} emptyLabel="No history yet" />
         </div>
       </div>
     </div>

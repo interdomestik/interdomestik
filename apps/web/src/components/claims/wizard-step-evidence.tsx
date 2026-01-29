@@ -221,11 +221,7 @@ export function WizardStepEvidence() {
         </div>
       )}
 
-      {error && (
-        <p className="text-sm text-destructive" data-testid="evidence-error">
-          {error}
-        </p>
-      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       {files.length > 0 && (
         <div className="space-y-2">
@@ -234,8 +230,6 @@ export function WizardStepEvidence() {
             <div
               key={file.id}
               className="flex items-center justify-between p-3 border rounded-lg bg-card gap-3"
-              data-testid="evidence-item"
-              data-file-name={file.name}
             >
               <div className="flex items-center gap-3">
                 <FileText className="h-4 w-4 text-[hsl(var(--primary))]" />

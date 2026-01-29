@@ -13,9 +13,12 @@ test.describe('Admin Verification Flow (Golden)', () => {
     await loginAs('admin');
 
     // 2. Navigate to Verification Queue
-    await gotoApp(page, `${routes.admin(testInfo)}/leads`, testInfo, {
-      marker: 'page-ready', // Use page-ready for dashboard pages
-    });
+    await gotoApp(
+      page,
+      `${routes.admin(testInfo)}/leads`,
+      testInfo,
+      { marker: 'page-ready' } // Use page-ready for dashboard pages
+    );
     // await page.waitForLoadState('networkidle'); // gotoApp handles wait via marker
 
     // 3. Find a pending request (that is NOT already needs_info)

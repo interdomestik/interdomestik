@@ -57,10 +57,7 @@ export default async function AdminClaimsV2Page({ searchParams }: AdminClaimsV2P
   });
 
   return (
-    <div
-      className="space-y-6 animate-in fade-in duration-500"
-      data-testid="admin-claims-list-ready"
-    >
+    <div className="space-y-6 animate-in fade-in duration-500">
       <AdminPageHeader title={t('title')} subtitle={t('description')} />
 
       <GlassCard className="p-6">

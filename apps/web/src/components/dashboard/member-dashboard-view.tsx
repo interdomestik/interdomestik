@@ -1,335 +1,265 @@
 import { ReferralCard } from '@/components/member/referral-card';
-import { and, claims, db, eq, inArray, subscriptions } from '@interdomestik/database';
-import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import { HomeGrid } from '@/components/member/HomeGrid';
+import { db, eq, subscriptions } from '@interdomestik/database';
 import {
-  Badge,
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from '@interdomestik/ui';
-import { count, sum } from 'drizzle-orm';
 import {
-  AlertCircle,
-  ArrowUpRight,
-  CheckCircle2,
-  FileText,
   Phone,
   ShieldCheck,
-  Smartphone,
-  Wallet,
+  ShieldAlert,
+  AlertCircle,
+  FileText,
+  CreditCard,
+  Star,
+  Globe,
+  ArrowRight,
+  ClipboardList,
+  HeartPulse,
+  LayoutDashboard,
+  Headphones,
 } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
 
 export async function MemberDashboardView({ userId }: { userId: string }) {
   const t = await getTranslations('dashboard');
-
-  const activeClaimStatuses = CLAIM_STATUSES.filter(
-    status => status !== 'draft' && status !== 'resolved' && status !== 'rejected'
-  ) as ClaimStatus[];
 
   const subscription = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, userId),
   });
 
-  // Count claims by status
-  const [totalClaims] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(eq(claims.userId, userId));
-
-  const [activeClaims] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(and(eq(claims.userId, userId), inArray(claims.status, activeClaimStatuses)));
-
-  const [resolvedClaims] = await db
-    .select({ count: count() })
-    .from(claims)
-    .where(and(eq(claims.userId, userId), eq(claims.status, 'resolved')));
-
-  const [totalRecovered] = await db
-    .select({ total: sum(claims.claimAmount) })
-    .from(claims)
-    .where(and(eq(claims.userId, userId), eq(claims.status, 'resolved')));
-
-  const stats = {
-    total: totalClaims?.count || 0,
-    active: activeClaims?.count || 0,
-    resolved: resolvedClaims?.count || 0,
-    recovered: Number(totalRecovered?.total || 0),
-  };
-
   const isActive = subscription?.status === 'active';
 
   return (
-    <div className="space-y-8 animate-fade-in pb-10">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="flex flex-col gap-2">
+    <div className="space-y-10 pb-10">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-1.5">
           <h1
-            className="text-3xl font-bold tracking-tight text-foreground"
+            className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl animate-in fade-in slide-in-from-left-4 duration-500"
             data-testid="dashboard-heading"
           >
             {t('overview')}
           </h1>
-          <p className="text-muted-foreground">{t('welcome_back')}</p>
+          <p className="text-lg text-muted-foreground animate-in fade-in slide-in-from-left-4 duration-700">
+            {t('welcome_back')}
+          </p>
         </div>
 
-        {/* Protection Status Badge */}
-        <div
+        {/* Protection Status Card */}
+        <Card
           data-testid="protection-status"
           data-status={isActive ? 'active' : 'inactive'}
-          className="flex items-center gap-2 px-4 py-2 bg-white/50 backdrop-blur-sm border rounded-2xl shadow-sm"
+          className={`flex-shrink-0 min-w-[240px] transition-all duration-500 animate-in fade-in slide-in-from-right-4 overflow-hidden ${
+            isActive ? 'border-green-500/20 bg-green-500/5' : 'border-red-500/20 bg-red-500/5'
+          }`}
         >
-          <div
-            className={`p-1.5 rounded-full ${isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}
-          >
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground leading-none">
-              Status
-            </span>
-            <span className={`text-sm font-bold ${isActive ? 'text-green-700' : 'text-red-700'}`}>
-              {isActive ? 'Protected' : 'No Active Protection'}
-            </span>
-          </div>
-          {isActive && (
-            <Badge
-              variant="outline"
-              className="ml-2 bg-green-50 text-green-700 border-green-200 text-[10px] h-5"
+          <div className="px-5 py-4 flex items-center gap-4">
+            <div
+              className={`p-2.5 rounded-2xl ${
+                isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+              }`}
             >
-              {subscription.planId.toUpperCase().replace('_', ' ')}
-            </Badge>
-          )}
+              {isActive ? <ShieldCheck className="w-6 h-6" /> : <ShieldAlert className="w-6 h-6" />}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80 leading-none mb-1">
+                {isActive ? 'System Active' : 'Action Required'}
+              </span>
+              <span
+                className={`text-base font-heavy ${isActive ? 'text-green-700' : 'text-red-700'}`}
+              >
+                {isActive ? 'Fully Protected' : 'Protection Paused'}
+              </span>
+            </div>
+          </div>
+          <div className={`h-1 w-full ${isActive ? 'bg-green-500/30' : 'bg-red-500/30'}`}>
+            <div
+              className={`h-full ${isActive ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}
+              style={{ width: isActive ? '100%' : '30%' }}
+            />
+          </div>
+        </Card>
+      </div>
+
+      {/* Diaspora Ribbon - Modernized */}
+      <div className="relative group">
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-blue-600 rounded-2xl blur opacity-10 group-hover:opacity-20 transition duration-1000 group-hover:duration-200"></div>
+        <div className="relative bg-card border border-border/50 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm transition-all duration-300 hover:shadow-md">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+              <Globe className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-foreground">{t('diaspora_ribbon.text')}</h3>
+              <p className="text-xs text-muted-foreground">
+                Global coverage for members living abroad
+              </p>
+            </div>
+          </div>
+          <Button asChild className="rounded-xl px-6 group/btn">
+            <Link href="/member/diaspora" className="flex items-center gap-2">
+              {t('diaspora_ribbon.cta')}
+              <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+            </Link>
+          </Button>
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-12">
-        {/* Membership Promo / Status Card */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          <Card
-            className={`relative overflow-hidden border-none shadow-premium transition-all duration-300 ${
-              isActive
-                ? 'bg-gradient-to-br from-primary/5 via-white to-primary/5'
-                : 'bg-gradient-to-br from-amber-50 via-white to-amber-50'
-            }`}
+      {/* Crystal Home 4-CTA Grid - Transformed to premium action cards */}
+      <HomeGrid className="lg:grid-cols-4">
+        {[
+          {
+            href: '/member/incident-guide',
+            id: 'incident',
+            label: t('home_grid.cta_incident'),
+            icon: AlertCircle,
+            color: 'bg-red-600',
+            hoverColor: 'hover:bg-red-700',
+            description: 'Immediate help',
+          },
+          {
+            href: '/member/report',
+            id: 'report',
+            label: t('home_grid.cta_report'),
+            icon: ClipboardList,
+            color: 'bg-blue-600',
+            hoverColor: 'hover:bg-blue-700',
+            description: 'Report a claim',
+          },
+          {
+            href: '/member/green-card',
+            id: 'green-card',
+            label: t('home_grid.cta_green_card'),
+            icon: CreditCard,
+            color: 'bg-green-600',
+            hoverColor: 'hover:bg-green-700',
+            description: 'Request card',
+          },
+          {
+            href: '/member/benefits',
+            id: 'benefits',
+            label: t('home_grid.cta_benefits'),
+            icon: Star,
+            color: 'bg-amber-400',
+            hoverColor: 'hover:bg-amber-500',
+            textColor: 'text-amber-950',
+            description: 'View perks',
+          },
+        ].map((action, idx) => (
+          <Button
+            key={action.id}
+            asChild
+            className={`h-auto min-h-[160px] p-6 flex-col items-start text-left gap-4 shadow-lg hover:shadow-xl transition-all duration-300 rounded-3xl border-b-4 border-black/10 animate-in fade-in zoom-in-95 delay-${idx * 100} ${action.color} ${action.hoverColor} ${action.textColor || 'text-white'}`}
+            data-testid={`home-cta-${action.id}`}
           >
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-              <ShieldCheck className="w-48 h-48 rotate-12" />
-            </div>
-
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div
-                  className={`p-2 rounded-xl ${isActive ? 'bg-primary/10 text-primary' : 'bg-amber-100 text-amber-600'}`}
-                >
-                  <Smartphone className="w-6 h-6" />
-                </div>
-                <CardTitle className="text-xl">
-                  {isActive ? 'Digital Protection Active' : 'Activate Your Protection'}
-                </CardTitle>
+            <Link href={action.href} className="w-full">
+              <div className="bg-white/20 p-2.5 rounded-xl backdrop-blur-md">
+                <action.icon className="w-6 h-6" />
               </div>
-              <CardDescription className="max-w-md text-base">
-                {isActive
-                  ? 'Your membership provides 24/7 expert mediation and emergency legal support.'
-                  : 'Get 24/7 emergency support, free legal consultations, and 50% discount on mediation fees for only €20/year.'}
-              </CardDescription>
-            </CardHeader>
+              <div className="mt-auto">
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                  {action.description}
+                </p>
+                <span className="text-xl font-black leading-tight">{action.label}</span>
+              </div>
+            </Link>
+          </Button>
+        ))}
+      </HomeGrid>
 
-            <CardContent className="pb-8">
-              {isActive ? (
-                <div className="flex flex-wrap gap-4 items-center">
-                  <Button asChild size="lg" className="h-12 shadow-primary/20">
-                    <Link href="/member/membership/card">
-                      <Wallet className="mr-2 h-5 w-5" />
-                      View Member Card
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="h-12 border-none bg-white shadow-sm hover:bg-muted"
-                    asChild
-                  >
-                    <Link href="/member/membership">Manage Plan</Link>
-                  </Button>
-                </div>
-              ) : (
-                <Button asChild size="lg" className="h-12 bg-amber-600 hover:bg-amber-700">
-                  <Link href="/pricing">Activate Protection Now</Link>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {/* Secondary Service Tiles */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-bold tracking-tight px-1">Explore Services</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { key: 'property_damage', icon: ShieldCheck, label: 'Property' },
+            { key: 'health_safety', icon: HeartPulse, label: 'Health' },
+            { key: 'my_documents', icon: FileText, label: 'Documents' },
+            { key: 'contact_center', icon: Headphones, label: 'Support' },
+          ].map((cat, i) => (
             <Card
-              className="shadow-premium hover:shadow-premium-hover transition-all duration-300 group border-none bg-white/50 backdrop-blur-sm"
-              data-testid="stats-card-active-claims"
+              key={i}
+              className="group hover:bg-primary hover:text-primary-foreground transition-all duration-300 cursor-pointer border-none shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4"
+              style={{ animationDelay: `${(i + 4) * 100}ms` }}
             >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-white/20 group-hover:text-white transition-colors duration-300">
+                  <cat.icon className="w-6 h-6" />
+                </div>
                 <div className="space-y-1">
-                  <CardTitle className="text-sm font-medium">{t('activeClaims')}</CardTitle>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-                  <FileText className="h-5 w-5" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold" data-testid="stats-value-active-claims">
-                    {stats.active}
+                  <span className="text-sm font-bold block">{t(`categories.${cat.key}`)}</span>
+                  <p className="text-[10px] opacity-60 group-hover:opacity-100 transition-opacity">
+                    Learn more →
                   </p>
                 </div>
               </CardContent>
             </Card>
-
-            <Card
-              className="shadow-premium hover:shadow-premium-hover transition-all duration-300 group border-none bg-white/50 backdrop-blur-sm"
-              data-testid="stats-card-total-saved"
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="space-y-1">
-                  <CardTitle className="text-sm font-medium">{t('totalSaved')}</CardTitle>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-success group-hover:bg-success group-hover:text-white transition-colors duration-300">
-                  <ArrowUpRight className="h-5 w-5" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold" data-testid="stats-value-total-saved">
-                    €{stats.recovered.toFixed(2)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="shadow-premium hover:shadow-premium-hover transition-all duration-300 group border-none bg-white/50 backdrop-blur-sm"
-              data-testid="stats-card-action-items"
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="space-y-1">
-                  <CardTitle className="text-sm font-medium">{t('actionItems')}</CardTitle>
-                </div>
-                <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center text-warning group-hover:bg-warning group-hover:text-black transition-colors duration-300">
-                  <AlertCircle className="h-5 w-5" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold" data-testid="stats-value-action-items">
-                    {stats.active}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Sidebar Widgets */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
-          <Card className="shadow-premium border-none bg-primary/5 text-primary overflow-hidden">
-            <CardHeader className="pb-3 border-b border-primary/10 bg-primary/[0.03]">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                24/7 Hotline
-              </CardTitle>
-            </CardHeader>
-            <div className="flex flex-col gap-4">
-              {/* North Macedonia */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-center gap-2 text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                  <span>🇲🇰 North Macedonia</span>
+      {/* Bottom Widgets */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2 shadow-premium border-none bg-primary/5 text-primary overflow-hidden relative group">
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+            <Phone className="w-32 h-32" />
+          </div>
+          <CardHeader className="pb-3 border-b border-primary/10 bg-primary/[0.03]">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <Phone className="w-4 h-4" />
+              24/7 Premium Hotline
+            </CardTitle>
+          </CardHeader>
+          <div className="p-8 flex flex-col gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  North Macedonia
                 </div>
-                <div className="text-xl font-black tracking-tighter">
-                  <a href="tel:+38970337140" className="hover:text-primary transition-colors">
-                    +389 70 337 140
-                  </a>
-                </div>
-              </div>
-
-              {/* Kosovo */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-center gap-2 text-muted-foreground text-xs font-bold uppercase tracking-wider">
-                  <span>🇽🇰 Kosovo</span>
-                </div>
-                <div className="text-xl font-black tracking-tighter">
-                  <a href="tel:+38349900600" className="hover:text-primary transition-colors">
-                    +383 49 900 600
-                  </a>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <Button
-                  size="sm"
-                  variant="default"
-                  className="w-full font-bold shadow-lg shadow-primary/30"
-                  asChild
+                <a
+                  href="tel:+38970337140"
+                  className="text-2xl font-black block hover:text-blue-600 transition-colors"
                 >
-                  <a href="tel:+38970337140">Call MK</a>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full font-bold bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                  asChild
+                  +389 70 337 140
+                </a>
+                <p className="text-xs text-muted-foreground">Regional service center</p>
+              </div>
+              <div className="space-y-2">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Kosovo
+                </div>
+                <a
+                  href="tel:+38349900600"
+                  className="text-2xl font-black block hover:text-blue-600 transition-colors"
                 >
-                  <a
-                    href="https://wa.me/38970337140?text=I%20have%20an%20emergency"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    WhatsApp
-                  </a>
-                </Button>
+                  +383 49 900 600
+                </a>
+                <p className="text-xs text-muted-foreground">Regional service center</p>
               </div>
             </div>
-          </Card>
+          </div>
+        </Card>
 
-          {/* Referral Invite Card */}
+        <div className="flex flex-col gap-6">
           <ReferralCard />
-
-          <Card className="shadow-premium border-none bg-white">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-sm font-bold">Your Benefits</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="flex flex-col">
-                {[
-                  { l: 'Legal Consultations', v: isActive ? 'Unlimited' : '0/2', ok: isActive },
-                  { l: 'Damage Calculator', v: 'Active', ok: true },
-                  { l: 'Expert Reports', v: isActive ? '50% Off' : 'Locked', ok: isActive },
-                ].map(b => (
-                  <div
-                    key={b.l}
-                    className="flex items-center justify-between px-6 py-4 border-t first:border-t-0 group hover:bg-muted/30 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                      {b.l}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-bold ${b.ok ? 'text-green-600' : 'text-muted-foreground'}`}
-                      >
-                        {b.v}
-                      </span>
-                      {b.ok ? (
-                        <CheckCircle2 className="w-3 h-3 text-green-500" />
-                      ) : (
-                        <AlertCircle className="w-3 h-3 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
-                ))}
+          <Card className="bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none p-6 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-white/10 rounded-lg">
+                <LayoutDashboard className="w-5 h-5 text-blue-400" />
               </div>
-            </CardContent>
+              <h3 className="font-bold">Membership Insight</h3>
+            </div>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Your protection status is monitored in real-time. Keep your documents updated for
+              faster claim processing.
+            </p>
           </Card>
         </div>
       </div>

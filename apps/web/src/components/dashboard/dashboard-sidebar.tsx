@@ -58,11 +58,7 @@ export function DashboardSidebar() {
                       `}
                       isActive={isActive}
                     >
-                      <Link
-                        href={item.href}
-                        className="flex items-center gap-3 font-medium"
-                        data-testid={`sidebar-nav-${item.href.replace(/^\//, '').replace(/\//g, '-')}`}
-                      >
+                      <Link href={item.href} className="flex items-center gap-3 font-medium">
                         <item.icon
                           className={`h-5 w-5 shrink-0 ${isActive ? 'animate-pulse' : ''}`}
                         />

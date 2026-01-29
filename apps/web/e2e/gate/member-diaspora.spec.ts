@@ -1,0 +1,34 @@
+import { expect, test } from '../fixtures/auth.fixture';
+import { routes } from '../routes';
+
+test.describe('Diaspora Feature', () => {
+  test('Member can see Diaspora ribbon and navigate to Diaspora page', async ({
+    authenticatedPage: page,
+  }) => {
+    // 1. Go to Member Home
+    await page.goto(routes.member());
+
+    // Assert we are on the dashboard
+    await expect(page.getByTestId('dashboard-heading')).toBeVisible();
+
+    // 2. Check for Diaspora ribbon
+    // Using regex to handle both languages or just one if the test runner is locked to a locale
+    const ribbonText = page.getByText(/Diaspor/i);
+    await expect(ribbonText).toBeVisible();
+
+    // 3. Navigate to Diaspora page
+    // The button has Link with href="/member/diaspora"
+    const ribbonCta = page.locator('a[href*="/member/diaspora"]');
+    await expect(ribbonCta).toBeVisible();
+    await ribbonCta.click();
+
+    // 4. Assert we are on the Diaspora page
+    await expect(page).toHaveURL(/\/member\/diaspora/);
+    await expect(page.getByTestId('diaspora-page')).toBeVisible();
+
+    // Check for the 3 cards content (using flexible text matching)
+    await expect(page.getByText(/(Aksident jashtë vendit|Accident abroad)/i)).toBeVisible();
+    await expect(page.getByText(/(Udhëtim \/ Avio|Travel \/ Flight)/i)).toBeVisible();
+    await expect(page.getByText(/(Familja në Kosovë|Family in Kosovo)/i)).toBeVisible();
+  });
+});

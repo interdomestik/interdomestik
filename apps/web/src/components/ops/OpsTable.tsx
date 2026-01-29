@@ -28,7 +28,6 @@ export type OpsTableRow = {
   onClick?: () => void;
   className?: string;
   testId?: string;
-  dataAttributes?: Record<string, string>;
 };
 
 export interface OpsTableProps {
@@ -70,11 +69,7 @@ export function OpsTable({
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-white/5">
               {columns.map(column => (
-                <TableHead
-                  key={column.key}
-                  className={column.className}
-                  data-testid={`ops-col-${column.key}`}
-                >
+                <TableHead key={column.key} className={column.className}>
                   {column.header}
                 </TableHead>
               ))}
@@ -137,7 +132,6 @@ export function OpsTable({
                     onKeyDown={handleKeyDown}
                     tabIndex={handleClick ? 0 : undefined}
                     data-testid={row.testId ?? rowTestId ?? OPS_TEST_IDS.TABLE.ROW}
-                    {...row.dataAttributes}
                   >
                     {row.cells.map((cell, index) => (
                       <TableCell key={`${row.id}-${index}`} className="h-14 sm:h-12 py-2">

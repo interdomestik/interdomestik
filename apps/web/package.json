@@ -14,11 +14,10 @@
     "test:e2e:ks": "PLAYWRIGHT_LOCALE=sq playwright test --project=ks-sq",
     "test:e2e:mk": "PLAYWRIGHT_LOCALE=mk playwright test --project=mk-mk",
     "e2e:gate": "playwright test --project=gate-ks-sq --project=gate-mk-mk",
-    "e2e:guards": "cd ../.. && bash scripts/e2e-strict-guards.sh",
-    "e2e:gate:fast": "playwright test --project=gate-ks-sq --project=gate-mk-mk --max-failures=1",
     "e2e:regression": "playwright test --grep-invert \"@quarantine|@legacy|@smoke\" --project=ks-sq --project=mk-mk",
     "e2e:smoke": "playwright test --grep \"@smoke\" --project=ks-sq --project=mk-mk",
     "e2e:quarantine": "playwright test --grep \"@quarantine|@legacy\"",
+    "e2e:stability": "node e2e/quarantine/run-stability.mjs --project=ks-sq --project=mk-mk",
     "test:e2e:phase5": "playwright test --project=gate-ks-sq --project=gate-mk-mk --project=smoke apps/web/e2e/golden/agent-pro-leads.spec.ts apps/web/e2e/golden/agent-leads-drawer.spec.ts apps/web/e2e/golden/verification-list-ops.spec.ts apps/web/e2e/golden/verification-details-ops.spec.ts apps/web/e2e/golden/agent-pro-claims.spec.ts apps/web/e2e/golden/agent-pro-claims-messaging.spec.ts apps/web/e2e/golden/rbac-scope.spec.ts apps/web/e2e/golden/agent-pro-claims-rbac.spec.ts",
     "test:smoke": "playwright test --project=smoke --grep '@smoke'"
   },

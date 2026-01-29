@@ -1,8 +1,6 @@
-import * as Sentry from '@sentry/nextjs';
-
 export function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    import('./sentry.server.config');
+    import('../sentry.server.config');
 
     // Hardening: Prevent process crash on client disconnects during E2E/Load tests
     process.on('uncaughtException', (err: any) => {
@@ -25,8 +23,6 @@ export function register() {
   }
 
   if (process.env.NEXT_RUNTIME === 'edge') {
-    import('./sentry.edge.config');
+    import('../sentry.edge.config');
   }
 }
-
-export const onRequestError = Sentry.captureRequestError;

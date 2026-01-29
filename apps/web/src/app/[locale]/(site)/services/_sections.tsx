@@ -47,10 +47,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
               <Shield className="h-4 w-4" />
               {t('hero.badge')}
             </span>
-            <h1
-              className="text-4xl md:text-5xl lg:text-6xl font-display font-black text-slate-900 mb-6 tracking-tight"
-              data-testid="services-hero-title"
-            >
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-black text-slate-900 mb-6 tracking-tight">
               {t('hero.title')}
             </h1>
             <p className="text-xl text-slate-500 leading-relaxed mb-8">{t('hero.subtitle')}</p>

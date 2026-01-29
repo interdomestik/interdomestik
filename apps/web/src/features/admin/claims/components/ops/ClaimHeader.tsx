@@ -85,10 +85,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
 
           {/* Level 3: Current Claim (Active) */}
           <div className="flex items-center gap-1 group/claim">
-            <span
-              data-testid="claim-number"
-              className="font-mono font-medium text-foreground bg-slate-100 px-1.5 py-0.5 rounded text-xs border border-slate-200"
-            >
+            <span className="font-mono font-medium text-foreground bg-slate-100 px-1.5 py-0.5 rounded text-xs border border-slate-200">
               {claim.claimNumber ?? claim.code}
             </span>
 

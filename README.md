@@ -2,28 +2,22 @@
 
 The #1 Consumer Protection & Claims Management Platform in the Balkans.
 
-### 🚦 What should I run?
-
-- **Feature work**: `pnpm boot:dev`
-- **E2E work / Fixes**: `pnpm boot:e2e` (Required after restart / DB reset / tenant weirdness)
-- **Before commit**: `pnpm check:fast` (+ `pnpm check:golden` if UI changed)
-
 ## 📋 Overview
 
 Interdomestik is a subscription-based consumer protection service that helps members resolve disputes with companies, landlords, insurance providers, employers, and other entities.
 
 ## 🛠️ Tech Stack
 
-| Layer          | Technology                                         |
-| -------------- | -------------------------------------------------- |
-| **Monorepo**   | Turborepo                                          |
-| **Frontend**   | Next.js 15 (App Router)                            |
-| **UI**         | Custom Design System + Radix UI + Tailwind CSS     |
-| **Database**   | Drizzle ORM (PostgreSQL via Supabase)              |
-| **Auth**       | Better Auth (Primary)                              |
-| **Payments**   | Paddle                                             |
-| **i18n**       | next-intl (Albanian, English, Macedonian, Serbian) |
-| **Deployment** | Vercel                                             |
+| Layer          | Technology                                     |
+| -------------- | ---------------------------------------------- |
+| **Monorepo**   | Turborepo                                      |
+| **Frontend**   | Next.js 15 (App Router)                        |
+| **UI**         | Custom Design System + Radix UI + Tailwind CSS |
+| **Database**   | Supabase (PostgreSQL)                          |
+| **Auth**       | Supabase Auth                                  |
+| **Payments**   | Stripe                                         |
+| **i18n**       | next-intl (Albanian/English)                   |
+| **Deployment** | Vercel                                         |
 
 ## 📁 Project Structure
 
@@ -35,7 +29,7 @@ interdomestikv2/
 │       │   ├── app/            # App Router pages
 │       │   │   └── [locale]/   # i18n routing
 │       │   ├── i18n/           # i18n configuration
-│       │   ├── lib/            # Utilities (Auth, Paddle, etc.)
+│       │   ├── lib/            # Utilities (Stripe, etc.)
 │       │   └── messages/       # Translation JSON files by locale/namespace
 │       ├── next.config.mjs
 │       ├── tailwind.config.js
@@ -47,7 +41,7 @@ interdomestikv2/
 │   │   │   ├── lib/            # Utilities (cn, etc.)
 │   │   │   └── globals.css     # Design system CSS
 │   │   └── package.json
-│   ├── database/               # Drizzle schema, migrations, DB client, seed scripts (Postgres via Supabase)
+│   ├── database/               # Supabase types and clients
 │   │   ├── src/
 │   │   │   ├── types.ts        # Database types
 │   │   │   ├── client.ts       # Browser client
@@ -67,52 +61,53 @@ interdomestikv2/
 ### Prerequisites
 
 - Node.js 18+
-- pnpm 9+
+- npm 10+
 - Supabase CLI (for local development)
+- Stripe CLI (for webhook testing)
 
 ### Installation
 
-1.  **Clone the repository**
+1. **Clone the repository**
 
-    ```bash
-    git clone https://github.com/yourusername/interdomestikv2.git
-    cd interdomestikv2
-    ```
+   ```bash
+   git clone https://github.com/yourusername/interdomestikv2.git
+   cd interdomestikv2
+   ```
 
-2.  **Install dependencies**
+2. **Install dependencies**
 
-    ```bash
-    pnpm install
-    ```
+   ```bash
+   npm install
+   ```
 
-3.  **Set up environment variables**
+3. **Set up environment variables**
 
-    ```bash
-    cp .env.example .env.local
-    # Edit .env.local with your credentials
-    ```
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local with your credentials
+   ```
 
-    Optional (but recommended) toggles:
-    - `CRON_SECRET` protects `/api/cron/*` endpoints (cron caller must send `Authorization: Bearer $CRON_SECRET`)
-    - Cron requests require `CRON_SECRET` even in development (no bypass flag supported)
-    - `SHOW_I18N_STATS=1` to print i18n key-count stats during tests
+   Optional (but recommended) toggles:
+   - `CRON_SECRET` protects `/api/cron/*` endpoints (cron caller must send `Authorization: Bearer $CRON_SECRET`)
+   - Cron requests require `CRON_SECRET` even in development (no bypass flag supported)
+   - `SHOW_I18N_STATS=1` to print i18n key-count stats during tests
 
-4.  **Start Supabase locally** (optional)
+4. **Start Supabase locally** (optional)
 
-    ```bash
-    npx supabase start
-    ```
+   ```bash
+   npx supabase start
+   ```
 
-5.  **Run the development server**
+5. **Run the development server**
 
-    ```bash
-    pnpm dev
-    # If you need to bind explicitly to loopback:
-    pnpm -C apps/web dev:local
-    # Avoid: pnpm -C apps/web dev -- --hostname ... (Next treats `--` as end-of-options and misreads args)
-    ```
+   ```bash
+   pnpm dev
+   # If you need to bind explicitly to loopback:
+   pnpm -C apps/web dev:local
+   # Avoid: pnpm -C apps/web dev -- --hostname ... (Next treats `--` as end-of-options and misreads args)
+   ```
 
-6.  **Open** [http://localhost:3000](http://localhost:3000)
+6. **Open** [http://localhost:3000](http://localhost:3000)
 
 ## 🌍 Internationalization
 
@@ -120,64 +115,31 @@ The app supports:
 
 - 🇦🇱 **Albanian (sq)** - Default language
 - 🇬🇧 **English (en)**
-- 🇲🇰 **Macedonian (mk)**
-- 🇷🇸 **Serbian (sr)**
 
 Translation files are located in `apps/web/src/messages/{locale}/`.
 
 ### Adding a new language
 
-1.  Create a locale folder: `apps/web/src/messages/{locale}/`
-2.  Copy namespace files from an existing locale (e.g. `en`) and translate
-3.  Add the locale to `apps/web/src/i18n/routing.ts`
+1. Create a locale folder: `apps/web/src/messages/{locale}/`
+2. Copy namespace files from an existing locale (e.g. `en`) and translate
+3. Add the locale to `apps/web/src/i18n/routing.ts`
 
-## 💳 Payments (Paddle)
+## 💳 Stripe Setup
 
-We use **Paddle** for billing and subscriptions.
+1. Create a [Stripe account](https://stripe.com)
+2. Get your API keys from the Stripe Dashboard
+3. Create subscription products:
+   - Basic (€5/month)
+   - Standard (€10/month)
+   - Premium (€15/month)
+   - Family (€20/month)
+4. Set the price IDs in your environment variables
 
-- Products and prices are managed in the Paddle Dashboard.
-- Webhooks are handled at `/api/webhooks/paddle`.
+### Testing Webhooks
 
-## 🧪 Testing & E2E (Strict Contract)
-
-We enforce strict E2E guidelines to ensure stability in our multi-tenant, multi-locale environment.
-
-- **E2E Spec Source of Truth**: [apps/web/e2e/README.md](apps/web/e2e/README.md)
-- **Workflow & Enforcement**: [AGENTS.md](AGENTS.md)
-
-### 🚨 Mandatory Commands (Critical Path)
-
-1.  **Fast Gate (Must Pass)**:
-
-    ```bash
-    pnpm --filter @interdomestik/web e2e:gate:fast
-    ```
-
-2.  **Phase 5 (Functional Flows)**:
-
-    ```bash
-    pnpm --filter @interdomestik/web test:e2e:phase5
-    ```
-
-3.  **Seed / Resume Contract**:
-
-    ```bash
-    pnpm boot:e2e
-    ```
-
-4.  **Full Suite (Optional)**:
-    ```bash
-    pnpm test:e2e
-    ```
-
-## 🏠 Local Multi-Tenant Hosts
-
-We use `nip.io` to simulate multi-tenancy locally without editing `/etc/hosts`.
-
-- **Kosovo**: `http://ks.127.0.0.1.nip.io:3000`
-- **Macedonia**: `http://mk.127.0.0.1.nip.io:3000`
-
-The logic is handled by a neutral host chooser in `middleware.ts`.
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
 
 ## 🗄️ Database
 
@@ -191,10 +153,10 @@ npx supabase start
 npx supabase db push
 
 # Generate types
-pnpm db:generate
+npm run db:generate
 
 # Open Studio
-pnpm db:studio
+npm run db:studio
 ```
 
 ### Schema
@@ -202,7 +164,7 @@ pnpm db:studio
 The database includes:
 
 - **users** - User profiles with roles
-- **subscriptions** - Paddle subscription data
+- **subscriptions** - Stripe subscription data
 - **claims** - Consumer protection claims
 - **claim_documents** - Uploaded evidence/documents
 - **claim_messages** - Communication threads
@@ -230,12 +192,12 @@ Navigate to `/admin` (requires login as Admin/Agent).
 
 ## 📦 Available Scripts
 
-| Script            | Description                   |
-| ----------------- | ----------------------------- |
-| `pnpm dev`        | Start all apps in development |
-| `pnpm build`      | Build all apps                |
-| `pnpm lint`       | Lint all apps                 |
-| `pnpm type-check` | Type check all apps           |
+| Script               | Description                   |
+| -------------------- | ----------------------------- |
+| `npm run dev`        | Start all apps in development |
+| `npm run build`      | Build all apps                |
+| `npm run lint`       | Lint all apps                 |
+| `npm run type-check` | Type check all apps           |
 
 ### SonarQube (Local)
 
@@ -243,10 +205,10 @@ See [docs/SONAR.md](docs/SONAR.md) for the streamlined workflow:
 
 - `pnpm sonar:start`
 - `pnpm sonar:full:dotenv`
-  | `pnpm format` | Format code with Prettier |
-  | `pnpm db:generate` | Generate Supabase types |
-  | `pnpm db:push` | Push database migrations |
-  | `pnpm db:studio` | Open Supabase Studio |
+  | `npm run format` | Format code with Prettier |
+  | `npm run db:generate` | Generate Supabase types |
+  | `npm run db:push` | Push database migrations |
+  | `npm run db:studio` | Open Supabase Studio |
 
 ## 🎨 Design System
 
