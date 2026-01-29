@@ -28,7 +28,9 @@ export function DashboardSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-white/10 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60"
+      className={`border-r border-white/10 transition-colors duration-500 ${
+        isAgent ? 'bg-slate-950/40 backdrop-blur-2xl' : 'bg-background/60 backdrop-blur-xl'
+      } supports-[backdrop-filter]:bg-transparent`}
     >
       <SidebarBrand role={role} />
 
