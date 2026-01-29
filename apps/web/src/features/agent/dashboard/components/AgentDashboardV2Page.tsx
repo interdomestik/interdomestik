@@ -25,6 +25,7 @@ export async function AgentDashboardV2Page({ locale }: { locale: string }) {
   setRequestLocale(locale);
 
   const t = await getTranslations('agent');
+  const tToolkit = await getTranslations('agent-toolkit');
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -138,7 +139,7 @@ export async function AgentDashboardV2Page({ locale }: { locale: string }) {
       {/* NEW: Diaspora Toolkit (The Final 4) */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <MatteAnchorCard
-          label="Instant Campaign"
+          label={tToolkit('campaign.title')}
           description="Gjuetia (Hunt)"
           iconName="share"
           href="/agent/toolkit/campaign"
@@ -162,7 +163,7 @@ export async function AgentDashboardV2Page({ locale }: { locale: string }) {
           testId="action-commissions"
         />
         <MatteAnchorCard
-          label="Global Ambassador"
+          label={tToolkit('guides.title')}
           description="Ekspertiza"
           iconName="globe"
           href="/agent/toolkit/guides"
