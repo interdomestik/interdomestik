@@ -35,8 +35,16 @@ export function CreateBranchDialog() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  const form = useForm<z.infer<typeof createBranchSchema>>({
-    resolver: zodResolver(createBranchSchema),
+  // Explicit type to bridge Zod version mismatch (v3 in domain vs v4 in web)
+  type CreateBranchValues = {
+    name: string;
+    code?: string | null;
+    tenantId?: string;
+  };
+
+  const form = useForm<CreateBranchValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createBranchSchema as any),
     defaultValues: {
       name: '',
       code: '',
@@ -45,7 +53,7 @@ export function CreateBranchDialog() {
 
   const isSubmitting = form.formState.isSubmitting;
 
-  async function onSubmit(values: z.infer<typeof createBranchSchema>) {
+  async function onSubmit(values: CreateBranchValues) {
     try {
       const result = await createBranch(values);
 
