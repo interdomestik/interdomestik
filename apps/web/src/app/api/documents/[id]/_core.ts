@@ -3,7 +3,6 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { createAdminClient } from '@interdomestik/database';
-import { NextResponse } from 'next/server';
 
 import { createSignedDownloadUrlCore, getDocumentAccessCore } from '../_core';
 
@@ -31,7 +30,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const session = await auth.api.getSession({ headers: _request.headers });
 
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const access = await getDocumentAccessCore({
@@ -71,7 +70,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       });
     }
 
-    return NextResponse.json({ error: access.message }, { status: statusMap[access.code] || 500 });
+    return Response.json({ error: access.message }, { status: statusMap[access.code] || 500 });
   }
 
   await logAuditEvent({
@@ -94,10 +93,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   if (!urlResult.ok) {
     console.error('Failed to create signed download URL');
-    return NextResponse.json({ error: 'Failed to generate download URL' }, { status: 500 });
+    return Response.json({ error: 'Failed to generate download URL' }, { status: 500 });
   }
 
-  return NextResponse.json({
+  return Response.json({
     url: urlResult.signedUrl,
     name: access.document.name,
     type: access.document.fileType,
