@@ -1,12 +1,13 @@
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 
 test.describe('Diaspora Feature', () => {
   test('Member can see Diaspora ribbon and navigate to Diaspora page', async ({
     authenticatedPage: page,
-  }) => {
+  }, testInfo) => {
     // 1. Go to Member Home
-    await page.goto(routes.member(test.info()));
+    await gotoApp(page, routes.member(test.info()), testInfo);
 
     // Assert we are on the dashboard
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();

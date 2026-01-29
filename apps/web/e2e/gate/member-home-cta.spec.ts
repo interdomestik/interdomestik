@@ -1,10 +1,13 @@
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 
 test.describe('Strict Gate: Member Home Crystal UI', () => {
-  test('Member can navigate via the 4 Crystal CTAs', async ({ authenticatedPage: page }) => {
+  test('Member can navigate via the 4 Crystal CTAs', async ({
+    authenticatedPage: page,
+  }, testInfo) => {
     // 1. Go to Member Home
-    await page.goto(routes.member(test.info()));
+    await gotoApp(page, routes.member(test.info()), testInfo);
 
     // Assert we are on the dashboard
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
@@ -17,7 +20,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('incident-guide-page-ready')).toBeVisible();
 
     // Back to home
-    await page.goto(routes.member(test.info()));
+    await gotoApp(page, routes.member(test.info()), testInfo);
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
 
     // 3. Report CTA
@@ -28,7 +31,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('report-page-ready')).toBeVisible();
 
     // Back to home
-    await page.goto(routes.member(test.info()));
+    await gotoApp(page, routes.member(test.info()), testInfo);
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
 
     // 4. Green Card CTA
@@ -39,7 +42,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('green-card-page-ready')).toBeVisible();
 
     // Back to home
-    await page.goto(routes.member(test.info()));
+    await gotoApp(page, routes.member(test.info()), testInfo);
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
 
     // 5. Benefits CTA

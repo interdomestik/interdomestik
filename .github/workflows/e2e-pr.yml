@@ -33,6 +33,7 @@ jobs:
       PLAYWRIGHT: '1'
       NEXT_PUBLIC_BILLING_TEST_MODE: '1'
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      NODE_OPTIONS: --max-old-space-size=4096
 
     steps:
       - uses: actions/checkout @v4

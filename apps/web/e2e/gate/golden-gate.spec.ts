@@ -121,7 +121,7 @@ test.describe('Golden Gate: Critical Path', () => {
       const locale = page.url().includes('/mk') ? 'mk' : 'sq';
 
       // Navigate to admin - expect 404 page to render
-      await page.goto(`${testInfo.project.use.baseURL}/${locale}/admin`);
+      await gotoApp(page, `/${locale}/admin`, testInfo);
 
       // Wait for either redirect away from admin OR 404 page
       await page.waitForLoadState('networkidle');
