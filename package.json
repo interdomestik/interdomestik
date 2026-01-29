@@ -120,16 +120,7 @@
       "esbuild",
       "sharp",
       "supabase"
-    ],
-    "overrides": {
-      "esbuild": "^0.25.0",
-      "zod": "4.2.1",
-      "seroval": "^1.4.1",
-      "next": "^16.1.6",
-      "tar": "^7.5.7",
-      "cross-spawn": "^7.0.6",
-      "@modelcontextprotocol/sdk": "1.25.3"
-    }
+    ]
   },
   "dependencies": {
     "checkly": "^6.9.8"
