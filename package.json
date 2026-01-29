@@ -69,6 +69,7 @@
     "release:dry": "release-it --dry-run",
     "prepare": "husky && husky install",
     "track:audit": "node scripts/track-audit.mjs",
+    "purity:audit": "node scripts/purity-audit.mjs",
     "start:system": "./scripts/start-system.sh",
     "start:system:quick": "./scripts/start-system-quick.sh",
     "boot:dev": "pnpm dev",
