@@ -122,7 +122,7 @@ test.describe('Golden Gate: Critical Path', () => {
       const locale = page.url().includes('/mk') ? 'mk' : 'sq';
 
       // Verify NO access to admin - should redirect or show 404
-      await gotoApp(page, `/${locale}/admin`, testInfo, { marker: 'body' });
+      await gotoApp(page, `/${locale}/admin`, testInfo);
 
       // Use pathname to avoid matching query params like ?callbackURL=/admin
       const pathname = new URL(page.url()).pathname;
@@ -185,7 +185,7 @@ test.describe('Golden Gate: Critical Path', () => {
       await expect(page.locator('body')).toContainText(/Claim|Kërkes|Staff/i);
 
       // Verify Restrictions - Try Admin Branches (should redirect)
-      await gotoApp(page, `/${locale}/admin/branches`, testInfo, { marker: 'body' });
+      await gotoApp(page, `/${locale}/admin/branches`, testInfo);
       // Staff shouldn't have full admin access
       await expect(page.locator('body')).not.toContainText(/Create Branch|Krijo Degë/i);
     });

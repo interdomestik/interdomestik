@@ -87,10 +87,7 @@ export function PricingTable({ userId, email }: PricingTableProps) {
   ];
 
   const handleAction = async (planId: string, priceId: string) => {
-    if (!userId) {
-      router.push(`/register?plan=${planId}`);
-      return;
-    }
+    if (!userId) return;
 
     setLoading(priceId);
     try {
@@ -237,10 +234,19 @@ export function PricingTable({ userId, email }: PricingTableProps) {
               }`}
               variant={plan.popular ? 'default' : 'outline'}
               disabled={loading === plan.priceId}
-              onClick={() => handleAction(plan.id, plan.priceId)}
+              asChild={!userId}
+              onClick={userId ? () => handleAction(plan.id, plan.priceId) : undefined}
             >
-              {loading === plan.priceId ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-              {t('cta')}
+              {!userId ? (
+                <Link href={`/register?plan=${plan.id}`}>{t('cta')}</Link>
+              ) : (
+                <>
+                  {loading === plan.priceId ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : null}
+                  {t('cta')}
+                </>
+              )}
             </Button>
           </div>
         ))}

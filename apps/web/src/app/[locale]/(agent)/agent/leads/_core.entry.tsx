@@ -1,4 +1,4 @@
-import { AgentLeadsOpsPage } from '@/features/agent/leads/components/AgentLeadsOpsPage';
+import { AgentLeadsProPage } from '@/features/agent/leads/components/AgentLeadsProPage';
 import { auth } from '@/lib/auth';
 import { db } from '@interdomestik/database/db';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -19,5 +19,5 @@ export default async function AgentLeadsEntry() {
 
   const leadsData = await getAgentLeadsCore({ tenantId, agentId: session.user.id }, { db });
 
-  return <AgentLeadsOpsPage leads={leadsData} />;
+  return <AgentLeadsProPage leads={leadsData} />;
 }

@@ -38,10 +38,9 @@ export default async function DashboardLayout({
   }
 
   const role = session.user.role;
-  if (role === 'agent') {
-    redirect({ href: '/agent', locale });
-    return null;
-  }
+  // V3 Change: Agents are allowed in member layout.
+  // if (role === 'agent') { redirect({ href: '/agent', locale }); return null; }
+
   if (role === 'staff') {
     redirect({ href: '/staff', locale });
     return null;

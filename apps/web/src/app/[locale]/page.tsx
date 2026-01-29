@@ -2,6 +2,8 @@ import { BASE_NAMESPACES, HOME_NAMESPACES, pickMessages } from '@/i18n/messages'
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { auth } from '@/lib/auth.core';
 import dynamic from 'next/dynamic';
 import { getLocaleLandingCore } from './_core';
 
@@ -34,8 +36,17 @@ export default async function HomePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  // Future: Fetch real session here if needed for redirection
-  const decision = getLocaleLandingCore({ locale, session: null });
+  // V3 Change: Fetch real session to enable dashboard redirection
+  const session = await auth.api
+    .getSession({
+      headers: await headers(),
+    })
+    .catch(() => null);
+
+  const decision = getLocaleLandingCore({
+    locale,
+    session: session?.user ? { userId: session.user.id, role: session.user.role } : null,
+  });
 
   if (decision.kind === 'redirect') {
     redirect(decision.destination);

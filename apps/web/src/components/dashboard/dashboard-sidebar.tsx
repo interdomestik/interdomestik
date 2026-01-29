@@ -1,7 +1,7 @@
 'use client';
 
 import { useDashboardNavigation } from '@/hooks/use-dashboard-navigation';
-import { Link, usePathname } from '@/i18n/routing';
+import { usePathname } from '@/i18n/routing';
 import {
   Sidebar,
   SidebarContent,
@@ -10,18 +10,20 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
 } from '@interdomestik/ui';
+import { LayoutGroup } from 'framer-motion';
 import { useTranslations } from 'next-intl';
+import { NavItem } from './nav-item';
 import { SidebarBrand } from './sidebar-brand';
 import { SidebarUserMenu } from './sidebar-user-menu';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
   const t = useTranslations('nav');
-  const { items, role } = useDashboardNavigation();
+  const { memberItems, agentItems, adminItems, role } = useDashboardNavigation();
+  const isAgent = role === 'agent';
 
   return (
     <Sidebar
@@ -30,50 +32,112 @@ export function DashboardSidebar() {
     >
       <SidebarBrand role={role} />
 
-      <SidebarContent className="px-3 py-4">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-widest px-4 mb-2">
-            {t('menu')}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-2">
-              {items.map(item => {
-                const isActive =
-                  item.href === '/member' ? pathname === '/member' : pathname.startsWith(item.href);
-
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      className={`
-                        h-auto py-3 px-4 rounded-xl transition-all duration-300 
-                        hover:bg-muted/50 hover:pl-6
-                        data-[state=open]:bg-primary data-[state=open]:text-primary-foreground
-                        ${
-                          isActive
-                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 ring-0'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }
-                      `}
-                      isActive={isActive}
-                    >
-                      <Link href={item.href} className="flex items-center gap-3 font-medium">
-                        <item.icon
-                          className={`h-5 w-5 shrink-0 ${isActive ? 'animate-pulse' : ''}`}
+      <SidebarContent className="px-3 py-4 space-y-2">
+        <LayoutGroup id="sidebar-nav">
+          {/* Section 1: Dashboard (Context Aware) */}
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {/* For Agents, the primary link is the Hub. For Members, it's the Overview. */}
+                {isAgent
+                  ? agentItems.slice(0, 1).map(item => (
+                      <SidebarMenuItem key={item.href}>
+                        <NavItem
+                          href={item.href}
+                          title={item.title}
+                          icon={item.icon}
+                          isActive={pathname === '/agent'}
                         />
-                        <span className="group-data-[state=collapsed]:hidden">{item.title}</span>
-                        {isActive && (
-                          <div className="ml-auto h-2 w-2 rounded-full bg-white/20 animate-ping group-data-[state=collapsed]:hidden" />
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                      </SidebarMenuItem>
+                    ))
+                  : memberItems.slice(0, 1).map(item => (
+                      <SidebarMenuItem key={item.href}>
+                        <NavItem
+                          href={item.href}
+                          title={item.title}
+                          icon={item.icon}
+                          isActive={pathname === '/member'}
+                        />
+                      </SidebarMenuItem>
+                    ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Section 2: Sales & Recruitment (Agents Only) */}
+          {isAgent && agentItems.length > 1 && (
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500/50 px-4 mb-2">
+                Sales & Network
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-1">
+                  {agentItems.slice(1).map(item => {
+                    const isActive = pathname.startsWith(item.href);
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <NavItem
+                          href={item.href}
+                          title={item.title}
+                          icon={item.icon}
+                          isActive={isActive}
+                        />
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+
+          {/* Section 3: Personal Coverage (Claims, Docs) */}
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-4 mb-2">
+              {isAgent ? 'My Protection' : 'Membership'}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-1">
+                {/* For Agents, show all member items (Claims, etc). For Members, show rest. */}
+                {memberItems.slice(isAgent ? 0 : 1).map(item => {
+                  const isActive = pathname.startsWith(item.href);
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <NavItem
+                        href={item.href}
+                        title={item.title}
+                        icon={item.icon}
+                        isActive={isActive}
+                      />
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Section 4: Admin (If applicable) */}
+          {adminItems.length > 0 && (
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/50 px-4 mb-2">
+                Admin
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-1">
+                  {adminItems.map(item => (
+                    <SidebarMenuItem key={item.href}>
+                      <NavItem
+                        href={item.href}
+                        title={item.title}
+                        icon={item.icon}
+                        isActive={pathname.startsWith(item.href)}
+                      />
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+        </LayoutGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-2 border-t border-white/10">

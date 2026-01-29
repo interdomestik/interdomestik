@@ -14,10 +14,9 @@ export function getMemberDashboardCore(params: {
 }): MemberDashboardResult {
   const { role, userId, locale } = params;
 
-  // Redirect agents to their sales portal
-  if (role === 'agent') {
-    return { kind: 'redirect', to: `/${locale}/agent` };
-  }
+  // V3 Change: Agents are Members. Do not redirect them to /agent automatically.
+  // They can toggle via the sidebar.
+  // if (role === 'agent') { return { kind: 'redirect', to: `/${locale}/agent` }; }
 
   // Redirect staff / operations to their portal
   if (role === 'staff' || role === 'branch_manager') {

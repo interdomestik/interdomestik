@@ -7,9 +7,9 @@ describe('getMemberDashboardCore', () => {
     expect(result).toEqual({ kind: 'ok', userId: 'u1' });
   });
 
-  it('redirects agents to agent portal', () => {
+  it('allows agents to see member dashboard (unified role)', () => {
     const result = getMemberDashboardCore({ role: 'agent', userId: 'a1', locale: 'sq' });
-    expect(result).toEqual({ kind: 'redirect', to: '/sq/agent' });
+    expect(result).toEqual({ kind: 'ok', userId: 'a1' });
   });
 
   it('redirects staff and branch managers to staff portal', () => {

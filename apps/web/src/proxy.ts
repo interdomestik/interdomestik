@@ -2,7 +2,8 @@ import { Logger } from 'next-axiom';
 import createIntlRouter from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { routing } from '../i18n/routing';
+import { routing } from './i18n/routing';
+import { resolveTenantFromHost, TENANT_COOKIE_NAME } from './lib/tenant/tenant-hosts';
 
 const handleIntlRouting = createIntlRouter(routing);
 
@@ -118,6 +119,14 @@ export default async function proxy(request: NextRequest) {
 
   if (isProtected) {
     response.headers.set('x-auth-guard', 'middleware');
+  }
+
+  // Tenant Resolution (Cookie Sync)
+  // We ensure the cookie matches the host-implied tenant (if any).
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
+  const resolvedTenantId = resolveTenantFromHost(host);
+  if (resolvedTenantId) {
+    response.cookies.set(TENANT_COOKIE_NAME, resolvedTenantId);
   }
 
   // 2. Security Headers

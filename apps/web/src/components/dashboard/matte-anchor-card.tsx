@@ -17,6 +17,7 @@ interface MatteAnchorCardProps {
   iconName: string;
   href: string;
   colorClassName?: string;
+  testId?: string;
 }
 
 export function MatteAnchorCard({
@@ -25,6 +26,7 @@ export function MatteAnchorCard({
   iconName,
   href,
   colorClassName = 'from-slate-900 to-slate-800',
+  testId,
 }: MatteAnchorCardProps) {
   const Icon = ICON_MAP[iconName] || AlertCircle;
 
@@ -34,7 +36,7 @@ export function MatteAnchorCard({
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       className="group relative h-full"
     >
-      <Link href={href} className="block h-full">
+      <Link href={href} className="block h-full" data-testid={testId}>
         <div
           className={`
           relative h-full p-8 rounded-[2.5rem] bg-gradient-to-br ${colorClassName}

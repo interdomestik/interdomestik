@@ -24,6 +24,7 @@ import {
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
+import { isAgent } from '@/lib/roles.core';
 import { MatteAnchorCard } from './matte-anchor-card';
 
 const getCachedUser = cache(async (userId: string) => {
@@ -53,9 +54,9 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
   ) {
     redirect('/admin');
   }
-  if (userDetails?.role === 'agent') {
-    redirect('/agent');
-  }
+  // V3 Change: Agents are Members too. Do not redirect them.
+  // if (userDetails?.role === 'agent') { redirect('/agent'); }
+
   if (userDetails?.role === 'staff' || userDetails?.role === 'branch_manager') {
     redirect('/staff');
   }
@@ -246,6 +247,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 iconName={action.iconName}
                 description={action.description}
                 colorClassName={action.color}
+                testId={`home-cta-${action.id}`}
               />
             ))}
           </HomeGrid>
@@ -441,7 +443,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
         </Card>
 
         <div className="flex flex-col gap-8">
-          <ReferralCard />
+          <ReferralCard isAgent={isAgent(userDetails.role)} />
           <Card className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-none p-8 shadow-2xl rounded-[2rem] relative overflow-hidden group">
             <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000" />
             <div className="relative space-y-5">

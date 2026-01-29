@@ -147,7 +147,7 @@ export default defineConfig({
     },
     {
       name: 'mk-mk',
-      dependencies: ['setup'],
+      dependencies: ['setup-mk'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${MK_HOST}/mk`,
@@ -182,7 +182,7 @@ export default defineConfig({
   webServer: {
     // E2E runs against a production server (Next `start`) for artifact consistency.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: 'node .next/standalone/apps/web/server.js',
+    command: `bash "${WEB_SERVER_SCRIPT}"`,
     url: `${BASE_URL}/api/health`,
     // Reuse existing server in local dev to avoid EADDRINUSE/zombie conflicts.
     reuseExistingServer: !process.env.CI,
