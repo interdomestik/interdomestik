@@ -118,29 +118,12 @@ test.describe('Golden Gate: Critical Path', () => {
   test.describe('2. RBAC Isolation [smoke]', () => {
     test('Member cannot access admin [isolation]', async ({ page, loginAs }, testInfo) => {
       await loginAs('member');
-      const locale = page.url().includes('/mk') ? 'mk' : 'sq';
 
       // Navigate to admin - expect 404 page to render
-      await gotoApp(page, `/${locale}/admin`, testInfo);
+      await gotoApp(page, '/admin', testInfo, { marker: 'not-found-page' });
 
-      // Wait for either redirect away from admin OR 404 page
-      await page.waitForLoadState('networkidle');
-
-      const pathname = new URL(page.url()).pathname;
-      const isStillOnAdmin = pathname.includes('/admin');
-
-      if (isStillOnAdmin) {
-        // If URL still contains /admin, it MUST be showing the 404 page
-        const notFoundPage = page.getByTestId('not-found-page');
-        const notFoundHeading = page.getByRole('heading', {
-          name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i,
-        });
-
-        await expect(notFoundPage.or(notFoundHeading).first()).toBeVisible({ timeout: 10000 });
-      } else {
-        // If redirected away from admin, it's valid isolation
-        expect(pathname).not.toContain('/admin');
-      }
+      // Verify strict 404 URL pattern
+      await expect(page).toHaveURL(/\/admin/);
     });
 
     test('Tenant Isolation: KS Admin cannot see MK Claims', async ({ page }, testInfo) => {
