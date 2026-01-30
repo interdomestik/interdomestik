@@ -294,7 +294,7 @@ async function performLogin(
 
   const targetUrl = new URL(targetPath, info.origin).toString();
   await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
-  const marker = role === 'member' ? 'member-dashboard-ready' : 'dashboard-page-ready';
+  const marker = 'dashboard-page-ready';
 
   try {
     await expect(page.getByTestId(marker)).toBeVisible({ timeout: 10000 });
@@ -333,13 +333,28 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   else if (role === 'staff') targetPath = '/staff';
 
   // Navigate using gotoApp (handles locale)
-  await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
+  await gotoApp(page, targetPath, testInfo, { marker: 'body' });
 
-  // Check if we bounced to login (registration-page-ready visible)
-  const isLoginPage = await page
-    .getByTestId('registration-page-ready')
-    .isVisible({ timeout: 2000 })
-    .catch(() => false);
+  // Check if we bounced to login (auth-ready or registration-page-ready visible OR url contains /login)
+  // We purposefully include a URL check for speed/robustness on slow renderers.
+  const isLoginPage =
+    (await Promise.race([
+      page
+        .getByTestId('auth-ready')
+        .waitFor({ timeout: 3000 })
+        .then(() => true)
+        .catch(() => false),
+      page
+        .getByTestId('registration-page-ready')
+        .waitFor({ timeout: 3000 })
+        .then(() => true)
+        .catch(() => false),
+      page
+        .getByTestId('dashboard-page-ready')
+        .waitFor({ timeout: 3000 })
+        .then(() => false)
+        .catch(() => false),
+    ])) || page.url().includes('/login');
 
   if (isLoginPage) {
     console.log(`[Auth] Session invalid/missing for ${role}, re-logging in...`);
@@ -348,7 +363,8 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   }
 
   // Final check with strict marker
-  const marker = role === 'member' ? 'member-dashboard-ready' : 'dashboard-page-ready';
+  // Final check with strict marker
+  const marker = 'dashboard-page-ready';
   await gotoApp(page, targetPath, testInfo, { marker });
   // Phase 3: Post-ensure validation (Contract guarantee)
   const apiBase = getApiOrigin(testInfo.project.use.baseURL!);

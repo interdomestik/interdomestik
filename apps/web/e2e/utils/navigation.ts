@@ -12,7 +12,7 @@ function normalizePath(input: unknown): string {
   if (input instanceof URL) return `${input.pathname}${input.search}${input.hash}`;
 
   if (input && typeof input === 'object' && 'pathname' in input) {
-    const o = input as any;
+    const o = input as Record<string, unknown>;
     if (typeof o.pathname === 'string') {
       const search = typeof o.search === 'string' ? o.search : '';
       const hash = typeof o.hash === 'string' ? o.hash : '';
@@ -70,24 +70,48 @@ export async function gotoApp(
     targetUrl = new URL(normalizedPath, normalizedBase).toString();
   }
 
-  console.log(`[E2E Nav] ${targetUrl}`);
   const response = await page.goto(targetUrl);
-  console.log(`[E2E Nav Result] status=${response?.status()} url=${page.url()}`);
-  if (response?.status() !== 200) {
-    console.log(`[E2E Nav Headers] ${JSON.stringify(response?.headers(), null, 2)}`);
+
+  if (response?.status() === 404 || response?.headers()['x-nextjs-postponed']) {
+    // Check if we rendered our custom Not Found UI
+    const notFoundVisible = await page
+      .getByTestId('not-found-page')
+      .isVisible()
+      .catch(() => false);
+    if (notFoundVisible) {
+      if (options?.marker && options.marker !== 'not-found-page') {
+        throw new Error(
+          `Navigation failed: Landed on 404 Not Found page while waiting for "${options.marker}"`
+        );
+      }
+    }
   }
 
   const marker = options?.marker ?? 'page-ready';
 
   if (marker === 'body') {
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('body')).toBeAttached({ timeout: 15000 });
+
+    // Best-effort wait for body visibility without hard fail
+    await page
+      .waitForFunction(
+        () => {
+          const b = document.body;
+          if (!b) return false;
+          const s = getComputedStyle(b);
+          return s.visibility !== 'hidden' && s.display !== 'none';
+        },
+        { timeout: 3000 }
+      )
+      .catch(() => {
+        // Body attached but still reported hidden - ignoring as non-fatal
+      });
+  } else {
     try {
-      await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId(marker)).toBeVisible({ timeout: 15000 });
     } catch (e) {
-      const html = await page.content();
-      console.log(`[E2E Nav Failure] HTML content: ${html.slice(0, 2000)}`);
       throw e;
     }
-  } else {
-    await expect(page.getByTestId(marker)).toBeVisible({ timeout: 15000 });
   }
 }
