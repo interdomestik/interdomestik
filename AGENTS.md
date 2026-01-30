@@ -1,362 +1,172 @@
 # Interdomestik AGENTS.md
 
-This file contains guidelines and commands for agentic coding agents working on the Interdomestik monorepo.
+Guidelines and commands for agentic coding agents working on the Interdomestik monorepo.
 
 ## Project Overview
 
-- **Type**: Next.js 16 monorepo with Turborepo
-- **Language**: TypeScript with strict mode
+- **Type**: Next.js 15 (App Router) monorepo with Turborepo
 - **Package Manager**: pnpm (workspace protocol)
 - **Architecture**: Modular domain-driven design with separate packages
-- **UI**: React 19 with Tailwind CSS and Radix UI components
-- **Database**: Drizzle ORM with PostgreSQL
-- **Testing**: Vitest (unit) + Playwright (e2e)
+- **UI**: React 19 + Tailwind CSS + Radix UI
+- **Database**: Drizzle ORM with PostgreSQL (Supabase)
+- **Auth**: Better Auth (Primary)
+- **Payments**: Paddle
+- **Tenancy**: Host-based (`ks.*`, `mk.*`) with `nip.io`
+- **i18n**: next-intl (`sq`, `en`, `mk`, `sr`)
 
-## Development Commands
+---
 
-### Root Level Commands
+## 🧪 Strict E2E Governance
 
-```bash
-# Development
-pnpm dev                  # Start development servers for all packages
-pnpm build               # Build all packages and apps
-pnpm clean               # Clean all build artifacts and node_modules
+We enforce strict E2E contracts to ensure stability across tenants (ks/mk) and locales (sq/en/mk/sr).
 
-# Code Quality
-pnpm lint                # Run ESLint across all packages
-pnpm type-check          # Type check all packages
-pnpm format              # Format code with Prettier
-pnpm format:check        # Check code formatting
-pnpm check:fast          # Quick checks (format, lint, type-check, test)
-pnpm check               # Full checks including build
+> **Source of Truth**: [apps/web/e2e/README.md](apps/web/e2e/README.md).
+> In case of conflict, the technical spec in `apps/web/e2e/README.md` wins.
 
-# Testing
-pnpm test                # Run unit tests for web app
-pnpm test:unit:domains   # Run unit tests for all domain packages
-pnpm test:e2e            # Run Playwright e2e tests
-pnpm qa                  # Run quality assurance checks
+### 🚨 Mandatory Lanes (before committing)
 
-# Database
-pnpm db:generate         # Generate database client
-pnpm db:push:local       # Push schema changes to local database
-pnpm db:studio           # Open Drizzle Studio
-```
+1. **Fast Gate (must pass)**
 
-### Single Test Commands
+   ```bash
+   pnpm --filter @interdomestik/web e2e:gate:fast
+   ```
 
-```bash
-# Unit tests (Vitest)
-pnpm --filter @interdomestik/web test:unit --run fileName.test.tsx
-pnpm --filter @interdomestik/domain-users test:unit --run specific.test.ts
+2. **Phase 5 (functional flows)**
 
-# E2E tests (Playwright)
-pnpm --filter @interdomestik/web test:e2e -- --grep "test name"
-pnpm --filter @interdomestik/web test:e2e -- --project=chromium --grep "specific test"
-pnpm --filter @interdomestik/web test:e2e -- tests/auth/login.spec.ts
-```
+   ```bash
+   pnpm --filter @interdomestik/web test:e2e:phase5
+   ```
 
-### Package-Specific Commands
+3. **Seed / Resume Contract**
+
+   ```bash
+   pnpm --filter @interdomestik/database seed:e2e
+   pnpm boot:e2e
+   ```
+
+4. **Full Suite (stabilization lane)**
+
+   ```bash
+   PW_REUSE_SERVER=1 pnpm --filter @interdomestik/web test:e2e -- --max-failures=20 --trace=retain-on-failure --reporter=line
+   ```
+
+### 🎯 Targeted Spec Run (default during fixes)
+
+When fixing a single spec, use the smallest run possible:
 
 ```bash
-# Web app
-pnpm --filter @interdomestik/web dev
-pnpm --filter @interdomestik/web build
-pnpm --filter @interdomestik/web lint
-pnpm --filter @interdomestik/web test:unit
-pnpm --filter @interdomestik/web test:e2e
-
-# Individual domain packages
-pnpm --filter @interdomestik/domain-users test:unit
-pnpm --filter @interdomestik/domain-claims test:unit
-# ... etc for other domain packages
+PW_REUSE_SERVER=1 pnpm --filter @interdomestik/web test:e2e -- apps/web/e2e/<spec>.spec.ts --trace=retain-on-failure --reporter=line
 ```
 
-## Code Style Guidelines
+### 🧭 Navigation & Selector Contracts
 
-### Formatting (Prettier)
+> **Full Spec**: [apps/web/e2e/README.md](apps/web/e2e/README.md)
 
-```json
-{
-  "semi": true,
-  "singleQuote": true,
-  "tabWidth": 2,
-  "trailingComma": "es5",
-  "printWidth": 100,
-  "bracketSpacing": true,
-  "arrowParens": "avoid",
-  "endOfLine": "lf"
-}
-```
+**Agent Checklist:**
 
-### Import Organization
+- `gotoApp` ONLY (No `page.goto`).
+- `data-testid` preferred (No `getByText`/`text=`).
+- Host-based tenancy (`ks.*`, `mk.*`).
+- Exceptions: `tenant-resolution` specs allowed `page.goto`.
 
-```typescript
-// 1. React/Next.js imports
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import type { Metadata } from 'next';
+**Uniqueness Rule:**
 
-// 2. External packages (alphabetical)
-import { zodResolver } from '@hookform/resolvers';
-import { Button } from '@interdomestik/ui';
-import { ChevronRight } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+- Any `data-testid` used as a marker or selector MUST be unique in the DOM.
 
-// 3. Internal packages (workspace dependencies)
-import { db, user } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
-import { requireTenantSession } from '@interdomestik/shared-auth';
+---
 
-// 4. Local imports (relative)
-import { UserAvatar } from './components/user-avatar';
-import { useUserPermissions } from './hooks/use-user-permissions';
-import type { UserSettings } from './types';
-```
+## 🧹 The Full Sweep Rule (hard requirement)
 
-### TypeScript Patterns
+When you open a spec file to fix a failure:
 
-```typescript
-// Use strict typing with interfaces/types
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  createdAt: Date;
-}
+1. **Fix the reported failure.**
+2. **Scan the entire file** for the same class of brittleness and remove it everywhere.
+   - Example: If you replace one `getByRole({ name })`, replace all `getByRole({ name })` in that file.
+   - Same for `getByText`, `hasText`, raw `page.goto`, brittle URL regex patterns, etc.
+3. If a stable hook is missing, **add minimal safe `data-testid` / `data-status`** to the component (do not add fragile text).
+4. **Ensure readiness markers are not duplicated** (do not add a marker if it already exists in a parent layout).
+5. **Verify** with a targeted run of the spec.
+6. **Run** `e2e:gate:fast` (and phase5 if relevant).
+7. **Commit.**
 
-// Prefer explicit return types for functions
-async function getUserById(id: string): Promise<UserProfile | null> {
-  // Implementation
-}
+**Never leave partial debt in a touched file.**
 
-// Use utility types appropriately
-type PartialUserProfile = Partial<UserProfile>;
-type UserUpdatePayload = Omit<UserProfile, 'id' | 'createdAt'>;
+---
 
-// Use discriminated unions for result types
-type ApiResult<T> = { success: true; data: T } | { success: false; error: string };
-```
+## ✅ Check → Commit → Check Workflow (mandatory)
 
-### Component Patterns
+Every change follows:
 
-```typescript
-// Use forwardRef for DOM components
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, children, ...props }, ref) => {
-    return (
-      <button
-        className={cn(buttonVariants({ variant, className }))}
-        ref={ref}
-        {...props}
-      >
-        {children}
-      </button>
-    );
-  }
-);
+1. **Edit** (apply strict contracts + Full Sweep)
+2. **Check** (smallest relevant lane: targeted spec OR gate fast)
+3. **Commit** (must be clean worktree)
+4. **Re-check** (gate fast must stay green; phase5 if impacted)
 
-// Use proper prop interfaces
-interface LoginFormProps {
-  onSubmit?: (data: LoginFormData) => void;
-  loading?: boolean;
-  error?: string | null;
-}
+**Commit messages:**
 
-// Default exports for components
-export function LoginForm({ onSubmit, loading, error }: LoginFormProps) {
-  // Component implementation
-}
-```
+- `fix(e2e): ...` for test/spec stabilization
+- `feat(ui): ...` or `fix(ui): ...` when adding testids/markers
+- `docs: ...` for documentation changes
 
-### Error Handling
+---
 
-```typescript
-// Use try-catch with proper error typing
-async function sendMessage(params: SendMessageParams): Promise<ApiResult<Message>> {
-  try {
-    const message = await db.insert(messageTable).values(params).returning();
-    return { success: true, data: message[0] };
-  } catch (error) {
-    console.error('Failed to send message:', error);
-    return { success: false, error: 'Failed to send message' };
-  }
-}
+## ✅ Definition of Done (per change)
 
-// Use Result patterns for domain logic
-type DomainResult<T, E = string> = { success: true; data: T } | { success: false; error: E };
+A change is "done" only when:
 
-function validateEmail(email: string): DomainResult<Email> {
-  if (!email.includes('@')) {
-    return { success: false, error: 'Invalid email format' };
-  }
-  return { success: true, data: email.toLowerCase() };
-}
-```
+- Targeted spec run for the touched file is ✅
+- `pnpm --filter @interdomestik/web e2e:gate:fast` is ✅
+- If the change touches user flows/pages/components: `test:e2e:phase5` is ✅
+  - _User flows/pages/components includes: any file in `apps/web/src/app/**`, `apps/web/src/components/**`, `packages/ui/**`, or any domain package that affects UI state._
+- Worktree is clean and changes are committed
 
-### Naming Conventions
+## 🔍 Full Sweep Search Helpers
 
-- **Files**: kebab-case (`user-profile.tsx`, `send-message.ts`)
-- **Components**: PascalCase (`UserProfile`, `SendMessageButton`)
-- **Functions**: camelCase (`getUserById`, `sendMessageDbCore`)
-- **Variables**: camelCase (`userName`, `isLoading`)
-- **Constants**: UPPER_SNAKE_CASE (`API_BASE_URL`, `MAX_RETRIES`)
-- **Types**: PascalCase (`UserProfile`, `ApiResult`)
-
-### Testing Patterns
-
-```typescript
-// Test file naming: *.test.tsx or *.test.ts
-// Use descriptive test descriptions
-describe('LoginForm', () => {
-  it('should render login form with all fields', () => {
-    // Test implementation
-  });
-
-  it('should show validation error for invalid email', async () => {
-    // Test implementation
-  });
-
-  it('should call onSubmit with form data when valid', async () => {
-    // Test implementation
-  });
-});
-
-// Use custom render with providers
-import { renderWithProviders } from '@/test/test-utils';
-
-const { getByLabelText, getByRole } = renderWithProviders(
-  <LoginForm onSubmit={mockOnSubmit} />
-);
-```
-
-### Database Patterns
-
-```typescript
-// Always use withTenant for tenant-scoped queries
-const users = await db.query.user.findMany({
-  where: (t, { eq }) => withTenant(tenantId, t.tenantId, eq(t.isActive, true)),
-  with: {
-    agent: true,
-  },
-});
-
-// Use transactions for complex operations
-await db.transaction(async tx => {
-  await tx.insert(messageTable).values(message);
-  await tx.update(claimTable).set({ updatedAt: new Date() });
-});
-```
-
-### Security Patterns
-
-```typescript
-// Always validate sessions
-const session = await requireTenantSession(request);
-if (!session) {
-  return { success: false, error: 'Unauthorized' };
-}
-
-// Use tenant scoping
-const tenantId = ensureTenantId(session);
-
-// Sanitize user inputs
-const sanitizedContent = content.trim().slice(0, 1000);
-```
-
-## Architecture Guidelines
-
-### Domain Packages Structure
-
-```
-packages/domain-{name}/src/
-├── index.ts              # Public API exports
-├── types.ts               # Domain types
-├── schema.ts              # Zod schemas
-├── admin/                 # Admin-only functions
-├── agent/                 # Agent-only functions
-├── staff/                 # Staff-only functions
-└── {feature}/             # Feature-specific modules
-```
-
-### Component Organization
-
-```
-src/components/
-├── ui/                    # Reusable UI components
-├── {feature}/             # Feature components
-│   ├── {component}.tsx
-│   └── {component}.test.tsx
-└── layout/                # Layout components
-```
-
-## Performance Guidelines
-
-- Use React.memo() for expensive components
-- Implement proper loading states with skeleton screens
-- Use Next.js dynamic imports for heavy components
-- Optimize database queries with proper indexes
-- Use React Query for data fetching and caching
-
-## Commit Message Style
-
-Use conventional commits:
-
-- `feat: add new user registration flow`
-- `fix: resolve login validation issue`
-- `refactor: extract domain logic to packages`
-- `test: add unit tests for claim service`
-- `docs: update API documentation`
-
-## Security Development Guidelines
-
-### Environment Security
+Before closing a touched spec, run a quick scan:
 
 ```bash
-# Generate secure development environment
-./scripts/security-setup.sh generate
-
-# Validate security setup
-./scripts/security-setup.sh check
-
-# Generate new secrets
-openssl rand -base64 32  # Auth secrets
-openssl rand -base64 24  # Shorter secrets
-openssl rand -hex 16     # Hex secrets
+rg "page\.goto\(|getByText\(|text=|hasText|getByRole\(\{ name" apps/web/e2e
+rg "localhost:|127\.0\.0\.1|nip\.io" apps/web/e2e
 ```
 
-### Local Service Security
+(Then ensure the file you touched is fully compliant.)
 
-- All Supabase services bind to `127.0.0.1` only
-- Database uses strong passwords and SSL in production
-- Authentication never bypasses, even in development
-- Rate limiting: GET=10/min, POST=5/min for auth endpoints
+---
 
-### Secret Management
+## ⛔ Professional Guardrails
 
-- `.env.local` contains development-only secrets (gitignored)
-- Never commit production API keys to any environment file
-- Use development-specific API keys for all external services
-- Rotate authentication secrets every 30-90 days
+- **Do not change business logic to satisfy a test.** Prefer adding stable hooks (`data-testid`, `data-status`) or fixing the spec logic.
+- **Avoid global timeouts.** Prefer targeted waits on explicit markers (loaded vs loading) and per-step timeouts only where needed.
+- **Keep changes minimal, deterministic, and tenant-safe.**
+- If you touch shared helpers (`gotoApp`, auth helpers), run `e2e:gate:fast` immediately.
 
-## Quick Reference
+---
 
-Always run these before committing:
+## 🧰 Troubleshooting (common bottlenecks)
+
+- If build/start is slow, prefer `PW_REUSE_SERVER=1` and targeted spec runs.
+- If you see origin/auth issues, verify auth origin helpers are used (no hardcoded origin strings).
+- If a test times out on a marker, confirm the marker exists once in the DOM (layout vs view duplication is a common cause).
+- **Review traces:** `pnpm exec playwright show-trace <trace.zip>`
+
+---
+
+## Development Commands (reference)
+
+### Root
 
 ```bash
-pnpm format
-pnpm lint
-pnpm type-check
-pnpm test
-./scripts/security-setup.sh check  # Security validation
+pnpm dev
+pnpm build
+pnpm check:fast
+pnpm db:generate
 ```
 
-For single test debugging:
+### Testing
 
 ```bash
-# Unit test
-pnpm --filter @interdomestik/web test:unit --run src/components/auth/login-form.test.tsx
-
-# E2E test
-pnpm --filter @interdomestik/web test:e2e:chromium -- --grep "login form"
+pnpm --filter @interdomestik/web test:unit --run
+pnpm --filter @interdomestik/web test:e2e -- --grep "some test name"
 ```
+
+Be an agent of stability. Follow the contracts.

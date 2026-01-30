@@ -92,7 +92,7 @@ export function ClaimsList({ data }: ClaimsListProps) {
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
-              <TableRow>
+              <TableRow data-testid="ops-empty-state">
                 <TableCell colSpan={2} className="h-32 text-center text-muted-foreground">
                   {tCommon('no_results')}
                 </TableCell>

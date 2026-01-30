@@ -332,24 +332,13 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   else if (role === 'agent') targetPath = '/agent';
   else if (role === 'staff') targetPath = '/staff';
 
-  // Navigate using gotoApp (handles locale)
-  const marker = role === 'member' ? 'member-dashboard-ready' : 'dashboard-page-ready';
+  // Navigate using gotoApp (handles locale). Use a permissive marker first so
+  // we can detect auth redirects (e.g., bounced to /login).
+  await gotoApp(page, targetPath, testInfo, { marker: 'body' });
 
-  try {
-    await gotoApp(page, targetPath, testInfo, { marker });
-  } catch (e) {
-    console.warn(
-      `[Auth Diagnostics] ensureAuthenticated failed to find marker "${marker}" for ${role}`
-    );
-    console.warn(`[Auth Diagnostics] Current URL: ${page.url()}`);
-    const html = await page.content();
-    console.warn(`[Auth Diagnostics] Page HTML preview (first 500 chars): ${html.slice(0, 500)}`);
-    // Fall through to registration-page-ready check below
-  }
-
-  // Check if we bounced to login (registration-page-ready visible)
+  // Check if we bounced to login (auth-ready visible)
   const isLoginPage = await page
-    .getByTestId('registration-page-ready')
+    .getByTestId('auth-ready')
     .isVisible({ timeout: 2000 })
     .catch(() => false);
 
@@ -358,6 +347,10 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
     const info = getProjectUrlInfo(testInfo, null);
     await performLogin(page, role, info, tenant);
   }
+
+  // Final check with strict marker
+  const marker = role === 'member' ? 'member-dashboard-ready' : 'dashboard-page-ready';
+  await gotoApp(page, targetPath, testInfo, { marker });
 
   // Phase 3: Post-ensure validation (Contract guarantee)
   const apiBase = getApiOrigin(testInfo.project.use.baseURL!);

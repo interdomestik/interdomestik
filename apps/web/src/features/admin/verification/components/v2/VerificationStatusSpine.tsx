@@ -82,6 +82,7 @@ export function VerificationStatusSpine({
       <Badge
         variant={variant.badgeVariant}
         className={cn('text-xs truncate max-w-full', variant.badgeClass)}
+        data-status={variant.labelKey}
       >
         {t(variant.labelKey)}
       </Badge>

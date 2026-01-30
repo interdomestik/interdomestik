@@ -115,7 +115,12 @@ export function MemberClaimsTable() {
           </TableHeader>
           <TableBody>
             {data.claims.map(claim => (
-              <TableRow key={claim.id} className="hover:bg-muted/50 cursor-pointer">
+              <TableRow
+                key={claim.id}
+                className="hover:bg-muted/50 cursor-pointer"
+                data-testid="claim-row"
+                data-claim-id={claim.id}
+              >
                 <TableCell className="font-medium">
                   <Link
                     href={`/member/claims/${claim.id}`}

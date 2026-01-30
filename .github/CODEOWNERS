@@ -1,0 +1,8 @@
+# Governance Documentation Owners
+# Changes to these files require review from @arbenl
+
+/README.md @arbenl
+/AGENTS.md @arbenl
+/apps/web/e2e/README.md @arbenl
+/.github/workflows/ @arbenl
+/scripts/check-docs-contract.mjs @arbenl

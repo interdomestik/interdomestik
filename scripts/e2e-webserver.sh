@@ -13,7 +13,11 @@ BASE_URL="${NEXT_PUBLIC_APP_URL:-http://${HOSTNAME}:${PORT}}"
 export NEXT_PUBLIC_APP_URL="${BASE_URL}"
 export BETTER_AUTH_URL="${BETTER_AUTH_URL:-${BASE_URL}}"
 export BETTER_AUTH_TRUSTED_ORIGINS="${BETTER_AUTH_TRUSTED_ORIGINS:-http://127.0.0.1:${PORT},http://localhost:${PORT},${BASE_URL}}"
-export NODE_OPTIONS="${NODE_OPTIONS:---dns-result-order=ipv4first}"
+# Provide a higher heap for Next.js build/start in CI; keep DNS ordering.
+# Prepend to ensure we override any lower max-old-space-size from the environment.
+NODE_OPTIONS_BASE="${NODE_OPTIONS:-}"
+NODE_OPTIONS_BASE="$(echo "$NODE_OPTIONS_BASE" | sed -E 's/--max-old-space-size=[0-9]+//g; s/--dns-result-order=ipv4first//g' | xargs)"
+export NODE_OPTIONS="${NODE_OPTIONS_BASE} --dns-result-order=ipv4first --max-old-space-size=8192"
 export INTERDOMESTIK_AUTOMATED="${INTERDOMESTIK_AUTOMATED:-1}"
 export PLAYWRIGHT="${PLAYWRIGHT:-1}"
 
@@ -69,6 +73,7 @@ echo "  BETTER_AUTH_URL=${BETTER_AUTH_URL}"
 echo "  BETTER_AUTH_TRUSTED_ORIGINS=${BETTER_AUTH_TRUSTED_ORIGINS}"
 echo "  HOSTNAME=${HOSTNAME}"
 echo "  PORT=${PORT}"
+echo "  NODE_OPTIONS=${NODE_OPTIONS}"
 
 STANDALONE_SERVER="${WEB_DIR}/.next/standalone/apps/web/server.js"
 if [[ ! -f "${STANDALONE_SERVER}" ]]; then

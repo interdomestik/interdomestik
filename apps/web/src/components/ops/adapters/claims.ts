@@ -50,6 +50,7 @@ export function toOpsStatus(status: ClaimStatus) {
   return {
     label: status.replace(/_/g, ' ').toUpperCase(),
     variant: toOpsBadgeVariant(status),
+    status,
   };
 }
 

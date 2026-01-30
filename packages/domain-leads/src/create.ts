@@ -26,18 +26,28 @@ export async function createLead(
 
   const leadId = `lead_${nanoid()}`;
 
-  await db.insert(memberLeads).values({
-    id: leadId,
-    tenantId: ctx.tenantId,
-    branchId: ctx.branchId,
-    agentId: ctx.agentId,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    email: data.email,
-    phone: data.phone,
-    notes: data.notes,
-    status: 'new',
-  });
+  const [inserted] = await db
+    .insert(memberLeads)
+    .values({
+      id: leadId,
+      tenantId: ctx.tenantId,
+      branchId: ctx.branchId,
+      agentId: ctx.agentId,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      notes: data.notes,
+      status: 'new',
+    })
+    .onConflictDoUpdate({
+      target: [memberLeads.tenantId, memberLeads.email],
+      set: {
+        // Optional: Update notes or updatedAt if desired
+        updatedAt: new Date(),
+      },
+    })
+    .returning({ id: memberLeads.id });
 
-  return { leadId };
+  return { leadId: inserted?.id ?? leadId };
 }

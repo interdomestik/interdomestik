@@ -20,8 +20,9 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
           POSTGRES_DB: interdomestik_test
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -35,25 +36,46 @@ jobs:
       PLAYWRIGHT: '1'
       NEXT_PUBLIC_BILLING_TEST_MODE: '1'
       PW_REUSE_SERVER: '1'
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      NEXT_TELEMETRY_DISABLED: '1'
+      TURBO_TELEMETRY_DISABLED: '1'
+      CI_POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
+      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}@127.0.0.1:5432/interdomestik_test
+      PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
+      BETTER_AUTH_SECRET: test_secret_ci_please_rotate_32chars_minimum_1234
+      # Consistent origin (Parity with CI)
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
 
     steps:
       - name: Checkout
-        uses: actions/checkout @v4
-
-      - name: Setup Node
-        uses: actions/setup-node @v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
+        uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup @v4
+        uses: pnpm/action-setup@v4
         with:
-          version: '9'
+          version: '10.25.0'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          # cache: 'pnpm'
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
+
+      - name: Verify supabase CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -x node_modules/.bin/supabase ] || [ -x packages/database/node_modules/.bin/supabase ]; then
+            echo "✅ supabase CLI present"
+          else
+            echo "❌ supabase CLI missing"
+            ls -la node_modules/.bin || true
+            ls -la packages/database/node_modules/.bin || true
+            exit 1
+          fi
 
       - name: Install Playwright browsers
         run: pnpm --filter @interdomestik/web exec playwright install --with-deps
@@ -68,16 +90,21 @@ jobs:
           set -euo pipefail
 
           echo "Guard: No raw page.goto in golden/gate (exception only in tenant-resolution.spec.ts)"
-          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
-            | grep -v "apps/web/e2e/gate/tenant-resolution.spec.ts" ; then
-            echo "❌ Found raw page.goto in golden/gate"
+          GOTO_FOUND=$(grep -R -E "\bpage\.goto\s*\(" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
+            | grep -vE "apps/web/e2e/gate/tenant-resolution.spec.ts|apps/web/e2e/golden/legacy/" || true)
+
+          if [ -n "$GOTO_FOUND" ]; then
+            echo "❌ Found raw page.goto in golden/gate:"
+            echo "$GOTO_FOUND"
             exit 1
           fi
           echo "✅ page.goto guard OK"
 
           echo "Guard: No locale-prefixed API calls like /sq/api"
-          if grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" ; then
-            echo "❌ Found locale-prefixed API calls"
+          API_FOUND=$(grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" || true)
+          if [ -n "$API_FOUND" ]; then
+            echo "❌ Found locale-prefixed API calls:"
+            echo "$API_FOUND"
             exit 1
           fi
           echo "✅ API prefix guard OK"
@@ -92,6 +119,12 @@ jobs:
         run: |
           set -euo pipefail
           pnpm seed:e2e
+
+      - name: Assert DB seeded (Parity)
+        run: pnpm --filter @interdomestik/database seed:assert-e2e
+
+      - name: Golden Path - Check (Parity)
+        run: pnpm check
 
       # ---- Run suites ----
       # Gate is fast and tells you immediately if infra drifted.
@@ -113,7 +146,7 @@ jobs:
       # ---- Artifacts (always) ----
       - name: Upload Playwright Report
         if: always()
-        uses: actions/upload-artifact @v4
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: |

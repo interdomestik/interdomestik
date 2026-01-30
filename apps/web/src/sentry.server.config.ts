@@ -5,11 +5,9 @@ const isAutomated = process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.P
 const isPlaceholder = dsn === 'https://your-dsn@sentry.io/project-id';
 const isEnabled = process.env.NODE_ENV === 'production' && !isAutomated && !!dsn && !isPlaceholder;
 
-if (isEnabled) {
-  Sentry.init({
-    dsn,
-    tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0),
-    environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV,
-    debug: false,
-  });
-}
+Sentry.init({
+  dsn: isEnabled ? dsn : undefined,
+  tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0),
+  environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV,
+  enabled: isEnabled,
+});

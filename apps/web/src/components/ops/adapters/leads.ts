@@ -9,6 +9,7 @@ export function toOpsStatus(status: string | null | undefined) {
   return {
     label: safeStatus.replace(/_/g, ' ').toUpperCase(),
     variant: toOpsBadgeVariant(safeStatus),
+    status: safeStatus,
   };
 }
 

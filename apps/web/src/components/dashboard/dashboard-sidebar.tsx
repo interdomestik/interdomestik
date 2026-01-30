@@ -14,14 +14,12 @@ import {
   SidebarRail,
 } from '@interdomestik/ui';
 import { LayoutGroup } from 'framer-motion';
-import { useTranslations } from 'next-intl';
 import { NavItem } from './nav-item';
 import { SidebarBrand } from './sidebar-brand';
 import { SidebarUserMenu } from './sidebar-user-menu';
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const t = useTranslations('nav');
   const { memberItems, agentItems, adminItems, role } = useDashboardNavigation();
   const isAgent = role === 'agent';
 

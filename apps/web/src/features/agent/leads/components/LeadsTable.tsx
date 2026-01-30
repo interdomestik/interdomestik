@@ -33,6 +33,7 @@ export function LeadsTable({ leads, isLoading, onUpdate }: LeadsTableProps) {
         key="status"
         variant={toOpsBadgeVariant(lead.status)}
         label={lead.status.charAt(0).toUpperCase() + lead.status.slice(1).replace('_', ' ')}
+        status={lead.status}
       />,
     ],
     actions: <LeadActions leadId={lead.id} status={lead.status} onUpdate={onUpdate} />,

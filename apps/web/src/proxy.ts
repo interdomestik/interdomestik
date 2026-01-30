@@ -70,7 +70,7 @@ function createNonce() {
 
 export default async function proxy(request: NextRequest) {
   const nonce = createNonce();
-  const pathname = request.nextUrl.pathname;
+  const { pathname } = request.nextUrl;
 
   // In Next standalone (used by Playwright), the internally initialized request.url/origin can
   // default to localhost/127.0.0.1 even when Host is mk.localhost/ks.localhost. Normalize
@@ -148,11 +148,12 @@ export default async function proxy(request: NextRequest) {
   }
 
   const isDev = process.env.NODE_ENV !== 'production';
+  const devtoolsUrl = process.env.NEXT_PUBLIC_DEVTOOLS_URL;
 
   const scriptSrc = [
     "'self'",
     `'nonce-${nonce}'`,
-    ...(isDev ? ["'unsafe-eval'", "'unsafe-inline'", 'http://localhost:8097'] : []),
+    ...(isDev && devtoolsUrl ? ["'unsafe-eval'", "'unsafe-inline'", devtoolsUrl] : []),
     'https://va.vercel-scripts.com',
     'https://www.googletagmanager.com',
     'https://connect.facebook.net',

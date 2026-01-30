@@ -1,21 +1,29 @@
+/**
+ * SQ Claim Wizard Regression Tests (STRICT)
+ *
+ * Specifically verifies that Albanian (SQ) translations are correctly loaded
+ * and not showing translation keys (e.g. "common.next").
+ */
+
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
-test.describe('SQ Claim Wizard', () => {
-  test('should show correct translations in Albanian', async ({ authenticatedPage }) => {
-    // Navigate to SQ version
-    await authenticatedPage.goto(routes.memberNewClaim('sq'));
+test.describe('SQ Claim Wizard (Regression)', () => {
+  test('should show correct translations in Albanian', async ({ authenticatedPage }, testInfo) => {
+    // Navigate to SQ version explicitly
+    await gotoApp(authenticatedPage, routes.memberNewClaim('sq'), testInfo, {
+      marker: 'new-claim-page-ready',
+    });
 
     // Check title (translated)
-    await expect(authenticatedPage.getByRole('heading', { level: 1 })).toBeVisible(); // "Kërkesë e Re..."
+    await expect(authenticatedPage.getByTestId('wizard-step-title')).toBeVisible();
 
     // Check "Next" button text (Should be "Vazhdo", NOT "common.next")
-    // The button has testid 'wizard-next'
     const nextBtn = authenticatedPage.getByTestId('wizard-next');
-    // We expect it to contain "Vazhdo"
     await expect(nextBtn).toContainText('Vazhdo', { timeout: 10000 });
 
-    // Also check previous button is "Kthehu" (initially invisible but text should be loaded)
+    // Check previous button text
     const backBtn = authenticatedPage.getByTestId('wizard-back');
     await expect(backBtn).toHaveText('Kthehu');
   });

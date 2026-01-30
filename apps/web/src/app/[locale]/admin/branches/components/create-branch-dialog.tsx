@@ -70,9 +70,9 @@ export function CreateBranchDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen} modal={false}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button data-testid="create-branch-button">
+        <Button data-testid="create-branch-trigger">
           <Plus className="mr-2 h-4 w-4" />
           {t('create_branch')}
         </Button>
@@ -95,7 +95,7 @@ export function CreateBranchDialog() {
                     <Input
                       placeholder={t('placeholder_name')}
                       {...field}
-                      data-testid="branch-name-input"
+                      data-testid="branch-input-name"
                     />
                   </FormControl>
                   <FormMessage />
@@ -114,7 +114,7 @@ export function CreateBranchDialog() {
                       placeholder={t('placeholder_code')}
                       {...field}
                       value={field.value || ''}
-                      data-testid="branch-code-input"
+                      data-testid="branch-input-code"
                     />
                   </FormControl>
                   <FormMessage />
@@ -126,7 +126,7 @@ export function CreateBranchDialog() {
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 {t('cancel')}
               </Button>
-              <Button type="submit" disabled={isSubmitting} data-testid="branch-submit-button">
+              <Button type="submit" disabled={isSubmitting} data-testid="branch-submit">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('submit')}
               </Button>

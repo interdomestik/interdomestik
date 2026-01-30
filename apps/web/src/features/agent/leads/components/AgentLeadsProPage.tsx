@@ -155,7 +155,12 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Link href="/agent">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              data-testid="agent-pro-back-button"
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>

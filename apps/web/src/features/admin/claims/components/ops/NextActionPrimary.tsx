@@ -75,6 +75,7 @@ export function NextActionPrimary({ primary, isPending, onAction }: NextActionPr
             variant={primary.variant || 'default'}
             onClick={() => onAction(primary.type)}
             disabled={isPending}
+            data-testid={`next-action-${primary.type}`}
             className="gap-2 shadow-sm"
           >
             {getIcon(primary.type)}

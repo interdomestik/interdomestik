@@ -66,6 +66,7 @@ export async function RecentClaimsCard({
         key="status"
         variant={toOpsBadgeVariant(claim.status)}
         label={tClaims(`status.${claim.status}` as any)}
+        status={claim.status}
       />,
       <span key="created">{formatDate(claim.createdAt || undefined, tCommon('none'))}</span>,
     ],

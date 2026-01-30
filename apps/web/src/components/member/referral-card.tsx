@@ -160,7 +160,10 @@ export function ReferralCard({ isAgent = false }: ReferralCardProps) {
   if (!data) return null;
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+    <Card
+      className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent"
+      data-testid="referral-card"
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Gift className="h-5 w-5 text-primary" />
@@ -213,6 +216,7 @@ export function ReferralCard({ isAgent = false }: ReferralCardProps) {
             variant="default"
             className="flex-1 bg-green-600 hover:bg-green-700"
             onClick={handleWhatsAppShare}
+            data-testid="referral-whatsapp-btn"
           >
             <MessageCircle className="h-4 w-4 mr-2" />
             WhatsApp

@@ -171,7 +171,9 @@ export function MessageThread({
                             <span>{t('internalNote')}</span>
                           </div>
                         )}
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        <p className="whitespace-pre-wrap" data-testid="message-content">
+                          {message.content}
+                        </p>
 
                         {isPending && (
                           <span className="absolute bottom-1 right-2">
