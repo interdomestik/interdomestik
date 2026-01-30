@@ -1,4 +1,7 @@
 import { AdminDashboardV2Page } from '@/features/admin/dashboard-v2/components/AdminDashboardV2Page';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
 
 export default async function AdminDashboardPage({
   params,
