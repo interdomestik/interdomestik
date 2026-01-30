@@ -1,5 +1,4 @@
 export default function RootNotFound() {
-  console.log('[E2E Debug] Rendering root not-found.tsx');
   return (
     <html>
       <body className="antialiased">
