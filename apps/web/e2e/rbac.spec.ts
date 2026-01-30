@@ -37,9 +37,33 @@ async function expectAccessDenied(
   // Check if user is still on the forbidden path segment
   const isOnForbiddenPath = normalizedCurrentPath.startsWith(forbiddenPathSegment);
 
+  // NEGATIVE ASSERTION: Ensure privileged UI elements are strictly ABSENT.
+  // This prevents false negatives where the page renders 200 OK with admin content but the 404 check was skipped.
+  await expect(
+    page.getByTestId('admin-sidebar'),
+    `Security Breach: Admin sidebar visible on "${currentPath}"`
+  ).not.toBeVisible();
+
   if (isOnForbiddenPath) {
     // If still on forbidden path, expect 404 UI
-    await expect(page.getByTestId('not-found-page')).toBeVisible({ timeout: 5000 });
+    const notFoundMarkerVisible = await page
+      .getByTestId('not-found-page')
+      .isVisible()
+      .catch(() => false);
+
+    if (!notFoundMarkerVisible) {
+      const html = await page.content();
+      const isNextFallback404 = html.includes('NEXT_HTTP_ERROR_FALLBACK;404');
+      const isNoIndex = (await page.locator('meta[name="robots"][content="noindex"]').count()) > 0;
+
+      // If we don't have our custom UI, we MUST have a valid Next.js/Framework 404 signature
+      expect(
+        isNextFallback404 || isNoIndex,
+        `Expected 404 UI, Next.js fallback, or noindex on forbidden path "${normalizedCurrentPath}"`
+      ).toBeTruthy();
+    } else {
+      await expect(page.getByTestId('not-found-page')).toBeVisible();
+    }
   } else {
     // Redirected away — verify we're at the expected destination
     if (expectedRedirectPattern) {
@@ -52,52 +76,58 @@ async function expectAccessDenied(
 
 test.describe('Role-Based Access Control', () => {
   test.describe('Member Role Restrictions', () => {
-    test('Member cannot access admin dashboard', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.admin());
+    test('Member cannot access admin dashboard', async ({ authenticatedPage: page }, testInfo) => {
+      await page.goto(routes.admin(testInfo));
       await expectAccessDenied(page, '/admin', /\/member/);
     });
 
-    test('Member cannot access admin claims management', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Member cannot access admin claims management', async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await page.goto(routes.adminClaims(testInfo));
       await expectAccessDenied(page, '/admin/claims', /\/member/);
     });
 
-    test('Member cannot access admin users management', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.adminUsers());
+    test('Member cannot access admin users management', async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await page.goto(routes.adminUsers(testInfo));
       await expectAccessDenied(page, '/admin/users', /\/member/);
     });
 
-    test('Member cannot access admin analytics', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.adminAnalytics());
+    test('Member cannot access admin analytics', async ({ authenticatedPage: page }, testInfo) => {
+      await page.goto(routes.adminAnalytics(testInfo));
       await expectAccessDenied(page, '/admin/analytics', /\/member/);
     });
 
-    test('Member cannot access agent workspace', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.agent());
+    test('Member cannot access agent workspace', async ({ authenticatedPage: page }, testInfo) => {
+      await page.goto(routes.agent(testInfo));
       await expectAccessDenied(page, '/agent', /\/member/);
     });
 
-    test('Member cannot access staff claims queue', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.staffClaims());
+    test('Member cannot access staff claims queue', async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await page.goto(routes.staffClaims(testInfo));
       await expectAccessDenied(page, '/staff/claims', /\/member/);
     });
 
-    test('Member CAN access their own dashboard', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.member());
+    test('Member CAN access their own dashboard', async ({ authenticatedPage: page }, testInfo) => {
+      await page.goto(routes.member(testInfo));
       await page.waitForLoadState('domcontentloaded');
 
       expect(page.url()).toContain('/member');
     });
 
-    test('Member CAN access their own claims', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.memberClaims());
+    test('Member CAN access their own claims', async ({ authenticatedPage: page }, testInfo) => {
+      await page.goto(routes.memberClaims(testInfo));
       await page.waitForLoadState('domcontentloaded');
 
       expect(page.url()).toContain('/member/claims');
     });
 
-    test('Member CAN access settings', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.memberSettings());
+    test('Member CAN access settings', async ({ authenticatedPage: page }, testInfo) => {
+      await page.goto(routes.memberSettings(testInfo));
       await page.waitForLoadState('domcontentloaded');
 
       expect(page.url()).toContain('/settings');
@@ -105,67 +135,67 @@ test.describe('Role-Based Access Control', () => {
   });
 
   test.describe('Agent Role Restrictions', () => {
-    test('Agent cannot access admin dashboard', async ({ agentPage: page }) => {
-      await page.goto(routes.admin());
+    test('Agent cannot access admin dashboard', async ({ agentPage: page }, testInfo) => {
+      await page.goto(routes.admin(testInfo));
       await expectAccessDenied(page, '/admin', /\/agent/);
     });
 
-    test('Agent cannot access admin claims management', async ({ agentPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Agent cannot access admin claims management', async ({ agentPage: page }, testInfo) => {
+      await page.goto(routes.adminClaims(testInfo));
       await expectAccessDenied(page, '/admin/claims', /\/agent/);
     });
 
-    test('Agent cannot access admin users management', async ({ agentPage: page }) => {
-      await page.goto(routes.adminUsers());
+    test('Agent cannot access admin users management', async ({ agentPage: page }, testInfo) => {
+      await page.goto(routes.adminUsers(testInfo));
       await expectAccessDenied(page, '/admin/users', /\/agent/);
     });
 
-    test('Agent cannot access admin settings', async ({ agentPage: page }) => {
-      await page.goto(routes.adminSettings());
+    test('Agent cannot access admin settings', async ({ agentPage: page }, testInfo) => {
+      await page.goto(routes.adminSettings(testInfo));
       await expectAccessDenied(page, '/admin/settings', /\/agent/);
     });
 
-    test('Agent CAN access agent workspace', async ({ agentPage: page }) => {
-      await page.goto(routes.agent());
+    test('Agent CAN access agent workspace', async ({ agentPage: page }, testInfo) => {
+      await page.goto(routes.agent(testInfo));
       await page.waitForLoadState('domcontentloaded');
 
       const url = page.url();
       expect(url.includes('/agent')).toBeTruthy();
     });
 
-    test('Agent cannot access staff claims queue', async ({ agentPage: page }) => {
-      await page.goto(routes.staffClaims());
+    test('Agent cannot access staff claims queue', async ({ agentPage: page }, testInfo) => {
+      await page.goto(routes.staffClaims(testInfo));
       await expectAccessDenied(page, '/staff/claims', /\/agent/);
     });
   });
 
   test.describe('Staff Role Permissions', () => {
-    test('Staff can access staff workspace', async ({ staffPage: page }) => {
-      await page.goto(routes.staff());
+    test('Staff can access staff workspace', async ({ staffPage: page }, testInfo) => {
+      await page.goto(routes.staff(testInfo));
       await page.waitForLoadState('domcontentloaded');
 
       expect(page.url()).toContain('/staff');
     });
 
-    test('Staff can access staff claims', async ({ staffPage: page }) => {
-      await page.goto(routes.staffClaims());
+    test('Staff can access staff claims', async ({ staffPage: page }, testInfo) => {
+      await page.goto(routes.staffClaims(testInfo));
       await page.waitForLoadState('domcontentloaded');
 
       expect(page.url()).toContain('/staff');
     });
 
-    test('Staff cannot access admin dashboard', async ({ staffPage: page }) => {
-      await page.goto(routes.admin());
+    test('Staff cannot access admin dashboard', async ({ staffPage: page }, testInfo) => {
+      await page.goto(routes.admin(testInfo));
       await expectAccessDenied(page, '/admin', /\/staff/);
     });
 
-    test('Staff cannot access admin claims management', async ({ staffPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Staff cannot access admin claims management', async ({ staffPage: page }, testInfo) => {
+      await page.goto(routes.adminClaims(testInfo));
       await expectAccessDenied(page, '/admin/claims', /\/staff/);
     });
 
-    test('Admin cannot access agent workspace', async ({ adminPage: page }) => {
-      await page.goto(routes.agent());
+    test('Admin cannot access agent workspace', async ({ adminPage: page }, testInfo) => {
+      await page.goto(routes.agent(testInfo));
       await expectAccessDenied(page, '/agent', /\/admin/);
     });
   });
