@@ -71,12 +71,22 @@ export async function gotoApp(
   }
 
   console.log(`[E2E Nav] ${targetUrl}`);
-  await page.goto(targetUrl);
+  const response = await page.goto(targetUrl);
+  console.log(`[E2E Nav Result] status=${response?.status()} url=${page.url()}`);
+  if (response?.status() !== 200) {
+    console.log(`[E2E Nav Headers] ${JSON.stringify(response?.headers(), null, 2)}`);
+  }
 
   const marker = options?.marker ?? 'page-ready';
 
   if (marker === 'body') {
-    await page.waitForLoadState('domcontentloaded');
+    try {
+      await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
+    } catch (e) {
+      const html = await page.content();
+      console.log(`[E2E Nav Failure] HTML content: ${html.slice(0, 2000)}`);
+      throw e;
+    }
   } else {
     await expect(page.getByTestId(marker)).toBeVisible({ timeout: 15000 });
   }

@@ -38,6 +38,15 @@ const nextConfig = {
     },
   },
   serverExternalPackages: ['import-in-the-middle', 'require-in-the-middle'],
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/sq',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 import { withAxiom } from 'next-axiom';

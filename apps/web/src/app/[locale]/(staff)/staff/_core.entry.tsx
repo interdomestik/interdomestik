@@ -1,11 +1,10 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { StaffSidebar } from '@/components/staff/staff-sidebar';
 import { BASE_NAMESPACES, STAFF_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { auth } from '@/lib/auth';
+import { getCachedSession } from '@/lib/auth.server';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
@@ -20,15 +19,9 @@ export default async function StaffLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await (async () => {
-    try {
-      return await auth.api.getSession({
-        headers: await headers(),
-      });
-    } catch {
-      return null;
-    }
-  })();
+  // Vercel Best Practice: Eliminate Waterfall (async-parallel)
+  // Fetch session and messages in parallel
+  const [session, allMessages] = await Promise.all([getCachedSession(), getMessages({ locale })]);
 
   if (!session) {
     redirect(`/${locale}/login`);
@@ -41,7 +34,6 @@ export default async function StaffLayout({
     notFound();
   }
 
-  const allMessages = await getMessages();
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),
     ...pickMessages(allMessages, STAFF_NAMESPACES),

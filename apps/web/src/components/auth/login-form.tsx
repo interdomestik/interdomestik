@@ -77,8 +77,6 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
 
               if (hasAdminAccess) {
                 router.push('/admin');
-              } else if (role === 'agent') {
-                router.push('/agent');
               } else if (role === 'staff') {
                 router.push('/staff');
               } else if (role === 'branch_manager') {
@@ -93,6 +91,8 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
                   setLoading(false);
                   return;
                 }
+              } else if (role === 'agent') {
+                router.push('/agent');
               } else {
                 router.push('/member');
               }

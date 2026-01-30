@@ -1,5 +1,5 @@
-import { AgentSidebar } from '@/components/agent/agent-sidebar';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { AGENT_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { auth } from '@/lib/auth';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
@@ -52,7 +52,7 @@ export default async function AgentLayout({
       {/* E2E contract: ensureAuthenticated waits for dashboard-page-ready across all portals */}
       <div data-testid="dashboard-page-ready">
         <SidebarProvider defaultOpen={true}>
-          <AgentSidebar />
+          <DashboardSidebar />
           <SidebarInset className="bg-mesh flex flex-col min-h-screen">
             <DashboardHeader />
             <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>

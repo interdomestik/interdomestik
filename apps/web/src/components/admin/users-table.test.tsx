@@ -221,6 +221,7 @@ describe('UsersTable', () => {
     render(<UsersTable users={mockUsers} agents={mockAgents} />);
 
     // Agent select should be rendered for users with role 'user'
-    expect(screen.getByText('Unassigned')).toBeInTheDocument();
+    const unassignedElements = screen.getAllByText('Unassigned');
+    expect(unassignedElements.length).toBeGreaterThan(0);
   });
 });

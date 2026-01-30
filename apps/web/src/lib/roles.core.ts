@@ -9,7 +9,7 @@ export const ROLE_PROMOTER = 'promoter' as const;
 export const ROLE_MEMBER = 'member' as const;
 
 export function isMember(role: RoleLike): boolean {
-  return role === 'user' || role === ROLE_MEMBER;
+  return role === 'user' || role === ROLE_MEMBER || role === ROLE_AGENT;
 }
 
 export function isStaff(role: RoleLike): boolean {

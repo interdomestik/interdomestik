@@ -160,7 +160,7 @@ test.describe('Golden Gate: Critical Path', () => {
       await expect(page.locator('body')).toContainText(/Claim|Kërkes|Staff/i);
 
       // Verify Restrictions - Try Admin Branches (should redirect)
-      await gotoApp(page, `/${locale}/admin/branches`, testInfo, { marker: 'body' });
+      await gotoApp(page, `/${locale}/admin/branches`, testInfo);
       // Staff shouldn't have full admin access
       await expect(page.locator('body')).not.toContainText(/Create Branch|Krijo Degë/i);
     });

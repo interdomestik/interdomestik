@@ -1,12 +1,12 @@
 'use client';
 
 import { PADDLE_PRICES } from '@/config/paddle';
+import { Link, useRouter } from '@/i18n/routing';
 import { getPaddleInstance } from '@interdomestik/domain-membership-billing/paddle';
-import { Badge, Button, buttonVariants, cn } from '@interdomestik/ui';
+import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
@@ -25,7 +25,6 @@ export function PricingTable({ userId, email }: PricingTableProps) {
   const t = useTranslations('pricing');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tenantId = searchParams.get('tenantId') || undefined;
   const [loading, setLoading] = useState<string | null>(null);
   const [isYearly, setIsYearly] = useState(true);
 
@@ -87,10 +86,7 @@ export function PricingTable({ userId, email }: PricingTableProps) {
   ];
 
   const handleAction = async (planId: string, priceId: string) => {
-    if (!userId) {
-      router.push(`/register?plan=${planId}`);
-      return;
-    }
+    if (!userId) return;
 
     setLoading(priceId);
     try {
@@ -102,11 +98,6 @@ export function PricingTable({ userId, email }: PricingTableProps) {
       }
 
       console.log('🏷️ Opening Paddle checkout with Price ID:', priceId);
-      console.log('📦 Environment check:', {
-        STANDARD_YEAR: process.env.NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR,
-        CLIENT_TOKEN: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
-      });
-
       const paddle = await getPaddleInstance();
       if (paddle) {
         // Check for referral cookie
@@ -227,42 +218,30 @@ export function PricingTable({ userId, email }: PricingTableProps) {
               ))}
             </ul>
 
-            {userId ? (
-              <Button
-                size="xl"
-                data-testid={`plan-cta-${plan.id}`}
-                className={`w-full h-16 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 ${
-                  plan.popular
-                    ? 'bg-primary hover:bg-primary/90 shadow-primary/30 border-0'
-                    : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
-                }`}
-                variant={plan.popular ? 'default' : 'outline'}
-                disabled={loading === plan.priceId}
-                onClick={() => handleAction(plan.id, plan.priceId)}
-              >
-                {loading === plan.priceId ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : null}
-                {t('cta')}
-              </Button>
-            ) : (
-              <Link
-                href={`/register?plan=${plan.id}`}
-                data-testid={`plan-cta-${plan.id}`}
-                className={cn(
-                  buttonVariants({
-                    variant: plan.popular ? 'default' : 'outline',
-                    size: 'xl',
-                  }),
-                  'w-full h-16 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 flex items-center justify-center',
-                  plan.popular
-                    ? 'bg-primary hover:bg-primary/90 shadow-primary/30 border-0'
-                    : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
-                )}
-              >
-                {t('cta')}
-              </Link>
-            )}
+            <Button
+              size="xl"
+              data-testid={`plan-cta-${plan.id}`}
+              className={`w-full h-16 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 ${
+                plan.popular
+                  ? 'bg-primary hover:bg-primary/90 shadow-primary/30 border-0'
+                  : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
+              }`}
+              variant={plan.popular ? 'default' : 'outline'}
+              disabled={loading === plan.priceId}
+              asChild={!userId}
+              onClick={userId ? () => handleAction(plan.id, plan.priceId) : undefined}
+            >
+              {!userId ? (
+                <Link href={`/register?plan=${plan.id}`}>{t('cta')}</Link>
+              ) : (
+                <>
+                  {loading === plan.priceId ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : null}
+                  {t('cta')}
+                </>
+              )}
+            </Button>
           </div>
         ))}
       </div>

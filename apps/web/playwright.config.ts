@@ -134,7 +134,7 @@ export default defineConfig({
     // SETUP PROJECTS - Generate auth states per tenant
     // ═══════════════════════════════════════════════════════════════════════════
     {
-      name: 'setup-ks',
+      name: 'setup',
       testMatch: /setup\.state\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
@@ -161,7 +161,7 @@ export default defineConfig({
     // ═══════════════════════════════════════════════════════════════════════════
     {
       name: 'ks-sq',
-      dependencies: ['setup-ks'],
+      dependencies: ['setup'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${KS_HOST}/sq`,

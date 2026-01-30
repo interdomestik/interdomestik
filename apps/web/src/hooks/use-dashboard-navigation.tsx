@@ -2,22 +2,24 @@ import { canAccessAdmin } from '@/actions/admin-access';
 import { authClient } from '@/lib/auth-client';
 import { isAdmin } from '@/lib/roles.core';
 import {
+  Briefcase,
+  DollarSign,
   FilePlus,
   FileText,
   FolderOpen,
+  Home,
   LayoutDashboard,
   LayoutTemplate,
   Phone,
   Settings,
   Shield,
+  Upload,
+  UserPlus,
+  Users,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-/**
- * Navigation for the Member Portal (/member)
- * Agents use AgentSidebar, Staff use StaffSidebar, Admin use AdminSidebar
- */
 export function useDashboardNavigation() {
   const t = useTranslations('nav');
   const { data: session } = authClient.useSession();
@@ -36,7 +38,7 @@ export function useDashboardNavigation() {
         if (!cancelled) setAdminAccess(ok);
       })
       .catch(() => {
-        // Ignore; keep adminAccess false.
+        // Ignore
       });
 
     return () => {
@@ -44,10 +46,12 @@ export function useDashboardNavigation() {
     };
   }, [role]);
 
-  // Member dashboard navigation items
+  const isAgent = role === 'agent';
+
+  // 1. Personal Membership Items (Always visible)
   const memberItems = [
     {
-      title: t('overview'),
+      title: isAgent ? 'Member Hub' : t('overview'),
       href: '/member',
       icon: LayoutDashboard,
     },
@@ -67,31 +71,36 @@ export function useDashboardNavigation() {
       icon: FilePlus,
     },
     {
-      title: t('consumerRights'),
-      href: '/member/rights',
-      icon: Shield,
-    },
-    {
       title: t('settings'),
       href: '/member/settings',
       icon: Settings,
     },
-    {
-      title: t('help'),
-      href: '/member/help',
-      icon: Phone,
-    },
   ];
 
-  // Admin gets a link to admin dashboard
-  const items = [...memberItems];
+  // 2. Agent Sales Items (Only for agents)
+  const agentItems = [];
+  if (isAgent) {
+    agentItems.push(
+      { title: 'Agent Hub', href: '/agent', icon: Home },
+      { title: 'Rapid POS', href: '/agent/pos', icon: UserPlus },
+      { title: 'Leads', href: '/agent/leads', icon: Users },
+      { title: 'Clients', href: '/agent/clients', icon: Briefcase },
+      { title: 'Commissions', href: '/agent/commissions', icon: DollarSign },
+      { title: 'Bulk Import', href: '/agent/import', icon: Upload }
+    );
+  }
+
+  // 3. Admin Items
+  const adminItems = [];
   if (isAdmin(role) || adminAccess) {
-    items.push({
+    adminItems.push({
       title: t('adminDashboard'),
       href: '/admin',
       icon: LayoutTemplate,
     });
   }
 
-  return { items, role };
+  const items = [...memberItems, ...agentItems, ...adminItems];
+
+  return { items, memberItems, agentItems, adminItems, role };
 }

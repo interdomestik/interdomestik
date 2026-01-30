@@ -1,0 +1,1751 @@
+[
+  {
+    "name": "interdomestik",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home",
+    "private": true,
+    "dependencies": {
+      "checkly": {
+        "from": "checkly",
+        "version": "6.9.8",
+        "resolved": "https://registry.npmjs.org/checkly/-/checkly-6.9.8.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/checkly@6.9.8_@types+node@22.19.3_jiti@2.6.1_typescript@5.9.3/node_modules/checkly"
+      }
+    },
+    "devDependencies": {
+      "@commitlint/cli": {
+        "from": "@commitlint/cli",
+        "version": "19.8.1",
+        "resolved": "https://registry.npmjs.org/@commitlint/cli/-/cli-19.8.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@commitlint+cli@19.8.1_@types+node@22.19.3_typescript@5.9.3/node_modules/@commitlint/cli"
+      },
+      "@commitlint/config-conventional": {
+        "from": "@commitlint/config-conventional",
+        "version": "19.8.1",
+        "resolved": "https://registry.npmjs.org/@commitlint/config-conventional/-/config-conventional-19.8.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@commitlint+config-conventional@19.8.1/node_modules/@commitlint/config-conventional"
+      },
+      "@playwright/mcp": {
+        "from": "@playwright/mcp",
+        "version": "0.0.54",
+        "resolved": "https://registry.npmjs.org/@playwright/mcp/-/mcp-0.0.54.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@playwright+mcp@0.0.54/node_modules/@playwright/mcp"
+      },
+      "@release-it/conventional-changelog": {
+        "from": "@release-it/conventional-changelog",
+        "version": "10.0.4",
+        "resolved": "https://registry.npmjs.org/@release-it/conventional-changelog/-/conventional-changelog-10.0.4.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@release-it+conventional-changelog@10.0.4_conventional-commits-filter@5.0.0_conventiona_419fd82e90d0130b36415ff4f7c7c993/node_modules/@release-it/conventional-changelog"
+      },
+      "@supabase/supabase-js": {
+        "from": "@supabase/supabase-js",
+        "version": "2.87.1",
+        "resolved": "https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.87.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@supabase+supabase-js@2.87.1/node_modules/@supabase/supabase-js"
+      },
+      "@types/jsonwebtoken": {
+        "from": "@types/jsonwebtoken",
+        "version": "9.0.10",
+        "resolved": "https://registry.npmjs.org/@types/jsonwebtoken/-/jsonwebtoken-9.0.10.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+jsonwebtoken@9.0.10/node_modules/@types/jsonwebtoken"
+      },
+      "@types/node": {
+        "from": "@types/node",
+        "version": "22.19.3",
+        "resolved": "https://registry.npmjs.org/@types/node/-/node-22.19.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+node@22.19.3/node_modules/@types/node"
+      },
+      "@upstash/context7-mcp": {
+        "from": "@upstash/context7-mcp",
+        "version": "2.0.1",
+        "resolved": "https://registry.npmjs.org/@upstash/context7-mcp/-/context7-mcp-2.0.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@upstash+context7-mcp@2.0.1_hono@4.11.1/node_modules/@upstash/context7-mcp"
+      },
+      "bcryptjs": {
+        "from": "bcryptjs",
+        "version": "3.0.3",
+        "resolved": "https://registry.npmjs.org/bcryptjs/-/bcryptjs-3.0.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/bcryptjs@3.0.3/node_modules/bcryptjs"
+      },
+      "dotenv": {
+        "from": "dotenv",
+        "version": "17.2.3",
+        "resolved": "https://registry.npmjs.org/dotenv/-/dotenv-17.2.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/dotenv@17.2.3/node_modules/dotenv"
+      },
+      "glob": {
+        "from": "glob",
+        "version": "13.0.0",
+        "resolved": "https://registry.npmjs.org/glob/-/glob-13.0.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/glob@13.0.0/node_modules/glob"
+      },
+      "gzip-size": {
+        "from": "gzip-size",
+        "version": "7.0.0",
+        "resolved": "https://registry.npmjs.org/gzip-size/-/gzip-size-7.0.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/gzip-size@7.0.0/node_modules/gzip-size"
+      },
+      "hono": {
+        "from": "hono",
+        "version": "4.11.1",
+        "resolved": "https://registry.npmjs.org/hono/-/hono-4.11.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/hono@4.11.1/node_modules/hono"
+      },
+      "husky": {
+        "from": "husky",
+        "version": "9.1.7",
+        "resolved": "https://registry.npmjs.org/husky/-/husky-9.1.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/husky@9.1.7/node_modules/husky"
+      },
+      "js-yaml": {
+        "from": "js-yaml",
+        "version": "4.1.1",
+        "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.1.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/js-yaml@4.1.1/node_modules/js-yaml"
+      },
+      "jsonwebtoken": {
+        "from": "jsonwebtoken",
+        "version": "9.0.3",
+        "resolved": "https://registry.npmjs.org/jsonwebtoken/-/jsonwebtoken-9.0.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken"
+      },
+      "knip": {
+        "from": "knip",
+        "version": "5.80.0",
+        "resolved": "https://registry.npmjs.org/knip/-/knip-5.80.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/knip@5.80.0_@types+node@22.19.3_typescript@5.9.3/node_modules/knip"
+      },
+      "lint-staged": {
+        "from": "lint-staged",
+        "version": "16.2.7",
+        "resolved": "https://registry.npmjs.org/lint-staged/-/lint-staged-16.2.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/lint-staged@16.2.7/node_modules/lint-staged"
+      },
+      "postgres": {
+        "from": "postgres",
+        "version": "3.4.7",
+        "resolved": "https://registry.npmjs.org/postgres/-/postgres-3.4.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres"
+      },
+      "prettier": {
+        "from": "prettier",
+        "version": "3.7.4",
+        "resolved": "https://registry.npmjs.org/prettier/-/prettier-3.7.4.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/prettier@3.7.4/node_modules/prettier"
+      },
+      "react-devtools": {
+        "from": "react-devtools",
+        "version": "7.0.1",
+        "resolved": "https://registry.npmjs.org/react-devtools/-/react-devtools-7.0.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/react-devtools@7.0.1/node_modules/react-devtools"
+      },
+      "release-it": {
+        "from": "release-it",
+        "version": "19.2.2",
+        "resolved": "https://registry.npmjs.org/release-it/-/release-it-19.2.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/release-it@19.2.2_@types+node@22.19.3_magicast@0.5.1/node_modules/release-it"
+      },
+      "turbo": {
+        "from": "turbo",
+        "version": "2.7.0",
+        "resolved": "https://registry.npmjs.org/turbo/-/turbo-2.7.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/turbo@2.7.0/node_modules/turbo"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/web",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web",
+    "private": true,
+    "dependencies": {
+      "@aws-sdk/client-s3": {
+        "from": "@aws-sdk/client-s3",
+        "version": "3.970.0",
+        "resolved": "https://registry.npmjs.org/@aws-sdk/client-s3/-/client-s3-3.970.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@aws-sdk+client-s3@3.970.0/node_modules/@aws-sdk/client-s3"
+      },
+      "@aws-sdk/lib-storage": {
+        "from": "@aws-sdk/lib-storage",
+        "version": "3.970.0",
+        "resolved": "https://registry.npmjs.org/@aws-sdk/lib-storage/-/lib-storage-3.970.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@aws-sdk+lib-storage@3.970.0_@aws-sdk+client-s3@3.970.0/node_modules/@aws-sdk/lib-storage"
+      },
+      "@aws-sdk/s3-request-presigner": {
+        "from": "@aws-sdk/s3-request-presigner",
+        "version": "3.970.0",
+        "resolved": "https://registry.npmjs.org/@aws-sdk/s3-request-presigner/-/s3-request-presigner-3.970.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@aws-sdk+s3-request-presigner@3.970.0/node_modules/@aws-sdk/s3-request-presigner"
+      },
+      "@hookform/resolvers": {
+        "from": "@hookform/resolvers",
+        "version": "5.2.2",
+        "resolved": "https://registry.npmjs.org/@hookform/resolvers/-/resolvers-5.2.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@hookform+resolvers@5.2.2_react-hook-form@7.68.0_react@19.2.3_/node_modules/@hookform/resolvers"
+      },
+      "@interdomestik/database": {
+        "from": "@interdomestik/database",
+        "version": "link:../../packages/database",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      },
+      "@interdomestik/domain-activities": {
+        "from": "@interdomestik/domain-activities",
+        "version": "link:../../packages/domain-activities",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-activities"
+      },
+      "@interdomestik/domain-analytics": {
+        "from": "@interdomestik/domain-analytics",
+        "version": "link:../../packages/domain-analytics",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-analytics"
+      },
+      "@interdomestik/domain-claims": {
+        "from": "@interdomestik/domain-claims",
+        "version": "link:../../packages/domain-claims",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-claims"
+      },
+      "@interdomestik/domain-communications": {
+        "from": "@interdomestik/domain-communications",
+        "version": "link:../../packages/domain-communications",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-communications"
+      },
+      "@interdomestik/domain-country-guidance": {
+        "from": "@interdomestik/domain-country-guidance",
+        "version": "link:../../packages/domain-country-guidance",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-country-guidance"
+      },
+      "@interdomestik/domain-leads": {
+        "from": "@interdomestik/domain-leads",
+        "version": "link:../../packages/domain-leads",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-leads"
+      },
+      "@interdomestik/domain-membership-billing": {
+        "from": "@interdomestik/domain-membership-billing",
+        "version": "link:../../packages/domain-membership-billing",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-membership-billing"
+      },
+      "@interdomestik/domain-referrals": {
+        "from": "@interdomestik/domain-referrals",
+        "version": "link:../../packages/domain-referrals",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-referrals"
+      },
+      "@interdomestik/domain-users": {
+        "from": "@interdomestik/domain-users",
+        "version": "link:../../packages/domain-users",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-users"
+      },
+      "@interdomestik/shared-auth": {
+        "from": "@interdomestik/shared-auth",
+        "version": "link:../../packages/shared-auth",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-auth"
+      },
+      "@interdomestik/shared-utils": {
+        "from": "@interdomestik/shared-utils",
+        "version": "link:../../packages/shared-utils",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-utils"
+      },
+      "@interdomestik/ui": {
+        "from": "@interdomestik/ui",
+        "version": "link:../../packages/ui",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      },
+      "@paddle/paddle-js": {
+        "from": "@paddle/paddle-js",
+        "version": "1.6.1",
+        "resolved": "https://registry.npmjs.org/@paddle/paddle-js/-/paddle-js-1.6.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@paddle+paddle-js@1.6.1/node_modules/@paddle/paddle-js"
+      },
+      "@paddle/paddle-node-sdk": {
+        "from": "@paddle/paddle-node-sdk",
+        "version": "3.5.0",
+        "resolved": "https://registry.npmjs.org/@paddle/paddle-node-sdk/-/paddle-node-sdk-3.5.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@paddle+paddle-node-sdk@3.5.0/node_modules/@paddle/paddle-node-sdk"
+      },
+      "@sentry/nextjs": {
+        "from": "@sentry/nextjs",
+        "version": "10.32.1",
+        "resolved": "https://registry.npmjs.org/@sentry/nextjs/-/nextjs-10.32.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@sentry+nextjs@10.32.1_@opentelemetry+context-async-hooks@2.2.0_@opentelemetry+api@1.9._728540fee3ce78c13cd2a474abba4209/node_modules/@sentry/nextjs"
+      },
+      "@supabase/supabase-js": {
+        "from": "@supabase/supabase-js",
+        "version": "2.87.1",
+        "resolved": "https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.87.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@supabase+supabase-js@2.87.1/node_modules/@supabase/supabase-js"
+      },
+      "@tanstack/react-query": {
+        "from": "@tanstack/react-query",
+        "version": "5.90.12",
+        "resolved": "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.90.12.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@tanstack+react-query@5.90.12_react@19.2.3/node_modules/@tanstack/react-query"
+      },
+      "@types/bcryptjs": {
+        "from": "@types/bcryptjs",
+        "version": "3.0.0",
+        "resolved": "https://registry.npmjs.org/@types/bcryptjs/-/bcryptjs-3.0.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+bcryptjs@3.0.0/node_modules/@types/bcryptjs"
+      },
+      "@types/jsonwebtoken": {
+        "from": "@types/jsonwebtoken",
+        "version": "9.0.10",
+        "resolved": "https://registry.npmjs.org/@types/jsonwebtoken/-/jsonwebtoken-9.0.10.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+jsonwebtoken@9.0.10/node_modules/@types/jsonwebtoken"
+      },
+      "@types/web-push": {
+        "from": "@types/web-push",
+        "version": "3.6.4",
+        "resolved": "https://registry.npmjs.org/@types/web-push/-/web-push-3.6.4.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+web-push@3.6.4/node_modules/@types/web-push"
+      },
+      "@upstash/ratelimit": {
+        "from": "@upstash/ratelimit",
+        "version": "2.0.7",
+        "resolved": "https://registry.npmjs.org/@upstash/ratelimit/-/ratelimit-2.0.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@upstash+ratelimit@2.0.7_@upstash+redis@1.35.8/node_modules/@upstash/ratelimit"
+      },
+      "@upstash/redis": {
+        "from": "@upstash/redis",
+        "version": "1.35.8",
+        "resolved": "https://registry.npmjs.org/@upstash/redis/-/redis-1.35.8.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@upstash+redis@1.35.8/node_modules/@upstash/redis"
+      },
+      "bcryptjs": {
+        "from": "bcryptjs",
+        "version": "3.0.3",
+        "resolved": "https://registry.npmjs.org/bcryptjs/-/bcryptjs-3.0.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/bcryptjs@3.0.3/node_modules/bcryptjs"
+      },
+      "better-auth": {
+        "from": "better-auth",
+        "version": "1.4.6",
+        "resolved": "https://registry.npmjs.org/better-auth/-/better-auth-1.4.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/better-auth@1.4.6_next@16.0.10_@babel+core@7.28.5_@opentelemetry+api@1.9.0_@playwright+_901e47a982ec0a333796e472b11d5ca1/node_modules/better-auth"
+      },
+      "clsx": {
+        "from": "clsx",
+        "version": "2.1.1",
+        "resolved": "https://registry.npmjs.org/clsx/-/clsx-2.1.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/clsx@2.1.1/node_modules/clsx"
+      },
+      "cookies-next": {
+        "from": "cookies-next",
+        "version": "6.1.1",
+        "resolved": "https://registry.npmjs.org/cookies-next/-/cookies-next-6.1.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/cookies-next@6.1.1_next@16.0.10_@babel+core@7.28.5_@opentelemetry+api@1.9.0_@playwright_5a5995af5180ec2013e68e89790b6161/node_modules/cookies-next"
+      },
+      "date-fns": {
+        "from": "date-fns",
+        "version": "4.1.0",
+        "resolved": "https://registry.npmjs.org/date-fns/-/date-fns-4.1.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/date-fns@4.1.0/node_modules/date-fns"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      },
+      "framer-motion": {
+        "from": "framer-motion",
+        "version": "12.29.2",
+        "resolved": "https://registry.npmjs.org/framer-motion/-/framer-motion-12.29.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/framer-motion@12.29.2_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/framer-motion"
+      },
+      "import-in-the-middle": {
+        "from": "import-in-the-middle",
+        "version": "2.0.1",
+        "resolved": "https://registry.npmjs.org/import-in-the-middle/-/import-in-the-middle-2.0.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/import-in-the-middle@2.0.1/node_modules/import-in-the-middle"
+      },
+      "inngest": {
+        "from": "inngest",
+        "version": "3.48.1",
+        "resolved": "https://registry.npmjs.org/inngest/-/inngest-3.48.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/inngest@3.48.1_@opentelemetry+core@2.2.0_@opentelemetry+api@1.9.0__express@5.2.1_hono@4_8931a9ce6218759a429b8416a85afc84/node_modules/inngest"
+      },
+      "jsonwebtoken": {
+        "from": "jsonwebtoken",
+        "version": "9.0.3",
+        "resolved": "https://registry.npmjs.org/jsonwebtoken/-/jsonwebtoken-9.0.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken"
+      },
+      "lucide-react": {
+        "from": "lucide-react",
+        "version": "0.561.0",
+        "resolved": "https://registry.npmjs.org/lucide-react/-/lucide-react-0.561.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/lucide-react@0.561.0_react@19.2.3/node_modules/lucide-react"
+      },
+      "nanoid": {
+        "from": "nanoid",
+        "version": "5.1.6",
+        "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nanoid@5.1.6/node_modules/nanoid"
+      },
+      "next": {
+        "from": "next",
+        "version": "16.0.10",
+        "resolved": "https://registry.npmjs.org/next/-/next-16.0.10.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/next@16.0.10_@babel+core@7.28.5_@opentelemetry+api@1.9.0_@playwright+test@1.57.0_react-_71e9c2d2cf8cafae81b603ed19f33f35/node_modules/next"
+      },
+      "next-axiom": {
+        "from": "next-axiom",
+        "version": "1.10.0",
+        "resolved": "https://registry.npmjs.org/next-axiom/-/next-axiom-1.10.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/next-axiom@1.10.0_@aws-sdk+credential-provider-web-identity@3.970.0_next@16.0.10_@babel_9cae52c547da6e42314fc3b9cf275ad9/node_modules/next-axiom"
+      },
+      "next-intl": {
+        "from": "next-intl",
+        "version": "4.6.0",
+        "resolved": "https://registry.npmjs.org/next-intl/-/next-intl-4.6.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/next-intl@4.6.0_next@16.0.10_@babel+core@7.28.5_@opentelemetry+api@1.9.0_@playwright+te_3d67f76742817e3c3d13d71243cb263d/node_modules/next-intl"
+      },
+      "pdf-lib": {
+        "from": "pdf-lib",
+        "version": "1.17.1",
+        "resolved": "https://registry.npmjs.org/pdf-lib/-/pdf-lib-1.17.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/pdf-lib@1.17.1/node_modules/pdf-lib"
+      },
+      "pdf-parse": {
+        "from": "pdf-parse",
+        "version": "1.1.1",
+        "resolved": "https://registry.npmjs.org/pdf-parse/-/pdf-parse-1.1.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/pdf-parse@1.1.1/node_modules/pdf-parse"
+      },
+      "posthog-js": {
+        "from": "posthog-js",
+        "version": "1.315.1",
+        "resolved": "https://registry.npmjs.org/posthog-js/-/posthog-js-1.315.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/posthog-js@1.315.1/node_modules/posthog-js"
+      },
+      "qrcode": {
+        "from": "qrcode",
+        "version": "1.5.4",
+        "resolved": "https://registry.npmjs.org/qrcode/-/qrcode-1.5.4.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/qrcode@1.5.4/node_modules/qrcode"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.2.3",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.2.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/react@19.2.3/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.2.3",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.2.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom"
+      },
+      "react-hook-form": {
+        "from": "react-hook-form",
+        "version": "7.68.0",
+        "resolved": "https://registry.npmjs.org/react-hook-form/-/react-hook-form-7.68.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/react-hook-form@7.68.0_react@19.2.3/node_modules/react-hook-form"
+      },
+      "recharts": {
+        "from": "recharts",
+        "version": "3.6.0",
+        "resolved": "https://registry.npmjs.org/recharts/-/recharts-3.6.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/recharts@3.6.0_@types+react@19.2.7_react-dom@19.2.3_react@19.2.3__react-is@18.3.1_react@19.2.3_redux@5.0.1/node_modules/recharts"
+      },
+      "require-in-the-middle": {
+        "from": "require-in-the-middle",
+        "version": "8.0.1",
+        "resolved": "https://registry.npmjs.org/require-in-the-middle/-/require-in-the-middle-8.0.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/require-in-the-middle@8.0.1/node_modules/require-in-the-middle"
+      },
+      "sonner": {
+        "from": "sonner",
+        "version": "2.0.7",
+        "resolved": "https://registry.npmjs.org/sonner/-/sonner-2.0.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/sonner@2.0.7_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/sonner"
+      },
+      "tailwind-merge": {
+        "from": "tailwind-merge",
+        "version": "3.4.0",
+        "resolved": "https://registry.npmjs.org/tailwind-merge/-/tailwind-merge-3.4.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/tailwind-merge@3.4.0/node_modules/tailwind-merge"
+      },
+      "web-push": {
+        "from": "web-push",
+        "version": "3.6.7",
+        "resolved": "https://registry.npmjs.org/web-push/-/web-push-3.6.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/web-push@3.6.7/node_modules/web-push"
+      },
+      "zod": {
+        "from": "zod",
+        "version": "4.2.1",
+        "resolved": "https://registry.npmjs.org/zod/-/zod-4.2.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/zod@4.2.1/node_modules/zod"
+      }
+    },
+    "devDependencies": {
+      "@axe-core/react": {
+        "from": "@axe-core/react",
+        "version": "4.11.0",
+        "resolved": "https://registry.npmjs.org/@axe-core/react/-/react-4.11.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@axe-core+react@4.11.0/node_modules/@axe-core/react"
+      },
+      "@next/bundle-analyzer": {
+        "from": "@next/bundle-analyzer",
+        "version": "16.0.10",
+        "resolved": "https://registry.npmjs.org/@next/bundle-analyzer/-/bundle-analyzer-16.0.10.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@next+bundle-analyzer@16.0.10/node_modules/@next/bundle-analyzer"
+      },
+      "@next/eslint-plugin-next": {
+        "from": "@next/eslint-plugin-next",
+        "version": "16.1.0",
+        "resolved": "https://registry.npmjs.org/@next/eslint-plugin-next/-/eslint-plugin-next-16.1.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@next+eslint-plugin-next@16.1.0/node_modules/@next/eslint-plugin-next"
+      },
+      "@playwright/test": {
+        "from": "@playwright/test",
+        "version": "1.57.0",
+        "resolved": "https://registry.npmjs.org/@playwright/test/-/test-1.57.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@playwright+test@1.57.0/node_modules/@playwright/test"
+      },
+      "@testing-library/dom": {
+        "from": "@testing-library/dom",
+        "version": "10.4.1",
+        "resolved": "https://registry.npmjs.org/@testing-library/dom/-/dom-10.4.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom"
+      },
+      "@testing-library/jest-dom": {
+        "from": "@testing-library/jest-dom",
+        "version": "6.9.1",
+        "resolved": "https://registry.npmjs.org/@testing-library/jest-dom/-/jest-dom-6.9.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@testing-library+jest-dom@6.9.1/node_modules/@testing-library/jest-dom"
+      },
+      "@testing-library/react": {
+        "from": "@testing-library/react",
+        "version": "16.3.0",
+        "resolved": "https://registry.npmjs.org/@testing-library/react/-/react-16.3.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@testing-library+react@16.3.0_@testing-library+dom@10.4.1_@types+react-dom@19.2.3_@type_20513faa518b6064909a901fb0e6bfbb/node_modules/@testing-library/react"
+      },
+      "@testing-library/user-event": {
+        "from": "@testing-library/user-event",
+        "version": "14.6.1",
+        "resolved": "https://registry.npmjs.org/@testing-library/user-event/-/user-event-14.6.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@testing-library+user-event@14.6.1_@testing-library+dom@10.4.1/node_modules/@testing-library/user-event"
+      },
+      "@types/node": {
+        "from": "@types/node",
+        "version": "22.19.2",
+        "resolved": "https://registry.npmjs.org/@types/node/-/node-22.19.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+node@22.19.2/node_modules/@types/node"
+      },
+      "@types/pdf-parse": {
+        "from": "@types/pdf-parse",
+        "version": "1.1.5",
+        "resolved": "https://registry.npmjs.org/@types/pdf-parse/-/pdf-parse-1.1.5.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+pdf-parse@1.1.5/node_modules/@types/pdf-parse"
+      },
+      "@types/qrcode": {
+        "from": "@types/qrcode",
+        "version": "1.5.6",
+        "resolved": "https://registry.npmjs.org/@types/qrcode/-/qrcode-1.5.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+qrcode@1.5.6/node_modules/@types/qrcode"
+      },
+      "@types/react": {
+        "from": "@types/react",
+        "version": "19.2.7",
+        "resolved": "https://registry.npmjs.org/@types/react/-/react-19.2.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+react@19.2.7/node_modules/@types/react"
+      },
+      "@types/react-dom": {
+        "from": "@types/react-dom",
+        "version": "19.2.3",
+        "resolved": "https://registry.npmjs.org/@types/react-dom/-/react-dom-19.2.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+react-dom@19.2.3_@types+react@19.2.7/node_modules/@types/react-dom"
+      },
+      "@vitejs/plugin-react": {
+        "from": "@vitejs/plugin-react",
+        "version": "5.1.2",
+        "resolved": "https://registry.npmjs.org/@vitejs/plugin-react/-/plugin-react-5.1.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitejs+plugin-react@5.1.2_vite@7.3.1_@types+node@22.19.2_jiti@1.21.7_terser@5.44.1_tsx@4.21.0_yaml@2.8.2_/node_modules/@vitejs/plugin-react"
+      },
+      "@vitest/coverage-v8": {
+        "from": "@vitest/coverage-v8",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitest+coverage-v8@4.0.16_vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.2_j_0d1f37069aae6d7b09d3a4f2827a60f0/node_modules/@vitest/coverage-v8"
+      },
+      "autoprefixer": {
+        "from": "autoprefixer",
+        "version": "10.4.22",
+        "resolved": "https://registry.npmjs.org/autoprefixer/-/autoprefixer-10.4.22.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/autoprefixer@10.4.22_postcss@8.5.6/node_modules/autoprefixer"
+      },
+      "dotenv": {
+        "from": "dotenv",
+        "version": "17.2.3",
+        "resolved": "https://registry.npmjs.org/dotenv/-/dotenv-17.2.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/dotenv@17.2.3/node_modules/dotenv"
+      },
+      "eslint": {
+        "from": "eslint",
+        "version": "9.39.2",
+        "resolved": "https://registry.npmjs.org/eslint/-/eslint-9.39.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/eslint@9.39.2_jiti@1.21.7/node_modules/eslint"
+      },
+      "eslint-config-next": {
+        "from": "eslint-config-next",
+        "version": "16.0.10",
+        "resolved": "https://registry.npmjs.org/eslint-config-next/-/eslint-config-next-16.0.10.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/eslint-config-next@16.0.10_@typescript-eslint+parser@8.49.0_eslint@9.39.2_jiti@1.21.7___7e7090cbd04221dc49e4bdcd1d15bb31/node_modules/eslint-config-next"
+      },
+      "eslint-plugin-boundaries": {
+        "from": "eslint-plugin-boundaries",
+        "version": "5.3.1",
+        "resolved": "https://registry.npmjs.org/eslint-plugin-boundaries/-/eslint-plugin-boundaries-5.3.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/eslint-plugin-boundaries@5.3.1_@typescript-eslint+parser@8.49.0_eslint@9.39.2_jiti@1.21_fd83b2f013d282d9aabdd5431b205a2b/node_modules/eslint-plugin-boundaries"
+      },
+      "eslint-plugin-react-hooks": {
+        "from": "eslint-plugin-react-hooks",
+        "version": "7.0.1",
+        "resolved": "https://registry.npmjs.org/eslint-plugin-react-hooks/-/eslint-plugin-react-hooks-7.0.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/eslint-plugin-react-hooks@7.0.1_eslint@9.39.2_jiti@1.21.7_/node_modules/eslint-plugin-react-hooks"
+      },
+      "jsdom": {
+        "from": "jsdom",
+        "version": "27.3.0",
+        "resolved": "https://registry.npmjs.org/jsdom/-/jsdom-27.3.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/jsdom@27.3.0_postcss@8.5.6/node_modules/jsdom"
+      },
+      "postcss": {
+        "from": "postcss",
+        "version": "8.5.6",
+        "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/postcss@8.5.6/node_modules/postcss"
+      },
+      "tailwindcss": {
+        "from": "tailwindcss",
+        "version": "3.4.19",
+        "resolved": "https://registry.npmjs.org/tailwindcss/-/tailwindcss-3.4.19.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/tailwindcss@3.4.19_tsx@4.21.0_yaml@2.8.2/node_modules/tailwindcss"
+      },
+      "tailwindcss-animate": {
+        "from": "tailwindcss-animate",
+        "version": "1.0.7",
+        "resolved": "https://registry.npmjs.org/tailwindcss-animate/-/tailwindcss-animate-1.0.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/tailwindcss-animate@1.0.7_tailwindcss@3.4.19_tsx@4.21.0_yaml@2.8.2_/node_modules/tailwindcss-animate"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      },
+      "typescript-eslint": {
+        "from": "typescript-eslint",
+        "version": "8.49.0",
+        "resolved": "https://registry.npmjs.org/typescript-eslint/-/typescript-eslint-8.49.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript-eslint@8.49.0_eslint@9.39.2_jiti@1.21.7__typescript@5.9.3/node_modules/typescript-eslint"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.2_jiti@1.21.7_jsdom@27.3.0_pos_6bbf6d702e5e588f39d8d492ff34c166/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/database",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database",
+    "private": true,
+    "dependencies": {
+      "@supabase/ssr": {
+        "from": "@supabase/ssr",
+        "version": "0.8.0",
+        "resolved": "https://registry.npmjs.org/@supabase/ssr/-/ssr-0.8.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@supabase+ssr@0.8.0_@supabase+supabase-js@2.87.1/node_modules/@supabase/ssr"
+      },
+      "@supabase/supabase-js": {
+        "from": "@supabase/supabase-js",
+        "version": "2.87.1",
+        "resolved": "https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.87.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@supabase+supabase-js@2.87.1/node_modules/@supabase/supabase-js"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      },
+      "next": {
+        "from": "next",
+        "version": "15.5.9",
+        "resolved": "https://registry.npmjs.org/next/-/next-15.5.9.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/next@15.5.9_@opentelemetry+api@1.9.0_@playwright+test@1.57.0_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/next"
+      },
+      "postgres": {
+        "from": "postgres",
+        "version": "3.4.7",
+        "resolved": "https://registry.npmjs.org/postgres/-/postgres-3.4.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/postgres@3.4.7/node_modules/postgres"
+      }
+    },
+    "devDependencies": {
+      "@types/bcryptjs": {
+        "from": "@types/bcryptjs",
+        "version": "3.0.0",
+        "resolved": "https://registry.npmjs.org/@types/bcryptjs/-/bcryptjs-3.0.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+bcryptjs@3.0.0/node_modules/@types/bcryptjs"
+      },
+      "@types/node": {
+        "from": "@types/node",
+        "version": "22.19.2",
+        "resolved": "https://registry.npmjs.org/@types/node/-/node-22.19.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+node@22.19.2/node_modules/@types/node"
+      },
+      "bcryptjs": {
+        "from": "bcryptjs",
+        "version": "3.0.3",
+        "resolved": "https://registry.npmjs.org/bcryptjs/-/bcryptjs-3.0.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/bcryptjs@3.0.3/node_modules/bcryptjs"
+      },
+      "dotenv": {
+        "from": "dotenv",
+        "version": "17.2.3",
+        "resolved": "https://registry.npmjs.org/dotenv/-/dotenv-17.2.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/dotenv@17.2.3/node_modules/dotenv"
+      },
+      "drizzle-kit": {
+        "from": "drizzle-kit",
+        "version": "0.31.8",
+        "resolved": "https://registry.npmjs.org/drizzle-kit/-/drizzle-kit-0.31.8.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-kit@0.31.8/node_modules/drizzle-kit"
+      },
+      "nanoid": {
+        "from": "nanoid",
+        "version": "5.1.6",
+        "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nanoid@5.1.6/node_modules/nanoid"
+      },
+      "supabase": {
+        "from": "supabase",
+        "version": "2.70.5",
+        "resolved": "https://registry.npmjs.org/supabase/-/supabase-2.70.5.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/supabase@2.70.5/node_modules/supabase"
+      },
+      "tsx": {
+        "from": "tsx",
+        "version": "4.21.0",
+        "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.21.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/domain-activities",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-activities",
+    "private": true,
+    "dependencies": {
+      "@interdomestik/database": {
+        "from": "@interdomestik/database",
+        "version": "link:../database",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      },
+      "nanoid": {
+        "from": "nanoid",
+        "version": "5.1.6",
+        "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nanoid@5.1.6/node_modules/nanoid"
+      },
+      "zod": {
+        "from": "zod",
+        "version": "4.2.1",
+        "resolved": "https://registry.npmjs.org/zod/-/zod-4.2.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/zod@4.2.1/node_modules/zod"
+      }
+    },
+    "devDependencies": {
+      "@vitest/coverage-v8": {
+        "from": "@vitest/coverage-v8",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitest+coverage-v8@4.0.16_vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_j_e994613fc61752fb2cf61ed22724119e/node_modules/@vitest/coverage-v8"
+      },
+      "postcss": {
+        "from": "postcss",
+        "version": "8.5.6",
+        "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/postcss@8.5.6/node_modules/postcss"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_jiti@2.6.1_jsdom@27.3.0_terser@5.44.1_tsx@4.21.0_yaml@2.8.2/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/domain-analytics",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-analytics",
+    "private": true,
+    "dependencies": {
+      "@interdomestik/database": {
+        "from": "@interdomestik/database",
+        "version": "link:../database",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      },
+      "date-fns": {
+        "from": "date-fns",
+        "version": "3.6.0",
+        "resolved": "https://registry.npmjs.org/date-fns/-/date-fns-3.6.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/date-fns@3.6.0/node_modules/date-fns"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      }
+    },
+    "devDependencies": {
+      "@vitest/coverage-v8": {
+        "from": "@vitest/coverage-v8",
+        "version": "1.6.1",
+        "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-1.6.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitest+coverage-v8@1.6.1_vitest@1.6.1_@types+node@22.19.3_jsdom@27.3.0_terser@5.44.1_/node_modules/@vitest/coverage-v8"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "1.6.1",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-1.6.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@1.6.1_@types+node@22.19.3_jsdom@27.3.0_terser@5.44.1/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/domain-claims",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-claims",
+    "private": true,
+    "dependencies": {
+      "@interdomestik/database": {
+        "from": "@interdomestik/database",
+        "version": "link:../database",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      },
+      "@interdomestik/domain-membership-billing": {
+        "from": "@interdomestik/domain-membership-billing",
+        "version": "link:../domain-membership-billing",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-membership-billing"
+      },
+      "@interdomestik/shared-auth": {
+        "from": "@interdomestik/shared-auth",
+        "version": "link:../shared-auth",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-auth"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      },
+      "nanoid": {
+        "from": "nanoid",
+        "version": "5.1.6",
+        "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nanoid@5.1.6/node_modules/nanoid"
+      },
+      "zod": {
+        "from": "zod",
+        "version": "4.2.1",
+        "resolved": "https://registry.npmjs.org/zod/-/zod-4.2.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/zod@4.2.1/node_modules/zod"
+      }
+    },
+    "devDependencies": {
+      "@vitest/coverage-v8": {
+        "from": "@vitest/coverage-v8",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitest+coverage-v8@4.0.16_vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_j_e994613fc61752fb2cf61ed22724119e/node_modules/@vitest/coverage-v8"
+      },
+      "postcss": {
+        "from": "postcss",
+        "version": "8.5.6",
+        "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/postcss@8.5.6/node_modules/postcss"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_jiti@2.6.1_jsdom@27.3.0_terser@5.44.1_tsx@4.21.0_yaml@2.8.2/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/domain-communications",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-communications",
+    "private": true,
+    "dependencies": {
+      "@interdomestik/database": {
+        "from": "@interdomestik/database",
+        "version": "link:../database",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      },
+      "@interdomestik/shared-auth": {
+        "from": "@interdomestik/shared-auth",
+        "version": "link:../shared-auth",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-auth"
+      },
+      "@types/nodemailer": {
+        "from": "@types/nodemailer",
+        "version": "7.0.5",
+        "resolved": "https://registry.npmjs.org/@types/nodemailer/-/nodemailer-7.0.5.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+nodemailer@7.0.5/node_modules/@types/nodemailer"
+      },
+      "@types/web-push": {
+        "from": "@types/web-push",
+        "version": "3.6.4",
+        "resolved": "https://registry.npmjs.org/@types/web-push/-/web-push-3.6.4.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+web-push@3.6.4/node_modules/@types/web-push"
+      },
+      "aws-sdk": {
+        "from": "aws-sdk",
+        "version": "2.1693.0",
+        "resolved": "https://registry.npmjs.org/aws-sdk/-/aws-sdk-2.1693.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/aws-sdk@2.1693.0/node_modules/aws-sdk"
+      },
+      "date-fns": {
+        "from": "date-fns",
+        "version": "4.1.0",
+        "resolved": "https://registry.npmjs.org/date-fns/-/date-fns-4.1.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/date-fns@4.1.0/node_modules/date-fns"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      },
+      "inngest": {
+        "from": "inngest",
+        "version": "3.48.1",
+        "resolved": "https://registry.npmjs.org/inngest/-/inngest-3.48.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/inngest@3.48.1_@opentelemetry+core@2.2.0_@opentelemetry+api@1.9.0__express@5.2.1_hono@4_8931a9ce6218759a429b8416a85afc84/node_modules/inngest"
+      },
+      "nanoid": {
+        "from": "nanoid",
+        "version": "5.1.6",
+        "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nanoid@5.1.6/node_modules/nanoid"
+      },
+      "nodemailer": {
+        "from": "nodemailer",
+        "version": "7.0.12",
+        "resolved": "https://registry.npmjs.org/nodemailer/-/nodemailer-7.0.12.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nodemailer@7.0.12/node_modules/nodemailer"
+      },
+      "resend": {
+        "from": "resend",
+        "version": "4.8.0",
+        "resolved": "https://registry.npmjs.org/resend/-/resend-4.8.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/resend@4.8.0_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/resend"
+      },
+      "web-push": {
+        "from": "web-push",
+        "version": "3.6.7",
+        "resolved": "https://registry.npmjs.org/web-push/-/web-push-3.6.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/web-push@3.6.7/node_modules/web-push"
+      },
+      "zod": {
+        "from": "zod",
+        "version": "4.2.1",
+        "resolved": "https://registry.npmjs.org/zod/-/zod-4.2.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/zod@4.2.1/node_modules/zod"
+      }
+    },
+    "devDependencies": {
+      "@vitest/coverage-v8": {
+        "from": "@vitest/coverage-v8",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitest+coverage-v8@4.0.16_vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_j_e994613fc61752fb2cf61ed22724119e/node_modules/@vitest/coverage-v8"
+      },
+      "postcss": {
+        "from": "postcss",
+        "version": "8.5.6",
+        "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/postcss@8.5.6/node_modules/postcss"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_jiti@2.6.1_jsdom@27.3.0_terser@5.44.1_tsx@4.21.0_yaml@2.8.2/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/domain-country-guidance",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-country-guidance",
+    "private": true,
+    "dependencies": {
+      "zod": {
+        "from": "zod",
+        "version": "4.2.1",
+        "resolved": "https://registry.npmjs.org/zod/-/zod-4.2.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/zod@4.2.1/node_modules/zod"
+      }
+    },
+    "devDependencies": {
+      "@vitest/coverage-v8": {
+        "from": "@vitest/coverage-v8",
+        "version": "1.6.1",
+        "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-1.6.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitest+coverage-v8@1.6.1_vitest@1.6.1_@types+node@22.19.3_jsdom@27.3.0_terser@5.44.1_/node_modules/@vitest/coverage-v8"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "1.6.1",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-1.6.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@1.6.1_@types+node@22.19.3_jsdom@27.3.0_terser@5.44.1/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/domain-documents",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-documents",
+    "private": true,
+    "dependencies": {
+      "@interdomestik/database": {
+        "from": "@interdomestik/database",
+        "version": "link:../database",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      },
+      "@supabase/supabase-js": {
+        "from": "@supabase/supabase-js",
+        "version": "2.87.1",
+        "resolved": "https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.87.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@supabase+supabase-js@2.87.1/node_modules/@supabase/supabase-js"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      },
+      "nanoid": {
+        "from": "nanoid",
+        "version": "5.1.6",
+        "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nanoid@5.1.6/node_modules/nanoid"
+      }
+    },
+    "devDependencies": {
+      "@vitest/coverage-v8": {
+        "from": "@vitest/coverage-v8",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitest+coverage-v8@4.0.16_vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_j_bc91d365b2ce92116a384702f70fce60/node_modules/@vitest/coverage-v8"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_jiti@2.6.1_jsdom@27.3.0_terser@5.44.1_tsx@4.21.0_yaml@2.8.2/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/domain-leads",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-leads",
+    "private": true,
+    "dependencies": {
+      "@interdomestik/database": {
+        "from": "@interdomestik/database",
+        "version": "link:../database",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      },
+      "@interdomestik/domain-membership-billing": {
+        "from": "@interdomestik/domain-membership-billing",
+        "version": "link:../domain-membership-billing",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-membership-billing"
+      },
+      "@interdomestik/shared-auth": {
+        "from": "@interdomestik/shared-auth",
+        "version": "link:../shared-auth",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-auth"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      },
+      "nanoid": {
+        "from": "nanoid",
+        "version": "5.1.6",
+        "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nanoid@5.1.6/node_modules/nanoid"
+      },
+      "zod": {
+        "from": "zod",
+        "version": "4.2.1",
+        "resolved": "https://registry.npmjs.org/zod/-/zod-4.2.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/zod@4.2.1/node_modules/zod"
+      }
+    },
+    "devDependencies": {
+      "vitest": {
+        "from": "vitest",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_jiti@2.6.1_jsdom@27.3.0_terser@5.44.1_tsx@4.21.0_yaml@2.8.2/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/domain-membership-billing",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-membership-billing",
+    "private": true,
+    "dependencies": {
+      "@interdomestik/database": {
+        "from": "@interdomestik/database",
+        "version": "link:../database",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      },
+      "@interdomestik/shared-auth": {
+        "from": "@interdomestik/shared-auth",
+        "version": "link:../shared-auth",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-auth"
+      },
+      "@paddle/paddle-js": {
+        "from": "@paddle/paddle-js",
+        "version": "1.6.1",
+        "resolved": "https://registry.npmjs.org/@paddle/paddle-js/-/paddle-js-1.6.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@paddle+paddle-js@1.6.1/node_modules/@paddle/paddle-js"
+      },
+      "@paddle/paddle-node-sdk": {
+        "from": "@paddle/paddle-node-sdk",
+        "version": "3.5.0",
+        "resolved": "https://registry.npmjs.org/@paddle/paddle-node-sdk/-/paddle-node-sdk-3.5.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@paddle+paddle-node-sdk@3.5.0/node_modules/@paddle/paddle-node-sdk"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      },
+      "nanoid": {
+        "from": "nanoid",
+        "version": "5.1.6",
+        "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nanoid@5.1.6/node_modules/nanoid"
+      },
+      "zod": {
+        "from": "zod",
+        "version": "4.2.1",
+        "resolved": "https://registry.npmjs.org/zod/-/zod-4.2.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/zod@4.2.1/node_modules/zod"
+      }
+    },
+    "devDependencies": {
+      "@vitest/coverage-v8": {
+        "from": "@vitest/coverage-v8",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitest+coverage-v8@4.0.16_vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_j_e994613fc61752fb2cf61ed22724119e/node_modules/@vitest/coverage-v8"
+      },
+      "postcss": {
+        "from": "postcss",
+        "version": "8.5.6",
+        "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/postcss@8.5.6/node_modules/postcss"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_jiti@2.6.1_jsdom@27.3.0_terser@5.44.1_tsx@4.21.0_yaml@2.8.2/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/domain-referrals",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-referrals",
+    "private": true,
+    "dependencies": {
+      "@interdomestik/database": {
+        "from": "@interdomestik/database",
+        "version": "link:../database",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      },
+      "nanoid": {
+        "from": "nanoid",
+        "version": "5.1.6",
+        "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nanoid@5.1.6/node_modules/nanoid"
+      }
+    },
+    "devDependencies": {
+      "@vitest/coverage-v8": {
+        "from": "@vitest/coverage-v8",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitest+coverage-v8@4.0.16_vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_j_e994613fc61752fb2cf61ed22724119e/node_modules/@vitest/coverage-v8"
+      },
+      "postcss": {
+        "from": "postcss",
+        "version": "8.5.6",
+        "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/postcss@8.5.6/node_modules/postcss"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_jiti@2.6.1_jsdom@27.3.0_terser@5.44.1_tsx@4.21.0_yaml@2.8.2/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/domain-users",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-users",
+    "private": true,
+    "dependencies": {
+      "@interdomestik/database": {
+        "from": "@interdomestik/database",
+        "version": "link:../database",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      },
+      "@interdomestik/shared-auth": {
+        "from": "@interdomestik/shared-auth",
+        "version": "link:../shared-auth",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-auth"
+      },
+      "drizzle-orm": {
+        "from": "drizzle-orm",
+        "version": "0.45.1",
+        "resolved": "https://registry.npmjs.org/drizzle-orm/-/drizzle-orm-0.45.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/drizzle-orm@0.45.1_@opentelemetry+api@1.9.0_@types+pg@8.16.0_@upstash+redis@1.35.8_kyse_b485f8aef7a35aa470255dbf54b7f850/node_modules/drizzle-orm"
+      },
+      "nanoid": {
+        "from": "nanoid",
+        "version": "5.1.6",
+        "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-5.1.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/nanoid@5.1.6/node_modules/nanoid"
+      },
+      "slugify": {
+        "from": "slugify",
+        "version": "1.6.6",
+        "resolved": "https://registry.npmjs.org/slugify/-/slugify-1.6.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/slugify@1.6.6/node_modules/slugify"
+      },
+      "zod": {
+        "from": "zod",
+        "version": "4.2.1",
+        "resolved": "https://registry.npmjs.org/zod/-/zod-4.2.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/zod@4.2.1/node_modules/zod"
+      }
+    },
+    "devDependencies": {
+      "@vitest/coverage-v8": {
+        "from": "@vitest/coverage-v8",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/@vitest/coverage-v8/-/coverage-v8-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitest+coverage-v8@4.0.16_vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_j_e994613fc61752fb2cf61ed22724119e/node_modules/@vitest/coverage-v8"
+      },
+      "postcss": {
+        "from": "postcss",
+        "version": "8.5.6",
+        "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/postcss@8.5.6/node_modules/postcss"
+      },
+      "vitest": {
+        "from": "vitest",
+        "version": "4.0.16",
+        "resolved": "https://registry.npmjs.org/vitest/-/vitest-4.0.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vitest@4.0.16_@opentelemetry+api@1.9.0_@types+node@22.19.3_jiti@2.6.1_jsdom@27.3.0_terser@5.44.1_tsx@4.21.0_yaml@2.8.2/node_modules/vitest"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/qa",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/qa",
+    "private": true,
+    "dependencies": {
+      "@modelcontextprotocol/sdk": {
+        "from": "@modelcontextprotocol/sdk",
+        "version": "1.25.1",
+        "resolved": "https://registry.npmjs.org/@modelcontextprotocol/sdk/-/sdk-1.25.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@modelcontextprotocol+sdk@1.25.1_hono@4.11.1_zod@4.2.1/node_modules/@modelcontextprotocol/sdk"
+      },
+      "chalk": {
+        "from": "chalk",
+        "version": "5.6.2",
+        "resolved": "https://registry.npmjs.org/chalk/-/chalk-5.6.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/chalk@5.6.2/node_modules/chalk"
+      },
+      "dotenv": {
+        "from": "dotenv",
+        "version": "17.2.3",
+        "resolved": "https://registry.npmjs.org/dotenv/-/dotenv-17.2.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/dotenv@17.2.3/node_modules/dotenv"
+      },
+      "pg": {
+        "from": "pg",
+        "version": "8.16.3",
+        "resolved": "https://registry.npmjs.org/pg/-/pg-8.16.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/pg@8.16.3/node_modules/pg"
+      },
+      "zod": {
+        "from": "zod",
+        "version": "4.2.1",
+        "resolved": "https://registry.npmjs.org/zod/-/zod-4.2.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/zod@4.2.1/node_modules/zod"
+      }
+    },
+    "devDependencies": {
+      "@types/node": {
+        "from": "@types/node",
+        "version": "22.19.2",
+        "resolved": "https://registry.npmjs.org/@types/node/-/node-22.19.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+node@22.19.2/node_modules/@types/node"
+      },
+      "@types/pg": {
+        "from": "@types/pg",
+        "version": "8.16.0",
+        "resolved": "https://registry.npmjs.org/@types/pg/-/pg-8.16.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+pg@8.16.0/node_modules/@types/pg"
+      },
+      "tsx": {
+        "from": "tsx",
+        "version": "4.21.0",
+        "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.21.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/shared-auth",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-auth",
+    "private": true
+  },
+  {
+    "name": "@interdomestik/shared-logging",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-logging",
+    "private": true,
+    "dependencies": {
+      "zod": {
+        "from": "zod",
+        "version": "4.2.1",
+        "resolved": "https://registry.npmjs.org/zod/-/zod-4.2.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/zod@4.2.1/node_modules/zod"
+      }
+    },
+    "devDependencies": {
+      "@types/node": {
+        "from": "@types/node",
+        "version": "22.19.2",
+        "resolved": "https://registry.npmjs.org/@types/node/-/node-22.19.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+node@22.19.2/node_modules/@types/node"
+      },
+      "eslint": {
+        "from": "eslint",
+        "version": "9.39.2",
+        "resolved": "https://registry.npmjs.org/eslint/-/eslint-9.39.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/eslint@9.39.2_jiti@2.6.1/node_modules/eslint"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      },
+      "typescript-eslint": {
+        "from": "typescript-eslint",
+        "version": "8.49.0",
+        "resolved": "https://registry.npmjs.org/typescript-eslint/-/typescript-eslint-8.49.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript-eslint@8.49.0_eslint@9.39.2_jiti@2.6.1__typescript@5.9.3/node_modules/typescript-eslint"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/shared-utils",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-utils",
+    "private": false,
+    "dependencies": {
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      }
+    },
+    "devDependencies": {
+      "@types/node": {
+        "from": "@types/node",
+        "version": "22.19.3",
+        "resolved": "https://registry.npmjs.org/@types/node/-/node-22.19.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+node@22.19.3/node_modules/@types/node"
+      }
+    }
+  },
+  {
+    "name": "@interdomestik/ui",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui",
+    "private": true,
+    "dependencies": {
+      "@radix-ui/react-avatar": {
+        "from": "@radix-ui/react-avatar",
+        "version": "1.1.11",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-avatar/-/react-avatar-1.1.11.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-avatar@1.1.11_@types+react-dom@19.2.3_@types+react@19.2.7__@types+react_cea228018a2b8cb6c2f671b3f24f4d51/node_modules/@radix-ui/react-avatar"
+      },
+      "@radix-ui/react-checkbox": {
+        "from": "@radix-ui/react-checkbox",
+        "version": "1.3.3",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-checkbox/-/react-checkbox-1.3.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-checkbox@1.3.3_@types+react-dom@19.2.3_@types+react@19.2.7__@types+reac_ccf89787226554b3d28cde83d8fb6c5c/node_modules/@radix-ui/react-checkbox"
+      },
+      "@radix-ui/react-dialog": {
+        "from": "@radix-ui/react-dialog",
+        "version": "1.1.15",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-dialog/-/react-dialog-1.1.15.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-dialog@1.1.15_@types+react-dom@19.2.3_@types+react@19.2.7__@types+react_66d7d575cbd072ce29e52afb89085e9d/node_modules/@radix-ui/react-dialog"
+      },
+      "@radix-ui/react-dropdown-menu": {
+        "from": "@radix-ui/react-dropdown-menu",
+        "version": "2.1.16",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-dropdown-menu/-/react-dropdown-menu-2.1.16.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-dropdown-menu@2.1.16_@types+react-dom@19.2.3_@types+react@19.2.7__@type_9ae99dbb567afdb87068bf276cfbb7a7/node_modules/@radix-ui/react-dropdown-menu"
+      },
+      "@radix-ui/react-icons": {
+        "from": "@radix-ui/react-icons",
+        "version": "1.3.2",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-icons/-/react-icons-1.3.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-icons@1.3.2_react@19.2.3/node_modules/@radix-ui/react-icons"
+      },
+      "@radix-ui/react-label": {
+        "from": "@radix-ui/react-label",
+        "version": "2.1.8",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-label/-/react-label-2.1.8.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-label@2.1.8_@types+react-dom@19.2.3_@types+react@19.2.7__@types+react@1_beedc72a2764f9caff1514ef9155b3f3/node_modules/@radix-ui/react-label"
+      },
+      "@radix-ui/react-navigation-menu": {
+        "from": "@radix-ui/react-navigation-menu",
+        "version": "1.2.14",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-navigation-menu/-/react-navigation-menu-1.2.14.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-navigation-menu@1.2.14_@types+react-dom@19.2.3_@types+react@19.2.7__@ty_93406ebbe0063878071b10a96a1b237d/node_modules/@radix-ui/react-navigation-menu"
+      },
+      "@radix-ui/react-popover": {
+        "from": "@radix-ui/react-popover",
+        "version": "1.1.15",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-popover/-/react-popover-1.1.15.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-popover@1.1.15_@types+react-dom@19.2.3_@types+react@19.2.7__@types+reac_aba36e289011c7efa5498b0a55e1bb01/node_modules/@radix-ui/react-popover"
+      },
+      "@radix-ui/react-progress": {
+        "from": "@radix-ui/react-progress",
+        "version": "1.1.8",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-progress/-/react-progress-1.1.8.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-progress@1.1.8_@types+react-dom@19.2.3_@types+react@19.2.7__@types+reac_5505d88703462eaf7471a0554a618a99/node_modules/@radix-ui/react-progress"
+      },
+      "@radix-ui/react-scroll-area": {
+        "from": "@radix-ui/react-scroll-area",
+        "version": "1.2.10",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-scroll-area/-/react-scroll-area-1.2.10.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-scroll-area@1.2.10_@types+react-dom@19.2.3_@types+react@19.2.7__@types+_83513ace0c6bc4c2954fbf1b3c88dbc4/node_modules/@radix-ui/react-scroll-area"
+      },
+      "@radix-ui/react-select": {
+        "from": "@radix-ui/react-select",
+        "version": "2.2.6",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-select/-/react-select-2.2.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-select@2.2.6_@types+react-dom@19.2.3_@types+react@19.2.7__@types+react@_b9a2ec348a0f89e707b9c4c0f4d8a06d/node_modules/@radix-ui/react-select"
+      },
+      "@radix-ui/react-separator": {
+        "from": "@radix-ui/react-separator",
+        "version": "1.1.8",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-separator/-/react-separator-1.1.8.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-separator@1.1.8_@types+react-dom@19.2.3_@types+react@19.2.7__@types+rea_07723945486fb141ecb1cfb908a4b7c8/node_modules/@radix-ui/react-separator"
+      },
+      "@radix-ui/react-slot": {
+        "from": "@radix-ui/react-slot",
+        "version": "1.2.4",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-slot/-/react-slot-1.2.4.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-slot@1.2.4_@types+react@19.2.7_react@19.2.3/node_modules/@radix-ui/react-slot"
+      },
+      "@radix-ui/react-tabs": {
+        "from": "@radix-ui/react-tabs",
+        "version": "1.1.13",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-tabs/-/react-tabs-1.1.13.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-tabs@1.1.13_@types+react-dom@19.2.3_@types+react@19.2.7__@types+react@1_dc861e27c2a200eb839e0d3bcc9fb0d9/node_modules/@radix-ui/react-tabs"
+      },
+      "@radix-ui/react-toast": {
+        "from": "@radix-ui/react-toast",
+        "version": "1.2.15",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-toast/-/react-toast-1.2.15.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-toast@1.2.15_@types+react-dom@19.2.3_@types+react@19.2.7__@types+react@_fdb6dcc56d4185e54b4beeb11b8df18d/node_modules/@radix-ui/react-toast"
+      },
+      "@radix-ui/react-tooltip": {
+        "from": "@radix-ui/react-tooltip",
+        "version": "1.2.8",
+        "resolved": "https://registry.npmjs.org/@radix-ui/react-tooltip/-/react-tooltip-1.2.8.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@radix-ui+react-tooltip@1.2.8_@types+react-dom@19.2.3_@types+react@19.2.7__@types+react_61903d443f318e235810cb4023b9ffb4/node_modules/@radix-ui/react-tooltip"
+      },
+      "class-variance-authority": {
+        "from": "class-variance-authority",
+        "version": "0.7.1",
+        "resolved": "https://registry.npmjs.org/class-variance-authority/-/class-variance-authority-0.7.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/class-variance-authority@0.7.1/node_modules/class-variance-authority"
+      },
+      "clsx": {
+        "from": "clsx",
+        "version": "2.1.1",
+        "resolved": "https://registry.npmjs.org/clsx/-/clsx-2.1.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/clsx@2.1.1/node_modules/clsx"
+      },
+      "lucide-react": {
+        "from": "lucide-react",
+        "version": "0.561.0",
+        "resolved": "https://registry.npmjs.org/lucide-react/-/lucide-react-0.561.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/lucide-react@0.561.0_react@19.2.3/node_modules/lucide-react"
+      },
+      "react": {
+        "from": "react",
+        "version": "19.2.3",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.2.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/react@19.2.3/node_modules/react"
+      },
+      "react-dom": {
+        "from": "react-dom",
+        "version": "19.2.3",
+        "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.2.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/react-dom@19.2.3_react@19.2.3/node_modules/react-dom"
+      },
+      "react-error-boundary": {
+        "from": "react-error-boundary",
+        "version": "6.0.1",
+        "resolved": "https://registry.npmjs.org/react-error-boundary/-/react-error-boundary-6.0.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/react-error-boundary@6.0.1_react-dom@19.2.3_react@19.2.3__react@19.2.3/node_modules/react-error-boundary"
+      },
+      "react-hook-form": {
+        "from": "react-hook-form",
+        "version": "7.68.0",
+        "resolved": "https://registry.npmjs.org/react-hook-form/-/react-hook-form-7.68.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/react-hook-form@7.68.0_react@19.2.3/node_modules/react-hook-form"
+      },
+      "tailwind-merge": {
+        "from": "tailwind-merge",
+        "version": "3.4.0",
+        "resolved": "https://registry.npmjs.org/tailwind-merge/-/tailwind-merge-3.4.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/tailwind-merge@3.4.0/node_modules/tailwind-merge"
+      }
+    },
+    "devDependencies": {
+      "@storybook/addon-essentials": {
+        "from": "@storybook/addon-essentials",
+        "version": "8.6.14",
+        "resolved": "https://registry.npmjs.org/@storybook/addon-essentials/-/addon-essentials-8.6.14.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@storybook+addon-essentials@8.6.14_@types+react@19.2.7_storybook@8.6.15_prettier@3.7.4_/node_modules/@storybook/addon-essentials"
+      },
+      "@storybook/addon-interactions": {
+        "from": "@storybook/addon-interactions",
+        "version": "8.6.14",
+        "resolved": "https://registry.npmjs.org/@storybook/addon-interactions/-/addon-interactions-8.6.14.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@storybook+addon-interactions@8.6.14_storybook@8.6.15_prettier@3.7.4_/node_modules/@storybook/addon-interactions"
+      },
+      "@storybook/addon-links": {
+        "from": "@storybook/addon-links",
+        "version": "8.6.15",
+        "resolved": "https://registry.npmjs.org/@storybook/addon-links/-/addon-links-8.6.15.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@storybook+addon-links@8.6.15_react@19.2.3_storybook@8.6.15_prettier@3.7.4_/node_modules/@storybook/addon-links"
+      },
+      "@storybook/blocks": {
+        "from": "@storybook/blocks",
+        "version": "8.6.14",
+        "resolved": "https://registry.npmjs.org/@storybook/blocks/-/blocks-8.6.14.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@storybook+blocks@8.6.14_react-dom@19.2.3_react@19.2.3__react@19.2.3_storybook@8.6.15_prettier@3.7.4_/node_modules/@storybook/blocks"
+      },
+      "@storybook/react": {
+        "from": "@storybook/react",
+        "version": "8.6.15",
+        "resolved": "https://registry.npmjs.org/@storybook/react/-/react-8.6.15.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@storybook+react@8.6.15_@storybook+test@8.6.15_storybook@8.6.15_prettier@3.7.4___react-_f25dc73af10917cf59f14ba75092b625/node_modules/@storybook/react"
+      },
+      "@storybook/react-vite": {
+        "from": "@storybook/react-vite",
+        "version": "8.6.15",
+        "resolved": "https://registry.npmjs.org/@storybook/react-vite/-/react-vite-8.6.15.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@storybook+react-vite@8.6.15_@storybook+test@8.6.15_storybook@8.6.15_prettier@3.7.4___r_8ae4eebb96cc24a8b91e7ee3487b61ba/node_modules/@storybook/react-vite"
+      },
+      "@storybook/test": {
+        "from": "@storybook/test",
+        "version": "8.6.15",
+        "resolved": "https://registry.npmjs.org/@storybook/test/-/test-8.6.15.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@storybook+test@8.6.15_storybook@8.6.15_prettier@3.7.4_/node_modules/@storybook/test"
+      },
+      "@types/node": {
+        "from": "@types/node",
+        "version": "22.19.2",
+        "resolved": "https://registry.npmjs.org/@types/node/-/node-22.19.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+node@22.19.2/node_modules/@types/node"
+      },
+      "@types/react": {
+        "from": "@types/react",
+        "version": "19.2.7",
+        "resolved": "https://registry.npmjs.org/@types/react/-/react-19.2.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+react@19.2.7/node_modules/@types/react"
+      },
+      "@types/react-dom": {
+        "from": "@types/react-dom",
+        "version": "19.2.3",
+        "resolved": "https://registry.npmjs.org/@types/react-dom/-/react-dom-19.2.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@types+react-dom@19.2.3_@types+react@19.2.7/node_modules/@types/react-dom"
+      },
+      "@typescript-eslint/eslint-plugin": {
+        "from": "@typescript-eslint/eslint-plugin",
+        "version": "8.49.0",
+        "resolved": "https://registry.npmjs.org/@typescript-eslint/eslint-plugin/-/eslint-plugin-8.49.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@typescript-eslint+eslint-plugin@8.49.0_@typescript-eslint+parser@8.49.0_eslint@9.39.2__97b7469dd95951db0aa206be3f5e1df5/node_modules/@typescript-eslint/eslint-plugin"
+      },
+      "@typescript-eslint/parser": {
+        "from": "@typescript-eslint/parser",
+        "version": "8.49.0",
+        "resolved": "https://registry.npmjs.org/@typescript-eslint/parser/-/parser-8.49.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@typescript-eslint+parser@8.49.0_eslint@9.39.2_jiti@2.6.1__typescript@5.9.3/node_modules/@typescript-eslint/parser"
+      },
+      "@vitejs/plugin-react": {
+        "from": "@vitejs/plugin-react",
+        "version": "5.1.2",
+        "resolved": "https://registry.npmjs.org/@vitejs/plugin-react/-/plugin-react-5.1.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@vitejs+plugin-react@5.1.2_vite@7.3.1_@types+node@22.19.2_jiti@2.6.1_terser@5.44.1_tsx@4.21.0_yaml@2.8.2_/node_modules/@vitejs/plugin-react"
+      },
+      "autoprefixer": {
+        "from": "autoprefixer",
+        "version": "10.4.22",
+        "resolved": "https://registry.npmjs.org/autoprefixer/-/autoprefixer-10.4.22.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/autoprefixer@10.4.22_postcss@8.5.6/node_modules/autoprefixer"
+      },
+      "eslint": {
+        "from": "eslint",
+        "version": "9.39.2",
+        "resolved": "https://registry.npmjs.org/eslint/-/eslint-9.39.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/eslint@9.39.2_jiti@2.6.1/node_modules/eslint"
+      },
+      "eslint-config-next": {
+        "from": "eslint-config-next",
+        "version": "16.0.10",
+        "resolved": "https://registry.npmjs.org/eslint-config-next/-/eslint-config-next-16.0.10.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/eslint-config-next@16.0.10_@typescript-eslint+parser@8.49.0_eslint@9.39.2_jiti@2.6.1__t_6fbb006c794e65cdf857133e51bfbf3f/node_modules/eslint-config-next"
+      },
+      "eslint-config-prettier": {
+        "from": "eslint-config-prettier",
+        "version": "9.1.2",
+        "resolved": "https://registry.npmjs.org/eslint-config-prettier/-/eslint-config-prettier-9.1.2.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/eslint-config-prettier@9.1.2_eslint@9.39.2_jiti@2.6.1_/node_modules/eslint-config-prettier"
+      },
+      "eslint-plugin-storybook": {
+        "from": "eslint-plugin-storybook",
+        "version": "10.1.11",
+        "resolved": "https://registry.npmjs.org/eslint-plugin-storybook/-/eslint-plugin-storybook-10.1.11.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/eslint-plugin-storybook@10.1.11_eslint@9.39.2_jiti@2.6.1__storybook@8.6.15_prettier@3.7.4__typescript@5.9.3/node_modules/eslint-plugin-storybook"
+      },
+      "postcss": {
+        "from": "postcss",
+        "version": "8.5.6",
+        "resolved": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/postcss@8.5.6/node_modules/postcss"
+      },
+      "storybook": {
+        "from": "storybook",
+        "version": "8.6.15",
+        "resolved": "https://registry.npmjs.org/storybook/-/storybook-8.6.15.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/storybook@8.6.15_prettier@3.7.4/node_modules/storybook"
+      },
+      "tailwindcss": {
+        "from": "tailwindcss",
+        "version": "3.4.19",
+        "resolved": "https://registry.npmjs.org/tailwindcss/-/tailwindcss-3.4.19.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/tailwindcss@3.4.19_tsx@4.21.0_yaml@2.8.2/node_modules/tailwindcss"
+      },
+      "tailwindcss-animate": {
+        "from": "tailwindcss-animate",
+        "version": "1.0.7",
+        "resolved": "https://registry.npmjs.org/tailwindcss-animate/-/tailwindcss-animate-1.0.7.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/tailwindcss-animate@1.0.7_tailwindcss@3.4.19_tsx@4.21.0_yaml@2.8.2_/node_modules/tailwindcss-animate"
+      },
+      "typescript": {
+        "from": "typescript",
+        "version": "5.9.3",
+        "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript"
+      },
+      "typescript-eslint": {
+        "from": "typescript-eslint",
+        "version": "8.49.0",
+        "resolved": "https://registry.npmjs.org/typescript-eslint/-/typescript-eslint-8.49.0.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/typescript-eslint@8.49.0_eslint@9.39.2_jiti@2.6.1__typescript@5.9.3/node_modules/typescript-eslint"
+      },
+      "vite": {
+        "from": "vite",
+        "version": "7.3.1",
+        "resolved": "https://registry.npmjs.org/vite/-/vite-7.3.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/vite@7.3.1_@types+node@22.19.2_jiti@2.6.1_terser@5.44.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite"
+      }
+    }
+  }
+]

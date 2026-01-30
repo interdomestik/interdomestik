@@ -1,7 +1,7 @@
 'use client';
 
 import type { MessageWithSender } from '@/actions/messages';
-import { isMember } from '@/lib/roles';
+import { isAgent as checkIsAgent, isStaffOrAdmin } from '@/lib/roles';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
 import { Button } from '@interdomestik/ui/components/button';
@@ -110,7 +110,8 @@ export function MessageThread({
             <div className="space-y-4">
               {dateMessages.map(message => {
                 const isOwn = message.senderId === currentUser.id;
-                const isAgentMessage = !isMember(message.sender.role);
+                const isAgentMessage =
+                  checkIsAgent(message.sender.role) || isStaffOrAdmin(message.sender.role);
                 const isPending = message.status === 'pending';
                 const isFailed = message.status === 'failed';
 
