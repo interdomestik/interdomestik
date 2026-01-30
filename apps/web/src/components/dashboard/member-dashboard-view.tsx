@@ -162,7 +162,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
       </div>
 
       {/* Diaspora Ribbon - Modernized with Glass & Gradient */}
-      <div className="relative group cursor-pointer">
+      <div className="relative group cursor-pointer" data-testid="diaspora-ribbon">
         <div className="absolute -inset-1 bg-gradient-to-r from-primary/40 to-blue-600/40 rounded-[2rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-1000 group-hover:duration-300"></div>
         <div className="relative bg-card/40 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-premium transition-all duration-500 hover:scale-[1.01] hover:border-primary/30">
           <div className="flex items-center gap-5">
@@ -185,6 +185,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
             asChild
             size="lg"
             className="rounded-2xl px-8 group/btn shadow-lg shadow-primary/20 transition-all active:scale-95"
+            data-testid="diaspora-ribbon-cta"
           >
             <Link href="/member/diaspora" className="flex items-center gap-3">
               <span className="font-bold">{t('diaspora_ribbon.cta')}</span>

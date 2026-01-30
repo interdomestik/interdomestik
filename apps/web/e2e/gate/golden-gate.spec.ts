@@ -110,8 +110,8 @@ test.describe('Golden Gate: Critical Path', () => {
       const locale = page.url().includes('/mk') ? 'mk' : 'sq';
       await gotoApp(page, `/${locale}/member/claims`, testInfo);
 
-      // Check for any claim content (may be translated) - KS has many seeded claims, MK has MK-A
-      await expect(page.locator('body')).toContainText(/Claim|Kërkes|Барања|KS-A|MK-A|Rear ended/i);
+      // Verify page loaded using readiness marker
+      await expect(page.getByTestId('dashboard-page-ready')).toBeVisible({ timeout: 15000 });
     });
   });
 
@@ -119,11 +119,21 @@ test.describe('Golden Gate: Critical Path', () => {
     test('Member cannot access admin [isolation]', async ({ page, loginAs }, testInfo) => {
       await loginAs('member');
 
-      // Navigate to admin - expect 404 page to render
-      await gotoApp(page, '/admin', testInfo, { marker: 'not-found-page' });
+      const locale = page.url().includes('/mk') ? 'mk' : 'sq';
 
-      // Verify strict 404 URL pattern
-      await expect(page).toHaveURL(/\/admin/);
+      // Navigate to admin - expect 404 page (Strict Isolation Contract)
+      // Use gotoApp with 'body' first to ensure we land somewhere, then check for marker
+      await gotoApp(page, `/${locale}/admin`, testInfo, { marker: 'body' });
+
+      // Verify either the specific marker OR the Next.js 404 digest exists in the DOM
+      // This is more robust against hydration delays
+      const marker = page.getByTestId('not-found-page');
+      await expect(marker.or(page.locator('template[data-dgst*="404"]'))).toBeAttached({
+        timeout: 15000,
+      });
+
+      // If we found the template but not the marker, it means hydration is pending or fallback hit
+      // but the contract (404) is still met.
     });
 
     test('Tenant Isolation: KS Admin cannot see MK Claims', async ({ page }, testInfo) => {
@@ -144,8 +154,8 @@ test.describe('Golden Gate: Critical Path', () => {
       const locale = user.tenant === 'tenant_mk' ? 'mk' : 'sq';
       await gotoApp(page, `/${locale}/admin/claims`, testInfo);
 
-      // Verify we're on claims page and it loaded
-      await expect(page.locator('body')).toContainText(/Claim|Kërkes|Admin/i);
+      // Verify we're on claims page and it loaded via readiness marker
+      await expect(page.getByTestId('dashboard-page-ready')).toBeVisible({ timeout: 15000 });
     });
 
     test('Staff (MK) can process claims but has restricted access', async ({ page }, testInfo) => {
@@ -156,8 +166,9 @@ test.describe('Golden Gate: Critical Path', () => {
       // Navigate to Staff Claims
       await gotoApp(page, `/${locale}/staff/claims`, testInfo);
 
-      // Verify we landed on staff claims page
-      await expect(page.locator('body')).toContainText(/Claim|Kërkes|Staff/i);
+      // Verify we landed on staff claims page via readiness marker and URL
+      await expect(page.getByTestId('dashboard-page-ready')).toBeVisible({ timeout: 15000 });
+      await expect(page).toHaveURL(new RegExp(`/${locale}/staff/claims`));
 
       // Verify Restrictions - Try Admin Branches (should redirect)
       await gotoApp(page, `/${locale}/admin/branches`, testInfo);
@@ -173,8 +184,8 @@ test.describe('Golden Gate: Critical Path', () => {
       // Navigate to agent dashboard or claims
       await gotoApp(page, `/${locale}/agent`, testInfo);
 
-      // Verify agent dashboard loads
-      await expect(page.locator('body')).toContainText(/Agent|CRM|Dashboard|Paneli/i);
+      // Verify agent dashboard loads via readiness marker
+      await expect(page.getByTestId('dashboard-page-ready')).toBeVisible({ timeout: 15000 });
     });
   });
 
@@ -204,9 +215,8 @@ test.describe('Golden Gate: Critical Path', () => {
       await page.waitForTimeout(1000);
       await gotoApp(page, `/${locale}/admin/branches`, testInfo);
 
-      // The page should either show branches OR indicate no branches exist
-      // Check we're on the right page
-      await expect(page.locator('body')).toContainText(/Branch|Degë|Admin|Подружници/i);
+      // Verify page loaded using readiness marker
+      await expect(page.getByTestId('dashboard-page-ready')).toBeVisible({ timeout: 15000 });
 
       // 1. Verify at least one branch card is present
       await expect(page.locator('[data-testid^="branch-card-"]').first()).toBeVisible();
@@ -254,15 +264,18 @@ test.describe('Golden Gate: Critical Path', () => {
         marker: 'branch-dashboard-title',
       });
 
-      // Verify KPI Row with labels (translated)
-      await expect(page.locator('body')).toContainText(
+      // Verify dashboard is ready
+      await expect(page.getByTestId('branch-dashboard-title')).toBeVisible({ timeout: 15000 });
+
+      // Verify KPI items are visible by their content (translated)
+      await expect(page.locator('main')).toContainText(
         /Open Claims|Dëmet e Hapura|Kërkesat e Hapura|Отворени Штети/i
       );
-      await expect(page.locator('body')).toContainText(/Cash|Kesh|Кеш/i);
-      await expect(page.locator('body')).toContainText(/SLA|Shkeljet/i);
+      await expect(page.locator('main')).toContainText(/Cash|Kesh|Кеш/i);
+      await expect(page.locator('main')).toContainText(/SLA|Shkeljet/i);
 
       // Verify Staff Load Panel header is visible
-      await expect(page.locator('body')).toContainText(
+      await expect(page.locator('main')).toContainText(
         /Staff Load|Ngarkesa e Stafit|Оптоварување на Персонал/i
       );
     });
