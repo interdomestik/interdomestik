@@ -1,75 +1,72 @@
+/**
+ * Seeded Data Verification Tests
+ *
+ * These tests verify that seeded test data is present and accessible.
+ * They depend on the seed script having run successfully.
+ *
+ * SKIP in CI: These tests are fragile as they depend on exact seeded data
+ * which can change over time. They serve as documentation of what seed data
+ * should produce.
+ */
+
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
-import { gotoApp } from './utils/navigation';
 
 const runSeededDataTests = process.env.RUN_SEEDED_DATA_TESTS === '1';
 
 test.describe('Seeded Data Verification', () => {
   test.skip(!runSeededDataTests, 'Requires seeded data. Set RUN_SEEDED_DATA_TESTS=1 to enable.');
+  test('should display all seeded claims on dashboard', async ({ authenticatedPage }) => {
+    // Go to dashboard claims list
+    await authenticatedPage.goto(routes.memberClaims('en'));
 
-  test('should display correct seeded claims for tenant', async ({
-    authenticatedPage,
-  }, testInfo) => {
-    // Navigate to dashboard claims list
-    await gotoApp(authenticatedPage, routes.memberClaims(testInfo), testInfo, {
-      marker: 'claims-page-ready',
-    });
+    // Wait for list to load
+    await authenticatedPage.waitForSelector('text=Car Accident', { timeout: 10000 });
 
-    // Determine expected claims based on tenant (project name)
-    const isMk = testInfo.project.name.includes('mk');
+    // Verify all seeded claims are visible
+    const claims = [
+      'Car Accident - Rear Ended',
+      'Flight Delay to Munich',
+      'Defective Laptop',
+      'Water Damage in Apartment',
+      'Rejected Insurance Claim',
+    ];
 
-    // Expectations derived from packages/database/src/seed-golden.ts
-    const expectedClaims = isMk
-      ? [
-          { title: 'Rear ended in Skopje (Baseline)', status: 'submitted' },
-          { title: 'MK Deterministic Claim', status: 'submitted' },
-        ]
-      : [
-          { title: 'KS-A SUBMITTED Claim 1', status: 'submitted' },
-          { title: 'KS-A VERIFICATION Claim 13', status: 'verification' },
-        ];
-
-    // Wait for at least one row
-    await expect(authenticatedPage.getByTestId('claim-row').first()).toBeVisible({
-      timeout: 10000,
-    });
-
-    for (const claim of expectedClaims) {
-      const row = authenticatedPage.getByTestId('claim-row').filter({ hasText: claim.title });
-      await expect(row).toBeVisible();
-      // Check stable data attribute instead of translated text
-      await expect(row.getByTestId('claim-status-badge')).toHaveAttribute(
-        'data-status',
-        claim.status
-      );
+    for (const title of claims) {
+      await expect(authenticatedPage.getByText(title)).toBeVisible();
     }
   });
 
-  test('should view claim details', async ({ authenticatedPage }, testInfo) => {
-    await gotoApp(authenticatedPage, routes.memberClaims(testInfo), testInfo, {
-      marker: 'claims-page-ready',
-    });
+  test('should show correct status for specific claims', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto(routes.memberClaims('en'));
+    await authenticatedPage.waitForSelector('text=Car Accident');
 
-    const isMk = testInfo.project.name.includes('mk');
-    // Pick a claim that definitely exists and has details
-    const targetTitle = isMk ? 'Rear ended in Skopje (Baseline)' : 'KS-A SUBMITTED Claim 1';
+    // Helper to find row with text and check badge
+    const checkStatus = async (title: string, status: string) => {
+      const card = authenticatedPage.locator(`div:has-text("${title}")`).first();
+      await expect(card).toContainText(status, { ignoreCase: true });
+    };
 
-    // Click on the claim
-    const row = authenticatedPage.getByTestId('claim-row').filter({ hasText: targetTitle });
+    await checkStatus('Car Accident - Rear Ended', 'Submitted');
+    await checkStatus('Flight Delay to Munich', 'Verification');
+    await checkStatus('Rejected Insurance Claim', 'Rejected');
+  });
 
-    await expect(row).toBeVisible();
+  test('should view claim details', async ({ authenticatedPage }) => {
+    await authenticatedPage.goto(routes.memberClaims('en'));
 
-    const link = row.getByRole('link').first();
+    // Click on a claim
+    // Navigate directly using href for stability
+    const link = authenticatedPage
+      .locator('tr', { hasText: 'Flight Delay to Munich' })
+      .getByRole('link');
     const href = await link.getAttribute('href');
-
-    if (href) {
-      await gotoApp(authenticatedPage, href, testInfo, { marker: 'claim-tracking-title' });
-    } else {
-      throw new Error('Claim link not found');
-    }
+    await authenticatedPage.goto(href!);
+    await authenticatedPage.waitForLoadState('domcontentloaded');
 
     // Verify detail content
-    await expect(authenticatedPage.getByTestId('claim-tracking-title')).toContainText(targetTitle);
-    // Note: Amount check skipped due to locale formatting variance (1,200.00 vs 1.200,00)
+    await expect(authenticatedPage.locator('h1, h2')).toContainText('Flight Delay to Munich');
+    await expect(authenticatedPage.getByText('Austrian Airlines')).toBeVisible();
+    await expect(authenticatedPage.getByText('600.00')).toBeVisible(); // Amount
   });
 });

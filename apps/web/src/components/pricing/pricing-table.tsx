@@ -2,7 +2,7 @@
 
 import { PADDLE_PRICES } from '@/config/paddle';
 import { getPaddleInstance } from '@interdomestik/domain-membership-billing/paddle';
-import { Badge, Button } from '@interdomestik/ui';
+import { Badge, Button, buttonVariants, cn } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -227,21 +227,42 @@ export function PricingTable({ userId, email }: PricingTableProps) {
               ))}
             </ul>
 
-            <Button
-              size="xl"
-              data-testid={`plan-cta-${plan.id}`}
-              className={`w-full h-16 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 ${
-                plan.popular
-                  ? 'bg-primary hover:bg-primary/90 shadow-primary/30 border-0'
-                  : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
-              }`}
-              variant={plan.popular ? 'default' : 'outline'}
-              disabled={loading === plan.priceId}
-              onClick={() => handleAction(plan.id, plan.priceId)}
-            >
-              {loading === plan.priceId ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-              {t('cta')}
-            </Button>
+            {userId ? (
+              <Button
+                size="xl"
+                data-testid={`plan-cta-${plan.id}`}
+                className={`w-full h-16 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 ${
+                  plan.popular
+                    ? 'bg-primary hover:bg-primary/90 shadow-primary/30 border-0'
+                    : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
+                }`}
+                variant={plan.popular ? 'default' : 'outline'}
+                disabled={loading === plan.priceId}
+                onClick={() => handleAction(plan.id, plan.priceId)}
+              >
+                {loading === plan.priceId ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : null}
+                {t('cta')}
+              </Button>
+            ) : (
+              <Link
+                href={`/register?plan=${plan.id}`}
+                data-testid={`plan-cta-${plan.id}`}
+                className={cn(
+                  buttonVariants({
+                    variant: plan.popular ? 'default' : 'outline',
+                    size: 'xl',
+                  }),
+                  'w-full h-16 text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 flex items-center justify-center',
+                  plan.popular
+                    ? 'bg-primary hover:bg-primary/90 shadow-primary/30 border-0'
+                    : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
+                )}
+              >
+                {t('cta')}
+              </Link>
+            )}
           </div>
         ))}
       </div>

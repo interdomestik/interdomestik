@@ -1,11 +1,8 @@
 import { expect, test } from '../fixtures/auth.fixture';
-import { routes } from '../routes';
-import { gotoApp } from '../utils/navigation';
 
 test.describe('@quarantine Claims Dashboard Visual Regression', () => {
-  // Skipping visual tests until snapshots are standardized/updated in CI environment
-  test.skip(true, 'Visual snapshots require update after migration');
-
+  // TODO: Re-enable when visual snapshots are standardized in Docker
+  // test.skip(true, 'Visual tests require consistent environment');
   test.beforeEach(({ page }) => {
     page.on('console', msg => {
       const text = msg.text();
@@ -22,12 +19,12 @@ test.describe('@quarantine Claims Dashboard Visual Regression', () => {
   });
 
   // 1. Standard Member View
-  test('member views claims dashboard', async ({ page, loginAs }, testInfo) => {
+  test('member views claims dashboard', async ({ page, loginAs }) => {
     // Login as member
     await loginAs('member');
 
     // Navigate to claims
-    await gotoApp(page, routes.memberClaims(testInfo), testInfo, { marker: 'claims-page-ready' });
+    await page.goto('/member/claims');
 
     // Wait for content to load
     await expect(page.getByTestId('page-title')).toBeVisible();
@@ -41,12 +38,12 @@ test.describe('@quarantine Claims Dashboard Visual Regression', () => {
   });
 
   // 2. Staff View
-  test('staff views claims dashboard', async ({ page, loginAs }, testInfo) => {
+  test('staff views claims dashboard', async ({ page, loginAs }) => {
     // Login as staff
     await loginAs('staff');
 
     // Navigate to staff claims
-    await gotoApp(page, routes.staffClaims(testInfo), testInfo, { marker: 'page-title' });
+    await page.goto('/staff/claims');
 
     // Wait for content to load
     await expect(page.getByTestId('page-title')).toBeVisible();

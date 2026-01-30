@@ -26,6 +26,22 @@
       "shareTitle": "Join Asistenca",
       "shareText": "Get protection for your family with Asistenca membership!",
       "rewardInfo": "You earn €5 when your friend activates their membership"
+    },
+    "diaspora_ribbon": {
+      "text": "🇩🇪🇨🇭 For Diaspora: Help while abroad + flight/travel guidance + Green Card",
+      "cta": "View package"
+    },
+    "home_grid": {
+      "cta_incident": "ACCIDENT? WHAT NOW?",
+      "cta_report": "REPORT DAMAGE (60 sec)",
+      "cta_green_card": "GREEN CARD – Abroad (Diaspora)",
+      "cta_benefits": "10 MEMBERSHIP BENEFITS"
+    },
+    "categories": {
+      "property_damage": "Property Damage",
+      "health_safety": "Health & Safety",
+      "my_documents": "My Documents",
+      "contact_center": "Contact Center"
     }
   }
 }

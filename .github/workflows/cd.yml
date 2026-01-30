@@ -1,0 +1,106 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_APP_URL=https://app.interdomestik.com
+
+  deploy-staging:
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.interdomestik.com
+    steps:
+      - name: Deploy to Staging
+        run: |
+          echo "🚀 Deploying image ${{ needs.build-push.outputs.image_tag }} to Staging..."
+          # Example: ssh user@staging "docker pull ... && docker compose up -d"
+          # or: kubectl set image deployment/web web=...
+
+  e2e-staging:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Run Smoke Tests against Staging
+        env:
+          BASE_URL: https://staging.interdomestik.com
+        run: |
+          echo "🧪 Running smoke tests against $BASE_URL..."
+          # pnpm test:e2e:smoke
+
+  deploy-production:
+    needs: e2e-staging
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://app.interdomestik.com
+    steps:
+      - name: Deploy to Production
+        run: |
+          echo "🚀 Deploying image ${{ needs.build-push.outputs.image_tag }} to Production..."
+          # Actual deployment command here
+
+  verify-production:
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health Check
+        run: |
+          echo "🏥 Checking health of https://app.interdomestik.com..."
+          # curl -f https://app.interdomestik.com/api/health

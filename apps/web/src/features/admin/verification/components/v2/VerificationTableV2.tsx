@@ -41,10 +41,6 @@ export function VerificationTableV2({
   const rows = data.map(req => ({
     id: req.id,
     testId: 'cash-verification-row',
-    dataAttributes: {
-      'data-lead-name': `${req.firstName} ${req.lastName}`,
-      'data-email': req.email,
-    },
     onClick: () => onViewDetails(req.id),
     cells: [
       <div key={`${req.id}-status`} className="py-3 pl-4">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import {
@@ -52,30 +52,24 @@ interface AgentClaimsProPageProps {
   };
 }
 
-export function AgentClaimsProPage({ claims, currentUser }: Readonly<AgentClaimsProPageProps>) {
+export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   // URL Selection for Drawer
-  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get('selected'));
+  const selectedId = searchParams.get('selected');
   // Drawer View Mode
   const [viewMode, setViewMode] = useState<'details' | 'messaging'>('details');
 
-  useEffect(() => {
-    setSelectedId(searchParams.get('selected'));
-  }, [searchParams]);
-
   const handleSelect = (id: string) => {
     setViewMode('details'); // Reset view on new selection
-    setSelectedId(id);
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams);
     params.set('selected', id);
     router.replace(`?${params.toString()}`);
   };
 
   const handleClose = () => {
-    setSelectedId(null);
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams);
     params.delete('selected');
     router.replace(`?${params.toString()}`);
   };
@@ -164,7 +158,7 @@ export function AgentClaimsProPage({ claims, currentUser }: Readonly<AgentClaims
     testId: 'claim-row',
   }));
 
-  const selectedClaim = selectedId ? claims.find(c => c.id === selectedId) : undefined;
+  const selectedClaim = claims.find(c => c.id === selectedId);
 
   // Actions Logic
   const actions = useMemo(() => {
@@ -174,65 +168,18 @@ export function AgentClaimsProPage({ claims, currentUser }: Readonly<AgentClaims
     const available = getClaimActions(selectedClaim, k => k); // Mock t function
 
     return {
-      secondary: available.secondary.map(action => {
-        let onClick: (() => void) | undefined;
-        if (action.id === 'message') onClick = () => setViewMode('messaging');
-        else if (action.id === 'upload') onClick = () => console.log('Upload clicked');
-
-        return {
-          ...action,
-          testId: `action-${action.id}`,
-          onClick: onClick ?? (() => {}),
-        };
-      }),
+      secondary: available.secondary.map(action => ({
+        ...action,
+        testId: `action-${action.id}`,
+        onClick:
+          action.id === 'message'
+            ? () => setViewMode('messaging')
+            : action.id === 'upload'
+              ? () => console.log('Upload clicked')
+              : () => {},
+      })),
     };
   }, [selectedClaim]);
-
-  let drawerInner: React.ReactNode = null;
-  if (selectedId) {
-    if (!selectedClaim) {
-      drawerInner = (
-        <div className="p-4 bg-muted/50 rounded-lg" data-testid="claim-details">
-          <h3 className="font-medium mb-2">Details</h3>
-          <p className="text-sm text-muted-foreground">
-            Selected claim not found. Try selecting another claim.
-          </p>
-        </div>
-      );
-    } else if (viewMode === 'details') {
-      drawerInner = (
-        <div className="space-y-6" data-testid="claim-details">
-          <div className="p-4 bg-muted/50 rounded-lg">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <h3 className="font-medium">Details (Read Only)</h3>
-            </div>
-            <p className="text-sm">Status: {selectedClaim.status}</p>
-            <p className="text-sm">Branch: {selectedClaim.branch?.name || 'N/A'}</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Timeline and Documents are coming soon in next update.
-            </p>
-          </div>
-        </div>
-      );
-    } else {
-      drawerInner = (
-        <div className="h-full flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium">Messages</h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setViewMode('details')}
-              data-testid="close-messaging-view"
-            >
-              Close Messaging
-            </Button>
-          </div>
-          <MessagingPanel claimId={selectedClaim.id} currentUser={currentUser} isAgent={true} />
-        </div>
-      );
-    }
-  }
 
   // Drawer Footer (Only show when in details mode?)
   // Actually OpsActionBar usually lives in the body or footer.
@@ -281,7 +228,7 @@ export function AgentClaimsProPage({ claims, currentUser }: Readonly<AgentClaims
 
       {/* Drawer */}
       <OpsDrawer
-        open={!!selectedId}
+        open={!!selectedClaim}
         onOpenChange={open => !open && handleClose()}
         title={selectedClaim ? `Claim ${selectedClaim.claimNumber}` : ''}
         footer={
@@ -292,7 +239,37 @@ export function AgentClaimsProPage({ claims, currentUser }: Readonly<AgentClaims
       >
         {selectedClaim && (
           <div className="space-y-6" data-testid="ops-drawer-content">
-            {drawerInner}
+            {viewMode === 'details' ? (
+              <div className="space-y-6">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <h3 className="font-medium mb-2">Details (Read Only)</h3>
+                  <p className="text-sm">Status: {selectedClaim.status}</p>
+                  <p className="text-sm">Branch: {selectedClaim.branch?.name || 'N/A'}</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Timeline and Documents are coming soon in next update.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium">Messages</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewMode('details')}
+                    data-testid="close-messaging-view"
+                  >
+                    Close Messaging
+                  </Button>
+                </div>
+                <MessagingPanel
+                  claimId={selectedClaim.id}
+                  currentUser={currentUser}
+                  isAgent={true}
+                />
+              </div>
+            )}
           </div>
         )}
       </OpsDrawer>

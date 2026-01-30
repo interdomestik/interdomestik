@@ -1,0 +1,8 @@
+# Gitleaks ignore file
+# This file contains false positives for secret scanning
+
+# Test secrets used in CI configuration (not real credentials)
+# Commit: 8ddf6ca51d61d056f0669e0c609d3c7c2ee64ec1
+# File: .github/workflows/ci.yml
+# Line: PADDLE_WEBHOOK_SECRET_KEY: test_secret
+8ddf6ca51d61d056f0669e0c609d3c7c2ee64ec1:PADDLE_WEBHOOK_SECRET_KEY:test_secret

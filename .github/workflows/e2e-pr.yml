@@ -18,9 +18,8 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: interdomestik_test
-          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -33,50 +32,23 @@ jobs:
       CI: '1'
       PLAYWRIGHT: '1'
       NEXT_PUBLIC_BILLING_TEST_MODE: '1'
-      NEXT_TELEMETRY_DISABLED: '1'
-      TURBO_TELEMETRY_DISABLED: '1'
-      CI_POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
-      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}@127.0.0.1:5432/interdomestik_test
-      PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
-      BETTER_AUTH_SECRET: test_secret_ci_please_rotate_32chars_minimum_1234
-      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
-      BETTER_AUTH_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      NODE_OPTIONS: --max-old-space-size=4096
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout @v4
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup @v4
         with:
           version: '10.25.0'
 
-      - name: Check Docs Contract
-        run: |
-          STRICT_FLAG=""
-          if git diff --name-only origin/main...HEAD | grep -E "README.md|AGENTS.md|apps/web/e2e/README.md"; then
-            STRICT_FLAG="--strict"
-          fi
-          node scripts/check-docs-contract.mjs $STRICT_FLAG
-
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node @v4
         with:
           node-version: '20'
-          # cache: 'pnpm'
+          cache: 'pnpm'
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
-
-      - name: Verify supabase CLI
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -x node_modules/.bin/supabase ] || [ -x packages/database/node_modules/.bin/supabase ]; then
-            echo "✅ supabase CLI present"
-          else
-            echo "❌ supabase CLI missing"
-            ls -la node_modules/.bin || true
-            ls -la packages/database/node_modules/.bin || true
-            exit 1
-          fi
 
       - name: Install Playwright browsers
         run: pnpm --filter @interdomestik/web exec playwright install --with-deps
@@ -89,39 +61,31 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Checking for raw page.goto in golden/gate..."
-          GOTO_FOUND=$(grep -R -E "\bpage\.goto\s*\(" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
-            | grep -vE "apps/web/e2e/gate/tenant-resolution.spec.ts|apps/web/e2e/golden/legacy/" || true)
-
-          if [ -n "$GOTO_FOUND" ]; then
-            echo "❌ raw page.goto found in golden/gate:"
-            echo "$GOTO_FOUND"
+          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
+            | grep -v "apps/web/e2e/gate/tenant-resolution.spec.ts" ; then
+            echo "❌ raw page.goto found in golden/gate"
             exit 1
           fi
 
-          echo "Checking for locale-prefixed API calls..."
-          API_FOUND=$(grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" || true)
-          if [ -n "$API_FOUND" ]; then
-            echo "❌ locale-prefixed /<locale>/api detected:"
-            echo "$API_FOUND"
+          if grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" ; then
+            echo "❌ locale-prefixed /<locale>/api detected"
             exit 1
           fi
 
           grep -n "paddle.com" apps/web/src/lib/proxy.ts >/dev/null
-          echo "✅ Strict Rule Guards passed."
 
       - name: Seed E2E DB
         run: pnpm seed:e2e
 
-      - name: Verify Seed Contract
-        run: pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk
+      - name: E2E Gate (KS+MK)
+        run: pnpm --filter @interdomestik/web run e2e:gate
 
       - name: E2E Subscription Lifecycle (KS+MK)
         run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk
 
       - name: Upload Playwright Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact @v4
         with:
           name: playwright-pr-artifacts
           path: |

@@ -35,8 +35,16 @@ export function CreateBranchDialog() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  const form = useForm<z.infer<typeof createBranchSchema>>({
-    resolver: zodResolver(createBranchSchema),
+  // Explicit type to bridge Zod version mismatch (v3 in domain vs v4 in web)
+  type CreateBranchValues = {
+    name: string;
+    code?: string | null;
+    tenantId?: string;
+  };
+
+  const form = useForm<CreateBranchValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createBranchSchema as any),
     defaultValues: {
       name: '',
       code: '',
@@ -45,7 +53,7 @@ export function CreateBranchDialog() {
 
   const isSubmitting = form.formState.isSubmitting;
 
-  async function onSubmit(values: z.infer<typeof createBranchSchema>) {
+  async function onSubmit(values: CreateBranchValues) {
     try {
       const result = await createBranch(values);
 
@@ -70,9 +78,9 @@ export function CreateBranchDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen} modal={false}>
       <DialogTrigger asChild>
-        <Button data-testid="create-branch-trigger">
+        <Button data-testid="create-branch-button">
           <Plus className="mr-2 h-4 w-4" />
           {t('create_branch')}
         </Button>
@@ -95,7 +103,7 @@ export function CreateBranchDialog() {
                     <Input
                       placeholder={t('placeholder_name')}
                       {...field}
-                      data-testid="branch-input-name"
+                      data-testid="branch-name-input"
                     />
                   </FormControl>
                   <FormMessage />
@@ -114,7 +122,7 @@ export function CreateBranchDialog() {
                       placeholder={t('placeholder_code')}
                       {...field}
                       value={field.value || ''}
-                      data-testid="branch-input-code"
+                      data-testid="branch-code-input"
                     />
                   </FormControl>
                   <FormMessage />
@@ -126,7 +134,7 @@ export function CreateBranchDialog() {
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 {t('cancel')}
               </Button>
-              <Button type="submit" disabled={isSubmitting} data-testid="branch-submit">
+              <Button type="submit" disabled={isSubmitting} data-testid="branch-submit-button">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('submit')}
               </Button>

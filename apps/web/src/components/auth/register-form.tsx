@@ -102,10 +102,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
       <CardContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
           {error && (
-            <div
-              className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md"
-              data-testid="auth-error"
-            >
+            <div className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md">
               {error}
             </div>
           )}
@@ -122,7 +119,6 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
               className="bg-background/50"
               suppressHydrationWarning
               disabled={loading}
-              data-testid="registration-fullname"
             />
           </div>
           <div className="space-y-2">
@@ -137,7 +133,6 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
               className="bg-background/50"
               suppressHydrationWarning
               disabled={loading}
-              data-testid="registration-email"
             />
           </div>
           <div className="space-y-2">
@@ -151,7 +146,6 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
               className="bg-background/50"
               suppressHydrationWarning
               disabled={loading}
-              data-testid="registration-password"
             />
           </div>
           <div className="space-y-2">
@@ -165,17 +159,10 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
               className="bg-background/50"
               suppressHydrationWarning
               disabled={loading}
-              data-testid="registration-confirm-password"
             />
           </div>
           <div className="flex items-start gap-2">
-            <Checkbox
-              id="terms"
-              required
-              className="mt-0.5"
-              disabled={loading}
-              data-testid="registration-terms"
-            />
+            <Checkbox id="terms" required className="mt-0.5" disabled={loading} />
             <Label
               htmlFor="terms"
               className="text-sm font-normal leading-snug cursor-pointer select-none text-muted-foreground"
@@ -185,13 +172,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
           </div>
 
           <div className="pt-2">
-            <Button
-              type="submit"
-              className="w-full font-semibold"
-              size="lg"
-              disabled={loading}
-              data-testid="registration-submit"
-            >
+            <Button type="submit" className="w-full font-semibold" size="lg" disabled={loading}>
               {loading ? (
                 <div className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

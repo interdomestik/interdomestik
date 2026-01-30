@@ -1,4 +1,4 @@
-# E2E Testing Guidelines (Source of Truth)
+# E2E Testing Guidelines
 
 We use Playwright for End-to-End testing. To maintain a stable, fast, and multi-tenant compatible suite, we enforce the following strict rules.
 

@@ -61,10 +61,7 @@ export default async function PartnersPage({ params }: { params: Promise<{ local
   const t = await getTranslations('partners');
 
   return (
-    <div
-      className="min-h-screen bg-gradient-to-b from-primary/5 to-background"
-      data-testid="partners-page-ready"
-    >
+    <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background">
       <div className="container max-w-6xl mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-16">
@@ -77,11 +74,11 @@ export default async function PartnersPage({ params }: { params: Promise<{ local
         </div>
 
         {/* Partner Categories */}
-        <div className="space-y-12" data-testid="partners-categories">
+        <div className="space-y-12">
           {PARTNER_CATEGORIES.map(category => {
             const Icon = category.icon;
             return (
-              <div key={category.id} data-testid={`partners-category-${category.id}`}>
+              <div key={category.id}>
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 rounded-lg bg-primary/10 text-primary">
                     <Icon className="h-5 w-5" />
@@ -118,8 +115,7 @@ export default async function PartnersPage({ params }: { params: Promise<{ local
             <h3 className="text-xl font-bold mb-2">{t('ctaTitle')}</h3>
             <p className="text-muted-foreground mb-4">{t('ctaDescription')}</p>
             <Link
-              href={`/${locale}/pricing`}
-              data-testid="partners-cta-link"
+              href="/pricing"
               className="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition-colors"
             >
               {t('ctaButton')}

@@ -1,7 +1,6 @@
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 import { gotoApp } from '../utils/navigation';
-import { routes } from '../routes';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -119,36 +118,12 @@ test.describe('Golden Gate: Critical Path', () => {
   test.describe('2. RBAC Isolation [smoke]', () => {
     test('Member cannot access admin [isolation]', async ({ page, loginAs }, testInfo) => {
       await loginAs('member');
-      const locale = page.url().includes('/mk') ? 'mk' : 'sq';
 
-      // Verify NO access to admin - should redirect or show 404
-      await gotoApp(page, `/${locale}/admin`, testInfo, { marker: 'body' });
+      // Navigate to admin - expect 404 page to render
+      await gotoApp(page, '/admin', testInfo, { marker: 'not-found-page' });
 
-      // Use pathname to avoid matching query params like ?callbackURL=/admin
-      const pathname = new URL(page.url()).pathname;
-      const isStillOnAdmin = pathname.includes('/admin');
-
-      if (isStillOnAdmin) {
-        // If URL implies we are on admin, it MUST be a 404 page or have not-found data-testid
-
-        // Debug hidden body
-        const bodyVisible = await page.locator('body').isVisible();
-        if (!bodyVisible) {
-          console.log('[Isolation Debug] Body is hidden - assuming access is blocked (Blank Page)');
-          // If body is hidden, we can't check for 404 text, but we verify they don't see Admin content
-          return;
-        }
-
-        const headingMatch = page.getByRole('heading', {
-          name: /404|Not Found|Kërkesa nuk u gjet|Faqja nuk u gjet/i,
-        });
-        const testIdMatch = page.getByTestId('not-found-page');
-
-        await expect(headingMatch.or(testIdMatch).first()).toBeVisible({ timeout: 5000 });
-      } else {
-        // If redirected away from admin, it's valid isolation
-        expect(pathname).not.toContain('/admin');
-      }
+      // Verify strict 404 URL pattern
+      await expect(page).toHaveURL(/\/admin/);
     });
 
     test('Tenant Isolation: KS Admin cannot see MK Claims', async ({ page }, testInfo) => {

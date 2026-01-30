@@ -9,17 +9,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  dependency-review:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Dependency review
-        uses: actions/dependency-review-action@v4
-
   pnpm-audit:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest

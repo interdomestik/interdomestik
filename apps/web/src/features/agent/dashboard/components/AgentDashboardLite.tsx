@@ -1,5 +1,5 @@
 import { Link } from '@/i18n/routing';
-import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { ArrowRight, ClipboardList, TrendingUp, Users } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
@@ -32,12 +32,14 @@ export async function AgentDashboardLite({
             })}
           </p>
         </div>
-        <Link
-          href="/agent/workspace"
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed hover:bg-slate-100 text-slate-900 h-10 px-4 py-2 gap-2 text-muted-foreground hover:text-foreground"
-          data-testid="agent-switch-pro"
-        >
-          Pro Workspace <ArrowRight className="h-4 w-4" />
+        <Link href="/agent/workspace">
+          <Button
+            variant="ghost"
+            className="gap-2 text-muted-foreground hover:text-foreground"
+            data-testid="agent-switch-pro"
+          >
+            Pro Workspace <ArrowRight className="h-4 w-4" />
+          </Button>
         </Link>
       </div>
 

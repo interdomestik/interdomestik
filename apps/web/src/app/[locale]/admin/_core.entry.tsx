@@ -107,7 +107,7 @@ export default async function AdminLayout({
           <SidebarInset className="bg-mesh flex flex-col min-h-screen">
             <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 transition-all">
               <div className="flex items-center gap-2">
-                <SidebarTrigger className="-ml-1" data-testid="sidebar-trigger" />
+                <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
               </div>
               <div className="flex-1 flex items-center justify-between">

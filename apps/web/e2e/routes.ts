@@ -83,6 +83,7 @@ export const routes = {
   memberNewClaim: (l?: Locale | string | TestInfo) => withLocale('/member/claims/new', l || 'en'),
   memberSettings: (l?: Locale | string | TestInfo) => withLocale('/member/settings', l || 'en'),
   memberMembership: (l?: Locale | string | TestInfo) => withLocale('/member/membership', l || 'en'),
+  memberDiaspora: (l?: Locale | string | TestInfo) => withLocale('/member/diaspora', l || 'en'),
   memberClaimDetail: (claimId: string, l?: Locale | string | TestInfo) =>
     withLocale(`/member/claims/${encodeURIComponent(claimId)}`, l || 'en'),
   staff: (l?: Locale | string | TestInfo) => withLocale('/staff', l || 'en'),

@@ -102,7 +102,7 @@ export default async function proxy(request: NextRequest) {
     });
   }
 
-  if (!isE2E && isProtected && !hasSession) {
+  if (isProtected && !hasSession) {
     const loginUrl = createAbsoluteUrl(request, `/${locale}/login`);
     const response = NextResponse.redirect(loginUrl, 307);
     response.headers.set('x-auth-guard', 'middleware');

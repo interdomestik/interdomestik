@@ -69,9 +69,7 @@ export function WizardStepCategory() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight" data-testid="wizard-step-title">
-          {t('title')}
-        </h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
         <p className="text-muted-foreground mt-2">{t('subtitle')}</p>
         {flags.callMeNow && (
           <div className="mt-4 inline-flex items-center rounded-full border border-[hsl(var(--success))] px-3 py-1 text-sm font-medium text-[hsl(var(--success))] bg-[hsl(var(--success))]/10">
