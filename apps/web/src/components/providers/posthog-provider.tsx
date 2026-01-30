@@ -6,6 +6,11 @@ import { useEffect } from 'react';
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
+    // Skip analytics in development to prevent console spam and API 404s
+    if (process.env.NODE_ENV === 'development') {
+      return;
+    }
+
     // Only initialize if the key is present (avoids errors in dev/test if missing)
     if (process.env.NEXT_PUBLIC_POSTHOG_KEY && process.env.NEXT_PUBLIC_POSTHOG_HOST) {
       posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
