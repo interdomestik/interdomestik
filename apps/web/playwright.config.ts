@@ -134,7 +134,7 @@ export default defineConfig({
     // SETUP PROJECTS - Generate auth states per tenant
     // ═══════════════════════════════════════════════════════════════════════════
     {
-      name: 'setup',
+      name: 'setup-ks',
       testMatch: /setup\.state\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
@@ -161,7 +161,7 @@ export default defineConfig({
     // ═══════════════════════════════════════════════════════════════════════════
     {
       name: 'ks-sq',
-      dependencies: ['setup'],
+      dependencies: ['setup-ks'],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: `http://${KS_HOST}/sq`,
@@ -192,7 +192,7 @@ export default defineConfig({
     // ═══════════════════════════════════════════════════════════════════════════
     {
       name: 'smoke',
-      dependencies: ['setup'], // Default to KS for general smoke
+      dependencies: ['setup-ks'], // Default to KS for general smoke
       testMatch: /.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
