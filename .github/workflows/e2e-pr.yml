@@ -32,7 +32,8 @@ jobs:
       CI: '1'
       PLAYWRIGHT: '1'
       NEXT_PUBLIC_BILLING_TEST_MODE: '1'
-      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
       NODE_OPTIONS: --max-old-space-size=4096
 
     steps:
