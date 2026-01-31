@@ -35,7 +35,7 @@ jobs:
       PLAYWRIGHT: '1'
       NEXT_PUBLIC_BILLING_TEST_MODE: '1'
       PW_REUSE_SERVER: '1'
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
 
     steps:
       - name: Checkout
