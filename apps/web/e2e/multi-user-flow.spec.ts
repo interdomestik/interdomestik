@@ -10,11 +10,12 @@
 
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('Multi-User Claim Workflow', () => {
   test.describe('Member Claim Creation', () => {
-    test('Member can navigate to new claim page', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.memberClaims());
+    test('Member can navigate to new claim page', async ({ authenticatedPage: page }, testInfo) => {
+      await gotoApp(page, routes.memberClaims(), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Look for create claim button
@@ -26,15 +27,15 @@ test.describe('Multi-User Claim Workflow', () => {
         await newClaimLink.click({ force: true });
         await page.waitForURL(/\/member\/claims\/new/, { timeout: 10000 });
       } else {
-        await page.goto(routes.memberNewClaim());
+        await gotoApp(page, routes.memberNewClaim(), testInfo);
         await page.waitForLoadState('domcontentloaded');
       }
 
       expect(page.url()).toContain('/claims/new');
     });
 
-    test('Member can see their existing claims', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.memberClaims());
+    test('Member can see their existing claims', async ({ authenticatedPage: page }, testInfo) => {
+      await gotoApp(page, routes.memberClaims(), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Should see claims table or list
@@ -47,8 +48,8 @@ test.describe('Multi-User Claim Workflow', () => {
   });
 
   test.describe('Agent-Member Relationship', () => {
-    test('Agent can access assigned members list', async ({ agentPage: page }) => {
-      await page.goto(routes.agentClients());
+    test('Agent can access assigned members list', async ({ agentPage: page }, testInfo) => {
+      await gotoApp(page, routes.agentClients(), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Agent should see member list content
@@ -58,15 +59,17 @@ test.describe('Multi-User Claim Workflow', () => {
   });
 
   test.describe('Staff Claim Management', () => {
-    test('Staff can access claims queue', async ({ staffPage: page }) => {
-      await page.goto(routes.staffClaims());
+    test('Staff can access claims queue', async ({ staffPage: page }, testInfo) => {
+      await gotoApp(page, routes.staffClaims(), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       expect(page.url()).toContain('/staff');
     });
 
-    test('Staff is redirected from admin claims to dashboard', async ({ staffPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Staff is redirected from admin claims to dashboard', async ({
+      staffPage: page,
+    }, testInfo) => {
+      await gotoApp(page, routes.adminClaims(), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Staff is denied from admin claims routes (defense-in-depth).
@@ -82,8 +85,8 @@ test.describe('Multi-User Claim Workflow', () => {
       }).toPass();
     });
 
-    test('Staff can view claims via staff workspace', async ({ staffPage: page }) => {
-      await page.goto(routes.staffClaims());
+    test('Staff can view claims via staff workspace', async ({ staffPage: page }, testInfo) => {
+      await gotoApp(page, routes.staffClaims(), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Staff should be able to see claims in staff view
@@ -95,8 +98,8 @@ test.describe('Multi-User Claim Workflow', () => {
   });
 
   test.describe('Admin Full Access', () => {
-    test('Admin can see all claims', async ({ adminPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Admin can see all claims', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.adminClaims(), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Locale-agnostic: assert the Ops Center container renders.
@@ -104,15 +107,15 @@ test.describe('Multi-User Claim Workflow', () => {
       await expect(page.getByTestId('ops-center-page').first()).toBeVisible();
     });
 
-    test('Admin can see all users', async ({ adminPage: page }) => {
-      await page.goto(routes.adminUsers());
+    test('Admin can see all users', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.adminUsers(), testInfo);
       await page.waitForLoadState('domcontentloaded');
       // Locale-agnostic: assert users page root renders.
       await expect(page.getByTestId('admin-users-page')).toBeVisible({ timeout: 10000 });
     });
 
-    test('Admin can access any claim details', async ({ adminPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Admin can access any claim details', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.adminClaims(), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Expect > 0 claims with polling/timeout
@@ -123,8 +126,8 @@ test.describe('Multi-User Claim Workflow', () => {
       }).toPass({ timeout: 10000 });
     });
 
-    test('Admin can see claim status options', async ({ adminPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Admin can see claim status options', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.adminClaims(), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Should see status filters or options
@@ -140,9 +143,9 @@ test.describe('Multi-User Claim Workflow', () => {
 test.describe('Cross-Role Data Isolation', () => {
   test('Members cannot access other members claims directly', async ({
     authenticatedPage: page,
-  }) => {
+  }, testInfo) => {
     // Try to access a claim that belongs to another user
-    await page.goto(routes.memberClaimDetail('claim-1-worker5'));
+    await gotoApp(page, routes.memberClaimDetail('claim-1-worker5'), testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     // Should be denied or redirected - handled gracefully
@@ -159,8 +162,10 @@ test.describe('Cross-Role Data Isolation', () => {
     ).toBeTruthy();
   });
 
-  test('Agent is redirected away from staff claims detail', async ({ agentPage: page }) => {
-    await page.goto(routes.staffClaimDetail('claim-1-worker9'));
+  test('Agent is redirected away from staff claims detail', async ({
+    agentPage: page,
+  }, testInfo) => {
+    await gotoApp(page, routes.staffClaimDetail('claim-1-worker9'), testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     // Access is denied. Can be 404 or redirect to agent dashboard.
@@ -175,8 +180,8 @@ test.describe('Cross-Role Data Isolation', () => {
     }).toPass();
   });
 
-  test('Staff can access claims via staff workspace', async ({ staffPage: page }) => {
-    await page.goto(routes.staffClaims());
+  test('Staff can access claims via staff workspace', async ({ staffPage: page }, testInfo) => {
+    await gotoApp(page, routes.staffClaims(), testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     expect(page.url()).toContain('/staff');

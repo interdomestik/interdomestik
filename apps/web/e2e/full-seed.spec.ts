@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type TestInfo } from '@playwright/test';
+import { gotoApp } from './utils/navigation';
 
 // Credentials from e2e seed (golden baseline)
 const PASSWORD = 'GoldenPass123!';
@@ -13,7 +14,8 @@ const USERS = {
 
 async function loginAs(
   page: import('@playwright/test').Page,
-  user: { email: string; tenant?: string }
+  user: { email: string; tenant?: string },
+  testInfo: TestInfo
 ) {
   const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
   const loginURL = `${baseURL}/api/auth/sign-in/email`;
@@ -37,46 +39,45 @@ async function loginAs(
   else if (user.email.includes('staff')) targetPath += '/staff';
   else targetPath += '/member';
 
-  await page.goto(`${baseURL}${targetPath}`);
-  await page.waitForLoadState('domcontentloaded');
+  await gotoApp(page, targetPath, testInfo, { marker: 'domcontentloaded' });
 }
 
 test.describe.skip('Full System Seed Smoke Tests ', () => {
   // 1. Super Admin: Tenant-scoped branches (current behavior)
-  test('Super Admin sees MK branches only', async ({ page }) => {
-    await loginAs(page, USERS.super);
+  test('Super Admin sees MK branches only', async ({ page }, testInfo) => {
+    await loginAs(page, USERS.super, testInfo);
 
     await expect(page).toHaveURL(/\/admin/);
-    await page.goto(`/${DEFAULT_LOCALE}/admin/branches`);
+    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/branches`, testInfo);
     await expect(page.getByText('MK-A', { exact: true })).toBeVisible();
     await expect(page.getByText('MK-B', { exact: true })).toBeVisible();
     await expect(page.getByText('KS-A')).not.toBeVisible();
   });
 
   // 2. Tenant Admin: Staff list is tenant-scoped
-  test('MK Admin sees MK staff only', async ({ page }) => {
-    await loginAs(page, USERS.mk_admin);
+  test('MK Admin sees MK staff only', async ({ page }, testInfo) => {
+    await loginAs(page, USERS.mk_admin, testInfo);
 
     await expect(page).toHaveURL(/\/admin/);
-    await page.goto(`/${DEFAULT_LOCALE}/admin/users?role=admin,staff`);
+    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/users?role=admin,staff`, testInfo);
     await expect(page.getByText('staff.mk@interdomestik.com')).toBeVisible();
     await expect(page.getByText('staff.ks@interdomestik.com')).not.toBeVisible();
   });
 
   // 3. Staff: Claim Visibility & Isolation
-  test('MK Staff sees MK Claims but not KS Claims', async ({ page }) => {
-    await loginAs(page, USERS.mk_staff);
+  test('MK Staff sees MK Claims but not KS Claims', async ({ page }, testInfo) => {
+    await loginAs(page, USERS.mk_staff, testInfo);
 
-    await page.goto(`/${DEFAULT_LOCALE}/staff/claims`);
+    await gotoApp(page, `/${DEFAULT_LOCALE}/staff/claims`, testInfo);
     await expect(page.getByText('Rear ended in Skopje (Baseline)')).toBeVisible(); // MK Claim
     await expect(page.getByText('KS-A SUBMITTED Claim 1')).not.toBeVisible(); // KS Claim
   });
 
   // 4. Agent: Balkan Agent Flow Data
-  test('MK Agent sees seeded Balkan lead', async ({ page }) => {
-    await loginAs(page, USERS.mk_agent_balkan);
+  test('MK Agent sees seeded Balkan lead', async ({ page }, testInfo) => {
+    await loginAs(page, USERS.mk_agent_balkan, testInfo);
 
-    await page.goto(`/${DEFAULT_LOCALE}/agent/leads`);
+    await gotoApp(page, `/${DEFAULT_LOCALE}/agent/leads`, testInfo);
     const row = page.getByRole('row').filter({ hasText: 'lead.balkan@example.com' });
     await expect(row).toBeVisible();
     await expect(row).toContainText('Pending');

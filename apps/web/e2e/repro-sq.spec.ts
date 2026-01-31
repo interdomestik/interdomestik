@@ -1,10 +1,11 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('SQ Claim Wizard', () => {
-  test('should show correct translations in Albanian', async ({ authenticatedPage }) => {
+  test('should show correct translations in Albanian', async ({ authenticatedPage }, testInfo) => {
     // Navigate to SQ version
-    await authenticatedPage.goto(routes.memberNewClaim('sq'));
+    await gotoApp(authenticatedPage, routes.memberNewClaim('sq'), testInfo);
 
     // Check title (translated)
     await expect(authenticatedPage.getByRole('heading', { level: 1 })).toBeVisible(); // "Kërkesë e Re..."

@@ -66,8 +66,10 @@ function isStageStuck(status: ClaimStatus, daysInStage: number): boolean {
   return daysInStage >= threshold;
 }
 
+import { ClaimsQueryRow } from './queries';
+
 export function mapClaimsToDto(
-  rows: any[],
+  rows: ClaimsQueryRow[],
   facets: { active: number; draft: number; closed: number; total: number },
   page: number,
   perPage: number

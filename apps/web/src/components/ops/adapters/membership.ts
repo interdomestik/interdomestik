@@ -1,7 +1,7 @@
 import { OpsAction, OpsDocument, OpsTimelineEvent } from '../types';
 import { toOpsBadgeVariant } from './status';
 
-type DbDocument = {
+export type DbDocument = {
   id: string;
   fileName: string;
   storagePath: string;

@@ -12,7 +12,16 @@ export interface ClaimsAccessContext {
   userId: string;
 }
 
-export function ensureClaimsAccess(session: any): ClaimsAccessContext {
+// Minimal session type for what we consume here
+export interface ClaimsSession {
+  user: {
+    id: string;
+    role?: string | null;
+    branchId?: string | null;
+  };
+}
+
+export function ensureClaimsAccess(session: ClaimsSession | null): ClaimsAccessContext {
   if (!session || !session.user) {
     throw new UnauthorizedError();
   }

@@ -44,7 +44,6 @@ export async function enforceRateLimit({ name, limit, windowSeconds, headers }: 
 
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  const isProduction = process.env.NODE_ENV === 'production';
 
   // Treat empty strings as unset (for E2E testing)
   if (!url || url === '' || !token || token === '') {
@@ -106,7 +105,6 @@ export async function enforceRateLimitForAction({
 
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  const isProduction = process.env.NODE_ENV === 'production';
 
   // Treat empty strings as unset (for E2E testing)
   if (!url || url === '' || !token || token === '') {

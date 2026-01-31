@@ -69,7 +69,7 @@ describe('registerMemberCore', () => {
   });
 
   it('should handle transaction errors (e.g., email duplicate)', async () => {
-    (db.transaction as any).mockRejectedValue(new Error('Duplicate'));
+    vi.mocked(db.transaction).mockRejectedValue(new Error('Duplicate'));
 
     const formData = new FormData();
     formData.append('fullName', 'John Doe');

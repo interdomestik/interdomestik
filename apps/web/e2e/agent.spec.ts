@@ -1,11 +1,12 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('Agent Role Access', () => {
   test('Agent is redirected from staff claims or sees read-only view', async ({
     agentPage: page,
-  }) => {
-    await page.goto(routes.staffClaims());
+  }, testInfo) => {
+    await gotoApp(page, routes.staffClaims(), testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     // Agent should either be redirected away OR see the page without edit capabilities
@@ -13,8 +14,8 @@ test.describe('Agent Role Access', () => {
     expect(page.url()).not.toContain('/admin/claims');
   });
 
-  test('Agent can access CRM dashboard', async ({ agentPage: page }) => {
-    await page.goto(routes.agentCrm());
+  test('Agent can access CRM dashboard', async ({ agentPage: page }, testInfo) => {
+    await gotoApp(page, routes.agentCrm(), testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     // Check for CRM elements - use more flexible locale-aware patterns
@@ -23,8 +24,8 @@ test.describe('Agent Role Access', () => {
     );
   });
 
-  test.skip('Agent can see Leaderboard', async ({ agentPage: page }) => {
-    await page.goto(routes.agentCrm());
+  test.skip('Agent can see Leaderboard', async ({ agentPage: page }, testInfo) => {
+    await gotoApp(page, routes.agentCrm(), testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     // Check for Leaderboard - use locale-aware patterns

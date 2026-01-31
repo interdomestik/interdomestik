@@ -8,11 +8,12 @@ import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 
 import { expect, isLoggedIn, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('Authentication', () => {
   test.describe('Login Page', () => {
-    test('should display login form', async ({ page }) => {
-      await page.goto(routes.login());
+    test('should display login form', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.login(), testInfo);
 
       // Check for form elements
       await expect(page.locator('input[name="email"], input[type="email"]')).toBeVisible();
@@ -20,8 +21,8 @@ test.describe('Authentication', () => {
       await expect(page.locator('button[type="submit"]')).toBeVisible();
     });
 
-    test('should show validation error for empty email', async ({ page }) => {
-      await page.goto(routes.login());
+    test('should show validation error for empty email', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.login(), testInfo);
 
       // Submit empty form
       await page.click('button[type="submit"]');
@@ -37,8 +38,8 @@ test.describe('Authentication', () => {
       expect(hasError).toBeTruthy();
     });
 
-    test('should show validation error for invalid email format', async ({ page }) => {
-      await page.goto(routes.login());
+    test('should show validation error for invalid email format', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.login(), testInfo);
 
       await page.fill('input[name="email"], input[type="email"]', 'not-an-email');
       await page.fill('input[name="password"], input[type="password"]', 'somepassword');
@@ -53,8 +54,8 @@ test.describe('Authentication', () => {
       expect(currentUrl).toContain('login');
     });
 
-    test('should have link to registration', async ({ page }) => {
-      await page.goto(routes.login());
+    test('should have link to registration', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.login(), testInfo);
 
       const registerLink = page.locator('a[href*="register"], a[href*="signup"]');
 
@@ -63,8 +64,8 @@ test.describe('Authentication', () => {
       }
     });
 
-    test('should have forgot password link', async ({ page }) => {
-      await page.goto(routes.login());
+    test('should have forgot password link', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.login(), testInfo);
 
       const forgotLink = page.locator('a:has-text("forgot"), a[href*="forgot"], a[href*="reset"]');
 
@@ -75,24 +76,28 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Protected Routes', () => {
-    test('should redirect /member to login when not authenticated', async ({ page }) => {
-      await page.goto(routes.member());
+    test('should redirect /member to login when not authenticated', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.member(), testInfo);
 
       // Should be redirected to login
       await page.waitForURL(/.*login.*/);
       expect(page.url()).toMatch(/login/);
     });
 
-    test('should redirect /member/claims to login when not authenticated', async ({ page }) => {
-      await page.goto(routes.memberClaims());
+    test('should redirect /member/claims to login when not authenticated', async ({
+      page,
+    }, testInfo) => {
+      await gotoApp(page, routes.memberClaims(), testInfo);
 
       // Should be redirected to login
       await page.waitForURL(/.*login.*/);
       expect(page.url()).toMatch(/login/);
     });
 
-    test('should redirect /member/settings to login when not authenticated', async ({ page }) => {
-      await page.goto(routes.memberSettings());
+    test('should redirect /member/settings to login when not authenticated', async ({
+      page,
+    }, testInfo) => {
+      await gotoApp(page, routes.memberSettings(), testInfo);
 
       // Wait for redirect
       await page.waitForURL(/.*(login|auth\/sign-in|\/en\/?$|\/sq\/?$).*/, { timeout: 10000 });
@@ -103,8 +108,8 @@ test.describe('Authentication', () => {
 
     test('should allow member portal when authenticated fixture is used', async ({
       authenticatedPage,
-    }) => {
-      await authenticatedPage.goto(routes.member());
+    }, testInfo) => {
+      await gotoApp(authenticatedPage, routes.member(), testInfo);
       // Wait for page to fully load (WebKit needs this for auth state)
       await authenticatedPage.waitForLoadState('domcontentloaded');
       await authenticatedPage.waitForTimeout(1000);
@@ -116,8 +121,8 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Register Page', () => {
-    test('should display registration form if available', async ({ page }) => {
-      await page.goto(routes.register());
+    test('should display registration form if available', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.register(), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Check if register page exists (might redirect to login)
@@ -137,8 +142,8 @@ test.describe('Authentication', () => {
       }
     });
 
-    test('should have terms and conditions checkbox if required', async ({ page }) => {
-      await page.goto(routes.register());
+    test('should have terms and conditions checkbox if required', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.register(), testInfo);
 
       const termsCheckbox = page.locator('input[type="checkbox"]');
 
@@ -149,9 +154,9 @@ test.describe('Authentication', () => {
   });
 
   test.describe('Locale Handling', () => {
-    test('should maintain locale after login attempt', async ({ page }) => {
+    test('should maintain locale after login attempt', async ({ page }, testInfo) => {
       // Go to Albanian login page
-      await page.goto(routes.login('sq'));
+      await gotoApp(page, routes.login('sq'), testInfo);
 
       // Fill form and submit
       await page.fill('input[name="email"], input[type="email"]', E2E_USERS.KS_MEMBER.email);
@@ -165,15 +170,15 @@ test.describe('Authentication', () => {
       expect(page.url()).toContain('/sq/');
     });
 
-    test('should display login page in English', async ({ page }) => {
-      await page.goto(routes.login('en'));
+    test('should display login page in English', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.login('en'), testInfo);
 
       // Check page is in English locale
       expect(page.url()).toContain('/en/');
     });
 
-    test('should display login page in Albanian', async ({ page }) => {
-      await page.goto(routes.login('sq'));
+    test('should display login page in Albanian', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.login('sq'), testInfo);
 
       // Check page is in Albanian locale
       expect(page.url()).toContain('/sq/');

@@ -1,13 +1,13 @@
 // v2.0.0-ops — Admin Claims lifecycle hardening
 import * as Sentry from '@sentry/nextjs';
 import 'server-only';
-import { ensureClaimsAccess } from './guards';
+import { ClaimsSession, ensureClaimsAccess } from './guards';
 import { mapClaimsToDto } from './mappers';
 import { getClaimsListQuery } from './queries';
 import type { ClaimsListV2Dto, ClaimsListV2Filters } from './types';
 
 export async function getClaimsListV2(
-  session: any,
+  session: ClaimsSession | null,
   params: Omit<ClaimsListV2Filters, 'tenantId' | 'role' | 'branchId' | 'userId'>
 ): Promise<ClaimsListV2Dto> {
   return Sentry.withServerActionInstrumentation(

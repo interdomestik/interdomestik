@@ -83,9 +83,10 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
       setOpen(false);
       setFile(null);
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Upload flow error:', err);
-      toast.error(err.message || 'Failed to upload evidence');
+      const message = err instanceof Error ? err.message : 'Failed to upload evidence';
+      toast.error(message);
     } finally {
       setUploading(false);
     }

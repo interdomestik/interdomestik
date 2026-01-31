@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
 import { routes } from '../routes';
 import { detectBranchesLayout, type BranchesLayout } from '../utils/layout';
+import { gotoApp } from '../utils/navigation';
 
 // NOTE: Overlay interactions (Radix Dropdown/Dialog) are known flaky in E2E.
 // Do not use these methods for gate specs. Prefer API helpers (e2e/api/branches.api.ts).
@@ -20,7 +21,7 @@ export class BranchesScreen {
   }
 
   async goto(testInfo: TestInfo): Promise<void> {
-    await this.page.goto(routes.adminBranches(testInfo));
+    await gotoApp(this.page, routes.adminBranches(testInfo), testInfo);
     // Disable animations to reduce flakiness
     await this.page.addStyleTag({
       content:

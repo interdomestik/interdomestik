@@ -6,6 +6,7 @@
 
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('Settings Page', () => {
   test.describe.configure({ mode: 'serial' });
@@ -19,8 +20,10 @@ test.describe('Settings Page', () => {
       expect(page.url()).toMatch(/login|auth\/sign-in/);
     });
 
-    test('should display settings page when authenticated', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(routes.memberSettings('en'));
+    test('should display settings page when authenticated', async ({
+      authenticatedPage,
+    }, testInfo) => {
+      await gotoApp(authenticatedPage, routes.memberSettings('en'), testInfo);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for settings page title
@@ -29,8 +32,8 @@ test.describe('Settings Page', () => {
   });
 
   test.describe('Profile Settings', () => {
-    test('should display profile form', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(routes.memberSettings('en'));
+    test('should display profile form', async ({ authenticatedPage }, testInfo) => {
+      await gotoApp(authenticatedPage, routes.memberSettings('en'), testInfo);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for profile section
@@ -43,8 +46,8 @@ test.describe('Settings Page', () => {
   });
 
   test.describe('Password Settings', () => {
-    test('should display password change form', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(routes.memberSettings('en'));
+    test('should display password change form', async ({ authenticatedPage }, testInfo) => {
+      await gotoApp(authenticatedPage, routes.memberSettings('en'), testInfo);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for security section
@@ -61,8 +64,8 @@ test.describe('Settings Page', () => {
   });
 
   test.describe('Language Settings', () => {
-    test('should display language selector', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(routes.memberSettings('en'));
+    test('should display language selector', async ({ authenticatedPage }, testInfo) => {
+      await gotoApp(authenticatedPage, routes.memberSettings('en'), testInfo);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for language section
@@ -75,9 +78,9 @@ test.describe('Settings Page', () => {
       await expect(languageSelect.first()).toBeVisible({ timeout: 10000 });
     });
 
-    test('should switch language', async ({ authenticatedPage }) => {
+    test('should switch language', async ({ authenticatedPage }, testInfo) => {
       // Start on English settings page
-      await authenticatedPage.goto(routes.memberSettings('en'));
+      await gotoApp(authenticatedPage, routes.memberSettings('en'), testInfo);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Find and click language selector
@@ -102,8 +105,8 @@ test.describe('Settings Page', () => {
   });
 
   test.describe('Notification Settings', () => {
-    test('should display notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(routes.memberSettings('en'));
+    test('should display notification preferences', async ({ authenticatedPage }, testInfo) => {
+      await gotoApp(authenticatedPage, routes.memberSettings('en'), testInfo);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section to load
@@ -124,8 +127,8 @@ test.describe('Settings Page', () => {
       await expect(authenticatedPage.locator('h4:has-text("In-App")')).toBeVisible();
     });
 
-    test('should toggle notification preferences', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(routes.memberSettings('en'));
+    test('should toggle notification preferences', async ({ authenticatedPage }, testInfo) => {
+      await gotoApp(authenticatedPage, routes.memberSettings('en'), testInfo);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section to load
@@ -154,8 +157,8 @@ test.describe('Settings Page', () => {
     // TODO: Fix application bug - Notification preferences are not persisting after save/reload
     test.fixme('Known bug: notification preferences not persisting', async ({
       authenticatedPage,
-    }) => {
-      await authenticatedPage.goto(routes.memberSettings('en'));
+    }, testInfo) => {
+      await gotoApp(authenticatedPage, routes.memberSettings('en'), testInfo);
       await authenticatedPage.waitForLoadState('networkidle');
 
       // Wait for notification section to be visible
@@ -205,10 +208,10 @@ test.describe('Settings Page', () => {
       expect(isCheckedAfterReload).toBe(!isInitiallyChecked);
     });
 
-    test('should handle save errors gracefully', async ({ authenticatedPage }) => {
+    test('should handle save errors gracefully', async ({ authenticatedPage }, testInfo) => {
       // This test would require mocking the API to return an error
       // For now, we'll just verify the UI is present
-      await authenticatedPage.goto(routes.memberSettings('en'));
+      await gotoApp(authenticatedPage, routes.memberSettings('en'), testInfo);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Wait for notification section
@@ -222,11 +225,11 @@ test.describe('Settings Page', () => {
   });
 
   test.describe('Responsive Design', () => {
-    test('should display settings on mobile', async ({ authenticatedPage }) => {
+    test('should display settings on mobile', async ({ authenticatedPage }, testInfo) => {
       // Set mobile viewport
       await authenticatedPage.setViewportSize({ width: 375, height: 667 });
 
-      await authenticatedPage.goto(routes.memberSettings('en'));
+      await gotoApp(authenticatedPage, routes.memberSettings('en'), testInfo);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check that settings page is visible

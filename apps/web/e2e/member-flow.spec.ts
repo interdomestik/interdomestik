@@ -10,6 +10,7 @@
 import type { Page } from '@playwright/test';
 import { expect, isLoggedIn, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 async function isUserNavVisible(page: Page): Promise<boolean> {
   const userNav = page.locator('[data-testid="user-nav"]');
@@ -35,8 +36,10 @@ async function isUserNavVisible(page: Page): Promise<boolean> {
 // TODO: Legacy tests - superseded by golden-flows.spec.ts
 test.describe('@legacy Member User Flow', () => {
   test.describe('Dashboard', () => {
-    test('Member can access dashboard after login', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.member(), { waitUntil: 'domcontentloaded' });
+    test('Member can access dashboard after login', async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await gotoApp(page, routes.member(), testInfo, { marker: 'domcontentloaded' });
 
       // Should be on dashboard, not redirected
       expect(page.url()).toContain('/member');
@@ -48,8 +51,8 @@ test.describe('@legacy Member User Flow', () => {
     });
 
     // TODO: Update for locale support - uses English text
-    test.skip('Member can see referral card', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.member(), { waitUntil: 'domcontentloaded' });
+    test.skip('Member can see referral card', async ({ authenticatedPage: page }, testInfo) => {
+      await gotoApp(page, routes.member(), testInfo, { marker: 'domcontentloaded' });
 
       // Check for Referral Card Title
       await expect(page.getByText('Invite Friends & Earn')).toBeVisible();
@@ -61,8 +64,8 @@ test.describe('@legacy Member User Flow', () => {
       await expect(page.getByRole('button', { name: 'WhatsApp' })).toBeVisible();
     });
 
-    test('Member can see dashboard content', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.member(), { waitUntil: 'domcontentloaded' });
+    test('Member can see dashboard content', async ({ authenticatedPage: page }, testInfo) => {
+      await gotoApp(page, routes.member(), testInfo, { marker: 'domcontentloaded' });
 
       // Should see dashboard content - use first() to handle multiple main elements
       const dashboardContent = page.locator('main').first();
@@ -77,8 +80,8 @@ test.describe('@legacy Member User Flow', () => {
       expect(hasClaimsContent).toBeTruthy();
     });
 
-    test('Member can see claims navigation link', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.member(), { waitUntil: 'domcontentloaded' });
+    test('Member can see claims navigation link', async ({ authenticatedPage: page }, testInfo) => {
+      await gotoApp(page, routes.member(), testInfo, { marker: 'domcontentloaded' });
 
       // Find claims link anywhere on the page
       const claimsLink = page.getByRole('link', { name: /claims/i }).first();
@@ -91,8 +94,10 @@ test.describe('@legacy Member User Flow', () => {
 
   test.describe('Claims Management', () => {
     // TODO: Update for locale support - needs locale-aware assertions
-    test.skip('Member can view their claims list', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.memberClaims(), { waitUntil: 'domcontentloaded' });
+    test.skip('Member can view their claims list', async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await gotoApp(page, routes.memberClaims(), testInfo, { marker: 'domcontentloaded' });
 
       // Should see claims page
       expect(page.url()).toContain('/claims');
@@ -109,9 +114,9 @@ test.describe('@legacy Member User Flow', () => {
       expect(visibleTableCount > 0 || hasEmptyState || hasClaimsContent).toBeTruthy();
     });
 
-    test('Member can access new claim wizard', async ({ authenticatedPage: page }) => {
+    test('Member can access new claim wizard', async ({ authenticatedPage: page }, testInfo) => {
       test.setTimeout(60000); // Allow extra time for dev compilation on first load
-      await page.goto(routes.memberNewClaim(), { waitUntil: 'domcontentloaded' });
+      await gotoApp(page, routes.memberNewClaim(), testInfo, { marker: 'domcontentloaded' });
 
       // Should see claim wizard or category selection
       const isOnWizard = page.url().includes('/new') || page.url().includes('/wizard');
@@ -127,8 +132,8 @@ test.describe('@legacy Member User Flow', () => {
       expect(hasFormContent).toBeTruthy();
     });
 
-    test('Member can navigate to claims page', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.memberClaims(), { waitUntil: 'domcontentloaded' });
+    test('Member can navigate to claims page', async ({ authenticatedPage: page }, testInfo) => {
+      await gotoApp(page, routes.memberClaims(), testInfo, { marker: 'domcontentloaded' });
 
       // Verify we are on claims page
       expect(page.url()).toContain('/claims');
@@ -140,8 +145,8 @@ test.describe('@legacy Member User Flow', () => {
   });
 
   test.describe('Settings', () => {
-    test('Member can access settings page', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.memberSettings(), { waitUntil: 'domcontentloaded' });
+    test('Member can access settings page', async ({ authenticatedPage: page }, testInfo) => {
+      await gotoApp(page, routes.memberSettings(), testInfo, { marker: 'domcontentloaded' });
 
       expect(page.url()).toContain('/settings');
 
@@ -154,8 +159,10 @@ test.describe('@legacy Member User Flow', () => {
       expect(hasSettingsContent).toBeTruthy();
     });
 
-    test('Member can see profile section in settings', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.memberSettings(), { waitUntil: 'domcontentloaded' });
+    test('Member can see profile section in settings', async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await gotoApp(page, routes.memberSettings(), testInfo, { marker: 'domcontentloaded' });
 
       // Look for profile-related form fields or content
       const pageContent = await page.content();
@@ -167,8 +174,10 @@ test.describe('@legacy Member User Flow', () => {
       expect(hasProfileSection).toBeTruthy();
     });
 
-    test('Member can see password section in settings', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.memberSettings(), { waitUntil: 'domcontentloaded' });
+    test('Member can see password section in settings', async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await gotoApp(page, routes.memberSettings(), testInfo, { marker: 'domcontentloaded' });
 
       // Look for password-related content
       const pageContent = await page.content();
@@ -181,16 +190,16 @@ test.describe('@legacy Member User Flow', () => {
   });
 
   test.describe('Navigation', () => {
-    test('Member dashboard has content area', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.member(), { waitUntil: 'domcontentloaded' });
+    test('Member dashboard has content area', async ({ authenticatedPage: page }, testInfo) => {
+      await gotoApp(page, routes.member(), testInfo, { marker: 'domcontentloaded' });
 
       // Check main content area is visible
       const mainContent = page.locator('main').first();
       await expect(mainContent).toBeVisible();
     });
 
-    test('Member can access user menu', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.member(), { waitUntil: 'domcontentloaded' });
+    test('Member can access user menu', async ({ authenticatedPage: page }, testInfo) => {
+      await gotoApp(page, routes.member(), testInfo, { marker: 'domcontentloaded' });
 
       // Avoid `networkidle` in SPA apps (polling/SSE/analytics can keep the network busy forever).
       await expect(page.locator('main').first()).toBeVisible({ timeout: 15000 });

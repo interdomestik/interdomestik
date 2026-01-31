@@ -18,6 +18,8 @@ import {
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
+type IconType = typeof Home;
+
 export function useDashboardNavigation(agentTier: string = 'standard') {
   const t = useTranslations('nav');
   const { data: session } = authClient.useSession();
@@ -76,7 +78,7 @@ export function useDashboardNavigation(agentTier: string = 'standard') {
   ];
 
   // 2. Agent Sales Items (Only for agents)
-  const agentItems: { title: string; href: string; icon: any }[] = [];
+  const agentItems: { title: string; href: string; icon: IconType }[] = [];
   if (isAgent) {
     agentItems.push(
       { title: 'Agent Hub', href: '/agent', icon: Home },

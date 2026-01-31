@@ -4,6 +4,7 @@
  */
 import { expect, test } from '@playwright/test';
 import path from 'path';
+import { gotoApp } from './utils/navigation';
 
 const DEFAULT_LOCALE = 'sq';
 const ADMIN_MK_STATE = path.join(__dirname, '.auth', 'mk', 'admin.json');
@@ -12,9 +13,9 @@ test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
   // Inject storage state for all tests in this block
   test.use({ storageState: ADMIN_MK_STATE });
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }, testInfo) => {
     // Navigate directly to the Ops Center
-    await page.goto(`/${DEFAULT_LOCALE}/admin/claims`);
+    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims`, testInfo);
 
     // Use .first() to handle occasional hydration twin-nodes in mobile-chrome
     const opsPage = page.getByTestId('ops-center-page').first();
@@ -54,9 +55,9 @@ test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
       .toBeTruthy();
   });
 
-  test('3. Refresh button resets page', async ({ page }) => {
+  test('3. Refresh button resets page', async ({ page }, testInfo) => {
     // Navigate to a sub-state (page 2)
-    await page.goto(`/${DEFAULT_LOCALE}/admin/claims?page=2`);
+    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?page=2`, testInfo);
     await expect(page).toHaveURL(/page=2/);
 
     const refreshBtn = page.getByTestId('refresh-button').first();

@@ -11,9 +11,10 @@ export type { AuditEvent };
 export const logAuditEvent = async (event: AuditEvent): Promise<void> => {
   try {
     await logCore(event);
-  } catch (error: any) {
+  } catch (error: unknown) {
     // If tenant is missing, just warn and swallow. Do not crash the caller.
-    if (error?.message?.includes('tenant') || error?.code === 'MISSING_TENANT') {
+    const err = error as { message?: string; code?: string };
+    if (err?.message?.includes('tenant') || err?.code === 'MISSING_TENANT') {
       console.warn('[Audit] Skipped log due to missing tenant context:', event.action);
       return;
     }

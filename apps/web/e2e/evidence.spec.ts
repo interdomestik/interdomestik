@@ -8,10 +8,11 @@
 import { Buffer } from 'buffer';
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('Evidence uploads', () => {
-  test('blocks disallowed mime types before upload', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(routes.memberNewClaim('en'));
+  test('blocks disallowed mime types before upload', async ({ authenticatedPage }, testInfo) => {
+    await gotoApp(authenticatedPage, routes.memberNewClaim('en'), testInfo);
 
     // Step 1: Category
     await authenticatedPage.getByTestId('category-travel').click();
@@ -54,7 +55,7 @@ test.describe('Evidence uploads', () => {
    */
   test.skip('accepts allowed files when upload endpoints are stubbed', async ({
     authenticatedPage,
-  }) => {
+  }, testInfo) => {
     // This test is skipped because reliably mocking Supabase storage SDK
     // cross-origin requests in Playwright is complex. The SDK constructs
     // upload URLs internally based on NEXT_PUBLIC_SUPABASE_URL.
@@ -66,7 +67,7 @@ test.describe('Evidence uploads', () => {
     // The "blocks disallowed mime types" test above verifies client-side
     // validation works correctly without needing storage.
 
-    await authenticatedPage.goto(routes.memberNewClaim('en'));
+    await gotoApp(authenticatedPage, routes.memberNewClaim('en'), testInfo);
 
     // Step 1: Category
     await authenticatedPage.getByTestId('category-travel').click();

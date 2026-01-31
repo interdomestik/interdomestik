@@ -1,10 +1,11 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('Pricing Page', () => {
-  test('Public: Unauthenticated user should see pricing table', async ({ page }) => {
+  test('Public: Unauthenticated user should see pricing table', async ({ page }, testInfo) => {
     // 1. Visit Pricing Page
-    await page.goto(routes.pricing('en'));
+    await gotoApp(page, routes.pricing('en'), testInfo);
 
     // 2. Verify Title
     await expect(page.locator('h1')).toBeVisible();
@@ -15,7 +16,6 @@ test.describe('Pricing Page', () => {
 
     // 4. Verify "Join Now" buttons are present
     // Instead of hiding them, they redirect to register
-    // Instead of hiding them, they redirect to register
     // Use locator('button') in case role is not strictly button or name isn't accessible
     const joinButtons = page
       .locator('button')
@@ -24,9 +24,11 @@ test.describe('Pricing Page', () => {
   });
 
   // Skipped until database is available for seeding users
-  test('Authenticated: User should see pricing table and plans', async ({ authenticatedPage }) => {
+  test('Authenticated: User should see pricing table and plans', async ({
+    authenticatedPage,
+  }, testInfo) => {
     // 1. Visit Pricing Page as logged in user
-    await authenticatedPage.goto(routes.pricing('en'));
+    await gotoApp(authenticatedPage, routes.pricing('en'), testInfo);
 
     // 2. Verify Plan Cards are visible
     // "Basic", "Pro", etc.
@@ -40,7 +42,7 @@ test.describe('Pricing Page', () => {
     expect(await upgradeButtons.count()).toBeGreaterThanOrEqual(1);
   });
 
-  test('Checkout: Clicking join triggers Paddle', async ({ authenticatedPage }) => {
+  test('Checkout: Clicking join triggers Paddle', async ({ authenticatedPage }, testInfo) => {
     let alertMessage = '';
     // Handle alerts (e.g. "Payment system unavailable") gracefully to avoid Protocol Error
     authenticatedPage.on('dialog', async dialog => {
@@ -69,7 +71,7 @@ test.describe('Pricing Page', () => {
       } as Record<string, unknown>;
     });
 
-    await authenticatedPage.goto(routes.pricing('en'));
+    await gotoApp(authenticatedPage, routes.pricing('en'), testInfo);
 
     // Find the 'Asistenca' plan card and click its button
     // Strategy: Find heading 'Asistenca', go up to card, then find button

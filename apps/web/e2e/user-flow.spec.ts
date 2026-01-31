@@ -1,10 +1,14 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('End-to-End User Journey', () => {
-  test('Guest -> Services -> Login -> Dashboard -> Start Claim', async ({ page, loginAs }) => {
+  test('Guest -> Services -> Login -> Dashboard -> Start Claim', async ({
+    page,
+    loginAs,
+  }, testInfo) => {
     // 1. Guest visits Landing Page
-    await page.goto(routes.home('en'));
+    await gotoApp(page, routes.home('en'), testInfo);
     await expect(page).toHaveTitle(/Interdomestik/);
 
     // 2. Navigate to Services
@@ -31,7 +35,7 @@ test.describe('End-to-End User Journey', () => {
         await menuBtn.click();
         await page.locator('a[href*="/login"]:visible').first().click();
       } else {
-        await page.goto(routes.login('en'));
+        await gotoApp(page, routes.login('en'), testInfo);
       }
     }
     await expect(page).toHaveURL(/.*login/);
@@ -41,7 +45,7 @@ test.describe('End-to-End User Journey', () => {
     await loginAs('member');
 
     // 5. Verify Dashboard
-    await page.goto(routes.member('en'));
+    await gotoApp(page, routes.member('en'), testInfo);
     await page.waitForURL(/.*member/);
     await expect(
       page.getByRole('heading', { name: /Overview|Dashboard|Përmbledhje/i })

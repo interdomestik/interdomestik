@@ -5,18 +5,18 @@ import { useVoiceRecorder } from './use-voice-recorder';
 const mockGetUserMedia = vi.fn();
 const mockStart = vi.fn();
 const mockStop = vi.fn();
-let mockInstances: any[] = [];
+let mockInstances: MockMediaRecorder[] = [];
 
 // Mock MediaRecorder class
 class MockMediaRecorder {
   static isTypeSupported = vi.fn().mockReturnValue(true);
 
   state = 'inactive';
-  ondataavailable: any = null;
-  onstop: any = null;
+  ondataavailable: ((event: { data: Blob }) => void) | null = null;
+  onstop: (() => void) | null = null;
   mimeType: string;
 
-  constructor(stream: any, options: any) {
+  constructor(stream: MediaStream, options?: MediaRecorderOptions) {
     this.mimeType = options?.mimeType || '';
     mockInstances.push(this);
   }

@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { gotoApp } from './utils/navigation';
 
 const DEFAULT_LOCALE = 'sq';
 // Credentials from seed script
@@ -9,7 +10,11 @@ const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: 'GoldenPass123
 // Claim Data - use a static but unique-enough timestamp for the whole run
 const CLAIM_TITLE = `Auto Smoke ${Date.now()}`;
 
-async function loginAs(page: Page, user: { email: string; password?: string; tenant?: string }) {
+async function loginAs(
+  page: Page,
+  user: { email: string; password?: string; tenant?: string },
+  testInfo: TestInfo
+) {
   const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
   const loginURL = `${baseURL}/api/auth/sign-in/email`;
 
@@ -31,22 +36,26 @@ async function loginAs(page: Page, user: { email: string; password?: string; ten
   else if (user.email.includes('staff')) targetPath += '/staff';
   else targetPath += '/member';
 
-  await page.goto(`${baseURL}${targetPath}`);
-  await page.waitForLoadState('domcontentloaded');
+  // Using absolute URL in gotoApp might need specialized handling if gotoApp expects relative.
+  // But navigation.ts logic says it handles path normalization.
+  // Actually gotoApp logic uses path.join which might break with http://...
+
+  // Refactoring loginAs to use relative path for gotoApp
+  await gotoApp(page, targetPath, testInfo, { marker: 'domcontentloaded' });
 }
 
 // Use serial to ensure Phase A creates claim before Phase B/C try to view it
 test.describe.serial('@smoke Production Smoke Test Plan', () => {
   test.describe('Phase A: Authentication & Routing (Member) @smoke', () => {
-    test('Member (KS) can login, see dashboard, and create a claim', async ({ page }) => {
+    test('Member (KS) can login, see dashboard, and create a claim', async ({ page }, testInfo) => {
       // 1. Login
-      await loginAs(page, { ...MEMBER_KS, tenant: 'tenant_ks' });
+      await loginAs(page, { ...MEMBER_KS, tenant: 'tenant_ks' }, testInfo);
 
       // 2. Verify Dashboard (Member lands on /member)
       await expect(page).toHaveURL(/\/member/);
 
       // 3. Wizard
-      await page.goto(`/${DEFAULT_LOCALE}/member/claims/new`);
+      await gotoApp(page, `/${DEFAULT_LOCALE}/member/claims/new`, testInfo);
       const bodyText = await page.textContent('body');
       expect(bodyText).not.toContain('MISSING_MESSAGE');
 
@@ -86,12 +95,12 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
   });
 
   test.describe('Phase B: Administrative Visibility', () => {
-    test('Admin (KS) can find the newly created claim', async ({ page }) => {
+    test('Admin (KS) can find the newly created claim', async ({ page }, testInfo) => {
       // Login Admin
-      await loginAs(page, { ...ADMIN_KS, tenant: 'tenant_ks' });
+      await loginAs(page, { ...ADMIN_KS, tenant: 'tenant_ks' }, testInfo);
 
       // Navigate to claims list view explicitly to use filters
-      await page.goto(`/${DEFAULT_LOCALE}/admin/claims?view=list`);
+      await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?view=list`, testInfo);
 
       // Search for the specific claim title
       const searchInput = page.getByPlaceholder(/Search|Kërko/i).first();
@@ -103,18 +112,18 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
   });
 
   test.describe('Phase C: Manager & Isolation', () => {
-    test('Admin (KS) can access dashboard metrics', async ({ page }) => {
-      await loginAs(page, { ...ADMIN_KS, tenant: 'tenant_ks' });
+    test('Admin (KS) can access dashboard metrics', async ({ page }, testInfo) => {
+      await loginAs(page, { ...ADMIN_KS, tenant: 'tenant_ks' }, testInfo);
 
       // Basic check that admin dashboard loaded
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
     });
 
-    test('Admin (MK) CANNOT view KS claims (Isolation)', async ({ page }) => {
-      await loginAs(page, { ...ADMIN_MK, tenant: 'tenant_mk' });
+    test('Admin (MK) CANNOT view KS claims (Isolation)', async ({ page }, testInfo) => {
+      await loginAs(page, { ...ADMIN_MK, tenant: 'tenant_mk' }, testInfo);
 
       // Navigate to list view
-      await page.goto(`/${DEFAULT_LOCALE}/admin/claims?view=list`);
+      await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?view=list`, testInfo);
 
       // Search for the KS claim title
       const searchInput = page.getByPlaceholder(/Search|Kërko/i).first();

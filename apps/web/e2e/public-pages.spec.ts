@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('Public Pages', () => {
   test.describe('Stats Page', () => {
-    test('should load stats page and display verified numbers', async ({ page }) => {
-      await page.goto(routes.stats('en'));
+    test('should load stats page and display verified numbers', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.stats('en'), testInfo);
 
       // Check title and subtitle
       await expect(page.getByText('Our Impact in Numbers')).toBeVisible();
@@ -18,8 +19,8 @@ test.describe('Public Pages', () => {
     });
 
     // Unskipped language test - SQ translations are now available
-    test('should switch language on stats page', async ({ page }) => {
-      await page.goto(routes.stats('sq'));
+    test('should switch language on stats page', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.stats('sq'), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Check Albanian translations
@@ -29,8 +30,8 @@ test.describe('Public Pages', () => {
   });
 
   test.describe('Partners Page', () => {
-    test('should load partners page and display categories', async ({ page }) => {
-      await page.goto(routes.partners('en'));
+    test('should load partners page and display categories', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.partners('en'), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Wait for at least one heading to verify page loaded
@@ -40,8 +41,8 @@ test.describe('Public Pages', () => {
       await expect(page.locator('body')).toContainText(/Partner|Discount|Insurance|Member/i);
     });
 
-    test('should have working CTA button', async ({ page }) => {
-      await page.goto(routes.partners('en'));
+    test('should have working CTA button', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.partners('en'), testInfo);
       await page.waitForLoadState('domcontentloaded');
 
       // Look for any CTA or link - be flexible

@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/auth.fixture';
+import { gotoApp } from '../utils/navigation';
 
 test.describe('@quarantine Claims Dashboard Visual Regression', () => {
   // TODO: Re-enable when visual snapshots are standardized in Docker
@@ -19,12 +20,12 @@ test.describe('@quarantine Claims Dashboard Visual Regression', () => {
   });
 
   // 1. Standard Member View
-  test('member views claims dashboard', async ({ page, loginAs }) => {
+  test('member views claims dashboard', async ({ page, loginAs }, testInfo) => {
     // Login as member
     await loginAs('member');
 
     // Navigate to claims
-    await page.goto('/member/claims');
+    await gotoApp(page, '/member/claims', testInfo);
 
     // Wait for content to load
     await expect(page.getByTestId('page-title')).toBeVisible();
@@ -38,12 +39,12 @@ test.describe('@quarantine Claims Dashboard Visual Regression', () => {
   });
 
   // 2. Staff View
-  test('staff views claims dashboard', async ({ page, loginAs }) => {
+  test('staff views claims dashboard', async ({ page, loginAs }, testInfo) => {
     // Login as staff
     await loginAs('staff');
 
     // Navigate to staff claims
-    await page.goto('/staff/claims');
+    await gotoApp(page, '/staff/claims', testInfo);
 
     // Wait for content to load
     await expect(page.getByTestId('page-title')).toBeVisible();

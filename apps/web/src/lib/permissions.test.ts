@@ -1,6 +1,8 @@
-import { and, eq } from 'drizzle-orm';
+import { db } from '@interdomestik/database/db';
+import { agentClients } from '@interdomestik/database/schema';
+import { eq } from 'drizzle-orm';
 import { PgColumn } from 'drizzle-orm/pg-core';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   allowedClaimStatusTransitions,
   assertAgentClientAccess,
@@ -9,7 +11,7 @@ import {
   scopeFilter,
 } from './permissions';
 import { ROLE_AGENT, ROLE_STAFF } from './roles.core';
-import { db } from '@interdomestik/database/db';
+import type { ProtectedActionContext } from './safe-action';
 
 // Mock drizzle-orm
 vi.mock('drizzle-orm', async () => {
@@ -56,7 +58,7 @@ describe('permissions', () => {
         branchId: 'branch_1',
         actorAgentId: undefined,
       },
-    } as any;
+    } as unknown as ProtectedActionContext;
 
     it('should filter by branchId if present', () => {
       scopeFilter(mockCtx, { branchId: mockCol });
@@ -64,26 +66,32 @@ describe('permissions', () => {
     });
 
     it('should filter by agentId if acting as agent', () => {
-      const agentCtx = { scope: { actorAgentId: 'agent_1' } } as any;
+      const agentCtx = {
+        scope: { actorAgentId: 'agent_1' },
+      } as unknown as ProtectedActionContext;
       scopeFilter(agentCtx, { agentId: mockCol });
       expect(eq).toHaveBeenCalledWith(mockCol, 'agent_1');
     });
 
     it('should fallback to userId if agentId column missing but user acting as agent', () => {
-      const agentCtx = { scope: { actorAgentId: 'agent_1' } } as any;
+      const agentCtx = {
+        scope: { actorAgentId: 'agent_1' },
+      } as unknown as ProtectedActionContext;
       scopeFilter(agentCtx, { userId: mockCol });
       expect(eq).toHaveBeenCalledWith(mockCol, 'agent_1');
     });
 
     it('should combine filters', () => {
-      const fullCtx = { scope: { branchId: 'branch_1', actorAgentId: 'agent_1' } } as any;
+      const fullCtx = {
+        scope: { branchId: 'branch_1', actorAgentId: 'agent_1' },
+      } as unknown as ProtectedActionContext;
       scopeFilter(fullCtx, { branchId: mockCol, agentId: mockCol });
       expect(eq).toHaveBeenCalledWith(mockCol, 'branch_1');
       expect(eq).toHaveBeenCalledWith(mockCol, 'agent_1');
     });
 
     it('should return undefined if no filters apply', () => {
-      const emptyCtx = { scope: {} } as any;
+      const emptyCtx = { scope: {} } as unknown as ProtectedActionContext;
       const res = scopeFilter(emptyCtx, { branchId: mockCol });
       expect(res).toBeUndefined();
     });
@@ -91,13 +99,21 @@ describe('permissions', () => {
 
   describe('helpers', () => {
     it('canAgentCreateClaim should return true if actorAgentId exists', () => {
-      expect(canAgentCreateClaim({ scope: { actorAgentId: 'a1' } } as any)).toBe(true);
-      expect(canAgentCreateClaim({ scope: {} } as any)).toBe(false);
+      expect(
+        canAgentCreateClaim({
+          scope: { actorAgentId: 'a1' },
+        } as unknown as ProtectedActionContext)
+      ).toBe(true);
+      expect(canAgentCreateClaim({ scope: {} } as unknown as ProtectedActionContext)).toBe(false);
     });
 
     it('canStaffHandleClaim should return true if actorAgentId is missing', () => {
-      expect(canStaffHandleClaim({ scope: {} } as any)).toBe(true);
-      expect(canStaffHandleClaim({ scope: { actorAgentId: 'a1' } } as any)).toBe(false);
+      expect(canStaffHandleClaim({ scope: {} } as unknown as ProtectedActionContext)).toBe(true);
+      expect(
+        canStaffHandleClaim({
+          scope: { actorAgentId: 'a1' },
+        } as unknown as ProtectedActionContext)
+      ).toBe(false);
     });
 
     it('allowedClaimStatusTransitions should return correct statuses', () => {
@@ -107,33 +123,52 @@ describe('permissions', () => {
 
     describe('assertAgentClientAccess', () => {
       it('should pass for non-agents (e.g. admin/staff)', async () => {
-        await assertAgentClientAccess({ scope: {} } as any, 'u1');
+        await assertAgentClientAccess({ scope: {} } as unknown as ProtectedActionContext, 'u1');
         expect(db.select).not.toHaveBeenCalled();
       });
 
       it('✅ Allowed: Active assignment exists', async () => {
         // Mock DB finding a valid link
-        (db as any).limit.mockResolvedValue([{ id: 'link1' }]);
+        vi.mocked(
+          db.select().from(agentClients).where(eq(agentClients.id, '1')).limit
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ).mockResolvedValue([{ id: 'link1' }] as any[]);
+        // Simpler mock setup for chain
+        const mockLimit = vi.fn().mockResolvedValue([{ id: 'link1' }]);
+        const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+        const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        vi.mocked(db.select).mockReturnValue({ from: mockFrom } as any);
 
         await expect(
           assertAgentClientAccess(
-            { tenantId: 't1', scope: { actorAgentId: 'a1' } } as any,
+            {
+              tenantId: 't1',
+              scope: { actorAgentId: 'a1' },
+            } as unknown as ProtectedActionContext,
             'client1'
           )
         ).resolves.not.toThrow();
 
         // Verify the query structure
         expect(db.select).toHaveBeenCalled();
-        expect((db as any).from).toHaveBeenCalled();
-        expect((db as any).where).toHaveBeenCalled();
+        expect(mockFrom).toHaveBeenCalled();
+        expect(mockWhere).toHaveBeenCalled();
       });
 
       it('❌ Denied: Unassigned agent (no link found)', async () => {
         // Mock DB returning empty (no match)
-        (db as any).limit.mockResolvedValue([]);
+        const mockLimit = vi.fn().mockResolvedValue([]);
+        const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+        const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        vi.mocked(db.select).mockReturnValue({ from: mockFrom } as any);
 
         const promise = assertAgentClientAccess(
-          { tenantId: 't1', scope: { actorAgentId: 'a1' } } as any,
+          {
+            tenantId: 't1',
+            scope: { actorAgentId: 'a1' },
+          } as unknown as ProtectedActionContext,
           'client1'
         );
 
@@ -141,15 +176,22 @@ describe('permissions', () => {
       });
 
       it('🔍 Verify Strict Query Filters (Tenant, Agent, Client, Active)', async () => {
-        (db as any).limit.mockResolvedValue([{ id: 'link1' }]);
+        const mockLimit = vi.fn().mockResolvedValue([{ id: 'link1' }]);
+        const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+        const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        vi.mocked(db.select).mockReturnValue({ from: mockFrom } as any);
 
         await assertAgentClientAccess(
-          { tenantId: 'tenant_X', scope: { actorAgentId: 'agent_Y' } } as any,
+          {
+            tenantId: 'tenant_X',
+            scope: { actorAgentId: 'agent_Y' },
+          } as unknown as ProtectedActionContext,
           'client_Z'
         );
 
         // Capture the 'where' call arguments to verify strict filtering
-        const whereCall = (db as any).where.mock.calls[0][0];
+        const whereCall = mockWhere.mock.calls[0][0];
         // Based on our mock at top: and(...) returns { op: 'and', args: [...] }
         expect(whereCall.op).toBe('and');
         const filters = whereCall.args;
@@ -158,6 +200,7 @@ describe('permissions', () => {
         expect(filters).toHaveLength(4);
 
         // Helper to find filter for a specific column name
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const findFilter = (colName: string) => filters.find((f: any) => f.col.name === colName);
 
         const tenantFilter = findFilter('tenantId');

@@ -1,17 +1,18 @@
 import { expect, test } from '@playwright/test';
 import path from 'path';
+import { gotoApp } from './utils/navigation';
 
 // Helper to get auth state path
-const authState = (role: string) => path.join(__dirname, 'fixtures/.auth', `${role}.json`);
+const authState = (role: string) => path.join(__dirname, '.auth/ks', `${role}.json`);
 
 test.describe('RBAC Isolation Invariants', () => {
   test.describe('Staff Context (Tenant-Wide)', () => {
     test.use({ storageState: authState('staff') });
 
-    test('Staff can see claims from multiple branches', async ({ page }) => {
+    test('Staff can see claims from multiple branches', async ({ page }, testInfo) => {
       // 1. Navigate to Claims List
       // Using /staff/claims as Staff Portal
-      const response = await page.goto('/staff/claims');
+      const response = await gotoApp(page, '/staff/claims', testInfo);
       console.log(`Staff /staff/claims status: ${response?.status()}`);
 
       // 2. Verify page loads
@@ -31,7 +32,7 @@ test.describe('RBAC Isolation Invariants', () => {
   test.describe('Branch Manager Context (Scoped)', () => {
     test.use({ storageState: authState('branch_manager') });
 
-    test('Branch Manager cannot see claims from another branch', async ({ page }) => {
+    test('Branch Manager cannot see claims from another branch', async ({ page }, testInfo) => {
       // 1. Log Session (Non-blocking assertion)
       // We check session just for debugging, but don't fail the test if branchId is not exposed to client
       try {
@@ -58,7 +59,7 @@ test.describe('RBAC Isolation Invariants', () => {
       expect([403, 404]).toContain(response.status());
 
       // 3. Verify UI List isolation
-      await page.goto('/staff/claims');
+      await gotoApp(page, '/staff/claims', testInfo);
       await expect(page.getByText('Branch B (Remote)')).not.toBeVisible();
       await expect(page.getByText('Flight Delay to Munich')).not.toBeVisible();
     });
@@ -67,9 +68,9 @@ test.describe('RBAC Isolation Invariants', () => {
   test.describe('Agent Context (Owner Scoped)', () => {
     test.use({ storageState: authState('agent') });
 
-    test('Agent can create claim', async ({ page }) => {
+    test('Agent can create claim', async ({ page }, testInfo) => {
       // Agent uses Member Portal for claim creation
-      const response = await page.goto('/member/claims/new');
+      const response = await gotoApp(page, '/member/claims/new', testInfo);
       console.log(`Agent /member/claims/new status: ${response?.status()}`);
 
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
@@ -77,9 +78,9 @@ test.describe('RBAC Isolation Invariants', () => {
       await expect(page.getByRole('button').first()).toBeVisible();
     });
 
-    test('Agent cannot handle/resolve claims', async ({ page }) => {
+    test('Agent cannot handle/resolve claims', async ({ page }, testInfo) => {
       // Agents should NOT see "Resolve" buttons on claims
-      await page.goto('/member/claims');
+      await gotoApp(page, '/member/claims', testInfo);
       await expect(page.getByText('Resolve Claim')).not.toBeVisible();
       await expect(page.getByText('Approve')).not.toBeVisible();
     });

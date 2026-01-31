@@ -11,14 +11,15 @@
 
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 const runSeededDataTests = process.env.RUN_SEEDED_DATA_TESTS === '1';
 
 test.describe('Seeded Data Verification', () => {
   test.skip(!runSeededDataTests, 'Requires seeded data. Set RUN_SEEDED_DATA_TESTS=1 to enable.');
-  test('should display all seeded claims on dashboard', async ({ authenticatedPage }) => {
+  test('should display all seeded claims on dashboard', async ({ authenticatedPage }, testInfo) => {
     // Go to dashboard claims list
-    await authenticatedPage.goto(routes.memberClaims('en'));
+    await gotoApp(authenticatedPage, routes.memberClaims('en'), testInfo);
 
     // Wait for list to load
     await authenticatedPage.waitForSelector('text=Car Accident', { timeout: 10000 });
@@ -37,8 +38,10 @@ test.describe('Seeded Data Verification', () => {
     }
   });
 
-  test('should show correct status for specific claims', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(routes.memberClaims('en'));
+  test('should show correct status for specific claims', async ({
+    authenticatedPage,
+  }, testInfo) => {
+    await gotoApp(authenticatedPage, routes.memberClaims('en'), testInfo);
     await authenticatedPage.waitForSelector('text=Car Accident');
 
     // Helper to find row with text and check badge
@@ -52,8 +55,8 @@ test.describe('Seeded Data Verification', () => {
     await checkStatus('Rejected Insurance Claim', 'Rejected');
   });
 
-  test('should view claim details', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(routes.memberClaims('en'));
+  test('should view claim details', async ({ authenticatedPage }, testInfo) => {
+    await gotoApp(authenticatedPage, routes.memberClaims('en'), testInfo);
 
     // Click on a claim
     // Navigate directly using href for stability
@@ -61,7 +64,7 @@ test.describe('Seeded Data Verification', () => {
       .locator('tr', { hasText: 'Flight Delay to Munich' })
       .getByRole('link');
     const href = await link.getAttribute('href');
-    await authenticatedPage.goto(href!);
+    await gotoApp(authenticatedPage, href!, testInfo);
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     // Verify detail content

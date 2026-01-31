@@ -1,11 +1,14 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('Claim Creation Wizard', () => {
-  test('should allow user to complete the claim wizard', async ({ authenticatedPage }) => {
+  test('should allow user to complete the claim wizard', async ({
+    authenticatedPage,
+  }, testInfo) => {
     test.setTimeout(60000); // Wizard can be slow
     // 1. Navigate to New Claim (Force English)
-    await authenticatedPage.goto(routes.memberNewClaim('en'));
+    await gotoApp(authenticatedPage, routes.memberNewClaim('en'), testInfo);
     await expect(authenticatedPage.locator('h1')).toContainText('New Claim');
 
     // 2. Step 1: Category

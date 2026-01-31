@@ -13,10 +13,13 @@
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('Staff Claim Operations', () => {
   // Skip this complex integration test - it requires specific timing and data state
-  test.skip('Staff can view, assign, update, and message on claims', async ({ browser }) => {
+  test.skip('Staff can view, assign, update, and message on claims', async ({
+    browser,
+  }, testInfo) => {
     // -----------------------------------------------------------------------
     // 1. MEMBER: Create a new claim
     // -----------------------------------------------------------------------
@@ -25,7 +28,7 @@ test.describe('Staff Claim Operations', () => {
     });
     const memberPage = await memberContext.newPage();
 
-    await memberPage.goto(routes.memberNewClaim('en'));
+    await gotoApp(memberPage, routes.memberNewClaim('en'), testInfo);
     await expect(memberPage.locator('h1')).toContainText('New Claim');
 
     // Step 1: Category
@@ -66,7 +69,7 @@ test.describe('Staff Claim Operations', () => {
     const staffPage = await staffContext.newPage();
 
     // Go to staff claims queue
-    await staffPage.goto(routes.staffClaims('en'));
+    await gotoApp(staffPage, routes.staffClaims('en'), testInfo);
     await expect(staffPage.getByRole('heading', { name: 'Claims Queue' })).toBeVisible();
 
     // Search/Find the specific claim to avoid race conditions with other tests

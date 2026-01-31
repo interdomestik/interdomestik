@@ -90,7 +90,7 @@ export async function assertAgentClientAccess(ctx: ProtectedActionContext, clien
 
   if (!link) {
     const error = new Error('Security Violation: Unauthorized client access.');
-    (error as any).code = 'FORBIDDEN_SCOPE_MISMATCH';
+    (error as Error & { code?: string }).code = 'FORBIDDEN_SCOPE_MISMATCH';
     throw error;
   }
 }

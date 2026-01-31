@@ -1,4 +1,9 @@
-import { expect, type Page, type TestInfo } from '@playwright/test';
+import {
+  expect,
+  type Page,
+  type Response as PlaywrightResponse,
+  type TestInfo,
+} from '@playwright/test';
 
 /**
  * Re-export getLocale for convenience
@@ -48,7 +53,7 @@ export async function gotoApp(
   path: PathLike,
   testInfo: TestInfo,
   options?: { marker?: string }
-) {
+): Promise<PlaywrightResponse | null> {
   const raw = path; // wherever you currently take it from
   const pathStr = normalizePath(raw);
 
@@ -70,7 +75,7 @@ export async function gotoApp(
     targetUrl = new URL(normalizedPath, normalizedBase).toString();
   }
 
-  const response = await page.goto(targetUrl);
+  const response = await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
 
   if (response?.status() === 404 || response?.headers()['x-nextjs-postponed']) {
     // Check if we rendered our custom Not Found UI
@@ -89,7 +94,9 @@ export async function gotoApp(
 
   const marker = options?.marker ?? 'page-ready';
 
-  if (marker === 'body') {
+  if (['domcontentloaded', 'load', 'networkidle'].includes(marker)) {
+    await page.waitForLoadState(marker as 'domcontentloaded' | 'load' | 'networkidle');
+  } else if (marker === 'body') {
     await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('body')).toBeAttached({ timeout: 15000 });
 
@@ -114,4 +121,6 @@ export async function gotoApp(
       throw e;
     }
   }
+
+  return response;
 }

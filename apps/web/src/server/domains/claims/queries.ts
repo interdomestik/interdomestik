@@ -190,3 +190,5 @@ export async function getClaimsListQuery(filters: ClaimsListV2Filters) {
 
   return { rows, facets: facets || { active: 0, draft: 0, closed: 0, total: 0 } };
 }
+
+export type ClaimsQueryRow = Awaited<ReturnType<typeof getClaimsListQuery>>['rows'][number];

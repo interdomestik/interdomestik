@@ -1,16 +1,17 @@
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 // TODO: Rewrite for reliability and locale support. Covered by golden-flows.
 test.describe('@legacy Claim routing (member → staff queue)', () => {
   test('member submission appears in staff claims queue', async ({
     authenticatedPage: memberPage,
     staffPage,
-  }) => {
+  }, testInfo) => {
     test.setTimeout(90_000);
 
     // 1) MEMBER: create a claim with a unique title
-    await memberPage.goto(routes.memberNewClaim());
+    await gotoApp(memberPage, routes.memberNewClaim(), testInfo);
     await expect(memberPage.locator('h1')).toBeVisible();
 
     await memberPage.waitForLoadState('domcontentloaded');
@@ -50,7 +51,7 @@ test.describe('@legacy Claim routing (member → staff queue)', () => {
     });
 
     // 2) STAFF: confirm the claim shows up in the claims queue
-    await staffPage.goto(routes.staffClaims());
+    await gotoApp(staffPage, routes.staffClaims(), testInfo);
     await expect(staffPage.locator('h1')).toBeVisible();
 
     await expect(async () => {

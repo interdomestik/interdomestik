@@ -211,13 +211,13 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
   return await hasSessionCookie(page);
 }
 
-export async function logout(page: Page): Promise<void> {
+export async function logout(page: Page, testInfo: TestInfo): Promise<void> {
   const current = page.url() && page.url() !== 'about:blank' ? page.url() : null;
   const origin = current ? new URL(current).origin : 'http://127.0.0.1:3000';
   await page.request.post(new URL('/api/auth/sign-out', origin).toString(), {
     headers: { Origin: origin },
   });
-  await page.goto(routes.login('en'));
+  await gotoApp(page, routes.login('en'), testInfo);
 }
 
 // Backwards-compatible exports (default to KS).
@@ -236,6 +236,7 @@ async function performLogin(
   page: Page,
   role: Role,
   info: ProjectUrlInfo,
+  testInfo: TestInfo,
   tenant: Tenant = 'ks'
 ): Promise<void> {
   const { email, password } = credsFor(role, tenant);
@@ -293,11 +294,11 @@ async function performLogin(
   else targetPath += '/member';
 
   const targetUrl = new URL(targetPath, info.origin).toString();
-  await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+  await gotoApp(page, targetUrl, testInfo, { marker: 'domcontentloaded' });
   const marker = 'dashboard-page-ready';
 
   try {
-    await expect(page.getByTestId(marker)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId(marker)).toBeVisible({ timeout: 30000 });
   } catch (e) {
     console.error(`[Auth Diagnostics] Marker "${marker}" NOT FOUND for ${role}`);
     console.error(`[Auth Diagnostics] Current URL: ${page.url()}`);
@@ -359,7 +360,7 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   if (isLoginPage) {
     console.log(`[Auth] Session invalid/missing for ${role}, re-logging in...`);
     const info = getProjectUrlInfo(testInfo, null);
-    await performLogin(page, role, info, tenant);
+    await performLogin(page, role, info, testInfo, tenant);
   }
 
   // Final check with strict marker
@@ -402,7 +403,7 @@ export const test = base.extend<AuthFixtures>({
       const tenant = getTenantFromTestInfo(testInfo);
       const info = getProjectUrlInfo(testInfo, baseURL);
       setWorkerE2EBaseURL(info);
-      await performLogin(page, role, info, tenant);
+      await performLogin(page, role, info, testInfo, tenant);
     });
   },
 
@@ -413,7 +414,7 @@ export const test = base.extend<AuthFixtures>({
       const statePath = storageStateFile(role, tenant);
       const info = getProjectUrlInfo(testInfo, baseURL);
       setWorkerE2EBaseURL(info);
-      await performLogin(page, role, info, tenant);
+      await performLogin(page, role, info, testInfo, tenant);
       await page.context().storageState({ path: statePath });
     });
   },

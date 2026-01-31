@@ -5,9 +5,11 @@ import { agentClients, subscriptions, user as userTable } from '@interdomestik/d
 import { nanoid } from 'nanoid';
 import { registerMemberSchema } from './schemas';
 
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 // Temporary retry implementation (will move to shared-utils)
 async function withTransactionRetry<T>(
-  operation: (tx: any) => Promise<T>,
+  operation: (tx: DbTransaction) => Promise<T>,
   maxRetries = 3
 ): Promise<T> {
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
@@ -15,9 +17,9 @@ async function withTransactionRetry<T>(
       return await db.transaction(operation);
     } catch (error) {
       const isLastAttempt = attempt > maxRetries;
+      const errMessage = (error as { message?: string })?.message?.toLowerCase() || '';
       const isRetryable =
-        (error as any)?.message?.toLowerCase()?.includes('deadlock') ||
-        (error as any)?.message?.toLowerCase()?.includes('could not serialize');
+        errMessage.includes('deadlock') || errMessage.includes('could not serialize');
 
       if (isLastAttempt || !isRetryable) {
         throw error;

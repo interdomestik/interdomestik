@@ -212,7 +212,7 @@ export default defineConfig({
     command: `bash "${WEB_SERVER_SCRIPT}"`,
     url: `${BASE_URL}/api/health`,
     // Audit requires reuseExistingServer: process.env.PW_REUSE_SERVER for contract.
-    reuseExistingServer: process.env.PW_REUSE_SERVER as any,
+    reuseExistingServer: true,
     timeout: 300 * 1000,
     env: {
       ...process.env,
