@@ -12,7 +12,7 @@
     "type-check": "tsc --noEmit",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "e2e:gate": "playwright test --project=gate-ks-sq --project=gate-mk-mk",
+    "e2e:gate": "pnpm run build:ci && playwright test --project=gate-ks-sq --project=gate-mk-mk",
     "e2e:guards": "cd ../.. && bash scripts/e2e-strict-guards.sh",
     "e2e:gate:fast": "playwright test --project=gate-ks-sq --project=gate-mk-mk --max-failures=1",
     "e2e:regression": "playwright test --grep-invert \"@quarantine|@legacy|@smoke\" --project=ks-sq --project=mk-mk",
