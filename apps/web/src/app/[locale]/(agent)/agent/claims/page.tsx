@@ -56,7 +56,7 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
   return (
     <div className="container py-8 space-y-8" data-testid="agent-claims-page">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Client Claims</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Track Client Claims</h1>
       </div>
 
       {groups.length === 0 ? (
@@ -82,7 +82,7 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
                 <div className="divide-y">
                   {group.claims.map(claim => (
                     <Link
-                      href={`/${locale}/member/claims/${claim.id}`}
+                      href={`/${locale}/agent/claims/${claim.id}`}
                       key={claim.id}
                       className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
                       data-testid="agent-claim-row"

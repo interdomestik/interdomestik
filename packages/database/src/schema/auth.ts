@@ -25,6 +25,8 @@ export const user = pgTable(
     updatedAt: timestamp('updatedAt').notNull(),
     agentId: text('agentId'), // Sales agent who referred this member (legacy mapping)
     branchId: text('branch_id').references(() => branches.id), // Branch for staff/agents
+    createdBy: text('created_by').default('self'), // self, agent, admin
+    assistedByAgentId: text('assisted_by_agent_id'), // Agent who assisted registration
   },
   table => {
     return {

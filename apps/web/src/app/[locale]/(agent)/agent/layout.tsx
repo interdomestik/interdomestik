@@ -2,7 +2,10 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { AGENT_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { auth } from '@/lib/auth';
+import { db } from '@interdomestik/database/db';
+import { agentSettings } from '@interdomestik/database/schema';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
+import { eq } from 'drizzle-orm';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
@@ -43,6 +46,16 @@ export default async function AgentLayout({
     notFound();
   }
 
+  // Fetch agent tier for RBAC Sidebar
+  let agentTier = 'standard';
+  if (session?.user?.id) {
+    const settings = await db.query.agentSettings.findFirst({
+      where: eq(agentSettings.agentId, session.user.id),
+      columns: { tier: true },
+    });
+    if (settings?.tier) agentTier = settings.tier;
+  }
+
   // Load agent-specific messages for client components
   const allMessages = await getMessages();
   const messages = pickMessages(allMessages, AGENT_NAMESPACES);
@@ -52,7 +65,7 @@ export default async function AgentLayout({
       {/* E2E contract: ensureAuthenticated waits for dashboard-page-ready across all portals */}
       <div data-testid="dashboard-page-ready">
         <SidebarProvider defaultOpen={true}>
-          <DashboardSidebar />
+          <DashboardSidebar agentTier={agentTier} />
           <SidebarInset className="bg-mesh flex flex-col min-h-screen">
             <DashboardHeader />
             <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>

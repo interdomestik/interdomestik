@@ -18,9 +18,9 @@ import { NavItem } from './nav-item';
 import { SidebarBrand } from './sidebar-brand';
 import { SidebarUserMenu } from './sidebar-user-menu';
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: string }) {
   const pathname = usePathname();
-  const { memberItems, agentItems, adminItems, role } = useDashboardNavigation();
+  const { memberItems, agentItems, adminItems, role } = useDashboardNavigation(agentTier);
   const isAgent = role === 'agent';
 
   return (

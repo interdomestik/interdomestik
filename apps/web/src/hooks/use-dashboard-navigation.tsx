@@ -18,7 +18,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-export function useDashboardNavigation() {
+export function useDashboardNavigation(agentTier: string = 'standard') {
   const t = useTranslations('nav');
   const { data: session } = authClient.useSession();
   const role = (session?.user as { role?: string } | undefined)?.role;
@@ -76,17 +76,28 @@ export function useDashboardNavigation() {
   ];
 
   // 2. Agent Sales Items (Only for agents)
-  const agentItems = [];
+  const agentItems: { title: string; href: string; icon: any }[] = [];
   if (isAgent) {
     agentItems.push(
       { title: 'Agent Hub', href: '/agent', icon: Home },
-      { title: t('claims'), href: '/agent/claims', icon: FileText },
-      { title: 'Rapid POS', href: '/agent/pos', icon: UserPlus },
-      { title: 'Leads', href: '/agent/leads', icon: Users },
-      { title: 'Clients', href: '/agent/clients', icon: Briefcase },
-      { title: 'Commissions', href: '/agent/commissions', icon: DollarSign },
-      { title: 'Bulk Import', href: '/agent/import', icon: Upload }
+      { title: t('trackClaims'), href: '/agent/claims', icon: FileText },
+      { title: 'Rapid POS', href: '/agent/pos', icon: UserPlus }
     );
+
+    // Tier Gating: Leads only for Pro/Office
+    if (['pro', 'office'].includes(agentTier)) {
+      agentItems.push({ title: 'Leads', href: '/agent/leads', icon: Users });
+    }
+
+    agentItems.push(
+      { title: 'Clients', href: '/agent/clients', icon: Briefcase },
+      { title: 'Commissions', href: '/agent/commissions', icon: DollarSign }
+    );
+
+    // Tier Gating: Bulk Import only for Office
+    if (agentTier === 'office') {
+      agentItems.push({ title: 'Bulk Import', href: '/agent/import', icon: Upload });
+    }
   }
 
   // 3. Admin Items

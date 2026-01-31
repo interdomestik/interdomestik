@@ -16,12 +16,18 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, UserPlus } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export async function AgentDashboardV2Page({ locale }: { locale: string }) {
+export async function AgentDashboardV2Page({
+  locale,
+  tier = 'standard',
+}: {
+  locale: string;
+  tier?: string;
+}) {
   setRequestLocale(locale);
 
   const t = await getTranslations('agent');
@@ -40,7 +46,10 @@ export async function AgentDashboardV2Page({ locale }: { locale: string }) {
 
   // Get commission summary
   const summaryResult = await getMyCommissionSummary();
+
   const summary = summaryResult.success ? summaryResult.data : null;
+
+  const isPro = ['pro', 'office'].includes(tier);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -58,9 +67,15 @@ export async function AgentDashboardV2Page({ locale }: { locale: string }) {
           </p>
         </div>
         <Button asChild>
-          <Link href="/agent/leads/new">
-            Add New Lead <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
+          {isPro ? (
+            <Link href="/agent/leads/new">
+              Add New Lead <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          ) : (
+            <Link href="/agent/pos">
+              Rapid POS Sale <UserPlus className="ml-2 h-4 w-4" />
+            </Link>
+          )}
         </Button>
       </div>
 
@@ -97,41 +112,61 @@ export async function AgentDashboardV2Page({ locale }: { locale: string }) {
         </Card>
 
         {/* Right: Pipeline Pulse */}
+        {/* Right: Pipeline Pulse (Pro) or Client Summary (Lite) */}
         <Card className="border-white/10 bg-slate-950/40 backdrop-blur-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">
-              Pipeline Pulse
+              {isPro ? 'Pipeline Pulse' : 'Client Base'}
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-2 py-4">
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-xl font-black text-white" data-testid="agent-pulse-active">
-                {stats.newLeads + stats.contactedLeads}
-              </span>
-              <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
-                Aktive
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-xl font-black text-white" data-testid="agent-pulse-won">
-                {stats.wonDeals}
-              </span>
-              <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
-                Të fituara
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-xl font-black text-white" data-testid="agent-pulse-cr">
-                {(() => {
-                  const total = stats.newLeads + stats.contactedLeads + stats.wonDeals;
-                  if (total === 0) return '0%';
-                  return `${Math.round((stats.wonDeals / total) * 100)}%`;
-                })()}
-              </span>
-              <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
-                Konvertimi
-              </span>
-            </div>
+          <CardContent
+            className={
+              isPro
+                ? 'grid grid-cols-3 gap-2 py-4'
+                : 'flex flex-col items-center justify-center py-4'
+            }
+          >
+            {isPro ? (
+              <>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xl font-black text-white" data-testid="agent-pulse-active">
+                    {stats.newLeads + stats.contactedLeads}
+                  </span>
+                  <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
+                    Aktive
+                  </span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xl font-black text-white" data-testid="agent-pulse-won">
+                    {stats.wonDeals}
+                  </span>
+                  <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
+                    Të fituara
+                  </span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xl font-black text-white" data-testid="agent-pulse-cr">
+                    {(() => {
+                      const total = stats.newLeads + stats.contactedLeads + stats.wonDeals;
+                      if (total === 0) return '0%';
+                      return `${Math.round((stats.wonDeals / total) * 100)}%`;
+                    })()}
+                  </span>
+                  <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
+                    Konvertimi
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-1 pt-2">
+                <span className="text-4xl font-black text-white" data-testid="agent-total-clients">
+                  {stats.clientCount}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-tighter text-slate-500">
+                  Total Clients
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -147,10 +182,10 @@ export async function AgentDashboardV2Page({ locale }: { locale: string }) {
           testId="action-campaign"
         />
         <MatteAnchorCard
-          label="Rapid Prospect"
-          description="Shto Lead"
+          label={isPro ? 'Rapid Prospect' : 'Rapid POS'}
+          description={isPro ? 'Shto Lead' : 'Shitje e Shpejtë'}
           iconName="user-plus"
-          href="/agent/leads/new"
+          href={isPro ? '/agent/leads/new' : '/agent/pos'}
           colorClassName="from-slate-900/60 to-slate-950/80"
           testId="action-prospect"
         />
@@ -175,7 +210,7 @@ export async function AgentDashboardV2Page({ locale }: { locale: string }) {
       {/* Preservation of existing features (relayouted) */}
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="lg:col-span-8 space-y-6">
-          <PipelineChart data={stats} />
+          {isPro && <PipelineChart data={stats} />}
           <LeaderboardCard />
         </div>
 
@@ -218,7 +253,11 @@ export async function AgentDashboardV2Page({ locale }: { locale: string }) {
                   <div>
                     <p className="mb-4">No clients yet. Start selling memberships!</p>
                     <Button asChild>
-                      <Link href="/agent/leads/new">Add Your First Lead</Link>
+                      {isPro ? (
+                        <Link href="/agent/leads/new">Add Your First Lead</Link>
+                      ) : (
+                        <Link href="/agent/pos">Start Rapid POS Sale</Link>
+                      )}
                     </Button>
                   </div>
                 ) : (
