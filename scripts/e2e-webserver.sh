@@ -6,6 +6,11 @@ WEB_DIR="${ROOT_DIR}/apps/web"
 
 cd "${WEB_DIR}"
 
+echo "DEBUG: e2e-webserver.sh started"
+echo "DEBUG: Working Directory: $(pwd)"
+echo "DEBUG: Node Version: $(node -v || echo 'MISSING')"
+ls -la || echo "DEBUG: ls failed"
+
 PORT="${PORT:-3000}"
 HOSTNAME="${HOSTNAME:-127.0.0.1}"
 BASE_URL="${NEXT_PUBLIC_APP_URL:-http://${HOSTNAME}:${PORT}}"
@@ -77,6 +82,11 @@ echo "  PORT=${PORT}"
 # In our monorepo/standalone structure, we just run the server.js.
 
 STANDALONE_SERVER="${WEB_DIR}/.next/standalone/apps/web/server.js"
+
+# Debug file structure before check
+echo "DEBUG: Looking for standalone server at: ${STANDALONE_SERVER}"
+echo "DEBUG: Listing .next/standalone structure:"
+ls -R .next/standalone || echo "DEBUG: ls .next/standalone failed"
 
 # Fast-fail if standalone build is missing (turns confusing E2E failure into immediate build artifact error)
 if [ ! -f "${STANDALONE_SERVER}" ]; then
