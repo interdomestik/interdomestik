@@ -32,6 +32,9 @@ describe('rate-limit.core', () => {
       NODE_ENV: 'production', // Default to production for stricter checks
       INTERDOMESTIK_AUTOMATED: '0',
     });
+    // Explicitly unset automated test env vars so rate limiting actually runs
+    delete process.env.CI;
+    delete process.env.PLAYWRIGHT;
   });
 
   afterEach(() => {
