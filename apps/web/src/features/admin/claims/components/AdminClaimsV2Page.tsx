@@ -33,7 +33,12 @@ export default async function AdminClaimsV2Page({ searchParams }: AdminClaimsV2P
 
   // Parse search params
   const params = await searchParams;
-  const view = params?.view as string | undefined;
+  // Helper to handle string | string[] | undefined
+  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+  const viewRaw = first(params?.view);
+  // Default to 'list' if undefined, otherwise strict check
+  const view = viewRaw || 'list';
 
   // ROUTING SWITCH
   // Default to Ops Center unless 'list' is explicitly requested
