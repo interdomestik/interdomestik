@@ -105,6 +105,10 @@ cp -r "${WEB_DIR}/public" "${STANDALONE_ROOT}/" || true
 mkdir -p "${STANDALONE_ROOT}/.next"
 cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/.next/" || true
 
+# Also copy to nested apps/web/.next for safety in monorepo structure
+mkdir -p "${STANDALONE_ROOT}/apps/web/.next"
+cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/apps/web/.next/" || true
+
 echo "Starting standalone server from root: ${STANDALONE_ROOT}"
 cd "${STANDALONE_ROOT}"
 node apps/web/server.js
