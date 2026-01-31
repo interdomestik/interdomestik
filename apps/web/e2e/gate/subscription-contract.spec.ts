@@ -20,12 +20,10 @@ test.describe('Subscription Contract Verification', () => {
     // Use route builder to ensure full absolute URL with port is used
     await gotoApp(page, routes.pricing(testInfo), testInfo, { marker: 'pricing-page-ready' });
 
-    // Small wait for hydration to ensure Link is active
-    await page.waitForTimeout(1000);
-
     // Click standard plan CTA - use getByTestId for resilience
     const cta = page.getByTestId('plan-cta-standard');
     await expect(cta).toBeVisible();
+    await expect(cta).toBeEnabled();
     await expect(cta).toHaveAttribute('href', /.*register.*/);
     await cta.scrollIntoViewIfNeeded();
 

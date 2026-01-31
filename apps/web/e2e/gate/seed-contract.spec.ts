@@ -6,7 +6,7 @@ test.describe('Seed Contract Verification', () => {
   test('Tenant KS has required branch codes', async ({ adminPage: page }, testInfo) => {
     test.skip(!testInfo.project.name.includes('ks'), 'KS-only contract');
 
-    await gotoApp(page, routes.adminBranches(testInfo), testInfo);
+    await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
 
     const requiredBranches = ['KS-A', 'KS-B', 'KS-C'];
     for (const code of requiredBranches) {
@@ -17,7 +17,7 @@ test.describe('Seed Contract Verification', () => {
   test('Tenant MK has required branch codes', async ({ adminPage: page }, testInfo) => {
     test.skip(!testInfo.project.name.includes('mk'), 'MK-only contract');
 
-    await gotoApp(page, routes.adminBranches(testInfo), testInfo);
+    await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
 
     const requiredBranches = ['MK-A', 'MK-B', 'MK-E'];
     for (const code of requiredBranches) {
@@ -28,7 +28,7 @@ test.describe('Seed Contract Verification', () => {
   test('Isolation: KS Admin cannot see MK Branches', async ({ adminPage: page }, testInfo) => {
     test.skip(!testInfo.project.name.includes('ks'), 'KS-only check');
 
-    await gotoApp(page, routes.adminBranches(testInfo), testInfo);
+    await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
 
     const mkBranches = ['MK-A', 'MK-B', 'MK-E'];
     for (const code of mkBranches) {
@@ -39,7 +39,7 @@ test.describe('Seed Contract Verification', () => {
   test('Isolation: MK Admin cannot see KS Branches', async ({ adminPage: page }, testInfo) => {
     test.skip(!testInfo.project.name.includes('mk'), 'MK-only check');
 
-    await gotoApp(page, routes.adminBranches(testInfo), testInfo);
+    await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
 
     const ksBranches = ['KS-A', 'KS-B', 'KS-C'];
     for (const code of ksBranches) {

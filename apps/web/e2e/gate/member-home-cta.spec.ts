@@ -7,7 +7,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     authenticatedPage: page,
   }, testInfo) => {
     // 1. Go to Member Home
-    await gotoApp(page, routes.member(test.info()), testInfo);
+    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'dashboard-heading' });
 
     // Assert we are on the dashboard
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
@@ -20,7 +20,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('incident-guide-page-ready')).toBeVisible();
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo);
+    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'dashboard-heading' });
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
 
     // 3. Report CTA
@@ -31,7 +31,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('report-page-ready')).toBeVisible();
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo);
+    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'dashboard-heading' });
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
 
     // 4. Green Card CTA
@@ -42,7 +42,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('green-card-page-ready')).toBeVisible();
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo);
+    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'dashboard-heading' });
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
 
     // 5. Benefits CTA

@@ -9,7 +9,9 @@ test.describe('Claims List Ops (Golden)', () => {
     loginAs,
   }, testInfo) => {
     await loginAs('admin');
-    await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo);
+    await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
+      marker: 'ops-filters-bar',
+    });
 
     const filtersBar = page.getByTestId('ops-filters-bar');
     await expect(filtersBar).toBeVisible();

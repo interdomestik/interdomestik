@@ -100,14 +100,12 @@ test.describe('Admin Verification Flow (Golden)', () => {
     // 11. Test Search
     const searchInput = page.getByPlaceholder(/Kërko|Search/i);
     await searchInput.fill('NonExistentName123');
-    await page.waitForTimeout(1000); // Wait for debounce and fetch
 
     // Should be empty
     await expect(page.getByText(/Nuk ka kërkesa|No pending/i)).toBeVisible();
 
     // Clear search
     await searchInput.fill('');
-    await page.waitForTimeout(1000);
     // Should see list again
     await expect(page.getByTestId('cash-verification-row').first()).toBeVisible();
 

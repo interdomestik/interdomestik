@@ -6,7 +6,7 @@ import { gotoApp } from '../utils/navigation';
 test.describe('Member Claim Detail Ops (Golden)', () => {
   test('renders ops claim detail view', async ({ page, loginAs }, testInfo) => {
     await loginAs('member');
-    await gotoApp(page, routes.memberClaims(testInfo), testInfo);
+    await gotoApp(page, routes.memberClaims(testInfo), testInfo, { marker: 'page-ready' });
 
     // We look for a link to a claim detail, avoiding the /new link.
     const claimLink = page

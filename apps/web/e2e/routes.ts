@@ -92,6 +92,8 @@ export const routes = {
   adminAnalytics: (l?: Locale | string | TestInfo) => withLocale('/admin/analytics', l || 'en'),
   adminSettings: (l?: Locale | string | TestInfo) => withLocale('/admin/settings', l || 'en'),
   adminBranches: (l?: Locale | string | TestInfo) => withLocale('/admin/branches', l || 'en'),
+  adminBranchDetail: (branchId: string, l?: Locale | string | TestInfo) =>
+    withLocale(`/admin/branches/${encodeURIComponent(branchId)}`, l || 'en'),
   adminLeads: (l?: Locale | string | TestInfo) => withLocale('/admin/leads', l || 'en'),
   agent: (l?: Locale | string | TestInfo) => withLocale('/agent', l || 'en'),
   agentLeads: (l?: Locale | string | TestInfo) => withLocale('/agent/leads', l || 'en'),
