@@ -20,7 +20,6 @@ export * from './notes';
 export * from './notifications';
 export * from './policies';
 export * from './rbac';
-export * from './registrations';
 export * from './services';
 export * from './tenants';
 export * from './webhooks';
