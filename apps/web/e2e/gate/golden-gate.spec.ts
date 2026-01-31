@@ -90,9 +90,9 @@ test.describe('Golden Gate: Critical Path', () => {
       await loginAs('member');
 
       // Navigate to admin - expect 404 page (Strict Isolation Contract)
-      await gotoApp(page, routes.admin(testInfo), testInfo, { marker: 'not-found-page' });
+      await gotoApp(page, routes.admin(testInfo), testInfo, { marker: 'body' });
 
-      // Verify isolation contract (404)
+      // Verify isolation contract (404 UI or fallback template)
       const notFound = page.getByTestId('not-found-page');
       const fallback404 = page.locator('template[data-dgst*="404"]');
       await expect(notFound.or(fallback404)).toBeAttached({ timeout: 15000 });
@@ -126,7 +126,7 @@ test.describe('Golden Gate: Critical Path', () => {
       await expect(page).toHaveURL(/\/staff\/claims/);
 
       // Verify Restrictions - Try Admin Branches (should redirect or 404)
-      await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'not-found-page' });
+      await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'body' });
       const notFound = page.getByTestId('not-found-page');
       const fallback404 = page.locator('template[data-dgst*="404"]');
       await expect(notFound.or(fallback404)).toBeAttached({ timeout: 15000 });
@@ -227,11 +227,10 @@ test.describe('Golden Gate: Critical Path', () => {
 
       // Switch to Draft Tab
       const draftTab = page.getByTestId('status-filter-draft').first();
-      await draftTab.scrollIntoViewIfNeeded();
-      await page.evaluate(() => window.scrollBy(0, -100)); // Clear sticky header
       await draftTab.click({ force: true });
 
-      await expect(page).toHaveURL(/status=draft/, { timeout: 10000 });
+      // Wait for URL to contain status=draft
+      await page.waitForURL(/status=draft/, { timeout: 10000 });
     });
   });
 });

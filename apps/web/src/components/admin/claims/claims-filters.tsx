@@ -1,10 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { OpsFiltersBar } from '@/components/ops';
-import { usePathname, useRouter } from '@/i18n/routing';
 
 export function AdminClaimsFilters() {
   const router = useRouter();
@@ -45,7 +44,8 @@ export function AdminClaimsFilters() {
     });
 
     const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    const targetUrl = `${pathname}${query ? `?${query}` : ''}`;
+    router.push(targetUrl);
   };
 
   return (

@@ -33,13 +33,13 @@ export default async function AdminClaimsV2Page({ searchParams }: AdminClaimsV2P
 
   // Parse search params
   const params = await searchParams;
-  const view = params?.view as string | undefined;
+  const viewRaw = params?.view;
+  // Handle both string and string[] (Next.js 15 can return arrays for repeated params)
+  const view = Array.isArray(viewRaw) ? viewRaw[0] : viewRaw;
 
   // ROUTING SWITCH
   // Default to Ops Center unless 'list' is explicitly requested
   if (view !== 'list') {
-    // Import dynamically or use the component directly if no circular deps
-    // We reuse the same searchParams prop signature
     return <OpsCenterPage searchParams={searchParams} />;
   }
 
@@ -48,12 +48,16 @@ export default async function AdminClaimsV2Page({ searchParams }: AdminClaimsV2P
   const lifecycleParam = params?.lifecycle as string | undefined;
   const lifecycleStage = lifecycleParam as LifecycleStage | undefined;
   const search = params?.search as string | undefined;
+  const status = params?.status as string | undefined;
+  const assigned = params?.assigned as string | undefined;
 
   // Fetch data for legacy list
   const data = await getAdminClaimsV2(context, {
     page,
     lifecycleStage,
     search,
+    status,
+    assigned,
   });
 
   return (
