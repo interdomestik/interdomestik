@@ -59,6 +59,9 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter @interdomestik/web exec playwright install --with-deps
 
+      - name: Build Web App
+        run: pnpm --filter @interdomestik/web build
+
       - name: DB migrations
         run: pnpm db:migrate
 
