@@ -22,10 +22,10 @@ describe('admin-users getActionContext', () => {
 
   it('should return session and headers', async () => {
     const mockHeaders = new Headers();
-    (headers as any).mockResolvedValue(mockHeaders);
+    vi.mocked(headers).mockResolvedValue(mockHeaders);
 
     const mockSession = { user: { id: 'admin-1' } };
-    (auth.api.getSession as any).mockResolvedValue(mockSession);
+    vi.mocked(auth.api.getSession).mockResolvedValue(mockSession);
 
     const result = await getActionContext();
 

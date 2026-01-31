@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getActionContext } from './context.core';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getActionContext } from './context.core';
 
 vi.mock('@/lib/auth', () => ({
   auth: {
@@ -23,10 +23,10 @@ describe('admin-claims getActionContext', () => {
   it('should return session and headers', async () => {
     const mockHeaders = new Headers();
     mockHeaders.set('x-test', 'true');
-    (headers as any).mockResolvedValue(mockHeaders);
+    vi.mocked(headers).mockResolvedValue(mockHeaders);
 
     const mockSession = { user: { id: '1' } };
-    (auth.api.getSession as any).mockResolvedValue(mockSession);
+    vi.mocked(auth.api.getSession).mockResolvedValue(mockSession);
 
     const result = await getActionContext();
 
