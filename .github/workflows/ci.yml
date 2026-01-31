@@ -104,6 +104,10 @@ jobs:
           pnpm seed:e2e
           pnpm seed:assert-e2e
 
+      - name: Generate Playwright Auth State
+        run: |
+          pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
+
       - name: E2E Contract Check (Auth Rendering)
         run: |
           pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/gate/auth-rendering-contract.spec.ts --project=gate-ks-sq --project=gate-mk-mk --max-failures=1 --trace=retain-on-failure
