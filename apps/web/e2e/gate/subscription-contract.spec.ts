@@ -46,10 +46,13 @@ test.describe('Subscription Contract Verification', () => {
 
     // Mock Paddle global to catch the call
     await page.addInitScript(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).Paddle = {
         Initialize: () => {},
         Checkout: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           open: (args: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (window as any).__paddle_args = args;
           },
         },

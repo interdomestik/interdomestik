@@ -27,14 +27,14 @@ test.describe('Auth Rendering Contract (Regression Protection)', () => {
               ? 'admin'
               : 'agent';
 
-      await loginAs(role as any);
+      await loginAs(role as 'member' | 'staff' | 'admin' | 'agent');
 
       const consoleMessages: string[] = [];
       page.on('console', msg => {
         if (msg.type() === 'error') consoleMessages.push(msg.text());
       });
 
-      await gotoApp(page, route.path as any, testInfo, { marker: route.marker });
+      await gotoApp(page, route.path, testInfo, { marker: route.marker });
 
       // Assert readiness marker
       await expect(page.getByTestId(route.marker)).toBeVisible();

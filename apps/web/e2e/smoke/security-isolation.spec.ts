@@ -28,7 +28,8 @@ test.describe('Security & Isolation Smoke Tests', () => {
       // If 200, verify the response does NOT contain the MK claim
       const list = data.claims || data.data || [];
       const hasMKClaim =
-        Array.isArray(list) && list.some((c: any) => c.claimNumber === MK_CLAIM_NUMBER);
+        Array.isArray(list) &&
+        list.some((c: { claimNumber?: string }) => c.claimNumber === MK_CLAIM_NUMBER);
 
       expect(hasMKClaim, `Security Breach: KS user retrieved MK claim ${MK_CLAIM_NUMBER}`).toBe(
         false
