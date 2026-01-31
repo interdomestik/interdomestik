@@ -1,5 +1,4 @@
 import withBundleAnalyzer from '@next/bundle-analyzer';
-import { withSentryConfig } from '@sentry/nextjs';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
@@ -49,41 +48,41 @@ const nextConfig = {
   },
 };
 
-import { withAxiom } from 'next-axiom';
-
 const finalConfig = bundleAnalyzer(withNextIntl(nextConfig));
 
-export default withSentryConfig(withAxiom(finalConfig), {
-  // For all available options, see:
-  // https://github.com/getsentry/sentry-webpack-plugin#options
+// export default withSentryConfig(withAxiom(finalConfig), {
+//   // For all available options, see:
+//   // https://github.com/getsentry/sentry-webpack-plugin#options
 
-  org: 'interdomestik',
-  project: 'web-app',
+//   org: 'interdomestik',
+//   project: 'web-app',
 
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
+//   // Only print logs for uploading source maps in CI
+//   silent: !process.env.CI,
 
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+//   // For all available options, see:
+//   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
+//   // Upload a larger set of source maps for prettier stack traces (increases build time)
+//   widenClientFileUpload: true,
 
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-  // This can increase your server load as well as your Sentry bill.
-  tunnelRoute: '/monitoring',
+//   // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+//   // This can increase your server load as well as your Sentry bill.
+//   tunnelRoute: '/monitoring',
 
-  // Hides source maps from visitors
-  hideSourceMaps: true,
+//   // Hides source maps from visitors
+//   hideSourceMaps: true,
 
-  // Webpack-specific options (fixes deprecation warnings)
-  webpack: {
-    reactComponentAnnotation: {
-      enabled: true,
-    },
-    treeshake: {
-      removeDebugLogging: true,
-    },
-    automaticVercelMonitors: true,
-  },
-});
+//   // Webpack-specific options (fixes deprecation warnings)
+//   webpack: {
+//     reactComponentAnnotation: {
+//       enabled: true,
+//     },
+//     treeshake: {
+//       removeDebugLogging: true,
+//     },
+//     automaticVercelMonitors: true,
+//   },
+// });
+
+export default finalConfig;
