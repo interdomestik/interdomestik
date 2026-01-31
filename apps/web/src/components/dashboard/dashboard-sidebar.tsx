@@ -99,6 +99,9 @@ export function DashboardSidebar() {
               <SidebarMenu className="gap-1">
                 {/* For Agents, show all member items (Claims, etc). For Members, show rest. */}
                 {memberItems.slice(isAgent ? 0 : 1).map(item => {
+                  // Hide Member Claims for Agents to avoid confusion with Agent Claims
+                  if (isAgent && item.href === '/member/claims') return null;
+
                   const isActive = pathname.startsWith(item.href);
                   return (
                     <SidebarMenuItem key={item.href}>

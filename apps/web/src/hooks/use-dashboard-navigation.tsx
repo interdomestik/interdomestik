@@ -80,7 +80,7 @@ export function useDashboardNavigation() {
   if (isAgent) {
     agentItems.push(
       { title: 'Agent Hub', href: '/agent', icon: Home },
-      { title: 'Claims', href: '/agent/claims', icon: FileText },
+      { title: t('claims'), href: '/agent/claims', icon: FileText },
       { title: 'Rapid POS', href: '/agent/pos', icon: UserPlus },
       { title: 'Leads', href: '/agent/leads', icon: Users },
       { title: 'Clients', href: '/agent/clients', icon: Briefcase },
