@@ -25,7 +25,8 @@ describe('admin-users getActionContext', () => {
     vi.mocked(headers).mockResolvedValue(mockHeaders);
 
     const mockSession = { user: { id: 'admin-1' } };
-    vi.mocked(auth.api.getSession).mockResolvedValue(mockSession);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(auth.api.getSession).mockResolvedValue(mockSession as any);
 
     const result = await getActionContext();
 
