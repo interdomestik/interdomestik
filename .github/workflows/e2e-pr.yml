@@ -73,7 +73,7 @@ jobs:
             exit 1
           fi
 
-          grep -n "paddle.com" apps/web/src/lib/proxy.ts >/dev/null
+          grep -n "paddle.com" apps/web/src/proxy.ts >/dev/null
 
       - name: Seed E2E DB
         run: pnpm seed:e2e
