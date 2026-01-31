@@ -16,9 +16,8 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 
-export function generateStaticParams() {
-  return routing.locales.map(locale => ({ locale }));
-}
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function generateMetadata({
   params,

@@ -1,1 +1,1 @@
-export { default, generateMetadata, generateStaticParams } from './_core.entry';
+export { default, generateMetadata } from './_core.entry';
