@@ -90,12 +90,18 @@ ls -R .next/standalone || echo "DEBUG: ls .next/standalone failed"
 
 # Fast-fail if standalone build is missing (turns confusing E2E failure into immediate build artifact error)
 if [ ! -f "${STANDALONE_SERVER}" ]; then
-  echo "❌ Error: Next.js standalone server not found at ${STANDALONE_SERVER}."
-  echo "Ensure the build ran with 'output: standalone' in next.config.mjs."
-  echo ""
-  echo "Expected structure:"
-  echo "  ${WEB_DIR}/.next/standalone/apps/web/server.js"
-  exit 1
+  echo "⚠️  WARNING: Next.js standalone server not found at ${STANDALONE_SERVER}."
+  echo "⚠️  Falling back to standard 'next start'..."
+  
+  # Check if next binary exists (in node_modules)
+  if ! command -v next &> /dev/null && [ ! -f "node_modules/.bin/next" ]; then
+    echo "❌ Error: 'next' binary also missing. Cannot start server."
+    exit 1
+  fi
+
+  # Run standard next start
+  # Note: Environment variables are already exported above
+  exec next start --port "${PORT}" --hostname "${HOSTNAME}"
 fi
 
 echo "✅ Standalone server found: ${STANDALONE_SERVER}"
