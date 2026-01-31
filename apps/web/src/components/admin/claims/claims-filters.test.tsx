@@ -2,13 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminClaimsFilters } from './claims-filters';
 
-// Mock specific imports used by the component
-vi.mock('@/i18n/routing', () => ({
+// Mock next/navigation - the component imports useRouter, usePathname, useSearchParams from here
+vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
   usePathname: vi.fn(),
-}));
-
-vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(),
 }));
 
@@ -31,8 +28,7 @@ vi.mock('@/components/ui/glass-card', () => ({
   GlassCard: ({ children }: any) => <div>{children}</div>,
 }));
 
-import { usePathname, useRouter } from '@/i18n/routing';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 describe('AdminClaimsFilters', () => {
   const mockRouter = { push: vi.fn() };
