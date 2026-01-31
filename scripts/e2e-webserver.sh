@@ -93,15 +93,17 @@ if [ ! -f "${STANDALONE_SERVER}" ]; then
   echo "⚠️  WARNING: Next.js standalone server not found at ${STANDALONE_SERVER}."
   echo "⚠️  Falling back to standard 'next start'..."
   
-  # Check if next binary exists (in node_modules)
-  if ! command -v next &> /dev/null && [ ! -f "node_modules/.bin/next" ]; then
-    echo "❌ Error: 'next' binary also missing. Cannot start server."
-    exit 1
+  # Check for next binary definition
+  NEXT_BIN="next"
+  if [ -f "node_modules/.bin/next" ]; then
+    NEXT_BIN="./node_modules/.bin/next"
+  elif ! command -v next &> /dev/null; then
+     echo "❌ Error: 'next' binary missing in PATH and node_modules."
+     exit 1
   fi
 
-  # Run standard next start
-  # Note: Environment variables are already exported above
-  exec next start --port "${PORT}" --hostname "${HOSTNAME}"
+  echo "DEBUG: Starting fallback server using: ${NEXT_BIN}"
+  exec "${NEXT_BIN}" start --port "${PORT}" --hostname "${HOSTNAME}"
 fi
 
 echo "✅ Standalone server found: ${STANDALONE_SERVER}"
