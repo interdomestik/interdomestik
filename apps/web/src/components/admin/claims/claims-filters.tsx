@@ -33,6 +33,8 @@ export function AdminClaimsFilters() {
 
   const updateFilters = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
+    const currentView = searchParams.get('view');
+
     params.delete('page'); // Reset pagination on filter change
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -42,6 +44,11 @@ export function AdminClaimsFilters() {
         params.delete(key);
       }
     });
+
+    // Preserve view if present, so we don't drop out of list mode
+    if (currentView) {
+      params.set('view', currentView);
+    }
 
     const query = params.toString();
     const targetUrl = `${pathname}${query ? `?${query}` : ''}`;
