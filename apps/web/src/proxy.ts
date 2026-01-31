@@ -72,6 +72,19 @@ export default async function proxy(request: NextRequest) {
   const nonce = createNonce();
   const { pathname } = request.nextUrl;
 
+  // DEV-ONLY: Force nip.io usage to ensure multi-tenancy works correctly and skip country selector.
+  // This redirects http://localhost:3000 -> http://ks.127.0.0.1.nip.io:3000
+  if (process.env.NODE_ENV === 'development') {
+    const rawHost = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
+    const [hostname, port] = rawHost.split(':');
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      const nipHost = `ks.127.0.0.1.nip.io:${port || '3000'}`;
+      const url = new URL(pathname + request.nextUrl.search, `http://${nipHost}`);
+      return NextResponse.redirect(url);
+    }
+  }
+
   // In Next standalone (used by Playwright), the internally initialized request.url/origin can
   // default to localhost/127.0.0.1 even when Host is mk.localhost/ks.localhost. Normalize
   // routing/redirects to the incoming host so we never drift origins.
