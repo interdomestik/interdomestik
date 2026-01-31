@@ -70,16 +70,11 @@
     "prepare": "husky && husky install",
     "track:audit": "node scripts/track-audit.mjs",
     "purity:audit": "node scripts/purity-audit.mjs",
-    "db:migrate": "pnpm --filter @interdomestik/database migrate",
-    "db:generate": "pnpm --filter @interdomestik/database generate",
     "db:push": "pnpm --filter @interdomestik/database push",
-    "db:studio": "pnpm --filter @interdomestik/database studio",
     "start:system": "./scripts/start-system.sh",
     "start:system:quick": "./scripts/start-system-quick.sh",
     "boot:dev": "pnpm dev",
     "boot:e2e": "pnpm seed:e2e && pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk",
-    "seed:e2e": "pnpm --filter @interdomestik/database seed:e2e",
-    "seed:assert-e2e": "pnpm --filter @interdomestik/database seed:assert-e2e",
     "check:golden": "pnpm --filter @interdomestik/web test:e2e:phase5"
   },
   "devDependencies": {

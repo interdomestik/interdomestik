@@ -80,3 +80,5 @@ apps/web/e2e-results.json
 
 # Playwright fast-gate cached auth state
 apps/web/.playwright/
+.pnpm-store
+.pnpm-store

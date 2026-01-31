@@ -11,7 +11,11 @@ export function SidebarBrand({ role }: SidebarBrandProps) {
   const t = useTranslations('nav');
   // V3 Unified Hub: Both Members and Agents start at /member (Crystal Hub)
   const homeHref =
-    role === 'admin' || role === 'super_admin' || role === 'tenant_admin' ? '/admin' : '/member';
+    role === 'admin' || role === 'super_admin' || role === 'tenant_admin'
+      ? '/admin'
+      : role === 'agent'
+        ? '/agent'
+        : '/member';
 
   return (
     <SidebarHeader className="h-20 flex items-center justify-center border-b border-white/10">
