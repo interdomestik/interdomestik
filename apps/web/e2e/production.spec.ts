@@ -16,13 +16,14 @@ async function loginAs(
   testInfo: TestInfo
 ) {
   const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
-  const loginURL = `${baseURL}/api/auth/sign-in/email`;
+  const origin = new URL(baseURL).origin;
+  const loginURL = `${origin}/api/auth/sign-in/email`;
 
   const res = await page.request.post(loginURL, {
     data: { email: user.email, password: user.password || 'GoldenPass123!' },
     headers: {
-      Origin: baseURL,
-      Referer: `${baseURL}/login`,
+      Origin: origin,
+      Referer: `${origin}/login`,
     },
   });
 

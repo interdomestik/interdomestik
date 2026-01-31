@@ -12,8 +12,8 @@ test.describe('Settings Page', () => {
   test.describe.configure({ mode: 'serial' });
 
   test.describe('Navigation', () => {
-    test('should redirect to login when not authenticated', async ({ page }) => {
-      await page.goto(routes.memberSettings('en'));
+    test('should redirect to login when not authenticated', async ({ page }, testInfo) => {
+      await gotoApp(page, routes.memberSettings('en'), testInfo, { marker: 'auth-ready' });
 
       // Should be redirected to login
       await page.waitForURL(/.*login.*|.*auth\/sign-in.*/);
