@@ -209,7 +209,7 @@ export default defineConfig({
   webServer: {
     // E2E runs against a production server (Next `start`) for artifact consistency.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: `bash "${WEB_SERVER_SCRIPT}"`,
+    command: 'pnpm run start:ci',
     url: `${BASE_URL}/api/health`,
     // Audit requires reuseExistingServer: process.env.PW_REUSE_SERVER for contract.
     reuseExistingServer: true,
