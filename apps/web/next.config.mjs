@@ -7,6 +7,8 @@ const bundleAnalyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
+console.log('📝 Loading next.config.mjs with output: standalone');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: [
