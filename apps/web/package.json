@@ -8,6 +8,7 @@
     "build:ci": "next build",
     "check:size": "node scripts/check-size.mjs",
     "start": "next start",
+    "start:ci": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "test:unit": "vitest run",
