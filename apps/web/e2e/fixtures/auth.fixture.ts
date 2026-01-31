@@ -421,7 +421,7 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Generic authenticated page (defaults to member if not specified)
    */
-  authenticatedPage: async ({ page, baseURL }, use, testInfo) => {
+  authenticatedPage: async ({ page, baseURL: _baseURL }, use, testInfo) => {
     attachDialogDiagnostics(page);
     const tenant = getTenantFromTestInfo(testInfo);
     // Use ensureAuthenticated instead of raw check

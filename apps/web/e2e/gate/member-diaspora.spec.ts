@@ -3,7 +3,7 @@ import { expect, test } from '../fixtures/auth.fixture';
 test.describe('Diaspora Feature', () => {
   test('Member can see Diaspora ribbon and navigate to Diaspora page', async ({
     authenticatedPage: page,
-  }, testInfo) => {
+  }, _testInfo) => {
     // 1. Go to Member Home
     // await gotoApp(page, routes.member(test.info()), testInfo);
 

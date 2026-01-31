@@ -3,19 +3,15 @@ import { type TestInfo } from '@playwright/test';
 export type Locale = 'sq' | 'en' | 'mk' | 'sr' | 'de' | 'hr';
 const SUPPORTED_LOCALES: Locale[] = ['sq', 'en', 'mk', 'sr', 'de', 'hr'];
 
-type GlobalE2E = typeof globalThis & {
-  __E2E_BASE_URL?: string;
-};
-
 /**
  * Canonical parser for locale from a baseURL string.
  */
 function parseLocaleFromUrl(urlStr: string): Locale {
   try {
     const url = new URL(urlStr);
-    const firstSegment = url.pathname.split('/').find(Boolean) as any;
-    if (SUPPORTED_LOCALES.includes(firstSegment)) {
-      return firstSegment;
+    const firstSegment = url.pathname.split('/').find(Boolean);
+    if (firstSegment && SUPPORTED_LOCALES.includes(firstSegment as Locale)) {
+      return firstSegment as Locale;
     }
   } catch {
     // ignore

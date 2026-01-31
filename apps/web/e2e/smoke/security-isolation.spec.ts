@@ -3,7 +3,10 @@ import { expect, test } from '../fixtures/auth.fixture';
 test.describe('Security & Isolation Smoke Tests', () => {
   // Test 1: Cross-Tenant Isolation
   // Requirement: A user from Tenant A (KS) cannot access resources from Tenant B (MK).
-  test('Cross-Tenant Access Denial (KS -> MK)', async ({ authenticatedPage, request }) => {
+  test('Cross-Tenant Access Denial (KS -> MK)', async ({
+    authenticatedPage: _authenticatedPage,
+    request,
+  }) => {
     // 1. Login as KS Member (done by fixture)
     // 2. Try to access a known MK resource ID via API (simulating direct attack)
     // Product rule: "You don't see what you don't own".
