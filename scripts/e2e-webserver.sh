@@ -76,21 +76,30 @@ echo "  HOSTNAME=${HOSTNAME}"
 echo "  PORT=${PORT}"
 
 # Assume build --filter @interdomestik/web already happened.
-# standalone output requires copying static/public into the standalone folder or 
-# referencing them correctly. Next.js standalone by default expects them in the
-# subfolder apps/web/.next/... or at the root of the standalone dist.
-# In our monorepo/standalone structure, we just run the server.js.
 
 STANDALONE_SERVER="${WEB_DIR}/.next/standalone/apps/web/server.js"
+STANDALONE_ROOT="${WEB_DIR}/.next/standalone"
 
-# Debug file structure before check
-echo "DEBUG: Looking for standalone server at: ${STANDALONE_SERVER}"
-echo "DEBUG: Listing .next/standalone structure:"
-ls -R .next/standalone || echo "DEBUG: ls .next/standalone failed"
+if [ -f "${STANDALONE_SERVER}" ]; then
+  echo "✅ Standalone server found: ${STANDALONE_SERVER}"
+  echo "Preparing standalone assets..."
+  
+  # Copy public to standalone root
+  cp -r "${WEB_DIR}/public" "${STANDALONE_ROOT}/" || true
+  
+  # Copy static to standalone root's .next
+  mkdir -p "${STANDALONE_ROOT}/.next"
+  cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/.next/" || true
 
-# Fast-fail if standalone build is missing (turns confusing E2E failure into immediate build artifact error)
-if [ ! -f "${STANDALONE_SERVER}" ]; then
-  echo "⚠️  WARNING: Next.js standalone server not found at ${STANDALONE_SERVER}."
+  # Also copy to nested apps/web/.next for safety in monorepo structure
+  mkdir -p "${STANDALONE_ROOT}/apps/web/.next"
+  cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/apps/web/.next/" || true
+
+  echo "Starting standalone server from root: ${STANDALONE_ROOT}"
+  cd "${STANDALONE_ROOT}"
+  exec node apps/web/server.js
+else
+  echo "⚠️  Standalone server NOT found at ${STANDALONE_SERVER}."
   echo "⚠️  Falling back to standard 'next start'..."
   
   # Check for next binary definition
@@ -99,34 +108,11 @@ if [ ! -f "${STANDALONE_SERVER}" ]; then
     NEXT_BIN="./node_modules/.bin/next"
   elif ! command -v next &> /dev/null; then
      echo "❌ Error: 'next' binary missing in PATH and node_modules."
+     echo "Debug: Listing node_modules/.bin:"
+     ls -la node_modules/.bin || echo "node_modules missing"
      exit 1
   fi
 
   echo "DEBUG: Starting fallback server using: ${NEXT_BIN}"
   exec "${NEXT_BIN}" start --port "${PORT}" --hostname "${HOSTNAME}"
 fi
-
-echo "✅ Standalone server found: ${STANDALONE_SERVER}"
-
-# Next.js standalone requires static and public files to be copied manually
-# to the standalone destination if they are to be served by the node server.
-# Correct mapping for monorepos:
-# standalone/public
-# standalone/.next/static
-
-STANDALONE_ROOT="${WEB_DIR}/.next/standalone"
-
-echo "Preparing standalone assets..."
-# Copy public to standalone root
-cp -r "${WEB_DIR}/public" "${STANDALONE_ROOT}/" || true
-# Copy static to standalone root's .next
-mkdir -p "${STANDALONE_ROOT}/.next"
-cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/.next/" || true
-
-# Also copy to nested apps/web/.next for safety in monorepo structure
-mkdir -p "${STANDALONE_ROOT}/apps/web/.next"
-cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/apps/web/.next/" || true
-
-echo "Starting standalone server from root: ${STANDALONE_ROOT}"
-cd "${STANDALONE_ROOT}"
-node apps/web/server.js
