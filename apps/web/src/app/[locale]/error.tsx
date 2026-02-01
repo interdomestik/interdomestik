@@ -19,7 +19,7 @@ export default function Error({
   return (
     <div
       className="flex min-h-[60vh] flex-col items-center justify-center text-center space-y-4"
-      data-testid="not-found-page"
+      data-testid="error-page"
     >
       <div className="space-y-2">
         <p className="text-sm uppercase tracking-wide text-destructive font-bold">Error</p>

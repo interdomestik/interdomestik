@@ -1,9 +1,6 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database/db';
-import { user } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { z } from 'zod';
 
