@@ -42,6 +42,9 @@ test.describe('Subscription Contract Verification', () => {
   }, testInfo) => {
     await gotoApp(page, routes.pricing(testInfo), testInfo, { marker: 'pricing-page-ready' });
 
+    const billingSignal = page.getByTestId('pricing-page');
+    await expect(billingSignal).toHaveAttribute('data-billing-test-mode', '1');
+
     // Mock Paddle global to catch the call
     await page.addInitScript(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -61,10 +64,8 @@ test.describe('Subscription Contract Verification', () => {
     await page.getByTestId('plan-cta-standard').click();
 
     // In Billing Test Mode, it should redirect to success
-    if (process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1') {
-      await expect(page).toHaveURL(/.*\/member\/membership\/success\?test=true/, {
-        timeout: 15000,
-      });
-    }
+    await expect(page).toHaveURL(/.*\/member\/membership\/success\?test=true/, {
+      timeout: 15000,
+    });
   });
 });
