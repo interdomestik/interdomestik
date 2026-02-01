@@ -213,7 +213,7 @@ export default defineConfig({
     command: 'bash ../../scripts/e2e-webserver.sh',
     cwd: __dirname,
     url: `${BASE_URL}/api/health`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !!process.env.PW_REUSE_SERVER,
     timeout: 120 * 1000,
     env: {
       ...process.env,

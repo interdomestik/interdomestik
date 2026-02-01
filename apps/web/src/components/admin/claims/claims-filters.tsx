@@ -63,12 +63,12 @@ export function AdminClaimsFilters() {
   if (!isHydrated) return null; // Prevent hydration mismatch entirely
 
   return (
-    <div data-testid="admin-claims-v2-ready">
+    <div data-testid="admin-claims-filters">
       <OpsFiltersBar
         tabs={statusOptions.map(option => ({
           id: option.value,
           label: option.label,
-          testId: `claims-tab-${option.value}`, // E2E contract: claims-tab-{status}
+          testId: `status-filter-${option.value}`, // Audit contract required pattern
         }))}
         activeTab={currentStatus}
         onTabChange={tabId => updateFilters({ status: tabId })}
