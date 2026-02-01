@@ -37,6 +37,10 @@
       "cta_green_card": "GREEN CARD – Jashtë vendit (Diaspora)",
       "cta_benefits": "10 PËRFITIMET E ANËTARËSISË"
     },
+    "protection_status": {
+      "active": "Mbrojtje Aktive",
+      "inactive": "Pa Mbrojtje Aktive"
+    },
     "categories": {
       "property_damage": "Dëmet në Pronë",
       "health_safety": "Shëndeti dhe Siguria",

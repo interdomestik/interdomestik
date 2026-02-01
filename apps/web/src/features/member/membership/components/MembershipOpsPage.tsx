@@ -56,7 +56,9 @@ export function MembershipOpsPage({
     id: s.id,
     cells: [
       <div key="plan" className="flex flex-col">
-        <span className="font-medium">{s.plan?.name || s.planId}</span>
+        <span className="font-medium" data-testid="subscription-plan-name">
+          {s.plan?.name || s.planId}
+        </span>
         <span className="text-xs text-muted-foreground">
           {s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '-'}
         </span>
@@ -84,7 +86,12 @@ export function MembershipOpsPage({
           <h2 className="font-semibold text-lg">{t('ops.title')}</h2>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <OpsTable rows={tableRows} columns={tableColumns} emptyLabel={t('ops.empty_list')} />
+          <OpsTable
+            rows={tableRows}
+            columns={tableColumns}
+            emptyLabel={t('ops.empty_list')}
+            rowTestId="subscription-item"
+          />
         </div>
       </div>
 

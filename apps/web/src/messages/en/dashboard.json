@@ -37,6 +37,10 @@
       "cta_green_card": "GREEN CARD – Abroad (Diaspora)",
       "cta_benefits": "10 MEMBERSHIP BENEFITS"
     },
+    "protection_status": {
+      "active": "Active Protection",
+      "inactive": "No Active Protection"
+    },
     "categories": {
       "property_damage": "Property Damage",
       "health_safety": "Health & Safety",

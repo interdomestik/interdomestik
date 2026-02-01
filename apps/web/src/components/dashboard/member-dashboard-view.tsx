@@ -136,6 +136,20 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 </div>
               </div>
               <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md transition-all hover:bg-white/10">
+                <ShieldAlert className="w-5 h-5 text-rose-400" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Protection
+                  </span>
+                  <span
+                    className="text-sm font-black text-white uppercase tracking-tighter"
+                    data-testid="protection-status"
+                  >
+                    {isActive ? t('protection_status.active') : t('protection_status.inactive')}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md transition-all hover:bg-white/10">
                 <Zap className="w-5 h-5 text-amber-400" />
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">

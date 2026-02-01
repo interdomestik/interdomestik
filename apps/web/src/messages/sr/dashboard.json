@@ -39,6 +39,10 @@
       "cta_green_card": "ZELENI KARTON – U inostranstvu (Dijaspora)",
       "cta_benefits": "10 PREDNOSTI ČLANSTVA"
     },
+    "protection_status": {
+      "active": "Aktivna zaštita",
+      "inactive": "Nema aktivne zaštite"
+    },
     "categories": {
       "property_damage": "Šteta na imovini",
       "health_safety": "Zdravlje i bezbednost",

@@ -16,5 +16,9 @@ export default async function MembershipPage() {
   const subscriptions = await getMemberSubscriptionsCore(session.user.id);
   const documents = await getMemberDocumentsCore(session.user.id);
 
-  return <MembershipOpsPage subscriptions={subscriptions} documents={documents} />;
+  return (
+    <div data-testid="membership-page-ready">
+      <MembershipOpsPage subscriptions={subscriptions} documents={documents} />
+    </div>
+  );
 }

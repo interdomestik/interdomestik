@@ -39,6 +39,10 @@
       "cta_green_card": "ЗЕЛЕН КАРТОН – Во странство (Дијаспора)",
       "cta_benefits": "10 ПРИДОБИВКИ ОД ЧЛЕНСТВОТО"
     },
+    "protection_status": {
+      "active": "Активна заштита",
+      "inactive": "Нема активна заштита"
+    },
     "categories": {
       "property_damage": "Штета на имот",
       "health_safety": "Здравје и безбедност",
