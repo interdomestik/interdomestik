@@ -44,21 +44,14 @@ Goal: Fix CI failures in PR E2E and CI e2e-gate for `apps/web/e2e/gate/subscript
 
 ## Current State of Evidence
 
-- The billing test mode assertion now passes, but the redirect still fails.
-- That implies either:
-  - the CTA handler never runs, or
-  - the handler runs but does not navigate, or
-  - navigation is blocked (origin/locale/session mismatch).
+Root cause identified locally:
 
-## Next Diagnostic Steps
+- The pricing page loaded without client hydration because `/_next/static/*` assets were 404ing.
+- Evidence: many 404s for `/_next/static/chunks/*.js|*.css`, and CTA click never triggered client navigation.
 
-1. Capture the billing marker value in the test failure logs (done via `data-testid="pricing-page"`).
-2. If the redirect still fails with billing mode = 1:
-   - Validate that the user is authenticated on the pricing page (session present).
-   - Confirm CTA is a button (not link) and is enabled.
-   - Add a temporary console log in `handleAction` to confirm execution (remove after debug).
-3. If the Paddle mock throws:
-   - The app is calling Paddle in billing test mode → bug in `PricingTable` logic.
+## Fix Applied
+
+- Ensure static assets are available to the standalone server by linking the build output into the expected paths.
 
 ## Files Touched
 
@@ -68,6 +61,7 @@ Goal: Fix CI failures in PR E2E and CI e2e-gate for `apps/web/e2e/gate/subscript
 - `apps/web/src/app/[locale]/(site)/pricing/page.tsx`
 - `apps/web/src/app/[locale]/(site)/pricing/_core.entry.tsx`
 - `apps/web/e2e/gate/subscription-contract.spec.ts`
+- `scripts/e2e-webserver.sh`
 
 ## Principle for Future Fixes
 

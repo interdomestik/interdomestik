@@ -72,6 +72,16 @@ echo "  PORT=${PORT}"
 
 STANDALONE_SERVER="${WEB_DIR}/.next/standalone/apps/web/server.js"
 FALLBACK_STANDALONE_SERVER="${WEB_DIR}/.next/standalone/server.js"
+STANDALONE_STATIC_DIR="${WEB_DIR}/.next/standalone/.next/static"
+STANDALONE_APP_STATIC_DIR="${WEB_DIR}/.next/standalone/apps/web/.next/static"
+BUILD_STATIC_DIR="${WEB_DIR}/.next/static"
+
+if [[ -d "${BUILD_STATIC_DIR}" ]]; then
+	mkdir -p "$(dirname "${STANDALONE_STATIC_DIR}")"
+	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_STATIC_DIR}"
+	mkdir -p "$(dirname "${STANDALONE_APP_STATIC_DIR}")"
+	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_APP_STATIC_DIR}"
+fi
 
 if [[ -f "${STANDALONE_SERVER}" ]]; then
 	exec node "${STANDALONE_SERVER}"
