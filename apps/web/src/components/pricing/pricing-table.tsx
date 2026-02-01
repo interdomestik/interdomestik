@@ -13,6 +13,7 @@ import { useState } from 'react';
 interface PricingTableProps {
   userId?: string;
   email?: string;
+  billingTestMode?: boolean;
 }
 
 function getPlanColorClass(color: string) {
@@ -21,7 +22,7 @@ function getPlanColorClass(color: string) {
   return 'bg-indigo-50 text-indigo-600';
 }
 
-export function PricingTable({ userId, email }: PricingTableProps) {
+export function PricingTable({ userId, email, billingTestMode }: PricingTableProps) {
   const t = useTranslations('pricing');
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,12 +86,14 @@ export function PricingTable({ userId, email }: PricingTableProps) {
     },
   ];
 
+  const isBillingTestMode = billingTestMode ?? process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
+
   const handleAction = async (planId: string, priceId: string) => {
     if (!userId) return;
 
     setLoading(priceId);
     try {
-      if (process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1') {
+      if (isBillingTestMode) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         // Simulate redirect to success page with dummy data
         router.push(`/member/membership/success?test=true&priceId=${priceId}&planId=${planId}`);

@@ -30,7 +30,11 @@ export default async function PricingPage({ params }: PricingPageProps) {
         <p className="text-xl text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <PricingTable userId={session?.user?.id} email={session?.user?.email} />
+      <PricingTable
+        userId={session?.user?.id}
+        email={session?.user?.email}
+        billingTestMode={process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1'}
+      />
 
       <div className="mt-20 text-center">
         <p className="text-sm text-muted-foreground">30-Day Money-Back Guarantee</p>
