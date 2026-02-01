@@ -69,6 +69,7 @@
     "release:dry": "release-it --dry-run",
     "prepare": "husky && husky install",
     "track:audit": "node scripts/track-audit.mjs",
+    "ci:audit:docker": "bash scripts/ci-audit-docker.sh",
     "purity:audit": "node scripts/purity-audit.mjs",
     "db:push": "pnpm --filter @interdomestik/database push",
     "start:system": "./scripts/start-system.sh",

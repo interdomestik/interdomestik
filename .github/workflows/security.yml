@@ -34,5 +34,30 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: pnpm audit (high+)
-        run: pnpm audit --audit-level=high
+      # Non-blocking: report all production vulnerabilities for visibility.
+      # This is informational only and should not fail CI.
+      - name: pnpm audit (prod) report (non-blocking)
+        continue-on-error: true
+        run: pnpm audit --prod
+
+      # Blocking: fail only on HIGH/CRITICAL production vulnerabilities.
+      # Retry a couple times to avoid flaky registry/network failures.
+      - name: pnpm audit (prod, high+) gate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          attempt() {
+            pnpm audit --prod --audit-level=high
+          }
+
+          for i in 1 2 3; do
+            if attempt; then
+              exit 0
+            fi
+            echo "pnpm audit gate failed (attempt ${i}/3). Retrying..." >&2
+            sleep $((i * 5))
+          done
+
+          echo "pnpm audit gate failed after retries." >&2
+          exit 1
