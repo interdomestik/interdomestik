@@ -191,6 +191,32 @@ async function storageStateExists(filePath: string): Promise<boolean> {
   }
 }
 
+async function storageStateUsable(filePath: string, expectedHost: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+  } catch {
+    return false;
+  }
+
+  try {
+    const raw = await fs.readFile(filePath, 'utf8');
+    const parsed = JSON.parse(raw) as { cookies?: Array<{ name?: string; domain?: string }> };
+    const cookies = Array.isArray(parsed.cookies) ? parsed.cookies : [];
+    const sessionCookies = cookies.filter(c => (c.name ?? '').includes('session_token'));
+
+    if (sessionCookies.length === 0) return false;
+
+    return sessionCookies.some(c => {
+      const domain = (c.domain ?? '').toLowerCase();
+      const host = expectedHost.toLowerCase();
+      return domain === host || domain === `.${host}`;
+    });
+  } catch {
+    // If parsing fails, treat as unusable so it can be regenerated.
+    return false;
+  }
+}
+
 async function hasSessionCookie(page: Page): Promise<boolean> {
   const cookies = await page.context().cookies();
   return cookies.some(c => /session|auth|better-auth/i.test(c.name));
@@ -212,16 +238,12 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
 }
 
 export async function logout(page: Page, testInfo: TestInfo): Promise<void> {
-  const current = page.url() && page.url() !== 'about:blank' ? page.url() : null;
-  // Always use 127.0.0.1 for API calls
-  const origin = 'http://127.0.0.1:3000';
+  const info = getProjectUrlInfo(testInfo, null);
   const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
-  const forwardedHost = projectHeaders['x-forwarded-host'];
-
-  await page.request.post(new URL('/api/auth/sign-out', origin).toString(), {
+  await page.request.post(new URL('/api/auth/sign-out', info.origin).toString(), {
     headers: {
-      Origin: origin,
-      ...(forwardedHost ? { 'x-forwarded-host': forwardedHost } : {}),
+      Origin: info.origin,
+      ...projectHeaders,
     },
   });
   await gotoApp(page, routes.login('en'), testInfo);
@@ -249,22 +271,21 @@ async function performLogin(
   const { email, password } = credsFor(role, tenant);
 
   // API Login Strategy (Robust)
-  // API Login Strategy (Robust)
-  // FORCE 127.0.0.1 for all auth requests to match server expectation
-  const apiBase = 'http://127.0.0.1:3000';
-  const loginURL = `${apiBase}/api/auth/sign-in/email`;
+  // IMPORTANT: login MUST use the same origin as the browser project baseURL.
+  // Otherwise session cookies are stored for a different host and won't be sent
+  // on subsequent navigation (causing /login redirect cascades).
+  const loginURL = new URL('/api/auth/sign-in/email', info.origin).toString();
 
-  // Extract tenant host from project config
+  // Propagate tenant simulation headers (x-forwarded-host) from project config.
   const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
-  const forwardedHost = projectHeaders['x-forwarded-host'];
 
   const res = await page.request.post(loginURL, {
     data: { email, password },
     headers: {
-      Origin: apiBase,
-      Referer: `${apiBase}/${info.locale}/login`,
+      Origin: info.origin,
+      Referer: buildUiLoginUrl(info),
       'x-forwarded-for': ipForRole(role),
-      ...(forwardedHost ? { 'x-forwarded-host': forwardedHost } : {}),
+      ...projectHeaders,
     },
   });
 
@@ -376,8 +397,14 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   const marker = 'dashboard-page-ready';
   await gotoApp(page, targetPath, testInfo, { marker });
   // Phase 3: Post-ensure validation (Contract guarantee)
-  const apiBase = getApiOrigin(testInfo.project.use.baseURL!);
-  const sessionRes = await page.request.get(`${apiBase}/api/auth/get-session`);
+  const sessionUrl = new URL('/api/auth/get-session', info.origin).toString();
+  const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+  const sessionRes = await page.request.get(sessionUrl, {
+    headers: {
+      Origin: info.origin,
+      ...projectHeaders,
+    },
+  });
   expect(
     sessionRes.status(),
     `Session should be valid (200 OK) after ensuring auth for ${role}`
@@ -457,7 +484,9 @@ export const test = base.extend<AuthFixtures>({
     }
 
     const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      storageState: (await storageStateUsable(statePath, new URL(info.origin).hostname))
+        ? statePath
+        : undefined,
       locale: 'en-US',
       extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
@@ -490,7 +519,9 @@ export const test = base.extend<AuthFixtures>({
     }
 
     const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      storageState: (await storageStateUsable(statePath, new URL(info.origin).hostname))
+        ? statePath
+        : undefined,
       locale: 'en-US',
       extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
@@ -523,7 +554,9 @@ export const test = base.extend<AuthFixtures>({
     }
 
     const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      storageState: (await storageStateUsable(statePath, new URL(info.origin).hostname))
+        ? statePath
+        : undefined,
       locale: 'en-US',
       extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
@@ -557,7 +590,9 @@ export const test = base.extend<AuthFixtures>({
     }
 
     const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      storageState: (await storageStateUsable(statePath, new URL(info.origin).hostname))
+        ? statePath
+        : undefined,
       locale: 'en-US',
       extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,

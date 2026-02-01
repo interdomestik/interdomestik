@@ -35,6 +35,9 @@ jobs:
       PLAYWRIGHT: '1'
       NEXT_PUBLIC_BILLING_TEST_MODE: '1'
       PW_REUSE_SERVER: '1'
+      PORT: 3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
       DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
 
@@ -68,6 +71,8 @@ jobs:
           ls -la apps/web/.next || echo ".next missing"
           echo "Listing apps/web/.next/standalone:"
           ls -la apps/web/.next/standalone || echo "standalone missing"
+          echo "Finding server.js under apps/web/.next (maxdepth 4):"
+          find apps/web/.next -maxdepth 4 -name server.js -print || true
 
       - name: DB migrations
         run: pnpm db:migrate

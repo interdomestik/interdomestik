@@ -11,6 +11,10 @@ const KS_HOST = process.env.KS_HOST ?? `ks.${BIND_HOST}.nip.io:${PORT}`;
 const MK_HOST = process.env.MK_HOST ?? `mk.${BIND_HOST}.nip.io:${PORT}`;
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
 
+function tenantBaseUrl(hostWithPort: string, locale: string): string {
+  return `http://${hostWithPort}/${locale}`;
+}
+
 const AUTH_DIR = path.resolve(__dirname, './e2e/.auth');
 const KS_MEMBER_STATE = path.join(AUTH_DIR, 'ks', 'member.json');
 const MK_MEMBER_STATE = path.join(AUTH_DIR, 'mk', 'member.json');
@@ -56,10 +60,7 @@ function loadEnvManual(envPath: string) {
     if (!trimmed || trimmed.startsWith('#')) return;
     const [key, ...values] = trimmed.split('=');
     if (key && values.length > 0) {
-      const val = values
-        .join('=')
-        .trim()
-        .replace(/^['"]|['"]$/g, '');
+      const val = values.join('=').trim().replace(/^['"]/, '').replace(/['"]$/, '');
       if (!process.env[key]) process.env[key] = val;
     }
   });
@@ -103,11 +104,10 @@ export default defineConfig({
     // ═══════════════════════════════════════════════════════════════════════════
     {
       name: 'gate-ks-sq',
-      dependencies: ['setup-ks'],
       testMatch: ['gate/**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://127.0.0.1:3000/sq`,
+        baseURL: tenantBaseUrl(KS_HOST, 'sq'),
         extraHTTPHeaders: {
           'x-forwarded-host': KS_HOST,
         },
@@ -118,11 +118,10 @@ export default defineConfig({
     },
     {
       name: 'gate-mk-mk',
-      dependencies: ['setup-mk'],
       testMatch: ['gate/**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://127.0.0.1:3000/mk`,
+        baseURL: tenantBaseUrl(MK_HOST, 'mk'),
         extraHTTPHeaders: {
           'x-forwarded-host': MK_HOST,
         },
@@ -140,7 +139,7 @@ export default defineConfig({
       testMatch: /setup\.state\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://127.0.0.1:3000/sq`,
+        baseURL: tenantBaseUrl(KS_HOST, 'sq'),
         extraHTTPHeaders: {
           'x-forwarded-host': KS_HOST,
         },
@@ -151,7 +150,7 @@ export default defineConfig({
       testMatch: /setup\.state\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://127.0.0.1:3000/mk`,
+        baseURL: tenantBaseUrl(MK_HOST, 'mk'),
         extraHTTPHeaders: {
           'x-forwarded-host': MK_HOST,
         },
@@ -166,7 +165,7 @@ export default defineConfig({
       dependencies: ['setup-ks'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://127.0.0.1:3000/sq`,
+        baseURL: tenantBaseUrl(KS_HOST, 'sq'),
         extraHTTPHeaders: {
           'x-forwarded-host': KS_HOST,
         },
@@ -179,7 +178,7 @@ export default defineConfig({
       dependencies: ['setup-mk'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://127.0.0.1:3000/mk`,
+        baseURL: tenantBaseUrl(MK_HOST, 'mk'),
         extraHTTPHeaders: {
           'x-forwarded-host': MK_HOST,
         },
@@ -198,7 +197,7 @@ export default defineConfig({
       testMatch: /.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://${KS_HOST}/sq`,
+        baseURL: tenantBaseUrl(KS_HOST, 'sq'),
         extraHTTPHeaders: {
           'x-forwarded-host': KS_HOST,
         },
@@ -209,17 +208,17 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // Use the robust script that handles env loading and asset copying
-    command: 'bash ../../scripts/e2e-webserver.sh',
-    cwd: __dirname,
+    // E2E runs against a production server (Next `start`) for artifact consistency.
+    // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
+    command: `bash ${WEB_SERVER_SCRIPT}`,
     url: `${BASE_URL}/api/health`,
-    reuseExistingServer: process.env.PW_REUSE_SERVER ? true : undefined,
-    timeout: 120 * 1000,
+    reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
+    timeout: 300 * 1000,
     env: {
       ...process.env,
-      PORT: '3000',
-      HOSTNAME: '127.0.0.1',
       NODE_ENV: 'production',
+      PORT: String(PORT),
+      HOSTNAME: BIND_HOST,
       NODE_OPTIONS: '--dns-result-order=ipv4first',
       NEXT_PUBLIC_APP_URL: BASE_URL,
       BETTER_AUTH_URL: BASE_URL,

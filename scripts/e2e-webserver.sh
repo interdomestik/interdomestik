@@ -6,11 +6,6 @@ WEB_DIR="${ROOT_DIR}/apps/web"
 
 cd "${WEB_DIR}"
 
-echo "DEBUG: e2e-webserver.sh started"
-echo "DEBUG: Working Directory: $(pwd)"
-echo "DEBUG: Node Version: $(node -v || echo 'MISSING')"
-ls -la || echo "DEBUG: ls failed"
-
 PORT="${PORT:-3000}"
 HOSTNAME="${HOSTNAME:-127.0.0.1}"
 BASE_URL="${NEXT_PUBLIC_APP_URL:-http://${HOSTNAME}:${PORT}}"
@@ -75,61 +70,25 @@ echo "  BETTER_AUTH_TRUSTED_ORIGINS=${BETTER_AUTH_TRUSTED_ORIGINS}"
 echo "  HOSTNAME=${HOSTNAME}"
 echo "  PORT=${PORT}"
 
-# Assume build --filter @interdomestik/web already happened.
+STANDALONE_SERVER="${WEB_DIR}/.next/standalone/apps/web/server.js"
+FALLBACK_STANDALONE_SERVER="${WEB_DIR}/.next/standalone/server.js"
 
-# Try nested path first (Monorepo/Turbo typical in some CIs)
-STANDALONE_SERVER_NESTED="${WEB_DIR}/.next/standalone/apps/web/server.js"
-# Try direct path (Standard Next.js local build)
-STANDALONE_SERVER_DIRECT="${WEB_DIR}/.next/standalone/server.js"
-
-if [ -f "${STANDALONE_SERVER_NESTED}" ]; then
-  STANDALONE_SERVER="${STANDALONE_SERVER_NESTED}"
-  STANDALONE_ROOT="${WEB_DIR}/.next/standalone"
-  SERVER_ENTRY="apps/web/server.js"
-elif [ -f "${STANDALONE_SERVER_DIRECT}" ]; then
-  STANDALONE_SERVER="${STANDALONE_SERVER_DIRECT}"
-  STANDALONE_ROOT="${WEB_DIR}/.next/standalone"
-  SERVER_ENTRY="server.js"
-else
-  STANDALONE_SERVER=""
+if [[ -f "${STANDALONE_SERVER}" ]]; then
+	exec node "${STANDALONE_SERVER}"
 fi
 
-if [ -n "${STANDALONE_SERVER}" ]; then
-  echo "✅ Standalone server found: ${STANDALONE_SERVER}"
-  echo "Preparing standalone assets..."
-  
-  # Copy public to standalone root
-  cp -r "${WEB_DIR}/public" "${STANDALONE_ROOT}/" || true
-  
-  # Copy static to standalone root's .next
-  mkdir -p "${STANDALONE_ROOT}/.next"
-  cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/.next/" || true
-
-  # Also copy to nested apps/web/.next for safety using nested path structure if needed
-  # (Standard Next.js standalone often benefits from this if paths are absolute)
-  if [[ "${SERVER_ENTRY}" == "apps/web/server.js" ]]; then
-     mkdir -p "${STANDALONE_ROOT}/apps/web/.next"
-     cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/apps/web/.next/" || true
-  fi
-
-  echo "Starting standalone server from root: ${STANDALONE_ROOT}"
-  cd "${STANDALONE_ROOT}"
-  exec node "${SERVER_ENTRY}"
-else
-  echo "⚠️  Standalone server NOT found at ${STANDALONE_SERVER}."
-  echo "⚠️  Falling back to standard 'next start'..."
-  
-  # Check for next binary definition
-  NEXT_BIN="next"
-  if [ -f "node_modules/.bin/next" ]; then
-    NEXT_BIN="./node_modules/.bin/next"
-  elif ! command -v next &> /dev/null; then
-     echo "❌ Error: 'next' binary missing in PATH and node_modules."
-     echo "Debug: Listing node_modules/.bin:"
-     ls -la node_modules/.bin || echo "node_modules missing"
-     exit 1
-  fi
-
-  echo "DEBUG: Starting fallback server using: ${NEXT_BIN}"
-  exec "${NEXT_BIN}" start --port "${PORT}" --hostname "${HOSTNAME}"
+if [[ -f "${FALLBACK_STANDALONE_SERVER}" ]]; then
+	exec node "${FALLBACK_STANDALONE_SERVER}"
 fi
+
+echo "❌ Missing standalone server artifact. Tried:" >&2
+echo "   - ${STANDALONE_SERVER}" >&2
+echo "   - ${FALLBACK_STANDALONE_SERVER}" >&2
+echo "   Run: pnpm --filter @interdomestik/web run build:ci" >&2
+echo "   Debug: listing apps/web/.next" >&2
+ls -la "${WEB_DIR}/.next" || true
+echo "   Debug: listing apps/web/.next/standalone" >&2
+ls -la "${WEB_DIR}/.next/standalone" || true
+echo "   Debug: find server.js under apps/web/.next (maxdepth 4)" >&2
+find "${WEB_DIR}/.next" -maxdepth 4 -name server.js -print || true
+exit 1
