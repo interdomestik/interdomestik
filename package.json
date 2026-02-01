@@ -115,7 +115,13 @@
       "esbuild",
       "sharp",
       "supabase"
-    ]
+    ],
+    "overrides": {
+      "fast-xml-parser": ">=5.3.4",
+      "lodash": "^4.17.21",
+      "undici": ">=6.19.2",
+      "seroval": ">=1.4.1"
+    }
   },
   "dependencies": {
     "checkly": "^6.9.8"

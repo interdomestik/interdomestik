@@ -232,6 +232,17 @@ The UI package (`packages/ui`) provides:
 - **Radius**: 0.75rem default
 - **Animations**: Fade, slide, lift effects
 
+## 📖 Documentation & Governance
+
+- [Governance & Rules](AGENTS.md) - Strict project rules and agent behavior.
+- [E2E Source of Truth](apps/web/e2e/README.md) - Technical specifications for tests and markers.
+- [Database Schema](packages/database/README.md) - Database design and migrations.
+
+### 🚦 What should I run?
+
+- `pnpm boot:dev` - Full stack development (Supabase + Next).
+- `pnpm boot:e2e` - Prepare environment for E2E tests.
+
 ## 📄 License
 
 Proprietary - All rights reserved.

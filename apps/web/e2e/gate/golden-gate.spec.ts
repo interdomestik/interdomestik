@@ -113,11 +113,11 @@ test.describe('Golden Gate: Critical Path', () => {
       await performLocalLogin(page, USERS.BM_MK_A, testInfo, 'admin');
 
       await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
-        marker: 'admin-claims-filters',
+        marker: 'admin-claims-v2-ready',
       });
 
       // Verify V2 page is ready (explicit check)
-      await expect(page.getByTestId('admin-claims-filters')).toBeVisible();
+      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible();
 
       // Ensure we see at least one row (Branch A claims)
       await expect(page.locator('table tbody tr')).not.toHaveCount(0);
