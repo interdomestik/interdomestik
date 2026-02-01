@@ -40,25 +40,23 @@ test.describe('Subscription Contract Verification', () => {
   test('Logged in Join Now triggers checkout (Contract only)', async ({
     authenticatedPage: page,
   }, testInfo) => {
-    await gotoApp(page, routes.pricing(testInfo), testInfo, { marker: 'pricing-page-ready' });
-
-    const billingSignal = page.getByTestId('pricing-page');
-    await expect(billingSignal).toHaveAttribute('data-billing-test-mode', '1');
-
-    // Mock Paddle global to catch the call
     await page.addInitScript(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).Paddle = {
         Initialize: () => {},
         Checkout: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          open: (args: any) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (window as any).__paddle_args = args;
+          open: () => {
+            throw new Error('Paddle.Checkout.open called in billing test mode');
           },
         },
       };
     });
+
+    await gotoApp(page, routes.pricing(testInfo), testInfo, { marker: 'pricing-page-ready' });
+
+    const billingSignal = page.getByTestId('pricing-page');
+    await expect(billingSignal).toHaveAttribute('data-billing-test-mode', '1');
 
     // Click CTA
     await page.getByTestId('plan-cta-standard').click();
