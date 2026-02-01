@@ -16,69 +16,47 @@ interface AdminClaimsV2PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+// Helper to safe-read params as string
+function sp(
+  params: Record<string, string | string[] | undefined>,
+  key: string
+): string | undefined {
+  const v = params[key];
+  return Array.isArray(v) ? v[0] : v;
+}
+
 export default async function AdminClaimsV2Page({ searchParams }: AdminClaimsV2PageProps) {
   const t = await getTranslations('admin.claims_page');
 
-  // Get session
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  // Resolve visibility context
+  const session = await auth.api.getSession({ headers: await headers() });
   const context = await resolveClaimsVisibility(session);
+  if (!context || !canViewAdminClaims(context)) notFound();
 
-  if (!context || !canViewAdminClaims(context)) {
-    notFound();
-  }
-
-  // Parse search params
   const params = await searchParams;
-  // Helper to handle string | string[] | undefined
-  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-  const viewRaw = first(params?.view);
-  // Default to 'list' if undefined, otherwise strict check
-  const view = viewRaw || 'list';
-
-  // ROUTING SWITCH
-  // Default to Ops Center unless 'list' is explicitly requested
-  if (view !== 'list') {
+  // ✅ Default to list; ops must be explicit
+  const view = sp(params, 'view') ?? 'list';
+  if (view === 'ops') {
     return <OpsCenterPage searchParams={searchParams} />;
   }
 
-  // --- LEGACY LIST VIEW (view=list) ---
-  const page = Number(params?.page || 1);
-  const lifecycleParam = params?.lifecycle as string | undefined;
-  const lifecycleStage = lifecycleParam as LifecycleStage | undefined;
-  const search = params?.search as string | undefined;
-  const status = params?.status as string | undefined;
-  const assigned = params?.assigned as string | undefined;
+  // List View (Default)
+  const page = Number(sp(params, 'page') ?? '1');
+  const lifecycleStage = sp(params, 'lifecycle') as LifecycleStage | undefined;
+  const search = sp(params, 'search');
+  const status = sp(params, 'status');
+  const assigned = sp(params, 'assigned');
 
-  // Fetch data for legacy list
-  const data = await getAdminClaimsV2(context, {
-    page,
-    lifecycleStage,
-    search,
-    status,
-    assigned,
-  });
+  const data = await getAdminClaimsV2(context, { page, lifecycleStage, search, status, assigned });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <AdminPageHeader title={t('title')} subtitle={t('description')} />
-
       <GlassCard className="p-6">
         <div className="space-y-6">
-          {/* Filters (Search, Status, Assignment) */}
           <AdminClaimsFilters />
-
-          {/* Lifecycle Tabs */}
           <ClaimsLifecycleTabs stats={data.stats} currentStage={lifecycleStage} />
-
-          {/* Operational List */}
           <ClaimsOperationalList claims={data.rows} />
-
-          {/* Pagination */}
           {data.pagination.totalPages > 1 && (
             <div className="flex items-center justify-between pt-4 border-t border-white/5">
               <span className="text-sm text-muted-foreground">

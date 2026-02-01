@@ -213,9 +213,16 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
 
 export async function logout(page: Page, testInfo: TestInfo): Promise<void> {
   const current = page.url() && page.url() !== 'about:blank' ? page.url() : null;
-  const origin = current ? new URL(current).origin : 'http://127.0.0.1:3000';
+  // Always use 127.0.0.1 for API calls
+  const origin = 'http://127.0.0.1:3000';
+  const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+  const forwardedHost = projectHeaders['x-forwarded-host'];
+
   await page.request.post(new URL('/api/auth/sign-out', origin).toString(), {
-    headers: { Origin: origin },
+    headers: {
+      Origin: origin,
+      ...(forwardedHost ? { 'x-forwarded-host': forwardedHost } : {}),
+    },
   });
   await gotoApp(page, routes.login('en'), testInfo);
 }
@@ -242,14 +249,22 @@ async function performLogin(
   const { email, password } = credsFor(role, tenant);
 
   // API Login Strategy (Robust)
-  const apiBase = getApiOrigin(info.baseURL);
+  // API Login Strategy (Robust)
+  // FORCE 127.0.0.1 for all auth requests to match server expectation
+  const apiBase = 'http://127.0.0.1:3000';
   const loginURL = `${apiBase}/api/auth/sign-in/email`;
+
+  // Extract tenant host from project config
+  const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+  const forwardedHost = projectHeaders['x-forwarded-host'];
+
   const res = await page.request.post(loginURL, {
     data: { email, password },
     headers: {
-      Origin: info.origin,
-      Referer: buildUiLoginUrl(info),
+      Origin: apiBase,
+      Referer: `${apiBase}/${info.locale}/login`,
       'x-forwarded-for': ipForRole(role),
+      ...(forwardedHost ? { 'x-forwarded-host': forwardedHost } : {}),
     },
   });
 
@@ -265,10 +280,9 @@ async function performLogin(
   const cookies = await page.context().cookies();
   const sessionCookies = cookies.filter(c => c.name.includes('session_token'));
 
-  const expectedHost = new URL(info.origin).hostname;
-  const hasCookieForHost = sessionCookies.some(
-    c => c.domain === expectedHost || c.domain === `.${expectedHost}`
-  );
+  // We expect cookies to be set for the forwarded host (e.g. mk.127.0.0.1.nip.io) OR 127.0.0.1
+  // But typically Better Auth will set them for the host it thinks it is.
+  // With x-forwarded-host, it should respect that.
 
   if (sessionCookies.length === 0) {
     console.warn(`❌ No session_token cookie found after successful API login for ${role}`);
@@ -276,13 +290,6 @@ async function performLogin(
   } else {
     console.log(`✅ Session cookies found for ${role}:`);
     console.log(JSON.stringify(sessionCookies, null, 2));
-
-    if (!hasCookieForHost) {
-      console.warn(
-        `⚠️ Session cookie domain mismatch for ${role}. Expected host ${expectedHost}. Session cookies:`
-      );
-      console.log(JSON.stringify(sessionCookies, null, 2));
-    }
   }
 
   // Deterministic post-login navigation
@@ -293,7 +300,8 @@ async function performLogin(
   else if (role === 'branch_manager') targetPath += '/admin';
   else targetPath += '/member';
 
-  const targetUrl = new URL(targetPath, info.origin).toString();
+  // Use testInfo-derived base URL (should be 127.0.0.1)
+  const targetUrl = new URL(targetPath, info.baseURL).toString();
   await gotoApp(page, targetUrl, testInfo, { marker: 'domcontentloaded' });
   const marker = 'dashboard-page-ready';
 
@@ -425,23 +433,33 @@ export const test = base.extend<AuthFixtures>({
   authenticatedPage: async ({ page, baseURL: _baseURL }, use, testInfo) => {
     attachDialogDiagnostics(page);
     const tenant = getTenantFromTestInfo(testInfo);
-    // Use ensureAuthenticated instead of raw check
     await ensureAuthenticated(page, testInfo, 'member', tenant);
     await use(page);
   },
 
   /**
-   * Page authenticated as admin
+   * Helper to merge project headers with role specifics
    */
   adminPage: async ({ browser, baseURL }, use, testInfo) => {
     const tenant = getTenantFromTestInfo(testInfo);
     const info = getProjectUrlInfo(testInfo, baseURL);
     setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('admin', tenant);
+
+    const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+    const mergedHeaders = {
+      ...projectHeaders,
+      'x-forwarded-for': ipForRole('admin'),
+    };
+
+    if (process.env.CI) {
+      console.log(`[CI Diag] Creating adminPage context with headers:`, mergedHeaders);
+    }
+
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
-      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('admin') },
+      extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
     });
     const page = await context.newPage();
@@ -461,10 +479,20 @@ export const test = base.extend<AuthFixtures>({
     const info = getProjectUrlInfo(testInfo, null);
     setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('agent', tenant);
+    const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+    const mergedHeaders = {
+      ...projectHeaders,
+      'x-forwarded-for': ipForRole('agent'),
+    };
+
+    if (process.env.CI) {
+      console.log(`[CI Diag] Creating agentPage context with headers:`, mergedHeaders);
+    }
+
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
-      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('agent') },
+      extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
     });
     const page = await context.newPage();
@@ -484,10 +512,20 @@ export const test = base.extend<AuthFixtures>({
     const info = getProjectUrlInfo(testInfo, null);
     setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('staff', tenant);
+    const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+    const mergedHeaders = {
+      ...projectHeaders,
+      'x-forwarded-for': ipForRole('staff'),
+    };
+
+    if (process.env.CI) {
+      console.log(`[CI Diag] Creating staffPage context with headers:`, mergedHeaders);
+    }
+
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
-      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('staff') },
+      extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
     });
     const page = await context.newPage();
@@ -507,12 +545,21 @@ export const test = base.extend<AuthFixtures>({
     const info = getProjectUrlInfo(testInfo, null);
     setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('branch_manager', tenant);
+    const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+    const mergedHeaders = {
+      ...projectHeaders,
+      // distinct IP for BM
+      'x-forwarded-for': '10.0.0.15',
+    };
+
+    if (process.env.CI) {
+      console.log(`[CI Diag] Creating branchManagerPage context with headers:`, mergedHeaders);
+    }
+
     const context = await browser.newContext({
       storageState: (await storageStateExists(statePath)) ? statePath : undefined,
       locale: 'en-US',
-      extraHTTPHeaders: {
-        'x-forwarded-for': '10.0.0.15', // Distinct IP for BM
-      },
+      extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
     });
     const page = await context.newPage();

@@ -13,6 +13,9 @@ function projectInfo(baseURL: string | undefined): {
 }
 
 test.describe('Tenant resolution contract', () => {
+  // Ensure no project-level storage state (cookies) interfer with tenant resolution logic
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('Tenant host login shows no chooser', async ({ page }, testInfo) => {
     const { origin, locale } = projectInfo(testInfo.project.use.baseURL?.toString());
 

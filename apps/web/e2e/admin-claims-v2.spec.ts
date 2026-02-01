@@ -35,7 +35,7 @@ test.describe('Admin Claims V2', () => {
   test('1. UI: Table has new columns and filters', async ({ adminPage }) => {
     // Verify Filters UI
     // Verify Filters UI with longer timeout for slow loads
-    await expect(adminPage.getByTestId('admin-claims-filters')).toBeVisible({ timeout: 30000 });
+    await expect(adminPage.getByTestId('admin-claims-v2-ready')).toBeVisible({ timeout: 30000 });
 
     // Verify list renders (cards) or shows the empty state.
     const cards = adminPage.getByTestId('claim-operational-card');
@@ -60,13 +60,13 @@ test.describe('Admin Claims V2', () => {
     // Some builds treat "active" as the default view and may not encode it in the URL.
     // Prove wiring by switching to a different tab, then back, and asserting URL changes.
 
-    const draftStatus = adminPage.getByTestId('status-filter-draft').first();
+    const draftStatus = adminPage.getByTestId('claims-tab-draft').first();
     await draftStatus.scrollIntoViewIfNeeded();
     await adminPage.evaluate(() => window.scrollBy(0, -100)); // Clear sticky header
     await draftStatus.click({ force: true });
     await expect(adminPage).toHaveURL(/status=draft/, { timeout: 15000 });
 
-    const activeStatus = adminPage.getByTestId('status-filter-active').first();
+    const activeStatus = adminPage.getByTestId('claims-tab-active').first();
     await activeStatus.scrollIntoViewIfNeeded();
     await adminPage.evaluate(() => window.scrollBy(0, -100)); // Clear sticky header
     await activeStatus.click({ force: true });

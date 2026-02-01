@@ -77,10 +77,24 @@ echo "  PORT=${PORT}"
 
 # Assume build --filter @interdomestik/web already happened.
 
-STANDALONE_SERVER="${WEB_DIR}/.next/standalone/apps/web/server.js"
-STANDALONE_ROOT="${WEB_DIR}/.next/standalone"
+# Try nested path first (Monorepo/Turbo typical in some CIs)
+STANDALONE_SERVER_NESTED="${WEB_DIR}/.next/standalone/apps/web/server.js"
+# Try direct path (Standard Next.js local build)
+STANDALONE_SERVER_DIRECT="${WEB_DIR}/.next/standalone/server.js"
 
-if [ -f "${STANDALONE_SERVER}" ]; then
+if [ -f "${STANDALONE_SERVER_NESTED}" ]; then
+  STANDALONE_SERVER="${STANDALONE_SERVER_NESTED}"
+  STANDALONE_ROOT="${WEB_DIR}/.next/standalone"
+  SERVER_ENTRY="apps/web/server.js"
+elif [ -f "${STANDALONE_SERVER_DIRECT}" ]; then
+  STANDALONE_SERVER="${STANDALONE_SERVER_DIRECT}"
+  STANDALONE_ROOT="${WEB_DIR}/.next/standalone"
+  SERVER_ENTRY="server.js"
+else
+  STANDALONE_SERVER=""
+fi
+
+if [ -n "${STANDALONE_SERVER}" ]; then
   echo "✅ Standalone server found: ${STANDALONE_SERVER}"
   echo "Preparing standalone assets..."
   
@@ -91,13 +105,16 @@ if [ -f "${STANDALONE_SERVER}" ]; then
   mkdir -p "${STANDALONE_ROOT}/.next"
   cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/.next/" || true
 
-  # Also copy to nested apps/web/.next for safety in monorepo structure
-  mkdir -p "${STANDALONE_ROOT}/apps/web/.next"
-  cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/apps/web/.next/" || true
+  # Also copy to nested apps/web/.next for safety using nested path structure if needed
+  # (Standard Next.js standalone often benefits from this if paths are absolute)
+  if [[ "${SERVER_ENTRY}" == "apps/web/server.js" ]]; then
+     mkdir -p "${STANDALONE_ROOT}/apps/web/.next"
+     cp -r "${WEB_DIR}/.next/static" "${STANDALONE_ROOT}/apps/web/.next/" || true
+  fi
 
   echo "Starting standalone server from root: ${STANDALONE_ROOT}"
   cd "${STANDALONE_ROOT}"
-  exec node apps/web/server.js
+  exec node "${SERVER_ENTRY}"
 else
   echo "⚠️  Standalone server NOT found at ${STANDALONE_SERVER}."
   echo "⚠️  Falling back to standard 'next start'..."

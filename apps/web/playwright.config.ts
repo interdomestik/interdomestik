@@ -103,10 +103,11 @@ export default defineConfig({
     // ═══════════════════════════════════════════════════════════════════════════
     {
       name: 'gate-ks-sq',
+      dependencies: ['setup-ks'],
       testMatch: ['gate/**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://${KS_HOST}/sq`,
+        baseURL: `http://127.0.0.1:3000/sq`,
         extraHTTPHeaders: {
           'x-forwarded-host': KS_HOST,
         },
@@ -117,10 +118,11 @@ export default defineConfig({
     },
     {
       name: 'gate-mk-mk',
+      dependencies: ['setup-mk'],
       testMatch: ['gate/**/*.spec.ts'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://${MK_HOST}/mk`,
+        baseURL: `http://127.0.0.1:3000/mk`,
         extraHTTPHeaders: {
           'x-forwarded-host': MK_HOST,
         },
@@ -138,7 +140,7 @@ export default defineConfig({
       testMatch: /setup\.state\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://${KS_HOST}/sq`,
+        baseURL: `http://127.0.0.1:3000/sq`,
         extraHTTPHeaders: {
           'x-forwarded-host': KS_HOST,
         },
@@ -149,7 +151,7 @@ export default defineConfig({
       testMatch: /setup\.state\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://${MK_HOST}/mk`,
+        baseURL: `http://127.0.0.1:3000/mk`,
         extraHTTPHeaders: {
           'x-forwarded-host': MK_HOST,
         },
@@ -164,7 +166,7 @@ export default defineConfig({
       dependencies: ['setup-ks'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://${KS_HOST}/sq`,
+        baseURL: `http://127.0.0.1:3000/sq`,
         extraHTTPHeaders: {
           'x-forwarded-host': KS_HOST,
         },
@@ -177,7 +179,7 @@ export default defineConfig({
       dependencies: ['setup-mk'],
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: `http://${MK_HOST}/mk`,
+        baseURL: `http://127.0.0.1:3000/mk`,
         extraHTTPHeaders: {
           'x-forwarded-host': MK_HOST,
         },
@@ -207,18 +209,17 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // E2E runs against a production server (Next `start`) for artifact consistency.
-    // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: 'pnpm run start:ci',
+    // Use the robust script that handles env loading and asset copying
+    command: 'bash ../../scripts/e2e-webserver.sh',
+    cwd: __dirname,
     url: `${BASE_URL}/api/health`,
-    // Audit requires reuseExistingServer: process.env.PW_REUSE_SERVER for contract.
-    reuseExistingServer: true,
-    timeout: 300 * 1000,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
     env: {
       ...process.env,
+      PORT: '3000',
+      HOSTNAME: '127.0.0.1',
       NODE_ENV: 'production',
-      PORT: String(PORT),
-      HOSTNAME: BIND_HOST,
       NODE_OPTIONS: '--dns-result-order=ipv4first',
       NEXT_PUBLIC_APP_URL: BASE_URL,
       BETTER_AUTH_URL: BASE_URL,

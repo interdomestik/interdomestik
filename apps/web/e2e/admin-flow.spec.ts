@@ -34,7 +34,9 @@ test.describe('Admin User Flow', () => {
     });
 
     test('Admin can see operational center', async ({ adminPage: page }, testInfo) => {
-      await gotoApp(page, routes.adminClaims(), testInfo);
+      await gotoApp(page, `${routes.adminClaims()}?view=ops`, testInfo, {
+        marker: 'ops-center-page',
+      });
 
       // The admin dashboard is the Operational Center with claims overview
       // Check for heading that exists in both locales
@@ -49,21 +51,27 @@ test.describe('Admin User Flow', () => {
 
   test.describe('Claims Management', () => {
     test('Admin can access claims page', async ({ adminPage: page }, testInfo) => {
-      await gotoApp(page, routes.adminClaims(), testInfo);
+      await gotoApp(page, `${routes.adminClaims()}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
 
       // Should see claims page heading (multilingual)
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
     });
 
     test('Admin can see claims content', async ({ adminPage: page }, testInfo) => {
-      await gotoApp(page, routes.adminClaims(), testInfo);
+      await gotoApp(page, `${routes.adminClaims()}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
 
       // Should see main content
       await expect(page.locator('main').first()).toBeVisible();
     });
 
     test('Admin page loads claims data', async ({ adminPage: page }, testInfo) => {
-      await gotoApp(page, routes.adminClaims(), testInfo);
+      await gotoApp(page, `${routes.adminClaims()}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
 
       // Check that the page renders without errors - look for any claim number pattern
       await expect(page.locator('body')).toContainText(/CLM-|Kërkesa|Claim|Барање/i);
