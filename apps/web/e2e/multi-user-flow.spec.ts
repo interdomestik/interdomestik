@@ -69,7 +69,9 @@ test.describe('Multi-User Claim Workflow', () => {
     test('Staff is redirected from admin claims to dashboard', async ({
       staffPage: page,
     }, testInfo) => {
-      await gotoApp(page, routes.adminClaims(), testInfo);
+      await gotoApp(page, `${routes.adminClaims()}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
       await page.waitForLoadState('domcontentloaded');
 
       // Staff is denied from admin claims routes (defense-in-depth).
@@ -99,12 +101,13 @@ test.describe('Multi-User Claim Workflow', () => {
 
   test.describe('Admin Full Access', () => {
     test('Admin can see all claims', async ({ adminPage: page }, testInfo) => {
-      await gotoApp(page, routes.adminClaims(), testInfo);
+      await gotoApp(page, `${routes.adminClaims()}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
       await page.waitForLoadState('domcontentloaded');
 
-      // Locale-agnostic: assert the Ops Center container renders.
-      // (The visible heading is localized, e.g. "Qendra Operacionale e Kërkesave" in sq.)
-      await expect(page.getByTestId('ops-center-page').first()).toBeVisible();
+      // Locale-agnostic: assert the V2 List container renders.
+      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible();
     });
 
     test('Admin can see all users', async ({ adminPage: page }, testInfo) => {
@@ -115,7 +118,9 @@ test.describe('Multi-User Claim Workflow', () => {
     });
 
     test('Admin can access any claim details', async ({ adminPage: page }, testInfo) => {
-      await gotoApp(page, routes.adminClaims(), testInfo);
+      await gotoApp(page, `${routes.adminClaims()}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
       await page.waitForLoadState('domcontentloaded');
 
       // Expect > 0 claims with polling/timeout
@@ -127,7 +132,9 @@ test.describe('Multi-User Claim Workflow', () => {
     });
 
     test('Admin can see claim status options', async ({ adminPage: page }, testInfo) => {
-      await gotoApp(page, routes.adminClaims(), testInfo);
+      await gotoApp(page, `${routes.adminClaims()}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
       await page.waitForLoadState('domcontentloaded');
 
       // Should see status filters or options

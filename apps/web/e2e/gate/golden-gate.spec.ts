@@ -101,8 +101,8 @@ test.describe('Golden Gate: Critical Path', () => {
     test('Tenant Isolation: KS Admin cannot see MK Claims', async ({ page }, testInfo) => {
       await performLocalLogin(page, USERS.TENANT_ADMIN_KS, testInfo, 'admin');
 
-      await gotoApp(page, routes.adminClaims(testInfo), testInfo, {
-        marker: 'admin-claims-filters',
+      await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
       });
       await expect(page.getByText(SEEDED_DATA.CLAIM_MK_1.title)).not.toBeVisible();
     });
@@ -112,10 +112,15 @@ test.describe('Golden Gate: Critical Path', () => {
     }, testInfo) => {
       await performLocalLogin(page, USERS.BM_MK_A, testInfo, 'admin');
 
-      await gotoApp(page, routes.adminClaims(testInfo), testInfo, {
-        marker: 'admin-claims-filters',
+      await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
       });
-      await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
+
+      // Verify V2 page is ready (explicit check)
+      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible();
+
+      // Ensure we see at least one row (Branch A claims)
+      await expect(page.locator('table tbody tr')).not.toHaveCount(0);
     });
 
     test('Staff (MK) can process claims but has restricted access', async ({ page }, testInfo) => {
@@ -216,21 +221,25 @@ test.describe('Golden Gate: Critical Path', () => {
     test('Claims List: Loads V2 Dashboard style and filters tabs', async ({ page }, testInfo) => {
       await performLocalLogin(page, USERS.TENANT_ADMIN_MK, testInfo, 'admin');
 
-      // Navigate to Claims List
+      // Navigate to Claims List with explicit view=list
       await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
-        marker: 'admin-claims-filters',
+        marker: 'admin-claims-v2-ready', // Hydration aware
       });
 
-      // Verify Active Tab is default
-      const activeTab = page.getByTestId('status-filter-active');
-      await expect(activeTab).toBeVisible();
+      // Verify Active Tab is default (using new stable testid)
+      const tabs = page.getByTestId('admin-claims-v2-ready');
+      await expect(tabs.getByTestId('claims-tab-active')).toBeVisible();
 
       // Switch to Draft Tab
-      const draftTab = page.getByTestId('status-filter-draft').first();
+      const draftTab = tabs.getByTestId('claims-tab-draft');
       await draftTab.click({ force: true });
 
-      // Wait for URL to contain status=draft
-      await page.waitForURL(/status=draft/, { timeout: 10000 });
+      // Split assertions for better debuggability
+      await expect(page).toHaveURL(/status=draft/, { timeout: 10000 });
+      await expect(page).toHaveURL(/view=list/, { timeout: 5000 });
+
+      // Ensure the component is still mounted and ready
+      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible();
     });
   });
 });

@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 import { OpsFiltersBar } from '@/components/ops';
 
@@ -12,6 +13,10 @@ export function AdminClaimsFilters() {
 
   const tAdmin = useTranslations('admin.claims_page');
   const tCommon = useTranslations('common');
+
+  // Hydration check for strict E2E semantics
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => setIsHydrated(true), []);
 
   const currentSearch = searchParams.get('search') || '';
   const currentStatus = searchParams.get('status') || 'all';
@@ -32,8 +37,8 @@ export function AdminClaimsFilters() {
   ];
 
   const updateFilters = (updates: Record<string, string | null>) => {
+    // Start from existing params (handles string|string[] implicitly via URLSearchParams)
     const params = new URLSearchParams(searchParams.toString());
-    const currentView = searchParams.get('view');
 
     params.delete('page'); // Reset pagination on filter change
 
@@ -45,23 +50,25 @@ export function AdminClaimsFilters() {
       }
     });
 
-    // Preserve view if present, so we don't drop out of list mode
-    if (currentView) {
-      params.set('view', currentView);
-    }
+    // Always enforce view=list for URL stability (prevents accidental ops fallback)
+    params.set('view', 'list');
 
     const query = params.toString();
     const targetUrl = `${pathname}${query ? `?${query}` : ''}`;
-    router.push(targetUrl);
+
+    // Deterministic replacement without scroll reset
+    router.replace(targetUrl, { scroll: false });
   };
 
+  if (!isHydrated) return null; // Prevent hydration mismatch entirely
+
   return (
-    <div data-testid="admin-claims-filters">
+    <div data-testid="admin-claims-v2-ready">
       <OpsFiltersBar
         tabs={statusOptions.map(option => ({
           id: option.value,
           label: option.label,
-          testId: `status-filter-${option.value}`,
+          testId: `claims-tab-${option.value}`, // E2E contract: claims-tab-{status}
         }))}
         activeTab={currentStatus}
         onTabChange={tabId => updateFilters({ status: tabId })}

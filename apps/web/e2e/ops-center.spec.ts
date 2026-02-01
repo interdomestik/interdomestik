@@ -15,7 +15,9 @@ test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
 
   test.beforeEach(async ({ page }, testInfo) => {
     // Navigate directly to the Ops Center
-    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims`, testInfo);
+    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?view=ops`, testInfo, {
+      marker: 'ops-center-page',
+    });
 
     // Use .first() to handle occasional hydration twin-nodes in mobile-chrome
     const opsPage = page.getByTestId('ops-center-page').first();
@@ -57,7 +59,9 @@ test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
 
   test('3. Refresh button resets page', async ({ page }, testInfo) => {
     // Navigate to a sub-state (page 2)
-    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?page=2`, testInfo);
+    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?view=ops&page=2`, testInfo, {
+      marker: 'ops-center-page',
+    });
     await expect(page).toHaveURL(/page=2/);
 
     const refreshBtn = page.getByTestId('refresh-button').first();

@@ -9,7 +9,9 @@ test.describe('Claim Traceability', () => {
     const locale = testInfo.project.name.includes('mk') ? 'mk' : 'sq';
 
     // 1. Navigate to Claims operational center
-    await gotoApp(page, routes.adminClaims(locale), testInfo);
+    await gotoApp(page, `${routes.adminClaims(locale)}?view=list`, testInfo, {
+      marker: 'admin-claims-v2-ready',
+    });
     await page.waitForLoadState('domcontentloaded');
 
     // 2. Wait for claims to load and click any claim row/card.
