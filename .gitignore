@@ -82,3 +82,7 @@ apps/web/e2e-results.json
 apps/web/.playwright/
 .pnpm-store
 .pnpm-store
+
+# Next.js Environment
+next-env.d.ts
+**/next-env.d.ts
