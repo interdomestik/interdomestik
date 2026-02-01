@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo --hostname 127.0.0.1 --port 3000",
+    "dev": "DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-test-secret-for-local-dev-only-32chars-minimum} next dev --turbo --hostname 127.0.0.1 --port 3000",
     "build": "next build && pnpm check:size",
     "build:ci": "next build",
     "check:size": "node scripts/check-size.mjs",

@@ -8,8 +8,9 @@
   ],
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-test-secret-for-local-dev-only-32chars-minimum} turbo dev",
     "dev:clean": "lsof -t -i:3000 | xargs kill -9 || true && turbo dev",
+    "dev:local": "FORCE_NIPIO_REDIRECT=1 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-test-secret-for-local-dev-only-32chars-minimum} pnpm --filter @interdomestik/web dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
@@ -20,6 +21,7 @@
     "db:push:local": "pnpm --filter @interdomestik/database db:push",
     "db:studio": "pnpm --filter @interdomestik/database db:studio",
     "seed:e2e": "pnpm --filter @interdomestik/database seed:e2e",
+    "seed:e2e:local": "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres pnpm seed:e2e",
     "seed:assert-e2e": "pnpm --filter @interdomestik/database seed:assert-e2e",
     "mcp:setup": "./scripts/setup-mcp.sh",
     "mcp:audit": "pnpm --filter @interdomestik/qa run-all-audits",
@@ -75,6 +77,7 @@
     "start:system": "./scripts/start-system.sh",
     "start:system:quick": "./scripts/start-system-quick.sh",
     "boot:dev": "pnpm dev",
+    "boot:local": "pnpm seed:e2e:local && pnpm dev:local",
     "boot:e2e": "pnpm seed:e2e && pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk",
     "check:golden": "pnpm --filter @interdomestik/web test:e2e:phase5"
   },

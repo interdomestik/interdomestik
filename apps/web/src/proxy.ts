@@ -72,9 +72,13 @@ export default async function proxy(request: NextRequest) {
   const nonce = createNonce();
   const { pathname } = request.nextUrl;
 
-  // DEV-ONLY: Force nip.io usage to ensure multi-tenancy works correctly and skip country selector.
-  // This redirects http://localhost:3000 -> http://ks.127.0.0.1.nip.io:3000
-  if (process.env.NODE_ENV === 'development') {
+  // DEV-ONLY (opt-in): force nip.io usage to test host-based multi-tenancy locally.
+  // Disabled by default to avoid localhost redirect loops during normal development.
+  const forceNipIoRedirect =
+    process.env.FORCE_NIPIO_REDIRECT === '1' ||
+    process.env.NEXT_PUBLIC_FORCE_NIPIO_REDIRECT === '1';
+
+  if (process.env.NODE_ENV === 'development' && forceNipIoRedirect) {
     const rawHost = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
     const [hostname, port] = rawHost.split(':');
 
@@ -92,10 +96,13 @@ export default async function proxy(request: NextRequest) {
 
   // Axiom structured logging
   const logger = new Logger({ source: 'proxy', req: request });
-  logger.info('Request', {
-    path: pathname,
-    method: request.method,
-  });
+  // Silence verbose request logging in development to prevent "nonstop rendering" noise
+  if (process.env.NODE_ENV !== 'development') {
+    logger.info('Request', {
+      path: pathname,
+      method: request.method,
+    });
+  }
 
   // 0. Pre-render auth guard (Golden Path)
   // IMPORTANT: Must run before any React rendering and must not hit the DB.
