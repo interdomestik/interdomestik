@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { gotoApp } from './utils/navigation';
 
 test.describe('E2E Invariants', () => {
-  test('origin never changes during navigation (no localhost drift)', async ({ page }) => {
+  test('origin never changes during navigation (no localhost drift)', async ({
+    page,
+  }, testInfo) => {
     // Start at the root (which redirects to /sq or /en)
-    await page.goto('/');
+    await gotoApp(page, '/', testInfo);
 
     const initialUrl = new URL(page.url());
     const initialOrigin = initialUrl.origin;
@@ -23,7 +26,7 @@ test.describe('E2E Invariants', () => {
     // Navigate to a few pages and verify origin stays stable
     const paths = ['/en', '/sq', '/en/login'];
     for (const path of paths) {
-      await page.goto(path);
+      await gotoApp(page, path, testInfo);
       const currentOrigin = new URL(page.url()).origin;
       console.log(`[Invariant] Navigated to ${path}, Current Origin: ${currentOrigin}`);
       // Use normalized comparison

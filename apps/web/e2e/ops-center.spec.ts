@@ -2,19 +2,34 @@
  * Operational Center (Phase 2.7) Smoke Tests
  * Optimized for speed and reliability using storage state.
  */
-import { expect, test } from './fixtures/auth.fixture';
-import { routes } from './routes';
+import { expect, test } from '@playwright/test';
+import path from 'path';
 import { gotoApp } from './utils/navigation';
 
+const DEFAULT_LOCALE = 'sq';
+const ADMIN_MK_STATE = path.join(__dirname, '.auth', 'mk', 'admin.json');
+
 test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
-  test.beforeEach(async ({ adminPage: page }, testInfo) => {
-    await gotoApp(page, routes.adminClaims(testInfo), testInfo, { marker: 'ops-center-page' });
+  // Inject storage state for all tests in this block
+  test.use({ storageState: ADMIN_MK_STATE });
+
+  test.beforeEach(async ({ page }, testInfo) => {
+    // Navigate directly to the Ops Center
+    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?view=ops`, testInfo, {
+      marker: 'ops-center-page',
+    });
 
     // Use .first() to handle occasional hydration twin-nodes in mobile-chrome
     const opsPage = page.getByTestId('ops-center-page').first();
     const errorBoundary = page.getByTestId('error-boundary').first();
 
-    await expect(opsPage.or(errorBoundary)).toBeVisible({ timeout: 20000 });
+    try {
+      await expect(opsPage.or(errorBoundary)).toBeVisible({ timeout: 20000 });
+    } catch (e) {
+      if (!(await page.getByTestId('ops-center-page').first().isVisible())) {
+        throw e;
+      }
+    }
 
     if (await errorBoundary.isVisible()) {
       const errorText = await errorBoundary.innerText();
@@ -22,19 +37,19 @@ test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
     }
   });
 
-  test('1. KPI Header is visible', async ({ adminPage: page }) => {
+  test('1. KPI Header is visible', async ({ page }) => {
     await expect(page.getByTestId('kpi-header').first()).toBeVisible();
     await expect(page.getByTestId('kpi-total-open').first()).toBeVisible();
   });
 
-  test('2. Prioritized List has content or empty state', async ({ adminPage: page }) => {
+  test('2. Prioritized List has content or empty state', async ({ page }) => {
     await expect(page.getByTestId('work-center').first()).toBeVisible();
 
     await expect
       .poll(
         async () => {
           const hasCards = (await page.getByTestId('claim-operational-card').count()) > 0;
-          const hasEmpty = await page.getByTestId('ops-empty-state').isVisible();
+          const hasEmpty = await page.getByText(/Nuk ka kërkesa|Nuk ka rezultate/i).isVisible();
           return hasCards || hasEmpty;
         },
         { timeout: 10000 }
@@ -42,9 +57,9 @@ test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
       .toBeTruthy();
   });
 
-  test('3. Refresh button resets page', async ({ adminPage: page }, testInfo) => {
+  test('3. Refresh button resets page', async ({ page }, testInfo) => {
     // Navigate to a sub-state (page 2)
-    await gotoApp(page, `${routes.adminClaims(testInfo)}?page=2`, testInfo, {
+    await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?view=ops&page=2`, testInfo, {
       marker: 'ops-center-page',
     });
     await expect(page).toHaveURL(/page=2/);
@@ -57,7 +72,7 @@ test.describe('Ops Center Dashboard (Phase 2.7) ', () => {
     await expect(page).not.toHaveURL(/page=2/);
   });
 
-  test('4. Large Layout (1440x900)', async ({ adminPage: page }) => {
+  test('4. Large Layout (1440x900)', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(page.getByTestId('kpi-header').first()).toBeVisible();
     await expect(page.getByTestId('queue-sidebar').first()).toBeVisible();

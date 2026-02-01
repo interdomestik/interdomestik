@@ -29,6 +29,12 @@
       "restore_message": "Ažurirajte plaćanje za vraćanje pristupa pogodnostima.",
       "activate_message": "Koristite stranicu sa cenama za aktivaciju zaštite."
     },
+    "ops": {
+      "title": "Pretplate",
+      "empty_list": "Nema pretplata",
+      "select_subscription": "Izaberite pretplatu",
+      "back_to_list": "Nazad na listu"
+    },
     "dunning": {
       "payment_failed_title": "Plaćanje neuspešno - {daysRemaining} dana preostalo",
       "payment_failed_message": "Vaše poslednje plaćanje nije uspelo. Ažurirajte način plaćanja da biste izbegli gubitak pogodnosti članstva.",

@@ -18,7 +18,15 @@ import { GracePeriodBanner } from '@/app/[locale]/(app)/member/membership/compon
 import { LockedStateBanner } from '@/app/[locale]/(app)/member/membership/components/locked-state-banner';
 import { ManageSubscriptionButton } from '@/app/[locale]/(app)/member/membership/components/manage-subscription-button';
 
-import { getMembershipPageModelCore } from '@/app/[locale]/(app)/member/membership/_core';
+import {
+  getMembershipPageModelCore,
+  MembershipDunningState,
+  SubscriptionRecord,
+} from '@/app/[locale]/(app)/member/membership/_core';
+
+// Loose type for next-intl translator to avoid complex generic drilling
+// Loose type for next-intl translator to avoid complex generic drilling
+type TranslationFn = (key: string, values?: any, formats?: any) => string;
 
 export async function MembershipV2Page() {
   const session = await auth.api.getSession({
@@ -73,8 +81,14 @@ export async function MembershipV2Page() {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function PlanStatusCard({ subscription, dunning, t, isGraceExpired }: any) {
+interface PlanStatusCardProps {
+  subscription: SubscriptionRecord | null;
+  dunning: MembershipDunningState;
+  t: any;
+  isGraceExpired: boolean;
+}
+
+function PlanStatusCard({ subscription, dunning, t, isGraceExpired }: PlanStatusCardProps) {
   const { isPastDue, isInGracePeriod, daysRemaining } = dunning;
   const isActive =
     subscription && (subscription.status === 'active' || subscription.status === 'trialing');
@@ -126,11 +140,7 @@ function PlanStatusCard({ subscription, dunning, t, isGraceExpired }: any) {
         </div>
       );
     }
-    return (
-      <div className="text-muted-foreground" data-testid="no-membership-empty">
-        {t('plan.no_membership')}
-      </div>
-    );
+    return <div className="text-muted-foreground">{t('plan.no_membership')}</div>;
   };
 
   return (
@@ -155,7 +165,7 @@ function PlanStatusCard({ subscription, dunning, t, isGraceExpired }: any) {
             }}
           />
         ) : (
-          <Button asChild data-testid="view-plans-button">
+          <Button asChild>
             <Link href="/pricing">{t('plan.view_plans_button')}</Link>
           </Button>
         )}
@@ -164,8 +174,13 @@ function PlanStatusCard({ subscription, dunning, t, isGraceExpired }: any) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function BenefitsCard({ subscription, isGraceExpired, t }: any) {
+interface BenefitsCardProps {
+  subscription: SubscriptionRecord | null;
+  isGraceExpired: boolean;
+  t: any;
+}
+
+function BenefitsCard({ subscription, isGraceExpired, t }: BenefitsCardProps) {
   return (
     <Card className={!subscription || isGraceExpired ? 'opacity-50' : ''}>
       <CardHeader>

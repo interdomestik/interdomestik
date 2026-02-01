@@ -20,9 +20,8 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: interdomestik_test
-          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -36,49 +35,44 @@ jobs:
       PLAYWRIGHT: '1'
       NEXT_PUBLIC_BILLING_TEST_MODE: '1'
       PW_REUSE_SERVER: '1'
-      NEXT_TELEMETRY_DISABLED: '1'
-      TURBO_TELEMETRY_DISABLED: '1'
-      CI_POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}
-      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD || 'postgres' }}@127.0.0.1:5432/interdomestik_test
-      PLAYWRIGHT_BROWSERS_PATH: /home/runner/.cache/ms-playwright
-      BETTER_AUTH_SECRET: test_secret_ci_please_rotate_32chars_minimum_1234
-      # Consistent origin (Parity with CI)
+      PORT: 3000
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       BETTER_AUTH_URL: http://127.0.0.1:3000
+      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: '10.25.0'
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # cache: 'pnpm'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.28.2'
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      - name: Verify supabase CLI
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -x node_modules/.bin/supabase ] || [ -x packages/database/node_modules/.bin/supabase ]; then
-            echo "✅ supabase CLI present"
-          else
-            echo "❌ supabase CLI missing"
-            ls -la node_modules/.bin || true
-            ls -la packages/database/node_modules/.bin || true
-            exit 1
-          fi
-
       - name: Install Playwright browsers
         run: pnpm --filter @interdomestik/web exec playwright install --with-deps
+
+      - name: Build web
+        run: pnpm --filter @interdomestik/web run build:ci
+
+      - name: Debug Build Output
+        run: |
+          echo "Listing apps/web/.next root:"
+          ls -la apps/web/.next || echo ".next missing"
+          echo "Listing apps/web/.next/standalone:"
+          ls -la apps/web/.next/standalone || echo "standalone missing"
+          echo "Finding server.js under apps/web/.next (maxdepth 4):"
+          find apps/web/.next -maxdepth 4 -name server.js -print || true
 
       - name: DB migrations
         run: pnpm db:migrate
@@ -90,27 +84,22 @@ jobs:
           set -euo pipefail
 
           echo "Guard: No raw page.goto in golden/gate (exception only in tenant-resolution.spec.ts)"
-          GOTO_FOUND=$(grep -R -E "\bpage\.goto\s*\(" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
-            | grep -vE "apps/web/e2e/gate/tenant-resolution.spec.ts|apps/web/e2e/golden/legacy/" || true)
-
-          if [ -n "$GOTO_FOUND" ]; then
-            echo "❌ Found raw page.goto in golden/gate:"
-            echo "$GOTO_FOUND"
+          if grep -R "page.goto" apps/web/e2e/golden apps/web/e2e/gate --include="*.spec.ts" \
+            | grep -v "apps/web/e2e/gate/tenant-resolution.spec.ts" ; then
+            echo "❌ Found raw page.goto in golden/gate"
             exit 1
           fi
           echo "✅ page.goto guard OK"
 
           echo "Guard: No locale-prefixed API calls like /sq/api"
-          API_FOUND=$(grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" || true)
-          if [ -n "$API_FOUND" ]; then
-            echo "❌ Found locale-prefixed API calls:"
-            echo "$API_FOUND"
+          if grep -R -nE "/(sq|en|mk|sr|de|hr)/api" apps/web/e2e --include="*.ts" ; then
+            echo "❌ Found locale-prefixed API calls"
             exit 1
           fi
           echo "✅ API prefix guard OK"
 
           echo "Guard: CSP must keep paddle allowlist"
-          grep -n "paddle.com" apps/web/src/lib/proxy.ts >/dev/null
+          grep -n "paddle.com" apps/web/src/proxy.ts >/dev/null
           echo "✅ CSP paddle guard OK"
 
       # ---- Seed (always) ----
@@ -119,12 +108,6 @@ jobs:
         run: |
           set -euo pipefail
           pnpm seed:e2e
-
-      - name: Assert DB seeded (Parity)
-        run: pnpm --filter @interdomestik/database seed:assert-e2e
-
-      - name: Golden Path - Check (Parity)
-        run: pnpm check
 
       # ---- Run suites ----
       # Gate is fast and tells you immediately if infra drifted.

@@ -1,0 +1,17 @@
+FROM node:20-bullseye
+
+ENV CI=1
+ENV HUSKY=0
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+# Default store location inside container (mount from host for speed)
+ENV PNPM_STORE_DIR=/pnpm-store
+
+RUN corepack enable \
+  && corepack prepare pnpm@10.28.2 --activate \
+  && pnpm -v
+
+WORKDIR /repo
+
+# Default command: reproduce Security workflow gate
+CMD ["bash", "-lc", "pnpm install --frozen-lockfile --prefer-offline && pnpm audit --prod --audit-level=high"]

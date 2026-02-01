@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { gotoApp } from '../utils/navigation';
 
 function projectInfo(baseURL: string | undefined): {
   origin: string;
@@ -12,11 +13,14 @@ function projectInfo(baseURL: string | undefined): {
 }
 
 test.describe('Tenant resolution contract', () => {
+  // Ensure no project-level storage state (cookies) interfer with tenant resolution logic
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('Tenant host login shows no chooser', async ({ page }, testInfo) => {
     const { origin, locale } = projectInfo(testInfo.project.use.baseURL?.toString());
 
-    await page.goto(new URL(`/${locale}/login`, origin).toString(), {
-      waitUntil: 'domcontentloaded',
+    await gotoApp(page, new URL(`/${locale}/login`, origin).toString(), testInfo, {
+      marker: 'domcontentloaded',
     });
 
     await expect(page.getByTestId('tenant-chooser')).toHaveCount(0);
@@ -73,9 +77,12 @@ test.describe('Tenant resolution contract', () => {
     const beforeCookies = await context.cookies(originUrl);
     expect(beforeCookies.some(c => c.name === 'tenantId')).toBe(false);
 
-    const docResponse = await page.goto(new URL(`/${targetLocale}/login`, origin).toString(), {
-      waitUntil: 'domcontentloaded',
-    });
+    const docResponse = await gotoApp(
+      page,
+      new URL(`/${targetLocale}/login`, origin).toString(),
+      testInfo,
+      { marker: 'domcontentloaded' }
+    );
 
     // Origin must not drift (e.g., ks.localhost must never become localhost).
     expect(new URL(page.url()).origin).toBe(origin);
@@ -123,25 +130,25 @@ test.describe('Tenant resolution contract', () => {
     await context.close();
   });
 
-  test('Neutral host shows chooser when no tenant context', async ({ page }) => {
+  test('Neutral host shows chooser when no tenant context', async ({ page }, testInfo) => {
     // Override project-level x-forwarded-host which forces a tenant
     await page.setExtraHTTPHeaders({ 'x-forwarded-host': '127.0.0.1:3000' });
     const neutral = 'http://127.0.0.1:3000';
-    await page.goto(`${neutral}/en/login`, { waitUntil: 'domcontentloaded' });
+    await gotoApp(page, `${neutral}/en/login`, testInfo, { marker: 'domcontentloaded' });
 
     await expect(page.getByTestId('tenant-chooser')).toBeVisible();
   });
 
-  test('Neutral host keeps chooser even if locale is /sq', async ({ page }) => {
+  test('Neutral host keeps chooser even if locale is /sq', async ({ page }, testInfo) => {
     // Override project-level x-forwarded-host which forces a tenant
     await page.setExtraHTTPHeaders({ 'x-forwarded-host': '127.0.0.1:3000' });
     const neutral = 'http://127.0.0.1:3000';
-    await page.goto(`${neutral}/sq/login`, { waitUntil: 'domcontentloaded' });
+    await gotoApp(page, `${neutral}/sq/login`, testInfo, { marker: 'domcontentloaded' });
 
     await expect(page.getByTestId('tenant-chooser')).toBeVisible();
   });
 
-  test('Neutral host skips chooser when tenantId cookie exists', async ({ browser }) => {
+  test('Neutral host skips chooser when tenantId cookie exists', async ({ browser }, testInfo) => {
     const neutral = 'http://127.0.0.1:3000';
     const context = await browser.newContext();
 
@@ -160,7 +167,7 @@ test.describe('Tenant resolution contract', () => {
     // Override project-level x-forwarded-host which forces a tenant (we want to rely on cookie here)
     await page.setExtraHTTPHeaders({ 'x-forwarded-host': '127.0.0.1:3000' });
 
-    await page.goto(`${neutral}/sq/login`, { waitUntil: 'domcontentloaded' });
+    await gotoApp(page, `${neutral}/sq/login`, testInfo, { marker: 'domcontentloaded' });
 
     await expect(page.getByTestId('tenant-chooser')).toHaveCount(0);
 

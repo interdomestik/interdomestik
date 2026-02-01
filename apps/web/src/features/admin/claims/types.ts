@@ -86,6 +86,8 @@ export interface AdminClaimsV2Filters {
   page?: number;
   perPage?: number;
   search?: string;
+  status?: string;
+  assigned?: string;
 }
 
 /**

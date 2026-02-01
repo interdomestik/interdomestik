@@ -1,7 +1,7 @@
 import { OpsAction, OpsDocument, OpsTimelineEvent } from '../types';
 import { toOpsBadgeVariant } from './status';
 
-type DbDocument = {
+export type DbDocument = {
   id: string;
   fileName: string;
   storagePath: string;
@@ -24,7 +24,6 @@ export function toOpsStatus(status: string | null | undefined) {
   return {
     label: safeStatus.replace(/_/g, ' ').toUpperCase(),
     variant: toOpsBadgeVariant(safeStatus),
-    status: safeStatus,
   };
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { getMemberReferralLink, getMemberReferralStats } from '@/actions/member-referrals';
+import { activateAgentProfile } from '@/features/agent/activation/actions';
 import { Button } from '@interdomestik/ui/components/button';
 import {
   Card,
@@ -11,7 +12,7 @@ import {
 } from '@interdomestik/ui/components/card';
 import { Input } from '@interdomestik/ui/components/input';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
-import { Check, Copy, Gift, MessageCircle, Share2, Users } from 'lucide-react';
+import { Check, Copy, Gift, Loader2, MessageCircle, Share2, Sparkles, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -29,14 +30,22 @@ interface ReferralStats {
   rewardsCurrency: string;
 }
 
-export function ReferralCard() {
+interface ReferralCardProps {
+  isAgent?: boolean;
+}
+
+export function ReferralCard({ isAgent = false }: ReferralCardProps) {
   const t = useTranslations('dashboard.referral');
   const [data, setData] = useState<ReferralData | null>(null);
   const [stats, setStats] = useState<ReferralStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(isAgent); // Only load if active
   const [isCopied, setIsCopied] = useState(false);
+  const [active, setActive] = useState(isAgent);
+  const [isActivating, setIsActivating] = useState(false);
 
   useEffect(() => {
+    if (!active) return;
+
     async function load() {
       try {
         const [linkResult, statsResult] = await Promise.all([
@@ -53,7 +62,25 @@ export function ReferralCard() {
       }
     }
     load();
-  }, []);
+  }, [active]);
+
+  const handleActivate = async () => {
+    setIsActivating(true);
+    try {
+      const result = await activateAgentProfile();
+      if (result.success) {
+        toast.success('Agent Mode Activated! You can now earn commissions.');
+        setActive(true);
+        // Data will load via useEffect
+      } else {
+        toast.error(result.error || 'Activation failed');
+      }
+    } catch (e) {
+      toast.error('Something went wrong');
+    } finally {
+      setIsActivating(false);
+    }
+  };
 
   const handleCopy = async () => {
     if (!data) return;
@@ -89,6 +116,33 @@ export function ReferralCard() {
     }
   };
 
+  if (!active) {
+    return (
+      <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent relative overflow-hidden group hover:border-blue-500/40 transition-colors">
+        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg text-blue-600 dark:text-blue-400">
+            <Sparkles className="h-5 w-5" />
+            Unlock 50% Commission
+          </CardTitle>
+          <CardDescription>
+            Become an Agent instantly. Refer friends and earn rewards for every signup.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={handleActivate}
+            disabled={isActivating}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all hover:scale-[1.02]"
+          >
+            {isActivating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isActivating ? 'Activating...' : 'Activate Agent Account'}
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (isLoading) {
     return (
       <Card>
@@ -106,10 +160,7 @@ export function ReferralCard() {
   if (!data) return null;
 
   return (
-    <Card
-      className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent"
-      data-testid="referral-card"
-    >
+    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Gift className="h-5 w-5 text-primary" />
@@ -162,7 +213,6 @@ export function ReferralCard() {
             variant="default"
             className="flex-1 bg-green-600 hover:bg-green-700"
             onClick={handleWhatsAppShare}
-            data-testid="referral-whatsapp-btn"
           >
             <MessageCircle className="h-4 w-4 mr-2" />
             WhatsApp

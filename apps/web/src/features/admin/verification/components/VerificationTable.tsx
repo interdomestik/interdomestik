@@ -68,7 +68,6 @@ export function VerificationTable({
       <OpsStatusBadge
         variant={toOpsBadgeVariant(req.status)}
         label={t(`status.${req.status}` as any)}
-        status={req.status}
       />
     );
   };

@@ -1,0 +1,24 @@
+{
+  "diaspora": {
+    "title": "Diaspora Package",
+    "description": "Comprehensive solutions for your life between two countries.",
+    "cards": {
+      "green_card": {
+        "title": "Accident abroad (Green Card)",
+        "description": "Legal and technical assistance if you have an accident in Europe. We handle documentation and compensation."
+      },
+      "travel": {
+        "title": "Travel / Flight",
+        "description": "Compensation for flight delays, cancellations, or lost luggage. Protection during your journey."
+      },
+      "family": {
+        "title": "Family in Kosovo",
+        "description": "How to help from afar? Documents, guidance, and direct hotline for any home emergencies."
+      }
+    },
+    "cta": {
+      "title": "Ready to be protected?",
+      "button": "Become a member / Update membership"
+    }
+  }
+}

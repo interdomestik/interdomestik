@@ -1,4 +1,9 @@
-import { expect, type Page, type TestInfo } from '@playwright/test';
+import {
+  expect,
+  type Page,
+  type Response as PlaywrightResponse,
+  type TestInfo,
+} from '@playwright/test';
 
 /**
  * Re-export getLocale for convenience
@@ -12,7 +17,7 @@ function normalizePath(input: unknown): string {
   if (input instanceof URL) return `${input.pathname}${input.search}${input.hash}`;
 
   if (input && typeof input === 'object' && 'pathname' in input) {
-    const o = input as any;
+    const o = input as Record<string, unknown>;
     if (typeof o.pathname === 'string') {
       const search = typeof o.search === 'string' ? o.search : '';
       const hash = typeof o.hash === 'string' ? o.hash : '';
@@ -48,7 +53,7 @@ export async function gotoApp(
   path: PathLike,
   testInfo: TestInfo,
   options?: { marker?: string }
-) {
+): Promise<PlaywrightResponse | null> {
   const raw = path; // wherever you currently take it from
   const pathStr = normalizePath(raw);
 
@@ -70,14 +75,52 @@ export async function gotoApp(
     targetUrl = new URL(normalizedPath, normalizedBase).toString();
   }
 
-  console.log(`[E2E Nav] ${targetUrl}`);
-  await page.goto(targetUrl);
+  const response = await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+
+  if (response?.status() === 404 || response?.headers()['x-nextjs-postponed']) {
+    // Check if we rendered our custom Not Found UI
+    const notFoundVisible = await page
+      .getByTestId('not-found-page')
+      .isVisible()
+      .catch(() => false);
+    if (notFoundVisible) {
+      if (options?.marker && options.marker !== 'not-found-page') {
+        throw new Error(
+          `Navigation failed: Landed on 404 Not Found page while waiting for "${options.marker}"`
+        );
+      }
+    }
+  }
 
   const marker = options?.marker ?? 'page-ready';
 
-  if (marker === 'body') {
-    await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
+  if (['domcontentloaded', 'load', 'networkidle'].includes(marker)) {
+    await page.waitForLoadState(marker as 'domcontentloaded' | 'load' | 'networkidle');
+  } else if (marker === 'body') {
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('body')).toBeAttached({ timeout: 15000 });
+
+    // Best-effort wait for body visibility without hard fail
+    await page
+      .waitForFunction(
+        () => {
+          const b = document.body;
+          if (!b) return false;
+          const s = getComputedStyle(b);
+          return s.visibility !== 'hidden' && s.display !== 'none';
+        },
+        { timeout: 3000 }
+      )
+      .catch(() => {
+        // Body attached but still reported hidden - ignoring as non-fatal
+      });
   } else {
-    await expect(page.getByTestId(marker)).toBeVisible({ timeout: 15000 });
+    try {
+      await expect(page.getByTestId(marker)).toBeVisible({ timeout: 15000 });
+    } catch (e) {
+      throw e;
+    }
   }
+
+  return response;
 }

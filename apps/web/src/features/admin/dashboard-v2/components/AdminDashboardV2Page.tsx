@@ -49,7 +49,8 @@ export async function AdminDashboardV2Page({ locale }: { locale: string }) {
 
   // Forbidden for non-admins (defense in depth; proxy should also enforce)
   if (!['admin', 'tenant_admin', 'super_admin'].includes(session?.user?.role || '')) {
-    return <div>Access Denied (Role: {session?.user?.role || 'none'})</div>;
+    const { notFound } = await import('next/navigation');
+    notFound();
   }
 
   // Fetch V2 Data

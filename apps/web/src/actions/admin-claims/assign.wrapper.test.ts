@@ -33,6 +33,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
       token: 'token1',
     },
     user: { id: 'admin1', role: 'admin', tenantId: 'tenant1', email: 'admin@test.com' },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
   const mockHeaders = new Headers();
 

@@ -40,6 +40,7 @@ describe('adminUpdateSettingsCore', () => {
 
   it('should fail validation with bad data', async () => {
     const result = await adminUpdateSettingsCore({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       session: mockSession as any,
       data: { appName: '' }, // missing fields, name too short
     });
@@ -47,9 +48,14 @@ describe('adminUpdateSettingsCore', () => {
   });
 
   it('should fail if rate limited', async () => {
-    (enforceRateLimitForAction as any).mockResolvedValue({ limited: true });
+    vi.mocked(enforceRateLimitForAction).mockResolvedValue({
+      limited: true,
+      status: 429,
+      error: 'Rate limited',
+    });
 
     const result = await adminUpdateSettingsCore({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       session: mockSession as any,
       data: validData,
     });
@@ -61,9 +67,10 @@ describe('adminUpdateSettingsCore', () => {
   });
 
   it('should update successfully', async () => {
-    (enforceRateLimitForAction as any).mockResolvedValue({ limited: false });
+    vi.mocked(enforceRateLimitForAction).mockResolvedValue({ limited: false });
 
     const result = await adminUpdateSettingsCore({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       session: mockSession as any,
       data: validData,
     });

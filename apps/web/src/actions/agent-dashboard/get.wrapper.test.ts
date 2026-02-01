@@ -25,11 +25,16 @@ vi.mock('@interdomestik/database', () => {
       status: { name: 'status' },
       updatedAt: { name: 'updatedAt' },
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     eq: (col: any, val: any) => ({ col, val }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     and: (...args: any[]) => ({ args }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     inArray: (col: any, vals: any[]) => ({ col, vals }),
     count: () => ({ type: 'count' }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sql: (strings: any) => strings[0],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     desc: (col: any) => ({ col, order: 'desc' }),
   };
 });
@@ -63,6 +68,7 @@ describe('getAgentDashboardDataCore', () => {
       },
       user: { id: 'agent1', role: 'agent' },
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await getAgentDashboardDataCore({ session: mockSession as any });
     expect(result.recentClaims).toEqual([]);
     expect(result.stats.total).toBe(0);
@@ -80,7 +86,8 @@ describe('getAgentDashboardDataCore', () => {
       },
       user: { id: 'user1', role: 'user' },
     };
-    (roles.isStaffOrAdmin as any).mockReturnValue(false);
+    vi.mocked(roles.isStaffOrAdmin).mockReturnValue(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(getAgentDashboardDataCore({ session: mockSession as any })).rejects.toThrow(
       'Unauthorized'
     );
@@ -98,17 +105,24 @@ describe('getAgentDashboardDataCore', () => {
       },
       user: { id: 'staff1', role: 'staff' },
     };
-    (roles.isStaffOrAdmin as any).mockReturnValue(true);
+    vi.mocked(roles.isStaffOrAdmin).mockReturnValue(true);
 
     // Mock 4 select calls (total, new, inProgress, completed)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (db as any).then
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .mockImplementationOnce((cb: any) => cb([{ count: 10 }])) // total
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .mockImplementationOnce((cb: any) => cb([{ count: 2 }])) // new
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .mockImplementationOnce((cb: any) => cb([{ count: 3 }])) // inProgress
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .mockImplementationOnce((cb: any) => cb([{ count: 5 }])); // completed
 
-    (db.query.claims.findMany as any).mockResolvedValue([{ id: 'c1', user: {} }]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(db.query.claims.findMany).mockResolvedValue([{ id: 'c1' } as any]);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await getAgentDashboardDataCore({ session: mockSession as any });
 
     expect(result.stats.total).toBe(10);

@@ -20,6 +20,7 @@ vi.mock('@interdomestik/ui', () => ({
     </button>
   ),
   Separator: () => <div data-testid="separator" />,
+  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
 }));
 
 describe('DashboardHeader', () => {

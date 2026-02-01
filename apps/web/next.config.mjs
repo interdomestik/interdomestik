@@ -1,5 +1,6 @@
 import withBundleAnalyzer from '@next/bundle-analyzer';
 import { withSentryConfig } from '@sentry/nextjs';
+import { withAxiom } from 'next-axiom';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
@@ -35,12 +36,20 @@ const nextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
+      allowedOrigins: ['127.0.0.1:3000', 'localhost:3000', '*.127.0.0.1.nip.io:3000'],
     },
   },
   serverExternalPackages: ['import-in-the-middle', 'require-in-the-middle'],
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/sq',
+        permanent: false,
+      },
+    ];
+  },
 };
-
-import { withAxiom } from 'next-axiom';
 
 const finalConfig = bundleAnalyzer(withNextIntl(nextConfig));
 

@@ -1,4 +1,4 @@
-import type { Page, TestInfo } from '@playwright/test';
+import type { TestInfo } from '@playwright/test';
 
 function requireBaseURL(testInfo: TestInfo): string {
   const baseURL = testInfo.project.use.baseURL?.toString();
@@ -45,15 +45,4 @@ export function rootURL(testInfo: TestInfo, pathname: string): string {
   const origin = getRootURL(testInfo);
   const pathOnly = pathname.startsWith('/') ? pathname : `/${pathname}`;
   return new URL(pathOnly, origin).toString();
-}
-
-export async function gotoApp(
-  page: Page,
-  testInfo: TestInfo,
-  pathname: string,
-  opts?: { readyTestId?: string }
-): Promise<void> {
-  const readyTestId = opts?.readyTestId ?? 'page-ready';
-  await page.goto(path(testInfo, pathname), { waitUntil: 'domcontentloaded' });
-  await page.getByTestId(readyTestId).waitFor({ state: 'visible' });
 }

@@ -1,0 +1,892 @@
+{
+  "@types/bcryptjs": {
+    "current": "3.0.0",
+    "latest": "3.0.0",
+    "wanted": "3.0.0",
+    "isDeprecated": true,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/database",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      }
+    ]
+  },
+  "@modelcontextprotocol/sdk": {
+    "current": "1.25.1",
+    "latest": "1.25.3",
+    "wanted": "1.25.1",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/qa",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/qa"
+      }
+    ]
+  },
+  "@next/eslint-plugin-next": {
+    "current": "16.1.0",
+    "latest": "16.1.6",
+    "wanted": "16.1.0",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "@tanstack/react-query": {
+    "current": "5.90.12",
+    "latest": "5.90.20",
+    "wanted": "5.90.12",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "@testing-library/react": {
+    "current": "16.3.0",
+    "latest": "16.3.2",
+    "wanted": "16.3.0",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "@types/nodemailer": {
+    "current": "7.0.5",
+    "latest": "7.0.9",
+    "wanted": "7.0.5",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/domain-communications",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-communications"
+      }
+    ]
+  },
+  "@types/react": {
+    "current": "19.2.7",
+    "latest": "19.2.10",
+    "wanted": "19.2.7",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      },
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "@upstash/ratelimit": {
+    "current": "2.0.7",
+    "latest": "2.0.8",
+    "wanted": "2.0.7",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "@vitest/coverage-v8": {
+    "current": "1.6.1",
+    "latest": "4.0.18",
+    "wanted": "1.6.1",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/domain-analytics",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-analytics"
+      },
+      {
+        "name": "@interdomestik/domain-country-guidance",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-country-guidance"
+      }
+    ]
+  },
+  "autoprefixer": {
+    "current": "10.4.22",
+    "latest": "10.4.23",
+    "wanted": "10.4.22",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      },
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "better-auth": {
+    "current": "1.4.6",
+    "latest": "1.4.17",
+    "wanted": "1.4.6",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "checkly": {
+    "current": "6.9.8",
+    "latest": "6.9.10",
+    "wanted": "6.9.8",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "hono": {
+    "current": "4.11.1",
+    "latest": "4.11.7",
+    "wanted": "4.11.1",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "import-in-the-middle": {
+    "current": "2.0.1",
+    "latest": "2.0.6",
+    "wanted": "2.0.1",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "nodemailer": {
+    "current": "7.0.12",
+    "latest": "7.0.13",
+    "wanted": "7.0.12",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/domain-communications",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-communications"
+      }
+    ]
+  },
+  "postgres": {
+    "current": "3.4.7",
+    "latest": "3.4.8",
+    "wanted": "3.4.7",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "react": {
+    "current": "19.2.3",
+    "latest": "19.2.4",
+    "wanted": "19.2.3",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "react-dom": {
+    "current": "19.2.3",
+    "latest": "19.2.4",
+    "wanted": "19.2.3",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "release-it": {
+    "current": "19.2.2",
+    "latest": "19.2.4",
+    "wanted": "19.2.2",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "turbo": {
+    "current": "2.7.0",
+    "latest": "2.7.6",
+    "wanted": "2.7.0",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "vitest": {
+    "current": "1.6.1",
+    "latest": "4.0.18",
+    "wanted": "1.6.1",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/domain-analytics",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-analytics"
+      },
+      {
+        "name": "@interdomestik/domain-country-guidance",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-country-guidance"
+      }
+    ]
+  },
+  "@aws-sdk/client-s3": {
+    "current": "3.970.0",
+    "latest": "3.975.0",
+    "wanted": "3.970.0",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "@aws-sdk/lib-storage": {
+    "current": "3.970.0",
+    "latest": "3.975.0",
+    "wanted": "3.970.0",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "@aws-sdk/s3-request-presigner": {
+    "current": "3.970.0",
+    "latest": "3.975.0",
+    "wanted": "3.970.0",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "@next/bundle-analyzer": {
+    "current": "16.0.10",
+    "latest": "16.1.6",
+    "wanted": "16.0.10",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "@playwright/test": {
+    "current": "1.57.0",
+    "latest": "1.58.0",
+    "wanted": "1.57.0",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "@sentry/nextjs": {
+    "current": "10.32.1",
+    "latest": "10.37.0",
+    "wanted": "10.32.1",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "@supabase/supabase-js": {
+    "current": "2.87.1",
+    "latest": "2.93.2",
+    "wanted": "2.87.1",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "@typescript-eslint/eslint-plugin": {
+    "current": "8.49.0",
+    "latest": "8.54.0",
+    "wanted": "8.49.0",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "@typescript-eslint/parser": {
+    "current": "8.49.0",
+    "latest": "8.54.0",
+    "wanted": "8.49.0",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "@upstash/context7-mcp": {
+    "current": "2.0.1",
+    "latest": "2.1.0",
+    "wanted": "2.0.1",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "@upstash/redis": {
+    "current": "1.35.8",
+    "latest": "1.36.1",
+    "wanted": "1.35.8",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "eslint-config-next": {
+    "current": "16.0.10",
+    "latest": "16.1.6",
+    "wanted": "16.0.10",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      },
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "eslint-plugin-storybook": {
+    "current": "10.1.11",
+    "latest": "10.2.1",
+    "wanted": "10.1.11",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "inngest": {
+    "current": "3.48.1",
+    "latest": "3.49.3",
+    "wanted": "3.48.1",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      },
+      {
+        "name": "@interdomestik/domain-communications",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-communications"
+      }
+    ]
+  },
+  "jsdom": {
+    "current": "27.3.0",
+    "latest": "27.4.0",
+    "wanted": "27.3.0",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "knip": {
+    "current": "5.80.0",
+    "latest": "5.82.1",
+    "wanted": "5.80.0",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "next": {
+    "current": "16.0.10",
+    "latest": "16.1.6",
+    "wanted": "16.0.10",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "next-intl": {
+    "current": "4.6.0",
+    "latest": "4.7.0",
+    "wanted": "4.6.0",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "pg": {
+    "current": "8.16.3",
+    "latest": "8.17.2",
+    "wanted": "8.16.3",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/qa",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/qa"
+      }
+    ]
+  },
+  "posthog-js": {
+    "current": "1.315.1",
+    "latest": "1.335.5",
+    "wanted": "1.315.1",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "prettier": {
+    "current": "3.7.4",
+    "latest": "3.8.1",
+    "wanted": "3.7.4",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "react-error-boundary": {
+    "current": "6.0.1",
+    "latest": "6.1.0",
+    "wanted": "6.0.1",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "react-hook-form": {
+    "current": "7.68.0",
+    "latest": "7.71.1",
+    "wanted": "7.68.0",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      },
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "recharts": {
+    "current": "3.6.0",
+    "latest": "3.7.0",
+    "wanted": "3.6.0",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "supabase": {
+    "current": "2.70.5",
+    "latest": "2.72.9",
+    "wanted": "2.70.5",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/database",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/database"
+      }
+    ]
+  },
+  "typescript-eslint": {
+    "current": "8.49.0",
+    "latest": "8.54.0",
+    "wanted": "8.49.0",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      },
+      {
+        "name": "@interdomestik/shared-logging",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-logging"
+      },
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "zod": {
+    "current": "4.2.1",
+    "latest": "4.3.6",
+    "wanted": "4.2.1",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      },
+      {
+        "name": "@interdomestik/domain-activities",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-activities"
+      },
+      {
+        "name": "@interdomestik/domain-claims",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-claims"
+      },
+      {
+        "name": "@interdomestik/domain-communications",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-communications"
+      },
+      {
+        "name": "@interdomestik/domain-country-guidance",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-country-guidance"
+      },
+      {
+        "name": "@interdomestik/domain-leads",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-leads"
+      },
+      {
+        "name": "@interdomestik/domain-membership-billing",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-membership-billing"
+      },
+      {
+        "name": "@interdomestik/domain-users",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-users"
+      },
+      {
+        "name": "@interdomestik/qa",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/qa"
+      },
+      {
+        "name": "@interdomestik/shared-logging",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-logging"
+      }
+    ]
+  },
+  "@commitlint/cli": {
+    "current": "19.8.1",
+    "latest": "20.3.1",
+    "wanted": "19.8.1",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "@commitlint/config-conventional": {
+    "current": "19.8.1",
+    "latest": "20.3.1",
+    "wanted": "19.8.1",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "@storybook/addon-links": {
+    "current": "8.6.15",
+    "latest": "10.2.1",
+    "wanted": "8.6.15",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "@storybook/react": {
+    "current": "8.6.15",
+    "latest": "10.2.1",
+    "wanted": "8.6.15",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "@storybook/react-vite": {
+    "current": "8.6.15",
+    "latest": "10.2.1",
+    "wanted": "8.6.15",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "@types/node": {
+    "current": "22.19.3",
+    "latest": "25.0.10",
+    "wanted": "22.19.3",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      },
+      {
+        "name": "@interdomestik/shared-utils",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-utils"
+      }
+    ]
+  },
+  "date-fns": {
+    "current": "3.6.0",
+    "latest": "4.1.0",
+    "wanted": "3.6.0",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/domain-analytics",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-analytics"
+      }
+    ]
+  },
+  "eslint-config-prettier": {
+    "current": "9.1.2",
+    "latest": "10.1.8",
+    "wanted": "9.1.2",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "pdf-parse": {
+    "current": "1.1.1",
+    "latest": "2.4.5",
+    "wanted": "1.1.1",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      }
+    ]
+  },
+  "resend": {
+    "current": "4.8.0",
+    "latest": "6.9.1",
+    "wanted": "4.8.0",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/domain-communications",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/domain-communications"
+      }
+    ]
+  },
+  "storybook": {
+    "current": "8.6.15",
+    "latest": "10.2.1",
+    "wanted": "8.6.15",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "tailwindcss": {
+    "current": "3.4.19",
+    "latest": "4.1.18",
+    "wanted": "3.4.19",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      },
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  },
+  "@playwright/mcp": {
+    "current": "0.0.54",
+    "latest": "0.0.61",
+    "wanted": "0.0.54",
+    "isDeprecated": false,
+    "dependencyType": "devDependencies",
+    "dependentPackages": [
+      {
+        "name": "interdomestik",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home"
+      }
+    ]
+  },
+  "lucide-react": {
+    "current": "0.561.0",
+    "latest": "0.563.0",
+    "wanted": "0.561.0",
+    "isDeprecated": false,
+    "dependencyType": "dependencies",
+    "dependentPackages": [
+      {
+        "name": "@interdomestik/web",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/apps/web"
+      },
+      {
+        "name": "@interdomestik/ui",
+        "location": "/Users/arbenlila/development/interdomestik-crystal-home/packages/ui"
+      }
+    ]
+  }
+}

@@ -59,7 +59,7 @@ export default function AdminCommissionsPage() {
         <p className="text-muted-foreground">Review and process agent commissions</p>
       </div>
 
-      {summary && (
+      {summary ? (
         <div className="grid gap-4 sm:grid-cols-4">
           <Card>
             <CardContent className="pt-6">
@@ -106,7 +106,7 @@ export default function AdminCommissionsPage() {
             </CardContent>
           </Card>
         </div>
-      )}
+      ) : null}
 
       <Card>
         <CardHeader>

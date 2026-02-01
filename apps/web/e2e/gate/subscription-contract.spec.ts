@@ -20,13 +20,18 @@ test.describe('Subscription Contract Verification', () => {
     // Use route builder to ensure full absolute URL with port is used
     await gotoApp(page, routes.pricing(testInfo), testInfo, { marker: 'pricing-page-ready' });
 
-    // Click standard plan CTA
-    await page.getByTestId('plan-cta-standard').click();
+    // Click standard plan CTA - use getByTestId for resilience
+    const cta = page.getByTestId('plan-cta-standard');
+    await expect(cta).toBeVisible();
+    await expect(cta).toBeEnabled();
+    await expect(cta).toHaveAttribute('href', /.*register.*/);
+    await cta.scrollIntoViewIfNeeded();
 
-    // Should redirect to register with plan param
-    await expect(page).toHaveURL(new RegExp(`.*${routes.register(testInfo)}\\?plan=standard`), {
-      timeout: 15000,
-    });
+    await Promise.all([
+      page.waitForURL(/.*\/register\?plan=standard/, { timeout: 15000 }),
+      cta.click(),
+    ]);
+
     await expect(page.getByTestId('registration-page-ready')).toBeVisible({ timeout: 15000 });
 
     await context.close();
@@ -35,28 +40,30 @@ test.describe('Subscription Contract Verification', () => {
   test('Logged in Join Now triggers checkout (Contract only)', async ({
     authenticatedPage: page,
   }, testInfo) => {
-    await gotoApp(page, routes.pricing(testInfo), testInfo, { marker: 'pricing-page-ready' });
-
-    // Mock Paddle global to catch the call
     await page.addInitScript(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).Paddle = {
         Initialize: () => {},
         Checkout: {
-          open: (args: any) => {
-            (window as any).__paddle_args = args;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          open: () => {
+            throw new Error('Paddle.Checkout.open called in billing test mode');
           },
         },
       };
     });
 
+    await gotoApp(page, routes.pricing(testInfo), testInfo, { marker: 'pricing-page-ready' });
+
+    const billingSignal = page.getByTestId('pricing-page');
+    await expect(billingSignal).toHaveAttribute('data-billing-test-mode', '1');
+
     // Click CTA
     await page.getByTestId('plan-cta-standard').click();
 
     // In Billing Test Mode, it should redirect to success
-    if (process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1') {
-      await expect(page).toHaveURL(/.*\/member\/membership\/success\?test=true/, {
-        timeout: 15000,
-      });
-    }
+    await expect(page).toHaveURL(/.*\/member\/membership\/success\?test=true/, {
+      timeout: 15000,
+    });
   });
 });

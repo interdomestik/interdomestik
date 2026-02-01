@@ -1,9 +1,11 @@
+import { MemberDashboardSkeleton } from '@/components/dashboard/member-dashboard-skeleton';
 import { MemberDashboardView } from '@/components/dashboard/member-dashboard-view';
 import { auth } from '@/lib/auth';
 import { ErrorBoundary } from '@interdomestik/ui';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { getMemberDashboardCore } from './_core';
 
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -34,7 +36,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
   return (
     <ErrorBoundary>
-      <MemberDashboardView userId={result.userId} />
+      <Suspense fallback={<MemberDashboardSkeleton />}>
+        <MemberDashboardView userId={result.userId} />
+      </Suspense>
     </ErrorBoundary>
   );
 }

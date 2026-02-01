@@ -19,7 +19,7 @@ test.describe('Leads & Conversion Flow (Golden)', () => {
     // 1. Agent Login & Lead Creation
     await test.step('Agent creates a new lead', async () => {
       await loginAs('agent');
-      await gotoApp(page, '/agent/leads', testInfo);
+      await gotoApp(page, '/agent/leads', testInfo, { marker: 'body' });
 
       // Open Create Dialog
       await page.getByRole('button', { name: 'New Lead' }).click();
@@ -80,7 +80,7 @@ test.describe('Leads & Conversion Flow (Golden)', () => {
     await test.step('Admin approves payment and converts lead', async () => {
       await loginAs('admin');
       // In V2, verification ops center is at /admin/leads
-      await gotoApp(page, '/admin/leads', testInfo);
+      await gotoApp(page, '/admin/leads', testInfo, { marker: 'body' });
 
       // Find the row in the V2 table
       const verificationRow = page
@@ -99,7 +99,7 @@ test.describe('Leads & Conversion Flow (Golden)', () => {
     // 5. Verify Conversion
     await test.step('Verify lead is converted', async () => {
       await loginAs('agent');
-      await gotoApp(page, '/agent/leads', testInfo);
+      await gotoApp(page, '/agent/leads', testInfo, { marker: 'body' });
 
       const row = page.getByRole('row').filter({ hasText: leadData.email });
       // Badge text in StatusBadge.tsx is 'Member' for 'converted'

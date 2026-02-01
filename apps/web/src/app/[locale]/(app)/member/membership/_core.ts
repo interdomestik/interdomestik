@@ -18,6 +18,9 @@ export async function getMembershipPageModelCore(args: {
 }): Promise<MembershipPageModel> {
   const subscriptionResult = await db.query.subscriptions.findFirst({
     where: eq(subscriptions.userId, args.userId),
+    with: {
+      plan: true,
+    },
   });
 
   const subscription = (subscriptionResult ?? null) as SubscriptionRecord | null;
@@ -81,7 +84,13 @@ export function isGracePeriodExpired(args: { endDate: Date | null; now?: Date })
   return now.getTime() > endDate.getTime();
 }
 
-type SubscriptionRecord = NonNullable<Awaited<ReturnType<typeof db.query.subscriptions.findFirst>>>;
+export const _subscriptionQuery = db.query.subscriptions.findFirst({
+  with: {
+    plan: true,
+  },
+});
+
+export type SubscriptionRecord = NonNullable<Awaited<typeof _subscriptionQuery>>;
 
 type SubscriptionDunningInput =
   | {

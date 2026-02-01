@@ -6,7 +6,9 @@ import { gotoApp } from '../utils/navigation';
 test.describe('Claims Detail Ops (Golden)', () => {
   test('renders ops kit sections', async ({ page, loginAs }, testInfo) => {
     await loginAs('admin');
-    await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo);
+    await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
+      marker: 'view-claim',
+    });
 
     const viewButton = page.getByTestId('view-claim').first();
     await expect(viewButton).toBeVisible();

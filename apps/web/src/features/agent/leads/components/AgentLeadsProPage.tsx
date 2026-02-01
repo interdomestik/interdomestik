@@ -154,7 +154,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
       {/* Header / Nav */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link href="/agent/workspace">
+          <Link href="/agent">
             <Button
               variant="ghost"
               size="icon"
@@ -165,15 +165,10 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Leads Worklist (Pro)</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
             <p className="text-sm text-muted-foreground">Manage and track all your leads.</p>
           </div>
         </div>
-        <Link href="/agent/leads">
-          <Button variant="outline" size="sm">
-            Switch to Lite
-          </Button>
-        </Link>
       </div>
 
       {/* Filters */}

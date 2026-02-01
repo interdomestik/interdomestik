@@ -77,8 +77,6 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
 
               if (hasAdminAccess) {
                 router.push('/admin');
-              } else if (role === 'agent') {
-                router.push('/agent');
               } else if (role === 'staff') {
                 router.push('/staff');
               } else if (role === 'branch_manager') {
@@ -93,6 +91,8 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
                   setLoading(false);
                   return;
                 }
+              } else if (role === 'agent') {
+                router.push('/agent');
               } else {
                 router.push('/member');
               }
@@ -105,10 +105,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
           }}
         >
           {error && (
-            <div
-              className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md"
-              data-testid="login-error"
-            >
+            <div className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md">
               {error}
             </div>
           )}
@@ -133,7 +130,6 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               <Link
                 href="/forgot-password"
                 className="text-sm font-medium text-primary hover:underline transition-all"
-                data-testid="forgot-password-link"
               >
                 {t('forgotPassword')}
               </Link>
@@ -209,7 +205,6 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
             <Link
               href={registerHref}
               className="text-[hsl(var(--primary))] hover:underline font-medium"
-              data-testid="register-link"
             >
               {t('registerLink')}
             </Link>

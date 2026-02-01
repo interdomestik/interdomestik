@@ -26,12 +26,15 @@ test.describe('Golden Flow: Subscription Lifecycle', () => {
 
     // 2. land on member dashboard - status should be inactive
     await expect(page.getByTestId('dashboard-page-ready')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible({ timeout: 15000 });
     await expect(page).toHaveURL(new RegExp(`.*${routes.member(testInfo)}`));
 
     // Rule #4: Use data-testid for critical status
     const statusBadge = page.getByTestId('protection-status');
     await expect(statusBadge).toBeVisible();
-    await expect(statusBadge).toContainText(/No Active Protection|Pa Mbrojtje Aktive/i);
+    await expect(statusBadge).toContainText(
+      /No Active Protection|Pa Mbrojtje Aktive|Нема активна заштита|Nema aktivne zaštite/i
+    );
 
     // 3. Go to pricing to activate
     await gotoApp(page, routes.pricing(testInfo), testInfo, { marker: 'pricing-page-ready' });
@@ -49,7 +52,7 @@ test.describe('Golden Flow: Subscription Lifecycle', () => {
       marker: 'membership-page-ready',
     });
 
-    const subItem = page.getByTestId('ops-table-row').first();
+    const subItem = page.getByTestId('subscription-item').first();
     await expect(subItem).toBeVisible();
     await expect(subItem).toContainText(/ACTIVE/i);
     await expect(subItem.getByTestId('subscription-plan-name')).toContainText(/Standard/i);

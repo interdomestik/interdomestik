@@ -53,7 +53,7 @@ export function parseClaimNumber(
 type DrizzleTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function generateClaimNumber(
-  tx: typeof db | DrizzleTx,
+  tx: DrizzleTx,
   params: { tenantId: string; claimId: string; createdAt: Date }
 ): Promise<string> {
   const { tenantId, claimId, createdAt } = params;

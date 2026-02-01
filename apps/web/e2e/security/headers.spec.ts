@@ -1,15 +1,13 @@
 import { expect, test } from '@playwright/test';
-
-import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('Security Headers', () => {
   test('should have strict security headers', async ({ page }, testInfo) => {
-    await gotoApp(page, routes.home(testInfo), testInfo, { marker: 'body' });
-    const response = await page.request.get(page.url());
-    expect(response.ok()).toBeTruthy();
+    const response = await gotoApp(page, '/', testInfo);
+    expect(response?.ok()).toBeTruthy();
 
-    const headers = response.headers();
+    const headers = response?.headers();
+    if (!headers) throw new Error('No headers found');
 
     // CSP
     const csp = headers['content-security-policy'];

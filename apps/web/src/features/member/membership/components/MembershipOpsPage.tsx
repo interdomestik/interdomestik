@@ -3,13 +3,12 @@
 import {
   OpsActionBar,
   OpsDocumentsPanel,
-  OpsDrawer,
-  OpsQueryState,
   OpsStatusBadge,
   OpsTable,
   OpsTimeline,
 } from '@/components/ops';
 import {
+  DbDocument,
   getMembershipActions,
   OpsActionConfig,
   toOpsDocuments,
@@ -25,126 +24,113 @@ import { useEffect } from 'react';
 import { getCustomerPortalUrl, requestCancellation } from '@/actions/memberships';
 import { toast } from 'sonner';
 
-import { OPS_TEST_IDS } from '@/components/ops/testids';
+// ... imports
+import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
+// ...
+
+// Loose type for next-intl translator to avoid complex generic drilling
+// Loose type for next-intl translator to avoid complex generic drilling
+type TranslationFn = (key: string, values?: any, formats?: any) => string;
 
 export function MembershipOpsPage({
   subscriptions,
   documents,
 }: {
-  subscriptions: any[];
-  documents: any[];
+  subscriptions: SubscriptionRecord[];
+  documents: DbDocument[];
 }) {
-  const t = useTranslations('membership');
   const { selectedId, setSelectedId } = useOpsSelectionParam();
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const t = useTranslations('membership');
+
+  // Sync selection if not present and we have data (desktop only or robust default)
+  useEffect(() => {
+    if (!selectedId && subscriptions.length > 0 && isDesktop) {
+      setSelectedId(subscriptions[0].id);
+    }
+  }, [selectedId, subscriptions, isDesktop, setSelectedId]);
 
   const selectedSubscription = subscriptions.find(s => s.id === selectedId);
 
-  // 10D: Fall back gracefully to first item if selection invalid or missing
-  useEffect(() => {
-    if (
-      subscriptions.length > 0 &&
-      (!selectedId || !subscriptions.find(s => s.id === selectedId))
-    ) {
-      setSelectedId(subscriptions[0].id);
-    }
-  }, [selectedId, subscriptions, setSelectedId]);
-
-  const handleSelect = (id: string) => {
-    setSelectedId(id === selectedId ? null : id);
-  };
-
-  const closeDetail = () => setSelectedId(null);
-
-  // Map subscriptions to OpsTableRow
-  const rows = subscriptions.map(sub => ({
-    id: sub.id,
-    testId: OPS_TEST_IDS.TABLE.ROW,
+  const tableRows = subscriptions.map(s => ({
+    id: s.id,
     cells: [
-      <span
-        key="plan"
-        className="font-medium"
-        data-testid="subscription-plan-name"
-        data-plan={sub.planId}
-      >
-        {sub.plan?.name || sub.planId}
-      </span>,
-      <OpsStatusBadge key="status" {...toOpsStatus(sub.status)} />,
-      <span key="date">
-        {sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : '-'}
-      </span>,
+      <div key="plan" className="flex flex-col">
+        <span className="font-medium" data-testid="subscription-plan-name">
+          {s.plan?.name || s.planId}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '-'}
+        </span>
+      </div>,
+      <OpsStatusBadge key="status" {...toOpsStatus(s.status)} />,
     ],
-    onClick: () => handleSelect(sub.id),
-    className: selectedId === sub.id ? 'bg-muted/50' : '',
+    onClick: () => setSelectedId(s.id),
+    className: selectedId === s.id ? 'bg-primary/5' : undefined,
   }));
 
-  const columns = [
-    { key: 'plan', header: t('plan.plan_label') },
-    { key: 'status', header: t('plan.status_label') },
-    { key: 'date', header: t('plan.renews_label') },
+  const tableColumns = [
+    { key: 'plan', header: 'Plan' },
+    { key: 'status', header: 'Status' },
   ];
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] gap-4 p-4" data-testid="membership-page-ready">
-      {/* List Panel */}
-      <div className={`flex-1 min-w-0 ${selectedId && isDesktop ? 'max-w-md' : ''}`}>
-        <Card className="h-full flex flex-col">
-          <CardHeader>
-            <CardTitle>{t('page.title')}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 min-h-0 p-0">
-            <OpsQueryState
-              isEmpty={rows.length === 0}
-              emptyTitle={t('plan.no_membership')}
-              emptySubtitle={t('plan.description')}
-              emptyTestId="no-membership-empty"
-              className="h-full"
-            >
-              <OpsTable
-                columns={columns}
-                rows={rows}
-                loading={false}
-                emptyLabel={t('plan.no_membership')}
-                emptySubtitle={t('plan.description')}
-              />
-            </OpsQueryState>
-          </CardContent>
-        </Card>
+    <div className="flex h-[calc(100vh-4rem)]">
+      {/* Left Panel: List */}
+      <div
+        className={`w-full md:w-1/3 border-r bg-muted/10 flex flex-col ${
+          selectedId && !isDesktop ? 'hidden' : 'flex'
+        }`}
+      >
+        <div className="p-4 border-b">
+          <h2 className="font-semibold text-lg">{t('ops.title')}</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <OpsTable
+            rows={tableRows}
+            columns={tableColumns}
+            emptyLabel={t('ops.empty_list')}
+            rowTestId="subscription-item"
+          />
+        </div>
       </div>
 
-      {/* Detail Panel (Desktop) */}
-      {selectedId && isDesktop && (
-        <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-right-4">
-          <DetailView subscription={selectedSubscription} documents={documents} t={t} />
-        </div>
-      )}
-
-      {/* Detail Drawer (Mobile) */}
-      {!isDesktop && (
-        <OpsDrawer
-          open={!!selectedId}
-          onOpenChange={open => !open && closeDetail()}
-          title={selectedSubscription?.plan?.name || t('plan.title')}
-        >
-          {selectedSubscription && (
+      {/* Right Panel: Detail */}
+      <div
+        className={`w-full md:w-2/3 flex flex-col bg-background ${
+          !selectedId && !isDesktop ? 'hidden' : 'flex'
+        }`}
+      >
+        {selectedSubscription ? (
+          <div className="flex-1 p-6 overflow-hidden">
+            {!isDesktop && (
+              <button
+                onClick={() => setSelectedId(null)}
+                className="mb-4 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                ← {t('ops.back_to_list')}
+              </button>
+            )}
             <DetailView subscription={selectedSubscription} documents={documents} t={t} />
-          )}
-        </OpsDrawer>
-      )}
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            {t('ops.select_subscription')}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-// ...
 
 function DetailView({
   subscription,
   documents,
   t,
 }: {
-  subscription: any;
-  documents: any[];
-  t: any;
+  subscription: SubscriptionRecord | null;
+  documents: DbDocument[];
+  t: TranslationFn;
 }) {
   if (!subscription) return null;
 

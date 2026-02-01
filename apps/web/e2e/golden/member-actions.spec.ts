@@ -5,7 +5,7 @@ test.describe('Gate: Critical Path › Member Actions & Uploads', () => {
   test.fixme('Member can see action buttons on subscription', async ({
     authenticatedPage,
   }, testInfo) => {
-    await gotoApp(authenticatedPage, '/member/membership', testInfo);
+    await gotoApp(authenticatedPage, '/member/membership', testInfo, { marker: 'body' });
 
     // Check if we have subscriptions OR empty state
     const rows = authenticatedPage.locator('[data-testid^="ops-row-"]');
@@ -32,7 +32,7 @@ test.describe('Gate: Critical Path › Member Actions & Uploads', () => {
   test('Member can see Upload Evidence button on claim', async ({
     authenticatedPage,
   }, testInfo) => {
-    await gotoApp(authenticatedPage, '/member/claims', testInfo);
+    await gotoApp(authenticatedPage, '/member/claims', testInfo, { marker: 'body' });
 
     // Find a claim link
     const validClaimLink = authenticatedPage

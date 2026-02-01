@@ -7,7 +7,7 @@ import { Separator, SidebarInset, SidebarProvider, SidebarTrigger } from '@inter
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
@@ -21,10 +21,13 @@ export default async function AdminLayout({
   const { locale } = await params;
   const session = await (async () => {
     try {
-      return await auth.api.getSession({
-        headers: await headers(),
+      const h = await headers();
+      const s = await auth.api.getSession({
+        headers: h,
       });
-    } catch {
+      return s;
+    } catch (err) {
+      console.error('[AdminLayout] Session fetch failed:', err);
       return null;
     }
   })();
@@ -39,26 +42,12 @@ export default async function AdminLayout({
   // Central Portal Guard
   const role = sessionNonNull.user.role;
 
-  // 1. Staff -> 404 Not Found (Strict Isolation)
-  if (role === 'staff') {
-    const { notFound } = await import('next/navigation');
+  // Strict Isolation: Only allow admin, super_admin, tenant_admin, and branch_manager
+  const ALLOWED_ROLES = ['admin', 'super_admin', 'tenant_admin', 'branch_manager'];
+
+  if (!ALLOWED_ROLES.includes(role)) {
     notFound();
   }
-
-  // 2. Agent -> 404 Not Found (Strict Isolation)
-  if (role === 'agent') {
-    const { notFound } = await import('next/navigation');
-    notFound();
-  }
-
-  // 3. Member -> 404 Not Found (Strict Isolation)
-  if (role === 'member') {
-    const { notFound } = await import('next/navigation');
-    notFound();
-  }
-
-  // 4. Default Allow: tenant_admin, super_admin, branch_manager
-  // (Branch Manager specific page access is handled deeper, but they can enter "Admin" portal broadly)
 
   const allMessages = await getMessages();
   const messages = {
@@ -107,7 +96,7 @@ export default async function AdminLayout({
           <SidebarInset className="bg-mesh flex flex-col min-h-screen">
             <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 transition-all">
               <div className="flex items-center gap-2">
-                <SidebarTrigger className="-ml-1" data-testid="sidebar-trigger" />
+                <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
               </div>
               <div className="flex-1 flex items-center justify-between">

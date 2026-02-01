@@ -191,6 +191,32 @@ async function storageStateExists(filePath: string): Promise<boolean> {
   }
 }
 
+async function storageStateUsable(filePath: string, expectedHost: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+  } catch {
+    return false;
+  }
+
+  try {
+    const raw = await fs.readFile(filePath, 'utf8');
+    const parsed = JSON.parse(raw) as { cookies?: Array<{ name?: string; domain?: string }> };
+    const cookies = Array.isArray(parsed.cookies) ? parsed.cookies : [];
+    const sessionCookies = cookies.filter(c => (c.name ?? '').includes('session_token'));
+
+    if (sessionCookies.length === 0) return false;
+
+    return sessionCookies.some(c => {
+      const domain = (c.domain ?? '').toLowerCase();
+      const host = expectedHost.toLowerCase();
+      return domain === host || domain === `.${host}`;
+    });
+  } catch {
+    // If parsing fails, treat as unusable so it can be regenerated.
+    return false;
+  }
+}
+
 async function hasSessionCookie(page: Page): Promise<boolean> {
   const cookies = await page.context().cookies();
   return cookies.some(c => /session|auth|better-auth/i.test(c.name));
@@ -211,13 +237,16 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
   return await hasSessionCookie(page);
 }
 
-export async function logout(page: Page): Promise<void> {
-  const current = page.url() && page.url() !== 'about:blank' ? page.url() : null;
-  const origin = current ? new URL(current).origin : 'http://127.0.0.1:3000';
-  await page.request.post(new URL('/api/auth/sign-out', origin).toString(), {
-    headers: { Origin: origin },
+export async function logout(page: Page, testInfo: TestInfo): Promise<void> {
+  const info = getProjectUrlInfo(testInfo, null);
+  const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+  await page.request.post(new URL('/api/auth/sign-out', info.origin).toString(), {
+    headers: {
+      Origin: info.origin,
+      ...projectHeaders,
+    },
   });
-  await page.goto(routes.login('en'));
+  await gotoApp(page, routes.login('en'), testInfo);
 }
 
 // Backwards-compatible exports (default to KS).
@@ -236,19 +265,27 @@ async function performLogin(
   page: Page,
   role: Role,
   info: ProjectUrlInfo,
+  testInfo: TestInfo,
   tenant: Tenant = 'ks'
 ): Promise<void> {
   const { email, password } = credsFor(role, tenant);
 
   // API Login Strategy (Robust)
-  const apiBase = getApiOrigin(info.baseURL);
-  const loginURL = `${apiBase}/api/auth/sign-in/email`;
+  // IMPORTANT: login MUST use the same origin as the browser project baseURL.
+  // Otherwise session cookies are stored for a different host and won't be sent
+  // on subsequent navigation (causing /login redirect cascades).
+  const loginURL = new URL('/api/auth/sign-in/email', info.origin).toString();
+
+  // Propagate tenant simulation headers (x-forwarded-host) from project config.
+  const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+
   const res = await page.request.post(loginURL, {
     data: { email, password },
     headers: {
       Origin: info.origin,
       Referer: buildUiLoginUrl(info),
       'x-forwarded-for': ipForRole(role),
+      ...projectHeaders,
     },
   });
 
@@ -264,10 +301,9 @@ async function performLogin(
   const cookies = await page.context().cookies();
   const sessionCookies = cookies.filter(c => c.name.includes('session_token'));
 
-  const expectedHost = new URL(info.origin).hostname;
-  const hasCookieForHost = sessionCookies.some(
-    c => c.domain === expectedHost || c.domain === `.${expectedHost}`
-  );
+  // We expect cookies to be set for the forwarded host (e.g. mk.127.0.0.1.nip.io) OR 127.0.0.1
+  // But typically Better Auth will set them for the host it thinks it is.
+  // With x-forwarded-host, it should respect that.
 
   if (sessionCookies.length === 0) {
     console.warn(`❌ No session_token cookie found after successful API login for ${role}`);
@@ -275,13 +311,6 @@ async function performLogin(
   } else {
     console.log(`✅ Session cookies found for ${role}:`);
     console.log(JSON.stringify(sessionCookies, null, 2));
-
-    if (!hasCookieForHost) {
-      console.warn(
-        `⚠️ Session cookie domain mismatch for ${role}. Expected host ${expectedHost}. Session cookies:`
-      );
-      console.log(JSON.stringify(sessionCookies, null, 2));
-    }
   }
 
   // Deterministic post-login navigation
@@ -292,9 +321,21 @@ async function performLogin(
   else if (role === 'branch_manager') targetPath += '/admin';
   else targetPath += '/member';
 
-  const targetUrl = new URL(targetPath, info.origin).toString();
-  await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
+  // Use testInfo-derived base URL (should be 127.0.0.1)
+  const targetUrl = new URL(targetPath, info.baseURL).toString();
+  await gotoApp(page, targetUrl, testInfo, { marker: 'domcontentloaded' });
+  const marker = 'dashboard-page-ready';
+
+  try {
+    await expect(page.getByTestId(marker)).toBeVisible({ timeout: 30000 });
+  } catch (e) {
+    console.error(`[Auth Diagnostics] Marker "${marker}" NOT FOUND for ${role}`);
+    console.error(`[Auth Diagnostics] Current URL: ${page.url()}`);
+    const html = await page.content();
+    console.error(`[Auth Diagnostics] Page HTML preview (first 500 chars): ${html.slice(0, 500)}`);
+    throw e;
+  }
+
   await assertNoTenantChooser(page);
 
   // Diagnostics
@@ -307,33 +348,63 @@ async function performLogin(
 }
 
 async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, tenant: Tenant) {
+  // Phase 0: Debug Config
+  const info = getProjectUrlInfo(testInfo, null);
+  const debugRes = await page.request.get(new URL('/api/_debug/auth', info.origin).toString());
+  if (debugRes.ok()) {
+    const debugData = await debugRes.json();
+    console.log('[E2E Debug] Auth Config:', JSON.stringify(debugData, null, 2));
+  }
+
   // Determine target based on role
   let targetPath = '/member';
   if (role.includes('admin') || role === 'branch_manager') targetPath = '/admin';
   else if (role === 'agent') targetPath = '/agent';
   else if (role === 'staff') targetPath = '/staff';
 
-  // Navigate using gotoApp (handles locale). Use a permissive marker first so
-  // we can detect auth redirects (e.g., bounced to /login).
+  // Navigate using gotoApp (handles locale)
   await gotoApp(page, targetPath, testInfo, { marker: 'body' });
 
-  // Check if we bounced to login (auth-ready visible)
-  const isLoginPage = await page
-    .getByTestId('auth-ready')
-    .isVisible({ timeout: 2000 })
-    .catch(() => false);
+  // Check if we bounced to login (auth-ready or registration-page-ready visible OR url contains /login)
+  // We purposefully include a URL check for speed/robustness on slow renderers.
+  const isLoginPage =
+    (await Promise.race([
+      page
+        .getByTestId('auth-ready')
+        .waitFor({ timeout: 3000 })
+        .then(() => true)
+        .catch(() => false),
+      page
+        .getByTestId('registration-page-ready')
+        .waitFor({ timeout: 3000 })
+        .then(() => true)
+        .catch(() => false),
+      page
+        .getByTestId('dashboard-page-ready')
+        .waitFor({ timeout: 3000 })
+        .then(() => false)
+        .catch(() => false),
+    ])) || page.url().includes('/login');
 
   if (isLoginPage) {
     console.log(`[Auth] Session invalid/missing for ${role}, re-logging in...`);
     const info = getProjectUrlInfo(testInfo, null);
-    await performLogin(page, role, info, tenant);
+    await performLogin(page, role, info, testInfo, tenant);
   }
 
-  await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
-
+  // Final check with strict marker
+  // Final check with strict marker
+  const marker = 'dashboard-page-ready';
+  await gotoApp(page, targetPath, testInfo, { marker });
   // Phase 3: Post-ensure validation (Contract guarantee)
-  const apiBase = getApiOrigin(testInfo.project.use.baseURL!);
-  const sessionRes = await page.request.get(`${apiBase}/api/auth/get-session`);
+  const sessionUrl = new URL('/api/auth/get-session', info.origin).toString();
+  const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+  const sessionRes = await page.request.get(sessionUrl, {
+    headers: {
+      Origin: info.origin,
+      ...projectHeaders,
+    },
+  });
   expect(
     sessionRes.status(),
     `Session should be valid (200 OK) after ensuring auth for ${role}`
@@ -367,7 +438,7 @@ export const test = base.extend<AuthFixtures>({
       const tenant = getTenantFromTestInfo(testInfo);
       const info = getProjectUrlInfo(testInfo, baseURL);
       setWorkerE2EBaseURL(info);
-      await performLogin(page, role, info, tenant);
+      await performLogin(page, role, info, testInfo, tenant);
     });
   },
 
@@ -378,7 +449,7 @@ export const test = base.extend<AuthFixtures>({
       const statePath = storageStateFile(role, tenant);
       const info = getProjectUrlInfo(testInfo, baseURL);
       setWorkerE2EBaseURL(info);
-      await performLogin(page, role, info, tenant);
+      await performLogin(page, role, info, testInfo, tenant);
       await page.context().storageState({ path: statePath });
     });
   },
@@ -386,26 +457,38 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Generic authenticated page (defaults to member if not specified)
    */
-  authenticatedPage: async ({ page, baseURL }, use, testInfo) => {
+  authenticatedPage: async ({ page, baseURL: _baseURL }, use, testInfo) => {
     attachDialogDiagnostics(page);
     const tenant = getTenantFromTestInfo(testInfo);
-    // Use ensureAuthenticated instead of raw check
     await ensureAuthenticated(page, testInfo, 'member', tenant);
     await use(page);
   },
 
   /**
-   * Page authenticated as admin
+   * Helper to merge project headers with role specifics
    */
   adminPage: async ({ browser, baseURL }, use, testInfo) => {
     const tenant = getTenantFromTestInfo(testInfo);
     const info = getProjectUrlInfo(testInfo, baseURL);
     setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('admin', tenant);
+
+    const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+    const mergedHeaders = {
+      ...projectHeaders,
+      'x-forwarded-for': ipForRole('admin'),
+    };
+
+    if (process.env.CI) {
+      console.log(`[CI Diag] Creating adminPage context with headers:`, mergedHeaders);
+    }
+
     const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      storageState: (await storageStateUsable(statePath, new URL(info.origin).hostname))
+        ? statePath
+        : undefined,
       locale: 'en-US',
-      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('admin') },
+      extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
     });
     const page = await context.newPage();
@@ -425,10 +508,22 @@ export const test = base.extend<AuthFixtures>({
     const info = getProjectUrlInfo(testInfo, null);
     setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('agent', tenant);
+    const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+    const mergedHeaders = {
+      ...projectHeaders,
+      'x-forwarded-for': ipForRole('agent'),
+    };
+
+    if (process.env.CI) {
+      console.log(`[CI Diag] Creating agentPage context with headers:`, mergedHeaders);
+    }
+
     const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      storageState: (await storageStateUsable(statePath, new URL(info.origin).hostname))
+        ? statePath
+        : undefined,
       locale: 'en-US',
-      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('agent') },
+      extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
     });
     const page = await context.newPage();
@@ -448,10 +543,22 @@ export const test = base.extend<AuthFixtures>({
     const info = getProjectUrlInfo(testInfo, null);
     setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('staff', tenant);
+    const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+    const mergedHeaders = {
+      ...projectHeaders,
+      'x-forwarded-for': ipForRole('staff'),
+    };
+
+    if (process.env.CI) {
+      console.log(`[CI Diag] Creating staffPage context with headers:`, mergedHeaders);
+    }
+
     const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      storageState: (await storageStateUsable(statePath, new URL(info.origin).hostname))
+        ? statePath
+        : undefined,
       locale: 'en-US',
-      extraHTTPHeaders: { 'x-forwarded-for': ipForRole('staff') },
+      extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
     });
     const page = await context.newPage();
@@ -471,12 +578,23 @@ export const test = base.extend<AuthFixtures>({
     const info = getProjectUrlInfo(testInfo, null);
     setWorkerE2EBaseURL(info);
     const statePath = storageStateFile('branch_manager', tenant);
+    const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
+    const mergedHeaders = {
+      ...projectHeaders,
+      // distinct IP for BM
+      'x-forwarded-for': '10.0.0.15',
+    };
+
+    if (process.env.CI) {
+      console.log(`[CI Diag] Creating branchManagerPage context with headers:`, mergedHeaders);
+    }
+
     const context = await browser.newContext({
-      storageState: (await storageStateExists(statePath)) ? statePath : undefined,
+      storageState: (await storageStateUsable(statePath, new URL(info.origin).hostname))
+        ? statePath
+        : undefined,
       locale: 'en-US',
-      extraHTTPHeaders: {
-        'x-forwarded-for': '10.0.0.15', // Distinct IP for BM
-      },
+      extraHTTPHeaders: mergedHeaders,
       baseURL: info.baseURL,
     });
     const page = await context.newPage();

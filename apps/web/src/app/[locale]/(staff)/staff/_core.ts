@@ -55,33 +55,30 @@ export async function getStaffDashboardCore(params: {
     );
 
     const baseWhere = buildStaffDashboardWhere({ tenantId });
-
-    // Queries
-    const [totalRes] = await db.select({ val: count() }).from(claims).where(baseWhere);
-    const [newRes] = await db
-      .select({ val: count() })
-      .from(claims)
-      .where(and(baseWhere, eq(claims.status, newStatus)));
-
     const inProgressCondition =
       inProgressStatuses.length > 0 ? inArray(claims.status, inProgressStatuses) : sql`false`;
 
-    const [inProgressRes] = await db
-      .select({ val: count() })
-      .from(claims)
-      .where(and(baseWhere, inProgressCondition));
-
-    const [completedRes] = await db
-      .select({ val: count() })
-      .from(claims)
-      .where(and(baseWhere, inArray(claims.status, completedStatuses)));
-
-    const recentClaimsRaw = await db.query.claims.findMany({
-      where: baseWhere,
-      orderBy: [desc(claims.updatedAt)],
-      limit: 5,
-      with: { user: true },
-    });
+    // Vercel Best Practice: Eliminate Waterfall (async-parallel)
+    // Execute all independent DB queries in parallel
+    const [[totalRes], [newRes], [inProgressRes], [completedRes], recentClaimsRaw] =
+      await Promise.all([
+        db.select({ val: count() }).from(claims).where(baseWhere),
+        db
+          .select({ val: count() })
+          .from(claims)
+          .where(and(baseWhere, eq(claims.status, newStatus))),
+        db.select({ val: count() }).from(claims).where(and(baseWhere, inProgressCondition)),
+        db
+          .select({ val: count() })
+          .from(claims)
+          .where(and(baseWhere, inArray(claims.status, completedStatuses))),
+        db.query.claims.findMany({
+          where: baseWhere,
+          orderBy: [desc(claims.updatedAt)],
+          limit: 5,
+          with: { user: true },
+        }),
+      ]);
 
     const recentClaims = recentClaimsRaw.map((c: Record<string, unknown>) => ({
       id: c.id as string,

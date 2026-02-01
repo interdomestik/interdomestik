@@ -9,14 +9,33 @@ import { sendPasswordResetEmail } from './email';
 
 function getTrustedOrigins(): string[] | undefined {
   const raw = process.env.BETTER_AUTH_TRUSTED_ORIGINS;
-  if (!raw) return undefined;
-  return raw
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+  let origins = raw
+    ? raw
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+    : [];
+
+  // DX: Automatically trust nip.io subdomains in development to fix multi-tenant login
+  if (process.env.NODE_ENV === 'development') {
+    const devOrigins = [
+      'http://ks.127.0.0.1.nip.io:3000',
+      'http://mk.127.0.0.1.nip.io:3000',
+      'http://app.127.0.0.1.nip.io:3000',
+      'http://127.0.0.1.nip.io:3000',
+      'http://127.0.0.1:3000', // Bare IP support
+      'http://localhost:3000',
+    ];
+    // Deduplicate
+    origins = Array.from(new Set([...origins, ...devOrigins]));
+  }
+
+  if (origins.length === 0) return undefined;
+  return origins;
 }
 
 export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL || 'http://127.0.0.1.nip.io:3000',
   trustedOrigins: getTrustedOrigins(),
   database: drizzleAdapter(db, {
     provider: 'pg',
@@ -183,6 +202,10 @@ export const auth = betterAuth({
         type: 'string',
         fieldName: 'agentId',
       },
+      referralCode: {
+        type: 'string',
+        fieldName: 'referralCode',
+      },
     },
   },
   emailAndPassword: {
@@ -208,7 +231,11 @@ export const auth = betterAuth({
   rateLimit: {
     // Contract: Rate limiting must be disabled for deterministic automated runs (Playwright/CI),
     // but remain enabled by default everywhere else.
-    enabled: !(process.env.INTERDOMESTIK_AUTOMATED === '1' || process.env.PLAYWRIGHT === '1'),
+    enabled: !(
+      process.env.INTERDOMESTIK_AUTOMATED === '1' ||
+      process.env.PLAYWRIGHT === '1' ||
+      !!process.env.CI
+    ),
     window: 60, // 1 minute
     max: 100, // 100 requests per minute per IP
   },

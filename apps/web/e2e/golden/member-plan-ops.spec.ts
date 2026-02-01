@@ -6,7 +6,7 @@ import { gotoApp } from '../utils/navigation';
 test.describe('Member Plan Ops (Golden)', () => {
   test('renders ops master-detail plan view', async ({ page, loginAs }, testInfo) => {
     await loginAs('member');
-    await gotoApp(page, `${routes.member(testInfo)}/membership`, testInfo);
+    await gotoApp(page, `${routes.member(testInfo)}/membership`, testInfo, { marker: 'ops-table' });
 
     // Check Ops Table
     const table = page.getByTestId('ops-table');

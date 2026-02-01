@@ -11,11 +11,12 @@
 
 import { expect, test } from './fixtures/auth.fixture';
 import { routes } from './routes';
+import { gotoApp } from './utils/navigation';
 
 test.describe('Admin User Flow', () => {
   test.describe('Dashboard Access', () => {
-    test('Admin can access admin dashboard', async ({ adminPage: page }) => {
-      await page.goto(routes.admin());
+    test('Admin can access admin dashboard', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.admin(), testInfo);
 
       // Should be on admin dashboard
       await expect(page).toHaveURL(/.*\/admin/);
@@ -24,16 +25,18 @@ test.describe('Admin User Flow', () => {
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
     });
 
-    test('Admin can see dashboard content', async ({ adminPage: page }) => {
-      await page.goto(routes.admin());
+    test('Admin can see dashboard content', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.admin(), testInfo);
 
       // Check for main content area
       const mainContent = page.locator('main').first();
       await expect(mainContent).toBeVisible();
     });
 
-    test('Admin can see operational center', async ({ adminPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Admin can see operational center', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, `${routes.adminClaims()}?view=ops`, testInfo, {
+        marker: 'ops-center-page',
+      });
 
       // The admin dashboard is the Operational Center with claims overview
       // Check for heading that exists in both locales
@@ -47,22 +50,28 @@ test.describe('Admin User Flow', () => {
   });
 
   test.describe('Claims Management', () => {
-    test('Admin can access claims page', async ({ adminPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Admin can access claims page', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, `${routes.adminClaims()}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
 
       // Should see claims page heading (multilingual)
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
     });
 
-    test('Admin can see claims content', async ({ adminPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Admin can see claims content', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, `${routes.adminClaims()}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
 
       // Should see main content
       await expect(page.locator('main').first()).toBeVisible();
     });
 
-    test('Admin page loads claims data', async ({ adminPage: page }) => {
-      await page.goto(routes.adminClaims());
+    test('Admin page loads claims data', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, `${routes.adminClaims()}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
 
       // Check that the page renders without errors - look for any claim number pattern
       await expect(page.locator('body')).toContainText(/CLM-|Kërkesa|Claim|Барање/i);
@@ -70,15 +79,15 @@ test.describe('Admin User Flow', () => {
   });
 
   test.describe('User Management', () => {
-    test('Admin can access user management page', async ({ adminPage: page }) => {
-      await page.goto(routes.adminUsers());
+    test('Admin can access user management page', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.adminUsers(), testInfo);
 
       // Should see user management heading (multilingual)
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
     });
 
-    test('Admin can see user content', async ({ adminPage: page }) => {
-      await page.goto(routes.adminUsers());
+    test('Admin can see user content', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.adminUsers(), testInfo);
 
       // Should see user-related content
       const mainContent = page.locator('main').first();
@@ -87,8 +96,8 @@ test.describe('Admin User Flow', () => {
   });
 
   test.describe('Analytics', () => {
-    test('Admin can access analytics page', async ({ adminPage: page }) => {
-      await page.goto(routes.adminAnalytics());
+    test('Admin can access analytics page', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.adminAnalytics(), testInfo);
 
       // Should see analytics content (multilingual)
       await expect(page.locator('body')).toContainText(/Analytics|Analitika|Аналитика/i);
@@ -96,8 +105,8 @@ test.describe('Admin User Flow', () => {
   });
 
   test.describe('Settings', () => {
-    test('Admin can access admin settings', async ({ adminPage: page }) => {
-      await page.goto(routes.adminSettings());
+    test('Admin can access admin settings', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.adminSettings(), testInfo);
 
       // Should see settings page content
       await expect(page.locator('main').first()).toBeVisible();
@@ -105,8 +114,8 @@ test.describe('Admin User Flow', () => {
   });
 
   test.describe('Navigation', () => {
-    test('Admin sidebar has navigation links', async ({ adminPage: page }) => {
-      await page.goto(routes.admin());
+    test('Admin sidebar has navigation links', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.admin(), testInfo);
 
       // Check for navigation links in sidebar (using common patterns)
       const sidebar = page.getByTestId('admin-sidebar').first();
@@ -117,8 +126,8 @@ test.describe('Admin User Flow', () => {
       await expect(navLinks.first()).toBeVisible();
     });
 
-    test('Admin can navigate to different sections', async ({ adminPage: page }) => {
-      await page.goto(routes.admin());
+    test('Admin can navigate to different sections', async ({ adminPage: page }, testInfo) => {
+      await gotoApp(page, routes.admin(), testInfo);
 
       // Use the sidebar container specifically
       const sidebar = page.getByTestId('admin-sidebar').first();
@@ -133,8 +142,10 @@ test.describe('Admin User Flow', () => {
   });
 
   test.describe('Access Control', () => {
-    test('Non-admin is denied access to admin routes', async ({ authenticatedPage: page }) => {
-      await page.goto(routes.admin());
+    test('Non-admin is denied access to admin routes', async ({
+      authenticatedPage: page,
+    }, testInfo) => {
+      await gotoApp(page, routes.admin(), testInfo);
       await page.waitForLoadState('domcontentloaded');
       await page.waitForTimeout(500); // Allow redirect to complete
 

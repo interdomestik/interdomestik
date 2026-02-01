@@ -23,14 +23,29 @@ export default async function PricingPage({ params }: PricingPageProps) {
   const session = await auth.api.getSession({ headers: await headers() });
   const t = await getTranslations({ locale, namespace: 'pricing' });
 
+  const billingTestMode = process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
+
   return (
-    <div className="container py-20 px-4 md:px-6" data-testid="pricing-page-ready">
+    <div
+      className="container py-20 px-4 md:px-6"
+      data-testid="pricing-page-ready"
+      data-billing-test-mode={billingTestMode ? '1' : '0'}
+    >
+      <div
+        data-testid="pricing-page"
+        data-billing-test-mode={billingTestMode ? '1' : '0'}
+        className="sr-only"
+      />
       <div className="text-center mb-12 max-w-2xl mx-auto">
         <h1 className="text-4xl font-bold tracking-tight mb-4">{t('title')}</h1>
         <p className="text-xl text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <PricingTable userId={session?.user?.id} email={session?.user?.email} />
+      <PricingTable
+        userId={session?.user?.id}
+        email={session?.user?.email}
+        billingTestMode={billingTestMode}
+      />
 
       <div className="mt-20 text-center">
         <p className="text-sm text-muted-foreground">30-Day Money-Back Guarantee</p>

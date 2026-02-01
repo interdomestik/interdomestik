@@ -87,7 +87,6 @@ export function ProfileForm({ user }: ProfileFormProps) {
                     <Input
                       placeholder={t('fullNamePlaceholder')}
                       {...field}
-                      data-testid="profile-name-input"
                       className="bg-background/50 border-border/50 focus:ring-primary/20 transition-all duration-300 hover:border-primary/50"
                     />
                   </FormControl>

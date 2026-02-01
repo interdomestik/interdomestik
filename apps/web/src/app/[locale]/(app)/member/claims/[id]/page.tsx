@@ -46,5 +46,5 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   };
 
   // @ts-expect-error - Serialized dates mismatch Date type in DTO but compatible with Adapter
-  return <MemberClaimDetailOpsPage claim={serializedClaim} userId={session.user.id} />;
+  return <MemberClaimDetailOpsPage claim={serializedClaim} />;
 }

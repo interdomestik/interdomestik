@@ -1,34 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-set -e
-
-# Note: secrets-precommit.sh removed; secrets are enforced via CI/gitleaks (see .github/workflows/secret-scan.yml)
-
-STAGED="$(git diff --cached --name-only)"
-
-# 1. E2E specs touched => strict gate + static
-if echo "$STAGED" | grep -Eq '^apps/web/e2e/'; then
-  echo "⚡ E2E files changed. Running check:fast AND check:static..."
-  pnpm check:fast
-  pnpm check:static
-  exit 0
-fi
-
-# 2. Code changes => static checks only
-if echo "$STAGED" | grep -Eq '(\.ts|\.tsx|\.js|\.jsx|\.mjs|\.cjs)$'; then
-  echo "✅ Code changes detected. Running check:static..."
-  pnpm check:static
-  exit 0
-fi
-
-# 3. Docs changed => run contract check
-if echo "$STAGED" | grep -Eq '^(README\.md|AGENTS\.md|apps/web/e2e/README\.md)$'; then
-  echo "🛡️ Docs changed. Running check-docs-contract.mjs --strict..."
-  node scripts/check-docs-contract.mjs --strict
-  exit 0
-fi
-
-# 4. Everything else (Config) => Skip
-echo "⏩ No code/E2E/Docs changes requiring special checks. Skipping."
-exit 0
+#!/bin/sh
+./scripts/secrets-precommit.sh
+pnpm lint-staged

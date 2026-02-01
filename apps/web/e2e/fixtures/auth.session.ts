@@ -1,5 +1,6 @@
-import { Page } from '@playwright/test';
+import { Page, TestInfo } from '@playwright/test';
 import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 import { getAuthOrigin } from './auth.project';
 
 // Locators that only appear when logged in
@@ -28,11 +29,11 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
   return await hasSessionCookie(page);
 }
 
-export async function logout(page: Page): Promise<void> {
+export async function logout(page: Page, testInfo: TestInfo): Promise<void> {
   const current = page.url() && page.url() !== 'about:blank' ? page.url() : null;
   const origin = current ? new URL(current).origin : getAuthOrigin();
   await page.request.post(new URL('/api/auth/sign-out', origin).toString(), {
     headers: { Origin: origin },
   });
-  await page.goto(routes.login('en'));
+  await gotoApp(page, routes.login('en'), testInfo);
 }

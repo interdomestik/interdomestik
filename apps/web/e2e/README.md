@@ -1,4 +1,6 @@
-# E2E Testing Guidelines (Source of Truth)
+# E2E Source of Truth
+
+This document is the absolute **Source of Truth** for all E2E testing contracts, markers, and execution patterns.
 
 We use Playwright for End-to-End testing. To maintain a stable, fast, and multi-tenant compatible suite, we enforce the following strict rules.
 

@@ -5,6 +5,9 @@ import { formatMemberNumber } from '../../../features/admin/members/utils/member
 
 const MAX_RETRIES = 3;
 
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type TxOrDb = typeof db | DbTransaction;
+
 /**
  * Atomically generates and assigns a Global Member Number to a user.
  *
@@ -15,7 +18,7 @@ const MAX_RETRIES = 3;
  * 4. Format: MEM-{YYYY}-{NNNNNN}
  */
 export async function generateMemberNumber(
-  txOrDb: any, // Accepts transaction or db instance (loose type for Drizzle flexibility)
+  txOrDb: TxOrDb, // Accepts transaction or db instance
   userId: string,
   year: number
 ): Promise<string> {
@@ -38,7 +41,7 @@ export async function generateMemberNumber(
   let attempt = 0;
   while (attempt < MAX_RETRIES) {
     try {
-      return await dbExecutor.transaction(async (tx: any) => {
+      return await dbExecutor.transaction(async (tx: DbTransaction) => {
         // Double-check inside transaction lock (for strict correctness)
         const current = await tx
           .select({ memberNumber: user.memberNumber })

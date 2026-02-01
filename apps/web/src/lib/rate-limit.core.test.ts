@@ -32,6 +32,9 @@ describe('rate-limit.core', () => {
       NODE_ENV: 'production', // Default to production for stricter checks
       INTERDOMESTIK_AUTOMATED: '0',
     });
+    // Explicitly unset automated test env vars so rate limiting actually runs
+    delete process.env.CI;
+    delete process.env.PLAYWRIGHT;
   });
 
   afterEach(() => {
@@ -42,16 +45,18 @@ describe('rate-limit.core', () => {
     const mockHeaders = new Headers();
     mockHeaders.set('x-forwarded-for', '127.0.0.1');
 
-    it('should return 503 if env vars are missing in production', async () => {
+    it('should allow request if env vars are missing in production (fail-open)', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
       delete process.env.UPSTASH_REDIS_REST_URL;
+      delete process.env.UPSTASH_REDIS_REST_TOKEN;
       const res = await enforceRateLimit({
         name: 'test',
         limit: 10,
         windowSeconds: 60,
         headers: mockHeaders,
       });
-      expect(res).toBeInstanceOf(NextResponse);
-      expect(res?.status).toBe(503);
+      // Now expects null (allowed) instead of 503
+      expect(res).toBeNull();
     });
 
     it('should allow request if env vars are missing in development', async () => {
@@ -115,15 +120,17 @@ describe('rate-limit.core', () => {
     const mockHeaders = new Headers();
     mockHeaders.set('x-forwarded-for', '127.0.0.1');
 
-    it('should return limited: true with 503 if env missing in production', async () => {
+    it('should return limited: false if env missing in production (fail-open)', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
       delete process.env.UPSTASH_REDIS_REST_URL;
+      delete process.env.UPSTASH_REDIS_REST_TOKEN;
       const res = await enforceRateLimitForAction({
         name: 'test',
         limit: 10,
         windowSeconds: 60,
         headers: mockHeaders,
       });
-      expect(res).toEqual(expect.objectContaining({ limited: true, status: 503 }));
+      expect(res).toEqual({ limited: false });
     });
 
     it('should return limited: false if env missing in dev', async () => {

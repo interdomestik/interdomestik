@@ -3,6 +3,7 @@ import path from 'path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plugins: [react() as any],
   resolve: {
     alias: {

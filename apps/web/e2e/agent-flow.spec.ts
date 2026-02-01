@@ -10,31 +10,37 @@ import { gotoApp } from './utils/navigation';
 
 test.describe('Agent User Flow', () => {
   test('Agent can access agent workspace', async ({ agentPage: page }, testInfo) => {
-    await gotoApp(page, routes.agent(testInfo), testInfo, { marker: 'dashboard-page-ready' });
-    await expect(page).toHaveURL(/\/agent/);
+    await gotoApp(page, routes.agent(), testInfo);
+    await page.waitForLoadState('domcontentloaded');
+
+    expect(page.url()).toContain('/agent');
   });
 
   test('Agent can access CRM dashboard', async ({ agentPage: page }, testInfo) => {
-    await gotoApp(page, routes.agentCrm(testInfo), testInfo, { marker: 'dashboard-page-ready' });
-    await expect(page).toHaveURL(/\/agent\/crm/);
+    await gotoApp(page, routes.agentCrm(), testInfo);
+    await page.waitForLoadState('domcontentloaded');
+
+    expect(page.url()).toContain('/agent/crm');
   });
 
   test('Agent can access leads', async ({ agentPage: page }, testInfo) => {
-    await gotoApp(page, routes.agentLeads(testInfo), testInfo, { marker: 'dashboard-page-ready' });
-    await expect(page).toHaveURL(/\/agent\/leads/);
+    await gotoApp(page, routes.agentLeads(), testInfo);
+    await page.waitForLoadState('domcontentloaded');
+
+    expect(page.url()).toContain('/agent/leads');
   });
 
   test('Agent can access clients', async ({ agentPage: page }, testInfo) => {
-    await gotoApp(page, routes.agentClients(testInfo), testInfo, {
-      marker: 'dashboard-page-ready',
-    });
-    await expect(page).toHaveURL(/\/agent\/clients/);
+    await gotoApp(page, routes.agentClients(), testInfo);
+    await page.waitForLoadState('domcontentloaded');
+
+    expect(page.url()).toContain('/agent/clients');
   });
 
   test('Agent can access commissions', async ({ agentPage: page }, testInfo) => {
-    await gotoApp(page, routes.agentCommissions(testInfo), testInfo, {
-      marker: 'dashboard-page-ready',
-    });
-    await expect(page).toHaveURL(/\/agent\/commissions/);
+    await gotoApp(page, routes.agentCommissions(), testInfo);
+    await page.waitForLoadState('domcontentloaded');
+
+    expect(page.url()).toContain('/agent/commissions');
   });
 });

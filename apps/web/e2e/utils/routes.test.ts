@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { getLocale, routes } from '../routes';
 
 test.describe('Locale Helper Guard Tests', () => {
@@ -9,10 +9,12 @@ test.describe('Locale Helper Guard Tests', () => {
   });
 
   test('getLocale throws on invalid string', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(() => getLocale('invalid' as any)).toThrow(/Invalid locale string/);
   });
 
   test('getLocale throws on arbitrary object', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(() => getLocale({ some: 'object' } as any)).toThrow(
       /Contract Violation: Expected string or TestInfo, received object/
     );

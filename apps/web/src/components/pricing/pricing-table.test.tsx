@@ -53,6 +53,16 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
+vi.mock('@/i18n/routing', () => ({
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+  redirect: vi.fn(),
+  usePathname: () => '/',
+  useRouter: () => ({ push: vi.fn() }),
+  getPathname: vi.fn(),
+}));
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
@@ -72,7 +82,7 @@ describe('PricingTable', () => {
   });
 
   it('renders plans correctly', () => {
-    render(<PricingTable userId="user-123" email="test@example.com" />);
+    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
 
     expect(screen.queryByText('basic.name')).toBeNull();
     expect(screen.getByText('standard.name')).toBeDefined();
@@ -85,7 +95,7 @@ describe('PricingTable', () => {
   it('initiates checkout on button click', async () => {
     const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    render(<PricingTable userId="user-123" email="test@example.com" />);
+    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
 
     // Find the Join Now button for standard plan (now at index 0)
     const joinButtons = screen.getAllByText('cta');
@@ -110,7 +120,7 @@ describe('PricingTable', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-    render(<PricingTable userId="user-123" email="test@example.com" />);
+    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
 
     const joinButtons = screen.getAllByText('cta');
     fireEvent.click(joinButtons[0]);

@@ -1,9 +1,13 @@
 import { expect, test } from '../fixtures/auth.fixture';
+import { gotoApp } from '../utils/navigation';
 
 test.describe('Security & Isolation Smoke Tests', () => {
   // Test 1: Cross-Tenant Isolation
   // Requirement: A user from Tenant A (KS) cannot access resources from Tenant B (MK).
-  test('Cross-Tenant Access Denial (KS -> MK)', async ({ authenticatedPage, request }) => {
+  test('Cross-Tenant Access Denial (KS -> MK)', async ({
+    authenticatedPage: _authenticatedPage,
+    request,
+  }) => {
     // 1. Login as KS Member (done by fixture)
     // 2. Try to access a known MK resource ID via API (simulating direct attack)
     // Product rule: "You don't see what you don't own".
@@ -25,7 +29,8 @@ test.describe('Security & Isolation Smoke Tests', () => {
       // If 200, verify the response does NOT contain the MK claim
       const list = data.claims || data.data || [];
       const hasMKClaim =
-        Array.isArray(list) && list.some((c: any) => c.claimNumber === MK_CLAIM_NUMBER);
+        Array.isArray(list) &&
+        list.some((c: { claimNumber?: string }) => c.claimNumber === MK_CLAIM_NUMBER);
 
       expect(hasMKClaim, `Security Breach: KS user retrieved MK claim ${MK_CLAIM_NUMBER}`).toBe(
         false
@@ -40,9 +45,9 @@ test.describe('Security & Isolation Smoke Tests', () => {
 
   // Test 2: Role Isolation
   // Requirement: Agent cannot access Admin Dashboard
-  test('Role Privilege Enforcement (Agent -> Admin)', async ({ agentPage }) => {
+  test('Role Privilege Enforcement (Agent -> Admin)', async ({ agentPage }, testInfo) => {
     // Agent attempts to visit Admin Dashboard
-    const response = await agentPage.goto('/en/admin');
+    const response = await gotoApp(agentPage, '/en/admin', testInfo);
     await agentPage.waitForLoadState('domcontentloaded');
 
     const adminSidebar = agentPage.locator('[data-testid="admin-sidebar"]');
@@ -56,6 +61,19 @@ test.describe('Security & Isolation Smoke Tests', () => {
       adminSidebar.waitFor({ state: 'visible', timeout: 8_000 }).then(() => 'admin'),
     ]).catch(() => 'unknown');
 
+    // Hardening: If outcome is unknown, check if we hit the Next.js internal fallback 404
+    // (which doesn't have our data-testid but IS a valid security denial)
+    if (outcome === 'unknown') {
+      const html = await agentPage.content();
+      const isNextFallback =
+        html.includes('NEXT_HTTP_ERROR_FALLBACK;404') ||
+        html.includes('This page could not be found');
+      if (isNextFallback) {
+        // This is a valid 404 isolation.
+        return;
+      }
+    }
+
     expect(outcome, 'Expected redirect or 404, but admin UI was reachable.').not.toBe('admin');
     expect(outcome, 'Expected redirect or 404, but no stable state was detected.').not.toBe(
       'unknown'
@@ -65,7 +83,15 @@ test.describe('Security & Isolation Smoke Tests', () => {
       const finalUrl = agentPage.url();
       expect(finalUrl).not.toContain('/admin');
     } else {
-      await expect(notFound).toBeVisible();
+      const isCustomNotFound = await notFound.isVisible();
+      if (isCustomNotFound) {
+        await expect(notFound).toBeVisible();
+      } else {
+        const html = await agentPage.content();
+        const isNextFallback = html.includes('NEXT_HTTP_ERROR_FALLBACK;404');
+        expect(isNextFallback, 'Expected Custom 404 or Next.js Fallback 404').toBeTruthy();
+      }
+
       await expect(adminSidebar).not.toBeVisible();
       if (response) {
         expect(

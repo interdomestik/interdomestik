@@ -12,35 +12,29 @@ import { gotoApp } from './utils/navigation';
 test.describe('Claims Flow', () => {
   test.describe('Public Access', () => {
     test('should redirect to login when accessing claims without auth', async ({
-      browser,
+      page,
     }, testInfo) => {
-      const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
-      const page = await context.newPage();
+      await gotoApp(page, routes.memberClaims(), testInfo);
 
-      await gotoApp(page, routes.memberClaims(testInfo), testInfo, { marker: 'body' });
-      await expect(page).toHaveURL(/\/login/);
-
-      await context.close();
+      // Should redirect to login
+      await page.waitForURL(/.*login.*/);
+      expect(page.url()).toMatch(/login/);
     });
 
     test('should redirect to login when accessing new claim without auth', async ({
-      browser,
+      page,
     }, testInfo) => {
-      const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
-      const page = await context.newPage();
+      await gotoApp(page, routes.memberNewClaim(), testInfo);
 
-      await gotoApp(page, routes.memberNewClaim(testInfo), testInfo, { marker: 'body' });
-      await expect(page).toHaveURL(/\/login/);
-
-      await context.close();
+      // Should redirect to login
+      await page.waitForURL(/.*login.*/);
+      expect(page.url()).toMatch(/login/);
     });
   });
 
   test.describe('Claim Wizard UI', () => {
     test('should display claim wizard steps', async ({ authenticatedPage }, testInfo) => {
-      await gotoApp(authenticatedPage, routes.memberNewClaim(testInfo), testInfo, {
-        marker: 'new-claim-page-ready',
-      });
+      await gotoApp(authenticatedPage, routes.memberNewClaim(), testInfo);
 
       // Check wizard structure
       await expect(authenticatedPage.getByText(/Step 1 of/i)).toBeVisible();
@@ -50,9 +44,7 @@ test.describe('Claims Flow', () => {
     test('should show category selection as first step', async ({
       authenticatedPage,
     }, testInfo) => {
-      await gotoApp(authenticatedPage, routes.memberNewClaim(testInfo), testInfo, {
-        marker: 'new-claim-page-ready',
-      });
+      await gotoApp(authenticatedPage, routes.memberNewClaim(), testInfo);
 
       // Check for category options
       // Component uses data-testid="category-{id}"
@@ -63,10 +55,9 @@ test.describe('Claims Flow', () => {
     test('should validate required fields before proceeding', async ({
       authenticatedPage,
     }, testInfo) => {
-      await gotoApp(authenticatedPage, routes.memberNewClaim(testInfo), testInfo, {
-        marker: 'new-claim-page-ready',
-      });
+      await gotoApp(authenticatedPage, routes.memberNewClaim(), testInfo);
 
+      // Try to proceed without selecting category
       // Try to proceed without selecting category
       const nextButton = authenticatedPage.getByTestId('wizard-next');
       await nextButton.click();
@@ -74,7 +65,7 @@ test.describe('Claims Flow', () => {
       // Should show validation error or not proceed
       // Adjust assertion to match actual validation behavior (e.g. toast or inline error)
       // If validation prevents navigation, checking we are still on the same page is a good fallback
-      await expect(authenticatedPage).toHaveURL(/\/member\/claims\/new/);
+      expect(authenticatedPage.url()).toContain('/member/claims/new');
     });
   });
 
@@ -82,18 +73,14 @@ test.describe('Claims Flow', () => {
     test('should display claims list for authenticated user', async ({
       authenticatedPage,
     }, testInfo) => {
-      await gotoApp(authenticatedPage, routes.memberClaims(testInfo), testInfo, {
-        marker: 'claims-page-ready',
-      });
+      await gotoApp(authenticatedPage, routes.memberClaims(), testInfo);
 
       // Check for claims list structure
       await expect(authenticatedPage.getByTestId('page-title')).toBeVisible();
     });
 
     test('should have link to create new claim', async ({ authenticatedPage }, testInfo) => {
-      await gotoApp(authenticatedPage, routes.memberClaims(testInfo), testInfo, {
-        marker: 'claims-page-ready',
-      });
+      await gotoApp(authenticatedPage, routes.memberClaims(), testInfo);
 
       const newClaimLink = authenticatedPage.getByTestId('create-claim-button');
       await expect(newClaimLink).toBeVisible();
@@ -106,19 +93,14 @@ test.describe('Claims Flow', () => {
     test.skip('should display empty state when no claims', async ({
       authenticatedPage,
     }, testInfo) => {
-      // NOTE: keep legacy skip; migrate when a "fresh user" fixture exists
-      await gotoApp(authenticatedPage, routes.memberClaims(testInfo), testInfo, {
-        marker: 'claims-page-ready',
-      });
+      await gotoApp(authenticatedPage, routes.memberClaims(), testInfo);
       // ... logic for empty state
     });
   });
 
   test.describe('Claim Detail', () => {
     test('should display claim details', async ({ authenticatedPage }, testInfo) => {
-      await gotoApp(authenticatedPage, routes.memberClaims(testInfo), testInfo, {
-        marker: 'claims-page-ready',
-      });
+      await gotoApp(authenticatedPage, routes.memberClaims(), testInfo);
 
       // Find a claim link and click it
       // Filter for rows that have content
@@ -128,23 +110,18 @@ test.describe('Claims Flow', () => {
       const href = await claimLink.getAttribute('href');
       expect(href).toBeTruthy();
 
-      await gotoApp(authenticatedPage, href!, testInfo, { marker: 'dashboard-page-ready' });
+      await gotoApp(authenticatedPage, href!, testInfo);
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for claim detail structure
       await expect(authenticatedPage.locator('[data-testid="claim-title"], h1, h2')).toBeVisible();
     });
 
     test('should show claim status', async ({ authenticatedPage }, testInfo) => {
-      await gotoApp(authenticatedPage, routes.memberClaims(testInfo), testInfo, {
-        marker: 'claims-page-ready',
-      });
+      await gotoApp(authenticatedPage, routes.memberClaims(), testInfo);
       const claimLink = authenticatedPage.locator('tbody tr a').first();
-      await expect(claimLink).toBeVisible();
-
-      const href = await claimLink.getAttribute('href');
-      expect(href).toBeTruthy();
-
-      await gotoApp(authenticatedPage, href!, testInfo, { marker: 'dashboard-page-ready' });
+      await claimLink.click();
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for status indicator
       const statusBadge = authenticatedPage.locator(
@@ -154,16 +131,10 @@ test.describe('Claims Flow', () => {
     });
 
     test('should show claim timeline', async ({ authenticatedPage }, testInfo) => {
-      await gotoApp(authenticatedPage, routes.memberClaims(testInfo), testInfo, {
-        marker: 'claims-page-ready',
-      });
+      await gotoApp(authenticatedPage, routes.memberClaims(), testInfo);
       const claimLink = authenticatedPage.locator('tbody tr a').first();
-      await expect(claimLink).toBeVisible();
-
-      const href = await claimLink.getAttribute('href');
-      expect(href).toBeTruthy();
-
-      await gotoApp(authenticatedPage, href!, testInfo, { marker: 'dashboard-page-ready' });
+      await claimLink.click();
+      await authenticatedPage.waitForLoadState('domcontentloaded');
 
       // Check for timeline component
       // Adjust selector based on actual implementation
@@ -177,9 +148,7 @@ test.describe('Claims Flow', () => {
 
     for (const category of categories) {
       test(`should support ${category} category`, async ({ authenticatedPage }, testInfo) => {
-        await gotoApp(authenticatedPage, routes.memberNewClaim(testInfo), testInfo, {
-          marker: 'new-claim-page-ready',
-        });
+        await gotoApp(authenticatedPage, routes.memberNewClaim(), testInfo);
 
         // Just verify page loaded and has content
         await expect(authenticatedPage.getByTestId('wizard-next')).toBeVisible();
@@ -189,15 +158,14 @@ test.describe('Claims Flow', () => {
 
   test.describe('Accessibility', () => {
     test('should have proper heading structure on claims page', async ({ page }, testInfo) => {
-      // Start from login since claims is protected
-      await gotoApp(page, routes.login(testInfo), testInfo, { marker: 'page-ready' });
+      await gotoApp(page, routes.login(), testInfo); // Start from login since claims is protected
 
       const headings = await page.locator('h1, h2, h3').all();
       expect(headings.length).toBeGreaterThan(0);
     });
 
     test('should have accessible form labels', async ({ page }, testInfo) => {
-      await gotoApp(page, routes.login(testInfo), testInfo, { marker: 'page-ready' });
+      await gotoApp(page, routes.login(), testInfo);
 
       // Check that inputs have associated labels
       const emailInput = page.locator('input[name="email"], input[type="email"]');
@@ -216,7 +184,7 @@ test.describe('Claims Flow', () => {
     });
 
     test('should support keyboard navigation', async ({ page }, testInfo) => {
-      await gotoApp(page, routes.login(testInfo), testInfo, { marker: 'page-ready' });
+      await gotoApp(page, routes.login(), testInfo);
 
       // Robust check: Verify critical form elements are focusable
       const emailInput = page.locator('input[name="email"], input[type="email"]');

@@ -69,10 +69,13 @@
     "release:dry": "release-it --dry-run",
     "prepare": "husky && husky install",
     "track:audit": "node scripts/track-audit.mjs",
+    "ci:audit:docker": "bash scripts/ci-audit-docker.sh",
+    "purity:audit": "node scripts/purity-audit.mjs",
+    "db:push": "pnpm --filter @interdomestik/database push",
     "start:system": "./scripts/start-system.sh",
     "start:system:quick": "./scripts/start-system-quick.sh",
     "boot:dev": "pnpm dev",
-    "boot:e2e": "pnpm --filter @interdomestik/database seed:e2e && pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk",
+    "boot:e2e": "pnpm seed:e2e && pnpm --filter @interdomestik/web test:e2e -- e2e/gate/seed-contract.spec.ts --project gate-ks-sq --project gate-mk-mk",
     "check:golden": "pnpm --filter @interdomestik/web test:e2e:phase5"
   },
   "devDependencies": {
@@ -88,7 +91,7 @@
     "dotenv": "^17.2.3",
     "glob": "^13.0.0",
     "gzip-size": "^7.0.0",
-    "hono": "^4.11.1",
+    "hono": "^4.11.7",
     "husky": "^8.0.0",
     "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.3",
@@ -104,7 +107,7 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "packageManager": "pnpm@10.25.0",
+  "packageManager": "pnpm@10.28.2",
   "pnpm": {
     "onlyBuiltDependencies": [
       "@parcel/watcher",
@@ -115,8 +118,10 @@
       "supabase"
     ],
     "overrides": {
-      "esbuild": "^0.25.0",
-      "zod": "4.2.1"
+      "fast-xml-parser": ">=5.3.4",
+      "lodash": "^4.17.21",
+      "undici": ">=6.19.2",
+      "seroval": ">=1.4.1"
     }
   },
   "dependencies": {

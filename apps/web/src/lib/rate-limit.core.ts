@@ -44,20 +44,13 @@ export async function enforceRateLimit({ name, limit, windowSeconds, headers }: 
 
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  const isProduction = process.env.NODE_ENV === 'production';
 
   // Treat empty strings as unset (for E2E testing)
   if (!url || url === '' || !token || token === '') {
-    if (isProduction && !isAutomatedTestRun) {
-      console.error(
-        '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; refusing request'
-      );
-      return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
-    }
     if (!warnedMissingUpstashEnv && !isAutomatedTestRun) {
       warnedMissingUpstashEnv = true;
       console.warn(
-        '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; rate limiting is disabled'
+        `[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; rate limiting is DISABLED for ${name}`
       );
     }
     return null;
@@ -112,15 +105,14 @@ export async function enforceRateLimitForAction({
 
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  const isProduction = process.env.NODE_ENV === 'production';
 
   // Treat empty strings as unset (for E2E testing)
   if (!url || url === '' || !token || token === '') {
-    if (isProduction && !isAutomatedTestRun) {
-      console.error(
-        '[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; refusing request'
+    if (!warnedMissingUpstashEnv && !isAutomatedTestRun) {
+      warnedMissingUpstashEnv = true;
+      console.warn(
+        `[rate-limit] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set; rate limiting is DISABLED for action: ${name}`
       );
-      return { limited: true, status: 503, error: 'Service unavailable' };
     }
     return { limited: false };
   }

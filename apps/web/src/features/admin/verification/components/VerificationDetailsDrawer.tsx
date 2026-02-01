@@ -140,7 +140,6 @@ export function VerificationDetailsDrawer({
                       <Button
                         onClick={() => executeVerify(pendingDecision!)}
                         disabled={actionPending}
-                        data-testid="ops-action-submit"
                       >
                         {t('actions.submit')}
                       </Button>

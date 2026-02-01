@@ -23,16 +23,24 @@ export default async function DashboardLayout({
     headers: await headers(),
   });
 
+  if (process.env.PLAYWRIGHT === '1' || process.env.INTERDOMESTIK_AUTOMATED === '1') {
+    console.log('[E2E Debug] Member Layout Session:', {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      role: session?.user?.role,
+      path: `/${locale}/member`,
+    });
+  }
+
   if (!session) {
     redirect({ href: '/login', locale });
     return null;
   }
 
   const role = session.user.role;
-  if (role === 'agent') {
-    redirect({ href: '/agent', locale });
-    return null;
-  }
+  // V3 Change: Agents are allowed in member layout.
+  // if (role === 'agent') { redirect({ href: '/agent', locale }); return null; }
+
   if (role === 'staff') {
     redirect({ href: '/staff', locale });
     return null;
@@ -49,15 +57,13 @@ export default async function DashboardLayout({
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
       <div data-testid="dashboard-page-ready">
-        <div data-testid="member-dashboard-ready">
-          <SidebarProvider defaultOpen={true}>
-            <DashboardSidebar />
-            <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-              <DashboardHeader />
-              <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
-            </SidebarInset>
-          </SidebarProvider>
-        </div>
+        <SidebarProvider defaultOpen={true}>
+          <DashboardSidebar />
+          <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+            <DashboardHeader />
+            <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
+          </SidebarInset>
+        </SidebarProvider>
       </div>
     </NextIntlClientProvider>
   );

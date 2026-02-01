@@ -8,6 +8,7 @@
  * - demo-ks-track-token-001 (public tracking token)
  */
 import { expect, test } from './fixtures/auth.fixture';
+import { gotoApp } from './utils/navigation';
 
 // Deterministic data from seed-golden.ts
 const DEFAULT_LOCALE = 'sq';
@@ -16,9 +17,9 @@ const TOKENS = {
 };
 
 test.describe('Claim Tracking KS', () => {
-  test('Public tracking link shows status without login', async ({ page }) => {
+  test('Public tracking link shows status without login', async ({ page }, testInfo) => {
     // 1. Visit public link (no login required)
-    await page.goto(`/track/${TOKENS.PUBLIC_DEMO}?lang=sq`);
+    await gotoApp(page, `/track/${TOKENS.PUBLIC_DEMO}?lang=sq`, testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     // 2. Assert Public Card renders
@@ -35,10 +36,12 @@ test.describe('Claim Tracking KS', () => {
     expect(bodyText).not.toContain('member.tracking.ks@interdomestik.com');
   });
 
-  test('Authenticated member can view their claims list', async ({ authenticatedPage: page }) => {
+  test('Authenticated member can view their claims list', async ({
+    authenticatedPage: page,
+  }, testInfo) => {
     // Using the standard KS member from fixtures (member.ks.a1@interdomestik.com)
     // Navigate to member claims page
-    await page.goto(`/${DEFAULT_LOCALE}/member/claims`);
+    await gotoApp(page, `/${DEFAULT_LOCALE}/member/claims`, testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     // Verify we're on the claims page
@@ -49,10 +52,10 @@ test.describe('Claim Tracking KS', () => {
     await expect(mainContent).toBeVisible();
   });
 
-  test('Agent can access claims workspace', async ({ agentPage: page }) => {
+  test('Agent can access claims workspace', async ({ agentPage: page }, testInfo) => {
     // Using the standard KS agent from fixtures (agent.ks.a1@interdomestik.com)
     // Navigate to agent workspace claims
-    await page.goto(`/${DEFAULT_LOCALE}/agent/workspace/claims`);
+    await gotoApp(page, `/${DEFAULT_LOCALE}/agent/workspace/claims`, testInfo);
     await page.waitForLoadState('domcontentloaded');
 
     // Verify we're on the claims workspace

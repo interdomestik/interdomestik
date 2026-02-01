@@ -1,11 +1,9 @@
 import { expect, test } from '../fixtures/auth.fixture';
-import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('@quarantine Claims Dashboard Visual Regression', () => {
-  // Skipping visual tests until snapshots are standardized/updated in CI environment
-  test.skip(true, 'Visual snapshots require update after migration');
-
+  // TODO: Re-enable when visual snapshots are standardized in Docker
+  // test.skip(true, 'Visual tests require consistent environment');
   test.beforeEach(({ page }) => {
     page.on('console', msg => {
       const text = msg.text();
@@ -27,7 +25,7 @@ test.describe('@quarantine Claims Dashboard Visual Regression', () => {
     await loginAs('member');
 
     // Navigate to claims
-    await gotoApp(page, routes.memberClaims(testInfo), testInfo, { marker: 'claims-page-ready' });
+    await gotoApp(page, '/member/claims', testInfo);
 
     // Wait for content to load
     await expect(page.getByTestId('page-title')).toBeVisible();
@@ -46,7 +44,7 @@ test.describe('@quarantine Claims Dashboard Visual Regression', () => {
     await loginAs('staff');
 
     // Navigate to staff claims
-    await gotoApp(page, routes.staffClaims(testInfo), testInfo, { marker: 'page-title' });
+    await gotoApp(page, '/staff/claims', testInfo);
 
     // Wait for content to load
     await expect(page.getByTestId('page-title')).toBeVisible();

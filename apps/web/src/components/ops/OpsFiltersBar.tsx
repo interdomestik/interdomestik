@@ -2,6 +2,7 @@
 
 import { Button, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { OPS_TEST_IDS } from './testids';
 
@@ -10,6 +11,7 @@ export type OpsFilterTab = {
   label: string;
   icon?: ReactNode;
   testId?: string;
+  href?: string;
 };
 
 interface OpsFiltersBarProps {
@@ -34,7 +36,7 @@ export function OpsFiltersBar({
   searchInputTestId,
   rightActions,
   className,
-}: OpsFiltersBarProps) {
+}: Readonly<OpsFiltersBarProps>) {
   const containerClasses = [
     'flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg border border-white/5 bg-card/30 backdrop-blur-sm',
     className,
@@ -45,19 +47,43 @@ export function OpsFiltersBar({
   return (
     <div className={containerClasses} data-testid={OPS_TEST_IDS.FILTERS.BAR}>
       <div className="flex gap-2">
-        {tabs.map(tab => (
-          <Button
-            key={tab.id}
-            variant={tab.id === activeTab ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => onTabChange(tab.id)}
-            className="gap-2"
-            data-testid={tab.testId ?? OPS_TEST_IDS.FILTERS.TAB(tab.id)}
-          >
-            {tab.icon}
-            {tab.label}
-          </Button>
-        ))}
+        {tabs.map(tab =>
+          tab.href ? (
+            <Button
+              key={tab.id}
+              asChild
+              variant={tab.id === activeTab ? 'default' : 'outline'}
+              size="sm"
+              className="gap-2"
+            >
+              <Link
+                href={tab.href}
+                scroll={false}
+                prefetch={false}
+                data-testid={tab.testId ?? OPS_TEST_IDS.FILTERS.TAB(tab.id)}
+              >
+                {tab.icon}
+                {tab.label}
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              key={tab.id}
+              variant={tab.id === activeTab ? 'default' : 'outline'}
+              size="sm"
+              type="button"
+              onClick={event => {
+                event.preventDefault();
+                onTabChange(tab.id);
+              }}
+              className="gap-2"
+              data-testid={tab.testId ?? OPS_TEST_IDS.FILTERS.TAB(tab.id)}
+            >
+              {tab.icon}
+              {tab.label}
+            </Button>
+          )
+        )}
       </div>
       <div className="flex w-full sm:w-auto items-center gap-3">
         <div className="relative w-full sm:w-auto sm:min-w-[280px]">

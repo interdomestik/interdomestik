@@ -11,8 +11,12 @@ export class BranchesApi {
   constructor(private readonly request: APIRequestContext) {}
 
   private get headers() {
+    const secret = process.env.E2E_API_SECRET;
+    if (!secret) {
+      throw new Error('E2E_API_SECRET is required for E2E API calls (set it in CI/local env).');
+    }
     return {
-      'x-e2e-secret': 'test-secret-123', // Matches playwright.config.ts
+      'x-e2e-secret': secret,
     };
   }
 

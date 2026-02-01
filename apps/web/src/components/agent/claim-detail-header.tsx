@@ -36,9 +36,7 @@ export function ClaimDetailHeader({ claim, backHref = '/member/claims' }: ClaimD
           </Button>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="claim-tracking-title">
-            {claim.title}
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight">{claim.title}</h1>
           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
             {tCategory(claim.category || 'other')}
           </Badge>

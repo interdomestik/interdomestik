@@ -1,33 +1,53 @@
 {
   "dashboard": {
-    "welcome": "Welcome, {name}!",
-    "overview": "Overview",
-    "activeClaims": "Active Claims",
-    "resolvedClaims": "Resolved Claims",
-    "pendingActions": "Pending Actions",
-    "recentActivity": "Recent Activity",
-    "quickActions": "Quick Actions",
-    "welcome_back": "Welcome back! Here's what's happening with your claims today.",
-    "activeClaimsDesc": "Your ongoing disputes",
-    "totalSaved": "Total Saved",
-    "moneyRecovered": "Money recovered",
-    "lifetimeTotal": "Lifetime total",
-    "actionItems": "Action Items",
-    "pendingTasks": "Pending tasks",
-    "needsAttention": "Needs attention",
-    "noChange": "No change",
+    "welcome": "Добредојдовте, {name}!",
+    "overview": "Преглед на панелот",
+    "activeClaims": "Активни барања",
+    "resolvedClaims": "Решени барања",
+    "pendingActions": "Дејствија во тек",
+    "recentActivity": "Последна активност",
+    "quickActions": "Брзи дејствија",
+    "welcome_back": "Добредојдовте назад! Еве преглед на вашите барања за отштета денес.",
+    "activeClaimsDesc": "Вашите тековни спорови",
+    "totalSaved": "Вкупно заштедено",
+    "moneyRecovered": "Вратени пари",
+    "lifetimeTotal": "Вкупна сума",
+    "actionItems": "Ставки за дејство",
+    "pendingTasks": "Задачи во тек",
+    "needsAttention": "Потребно е внимание",
+    "noChange": "Без промена",
     "referral": {
-      "title": "Invite Friends & Earn",
-      "description": "Share your referral link and earn €5 for each friend who joins!",
-      "friends": "Friends Invited",
-      "pending": "Pending",
-      "earned": "Earned",
-      "copied": "Link copied!",
-      "copyError": "Failed to copy",
-      "share": "Share",
-      "shareTitle": "Join Asistenca",
-      "shareText": "Get protection for your family with Asistenca membership!",
-      "rewardInfo": "You earn €5 when your friend activates their membership"
+      "title": "Поканете пријатели и заработете",
+      "description": "Споделете ја вашата врска и заработете €5 за секој пријател што ќе се регистрира!",
+      "friends": "Поканети пријатели",
+      "pending": "Во чекање",
+      "earned": "Заработено",
+      "copied": "Врската е копирана!",
+      "copyError": "Копирањето не успеа",
+      "share": "Сподели",
+      "shareTitle": "Придружете се на Asistenca",
+      "shareText": "Заштитете го вашето семејство со членството во Asistenca!",
+      "rewardInfo": "Заработувате €5 кога вашиот пријател ќе го активира своето членство"
+    },
+    "diaspora_ribbon": {
+      "text": "🇩🇪🇨🇭 За Дијаспората: Помош додека сте во странство + насоки за авио/патување + Зелен Картон",
+      "cta": "Види пакет"
+    },
+    "home_grid": {
+      "cta_incident": "СЕ СЛУЧИ НЕСРЕЌА – ШТО СЕГА?",
+      "cta_report": "ПРИЈАВИ ШТЕТА (60 сек)",
+      "cta_green_card": "ЗЕЛЕН КАРТОН – Во странство (Дијаспора)",
+      "cta_benefits": "10 ПРИДОБИВКИ ОД ЧЛЕНСТВОТО"
+    },
+    "protection_status": {
+      "active": "Активна заштита",
+      "inactive": "Нема активна заштита"
+    },
+    "categories": {
+      "property_damage": "Штета на имот",
+      "health_safety": "Здравје и безбедност",
+      "my_documents": "Мои документи",
+      "contact_center": "Контакт центар"
     }
   }
 }

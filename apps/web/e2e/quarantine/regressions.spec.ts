@@ -1,6 +1,7 @@
 import type { Page, TestInfo } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { test } from '../fixtures/auth.fixture';
+import { gotoApp } from '../utils/navigation';
 import {
   assertClickableTarget,
   assertNoNextStatic404s,
@@ -16,6 +17,7 @@ function getLocaleFromTestInfo(testInfo: TestInfo): string {
 async function gotoWithRetries(
   page: Page,
   url: string,
+  testInfo: TestInfo,
   opts?: {
     waitUntil?: 'load' | 'domcontentloaded' | 'networkidle' | 'commit';
     timeoutMs?: number;
@@ -28,7 +30,10 @@ async function gotoWithRetries(
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      await page.goto(url, { waitUntil, timeout });
+      await gotoApp(page, url, testInfo, {
+        marker: waitUntil === 'networkidle' ? 'body' : waitUntil,
+      });
+      if (waitUntil === 'networkidle') await page.waitForLoadState('networkidle', { timeout });
       return;
     } catch (err) {
       const msg = String(err);
@@ -60,8 +65,7 @@ test.describe('Quarantine: Regressions & Flaky Flows', () => {
 
       const locale = 'mk';
       await loginAs('agent');
-
-      await page.goto(`/${locale}/agent/leads`);
+      await gotoApp(page, `/${locale}/agent/leads`, testInfo);
       await page.waitForLoadState('networkidle');
       assertNotRedirectedToLogin(page);
       assertNoNextStatic404s(page);
@@ -181,7 +185,7 @@ test.describe('Quarantine: Regressions & Flaky Flows', () => {
 
       // Some navigation paths keep `status=new` in the URL, which would hide the lead
       // once it becomes `payment_pending`. Navigate to the base list to assert status.
-      await page.goto(`/${locale}/agent/leads`);
+      await gotoApp(page, `/${locale}/agent/leads`, testInfo);
       await page.waitForLoadState('networkidle');
       const updatedRow = page.getByRole('row').filter({ hasText: newEmail }).first();
       await expect(updatedRow).toBeVisible({ timeout: 30_000 });
@@ -200,8 +204,9 @@ test.describe('Quarantine: Regressions & Flaky Flows', () => {
       await loginAs('branch_manager');
 
       // Use dynamic URL to avoid route helper issues if any
+      // Use dynamic URL to avoid route helper issues if any
       const locale = getLocaleFromTestInfo(testInfo);
-      await gotoWithRetries(page, `/${locale}/admin/leads`, {
+      await gotoWithRetries(page, `/${locale}/admin/leads`, testInfo, {
         waitUntil: 'domcontentloaded',
         retries: 3,
       });
@@ -334,8 +339,9 @@ test.describe('Quarantine: Regressions & Flaky Flows', () => {
       await loginAs('admin'); // Defaults to project tenant
 
       // 2. Navigate to Verification page
+      // 2. Navigate to Verification page
       const locale = getLocaleFromTestInfo(testInfo);
-      await gotoWithRetries(page, `/${locale}/admin/leads`, {
+      await gotoWithRetries(page, `/${locale}/admin/leads`, testInfo, {
         waitUntil: 'domcontentloaded',
         retries: 3,
       });

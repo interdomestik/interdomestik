@@ -145,13 +145,13 @@ export async function runAuthenticatedAction<T>(
     return { success: true, data };
   } catch (error) {
     // Handle Unauthorized/Forbidden errors generically (robust against instance mismatch)
-    const errorObj = error as any;
-    const code = errorObj?.code;
-    const name = errorObj?.name;
-    const message = errorObj?.message || 'Unknown error';
+    const errorObj = (error && typeof error === 'object' ? error : {}) as Record<string, unknown>;
+    const code = typeof errorObj.code === 'string' ? errorObj.code : undefined;
+    const name = typeof errorObj.name === 'string' ? errorObj.name : undefined;
+    const message = typeof errorObj.message === 'string' ? errorObj.message : 'Unknown error';
 
     // 1. Explicit UNAUTHORIZED / FORBIDDEN codes
-    if (typeof code === 'string' && (code === 'UNAUTHORIZED' || code.startsWith('FORBIDDEN'))) {
+    if (code === 'UNAUTHORIZED' || code?.startsWith('FORBIDDEN')) {
       return { success: false, error: message, code: code };
     }
 
@@ -159,7 +159,7 @@ export async function runAuthenticatedAction<T>(
     if (
       name === 'UnauthorizedError' ||
       name === 'AccessDeniedError' ||
-      (message && typeof message === 'string' && message.toLowerCase().includes('unauthorized'))
+      message.toLowerCase().includes('unauthorized')
     ) {
       return { success: false, error: message || 'Unauthorized', code: 'UNAUTHORIZED' };
     }
@@ -171,7 +171,7 @@ export async function runAuthenticatedAction<T>(
     // 3. Digest check (Next.js redirects are thrown errors, we must rethrow them)
     if (
       message === 'NEXT_REDIRECT' ||
-      (errorObj.digest && errorObj.digest.startsWith('NEXT_REDIRECT'))
+      (typeof errorObj.digest === 'string' && errorObj.digest.startsWith('NEXT_REDIRECT'))
     ) {
       throw error;
     }

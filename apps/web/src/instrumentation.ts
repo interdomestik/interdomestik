@@ -5,11 +5,12 @@ export function register() {
     import('./sentry.server.config');
 
     // Hardening: Prevent process crash on client disconnects during E2E/Load tests
-    process.on('uncaughtException', (err: any) => {
+    process.on('uncaughtException', (err: unknown) => {
+      const error = err as { code?: string; message?: string };
       if (
-        err?.code === 'ECONNRESET' ||
-        err?.message === 'aborted' ||
-        err?.message?.includes?.('EPIPE')
+        error?.code === 'ECONNRESET' ||
+        error?.message === 'aborted' ||
+        error?.message?.includes?.('EPIPE')
       ) {
         // Ignore client disconnects
         return;
@@ -18,8 +19,9 @@ export function register() {
       process.exit(1);
     });
 
-    process.on('unhandledRejection', (reason: any) => {
-      if (reason?.code === 'ECONNRESET' || reason?.message === 'aborted') return;
+    process.on('unhandledRejection', (reason: unknown) => {
+      const error = reason as { code?: string; message?: string };
+      if (error?.code === 'ECONNRESET' || error?.message === 'aborted') return;
       console.error('Unhandled Rejection:', reason);
     });
   }

@@ -29,6 +29,12 @@
       "restore_message": "Update your payment to restore access to benefits.",
       "activate_message": "Use the pricing page to activate your protection."
     },
+    "ops": {
+      "title": "Subscriptions",
+      "empty_list": "No subscriptions",
+      "select_subscription": "Select a subscription",
+      "back_to_list": "Back to list"
+    },
     "dunning": {
       "payment_failed_title": "Payment Failed - {daysRemaining} days remaining",
       "payment_failed_message": "Your last payment was unsuccessful. Please update your payment method to avoid losing access to your membership benefits.",

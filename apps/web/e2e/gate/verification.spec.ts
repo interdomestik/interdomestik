@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/auth.fixture';
+import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('Admin Verification Queue (Cash)', () => {
@@ -10,7 +11,7 @@ test.describe('Admin Verification Queue (Cash)', () => {
     await loginAs('admin');
 
     // 2. Navigate to Leads / Verification
-    await gotoApp(page, '/admin/leads', testInfo);
+    await gotoApp(page, routes.adminLeads(testInfo), testInfo, { marker: 'verification-ops-page' });
 
     // 3. Verify Page Title
     await expect(

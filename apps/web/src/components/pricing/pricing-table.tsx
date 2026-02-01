@@ -1,18 +1,19 @@
 'use client';
 
 import { PADDLE_PRICES } from '@/config/paddle';
+import { Link, useRouter } from '@/i18n/routing';
 import { getPaddleInstance } from '@interdomestik/domain-membership-billing/paddle';
 import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Link, useRouter } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 interface PricingTableProps {
   userId?: string;
   email?: string;
+  billingTestMode?: boolean;
 }
 
 function getPlanColorClass(color: string) {
@@ -21,11 +22,10 @@ function getPlanColorClass(color: string) {
   return 'bg-indigo-50 text-indigo-600';
 }
 
-export function PricingTable({ userId, email }: PricingTableProps) {
+export function PricingTable({ userId, email, billingTestMode }: PricingTableProps) {
   const t = useTranslations('pricing');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tenantId = searchParams.get('tenantId') || undefined;
   const [loading, setLoading] = useState<string | null>(null);
   const [isYearly, setIsYearly] = useState(true);
 
@@ -86,15 +86,14 @@ export function PricingTable({ userId, email }: PricingTableProps) {
     },
   ];
 
+  const isBillingTestMode = billingTestMode ?? process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
+
   const handleAction = async (planId: string, priceId: string) => {
-    if (!userId) {
-      router.push(`/register?plan=${planId}`);
-      return;
-    }
+    if (!userId) return;
 
     setLoading(priceId);
     try {
-      if (process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1') {
+      if (isBillingTestMode) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         // Simulate redirect to success page with dummy data
         router.push(`/member/membership/success?test=true&priceId=${priceId}&planId=${planId}`);
@@ -102,11 +101,6 @@ export function PricingTable({ userId, email }: PricingTableProps) {
       }
 
       console.log('🏷️ Opening Paddle checkout with Price ID:', priceId);
-      console.log('📦 Environment check:', {
-        STANDARD_YEAR: process.env.NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR,
-        CLIENT_TOKEN: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
-      });
-
       const paddle = await getPaddleInstance();
       if (paddle) {
         // Check for referral cookie
@@ -237,10 +231,19 @@ export function PricingTable({ userId, email }: PricingTableProps) {
               }`}
               variant={plan.popular ? 'default' : 'outline'}
               disabled={loading === plan.priceId}
-              onClick={() => handleAction(plan.id, plan.priceId)}
+              asChild={!userId}
+              onClick={userId ? () => handleAction(plan.id, plan.priceId) : undefined}
             >
-              {loading === plan.priceId ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-              {t('cta')}
+              {!userId ? (
+                <Link href={`/register?plan=${plan.id}`}>{t('cta')}</Link>
+              ) : (
+                <>
+                  {loading === plan.priceId ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : null}
+                  {t('cta')}
+                </>
+              )}
             </Button>
           </div>
         ))}

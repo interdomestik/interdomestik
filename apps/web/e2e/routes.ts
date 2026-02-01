@@ -3,19 +3,15 @@ import { type TestInfo } from '@playwright/test';
 export type Locale = 'sq' | 'en' | 'mk' | 'sr' | 'de' | 'hr';
 const SUPPORTED_LOCALES: Locale[] = ['sq', 'en', 'mk', 'sr', 'de', 'hr'];
 
-type GlobalE2E = typeof globalThis & {
-  __E2E_BASE_URL?: string;
-};
-
 /**
  * Canonical parser for locale from a baseURL string.
  */
 function parseLocaleFromUrl(urlStr: string): Locale {
   try {
     const url = new URL(urlStr);
-    const firstSegment = url.pathname.split('/').find(Boolean) as any;
-    if (SUPPORTED_LOCALES.includes(firstSegment)) {
-      return firstSegment;
+    const firstSegment = url.pathname.split('/').find(Boolean);
+    if (firstSegment && SUPPORTED_LOCALES.includes(firstSegment as Locale)) {
+      return firstSegment as Locale;
     }
   } catch {
     // ignore
@@ -83,6 +79,7 @@ export const routes = {
   memberNewClaim: (l?: Locale | string | TestInfo) => withLocale('/member/claims/new', l || 'en'),
   memberSettings: (l?: Locale | string | TestInfo) => withLocale('/member/settings', l || 'en'),
   memberMembership: (l?: Locale | string | TestInfo) => withLocale('/member/membership', l || 'en'),
+  memberDiaspora: (l?: Locale | string | TestInfo) => withLocale('/member/diaspora', l || 'en'),
   memberClaimDetail: (claimId: string, l?: Locale | string | TestInfo) =>
     withLocale(`/member/claims/${encodeURIComponent(claimId)}`, l || 'en'),
   staff: (l?: Locale | string | TestInfo) => withLocale('/staff', l || 'en'),
@@ -95,6 +92,8 @@ export const routes = {
   adminAnalytics: (l?: Locale | string | TestInfo) => withLocale('/admin/analytics', l || 'en'),
   adminSettings: (l?: Locale | string | TestInfo) => withLocale('/admin/settings', l || 'en'),
   adminBranches: (l?: Locale | string | TestInfo) => withLocale('/admin/branches', l || 'en'),
+  adminBranchDetail: (branchId: string, l?: Locale | string | TestInfo) =>
+    withLocale(`/admin/branches/${encodeURIComponent(branchId)}`, l || 'en'),
   adminLeads: (l?: Locale | string | TestInfo) => withLocale('/admin/leads', l || 'en'),
   agent: (l?: Locale | string | TestInfo) => withLocale('/agent', l || 'en'),
   agentLeads: (l?: Locale | string | TestInfo) => withLocale('/agent/leads', l || 'en'),
