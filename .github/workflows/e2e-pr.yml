@@ -81,6 +81,9 @@ jobs:
       - name: Seed E2E DB
         run: pnpm seed:e2e
 
+      - name: Build Web (Standalone)
+        run: pnpm --filter @interdomestik/web run build:ci
+
       - name: Generate Playwright Gate Auth State (KS+MK)
         run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
 
