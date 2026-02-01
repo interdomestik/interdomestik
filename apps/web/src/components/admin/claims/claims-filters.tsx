@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 import { OpsFiltersBar } from '@/components/ops';
 
@@ -13,10 +12,6 @@ export function AdminClaimsFilters() {
 
   const tAdmin = useTranslations('admin.claims_page');
   const tCommon = useTranslations('common');
-
-  // Hydration check for strict E2E semantics
-  const [isHydrated, setIsHydrated] = useState(false);
-  useEffect(() => setIsHydrated(true), []);
 
   const currentSearch = searchParams.get('search') || '';
   const currentStatus = searchParams.get('status') || 'all';
@@ -36,6 +31,25 @@ export function AdminClaimsFilters() {
     { value: 'me', label: tAdmin('filters.assigned_to_me') },
   ];
 
+  const buildHref = (updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    params.delete('page'); // Reset pagination on filter change
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value && value !== 'all') {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+
+    // Always enforce view=list for URL stability (prevents accidental ops fallback)
+    params.set('view', 'list');
+
+    return `?${params.toString()}`;
+  };
+
   const updateFilters = (updates: Record<string, string | null>) => {
     // Start from existing params (handles string|string[] implicitly via URLSearchParams)
     const params = new URLSearchParams(searchParams.toString());
@@ -53,14 +67,8 @@ export function AdminClaimsFilters() {
     // Always enforce view=list for URL stability (prevents accidental ops fallback)
     params.set('view', 'list');
 
-    const query = params.toString();
-    const targetUrl = `${pathname}${query ? `?${query}` : ''}`;
-
-    // Deterministic replacement without scroll reset
-    router.replace(targetUrl, { scroll: false });
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
-
-  if (!isHydrated) return null; // Prevent hydration mismatch entirely
 
   return (
     <div data-testid="admin-claims-v2-ready">
@@ -82,6 +90,7 @@ export function AdminClaimsFilters() {
           id: option.value,
           label: option.label,
           testId: `claims-tab-${option.value}`, // Canonical: claims-tab-{status}
+          href: buildHref({ status: option.value }),
         }))}
         activeTab={currentStatus}
         onTabChange={tabId => updateFilters({ status: tabId })}
