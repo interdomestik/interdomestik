@@ -106,6 +106,9 @@ jobs:
           pnpm seed:e2e
 
       # ---- Run suites ----
+      - name: Generate Playwright Gate Auth State (KS+MK)
+        run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
+
       # Gate is fast and tells you immediately if infra drifted.
       - name: E2E Gate (KS+MK)
         run: pnpm --filter @interdomestik/web run e2e:gate
