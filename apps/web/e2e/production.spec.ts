@@ -1,7 +1,6 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { routes } from './routes';
 import { gotoApp } from './utils/navigation';
-
-const DEFAULT_LOCALE = 'sq';
 // Credentials from seed script
 const MEMBER_KS = { email: 'member.ks.a1@interdomestik.com', password: 'GoldenPass123!' };
 const ADMIN_KS = { email: 'admin.ks@interdomestik.com', password: 'GoldenPass123!' };
@@ -15,9 +14,14 @@ async function loginAs(
   user: { email: string; password?: string; tenant?: string },
   testInfo: TestInfo
 ) {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+  // Use project baseURL to ensure correct domain (e.g. nip.io) vs localhost
+  const baseURL =
+    testInfo.project.use.baseURL || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
   const origin = new URL(baseURL).origin;
   const loginURL = `${origin}/api/auth/sign-in/email`;
+
+  // Force clear cookies to ensure no session leak from global setup or previous serial tests
+  await page.context().clearCookies();
 
   const res = await page.request.post(loginURL, {
     data: { email: user.email, password: user.password || 'GoldenPass123!' },
@@ -31,32 +35,31 @@ async function loginAs(
     throw new Error(`API login failed for ${user.email}: ${res.status()} ${await res.text()}`);
   }
 
-  let targetPath = '/sq';
-  if (user.email.includes('admin')) targetPath += '/admin';
-  else if (user.email.includes('agent')) targetPath += '/agent';
-  else if (user.email.includes('staff')) targetPath += '/staff';
-  else targetPath += '/member';
+  let targetPath = routes.member(testInfo);
+  if (user.email.includes('admin')) targetPath = routes.admin(testInfo);
+  else if (user.email.includes('agent')) targetPath = routes.agent(testInfo);
+  else if (user.email.includes('staff')) targetPath = routes.staff(testInfo);
 
-  // Using absolute URL in gotoApp might need specialized handling if gotoApp expects relative.
-  // But navigation.ts logic says it handles path normalization.
-  // Actually gotoApp logic uses path.join which might break with http://...
-
-  // Refactoring loginAs to use relative path for gotoApp
-  await gotoApp(page, targetPath, testInfo, { marker: 'domcontentloaded' });
+  // Navigate to target path
+  await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
 }
 
 // Use serial to ensure Phase A creates claim before Phase B/C try to view it
 test.describe.serial('@smoke Production Smoke Test Plan', () => {
   test.describe('Phase A: Authentication & Routing (Member) @smoke', () => {
     test('Member (KS) can login, see dashboard, and create a claim', async ({ page }, testInfo) => {
+      // Debug: Listen to console logs
+      page.on('console', msg => console.log(`[Browser] ${msg.text()}`));
+
       // 1. Login
       await loginAs(page, { ...MEMBER_KS, tenant: 'tenant_ks' }, testInfo);
 
       // 2. Verify Dashboard (Member lands on /member)
       await expect(page).toHaveURL(/\/member/);
+      await page.evaluate(() => localStorage.clear());
 
       // 3. Wizard
-      await gotoApp(page, `/${DEFAULT_LOCALE}/member/claims/new`, testInfo);
+      await gotoApp(page, routes.memberNewClaim(testInfo), testInfo, { marker: 'page-ready' });
       const bodyText = await page.textContent('body');
       expect(bodyText).not.toContain('MISSING_MESSAGE');
 
@@ -66,16 +69,20 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       await cat.click();
       const nextBtn = page.getByTestId('wizard-next').first();
       await nextBtn.click();
-      await page.fill('input[name="title"]', CLAIM_TITLE);
-      await page.fill('input[name="companyName"]', 'Test Company');
-      await page.fill('input[name="incidentDate"]', '2024-01-01');
-      await page.fill('textarea[name="description"]', 'Smoke test automation description');
-      await page.fill('input[name="claimAmount"]', '100');
+      // Step 2: Details
+      await page.getByTestId('claim-title-input').fill(CLAIM_TITLE);
+      await page.getByTestId('claim-company-input').fill('Test Company');
+      await page.getByTestId('claim-date-input').fill('2024-01-01');
+      await page
+        .getByTestId('claim-description-input')
+        .fill('Smoke test automation description that is long enough');
+      await page.getByTestId('claim-amount-input').fill('100');
 
-      await page.getByTestId('wizard-next').click();
+      // Click Next and wait for Step 3
+      await page.getByTestId('wizard-next').first().click({ force: true });
 
       // Step 3: Evidence
-      await expect(page.getByTestId('step-evidence-title')).toBeVisible();
+      await expect(page.getByTestId('step-evidence-title')).toBeVisible({ timeout: 20000 });
       await page.getByTestId('wizard-next').first().click({ force: true });
 
       // Step 4: Review & Submit
@@ -101,10 +108,15 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       await loginAs(page, { ...ADMIN_KS, tenant: 'tenant_ks' }, testInfo);
 
       // Navigate to claims list view explicitly to use filters
-      await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?view=list`, testInfo);
+      await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
 
-      // Search for the specific claim title
-      const searchInput = page.getByPlaceholder(/Search|Kërko/i).first();
+      // Readiness Check: Wait for Admin V2 filters to load
+      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible({ timeout: 15000 });
+
+      // Search for the specific claim title using stable testid
+      const searchInput = page.getByTestId('claims-search-input');
       await searchInput.fill(CLAIM_TITLE);
 
       // Verify visible
@@ -124,10 +136,15 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       await loginAs(page, { ...ADMIN_MK, tenant: 'tenant_mk' }, testInfo);
 
       // Navigate to list view
-      await gotoApp(page, `/${DEFAULT_LOCALE}/admin/claims?view=list`, testInfo);
+      await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
+        marker: 'admin-claims-v2-ready',
+      });
+
+      // Readiness Check
+      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible({ timeout: 15000 });
 
       // Search for the KS claim title
-      const searchInput = page.getByPlaceholder(/Search|Kërko/i).first();
+      const searchInput = page.getByTestId('claims-search-input');
       await searchInput.fill(CLAIM_TITLE);
 
       // Should NOT see the claim (Cross Tenant)

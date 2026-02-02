@@ -1,4 +1,5 @@
 import { expect, test } from '../fixtures/auth.fixture';
+import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 test.describe('Security & Isolation Smoke Tests', () => {
@@ -47,8 +48,7 @@ test.describe('Security & Isolation Smoke Tests', () => {
   // Requirement: Agent cannot access Admin Dashboard
   test('Role Privilege Enforcement (Agent -> Admin)', async ({ agentPage }, testInfo) => {
     // Agent attempts to visit Admin Dashboard
-    const response = await gotoApp(agentPage, '/en/admin', testInfo);
-    await agentPage.waitForLoadState('domcontentloaded');
+    const response = await gotoApp(agentPage, routes.admin(testInfo), testInfo, { marker: 'body' });
 
     const adminSidebar = agentPage.locator('[data-testid="admin-sidebar"]');
     const notFound = agentPage.locator('[data-testid="not-found-page"]');

@@ -16,6 +16,13 @@ const E2E_GLOBS = [
 // Start strict where it matters most (fixtures/helpers). Expand scope as you migrate specs.
 const ENFORCED_PREFIXES = ['apps/web/e2e/fixtures/', 'apps/web/e2e/routes.ts'];
 
+// Narrow strict targets for production smoke compliance.
+const STRICT_TARGETS = new Set([
+  'apps/web/e2e/production.spec.ts',
+  // Optional scope: add smoke folder when ready.
+  'apps/web/e2e/smoke/**',
+]);
+
 const ALLOWLIST_PATHS = new Set([
   // Contract tests may intentionally reference cross-locale paths.
   'apps/web/e2e/gate/tenant-resolution.spec.ts',
@@ -42,6 +49,12 @@ const rules = [
 
 function shouldEnforceOnFile(relPath) {
   if (ALLOWLIST_PATHS.has(relPath)) return false;
+  if (STRICT_TARGETS.has(relPath)) return true;
+  for (const target of STRICT_TARGETS) {
+    if (target.endsWith('/**') && relPath.startsWith(target.slice(0, -3))) {
+      return true;
+    }
+  }
   return ENFORCED_PREFIXES.some(prefix => relPath.startsWith(prefix));
 }
 
@@ -57,6 +70,32 @@ function computeLineCol(text, index) {
   return { line, col };
 }
 
+function enforceProductionSpecStrictness(relPath, content) {
+  if (!STRICT_TARGETS.has(relPath)) return [];
+
+  const violations = [];
+
+  if (content.match(/\.waitForTimeout\s*\(/)) {
+    violations.push(
+      `${relPath}: page.waitForTimeout is forbidden; use readiness markers (data-testid).`
+    );
+  }
+
+  if (content.match(/\bDEFAULT_LOCALE\b/)) {
+    violations.push(
+      `${relPath}: DEFAULT_LOCALE is forbidden; derive locale from testInfo via routes helpers.`
+    );
+  }
+
+  if (content.match(/(['"`])\/(sq|mk|en)\//g)) {
+    violations.push(
+      `${relPath}: hardcoded locale-prefixed path detected; use routes.*(testInfo).`
+    );
+  }
+
+  return violations;
+}
+
 async function main() {
   const files = await glob(E2E_GLOBS, { cwd: repoRoot, nodir: true });
 
@@ -67,6 +106,9 @@ async function main() {
 
     const absPath = path.join(repoRoot, relPath);
     const content = await readFile(absPath, 'utf8');
+
+    const strictViolations = enforceProductionSpecStrictness(relPath, content);
+    violations.push(...strictViolations);
 
     for (const rule of rules) {
       rule.pattern.lastIndex = 0;
