@@ -68,6 +68,11 @@ function loadEnvManual(envPath: string) {
 
 envPaths.forEach(loadEnvManual);
 
+if (!process.env.DATABASE_URL) {
+  console.log('⚠️ DATABASE_URL not found, using default local fallback.');
+  process.env.DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+}
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
