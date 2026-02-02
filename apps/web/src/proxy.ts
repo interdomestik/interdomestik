@@ -80,10 +80,14 @@ export default async function proxy(request: NextRequest) {
 
   if (process.env.NODE_ENV === 'development' && forceNipIoRedirect) {
     const rawHost = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
-    const [hostname, port] = rawHost.split(':');
 
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      const nipHost = `ks.127.0.0.1.nip.io:${port || '3000'}`;
+    // Looser check to handle ports/IPv6 robustly, but exclude nip.io itself (which contains 127.0.0.1)
+    if (
+      !rawHost.includes('nip.io') &&
+      (rawHost.includes('localhost') || rawHost.includes('127.0.0.1'))
+    ) {
+      const port = rawHost.split(':')[1] || '3000';
+      const nipHost = `ks.127.0.0.1.nip.io:${port}`;
       const url = new URL(pathname + request.nextUrl.search, `http://${nipHost}`);
       return NextResponse.redirect(url);
     }

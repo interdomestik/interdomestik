@@ -44,7 +44,7 @@ export function UserNav() {
 
     let cancelled = false;
     canAccessAdmin()
-      .then(ok => {
+      .then((ok: boolean) => {
         if (!cancelled) setAdminAccess(ok);
       })
       .catch(() => {
