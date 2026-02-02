@@ -4,6 +4,7 @@
     "services": "Services",
     "dashboard": "Dashboard",
     "claims": "Claims",
+    "trackClaims": "Track Client Claims",
     "newClaim": "New Claim",
     "documents": "Documents",
     "messages": "Messages",

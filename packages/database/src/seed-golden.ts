@@ -438,6 +438,42 @@ export async function seedGolden(config: SeedConfig) {
 
   // 7. Claims Pack (KS-A Urgent, KS-B Attention, KS-C Healthy)
   console.log('📝 Seeding Claims Pack (Ops Verification)...');
+
+  // 6b. Agent Settings (Pro Tier for E2E Agents)
+  // CRITICAL: Required for /agent/leads access in E2E tests
+  // We use explicit DELETE-THEN-INSERT for strict determinism and to handle potential schema defaults.
+  console.log('⚙️ Seeding Agent Settings...');
+  const agentSettingsTargets = [
+    { agentId: 'ks_agent_a1', tenantId: TENANTS.KS },
+    { agentId: 'mk_agent_a1', tenantId: TENANTS.MK },
+    { agentId: 'ks_b_agent_1', tenantId: TENANTS.KS },
+    { agentId: 'ks_c_agent_1', tenantId: TENANTS.KS },
+  ];
+
+  // 1. Delete existing settings for these agents
+  // Note: We use inArray on the ID field, not userId, because delete targets the PK or specific relation.
+  // Actually schema.agentSettings.agentId is the FK to user.id.
+  await db.delete(schema.agentSettings).where(
+    inArray(
+      schema.agentSettings.agentId,
+      agentSettingsTargets.map(t => goldenId(t.agentId))
+    )
+  );
+
+  // 2. Insert Pro Tier settings
+  await db.insert(schema.agentSettings).values(
+    agentSettingsTargets.map(t => ({
+      id: goldenId(`${t.agentId}_settings`),
+      tenantId: t.tenantId,
+      agentId: goldenId(t.agentId),
+      tier: 'pro', // Force PRO tier for E2E
+      commissionRates: { standard: 15.0 },
+      status: 'active',
+      createdAt: at(),
+      updatedAt: at(),
+    })) as any // Cast needed if checking strict against inferred insert type with optional fields
+  );
+
   const now = at();
   const claimsToSeed: (typeof schema.claims.$inferInsert)[] = [];
 

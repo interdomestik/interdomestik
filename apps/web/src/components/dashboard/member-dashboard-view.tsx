@@ -223,7 +223,7 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
                 description: 'SOS / EMERGENCY',
               },
               {
-                href: '/member/report',
+                href: '/member/claim-report',
                 id: 'report',
                 label: t('home_grid.cta_report'),
                 iconName: 'report',

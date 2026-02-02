@@ -30,7 +30,7 @@ test.describe('Agent Leads Drawer (Golden)', () => {
     }
 
     // 2. Navigate to Leads
-    await gotoApp(page, routes.agentLeads(testInfo), testInfo, { marker: 'agent-leads-lite' });
+    await gotoApp(page, routes.agentLeads(testInfo), testInfo, { marker: 'agent-leads-pro' });
 
     // 3. Locate our specific seeded row
     await expect(page.getByTestId(OPS_TEST_IDS.TABLE.ROOT)).toBeVisible();

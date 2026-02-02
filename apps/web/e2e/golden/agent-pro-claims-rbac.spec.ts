@@ -35,7 +35,8 @@ test.describe('Agent Pro Claims RBAC (Golden)', () => {
       await expect(messagingPanel).toBeVisible();
 
       // Close drawer
-      await page.keyboard.press('Escape');
+      // Close drawer via button (more robust than Escape)
+      await page.getByTestId('sheet-close-button').evaluate((el: HTMLElement) => el.click());
       await expect(drawerContent).not.toBeVisible();
     }
 

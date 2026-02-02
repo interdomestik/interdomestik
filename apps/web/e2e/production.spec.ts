@@ -63,9 +63,9 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       // 4. Create Claim
       const cat = page.getByTestId('category-vehicle').first();
       await cat.scrollIntoViewIfNeeded();
-      await cat.click({ force: true });
+      await cat.click();
       const nextBtn = page.getByTestId('wizard-next').first();
-      await nextBtn.click({ force: true });
+      await nextBtn.click();
       await page.fill('input[name="title"]', CLAIM_TITLE);
       await page.fill('input[name="companyName"]', 'Test Company');
       await page.fill('input[name="incidentDate"]', '2024-01-01');
@@ -75,7 +75,7 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       await page.getByTestId('wizard-next').click();
 
       // Step 3: Evidence
-      await expect(page.getByRole('heading', { name: /Evidence|Dëshmi/i })).toBeVisible();
+      await expect(page.getByTestId('step-evidence-title')).toBeVisible();
       await page.getByTestId('wizard-next').first().click({ force: true });
 
       // Step 4: Review & Submit

@@ -58,6 +58,11 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
 	export DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 fi
 
+# Increase DB timeouts to prevent negative timeout warnings in slow CI envs
+export DB_CONNECT_TIMEOUT=60
+export DB_IDLE_TIMEOUT=60
+export DB_MAX_LIFETIME=3600
+
 if [[ -z "${BETTER_AUTH_SECRET:-}" ]]; then
 	export BETTER_AUTH_SECRET="$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64'))")"
 fi

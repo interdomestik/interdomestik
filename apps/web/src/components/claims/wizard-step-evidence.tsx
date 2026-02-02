@@ -47,7 +47,14 @@ function formatSize(bytes: number) {
 export function WizardStepEvidence() {
   const t = useTranslations('evidence');
   const form = useFormContext<CreateClaimValues>();
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = useMemo(() => {
+    try {
+      return createClient();
+    } catch (e) {
+      console.error('Failed to init Supabase client', e);
+      return null;
+    }
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +107,11 @@ export function WizardStepEvidence() {
       };
       const upload = payload.upload;
 
+      if (!supabase) {
+        setError(t('validation.upload'));
+        continue;
+      }
+
       const { error: uploadError } = await supabase.storage
         .from(upload.bucket)
         .uploadToSignedUrl(upload.path, upload.token, file, {
@@ -147,7 +159,9 @@ export function WizardStepEvidence() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
+        <h2 className="text-2xl font-bold tracking-tight" data-testid="step-evidence-title">
+          {t('title')}
+        </h2>
         <div className="flex items-center justify-center gap-2 mt-2">
           <p className="text-muted-foreground">{t('subtitle')}</p>
           <TooltipProvider>
