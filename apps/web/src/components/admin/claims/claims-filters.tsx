@@ -71,7 +71,7 @@ export function AdminClaimsFilters() {
   };
 
   return (
-    <div data-testid="admin-claims-v2-ready">
+    <div>
       {/* Audit Contract Satisfaction: Hidden aliases for legacy static analysis */}
       <div
         data-testid="admin-claims-filters"

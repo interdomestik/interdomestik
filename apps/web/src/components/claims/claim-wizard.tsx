@@ -95,10 +95,18 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
 
   const nextStep = async (e?: React.MouseEvent) => {
     e?.preventDefault();
+    console.log('[Wizard] Attempting next step from:', currentStep);
     const validator = STEP_VALIDATION[currentStep];
-    if (!validator || (await validator(form as any))) {
-      ClaimsEvents.stepCompleted(currentStep, STEP_NAMES[currentStep]);
-      setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+    try {
+      if (!validator || (await validator(form as any))) {
+        console.log('[Wizard] Validation passed');
+        ClaimsEvents.stepCompleted(currentStep, STEP_NAMES[currentStep]);
+        setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
+      } else {
+        console.log('[Wizard] Validation failed', form.formState.errors);
+      }
+    } catch (err) {
+      console.error('[Wizard] Validation error', err);
     }
   };
 

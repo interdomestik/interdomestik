@@ -50,7 +50,7 @@ export default async function AdminClaimsV2Page({ searchParams }: AdminClaimsV2P
   const data = await getAdminClaimsV2(context, { page, lifecycleStage, search, status, assigned });
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500" data-testid="admin-claims-v2-ready">
       <AdminPageHeader title={t('title')} subtitle={t('description')} />
       <GlassCard className="p-6">
         <div className="space-y-6">
