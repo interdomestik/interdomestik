@@ -620,6 +620,8 @@ checks:
     scope: EACH_TARGET
     targets:
       - packages/database/src/seed-packs/ks-workflow-pack.ts
+    must_match:
+      - 'export\s+async\s+function\s+seedKsWorkflowPack\([^\)]*config'
   - id: seeding.agent_pack_entrypoint
     description: agent-pack.ts must export seedAgentPack(config...).
     type: regex
@@ -657,6 +659,40 @@ checks:
     type: file_exists
     targets:
       - apps/web/src/lib/proxy-logic.ts
+
+  - id: proxy.middleware_entrypoint_required
+    description: Middleware entrypoint must exist (canonical Next.js middleware).
+    type: file_exists
+    targets:
+      - apps/web/src/middleware.ts
+
+  - id: proxy.legacy_proxy_banned
+    description: Legacy proxy.ts entrypoint must not exist (ambiguous routing).
+    type: file_not_exists
+    targets:
+      - apps/web/src/proxy.ts
+
+  - id: proxy.middleware_uses_logic
+    description: Middleware must delegate to proxy-logic (no inline logic).
+    type: regex
+    targets:
+      - apps/web/src/middleware.ts
+    must_match:
+      - "from\\s+['\"].*lib/proxy-logic['\"]"
+      - "proxy\\("
+
+  - id: proxy.logic_edge_safe
+    description: Proxy logic must be edge-safe (no Node.js/DB imports).
+    type: regex
+    targets:
+      - apps/web/src/lib/proxy-logic.ts
+    must_not_match:
+      - "from\\s+['\"](fs|path|node:.*)['\"]"
+      - "from\\s+['\"]next-intl/server['\"]"
+      - "from\\s+['\"].*auth.*['\"]"
+      - "from\\s+['\"].*database.*['\"]"
+      - 'drizzle'
+      - 'postgres'
 
   - id: orchestration.root_scripts_no_duplicates
     description: Root scripts must not expose duplicate/legacy orchestration entrypoints.
