@@ -63,7 +63,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
         data-collapsible={collapsible}
         data-variant={variant}
         data-side={side}
-        className={cn('group peer hidden text-sidebar-foreground md:block', className)}
+        className={cn('group peer hidden z-20 text-sidebar-foreground md:block', className)}
         {...props}
       >
         <div

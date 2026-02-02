@@ -24,9 +24,14 @@ export function AgentUsersFilters() {
         params.delete('search');
       }
 
-      startTransition(() => {
-        router.push(`?${params.toString()}`);
-      });
+      const newQuery = params.toString();
+      const currentQuery = searchParams.toString();
+
+      if (newQuery !== currentQuery) {
+        startTransition(() => {
+          router.push(`?${newQuery}`);
+        });
+      }
     }, 200); // 200ms debounce for "instant" feel
 
     return () => clearTimeout(delayDebounceFn);
