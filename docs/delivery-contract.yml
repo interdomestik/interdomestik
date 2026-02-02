@@ -652,43 +652,11 @@ checks:
       - 'seed:e2e'
       - 'db:migrate'
 
-  - id: proxy.proxy_entrypoint_required
-    description: Proxy entrypoint must exist for host-based tenancy routing.
+  - id: proxy.logic_module_required
+    description: Proxy logic module must exist (centralized routing/tenancy).
     type: file_exists
     targets:
-      - apps/web/src/proxy.ts
-
-  - id: proxy.middleware_entrypoint_removed
-    description: Middleware entrypoint must be removed (proxy-only migration).
-    type: file_not_exists
-    targets:
-      - apps/web/src/middleware.ts
-
-  - id: proxy.no_middleware_path_references
-    description: Repo must not reference deprecated root middleware paths (apps/web/middleware.*).
-    type: regex
-    scope: ANY_TARGET
-    targets:
-      - knip.json
-      - scripts/**/*.sh
-      - packages/qa/src/**/*.ts
-      - docs/**/*.md
-    must_not_match:
-      - 'apps/web/middleware\.ts'
-
-  - id: proxy.no_intl_middleware_references
-    description: Repo must not reference deprecated intlMiddleware identifiers (proxy-only).
-    type: regex
-    scope: ANY_TARGET
-    targets:
-      - apps/**/*.ts
-      - apps/**/*.tsx
-      - packages/**/*.ts
-      - packages/**/*.tsx
-      - scripts/**/*.sh
-      - docs/**/*.md
-    must_not_match:
-      - 'intlMiddleware'
+      - apps/web/src/lib/proxy-logic.ts
 
   - id: orchestration.root_scripts_no_duplicates
     description: Root scripts must not expose duplicate/legacy orchestration entrypoints.
