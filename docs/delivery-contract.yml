@@ -63,7 +63,7 @@ checks:
     type: regex
     scope: ANY_TARGET
     targets:
-      - apps/web/src/lib/auth.core.ts
+      - apps/web/src/lib/auth/hooks.ts
     must_not_match:
       - "generateMemberNumberWithRetry\\([\\s\\S]*?\\{[\\s\\S]*?year:\\s*new Date\\(\\)\\.getFullYear\\(\\)[\\s\\S]*?\\}[\\s\\S]*?\\)"
 
@@ -391,12 +391,12 @@ checks:
       - 'shareToken,'
 
   # M0 Auth & Seeding
-  - id: auth.bcrypt_in_auth_core
-    description: auth.core.ts must use bcryptjs for password hashing.
+  - id: auth.bcrypt_in_providers
+    description: Providers module must use bcryptjs for password hashing.
     type: regex
     scope: EACH_TARGET
     targets:
-      - apps/web/src/lib/auth.core.ts
+      - apps/web/src/lib/auth/providers.ts
     must_match:
       - "from\\s+['\"]bcryptjs['\"]"
       - "hash\\(password,\\s*10\\)"
@@ -693,6 +693,24 @@ checks:
       - "from\\s+['\"].*database.*['\"]"
       - 'drizzle'
       - 'postgres'
+
+  - id: auth.module_init
+    description: Auth index must compose Better Auth (centralized init).
+    type: regex
+    targets:
+      - apps/web/src/lib/auth/index.ts
+    must_match:
+      - "betterAuth\\("
+      - 'databaseHooks'
+      - 'database:'
+
+  - id: auth.hooks_race_safe
+    description: Auth hooks must use race-safe member number generator.
+    type: regex
+    targets:
+      - apps/web/src/lib/auth/hooks.ts
+    must_match:
+      - 'generateMemberNumberWithRetry'
 
   - id: orchestration.root_scripts_no_duplicates
     description: Root scripts must not expose duplicate/legacy orchestration entrypoints.
