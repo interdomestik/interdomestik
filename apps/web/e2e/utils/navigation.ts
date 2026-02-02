@@ -75,7 +75,27 @@ export async function gotoApp(
     targetUrl = new URL(normalizedPath, normalizedBase).toString();
   }
 
-  const response = await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+  let response: PlaywrightResponse | null = null;
+  const maxRetries = 2;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      response = await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+      break;
+    } catch (e: any) {
+      const isRetryable =
+        e.message.includes('net::ERR_ABORTED') ||
+        e.message.includes('net::ERR_CONNECTION_RESET') ||
+        e.message.includes('net::ERR_CONNECTION_REFUSED');
+
+      if (attempt < maxRetries && isRetryable) {
+        console.warn(`[gotoApp] Retry ${attempt + 1}/${maxRetries} for ${targetUrl}: ${e.message}`);
+        await page.waitForTimeout(1000);
+        continue;
+      }
+      throw e;
+    }
+  }
 
   if (response?.status() === 404 || response?.headers()['x-nextjs-postponed']) {
     // Check if we rendered our custom Not Found UI
