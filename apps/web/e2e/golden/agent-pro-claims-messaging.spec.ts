@@ -41,7 +41,8 @@ test.describe('Agent Pro Claims Messaging (Golden)', () => {
     await expect(page.getByTestId('messaging-panel')).toBeVisible({ timeout: 15000 });
 
     // 5. Send message
-    const messagingPanel = page.getByTestId('messaging-panel');
+    // Strict mode fix: Scope to the visible panel to prevent ambiguity if multiple panels exist (e.g. in DOM but hidden)
+    const messagingPanel = page.locator('[data-testid="messaging-panel"]:visible');
     const messageInput = messagingPanel.getByTestId('message-input');
     const testMessage = `E2E Agent Message ${Date.now()}`;
     await messageInput.fill(testMessage);

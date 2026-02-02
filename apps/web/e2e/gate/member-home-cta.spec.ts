@@ -27,7 +27,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     const ctaReport = page.getByTestId('home-cta-report');
     await expect(ctaReport).toBeVisible();
     await ctaReport.click();
-    await expect(page).toHaveURL(/\/report/);
+    await expect(page).toHaveURL(/\/claim-report/);
     await expect(page.getByTestId('report-page-ready')).toBeVisible();
 
     // Back to home
