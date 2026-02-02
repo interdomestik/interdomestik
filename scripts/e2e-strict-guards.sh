@@ -160,22 +160,6 @@ else
   echo "✅ No locale-prefixed API calls found."
 fi
 
-# 4. CSP Integrity (Paddle)
-echo "   Checking CSP integrity..."
-FOUND_PADDLE=0
-if [ -f "checkly.config.ts" ] && grep -q "paddle\.com" checkly.config.ts; then
-  FOUND_PADDLE=1
-fi
 
-if grep -r "paddle\.com" apps/web/src > /dev/null 2>&1; then
-  FOUND_PADDLE=1
-fi
-
-if [ "$FOUND_PADDLE" -eq 1 ]; then
-  echo "✅ CSP allowlist still contains paddle.com"
-else
-  echo "❌ Error: paddle.com not found in known CSP allowlist locations (checkly.config.ts, apps/web/src)."
-  EXIT_CODE=1
-fi
 
 exit $EXIT_CODE

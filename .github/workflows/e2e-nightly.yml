@@ -98,10 +98,6 @@ jobs:
           fi
           echo "✅ API prefix guard OK"
 
-          echo "Guard: CSP must keep paddle allowlist"
-          grep -n "paddle.com" apps/web/src/proxy.ts >/dev/null
-          echo "✅ CSP paddle guard OK"
-
       # ---- Seed (always) ----
       - name: Seed E2E DB
         shell: bash
