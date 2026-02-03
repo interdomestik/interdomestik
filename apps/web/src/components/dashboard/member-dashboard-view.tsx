@@ -1,4 +1,15 @@
+import type { MemberDashboardData } from '@interdomestik/domain-member';
+import type { ReactElement } from 'react';
+
 import { DigitalIDCard } from '@/app/[locale]/components/home/digital-id-card';
+import {
+  ActiveClaimFocus,
+  ClaimsOverviewList,
+  MemberEmptyState,
+  MemberHeader,
+  PrimaryActions,
+  SupportLink,
+} from '@/components/member-dashboard';
 import { HomeGrid } from '@/components/member/HomeGrid';
 import { ReferralCard } from '@/components/member/referral-card';
 import { Link } from '@/i18n/routing';
@@ -35,12 +46,19 @@ const getCachedSubscription = cache(async (userId: string) => {
   });
 });
 
-export async function MemberDashboardView({ userId }: { userId: string }) {
+export type MemberDashboardViewProps = {
+  data: MemberDashboardData;
+  locale: string;
+};
+
+export async function MemberDashboardView({ data, locale }: MemberDashboardViewProps) {
   const t = await getTranslations('dashboard');
+  const { member, claims, activeClaimId, supportHref } = data;
+  const activeClaim = claims.find(claim => claim.id === activeClaimId) ?? null;
 
   const [userDetails, subscription] = await Promise.all([
-    getCachedUser(userId),
-    getCachedSubscription(userId),
+    getCachedUser(member.id),
+    getCachedSubscription(member.id),
   ]);
 
   if (
@@ -85,6 +103,29 @@ export async function MemberDashboardView({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-10 pb-10" data-testid="member-dashboard-ready">
+      <MemberHeader name={member.name} membershipNumber={member.membershipNumber} />
+      <PrimaryActions locale={locale} />
+
+      {activeClaim ? (
+        <ActiveClaimFocus
+          claimNumber={activeClaim.claimNumber}
+          status={activeClaim.status}
+          stageLabel={activeClaim.stageLabel}
+          updatedAt={activeClaim.updatedAt}
+          nextMemberAction={
+            activeClaim.requiresMemberAction ? activeClaim.nextMemberAction : undefined
+          }
+        />
+      ) : null}
+
+      {claims.length > 0 ? (
+        <ClaimsOverviewList claims={claims} />
+      ) : (
+        <MemberEmptyState locale={locale} />
+      )}
+
+      <SupportLink href={supportHref} />
+
       {/* Adaptive Header Section */}
       <div className="relative overflow-hidden rounded-[3rem] bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 sm:p-12 shadow-2xl">
         {/* Animated Mesh Background */}
