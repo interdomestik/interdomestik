@@ -1,8 +1,8 @@
 import type { NextRequest } from 'next/server';
-import { proxy } from './lib/proxy-logic';
+import { proxy as proxyLogic } from './lib/proxy-logic';
 
-export function middleware(request: NextRequest) {
-  return proxy(request);
+export function proxy(request: NextRequest) {
+  return proxyLogic(request);
 }
 
 export const config = {
