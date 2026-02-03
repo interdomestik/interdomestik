@@ -203,6 +203,16 @@ export async function seedGolden(config: SeedConfig) {
       memberNumber: `MEM-2026-0000${12 + i}`,
       memberNumberIssuedAt: at(),
     })),
+    {
+      id: goldenId('ks_empty_member'),
+      name: 'KS Empty Member',
+      email: 'member.ks.empty@interdomestik.com',
+      role: 'member' as const,
+      tenantId: TENANTS.KS,
+      branchId: 'ks_branch_a',
+      memberNumber: 'MEM-2026-000015',
+      memberNumberIssuedAt: at(),
+    },
     // Balkan Agent
     {
       id: goldenId('agent_balkan_1'),
