@@ -35,7 +35,7 @@ type GlobalE2E = typeof globalThis & {
 
 type Tenant = 'ks' | 'mk';
 
-type Role = 'member' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
+type Role = 'member' | 'member_empty' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS (Pure / Utils)
@@ -119,6 +119,7 @@ function ipForRole(role: Role): string {
   // Stable IPs for each role to avoid unexpected rate limiting collision if checking by IP
   switch (role) {
     case 'member':
+    case 'member_empty':
       return '10.0.0.11';
     case 'admin':
       return '10.0.0.12';
@@ -143,6 +144,7 @@ function getUserForTenant(role: Role, tenant: Tenant) {
   if (tenant === 'mk') {
     switch (role) {
       case 'member':
+      case 'member_empty':
         return E2E_USERS.MK_MEMBER;
       case 'admin':
         return E2E_USERS.MK_ADMIN;
@@ -156,6 +158,8 @@ function getUserForTenant(role: Role, tenant: Tenant) {
   switch (role) {
     case 'member':
       return E2E_USERS.KS_MEMBER;
+    case 'member_empty':
+      return E2E_USERS.KS_MEMBER_EMPTY;
     case 'admin':
       return E2E_USERS.KS_ADMIN;
     case 'agent':

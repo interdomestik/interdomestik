@@ -86,6 +86,13 @@ export const E2E_USERS = {
     tenantId: 'tenant_ks',
     branchId: 'ks_branch_a',
   },
+  KS_MEMBER_EMPTY: {
+    email: 'member.ks.empty@interdomestik.com',
+    name: 'KS Empty Member',
+    dbRole: 'member',
+    tenantId: 'tenant_ks',
+    branchId: 'ks_branch_a',
+  },
 } as const;
 
 export type E2EUserKey = keyof typeof E2E_USERS;
