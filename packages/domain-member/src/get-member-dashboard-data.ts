@@ -59,22 +59,31 @@ function normalizeDate(value: Date | string | null | undefined) {
 
 export async function getMemberDashboardData(params: {
   memberId: string;
-  tenantId: string;
+  tenantId?: string | null;
   locale: string;
 }): Promise<MemberDashboardData> {
   const { memberId, tenantId, locale } = params;
 
+  const memberWhere = tenantId
+    ? withTenant(tenantId, user.tenantId, eq(user.id, memberId))
+    : eq(user.id, memberId);
+
   const member = await db.query.user.findFirst({
-    where: withTenant(tenantId, user.tenantId, eq(user.id, memberId)),
-    columns: { id: true, name: true, memberNumber: true },
+    where: memberWhere,
+    columns: { id: true, name: true, memberNumber: true, tenantId: true },
   });
 
   if (!member) {
     throw new Error('Member not found');
   }
 
+  const resolvedTenantId = tenantId ?? member.tenantId;
+  if (!resolvedTenantId) {
+    throw new Error('Missing tenant context');
+  }
+
   const rawClaims = await db.query.claims.findMany({
-    where: withTenant(tenantId, claims.tenantId, eq(claims.userId, memberId)),
+    where: withTenant(resolvedTenantId, claims.tenantId, eq(claims.userId, memberId)),
     orderBy: [desc(claims.updatedAt)],
     columns: {
       id: true,

@@ -38,6 +38,7 @@ describe('getMemberDashboardData', () => {
       id: 'member-1',
       name: 'Member One',
       memberNumber: 'M-0001',
+      tenantId: 'tenant-1',
     });
 
     mockDb.query.claims.findMany.mockResolvedValue([
@@ -85,6 +86,7 @@ describe('getMemberDashboardData', () => {
       id: 'member-2',
       name: 'Member Two',
       memberNumber: null,
+      tenantId: 'tenant-1',
     });
 
     mockDb.query.claims.findMany.mockResolvedValue([]);
