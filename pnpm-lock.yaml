@@ -128,6 +128,9 @@ importers:
       '@interdomestik/domain-leads':
         specifier: workspace:*
         version: link:../../packages/domain-leads
+      '@interdomestik/domain-member':
+        specifier: workspace:*
+        version: link:../../packages/domain-member
       '@interdomestik/domain-membership-billing':
         specifier: workspace:*
         version: link:../../packages/domain-membership-billing
@@ -587,6 +590,25 @@ importers:
         specifier: ^4.2.1
         version: 4.2.1
     devDependencies:
+      vitest:
+        specifier: ^4.0.16
+        version: 4.0.16(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(jiti@2.6.1)(jsdom@27.3.0)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
+
+  packages/domain-member:
+    dependencies:
+      '@interdomestik/database':
+        specifier: workspace:*
+        version: link:../database
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(@upstash/redis@1.35.8)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7)
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^4.0.16
+        version: 4.0.16(vitest@4.0.16(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(jiti@2.6.1)(jsdom@27.3.0(postcss@8.5.6))(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+      postcss:
+        specifier: ^8.5.6
+        version: 8.5.6
       vitest:
         specifier: ^4.0.16
         version: 4.0.16(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(jiti@2.6.1)(jsdom@27.3.0)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)

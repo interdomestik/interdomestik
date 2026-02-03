@@ -47,6 +47,20 @@ async function loginAs(
 // Use serial to ensure Phase A creates claim before Phase B/C try to view it
 test.describe.serial('@smoke Production Smoke Test Plan', () => {
   test.describe('Phase A: Authentication & Routing (Member) @smoke', () => {
+    test('Member (KS) sees claims-first dashboard blocks', async ({ page }, testInfo) => {
+      await loginAs(page, { ...MEMBER_KS, tenant: 'tenant_ks' }, testInfo);
+
+      await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
+      await expect(page.getByTestId('member-header')).toBeVisible();
+      await expect(page.getByTestId('member-primary-actions')).toBeVisible();
+      await expect(page.getByTestId('member-active-claim')).toBeVisible();
+      await expect(page.getByTestId('member-claims-list')).toBeVisible();
+      await expect(page.getByTestId('member-support-link')).toBeVisible();
+
+      const cta = page.getByTestId('member-start-claim-cta');
+      await expect(cta).toHaveAttribute('href', routes.memberNewClaim(testInfo));
+    });
+
     test('Member (KS) can login, see dashboard, and create a claim', async ({ page }, testInfo) => {
       // Debug: Listen to console logs
       page.on('console', msg => console.log(`[Browser] ${msg.text()}`));

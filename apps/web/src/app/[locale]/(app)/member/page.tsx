@@ -1,7 +1,8 @@
-import { MemberDashboardSkeleton } from '@/components/dashboard/member-dashboard-skeleton';
 import { MemberDashboardView } from '@/components/dashboard/member-dashboard-view';
+import { MemberDashboardSkeleton } from '@/components/dashboard/member-dashboard-skeleton';
 import { auth } from '@/lib/auth';
 import { ErrorBoundary } from '@interdomestik/ui';
+import { getMemberDashboardData } from '@interdomestik/domain-member';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
@@ -34,10 +35,16 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     notFound();
   }
 
+  const data = await getMemberDashboardData({
+    memberId: result.userId,
+    tenantId: session.user.tenantId,
+    locale,
+  });
+
   return (
     <ErrorBoundary>
       <Suspense fallback={<MemberDashboardSkeleton />}>
-        <MemberDashboardView userId={result.userId} />
+        <MemberDashboardView data={data} locale={locale} />
       </Suspense>
     </ErrorBoundary>
   );
