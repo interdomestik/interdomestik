@@ -1,11 +1,11 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
+import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
+import { requireRoleOrNotFound } from '@/components/shell/role-guard';
+import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { StaffSidebar } from '@/components/staff/staff-sidebar';
 import { BASE_NAMESPACES, STAFF_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { getCachedSession } from '@/lib/auth.server';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
-import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { redirect } from 'next/navigation';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
@@ -21,18 +21,12 @@ export default async function StaffLayout({
 
   // Vercel Best Practice: Eliminate Waterfall (async-parallel)
   // Fetch session and messages in parallel
-  const [session, allMessages] = await Promise.all([getCachedSession(), getMessages({ locale })]);
-
-  if (!session) {
-    redirect(`/${locale}/login`);
-    return null;
-  }
-
-  if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
-    // Strict Isolation: 404 for everyone else
-    const { notFound } = await import('next/navigation');
-    notFound();
-  }
+  const [session, allMessages] = await Promise.all([
+    getSessionSafe('StaffLayout'),
+    getMessages({ locale }),
+  ]);
+  const sessionNonNull = requireSessionOrRedirect(session, locale);
+  requireRoleOrNotFound(sessionNonNull.user.role, ['staff', 'branch_manager']);
 
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),
@@ -40,17 +34,14 @@ export default async function StaffLayout({
   };
 
   return (
-    <NextIntlClientProvider messages={messages} locale={locale}>
-      {/* E2E contract: ensureAuthenticated waits for dashboard-page-ready across all portals */}
-      <div data-testid="dashboard-page-ready">
-        <SidebarProvider defaultOpen={true}>
-          <StaffSidebar />
-          <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-            <DashboardHeader />
-            <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
-          </SidebarInset>
-        </SidebarProvider>
-      </div>
-    </NextIntlClientProvider>
+    <AuthenticatedShell locale={locale} messages={messages}>
+      <SidebarProvider defaultOpen={true}>
+        <StaffSidebar />
+        <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+          <DashboardHeader />
+          <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </AuthenticatedShell>
   );
 }
