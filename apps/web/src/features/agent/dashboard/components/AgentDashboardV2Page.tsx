@@ -66,17 +66,24 @@ export async function AgentDashboardV2Page({
             })}
           </p>
         </div>
-        <Button asChild>
-          {isPro ? (
-            <Link href="/agent/leads/new">
-              Add New Lead <ArrowRight className="ml-2 h-4 w-4" />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild>
+            {isPro ? (
+              <Link href="/agent/leads/new">
+                Add New Lead <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            ) : (
+              <Link href="/agent/pos">
+                Rapid POS Sale <UserPlus className="ml-2 h-4 w-4" />
+              </Link>
+            )}
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/member" data-testid="agent-member-dashboard-cta">
+              My Member Dashboard
             </Link>
-          ) : (
-            <Link href="/agent/pos">
-              Rapid POS Sale <UserPlus className="ml-2 h-4 w-4" />
-            </Link>
-          )}
-        </Button>
+          </Button>
+        </div>
       </div>
 
       {/* NEW: Hero Row (Phase A) */}
