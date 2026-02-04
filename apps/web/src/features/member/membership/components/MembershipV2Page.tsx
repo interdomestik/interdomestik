@@ -24,9 +24,12 @@ import {
   SubscriptionRecord,
 } from '@/app/[locale]/(app)/member/membership/_core';
 
-// Loose type for next-intl translator to avoid complex generic drilling
-// Loose type for next-intl translator to avoid complex generic drilling
-type TranslationFn = (key: string, values?: any, formats?: any) => string;
+// Loose type for next-intl translator to avoid complex generic drilling.
+type TranslationFn = (
+  key: string,
+  values?: Record<string, unknown>,
+  formats?: Record<string, unknown>
+) => string;
 
 export async function MembershipV2Page() {
   const session = await auth.api.getSession({
@@ -37,7 +40,7 @@ export async function MembershipV2Page() {
     redirect('/login');
   }
 
-  const t = await getTranslations('membership');
+  const t: TranslationFn = await getTranslations('membership');
 
   const { subscription, dunning } = await getMembershipPageModelCore({
     userId: session.user.id,
@@ -84,7 +87,7 @@ export async function MembershipV2Page() {
 interface PlanStatusCardProps {
   subscription: SubscriptionRecord | null;
   dunning: MembershipDunningState;
-  t: any;
+  t: TranslationFn;
   isGraceExpired: boolean;
 }
 
@@ -177,7 +180,7 @@ function PlanStatusCard({ subscription, dunning, t, isGraceExpired }: PlanStatus
 interface BenefitsCardProps {
   subscription: SubscriptionRecord | null;
   isGraceExpired: boolean;
-  t: any;
+  t: TranslationFn;
 }
 
 function BenefitsCard({ subscription, isGraceExpired, t }: BenefitsCardProps) {

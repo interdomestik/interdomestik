@@ -360,7 +360,7 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
 
   // Determine target based on role
   const roleForRoute = role === 'admin_mk' ? 'admin' : role;
-  let targetPath = getCanonicalRouteForRole(roleForRoute, info.locale) ?? '/member';
+  const targetPath = getCanonicalRouteForRole(roleForRoute, info.locale) ?? '/member';
 
   // Navigate using gotoApp (handles locale)
   await gotoApp(page, targetPath, testInfo, { marker: 'body' });

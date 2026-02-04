@@ -65,7 +65,7 @@ export async function performLogin(
 
   // Deterministic post-login navigation
   const roleForRoute = role === 'admin_mk' ? 'admin' : role;
-  let targetPath = getCanonicalRouteForRole(roleForRoute, info.locale) ?? '/member';
+  const targetPath = getCanonicalRouteForRole(roleForRoute, info.locale) ?? '/member';
 
   await gotoApp(page, targetPath, testInfo, {
     marker: 'dashboard-page-ready',
@@ -82,7 +82,7 @@ export async function ensureAuthenticated(
   const info = getProjectUrlInfo(testInfo, null);
   // Determine target based on role
   const roleForRoute = role === 'admin_mk' ? 'admin' : role;
-  let targetPath = getCanonicalRouteForRole(roleForRoute, info.locale) ?? '/member';
+  const targetPath = getCanonicalRouteForRole(roleForRoute, info.locale) ?? '/member';
 
   console.log(
     `[Auth] Ensuring auth for ${role} on ${tenant} -> ${targetPath} (Step 1: Nav to Body)`

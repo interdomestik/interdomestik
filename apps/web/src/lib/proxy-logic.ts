@@ -1,6 +1,4 @@
 import { routing } from '@/i18n/routing';
-import { match } from '@formatjs/intl-localematcher';
-import Negotiator from 'negotiator';
 import { NextRequest, NextResponse } from 'next/server';
 
 const PROTECTED_TOP_LEVEL = new Set(['member', 'admin', 'staff', 'agent']);
@@ -32,19 +30,6 @@ function hasSessionCookie(request: NextRequest): boolean {
   return false;
 }
 
-function getLocale(request: NextRequest): string {
-  // Simple locale detection for redirects
-  const languages = new Negotiator({
-    headers: { 'accept-language': request.headers.get('accept-language') || '' },
-  }).languages();
-  const defaultLocale = 'sq';
-  try {
-    return match(languages, routing.locales, defaultLocale);
-  } catch {
-    return defaultLocale;
-  }
-}
-
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
   const host = request.headers.get('host') ?? '';
@@ -58,7 +43,7 @@ export function proxy(request: NextRequest): NextResponse {
   // 2. Auth Guard (Edge Safe)
   const segments = pathname.split('/');
   const possibleLocale = segments[1];
-  const isLocale = routing.locales.includes(possibleLocale as any);
+  const isLocale = routing.locales.includes(possibleLocale as (typeof routing.locales)[number]);
   const topLevel = isLocale ? segments[2] : segments[1];
 
   const isProtected = PROTECTED_TOP_LEVEL.has(topLevel);
