@@ -49,7 +49,7 @@ jobs:
 
           attempt() {
             pnpm audit --prod --audit-level=high --json > /tmp/pnpm-audit.json || true
-            node scripts/pnpm-audit-gate.mjs /tmp/pnpm-audit.json GHSA-3966-f6p6-2qr9
+            node scripts/pnpm-audit-gate.mjs /tmp/pnpm-audit.json GHSA-3966-f6p6-2qr9 1112810
           }
 
           for i in 1 2 3; do
