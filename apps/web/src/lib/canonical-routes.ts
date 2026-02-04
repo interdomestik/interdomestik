@@ -29,3 +29,14 @@ export function getPortalLabel(role: RoleLike): string {
   if (role === 'agent') return 'Agent';
   return 'Member';
 }
+
+export function stripLocalePrefixFromCanonicalRoute(
+  canonical: string | null,
+  locale: string
+): string | null {
+  if (!canonical) return null;
+  const safeLocale = normalizeLocale(locale);
+  if (!safeLocale) return canonical;
+  const prefix = `/${safeLocale}/`;
+  return canonical.startsWith(prefix) ? canonical.replace(`/${safeLocale}`, '') : canonical;
+}

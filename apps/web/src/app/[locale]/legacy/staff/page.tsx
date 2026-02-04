@@ -1,7 +1,10 @@
 import { AgentStatsCards } from '@/components/agent/agent-stats-cards';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
-import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
+import {
+  getCanonicalRouteForRole,
+  stripLocalePrefixFromCanonicalRoute,
+} from '@/lib/canonical-routes';
 import { db } from '@/lib/db.server';
 import {
   Button,
@@ -34,9 +37,7 @@ export default async function LegacyStaffPage({ params }: { params: Promise<{ lo
   if (!session) redirect(`/${locale}/login`);
 
   const canonical = getCanonicalRouteForRole('staff', locale);
-  const linkHref = canonical?.startsWith(`/${locale}/`)
-    ? canonical.replace(`/${locale}`, '')
-    : canonical;
+  const linkHref = stripLocalePrefixFromCanonicalRoute(canonical, locale);
   const result = await getStaffDashboardCore({
     tenantId: session.user.tenantId,
     userId: session.user.id,

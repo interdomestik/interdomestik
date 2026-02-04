@@ -1,13 +1,14 @@
 import { Link } from '@/i18n/routing';
-import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
+import {
+  getCanonicalRouteForRole,
+  stripLocalePrefixFromCanonicalRoute,
+} from '@/lib/canonical-routes';
 import AgentDashboardEntry from '@/app/[locale]/(agent)/agent/_core.entry';
 
 export default async function LegacyAgentPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const canonical = getCanonicalRouteForRole('agent', locale);
-  const linkHref = canonical?.startsWith(`/${locale}/`)
-    ? canonical.replace(`/${locale}`, '')
-    : canonical;
+  const linkHref = stripLocalePrefixFromCanonicalRoute(canonical, locale);
 
   return (
     <>

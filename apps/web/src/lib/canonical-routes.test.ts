@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { getCanonicalRouteForRole, getPortalLabel } from './canonical-routes';
+import {
+  getCanonicalRouteForRole,
+  getPortalLabel,
+  stripLocalePrefixFromCanonicalRoute,
+} from './canonical-routes';
 
 describe('getCanonicalRouteForRole', () => {
   it('maps member to member dashboard', () => {
@@ -58,5 +62,19 @@ describe('getPortalLabel', () => {
 
   it('returns Member for unknown role', () => {
     expect(getPortalLabel('unknown')).toBe('Member');
+  });
+});
+
+describe('stripLocalePrefixFromCanonicalRoute', () => {
+  it('removes locale prefix when present', () => {
+    expect(stripLocalePrefixFromCanonicalRoute('/sq/agent/members', 'sq')).toBe('/agent/members');
+  });
+
+  it('returns null when canonical is null', () => {
+    expect(stripLocalePrefixFromCanonicalRoute(null, 'sq')).toBeNull();
+  });
+
+  it('returns canonical when locale is invalid', () => {
+    expect(stripLocalePrefixFromCanonicalRoute('/sq/agent/members', '')).toBe('/sq/agent/members');
   });
 });
