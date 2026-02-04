@@ -31,7 +31,7 @@ export function StaffSidebar() {
   const { data: session } = authClient.useSession();
 
   const navItems = [
-    { title: tNav('overview'), href: '/staff/claims', icon: Home },
+    { title: tNav('overview'), href: '/staff', icon: Home },
     { title: tClaims('claims_queue'), href: '/staff/claims', icon: FileText },
   ];
 
