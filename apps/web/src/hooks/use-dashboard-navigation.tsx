@@ -27,6 +27,7 @@ export function useDashboardNavigation(agentTier: string = 'standard') {
   const [adminAccess, setAdminAccess] = useState(false);
 
   useEffect(() => {
+    if (!role) return;
     if (isAdmin(role)) {
       setAdminAccess(true);
       return;
