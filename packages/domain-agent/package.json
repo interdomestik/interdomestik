@@ -6,7 +6,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./get-agent-members-list": "./src/get-agent-members-list.ts"
+    "./get-agent-members-list": "./src/get-agent-members-list.ts",
+    "./get-agent-member-detail": "./src/get-agent-member-detail.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",
