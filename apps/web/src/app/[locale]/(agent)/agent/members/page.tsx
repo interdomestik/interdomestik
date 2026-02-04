@@ -93,6 +93,11 @@ export default async function AgentMembersPage({
                       href={`/agent/members/${member.memberId}`}
                       data-testid="agent-member-view-link"
                       className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                      aria-label={
+                        member.membershipNumber
+                          ? `View member ${member.name} (membership ${member.membershipNumber})`
+                          : `View member ${member.name}`
+                      }
                     >
                       View
                     </Link>
