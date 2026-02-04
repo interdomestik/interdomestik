@@ -27,7 +27,7 @@ import {
 // Loose type for next-intl translator to avoid complex generic drilling.
 type TranslationFn = (
   key: string,
-  values?: Record<string, unknown>,
+  values?: Record<string, string | number | Date>,
   formats?: Record<string, unknown>
 ) => string;
 
@@ -40,7 +40,7 @@ export async function MembershipV2Page() {
     redirect('/login');
   }
 
-  const t: TranslationFn = await getTranslations('membership');
+  const t = (await getTranslations('membership')) as TranslationFn;
 
   const { subscription, dunning } = await getMembershipPageModelCore({
     userId: session.user.id,
