@@ -48,7 +48,8 @@ jobs:
           set -euo pipefail
 
           attempt() {
-            pnpm audit --prod --audit-level=high
+            pnpm audit --prod --audit-level=high --json > /tmp/pnpm-audit.json || true
+            node scripts/pnpm-audit-gate.mjs /tmp/pnpm-audit.json GHSA-3966-f6p6-2qr9
           }
 
           for i in 1 2 3; do
