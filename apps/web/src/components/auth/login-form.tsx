@@ -76,13 +76,19 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               const role = (session?.user as { role?: string })?.role;
               console.log('LOGIN DEBUG: role =', role, ', isAdmin =', isAdmin(role)); // DEBUG: Role check
 
-              const hasAdminAccess = isAdmin(role) || (await canAccessAdmin().catch(() => false));
+              const isAdminRole = isAdmin(role);
+              if (isAdminRole) {
+                const hasAdminAccess = await canAccessAdmin().catch(() => false);
+                if (!hasAdminAccess) {
+                  setError(t('error'));
+                  setLoading(false);
+                  return;
+                }
+              }
               // V3 canonical routing standardizes branch_manager to admin overview.
               const canonical = getCanonicalRouteForRole(role, locale);
 
-              if (hasAdminAccess) {
-                router.push(`/${locale}/admin/overview`);
-              } else if (canonical) {
+              if (canonical) {
                 router.push(canonical);
               }
             } catch {

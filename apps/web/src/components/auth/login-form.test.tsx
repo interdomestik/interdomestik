@@ -158,9 +158,9 @@ describe('LoginForm', () => {
     });
   });
 
-  it('redirects to /admin when canAccessAdmin is true', async () => {
+  it('redirects admins to canonical route when access is granted', async () => {
     mockSignInEmail.mockResolvedValue({ error: null });
-    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+    mockGetSession.mockResolvedValue({ data: { user: { role: 'admin' } } });
     mockCanAccessAdmin.mockResolvedValue(true);
 
     render(<LoginForm />);
@@ -175,6 +175,30 @@ describe('LoginForm', () => {
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/en/admin/overview');
+    });
+  });
+
+  it('does not redirect admins without access', async () => {
+    mockSignInEmail.mockResolvedValue({ error: null });
+    mockGetSession.mockResolvedValue({ data: { user: { role: 'admin' } } });
+    mockCanAccessAdmin.mockResolvedValue(false);
+
+    render(<LoginForm />);
+
+    const emailInput = screen.getByLabelText('Email');
+    const passwordInput = screen.getByLabelText('Password');
+    const submitButton = screen.getByText('Sign In');
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('An error occurred')).toBeInTheDocument();
     });
   });
 
