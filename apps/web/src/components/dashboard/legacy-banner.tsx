@@ -2,7 +2,11 @@
 
 import { Link } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
-import { getCanonicalRouteForRole, getValidatedLocaleFromPathname } from '@/lib/canonical-routes';
+import {
+  getCanonicalRouteForRole,
+  getValidatedLocaleFromPathname,
+  stripLocalePrefixFromCanonicalRoute,
+} from '@/lib/canonical-routes';
 import { usePathname } from 'next/navigation';
 
 function roleFromPathname(pathname: string | null) {
@@ -22,7 +26,8 @@ export function LegacyBanner() {
 
   const locale = getValidatedLocaleFromPathname(pathname);
   const canonical = getCanonicalRouteForRole(sessionRole ?? roleFromPathname(pathname), locale);
-  if (!canonical) return null;
+  const linkHref = stripLocalePrefixFromCanonicalRoute(canonical, locale);
+  if (!linkHref) return null;
 
   return (
     <div
@@ -32,7 +37,7 @@ export function LegacyBanner() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span>You are viewing a legacy dashboard. Go to the v3 dashboard.</span>
         <Link
-          href={canonical}
+          href={linkHref}
           className="rounded-full bg-amber-900 px-3 py-1 text-xs font-semibold text-white"
           data-testid="legacy-banner-link"
         >
