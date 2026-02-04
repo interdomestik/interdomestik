@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 
 const [,, auditFile, ...allowlist] = process.argv;
 
@@ -13,7 +14,45 @@ if (!raw) {
   process.exit(0);
 }
 
-const allowed = new Set(allowlist);
+const allowed = new Set();
+
+function loadAllowlistFile(filePath) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) {
+      return [];
+    }
+    const rawAllowlist = fs.readFileSync(filePath, 'utf8').trim();
+    if (!rawAllowlist) {
+      return [];
+    }
+    const parsed = JSON.parse(rawAllowlist);
+    if (Array.isArray(parsed)) {
+      return parsed.map(entry => String(entry));
+    }
+    if (Array.isArray(parsed.allowlist)) {
+      return parsed.allowlist.map(entry => String(entry));
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+const repoAllowlistPath = path.resolve(process.cwd(), 'scripts', 'pnpm-audit-allowlist.json');
+loadAllowlistFile(repoAllowlistPath).forEach(id => allowed.add(id));
+
+if (allowlist.length > 0) {
+  allowlist.forEach(entry => {
+    if (!entry) {
+      return;
+    }
+    if (fs.existsSync(entry)) {
+      loadAllowlistFile(entry).forEach(id => allowed.add(id));
+      return;
+    }
+    allowed.add(String(entry));
+  });
+}
 const advisories = new Map();
 
 function ingestRecord(record) {
@@ -60,7 +99,7 @@ try {
 const blocked = [];
 
 for (const advisory of advisories.values()) {
-  const id = advisory.ghsaId || advisory.id;
+  const id = String(advisory.ghsaId || advisory.id);
   const severity = advisory.severity;
 
   if (!id || !severity) {

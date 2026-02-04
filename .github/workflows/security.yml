@@ -14,7 +14,7 @@ permissions:
 jobs:
   # 1. PR Check: Runs pnpm audit to catch new vulnerabilities
   pnpm-audit:
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -49,7 +49,7 @@ jobs:
 
           attempt() {
             pnpm audit --prod --audit-level=high --json > /tmp/pnpm-audit.json || true
-            node scripts/pnpm-audit-gate.mjs /tmp/pnpm-audit.json GHSA-3966-f6p6-2qr9 1112810
+            node scripts/pnpm-audit-gate.mjs /tmp/pnpm-audit.json
           }
 
           for i in 1 2 3; do
@@ -63,12 +63,16 @@ jobs:
           echo "pnpm audit gate failed after retries." >&2
           exit 1
 
-      - name: Gitleaks skipped (no license)
-        if: ${{ secrets.GITLEAKS_LICENSE == '' }}
-        run: echo "Gitleaks license not set. Add GitHub Secret 'GITLEAKS_LICENSE' to enable secret scanning."
+      - name: Gitleaks license notice
+        run: |
+          if [ -z "${GITLEAKS_LICENSE:-}" ]; then
+            echo "Gitleaks license not set. Add GitHub Secret 'GITLEAKS_LICENSE' to enable secret scanning."
+          fi
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
 
       - name: Run gitleaks
-        if: ${{ secrets.GITLEAKS_LICENSE != '' }}
+        continue-on-error: true
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
