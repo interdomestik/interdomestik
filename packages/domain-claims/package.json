@@ -15,6 +15,8 @@
     "./agent-claims/assign": "./src/agent-claims/assign.ts",
     "./agent-claims/update-status": "./src/agent-claims/update-status.ts",
     "./staff-claims/assign": "./src/staff-claims/assign.ts",
+    "./staff-claims/get-staff-claims-list": "./src/staff-claims/get-staff-claims-list.ts",
+    "./staff-claims/get-staff-claim-detail": "./src/staff-claims/get-staff-claim-detail.ts",
     "./staff-claims/update-status": "./src/staff-claims/update-status.ts",
     "./staff-claims/types": "./src/staff-claims/types.ts",
     "./admin-claims/update-status": "./src/admin-claims/update-status.ts",
