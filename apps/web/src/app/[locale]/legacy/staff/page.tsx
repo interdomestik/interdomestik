@@ -1,10 +1,5 @@
 import { AgentStatsCards } from '@/components/agent/agent-stats-cards';
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
-import { Link } from '@/i18n/routing';
-import {
-  getCanonicalRouteForRole,
-  stripLocalePrefixFromCanonicalRoute,
-} from '@/lib/canonical-routes';
 import { db } from '@/lib/db.server';
 import {
   Button,
@@ -36,8 +31,6 @@ export default async function LegacyStaffPage({ params }: { params: Promise<{ lo
   const session = await getAuth();
   if (!session) redirect(`/${locale}/login`);
 
-  const canonical = getCanonicalRouteForRole('staff', locale);
-  const linkHref = stripLocalePrefixFromCanonicalRoute(canonical, locale);
   const result = await getStaffDashboardCore({
     tenantId: session.user.tenantId,
     userId: session.user.id,
@@ -58,23 +51,6 @@ export default async function LegacyStaffPage({ params }: { params: Promise<{ lo
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {linkHref ? (
-        <div
-          className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-          data-testid="legacy-banner"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>You are viewing a legacy dashboard. Go to the v3 dashboard.</span>
-            <Link
-              href={linkHref}
-              className="rounded-full bg-amber-900 px-3 py-1 text-xs font-semibold text-white"
-              data-testid="legacy-banner-link"
-            >
-              Go to v3 dashboard
-            </Link>
-          </div>
-        </div>
-      ) : null}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{tNav('overview')}</h1>
