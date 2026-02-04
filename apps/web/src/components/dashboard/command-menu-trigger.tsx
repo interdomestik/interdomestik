@@ -1,11 +1,28 @@
 'use client';
 
-import { Button } from '@interdomestik/ui';
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 export function CommandMenuTrigger() {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const searchKey = useMemo(() => {
+    if (pathname?.includes('/agent/members')) {
+      return 'q';
+    }
+    return 'search';
+  }, [pathname]);
+
+  useEffect(() => {
+    const current = searchParams.get(searchKey) || '';
+    setQuery(current);
+  }, [searchKey, searchParams]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -18,8 +35,21 @@ export function CommandMenuTrigger() {
     return () => document.removeEventListener('keydown', down);
   }, []);
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
+    if (query.trim()) {
+      params.set(searchKey, query.trim());
+    } else {
+      params.delete(searchKey);
+    }
+    const next = params.toString();
+    router.push(next ? `${pathname}?${next}` : pathname);
+    setOpen(false);
+  };
+
   return (
-    <>
+    <Dialog open={open} onOpenChange={setOpen}>
       <Button
         variant="outline"
         className="relative h-9 w-full justify-start rounded-[0.5rem] bg-background/50 text-sm font-normal text-muted-foreground shadow-none sm:pr-12 md:w-40 lg:w-64"
@@ -31,7 +61,26 @@ export function CommandMenuTrigger() {
           <span className="text-xs">⌘</span>K
         </kbd>
       </Button>
-      {/* TODO: Implement CMDK Dialog here */}
-    </>
+
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle>Search</DialogTitle>
+        </DialogHeader>
+        <form className="space-y-3" onSubmit={handleSubmit}>
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              autoFocus
+              value={query}
+              placeholder="Search..."
+              onChange={event => setQuery(event.target.value)}
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit">Search</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
