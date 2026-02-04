@@ -60,8 +60,8 @@ describe('getPortalLabel', () => {
     expect(getPortalLabel('user')).toBe('Member');
   });
 
-  it('returns Member for unknown role', () => {
-    expect(getPortalLabel('unknown')).toBe('Member');
+  it('returns null for unknown role', () => {
+    expect(getPortalLabel('unknown')).toBeNull();
   });
 });
 

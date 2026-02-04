@@ -30,11 +30,12 @@ export function getCanonicalRouteForRole(role: RoleLike, locale: string): string
   return null;
 }
 
-export function getPortalLabel(role: RoleLike): string {
+export function getPortalLabel(role: RoleLike): string | null {
   if (ADMIN_ROLES.has(role ?? '')) return 'Admin';
   if (role === 'staff') return 'Staff';
   if (role === 'agent') return 'Agent';
-  return 'Member';
+  if (role === 'member' || role === 'user') return 'Member';
+  return null;
 }
 
 export function stripLocalePrefixFromCanonicalRoute(

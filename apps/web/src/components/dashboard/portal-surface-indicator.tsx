@@ -8,7 +8,7 @@ export function PortalSurfaceIndicator() {
   const pathname = usePathname();
   const { data: session } = authClient.useSession();
   const role = (session?.user as { role?: string })?.role;
-  const portal = getPortalLabel(role);
+  const portal = getPortalLabel(role) ?? 'Member';
   const isLegacy = pathname?.includes('/legacy/') ?? false;
 
   return (
