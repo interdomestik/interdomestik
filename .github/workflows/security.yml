@@ -14,7 +14,7 @@ permissions:
 jobs:
   # 1. PR Check: Runs pnpm audit to catch new vulnerabilities
   pnpm-audit:
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
