@@ -12,7 +12,7 @@ baseline:
   typecheck: 'pass'
   tests: 'pass'
   format: 'fail (exit 1)'
-  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251219_175416.log'
+  log: '/Users/arbenlila/development/interdomestik/.agent/tasks/logs/qa_baseline_20251219_175416.log'
 ---
 
 # 🚀 Current Task: Implement User-Agent Relationship & Auto-Assignment - Centraized Pool
@@ -131,7 +131,7 @@ Feature P1-High
 | Unit Tests | pass                                                                                           |
 | Format     | fail (exit 1)                                                                                  |
 | Coverage   | skipped                                                                                        |
-| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251219_175416.log |
+| Log        | /Users/arbenlila/development/interdomestik/.agent/tasks/logs/qa_baseline_20251219_175416.log |
 
 ## 📏 Oversized Files (>400 lines or >15000 bytes)
 

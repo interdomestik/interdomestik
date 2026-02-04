@@ -3,7 +3,7 @@ import { defineConfig } from 'checkly';
 export default defineConfig({
   projectName: 'Interdomestik Monitor',
   logicalId: 'interdomestik-monitor',
-  repoUrl: 'https://github.com/arbenlila/interdomestikv2',
+  repoUrl: 'https://github.com/interdomestik/interdomestik',
   checks: {
     locations: ['us-east-1', 'eu-central-1'],
     tags: ['website'],

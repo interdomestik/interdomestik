@@ -12,7 +12,7 @@ baseline:
   typecheck: 'pass'
   tests: 'pass'
   format: 'fail (exit 1)'
-  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251219_190320.log'
+  log: '/Users/arbenlila/development/interdomestik/.agent/tasks/logs/qa_baseline_20251219_190320.log'
 ---
 
 # 🚀 Current Task: Review and Robustify Admin Dashboard
@@ -128,7 +128,7 @@ Copy the block below to your Agent to start with maximum context:
 | Unit Tests | pass                                                                                           |
 | Format     | fail (exit 1)                                                                                  |
 | Coverage   | skipped                                                                                        |
-| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251219_190320.log |
+| Log        | /Users/arbenlila/development/interdomestik/.agent/tasks/logs/qa_baseline_20251219_190320.log |
 
 ## 📏 Oversized Files (>400 lines or >15000 bytes)
 

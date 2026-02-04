@@ -12,7 +12,7 @@ baseline:
   typecheck: 'pass'
   tests: 'pass'
   format: 'fail (exit 1)'
-  log: '/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251224_122034.log'
+  log: '/Users/arbenlila/development/interdomestik/.agent/tasks/logs/qa_baseline_20251224_122034.log'
 ---
 
 # 🚀 Current Task: Phase 2 Leads Integration
@@ -124,7 +124,7 @@ packages/database/src/schema/crm.ts apps/web/src/actions/activities.ts apps/web/
 | Unit Tests | pass                                                                                           |
 | Format     | fail (exit 1)                                                                                  |
 | Coverage   | skipped                                                                                        |
-| Log        | /Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251224_122034.log |
+| Log        | /Users/arbenlila/development/interdomestik/.agent/tasks/logs/qa_baseline_20251224_122034.log |
 
 ## 📏 Oversized Files (>400 lines or >15000 bytes)
 

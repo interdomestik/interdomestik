@@ -1,11 +1,11 @@
 #!/bin/bash
-# MCP Tools Setup for Interdomestik V2
+# MCP Tools Setup for Interdomestik
 # This script ensures all MCP servers are properly configured and built
 
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-echo "🔧 Setting up MCP tools for Interdomestik V2"
+echo "🔧 Setting up MCP tools for Interdomestik"
 echo "Project root: $PROJECT_ROOT"
 
 # Colors for output
@@ -39,10 +39,10 @@ ALL_CONFIGURED=true
 
 for server in "${SERVERS[@]}"; do
     if grep -q "\"$server\"" "$MCP_CONFIG"; then
-        if grep -A 5 "\"$server\"" "$MCP_CONFIG" | grep -q "interdomestikv2"; then
-            echo -e "${GREEN}✅ $server configured for interdomestikv2${NC}"
+        if grep -A 5 "\"$server\"" "$MCP_CONFIG" | grep -q "interdomestik"; then
+            echo -e "${GREEN}✅ $server configured for interdomestik${NC}"
         else
-            echo -e "${YELLOW}⚠️  $server not configured for interdomestikv2${NC}"
+            echo -e "${YELLOW}⚠️  $server not configured for interdomestik${NC}"
             ALL_CONFIGURED=false
         fi
     else
