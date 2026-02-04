@@ -53,19 +53,19 @@ Use for:
 ### Explore Project Structure
 
 ```
-Use project_map with projectRoot=/Users/arbenlila/development/interdomestikv2
+Use project_map with projectRoot=/Users/arbenlila/development/interdomestik
 ```
 
 ### Search for Code Patterns
 
 ```
-Use code_search with projectRoot=/Users/arbenlila/development/interdomestikv2 and query="useTranslations"
+Use code_search with projectRoot=/Users/arbenlila/development/interdomestik and query="useTranslations"
 ```
 
 ### Check Build Health
 
 ```
-Use build_health with projectRoot=/Users/arbenlila/development/interdomestikv2
+Use build_health with projectRoot=/Users/arbenlila/development/interdomestik
 ```
 
 ### Generate E2E Test

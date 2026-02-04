@@ -5,4 +5,4 @@ tests=pass
 format=fail (exit 1)
 COVERAGE=skipped
 timestamp=2025-12-24T12:20:53+01:00
-log=/Users/arbenlila/development/interdomestikv2/.agent/tasks/logs/qa_baseline_20251224_122034.log
+log=/Users/arbenlila/development/interdomestik/.agent/tasks/logs/qa_baseline_20251224_122034.log

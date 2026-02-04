@@ -96,6 +96,9 @@ export const routes = {
     withLocale(`/admin/branches/${encodeURIComponent(branchId)}`, l || 'en'),
   adminLeads: (l?: Locale | string | TestInfo) => withLocale('/admin/leads', l || 'en'),
   agent: (l?: Locale | string | TestInfo) => withLocale('/agent', l || 'en'),
+  agentMembers: (l?: Locale | string | TestInfo) => withLocale('/agent/members', l || 'en'),
+  agentMemberDetail: (memberId: string, l?: Locale | string | TestInfo) =>
+    withLocale(`/agent/members/${encodeURIComponent(memberId)}`, l || 'en'),
   agentLeads: (l?: Locale | string | TestInfo) => withLocale('/agent/leads', l || 'en'),
   agentCrm: (l?: Locale | string | TestInfo) => withLocale('/agent/crm', l || 'en'),
   agentClients: (l?: Locale | string | TestInfo) => withLocale('/agent/clients', l || 'en'),

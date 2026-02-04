@@ -185,4 +185,4 @@ main() {
 
 # Run main function
 main "$@"</content>
-<parameter name="filePath">/Users/arbenlila/development/interdomestikv2/scripts/start-system.sh}
+<parameter name="filePath">/Users/arbenlila/development/interdomestik/scripts/start-system.sh}

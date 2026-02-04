@@ -1,0 +1,91 @@
+import {
+  agentClients,
+  and,
+  claims,
+  db,
+  desc,
+  eq,
+  ilike,
+  or,
+  sql,
+  user,
+} from '@interdomestik/database';
+
+const ACTIVE_STATUSES = [
+  'draft',
+  'submitted',
+  'verification',
+  'evaluation',
+  'negotiation',
+  'court',
+] as const;
+
+export type AgentMemberListItem = {
+  memberId: string;
+  name: string;
+  membershipNumber: string | null;
+  activeClaimsCount: number;
+  lastUpdatedAt: string | null;
+};
+
+export async function getAgentMembersList(params: {
+  agentId: string;
+  tenantId: string;
+  locale: string;
+  limit?: number;
+  search?: string;
+}): Promise<AgentMemberListItem[]> {
+  const { agentId, tenantId, limit = 50, search } = params;
+
+  const searchFilter = search
+    ? or(ilike(user.name, `%${search}%`), ilike(user.memberNumber, `%${search}%`))
+    : undefined;
+
+  const rows = await db
+    .select({
+      memberId: agentClients.memberId,
+      name: user.name,
+      membershipNumber: user.memberNumber,
+      userUpdatedAt: user.updatedAt,
+      joinedAt: agentClients.joinedAt,
+      activeClaimsCount: sql<number>`coalesce(sum(case when ${claims.status} in (${sql.join(
+        ACTIVE_STATUSES.map(status => sql`${status}`),
+        sql`, `
+      )}) then 1 else 0 end), 0)`,
+      lastClaimUpdatedAt: sql<Date | null>`max(${claims.updatedAt})`,
+    })
+    .from(agentClients)
+    .innerJoin(user, eq(agentClients.memberId, user.id))
+    .leftJoin(claims, and(eq(claims.userId, user.id), eq(claims.tenantId, agentClients.tenantId)))
+    .where(
+      and(
+        eq(agentClients.agentId, agentId),
+        eq(agentClients.tenantId, tenantId),
+        eq(user.role, 'member'),
+        ...(searchFilter ? [searchFilter] : [])
+      )
+    )
+    .groupBy(
+      agentClients.memberId,
+      user.name,
+      user.memberNumber,
+      user.updatedAt,
+      agentClients.joinedAt
+    )
+    .orderBy(
+      desc(sql`coalesce(max(${claims.updatedAt}), ${user.updatedAt}, ${agentClients.joinedAt})`)
+    )
+    .limit(limit);
+
+  return rows.map(row => {
+    const lastUpdated = row.lastClaimUpdatedAt ?? row.userUpdatedAt ?? row.joinedAt ?? null;
+
+    return {
+      memberId: row.memberId,
+      name: row.name,
+      membershipNumber: row.membershipNumber ?? null,
+      activeClaimsCount: Number(row.activeClaimsCount ?? 0),
+      lastUpdatedAt: lastUpdated ? new Date(lastUpdated).toISOString() : null,
+    };
+  });
+}
