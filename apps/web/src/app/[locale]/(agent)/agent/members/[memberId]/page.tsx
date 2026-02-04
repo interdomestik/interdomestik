@@ -1,15 +1,13 @@
 import { MemberDashboardView } from '@/components/dashboard/member-dashboard-view';
 import { MemberDashboardSkeleton } from '@/components/dashboard/member-dashboard-skeleton';
 import { auth } from '@/lib/auth';
-import { db } from '@interdomestik/database';
-import { agentClients } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
 import { ErrorBoundary } from '@interdomestik/ui';
 import { getMemberDashboardData } from '@interdomestik/domain-member';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import { isAgentAssignedToMember } from './_core';
 
 export default async function AgentMemberDetailPage({
   params,
@@ -31,16 +29,13 @@ export default async function AgentMemberDetailPage({
     notFound();
   }
 
-  const assignment = await db.query.agentClients.findFirst({
-    where: and(
-      eq(agentClients.tenantId, session.user.tenantId),
-      eq(agentClients.agentId, session.user.id),
-      eq(agentClients.memberId, memberId)
-    ),
-    columns: { id: true },
+  const isAssigned = await isAgentAssignedToMember({
+    agentId: session.user.id,
+    tenantId: session.user.tenantId,
+    memberId,
   });
 
-  if (!assignment) {
+  if (!isAssigned) {
     notFound();
   }
 

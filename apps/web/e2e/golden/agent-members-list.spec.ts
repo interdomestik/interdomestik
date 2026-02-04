@@ -27,7 +27,9 @@ test.describe('Agent Members List', () => {
       throw new Error('Expected seeded unassigned member to exist');
     }
 
-    await page.goto(routes.agentMemberDetail(unassigned.id, testInfo));
+    await gotoApp(page, routes.agentMemberDetail(unassigned.id, testInfo), testInfo, {
+      marker: 'not-found-page',
+    });
     await expect(page.getByTestId('not-found-page')).toBeVisible();
   });
 });
