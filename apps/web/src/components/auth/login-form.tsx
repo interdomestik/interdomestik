@@ -3,7 +3,11 @@
 import { canAccessAdmin } from '@/actions/admin-access';
 import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
-import { getCanonicalRouteForRole, getValidatedLocaleFromPathname } from '@/lib/canonical-routes';
+import {
+  getCanonicalRouteForRole,
+  getValidatedLocaleFromPathname,
+  stripLocalePrefixFromCanonicalRoute,
+} from '@/lib/canonical-routes';
 import { isAdmin } from '@/lib/roles.core';
 import {
   Button,
@@ -89,7 +93,10 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               const canonical = getCanonicalRouteForRole(role, locale);
 
               if (canonical) {
-                router.push(canonical);
+                const target = stripLocalePrefixFromCanonicalRoute(canonical, locale);
+                if (target) {
+                  router.push(target);
+                }
               }
             } catch {
               setError(t('error'));

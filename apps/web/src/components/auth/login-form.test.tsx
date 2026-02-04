@@ -154,7 +154,7 @@ describe('LoginForm', () => {
     });
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/en/member');
+      expect(mockPush).toHaveBeenCalledWith('/member');
     });
   });
 
@@ -174,7 +174,7 @@ describe('LoginForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/en/admin/overview');
+      expect(mockPush).toHaveBeenCalledWith('/admin/overview');
     });
   });
 
