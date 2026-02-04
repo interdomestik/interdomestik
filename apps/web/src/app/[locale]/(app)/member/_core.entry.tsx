@@ -1,12 +1,14 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
+import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { APP_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { redirect } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
+import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({
   children,
@@ -33,20 +35,14 @@ export default async function DashboardLayout({
   }
 
   if (!session) {
-    redirect({ href: '/login', locale });
+    redirect(`/${locale}/login`);
     return null;
   }
 
   const role = session.user.role;
-  // V3 Change: Agents are allowed in member layout.
-  // if (role === 'agent') { redirect({ href: '/agent', locale }); return null; }
-
-  if (role === 'staff') {
-    redirect({ href: '/staff', locale });
-    return null;
-  }
-  if (role === 'admin') {
-    redirect({ href: '/admin', locale });
+  const canonical = getCanonicalRouteForRole(role, locale);
+  if (canonical && role !== 'member' && role !== 'user') {
+    redirect(canonical);
     return null;
   }
 
@@ -61,6 +57,9 @@ export default async function DashboardLayout({
           <DashboardSidebar />
           <SidebarInset className="bg-mesh flex flex-col min-h-screen">
             <DashboardHeader />
+            <div className="px-6 pt-4 md:px-8">
+              <LegacyBanner />
+            </div>
             <main className="flex-1 p-6 md:p-8 pt-6">{children}</main>
           </SidebarInset>
         </SidebarProvider>

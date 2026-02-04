@@ -31,7 +31,7 @@ export function StaffSidebar() {
   const { data: session } = authClient.useSession();
 
   const navItems = [
-    { title: tNav('overview'), href: '/staff', icon: Home },
+    { title: tNav('overview'), href: '/staff/claims', icon: Home },
     { title: tClaims('claims_queue'), href: '/staff/claims', icon: FileText },
   ];
 
@@ -46,7 +46,7 @@ export function StaffSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/staff">
+              <Link href="/staff/claims">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Shield className="size-4" />
                 </div>
@@ -65,8 +65,7 @@ export function StaffSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map(item => {
-                const isActive =
-                  item.href === '/staff' ? pathname === '/staff' : pathname.startsWith(item.href);
+                const isActive = pathname.startsWith(item.href);
 
                 return (
                   <SidebarMenuItem key={item.href}>

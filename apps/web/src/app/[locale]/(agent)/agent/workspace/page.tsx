@@ -21,7 +21,7 @@ export default async function AgentWorkspacePage() {
           <h1 className="text-3xl font-bold tracking-tight">{data.pageTitle}</h1>
           <p className="text-muted-foreground mt-2">{data.pageSubtitle}</p>
         </div>
-        <Link href="/agent">
+        <Link href="/agent/members">
           <Button variant="outline" className="gap-2" data-testid="agent-switch-lite">
             <ArrowLeft className="h-4 w-4" />
             Switch to Lite

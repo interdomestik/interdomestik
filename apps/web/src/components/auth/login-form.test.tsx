@@ -49,6 +49,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
+  usePathname: () => '/en/login',
 }));
 
 // Mock router
@@ -153,7 +154,7 @@ describe('LoginForm', () => {
     });
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/member');
+      expect(mockPush).toHaveBeenCalledWith('/en/member');
     });
   });
 
@@ -173,7 +174,7 @@ describe('LoginForm', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/admin');
+      expect(mockPush).toHaveBeenCalledWith('/en/admin/overview');
     });
   });
 
@@ -234,7 +235,7 @@ describe('LoginForm', () => {
     await waitFor(() => {
       expect(mockSignInSocial).toHaveBeenCalledWith({
         provider: 'github',
-        callbackURL: 'http://localhost:3000/member',
+        callbackURL: 'http://localhost:3000/en/login',
       });
     });
 

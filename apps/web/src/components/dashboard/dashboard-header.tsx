@@ -1,6 +1,9 @@
+'use client';
+
 import { NotificationBell } from '@/components/notifications';
 import { Separator, SidebarTrigger } from '@interdomestik/ui';
 import { CommandMenuTrigger } from './command-menu-trigger';
+import { PortalSurfaceIndicator } from './portal-surface-indicator';
 import { UserNav } from './user-nav';
 
 export function DashboardHeader() {
@@ -16,6 +19,7 @@ export function DashboardHeader() {
           <CommandMenuTrigger />
         </div>
         <div className="flex items-center gap-4">
+          <PortalSurfaceIndicator />
           <NotificationBell />
           <UserNav />
         </div>

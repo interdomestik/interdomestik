@@ -27,11 +27,15 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     return null;
   }
 
-  if (session.user.role !== 'staff') {
-    if (session.user.role === 'admin') {
-      redirect({ href: '/admin', locale });
+  if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
+    if (
+      session.user.role === 'admin' ||
+      session.user.role === 'super_admin' ||
+      session.user.role === 'tenant_admin'
+    ) {
+      redirect({ href: '/admin/overview', locale });
     } else if (session.user.role === 'agent') {
-      redirect({ href: '/agent', locale });
+      redirect({ href: '/agent/members', locale });
     } else {
       redirect({ href: '/member', locale });
     }
@@ -62,7 +66,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="staff-claims-list-ready">
       <div>
         <h1 className="text-3xl font-bold tracking-tight" data-testid="page-title">
           {tClaims('queue')}

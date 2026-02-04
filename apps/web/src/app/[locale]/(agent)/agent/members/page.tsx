@@ -39,7 +39,7 @@ export default async function AgentMembersPage({
   });
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4" data-testid="agent-members-ready">
       <div>
         <h1 className="text-2xl font-bold">My Members</h1>
         <p className="text-muted-foreground">Read-only list of your assigned members.</p>

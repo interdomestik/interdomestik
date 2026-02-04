@@ -110,7 +110,7 @@ export function UserNav() {
           </DropdownMenuItem>
           {(isAdmin(role) || adminAccess) && (
             <DropdownMenuItem asChild>
-              <Link href="/admin" className="w-full cursor-pointer">
+              <Link href="/admin/overview" className="w-full cursor-pointer">
                 <LayoutTemplate className="mr-2 h-4 w-4" />
                 <span>{t('adminDashboard')}</span>
               </Link>
@@ -118,7 +118,7 @@ export function UserNav() {
           )}
           {role === 'agent' && (
             <DropdownMenuItem asChild>
-              <Link href="/agent" className="w-full cursor-pointer">
+              <Link href="/agent/members" className="w-full cursor-pointer">
                 <Briefcase className="mr-2 h-4 w-4" />
                 <span>{t('agentWorkspace')}</span>
               </Link>

@@ -97,7 +97,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
   const sidebarItems = [
     {
       title: 'dashboard',
-      href: '/admin',
+      href: '/admin/overview',
       icon: LayoutDashboard,
     },
     {
@@ -155,7 +155,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
     >
       <SidebarHeader className="h-20 flex items-center justify-center border-b border-white/10">
         <Link
-          href={withAdminContext('/admin')}
+          href={withAdminContext('/admin/overview')}
           className="flex items-center gap-3 font-bold text-xl px-2 w-full group-data-[state=collapsed]:justify-center group hover:opacity-90 transition-opacity"
         >
           <div className="h-10 w-10 rounded-xl brand-gradient flex items-center justify-center text-white shadow-lg shadow-primary/25 transition-transform group-hover:scale-105 shrink-0">
@@ -182,8 +182,8 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
 
                 if (item.peopleKey !== undefined) {
                   isActive = isPeopleRoute && peopleRole === item.peopleKey;
-                } else if (item.href === '/admin') {
-                  isActive = pathname === '/admin';
+                } else if (item.href === '/admin/overview') {
+                  isActive = pathname === '/admin' || pathname.startsWith('/admin/overview');
                 } else {
                   isActive = pathname.startsWith(item.href);
                 }

@@ -11,6 +11,7 @@ import {
   type Role,
   type Tenant,
 } from './auth.project';
+import { getCanonicalRouteForRole } from '../../src/lib/canonical-routes';
 import { assertNoTenantChooser } from './e2e.diagnostics';
 
 export async function performLogin(
@@ -63,10 +64,8 @@ export async function performLogin(
   }
 
   // Deterministic post-login navigation
-  let targetPath = '/member';
-  if (role.includes('admin') || role === 'branch_manager') targetPath = '/admin';
-  else if (role === 'agent') targetPath = '/agent';
-  else if (role === 'staff') targetPath = '/staff';
+  const roleForRoute = role === 'admin_mk' ? 'admin' : role;
+  let targetPath = getCanonicalRouteForRole(roleForRoute, info.locale) ?? '/member';
 
   await gotoApp(page, targetPath, testInfo, {
     marker: 'dashboard-page-ready',
@@ -80,11 +79,10 @@ export async function ensureAuthenticated(
   role: Role,
   tenant: Tenant
 ) {
+  const info = getProjectUrlInfo(testInfo, null);
   // Determine target based on role
-  let targetPath = '/member';
-  if (role.includes('admin') || role === 'branch_manager') targetPath = '/admin';
-  else if (role === 'agent') targetPath = '/agent';
-  else if (role === 'staff') targetPath = '/staff';
+  const roleForRoute = role === 'admin_mk' ? 'admin' : role;
+  let targetPath = getCanonicalRouteForRole(roleForRoute, info.locale) ?? '/member';
 
   console.log(
     `[Auth] Ensuring auth for ${role} on ${tenant} -> ${targetPath} (Step 1: Nav to Body)`
@@ -101,7 +99,6 @@ export async function ensureAuthenticated(
 
   if (isLoginPage) {
     console.log(`[Auth] Session invalid/missing for ${role}, re-logging in...`);
-    const info = getProjectUrlInfo(testInfo, null);
     await performLogin(page, role, info, testInfo, tenant);
   }
 

@@ -1,6 +1,8 @@
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import type { AdminTenantOption } from '@/components/admin/admin-tenant-selector';
 import { AdminTenantSelector } from '@/components/admin/admin-tenant-selector';
+import { LegacyBanner } from '@/components/dashboard/legacy-banner';
+import { PortalSurfaceIndicator } from '@/components/dashboard/portal-surface-indicator';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { requireRoleOrNotFound } from '@/components/shell/role-guard';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
@@ -81,16 +83,22 @@ export default async function AdminLayout({
               <h1 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 Admin Panel
               </h1>
-              {isSuperAdmin ? (
-                <div className="flex items-center gap-2">
-                  <AdminTenantSelector
-                    tenants={tenantOptions}
-                    defaultTenantId={sessionNonNull.user.tenantId}
-                  />
-                </div>
-              ) : null}
+              <div className="flex items-center gap-3">
+                <PortalSurfaceIndicator />
+                {isSuperAdmin ? (
+                  <div className="flex items-center gap-2">
+                    <AdminTenantSelector
+                      tenants={tenantOptions}
+                      defaultTenantId={sessionNonNull.user.tenantId}
+                    />
+                  </div>
+                ) : null}
+              </div>
             </div>
           </header>
+          <div className="px-6 pt-4 md:px-8">
+            <LegacyBanner />
+          </div>
           {/* SidebarInset renders as <main>, so use <div> here to avoid nested landmarks */}
           <div className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="container mx-auto">{children}</div>
