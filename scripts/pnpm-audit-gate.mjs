@@ -27,10 +27,10 @@ function loadAllowlistFile(filePath) {
     }
     const parsed = JSON.parse(rawAllowlist);
     if (Array.isArray(parsed)) {
-      return parsed;
+      return parsed.map(entry => String(entry));
     }
     if (Array.isArray(parsed.allowlist)) {
-      return parsed.allowlist;
+      return parsed.allowlist.map(entry => String(entry));
     }
     return [];
   } catch {
@@ -50,7 +50,7 @@ if (allowlist.length > 0) {
       loadAllowlistFile(entry).forEach(id => allowed.add(id));
       return;
     }
-    allowed.add(entry);
+    allowed.add(String(entry));
   });
 }
 const advisories = new Map();
@@ -99,7 +99,7 @@ try {
 const blocked = [];
 
 for (const advisory of advisories.values()) {
-  const id = advisory.ghsaId || advisory.id;
+  const id = String(advisory.ghsaId || advisory.id);
   const severity = advisory.severity;
 
   if (!id || !severity) {
