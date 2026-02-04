@@ -1,6 +1,6 @@
-# MCP Tools for Interdomestik V2
+# MCP Tools for Interdomestik
 
-This document describes the Model Context Protocol (MCP) tools configured for the Interdomestik V2 project.
+This document describes the Model Context Protocol (MCP) tools configured for the Interdomestik project.
 
 ## Quick Start
 
@@ -27,7 +27,7 @@ The MCP servers start automatically when you launch Gemini CLI. No manual setup 
 
 ### 1. **ecohub-qa** (Interdomestik QA Tools)
 
-**Location**: `/Users/arbenlila/development/interdomestikv2/packages/qa`
+**Location**: `/Users/arbenlila/development/interdomestik/packages/qa`
 
 **Tools**:
 
@@ -132,8 +132,8 @@ pnpm test:e2e
   "mcpServers": {
     "ecohub-qa": {
       "command": "node",
-      "args": ["/Users/arbenlila/development/interdomestikv2/packages/qa/dist/index.js"],
-      "cwd": "/Users/arbenlila/development/interdomestikv2"
+      "args": ["/Users/arbenlila/development/interdomestik/packages/qa/dist/index.js"],
+      "cwd": "/Users/arbenlila/development/interdomestik"
     }
   }
 }

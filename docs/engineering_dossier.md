@@ -4,7 +4,7 @@
 
 ## 0. Repo Intake Summary
 
-- **Repo Root**: `interdomestikv2` (Monorepo via **Turborepo** + **pnpm**)
+- **Repo Root**: `interdomestik` (Monorepo via **Turborepo** + **pnpm**)
 - **Frameworks**: Next.js 14+ (App Router), Drizzle ORM, Tailwind CSS, Better-Auth.
 - **Key Commands** (from `package.json`):
   - `db:migrate`: `pnpm --filter @interdomestik/database migrate`

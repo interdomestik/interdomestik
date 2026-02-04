@@ -36,7 +36,7 @@ All MCP servers are now configured to work with **Interdomestik V2** automatical
 
 ### Automatic Startup
 
-When you launch Gemini CLI, all MCP servers automatically start and connect to your interdomestikv2 project. **No manual setup needed!**
+When you launch Gemini CLI, all MCP servers automatically start and connect to your interdomestik project. **No manual setup needed!**
 
 ### First Time Only
 
@@ -108,7 +108,7 @@ Just ask naturally - all tools work automatically:
 
 **File**: `~/.config/google/gemini/mcp.json`
 
-All servers now point to `/Users/arbenlila/development/interdomestikv2`
+All servers now point to `/Users/arbenlila/development/interdomestik`
 
 ### Project Scripts
 

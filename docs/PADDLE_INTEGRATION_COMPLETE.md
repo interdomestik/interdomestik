@@ -67,8 +67,8 @@
 ### Files Modified
 
 1. **Environment**
-   - `/Users/arbenlila/development/interdomestikv2/.env` - Root configuration
-   - `/Users/arbenlila/development/interdomestikv2/apps/web/.env` - Symlink to root
+   - `/Users/arbenlila/development/interdomestik/.env` - Root configuration
+   - `/Users/arbenlila/development/interdomestik/apps/web/.env` - Symlink to root
 
 2. **Middleware**
    - `apps/web/src/proxy.ts` - CSP configuration (Next.js 16 Proxy)

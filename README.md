@@ -22,7 +22,7 @@ Interdomestik is a subscription-based consumer protection service that helps mem
 ## 📁 Project Structure
 
 ```
-interdomestikv2/
+interdomestik/
 ├── apps/
 │   └── web/                    # Next.js web application
 │       ├── src/
@@ -70,8 +70,8 @@ interdomestikv2/
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/interdomestikv2.git
-   cd interdomestikv2
+   git clone https://github.com/yourusername/interdomestik.git
+   cd interdomestik
    ```
 
 2. **Install dependencies**

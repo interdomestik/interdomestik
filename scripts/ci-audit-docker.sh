@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-IMAGE_TAG="interdomestikv2-ci-audit:node20-pnpm10.28.2"
+IMAGE_TAG="interdomestik-ci-audit:node20-pnpm10.28.2"
 STORE_DIR="${ROOT_DIR}/.tmp/pnpm-store"
 
 mkdir -p "${STORE_DIR}"

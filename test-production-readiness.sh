@@ -72,7 +72,7 @@ fi
 
 # Test 7: Build verification
 echo "7. Testing build..."
-cd /Users/arbenlila/development/interdomestikv2
+cd /Users/arbenlila/development/interdomestik
 if pnpm --filter @interdomestik/web build >/dev/null 2>&1; then
     echo "✅ Application builds successfully"
 else

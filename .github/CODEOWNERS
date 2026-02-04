@@ -1,7 +1,9 @@
-# Governance Documentation Owners
-# Changes to these files require review from @arbenl
+# Global Review Policy
+* @arbenl
 
+# Governance Documentation Owners
 /README.md @arbenl
+/LEGAL/NOTICE.md @arbenl
 /AGENTS.md @arbenl
 /apps/web/e2e/README.md @arbenl
 /.github/workflows/ @arbenl

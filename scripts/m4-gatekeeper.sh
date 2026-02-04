@@ -111,8 +111,8 @@ NODE
   # If a previous Supabase project is holding ports, stop it and retry.
   if ! pnpm --filter @interdomestik/database exec supabase start; then
     echo "⚠️  [Gatekeeper] Supabase start failed (likely port already allocated)."
-    echo "   Attempting to stop Supabase project 'interdomestikv2' and retry..."
-    pnpm --filter @interdomestik/database exec supabase stop --project-id interdomestikv2 >/dev/null 2>&1 || true
+    echo "   Attempting to stop Supabase project 'interdomestik' and retry..."
+    pnpm --filter @interdomestik/database exec supabase stop --project-id interdomestik >/dev/null 2>&1 || true
     pnpm --filter @interdomestik/database exec supabase stop >/dev/null 2>&1 || true
     pnpm --filter @interdomestik/database exec supabase start
   fi
