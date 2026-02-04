@@ -27,6 +27,8 @@
       "@interdomestik/domain-claims/*": ["packages/domain-claims/src/*"],
       "@interdomestik/domain-activities": ["packages/domain-activities/src"],
       "@interdomestik/domain-activities/*": ["packages/domain-activities/src/*"],
+      "@interdomestik/domain-agent": ["packages/domain-agent/src"],
+      "@interdomestik/domain-agent/*": ["packages/domain-agent/src/*"],
       "@interdomestik/domain-membership-billing": ["packages/domain-membership-billing/src"],
       "@interdomestik/domain-membership-billing/*": ["packages/domain-membership-billing/src/*"],
       "@interdomestik/domain-referrals": ["packages/domain-referrals/src"],
