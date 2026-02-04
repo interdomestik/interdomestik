@@ -44,9 +44,33 @@ export default async function AgentMembersPage({
         <p className="text-muted-foreground">Read-only list of your assigned members.</p>
       </div>
 
-      {members.length === 0 ? (
+      <form className="flex flex-col gap-2 sm:flex-row sm:items-center" method="get">
+        <input
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm sm:max-w-xs"
+          data-testid="agent-members-search-input"
+          defaultValue={search ?? ''}
+          name="q"
+          placeholder="Search members"
+          type="search"
+        />
+        <button
+          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          data-testid="agent-members-search-submit"
+          type="submit"
+        >
+          Search
+        </button>
+      </form>
+
+      {members.length === 0 && search ? (
+        <div data-testid="agent-members-no-results">No results found.</div>
+      ) : null}
+
+      {members.length === 0 && !search ? (
         <div data-testid="agent-members-empty">No members assigned yet.</div>
-      ) : (
+      ) : null}
+
+      {members.length > 0 ? (
         <div data-testid="agent-members-list" className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -81,7 +105,7 @@ export default async function AgentMembersPage({
             </tbody>
           </table>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }
