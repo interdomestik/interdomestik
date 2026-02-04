@@ -21,6 +21,11 @@ vi.mock('@interdomestik/ui', () => ({
   ),
   Separator: () => <div data-testid="separator" />,
   Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DialogContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DialogHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DialogTitle: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Input: (props: any) => <input {...props} />,
 }));
 
 describe('DashboardHeader', () => {
