@@ -97,7 +97,12 @@ export default async function LegacyStaffPage({ params }: { params: Promise<{ lo
                     status={claim.status as import('@interdomestik/database/constants').ClaimStatus}
                   />
                   <Button asChild variant="outline" size="sm">
-                    <Link href={`/staff/claims/${claim.id}`}>{tCommon('view')}</Link>
+                    <Link
+                      href={`/staff/claims/${claim.id}`}
+                      aria-label={`View claim ${claim.title || claim.id}`}
+                    >
+                      {tCommon('view')}
+                    </Link>
                   </Button>
                 </div>
               </div>
