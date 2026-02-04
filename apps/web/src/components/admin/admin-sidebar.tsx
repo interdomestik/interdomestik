@@ -183,7 +183,7 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
                 if (item.peopleKey !== undefined) {
                   isActive = isPeopleRoute && peopleRole === item.peopleKey;
                 } else if (item.href === '/admin/overview') {
-                  isActive = pathname === '/admin' || pathname.startsWith('/admin/overview');
+                  isActive = pathname.startsWith('/admin/overview');
                 } else {
                   isActive = pathname.startsWith(item.href);
                 }
