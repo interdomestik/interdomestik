@@ -2,8 +2,8 @@ import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getAgentMembersList } from '@interdomestik/domain-agent';
-import { auth } from '@/lib/auth';
 import { Link } from '@/i18n/routing';
+import { auth } from '@/lib/auth';
 import { AgentMembersSearch } from './components/agent-members-search';
 
 export default async function AgentMembersPage({
@@ -66,6 +66,7 @@ export default async function AgentMembersPage({
                 <th className="py-2">Membership #</th>
                 <th className="py-2">Active claims</th>
                 <th className="py-2">Last updated</th>
+                <th className="py-2">View</th>
               </tr>
             </thead>
             <tbody>
@@ -86,6 +87,15 @@ export default async function AgentMembersPage({
                     {member.lastUpdatedAt
                       ? new Date(member.lastUpdatedAt).toLocaleDateString(locale)
                       : '—'}
+                  </td>
+                  <td className="py-3" data-testid="agent-member-view-cell">
+                    <Link
+                      href={`/agent/members/${member.memberId}`}
+                      data-testid="agent-member-view-link"
+                      className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      View
+                    </Link>
                   </td>
                 </tr>
               ))}
