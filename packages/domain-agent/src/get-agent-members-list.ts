@@ -28,17 +28,24 @@ export type AgentMemberListItem = {
   lastUpdatedAt: string | null;
 };
 
+export type AgentMembersListResult = {
+  members: AgentMemberListItem[];
+  total?: number;
+  nextCursor?: string | null;
+};
+
 export async function getAgentMembersList(params: {
   agentId: string;
   tenantId: string;
-  locale: string;
+  query?: string;
   limit?: number;
-  search?: string;
-}): Promise<AgentMemberListItem[]> {
-  const { agentId, tenantId, limit = 50, search } = params;
+  cursor?: string | null;
+}): Promise<AgentMembersListResult> {
+  const { agentId, tenantId, limit = 50, query } = params;
+  const normalizedQuery = query?.trim();
 
-  const searchFilter = search
-    ? or(ilike(user.name, `%${search}%`), ilike(user.memberNumber, `%${search}%`))
+  const searchFilter = normalizedQuery
+    ? or(ilike(user.name, `%${normalizedQuery}%`), ilike(user.memberNumber, `%${normalizedQuery}%`))
     : undefined;
 
   const rows = await db
@@ -77,7 +84,7 @@ export async function getAgentMembersList(params: {
     )
     .limit(limit);
 
-  return rows.map(row => {
+  const members = rows.map(row => {
     const lastUpdated = row.lastClaimUpdatedAt ?? row.userUpdatedAt ?? row.joinedAt ?? null;
 
     return {
@@ -88,4 +95,6 @@ export async function getAgentMembersList(params: {
       lastUpdatedAt: lastUpdated ? new Date(lastUpdated).toISOString() : null,
     };
   });
+
+  return { members };
 }

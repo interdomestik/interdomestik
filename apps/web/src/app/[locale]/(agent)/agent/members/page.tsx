@@ -1,9 +1,10 @@
-import { getAgentMembersList } from '@interdomestik/domain-agent';
-import { Link } from '@/i18n/routing';
-import { auth } from '@/lib/auth';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+import { getAgentMembersList } from '@interdomestik/domain-agent';
+import { auth } from '@/lib/auth';
+import { Link } from '@/i18n/routing';
+import { AgentMembersSearch } from './components/agent-members-search';
 
 export default async function AgentMembersPage({
   params,
@@ -28,13 +29,13 @@ export default async function AgentMembersPage({
   }
 
   const resolvedSearchParams = await searchParams;
-  const search = typeof resolvedSearchParams?.q === 'string' ? resolvedSearchParams.q : undefined;
+  const rawSearch = typeof resolvedSearchParams?.q === 'string' ? resolvedSearchParams.q : '';
+  const search = rawSearch.trim() || undefined;
 
-  const members = await getAgentMembersList({
+  const { members } = await getAgentMembersList({
     agentId: session.user.id,
     tenantId: session.user.tenantId,
-    locale,
-    search,
+    query: search,
   });
 
   return (
@@ -44,23 +45,9 @@ export default async function AgentMembersPage({
         <p className="text-muted-foreground">Read-only list of your assigned members.</p>
       </div>
 
-      <form className="flex flex-col gap-2 sm:flex-row sm:items-center" method="get">
-        <input
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm sm:max-w-xs"
-          data-testid="agent-members-search-input"
-          defaultValue={search ?? ''}
-          name="q"
-          placeholder="Search members"
-          type="search"
-        />
-        <button
-          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-          data-testid="agent-members-search-submit"
-          type="submit"
-        >
-          Search
-        </button>
-      </form>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <AgentMembersSearch initialQuery={search ?? ''} />
+      </div>
 
       {members.length === 0 && search ? (
         <div data-testid="agent-members-no-results">No results found.</div>

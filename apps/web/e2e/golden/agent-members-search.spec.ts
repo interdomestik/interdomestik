@@ -35,23 +35,21 @@ test.describe('Agent Members Search', () => {
     }
 
     await gotoApp(page, routes.agentMembers(testInfo), testInfo, {
-      marker: 'dashboard-page-ready',
+      marker: 'agent-members-list',
     });
 
     const searchInput = page.getByTestId('agent-members-search-input');
-    const searchSubmit = page.getByTestId('agent-members-search-submit');
 
     const searchTerm = member.memberNumber ?? member.name.split(' ')[0] ?? 'member';
+    const encodedTerm = encodeURIComponent(searchTerm).replace(/%20/g, '+');
 
     await searchInput.fill(searchTerm);
-    await searchSubmit.click();
 
-    await expect(page).toHaveURL(new RegExp(`[?&]q=${encodeURIComponent(searchTerm)}`));
+    await expect(page).toHaveURL(new RegExp(`[?&]q=${encodedTerm}`));
     await expect(page.getByTestId('agent-members-list')).toBeVisible();
     await expect(page.getByText(member.name)).toBeVisible();
 
     await searchInput.fill('no-results-xyz');
-    await searchSubmit.click();
 
     await expect(page).toHaveURL(/q=no-results-xyz/);
     await expect(page.getByTestId('agent-members-no-results')).toBeVisible();
