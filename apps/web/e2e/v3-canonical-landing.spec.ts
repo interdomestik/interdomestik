@@ -50,4 +50,14 @@ test.describe('V3 Canonical Landing', () => {
       routes.agentMembers(testInfo)
     );
   });
+
+  test('agent root redirects to canonical members list', async ({ page, loginAs }, testInfo) => {
+    await loginAs('agent');
+
+    const locale = routes.getLocale(testInfo);
+    await gotoApp(page, `/${locale}/agent`, testInfo, { marker: 'agent-members-ready' });
+
+    await expect(page).toHaveURL(new RegExp(`${routes.agentMembers(testInfo)}$`));
+    await expect(page.getByTestId('agent-members-ready')).toBeVisible();
+  });
 });
