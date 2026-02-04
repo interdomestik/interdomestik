@@ -2,13 +2,8 @@
 
 import { Link } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
-import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
+import { getCanonicalRouteForRole, getValidatedLocaleFromPathname } from '@/lib/canonical-routes';
 import { usePathname } from 'next/navigation';
-
-function localeFromPathname(pathname: string | null) {
-  const segment = pathname?.split('/').filter(Boolean)[0];
-  return segment || 'en';
-}
 
 function roleFromPathname(pathname: string | null) {
   const parts = pathname?.split('/').filter(Boolean) ?? [];
@@ -25,7 +20,7 @@ export function LegacyBanner() {
 
   if (!isLegacy) return null;
 
-  const locale = localeFromPathname(pathname);
+  const locale = getValidatedLocaleFromPathname(pathname);
   const canonical = getCanonicalRouteForRole(sessionRole ?? roleFromPathname(pathname), locale);
   if (!canonical) return null;
 

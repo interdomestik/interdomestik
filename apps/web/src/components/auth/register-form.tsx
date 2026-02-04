@@ -2,6 +2,7 @@
 
 import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
+import { getValidatedLocaleFromPathname } from '@/lib/canonical-routes';
 import {
   Button,
   Card,
@@ -15,7 +16,7 @@ import {
 } from '@interdomestik/ui';
 import { Code, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
 export function RegisterForm({ tenantId }: { tenantId?: string }) {
@@ -23,11 +24,13 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
   const common = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const tenantIdFromQuery = searchParams.get('tenantId') || undefined;
   const resolvedTenantId = tenantId ?? tenantIdFromQuery;
   const loginHref = resolvedTenantId ? `/login?tenantId=${resolvedTenantId}` : '/login';
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const locale = getValidatedLocaleFromPathname(pathname);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -57,7 +60,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
         email,
         password,
         name,
-        callbackURL: '/member',
+        callbackURL: `/${locale}/login`,
         tenantId: resolvedTenantId,
       };
 
@@ -66,8 +69,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
       if (signUpError) {
         setError(signUpError.message || 'Something went wrong');
       } else {
-        // Success! Redirect to member dashboard
-        router.push('/member');
+        router.push(`/${locale}/login`);
       }
     } catch {
       setError('An unexpected error occurred');
@@ -82,7 +84,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
   const handleSocialSignIn = async (provider: 'github') => {
     await authClient.signIn.social({
       provider,
-      callbackURL: `${window.location.origin}/member`,
+      callbackURL: `${window.location.origin}/${locale}/login`,
       ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
     });
   };

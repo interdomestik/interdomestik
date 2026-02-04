@@ -12,6 +12,13 @@ function normalizeLocale(locale: string): (typeof SUPPORTED_LOCALES)[number] | n
     : null;
 }
 
+export function getValidatedLocaleFromPathname(
+  pathname: string | null
+): (typeof SUPPORTED_LOCALES)[number] {
+  const segment = pathname?.split('/').filter(Boolean)[0] ?? '';
+  return normalizeLocale(segment) ?? 'en';
+}
+
 export function getCanonicalRouteForRole(role: RoleLike, locale: string): string | null {
   if (!role) return null;
   const safeLocale = normalizeLocale(locale);

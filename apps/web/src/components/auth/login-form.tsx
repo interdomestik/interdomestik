@@ -3,7 +3,7 @@
 import { canAccessAdmin } from '@/actions/admin-access';
 import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
-import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
+import { getCanonicalRouteForRole, getValidatedLocaleFromPathname } from '@/lib/canonical-routes';
 import { isAdmin } from '@/lib/roles.core';
 import {
   Button,
@@ -31,7 +31,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
   const registerHref = resolvedTenantId ? `/register?tenantId=${resolvedTenantId}` : '/register';
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const locale = pathname?.split('/').filter(Boolean)[0] ?? 'en';
+  const locale = getValidatedLocaleFromPathname(pathname);
 
   return (
     <Card className="w-full max-w-md animate-fade-in shadow-xl border-none ring-1 ring-white/10 bg-white/5 backdrop-blur-lg">
@@ -77,6 +77,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               console.log('LOGIN DEBUG: role =', role, ', isAdmin =', isAdmin(role)); // DEBUG: Role check
 
               const hasAdminAccess = isAdmin(role) || (await canAccessAdmin().catch(() => false));
+              // V3 canonical routing standardizes branch_manager to admin overview.
               const canonical = getCanonicalRouteForRole(role, locale);
 
               if (hasAdminAccess) {
