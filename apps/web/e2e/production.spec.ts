@@ -6,8 +6,12 @@ const MEMBER_KS = { email: 'member.ks.a1@interdomestik.com', password: 'GoldenPa
 const ADMIN_KS = { email: 'admin.ks@interdomestik.com', password: 'GoldenPass123!' };
 const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: 'GoldenPass123!' };
 
-// Claim Data - use a static but unique-enough timestamp for the whole run
-const CLAIM_TITLE = `Auto Smoke ${Date.now()}`;
+// Claim Data - use a unique title per project run to avoid parallel collision
+// Using a fixed timestamp for the entire spec file to keep it stable during serial execution
+const RUN_ID = Date.now();
+function getClaimTitle(testInfo: TestInfo) {
+  return `Auto Smoke ${testInfo.project.name} ${RUN_ID}`;
+}
 
 async function loginAs(
   page: Page,
@@ -64,6 +68,7 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
     });
 
     test('Member (KS) can login, see dashboard, and create a claim', async ({ page }, testInfo) => {
+      const CLAIM_TITLE = getClaimTitle(testInfo);
       // Debug: Listen to console logs
       page.on('console', msg => console.log(`[Browser] ${msg.text()}`));
 
@@ -120,6 +125,7 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
 
   test.describe('Phase B: Administrative Visibility', () => {
     test('Admin (KS) can find the newly created claim', async ({ page }, testInfo) => {
+      const CLAIM_TITLE = getClaimTitle(testInfo);
       // Login Admin
       await loginAs(page, { ...ADMIN_KS, tenant: 'tenant_ks' }, testInfo);
 
@@ -149,6 +155,7 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
     });
 
     test('Admin (MK) CANNOT view KS claims (Isolation)', async ({ page }, testInfo) => {
+      const CLAIM_TITLE = getClaimTitle(testInfo);
       await loginAs(page, { ...ADMIN_MK, tenant: 'tenant_mk' }, testInfo);
 
       // Navigate to list view

@@ -1,5 +1,10 @@
 name: 'Interdomestik Setup'
 description: 'Standard environment setup for Interdomestik CI'
+inputs:
+  install-playwright:
+    description: 'Whether to install Playwright browsers and deps'
+    required: false
+    default: 'false'
 
 runs:
   using: 'composite'
@@ -12,13 +17,25 @@ runs:
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version-file: '.nvmrc'
         cache: 'pnpm'
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
       shell: bash
 
-    - name: Install Playwright system deps
-      run: pnpm --filter @interdomestik/web exec playwright install-deps
+    - name: Playwright Browser Cache
+      if: inputs.install-playwright == 'true'
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
+
+    - name: Install Playwright Browsers & Deps
+      if: inputs.install-playwright == 'true'
       shell: bash
+      run: |
+        pnpm --filter @interdomestik/web exec playwright install --with-deps
