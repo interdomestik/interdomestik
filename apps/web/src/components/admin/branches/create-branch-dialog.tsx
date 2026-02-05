@@ -39,7 +39,7 @@ export function CreateBranchDialog() {
     reset,
     formState: { errors },
   } = useForm<FormDetail>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema as any),
   });
 
   async function onSubmit(data: FormDetail) {

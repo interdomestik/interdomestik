@@ -13,7 +13,7 @@ export function PortalSurfaceIndicator() {
 
   return (
     <div
-      className="hidden items-center gap-3 rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground md:flex"
+      className="flex items-center gap-3 rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground"
       data-testid="portal-surface-indicator"
     >
       <span>Portal: {portal}</span>
