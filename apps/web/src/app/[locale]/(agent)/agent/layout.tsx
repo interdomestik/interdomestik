@@ -1,5 +1,6 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
+import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { requireRoleOrNotFound } from '@/components/shell/role-guard';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
@@ -47,6 +48,9 @@ export default async function AgentLayout({
         <DashboardSidebar agentTier={agentTier} />
         <SidebarInset className="bg-mesh flex flex-col min-h-screen">
           <DashboardHeader />
+          <div className="px-6 pt-4 md:px-8">
+            <LegacyBanner />
+          </div>
           <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>
         </SidebarInset>
       </SidebarProvider>

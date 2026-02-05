@@ -14,6 +14,7 @@ import { test as base, expect, Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { routes } from '../routes';
+import { getCanonicalRouteForRole } from '../../src/lib/canonical-routes';
 import { gotoApp } from '../utils/navigation';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -318,12 +319,9 @@ async function performLogin(
   }
 
   // Deterministic post-login navigation
-  let targetPath = `/${info.locale}`;
-  if (role.includes('admin')) targetPath += '/admin';
-  else if (role === 'agent') targetPath += '/agent';
-  else if (role === 'staff') targetPath += '/staff';
-  else if (role === 'branch_manager') targetPath += '/admin';
-  else targetPath += '/member';
+  const roleForRoute = role === 'admin_mk' ? 'admin' : role;
+  const targetPath =
+    getCanonicalRouteForRole(roleForRoute, info.locale) ?? `/${info.locale}/member`;
 
   // Use testInfo-derived base URL (should be 127.0.0.1)
   const targetUrl = new URL(targetPath, info.baseURL).toString();
@@ -361,10 +359,8 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   }
 
   // Determine target based on role
-  let targetPath = '/member';
-  if (role.includes('admin') || role === 'branch_manager') targetPath = '/admin';
-  else if (role === 'agent') targetPath = '/agent';
-  else if (role === 'staff') targetPath = '/staff';
+  const roleForRoute = role === 'admin_mk' ? 'admin' : role;
+  const targetPath = getCanonicalRouteForRole(roleForRoute, info.locale) ?? '/member';
 
   // Navigate using gotoApp (handles locale)
   await gotoApp(page, targetPath, testInfo, { marker: 'body' });

@@ -67,7 +67,9 @@ export default async function AgentMemberDetailPage({
                   <tr key={claim.id} className="border-t">
                     <td className="py-3">{claim.claimNumber}</td>
                     <td className="py-3">{claim.stageLabel}</td>
-                    <td className="py-3">{new Date(claim.updatedAt).toLocaleDateString(locale)}</td>
+                    <td className="py-3">
+                      {claim.updatedAt ? new Date(claim.updatedAt).toLocaleDateString(locale) : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

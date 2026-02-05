@@ -82,11 +82,11 @@ export const routes = {
   memberDiaspora: (l?: Locale | string | TestInfo) => withLocale('/member/diaspora', l || 'en'),
   memberClaimDetail: (claimId: string, l?: Locale | string | TestInfo) =>
     withLocale(`/member/claims/${encodeURIComponent(claimId)}`, l || 'en'),
-  staff: (l?: Locale | string | TestInfo) => withLocale('/staff', l || 'en'),
+  staff: (l?: Locale | string | TestInfo) => withLocale('/staff/claims', l || 'en'),
   staffClaims: (l?: Locale | string | TestInfo) => withLocale('/staff/claims', l || 'en'),
   staffClaimDetail: (claimId: string, l?: Locale | string | TestInfo) =>
     withLocale(`/staff/claims/${encodeURIComponent(claimId)}`, l || 'en'),
-  admin: (l?: Locale | string | TestInfo) => withLocale('/admin', l || 'en'),
+  admin: (l?: Locale | string | TestInfo) => withLocale('/admin/overview', l || 'en'),
   adminClaims: (l?: Locale | string | TestInfo) => withLocale('/admin/claims', l || 'en'),
   adminUsers: (l?: Locale | string | TestInfo) => withLocale('/admin/users', l || 'en'),
   adminAnalytics: (l?: Locale | string | TestInfo) => withLocale('/admin/analytics', l || 'en'),
@@ -95,7 +95,7 @@ export const routes = {
   adminBranchDetail: (branchId: string, l?: Locale | string | TestInfo) =>
     withLocale(`/admin/branches/${encodeURIComponent(branchId)}`, l || 'en'),
   adminLeads: (l?: Locale | string | TestInfo) => withLocale('/admin/leads', l || 'en'),
-  agent: (l?: Locale | string | TestInfo) => withLocale('/agent', l || 'en'),
+  agent: (l?: Locale | string | TestInfo) => withLocale('/agent/members', l || 'en'),
   agentMembers: (l?: Locale | string | TestInfo) => withLocale('/agent/members', l || 'en'),
   agentMemberDetail: (memberId: string, l?: Locale | string | TestInfo) =>
     withLocale(`/agent/members/${encodeURIComponent(memberId)}`, l || 'en'),

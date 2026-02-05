@@ -1,28 +1,18 @@
 import { agentClients, and, claims, db, desc, eq } from '@interdomestik/database';
-
-type ClaimStatus =
-  | 'draft'
-  | 'submitted'
-  | 'verification'
-  | 'evaluation'
-  | 'negotiation'
-  | 'court'
-  | 'resolved'
-  | 'rejected';
+import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 
 export type AgentMemberDetail = {
   member: {
     id: string;
     fullName: string;
     membershipNumber: string;
-    status?: string;
   };
   recentClaims: Array<{
     id: string;
     claimNumber: string;
     status: ClaimStatus;
     stageLabel: string;
-    updatedAt: string;
+    updatedAt: string | null;
   }>;
 };
 
@@ -75,8 +65,11 @@ export async function getAgentMemberDetail(params: {
   });
 
   const recentClaims = rawClaims.map(claim => {
-    const status = (claim.status || 'draft') as ClaimStatus;
-    const updatedAt = normalizeDate(claim.updatedAt ?? claim.createdAt) ?? new Date().toISOString();
+    const rawStatus = claim.status ?? 'draft';
+    const status: ClaimStatus = (CLAIM_STATUSES as readonly string[]).includes(rawStatus)
+      ? (rawStatus as ClaimStatus)
+      : 'draft';
+    const updatedAt = normalizeDate(claim.updatedAt ?? claim.createdAt);
     return {
       id: claim.id,
       claimNumber: claim.claimNumber ?? '—',

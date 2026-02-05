@@ -1,6 +1,6 @@
 declare module 'negotiator' {
   export default class Negotiator {
-    constructor(request: any);
+    constructor(request: Record<string, unknown>);
     language(available?: string[]): string | undefined;
     languages(available?: string[]): string[];
     mediaType(available?: string[]): string | undefined;

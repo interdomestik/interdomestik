@@ -12,6 +12,11 @@ vi.mock('@/components/notifications', () => ({
   NotificationBell: () => <div data-testid="notification-bell-mock">Bell</div>,
 }));
 
+// Mock PortalSurfaceIndicator
+vi.mock('./portal-surface-indicator', () => ({
+  PortalSurfaceIndicator: () => <div data-testid="portal-surface-indicator-mock">Indicator</div>,
+}));
+
 // Mock UI components
 vi.mock('@interdomestik/ui', () => ({
   SidebarTrigger: ({ className }: { className?: string }) => (

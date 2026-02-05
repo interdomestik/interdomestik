@@ -22,8 +22,8 @@ export default function GlobalError({
     });
   }, [error, log]);
   return (
-    <html lang="en">
-      <body className="antialiased font-sans">
+    <html lang="en" suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>
         <div className="flex min-h-screen flex-col items-center justify-center text-center space-y-4 p-4 bg-background text-foreground">
           <h1 className="text-3xl font-bold">Something went wrong!</h1>
           <p className="text-muted-foreground">

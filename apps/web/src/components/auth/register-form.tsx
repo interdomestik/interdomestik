@@ -57,7 +57,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
         email,
         password,
         name,
-        callbackURL: '/member',
+        callbackURL: loginHref,
         tenantId: resolvedTenantId,
       };
 
@@ -66,8 +66,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
       if (signUpError) {
         setError(signUpError.message || 'Something went wrong');
       } else {
-        // Success! Redirect to member dashboard
-        router.push('/member');
+        router.push(loginHref);
       }
     } catch {
       setError('An unexpected error occurred');
@@ -82,7 +81,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
   const handleSocialSignIn = async (provider: 'github') => {
     await authClient.signIn.social({
       provider,
-      callbackURL: `${window.location.origin}/member`,
+      callbackURL: `${window.location.origin}${loginHref}`,
       ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
     });
   };

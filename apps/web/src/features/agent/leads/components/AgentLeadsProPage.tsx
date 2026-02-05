@@ -154,7 +154,7 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
       {/* Header / Nav */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link href="/agent">
+          <Link href="/agent/members">
             <Button
               variant="ghost"
               size="icon"

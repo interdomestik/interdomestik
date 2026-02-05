@@ -3,6 +3,11 @@
 import { canAccessAdmin } from '@/actions/admin-access';
 import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
+import {
+  getCanonicalRouteForRole,
+  getValidatedLocaleFromPathname,
+  stripLocalePrefixFromCanonicalRoute,
+} from '@/lib/canonical-routes';
 import { isAdmin } from '@/lib/roles.core';
 import {
   Button,
@@ -16,7 +21,7 @@ import {
 } from '@interdomestik/ui';
 import { Code, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
 export function LoginForm({ tenantId }: { tenantId?: string }) {
@@ -24,11 +29,13 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
   const common = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const tenantIdFromQuery = searchParams.get('tenantId') || undefined;
   const resolvedTenantId = tenantId ?? tenantIdFromQuery;
   const registerHref = resolvedTenantId ? `/register?tenantId=${resolvedTenantId}` : '/register';
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const locale = getValidatedLocaleFromPathname(pathname);
 
   return (
     <Card className="w-full max-w-md animate-fade-in shadow-xl border-none ring-1 ring-white/10 bg-white/5 backdrop-blur-lg">
@@ -73,28 +80,23 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               const role = (session?.user as { role?: string })?.role;
               console.log('LOGIN DEBUG: role =', role, ', isAdmin =', isAdmin(role)); // DEBUG: Role check
 
-              const hasAdminAccess = isAdmin(role) || (await canAccessAdmin().catch(() => false));
-
-              if (hasAdminAccess) {
-                router.push('/admin');
-              } else if (role === 'staff') {
-                router.push('/staff');
-              } else if (role === 'branch_manager') {
-                const user = session?.user as { branchId?: string; branch_id?: string };
-                const branchId = user?.branchId || user?.branch_id;
-
-                if (branchId) {
-                  router.push(`/admin/branches/${branchId}`);
-                } else {
-                  console.error('Branch Manager login failed: Missing branchId', user);
-                  setError(t('error') + ' (Missing Branch Assignment)'); // Or a more specific key
+              const isAdminRole = isAdmin(role);
+              if (isAdminRole) {
+                const hasAdminAccess = await canAccessAdmin().catch(() => false);
+                if (!hasAdminAccess) {
+                  setError(t('error'));
                   setLoading(false);
                   return;
                 }
-              } else if (role === 'agent') {
-                router.push('/agent');
-              } else {
-                router.push('/member');
+              }
+              // V3 canonical routing standardizes branch_manager to admin overview.
+              const canonical = getCanonicalRouteForRole(role, locale);
+
+              if (canonical) {
+                const target = stripLocalePrefixFromCanonicalRoute(canonical, locale);
+                if (target) {
+                  router.push(target);
+                }
               }
             } catch {
               setError(t('error'));
@@ -191,7 +193,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
             onClick={async () => {
               await authClient.signIn.social({
                 provider: 'github',
-                callbackURL: `${window.location.origin}/member`,
+                callbackURL: `${window.location.origin}/${locale}/login`,
                 ...(resolvedTenantId ? { additionalData: { tenantId: resolvedTenantId } } : {}),
               });
             }}

@@ -37,6 +37,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
+  usePathname: () => '/en/register',
 }));
 
 // Mock routing

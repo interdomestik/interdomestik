@@ -200,7 +200,7 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
               Back to Workspace
             </Button>
           </Link>
-          <Link href="/agent">
+          <Link href="/agent/members">
             <Button variant="ghost" size="sm">
               Switch to Lite
             </Button>

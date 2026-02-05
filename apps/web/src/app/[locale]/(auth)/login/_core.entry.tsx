@@ -1,7 +1,11 @@
 import { LoginForm } from '@/components/auth/login-form';
 import { TenantSelector, type TenantOption } from '@/components/auth/tenant-selector';
+import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
+import { auth } from '@/lib/auth';
 import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 import { setRequestLocale } from 'next-intl/server';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -11,6 +15,14 @@ type Props = {
 export default async function LoginPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session?.user?.role) {
+    const canonical = getCanonicalRouteForRole(session.user.role, locale);
+    if (canonical) {
+      redirect(canonical);
+    }
+  }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const resolvedTenantId = await resolveTenantIdFromRequest({
