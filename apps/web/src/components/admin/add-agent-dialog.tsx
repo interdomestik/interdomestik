@@ -62,7 +62,7 @@ export function AddAgentDialog({ users, branches }: AddAgentDialogProps) {
   const router = useRouter();
 
   const form = useForm<z.infer<typeof addAgentSchema>>({
-    resolver: zodResolver(addAgentSchema),
+    resolver: zodResolver(addAgentSchema as any),
     defaultValues: {
       userId: '',
       branchId: 'unassigned', // Use 'unassigned' to represent null in Select
