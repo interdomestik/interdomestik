@@ -16,7 +16,7 @@ test.describe('Staff Claims Readonly', () => {
     });
 
     await gotoApp(page, routes.staffClaims(testInfo), testInfo, {
-      marker: 'staff-claims-list-ready',
+      marker: 'staff-page-ready',
     });
 
     await page.getByTestId('staff-claims-view').first().click();
