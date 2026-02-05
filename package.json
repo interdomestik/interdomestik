@@ -66,6 +66,7 @@
     "sonar:scan": "node scripts/sonar-scan.mjs",
     "sonar:full": "pnpm type-check && pnpm test:coverage && pnpm sonar:scan",
     "sonar:full:dotenv": "node scripts/run-with-dotenv.mjs pnpm sonar:full",
+    "security:guard": "node scripts/security-guard.mjs",
     "commitlint": "commitlint --from=HEAD~1",
     "release": "release-it",
     "release:dry": "release-it --dry-run",
