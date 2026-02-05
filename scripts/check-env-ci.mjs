@@ -11,7 +11,7 @@ const REQUIRED_CI_VARS = [
   'BETTER_AUTH_URL',
 ];
 
-const optionalCiVars = [
+const OPTIONAL_CI_VARS = [
   'E2E_DATABASE_URL', // Often falls back to DATABASE_URL
   'NEXT_PUBLIC_PADDLE_CLIENT_TOKEN',
   'PADDLE_API_KEY',
@@ -39,7 +39,7 @@ function checkEnv() {
   console.log('✅ All required CI environment variables are present.');
   
   // Warn about optional vars that might be needed for specific flows
-  const missingOptional = optionalCiVars.filter(key => !process.env[key]);
+  const missingOptional = OPTIONAL_CI_VARS.filter(key => !process.env[key]);
   if (missingOptional.length > 0) {
     console.log('⚠️  Missing Optional CI Variables (some tests might be skipped):');
     missingOptional.forEach(key => console.log(`   - ${key}`));

@@ -7,10 +7,10 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     authenticatedPage: page,
   }, testInfo) => {
     // 1. Go to Member Home
-    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'dashboard-heading' });
+    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
 
     // Assert we are on the dashboard
-    await expect(page.getByTestId('dashboard-heading')).toBeVisible();
+    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
 
     // 2. Incident Guide CTA
     const ctaIncident = page.getByTestId('home-cta-incident');
@@ -20,8 +20,8 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('incident-guide-page-ready')).toBeVisible();
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'dashboard-heading' });
-    await expect(page.getByTestId('dashboard-heading')).toBeVisible();
+    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
+    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
 
     // 3. Report CTA
     const ctaReport = page.getByTestId('home-cta-report');
@@ -31,8 +31,8 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('report-page-ready')).toBeVisible();
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'dashboard-heading' });
-    await expect(page.getByTestId('dashboard-heading')).toBeVisible();
+    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
+    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
 
     // 4. Green Card CTA
     const ctaGreen = page.getByTestId('home-cta-green-card');
@@ -42,8 +42,8 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await expect(page.getByTestId('green-card-page-ready')).toBeVisible();
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'dashboard-heading' });
-    await expect(page.getByTestId('dashboard-heading')).toBeVisible();
+    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
+    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
 
     // 5. Benefits CTA
     const ctaBenefits = page.getByTestId('home-cta-benefits');

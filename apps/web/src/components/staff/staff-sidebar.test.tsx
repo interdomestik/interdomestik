@@ -65,7 +65,6 @@ vi.mock('@interdomestik/ui/components/avatar', () => ({
 vi.mock('lucide-react', () => ({
   ChevronUp: () => <span />,
   FileText: () => <span />,
-  Home: () => <span />,
   LogOut: () => <span />,
   Shield: () => <span />,
 }));
