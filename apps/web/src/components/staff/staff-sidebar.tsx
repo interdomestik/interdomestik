@@ -19,7 +19,7 @@ import {
   SidebarMenuItem,
 } from '@interdomestik/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
-import { ChevronUp, FileText, Home, LogOut, Shield } from 'lucide-react';
+import { ChevronUp, FileText, LogOut, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
@@ -30,10 +30,7 @@ export function StaffSidebar() {
   const tClaims = useTranslations('agent-claims.claims');
   const { data: session } = authClient.useSession();
 
-  const navItems = [
-    { title: tNav('overview'), href: '/staff', icon: Home },
-    { title: tClaims('claims_queue'), href: '/staff/claims', icon: FileText },
-  ];
+  const navItems = [{ title: tClaims('claims_queue'), href: '/staff/claims', icon: FileText }];
 
   const handleSignOut = async () => {
     await authClient.signOut();
