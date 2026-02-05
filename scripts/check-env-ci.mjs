@@ -32,8 +32,7 @@ function checkEnv() {
   if (missing.length > 0) {
     console.error('❌ Missing Required CI Environment Variables:');
     missing.forEach(key => console.error(`   - ${key}`));
-    console.error('
-Ensure these are set in GitHub Actions Secrets or the workflow env block.');
+    console.error('\nEnsure these are set in GitHub Actions Secrets or the workflow env block.');
     process.exit(1);
   }
 
