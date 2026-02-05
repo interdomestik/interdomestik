@@ -82,7 +82,7 @@ export function useDashboardNavigation(agentTier: string = 'standard') {
   const agentItems: { title: string; href: string; icon: IconType }[] = [];
   if (isAgent) {
     agentItems.push(
-      { title: 'Agent Hub', href: '/agent', icon: Home },
+      { title: 'Agent Hub', href: '/agent/members', icon: Home },
       { title: 'My Members', href: '/agent/members', icon: Users },
       { title: t('trackClaims'), href: '/agent/claims', icon: FileText },
       { title: 'Rapid POS', href: '/agent/pos', icon: UserPlus }
@@ -109,7 +109,7 @@ export function useDashboardNavigation(agentTier: string = 'standard') {
   if (isAdmin(role) || adminAccess) {
     adminItems.push({
       title: t('adminDashboard'),
-      href: '/admin',
+      href: '/admin/overview',
       icon: LayoutTemplate,
     });
   }
