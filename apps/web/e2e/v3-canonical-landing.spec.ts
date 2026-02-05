@@ -16,12 +16,12 @@ const canonicalCases = [
   {
     role: 'staff' as const,
     target: (info: Parameters<typeof routes.staffClaims>[0]) => routes.staffClaims(info),
-    marker: 'staff-claims-list-ready',
+    marker: 'staff-page-ready',
   },
   {
     role: 'admin' as const,
     target: (info: Parameters<typeof routes.admin>[0]) => routes.admin(info),
-    marker: 'admin-overview-ready',
+    marker: 'admin-page-ready',
   },
 ];
 

@@ -31,7 +31,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
   });
 
   return (
-    <div className="space-y-6" data-testid="staff-claims-list-ready">
+    <div className="space-y-6" data-testid="staff-page-ready">
       <div>
         <h1 className="text-3xl font-bold tracking-tight" data-testid="page-title">
           {tClaims('queue')}

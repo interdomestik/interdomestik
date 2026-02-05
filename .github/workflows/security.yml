@@ -23,6 +23,9 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
 
+      - name: Security Guard (Banned Lockfile Versions)
+        run: pnpm security:guard
+
       # Non-blocking: report all production vulnerabilities for visibility.
       # This is informational only and should not fail CI.
       - name: pnpm audit (prod) report (non-blocking)

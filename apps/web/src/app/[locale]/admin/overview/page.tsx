@@ -9,7 +9,7 @@ export default async function AdminOverviewPage({
   const { locale } = await params;
   setRequestLocale(locale);
   return (
-    <div data-testid="admin-overview-ready">
+    <div data-testid="admin-page-ready">
       <AdminDashboardV2Page locale={locale} />
     </div>
   );
