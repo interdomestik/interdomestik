@@ -25,6 +25,11 @@ const BANNED_PACKAGES = [
     name: 'cross-spawn',
     banned: [/@5\./, /@6\.0\.[0-5](?!\d)/],
     reason: 'Vulnerability in older versions, use ^7.0.6 or 6.0.6+'
+  },
+  {
+    name: 'undici',
+    banned: [/@6\./, /@5\./, /@4\./],
+    reason: 'Security vulnerabilities in versions < 7.20.0'
   }
 ];
 
