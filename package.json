@@ -91,7 +91,7 @@
     "@supabase/supabase-js": "^2.87.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.19.3",
-    "@upstash/context7-mcp": "^2.0.1",
+    "@upstash/context7-mcp": "^2.1.1",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "glob": "^13.0.0",
@@ -129,10 +129,14 @@
       "seroval": ">=1.4.1",
       "tar": "^7.5.7",
       "@isaacs/brace-expansion": "^5.0.1",
-      "cross-spawn": "^7.0.6"
+      "cross-spawn": "^7.0.6",
+      "esbuild": ">=0.25.0",
+      "@modelcontextprotocol/sdk": ">=1.26.0",
+      "got": ">=11.8.5",
+      "electron": ">=35.7.5"
     }
   },
   "dependencies": {
-    "checkly": "^6.9.8"
+    "checkly": "^6.9.10"
   }
 }
