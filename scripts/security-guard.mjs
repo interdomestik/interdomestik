@@ -28,8 +28,8 @@ const BANNED_PACKAGES = [
   },
   {
     name: 'undici',
-    banned: [/@6\./, /@5\./, /@4\./],
-    reason: 'Security vulnerabilities in versions < 7.20.0'
+    banned: [/@4\./, /@5\./, /@6\./, /@7\.(?:[0-9]|1[0-9])\./],
+    reason: 'Use >= 7.20.0'
   },
   {
     name: 'esbuild',
