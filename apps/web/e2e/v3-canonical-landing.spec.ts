@@ -35,6 +35,11 @@ test.describe('V3 Canonical Landing', () => {
 
       await expect(page).toHaveURL(new RegExp(`${target}$`));
       await expect(page.getByTestId(scenario.marker)).toBeVisible();
+
+      if (scenario.role === 'agent') {
+        await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
+        await expect(page.getByTestId('legacy-banner')).toHaveCount(0);
+      }
     });
   }
 

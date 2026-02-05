@@ -202,6 +202,29 @@ describe('LoginForm', () => {
     });
   });
 
+  it('shows an error when canonical redirect is unavailable', async () => {
+    mockSignInEmail.mockResolvedValue({ error: null });
+    mockGetSession.mockResolvedValue({ data: { user: { role: 'unknown' } } });
+
+    render(<LoginForm />);
+
+    const emailInput = screen.getByLabelText('Email');
+    const passwordInput = screen.getByLabelText('Password');
+    const submitButton = screen.getByText('Sign In');
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/unsupported account role/i)).toBeInTheDocument();
+    });
+  });
+
   it('displays error on invalid credentials', async () => {
     mockSignInEmail.mockResolvedValue({ error: { message: 'Invalid credentials' } });
     render(<LoginForm />);

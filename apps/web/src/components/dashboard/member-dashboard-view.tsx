@@ -4,7 +4,6 @@ import type { ReactElement } from 'react';
 import { DigitalIDCard } from '@/app/[locale]/components/home/digital-id-card';
 import {
   ActiveClaimFocus,
-  ClaimsOverviewList,
   MemberEmptyState,
   MemberHeader,
   PrimaryActions,
@@ -118,11 +117,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
         />
       ) : null}
 
-      {claims.length > 0 ? (
-        <ClaimsOverviewList claims={claims} />
-      ) : (
-        <MemberEmptyState locale={locale} />
-      )}
+      {claims.length === 0 ? <MemberEmptyState locale={locale} /> : null}
 
       <SupportLink href={supportHref} />
 
