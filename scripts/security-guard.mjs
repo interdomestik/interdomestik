@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const LOCKFILE_PATH = 'pnpm-lock.yaml';
 
@@ -67,8 +67,8 @@ async function runGuard() {
   for (const pkg of BANNED_PACKAGES) {
     for (const regex of pkg.banned) {
       // Look for the package in the snapshots or dependencies section
-      // In pnpm lockfile 9.0, they usually look like 'pkg@version':
-      const searchPattern = new RegExp(`['"]?${pkg.name}${regex.source}['"]?`, 'g');
+      // Anchored to start of line, with optional leading spaces, and optional quotes around package name
+      const searchPattern = new RegExp(`^\\s*['"]?${pkg.name}${regex.source}['"]?`, 'gm');
       const matches = content.match(searchPattern);
 
       if (matches) {
