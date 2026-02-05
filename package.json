@@ -123,10 +123,12 @@
     ],
     "overrides": {
       "fast-xml-parser": ">=5.3.4",
-      "lodash": "^4.17.21",
+      "lodash": "^4.17.23",
       "undici": ">=6.19.2",
       "seroval": ">=1.4.1",
-      "tar": "^7.5.7"
+      "tar": "^7.5.7",
+      "@isaacs/brace-expansion": "^5.0.1",
+      "cross-spawn": "^7.0.6"
     }
   },
   "dependencies": {
