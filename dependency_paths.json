@@ -1,0 +1,48 @@
+[
+  {
+    "name": "interdomestik",
+    "version": "0.1.0",
+    "path": "/Users/arbenlila/development/interdomestik-crystal-home",
+    "private": true,
+    "dependencies": {
+      "checkly": {
+        "from": "checkly",
+        "version": "6.9.8",
+        "resolved": "https://registry.npmjs.org/checkly/-/checkly-6.9.8.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/checkly@6.9.8_@types+node@22.19.3_jiti@2.6.1_typescript@5.9.3/node_modules/checkly",
+        "dependencies": {
+          "@oclif/plugin-plugins": {
+            "from": "@oclif/plugin-plugins",
+            "version": "5.4.54",
+            "resolved": "https://registry.npmjs.org/@oclif/plugin-plugins/-/plugin-plugins-5.4.54.tgz",
+            "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@oclif+plugin-plugins@5.4.54/node_modules/@oclif/plugin-plugins",
+            "dependencies": {
+              "npm": {
+                "from": "npm",
+                "version": "10.9.4",
+                "resolved": "https://registry.npmjs.org/npm/-/npm-10.9.4.tgz",
+                "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/npm@10.9.4/node_modules/npm"
+              }
+            }
+          }
+        }
+      }
+    },
+    "devDependencies": {
+      "@upstash/context7-mcp": {
+        "from": "@upstash/context7-mcp",
+        "version": "2.0.1",
+        "resolved": "https://registry.npmjs.org/@upstash/context7-mcp/-/context7-mcp-2.0.1.tgz",
+        "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@upstash+context7-mcp@2.0.1_hono@4.11.7/node_modules/@upstash/context7-mcp",
+        "dependencies": {
+          "@modelcontextprotocol/sdk": {
+            "from": "@modelcontextprotocol/sdk",
+            "version": "1.25.3",
+            "resolved": "https://registry.npmjs.org/@modelcontextprotocol/sdk/-/sdk-1.25.3.tgz",
+            "path": "/Users/arbenlila/development/interdomestik-crystal-home/node_modules/.pnpm/@modelcontextprotocol+sdk@1.25.3_hono@4.11.7_zod@3.25.76/node_modules/@modelcontextprotocol/sdk"
+          }
+        }
+      }
+    }
+  }
+]

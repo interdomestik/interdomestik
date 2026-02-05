@@ -30,6 +30,26 @@ const BANNED_PACKAGES = [
     name: 'undici',
     banned: [/@6\./, /@5\./, /@4\./],
     reason: 'Security vulnerabilities in versions < 7.20.0'
+  },
+  {
+    name: 'esbuild',
+    banned: [/@0\.(?:[0-9]|1[0-9]|2[0-4])\./],
+    reason: 'GHSA-67mh-4wv8-2f99: Security vulnerability in versions <= 0.24.2'
+  },
+  {
+    name: '@modelcontextprotocol/sdk',
+    banned: [/@1\.(?:[0-9]|1[0-9]|2[0-5])\./],
+    reason: 'GHSA-345p-7cg4-v4c7: Cross-client data leak in versions <= 1.25.3'
+  },
+  {
+    name: 'got',
+    banned: [/@(?:[0-9]|10)\./, /@11\.[0-7]\./, /@11\.8\.[0-4]/],
+    reason: 'GHSA-pfrx-2q88-qq97: Redirect to UNIX socket in versions < 11.8.5'
+  },
+  {
+    name: 'electron',
+    banned: [/@23\./, /@22\./],
+    reason: 'Multiple vulnerabilities in older Electron versions used by dev tools'
   }
 ];
 
