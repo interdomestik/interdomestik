@@ -11,9 +11,9 @@ Interdomestik is a subscription-based consumer protection service that helps mem
 | Layer            | Technology                                                                                                      |
 | ---------------- | --------------------------------------------------------------------------------------------------------------- |
 | **Monorepo**     | Turborepo + pnpm (Workspaces)                                                                                   |
-| **Frontend**     | Next.js 15+ (App Router)                                                                                        |
+| **Frontend**     | Next.js 15 (App Router)                                                                                         |
 | **Architecture** | Domain-Driven Design (DDD)                                                                                      |
-| **Routing**      | **Proxy-based** (Legacy middleware is no longer authoritative)                                                  |
+| **Routing**      | **Proxy-based** (Middleware may exist but is not authoritative; `proxy.ts` is the source of truth)              |
 | **UI**           | Custom Design System + Radix UI + Tailwind CSS                                                                  |
 | **Database**     | Supabase (PostgreSQL) + Drizzle ORM                                                                             |
 | **Auth**         | Supabase Auth (identity & persistence) + Better Auth via `@interdomestik/shared-auth` (orchestration, policies) |
@@ -25,7 +25,7 @@ Interdomestik is a subscription-based consumer protection service that helps mem
 ```
 interdomestik/
 ├── apps/
-│   └── web/                    # Next.js 16 web application
+│   └── web/                    # Next.js 15 web application
 │       ├── src/
 │       │   ├── app/            # App Router pages
 │       │   ├── proxy.ts        # Primary routing & security logic
@@ -51,7 +51,7 @@ Authentication in Interdomestik V3 is **intentionally abstracted and in transiti
 
 This design is deliberate and supports future authentication flexibility without disrupting the V3 pilot.
 
-## �🚀 Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
