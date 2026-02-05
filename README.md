@@ -11,9 +11,9 @@ Interdomestik is a subscription-based consumer protection service that helps mem
 | Layer            | Technology                                                                                                      |
 | ---------------- | --------------------------------------------------------------------------------------------------------------- |
 | **Monorepo**     | Turborepo + pnpm (Workspaces)                                                                                   |
-| **Frontend**     | Next.js 16 (App Router)                                                                                         |
+| **Frontend**     | Next.js 15+ (App Router)                                                                                        |
 | **Architecture** | Domain-Driven Design (DDD)                                                                                      |
-| **Routing**      | **Proxy-based** (Legacy middleware is no longer the primary routing authority)                                  |
+| **Routing**      | **Proxy-based** (Legacy middleware is no longer authoritative)                                                  |
 | **UI**           | Custom Design System + Radix UI + Tailwind CSS                                                                  |
 | **Database**     | Supabase (PostgreSQL) + Drizzle ORM                                                                             |
 | **Auth**         | Supabase Auth (identity & persistence) + Better Auth via `@interdomestik/shared-auth` (orchestration, policies) |
@@ -41,7 +41,7 @@ interdomestik/
 └── turbo.json                  # Turborepo configuration
 ```
 
-## � Authentication Architecture (V3)
+## 🔐 Authentication Architecture (V3)
 
 Authentication in Interdomestik V3 is **intentionally abstracted and in transition**.
 
