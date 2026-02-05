@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const LOCKFILE_PATH = 'pnpm-lock.yaml';
+const LOCKFILE_PATH = path.join(process.cwd(), 'pnpm-lock.yaml');
 
 // Define banned versions/patterns
 // Format: { name: 'package-name', banned: [/regex1/, /regex2/], reason: '...' }
