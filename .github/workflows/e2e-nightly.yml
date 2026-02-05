@@ -12,8 +12,13 @@ concurrency:
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3]
+        shardTotal: [3]
 
     services:
       postgres:
@@ -45,22 +50,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          version: '10.28.2'
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright browsers
-        run: pnpm --filter @interdomestik/web exec playwright install --with-deps
+          install-playwright: true
 
       - name: Build web
         run: pnpm --filter @interdomestik/web run build:ci
@@ -107,22 +100,26 @@ jobs:
 
       # ---- Run suites ----
       - name: Generate Playwright Gate Auth State (KS+MK)
+        if: matrix.shardIndex == 1
         run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
 
       # Gate is fast and tells you immediately if infra drifted.
       - name: E2E Gate (KS+MK)
+        if: matrix.shardIndex == 1
         run: pnpm --filter @interdomestik/web run e2e:gate
 
       # Core subscription lifecycle (Phase 4B)
       - name: E2E Subscription Lifecycle (KS+MK)
+        if: matrix.shardIndex == 1
         run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk
 
-      # Phase 5 deterministic batch
+      # Phase 5 deterministic batch - SHARDED
       - name: E2E Phase 5 Deterministic Batch
-        run: pnpm --filter @interdomestik/web run test:e2e:phase5
+        run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/agent-pro-leads.spec.ts apps/web/e2e/golden/agent-leads-drawer.spec.ts apps/web/e2e/golden/verification-list-ops.spec.ts apps/web/e2e/golden/verification-details-ops.spec.ts apps/web/e2e/golden/agent-pro-claims.spec.ts apps/web/e2e/golden/agent-pro-claims-messaging.spec.ts apps/web/e2e/golden/rbac-scope.spec.ts apps/web/e2e/golden/agent-pro-claims-rbac.spec.ts --project=gate-ks-sq --project=gate-mk-mk --project=smoke --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       # Smoke as final sanity
       - name: E2E Smoke
+        if: matrix.shardIndex == 1
         run: pnpm --filter @interdomestik/web run test:smoke
 
       # ---- Artifacts (always) ----
@@ -130,7 +127,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shardIndex }}
           path: |
             apps/web/playwright-report
             apps/web/test-results

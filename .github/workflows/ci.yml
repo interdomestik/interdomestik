@@ -19,18 +19,19 @@ permissions:
 
 jobs:
   audit:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - name: Run Audits
         run: |
+          node scripts/check-env-ci.mjs
           pnpm track:audit
           pnpm purity:audit
           # Contract Compliance: pnpm check is covered by e2e-gate job
 
   static:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -40,7 +41,7 @@ jobs:
           pnpm -w type-check
 
   unit:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -53,7 +54,7 @@ jobs:
         run: pnpm test
 
   e2e-gate:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 30
     services:
       postgres:
@@ -80,6 +81,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
+        with:
+          install-playwright: true
 
       - name: Enforce E2E Best Practices
         run: |
@@ -87,12 +90,6 @@ jobs:
             echo "❌ Strict Gate Violation: Raw page.goto found. Use gotoApp() instead."
             exit 1
           fi
-
-      - name: Install Playwright OS Deps
-        run: pnpm --filter @interdomestik/web exec playwright install-deps
-
-      - name: Install Playwright Browsers
-        run: pnpm --filter @interdomestik/web exec playwright install
 
       - name: Build Web App
         run: pnpm --filter @interdomestik/web run build:ci
