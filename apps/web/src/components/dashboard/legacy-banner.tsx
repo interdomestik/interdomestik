@@ -30,19 +30,21 @@ export function LegacyBanner() {
   if (!linkHref) return null;
 
   return (
-    <div
-      className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-      data-testid="legacy-banner"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span>You are viewing a legacy dashboard. Go to the v3 dashboard.</span>
-        <Link
-          href={linkHref}
-          className="rounded-full bg-amber-900 px-3 py-1 text-xs font-semibold text-white"
-          data-testid="legacy-banner-link"
-        >
-          Go to v3 dashboard
-        </Link>
+    <div data-testid="legacy-surface-ready">
+      <div
+        className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        data-testid="legacy-banner"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span>You are viewing a legacy dashboard. Go to the v3 dashboard.</span>
+          <Link
+            href={linkHref}
+            className="rounded-full bg-amber-900 px-3 py-1 text-xs font-semibold text-white"
+            data-testid="legacy-banner-link"
+          >
+            Go to v3 dashboard
+          </Link>
+        </div>
       </div>
     </div>
   );

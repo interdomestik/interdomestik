@@ -1,6 +1,7 @@
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
+import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { APP_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
@@ -19,13 +20,14 @@ export default async function LegacyMemberLayout({
   const messages = pickMessages(allMessages, APP_NAMESPACES);
 
   return (
-    <NextIntlClientProvider messages={messages} locale={locale}>
+    <AuthenticatedShell locale={locale} messages={messages}>
       <div className="min-h-screen bg-mesh" data-testid="legacy-member-page-ready">
+        <DashboardHeader />
         <div className="px-6 pt-4 md:px-8">
           <LegacyBanner />
         </div>
         <main className="p-6 md:p-8 pt-6">{children}</main>
       </div>
-    </NextIntlClientProvider>
+    </AuthenticatedShell>
   );
 }
