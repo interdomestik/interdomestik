@@ -2,15 +2,40 @@
 
 This file contains guidelines and commands for agentic coding agents working on the Interdomestik monorepo.
 
+## ⚠️ V3 / Phase C Execution Rules (MANDATORY)
+
+This repository is currently operating in **Phase C – Pilot Delivery**.
+
+The following rules are non-negotiable for all agents (human or AI):
+
+- `apps/web/src/proxy.ts` is the **sole authority** for routing, access control, and tenant isolation (**READ-ONLY unless explicitly authorized**).
+- Canonical routes (`/member`, `/agent`, `/staff`, `/admin`) MUST NOT be renamed or bypassed.
+- Clarity markers (`*-page-ready`) are contractual and enforced by E2E gates.
+- No architectural refactors (routing, auth, domains, tenancy) unless explicitly requested.
+- Stripe is **not used** in V3 pilot flows.
+- Do not update README, AGENTS.md, or architecture docs unless explicitly requested.
+- All changes must pass:
+  - `pnpm pr:verify`
+  - `pnpm security:guard`
+  - E2E Gate specs
+
 ## Project Overview
 
-- **Type**: Next.js 16 monorepo with Turborepo
+- **Type**: Next.js 15 monorepo with Turborepo
 - **Language**: TypeScript with strict mode
 - **Package Manager**: pnpm (workspace protocol)
 - **Architecture**: Modular domain-driven design with separate packages
 - **UI**: React 19 with Tailwind CSS and Radix UI components
 - **Database**: Drizzle ORM with PostgreSQL
 - **Testing**: Vitest (unit) + Playwright (e2e)
+- **Routing Authority**: `apps/web/src/proxy.ts` (canonical routes + access control)
+
+## 🔐 Authentication (V3)
+
+- **Supabase Auth** is the system of record for identities and sessions.
+- **better-auth** is the active orchestrator.
+- **`@interdomestik/shared-auth`** is the provider-agnostic boundary.
+- This is an intentional transition; agents must not collapse or bypass this layering.
 
 ## Development Commands
 
@@ -41,6 +66,18 @@ pnpm db:generate         # Generate database client
 pnpm db:push:local       # Push schema changes to local database
 pnpm db:studio           # Open Drizzle Studio
 ```
+
+### Mandatory Verification
+
+Before opening or merging a PR:
+
+```bash
+pnpm pr:verify
+pnpm security:guard
+pnpm e2e:gate
+```
+
+PRs that fail either check are invalid.
 
 ### Single Test Commands
 
@@ -339,16 +376,14 @@ openssl rand -hex 16     # Hex secrets
 - Use development-specific API keys for all external services
 - Rotate authentication secrets every 30-90 days
 
-## Quick Reference
+## Quick Reference (Phase C)
 
-Always run these before committing:
+Before opening or merging a PR:
 
 ```bash
-pnpm format
-pnpm lint
-pnpm type-check
-pnpm test
-./scripts/security-setup.sh check  # Security validation
+pnpm pr:verify
+pnpm security:guard
+pnpm e2e:gate
 ```
 
 For single test debugging:
