@@ -1,5 +1,4 @@
 import type { ReactElement } from 'react';
-import { PortalSurfaceIndicator } from '../dashboard/portal-surface-indicator';
 
 export type MemberHeaderProps = {
   name: string;
@@ -16,7 +15,6 @@ export function MemberHeader({ name, membershipNumber }: MemberHeaderProps): Rea
         <h1 className="text-2xl font-bold tracking-tight">{name}</h1>
         <p className="text-muted-foreground">{membershipNumber ?? '—'}</p>
       </div>
-      <PortalSurfaceIndicator />
     </section>
   );
 }

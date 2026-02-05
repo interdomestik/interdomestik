@@ -55,7 +55,7 @@ export function EditBranchSheet({ branch, isOpen, onClose, onUpdate }: EditBranc
     watch,
     formState: { errors },
   } = useForm<FormDetail>({
-    resolver: zodResolver(formSchema as any),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: branch.name,
       code: branch.code || '',

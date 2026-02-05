@@ -1,6 +1,7 @@
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
-import { getLocale, gotoApp } from '../utils/navigation';
+import { routes } from '../routes';
+import { gotoApp } from '../utils/navigation';
 
 async function performAgentLogin(
   page: import('@playwright/test').Page,
@@ -30,8 +31,8 @@ test.describe('C1: Clarity Hardening - No Mixed Surfaces', () => {
   test('Agent: /agent redirects to canonical members route', async ({ page }, testInfo) => {
     await performAgentLogin(page, testInfo);
 
-    const locale = getLocale(testInfo);
-    await gotoApp(page, `/${locale}/agent`, testInfo);
+    const locale = routes.getLocale(testInfo);
+    await gotoApp(page, `/${locale}/agent`, testInfo, { marker: 'agent-members-ready' });
     await expect(page).toHaveURL(new RegExp(`/${locale}/agent/members`));
 
     const indicator = page.getByTestId('portal-surface-indicator');
@@ -44,8 +45,8 @@ test.describe('C1: Clarity Hardening - No Mixed Surfaces', () => {
   test('Agent: legacy route shows banner + link to v3', async ({ page }, testInfo) => {
     await performAgentLogin(page, testInfo);
 
-    const locale = getLocale(testInfo);
-    await gotoApp(page, `/${locale}/legacy/agent`, testInfo);
+    const locale = routes.getLocale(testInfo);
+    await gotoApp(page, `/${locale}/legacy/agent`, testInfo, { marker: 'legacy-surface-ready' });
 
     const legacyReady = page.getByTestId('legacy-surface-ready');
     await expect(legacyReady).toBeVisible();
