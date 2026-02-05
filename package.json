@@ -27,6 +27,7 @@
     "mcp:audit": "pnpm --filter @interdomestik/qa run-all-audits",
     "mcp:test": "pnpm mcp:audit && pnpm test",
     "qa": "pnpm --filter @interdomestik/qa check",
+    "docs:verify": "node scripts/verify-v3-docs.mjs",
     "i18n:check": "node scripts/check-i18n.mjs",
     "i18n:sync": "node scripts/sync-i18n.mjs",
     "mod:scan": "node scripts/modularization-factory.mjs --top 30",

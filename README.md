@@ -17,7 +17,7 @@ Interdomestik is a subscription-based consumer protection service that helps mem
 | **UI**           | Custom Design System + Radix UI + Tailwind CSS                                                                  |
 | **Database**     | Supabase (PostgreSQL) + Drizzle ORM                                                                             |
 | **Auth**         | Supabase Auth (identity & persistence) + Better Auth via `@interdomestik/shared-auth` (orchestration, policies) |
-| **Payments**     | Paddle (V3). Stripe references may exist in legacy code/docs but are not used in the V3 pilot.                  |
+| **Payments**     | **Paddle (V3 only)** — Stripe references exist only in legacy code and are not part of the V3 runtime           |
 | **i18n**         | next-intl (SQ, EN, MK, SR, DE, HR)                                                                              |
 
 ## 📁 Project Structure
