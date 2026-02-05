@@ -22,6 +22,7 @@ export async function seedGolden(config: SeedConfig) {
   const TENANTS = {
     MK: 'tenant_mk',
     KS: 'tenant_ks',
+    PILOT: 'pilot-mk',
   };
 
   const BRANCHES = [
@@ -92,6 +93,21 @@ export async function seedGolden(config: SeedConfig) {
       email: E2E_USERS.MK_STAFF.email,
       role: E2E_USERS.MK_STAFF.dbRole,
       tenantId: TENANTS.MK,
+    },
+    // Pilot Admin
+    {
+      id: goldenId('pilot_mk_admin'),
+      name: E2E_USERS.PILOT_MK_ADMIN.name,
+      email: E2E_USERS.PILOT_MK_ADMIN.email,
+      role: E2E_USERS.PILOT_MK_ADMIN.dbRole,
+      tenantId: TENANTS.PILOT,
+    },
+    {
+      id: goldenId('pilot_mk_agent'),
+      name: E2E_USERS.PILOT_MK_AGENT.name,
+      email: E2E_USERS.PILOT_MK_AGENT.email,
+      role: E2E_USERS.PILOT_MK_AGENT.dbRole,
+      tenantId: TENANTS.PILOT,
     },
     {
       id: goldenId('mk_bm_a'),
@@ -255,6 +271,14 @@ export async function seedGolden(config: SeedConfig) {
         contact: { email: 'support.mk@interdomestik.com' },
         legalName: 'Interdomestik MK DOOEL',
         code: 'MK',
+        countryCode: 'MK',
+      },
+      {
+        id: TENANTS.PILOT,
+        name: 'Pilot Macedonia',
+        contact: { email: 'support.pilot@interdomestik.com' },
+        legalName: 'Interdomestik Pilot MK',
+        code: 'MK-PILOT',
         countryCode: 'MK',
       },
       {

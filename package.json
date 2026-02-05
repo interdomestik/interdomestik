@@ -138,6 +138,7 @@
     }
   },
   "dependencies": {
-    "checkly": "^6.9.10"
+    "checkly": "^6.9.10",
+    "drizzle-orm": "^0.45.1"
   }
 }
