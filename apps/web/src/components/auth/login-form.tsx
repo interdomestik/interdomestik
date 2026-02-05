@@ -91,13 +91,20 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               }
               // V3 canonical routing standardizes branch_manager to admin overview.
               const canonical = getCanonicalRouteForRole(role, locale);
-
-              if (canonical) {
-                const target = stripLocalePrefixFromCanonicalRoute(canonical, locale);
-                if (target) {
-                  router.push(target);
-                }
+              if (!canonical) {
+                setError(`${t('error')} (Unsupported account role)`);
+                setLoading(false);
+                return;
               }
+
+              const target = stripLocalePrefixFromCanonicalRoute(canonical, locale);
+              if (!target) {
+                setError(`${t('error')} (Unsupported account role)`);
+                setLoading(false);
+                return;
+              }
+
+              router.push(target);
             } catch {
               setError(t('error'));
               setLoading(false);
