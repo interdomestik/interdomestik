@@ -17,6 +17,14 @@ permissions:
   contents: read
   actions: write
 
+env:
+  DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
+  BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
+  NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+  BETTER_AUTH_URL: http://127.0.0.1:3000
+  PORT: 3000
+  CI: 'true'
+
 jobs:
   audit:
     runs-on: blacksmith-2vcpu-ubuntu-2204
@@ -47,8 +55,6 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Unit Tests
         env:
-          BETTER_AUTH_SECRET: dummy-secret-for-tests
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
           UPSTASH_REDIS_REST_URL: http://localhost:8080
           UPSTASH_REDIS_REST_TOKEN: dummy-token
         run: pnpm test
@@ -71,11 +77,6 @@ jobs:
           --health-timeout=5s
           --health-retries=10
     env:
-      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
-      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
-      PORT: 3000
-      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
-      BETTER_AUTH_URL: http://127.0.0.1:3000
       NODE_OPTIONS: --max-old-space-size=4096
       E2E_API_SECRET: test-secret-placeholder
     steps:
