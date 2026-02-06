@@ -55,19 +55,25 @@ export const E2E_USERS = {
   // PILOT C1 (MK)
   PILOT_MK_ADMIN: {
     email: 'admin.pilot@interdomestik.com',
-    name: 'Pilot Admin',
+    name: 'Ardit Krasniqi',
     dbRole: 'admin',
     tenantId: 'pilot-mk',
   },
   PILOT_MK_AGENT: {
     email: 'agent.pilot@interdomestik.com',
-    name: 'Pilot Agent',
+    name: 'Eset Hoxha',
+    dbRole: 'agent',
+    tenantId: 'pilot-mk',
+  },
+  PILOT_MK_AGENT_2: {
+    email: 'agent.pilot.2@interdomestik.com',
+    name: 'Bekim Hoxha',
     dbRole: 'agent',
     tenantId: 'pilot-mk',
   },
   PILOT_MK_STAFF: {
     email: 'staff.pilot@interdomestik.com',
-    name: 'Pilot Staff',
+    name: 'Gazmend Abazi',
     dbRole: 'staff',
     tenantId: 'pilot-mk',
   },

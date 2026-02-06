@@ -2,6 +2,19 @@
   "dashboard": {
     "welcome_back": "Welcome back! Here's what's happening with your claims today.",
     "overview": "Dashboard Overview",
+    "member_landing": {
+      "page_title": "Member dashboard",
+      "primary_cta": "Start a new claim",
+      "secondary_cta": "View claims",
+      "orientation_title": "You're covered - here's how it works",
+      "orientation_point_one": "If an incident happens, start a claim in a few quick steps.",
+      "orientation_point_two": "Keep your documents ready and contact support whenever needed.",
+      "orientation_cta": "See how it works",
+      "empty_title": "No claims yet",
+      "empty_body": "When you submit your first claim, it will appear here.",
+      "help_label": "Need help?",
+      "more_services": "More services"
+    },
     "activeClaims": "Active Claims",
     "activeClaimsDesc": "Your ongoing disputes",
     "resolvedClaims": "Resolved Claims",

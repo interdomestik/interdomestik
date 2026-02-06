@@ -2,6 +2,19 @@
   "dashboard": {
     "welcome_back": "Mirësevini përsëri! Këtu është një përmbledhje e kërkesave tuaja për dëmshpërblim sot.",
     "overview": "Përmbledhje e Panelit",
+    "member_landing": {
+      "page_title": "Paneli i anëtarit",
+      "primary_cta": "Nis kërkesë të re",
+      "secondary_cta": "Shiko kërkesat",
+      "orientation_title": "Jeni të mbuluar — ja si funksionon",
+      "orientation_point_one": "Nëse ndodh një incident, niseni kërkesën në pak hapa.",
+      "orientation_point_two": "Mbani dokumentet gati dhe kontaktoni mbështetjen sa herë të keni nevojë.",
+      "orientation_cta": "Shiko si funksionon",
+      "empty_title": "Nuk keni kërkesa ende",
+      "empty_body": "Kur ta dërgoni kërkesën e parë, ajo do të shfaqet këtu.",
+      "help_label": "Keni nevojë për ndihmë?",
+      "more_services": "Më shumë shërbime"
+    },
     "activeClaims": "Kërkesat Aktive për Dëmshpërblim",
     "activeClaimsDesc": "Mosmarrëveshjet tuaja në vijim",
     "resolvedClaims": "Kërkesat e Zgjidhura për Dëmshpërblim",
