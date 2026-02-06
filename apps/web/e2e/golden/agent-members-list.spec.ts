@@ -15,8 +15,11 @@ test.describe('Agent Members List', () => {
     const firstRow = page.getByTestId('agent-member-row').first();
     await expect(firstRow).toBeVisible();
 
-    await firstRow.getByTestId('agent-member-link').click();
-    await expect(page.getByTestId('member-header')).toBeVisible();
+    await Promise.all([
+      page.waitForURL(/\/agent\/members\/[^/]+$/),
+      firstRow.getByTestId('agent-member-link').click(),
+    ]);
+    await expect(page.getByTestId('agent-member-detail-ready')).toBeVisible();
 
     const unassigned = await db.query.user.findFirst({
       where: eq(user.email, 'member.ks.b1@interdomestik.com'),
