@@ -81,6 +81,7 @@ echo "  PORT=${PORT}"
 
 STANDALONE_SERVER="${WEB_DIR}/.next/standalone/apps/web/server.js"
 FALLBACK_STANDALONE_SERVER="${WEB_DIR}/.next/standalone/server.js"
+STANDALONE_STAMP_FILE="${WEB_DIR}/.next/standalone/.build-stamp.json"
 STANDALONE_STATIC_DIR="${WEB_DIR}/.next/standalone/.next/static"
 STANDALONE_APP_STATIC_DIR="${WEB_DIR}/.next/standalone/apps/web/.next/static"
 BUILD_STATIC_DIR="${WEB_DIR}/.next/static"
@@ -90,6 +91,25 @@ if [[ -d "${BUILD_STATIC_DIR}" ]]; then
 	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_STATIC_DIR}"
 	mkdir -p "$(dirname "${STANDALONE_APP_STATIC_DIR}")"
 	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_APP_STATIC_DIR}"
+fi
+
+if [[ ! -f "${STANDALONE_STAMP_FILE}" ]]; then
+	echo "❌ Missing standalone build stamp: ${STANDALONE_STAMP_FILE}" >&2
+	echo "   Standalone artifact may be stale. Run: pnpm --filter @interdomestik/web run build:ci" >&2
+	exit 1
+fi
+
+CURRENT_GIT_SHA="$(git -C "${ROOT_DIR}" rev-parse HEAD 2>/dev/null || true)"
+STAMP_GIT_SHA="$(
+	node -e "const fs=require('node:fs');const stamp=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(stamp.gitSha ?? '');" "${STANDALONE_STAMP_FILE}" 2>/dev/null || true
+)"
+
+if [[ -z "${CURRENT_GIT_SHA}" || -z "${STAMP_GIT_SHA}" || "${CURRENT_GIT_SHA}" != "${STAMP_GIT_SHA}" ]]; then
+	echo "❌ Standalone artifact is stale." >&2
+	echo "   stamp gitSha: ${STAMP_GIT_SHA:-<missing>}" >&2
+	echo "   current HEAD: ${CURRENT_GIT_SHA:-<missing>}" >&2
+	echo "   Rebuild with: pnpm --filter @interdomestik/web run build:ci" >&2
+	exit 1
 fi
 
 if [[ -f "${STANDALONE_SERVER}" ]]; then
