@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
         tenantId: 'default-tenant',
       },
       {
-        registerMemberFn: registerMemberCore,
+        registerMemberFn: (actor, tenantId, formData) =>
+          registerMemberCore(actor, tenantId, null, formData),
       }
     );
 

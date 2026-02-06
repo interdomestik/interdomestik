@@ -82,6 +82,7 @@ export async function registerMember(prevState: unknown, formData: FormData) {
   const result = await registerMemberCore(
     { id: session.user.id, name: session.user.name },
     tenantId,
+    session.user.branchId ?? null,
     formData
   );
   if (!result.ok) {

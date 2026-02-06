@@ -16,6 +16,7 @@ vi.mock('@interdomestik/database/db', () => ({
 
 vi.mock('@interdomestik/database/schema', () => ({
   user: {},
+  account: {},
   agentClients: {},
   subscriptions: {},
 }));
@@ -35,6 +36,7 @@ vi.mock('nanoid', () => ({
 describe('registerMemberCore', () => {
   const mockAgent = { id: 'agent1', name: 'Agent Smith' };
   const mockTenantId = 'tenant-1';
+  const mockBranchId = 'mk_branch_a';
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -45,9 +47,10 @@ describe('registerMemberCore', () => {
     formData.append('fullName', 'John Doe');
     formData.append('email', 'john@example.com');
     formData.append('phone', '1234567890');
+    formData.append('password', 'Secret123!');
     formData.append('planId', 'standard');
 
-    const result = await registerMemberCore(mockAgent, mockTenantId, formData);
+    const result = await registerMemberCore(mockAgent, mockTenantId, mockBranchId, formData);
 
     expect(result).toEqual({ ok: true });
     expect(db.transaction).toHaveBeenCalled();
@@ -58,9 +61,10 @@ describe('registerMemberCore', () => {
     formData.append('fullName', 'John Doe');
     formData.append('email', 'invalid-email'); // Invalid email
     formData.append('phone', '1234567890');
+    formData.append('password', 'Secret123!');
     formData.append('planId', 'standard');
 
-    const result = await registerMemberCore(mockAgent, mockTenantId, formData);
+    const result = await registerMemberCore(mockAgent, mockTenantId, mockBranchId, formData);
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -75,9 +79,10 @@ describe('registerMemberCore', () => {
     formData.append('fullName', 'John Doe');
     formData.append('email', 'john@example.com');
     formData.append('phone', '1234567890');
+    formData.append('password', 'Secret123!');
     formData.append('planId', 'standard');
 
-    const result = await registerMemberCore(mockAgent, mockTenantId, formData);
+    const result = await registerMemberCore(mockAgent, mockTenantId, mockBranchId, formData);
 
     expect(result).toEqual({
       ok: false,
