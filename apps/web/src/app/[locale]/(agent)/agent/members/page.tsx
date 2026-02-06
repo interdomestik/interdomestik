@@ -1,8 +1,9 @@
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import { getAgentMembersList } from '@interdomestik/domain-agent';
+import { Badge } from '@interdomestik/ui';
 import { Link } from '@/i18n/routing';
+import { getAgentMembersListReadModel } from '@/features/agent/members/server/get-agent-members-read-model';
 import { auth } from '@/lib/auth';
 import { AgentMembersSearch } from './components/agent-members-search';
 
@@ -32,7 +33,7 @@ export default async function AgentMembersPage({
   const rawSearch = typeof resolvedSearchParams?.q === 'string' ? resolvedSearchParams.q : '';
   const search = rawSearch.trim() || undefined;
 
-  const { members } = await getAgentMembersList({
+  const { members } = await getAgentMembersListReadModel({
     agentId: session.user.id,
     tenantId: session.user.tenantId,
     query: search,
@@ -63,9 +64,9 @@ export default async function AgentMembersPage({
             <thead>
               <tr className="text-left text-muted-foreground">
                 <th className="py-2">Member</th>
-                <th className="py-2">Membership #</th>
-                <th className="py-2">Active claims</th>
-                <th className="py-2">Last updated</th>
+                <th className="py-2">Member number</th>
+                <th className="py-2">Open claims</th>
+                <th className="py-2">Attention</th>
                 <th className="py-2">View</th>
               </tr>
             </thead>
@@ -81,12 +82,17 @@ export default async function AgentMembersPage({
                       {member.name}
                     </Link>
                   </td>
-                  <td className="py-3">{member.membershipNumber ?? '—'}</td>
-                  <td className="py-3">{member.activeClaimsCount}</td>
+                  <td className="py-3">{member.memberNumber ?? '—'}</td>
+                  <td className="py-3">{member.openClaimsCount}</td>
                   <td className="py-3">
-                    {member.lastUpdatedAt
-                      ? new Date(member.lastUpdatedAt).toLocaleDateString(locale)
-                      : '—'}
+                    <Badge
+                      variant={member.attentionState === 'needs_attention' ? 'warning' : 'success'}
+                      data-testid="agent-member-attention-badge"
+                    >
+                      {member.attentionState === 'needs_attention'
+                        ? 'Needs attention'
+                        : 'Up to date'}
+                    </Badge>
                   </td>
                   <td className="py-3" data-testid="agent-member-view-cell">
                     <Link
@@ -94,12 +100,12 @@ export default async function AgentMembersPage({
                       data-testid="agent-member-view-link"
                       className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                       aria-label={
-                        member.membershipNumber
-                          ? `View member ${member.name} (membership ${member.membershipNumber})`
+                        member.memberNumber
+                          ? `View member ${member.name} (membership ${member.memberNumber})`
                           : `View member ${member.name}`
                       }
                     >
-                      View
+                      View member
                     </Link>
                   </td>
                 </tr>

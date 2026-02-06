@@ -31,7 +31,7 @@ test.describe('Agent Member Detail', () => {
     });
 
     const viewCell = page.getByTestId('agent-member-view-cell').first();
-    await viewCell.getByRole('link', { name: 'View' }).click();
+    await viewCell.getByRole('link', { name: 'View member' }).click();
 
     await expect(page.getByTestId('agent-member-detail-ready')).toBeVisible();
     const header = page.getByTestId('agent-member-detail-header');

@@ -24,7 +24,9 @@ export type AgentMemberListItem = {
   memberId: string;
   name: string;
   membershipNumber: string | null;
+  openClaimsCount: number;
   activeClaimsCount: number;
+  attentionState: 'needs_attention' | 'up_to_date';
   lastUpdatedAt: string | null;
 };
 
@@ -86,12 +88,17 @@ export async function getAgentMembersList(params: {
 
   const members = rows.map(row => {
     const lastUpdated = row.lastClaimUpdatedAt ?? row.userUpdatedAt ?? row.joinedAt ?? null;
+    const openClaimsCount = Number(row.activeClaimsCount ?? 0);
+    const attentionState: AgentMemberListItem['attentionState'] =
+      openClaimsCount > 0 ? 'needs_attention' : 'up_to_date';
 
     return {
       memberId: row.memberId,
       name: row.name,
       membershipNumber: row.membershipNumber ?? null,
-      activeClaimsCount: Number(row.activeClaimsCount ?? 0),
+      openClaimsCount,
+      activeClaimsCount: openClaimsCount,
+      attentionState,
       lastUpdatedAt: lastUpdated ? new Date(lastUpdated).toISOString() : null,
     };
   });
