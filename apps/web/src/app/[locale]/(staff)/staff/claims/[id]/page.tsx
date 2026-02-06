@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 import { auth } from '@/lib/auth';
+import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 
 interface PageProps {
   params: Promise<{
@@ -95,6 +96,20 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           )}
         </div>
       </section>
+
+      {session.user.role === 'staff' && (
+        <section
+          className="rounded-lg border bg-white p-4"
+          data-testid="staff-claim-detail-actions"
+        >
+          <ClaimActionPanel
+            claimId={detail.claim.id}
+            currentStatus={detail.claim.status || 'draft'}
+            staffId={session.user.id}
+            assigneeId={detail.claim.staffId}
+          />
+        </section>
+      )}
     </div>
   );
 }

@@ -76,7 +76,10 @@ export function ClaimActionPanel({
   }
 
   return (
-    <div className="bg-white rounded-lg border shadow-sm p-6 space-y-6">
+    <div
+      className="bg-white rounded-lg border shadow-sm p-6 space-y-6"
+      data-testid="staff-claim-action-panel"
+    >
       <h3 className="font-semibold text-lg">Staff Actions</h3>
 
       {/* Assignment Section */}
@@ -86,7 +89,12 @@ export function ClaimActionPanel({
           <p className="text-xs text-muted-foreground">{assignmentLabel}</p>
         </div>
         {!isAssignedToMe && (
-          <Button size="sm" onClick={handleAssign} disabled={isPending}>
+          <Button
+            size="sm"
+            onClick={handleAssign}
+            disabled={isPending}
+            data-testid="staff-assign-claim-button"
+          >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {assigneeId ? 'Reassign to Me' : 'Assign to Me'}
           </Button>

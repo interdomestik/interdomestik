@@ -111,6 +111,13 @@ export async function seedGolden(config: SeedConfig) {
       branchId: 'mk_branch_a',
     },
     {
+      id: goldenId('pilot_mk_staff'),
+      name: E2E_USERS.PILOT_MK_STAFF.name,
+      email: E2E_USERS.PILOT_MK_STAFF.email,
+      role: E2E_USERS.PILOT_MK_STAFF.dbRole,
+      tenantId: TENANTS.PILOT,
+    },
+    {
       id: goldenId('mk_bm_a'),
       name: E2E_USERS.MK_BRANCH_MANAGER.name,
       email: E2E_USERS.MK_BRANCH_MANAGER.email,
