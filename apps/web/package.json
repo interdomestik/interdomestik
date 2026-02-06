@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "NEXT_PUBLIC_FORCE_NIPIO_REDIRECT=1 DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres} BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-test-secret-for-local-dev-only-32chars-minimum} next dev --turbo --hostname 127.0.0.1 --port 3000",
-    "stamp:standalone": "node -e \"const fs=require('node:fs');const path=require('node:path');const cp=require('node:child_process');const gitSha=cp.execSync('git rev-parse HEAD',{encoding:'utf8'}).trim();const stamp={gitSha,builtAt:new Date().toISOString()};const outDir=path.resolve('.next/standalone');const outFile=path.join(outDir,'.build-stamp.json');fs.mkdirSync(outDir,{recursive:true});fs.writeFileSync(outFile,JSON.stringify(stamp,null,2)+'\\n');console.log('[build-stamp] '+outFile+' ('+gitSha+')');\"",
+    "stamp:standalone": "node scripts/stamp-standalone.mjs",
     "build": "next build && pnpm run stamp:standalone && pnpm check:size",
     "build:ci": "next build && pnpm run stamp:standalone",
     "check:size": "node scripts/check-size.mjs",
