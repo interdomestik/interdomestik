@@ -26,7 +26,8 @@ export type AdminOverviewReadModel = {
 export async function getAdminOverviewData(params: {
   tenantId: string;
 }): Promise<AdminOverviewReadModel> {
-  const { tenantId } = params;
+  const { tenantId, locale } = params;
+  void locale;
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const [
