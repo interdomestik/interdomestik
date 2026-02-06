@@ -153,4 +153,55 @@ describe('getAgentMembersList', () => {
 
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.tenantId, 'tenant-3');
   });
+
+  it('supports deterministic pilot split (7 members for agent 1, 3 members for agent 2)', async () => {
+    const now = new Date('2026-02-06T10:00:00.000Z');
+    const pilotRowsAgent1 = [
+      'Arta Krasniqi',
+      'Blerina Gashi',
+      'Donika Berisha',
+      'Elira Hoxha',
+      'Mimoza Shala',
+      'Altin Kelmendi',
+      'Besnik Rexhepi',
+    ].map((name, idx) => ({
+      memberId: `pilot-member-0${idx + 1}`,
+      name,
+      membershipNumber: `PILOT-PR-00000${idx + 1}`,
+      userUpdatedAt: now,
+      joinedAt: now,
+      activeClaimsCount: 0,
+      lastClaimUpdatedAt: null,
+    }));
+    const pilotRowsAgent2 = ['Driton Ahmeti', 'Fisnik Bytyqi', 'Luan Morina'].map((name, idx) => ({
+      memberId: `pilot-member-0${idx + 8}`,
+      name,
+      membershipNumber: `PILOT-PR-00000${idx + 8}`,
+      userUpdatedAt: now,
+      joinedAt: now,
+      activeClaimsCount: 0,
+      lastClaimUpdatedAt: null,
+    }));
+
+    mocks.chain.limit
+      .mockResolvedValueOnce(pilotRowsAgent1 as never)
+      .mockResolvedValueOnce(pilotRowsAgent2 as never);
+
+    const esetResult = await getAgentMembersList({
+      agentId: 'golden_pilot_mk_agent',
+      tenantId: 'pilot-mk',
+    });
+    const bekimResult = await getAgentMembersList({
+      agentId: 'golden_pilot_mk_agent_2',
+      tenantId: 'pilot-mk',
+    });
+
+    expect(esetResult.members).toHaveLength(7);
+    expect(esetResult.members[0].name).toBe('Arta Krasniqi');
+    expect(esetResult.members[6].name).toBe('Besnik Rexhepi');
+
+    expect(bekimResult.members).toHaveLength(3);
+    expect(bekimResult.members[0].name).toBe('Driton Ahmeti');
+    expect(bekimResult.members[2].name).toBe('Luan Morina');
+  });
 });
