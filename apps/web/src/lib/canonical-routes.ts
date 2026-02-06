@@ -25,7 +25,7 @@ export function getCanonicalRouteForRole(role: RoleLike, locale: string): string
   if (!safeLocale) return null;
   if (ADMIN_ROLES.has(role)) return `/${safeLocale}/admin/overview`;
   if (role === 'staff') return `/${safeLocale}/staff/claims`;
-  if (role === 'agent') return `/${safeLocale}/agent/members`;
+  if (role === 'agent') return `/${safeLocale}/agent`;
   if (role === 'member' || role === 'user') return `/${safeLocale}/member`;
   return null;
 }

@@ -41,6 +41,7 @@
       "deleting": "Deleting...",
       "noResults": "No branches found.",
       "no_branches": "No branches found.",
+      "no_branches_subtitle": "Try adjusting your filters or create a new branch.",
       "status_active": "Active",
       "status_inactive": "Inactive",
       "status_active": "Active",

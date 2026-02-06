@@ -9,6 +9,7 @@ import {
 } from '@/actions/admin-rbac';
 import { OpsTable } from '@/components/ops';
 import {
+  ROLE_AGENT,
   ROLE_BRANCH_MANAGER,
   ROLE_MEMBER,
   ROLE_PROMOTER,
@@ -47,7 +48,13 @@ type UserRoleRow = {
   branchId: string | null;
 };
 
-const DEFAULT_ROLE_OPTIONS = [ROLE_TENANT_ADMIN, ROLE_BRANCH_MANAGER, ROLE_MEMBER, ROLE_PROMOTER];
+const DEFAULT_ROLE_OPTIONS = [
+  ROLE_TENANT_ADMIN,
+  ROLE_BRANCH_MANAGER,
+  ROLE_AGENT,
+  ROLE_MEMBER,
+  ROLE_PROMOTER,
+];
 const TENANT_WIDE_BRANCH = '__tenant__';
 
 function formatBranchName(b: Branch | { name: string; code?: string | null }) {
@@ -201,16 +208,18 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
           <div className="grid gap-2">
             <Label>Role</Label>
             <Select value={grantRole} onValueChange={setGrantRole}>
-              <SelectTrigger>
+              <SelectTrigger data-testid="role-select-trigger">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent data-testid="role-select-content">
                 {DEFAULT_ROLE_OPTIONS.map(r => (
-                  <SelectItem key={r} value={r}>
+                  <SelectItem key={r} value={r} data-testid={`role-option-${r}`}>
                     {r}
                   </SelectItem>
                 ))}
-                <SelectItem value="__custom__">Custom…</SelectItem>
+                <SelectItem value="__custom__" data-testid="role-option-custom">
+                  Custom…
+                </SelectItem>
               </SelectContent>
             </Select>
             {grantRole === '__custom__' ? (
@@ -225,12 +234,12 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
           <div className="grid gap-2">
             <Label>Branch</Label>
             <Select value={grantBranchId} onValueChange={setGrantBranchId}>
-              <SelectTrigger>
+              <SelectTrigger data-testid="branch-select-trigger">
                 <SelectValue placeholder="Tenant-wide" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent data-testid="branch-select-content">
                 {branchOptions.map(b => (
-                  <SelectItem key={b.id} value={b.id}>
+                  <SelectItem key={b.id} value={b.id} data-testid={`branch-option-${b.id}`}>
                     {b.id === TENANT_WIDE_BRANCH ? 'Tenant-wide' : formatBranchName(b)}
                   </SelectItem>
                 ))}
@@ -261,32 +270,34 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
           </div>
         </div>
 
-        <OpsTable
-          columns={[
-            { key: 'role', header: 'Role' },
-            { key: 'branch', header: 'Branch' },
-          ]}
-          rows={roles.map(r => {
-            const branch = r.branchId ? branches.find(b => b.id === r.branchId) : null;
-            return {
-              id: r.id,
-              cells: [
-                <span key="role" className="font-medium">
-                  {r.role}
-                </span>,
-                <span key="branch">{branch ? formatBranchName(branch) : '—'}</span>,
-              ],
-              actions: (
-                <Button type="button" size="sm" variant="ghost" onClick={() => handleRevoke(r)}>
-                  Revoke
-                </Button>
-              ),
-            };
-          })}
-          loading={loading}
-          emptyLabel="No roles assigned"
-          actionsHeader=""
-        />
+        <div data-testid="user-roles-table">
+          <OpsTable
+            columns={[
+              { key: 'role', header: 'Role' },
+              { key: 'branch', header: 'Branch' },
+            ]}
+            rows={roles.map(r => {
+              const branch = r.branchId ? branches.find(b => b.id === r.branchId) : null;
+              return {
+                id: r.id,
+                cells: [
+                  <span key="role" className="font-medium">
+                    {r.role}
+                  </span>,
+                  <span key="branch">{branch ? formatBranchName(branch) : '—'}</span>,
+                ],
+                actions: (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => handleRevoke(r)}>
+                    Revoke
+                  </Button>
+                ),
+              };
+            })}
+            loading={loading}
+            emptyLabel="No roles assigned"
+            actionsHeader=""
+          />
+        </div>
       </CardContent>
     </Card>
   );

@@ -7,11 +7,16 @@ export function getTrustedOrigins(): string[] | undefined {
         .filter(Boolean)
     : [];
 
-  // DX: Automatically trust nip.io subdomains in development to fix multi-tenant login
-  if (process.env.NODE_ENV === 'development') {
+  // DX: Automatically trust nip.io subdomains in development or automated tests to fix multi-tenant login
+  if (
+    process.env.NODE_ENV === 'development' ||
+    process.env.INTERDOMESTIK_AUTOMATED === '1' ||
+    process.env.PLAYWRIGHT === '1'
+  ) {
     const devOrigins = [
       'http://ks.127.0.0.1.nip.io:3000',
       'http://mk.127.0.0.1.nip.io:3000',
+      'http://pilot.127.0.0.1.nip.io:3000',
       'http://app.127.0.0.1.nip.io:3000',
       'http://127.0.0.1.nip.io:3000',
       'http://127.0.0.1:3000', // Bare IP support

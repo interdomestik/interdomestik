@@ -10,15 +10,17 @@ const SESSION_COOKIE_NAMES = [
 
 const TENANT_COOKIE_NAME = 'tenantId';
 
-function resolveTenantFromHost(host: string): 'tenant_mk' | 'tenant_ks' | null {
+function resolveTenantFromHost(host: string): 'tenant_mk' | 'tenant_ks' | 'pilot-mk' | null {
   const raw = host.split(':')[0].toLowerCase();
 
   if (raw.startsWith('mk.')) return 'tenant_mk';
   if (raw.startsWith('ks.')) return 'tenant_ks';
+  if (raw.startsWith('pilot.')) return 'pilot-mk';
 
   // Robust nip.io check
   if (raw.includes('mk.127.0.0.1.nip.io')) return 'tenant_mk';
   if (raw.includes('ks.127.0.0.1.nip.io')) return 'tenant_ks';
+  if (raw.includes('pilot.127.0.0.1.nip.io')) return 'pilot-mk';
 
   return null;
 }

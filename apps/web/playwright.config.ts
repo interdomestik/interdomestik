@@ -9,6 +9,7 @@ const BASE_URL = `http://${BASE_HOST}:${PORT}`;
 // Use nip.io to avoid /etc/hosts dependency in CI
 const KS_HOST = process.env.KS_HOST ?? `ks.${BIND_HOST}.nip.io:${PORT}`;
 const MK_HOST = process.env.MK_HOST ?? `mk.${BIND_HOST}.nip.io:${PORT}`;
+const PILOT_HOST = process.env.PILOT_HOST ?? `pilot.${BIND_HOST}.nip.io:${PORT}`;
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
 
 function tenantBaseUrl(hostWithPort: string, locale: string): string {
@@ -192,6 +193,17 @@ export default defineConfig({
       // Mirror the ks-sq lane: run the normal E2E suite against the MK tenant + mk locale.
       testIgnore: [/setup\.state\.spec\.ts/],
     },
+    {
+      name: 'pilot-mk',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: tenantBaseUrl(PILOT_HOST, 'en'),
+        extraHTTPHeaders: {
+          'x-forwarded-host': PILOT_HOST,
+        },
+      },
+      testMatch: ['pilot/**/*.spec.ts'],
+    },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // SMOKE (Legacy/Cross-Check)
@@ -227,7 +239,7 @@ export default defineConfig({
       NODE_OPTIONS: '--dns-result-order=ipv4first',
       NEXT_PUBLIC_APP_URL: BASE_URL,
       BETTER_AUTH_URL: BASE_URL,
-      BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},${BASE_URL}`,
+      BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},http://${PILOT_HOST},${BASE_URL}`,
       INTERDOMESTIK_AUTOMATED: '1',
       PLAYWRIGHT: '1',
       NEXT_PUBLIC_BILLING_TEST_MODE: '1',
