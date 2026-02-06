@@ -65,6 +65,12 @@ export const E2E_USERS = {
     dbRole: 'agent',
     tenantId: 'pilot-mk',
   },
+  PILOT_MK_STAFF: {
+    email: 'staff.pilot@interdomestik.com',
+    name: 'Pilot Staff',
+    dbRole: 'staff',
+    tenantId: 'pilot-mk',
+  },
 
   // KS USERS
   KS_ADMIN: {

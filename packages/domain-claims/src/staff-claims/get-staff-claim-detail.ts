@@ -6,6 +6,7 @@ export type StaffClaimDetail = {
     id: string;
     claimNumber: string | null;
     status: string | null;
+    staffId: string | null;
     stageLabel: string;
     submittedAt: string | null;
     updatedAt: string | null;
@@ -44,6 +45,7 @@ export async function getStaffClaimDetail(params: {
       claimId: claims.id,
       claimNumber: claims.claimNumber,
       status: claims.status,
+      staffId: claims.staffId,
       updatedAt: claims.updatedAt,
       createdAt: claims.createdAt,
       agentId: claims.agentId,
@@ -77,6 +79,7 @@ export async function getStaffClaimDetail(params: {
       id: row.claimId,
       claimNumber: row.claimNumber,
       status: row.status,
+      staffId: row.staffId ?? null,
       stageLabel: formatStageLabel(row.status),
       submittedAt: normalizeDate(row.createdAt),
       updatedAt: normalizeDate(row.updatedAt ?? row.createdAt),
