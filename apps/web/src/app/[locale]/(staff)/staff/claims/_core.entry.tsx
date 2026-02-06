@@ -18,6 +18,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return notFound();
+  // Pilot policy: branch managers can monitor queue volume, but only staff process claims.
   if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
     return notFound();
   }

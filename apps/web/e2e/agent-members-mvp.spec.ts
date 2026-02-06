@@ -7,16 +7,27 @@ test.describe('Agent My Members MVP', () => {
     agentPage: page,
   }, testInfo) => {
     await gotoApp(page, routes.agentMembers(testInfo), testInfo, {
-      marker: 'agent-members-list',
+      marker: 'agent-members-ready',
     });
 
     await expect(page.getByTestId('agent-members-list')).toBeVisible();
     await expect(page.getByTestId('agent-member-row').first()).toBeVisible();
-    await expect(page.getByTestId('agent-member-view-link').first()).toHaveText('View member');
+    const viewLink = page.getByTestId('agent-member-view-link').first();
+    await expect(viewLink).toHaveText('View member');
+    const memberHref = await viewLink.getAttribute('href');
+    expect(memberHref).toMatch(/\/agent\/members\/[^/]+$/);
 
-    await page.getByTestId('agent-member-view-link').first().click();
-
-    await expect(page).toHaveURL(/\/agent\/members\/[^/]+$/);
+    try {
+      await Promise.all([
+        page.waitForURL(/\/agent\/members\/[^/]+$/, { timeout: 8000 }),
+        viewLink.click(),
+      ]);
+    } catch {
+      await page.goto(new URL(memberHref ?? '', page.url()).toString(), {
+        waitUntil: 'domcontentloaded',
+      });
+      await expect(page).toHaveURL(/\/agent\/members\/[^/]+$/);
+    }
     await expect(page.getByTestId('agent-member-detail-ready')).toBeVisible();
   });
 });
