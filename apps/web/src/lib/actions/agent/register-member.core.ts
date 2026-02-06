@@ -1,7 +1,13 @@
 import { sendMemberWelcomeEmail } from '@/lib/email';
 import { generateMemberNumber } from '@/server/domains/members/member-number';
 import { db } from '@interdomestik/database/db';
-import { agentClients, subscriptions, user as userTable } from '@interdomestik/database/schema';
+import {
+  account,
+  agentClients,
+  subscriptions,
+  user as userTable,
+} from '@interdomestik/database/schema';
+import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
 import { registerMemberSchema } from './schemas';
 
@@ -49,12 +55,14 @@ async function withCircuitBreaker<T>(operation: () => Promise<T>): Promise<T> {
 export async function registerMemberCore(
   agent: { id: string; name?: string | null },
   tenantId: string,
+  agentBranchId: string | null,
   formData: FormData
 ) {
   const rawData = {
     fullName: formData.get('fullName'),
     email: formData.get('email'),
     phone: formData.get('phone'),
+    password: formData.get('password'),
     planId: formData.get('planId'),
     notes: formData.get('notes') || undefined,
   };
@@ -81,11 +89,22 @@ export async function registerMemberCore(
       await tx.insert(userTable).values({
         id: userId,
         tenantId,
+        branchId: agentBranchId,
         name: data.fullName,
         email: data.email,
         emailVerified: false,
         role: 'member', // Critical change: was 'user'
         agentId: agent.id,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await tx.insert(account).values({
+        id: `${userId}-credential`,
+        accountId: data.email,
+        providerId: 'credential',
+        userId,
+        password: await hash(data.password, 10),
         createdAt: now,
         updatedAt: now,
       });
@@ -110,6 +129,8 @@ export async function registerMemberCore(
       await tx.insert(subscriptions).values({
         id: nanoid(),
         tenantId,
+        branchId: agentBranchId,
+        agentId: agent.id,
         userId,
         planId: data.planId,
         status: 'active',
