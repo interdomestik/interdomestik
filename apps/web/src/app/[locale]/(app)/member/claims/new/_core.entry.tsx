@@ -17,20 +17,22 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 type Props = {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{ category?: string }>;
 };
 
-export default async function NewClaimPage({ searchParams }: Props) {
+export default async function NewClaimPage({ params, searchParams }: Props) {
+  const { locale } = await params;
   const t = await getTranslations('claims');
-  const params = await searchParams;
-  const preselectedCategory = params.category;
+  const query = await searchParams;
+  const preselectedCategory = query.category;
 
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session) {
-    redirect('/auth/sign-in');
+    redirect(`/${locale}/login`);
   }
 
   const tenantId = ensureTenantId(session);

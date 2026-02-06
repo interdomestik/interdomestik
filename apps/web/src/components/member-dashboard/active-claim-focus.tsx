@@ -1,3 +1,4 @@
+import { Link } from '@/i18n/routing';
 import type { ReactElement } from 'react';
 
 export type ActiveClaimFocusProps = {
@@ -25,7 +26,7 @@ export function ActiveClaimFocus({
       <p>{stageLabel}</p>
       <p>{status}</p>
       <p>{updatedAt ?? '—'}</p>
-      {nextMemberAction ? <a href={nextMemberAction.href}>{nextMemberAction.label}</a> : null}
+      {nextMemberAction ? <Link href={nextMemberAction.href}>{nextMemberAction.label}</Link> : null}
     </section>
   );
 }

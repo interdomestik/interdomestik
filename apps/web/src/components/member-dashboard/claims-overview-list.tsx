@@ -1,3 +1,4 @@
+import { Link } from '@/i18n/routing';
 import type { ReactElement } from 'react';
 
 export type ClaimsOverviewItem = {
@@ -31,7 +32,7 @@ export function ClaimsOverviewList({ claims }: ClaimsOverviewListProps): ReactEl
             <span>{claim.submittedAt ?? '—'}</span>
             <span>{claim.updatedAt ?? '—'}</span>
             {claim.requiresMemberAction && claim.nextMemberAction ? (
-              <a href={claim.nextMemberAction.href}>{claim.nextMemberAction.label}</a>
+              <Link href={claim.nextMemberAction.href}>{claim.nextMemberAction.label}</Link>
             ) : null}
           </li>
         ))}
