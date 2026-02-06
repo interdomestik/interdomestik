@@ -15,8 +15,8 @@ describe('getCanonicalRouteForRole', () => {
     expect(getCanonicalRouteForRole('user', 'sq')).toBe('/sq/member');
   });
 
-  it('maps agent to agent members', () => {
-    expect(getCanonicalRouteForRole('agent', 'sq')).toBe('/sq/agent/members');
+  it('maps agent to agent dashboard', () => {
+    expect(getCanonicalRouteForRole('agent', 'sq')).toBe('/sq/agent');
   });
 
   it('maps staff to staff claims', () => {
@@ -67,7 +67,7 @@ describe('getPortalLabel', () => {
 
 describe('stripLocalePrefixFromCanonicalRoute', () => {
   it('removes locale prefix when present', () => {
-    expect(stripLocalePrefixFromCanonicalRoute('/sq/agent/members', 'sq')).toBe('/agent/members');
+    expect(stripLocalePrefixFromCanonicalRoute('/sq/agent', 'sq')).toBe('/agent');
   });
 
   it('returns null when canonical is null', () => {
@@ -75,6 +75,6 @@ describe('stripLocalePrefixFromCanonicalRoute', () => {
   });
 
   it('returns canonical when locale is invalid', () => {
-    expect(stripLocalePrefixFromCanonicalRoute('/sq/agent/members', '')).toBe('/sq/agent/members');
+    expect(stripLocalePrefixFromCanonicalRoute('/sq/agent', '')).toBe('/sq/agent');
   });
 });

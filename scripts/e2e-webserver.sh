@@ -42,6 +42,7 @@ load_env_file "${WEB_DIR}/.env.local"
 NIPIO_ORIGINS=(
 	"http://ks.127.0.0.1.nip.io:3000"
 	"http://mk.127.0.0.1.nip.io:3000"
+	"http://pilot.127.0.0.1.nip.io:3000"
 	"http://app.127.0.0.1.nip.io:3000"
 	"http://127.0.0.1.nip.io:3000"
 )

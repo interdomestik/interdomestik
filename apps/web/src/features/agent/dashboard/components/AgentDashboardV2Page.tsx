@@ -42,7 +42,15 @@ export async function AgentDashboardV2Page({
 
   const agentId = session.user.id;
 
-  const stats = await getAgentDashboardV2StatsCore({ agentId }, { db });
+  const [stats, branch] = await Promise.all([
+    getAgentDashboardV2StatsCore({ agentId }, { db }),
+    session.user.branchId
+      ? db.query.branches.findFirst({
+          where: (fields, { eq }) => eq(fields.id, session.user.branchId!),
+          columns: { name: true },
+        })
+      : null,
+  ]);
 
   // Get commission summary
   const summaryResult = await getMyCommissionSummary();
@@ -65,6 +73,16 @@ export async function AgentDashboardV2Page({
               day: 'numeric',
             })}
           </p>
+          {branch && (
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-primary/70">
+                Assigned Branch:
+              </span>
+              <span className="text-xs font-bold" data-testid="agent-branch-context">
+                {branch.name}
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild>

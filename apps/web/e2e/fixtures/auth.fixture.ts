@@ -34,7 +34,7 @@ type GlobalE2E = typeof globalThis & {
   __E2E_BASE_URL?: string;
 };
 
-type Tenant = 'ks' | 'mk';
+type Tenant = 'ks' | 'mk' | 'pilot';
 
 type Role = 'member' | 'member_empty' | 'admin' | 'agent' | 'staff' | 'branch_manager' | 'admin_mk';
 
@@ -112,6 +112,7 @@ function attachDialogDiagnostics(page: Page): void {
 
 function getTenantFromTestInfo(testInfo: TestInfo): Tenant {
   const name = testInfo.project.name;
+  if (name.includes('pilot')) return 'pilot';
   if (name.includes('mk')) return 'mk';
   return 'ks';
 }
@@ -140,6 +141,17 @@ function getUserForTenant(role: Role, tenant: Tenant) {
   // Branch manager per tenant
   if (role === 'branch_manager') {
     return tenant === 'mk' ? E2E_USERS.MK_BRANCH_MANAGER : E2E_USERS.KS_BRANCH_MANAGER;
+  }
+
+  if (tenant === 'pilot') {
+    switch (role) {
+      case 'admin':
+        return E2E_USERS.PILOT_MK_ADMIN;
+      case 'agent':
+        return E2E_USERS.PILOT_MK_AGENT;
+      default:
+        throw new Error(`Role ${role} not implemented for pilot tenant`);
+    }
   }
 
   if (tenant === 'mk') {
