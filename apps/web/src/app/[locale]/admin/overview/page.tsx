@@ -25,7 +25,6 @@ export default async function AdminOverviewPage({
 
   const overview = await getAdminOverviewData({
     tenantId: session.user.tenantId,
-    locale,
   });
 
   return (
