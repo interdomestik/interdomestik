@@ -101,6 +101,8 @@ describe('getAgentMembersList', () => {
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.tenantId, 'tenant-1');
     expect(result.members).toHaveLength(1);
     expect(result.members[0].name).toBe('Arben Krasniqi');
+    expect(result.members[0].openClaimsCount).toBe(0);
+    expect(result.members[0].attentionState).toBe('up_to_date');
   });
 
   it('returns members when query matches membership number', async () => {
@@ -125,6 +127,8 @@ describe('getAgentMembersList', () => {
     expect(mocks.ilike).toHaveBeenCalledWith(mocks.user.memberNumber, '%000010%');
     expect(result.members).toHaveLength(1);
     expect(result.members[0].membershipNumber).toBe('MEM-2026-000010');
+    expect(result.members[0].openClaimsCount).toBe(1);
+    expect(result.members[0].attentionState).toBe('needs_attention');
   });
 
   it('returns empty when query matches nothing', async () => {

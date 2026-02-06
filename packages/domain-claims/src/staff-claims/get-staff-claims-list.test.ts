@@ -9,14 +9,8 @@ const mocks = vi.hoisted(() => {
     limit: vi.fn(),
   };
 
-  const agentChain = {
-    from: vi.fn(),
-    where: vi.fn(),
-  };
-
   return {
     claimChain,
-    agentChain,
     db: { select: vi.fn() },
     claims: {
       id: 'claims.id',
@@ -24,12 +18,12 @@ const mocks = vi.hoisted(() => {
       claimNumber: 'claims.claim_number',
       status: 'claims.status',
       updatedAt: 'claims.updated_at',
-      agentId: 'claims.agent_id',
       userId: 'claims.user_id',
     },
     user: {
       id: 'user.id',
       name: 'user.name',
+      memberNumber: 'user.member_number',
     },
     eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
     desc: vi.fn(value => ({ value, op: 'desc' })),
@@ -56,12 +50,11 @@ import { getStaffClaimsList } from './get-staff-claims-list';
 describe('getStaffClaimsList', () => {
   beforeEach(() => {
     mocks.db.select.mockReset();
-    mocks.db.select.mockReturnValueOnce(mocks.claimChain).mockReturnValueOnce(mocks.agentChain);
+    mocks.db.select.mockReturnValueOnce(mocks.claimChain);
     mocks.claimChain.from.mockReturnValue(mocks.claimChain);
     mocks.claimChain.leftJoin.mockReturnValue(mocks.claimChain);
     mocks.claimChain.where.mockReturnValue(mocks.claimChain);
     mocks.claimChain.orderBy.mockReturnValue(mocks.claimChain);
-    mocks.agentChain.from.mockReturnValue(mocks.agentChain);
   });
 
   it('returns claims scoped to tenant', async () => {
@@ -71,12 +64,10 @@ describe('getStaffClaimsList', () => {
         claimNumber: 'KS-0001',
         status: 'submitted',
         updatedAt: new Date('2026-01-01T00:00:00Z'),
-        agentId: 'agent-1',
-        agentName: 'Agent One',
         memberName: 'Member One',
+        memberNumber: 'M-0001',
       },
     ]);
-    mocks.agentChain.where.mockResolvedValue([{ id: 'agent-1', name: 'Agent One' }]);
 
     const result = await getStaffClaimsList({
       staffId: 'staff-1',
@@ -84,10 +75,15 @@ describe('getStaffClaimsList', () => {
       limit: 20,
     });
 
-    expect(mocks.withTenant).toHaveBeenCalledWith('tenant-ks', mocks.claims.tenantId);
+    expect(mocks.withTenant).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenant).toHaveBeenCalledWith(
+      'tenant-ks',
+      mocks.claims.tenantId,
+      expect.objectContaining({ op: 'inArray' })
+    );
     expect(result).toHaveLength(1);
     expect(result[0].claimNumber).toBe('KS-0001');
-    expect(result[0].agentName).toBe('Agent One');
+    expect(result[0].memberNumber).toBe('M-0001');
   });
 
   it('returns empty when no claims match tenant', async () => {

@@ -136,7 +136,9 @@ export async function gotoApp(
       });
   } else {
     try {
-      await expect(page.getByTestId(marker)).toBeVisible({ timeout: 15000 });
+      // Some pages can render duplicated readiness wrappers in transitional layouts.
+      // Accept first visible marker instance instead of failing strict locator resolution.
+      await expect(page.getByTestId(marker).first()).toBeVisible({ timeout: 15000 });
     } catch (e) {
       throw e;
     }

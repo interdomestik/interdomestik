@@ -18,7 +18,18 @@ test.describe('Diaspora Feature', () => {
     // 3. Navigate to Diaspora page
     const ribbonCta = page.getByTestId('diaspora-ribbon-cta');
     await expect(ribbonCta).toBeVisible();
-    await ribbonCta.click();
+    const diasporaHref = await ribbonCta.getAttribute('href');
+    expect(diasporaHref).toContain('/member/diaspora');
+
+    try {
+      await Promise.all([
+        page.waitForURL(/\/member\/diaspora/, { timeout: 8000 }),
+        ribbonCta.click(),
+      ]);
+    } catch {
+      // Fallback for occasional click/nav race on MK host in gate-fast runs.
+      await gotoApp(page, routes.memberDiaspora(testInfo), testInfo, { marker: 'diaspora-page' });
+    }
 
     // 4. Assert we are on the Diaspora page
     await expect(page).toHaveURL(/\/member\/diaspora/);

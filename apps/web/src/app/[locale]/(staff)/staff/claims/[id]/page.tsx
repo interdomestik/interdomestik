@@ -19,6 +19,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return notFound();
+  // Pilot policy: branch managers have read-only visibility; claim actions remain staff-only.
   if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
     return notFound();
   }
