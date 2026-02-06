@@ -1,5 +1,6 @@
 import { claims, db, desc, eq, inArray, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { ACTIONABLE_CLAIM_STATUSES } from '../claims/constants';
 
 export type StaffClaimsListItem = {
   id: string;
@@ -7,8 +8,8 @@ export type StaffClaimsListItem = {
   status: string | null;
   stageLabel: string;
   updatedAt: string | null;
-  agentName?: string;
   memberName?: string;
+  memberNumber?: string | null;
 };
 
 function formatStageLabel(status: string | null | undefined) {
@@ -36,32 +37,14 @@ export async function getStaffClaimsList(params: {
       claimNumber: claims.claimNumber,
       status: claims.status,
       updatedAt: claims.updatedAt,
-      agentId: claims.agentId,
       memberName: user.name,
+      memberNumber: user.memberNumber,
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
-    .where(withTenant(tenantId, claims.tenantId))
+    .where(withTenant(tenantId, claims.tenantId, inArray(claims.status, ACTIONABLE_CLAIM_STATUSES)))
     .orderBy(desc(claims.updatedAt))
     .limit(limit);
-
-  const agentIds = Array.from(
-    new Set(rows.map(row => row.agentId).filter((id): id is string => !!id))
-  );
-
-  const agentNames = new Map<string, string>();
-  if (agentIds.length > 0) {
-    const agents = await db
-      .select({ id: user.id, name: user.name })
-      .from(user)
-      .where(withTenant(tenantId, user.tenantId, inArray(user.id, agentIds)));
-
-    for (const agent of agents) {
-      if (agent.id && agent.name) {
-        agentNames.set(agent.id, agent.name);
-      }
-    }
-  }
 
   return rows.map(row => ({
     id: row.id,
@@ -69,7 +52,7 @@ export async function getStaffClaimsList(params: {
     status: row.status,
     stageLabel: formatStageLabel(row.status),
     updatedAt: normalizeDate(row.updatedAt),
-    agentName: row.agentId ? agentNames.get(row.agentId) : undefined,
     memberName: row.memberName ?? undefined,
+    memberNumber: row.memberNumber ?? null,
   }));
 }
