@@ -13,7 +13,7 @@ test.describe('Agent Pro Scaffold (Golden)', () => {
 
     // 2. Navigate to Pro Workspace
     await gotoApp(page, routes.agentWorkspace(testInfo), testInfo, {
-      marker: 'agent-workspace-page',
+      marker: 'agent-pro-shell',
     });
     await expect(page).toHaveURL(/\/agent\/workspace/);
 
@@ -30,14 +30,14 @@ test.describe('Agent Pro Scaffold (Golden)', () => {
 
     // Try leads
     await gotoApp(page, routes.agentWorkspaceLeads(testInfo), testInfo, {
-      marker: 'agent-leads-pro-page',
+      marker: 'agent-leads-pro',
     });
     await expect(page).toHaveURL(/\/agent\/workspace\/leads/);
 
     // 5. Navigate back to lite dashboard
     await gotoApp(page, routes.agent(testInfo), testInfo, {
-      marker: 'agent-dashboard-page',
+      marker: 'agent-members-ready',
     });
-    await expect(page).toHaveURL(/\/agent$/);
+    await expect(page).toHaveURL(/\/agent\/members$/);
   });
 });
