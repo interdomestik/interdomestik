@@ -52,6 +52,9 @@ test.describe('Agent Pro Claims Messaging (Golden)', () => {
     await sendBtn.evaluate(el => (el as HTMLElement).click());
 
     // 6. Verify message appears
-    await expect(messagingPanel.getByText(testMessage)).toBeVisible({ timeout: 10000 });
+    // Strict mode fix: Target only the rendered message bubble (p tag) to avoid matching the input field
+    await expect(
+      messagingPanel.locator('p.whitespace-pre-wrap').filter({ hasText: testMessage })
+    ).toBeVisible({ timeout: 10000 });
   });
 });

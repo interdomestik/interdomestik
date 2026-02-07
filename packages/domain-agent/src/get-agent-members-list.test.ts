@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => {
     chain,
     sql,
     select: vi.fn(),
+    asc: vi.fn(value => ({ value, op: 'asc' })),
     ilike: vi.fn((column, value) => ({ column, value, op: 'ilike' })),
     or: vi.fn((...conditions) => ({ conditions, op: 'or' })),
     and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
@@ -53,6 +54,7 @@ vi.mock('@interdomestik/database', () => ({
   agentClients: mocks.agentClients,
   claims: mocks.claims,
   db: mocks.db,
+  asc: mocks.asc,
   desc: mocks.desc,
   eq: mocks.eq,
   ilike: mocks.ilike,
@@ -152,6 +154,20 @@ describe('getAgentMembersList', () => {
     });
 
     expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.tenantId, 'tenant-3');
+  });
+
+  it('enforces assignee + tenant + member role scope and deterministic ordering tie-break', async () => {
+    mocks.chain.limit.mockResolvedValue([]);
+
+    await getAgentMembersList({
+      agentId: 'agent-4',
+      tenantId: 'tenant-4',
+    });
+
+    expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.agentId, 'agent-4');
+    expect(mocks.eq).toHaveBeenCalledWith(mocks.agentClients.tenantId, 'tenant-4');
+    expect(mocks.eq).toHaveBeenCalledWith(mocks.user.role, 'member');
+    expect(mocks.asc).toHaveBeenCalledWith(mocks.agentClients.memberId);
   });
 
   it('supports deterministic pilot split (7 members for agent 1, 3 members for agent 2)', async () => {

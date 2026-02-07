@@ -1,6 +1,7 @@
 import {
   agentClients,
   and,
+  asc,
   claims,
   db,
   desc,
@@ -82,7 +83,8 @@ export async function getAgentMembersList(params: {
       agentClients.joinedAt
     )
     .orderBy(
-      desc(sql`coalesce(max(${claims.updatedAt}), ${user.updatedAt}, ${agentClients.joinedAt})`)
+      desc(sql`coalesce(max(${claims.updatedAt}), ${user.updatedAt}, ${agentClients.joinedAt})`),
+      asc(agentClients.memberId)
     )
     .limit(limit);
 
