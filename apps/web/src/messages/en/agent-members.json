@@ -6,6 +6,15 @@
         "description": "Your assigned members and active conversations.",
         "register_member": "Register Member"
       },
+      "cockpit": {
+        "title": "Agent Cockpit",
+        "description": "Prioritize member follow-ups and keep handoffs on track.",
+        "my_members_cta": "My Members",
+        "claims_queue_cta": "Claims Queue",
+        "needs_attention_label": "Needs attention now",
+        "open_claims_label": "Open claims",
+        "support_link": "Agent support"
+      },
       "register": {
         "title": "Register New Member",
         "description": "Manually register a member and activate their membership.",
