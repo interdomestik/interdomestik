@@ -1,4 +1,5 @@
-import { db, memberActivities } from '@interdomestik/database';
+import { db, memberActivities, user } from '@interdomestik/database';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { activitySchema, type LogActivityInput } from './schema';
@@ -31,6 +32,18 @@ export async function logActivityCore(params: {
   const { memberId, type, subject, description } = result.data;
 
   try {
+    const member = await db.query.user.findFirst({
+      where: eq(user.id, memberId),
+    });
+
+    if (!member || member.tenantId !== session.user.tenantId) {
+      return { success: false, error: 'Member access denied' };
+    }
+
+    if (session.user.role === 'agent' && member.agentId !== session.user.id) {
+      return { success: false, error: 'Member access denied' };
+    }
+
     const newActivity = {
       id: nanoid(),
       tenantId: session.user.tenantId,

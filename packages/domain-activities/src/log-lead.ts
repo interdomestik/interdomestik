@@ -1,4 +1,5 @@
-import { crmActivities, db } from '@interdomestik/database';
+import { crmActivities, crmLeads, db } from '@interdomestik/database';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { leadActivitySchema, type LogLeadActivityInput } from './schema';
@@ -37,6 +38,18 @@ export async function logLeadActivityCore(params: {
   const { leadId, type, subject, description } = parsed.data;
 
   try {
+    const lead = await db.query.crmLeads.findFirst({
+      where: eq(crmLeads.id, leadId),
+    });
+
+    if (!lead || lead.tenantId !== session.user.tenantId) {
+      return { success: false, error: 'Lead access denied' };
+    }
+
+    if (session.user.role === 'agent' && lead.agentId !== session.user.id) {
+      return { success: false, error: 'Lead access denied' };
+    }
+
     const newActivity = {
       id: nanoid(),
       tenantId: session.user.tenantId,
