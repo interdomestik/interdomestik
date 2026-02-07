@@ -15,6 +15,13 @@ export interface ConvertLeadResult {
   subscriptionId: string;
 }
 
+export function isLeadAlreadyConverted(lead: {
+  status: string;
+  convertedUserId?: string | null;
+}): boolean {
+  return lead.convertedUserId != null || lead.status === 'converted';
+}
+
 export async function convertLeadToMember(
   ctx: { tenantId: string },
   args: { leadId: string; planId?: string }
@@ -26,7 +33,7 @@ export async function convertLeadToMember(
   });
 
   if (!lead) throw new Error('Lead not found');
-  if (lead.status === 'converted') return null; // Already done (idempotency)
+  if (isLeadAlreadyConverted(lead)) return null; // Already done (idempotency)
 
   const userId = `usr_${nanoid()}`;
   const now = new Date();

@@ -64,7 +64,30 @@ export async function updateLeadStatus(leadId: string, status: string) {
  * or would trigger a complex flow. MVP: Status -> 'converted'.
  */
 export async function convertLeadToClient(leadId: string) {
-  // Re-use status update for MVP, but explicit action allows for future expansion
-  // (e.g. creating user account, sending invite)
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    throw new Error('Unauthorized');
+  }
+
+  const lead = await db.query.memberLeads.findFirst({
+    where: eq(memberLeads.id, leadId),
+  });
+
+  if (!lead) {
+    throw new Error('Lead not found');
+  }
+
+  const sameTenant = lead.tenantId === session.user.tenantId;
+  const sameAgent = lead.agentId === session.user.id;
+  const branchScoped = session.user.branchId ? lead.branchId === session.user.branchId : true;
+
+  if (!sameTenant || !sameAgent || !branchScoped) {
+    throw new Error('Lead access denied');
+  }
+
+  // Re-use status update for MVP, but explicit action allows for future expansion.
   return updateLeadStatus(leadId, 'converted');
 }
