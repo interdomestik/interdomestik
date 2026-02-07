@@ -6,6 +6,15 @@
         "description": "Anëtarët tuaj të caktuar dhe bisedat aktive.",
         "register_member": "Regjistro Anëtar"
       },
+      "cockpit": {
+        "title": "Paneli i Agjentit",
+        "description": "Jepni përparësi ndjekjeve me anëtarët dhe mbani dorëzimet në rregull.",
+        "my_members_cta": "Anëtarët e mi",
+        "claims_queue_cta": "Radha e kërkesave",
+        "needs_attention_label": "Kërkojnë vëmendje tani",
+        "open_claims_label": "Kërkesa të hapura",
+        "support_link": "Ndihmë për agjentin"
+      },
       "register": {
         "title": "Regjistro Anëtar të Ri",
         "description": "Regjistro manualisht një anëtar dhe aktivizo anëtarësimin e tyre.",
