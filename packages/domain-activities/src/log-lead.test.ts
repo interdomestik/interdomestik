@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { logLeadActivityCore } from './log-lead';
 
 const mocks = vi.hoisted(() => ({
+  findLead: vi.fn(),
   insert: vi.fn(),
   values: vi.fn(),
   nanoid: vi.fn(() => 'ACT-123'),
@@ -9,11 +10,19 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   db: {
+    query: {
+      crmLeads: {
+        findFirst: mocks.findLead,
+      },
+    },
     insert: mocks.insert,
   },
   crmActivities: {
     id: 'crmActivities.id',
     leadId: 'crmActivities.leadId',
+  },
+  crmLeads: {
+    id: 'crmLeads.id',
   },
 }));
 
@@ -24,6 +33,11 @@ vi.mock('nanoid', () => ({
 describe('logLeadActivityCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.findLead.mockResolvedValue({
+      id: 'lead-1',
+      tenantId: 't1',
+      agentId: 'agent-1',
+    });
     mocks.insert.mockReturnValue({ values: mocks.values });
   });
 
@@ -64,6 +78,38 @@ describe('logLeadActivityCore', () => {
       data: { ...validData, subject: '' },
     });
     expect(result).toEqual({ success: false, error: 'Validation failed: Subject is required' });
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it('denies when lead is in a different tenant', async () => {
+    mocks.findLead.mockResolvedValue({
+      id: 'lead-1',
+      tenantId: 't2',
+      agentId: 'agent-1',
+    });
+
+    const result = await logLeadActivityCore({
+      session: validSession,
+      data: validData,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Lead access denied' });
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it('denies agent when lead belongs to another agent', async () => {
+    mocks.findLead.mockResolvedValue({
+      id: 'lead-1',
+      tenantId: 't1',
+      agentId: 'agent-2',
+    });
+
+    const result = await logLeadActivityCore({
+      session: validSession,
+      data: validData,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Lead access denied' });
     expect(mocks.insert).not.toHaveBeenCalled();
   });
 
