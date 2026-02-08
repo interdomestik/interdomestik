@@ -91,7 +91,19 @@ describe('updateAgentCommissionRatesCore', () => {
   });
 
   it('should update existing settings', async () => {
-    const existingSettings = { id: 'existing' } as NonNullable<FindFirstResult>;
+    const existingSettings = {
+      id: 'existing',
+      createdAt: null,
+      updatedAt: null,
+      tenantId: 'tenant-1',
+      agentId: 'a1',
+      tier: null,
+      commissionRates: {},
+      canNegotiateRates: false,
+      paymentMethod: null,
+      paymentDetails: null,
+      minPayoutAmount: null,
+    } satisfies NonNullable<FindFirstResult>;
     findFirstMock.mockResolvedValue(existingSettings);
 
     const result = await updateAgentCommissionRatesCore({
