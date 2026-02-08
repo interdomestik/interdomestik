@@ -86,3 +86,4 @@ apps/web/.playwright/
 # Next.js Environment
 next-env.d.ts
 **/next-env.d.ts
+tmp/
