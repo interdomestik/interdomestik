@@ -1,6 +1,7 @@
 import { and, claims, db, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
+import { isNull } from 'drizzle-orm';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type { ActionResult } from './types';
@@ -27,7 +28,7 @@ export async function assignClaimCore(
   const readScope =
     branchId != null
       ? and(eq(claims.id, claimId), eq(claims.branchId, branchId))
-      : eq(claims.id, claimId);
+      : and(eq(claims.id, claimId), eq(claims.staffId, user.id));
   const scopedWhere = withTenant(tenantId, claims.tenantId, readScope);
 
   try {
@@ -49,13 +50,9 @@ export async function assignClaimCore(
       return { success: false, error: 'Claim is already assigned to another staff member' };
     }
 
-    if (branchId == null) {
-      return { success: false, error: 'Claim not found or access denied' };
-    }
-
     const previousStaffId = existingClaim.staffId;
     const now = new Date();
-    await db
+    const updatedClaims = await db
       .update(claims)
       .set({
         staffId: session.user.id,
@@ -63,7 +60,12 @@ export async function assignClaimCore(
         assignedById: user.id,
         updatedAt: now,
       })
-      .where(scopedWhere);
+      .where(and(scopedWhere, isNull(claims.staffId)))
+      .returning({ id: claims.id });
+
+    if (updatedClaims.length === 0) {
+      return { success: false, error: 'Claim not found or access denied' };
+    }
 
     if (deps.logAuditEvent) {
       await deps.logAuditEvent({
