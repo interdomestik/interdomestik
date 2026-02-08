@@ -31,42 +31,61 @@ export async function updateClaimStatus(params: {
       ? and(eq(claims.id, claimId), eq(claims.branchId, branchId))
       : and(eq(claims.id, claimId), eq(claims.staffId, user.id));
   const scopedWhere = withTenant(tenantId, claims.tenantId, scope);
+  return db.transaction(async tx => {
+    const [existingClaim] = await tx
+      .select({
+        id: claims.id,
+        status: claims.status,
+      })
+      .from(claims)
+      .where(scopedWhere)
+      .limit(1);
 
-  const [existingClaim] = await db
-    .select({
-      id: claims.id,
-      status: claims.status,
-      staffId: claims.staffId,
-      branchId: claims.branchId,
-    })
-    .from(claims)
-    .where(scopedWhere)
-    .limit(1);
+    if (!existingClaim) {
+      return { success: false, error: 'Claim not found or access denied', data: undefined };
+    }
 
-  if (!existingClaim) {
-    return { success: false, error: 'Claim not found or access denied', data: undefined };
-  }
+    if (existingClaim.status === parsed.data.status && !note) {
+      return { success: true, error: undefined };
+    }
 
-  if (existingClaim.status === parsed.data.status && !note) {
-    return { success: true, error: undefined };
-  }
+    const now = new Date();
+    const nextStatus = parsed.data.status as NonNullable<typeof existingClaim.status>;
+    const updateData: {
+      status: NonNullable<typeof existingClaim.status>;
+      updatedAt: Date;
+      statusUpdatedAt?: Date;
+    } = {
+      status: nextStatus,
+      updatedAt: now,
+    };
+    if (existingClaim.status !== nextStatus) {
+      updateData.statusUpdatedAt = now;
+    }
 
-  const now = new Date();
-  await db.transaction(async tx => {
-    await tx.update(claims).set({ status: parsed.data.status, updatedAt: now }).where(scopedWhere);
+    const updatedClaims = await tx
+      .update(claims)
+      .set(updateData)
+      .where(scopedWhere)
+      .returning({ id: claims.id });
+
+    if (updatedClaims.length === 0) {
+      return { success: false, error: 'Claim not found or access denied', data: undefined };
+    }
+
     await tx.insert(claimStageHistory).values({
       id: crypto.randomUUID(),
       tenantId,
       claimId,
       fromStatus: existingClaim.status,
-      toStatus: parsed.data.status,
+      toStatus: nextStatus,
       changedById: user.id,
       changedByRole: 'staff',
       note: note ?? null,
       isPublic: true,
       createdAt: now,
     });
-  });
 
-  return { success: true, error: undefined };
+    return { success: true, error: undefined };
+  });
 }

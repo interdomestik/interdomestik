@@ -10,12 +10,21 @@ const mocks = vi.hoisted(() => {
     limit: vi.fn(),
   };
 
-  const txUpdateWhere = vi.fn();
+  const txSelectChain = {
+    from: vi.fn(),
+    where: vi.fn(),
+    limit: vi.fn(),
+  };
+  const txUpdateReturning = vi.fn();
+  const txUpdateWhere = vi.fn(() => ({ returning: txUpdateReturning }));
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
   const txInsertValues = vi.fn();
   const txInsert = vi.fn(() => ({ values: txInsertValues }));
-  const transaction = vi.fn(async cb => cb({ update: txUpdate, insert: txInsert }));
+  const txSelect = vi.fn(() => txSelectChain);
+  const transaction = vi.fn(async cb =>
+    cb({ select: txSelect, update: txUpdate, insert: txInsert })
+  );
 
   return {
     db: {
@@ -50,8 +59,11 @@ const mocks = vi.hoisted(() => {
     txUpdate,
     txUpdateSet,
     txUpdateWhere,
+    txUpdateReturning,
     txInsert,
     txInsertValues,
+    txSelect,
+    txSelectChain,
   };
 });
 
@@ -93,10 +105,13 @@ describe('updateClaimStatus', () => {
     mocks.db.select.mockReturnValue(mocks.selectChain);
     mocks.selectChain.from.mockReturnValue(mocks.selectChain);
     mocks.selectChain.where.mockReturnValue(mocks.selectChain);
+    mocks.txSelect.mockReturnValue(mocks.txSelectChain);
+    mocks.txSelectChain.from.mockReturnValue(mocks.txSelectChain);
+    mocks.txSelectChain.where.mockReturnValue(mocks.txSelectChain);
   });
 
   it('denies cross-tenant update', async () => {
-    mocks.selectChain.limit.mockResolvedValue([]);
+    mocks.txSelectChain.limit.mockResolvedValue([]);
 
     const result = await updateClaimStatus({
       claimId: 'claim-1',
@@ -109,11 +124,16 @@ describe('updateClaimStatus', () => {
       error: 'Claim not found or access denied',
       data: undefined,
     });
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.withTenant).toHaveBeenCalledWith(
+      'tenant-1',
+      'claims.tenant_id',
+      expect.any(Object)
+    );
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
 
   it('denies out-of-scope update when staff branch is present and mismatched', async () => {
-    mocks.selectChain.limit.mockResolvedValue([]);
+    mocks.txSelectChain.limit.mockResolvedValue([]);
 
     await updateClaimStatus({
       claimId: 'claim-1',
@@ -122,11 +142,11 @@ describe('updateClaimStatus', () => {
     });
 
     expect(mocks.eq).toHaveBeenCalledWith('claims.branch_id', 'branch-1');
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
 
   it('denies out-of-scope update when branchless staff is not claim owner', async () => {
-    mocks.selectChain.limit.mockResolvedValue([]);
+    mocks.txSelectChain.limit.mockResolvedValue([]);
 
     await updateClaimStatus({
       claimId: 'claim-1',
@@ -136,13 +156,12 @@ describe('updateClaimStatus', () => {
 
     expect(mocks.eq).toHaveBeenCalledWith('claims.staff_id', 'staff-1');
     expect(mocks.eq).not.toHaveBeenCalledWith('claims.branch_id', expect.anything());
-    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
 
   it('persists status transition and timeline event in one transaction for in-scope update', async () => {
-    mocks.selectChain.limit.mockResolvedValue([
-      { id: 'claim-1', status: 'submitted', staffId: 'staff-1', branchId: 'branch-1' },
-    ]);
+    mocks.txSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'submitted' }]);
+    mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1' }]);
 
     const result = await updateClaimStatus({
       claimId: 'claim-1',
@@ -155,6 +174,13 @@ describe('updateClaimStatus', () => {
     expect(mocks.db.transaction).toHaveBeenCalledTimes(1);
     expect(mocks.txUpdate).toHaveBeenCalledWith(mocks.claims);
     expect(mocks.txInsert).toHaveBeenCalledWith(mocks.claimStageHistory);
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'evaluation',
+        statusUpdatedAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      })
+    );
     expect(mocks.txInsertValues).toHaveBeenCalledWith(
       expect.objectContaining({
         claimId: 'claim-1',
@@ -163,5 +189,23 @@ describe('updateClaimStatus', () => {
         changedById: 'staff-1',
       })
     );
+  });
+
+  it('returns generic denial when scoped update affects zero rows', async () => {
+    mocks.txSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'submitted' }]);
+    mocks.txUpdateReturning.mockResolvedValue([]);
+
+    const result = await updateClaimStatus({
+      claimId: 'claim-1',
+      newStatus: 'evaluation',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Claim not found or access denied',
+      data: undefined,
+    });
+    expect(mocks.txInsertValues).not.toHaveBeenCalled();
   });
 });
