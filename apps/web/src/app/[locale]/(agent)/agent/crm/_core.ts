@@ -36,9 +36,9 @@ export async function getAgentCrmStatsCore(args: { agentId: string }): Promise<A
   ]);
 
   return {
-    newLeadsCount: newLeads?.count ?? 0,
-    contactedLeadsCount: contactedLeads?.count ?? 0,
-    closedWonDealsCount: wonDeals?.count ?? 0,
+    newLeadsCount: Number(newLeads?.count ?? 0),
+    contactedLeadsCount: Number(contactedLeads?.count ?? 0),
+    closedWonDealsCount: Number(wonDeals?.count ?? 0),
     paidCommissionTotal: Number(totalCommission?.total ?? 0),
   };
 }
