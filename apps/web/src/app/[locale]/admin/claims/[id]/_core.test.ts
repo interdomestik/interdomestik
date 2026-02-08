@@ -3,9 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   claimsFindFirst: vi.fn(),
   dbSelect: vi.fn(),
-  getSession: vi.fn(),
-  ensureTenantId: vi.fn(),
-  headers: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ and: args })),
   createSignedUrl: vi.fn(),
 }));
@@ -41,22 +38,6 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSession,
-    },
-  },
-}));
-
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureTenantId: hoisted.ensureTenantId,
-}));
-
-vi.mock('next/headers', () => ({
-  headers: hoisted.headers,
-}));
-
 import { getAdminClaimDetailsCore } from './_core';
 
 function createSelectChain(result: unknown) {
@@ -67,32 +48,24 @@ function createSelectChain(result: unknown) {
 }
 
 describe('getAdminClaimDetailsCore', () => {
-  it('returns not_found when session is missing', async () => {
-    hoisted.getSession.mockResolvedValue(null);
-
+  it('returns not_found when tenant context is missing', async () => {
     const result = await getAdminClaimDetailsCore({ claimId: 'c1' });
 
     expect(result).toEqual({ kind: 'not_found' });
   });
 
   it('returns not_found when claim does not exist', async () => {
-    hoisted.headers.mockResolvedValue(new Headers());
-    hoisted.getSession.mockResolvedValue({ user: { id: 'admin-1' } });
-    hoisted.ensureTenantId.mockReturnValue('tenant-a');
     hoisted.claimsFindFirst.mockResolvedValue(null);
 
-    const result = await getAdminClaimDetailsCore({ claimId: 'c1' });
+    const result = await getAdminClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant-a' });
 
     expect(result).toEqual({ kind: 'not_found' });
   });
 
   it('enforces tenant scope for detail query boundary', async () => {
-    hoisted.headers.mockResolvedValue(new Headers());
-    hoisted.getSession.mockResolvedValue({ user: { id: 'admin-1' } });
-    hoisted.ensureTenantId.mockReturnValue('tenant-a');
     hoisted.claimsFindFirst.mockResolvedValue(null);
 
-    const result = await getAdminClaimDetailsCore({ claimId: 'c1' });
+    const result = await getAdminClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant-a' });
 
     expect(result).toEqual({ kind: 'not_found' });
     expect(hoisted.and).toHaveBeenCalled();
@@ -103,9 +76,6 @@ describe('getAdminClaimDetailsCore', () => {
   });
 
   it('returns claim and docs when found', async () => {
-    hoisted.headers.mockResolvedValue(new Headers());
-    hoisted.getSession.mockResolvedValue({ user: { id: 'admin-1' } });
-    hoisted.ensureTenantId.mockReturnValue('tenant-a');
     hoisted.claimsFindFirst.mockResolvedValue({
       id: 'c1',
       title: 'T',
@@ -126,7 +96,7 @@ describe('getAdminClaimDetailsCore', () => {
 
     hoisted.dbSelect.mockReturnValueOnce(createSelectChain(docsResult));
 
-    const result = await getAdminClaimDetailsCore({ claimId: 'c1' });
+    const result = await getAdminClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant-a' });
 
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;
@@ -145,9 +115,6 @@ describe('getAdminClaimDetailsCore', () => {
   });
 
   it('maps nullable/unknown optional document fields without crashing', async () => {
-    hoisted.headers.mockResolvedValue(new Headers());
-    hoisted.getSession.mockResolvedValue({ user: { id: 'admin-1' } });
-    hoisted.ensureTenantId.mockReturnValue('tenant-a');
     hoisted.claimsFindFirst.mockResolvedValue({
       id: 'c1',
       title: 'T',
@@ -168,7 +135,9 @@ describe('getAdminClaimDetailsCore', () => {
 
     hoisted.dbSelect.mockReturnValueOnce(createSelectChain(docsResult));
 
-    await expect(getAdminClaimDetailsCore({ claimId: 'c1' })).resolves.toMatchObject({
+    await expect(
+      getAdminClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant-a' })
+    ).resolves.toMatchObject({
       kind: 'ok',
       data: {
         id: 'c1',

@@ -1,6 +1,3 @@
-import { auth } from '@/lib/auth';
-import { ensureTenantId } from '@interdomestik/shared-auth';
-import { headers } from 'next/headers';
 import { and, claimDocuments, claims, createAdminClient, db, eq } from '@interdomestik/database';
 
 export type AdminClaimDocument = {
@@ -31,11 +28,9 @@ export type AdminClaimDetailsResult =
 
 export async function getAdminClaimDetailsCore(args: {
   claimId: string;
+  tenantId?: string | null;
 }): Promise<AdminClaimDetailsResult> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return { kind: 'not_found' };
-
-  const tenantId = ensureTenantId(session);
+  const tenantId = args.tenantId ?? null;
   if (!tenantId) return { kind: 'not_found' };
 
   const claim = (await db.query.claims.findFirst({
