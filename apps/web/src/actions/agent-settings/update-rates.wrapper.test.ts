@@ -37,6 +37,10 @@ vi.mock('nanoid', () => ({
 }));
 
 describe('updateAgentCommissionRatesCore', () => {
+  type UpdateRatesParams = Parameters<typeof updateAgentCommissionRatesCore>[0];
+  type AgentSettingsSession = NonNullable<UpdateRatesParams['session']>;
+  const findFirstMock = vi.mocked(db.query.agentSettings.findFirst);
+
   const mockSession = {
     session: {
       id: 'sess1',
@@ -47,7 +51,7 @@ describe('updateAgentCommissionRatesCore', () => {
       token: 'token1',
     },
     user: { id: 'admin1', role: 'admin', tenantId: 'tenant-1' },
-  } as any;
+  } as AgentSettingsSession;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -63,8 +67,13 @@ describe('updateAgentCommissionRatesCore', () => {
   });
 
   it('should fail if not admin', async () => {
+    const nonAdminSession = {
+      ...mockSession,
+      user: { ...mockSession.user, role: 'agent' },
+    } as AgentSettingsSession;
+
     const result = await updateAgentCommissionRatesCore({
-      session: { user: { role: 'agent' } } as any,
+      session: nonAdminSession,
       agentId: 'a1',
       rates: {},
     });
@@ -73,18 +82,18 @@ describe('updateAgentCommissionRatesCore', () => {
 
   it('should fail if rates are invalid', async () => {
     const result = await updateAgentCommissionRatesCore({
-      session: mockSession as any,
+      session: mockSession,
       agentId: 'a1',
-      rates: { new_membership: 1.5 } as any,
+      rates: { new_membership: 1.5 },
     });
     expect(result).toEqual({ success: false, error: 'Rates must be between 0 and 1' });
   });
 
   it('should update existing settings', async () => {
-    (db.query.agentSettings.findFirst as any).mockResolvedValue({ id: 'existing' });
+    findFirstMock.mockResolvedValue({ id: 'existing' } as never);
 
     const result = await updateAgentCommissionRatesCore({
-      session: mockSession as any,
+      session: mockSession,
       agentId: 'a1',
       rates: { new_membership: 0.1 },
     });
@@ -94,10 +103,10 @@ describe('updateAgentCommissionRatesCore', () => {
   });
 
   it('should insert new settings', async () => {
-    (db.query.agentSettings.findFirst as any).mockResolvedValue(null);
+    findFirstMock.mockResolvedValue(null as never);
 
     const result = await updateAgentCommissionRatesCore({
-      session: mockSession as any,
+      session: mockSession,
       agentId: 'a1',
       rates: { new_membership: 0.1 },
     });

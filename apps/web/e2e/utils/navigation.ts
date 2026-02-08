@@ -82,14 +82,15 @@ export async function gotoApp(
     try {
       response = await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
       break;
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
       const isRetryable =
-        e.message.includes('net::ERR_ABORTED') ||
-        e.message.includes('net::ERR_CONNECTION_RESET') ||
-        e.message.includes('net::ERR_CONNECTION_REFUSED');
+        message.includes('net::ERR_ABORTED') ||
+        message.includes('net::ERR_CONNECTION_RESET') ||
+        message.includes('net::ERR_CONNECTION_REFUSED');
 
       if (attempt < maxRetries && isRetryable) {
-        console.warn(`[gotoApp] Retry ${attempt + 1}/${maxRetries} for ${targetUrl}: ${e.message}`);
+        console.warn(`[gotoApp] Retry ${attempt + 1}/${maxRetries} for ${targetUrl}: ${message}`);
         await page.waitForTimeout(1000);
         continue;
       }
