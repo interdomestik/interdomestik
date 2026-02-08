@@ -1,7 +1,7 @@
 import { APP_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { auth } from '@/lib/auth';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
@@ -30,6 +30,7 @@ export default async function AppProtectedLayout({ children, params }: Readonly<
     redirect(`/${locale}/login`);
   }
 
+  setRequestLocale(locale);
   const allMessages = await getMessages();
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),
