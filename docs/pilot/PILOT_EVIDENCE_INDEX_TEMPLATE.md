@@ -1,10 +1,11 @@
 # Pilot Evidence Index Template (14 Days, Mon–Sun)
 
-Use this table as the single source of truth for daily pilot ops evidence.
+For each pilot, copy this template to a per-pilot evidence index file (for example, `PILOT_EVIDENCE_INDEX.md`) and use that copied file as the single source of truth for daily pilot ops evidence.
 
 - Keep one row per operating day.
 - Use absolute or repo-relative bundle paths exactly as generated.
 - If no gate bundle was generated that day, set bundle path to `n/a`.
+- Do not edit this template directly; always work in your copied per-pilot evidence index file.
 
 | Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`defer`/`hotfix`/`stop`) |
 | --- | ----------------- | ----- | ------------------------------ | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |

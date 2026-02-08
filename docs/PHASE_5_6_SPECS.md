@@ -31,7 +31,7 @@ Operationalize the Mon–Sun pilot cadence with deterministic weekend execution 
 - Operating window: `08:00–17:00 Europe/Pristina`.
 - Saturday/Sunday default mode: monitor + log.
 - Change policy: hotfixes allowed only for Sev1 conditions.
-- Sev2/Sev3 on weekends: log, assign owner, defer to weekday ops huddle unless promoted to Sev1 or stop criteria is met.
+- Sev2/Sev3 on weekends: log, assign owner, defer to weekday ops huddle unless promoted to Sev1 or stop criteria are met.
 
 ## Deterministic Ceremony Commands
 
@@ -48,7 +48,7 @@ git status --porcelain
 pnpm security:guard
 ```
 
-If Sev1 incident requires hotfix gating evidence:
+If Sev1 incident requires hotfix gating evidence, execute the Phase 5.1 ceremony after the hotfix is merged to clean, synced `main`:
 
 ```bash
 # Canonical
@@ -62,7 +62,7 @@ bash ./phase-5-1.sh
 
 - Phase 5.1 gate bundle path:
   - `tmp/pilot-evidence/phase-5.1/<YYYY-MM-DDTHH-MM-SS+ZZZZ>/`
-- Pilot ops evidence index:
+- Pilot ops evidence index template (copy per pilot):
   - `docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md`
 - Weekend daily entry format:
   - `Day <N> | <YYYY-MM-DD> | <owner> | <status> | <bundle-path-or-n/a> | <incident-count> | <highest-sev> | <decision>`

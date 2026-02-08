@@ -71,10 +71,10 @@ git status --porcelain
 pnpm security:guard
 ```
 
-- Record results in `docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md`.
+- Record results in a per-pilot evidence index copied from `docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md` (for example, `docs/pilot/PILOT_EVIDENCE_INDEX_<PILOT_ID>.md`).
 - If Sev1 requires hotfix workflow evidence, run:
-  - `./phase-5-1.sh`
-  - Fallback: `bash ./phase-5-1.sh`
+  - after hotfix merge to clean, synced `main`: `./phase-5-1.sh`
+  - fallback on clean, synced `main`: `bash ./phase-5-1.sh`
 - Evidence bundle path convention for full gate runs:
   - `tmp/pilot-evidence/phase-5.1/<YYYY-MM-DDTHH-MM-SS+ZZZZ>/`
 - If no full gate run is required, use `n/a` for bundle path in the evidence index row.
