@@ -58,12 +58,23 @@ export async function assignClaimCore(params: {
   });
 
   if (result.success) {
-    revalidatePathForAllLocales('/member/claims');
-    revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
-    revalidatePathForAllLocales('/admin/claims');
-    revalidatePathForAllLocales(`/admin/claims/${params.claimId}`);
-    revalidatePathForAllLocales('/staff/claims');
-    revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
+    const updatedClaim = await db.query.claims.findFirst({
+      where: (claimsTable, { eq }) =>
+        withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, params.claimId)),
+      columns: {
+        staffId: true,
+      },
+    });
+
+    const persistedStaffId = updatedClaim?.staffId ?? null;
+    if (persistedStaffId !== claim.staffId) {
+      revalidatePathForAllLocales('/member/claims');
+      revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
+      revalidatePathForAllLocales('/admin/claims');
+      revalidatePathForAllLocales(`/admin/claims/${params.claimId}`);
+      revalidatePathForAllLocales('/staff/claims');
+      revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
+    }
   }
 
   return result;

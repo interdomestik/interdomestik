@@ -90,6 +90,10 @@ describe('assignClaimCore (Wrapper Means)', () => {
   });
 
   it('should revalidate paths', async () => {
+    dbMocks.claimFindFirst
+      .mockResolvedValueOnce({ id: 'claim1', staffId: 'staff-old' })
+      .mockResolvedValueOnce({ id: 'claim1', staffId: 'staff1' });
+
     vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
       success: true,
       error: undefined,

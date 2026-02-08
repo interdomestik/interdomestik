@@ -68,6 +68,10 @@ describe('updateClaimStatusCore', () => {
   });
 
   it('revalidates deterministic paths only on successful mutation', async () => {
+    hoisted.claimFindFirst
+      .mockResolvedValueOnce({ id: 'claim-1', status: 'submitted' })
+      .mockResolvedValueOnce({ id: 'claim-1', status: 'resolved' });
+
     const formData = new FormData();
     formData.set('claimId', 'claim-1');
     formData.set('status', 'resolved');
