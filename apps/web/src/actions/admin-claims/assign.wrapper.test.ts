@@ -157,4 +157,42 @@ describe('assignClaimCore (Wrapper Means)', () => {
     expect(domainAssign.assignClaimCore).not.toHaveBeenCalled();
     expect(nextCache.revalidatePath).not.toHaveBeenCalled();
   });
+
+  it('fails closed for unauthorized role before any read/no-op check', async () => {
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: {
+        ...mockSession,
+        user: { ...mockSession.user, role: 'member' },
+      },
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Unauthorized', data: undefined });
+    expect(dbMocks.claimFindFirst).not.toHaveBeenCalled();
+    expect(domainAssign.assignClaimCore).not.toHaveBeenCalled();
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('fails closed for staff assigning another staff before read/no-op check', async () => {
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff2',
+      session: {
+        ...mockSession,
+        user: { ...mockSession.user, role: 'staff', id: 'staff1' },
+      },
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Access denied: Cannot assign other staff',
+      data: undefined,
+    });
+    expect(dbMocks.claimFindFirst).not.toHaveBeenCalled();
+    expect(domainAssign.assignClaimCore).not.toHaveBeenCalled();
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
+  });
 });
