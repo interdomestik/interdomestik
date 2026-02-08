@@ -28,7 +28,6 @@ export async function getStaffClaimsList(params: {
   tenantId: string;
   branchId?: string | null;
   limit: number;
-  cursor?: string | null;
 }): Promise<StaffClaimsListItem[]> {
   const { staffId, tenantId, branchId, limit } = params;
   const scopeCondition =

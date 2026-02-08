@@ -61,7 +61,7 @@ describe('getStaffClaimsList', () => {
     mocks.claimChain.orderBy.mockReturnValue(mocks.claimChain);
   });
 
-  it('returns claims scoped to tenant', async () => {
+  it('returns claims scoped to tenant and branch when branchId exists', async () => {
     mocks.claimChain.limit.mockResolvedValue([
       {
         id: 'claim-1',
