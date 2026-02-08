@@ -9,7 +9,6 @@ import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/ses
 import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { Separator, SidebarInset, SidebarProvider, SidebarTrigger } from '@interdomestik/ui';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { notFound } from 'next/navigation';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
