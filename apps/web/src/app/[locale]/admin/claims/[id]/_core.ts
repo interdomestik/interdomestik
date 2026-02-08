@@ -1,4 +1,7 @@
-import { claimDocuments, claims, createAdminClient, db, eq } from '@interdomestik/database';
+import { auth } from '@/lib/auth';
+import { ensureTenantId } from '@interdomestik/shared-auth';
+import { headers } from 'next/headers';
+import { and, claimDocuments, claims, createAdminClient, db, eq } from '@interdomestik/database';
 
 export type AdminClaimDocument = {
   id: string;
@@ -29,8 +32,14 @@ export type AdminClaimDetailsResult =
 export async function getAdminClaimDetailsCore(args: {
   claimId: string;
 }): Promise<AdminClaimDetailsResult> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return { kind: 'not_found' };
+
+  const tenantId = ensureTenantId(session);
+  if (!tenantId) return { kind: 'not_found' };
+
   const claim = (await db.query.claims.findFirst({
-    where: eq(claims.id, args.claimId),
+    where: and(eq(claims.id, args.claimId), eq(claims.tenantId, tenantId)),
     with: {
       user: true,
     },
@@ -55,6 +64,17 @@ export async function getAdminClaimDetailsCore(args: {
 
   const docs = await Promise.all(
     rawDocs.map(async doc => {
+      if (!doc.bucket || !doc.filePath) {
+        return {
+          id: doc.id,
+          name: doc.name,
+          fileSize: doc.fileSize,
+          fileType: doc.fileType,
+          createdAt: doc.createdAt,
+          url: '',
+        };
+      }
+
       const { data } = await adminClient.storage
         .from(doc.bucket)
         .createSignedUrl(doc.filePath, 60 * 5);

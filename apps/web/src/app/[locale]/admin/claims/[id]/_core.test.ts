@@ -3,6 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   claimsFindFirst: vi.fn(),
   dbSelect: vi.fn(),
+  getSession: vi.fn(),
+  ensureTenantId: vi.fn(),
+  headers: vi.fn(),
+  and: vi.fn((...args: unknown[]) => ({ and: args })),
+  createSignedUrl: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -15,14 +20,15 @@ vi.mock('@interdomestik/database', () => ({
   createAdminClient: vi.fn(() => ({
     storage: {
       from: vi.fn(() => ({
-        createSignedUrl: vi.fn().mockResolvedValue({
+        createSignedUrl: hoisted.createSignedUrl.mockResolvedValue({
           data: { signedUrl: 'https://signed.example.com/doc' },
         }),
       })),
     },
   })),
   eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
-  claims: { id: 'claims.id' },
+  and: hoisted.and,
+  claims: { id: 'claims.id', tenantId: 'claims.tenantId' },
   claimDocuments: {
     id: 'claimDocuments.id',
     claimId: 'claimDocuments.claimId',
@@ -35,6 +41,22 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
+vi.mock('@/lib/auth', () => ({
+  auth: {
+    api: {
+      getSession: hoisted.getSession,
+    },
+  },
+}));
+
+vi.mock('@interdomestik/shared-auth', () => ({
+  ensureTenantId: hoisted.ensureTenantId,
+}));
+
+vi.mock('next/headers', () => ({
+  headers: hoisted.headers,
+}));
+
 import { getAdminClaimDetailsCore } from './_core';
 
 function createSelectChain(result: unknown) {
@@ -45,7 +67,18 @@ function createSelectChain(result: unknown) {
 }
 
 describe('getAdminClaimDetailsCore', () => {
+  it('returns not_found when session is missing', async () => {
+    hoisted.getSession.mockResolvedValue(null);
+
+    const result = await getAdminClaimDetailsCore({ claimId: 'c1' });
+
+    expect(result).toEqual({ kind: 'not_found' });
+  });
+
   it('returns not_found when claim does not exist', async () => {
+    hoisted.headers.mockResolvedValue(new Headers());
+    hoisted.getSession.mockResolvedValue({ user: { id: 'admin-1' } });
+    hoisted.ensureTenantId.mockReturnValue('tenant-a');
     hoisted.claimsFindFirst.mockResolvedValue(null);
 
     const result = await getAdminClaimDetailsCore({ claimId: 'c1' });
@@ -53,7 +86,26 @@ describe('getAdminClaimDetailsCore', () => {
     expect(result).toEqual({ kind: 'not_found' });
   });
 
+  it('enforces tenant scope for detail query boundary', async () => {
+    hoisted.headers.mockResolvedValue(new Headers());
+    hoisted.getSession.mockResolvedValue({ user: { id: 'admin-1' } });
+    hoisted.ensureTenantId.mockReturnValue('tenant-a');
+    hoisted.claimsFindFirst.mockResolvedValue(null);
+
+    const result = await getAdminClaimDetailsCore({ claimId: 'c1' });
+
+    expect(result).toEqual({ kind: 'not_found' });
+    expect(hoisted.and).toHaveBeenCalled();
+    expect(hoisted.and).toHaveBeenCalledWith(
+      { eq: ['claims.id', 'c1'] },
+      { eq: ['claims.tenantId', 'tenant-a'] }
+    );
+  });
+
   it('returns claim and docs when found', async () => {
+    hoisted.headers.mockResolvedValue(new Headers());
+    hoisted.getSession.mockResolvedValue({ user: { id: 'admin-1' } });
+    hoisted.ensureTenantId.mockReturnValue('tenant-a');
     hoisted.claimsFindFirst.mockResolvedValue({
       id: 'c1',
       title: 'T',
@@ -90,5 +142,47 @@ describe('getAdminClaimDetailsCore', () => {
         url: expect.any(String),
       },
     ]);
+  });
+
+  it('maps nullable/unknown optional document fields without crashing', async () => {
+    hoisted.headers.mockResolvedValue(new Headers());
+    hoisted.getSession.mockResolvedValue({ user: { id: 'admin-1' } });
+    hoisted.ensureTenantId.mockReturnValue('tenant-a');
+    hoisted.claimsFindFirst.mockResolvedValue({
+      id: 'c1',
+      title: 'T',
+      user: { name: 'User', email: 'u@example.com', image: null },
+    });
+
+    const docsResult = [
+      {
+        id: 'd1',
+        name: 'file.pdf',
+        fileSize: null,
+        fileType: null,
+        createdAt: null,
+        filePath: null,
+        bucket: null,
+      },
+    ];
+
+    hoisted.dbSelect.mockReturnValueOnce(createSelectChain(docsResult));
+
+    await expect(getAdminClaimDetailsCore({ claimId: 'c1' })).resolves.toMatchObject({
+      kind: 'ok',
+      data: {
+        id: 'c1',
+        docs: [
+          {
+            id: 'd1',
+            name: 'file.pdf',
+            fileSize: null,
+            fileType: null,
+            createdAt: null,
+            url: '',
+          },
+        ],
+      },
+    });
   });
 });
