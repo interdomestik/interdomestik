@@ -56,7 +56,7 @@ describe('assignClaimCore', () => {
       requestHeaders: new Headers(),
     });
 
-    expect(result).toEqual({ success: false, error: 'Claim not found' });
+    expect(result).toEqual({ success: false, error: 'Claim not found', data: undefined });
 
     expect(mocks.withTenant).toHaveBeenCalledWith(
       'tenant-1',
@@ -121,6 +121,22 @@ describe('assignClaimCore', () => {
 
     expect(result).toEqual({ success: false, error: 'Invalid staff assignment', data: undefined });
     expect(mocks.findFirst).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when assignee is missing and does not mutate', async () => {
+    mocks.findFirst.mockResolvedValueOnce({ id: 'claim-1' });
+    const userQueries = (await import('@interdomestik/database')).db.query.user;
+    (userQueries.findFirst as any).mockResolvedValueOnce(null);
+
+    const result = await assignClaimCore({
+      claimId: 'claim-1',
+      staffId: 'missing-staff',
+      session: { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } } as never,
+      requestHeaders: new Headers(),
+    });
+
+    expect(result).toEqual({ success: false, error: 'Staff member not found', data: undefined });
     expect(mocks.update).not.toHaveBeenCalled();
   });
 });
