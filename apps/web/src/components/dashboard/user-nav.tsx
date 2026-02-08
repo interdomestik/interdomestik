@@ -75,10 +75,10 @@ export function UserNav() {
   const { user } = session;
   const role = (user as { role?: string }).role;
   const settingsHref =
-    role === 'agent'
-      ? '/agent/settings'
-      : isAdmin(role) || adminAccess
-        ? '/admin/settings'
+    isAdmin(role) || adminAccess
+      ? '/admin/settings'
+      : role === 'agent'
+        ? '/agent/settings'
         : '/member/settings';
 
   return (
