@@ -19,6 +19,10 @@ export type AgentClaimsResult =
   | { ok: true; data: AgentMemberClaimsDTO[] }
   | { ok: false; code: 'UNAUTHORIZED' | 'FORBIDDEN' | 'INTERNAL' };
 
+export function buildAgentWorkspaceClaimHref(claimId: string): string {
+  return `/agent/workspace/claims?claimId=${encodeURIComponent(claimId)}`;
+}
+
 /**
  * Pure core logic for the Agent Claims Page.
  * Fetches members managed by the agent and their claims, grouped by member.
