@@ -1,4 +1,4 @@
-import { and, claimStageHistory, claims, db, eq } from '@interdomestik/database';
+import { and, claimStageHistory, claims, db, eq, isNull } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -50,7 +50,7 @@ export async function updateClaimStatus(params: {
     }
 
     const now = new Date();
-    const previousStatus = existingClaim.status as NonNullable<typeof existingClaim.status>;
+    const previousStatus = existingClaim.status;
     const nextStatus = parsed.data.status as NonNullable<typeof existingClaim.status>;
     const updateData: {
       status: NonNullable<typeof existingClaim.status>;
@@ -64,10 +64,13 @@ export async function updateClaimStatus(params: {
       updateData.statusUpdatedAt = now;
     }
 
+    const statusGuard =
+      previousStatus == null ? isNull(claims.status) : eq(claims.status, previousStatus);
+
     const updatedClaims = await tx
       .update(claims)
       .set(updateData)
-      .where(and(scopedWhere, eq(claims.status, previousStatus)))
+      .where(and(scopedWhere, statusGuard))
       .returning({ id: claims.id });
 
     if (updatedClaims.length === 0) {
