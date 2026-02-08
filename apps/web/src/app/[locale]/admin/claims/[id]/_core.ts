@@ -1,4 +1,4 @@
-import { claimDocuments, claims, createAdminClient, db, eq } from '@interdomestik/database';
+import { and, claimDocuments, claims, createAdminClient, db, eq } from '@interdomestik/database';
 
 export type AdminClaimDocument = {
   id: string;
@@ -28,9 +28,13 @@ export type AdminClaimDetailsResult =
 
 export async function getAdminClaimDetailsCore(args: {
   claimId: string;
+  tenantId?: string | null;
 }): Promise<AdminClaimDetailsResult> {
+  const tenantId = args.tenantId ?? null;
+  if (!tenantId) return { kind: 'not_found' };
+
   const claim = (await db.query.claims.findFirst({
-    where: eq(claims.id, args.claimId),
+    where: and(eq(claims.id, args.claimId), eq(claims.tenantId, tenantId)),
     with: {
       user: true,
     },
@@ -55,6 +59,17 @@ export async function getAdminClaimDetailsCore(args: {
 
   const docs = await Promise.all(
     rawDocs.map(async doc => {
+      if (!doc.bucket || !doc.filePath) {
+        return {
+          id: doc.id,
+          name: doc.name,
+          fileSize: doc.fileSize,
+          fileType: doc.fileType,
+          createdAt: doc.createdAt,
+          url: '',
+        };
+      }
+
       const { data } = await adminClient.storage
         .from(doc.bucket)
         .createSignedUrl(doc.filePath, 60 * 5);

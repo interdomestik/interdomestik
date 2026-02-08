@@ -35,16 +35,21 @@ function buildConditions(context: ClaimsVisibilityContext, filters: AdminClaimsV
   // admin/tenant_admin/super_admin see all in tenant
 
   // Lifecycle filter
-  if (filters.lifecycleStage) {
-    const statuses = LIFECYCLE_STATUS_MAP[filters.lifecycleStage];
+  const lifecycleStage =
+    typeof filters.lifecycleStage === 'string' && filters.lifecycleStage in LIFECYCLE_STATUS_MAP
+      ? (filters.lifecycleStage as LifecycleStage)
+      : undefined;
+  if (lifecycleStage) {
+    const statuses = LIFECYCLE_STATUS_MAP[lifecycleStage];
     if (statuses && statuses.length > 0) {
       conditions.push(inArray(claims.status, statuses as any));
     }
   }
 
   // Search filter
-  if (filters.search) {
-    const pattern = `%${filters.search}%`;
+  const search = typeof filters.search === 'string' ? filters.search.trim() : '';
+  if (search) {
+    const pattern = `%${search}%`;
     conditions.push(
       or(
         ilike(claims.title, pattern),
@@ -66,8 +71,9 @@ export async function getAdminClaimsV2(
   context: ClaimsVisibilityContext,
   filters: AdminClaimsV2Filters = {}
 ): Promise<AdminClaimsV2Response> {
-  const page = filters.page ?? 1;
-  const perPage = filters.perPage ?? 20;
+  const page = Number.isInteger(filters.page) && (filters.page ?? 0) > 0 ? filters.page! : 1;
+  const perPage =
+    Number.isInteger(filters.perPage) && (filters.perPage ?? 0) > 0 ? filters.perPage! : 20;
   const offset = (page - 1) * perPage;
 
   try {
@@ -108,7 +114,7 @@ export async function getAdminClaimsV2(
       .leftJoin(staff, eq(claims.staffId, staff.id))
       .leftJoin(branches, eq(claims.branchId, branches.id))
       .where(and(...conditions))
-      .orderBy(desc(claims.createdAt))
+      .orderBy(desc(claims.updatedAt), desc(claims.id))
       .limit(perPage)
       .offset(offset);
 
