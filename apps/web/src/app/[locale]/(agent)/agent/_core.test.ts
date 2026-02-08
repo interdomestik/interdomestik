@@ -1,6 +1,6 @@
 import { claims, memberLeads } from '@interdomestik/database/schema';
-import { describe, expect, it, vi } from 'vitest';
-import { getAgentDashboardLiteCore } from './_core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getAgentDashboardLiteCore, getAgentDashboardV2StatsCore } from './_core';
 
 describe('getAgentDashboardLiteCore', () => {
   const mockDb = {
@@ -10,6 +10,12 @@ describe('getAgentDashboardLiteCore', () => {
   };
 
   const services = { db: mockDb as any };
+
+  beforeEach(() => {
+    mockDb.select.mockClear();
+    mockDb.from.mockClear();
+    mockDb.where.mockReset();
+  });
 
   it('calculates counts correctly for an agent', async () => {
     // Mock leads count
@@ -37,5 +43,29 @@ describe('getAgentDashboardLiteCore', () => {
 
     expect(result.newLeadsCount).toBe(0);
     expect(result.activeClaimsCount).toBe(0);
+  });
+
+  it('maps v2 KPI aggregates to numeric DTO fields', async () => {
+    mockDb.where
+      .mockResolvedValueOnce([{ count: '4' }])
+      .mockResolvedValueOnce([{ count: '6' }])
+      .mockResolvedValueOnce([{ count: '2' }])
+      .mockResolvedValueOnce([{ total: '42.75' }])
+      .mockResolvedValueOnce([{ count: '9' }]);
+
+    const stats = await getAgentDashboardV2StatsCore({ agentId: 'agent-1' }, services);
+
+    expect(stats).toEqual({
+      newLeads: 4,
+      contactedLeads: 6,
+      wonDeals: 2,
+      totalPaidCommission: 42.75,
+      clientCount: 9,
+    });
+    expect(typeof stats.newLeads).toBe('number');
+    expect(typeof stats.contactedLeads).toBe('number');
+    expect(typeof stats.wonDeals).toBe('number');
+    expect(typeof stats.totalPaidCommission).toBe('number');
+    expect(typeof stats.clientCount).toBe('number');
   });
 });

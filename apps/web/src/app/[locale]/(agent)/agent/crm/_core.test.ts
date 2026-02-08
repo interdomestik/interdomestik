@@ -54,12 +54,12 @@ describe('getAgentCrmStatsCore', () => {
     });
   });
 
-  it('maps counts and totals to a stable DTO', async () => {
+  it('maps counts and totals to a stable numeric DTO', async () => {
     hoisted.dbSelect
-      .mockReturnValueOnce(createSelectChain([{ count: 3 }]))
-      .mockReturnValueOnce(createSelectChain([{ count: 7 }]))
-      .mockReturnValueOnce(createSelectChain([{ count: 2 }]))
-      .mockReturnValueOnce(createSelectChain([{ total: 123.45 }]));
+      .mockReturnValueOnce(createSelectChain([{ count: '3' }]))
+      .mockReturnValueOnce(createSelectChain([{ count: '7' }]))
+      .mockReturnValueOnce(createSelectChain([{ count: '2' }]))
+      .mockReturnValueOnce(createSelectChain([{ total: '123.45' }]));
 
     const stats = await getAgentCrmStatsCore({ agentId: 'agent-1' });
 
@@ -69,5 +69,9 @@ describe('getAgentCrmStatsCore', () => {
       closedWonDealsCount: 2,
       paidCommissionTotal: 123.45,
     });
+    expect(typeof stats.newLeadsCount).toBe('number');
+    expect(typeof stats.contactedLeadsCount).toBe('number');
+    expect(typeof stats.closedWonDealsCount).toBe('number');
+    expect(typeof stats.paidCommissionTotal).toBe('number');
   });
 });
