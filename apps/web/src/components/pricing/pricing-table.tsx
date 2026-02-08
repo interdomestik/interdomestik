@@ -7,7 +7,6 @@ import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 interface PricingTableProps {
@@ -26,7 +25,6 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
   const t = useTranslations('pricing');
   const locale = useLocale();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
   const [isYearly, setIsYearly] = useState(true);
 
