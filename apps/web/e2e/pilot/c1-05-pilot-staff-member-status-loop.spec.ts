@@ -4,13 +4,18 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
 const PILOT_TENANT_ID = 'pilot-mk';
-const PILOT_HOST = 'pilot.127.0.0.1.nip.io:3000';
 
 test.describe('C1 Pilot: Staff to member status loop', () => {
   test('staff status update is visible on member claim detail', async ({
     agentPage,
     browser,
   }, testInfo) => {
+    const baseUrl = testInfo.project.use.baseURL;
+    if (!baseUrl) {
+      throw new Error('Expected project baseURL for pilot host resolution');
+    }
+    const pilotHost = new URL(baseUrl).host;
+
     const seededAgent = await db.query.user.findFirst({
       where: eq(user.email, 'agent.pilot@interdomestik.com'),
       columns: { id: true, tenantId: true, branchId: true },
@@ -70,145 +75,151 @@ test.describe('C1 Pilot: Staff to member status loop', () => {
       throw new Error('Created pilot member not found');
     }
 
-    const memberContext = await browser.newContext({
-      baseURL: `http://${PILOT_HOST}/en`,
-      extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
-      locale: 'en-US',
-    });
-    const memberPage = await memberContext.newPage();
+    let memberContext: Awaited<ReturnType<typeof browser.newContext>> | null = null;
+    let staffContext: Awaited<ReturnType<typeof browser.newContext>> | null = null;
 
-    await gotoApp(memberPage, '/en/login', testInfo, { marker: 'body' });
-    await memberPage.getByTestId('login-email').fill(memberEmail);
-    await memberPage.getByTestId('login-password').fill(E2E_PASSWORD);
-    await memberPage.getByTestId('login-submit').click();
+    try {
+      memberContext = await browser.newContext({
+        baseURL: `http://${pilotHost}/en`,
+        extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
+        locale: 'en-US',
+      });
+      const memberPage = await memberContext.newPage();
 
-    await expect(memberPage).toHaveURL(/\/(?:en\/)?member$/);
-    await gotoApp(memberPage, routes.memberNewClaim('en'), testInfo, {
-      marker: 'dashboard-page-ready',
-    });
+      await gotoApp(memberPage, '/en/login', testInfo, { marker: 'body' });
+      await memberPage.getByTestId('login-email').fill(memberEmail);
+      await memberPage.getByTestId('login-password').fill(E2E_PASSWORD);
+      await memberPage.getByTestId('login-submit').click();
 
-    await memberPage.getByTestId('category-vehicle').click();
-    await memberPage.getByTestId('wizard-next').click();
+      await expect(memberPage).toHaveURL(/\/(?:en\/)?member$/);
+      await gotoApp(memberPage, routes.memberNewClaim('en'), testInfo, {
+        marker: 'dashboard-page-ready',
+      });
 
-    await memberPage.getByTestId('claim-title-input').fill(claimTitle);
-    await memberPage.getByTestId('claim-company-input').fill('Pilot MK');
-    await memberPage
-      .getByTestId('claim-description-input')
-      .fill('C1-05 staff to member status loop');
-    await memberPage.getByTestId('claim-amount-input').fill('550');
-    await memberPage.getByTestId('claim-date-input').fill(new Date().toISOString().split('T')[0]);
-    await memberPage.getByTestId('wizard-next').click();
-    await memberPage.getByTestId('wizard-next').click();
-    await memberPage.getByTestId('wizard-submit').click();
+      await memberPage.getByTestId('category-vehicle').click();
+      await memberPage.getByTestId('wizard-next').click();
 
-    await expect(memberPage).toHaveURL(/\/(?:en\/)?member\/claims$/);
+      await memberPage.getByTestId('claim-title-input').fill(claimTitle);
+      await memberPage.getByTestId('claim-company-input').fill('Pilot MK');
+      await memberPage
+        .getByTestId('claim-description-input')
+        .fill('C1-05 staff to member status loop');
+      await memberPage.getByTestId('claim-amount-input').fill('550');
+      await memberPage.getByTestId('claim-date-input').fill(new Date().toISOString().split('T')[0]);
+      await memberPage.getByTestId('wizard-next').click();
+      await memberPage.getByTestId('wizard-next').click();
+      await memberPage.getByTestId('wizard-submit').click();
 
-    await expect
-      .poll(
-        async () => {
-          const createdClaim = await db.query.claims.findFirst({
-            where: eq(claims.title, claimTitle),
-            columns: { id: true },
-          });
-          return createdClaim?.id ?? null;
-        },
-        { timeout: 20_000 }
-      )
-      .not.toBeNull();
+      await expect(memberPage).toHaveURL(/\/(?:en\/)?member\/claims$/);
 
-    const createdClaim = await db.query.claims.findFirst({
-      where: eq(claims.title, claimTitle),
-      columns: { id: true, tenantId: true, branchId: true, staffId: true },
-    });
+      await expect
+        .poll(
+          async () => {
+            const createdClaim = await db.query.claims.findFirst({
+              where: eq(claims.title, claimTitle),
+              columns: { id: true },
+            });
+            return createdClaim?.id ?? null;
+          },
+          { timeout: 20_000 }
+        )
+        .not.toBeNull();
 
-    if (!createdClaim?.id) {
-      throw new Error('Created pilot claim not found');
+      const createdClaim = await db.query.claims.findFirst({
+        where: eq(claims.title, claimTitle),
+        columns: { id: true, userId: true, tenantId: true, branchId: true, staffId: true },
+      });
+
+      if (!createdClaim?.id) {
+        throw new Error('Created pilot claim not found');
+      }
+
+      expect(createdClaim.tenantId).toBe(PILOT_TENANT_ID);
+      expect(createdClaim.branchId).toBe(seededAgent.branchId);
+      expect(createdClaim.userId).toBe(createdMember.id);
+      expect(createdClaim.staffId).toBeNull();
+
+      staffContext = await browser.newContext({
+        baseURL: `http://${pilotHost}/en`,
+        extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
+        locale: 'en-US',
+      });
+      const staffPage = await staffContext.newPage();
+
+      await gotoApp(staffPage, '/en/login', testInfo, { marker: 'body' });
+      await staffPage.getByTestId('login-email').fill('staff.pilot@interdomestik.com');
+      await staffPage.getByTestId('login-password').fill(E2E_PASSWORD);
+      await staffPage.getByTestId('login-submit').click();
+
+      await expect(staffPage).toHaveURL(/\/(?:en\/)?staff(?:\/claims)?$/);
+      await gotoApp(staffPage, routes.staffClaimDetail(createdClaim.id, 'en'), testInfo, {
+        marker: 'staff-claim-detail-ready',
+      });
+
+      await expect(staffPage.getByTestId('staff-claim-detail-ready')).toBeVisible();
+      await expect(staffPage.getByTestId('staff-claim-action-panel')).toBeVisible();
+
+      const assignButton = staffPage.getByTestId('staff-assign-claim-button');
+      if (await assignButton.isVisible()) {
+        await assignButton.click();
+      }
+
+      await expect
+        .poll(
+          async () => {
+            const assigned = await db.query.claims.findFirst({
+              where: eq(claims.id, createdClaim.id),
+              columns: { staffId: true },
+            });
+            return assigned?.staffId ?? null;
+          },
+          { timeout: 15_000 }
+        )
+        .toBe(seededPilotStaff.id);
+
+      await staffPage.getByLabel('Update Status').click();
+      await staffPage.getByRole('option', { name: 'Evaluation' }).click();
+      await staffPage.getByLabel('Status Note (Visible to member)').fill(statusNote);
+      await staffPage.getByRole('button', { name: 'Update Claim' }).click();
+
+      await expect
+        .poll(
+          async () => {
+            const updated = await db.query.claims.findFirst({
+              where: eq(claims.id, createdClaim.id),
+              columns: { status: true },
+            });
+            return updated?.status ?? null;
+          },
+          { timeout: 15_000 }
+        )
+        .toBe('evaluation');
+
+      await expect
+        .poll(
+          async () => {
+            const event = await db.query.claimStageHistory.findFirst({
+              where: eq(claimStageHistory.claimId, createdClaim.id),
+              columns: { note: true, toStatus: true },
+              orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
+            });
+            if (!event) return null;
+            return `${event.toStatus ?? ''}|${event.note ?? ''}`;
+          },
+          { timeout: 15_000 }
+        )
+        .toBe(`evaluation|${statusNote}`);
+
+      await gotoApp(memberPage, routes.memberClaimDetail(createdClaim.id, 'en'), testInfo, {
+        marker: 'ops-status-badge',
+      });
+
+      await expect(memberPage.getByTestId('ops-status-badge')).toContainText('EVALUATION');
+      await expect(memberPage.getByTestId('ops-timeline')).toBeVisible();
+      await expect(memberPage.getByText(statusNote)).toBeVisible();
+    } finally {
+      await staffContext?.close();
+      await memberContext?.close();
     }
-
-    expect(createdClaim.tenantId).toBe(PILOT_TENANT_ID);
-    expect(createdClaim.branchId).toBe(seededAgent.branchId);
-    expect(createdClaim.staffId).toBeNull();
-
-    const staffContext = await browser.newContext({
-      baseURL: `http://${PILOT_HOST}/en`,
-      extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
-      locale: 'en-US',
-    });
-    const staffPage = await staffContext.newPage();
-
-    await gotoApp(staffPage, '/en/login', testInfo, { marker: 'body' });
-    await staffPage.getByTestId('login-email').fill('staff.pilot@interdomestik.com');
-    await staffPage.getByTestId('login-password').fill(E2E_PASSWORD);
-    await staffPage.getByTestId('login-submit').click();
-
-    await expect(staffPage).toHaveURL(/\/(?:en\/)?staff(?:\/claims)?$/);
-    await gotoApp(staffPage, routes.staffClaimDetail(createdClaim.id, 'en'), testInfo, {
-      marker: 'staff-claim-detail-ready',
-    });
-
-    await expect(staffPage.getByTestId('staff-claim-detail-ready')).toBeVisible();
-    await expect(staffPage.getByTestId('staff-claim-action-panel')).toBeVisible();
-
-    const assignButton = staffPage.getByTestId('staff-assign-claim-button');
-    if (await assignButton.isVisible()) {
-      await assignButton.click();
-    }
-
-    await expect
-      .poll(
-        async () => {
-          const assigned = await db.query.claims.findFirst({
-            where: eq(claims.id, createdClaim.id),
-            columns: { staffId: true },
-          });
-          return assigned?.staffId ?? null;
-        },
-        { timeout: 15_000 }
-      )
-      .toBe(seededPilotStaff.id);
-
-    await staffPage.getByLabel('Update Status').click();
-    await staffPage.getByRole('option', { name: 'Evaluation' }).click();
-    await staffPage.getByLabel('Status Note (Visible to member)').fill(statusNote);
-    await staffPage.getByRole('button', { name: 'Update Claim' }).click();
-
-    await expect
-      .poll(
-        async () => {
-          const updated = await db.query.claims.findFirst({
-            where: eq(claims.id, createdClaim.id),
-            columns: { status: true },
-          });
-          return updated?.status ?? null;
-        },
-        { timeout: 15_000 }
-      )
-      .toBe('evaluation');
-
-    await expect
-      .poll(
-        async () => {
-          const event = await db.query.claimStageHistory.findFirst({
-            where: eq(claimStageHistory.claimId, createdClaim.id),
-            columns: { note: true, toStatus: true },
-            orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
-          });
-          if (!event) return null;
-          return `${event.toStatus ?? ''}|${event.note ?? ''}`;
-        },
-        { timeout: 15_000 }
-      )
-      .toBe(`evaluation|${statusNote}`);
-
-    await gotoApp(memberPage, routes.memberClaimDetail(createdClaim.id, 'en'), testInfo, {
-      marker: 'ops-status-badge',
-    });
-
-    await expect(memberPage.getByTestId('ops-status-badge')).toContainText('EVALUATION');
-    await expect(memberPage.getByTestId('ops-timeline')).toBeVisible();
-    await expect(memberPage.getByText(statusNote)).toBeVisible();
-
-    await staffContext.close();
-    await memberContext.close();
   });
 });
