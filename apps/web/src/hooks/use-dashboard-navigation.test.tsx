@@ -69,7 +69,7 @@ describe('useDashboardNavigation', () => {
       const items = screen.getAllByTestId('nav-item');
       const agentHub = items.find(item => item.getAttribute('data-title') === 'Agent Hub');
       expect(agentHub).toBeTruthy();
-      expect(agentHub?.getAttribute('data-href')).toBe('/agent/members');
+      expect(agentHub?.getAttribute('data-href')).toBe('/agent');
     });
   });
 
