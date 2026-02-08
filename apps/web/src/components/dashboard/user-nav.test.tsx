@@ -1,10 +1,50 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserNav } from './user-nav';
 
 vi.mock('@/actions/admin-access', () => ({
   canAccessAdmin: vi.fn(async () => false),
 }));
+
+vi.mock('@interdomestik/ui', async importOriginal => {
+  const React = await import('react');
+  const actual = await importOriginal<typeof import('@interdomestik/ui')>();
+
+  return {
+    ...actual,
+    DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    DropdownMenuTrigger: ({
+      asChild,
+      children,
+    }: {
+      asChild?: boolean;
+      children: React.ReactElement;
+    }) => (asChild ? React.cloneElement(children, { 'aria-haspopup': 'menu' }) : children),
+    DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    DropdownMenuGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    DropdownMenuItem: ({
+      asChild,
+      children,
+      onClick,
+      className,
+    }: {
+      asChild?: boolean;
+      children: React.ReactNode;
+      onClick?: () => void;
+      className?: string;
+    }) =>
+      asChild ? (
+        <>{children}</>
+      ) : (
+        <button onClick={onClick} className={className}>
+          {children}
+        </button>
+      ),
+    DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    DropdownMenuSeparator: () => <hr />,
+    DropdownMenuShortcut: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  };
+});
 
 // Mock authClient
 vi.mock('@/lib/auth-client', () => ({
@@ -16,6 +56,8 @@ vi.mock('@/lib/auth-client', () => ({
 
 import { authClient } from '@/lib/auth-client';
 const mockUseSession = vi.mocked(authClient.useSession);
+import { canAccessAdmin } from '@/actions/admin-access';
+const mockCanAccessAdmin = vi.mocked(canAccessAdmin);
 
 // Mock router
 vi.mock('@/i18n/routing', () => ({
@@ -40,8 +82,17 @@ vi.mock('next-intl', () => ({
 }));
 
 describe('UserNav', () => {
+  const openMenuAndGetSettingsLink = async () => {
+    const navButton = await screen.findByTestId('user-nav');
+    fireEvent.mouseDown(navButton);
+    fireEvent.click(navButton);
+    const settingsLabel = await screen.findByText('Settings');
+    return settingsLabel.closest('a');
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCanAccessAdmin.mockResolvedValue(false);
   });
 
   it('renders disabled avatar when no session', () => {
@@ -175,5 +226,86 @@ describe('UserNav', () => {
       const button = screen.getByTestId('user-nav');
       expect(button).toHaveAttribute('aria-haspopup', 'menu');
     });
+  });
+
+  it('routes Settings to member settings for member role', async () => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 'member-1',
+          name: 'Member User',
+          email: 'member@example.com',
+          image: null,
+          role: 'member',
+        },
+      },
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof authClient.useSession>);
+
+    render(<UserNav />);
+
+    expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/member/settings');
+  });
+
+  it('routes Settings to agent settings for agent role without admin access', async () => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 'agent-1',
+          name: 'Agent User',
+          email: 'agent@example.com',
+          image: null,
+          role: 'agent',
+        },
+      },
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof authClient.useSession>);
+
+    render(<UserNav />);
+
+    expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/agent/settings');
+  });
+
+  it('routes Settings to admin settings when adminAccess is granted for agent role', async () => {
+    mockCanAccessAdmin.mockResolvedValue(true);
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 'agent-1',
+          name: 'Agent User',
+          email: 'agent@example.com',
+          image: null,
+          role: 'agent',
+        },
+      },
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof authClient.useSession>);
+
+    render(<UserNav />);
+
+    expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/admin/settings');
+  });
+
+  it('routes Settings to admin settings for admin role', async () => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 'admin-1',
+          name: 'Admin User',
+          email: 'admin@example.com',
+          image: null,
+          role: 'admin',
+        },
+      },
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof authClient.useSession>);
+
+    render(<UserNav />);
+
+    expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/admin/settings');
   });
 });
