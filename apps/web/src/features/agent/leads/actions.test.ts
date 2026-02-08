@@ -88,27 +88,62 @@ describe('convertLeadToClient', () => {
     mocks.ensureTenantId.mockReturnValue('tenant-1');
   });
 
-  it('denies conversion when lead is assigned to another agent and performs no mutation', async () => {
+  it('denies conversion when scoped lead is not found and performs no mutation', async () => {
     mocks.findLead.mockResolvedValue(null);
 
-    await expect(convertLeadToClient('lead-1')).rejects.toThrow(/access denied/i);
+    await expect(convertLeadToClient('lead-1')).rejects.toThrow(/not found or access denied/i);
     expect(mocks.update).not.toHaveBeenCalled();
     expect(mocks.startPayment).not.toHaveBeenCalled();
   });
 
-  it('denies conversion when lead tenant does not match session tenant and performs no mutation', async () => {
-    mocks.findLead.mockResolvedValue(null);
+  it('applies tenant + agent + branch scope constraints when session has branchId', async () => {
+    mocks.findLead.mockResolvedValue({
+      id: 'lead-2',
+      tenantId: 'tenant-1',
+      branchId: 'branch-1',
+      agentId: 'agent-1',
+    });
 
-    await expect(convertLeadToClient('lead-2')).rejects.toThrow(/access denied/i);
-    expect(mocks.update).not.toHaveBeenCalled();
-    expect(mocks.startPayment).not.toHaveBeenCalled();
-  });
+    await expect(convertLeadToClient('lead-2')).resolves.toEqual({ success: true });
 
-  it('denies conversion when branch mismatches and session has branchId', async () => {
-    mocks.findLead.mockResolvedValue(null);
-
-    await expect(convertLeadToClient('lead-3')).rejects.toThrow(/access denied/i);
-    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.findLead).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        op: 'and',
+        args: expect.arrayContaining([
+          expect.objectContaining({ op: 'eq', left: 'member_leads.id', right: 'lead-2' }),
+          expect.objectContaining({
+            op: 'eq',
+            left: 'member_leads.tenant_id',
+            right: 'tenant-1',
+          }),
+          expect.objectContaining({ op: 'eq', left: 'member_leads.agent_id', right: 'agent-1' }),
+          expect.objectContaining({
+            op: 'eq',
+            left: 'member_leads.branch_id',
+            right: 'branch-1',
+          }),
+        ]),
+      }),
+    });
+    expect(mocks.where).toHaveBeenCalledWith(
+      expect.objectContaining({
+        op: 'and',
+        args: expect.arrayContaining([
+          expect.objectContaining({ op: 'eq', left: 'member_leads.id', right: 'lead-2' }),
+          expect.objectContaining({
+            op: 'eq',
+            left: 'member_leads.tenant_id',
+            right: 'tenant-1',
+          }),
+          expect.objectContaining({ op: 'eq', left: 'member_leads.agent_id', right: 'agent-1' }),
+          expect.objectContaining({
+            op: 'eq',
+            left: 'member_leads.branch_id',
+            right: 'branch-1',
+          }),
+        ]),
+      })
+    );
     expect(mocks.startPayment).not.toHaveBeenCalled();
   });
 
@@ -127,6 +162,31 @@ describe('convertLeadToClient', () => {
     });
 
     await expect(convertLeadToClient('lead-4')).resolves.toEqual({ success: true });
+    expect(mocks.findLead).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        op: 'and',
+        args: expect.arrayContaining([
+          expect.objectContaining({ op: 'eq', left: 'member_leads.id', right: 'lead-4' }),
+          expect.objectContaining({
+            op: 'eq',
+            left: 'member_leads.tenant_id',
+            right: 'tenant-1',
+          }),
+          expect.objectContaining({ op: 'eq', left: 'member_leads.agent_id', right: 'agent-1' }),
+        ]),
+      }),
+    });
+    const findWhereArgs = (mocks.findLead.mock.calls.at(-1)?.[0]?.where as { args?: unknown[] })
+      ?.args;
+    expect(findWhereArgs).toBeDefined();
+    expect(findWhereArgs).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          op: 'eq',
+          left: 'member_leads.branch_id',
+        }),
+      ])
+    );
     expect(mocks.update).toHaveBeenCalled();
     expect(mocks.startPayment).not.toHaveBeenCalled();
   });

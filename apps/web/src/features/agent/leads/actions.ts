@@ -12,7 +12,7 @@ type LeadScope = 'tenant' | 'agent';
 async function resolveLeadAccess(params: {
   leadId: string;
   scope: LeadScope;
-}): Promise<{ tenantId: string }> {
+}): Promise<{ tenantId: string; scopedWhere: unknown }> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -31,19 +31,25 @@ async function resolveLeadAccess(params: {
     }
   }
 
+  const scopedWhere = and(...conditions);
   const lead = await db.query.memberLeads.findFirst({
-    where: and(...conditions),
+    where: scopedWhere,
   });
 
   if (!lead) {
     throw new Error('Lead not found or access denied');
   }
 
-  return { tenantId };
+  return { tenantId, scopedWhere };
 }
 
-async function updateLeadStatusCore(params: { leadId: string; status: string; tenantId: string }) {
-  const { leadId, status, tenantId } = params;
+async function updateLeadStatusCore(params: {
+  leadId: string;
+  status: string;
+  tenantId: string;
+  scopedWhere: unknown;
+}) {
+  const { leadId, status, tenantId, scopedWhere } = params;
 
   // If requesting payment, we MUST create a payment attempt record
   if (status === 'payment_pending') {
@@ -64,7 +70,7 @@ async function updateLeadStatusCore(params: { leadId: string; status: string; te
         status: status as any,
         updatedAt: new Date(),
       })
-      .where(eq(memberLeads.id, leadId));
+      .where(scopedWhere);
   }
 
   revalidatePath('/[locale]/(app)/agent/leads');
@@ -76,8 +82,8 @@ async function updateLeadStatusCore(params: { leadId: string; status: string; te
  * strictly enforces tenant isolation.
  */
 export async function updateLeadStatus(leadId: string, status: string) {
-  const { tenantId } = await resolveLeadAccess({ leadId, scope: 'tenant' });
-  return updateLeadStatusCore({ leadId, status, tenantId });
+  const { tenantId, scopedWhere } = await resolveLeadAccess({ leadId, scope: 'tenant' });
+  return updateLeadStatusCore({ leadId, status, tenantId, scopedWhere });
 }
 
 /**
@@ -86,6 +92,6 @@ export async function updateLeadStatus(leadId: string, status: string) {
  * or would trigger a complex flow. MVP: Status -> 'converted'.
  */
 export async function convertLeadToClient(leadId: string) {
-  const { tenantId } = await resolveLeadAccess({ leadId, scope: 'agent' });
-  return updateLeadStatusCore({ leadId, status: 'converted', tenantId });
+  const { tenantId, scopedWhere } = await resolveLeadAccess({ leadId, scope: 'agent' });
+  return updateLeadStatusCore({ leadId, status: 'converted', tenantId, scopedWhere });
 }
