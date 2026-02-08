@@ -20,15 +20,19 @@ export async function assignClaimCore(params: {
   session: NonNullable<Session> | null;
   requestHeaders: Headers;
 }) {
-  await assignClaimCoreDomain(params, {
+  const result = await assignClaimCoreDomain(params, {
     logAuditEvent,
     notifyClaimAssigned,
   });
 
-  revalidatePathForAllLocales('/member/claims');
-  revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
-  revalidatePathForAllLocales('/admin/claims');
-  revalidatePathForAllLocales(`/admin/claims/${params.claimId}`);
-  revalidatePathForAllLocales('/staff/claims');
-  revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
+  if (result.success) {
+    revalidatePathForAllLocales('/member/claims');
+    revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
+    revalidatePathForAllLocales('/admin/claims');
+    revalidatePathForAllLocales(`/admin/claims/${params.claimId}`);
+    revalidatePathForAllLocales('/staff/claims');
+    revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
+  }
+
+  return result;
 }
