@@ -32,12 +32,13 @@ Validate one closed-loop workflow in real branch operations in Kosovo:
 - 1 staff operator.
 - 2 agents.
 - 20–50 members.
+- Pilot duration: 14 days (unchanged).
 
 ## SLA Targets
 
-- Timezone and business hours: `Europe/Pristina`, Monday–Friday, `08:00–17:00`.
-- Triage SLA: First staff triage within `4 business hours` of claim submission.
-- Update SLA: Member-visible update within `24 business hours` after triage.
+- Timezone and operating hours: `Europe/Pristina`, Monday–Sunday, `08:00–17:00`.
+- Triage SLA: First staff triage within `4 operating hours` of claim submission.
+- Update SLA: Member-visible update within `24 operating hours` after triage.
 - Escalation SLA: Critical privacy/data/security issues escalated to Admin within `1 hour`.
 
 ## Operating Rhythm
@@ -45,6 +46,18 @@ Validate one closed-loop workflow in real branch operations in Kosovo:
 - Daily ops huddle (15–20 min): Agent + Staff queue review, SLA risk, blockers.
 - Daily end-of-day review (10 min): Admin checks KPI drift, incidents, action owners.
 - Weekly review (45 min): Trend review, threshold check, go/no-go decision.
+- Mon–Sun operations are active for the full 14-day pilot window.
+
+## Weekend Operating Mode (Light-Touch)
+
+- Coverage objective: Monitor + log continuously, avoid non-critical change churn.
+- Weekend scope (Saturday/Sunday):
+  - Monitor guardrails, incidents, and SLA drift.
+  - Log findings and ownership in the pilot incident log.
+  - Apply hotfixes only for Sev1 issues.
+- Weekend escalation:
+  - Sev1 (privacy/tenant isolation/data integrity): immediate escalation and hotfix allowed.
+  - Sev2/Sev3: log and defer to next weekday ops huddle unless risk escalates to Sev1.
 
 ## Incident Escalation
 
@@ -55,7 +68,7 @@ Validate one closed-loop workflow in real branch operations in Kosovo:
 - Escalation path: Agent/Staff on-call → Admin owner → Engineering lead.
 - Communication target:
   - Sev1: Immediate and under 1 hour.
-  - Sev2: Same business day.
+  - Sev2: Same operating day.
   - Sev3: Next scheduled daily review.
 
 ## Stop Criteria
@@ -66,8 +79,8 @@ Stop pilot immediately if any applies:
 - Data integrity corruption (lost, duplicated, or cross-tenant claim data).
 - Persistent `security:guard` failure.
 - Repeated authentication/login failures for pilot users that block daily operations.
-- Closed-loop workflow unavailable for more than one business day.
-- Triage/update SLA misses for 3 consecutive business days.
+- Closed-loop workflow unavailable for more than one operating day.
+- Triage/update SLA misses for 3 consecutive operating days.
 - Persistent E2E contract failures after rollback attempt.
 
 ## Rollback Policy

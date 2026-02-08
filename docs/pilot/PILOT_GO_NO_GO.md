@@ -21,9 +21,9 @@
 
 ## Week-1 Checks
 
-- Triage SLA (≤ 4 business hours) on at least `90%` of claims.
-- Update SLA (≤ 24 business hours post-triage) on at least `90%` of claims.
-- No unresolved Sev1/Sev2 older than one business day.
+- Triage SLA (≤ 4 operating hours) on at least `90%` of claims.
+- Update SLA (≤ 24 operating hours post-triage) on at least `90%` of claims.
+- No unresolved Sev1/Sev2 older than one operating day.
 - `pnpm e2e:gate` pass rate `100%` (or immediate corrective action).
 - `pnpm security:guard` pass rate `100%`.
 - Weekly review records clear continue/pause decision with owners.
@@ -37,10 +37,10 @@
   - Closed-loop path operational end-to-end.
 - No-Go:
   - Any Sev1 incident unresolved.
-  - Repeated guardrail failures (`security:guard`, `m4-gatekeeper.sh`, or `e2e:gate`) without fix.
-  - Repeated authentication/login failures for pilot users that block operations.
-  - Closed-loop path broken for more than 1 business day.
-  - SLA misses exceed threshold for 3 consecutive business days.
+- Repeated guardrail failures (`security:guard`, `m4-gatekeeper.sh`, or `e2e:gate`) without fix.
+- Repeated authentication/login failures for pilot users that block operations.
+- Closed-loop path broken for more than 1 operating day.
+- SLA misses exceed threshold for 3 consecutive operating days.
 
 ## Stop the Pilot If
 
@@ -49,7 +49,7 @@
 - Security guardrails fail persistently.
 - Repeated authentication/login failures block pilot operations.
 - Contract E2E fails persist after rollback.
-- Operational risk exceeds safe recovery within one business day.
+- Operational risk exceeds safe recovery within one operating day.
 
 ## Rollback Decision Rule
 
