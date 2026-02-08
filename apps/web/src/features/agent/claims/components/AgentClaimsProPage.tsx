@@ -17,6 +17,7 @@ import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
 import { format } from 'date-fns';
 import { ArrowLeft } from 'lucide-react';
+import { getSelectedClaimId } from './claim-selection';
 
 // Define minimal Claim type for Pro table
 export type AgentProClaim = {
@@ -57,7 +58,7 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
   const searchParams = useSearchParams();
 
   // URL Selection for Drawer
-  const selectedId = searchParams.get('selected');
+  const selectedId = getSelectedClaimId(searchParams);
   // Drawer View Mode
   const [viewMode, setViewMode] = useState<'details' | 'messaging'>('details');
 

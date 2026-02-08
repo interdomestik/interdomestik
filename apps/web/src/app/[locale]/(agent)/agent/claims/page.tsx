@@ -1,11 +1,11 @@
 import { ClaimStatusBadge } from '@/features/claims/tracking/components/ClaimStatusBadge';
+import { Link } from '@/i18n/routing';
 import { db } from '@/lib/db.server';
 import { Avatar, AvatarFallback } from '@interdomestik/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/card';
 import { headers } from 'next/headers';
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { getAgentClaimsCore } from './_core';
+import { buildAgentWorkspaceClaimHref, getAgentClaimsCore } from './_core';
 
 // Helper for initials
 function getInitials(name: string) {
@@ -82,7 +82,7 @@ export default async function AgentClaimsPage({ params, searchParams }: Props) {
                 <div className="divide-y">
                   {group.claims.map(claim => (
                     <Link
-                      href={`/${locale}/agent/claims/${claim.id}`}
+                      href={buildAgentWorkspaceClaimHref(claim.id)}
                       key={claim.id}
                       className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
                       data-testid="agent-claim-row"

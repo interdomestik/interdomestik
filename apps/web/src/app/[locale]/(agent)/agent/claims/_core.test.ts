@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getAgentClaimsCore } from './_core';
+import { buildAgentWorkspaceClaimHref, getAgentClaimsCore } from './_core';
 
 describe('getAgentClaimsCore', () => {
   const mockParams = {
@@ -55,5 +55,13 @@ describe('getAgentClaimsCore', () => {
       expect(result.data[0].memberId).toBe('m1');
       expect(result.data[0].claims.length).toBe(2);
     }
+  });
+});
+
+describe('buildAgentWorkspaceClaimHref', () => {
+  it('builds locale-agnostic workspace claim deep-link with claimId query param', () => {
+    expect(buildAgentWorkspaceClaimHref('claim-123')).toBe(
+      '/agent/workspace/claims?claimId=claim-123'
+    );
   });
 });
