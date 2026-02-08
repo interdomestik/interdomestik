@@ -37,7 +37,9 @@ test.describe('C1: Clarity Hardening - No Mixed Surfaces', () => {
 
     // Dashboard usually doesn't have the generic "portal-surface-indicator" if it's the rich dashboard
     // But we can check for dashboard specific elements
-    await expect(page.getByTestId('agent-branch-context')).toBeVisible(); // Or any dashboard element
+    await expect(
+      page.getByTestId('dashboard-page-ready').getByTestId('agent-branch-context')
+    ).toBeVisible(); // Or any dashboard element
   });
 
   test('Agent: legacy route shows banner + link to v3', async ({ page }, testInfo) => {
