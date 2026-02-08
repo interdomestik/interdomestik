@@ -4,16 +4,17 @@ import { auth } from '@/lib/auth';
 import { and, db, eq, memberLeads } from '@interdomestik/database';
 import { startPayment } from '@interdomestik/domain-leads';
 import { ensureTenantId } from '@interdomestik/shared-auth';
+import type { SQL } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
 type LeadScope = 'tenant' | 'agent';
-type LeadScopeCondition = ReturnType<typeof eq>;
+type LeadScopeCondition = SQL<unknown>;
 
 async function resolveLeadAccess(params: {
   leadId: string;
   scope: LeadScope;
-}): Promise<{ tenantId: string; conditions: LeadScopeCondition[] }> {
+}): Promise<{ tenantId: string; scopedWhere: LeadScopeCondition }> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -36,23 +37,23 @@ async function resolveLeadAccess(params: {
   }
 
   const lead = await db.query.memberLeads.findFirst({
-    where: and(...conditions),
+    where: and(...conditions)!,
   });
 
   if (!lead) {
     throw new Error('Lead not found or access denied');
   }
 
-  return { tenantId, conditions };
+  return { tenantId, scopedWhere: and(...conditions)! };
 }
 
 async function updateLeadStatusCore(params: {
   leadId: string;
   status: string;
   tenantId: string;
-  conditions: LeadScopeCondition[];
+  scopedWhere: LeadScopeCondition;
 }) {
-  const { leadId, status, tenantId, conditions } = params;
+  const { leadId, status, tenantId, scopedWhere } = params;
 
   // If requesting payment, we MUST create a payment attempt record
   if (status === 'payment_pending') {
@@ -73,7 +74,7 @@ async function updateLeadStatusCore(params: {
         status: status as any,
         updatedAt: new Date(),
       })
-      .where(and(...conditions));
+      .where(scopedWhere);
   }
 
   revalidatePath('/[locale]/(app)/agent/leads');
@@ -85,8 +86,8 @@ async function updateLeadStatusCore(params: {
  * strictly enforces tenant isolation.
  */
 export async function updateLeadStatus(leadId: string, status: string) {
-  const { tenantId, conditions } = await resolveLeadAccess({ leadId, scope: 'tenant' });
-  return updateLeadStatusCore({ leadId, status, tenantId, conditions });
+  const { tenantId, scopedWhere } = await resolveLeadAccess({ leadId, scope: 'tenant' });
+  return updateLeadStatusCore({ leadId, status, tenantId, scopedWhere });
 }
 
 /**
@@ -95,6 +96,6 @@ export async function updateLeadStatus(leadId: string, status: string) {
  * or would trigger a complex flow. MVP: Status -> 'converted'.
  */
 export async function convertLeadToClient(leadId: string) {
-  const { tenantId, conditions } = await resolveLeadAccess({ leadId, scope: 'agent' });
-  return updateLeadStatusCore({ leadId, status: 'converted', tenantId, conditions });
+  const { tenantId, scopedWhere } = await resolveLeadAccess({ leadId, scope: 'agent' });
+  return updateLeadStatusCore({ leadId, status: 'converted', tenantId, scopedWhere });
 }
