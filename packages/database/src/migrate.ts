@@ -1,9 +1,5 @@
-import 'dotenv/config';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { db } from './db';
-
-import path from 'path';
 import { config as loadEnv } from 'dotenv';
+import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
@@ -22,20 +18,26 @@ function loadEnvFromRoot() {
   }
 }
 
-// Ensure DATABASE_URL is available when invoked from arbitrary shells.
+// Load env vars BEFORE anything else
 loadEnvFromRoot();
 
-console.log('Running Drizzle migrations...');
-console.log('CWD:', process.cwd());
-console.log('Migrations Folder:', path.resolve('./drizzle'));
-console.log('DB URL Length:', process.env.DATABASE_URL?.length);
+async function runMigrations() {
+  const { migrate } = await import('drizzle-orm/postgres-js/migrator');
+  const { db } = await import('./db');
 
-migrate(db, { migrationsFolder: './drizzle' })
-  .then(() => {
+  console.log('Running Drizzle migrations...');
+  console.log('CWD:', process.cwd());
+  console.log('Migrations Folder:', path.resolve('./drizzle'));
+  console.log('DB URL Length:', process.env.DATABASE_URL?.length);
+
+  try {
+    await migrate(db, { migrationsFolder: './drizzle' });
     console.log('Migrations complete!');
     process.exit(0);
-  })
-  .catch(err => {
+  } catch (err) {
     console.error('Migration failed!', err);
     process.exit(1);
-  });
+  }
+}
+
+void runMigrations();

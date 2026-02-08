@@ -19,7 +19,7 @@ import {
   Input,
   Label,
 } from '@interdomestik/ui';
-import { Code, Shield } from 'lucide-react';
+import { Code, Eye, EyeOff, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -35,6 +35,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
   const registerHref = resolvedTenantId ? `/register?tenantId=${resolvedTenantId}` : '/register';
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [showPassword, setShowPassword] = React.useState(false);
   const locale = getValidatedLocaleFromPathname(pathname);
 
   return (
@@ -134,26 +135,38 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
             />
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">{t('password')}</Label>
+            <Label htmlFor="password">{t('password')}</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+                className="bg-background/50 pr-10"
+                suppressHydrationWarning
+                disabled={loading}
+                data-testid="login-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <div className="flex justify-end">
               <Link
                 href="/forgot-password"
                 className="text-sm font-medium text-primary hover:underline transition-all"
+                tabIndex={-1}
               >
                 {t('forgotPassword')}
               </Link>
             </div>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="bg-background/50"
-              suppressHydrationWarning
-              disabled={loading}
-              data-testid="login-password"
-            />
           </div>
           <div className="flex items-center gap-2">
             <Checkbox id="remember" disabled={loading} />
@@ -183,13 +196,12 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
             </Button>
           </div>
 
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">{common('or')}</span>
-            </div>
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-border/50" />
+            <span className="text-xs uppercase text-muted-foreground/70 tracking-wider">
+              {common('or')}
+            </span>
+            <div className="flex-1 h-px bg-border/50" />
           </div>
 
           <Button
