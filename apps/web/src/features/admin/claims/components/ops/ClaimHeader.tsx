@@ -14,7 +14,7 @@ import {
   UserX,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -44,7 +44,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
     const params = new URLSearchParams(searchParams.toString());
     params.delete('poolAnchor');
     const queryString = params.toString();
-    return queryString ? `/admin/claims?${queryString}` : '/admin/claims';
+    return queryString ? `/${locale}/admin/claims?${queryString}` : `/${locale}/admin/claims`;
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -75,7 +75,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
 
           {/* Level 2: Lifecycle Stage */}
           <Link
-            href={`/admin/claims?lifecycle=${claim.lifecycleStage}`}
+            href={`/${locale}/admin/claims?lifecycle=${claim.lifecycleStage}`}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             {tLifecycle(claim.lifecycleStage)}
