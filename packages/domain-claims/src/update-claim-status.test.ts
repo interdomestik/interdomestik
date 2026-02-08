@@ -208,4 +208,36 @@ describe('updateClaimStatus', () => {
     });
     expect(mocks.txInsertValues).not.toHaveBeenCalled();
   });
+
+  it('keeps statusUpdatedAt unchanged on note-only update with same status', async () => {
+    mocks.txSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'evaluation' }]);
+    mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1' }]);
+
+    const result = await updateClaimStatus({
+      claimId: 'claim-1',
+      newStatus: 'evaluation',
+      note: 'internal staff note',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'evaluation',
+        updatedAt: expect.any(Date),
+      })
+    );
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        statusUpdatedAt: expect.anything(),
+      })
+    );
+    expect(mocks.txInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fromStatus: 'evaluation',
+        toStatus: 'evaluation',
+        note: 'internal staff note',
+      })
+    );
+  });
 });

@@ -50,6 +50,7 @@ export async function updateClaimStatus(params: {
     }
 
     const now = new Date();
+    const previousStatus = existingClaim.status as NonNullable<typeof existingClaim.status>;
     const nextStatus = parsed.data.status as NonNullable<typeof existingClaim.status>;
     const updateData: {
       status: NonNullable<typeof existingClaim.status>;
@@ -66,7 +67,7 @@ export async function updateClaimStatus(params: {
     const updatedClaims = await tx
       .update(claims)
       .set(updateData)
-      .where(scopedWhere)
+      .where(and(scopedWhere, eq(claims.status, previousStatus)))
       .returning({ id: claims.id });
 
     if (updatedClaims.length === 0) {
@@ -77,7 +78,7 @@ export async function updateClaimStatus(params: {
       id: crypto.randomUUID(),
       tenantId,
       claimId,
-      fromStatus: existingClaim.status,
+      fromStatus: previousStatus,
       toStatus: nextStatus,
       changedById: user.id,
       changedByRole: 'staff',
