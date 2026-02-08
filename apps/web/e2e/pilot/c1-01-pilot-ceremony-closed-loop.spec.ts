@@ -241,8 +241,8 @@ test('Pilot Ceremony: Closed Loop (Member -> Agent -> Staff -> Admin)', async ({
     });
 
     report.meta.outcome = 'PASS';
-  } catch (error: any) {
-    report.meta.error = error.message;
+  } catch (error: unknown) {
+    report.meta.error = error instanceof Error ? error.message : String(error);
 
     // Screenshot on failure
     try {

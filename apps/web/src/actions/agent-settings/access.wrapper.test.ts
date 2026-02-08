@@ -8,13 +8,15 @@ describe('agent-settings access.core', () => {
   });
 
   it('canReadAgentSettings logic', () => {
-    const adminSession = { user: { role: 'admin', id: 'a1' } };
-    const agentSession = { user: { role: 'agent', id: 'ag1' } };
-    const otherSession = { user: { role: 'agent', id: 'ag2' } };
+    type ReadParams = Parameters<typeof canReadAgentSettings>[0];
+    type AgentSettingsSession = NonNullable<ReadParams['session']>;
+    const adminSession = { user: { role: 'admin', id: 'a1' } } as AgentSettingsSession;
+    const agentSession = { user: { role: 'agent', id: 'ag1' } } as AgentSettingsSession;
+    const otherSession = { user: { role: 'agent', id: 'ag2' } } as AgentSettingsSession;
 
-    expect(canReadAgentSettings({ session: adminSession as any, agentId: 'ag1' })).toBe(true);
-    expect(canReadAgentSettings({ session: agentSession as any, agentId: 'ag1' })).toBe(true);
-    expect(canReadAgentSettings({ session: otherSession as any, agentId: 'ag1' })).toBe(false);
+    expect(canReadAgentSettings({ session: adminSession, agentId: 'ag1' })).toBe(true);
+    expect(canReadAgentSettings({ session: agentSession, agentId: 'ag1' })).toBe(true);
+    expect(canReadAgentSettings({ session: otherSession, agentId: 'ag1' })).toBe(false);
     expect(canReadAgentSettings({ session: null, agentId: 'ag1' })).toBe(false);
   });
 });
