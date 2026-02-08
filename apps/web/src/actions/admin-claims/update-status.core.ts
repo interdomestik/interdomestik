@@ -101,7 +101,22 @@ export async function updateClaimStatusCore(params: {
     }
   );
 
-  revalidatePath(`/${locale}/admin/claims`);
-  revalidatePath(`/${locale}/admin/claims/${claimId}`);
-  revalidatePath(`/${locale}/member/claims/${claimId}`);
+  const updatedClaim = await db.query.claims.findFirst({
+    where: (claimsTable, { eq }) =>
+      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+    columns: {
+      status: true,
+    },
+  });
+
+  if (!updatedClaim) {
+    return;
+  }
+
+  const persistedStatus = updatedClaim.status ?? 'draft';
+  if (persistedStatus !== currentStatus) {
+    revalidatePath(`/${locale}/admin/claims`);
+    revalidatePath(`/${locale}/admin/claims/${claimId}`);
+    revalidatePath(`/${locale}/member/claims/${claimId}`);
+  }
 }
