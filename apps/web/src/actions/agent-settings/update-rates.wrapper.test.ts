@@ -39,6 +39,7 @@ vi.mock('nanoid', () => ({
 describe('updateAgentCommissionRatesCore', () => {
   type UpdateRatesParams = Parameters<typeof updateAgentCommissionRatesCore>[0];
   type AgentSettingsSession = NonNullable<UpdateRatesParams['session']>;
+  type FindFirstResult = Awaited<ReturnType<typeof db.query.agentSettings.findFirst>>;
   const findFirstMock = vi.mocked(db.query.agentSettings.findFirst);
 
   const mockSession = {
@@ -90,7 +91,8 @@ describe('updateAgentCommissionRatesCore', () => {
   });
 
   it('should update existing settings', async () => {
-    findFirstMock.mockResolvedValue({ id: 'existing' } as never);
+    const existingSettings = { id: 'existing' } as NonNullable<FindFirstResult>;
+    findFirstMock.mockResolvedValue(existingSettings);
 
     const result = await updateAgentCommissionRatesCore({
       session: mockSession,
@@ -103,7 +105,7 @@ describe('updateAgentCommissionRatesCore', () => {
   });
 
   it('should insert new settings', async () => {
-    findFirstMock.mockResolvedValue(null as never);
+    findFirstMock.mockResolvedValue(null);
 
     const result = await updateAgentCommissionRatesCore({
       session: mockSession,

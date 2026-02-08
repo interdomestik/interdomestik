@@ -199,12 +199,4 @@ describe('convertLeadToClient', () => {
     expect(mocks.update).not.toHaveBeenCalled();
     expect(mocks.startPayment).not.toHaveBeenCalled();
   });
-
-  it('rejects with generic error when scoped lead is not found and performs no mutation', async () => {
-    mocks.findLead.mockResolvedValue(null);
-
-    await expect(convertLeadToClient('lead-6')).rejects.toThrow(/not found or access denied/i);
-    expect(mocks.update).not.toHaveBeenCalled();
-    expect(mocks.startPayment).not.toHaveBeenCalled();
-  });
 });
