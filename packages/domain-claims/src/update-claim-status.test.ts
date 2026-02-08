@@ -53,6 +53,7 @@ const mocks = vi.hoisted(() => {
       createdAt: 'claim_stage_history.created_at',
     },
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
+    isNull: vi.fn(column => ({ op: 'isNull', column })),
     and: vi.fn((...conditions) => ({ op: 'and', conditions })),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
     ensureTenantId: vi.fn(() => 'tenant-1'),
@@ -72,6 +73,7 @@ vi.mock('@interdomestik/database', () => ({
   claims: mocks.claims,
   claimStageHistory: mocks.claimStageHistory,
   eq: mocks.eq,
+  isNull: mocks.isNull,
   and: mocks.and,
 }));
 
@@ -237,6 +239,27 @@ describe('updateClaimStatus', () => {
         fromStatus: 'evaluation',
         toStatus: 'evaluation',
         note: 'internal staff note',
+      })
+    );
+  });
+
+  it('uses null-safe optimistic guard when existing claim status is null', async () => {
+    mocks.txSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: null }]);
+    mocks.txUpdateReturning.mockResolvedValue([{ id: 'claim-1' }]);
+
+    const result = await updateClaimStatus({
+      claimId: 'claim-1',
+      newStatus: 'evaluation',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.isNull).toHaveBeenCalledWith('claims.status');
+    expect(mocks.eq).not.toHaveBeenCalledWith('claims.status', null);
+    expect(mocks.txInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fromStatus: null,
+        toStatus: 'evaluation',
       })
     );
   });
