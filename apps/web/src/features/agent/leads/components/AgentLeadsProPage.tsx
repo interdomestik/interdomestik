@@ -160,8 +160,10 @@ export function AgentLeadsProPage({ leads }: { leads: any[] }) {
               size="icon"
               className="h-8 w-8"
               data-testid="agent-pro-back-button"
+              aria-label="Back to members"
             >
               <ArrowLeft className="h-4 w-4" />
+              <span className="sr-only">Back to members</span>
             </Button>
           </Link>
           <div>

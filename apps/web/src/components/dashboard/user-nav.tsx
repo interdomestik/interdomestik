@@ -74,6 +74,12 @@ export function UserNav() {
 
   const { user } = session;
   const role = (user as { role?: string }).role;
+  const settingsHref =
+    role === 'agent'
+      ? '/agent/settings'
+      : isAdmin(role) || adminAccess
+        ? '/admin/settings'
+        : '/member/settings';
 
   return (
     <DropdownMenu>
@@ -102,7 +108,7 @@ export function UserNav() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/settings" className="w-full cursor-pointer">
+            <Link href={settingsHref} className="w-full cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>{t('settings')}</span>
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
