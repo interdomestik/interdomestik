@@ -17,7 +17,7 @@ test.describe('RBAC Scope Guards (Golden)', () => {
   }, testInfo) => {
     test.skip(testInfo.project.name.includes('mk'), 'KS-only check');
 
-    const targetPath = `${routes.admin(testInfo)}/members/number/${MK_MEMBER_NUMBER}`;
+    const targetPath = `/${routes.getLocale(testInfo)}/admin/members/number/${MK_MEMBER_NUMBER}`;
 
     // We expect access denied, so we use a generic marker or body
     await gotoApp(page, targetPath, testInfo, { marker: 'body' });
