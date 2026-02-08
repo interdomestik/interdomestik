@@ -36,15 +36,20 @@ async function resolveLeadAccess(params: {
     }
   }
 
+  const scopedWhere = and(...conditions);
+  if (!scopedWhere) {
+    throw new Error('Lead not found or access denied');
+  }
+
   const lead = await db.query.memberLeads.findFirst({
-    where: and(...conditions)!,
+    where: scopedWhere,
   });
 
   if (!lead) {
     throw new Error('Lead not found or access denied');
   }
 
-  return { tenantId, scopedWhere: and(...conditions)! };
+  return { tenantId, scopedWhere };
 }
 
 async function updateLeadStatusCore(params: {
