@@ -385,7 +385,7 @@ export async function MemberDashboardView({ data, locale }: MemberDashboardViewP
                 className="w-full rounded-2xl border-blue-500/20 hover:bg-blue-500/5 hover:border-blue-500/40 transition-all font-bold group/pulse"
               >
                 <Link href="/member/help" className="flex items-center justify-center gap-2">
-                  <span>View Full Audit</span>
+                  <span>Get Help & Support</span>
                   <ArrowRight className="w-4 h-4 group-hover/pulse:translate-x-1 transition-transform" />
                 </Link>
               </Button>

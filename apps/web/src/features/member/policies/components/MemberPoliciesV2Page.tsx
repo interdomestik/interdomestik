@@ -67,7 +67,7 @@ export async function MemberPoliciesV2Page() {
             Upload your insurance policy to unlock AI-powered insights, hidden perks, and advocacy
             tools.
           </p>
-          <Link href="/dashboard/policies/upload">
+          <Link href="/member/policies/upload">
             <Button variant="outline">Upload First Policy</Button>
           </Link>
         </Card>
