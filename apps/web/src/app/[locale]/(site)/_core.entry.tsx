@@ -1,6 +1,6 @@
 import { BASE_NAMESPACES, SITE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, setRequestLocale } from 'next-intl/server';
 
 type Props = {
   children: React.ReactNode;
@@ -9,6 +9,7 @@ type Props = {
 
 export default async function SiteLayout({ children, params }: Props) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const allMessages = await getMessages();
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),
