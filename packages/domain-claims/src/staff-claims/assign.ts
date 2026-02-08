@@ -1,4 +1,4 @@
-import { claims, db, eq } from '@interdomestik/database';
+import { and, claims, db, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 
@@ -15,22 +15,42 @@ export async function assignClaimCore(
   deps: ClaimsDeps = {}
 ): Promise<ActionResult> {
   const { claimId, session, requestHeaders } = params;
+  type StaffUser = ClaimsSession['user'] & { branchId?: string | null };
 
   if (session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
   }
 
   const tenantId = ensureTenantId(session);
+  const user = session.user as StaffUser;
+  const branchId = user.branchId ?? null;
+  const readScope =
+    branchId != null
+      ? and(eq(claims.id, claimId), eq(claims.branchId, branchId))
+      : eq(claims.id, claimId);
+  const scopedWhere = withTenant(tenantId, claims.tenantId, readScope);
 
   try {
     const [existingClaim] = await db
-      .select({ id: claims.id, staffId: claims.staffId })
+      .select({ id: claims.id, staffId: claims.staffId, branchId: claims.branchId })
       .from(claims)
-      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
+      .where(scopedWhere)
       .limit(1);
 
     if (!existingClaim) {
-      return { success: false, error: 'Claim not found' };
+      return { success: false, error: 'Claim not found or access denied' };
+    }
+
+    if (existingClaim.staffId === user.id) {
+      return { success: true };
+    }
+
+    if (existingClaim.staffId && existingClaim.staffId !== user.id) {
+      return { success: false, error: 'Claim is already assigned to another staff member' };
+    }
+
+    if (branchId == null) {
+      return { success: false, error: 'Claim not found or access denied' };
     }
 
     const previousStaffId = existingClaim.staffId;
@@ -40,22 +60,22 @@ export async function assignClaimCore(
       .set({
         staffId: session.user.id,
         assignedAt: now,
-        assignedById: session.user.id,
+        assignedById: user.id,
         updatedAt: now,
       })
-      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+      .where(scopedWhere);
 
     if (deps.logAuditEvent) {
       await deps.logAuditEvent({
-        actorId: session.user.id,
-        actorRole: session.user.role,
+        actorId: user.id,
+        actorRole: user.role,
         tenantId,
         action: 'claim.assigned',
         entityType: 'claim',
         entityId: claimId,
         metadata: {
           previousStaffId,
-          newStaffId: session.user.id,
+          newStaffId: user.id,
         },
         headers: requestHeaders,
       });
