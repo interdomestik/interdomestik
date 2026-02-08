@@ -65,6 +65,7 @@ vi.mock('@/i18n/routing', () => ({
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+  useLocale: () => 'en',
 }));
 
 describe('PricingTable', () => {
@@ -107,6 +108,9 @@ describe('PricingTable', () => {
           items: expect.arrayContaining([{ priceId: PADDLE_PRICES.standard.yearly, quantity: 1 }]),
           customer: { email: 'test@example.com' },
           customData: { userId: 'user-123' },
+          settings: expect.objectContaining({
+            successUrl: expect.stringContaining('/en/member/membership/success'),
+          }),
         })
       );
     });

@@ -6,7 +6,7 @@ import { getPaddleInstance } from '@interdomestik/domain-membership-billing/padd
 import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
@@ -24,6 +24,7 @@ function getPlanColorClass(color: string) {
 
 export function PricingTable({ userId, email, billingTestMode }: PricingTableProps) {
   const t = useTranslations('pricing');
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
@@ -117,7 +118,7 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
             displayMode: 'overlay',
             theme: 'light',
             locale: 'en',
-            successUrl: `${window.location.origin}/member/membership/success`,
+            successUrl: `${window.location.origin}/${locale}/member/membership/success`,
           },
         });
       } else {
