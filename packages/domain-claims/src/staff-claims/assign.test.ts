@@ -18,10 +18,15 @@ const mocks = vi.hoisted(() => {
     where: vi.fn(),
   };
 
+  const updateWhereChain = {
+    returning: vi.fn(),
+  };
+
   return {
     selectChain,
     updateChain,
     updateSetChain,
+    updateWhereChain,
     select: vi.fn(),
     update: vi.fn(),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
@@ -84,6 +89,7 @@ describe('staff assignClaimCore', () => {
     mocks.selectChain.where.mockReturnValue(mocks.selectChain);
     mocks.update.mockReturnValue(mocks.updateChain);
     mocks.updateChain.set.mockReturnValue(mocks.updateSetChain);
+    mocks.updateSetChain.where.mockReturnValue(mocks.updateWhereChain);
   });
 
   it('denies cross-tenant assignment with a generic error and no mutation', async () => {
@@ -132,7 +138,7 @@ describe('staff assignClaimCore', () => {
     mocks.selectChain.limit.mockResolvedValue([
       { id: 'claim-1', staffId: null, branchId: 'branch-1' },
     ]);
-    mocks.updateSetChain.where.mockResolvedValue([{ id: 'claim-1' }]);
+    mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
 
     const result = await assignClaimCore(
       {
@@ -168,9 +174,7 @@ describe('staff assignClaimCore', () => {
   });
 
   it('denies branchless staff self-assign on unassigned claims', async () => {
-    mocks.selectChain.limit.mockResolvedValue([
-      { id: 'claim-1', staffId: null, branchId: 'branch-1' },
-    ]);
+    mocks.selectChain.limit.mockResolvedValue([]);
 
     const result = await assignClaimCore({
       claimId: 'claim-1',
@@ -178,6 +182,7 @@ describe('staff assignClaimCore', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Claim not found or access denied' });
+    expect(mocks.eq).toHaveBeenCalledWith('claims.staff_id', 'staff-1');
     expect(mocks.eq).not.toHaveBeenCalledWith('claims.branch_id', expect.anything());
     expect(mocks.update).not.toHaveBeenCalled();
   });
@@ -194,5 +199,23 @@ describe('staff assignClaimCore', () => {
 
     expect(result).toEqual({ success: true });
     expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('returns generic denial when atomic assignment guard loses race', async () => {
+    mocks.selectChain.limit.mockResolvedValue([
+      { id: 'claim-1', staffId: null, branchId: 'branch-1' },
+    ]);
+    mocks.updateWhereChain.returning.mockResolvedValue([]);
+
+    const result = await assignClaimCore(
+      {
+        claimId: 'claim-1',
+        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      },
+      { logAuditEvent: mocks.logAuditEvent }
+    );
+
+    expect(result).toEqual({ success: false, error: 'Claim not found or access denied' });
+    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
   });
 });
