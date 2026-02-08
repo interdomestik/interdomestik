@@ -45,8 +45,7 @@ export async function getMemberClaimDetail(params: {
 
   if (!row) return null;
   const timeline = await getClaimTimeline({ tenantId, claimId });
-  const projected = getClaimStatus(timeline);
-  const status = timeline.length > 0 ? projected.status : (row.status ?? null);
+  const status = timeline.length > 0 ? getClaimStatus(timeline).status : (row.status ?? null);
 
   return {
     id: row.id,

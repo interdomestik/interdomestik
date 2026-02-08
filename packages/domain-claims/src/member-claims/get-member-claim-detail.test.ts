@@ -142,5 +142,6 @@ describe('getMemberClaimDetail', () => {
     });
 
     expect(result?.status).toBe('submitted');
+    expect(mocks.getClaimStatus).not.toHaveBeenCalled();
   });
 });
