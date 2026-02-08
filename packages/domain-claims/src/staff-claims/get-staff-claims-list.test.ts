@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => {
     claims: {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
+      branchId: 'claims.branch_id',
+      staffId: 'claims.staff_id',
       claimNumber: 'claims.claim_number',
       status: 'claims.status',
       updatedAt: 'claims.updated_at',
@@ -26,6 +28,7 @@ const mocks = vi.hoisted(() => {
       memberNumber: 'user.member_number',
     },
     eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
+    and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
     desc: vi.fn(value => ({ value, op: 'desc' })),
     inArray: vi.fn((column, values) => ({ column, values, op: 'inArray' })),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
@@ -37,6 +40,7 @@ vi.mock('@interdomestik/database', () => ({
   claims: mocks.claims,
   user: mocks.user,
   eq: mocks.eq,
+  and: mocks.and,
   desc: mocks.desc,
   inArray: mocks.inArray,
 }));
@@ -72,6 +76,7 @@ describe('getStaffClaimsList', () => {
     const result = await getStaffClaimsList({
       staffId: 'staff-1',
       tenantId: 'tenant-ks',
+      branchId: 'branch-1',
       limit: 20,
     });
 
@@ -79,7 +84,13 @@ describe('getStaffClaimsList', () => {
     expect(mocks.withTenant).toHaveBeenCalledWith(
       'tenant-ks',
       mocks.claims.tenantId,
-      expect.objectContaining({ op: 'inArray' })
+      expect.objectContaining({
+        op: 'and',
+        conditions: expect.arrayContaining([
+          expect.objectContaining({ op: 'inArray' }),
+          expect.objectContaining({ op: 'eq', left: 'claims.branch_id', right: 'branch-1' }),
+        ]),
+      })
     );
     expect(result).toHaveLength(1);
     expect(result[0].claimNumber).toBe('KS-0001');
@@ -92,9 +103,49 @@ describe('getStaffClaimsList', () => {
     const result = await getStaffClaimsList({
       staffId: 'staff-2',
       tenantId: 'tenant-mk',
+      branchId: 'branch-2',
       limit: 10,
     });
 
     expect(result).toEqual([]);
+  });
+
+  it('enforces staffId-only scope when branchId is null', async () => {
+    mocks.claimChain.limit.mockResolvedValue([]);
+
+    await getStaffClaimsList({
+      staffId: 'staff-3',
+      tenantId: 'tenant-ks',
+      branchId: null,
+      limit: 10,
+    });
+
+    expect(mocks.withTenant).toHaveBeenCalledWith(
+      'tenant-ks',
+      mocks.claims.tenantId,
+      expect.objectContaining({
+        op: 'and',
+        conditions: expect.arrayContaining([
+          expect.objectContaining({ op: 'inArray' }),
+          expect.objectContaining({ op: 'eq', left: 'claims.staff_id', right: 'staff-3' }),
+        ]),
+      })
+    );
+  });
+
+  it('applies deterministic ordering by updatedAt DESC then id DESC', async () => {
+    mocks.claimChain.limit.mockResolvedValue([]);
+
+    await getStaffClaimsList({
+      staffId: 'staff-4',
+      tenantId: 'tenant-ks',
+      branchId: 'branch-4',
+      limit: 10,
+    });
+
+    expect(mocks.claimChain.orderBy).toHaveBeenCalledWith(
+      expect.objectContaining({ op: 'desc', value: 'claims.updated_at' }),
+      expect.objectContaining({ op: 'desc', value: 'claims.id' })
+    );
   });
 });

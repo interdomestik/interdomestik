@@ -1,4 +1,4 @@
-import { claims, db, desc, eq, inArray, user } from '@interdomestik/database';
+import { and, claims, db, desc, eq, inArray, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ACTIONABLE_CLAIM_STATUSES } from '../claims/constants';
 
@@ -26,10 +26,17 @@ function normalizeDate(value: Date | string | null | undefined) {
 export async function getStaffClaimsList(params: {
   staffId: string;
   tenantId: string;
+  branchId?: string | null;
   limit: number;
   cursor?: string | null;
 }): Promise<StaffClaimsListItem[]> {
-  const { tenantId, limit } = params;
+  const { staffId, tenantId, branchId, limit } = params;
+  const scopeCondition = branchId ? eq(claims.branchId, branchId) : eq(claims.staffId, staffId);
+  const scopedWhere = withTenant(
+    tenantId,
+    claims.tenantId,
+    and(inArray(claims.status, ACTIONABLE_CLAIM_STATUSES), scopeCondition)
+  );
 
   const rows = await db
     .select({
@@ -42,8 +49,8 @@ export async function getStaffClaimsList(params: {
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
-    .where(withTenant(tenantId, claims.tenantId, inArray(claims.status, ACTIONABLE_CLAIM_STATUSES)))
-    .orderBy(desc(claims.updatedAt))
+    .where(scopedWhere)
+    .orderBy(desc(claims.updatedAt), desc(claims.id))
     .limit(limit);
 
   return rows.map(row => ({
