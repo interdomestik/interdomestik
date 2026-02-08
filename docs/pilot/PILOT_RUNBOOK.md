@@ -59,6 +59,35 @@ Validate one closed-loop workflow in real branch operations in Kosovo:
   - Sev1 (privacy/tenant isolation/data integrity): immediate escalation and hotfix allowed.
   - Sev2/Sev3: log and defer to next weekday ops huddle unless a stop criterion is met or risk escalates to Sev1.
 
+## Weekend Ceremony Checklist (Saturday/Sunday)
+
+Run from repository root:
+
+```bash
+date -Is
+git rev-parse --abbrev-ref HEAD
+git rev-parse HEAD
+git status --porcelain
+pnpm security:guard
+```
+
+- Record results in `docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md`.
+- If Sev1 requires hotfix workflow evidence, run:
+  - `./phase-5-1.sh`
+  - Fallback: `bash ./phase-5-1.sh`
+- Evidence bundle path convention for full gate runs:
+  - `tmp/pilot-evidence/phase-5.1/<YYYY-MM-DDTHH-MM-SS+ZZZZ>/`
+- If no full gate run is required, use `n/a` for bundle path in the evidence index row.
+
+## Weekend Escalation Decision Table
+
+| Condition                                                                 | Weekend Action                                      | Decision |
+| ------------------------------------------------------------------------- | --------------------------------------------------- | -------- |
+| Sev1 (privacy, tenant isolation, data integrity, or stop-criteria threat) | Immediate escalation + hotfix allowed               | `hotfix` |
+| Sev2 (closed-loop break, major SLA breach) without Sev1 promotion         | Log, assign owner, defer to next weekday ops huddle | `defer`  |
+| Sev3 (non-critical with workaround)                                       | Log, assign owner, defer to next weekday ops huddle | `defer`  |
+| Any stop criterion reached                                                | Trigger rollback policy immediately                 | `stop`   |
+
 ## Incident Escalation
 
 - Severity model:
