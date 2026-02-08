@@ -1,4 +1,6 @@
 import { updateClaimStatusCore as updateClaimStatusCoreDomain } from '@interdomestik/domain-claims/admin-claims/update-status';
+import { db } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 
 import { logAuditEvent } from '@/lib/audit';
 import { notifyStatusChanged } from '@/lib/notifications';
@@ -67,6 +69,24 @@ export async function updateClaimStatusCore(params: {
     throw new Error('Invalid status');
   }
   const status = parsed.data.status;
+  const tenantId = session.user.tenantId;
+
+  const claim = await db.query.claims.findFirst({
+    where: (claimsTable, { eq }) =>
+      withTenant(tenantId, claimsTable.tenantId, eq(claimsTable.id, claimId)),
+    columns: {
+      status: true,
+    },
+  });
+
+  if (!claim) {
+    throw new Error('Claim not found');
+  }
+
+  const currentStatus = claim.status ?? 'draft';
+  if (currentStatus === status) {
+    return;
+  }
 
   await updateClaimStatusCoreDomain(
     {

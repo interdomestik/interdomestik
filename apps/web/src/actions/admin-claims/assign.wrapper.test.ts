@@ -21,25 +21,27 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
-const claimFindFirst = vi.fn();
-const withTenant = vi.fn((tenantId, tenantColumn, condition) => ({
-  tenantId,
-  tenantColumn,
-  condition,
+const dbMocks = vi.hoisted(() => ({
+  claimFindFirst: vi.fn(),
+  withTenant: vi.fn((tenantId, tenantColumn, condition) => ({
+    tenantId,
+    tenantColumn,
+    condition,
+  })),
 }));
 
 vi.mock('@interdomestik/database', () => ({
   db: {
     query: {
       claims: {
-        findFirst: claimFindFirst,
+        findFirst: dbMocks.claimFindFirst,
       },
     },
   },
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
-  withTenant,
+  withTenant: dbMocks.withTenant,
 }));
 
 describe('assignClaimCore (Wrapper Means)', () => {
@@ -60,7 +62,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    claimFindFirst.mockResolvedValue({ id: 'claim1', staffId: 'staff-old' });
+    dbMocks.claimFindFirst.mockResolvedValue({ id: 'claim1', staffId: 'staff-old' });
   });
 
   it('should call domain assignClaimCore with correct params', async () => {
@@ -142,7 +144,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
   });
 
   it('assignment no-op should not call domain mutation or revalidate', async () => {
-    claimFindFirst.mockResolvedValueOnce({ id: 'claim1', staffId: 'staff1' });
+    dbMocks.claimFindFirst.mockResolvedValueOnce({ id: 'claim1', staffId: 'staff1' });
 
     const result = await assignClaimCore({
       claimId: 'claim1',

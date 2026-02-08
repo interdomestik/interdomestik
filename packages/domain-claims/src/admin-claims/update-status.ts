@@ -68,6 +68,10 @@ export async function updateClaimStatusCore(
 
   const oldStatus = claimWithUser.status || 'draft';
 
+  if (oldStatus === newStatus) {
+    return;
+  }
+
   // Update status
   await db
     .update(claims)
