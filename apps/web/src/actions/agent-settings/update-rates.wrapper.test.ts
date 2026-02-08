@@ -105,7 +105,7 @@ describe('updateAgentCommissionRatesCore', () => {
   });
 
   it('should insert new settings', async () => {
-    findFirstMock.mockResolvedValue(null);
+    findFirstMock.mockResolvedValue(undefined);
 
     const result = await updateAgentCommissionRatesCore({
       session: mockSession,
