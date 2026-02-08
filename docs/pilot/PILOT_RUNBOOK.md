@@ -50,14 +50,14 @@ Validate one closed-loop workflow in real branch operations in Kosovo:
 
 ## Weekend Operating Mode (Light-Touch)
 
-- Coverage objective: Monitor + log continuously, avoid non-critical change churn.
-- Weekend scope (Saturday/Sunday):
+- Coverage objective: During weekend operating hours (`08:00–17:00 Europe/Pristina`), monitor and log actively while avoiding non-critical change churn.
+- Weekend scope (Saturday/Sunday, within defined operating hours):
   - Monitor guardrails, incidents, and SLA drift.
   - Log findings and ownership in the pilot incident log.
-  - Apply hotfixes only for Sev1 issues.
+  - Apply hotfixes only for Sev1 issues that materially impact operating-hours SLAs.
 - Weekend escalation:
   - Sev1 (privacy/tenant isolation/data integrity): immediate escalation and hotfix allowed.
-  - Sev2/Sev3: log and defer to next weekday ops huddle unless risk escalates to Sev1.
+  - Sev2/Sev3: log and defer to next weekday ops huddle unless a stop criterion is met or risk escalates to Sev1.
 
 ## Incident Escalation
 

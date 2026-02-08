@@ -37,10 +37,10 @@
   - Closed-loop path operational end-to-end.
 - No-Go:
   - Any Sev1 incident unresolved.
-- Repeated guardrail failures (`security:guard`, `m4-gatekeeper.sh`, or `e2e:gate`) without fix.
-- Repeated authentication/login failures for pilot users that block operations.
-- Closed-loop path broken for more than 1 operating day.
-- SLA misses exceed threshold for 3 consecutive operating days.
+  - Repeated guardrail failures (`security:guard`, `m4-gatekeeper.sh`, or `e2e:gate`) without fix.
+  - Repeated authentication/login failures for pilot users that block operations.
+  - Closed-loop path broken for more than 1 operating day.
+  - SLA misses exceed threshold for 3 consecutive operating days.
 
 ## Stop the Pilot If
 
