@@ -36,12 +36,13 @@ function buildConditions(context: ClaimsVisibilityContext, filters: AdminClaimsV
 
   // Lifecycle filter
   const lifecycleStage =
-    typeof filters.lifecycleStage === 'string' && filters.lifecycleStage in LIFECYCLE_STATUS_MAP
+    typeof filters.lifecycleStage === 'string' &&
+    Object.prototype.hasOwnProperty.call(LIFECYCLE_STATUS_MAP, filters.lifecycleStage)
       ? (filters.lifecycleStage as LifecycleStage)
       : undefined;
   if (lifecycleStage) {
     const statuses = LIFECYCLE_STATUS_MAP[lifecycleStage];
-    if (statuses && statuses.length > 0) {
+    if (Array.isArray(statuses) && statuses.length > 0) {
       conditions.push(inArray(claims.status, statuses as any));
     }
   }

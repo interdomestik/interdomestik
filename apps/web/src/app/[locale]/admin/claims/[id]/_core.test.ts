@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   claimsFindFirst: vi.fn(),
@@ -48,6 +48,13 @@ function createSelectChain(result: unknown) {
 }
 
 describe('getAdminClaimDetailsCore', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.createSignedUrl.mockResolvedValue({
+      data: { signedUrl: 'https://signed.example.com/doc' },
+    });
+  });
+
   it('returns not_found when tenant context is missing', async () => {
     const result = await getAdminClaimDetailsCore({ claimId: 'c1' });
 
