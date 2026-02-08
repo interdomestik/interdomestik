@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   findFirst: vi.fn(),
@@ -39,6 +39,10 @@ const baseSession = {
 };
 
 describe('assignClaimCore', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('scopes claim lookup with tenant filter', async () => {
     mocks.findFirst.mockImplementationOnce(({ where }: { where: Function }) => {
       where({ id: 'claims.id', tenantId: 'claims.tenant_id' }, { eq: vi.fn(() => ({ eq: true })) });
@@ -90,5 +94,33 @@ describe('assignClaimCore', () => {
     });
 
     expect(result).toEqual({ success: true });
+  });
+
+  it('denies cross-tenant assignment with a generic error and no mutation', async () => {
+    mocks.findFirst.mockResolvedValueOnce(null);
+
+    const result = await assignClaimCore({
+      claimId: 'claim-1',
+      staffId: 'staff-2',
+      session: { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } } as never,
+      requestHeaders: new Headers(),
+    });
+
+    expect(result).toEqual({ success: false, error: 'Claim not found', data: undefined });
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid assignee input fail-closed with no mutation', async () => {
+    const result = await assignClaimCore({
+      claimId: 'claim-1',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      staffId: { bad: true } as any,
+      session: { user: { id: 'admin-1', role: 'admin', tenantId: 'tenant-1' } } as never,
+      requestHeaders: new Headers(),
+    });
+
+    expect(result).toEqual({ success: false, error: 'Invalid staff assignment', data: undefined });
+    expect(mocks.findFirst).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalled();
   });
 });
