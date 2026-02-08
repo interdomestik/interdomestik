@@ -1,18 +1,18 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { db, memberLeads } from '@interdomestik/database';
+import { and, db, eq, memberLeads } from '@interdomestik/database';
 import { startPayment } from '@interdomestik/domain-leads';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
-/**
- * Updates the status of a lead.
- * strictly enforces tenant isolation.
- */
-export async function updateLeadStatus(leadId: string, status: string) {
+type LeadScope = 'tenant' | 'agent';
+
+async function resolveLeadAccess(params: {
+  leadId: string;
+  scope: LeadScope;
+}): Promise<{ tenantId: string }> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -22,15 +22,28 @@ export async function updateLeadStatus(leadId: string, status: string) {
   }
 
   const tenantId = ensureTenantId(session);
+  const conditions = [eq(memberLeads.id, params.leadId), eq(memberLeads.tenantId, tenantId)];
 
-  // Authz: Lead must belong to tenant
+  if (params.scope === 'agent') {
+    conditions.push(eq(memberLeads.agentId, session.user.id));
+    if (session.user.branchId) {
+      conditions.push(eq(memberLeads.branchId, session.user.branchId));
+    }
+  }
+
   const lead = await db.query.memberLeads.findFirst({
-    where: and(eq(memberLeads.id, leadId), eq(memberLeads.tenantId, tenantId)),
+    where: and(...conditions),
   });
 
   if (!lead) {
     throw new Error('Lead not found or access denied');
   }
+
+  return { tenantId };
+}
+
+async function updateLeadStatusCore(params: { leadId: string; status: string; tenantId: string }) {
+  const { leadId, status, tenantId } = params;
 
   // If requesting payment, we MUST create a payment attempt record
   if (status === 'payment_pending') {
@@ -59,35 +72,20 @@ export async function updateLeadStatus(leadId: string, status: string) {
 }
 
 /**
+ * Updates the status of a lead.
+ * strictly enforces tenant isolation.
+ */
+export async function updateLeadStatus(leadId: string, status: string) {
+  const { tenantId } = await resolveLeadAccess({ leadId, scope: 'tenant' });
+  return updateLeadStatusCore({ leadId, status, tenantId });
+}
+
+/**
  * Converts a lead to a client (member).
  * This is a simplified version that just updates status for now,
  * or would trigger a complex flow. MVP: Status -> 'converted'.
  */
 export async function convertLeadToClient(leadId: string) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    throw new Error('Unauthorized');
-  }
-
-  const lead = await db.query.memberLeads.findFirst({
-    where: eq(memberLeads.id, leadId),
-  });
-
-  if (!lead) {
-    throw new Error('Lead not found');
-  }
-
-  const sameTenant = lead.tenantId === session.user.tenantId;
-  const sameAgent = lead.agentId === session.user.id;
-  const branchScoped = session.user.branchId ? lead.branchId === session.user.branchId : true;
-
-  if (!sameTenant || !sameAgent || !branchScoped) {
-    throw new Error('Lead access denied');
-  }
-
-  // Re-use status update for MVP, but explicit action allows for future expansion.
-  return updateLeadStatus(leadId, 'converted');
+  const { tenantId } = await resolveLeadAccess({ leadId, scope: 'agent' });
+  return updateLeadStatusCore({ leadId, status: 'converted', tenantId });
 }

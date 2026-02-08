@@ -1,4 +1,4 @@
-import { db } from '@interdomestik/database';
+import { db, eq } from '@interdomestik/database';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import {
   memberLeads,
@@ -6,7 +6,6 @@ import {
   subscriptions,
   user as userTable,
 } from '@interdomestik/database/schema';
-import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export interface ConvertLeadResult {
@@ -15,10 +14,9 @@ export interface ConvertLeadResult {
   subscriptionId: string;
 }
 
-export function isLeadAlreadyConverted(lead: {
-  status: string;
-  convertedUserId?: string | null;
-}): boolean {
+type LeadConversionState = Pick<typeof memberLeads.$inferSelect, 'status' | 'convertedUserId'>;
+
+function isLeadAlreadyConverted(lead: LeadConversionState): boolean {
   return lead.convertedUserId != null || lead.status === 'converted';
 }
 
