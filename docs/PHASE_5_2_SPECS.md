@@ -23,6 +23,7 @@ Implement **one** approved Phase C change on top of a **green Phase 5.1 baseline
 
 - Routing/auth/tenancy architecture refactors.
 - Canonical route renames/bypasses (`/member`, `/agent`, `/staff`, `/admin`).
+  - Allowed exception: minimal navigation-target canonicalization to existing canonical routes (no route implementation or proxy/auth changes).
 - Clarity marker changes unless required **and** validated.
 - Stripe-related pilot flow changes.
 

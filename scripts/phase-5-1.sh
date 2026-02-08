@@ -15,17 +15,26 @@ run_and_capture() {
   shift
   local file="${OUT_DIR}/${name}.log"
   local tail_file="${OUT_DIR}/${name}.tail120.log"
+  local exit_code
   log "RUN: $name"
   {
     echo "date: $(date -Is)"
     echo "cmd: $*"
     echo
+    set +e
     "$@"
+    exit_code=$?
+    set -e
     echo
-    echo "exit_code: 0"
+    echo "exit_code: $exit_code"
   } >"$file" 2>&1
   tail -n 120 "$file" >"$tail_file"
-  log "OK: $name (log: $file)"
+  if [[ "$exit_code" -eq 0 ]]; then
+    log "OK: $name (log: $file)"
+  else
+    log "FAIL: $name (exit $exit_code, log: $file)"
+  fi
+  return "$exit_code"
 }
 
 # --- Preconditions ---
@@ -42,6 +51,16 @@ if [[ -n "$PORCELAIN" ]]; then
   exit 1
 fi
 
+git fetch origin main --quiet
+LOCAL_HEAD="$(git rev-parse HEAD)"
+REMOTE_MAIN_HEAD="$(git rev-parse origin/main)"
+if [[ "$LOCAL_HEAD" != "$REMOTE_MAIN_HEAD" ]]; then
+  echo "ERROR: local main is not synced with origin/main." >&2
+  echo "local HEAD:  ${LOCAL_HEAD}" >&2
+  echo "origin/main: ${REMOTE_MAIN_HEAD}" >&2
+  exit 1
+fi
+
 # --- Baseline snapshot ---
 {
   echo "phase: 5.1"
@@ -49,6 +68,7 @@ fi
   echo "repo_root: ${ROOT}"
   echo "branch: ${BRANCH}"
   echo "git_head: $(git rev-parse HEAD)"
+  echo "origin_main_head: ${REMOTE_MAIN_HEAD}"
   echo
   echo "git_status_porcelain:"
   git status --porcelain

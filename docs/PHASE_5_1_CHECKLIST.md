@@ -70,6 +70,7 @@ Special rule:
 
 - Do not modify `apps/web/src/proxy.ts` unless explicitly authorized.
 - Do not rename or bypass canonical routes: `/member`, `/agent`, `/staff`, `/admin`.
+  - Allowed exception: nav-target canonicalization to existing canonical routes when explicitly scoped to a slice.
 - Preserve clarity markers (`*-page-ready`).
 - Do not perform architecture refactors (routing, auth, domains, tenancy) unless explicitly requested.
 - Do not introduce Stripe in V3 pilot flows.

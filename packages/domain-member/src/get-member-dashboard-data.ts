@@ -60,7 +60,6 @@ function normalizeDate(value: Date | string | null | undefined) {
 export async function getMemberDashboardData(params: {
   memberId: string;
   tenantId?: string | null;
-  locale: string;
 }): Promise<MemberDashboardData> {
   const { memberId, tenantId } = params;
 
