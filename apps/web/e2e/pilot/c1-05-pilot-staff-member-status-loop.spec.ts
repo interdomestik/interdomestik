@@ -14,7 +14,6 @@ test.describe('C1 Pilot: Staff to member status loop', () => {
     if (!baseUrl) {
       throw new Error('Expected project baseURL for pilot host resolution');
     }
-    const pilotHost = new URL(baseUrl).host;
 
     const seededAgent = await db.query.user.findFirst({
       where: eq(user.email, 'agent.pilot@interdomestik.com'),
@@ -80,7 +79,7 @@ test.describe('C1 Pilot: Staff to member status loop', () => {
 
     try {
       memberContext = await browser.newContext({
-        baseURL: `http://${pilotHost}/en`,
+        baseURL: baseUrl,
         extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
         locale: 'en-US',
       });
@@ -140,7 +139,7 @@ test.describe('C1 Pilot: Staff to member status loop', () => {
       expect(createdClaim.staffId).toBeNull();
 
       staffContext = await browser.newContext({
-        baseURL: `http://${pilotHost}/en`,
+        baseURL: baseUrl,
         extraHTTPHeaders: testInfo.project.use.extraHTTPHeaders,
         locale: 'en-US',
       });
