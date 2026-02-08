@@ -68,7 +68,6 @@ describe('getMemberDashboardData', () => {
     const data = await getMemberDashboardData({
       memberId: 'member-1',
       tenantId: 'tenant-1',
-      locale: 'sq',
     });
 
     expect(data.member.name).toBe('Member One');
@@ -94,7 +93,6 @@ describe('getMemberDashboardData', () => {
     const data = await getMemberDashboardData({
       memberId: 'member-2',
       tenantId: 'tenant-1',
-      locale: 'sq',
     });
 
     expect(data.claims).toHaveLength(0);

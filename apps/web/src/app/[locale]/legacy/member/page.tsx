@@ -46,7 +46,6 @@ export default async function LegacyMemberPage({
     data = await getMemberDashboardData({
       memberId: result.userId,
       tenantId: session.user.tenantId,
-      locale,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Member not found') {

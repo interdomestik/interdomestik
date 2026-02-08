@@ -40,7 +40,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     data = await getMemberDashboardData({
       memberId: result.userId,
       tenantId: session.user.tenantId,
-      locale,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Member not found') {
