@@ -31,7 +31,8 @@ export async function getStaffClaimsList(params: {
   cursor?: string | null;
 }): Promise<StaffClaimsListItem[]> {
   const { staffId, tenantId, branchId, limit } = params;
-  const scopeCondition = branchId ? eq(claims.branchId, branchId) : eq(claims.staffId, staffId);
+  const scopeCondition =
+    branchId != null ? eq(claims.branchId, branchId) : eq(claims.staffId, staffId);
   const scopedWhere = withTenant(
     tenantId,
     claims.tenantId,
