@@ -42,6 +42,11 @@ describe('assignClaimCore (Wrapper Means)', () => {
   });
 
   it('should call domain assignClaimCore with correct params', async () => {
+    vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
+      success: true,
+      error: undefined,
+    });
+
     const params = {
       claimId: 'claim1',
       staffId: 'staff1',
@@ -61,6 +66,11 @@ describe('assignClaimCore (Wrapper Means)', () => {
   });
 
   it('should revalidate paths', async () => {
+    vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
+      success: true,
+      error: undefined,
+    });
+
     await assignClaimCore({
       claimId: 'claim1',
       staffId: 'staff1',
@@ -76,6 +86,24 @@ describe('assignClaimCore (Wrapper Means)', () => {
       expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims`);
       expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims/claim1`);
     }
+  });
+
+  it('should not revalidate on denied/no-op result', async () => {
+    vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
+      success: false,
+      error: 'Claim not found',
+      data: undefined,
+    });
+
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: mockSession,
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Claim not found', data: undefined });
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
   });
 
   it('should propagate errors from domain layer', async () => {
