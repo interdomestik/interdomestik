@@ -102,7 +102,18 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
                   // Hide Member Claims for Agents to avoid confusion with Agent Claims
                   if (isAgent && item.href === '/member/claims') return null;
 
-                  const isActive = pathname.startsWith(item.href);
+                  // More precise active check: exact match OR startsWith but not a more specific route
+                  const isExactMatch = pathname === item.href;
+                  const isParentRoute = pathname.startsWith(item.href + '/');
+                  // Don't mark parent as active if we're on a child route that has its own nav item
+                  const hasMoreSpecificMatch = memberItems.some(
+                    other =>
+                      other.href !== item.href &&
+                      other.href.startsWith(item.href + '/') &&
+                      pathname.startsWith(other.href)
+                  );
+                  const isActive = isExactMatch || (isParentRoute && !hasMoreSpecificMatch);
+
                   return (
                     <SidebarMenuItem key={item.href}>
                       <NavItem

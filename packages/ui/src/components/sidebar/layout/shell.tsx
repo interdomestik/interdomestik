@@ -68,7 +68,7 @@ export const Sidebar = React.forwardRef<HTMLDivElement, SidebarProps>(
       >
         <div
           className={cn(
-            'relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear group-data-[collapsible=offcanvas]:w-[--sidebar-width-icon] group-data-[state=collapsed]:w-[--sidebar-width-icon]',
+            'sticky top-0 h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear group-data-[collapsible=offcanvas]:w-[--sidebar-width-icon] group-data-[state=collapsed]:w-[--sidebar-width-icon]',
             variant === 'floating' || variant === 'inset'
               ? 'p-2 group-data-[state=collapsed]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+_2px)]'
               : 'group-data-[side=left]:border-r group-data-[side=right]:border-l',
