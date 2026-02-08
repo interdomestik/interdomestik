@@ -37,6 +37,7 @@
   - Closed-loop path operational end-to-end.
 - No-Go:
   - Any Sev1 incident unresolved.
+  - When stop criteria are met, they trigger an immediate stop/rollback decision; weekend defer policy cannot override or delay this.
   - Repeated guardrail failures (`security:guard`, `m4-gatekeeper.sh`, or `e2e:gate`) without fix.
   - Repeated authentication/login failures for pilot users that block operations.
   - Closed-loop path broken for more than 1 operating day.
