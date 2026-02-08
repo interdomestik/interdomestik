@@ -110,6 +110,8 @@ describe('assignClaimCore (Wrapper Means)', () => {
       expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims`);
       expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims/claim1`);
     }
+    expect(nextCache.revalidatePath).toHaveBeenCalledTimes(LOCALES.length * 6);
+    expect(domainAssign.assignClaimCore).toHaveBeenCalledTimes(1);
   });
 
   it('should not revalidate on denied/no-op result', async () => {
@@ -193,6 +195,28 @@ describe('assignClaimCore (Wrapper Means)', () => {
     });
     expect(dbMocks.claimFindFirst).not.toHaveBeenCalled();
     expect(domainAssign.assignClaimCore).not.toHaveBeenCalled();
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('does not revalidate when persisted assignee remains unchanged after domain success', async () => {
+    dbMocks.claimFindFirst
+      .mockResolvedValueOnce({ id: 'claim1', staffId: 'staff-old' })
+      .mockResolvedValueOnce({ id: 'claim1', staffId: 'staff-old' });
+
+    vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
+      success: true,
+      error: undefined,
+    });
+
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: mockSession,
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(domainAssign.assignClaimCore).toHaveBeenCalledTimes(1);
     expect(nextCache.revalidatePath).not.toHaveBeenCalled();
   });
 });

@@ -82,6 +82,8 @@ describe('updateClaimStatusCore', () => {
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(1, '/en/admin/claims');
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(2, '/en/admin/claims/claim-1');
     expect(hoisted.revalidatePath).toHaveBeenNthCalledWith(3, '/en/member/claims/claim-1');
+    expect(hoisted.revalidatePath).toHaveBeenCalledTimes(3);
+    expect(hoisted.domainUpdateStatus).toHaveBeenCalledTimes(1);
   });
 
   it('does not revalidate when domain mutation is denied/fails', async () => {
@@ -118,6 +120,26 @@ describe('updateClaimStatusCore', () => {
     });
 
     expect(hoisted.domainUpdateStatus).not.toHaveBeenCalled();
+    expect(hoisted.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('does not revalidate when persisted status remains unchanged after domain call', async () => {
+    hoisted.claimFindFirst
+      .mockResolvedValueOnce({ id: 'claim-1', status: 'submitted' })
+      .mockResolvedValueOnce({ id: 'claim-1', status: 'submitted' });
+
+    const formData = new FormData();
+    formData.set('claimId', 'claim-1');
+    formData.set('status', 'resolved');
+    formData.set('locale', 'en');
+
+    await updateClaimStatusCore({
+      formData,
+      session,
+      requestHeaders: new Headers(),
+    });
+
+    expect(hoisted.domainUpdateStatus).toHaveBeenCalledTimes(1);
     expect(hoisted.revalidatePath).not.toHaveBeenCalled();
   });
 });
