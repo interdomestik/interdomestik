@@ -80,4 +80,28 @@ describe('admin updateClaimStatusCore', () => {
     expect(mocks.dbSelect).not.toHaveBeenCalled();
     expect(mocks.dbUpdate).not.toHaveBeenCalled();
   });
+
+  it('status no-op does not execute update mutation', async () => {
+    mocks.selectWhere.mockResolvedValueOnce([
+      {
+        id: 'claim-1',
+        title: 'Claim',
+        status: 'resolved',
+        userId: 'member-1',
+        userEmail: 'member@example.com',
+      },
+    ]);
+
+    await updateClaimStatusCore(
+      {
+        claimId: 'claim-1',
+        newStatus: 'resolved',
+        session: adminSession,
+        requestHeaders: new Headers(),
+      },
+      {}
+    );
+
+    expect(mocks.dbUpdate).not.toHaveBeenCalled();
+  });
 });

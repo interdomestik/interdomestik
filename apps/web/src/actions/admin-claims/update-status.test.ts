@@ -4,6 +4,8 @@ const hoisted = vi.hoisted(() => ({
   domainUpdateStatus: vi.fn(),
   revalidatePath: vi.fn(),
   enforceRateLimitForAction: vi.fn(),
+  claimFindFirst: vi.fn(),
+  withTenant: vi.fn((tenantId, tenantColumn, condition) => ({ tenantId, tenantColumn, condition })),
 }));
 
 vi.mock('@interdomestik/domain-claims/admin-claims/update-status', () => ({
@@ -18,6 +20,20 @@ vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimitForAction: hoisted.enforceRateLimitForAction,
 }));
 
+vi.mock('@interdomestik/database', () => ({
+  db: {
+    query: {
+      claims: {
+        findFirst: hoisted.claimFindFirst,
+      },
+    },
+  },
+}));
+
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant: hoisted.withTenant,
+}));
+
 import { updateClaimStatusCore } from './update-status';
 
 const session = {
@@ -30,6 +46,7 @@ describe('updateClaimStatusCore', () => {
     vi.clearAllMocks();
     hoisted.enforceRateLimitForAction.mockResolvedValue({ limited: false });
     hoisted.domainUpdateStatus.mockResolvedValue(undefined);
+    hoisted.claimFindFirst.mockResolvedValue({ id: 'claim-1', status: 'submitted' });
   });
 
   it('throws on invalid status before hitting domain mutation', async () => {
@@ -83,6 +100,24 @@ describe('updateClaimStatusCore', () => {
       })
     ).rejects.toThrow('Claim not found');
 
+    expect(hoisted.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it('status no-op does not mutate or revalidate', async () => {
+    hoisted.claimFindFirst.mockResolvedValueOnce({ id: 'claim-1', status: 'resolved' });
+
+    const formData = new FormData();
+    formData.set('claimId', 'claim-1');
+    formData.set('status', 'resolved');
+    formData.set('locale', 'en');
+
+    await updateClaimStatusCore({
+      formData,
+      session,
+      requestHeaders: new Headers(),
+    });
+
+    expect(hoisted.domainUpdateStatus).not.toHaveBeenCalled();
     expect(hoisted.revalidatePath).not.toHaveBeenCalled();
   });
 });

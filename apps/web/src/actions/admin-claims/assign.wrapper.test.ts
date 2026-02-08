@@ -21,6 +21,27 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
+const claimFindFirst = vi.fn();
+const withTenant = vi.fn((tenantId, tenantColumn, condition) => ({
+  tenantId,
+  tenantColumn,
+  condition,
+}));
+
+vi.mock('@interdomestik/database', () => ({
+  db: {
+    query: {
+      claims: {
+        findFirst: claimFindFirst,
+      },
+    },
+  },
+}));
+
+vi.mock('@interdomestik/database/tenant-security', () => ({
+  withTenant,
+}));
+
 describe('assignClaimCore (Wrapper Means)', () => {
   const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
   const mockSession = {
@@ -39,6 +60,7 @@ describe('assignClaimCore (Wrapper Means)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    claimFindFirst.mockResolvedValue({ id: 'claim1', staffId: 'staff-old' });
   });
 
   it('should call domain assignClaimCore with correct params', async () => {
@@ -117,5 +139,20 @@ describe('assignClaimCore (Wrapper Means)', () => {
         requestHeaders: mockHeaders,
       })
     ).rejects.toThrow('Domain Error');
+  });
+
+  it('assignment no-op should not call domain mutation or revalidate', async () => {
+    claimFindFirst.mockResolvedValueOnce({ id: 'claim1', staffId: 'staff1' });
+
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: mockSession,
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(domainAssign.assignClaimCore).not.toHaveBeenCalled();
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
   });
 });
