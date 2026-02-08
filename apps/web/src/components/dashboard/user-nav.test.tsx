@@ -291,7 +291,9 @@ describe('UserNav', () => {
 
     render(<UserNav />);
 
-    expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/admin/settings');
+    await waitFor(async () => {
+      expect(await openMenuAndGetSettingsLink()).toHaveAttribute('href', '/admin/settings');
+    });
   });
 
   it('routes Settings to admin settings for admin role', async () => {
