@@ -19,7 +19,12 @@ vi.mock('@interdomestik/ui', async importOriginal => {
     }: {
       asChild?: boolean;
       children: React.ReactElement;
-    }) => (asChild ? React.cloneElement(children, { 'aria-haspopup': 'menu' }) : children),
+    }) =>
+      asChild && React.isValidElement(children)
+        ? React.cloneElement(children as React.ReactElement<Record<string, unknown>>, {
+            'aria-haspopup': 'menu',
+          })
+        : children,
     DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     DropdownMenuGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     DropdownMenuItem: ({
