@@ -44,11 +44,6 @@ vi.mock('next/cache', () => ({
   revalidatePath: mocks.revalidatePath,
 }));
 
-vi.mock('drizzle-orm', () => ({
-  and: mocks.and,
-  eq: mocks.eq,
-}));
-
 vi.mock('@interdomestik/database', () => ({
   db: {
     query: {
@@ -64,6 +59,8 @@ vi.mock('@interdomestik/database', () => ({
     branchId: 'member_leads.branch_id',
     agentId: 'member_leads.agent_id',
   },
+  and: mocks.and,
+  eq: mocks.eq,
 }));
 
 import { convertLeadToClient } from './actions';
@@ -92,12 +89,7 @@ describe('convertLeadToClient', () => {
   });
 
   it('denies conversion when lead is assigned to another agent and performs no mutation', async () => {
-    mocks.findLead.mockResolvedValue({
-      id: 'lead-1',
-      tenantId: 'tenant-1',
-      branchId: 'branch-1',
-      agentId: 'agent-2',
-    });
+    mocks.findLead.mockResolvedValue(null);
 
     await expect(convertLeadToClient('lead-1')).rejects.toThrow(/access denied/i);
     expect(mocks.update).not.toHaveBeenCalled();
@@ -105,12 +97,7 @@ describe('convertLeadToClient', () => {
   });
 
   it('denies conversion when lead tenant does not match session tenant and performs no mutation', async () => {
-    mocks.findLead.mockResolvedValue({
-      id: 'lead-2',
-      tenantId: 'tenant-2',
-      branchId: 'branch-1',
-      agentId: 'agent-1',
-    });
+    mocks.findLead.mockResolvedValue(null);
 
     await expect(convertLeadToClient('lead-2')).rejects.toThrow(/access denied/i);
     expect(mocks.update).not.toHaveBeenCalled();
@@ -118,12 +105,7 @@ describe('convertLeadToClient', () => {
   });
 
   it('denies conversion when branch mismatches and session has branchId', async () => {
-    mocks.findLead.mockResolvedValue({
-      id: 'lead-3',
-      tenantId: 'tenant-1',
-      branchId: 'branch-2',
-      agentId: 'agent-1',
-    });
+    mocks.findLead.mockResolvedValue(null);
 
     await expect(convertLeadToClient('lead-3')).rejects.toThrow(/access denied/i);
     expect(mocks.update).not.toHaveBeenCalled();
@@ -146,6 +128,23 @@ describe('convertLeadToClient', () => {
 
     await expect(convertLeadToClient('lead-4')).resolves.toEqual({ success: true });
     expect(mocks.update).toHaveBeenCalled();
+    expect(mocks.startPayment).not.toHaveBeenCalled();
+  });
+
+  it('rejects when unauthenticated and performs no mutation', async () => {
+    mocks.authGetSession.mockResolvedValue(null);
+
+    await expect(convertLeadToClient('lead-5')).rejects.toThrow(/unauthorized/i);
+    expect(mocks.findLead).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.startPayment).not.toHaveBeenCalled();
+  });
+
+  it('rejects with generic error when scoped lead is not found and performs no mutation', async () => {
+    mocks.findLead.mockResolvedValue(null);
+
+    await expect(convertLeadToClient('lead-6')).rejects.toThrow(/not found or access denied/i);
+    expect(mocks.update).not.toHaveBeenCalled();
     expect(mocks.startPayment).not.toHaveBeenCalled();
   });
 });

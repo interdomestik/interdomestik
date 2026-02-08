@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   findFirst: vi.fn(),
   transaction: vi.fn(),
+  eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
   db: {
     query: {
       memberLeads: {
@@ -17,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
+  eq: mocks.eq,
 }));
 
 vi.mock('@interdomestik/database/member-number', () => ({
