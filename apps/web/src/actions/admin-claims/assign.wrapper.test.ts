@@ -223,4 +223,26 @@ describe('assignClaimCore (Wrapper Means)', () => {
     expect(domainAssign.assignClaimCore).toHaveBeenCalledTimes(1);
     expect(nextCache.revalidatePath).not.toHaveBeenCalled();
   });
+
+  it('does not revalidate when post-mutation claim re-read is missing', async () => {
+    dbMocks.claimFindFirst
+      .mockResolvedValueOnce({ id: 'claim1', staffId: 'staff-old' })
+      .mockResolvedValueOnce(null);
+
+    vi.spyOn(domainAssign, 'assignClaimCore').mockResolvedValueOnce({
+      success: true,
+      error: undefined,
+    });
+
+    const result = await assignClaimCore({
+      claimId: 'claim1',
+      staffId: 'staff1',
+      session: mockSession,
+      requestHeaders: mockHeaders,
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(domainAssign.assignClaimCore).toHaveBeenCalledTimes(1);
+    expect(nextCache.revalidatePath).not.toHaveBeenCalled();
+  });
 });

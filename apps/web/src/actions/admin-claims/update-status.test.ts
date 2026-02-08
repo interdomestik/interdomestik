@@ -146,4 +146,24 @@ describe('updateClaimStatusCore', () => {
     expect(hoisted.domainUpdateStatus).toHaveBeenCalledTimes(1);
     expect(hoisted.revalidatePath).not.toHaveBeenCalled();
   });
+
+  it('does not revalidate when post-mutation claim re-read is missing', async () => {
+    hoisted.claimFindFirst
+      .mockResolvedValueOnce({ id: 'claim-1', status: 'submitted' })
+      .mockResolvedValueOnce(null);
+
+    const formData = new FormData();
+    formData.set('claimId', 'claim-1');
+    formData.set('status', 'resolved');
+    formData.set('locale', 'en');
+
+    await updateClaimStatusCore({
+      formData,
+      session,
+      requestHeaders: new Headers(),
+    });
+
+    expect(hoisted.domainUpdateStatus).toHaveBeenCalledTimes(1);
+    expect(hoisted.revalidatePath).not.toHaveBeenCalled();
+  });
 });

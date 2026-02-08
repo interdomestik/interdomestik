@@ -66,7 +66,11 @@ export async function assignClaimCore(params: {
       },
     });
 
-    const persistedStaffId = updatedClaim?.staffId ?? null;
+    if (!updatedClaim) {
+      return result;
+    }
+
+    const persistedStaffId = updatedClaim.staffId ?? null;
     if (persistedStaffId !== claim.staffId) {
       revalidatePathForAllLocales('/member/claims');
       revalidatePathForAllLocales(`/member/claims/${params.claimId}`);

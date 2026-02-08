@@ -109,7 +109,11 @@ export async function updateClaimStatusCore(params: {
     },
   });
 
-  const persistedStatus = updatedClaim?.status ?? 'draft';
+  if (!updatedClaim) {
+    return;
+  }
+
+  const persistedStatus = updatedClaim.status ?? 'draft';
   if (persistedStatus !== currentStatus) {
     revalidatePath(`/${locale}/admin/claims`);
     revalidatePath(`/${locale}/admin/claims/${claimId}`);
