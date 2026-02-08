@@ -48,6 +48,24 @@ export async function assignClaimCore(
 
   if (!claim) return { success: false, error: 'Claim not found', data: undefined };
 
+  let staffMember:
+    | {
+        id: string;
+        email: string | null;
+        name: string | null;
+      }
+    | null
+    | undefined;
+  if (staffId) {
+    // Validate assignee before mutating the claim to ensure fail-closed behavior.
+    staffMember = await db.query.user.findFirst({
+      where: (userTable, { eq }) =>
+        withTenant(tenantId, userTable.tenantId, eq(userTable.id, staffId)),
+    });
+
+    if (!staffMember) return { success: false, error: 'Staff member not found', data: undefined };
+  }
+
   await db
     .update(claims)
     .set({ staffId })
@@ -69,15 +87,7 @@ export async function assignClaimCore(
     });
   }
 
-  if (staffId) {
-    // Get staff details for notification
-    const staffMember = await db.query.user.findFirst({
-      where: (userTable, { eq }) =>
-        withTenant(tenantId, userTable.tenantId, eq(userTable.id, staffId)),
-    });
-
-    if (!staffMember) return { success: false, error: 'Staff member not found', data: undefined };
-
+  if (staffId && staffMember) {
     // Notify the assigned staff member
     if (staffMember.email && deps.notifyClaimAssigned) {
       Promise.resolve(
