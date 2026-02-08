@@ -118,4 +118,29 @@ describe('getMemberClaimDetail', () => {
 
     expect(result?.status).toBe('resolved');
   });
+
+  it('falls back to claim row status when timeline is empty', async () => {
+    mocks.selectChain.limit.mockResolvedValue([
+      {
+        id: 'claim-1',
+        claimNumber: 'MK-102',
+        status: 'submitted',
+        createdAt: new Date('2026-02-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-02-03T00:00:00.000Z'),
+      },
+    ]);
+    mocks.getClaimTimeline.mockResolvedValue([]);
+    mocks.getClaimStatus.mockReturnValue({
+      status: 'draft',
+      lastTransitionAt: null,
+    });
+
+    const result = await getMemberClaimDetail({
+      tenantId: 'tenant-1',
+      memberId: 'member-1',
+      claimId: 'claim-1',
+    });
+
+    expect(result?.status).toBe('submitted');
+  });
 });
