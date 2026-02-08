@@ -12,7 +12,7 @@ It confirms the baseline is stable, evidenced, and ready for Phase C execution.
 - Captures verifiable evidence from terminal output.
 - Performs no code changes unless a failing gate requires a fix.
 - No-op rule: Phase 5.1 introduces no functional changes. Only minimal fixes that directly unblock a failing gate are permitted.
-- Pilot cadence: execute daily Mon–Sun during the 14-day pilot window.
+- Pilot operations cadence: perform daily pilot ops/runbook checks Mon–Sun during the 14-day pilot window (per pilot ops runbook).
 - Weekend mode: light-touch monitoring + logging; apply hotfixes only for Sev1 issues.
 
 ## Entry Criteria
