@@ -62,7 +62,7 @@ export async function getMemberDashboardData(params: {
   tenantId?: string | null;
   locale: string;
 }): Promise<MemberDashboardData> {
-  const { memberId, tenantId, locale } = params;
+  const { memberId, tenantId } = params;
 
   const memberWhere = tenantId
     ? withTenant(tenantId, user.tenantId, eq(user.id, memberId))
@@ -124,6 +124,6 @@ export async function getMemberDashboardData(params: {
     },
     claims: claimsData,
     activeClaimId: activeClaim?.id ?? null,
-    supportHref: `/${locale}/member/help`,
+    supportHref: '/member/help',
   };
 }

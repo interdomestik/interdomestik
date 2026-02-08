@@ -44,7 +44,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
     const params = new URLSearchParams(searchParams.toString());
     params.delete('poolAnchor');
     const queryString = params.toString();
-    return queryString ? `/${locale}/admin/claims?${queryString}` : `/${locale}/admin/claims`;
+    return queryString ? `/admin/claims?${queryString}` : '/admin/claims';
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -75,7 +75,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
 
           {/* Level 2: Lifecycle Stage */}
           <Link
-            href={`/${locale}/admin/claims?lifecycle=${claim.lifecycleStage}`}
+            href={`/admin/claims?lifecycle=${claim.lifecycleStage}`}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             {tLifecycle(claim.lifecycleStage)}

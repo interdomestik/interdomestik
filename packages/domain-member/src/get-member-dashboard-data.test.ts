@@ -78,7 +78,7 @@ describe('getMemberDashboardData', () => {
     expect(data.claims[0].stageLabel).toBe('Submitted');
     expect(data.claims[0].requiresMemberAction).toBe(false);
     expect(data.claims[0].nextMemberAction).toBeUndefined();
-    expect(data.supportHref).toBe('/sq/member/help');
+    expect(data.supportHref).toBe('/member/help');
   });
 
   it('returns empty-state friendly data when there are no claims', async () => {
