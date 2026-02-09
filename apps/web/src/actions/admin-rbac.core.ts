@@ -2,6 +2,7 @@
 
 import { logAuditEvent } from '@/lib/audit';
 import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
+import { revalidatePath } from 'next/cache';
 import {
   createBranchCore as createBranchDomain,
   deleteBranchCore as deleteBranchDomain,
@@ -18,6 +19,13 @@ import {
 } from '@interdomestik/domain-users/admin/schemas';
 import type { UserSession } from '@interdomestik/domain-users/types';
 import { z } from 'zod';
+
+function revalidateAdminUserPage(locale: string | undefined, userId: string) {
+  if (locale) {
+    revalidatePath(`/${locale}/admin/users/${userId}`);
+  }
+  revalidatePath(`/admin/users/${userId}`);
+}
 
 export async function listBranches(params?: {
   tenantId?: string;
@@ -138,11 +146,13 @@ export async function grantUserRole({
   role,
   branchId,
   tenantId,
+  locale,
 }: {
   userId: string;
   role: string;
   branchId?: string;
   tenantId?: string;
+  locale?: string;
 }): ActionResult<void> {
   return runAuthenticatedAction<void>(async ({ session }) => {
     const result = await grantUserRoleDomain({
@@ -156,6 +166,8 @@ export async function grantUserRole({
     if ('error' in result) {
       throw new Error(result.error);
     }
+
+    revalidateAdminUserPage(locale, userId);
   });
 }
 
@@ -164,11 +176,13 @@ export async function revokeUserRole({
   role,
   branchId,
   tenantId,
+  locale,
 }: {
   userId: string;
   role: string;
   branchId?: string;
   tenantId?: string;
+  locale?: string;
 }): ActionResult<void> {
   return runAuthenticatedAction<void>(async ({ session }) => {
     const result = await revokeUserRoleDomain({
@@ -182,5 +196,7 @@ export async function revokeUserRole({
     if ('error' in result) {
       throw new Error(result.error);
     }
+
+    revalidateAdminUserPage(locale, userId);
   });
 }
