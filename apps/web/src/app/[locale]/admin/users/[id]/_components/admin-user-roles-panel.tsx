@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@interdomestik/ui/components/select';
-import { useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -63,8 +63,11 @@ function formatBranchName(b: Branch | { name: string; code?: string | null }) {
 }
 
 export function AdminUserRolesPanel({ userId }: { userId: string }) {
+  const router = useRouter();
+  const params = useParams<{ locale?: string | string[] }>();
   const searchParams = useSearchParams();
   const tenantId = searchParams.get('tenantId') ?? undefined;
+  const locale = Array.isArray(params?.locale) ? params.locale[0] : params?.locale;
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [roles, setRoles] = useState<UserRoleRow[]>([]);
@@ -76,6 +79,8 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
 
   const [newBranchName, setNewBranchName] = useState('');
   const [newBranchCode, setNewBranchCode] = useState('');
+  const [isGrantPending, setIsGrantPending] = useState(false);
+  const [pendingRevokeRowId, setPendingRevokeRowId] = useState<string | null>(null);
 
   const effectiveRoleValue = (grantRole === '__custom__' ? customRole : grantRole).trim();
 
@@ -122,15 +127,18 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
       return;
     }
 
+    setIsGrantPending(true);
     try {
       const result = await grantUserRole({
         tenantId,
         userId,
         role: effectiveRoleValue,
         branchId: grantBranchId === TENANT_WIDE_BRANCH ? undefined : grantBranchId,
+        locale,
       });
 
       if ('error' in result) {
+        console.error('Failed to grant role', result);
         toast.error(result.error);
         return;
       }
@@ -140,31 +148,40 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
       setGrantRole(ROLE_MEMBER);
       setGrantBranchId(TENANT_WIDE_BRANCH);
       await refresh();
+      router.refresh();
     } catch (err) {
-      console.error(err);
+      console.error('Failed to grant role', err);
       toast.error('Failed to grant role');
+    } finally {
+      setIsGrantPending(false);
     }
   };
 
   const handleRevoke = async (row: UserRoleRow) => {
+    setPendingRevokeRowId(row.id);
     try {
       const result = await revokeUserRole({
         tenantId,
         userId,
         role: row.role,
         branchId: row.branchId ?? undefined,
+        locale,
       });
 
       if ('error' in result) {
+        console.error('Failed to revoke role', result);
         toast.error(result.error);
         return;
       }
 
       toast.success('Role revoked');
       await refresh();
+      router.refresh();
     } catch (err) {
-      console.error(err);
+      console.error('Failed to revoke role', err);
       toast.error('Failed to revoke role');
+    } finally {
+      setPendingRevokeRowId(null);
     }
   };
 
@@ -248,7 +265,12 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
           </div>
 
           <div className="flex items-end">
-            <Button type="button" onClick={handleGrant} disabled={loading} className="w-full">
+            <Button
+              type="button"
+              onClick={handleGrant}
+              disabled={loading || isGrantPending || pendingRevokeRowId !== null}
+              className="w-full"
+            >
               Grant role
             </Button>
           </div>
@@ -287,15 +309,21 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
                   <span key="branch">{branch ? formatBranchName(branch) : '—'}</span>,
                 ],
                 actions: (
-                  <Button type="button" size="sm" variant="ghost" onClick={() => handleRevoke(r)}>
-                    Revoke
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleRevoke(r)}
+                    disabled={isGrantPending || pendingRevokeRowId === r.id}
+                  >
+                    Remove
                   </Button>
                 ),
               };
             })}
             loading={loading}
             emptyLabel="No roles assigned"
-            actionsHeader=""
+            actionsHeader="Actions"
           />
         </div>
       </CardContent>
