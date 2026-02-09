@@ -131,6 +131,13 @@ export async function listUserRoles({
 }): ActionResult<Awaited<ReturnType<typeof listUserRolesDomain>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof listUserRolesDomain>>>(
     async ({ session }) => {
+      if (!tenantId) {
+        return {
+          success: false,
+          error: 'Tenant context is required',
+          code: 'MISSING_TENANT',
+        } as never;
+      }
       const data = await listUserRolesDomain({
         session: session as unknown as UserSession,
         userId,
@@ -155,6 +162,14 @@ export async function grantUserRole({
   locale?: string;
 }): ActionResult<void> {
   return runAuthenticatedAction<void>(async ({ session }) => {
+    if (!tenantId) {
+      return {
+        success: false,
+        error: 'Tenant context is required',
+        code: 'MISSING_TENANT',
+      } as never;
+    }
+
     const result = await grantUserRoleDomain({
       session: session as unknown as UserSession,
       userId,
@@ -185,6 +200,14 @@ export async function revokeUserRole({
   locale?: string;
 }): ActionResult<void> {
   return runAuthenticatedAction<void>(async ({ session }) => {
+    if (!tenantId) {
+      return {
+        success: false,
+        error: 'Tenant context is required',
+        code: 'MISSING_TENANT',
+      } as never;
+    }
+
     const result = await revokeUserRoleDomain({
       session: session as unknown as UserSession,
       userId,

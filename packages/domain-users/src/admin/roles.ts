@@ -67,14 +67,18 @@ export async function grantUserRoleCore(
   await db.transaction(async tx => {
     // 1. Update user table (Source of Truth for Session)
     // We treat this grant as setting the PRIMARY role.
-    await tx
+    const updatedUsers = await tx
       .update(user)
       .set({
         role,
         branchId,
         updatedAt: new Date(),
       })
-      .where(withTenant(tenantId, user.tenantId, eq(user.id, params.userId)));
+      .where(withTenant(tenantId, user.tenantId, eq(user.id, params.userId)))
+      .returning({ id: user.id });
+    if (updatedUsers.length === 0) {
+      throw new Error('Role grant did not update the user');
+    }
 
     // 2. Add to userRoles (Audit/Multi-role future safe)
     // First remove existing entry for same role to avoid duplicates if any
@@ -88,13 +92,20 @@ export async function grantUserRoleCore(
         )
       );
 
-    await tx.insert(userRoles).values({
-      id: randomUUID(),
-      tenantId,
-      userId: params.userId,
-      role,
-      branchId,
-    });
+    const insertedRoles = await tx
+      .insert(userRoles)
+      .values({
+        id: randomUUID(),
+        tenantId,
+        userId: params.userId,
+        role,
+        branchId,
+      })
+      .returning({ id: userRoles.id });
+
+    if (insertedRoles.length === 0) {
+      throw new Error('Role grant did not persist');
+    }
   });
 
   if (deps.logAuditEvent) {
@@ -132,7 +143,7 @@ export async function revokeUserRoleCore(
 
   const branchId = params.branchId ?? null;
 
-  await db
+  const deletedRoles = await db
     .delete(userRoles)
     .where(
       withTenant(
@@ -147,7 +158,12 @@ export async function revokeUserRoleCore(
             : eq(userRoles.branchId, branchId)
         )
       )
-    );
+    )
+    .returning({ id: userRoles.id });
+
+  if (deletedRoles.length === 0) {
+    return { error: 'Role revoke did not persist' };
+  }
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({

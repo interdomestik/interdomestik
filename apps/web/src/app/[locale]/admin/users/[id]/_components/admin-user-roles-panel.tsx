@@ -67,6 +67,7 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
   const params = useParams<{ locale?: string | string[] }>();
   const searchParams = useSearchParams();
   const tenantId = searchParams.get('tenantId') ?? undefined;
+  const hasTenantContext = Boolean(tenantId);
   const locale = Array.isArray(params?.locale) ? params.locale[0] : params?.locale;
 
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -89,11 +90,18 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
   }, [branches]);
 
   const refresh = useCallback(async () => {
+    if (!tenantId) {
+      setBranches([]);
+      setRoles([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const [branchesResult, rolesResult] = await Promise.all([
-        listBranches(tenantId ? { tenantId } : undefined),
-        listUserRoles(tenantId ? { tenantId, userId } : { userId }),
+        listBranches({ tenantId }),
+        listUserRoles({ tenantId, userId }),
       ]);
 
       if (branchesResult.success) {
@@ -122,6 +130,11 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
   }, [refresh]);
 
   const handleGrant = async () => {
+    if (!tenantId) {
+      toast.error('Tenant context is required to manage roles');
+      return;
+    }
+
     if (!effectiveRoleValue) {
       toast.error('Role is required');
       return;
@@ -158,6 +171,11 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
   };
 
   const handleRevoke = async (row: UserRoleRow) => {
+    if (!tenantId) {
+      toast.error('Tenant context is required to manage roles');
+      return;
+    }
+
     setPendingRevokeRowId(row.id);
     try {
       const result = await revokeUserRole({
@@ -186,6 +204,11 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
   };
 
   const handleCreateBranch = async () => {
+    if (!tenantId) {
+      toast.error('Tenant context is required to manage branches');
+      return;
+    }
+
     const name = newBranchName.trim();
     if (!name) {
       toast.error('Branch name is required');
@@ -219,13 +242,18 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
       <CardHeader>
         <CardTitle>Roles</CardTitle>
         <CardDescription>Tenant-scoped roles for this user.</CardDescription>
+        {!hasTenantContext ? (
+          <p className="text-sm text-destructive">
+            Missing tenant context. Reopen this profile from the tenant user list.
+          </p>
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-3">
           <div className="grid gap-2">
             <Label>Role</Label>
             <Select value={grantRole} onValueChange={setGrantRole}>
-              <SelectTrigger data-testid="role-select-trigger">
+              <SelectTrigger data-testid="role-select-trigger" disabled={!hasTenantContext}>
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent data-testid="role-select-content">
@@ -251,7 +279,7 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
           <div className="grid gap-2">
             <Label>Branch</Label>
             <Select value={grantBranchId} onValueChange={setGrantBranchId}>
-              <SelectTrigger data-testid="branch-select-trigger">
+              <SelectTrigger data-testid="branch-select-trigger" disabled={!hasTenantContext}>
                 <SelectValue placeholder="Tenant-wide" />
               </SelectTrigger>
               <SelectContent data-testid="branch-select-content">
@@ -268,7 +296,9 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
             <Button
               type="button"
               onClick={handleGrant}
-              disabled={loading || isGrantPending || pendingRevokeRowId !== null}
+              disabled={
+                !hasTenantContext || loading || isGrantPending || pendingRevokeRowId !== null
+              }
               className="w-full"
             >
               Grant role
@@ -286,7 +316,12 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
             <Input value={newBranchCode} onChange={e => setNewBranchCode(e.target.value)} />
           </div>
           <div className="flex items-end">
-            <Button type="button" variant="outline" onClick={handleCreateBranch} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCreateBranch}
+              disabled={!hasTenantContext || loading}
+            >
               Create branch
             </Button>
           </div>
@@ -314,7 +349,7 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
                     size="sm"
                     variant="destructive"
                     onClick={() => handleRevoke(r)}
-                    disabled={isGrantPending || pendingRevokeRowId === r.id}
+                    disabled={!hasTenantContext || isGrantPending || pendingRevokeRowId !== null}
                   >
                     Remove
                   </Button>
