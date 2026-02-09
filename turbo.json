@@ -1,6 +1,22 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
+  "globalEnv": [
+    "DATABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "BETTER_AUTH_TRUSTED_ORIGINS",
+
+    "NEXT_PUBLIC_PADDLE_ENV",
+    "NEXT_PUBLIC_PADDLE_CLIENT_TOKEN",
+    "PADDLE_API_KEY",
+    "PADDLE_WEBHOOK_SECRET_KEY",
+    "NEXT_PUBLIC_PADDLE_PRICE_*"
+  ],
   "globalDependencies": ["**/.env.*local"],
   "tasks": {
     "build": {
