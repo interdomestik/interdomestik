@@ -57,14 +57,18 @@ describe('domain-users rbac: branch required roles', () => {
       const tx = {
         update: vi.fn(() => ({
           set: vi.fn(() => ({
-            where: vi.fn().mockResolvedValue(undefined),
+            where: vi.fn(() => ({
+              returning: vi.fn().mockResolvedValue([{ id: 'user-1' }]),
+            })),
           })),
         })),
         delete: vi.fn(() => ({
           where: vi.fn().mockResolvedValue(undefined),
         })),
         insert: vi.fn(() => ({
-          values: vi.fn().mockResolvedValue(undefined),
+          values: vi.fn(() => ({
+            returning: vi.fn().mockResolvedValue([{ id: 'role-1' }]),
+          })),
         })),
       };
 
@@ -128,5 +132,40 @@ describe('domain-users rbac: branch required roles', () => {
 
     expect(result).toEqual({ error: 'Invalid branch' });
     expect(hoisted.transaction).not.toHaveBeenCalled();
+  });
+
+  it('returns error when grant cannot update a tenant-scoped user', async () => {
+    hoisted.branchesFindFirst.mockResolvedValue({ id: 'b-1', isActive: true });
+    hoisted.transaction.mockImplementationOnce(async fn => {
+      const tx = {
+        update: vi.fn(() => ({
+          set: vi.fn(() => ({
+            where: vi.fn(() => ({
+              returning: vi.fn().mockResolvedValue([]),
+            })),
+          })),
+        })),
+        delete: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue(undefined),
+        })),
+        insert: vi.fn(() => ({
+          values: vi.fn(() => ({
+            returning: vi.fn().mockResolvedValue([{ id: 'role-1' }]),
+          })),
+        })),
+      };
+
+      return fn(tx);
+    });
+
+    await expect(
+      grantUserRoleCore({
+        session,
+        tenantId: 'tenant_mk',
+        userId: 'user-1',
+        role: 'agent',
+        branchId: 'b-1',
+      })
+    ).rejects.toThrow('Role grant did not update the user');
   });
 });

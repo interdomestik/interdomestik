@@ -67,10 +67,23 @@ export function UsersTable({
   const tCommon = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tenantIdFromQuery = searchParams.get('tenantId');
+
+  const tenantIdFromCookie = () => {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(/(?:^|;\s*)tenantId=([^;]+)/);
+    if (!match) return null;
+    try {
+      return decodeURIComponent(match[1]);
+    } catch {
+      return match[1];
+    }
+  };
 
   const withUsersListContext = (href: string) => {
     const listQueryString = searchParams.toString();
-    if (!listQueryString) return href;
+    const fallbackTenantId = tenantIdFromQuery ?? tenantIdFromCookie();
+    if (!listQueryString && !fallbackTenantId) return href;
 
     const [path, queryString] = href.split('?');
 
@@ -84,6 +97,10 @@ export function UsersTable({
           merged.append(key, value);
         }
       }
+    }
+
+    if (fallbackTenantId && !merged.get('tenantId')) {
+      merged.set('tenantId', fallbackTenantId);
     }
 
     const next = merged.toString();

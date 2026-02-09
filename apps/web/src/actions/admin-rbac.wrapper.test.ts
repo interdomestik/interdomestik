@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createBranch,
   deleteBranch,
+  grantUserRole,
   listBranches,
   listUserRoles,
+  revokeUserRole,
   updateBranch,
 } from './admin-rbac.core';
 import * as context from './admin-users/context';
@@ -16,7 +18,8 @@ const mockCreateBranchCore = vi.fn();
 const mockUpdateBranchCore = vi.fn();
 const mockDeleteBranchCore = vi.fn();
 const mockListUserRolesCore = vi.fn();
-const mockAssignUserRolesCore = vi.fn();
+const mockGrantUserRoleCore = vi.fn();
+const mockRevokeUserRoleCore = vi.fn();
 
 vi.mock('@interdomestik/domain-users/admin/rbac', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,7 +33,9 @@ vi.mock('@interdomestik/domain-users/admin/rbac', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   listUserRolesCore: (...args: any[]) => mockListUserRolesCore(...args),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  assignUserRolesCore: (...args: any[]) => mockAssignUserRolesCore(...args),
+  grantUserRoleCore: (...args: any[]) => mockGrantUserRoleCore(...args),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  revokeUserRoleCore: (...args: any[]) => mockRevokeUserRoleCore(...args),
 }));
 
 vi.mock('./admin-users/context');
@@ -161,6 +166,34 @@ describe('admin-rbac.core', () => {
         })
       );
       expect(result).toEqual({ success: true, data: mockResult });
+    });
+  });
+
+  describe('tenant guard', () => {
+    it('rejects grantUserRole when tenantId is missing', async () => {
+      const result = await grantUserRole({
+        userId: '123e4567-e89b-12d3-a456-426614174000',
+        role: 'member',
+      });
+
+      expect(mockGrantUserRoleCore).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('Tenant context is required');
+      }
+    });
+
+    it('rejects revokeUserRole when tenantId is missing', async () => {
+      const result = await revokeUserRole({
+        userId: '123e4567-e89b-12d3-a456-426614174000',
+        role: 'member',
+      });
+
+      expect(mockRevokeUserRoleCore).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain('Tenant context is required');
+      }
     });
   });
 });
