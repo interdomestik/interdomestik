@@ -74,9 +74,11 @@ describe('PricingTable', () => {
       open: vi.fn(),
     },
   };
+  const originalPilotMode = process.env.NEXT_PUBLIC_PILOT_MODE;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.NEXT_PUBLIC_PILOT_MODE = originalPilotMode;
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(
       mockPaddle as unknown as import('@paddle/paddle-js').Paddle
     );
@@ -138,5 +140,18 @@ describe('PricingTable', () => {
     alertMock.mockRestore();
     consoleError.mockRestore();
     consoleLog.mockRestore();
+  });
+
+  it('blocks checkout when pilot mode freeze is enabled', async () => {
+    process.env.NEXT_PUBLIC_PILOT_MODE = 'true';
+
+    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+
+    const joinButtons = screen.getAllByText('cta');
+    fireEvent.click(joinButtons[0]);
+
+    await waitFor(() => {
+      expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
+    });
   });
 });

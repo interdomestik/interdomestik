@@ -27,6 +27,7 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [isYearly, setIsYearly] = useState(true);
+  const isPilotMode = process.env.NEXT_PUBLIC_PILOT_MODE === 'true';
 
   const PLANS = [
     {
@@ -88,6 +89,7 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
   const isBillingTestMode = billingTestMode ?? process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
 
   const handleAction = async (planId: string, priceId: string) => {
+    if (process.env.NEXT_PUBLIC_PILOT_MODE === 'true') return;
     if (!userId) return;
 
     setLoading(priceId);
@@ -229,11 +231,13 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
                   : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
               }`}
               variant={plan.popular ? 'default' : 'outline'}
-              disabled={loading === plan.priceId}
-              asChild={!userId}
-              onClick={userId ? () => handleAction(plan.id, plan.priceId) : undefined}
+              disabled={isPilotMode || loading === plan.priceId}
+              asChild={!userId && !isPilotMode}
+              onClick={
+                userId && !isPilotMode ? () => handleAction(plan.id, plan.priceId) : undefined
+              }
             >
-              {!userId ? (
+              {!userId && !isPilotMode ? (
                 <Link href={`/register?plan=${plan.id}`}>{t('cta')}</Link>
               ) : (
                 <>
