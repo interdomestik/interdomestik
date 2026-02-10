@@ -1,13 +1,12 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
+import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { APP_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { auth } from '@/lib/auth';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({
@@ -21,25 +20,19 @@ export default async function DashboardLayout({
   setRequestLocale(locale);
 
   // 🔒 PROTECTED ROUTE: Check for valid session
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getSessionSafe('MemberLayout');
+  const sessionNonNull = requireSessionOrRedirect(session, locale);
 
   if (process.env.PLAYWRIGHT === '1' || process.env.INTERDOMESTIK_AUTOMATED === '1') {
     console.log('[E2E Debug] Member Layout Session:', {
-      hasSession: !!session,
-      userId: session?.user?.id,
-      role: session?.user?.role,
+      hasSession: !!sessionNonNull,
+      userId: sessionNonNull?.user?.id,
+      role: sessionNonNull?.user?.role,
       path: `/${locale}/member`,
     });
   }
 
-  if (!session) {
-    redirect(`/${locale}/login`);
-    return null;
-  }
-
-  const role = session.user.role;
+  const role = sessionNonNull.user.role;
   const canonical = getCanonicalRouteForRole(role, locale);
   if (canonical && role !== 'member' && role !== 'user') {
     redirect(canonical);
