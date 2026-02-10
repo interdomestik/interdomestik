@@ -12,6 +12,7 @@
     "./admin/get-users": "./src/admin/get-users.ts",
     "./admin/get-agents": "./src/admin/get-agents.ts",
     "./admin/get-staff": "./src/admin/get-staff.ts",
+    "./admin/role-rules": "./src/admin/role-rules.ts",
     "./admin/schemas": "./src/admin/schemas.ts",
     "./admin/update-user-agent": "./src/admin/update-user-agent.ts",
     "./agent/get-users": "./src/agent/get-users.ts",

@@ -4,6 +4,7 @@ import { hasPermission, PERMISSIONS, requirePermission } from '@interdomestik/sh
 import { isNull } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto'; // NOSONAR
 import type { ActionResult, UserDomainDeps, UserSession } from '../types';
+import { isBranchRequiredRole } from './role-rules';
 import { resolveTenantId } from './utils';
 
 export async function listUserRolesCore(params: {
@@ -56,7 +57,7 @@ export async function grantUserRoleCore(
   }
 
   // Branch Scoping Rules
-  if (role === 'branch_manager' || role === 'agent') {
+  if (isBranchRequiredRole(role)) {
     if (!branchId) return { error: `Branch is required for role: ${role}` };
   } else {
     // For non-branch roles (admin, staff), ensure branchId is null (unless we allow branch-staff later)
