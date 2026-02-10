@@ -74,7 +74,7 @@ export default async function DocumentsPage() {
           {userClaims.map(claim => {
             const docs = documentsByClaim[claim.id] ?? [];
             return (
-              <Card key={claim.id}>
+              <Card key={claim.id} data-testid={`member-documents-claim-${claim.id}`}>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-base">{claim.title || 'Claim'}</CardTitle>
@@ -84,7 +84,11 @@ export default async function DocumentsPage() {
                     <ClaimEvidenceUploadDialog
                       claimId={claim.id}
                       trigger={
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          data-testid={`member-documents-upload-${claim.id}`}
+                        >
                           {tDocs('uploadEvidence')}
                         </Button>
                       }
