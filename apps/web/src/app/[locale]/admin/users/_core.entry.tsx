@@ -1,6 +1,7 @@
 import { listBranches } from '@/actions/admin-rbac.core';
 import { getAgents, getUsers } from '@/actions/admin-users';
 import { AddAgentDialog } from '@/components/admin/add-agent-dialog';
+import { isPromotableToAgentRole } from '@/components/admin/promotable-roles';
 import { UsersFilters } from '@/components/admin/users-filters';
 import { UsersSections } from '@/components/admin/users-sections';
 import { Link } from '@/i18n/routing';
@@ -75,8 +76,8 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   const tSidebar = await getTranslations('admin.sidebar');
   const tFilters = await getTranslations('admin.users_filters');
 
-  // Filter users eligible for promotion (not already agents/staff/admin)
-  const eligibleUsers = users.filter(u => u.role === 'user');
+  // Filter users eligible for promotion (exclude existing agents/admin roles).
+  const eligibleUsers = users.filter(u => isPromotableToAgentRole(u.role));
 
   const roleOptions = [
     { value: 'user', label: tFilters('roles.user') },
