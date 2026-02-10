@@ -7,6 +7,7 @@
     "uploadEvidence": "Upload evidence",
     "createClaim": "Create claim",
     "viewClaim": "View claim",
+    "claimFallback": "Claim",
     "emptyList": "No documents attached.",
     "actions": {
       "view": "View",

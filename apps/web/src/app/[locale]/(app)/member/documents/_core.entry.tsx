@@ -15,7 +15,6 @@ type DocumentRow = {
   fileSize: number;
   fileType: string;
   claimId: string;
-  claimTitle: string | null;
 };
 
 export default async function DocumentsPage() {
@@ -40,7 +39,6 @@ export default async function DocumentsPage() {
       fileSize: claimDocuments.fileSize,
       fileType: claimDocuments.fileType,
       claimId: claimDocuments.claimId,
-      claimTitle: claims.title,
     })
     .from(claimDocuments)
     .leftJoin(claims, eq(claimDocuments.claimId, claims.id))
@@ -77,7 +75,9 @@ export default async function DocumentsPage() {
               <Card key={claim.id} data-testid={`member-documents-claim-${claim.id}`}>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-base">{claim.title || 'Claim'}</CardTitle>
+                    <CardTitle className="text-base">
+                      {claim.title || tDocs('claimFallback')}
+                    </CardTitle>
                     <Badge variant="outline">{tDocs('filesCount', { count: docs.length })}</Badge>
                   </div>
                   <div className="flex items-center gap-2">

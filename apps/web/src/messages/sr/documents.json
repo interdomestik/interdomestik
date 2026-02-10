@@ -7,6 +7,7 @@
     "uploadEvidence": "Otpremi dokaz",
     "createClaim": "Kreiraj zahtev",
     "viewClaim": "Prikaži zahtev",
+    "claimFallback": "Zahtev",
     "emptyList": "Nema priloženih dokumenata.",
     "actions": {
       "view": "Prikaži",

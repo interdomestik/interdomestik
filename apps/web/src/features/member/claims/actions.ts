@@ -78,11 +78,17 @@ export async function generateUploadUrl(
   try {
     const { data, error } = await supabase.storage
       .from(EVIDENCE_BUCKET)
-      .createSignedUploadUrl(path);
+      .createSignedUploadUrl(path, { upsert: true });
 
     if (error || !data?.signedUrl) {
-      console.error('Supabase signed URL error:', error);
-      return { success: false, error: 'Failed to generate upload URL' };
+      const detail = error?.message ?? 'Unknown storage error';
+      console.error('Supabase signed URL error:', {
+        bucket: EVIDENCE_BUCKET,
+        path,
+        detail,
+        error,
+      });
+      return { success: false, error: `Failed to generate upload URL: ${detail}` };
     }
 
     return {
