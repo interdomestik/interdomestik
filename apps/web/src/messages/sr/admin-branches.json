@@ -41,6 +41,7 @@
       "deleting": "Brisanje...",
       "noResults": "Nema pronađenih filijala.",
       "no_branches": "Nema pronađenih filijala.",
+      "no_branches_subtitle": "Pokušajte da prilagodite filtere ili kreirajte novu filijalu.",
       "status_active": "Aktivno",
       "status_inactive": "Neaktivno",
       "view_dashboard": "Vidi Panel",

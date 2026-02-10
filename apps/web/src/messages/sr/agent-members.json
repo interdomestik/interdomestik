@@ -6,6 +6,15 @@
         "description": "Vaši dodeljeni članovi i aktivni razgovori.",
         "register_member": "Registruj člana"
       },
+      "cockpit": {
+        "title": "Kokpit za agente",
+        "description": "Prioritizujte naknadne kontakte sa članovima i pratite preuzimanje obaveza.",
+        "my_members_cta": "Moji članovi",
+        "claims_queue_cta": "Red za zahteve",
+        "needs_attention_label": "Potrebna pažnja odmah",
+        "open_claims_label": "Otvoreni zahtevi",
+        "support_link": "Podrška za agente"
+      },
       "register": {
         "title": "Registruj novog člana",
         "description": "Ručno registrujte člana i aktivirajte njegovo članstvo.",

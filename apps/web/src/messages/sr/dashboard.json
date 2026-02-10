@@ -2,6 +2,19 @@
   "dashboard": {
     "welcome": "Dobrodošli, {name}!",
     "overview": "Pregled panela",
+    "member_landing": {
+      "page_title": "Kontrolna tabla člana",
+      "primary_cta": "Započnite novi zahtev",
+      "secondary_cta": "Pogledajte zahteve",
+      "orientation_title": "Osigurani ste - evo kako funkcioniše",
+      "orientation_point_one": "Ako se desi incident, započnite zahtev u nekoliko brzih koraka.",
+      "orientation_point_two": "Držite dokumenta spremna i kontaktirajte podršku kada god je potrebno.",
+      "orientation_cta": "Pogledajte kako funkcioniše",
+      "empty_title": "Još uvek nema zahteva",
+      "empty_body": "Kada podnesete svoj prvi zahtev, on će se pojaviti ovde.",
+      "help_label": "Potrebna vam je pomoć?",
+      "more_services": "Više usluga"
+    },
     "activeClaims": "Aktivni zahtevi",
     "resolvedClaims": "Rešeni zahtevi",
     "pendingActions": "Radnje u toku",
