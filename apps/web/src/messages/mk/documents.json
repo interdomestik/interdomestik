@@ -7,6 +7,7 @@
     "uploadEvidence": "Прикачи доказ",
     "createClaim": "Креирај барање",
     "viewClaim": "Прегледај барање",
+    "claimFallback": "Барање",
     "emptyList": "Нема прикачени документи.",
     "actions": {
       "view": "Прегледај",

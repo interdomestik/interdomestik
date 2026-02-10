@@ -91,7 +91,11 @@ describe('AdminUserRolesPanel', () => {
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(1);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Grant role' }));
+    const grantButton = screen.getByRole('button', { name: 'Grant role' });
+    await waitFor(() => {
+      expect(grantButton).toBeEnabled();
+    });
+    fireEvent.click(grantButton);
 
     await waitFor(() => {
       expect(rbacMocks.grantUserRole).toHaveBeenCalledWith({
