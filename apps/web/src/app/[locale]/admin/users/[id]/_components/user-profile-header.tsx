@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/component
 import { Badge } from '@interdomestik/ui/components/badge';
 import { BadgeCheck, Mail } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { getRoleLabel } from '@/lib/roles-i18n';
 import { formatDate } from './utils';
 
 export async function UserProfileHeader({
@@ -37,7 +38,7 @@ export async function UserProfileHeader({
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-semibold">{member.name || t('labels.unknown')}</h1>
-              <Badge variant="outline">{tCommon(`roles.${member.role}`)}</Badge>
+              <Badge variant="outline">{getRoleLabel(tCommon, member.role)}</Badge>
               <Badge className={membershipBadgeClass} variant="outline">
                 {t(`status.${membershipStatus}`)}
               </Badge>
