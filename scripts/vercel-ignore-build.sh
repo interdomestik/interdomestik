@@ -2,7 +2,11 @@
 set -u
 
 # Vercel Ignore Build Command
+# Explicitly checks if changes are relevant to the web app using git diff.
+
 echo "🔍 VERCEL_GIT_COMMIT_REF: ${VERCEL_GIT_COMMIT_REF:-'unknown'}"
+echo "🔍 VERCEL_GIT_PREVIOUS_SHA: ${VERCEL_GIT_PREVIOUS_SHA:-'HEAD^'}"
+echo "🔍 VERCEL_GIT_COMMIT_SHA: ${VERCEL_GIT_COMMIT_SHA:-'HEAD'}"
 
 # 1. Always build main/master/production
 if [[ "${VERCEL_GIT_COMMIT_REF:-}" == "main" || "${VERCEL_GIT_COMMIT_REF:-}" == "master" || "${VERCEL_GIT_COMMIT_REF:-}" == "production" ]]; then
@@ -10,25 +14,33 @@ if [[ "${VERCEL_GIT_COMMIT_REF:-}" == "main" || "${VERCEL_GIT_COMMIT_REF:-}" == 
   exit 1
 fi
 
-# 2. Skip builds for non-app changes using turbo-ignore
-echo "🔍 Running turbo-ignore for @interdomestik/web..."
+# 2. Identify Changed Files
+# We use git diff to find what changed between the previous deployment and now.
+# If VERCEL_GIT_PREVIOUS_SHA is empty (first deploy), we fallback to HEAD^ (last commit).
+BASE_SHA="${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}"
+TARGET_SHA="${VERCEL_GIT_COMMIT_SHA:-HEAD}"
 
-# Use npx --yes to ensure non-interactive download in Vercel's pre-install env
-if npx --yes turbo-ignore @interdomestik/web; then
-  # exit 0 means changes were detected => Build Required
-  echo "✅ changes detection: YES (code 0). Proceeding with build."
+# Fetch history if shallow (Vercel sometimes does shallow clones)
+# We might need to fetch a bit more depth if the SHA is missing, but typically 'Full' clone setting handles this.
+# git fetch --depth=100 origin $VERCEL_GIT_COMMIT_REF || true
+
+echo "🔍 Diffing $BASE_SHA...$TARGET_SHA"
+CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$TARGET_SHA")
+
+echo "📂 Changed files:"
+echo "$CHANGED_FILES"
+
+# 3. Filter for Relevant Changes
+# Triggers build if changes match:
+# - apps/web/**
+# - packages/** (shared code)
+# - package.json / pnpm-lock.yaml / turbo.json (dependencies)
+# - .env.local / .env (config)
+
+if echo "$CHANGED_FILES" | grep -qE "^(apps/web/|packages/|package\.json|pnpm-lock\.yaml|turbo\.json|\.env)"; then
+  echo "✅ Relevant changes detected. Proceeding with build."
   exit 1
 else
-  # exit code is non-zero
-  CODE=$?
-  
-  if [[ $CODE -eq 1 ]]; then
-    # exit 1 means NO changes detected => Skip Build
-    echo "🛑 changes detection: NO (code 1). Skipping build."
-    exit 0
-  else
-    # exit > 1 means error happened => Fail Safe (Build)
-    echo "⚠️ turbo-ignore failed with error (code $CODE). Proceeding to be safe."
-    exit 1
-  fi
+  echo "🛑 No changes in web app or shared packages. Skipping build."
+  exit 0
 fi
