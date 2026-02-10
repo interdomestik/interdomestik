@@ -12,6 +12,7 @@ import {
   revokeUserRoleCore as revokeUserRoleDomain,
   updateBranchCore as updateBranchDomain,
 } from '@interdomestik/domain-users/admin/rbac';
+import { isBranchRequiredRole } from '@interdomestik/domain-users/admin/role-rules';
 import {
   createBranchSchema,
   listBranchesSchema,
@@ -169,6 +170,13 @@ export async function grantUserRole({
         code: 'MISSING_TENANT',
       } as never;
     }
+    if (isBranchRequiredRole(role) && !branchId) {
+      return {
+        success: false,
+        error: `Branch is required for role: ${role}`,
+        code: 'BRANCH_REQUIRED',
+      } as never;
+    }
 
     const result = await grantUserRoleDomain({
       session: session as unknown as UserSession,
@@ -179,13 +187,6 @@ export async function grantUserRole({
     });
 
     if ('error' in result) {
-      if (result.error.includes('Branch is required for role')) {
-        return {
-          success: false,
-          error: result.error,
-          code: 'BRANCH_REQUIRED',
-        } as never;
-      }
       throw new Error(result.error);
     }
 

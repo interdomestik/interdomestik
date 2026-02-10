@@ -15,6 +15,7 @@ import {
   ROLE_PROMOTER,
   ROLE_TENANT_ADMIN,
 } from '@/lib/roles.core';
+import { isBranchRequiredRole } from '@interdomestik/domain-users/admin/role-rules';
 import { Button } from '@interdomestik/ui/components/button';
 import {
   Card,
@@ -56,16 +57,10 @@ const DEFAULT_ROLE_OPTIONS = [
   ROLE_PROMOTER,
 ];
 const TENANT_WIDE_BRANCH = '__tenant__';
-const BRANCH_REQUIRED_ROLES = new Set<string>([ROLE_AGENT, ROLE_BRANCH_MANAGER]);
 
 function formatBranchName(b: Branch | { name: string; code?: string | null }) {
   const codeSuffix = b.code ? ` (${b.code})` : '';
   return `${b.name}${codeSuffix}`;
-}
-
-function roleRequiresBranch(role: string | undefined) {
-  const normalizedRole = role?.trim();
-  return Boolean(normalizedRole && BRANCH_REQUIRED_ROLES.has(normalizedRole));
 }
 
 export function AdminUserRolesPanel({ userId }: { userId: string }) {
@@ -91,7 +86,7 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
 
   const effectiveRoleValue = (grantRole === '__custom__' ? customRole : grantRole).trim();
   const isBranchMissingForRole =
-    roleRequiresBranch(effectiveRoleValue) && grantBranchId === TENANT_WIDE_BRANCH;
+    isBranchRequiredRole(effectiveRoleValue) && grantBranchId === TENANT_WIDE_BRANCH;
 
   const branchOptions = useMemo(() => {
     return [{ id: TENANT_WIDE_BRANCH, name: 'Tenant-wide', code: null }, ...branches];
