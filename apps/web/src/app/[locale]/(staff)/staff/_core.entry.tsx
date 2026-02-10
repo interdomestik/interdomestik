@@ -1,11 +1,13 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
-import { requireRoleOrNotFound } from '@/components/shell/role-guard';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { StaffSidebar } from '@/components/staff/staff-sidebar';
 import { BASE_NAMESPACES, STAFF_NAMESPACES, pickMessages } from '@/i18n/messages';
+import { hasEffectiveRole } from '@interdomestik/domain-users/admin/access';
+import type { UserSession } from '@interdomestik/domain-users/types';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
+import { notFound } from 'next/navigation';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
@@ -27,7 +29,13 @@ export default async function StaffLayout({
     getMessages({ locale }),
   ]);
   const sessionNonNull = requireSessionOrRedirect(session, locale);
-  requireRoleOrNotFound(sessionNonNull.user.role, ['staff', 'branch_manager']);
+  const [isStaff, isBranchManager] = await Promise.all([
+    hasEffectiveRole({ session: sessionNonNull as unknown as UserSession, role: 'staff' }),
+    hasEffectiveRole({ session: sessionNonNull as unknown as UserSession, role: 'branch_manager' }),
+  ]);
+  if (!isStaff && !isBranchManager) {
+    notFound();
+  }
 
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),

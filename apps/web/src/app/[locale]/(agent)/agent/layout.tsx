@@ -2,13 +2,15 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
-import { requireRoleOrNotFound } from '@/components/shell/role-guard';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { AGENT_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { db } from '@interdomestik/database/db';
 import { agentSettings } from '@interdomestik/database/schema';
+import { hasEffectiveRole } from '@interdomestik/domain-users/admin/access';
+import type { UserSession } from '@interdomestik/domain-users/types';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { eq } from 'drizzle-orm';
+import { notFound } from 'next/navigation';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
@@ -26,7 +28,13 @@ export default async function AgentLayout({
 
   const session = await getSessionSafe('AgentLayout');
   const sessionNonNull = requireSessionOrRedirect(session, locale);
-  requireRoleOrNotFound(sessionNonNull.user.role, ['agent']);
+  const canAccessAgent = await hasEffectiveRole({
+    session: sessionNonNull as unknown as UserSession,
+    role: 'agent',
+  });
+  if (!canAccessAgent) {
+    notFound();
+  }
 
   // Fetch agent tier for RBAC Sidebar
   let agentTier = 'standard';

@@ -134,7 +134,7 @@ describe('domain-users rbac: branch required roles', () => {
     expect(hoisted.transaction).not.toHaveBeenCalled();
   });
 
-  it('returns error when grant cannot update a tenant-scoped user', async () => {
+  it('returns error when grant target user does not exist', async () => {
     hoisted.branchesFindFirst.mockResolvedValue({ id: 'b-1', isActive: true });
     hoisted.transaction.mockImplementationOnce(async fn => {
       const tx = {
@@ -166,6 +166,6 @@ describe('domain-users rbac: branch required roles', () => {
         role: 'agent',
         branchId: 'b-1',
       })
-    ).rejects.toThrow('Role grant did not update the user');
+    ).rejects.toThrow('Role grant target user not found');
   });
 });

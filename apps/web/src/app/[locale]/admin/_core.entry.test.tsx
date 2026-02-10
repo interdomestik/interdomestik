@@ -31,8 +31,8 @@ vi.mock('@/components/shell/session', () => ({
   requireSessionOrRedirect: vi.fn((session: unknown) => session),
 }));
 
-vi.mock('@/components/shell/role-guard', () => ({
-  requireRoleOrNotFound: vi.fn(),
+vi.mock('@interdomestik/domain-users/admin/access', () => ({
+  requireTenantAdminOrBranchManagerSession: vi.fn(async (session: unknown) => session),
 }));
 
 vi.mock('@/components/shell/authenticated-shell', () => ({
