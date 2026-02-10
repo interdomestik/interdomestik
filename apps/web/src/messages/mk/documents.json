@@ -1,18 +1,20 @@
 {
   "documents": {
-    "title": "Documents",
-    "subtitle": "All documents attached to your claims.",
-    "empty": "No documents uploaded yet.",
-    "filesCount": "Files: {count}",
-    "viewClaim": "View claim",
-    "emptyList": "No documents attached.",
+    "title": "Документи",
+    "subtitle": "Сите документи поврзани со вашите барања.",
+    "empty": "Сѐ уште нема прикачени документи.",
+    "filesCount": "Документи: {count}",
+    "uploadEvidence": "Прикачи доказ",
+    "createClaim": "Креирај барање",
+    "viewClaim": "Прегледај барање",
+    "emptyList": "Нема прикачени документи.",
     "actions": {
-      "view": "View",
-      "download": "Download"
+      "view": "Прегледај",
+      "download": "Преземи"
     },
     "errors": {
-      "view": "Failed to load document. Please try again.",
-      "download": "Failed to download document. Please try again."
+      "view": "Неуспешно вчитување на документот. Обидете се повторно.",
+      "download": "Неуспешно преземање на документот. Обидете се повторно."
     }
   }
 }

@@ -4,6 +4,8 @@
     "subtitle": "All documents attached to your claims.",
     "empty": "No documents uploaded yet.",
     "filesCount": "Files: {count}",
+    "uploadEvidence": "Upload evidence",
+    "createClaim": "Create claim",
     "viewClaim": "View claim",
     "emptyList": "No documents attached.",
     "actions": {
