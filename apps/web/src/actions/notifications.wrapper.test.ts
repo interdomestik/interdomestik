@@ -49,4 +49,29 @@ describe('actions/notifications wrapper', () => {
     expect(markAllAsReadCore).toHaveBeenCalledWith({ session: { user: { id: 'u1' } } });
     expect(revalidatePath).toHaveBeenCalledWith('/dashboard');
   });
+
+  it('returns safe unauthorized results instead of throwing', async () => {
+    const { getActionContext } = await import('./notifications/context');
+    const { getNotificationsCore } = await import('./notifications/get');
+    const { markAsReadCore, markAllAsReadCore } = await import('./notifications/mark-read');
+
+    (getActionContext as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      session: null,
+      requestHeaders: new Headers(),
+    });
+
+    (getNotificationsCore as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('Not authenticated')
+    );
+    (markAsReadCore as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('Not authenticated')
+    );
+    (markAllAsReadCore as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('Not authenticated')
+    );
+
+    await expect(getNotifications()).resolves.toEqual([]);
+    await expect(markAsRead('n1')).resolves.toEqual({ success: false, error: 'Unauthorized' });
+    await expect(markAllAsRead()).resolves.toEqual({ success: false, error: 'Unauthorized' });
+  });
 });
