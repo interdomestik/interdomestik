@@ -6,6 +6,7 @@ import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { loadTenantOptions } from './_core';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -35,13 +36,15 @@ export default async function LoginPage({ params, searchParams }: Props) {
     import('drizzle-orm'),
   ]);
 
-  const tenantOptions: TenantOption[] = resolvedTenantId
-    ? []
-    : await db
+  const tenantOptions: TenantOption[] = await loadTenantOptions({
+    resolvedTenantId,
+    loadTenants: async () =>
+      db
         .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
         .from(tenants)
         .where(drizzle.eq(tenants.isActive, true))
-        .orderBy(drizzle.asc(tenants.name));
+        .orderBy(drizzle.asc(tenants.name)),
+  });
 
   return (
     <main

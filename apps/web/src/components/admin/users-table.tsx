@@ -3,6 +3,7 @@
 import { updateUserAgent } from '@/actions/admin-users';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Link, useRouter } from '@/i18n/routing';
+import { getRoleLabel } from '@/lib/roles-i18n';
 import { isMember } from '@/lib/roles';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { Badge } from '@interdomestik/ui/components/badge';
@@ -202,7 +203,7 @@ export function UsersTable({
             </TableCell>
             <TableCell>
               <Badge variant="outline" className="border-white/10 bg-white/5 text-muted-foreground">
-                {tCommon(`roles.${user.role}`)}
+                {getRoleLabel(tCommon, user.role)}
               </Badge>
             </TableCell>
             <TableCell>
