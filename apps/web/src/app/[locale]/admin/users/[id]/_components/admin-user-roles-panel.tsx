@@ -56,10 +56,16 @@ const DEFAULT_ROLE_OPTIONS = [
   ROLE_PROMOTER,
 ];
 const TENANT_WIDE_BRANCH = '__tenant__';
+const BRANCH_REQUIRED_ROLES = new Set<string>([ROLE_AGENT, ROLE_BRANCH_MANAGER]);
 
 function formatBranchName(b: Branch | { name: string; code?: string | null }) {
   const codeSuffix = b.code ? ` (${b.code})` : '';
   return `${b.name}${codeSuffix}`;
+}
+
+function roleRequiresBranch(role: string | undefined) {
+  const normalizedRole = role?.trim();
+  return Boolean(normalizedRole && BRANCH_REQUIRED_ROLES.has(normalizedRole));
 }
 
 export function AdminUserRolesPanel({ userId }: { userId: string }) {
@@ -84,6 +90,8 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
   const [pendingRevokeRowId, setPendingRevokeRowId] = useState<string | null>(null);
 
   const effectiveRoleValue = (grantRole === '__custom__' ? customRole : grantRole).trim();
+  const isBranchMissingForRole =
+    roleRequiresBranch(effectiveRoleValue) && grantBranchId === TENANT_WIDE_BRANCH;
 
   const branchOptions = useMemo(() => {
     return [{ id: TENANT_WIDE_BRANCH, name: 'Tenant-wide', code: null }, ...branches];
@@ -137,6 +145,10 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
 
     if (!effectiveRoleValue) {
       toast.error('Role is required');
+      return;
+    }
+    if (isBranchMissingForRole) {
+      toast.error('Branch is required for this role. Please select a branch.');
       return;
     }
 
@@ -297,7 +309,11 @@ export function AdminUserRolesPanel({ userId }: { userId: string }) {
               type="button"
               onClick={handleGrant}
               disabled={
-                !hasTenantContext || loading || isGrantPending || pendingRevokeRowId !== null
+                !hasTenantContext ||
+                loading ||
+                isGrantPending ||
+                pendingRevokeRowId !== null ||
+                isBranchMissingForRole
               }
               className="w-full"
             >

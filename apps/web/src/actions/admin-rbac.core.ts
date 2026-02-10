@@ -179,6 +179,13 @@ export async function grantUserRole({
     });
 
     if ('error' in result) {
+      if (result.error.includes('Branch is required for role')) {
+        return {
+          success: false,
+          error: result.error,
+          code: 'BRANCH_REQUIRED',
+        } as never;
+      }
       throw new Error(result.error);
     }
 
