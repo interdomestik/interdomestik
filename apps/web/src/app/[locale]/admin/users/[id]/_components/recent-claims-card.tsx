@@ -1,4 +1,5 @@
-import { OpsStatusBadge, OpsTable, toOpsBadgeVariant } from '@/components/ops';
+import { OpsStatusBadge, OpsTable } from '@/components/ops';
+import { toOpsBadgeVariant } from '@/components/ops/adapters/status';
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
