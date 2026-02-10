@@ -244,7 +244,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                   </div>
                   <div className="w-[1px] h-3 self-center bg-sky-200" />
                   <Link
-                    href={`/${locale}/admin/users/${claim.memberId}`}
+                    href={`/admin/users/${claim.memberId}`}
                     className="flex items-center gap-1 px-2 py-0.5 hover:underline decoration-sky-700/50"
                   >
                     <span className="text-[10px] font-medium max-w-[150px] truncate">

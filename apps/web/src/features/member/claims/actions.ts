@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { claimDocuments, claims, db } from '@interdomestik/database';
+import { claimDocuments, claims, createAdminClient, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
@@ -10,6 +10,16 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
 const EVIDENCE_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
+
+function isMissingStorageResource(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const maybe = error as { message?: string; statusCode?: string };
+  return (
+    maybe.statusCode === '404' ||
+    (typeof maybe.message === 'string' &&
+      maybe.message.toLowerCase().includes('related resource does not exist'))
+  );
+}
 
 export type GenerateUploadUrlResult =
   | { success: true; url: string; path: string; id: string }
@@ -76,9 +86,32 @@ export async function generateUploadUrl(
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { data, error } = await supabase.storage
+    let { data, error } = await supabase.storage
       .from(EVIDENCE_BUCKET)
       .createSignedUploadUrl(path, { upsert: true });
+
+    if (error && isMissingStorageResource(error)) {
+      const adminClient = createAdminClient();
+      const { error: createBucketError } = await adminClient.storage.createBucket(EVIDENCE_BUCKET, {
+        public: false,
+      });
+
+      if (
+        createBucketError &&
+        !createBucketError.message.toLowerCase().includes('already exists')
+      ) {
+        console.error('Failed to create missing evidence bucket:', {
+          bucket: EVIDENCE_BUCKET,
+          detail: createBucketError.message,
+        });
+      }
+
+      const retry = await supabase.storage
+        .from(EVIDENCE_BUCKET)
+        .createSignedUploadUrl(path, { upsert: true });
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error || !data?.signedUrl) {
       const detail = error?.message ?? 'Unknown storage error';
