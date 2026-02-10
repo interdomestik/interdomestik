@@ -170,6 +170,7 @@ function validateClaimFiles(
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB - aligned with upload API
   const ALLOWED_TYPES = new Set([
     'application/pdf',
+    'text/plain',
     'image/jpeg',
     'image/png',
     'image/webp',
@@ -202,7 +203,7 @@ function validateClaimFiles(
     }
     if (!ALLOWED_TYPES.has(file.type)) {
       throw new ClaimValidationError(
-        `Unsupported file type: ${file.type}. Allowed: PDF, Images, Audio.`,
+        `Unsupported file type: ${file.type}. Allowed: PDF, TXT, Images, Audio.`,
         'INVALID_TYPE'
       );
     }

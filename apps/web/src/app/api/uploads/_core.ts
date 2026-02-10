@@ -11,7 +11,12 @@ type Session = {
   };
 };
 
-export const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'] as const;
+export const ALLOWED_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'application/pdf',
+  'text/plain',
+] as const;
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 export const DEFAULT_BUCKET = 'claim-evidence';
 export const DEFAULT_CLASSIFICATION = 'pii' as const;
