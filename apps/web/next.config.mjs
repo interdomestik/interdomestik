@@ -63,8 +63,8 @@ export default withSentryConfig(withAxiom(finalConfig), {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 
-  org: 'interdomestik',
-  project: 'web-app',
+  org: 'human-p5',
+  project: 'interdmestik-nextjs',
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
