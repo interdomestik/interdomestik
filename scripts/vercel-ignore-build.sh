@@ -20,11 +20,18 @@ fi
 BASE_SHA="${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}"
 TARGET_SHA="${VERCEL_GIT_COMMIT_SHA:-HEAD}"
 
-# Fetch history if shallow (Vercel sometimes does shallow clones)
-# We might need to fetch a bit more depth if the SHA is missing, but typically 'Full' clone setting handles this.
-# git fetch --depth=100 origin $VERCEL_GIT_COMMIT_REF || true
+# CRITICAL: Fetch history if shallow (Vercel does shallow clones by default)
+# We fetch 50 commits to ensure we have context for diffs
+echo "🔄 Fetching git history..."
+git fetch --depth=50 origin "${VERCEL_GIT_COMMIT_REF:-main}" || true
 
 echo "🔍 Diffing $BASE_SHA...$TARGET_SHA"
+# Standardize SHA references (if previous is missing, use HEAD^)
+if [ -z "${VERCEL_GIT_PREVIOUS_SHA:-}" ]; then
+  BASE_SHA="HEAD^"
+  TARGET_SHA="HEAD"
+fi
+
 CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$TARGET_SHA")
 
 echo "📂 Changed files:"
