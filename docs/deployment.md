@@ -42,6 +42,6 @@ Configure these settings for the `production` branch in GitHub:
 
 Ensure these are set in Vercel to prevent accidental builds:
 
-- **Git > Production Branch**: `production`
-- **Git > Ignore Build Command**: _(Leave Empty)_
-- **Build Command**: `pnpm turbo build --filter=@interdomestik/web`
+- **Settings > Environments > Production > Branch Tracking**: `production`
+- **Settings > Git > Ignore Build Command**: _(Leave Empty)_
+- **Settings > Build & Development > Build Command**: `pnpm turbo build --filter=@interdomestik/web`
