@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { claims, db, documents } from '@interdomestik/database';
+import { claimDocuments, claims, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
@@ -133,15 +133,14 @@ export async function confirmUpload(
   }
 
   try {
-    await db.insert(documents).values({
+    await db.insert(claimDocuments).values({
       id: fileId,
       tenantId: tenantId,
-      entityType: 'claim',
-      entityId: claimId,
-      fileName: originalName,
-      mimeType: mimeType,
-      fileSize: fileSize,
-      storagePath: storagePath,
+      claimId,
+      name: originalName,
+      filePath: storagePath,
+      fileType: mimeType,
+      fileSize,
       category: 'evidence',
       uploadedBy: session.user.id,
     });
