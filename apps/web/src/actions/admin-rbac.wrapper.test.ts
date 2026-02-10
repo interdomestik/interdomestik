@@ -195,5 +195,21 @@ describe('admin-rbac.core', () => {
         expect(result.error).toContain('Tenant context is required');
       }
     });
+
+    it('returns BRANCH_REQUIRED when grant role is branch-scoped without branch', async () => {
+      mockGrantUserRoleCore.mockResolvedValueOnce({ error: 'Branch is required for role: agent' });
+
+      const result = await grantUserRole({
+        userId: '123e4567-e89b-12d3-a456-426614174000',
+        role: 'agent',
+        tenantId: 'tenant-1',
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.code).toBe('BRANCH_REQUIRED');
+        expect(result.error).toBe('Branch is required for role: agent');
+      }
+    });
   });
 });

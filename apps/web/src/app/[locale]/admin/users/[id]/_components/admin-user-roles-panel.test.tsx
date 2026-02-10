@@ -164,4 +164,23 @@ describe('AdminUserRolesPanel', () => {
       expect(rbacMocks.revokeUserRole).not.toHaveBeenCalled();
     });
   });
+
+  it('disables grant when selected role requires branch and branch is tenant-wide', async () => {
+    render(<AdminUserRolesPanel userId="user-1" />);
+
+    await waitFor(() => {
+      expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByTestId('role-select-trigger'));
+    fireEvent.click(screen.getByTestId('role-option-agent'));
+
+    const grantButton = screen.getByRole('button', { name: 'Grant role' });
+    expect(grantButton).toBeDisabled();
+    fireEvent.click(grantButton);
+
+    await waitFor(() => {
+      expect(rbacMocks.grantUserRole).not.toHaveBeenCalled();
+    });
+  });
 });
