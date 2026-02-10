@@ -3,4 +3,4 @@
 This PR exists only to verify that Vercel skips builds
 when changes do not affect @interdomestik/web.
 
-Update: Testing explicit git fetch logic to handle shallow clones.
+Update: Testing restored turbo-ignore logic (Step 1 original approach).
