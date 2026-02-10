@@ -1,10 +1,9 @@
 import { LoginForm } from '@/components/auth/login-form';
+import { getSessionSafe } from '@/components/shell/session';
 import { TenantSelector, type TenantOption } from '@/components/auth/tenant-selector';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
-import { auth } from '@/lib/auth';
 import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 import { setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { loadTenantOptions } from './_core';
 
@@ -17,7 +16,7 @@ export default async function LoginPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSessionSafe('LoginPage');
   if (session?.user?.role) {
     const canonical = getCanonicalRouteForRole(session.user.role, locale);
     if (canonical) {

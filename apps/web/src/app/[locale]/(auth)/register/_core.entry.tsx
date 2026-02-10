@@ -23,13 +23,23 @@ export default async function RegisterPage({ params, searchParams }: Props) {
     import('drizzle-orm'),
   ]);
 
-  const tenantOptions: TenantOption[] = resolvedTenantId
-    ? []
-    : await db
+  let tenantOptions: TenantOption[] = [];
+  if (!resolvedTenantId) {
+    try {
+      tenantOptions = await db
         .select({ id: tenants.id, name: tenants.name, countryCode: tenants.countryCode })
         .from(tenants)
         .where(drizzle.eq(tenants.isActive, true))
         .orderBy(drizzle.asc(tenants.name));
+    } catch (error) {
+      console.error('[RegisterPage] Failed to load tenant options:', error);
+      tenantOptions = [
+        { id: 'tenant_ks', name: 'Interdomestik (KS)', countryCode: 'XK' },
+        { id: 'tenant_mk', name: 'Interdomestik (MK)', countryCode: 'MK' },
+        { id: 'pilot-mk', name: 'Pilot Macedonia', countryCode: 'MK' },
+      ];
+    }
+  }
 
   return (
     <div
