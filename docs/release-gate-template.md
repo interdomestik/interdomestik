@@ -1,5 +1,7 @@
 # Release Gate — <ENV> — <DATE>
 
+Run with `pnpm release:gate -- --baseUrl https://interdomestik-web.vercel.app --envName production --suite all`; report is written to `docs/release-gates/YYYY-MM-DD_<envName>_<deploymentIdOrUnknown>.md`.
+
 ## Deployment
 
 - Environment: <Production | Staging | Preview>
