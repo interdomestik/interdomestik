@@ -4,9 +4,9 @@ import { AdminTenantSelector } from '@/components/admin/admin-tenant-selector';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { PortalSurfaceIndicator } from '@/components/dashboard/portal-surface-indicator';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
+import { requireRoleOrNotFound } from '@/components/shell/role-guard';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { ADMIN_NAMESPACES, BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
 import { Separator, SidebarInset, SidebarProvider, SidebarTrigger } from '@interdomestik/ui';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 
@@ -28,7 +28,7 @@ export default async function AdminLayout({
 
   // Strict Isolation: Only allow admin, super_admin, tenant_admin, and branch_manager
   const ALLOWED_ROLES = ['admin', 'super_admin', 'tenant_admin', 'branch_manager'] as const;
-  await requireEffectivePortalAccessOrNotFound(sessionNonNull, ALLOWED_ROLES);
+  requireRoleOrNotFound(role, ALLOWED_ROLES);
 
   setRequestLocale(locale);
   const allMessages = await getMessages();

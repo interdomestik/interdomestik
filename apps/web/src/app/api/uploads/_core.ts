@@ -105,14 +105,6 @@ export async function createSignedUploadCore(args: {
   });
 
   if (error || !data) {
-    console.error('[api/uploads] Signed upload URL creation failed', {
-      bucket,
-      path,
-      fileType,
-      fileSize,
-      claimId: claimId ?? null,
-      error: error?.message ?? 'unknown',
-    });
     return { ok: false, status: 500, error: 'Failed to create signed upload URL' };
   }
 

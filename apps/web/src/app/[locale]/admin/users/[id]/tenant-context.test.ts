@@ -1,55 +1,29 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveAdminTenantContext } from './tenant-context';
+import { describe, expect, it } from 'vitest';
+import { buildTenantAwareUserProfilePath, hasTenantContext } from './tenant-context';
 
-const mocks = vi.hoisted(() => ({
-  findFirst: vi.fn(),
-}));
+describe('tenant-context helpers', () => {
+  it('detects tenantId in search params', () => {
+    expect(hasTenantContext({ tenantId: 'tenant_ks' })).toBe(true);
+    expect(hasTenantContext({ tenantId: ['tenant_ks'] })).toBe(true);
+    expect(hasTenantContext({ tenantId: '' })).toBe(false);
+    expect(hasTenantContext({})).toBe(false);
+  });
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    query: {
-      tenants: {
-        findFirst: (...args: unknown[]) => mocks.findFirst(...args),
+  it('builds profile path preserving current params and injecting tenantId', () => {
+    const href = buildTenantAwareUserProfilePath({
+      locale: 'sq',
+      userId: 'user-1',
+      searchParams: {
+        role: 'agent',
+        page: '2',
       },
-    },
-  },
-}));
-
-describe('resolveAdminTenantContext', () => {
-  beforeEach(() => {
-    mocks.findFirst.mockReset();
-  });
-
-  it('returns session tenant for non-super-admin users', async () => {
-    const tenantId = await resolveAdminTenantContext({
-      session: { user: { role: 'tenant_admin', tenantId: 'tenant_ks' } },
-      searchParams: { tenantId: 'tenant_mk' },
+      tenantId: 'tenant_ks',
     });
 
-    expect(tenantId).toBe('tenant_ks');
-    expect(mocks.findFirst).not.toHaveBeenCalled();
-  });
-
-  it('allows super_admin tenant switch only for active tenants', async () => {
-    mocks.findFirst.mockResolvedValue({ id: 'tenant_mk' });
-
-    const tenantId = await resolveAdminTenantContext({
-      session: { user: { role: 'super_admin', tenantId: 'tenant_ks' } },
-      searchParams: { tenantId: 'tenant_mk' },
-    });
-
-    expect(tenantId).toBe('tenant_mk');
-    expect(mocks.findFirst).toHaveBeenCalledTimes(1);
-  });
-
-  it('falls back to session tenant when requested tenant is invalid', async () => {
-    mocks.findFirst.mockResolvedValue(undefined);
-
-    const tenantId = await resolveAdminTenantContext({
-      session: { user: { role: 'super_admin', tenantId: 'tenant_ks' } },
-      searchParams: { tenantId: 'invalid' },
-    });
-
-    expect(tenantId).toBe('tenant_ks');
+    const url = new URL(href, 'https://example.com');
+    expect(url.pathname).toBe('/sq/admin/users/user-1');
+    expect(url.searchParams.get('tenantId')).toBe('tenant_ks');
+    expect(url.searchParams.get('role')).toBe('agent');
+    expect(url.searchParams.get('page')).toBe('2');
   });
 });

@@ -1,10 +1,10 @@
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
+import { requireRoleOrNotFound } from '@/components/shell/role-guard';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { StaffSidebar } from '@/components/staff/staff-sidebar';
 import { BASE_NAMESPACES, STAFF_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 
@@ -20,11 +20,14 @@ export default async function StaffLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await getSessionSafe('StaffLayout');
+  // Vercel Best Practice: Eliminate Waterfall (async-parallel)
+  // Fetch session and messages in parallel
+  const [session, allMessages] = await Promise.all([
+    getSessionSafe('StaffLayout'),
+    getMessages({ locale }),
+  ]);
   const sessionNonNull = requireSessionOrRedirect(session, locale);
-  await requireEffectivePortalAccessOrNotFound(sessionNonNull, ['staff', 'branch_manager']);
-
-  const allMessages = await getMessages({ locale });
+  requireRoleOrNotFound(sessionNonNull.user.role, ['staff', 'branch_manager']);
 
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),

@@ -1,11 +1,3 @@
-## Pilot Entry Criteria v1.0
-
-- Release gate green on production: `pnpm release:gate:prod` exits `0`, and a new `docs/release-gates/YYYY-MM-DD_production_<dpl>.md` report is generated and committed.
-- Operational control-plane works: admin role assignment/removal succeeds in KS tenant and reflects in UI; cross-tenant admin access remains blocked (MK -> KS).
-- Member evidence is reliable: upload persists after refresh and relogin; uploaded file download/open works.
-- Staff workflow persistence is reliable: status update persists and note persists after refresh at `data-testid="staff-claim-detail-note"`.
-- Observability is quiet enough: `vercel logs --environment production --since 60m --no-branch --level error` has no functional errors; expected authorization-deny noise from negative tests is acceptable.
-
 ## Pre-Launch Checks
 
 - Runtime: Node `20.x` verified.

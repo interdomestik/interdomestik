@@ -2,9 +2,9 @@ import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { LegacyBanner } from '@/components/dashboard/legacy-banner';
 import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
+import { requireRoleOrNotFound } from '@/components/shell/role-guard';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { AGENT_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
 import { db } from '@interdomestik/database/db';
 import { agentSettings } from '@interdomestik/database/schema';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
@@ -26,7 +26,7 @@ export default async function AgentLayout({
 
   const session = await getSessionSafe('AgentLayout');
   const sessionNonNull = requireSessionOrRedirect(session, locale);
-  await requireEffectivePortalAccessOrNotFound(sessionNonNull, ['agent']);
+  requireRoleOrNotFound(sessionNonNull.user.role, ['agent']);
 
   // Fetch agent tier for RBAC Sidebar
   let agentTier = 'standard';

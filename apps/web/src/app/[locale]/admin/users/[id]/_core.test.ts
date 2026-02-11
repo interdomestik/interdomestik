@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  computeAdminUserClaimCounts,
-  getAdminUserMembershipStatus,
-  getAdminUserProfileCore,
-} from './_core';
+import { computeAdminUserClaimCounts, getAdminUserMembershipStatus } from './_core';
 
 describe('admin user profile core', () => {
   it('computeAdminUserClaimCounts aggregates by status buckets', () => {
@@ -26,15 +22,5 @@ describe('admin user profile core', () => {
     expect(getAdminUserMembershipStatus('something_else')).toBe('none');
     expect(getAdminUserMembershipStatus(null)).toBe('none');
     expect(getAdminUserMembershipStatus(undefined)).toBe('none');
-  });
-
-  it('returns not_found when tenant context is missing', async () => {
-    const result = await getAdminUserProfileCore({
-      userId: 'any-user',
-      tenantId: null,
-      recentClaimsLimit: 5,
-    });
-
-    expect(result).toEqual({ kind: 'not_found' });
   });
 });

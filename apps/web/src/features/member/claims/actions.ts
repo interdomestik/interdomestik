@@ -1,8 +1,7 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
-import { claimDocuments, claims, db } from '@interdomestik/database';
+import { claimDocuments, claims, createAdminClient, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
@@ -10,8 +9,20 @@ import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
+const EVIDENCE_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
+
+function isMissingStorageResource(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const maybe = error as { message?: string; statusCode?: string };
+  return (
+    maybe.statusCode === '404' ||
+    (typeof maybe.message === 'string' &&
+      maybe.message.toLowerCase().includes('related resource does not exist'))
+  );
+}
+
 export type GenerateUploadUrlResult =
-  | { success: true; url: string; path: string; id: string; token: string; bucket: string }
+  | { success: true; url: string; path: string; id: string }
   | { success: false; error: string };
 
 export async function generateUploadUrl(
@@ -29,18 +40,6 @@ export async function generateUploadUrl(
   }
 
   const tenantId = ensureTenantId(session);
-  let evidenceBucket: string;
-  try {
-    evidenceBucket = resolveEvidenceBucketName();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Upload bucket configuration error';
-    console.error('[member/claims] Bucket configuration error', {
-      message,
-      nodeEnv: process.env.NODE_ENV,
-      vercelEnv: process.env.VERCEL_ENV,
-    });
-    return { success: false, error: message };
-  }
 
   // Authorization: Ensure claim exists and belongs to user/tenant
   const claim = await db.query.claims.findFirst({
@@ -87,14 +86,37 @@ export async function generateUploadUrl(
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { data, error } = await supabase.storage
-      .from(evidenceBucket)
+    let { data, error } = await supabase.storage
+      .from(EVIDENCE_BUCKET)
       .createSignedUploadUrl(path, { upsert: true });
 
-    if (error || !data?.signedUrl || !data?.token) {
+    if (error && isMissingStorageResource(error)) {
+      const adminClient = createAdminClient();
+      const { error: createBucketError } = await adminClient.storage.createBucket(EVIDENCE_BUCKET, {
+        public: false,
+      });
+
+      if (
+        createBucketError &&
+        !createBucketError.message.toLowerCase().includes('already exists')
+      ) {
+        console.error('Failed to create missing evidence bucket:', {
+          bucket: EVIDENCE_BUCKET,
+          detail: createBucketError.message,
+        });
+      }
+
+      const retry = await supabase.storage
+        .from(EVIDENCE_BUCKET)
+        .createSignedUploadUrl(path, { upsert: true });
+      data = retry.data;
+      error = retry.error;
+    }
+
+    if (error || !data?.signedUrl) {
       const detail = error?.message ?? 'Unknown storage error';
       console.error('Supabase signed URL error:', {
-        bucket: evidenceBucket,
+        bucket: EVIDENCE_BUCKET,
         path,
         detail,
         error,
@@ -107,8 +129,6 @@ export async function generateUploadUrl(
       url: data.signedUrl,
       path: path,
       id: fileId,
-      token: data.token,
-      bucket: evidenceBucket,
     };
   } catch (err) {
     console.error('generateUploadUrl error:', err);

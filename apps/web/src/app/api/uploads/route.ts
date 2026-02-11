@@ -1,9 +1,8 @@
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { NextResponse } from 'next/server';
 
-import { createSignedUploadCore, uploadRequestSchema } from './_core';
+import { createSignedUploadCore, DEFAULT_BUCKET, uploadRequestSchema } from './_core';
 
 export async function POST(req: Request) {
   const limited = await enforceRateLimit({
@@ -27,19 +26,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
 
-  let bucket: string;
-  try {
-    // NOTE: Consider adding virus scanning / quarantine promotion before enabling uploads in production.
-    bucket = resolveEvidenceBucketName();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Upload bucket configuration error';
-    console.error('[api/uploads] Bucket configuration error', {
-      message,
-      nodeEnv: process.env.NODE_ENV,
-      vercelEnv: process.env.VERCEL_ENV,
-    });
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  // NOTE: Consider adding virus scanning / quarantine promotion before enabling uploads in production.
+  const bucket = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || DEFAULT_BUCKET;
 
   const result = await createSignedUploadCore({
     session,

@@ -1,39 +1,33 @@
-import { db } from '@interdomestik/database/db';
-import { tenants } from '@interdomestik/database/schema';
-import { and, eq } from 'drizzle-orm';
+export function buildTenantAwareUserProfilePath(params: {
+  locale: string;
+  userId: string;
+  searchParams: Record<string, string | string[] | undefined>;
+  tenantId: string;
+}): string {
+  const { locale, userId, searchParams, tenantId } = params;
+  const next = new URLSearchParams();
 
-type SessionLike = {
-  user?: {
-    role?: string | null;
-    tenantId?: string | null;
-  } | null;
-} | null;
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        next.append(key, item);
+      }
+      continue;
+    }
+    next.set(key, value);
+  }
 
-function getFirst(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
+  next.set('tenantId', tenantId);
+  return `/${locale}/admin/users/${userId}?${next.toString()}`;
 }
 
-export async function resolveAdminTenantContext(params: {
-  session: SessionLike;
-  searchParams: Record<string, string | string[] | undefined>;
-}): Promise<string | null> {
-  const { session, searchParams } = params;
-  const sessionTenantId = session?.user?.tenantId ?? null;
-  const role = session?.user?.role ?? null;
-
-  if (role !== 'super_admin') {
-    return sessionTenantId;
+export function hasTenantContext(
+  searchParams: Record<string, string | string[] | undefined>
+): boolean {
+  const raw = searchParams.tenantId;
+  if (Array.isArray(raw)) {
+    return raw.some(Boolean);
   }
-
-  const requestedTenantId = getFirst(searchParams.tenantId);
-  if (!requestedTenantId) {
-    return sessionTenantId;
-  }
-
-  const requestedTenant = await db.query.tenants.findFirst({
-    where: and(eq(tenants.id, requestedTenantId), eq(tenants.isActive, true)),
-    columns: { id: true },
-  });
-
-  return requestedTenant?.id ?? sessionTenantId;
+  return Boolean(raw);
 }

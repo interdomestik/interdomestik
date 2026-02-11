@@ -1,7 +1,6 @@
 'use server';
 
 import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
-import { requireEffectivePortalAccessOrUnauthorized } from '@/server/auth/effective-portal-access';
 import { z } from 'zod';
 
 import { getUsersCore } from './admin-users/get-users';
@@ -18,11 +17,6 @@ import { updateUserAgentCore } from './admin-users/update-user-agent.core';
 
 export async function updateUserAgent(userId: string, agentId: string | null): ActionResult<void> {
   return runAuthenticatedAction<void>(async ({ session }) => {
-    await requireEffectivePortalAccessOrUnauthorized(session, [
-      'admin',
-      'tenant_admin',
-      'super_admin',
-    ]);
     const result = await updateUserAgentCore({
       session,
       userId,
@@ -39,11 +33,6 @@ export async function getUsers(
   filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
 ): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(async ({ session }) => {
-    await requireEffectivePortalAccessOrUnauthorized(session, [
-      'admin',
-      'tenant_admin',
-      'super_admin',
-    ]);
     // Validate filters via Zod
     const validation = getUsersFiltersSchema.safeParse(filters); // Changed from getUsersSchema to getUsersFiltersSchema
     if (!validation.success) {
@@ -60,11 +49,6 @@ export async function getUsers(
 // Fetch available agents for dropdown
 export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(async ({ session }) => {
-    await requireEffectivePortalAccessOrUnauthorized(session, [
-      'admin',
-      'tenant_admin',
-      'super_admin',
-    ]);
     // Agents are just users with role 'agent'
     // We can reuse getUsersCore but filter by role
     const data = await getUsersCore({
@@ -77,11 +61,6 @@ export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUse
 
 export async function getStaff(): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
   return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(async ({ session }) => {
-    await requireEffectivePortalAccessOrUnauthorized(session, [
-      'admin',
-      'tenant_admin',
-      'super_admin',
-    ]);
     // Include all roles that can be assigned as claim handlers
     const data = await getUsersCore({
       session,

@@ -25,7 +25,6 @@
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
     "type-check": "tsc --noEmit",
-    "test:rls": "tsx --test test/rls-engaged.test.ts test/no-domain-db-admin-import.test.ts",
     "seed:golden": "tsx src/seed.ts golden",
     "seed:workload": "tsx src/seed.ts workload",
     "seed:full": "tsx src/seed.ts full",

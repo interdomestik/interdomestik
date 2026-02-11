@@ -1,7 +1,7 @@
 import { AdminUserDetailV2Page } from '@/features/admin/users/components/AdminUserDetailV2Page';
 import { getSessionSafe } from '@/components/shell/session';
 import { redirect } from 'next/navigation';
-import { resolveAdminTenantContext } from './tenant-context';
+import { buildTenantAwareUserProfilePath, hasTenantContext } from './tenant-context';
 
 export default async function MemberProfilePage({
   params,
@@ -12,11 +12,21 @@ export default async function MemberProfilePage({
 }) {
   const { locale, id } = await params;
   const sp = await searchParams;
-  const session = await getSessionSafe('AdminUserProfilePage');
-  if (!session) {
-    redirect(`/${locale}/login`);
-  }
-  const tenantId = await resolveAdminTenantContext({ session, searchParams: sp });
 
-  return <AdminUserDetailV2Page id={id} locale={locale} searchParams={sp} tenantId={tenantId} />;
+  if (!hasTenantContext(sp)) {
+    const session = await getSessionSafe('AdminUserProfilePage');
+    const fallbackTenantId = session?.user?.tenantId;
+    if (fallbackTenantId) {
+      redirect(
+        buildTenantAwareUserProfilePath({
+          locale,
+          userId: id,
+          searchParams: sp,
+          tenantId: fallbackTenantId,
+        })
+      );
+    }
+  }
+
+  return <AdminUserDetailV2Page id={id} locale={locale} searchParams={sp} />;
 }
