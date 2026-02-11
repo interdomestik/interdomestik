@@ -92,14 +92,18 @@ function normalizeBaseUrl(baseUrl) {
 }
 
 function buildRoute(baseUrl, locale, routePath) {
+  if (typeof routePath === 'string' && /^https?:\/\//i.test(routePath)) {
+    return routePath;
+  }
   const normalized = routePath.startsWith('/') ? routePath : `/${routePath}`;
-  if (/^https?:\/\//i.test(normalized)) return normalized;
   return `${baseUrl}/${locale}${normalized}`;
 }
 
 function buildRouteAllowingLocalePath(baseUrl, locale, routePath) {
+  if (typeof routePath === 'string' && /^https?:\/\//i.test(routePath)) {
+    return routePath;
+  }
   const normalized = routePath.startsWith('/') ? routePath : `/${routePath}`;
-  if (/^https?:\/\//i.test(normalized)) return normalized;
   const localePrefix = `/${locale}/`;
   if (normalized === `/${locale}` || normalized.startsWith(localePrefix)) {
     return `${baseUrl}${normalized}`;

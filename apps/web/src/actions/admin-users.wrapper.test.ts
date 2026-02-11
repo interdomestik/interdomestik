@@ -40,6 +40,10 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
+vi.mock('@/server/auth/effective-portal-access', () => ({
+  requireEffectivePortalAccessOrUnauthorized: vi.fn(async () => undefined),
+}));
+
 let actions: typeof import('./admin-users');
 
 describe('admin-users action wrappers', () => {

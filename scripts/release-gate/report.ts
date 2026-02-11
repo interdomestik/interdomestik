@@ -7,7 +7,7 @@ function toDateStamp(date) {
 
 function asList(items) {
   if (!items || items.length === 0) return ['- N/A'];
-  return items.map(item => `- ${item}`);
+  return items.map(item => `- ${sanitizeReportText(item)}`);
 }
 
 function getCheck(checks, id) {
@@ -20,21 +20,37 @@ function renderCheckResult(check) {
   return check.status || 'SKIPPED';
 }
 
+function sanitizeFileSegment(value, fallback) {
+  const safe = String(value || '')
+    .replace(/[^A-Za-z0-9._-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return safe || fallback;
+}
+
+function sanitizeReportText(value) {
+  const raw = String(value ?? '');
+  return raw
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[REDACTED_EMAIL]')
+    .replace(/https?:\/\/\S*token=\S+/gi, '[REDACTED_SIGNED_URL]')
+    .replace(/([?&]token=)[^&\s)]+/gi, '$1[REDACTED]');
+}
+
 function renderP06Scenarios(p06) {
   const scenarios = Array.isArray(p06.scenarios) ? p06.scenarios : [];
   if (scenarios.length === 0) return ['- N/A'];
 
   const lines = [];
   for (const scenario of scenarios) {
-    lines.push(`### ${scenario.id} ${scenario.title}`);
+    lines.push(`### ${sanitizeReportText(scenario.id)} ${sanitizeReportText(scenario.title)}`);
     lines.push('');
-    lines.push(`- Account used: ${scenario.account || 'unknown'}`);
-    lines.push(`- URL(s): ${(scenario.urls || []).join(' | ') || 'N/A'}`);
-    lines.push(`- Expected markers: ${scenario.expectedSummary || 'N/A'}`);
-    lines.push(`- Observed markers: ${scenario.observedSummary || 'N/A'}`);
-    lines.push(`- Result: ${scenario.result || 'N/A'}`);
+    lines.push(`- Account used: ${sanitizeReportText(scenario.account || 'unknown')}`);
+    lines.push(`- URL(s): ${sanitizeReportText((scenario.urls || []).join(' | ') || 'N/A')}`);
+    lines.push(`- Expected markers: ${sanitizeReportText(scenario.expectedSummary || 'N/A')}`);
+    lines.push(`- Observed markers: ${sanitizeReportText(scenario.observedSummary || 'N/A')}`);
+    lines.push(`- Result: ${sanitizeReportText(scenario.result || 'N/A')}`);
     if (scenario.failureSignature) {
-      lines.push(`- Failure signature: ${scenario.failureSignature}`);
+      lines.push(`- Failure signature: ${sanitizeReportText(scenario.failureSignature)}`);
     }
     lines.push('');
   }
@@ -44,9 +60,10 @@ function renderP06Scenarios(p06) {
 function writeReleaseGateReport(input) {
   const now = input.generatedAt || new Date();
   const day = toDateStamp(now);
-  const safeDeployment = input.deploymentId || 'unknown';
+  const safeEnvName = sanitizeFileSegment(input.envName, 'unknown-env');
+  const safeDeployment = sanitizeFileSegment(input.deploymentId, 'unknown');
   const outputDir = path.resolve(input.outDir);
-  const fileName = `${day}_${input.envName}_${safeDeployment}.md`;
+  const fileName = `${day}_${safeEnvName}_${safeDeployment}.md`;
   const reportPath = path.join(outputDir, fileName);
 
   fs.mkdirSync(outputDir, { recursive: true });
@@ -70,27 +87,27 @@ function writeReleaseGateReport(input) {
   };
 
   const content = [
-    `# Release Gate — ${input.envName} — ${day}`,
+    `# Release Gate — ${sanitizeReportText(input.envName)} — ${day}`,
     '',
     '## Deployment',
     '',
-    `- Environment: ${input.envName}`,
-    `- Alias: ${input.baseUrl}`,
-    `- Deployment ID: ${input.deploymentId || 'unknown'}`,
-    `- Deployment URL: ${input.deploymentUrl || 'unknown'}`,
-    `- Deployment provenance: ${input.deploymentSource || 'unknown'}`,
+    `- Environment: ${sanitizeReportText(input.envName)}`,
+    `- Alias: ${sanitizeReportText(input.baseUrl)}`,
+    `- Deployment ID: ${sanitizeReportText(input.deploymentId || 'unknown')}`,
+    `- Deployment URL: ${sanitizeReportText(input.deploymentUrl || 'unknown')}`,
+    `- Deployment provenance: ${sanitizeReportText(input.deploymentSource || 'unknown')}`,
     '- Commit SHA: not available',
     '- Deployer: release-gate runner',
     '- Change summary:',
     '- Deterministic scripted release gate run',
-    `- Scope: ${input.suite.toUpperCase()} (${input.executedChecks.join(', ')})`,
+    `- Scope: ${sanitizeReportText(input.suite.toUpperCase())} (${sanitizeReportText(input.executedChecks.join(', '))})`,
     `- Generated at: ${now.toISOString()}`,
     '',
     '## Preconditions',
     '',
-    `- [x] Database migrations applied (if any): ${preconditions.migrations}`,
-    `- [x] Environment variables verified (if any changes): ${preconditions.env}`,
-    `- [x] Feature flags / rollout config: ${preconditions.flags}`,
+    `- [x] Database migrations applied (if any): ${sanitizeReportText(preconditions.migrations)}`,
+    `- [x] Environment variables verified (if any changes): ${sanitizeReportText(preconditions.env)}`,
+    `- [x] Feature flags / rollout config: ${sanitizeReportText(preconditions.flags)}`,
     '',
     '## Gate Scope',
     '',
@@ -105,11 +122,11 @@ function writeReleaseGateReport(input) {
     '',
     '## Test Accounts Used',
     '',
-    `- Member-only: ${input.accounts.member}`,
-    `- Agent: ${input.accounts.agent}`,
-    `- Staff: ${input.accounts.staff}`,
-    `- Admin (KS): ${input.accounts.adminKs}`,
-    `- Admin (MK): ${input.accounts.adminMk}`,
+    `- Member-only: ${sanitizeReportText(input.accounts.member)}`,
+    `- Agent: ${sanitizeReportText(input.accounts.agent)}`,
+    `- Staff: ${sanitizeReportText(input.accounts.staff)}`,
+    `- Admin (KS): ${sanitizeReportText(input.accounts.adminKs)}`,
+    `- Admin (MK): ${sanitizeReportText(input.accounts.adminMk)}`,
     '',
     '---',
     '',

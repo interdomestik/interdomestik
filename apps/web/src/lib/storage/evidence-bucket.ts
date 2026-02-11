@@ -2,7 +2,10 @@ const DEFAULT_EVIDENCE_BUCKET = 'claim-evidence';
 const BUCKET_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,62}$/;
 
 function isProductionEnvironment(env: NodeJS.ProcessEnv): boolean {
-  return env.NODE_ENV === 'production' || env.VERCEL_ENV === 'production';
+  if (typeof env.VERCEL_ENV === 'string' && env.VERCEL_ENV.length > 0) {
+    return env.VERCEL_ENV === 'production';
+  }
+  return env.NODE_ENV === 'production';
 }
 
 export function resolveEvidenceBucketName(env: NodeJS.ProcessEnv = process.env): string {

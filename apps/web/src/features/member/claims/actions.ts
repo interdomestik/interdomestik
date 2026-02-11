@@ -160,10 +160,11 @@ export async function confirmUpload(
 
   try {
     if (uploadedBucket && uploadedBucket !== resolvedBucket) {
-      console.warn('[member/claims] confirmUpload bucket mismatch; using resolved bucket', {
+      console.error('[member/claims] confirmUpload bucket mismatch', {
         uploadedBucket,
         resolvedBucket,
       });
+      return { success: false, error: 'Upload bucket mismatch detected. Please retry upload.' };
     }
 
     await db.insert(claimDocuments).values({

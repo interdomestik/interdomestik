@@ -33,11 +33,11 @@ This release gate covers:
 
 ## Test Accounts Used
 
-- Member-only: member.ks.a1@interdomestik.com
-- Agent: agent.ks.a1@interdomestik.com
-- Staff: staff.ks.2@interdomestik.com
-- Admin (KS): admin.ks@interdomestik.com
-- Admin (MK): admin.mk@interdomestik.com
+- Member-only: [REDACTED_MEMBER_EMAIL]
+- Agent: [REDACTED_AGENT_EMAIL]
+- Staff: [REDACTED_STAFF_EMAIL]
+- Admin (KS): [REDACTED_ADMIN_KS_EMAIL]
+- Admin (MK): [REDACTED_ADMIN_MK_EMAIL]
 
 ---
 
@@ -181,7 +181,7 @@ Observed:
 - upload file listed after submit: gate-upload-1770816882727.txt
 - after hard refresh listed=true
 - after logout/login listed=true
-- signed upload statuses: 200@https://gunosplgrvnvrftudttr.supabase.co/storage/v1/object/upload/sign/claim-evidence/pii/tenants/tenant_ks/claims/golden_ks_a_claim_05/bd97d4fe-8c44-481f-9f65-596822dac5e4.txt?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OWMyODZlNy0wZWZlLTQ5OGItOTkxNS0zMzNhYmUxNDhhZWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjbGFpbS1ldmlkZW5jZS9waWkvdGVuYW50cy90ZW5hbnRfa3MvY2xhaW1zL2dvbGRlbl9rc19hX2NsYWltXzA1L2JkOTdkNGZlLThjNDQtNDgxZi05ZjY1LTU5NjgyMmRhYzVlNC50eHQiLCJ1cHNlcnQiOnRydWUsImlhdCI6MTc3MDgxNjg4OSwiZXhwIjoxNzcwODI0MDg5fQ.I21Q2blNOL7RW2uWwWpNmauprMnG7VfXWdoQ7v8ihdo
+- signed upload statuses: [REDACTED_SIGNED_UPLOAD_STATUS]
 
 ## P1.2 Member Evidence Download Works
 

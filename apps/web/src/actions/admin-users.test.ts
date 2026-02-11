@@ -20,6 +20,10 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
+vi.mock('@/server/auth/effective-portal-access', () => ({
+  requireEffectivePortalAccessOrUnauthorized: vi.fn(async () => undefined),
+}));
+
 vi.mock('./admin-users/context', () => ({
   getActionContext: vi.fn(() =>
     Promise.resolve({ session: { user: { id: 'admin' } }, requestHeaders: new Headers() })
