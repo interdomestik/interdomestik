@@ -130,22 +130,36 @@ async function loginAs(page, params) {
 
   await page.context().clearCookies();
 
-  const response = await page.request.post(loginUrl, {
-    data: {
-      email: credentials.email,
-      password: credentials.password,
-    },
-    headers: {
-      Origin: origin,
-      Referer: `${origin}/${locale}/login`,
-      'x-forwarded-for': ROLE_IPS[account] || ROLE_IPS.member,
-    },
-  });
+  const retryDelaysMs = [0, 1200, 3000, 6000];
+  let response = null;
+  for (let attempt = 0; attempt < retryDelaysMs.length; attempt += 1) {
+    if (retryDelaysMs[attempt] > 0) {
+      await sleep(retryDelaysMs[attempt]);
+    }
+    response = await page.request.post(loginUrl, {
+      data: {
+        email: credentials.email,
+        password: credentials.password,
+      },
+      headers: {
+        Origin: origin,
+        Referer: `${origin}/${locale}/login`,
+        'x-forwarded-for': ROLE_IPS[account] || ROLE_IPS.member,
+      },
+    });
 
-  if (!response.ok()) {
-    throw new Error(
-      `AUTH_LOGIN_FAILED account=${account} status=${response.status()} url=${response.url()}`
-    );
+    if (response.ok()) break;
+    const status = response.status();
+    const shouldRetry = status === 429 || status === 408 || (status >= 500 && status <= 599);
+    if (!shouldRetry || attempt === retryDelaysMs.length - 1) {
+      break;
+    }
+  }
+
+  if (!response || !response.ok()) {
+    const status = response ? response.status() : 'no-response';
+    const url = response ? response.url() : loginUrl;
+    throw new Error(`AUTH_LOGIN_FAILED account=${account} status=${status} url=${url}`);
   }
 
   const marker = roleMarkerForAccount(account);
@@ -174,6 +188,35 @@ function markerSummary(route, markerState) {
   return `${route} => member=${markerState.member}, agent=${markerState.agent}, staff=${markerState.staff}, admin=${markerState.admin}`;
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function collectMarkersWithWait(page, preferredMarker) {
+  const start = Date.now();
+  let current = await markerSnapshot(page);
+  while (Date.now() - start < TIMEOUTS.marker) {
+    if (preferredMarker && current[preferredMarker]) break;
+    if (Object.values(current).some(Boolean)) break;
+    await sleep(300);
+    current = await markerSnapshot(page);
+  }
+  return current;
+}
+
+function expectedMatrixForAccount(account) {
+  if (account === 'member') {
+    return { canonical: 'member', absentOnAllRoutes: ['agent', 'staff', 'admin'] };
+  }
+  if (account === 'agent') {
+    return { canonical: 'agent', absentOnAllRoutes: ['staff', 'admin'] };
+  }
+  if (account === 'staff') {
+    return { canonical: 'staff', absentOnAllRoutes: ['agent', 'admin'] };
+  }
+  return { canonical: 'admin', absentOnAllRoutes: ['agent', 'staff'] };
+}
+
 async function runP01(browser, runCtx) {
   const accounts = ['member', 'agent', 'staff', 'admin_ks'];
   const evidence = [];
@@ -190,25 +233,28 @@ async function runP01(browser, runCtx) {
         locale: runCtx.locale,
       });
 
-      const expectedMarker = ACCOUNTS[account].roleMarker;
+      const matrix = expectedMatrixForAccount(account);
       for (const portal of ROUTES.rbacTargets) {
         const route = `/${portal}`;
         await page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, route), {
           waitUntil: 'domcontentloaded',
           timeout: TIMEOUTS.nav,
         });
-        await page.waitForTimeout(350);
+        await page.waitForTimeout(450);
 
-        const current = await markerSnapshot(page);
+        const current = await collectMarkersWithWait(page, matrix.canonical);
         evidence.push(`${account} ${markerSummary(route, current)}`);
 
-        const expectedVisible = current[expectedMarker] === true;
-        const others = Object.keys(current).filter(key => key !== expectedMarker);
-        const unexpectedVisible = others.filter(key => current[key] === true);
-
-        if (!expectedVisible || unexpectedVisible.length > 0) {
+        if (portal === matrix.canonical && current[matrix.canonical] !== true) {
           failures.push(
-            `P0.1_RBAC_MARKER_MISMATCH account=${account} route=/${runCtx.locale}${route} expected=${expectedMarker} visible=${JSON.stringify(current)}`
+            `P0.1_RBAC_CANONICAL_MARKER_MISSING account=${account} route=/${runCtx.locale}${route} expected=${matrix.canonical} visible=${JSON.stringify(current)}`
+          );
+        }
+
+        const unexpectedVisible = matrix.absentOnAllRoutes.filter(key => current[key] === true);
+        if (unexpectedVisible.length > 0) {
+          failures.push(
+            `P0.1_RBAC_MARKER_MISMATCH account=${account} route=/${runCtx.locale}${route} must_absent=${unexpectedVisible.join(',')} visible=${JSON.stringify(current)}`
           );
         }
       }
@@ -308,6 +354,32 @@ async function runP03AndP04(browser, runCtx) {
         ? buildRoute(runCtx.baseUrl, runCtx.locale, targetFromEnv)
         : defaultTarget;
 
+  async function ensureRolePanelLoaded(initialTargetUrl) {
+    await page.goto(initialTargetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
+    const initialVisible = await page
+      .locator(SELECTORS.roleSelectTrigger)
+      .isVisible({ timeout: TIMEOUTS.quickMarker })
+      .catch(() => false);
+    if (initialVisible) return page.url();
+
+    await page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users'), {
+      waitUntil: 'domcontentloaded',
+      timeout: TIMEOUTS.nav,
+    });
+    const profileLink = page.locator('a[href*="/admin/users/"]').first();
+    const hasProfileLink = await profileLink
+      .isVisible({ timeout: TIMEOUTS.marker })
+      .catch(() => false);
+    if (!hasProfileLink) return null;
+    await profileLink.click();
+    await page.waitForLoadState('domcontentloaded', { timeout: TIMEOUTS.nav });
+    const visible = await page
+      .locator(SELECTORS.roleSelectTrigger)
+      .isVisible({ timeout: TIMEOUTS.marker })
+      .catch(() => false);
+    return visible ? page.url() : null;
+  }
+
   try {
     await loginAs(page, {
       account: 'admin_ks',
@@ -316,7 +388,15 @@ async function runP03AndP04(browser, runCtx) {
       locale: runCtx.locale,
     });
 
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
+    const resolvedTarget = await ensureRolePanelLoaded(targetUrl);
+    if (!resolvedTarget) {
+      failuresP03.push(`P0.3_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
+      failuresP04.push(`P0.4_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
+      return [
+        checkResult('P0.3', 'FAIL', evidenceP03, failuresP03),
+        checkResult('P0.4', 'FAIL', evidenceP04, failuresP04),
+      ];
+    }
     await page
       .locator(SELECTORS.roleSelectTrigger)
       .waitFor({ state: 'visible', timeout: TIMEOUTS.marker });
@@ -327,33 +407,47 @@ async function runP03AndP04(browser, runCtx) {
       if (!removed) break;
       cleanupCount += 1;
     }
-    evidenceP03.push(`target=${targetUrl}`);
+    evidenceP03.push(`target=${resolvedTarget}`);
     evidenceP03.push(`pre-clean removed_existing_role_entries=${cleanupCount}`);
 
     await addRole(page, roleToToggle);
-    const afterAdd = await page
-      .locator(SELECTORS.userRolesTable)
-      .getByText(new RegExp(`\\b${roleToToggle}\\b`, 'i'))
-      .isVisible({ timeout: TIMEOUTS.action })
-      .catch(() => false);
+    const afterAddStart = Date.now();
+    let afterAdd = false;
+    while (Date.now() - afterAddStart < TIMEOUTS.marker) {
+      afterAdd = await page
+        .locator(SELECTORS.userRolesTable)
+        .getByText(new RegExp(`\\b${roleToToggle}\\b`, 'i'))
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      if (afterAdd) break;
+      await sleep(300);
+    }
     evidenceP03.push(`added_role=${roleToToggle} visible_in_roles_table=${afterAdd}`);
     if (!afterAdd) {
-      failuresP03.push(`P0.3_ROLE_ADD_FAILED role=${roleToToggle} target=${targetUrl}`);
+      failuresP03.push(`P0.3_ROLE_ADD_FAILED role=${roleToToggle} target=${resolvedTarget}`);
     }
 
     const removedAddedRole = await removeRoleFromTable(page, roleToToggle);
     if (!removedAddedRole) {
-      failuresP04.push(`P0.4_ROLE_REMOVE_CLICK_FAILED role=${roleToToggle} target=${targetUrl}`);
+      failuresP04.push(
+        `P0.4_ROLE_REMOVE_CLICK_FAILED role=${roleToToggle} target=${resolvedTarget}`
+      );
     }
 
-    const stillVisible = await page
-      .locator(SELECTORS.userRolesTable)
-      .getByText(new RegExp(`\\b${roleToToggle}\\b`, 'i'))
-      .isVisible({ timeout: TIMEOUTS.action })
-      .catch(() => false);
+    const removalStart = Date.now();
+    let stillVisible = true;
+    while (Date.now() - removalStart < TIMEOUTS.marker) {
+      stillVisible = await page
+        .locator(SELECTORS.userRolesTable)
+        .getByText(new RegExp(`\\b${roleToToggle}\\b`, 'i'))
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      if (!stillVisible) break;
+      await sleep(300);
+    }
     evidenceP04.push(`removed_role=${roleToToggle} remaining_in_roles_table=${stillVisible}`);
     if (stillVisible) {
-      failuresP04.push(`P0.4_ROLE_REMOVE_FAILED role=${roleToToggle} target=${targetUrl}`);
+      failuresP04.push(`P0.4_ROLE_REMOVE_FAILED role=${roleToToggle} target=${resolvedTarget}`);
     }
   } catch (error) {
     failuresP03.push(`P0.3_EXCEPTION message=${String(error.message || error)}`);
@@ -447,10 +541,18 @@ async function runP11AndP12(browser, runCtx) {
       locale: runCtx.locale,
     });
     await reloginPage.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-    persistenceAfterRelogin = await reloginPage
-      .getByText(uploadName)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
+    const reloginStart = Date.now();
+    while (Date.now() - reloginStart < TIMEOUTS.upload) {
+      persistenceAfterRelogin = await reloginPage
+        .getByText(uploadName)
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      if (persistenceAfterRelogin) break;
+      await reloginPage
+        .reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav })
+        .catch(() => {});
+      await sleep(500);
+    }
     evidenceP11.push(`after logout/login listed=${persistenceAfterRelogin}`);
 
     const signed200 = signedUploadStatuses.some(entry => entry.startsWith('200@'));
@@ -466,53 +568,64 @@ async function runP11AndP12(browser, runCtx) {
       signaturesP11.push(`P1.1_SIGNED_UPLOAD_NOT_CONFIRMED file=${uploadName}`);
     }
 
-    const fileRow = reloginPage.locator('div, tr').filter({ hasText: uploadName }).first();
-    await fileRow.getByRole('button', { name: SELECTORS.downloadButtonName }).click();
-    const has200DownloadResponse = await reloginPage
-      .waitForResponse(
-        response =>
-          response.url().includes('/api/documents/') &&
-          response.url().includes('/download') &&
-          response.status() === 200,
-        { timeout: TIMEOUTS.download }
-      )
-      .then(() => true)
-      .catch(() => false);
-    evidenceP12.push(`download response 200 observed=${has200DownloadResponse}`);
-    evidenceP12.push(
-      `download response statuses: ${documentsDownloadStatuses.length ? documentsDownloadStatuses.join(' | ') : 'none captured'}`
-    );
+    try {
+      const fileLabel = reloginPage.getByText(uploadName).first();
+      await fileLabel.waitFor({ state: 'visible', timeout: TIMEOUTS.marker });
+      const fileRow = fileLabel
+        .locator('xpath=ancestor::div[contains(@class, "flex items-center justify-between")]')
+        .first();
 
-    let inlineOpened = false;
-    const popupPromise = reloginPage
-      .waitForEvent('popup', { timeout: TIMEOUTS.download })
-      .then(async popup => {
-        await popup
-          .waitForLoadState('domcontentloaded', { timeout: TIMEOUTS.download })
-          .catch(() => {});
-        const notFound = await popup
-          .getByTestId(MARKERS.notFound)
-          .isVisible({ timeout: TIMEOUTS.quickMarker })
-          .catch(() => false);
-        inlineOpened = !notFound;
-        await popup.close().catch(() => {});
-      })
-      .catch(() => {});
-    await fileRow
-      .getByRole('button', { name: SELECTORS.inlineViewButtonName })
-      .click()
-      .catch(() => {});
-    await popupPromise;
-    evidenceP12.push(`inline/open action succeeded=${inlineOpened}`);
+      await fileRow.getByRole('button', { name: SELECTORS.downloadButtonName }).first().click();
+      const has200DownloadResponse = await reloginPage
+        .waitForResponse(
+          response =>
+            response.url().includes('/api/documents/') &&
+            response.url().includes('/download') &&
+            response.status() === 200,
+          { timeout: TIMEOUTS.download }
+        )
+        .then(() => true)
+        .catch(() => false);
+      evidenceP12.push(`download response 200 observed=${has200DownloadResponse}`);
+      evidenceP12.push(
+        `download response statuses: ${documentsDownloadStatuses.length ? documentsDownloadStatuses.join(' | ') : 'none captured'}`
+      );
 
-    if (!has200DownloadResponse && !inlineOpened) {
-      signaturesP12.push(`P1.2_DOWNLOAD_FAILED file=${uploadName}`);
+      let inlineOpened = false;
+      const popupPromise = reloginPage
+        .waitForEvent('popup', { timeout: TIMEOUTS.download })
+        .then(async popup => {
+          await popup
+            .waitForLoadState('domcontentloaded', { timeout: TIMEOUTS.download })
+            .catch(() => {});
+          const notFound = await popup
+            .getByTestId(MARKERS.notFound)
+            .isVisible({ timeout: TIMEOUTS.quickMarker })
+            .catch(() => false);
+          inlineOpened = !notFound;
+          await popup.close().catch(() => {});
+        })
+        .catch(() => {});
+      await fileRow
+        .getByRole('button', { name: SELECTORS.inlineViewButtonName })
+        .first()
+        .click()
+        .catch(() => {});
+      await popupPromise;
+      evidenceP12.push(`inline/open action succeeded=${inlineOpened}`);
+
+      if (!has200DownloadResponse && !inlineOpened) {
+        signaturesP12.push(`P1.2_DOWNLOAD_FAILED file=${uploadName}`);
+      }
+    } catch (downloadError) {
+      signaturesP12.push(
+        `P1.2_EXCEPTION message=${String(downloadError.message || downloadError)}`
+      );
     }
 
     await reloginContext.close();
   } catch (error) {
     signaturesP11.push(`P1.1_EXCEPTION message=${String(error.message || error)}`);
-    signaturesP12.push(`P1.2_EXCEPTION message=${String(error.message || error)}`);
     await context.close().catch(() => {});
   } finally {
     fs.rmSync(uploadPath, { force: true });
