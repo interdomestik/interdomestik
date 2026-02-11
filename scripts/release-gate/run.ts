@@ -708,24 +708,21 @@ async function runP13(browser, runCtx) {
     await page.goto(detailUrl, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
 
     evidence.push(`claim_url=${detailUrl}`);
+    const notFoundOnDetail = await page
+      .getByTestId(MARKERS.notFound)
+      .isVisible({ timeout: TIMEOUTS.quickMarker })
+      .catch(() => false);
+    evidence.push(`detail_not_found=${notFoundOnDetail}`);
+    if (notFoundOnDetail) {
+      signatures.push('P1.3_MISCONFIG_STAFF_CLAIM_URL_UNREACHABLE');
+      return checkResult('P1.3', 'SKIPPED', evidence, signatures);
+    }
+
     const staffReadyOnDetail = await page
       .getByTestId(MARKERS.staff)
       .isVisible({ timeout: TIMEOUTS.marker })
       .catch(() => false);
     evidence.push(`staff_page_ready_on_detail=${staffReadyOnDetail}`);
-    if (!staffReadyOnDetail) {
-      const notFoundVisible = await page
-        .getByTestId(MARKERS.notFound)
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      evidence.push(`detail_not_found=${notFoundVisible}`);
-      if (notFoundVisible) {
-        signatures.push('P1.3_MISCONFIG_STAFF_CLAIM_URL_UNREACHABLE');
-        return checkResult('P1.3', 'SKIPPED', evidence, signatures);
-      }
-      signatures.push('P1.3_CONTEXT_NOT_READY');
-      return checkResult('P1.3', 'SKIPPED', evidence, signatures);
-    }
     await page.locator(SELECTORS.staffClaimDetailReady).waitFor({
       state: 'visible',
       timeout: TIMEOUTS.marker,
@@ -779,12 +776,15 @@ async function runP13(browser, runCtx) {
           signatures.push(`P1.3_NOTE_NOT_PERSISTED note=${noteValue}`);
         }
 
-        const statusPersisted = await page
-          .locator(SELECTORS.staffClaimSection)
-          .getByText(selectedLabel, { exact: false })
-          .isVisible({ timeout: TIMEOUTS.marker })
-          .catch(() => false);
-        evidence.push(`status persisted=${statusPersisted}`);
+        const persistedStatusLabel = (
+          await page.locator(SELECTORS.claimStatusSelectTrigger).innerText()
+        ).trim();
+        const statusPersisted = persistedStatusLabel
+          .toLowerCase()
+          .includes(selectedLabel.toLowerCase());
+        evidence.push(
+          `status persisted=${statusPersisted} expected="${selectedLabel}" actual="${persistedStatusLabel}"`
+        );
         if (!statusPersisted) {
           signatures.push(`P1.3_STATUS_NOT_PERSISTED expected="${selectedLabel}"`);
         }
