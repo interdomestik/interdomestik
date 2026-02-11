@@ -1,5 +1,5 @@
 import { claimDocuments, claimStageHistory, claims, db, eq, user } from '@interdomestik/database';
-import { desc } from 'drizzle-orm';
+import { and, desc, isNotNull } from 'drizzle-orm';
 
 export type StaffClaimDocument = {
   id: string;
@@ -28,6 +28,11 @@ export type StaffClaimDetailsOk = {
 };
 
 export type StaffClaimDetailsResult = { kind: 'not_found' } | StaffClaimDetailsOk;
+
+export type LatestPublicStatusNote = {
+  note: string | null;
+  createdAt: Date | null;
+};
 
 export async function getStaffClaimDetailsCore(args: {
   claimId: string;
@@ -81,6 +86,26 @@ export async function getStaffClaimDetailsCore(args: {
     })),
     stageHistory,
   };
+}
+
+export async function getLatestPublicStatusNoteCore(args: {
+  claimId: string;
+  tenantId: string;
+}): Promise<LatestPublicStatusNote | null> {
+  const row = await db.query.claimStageHistory.findFirst({
+    where: and(
+      eq(claimStageHistory.claimId, args.claimId),
+      eq(claimStageHistory.tenantId, args.tenantId),
+      eq(claimStageHistory.isPublic, true),
+      isNotNull(claimStageHistory.note)
+    ),
+    columns: {
+      note: true,
+      createdAt: true,
+    },
+    orderBy: [desc(claimStageHistory.createdAt)],
+  });
+  return row ?? null;
 }
 
 type ClaimWithUser = NonNullable<Awaited<ReturnType<typeof db.query.claims.findFirst>>>;

@@ -1,6 +1,7 @@
 'use client';
 
 import { confirmUpload, generateUploadUrl } from '@/features/member/claims/actions';
+import { createClient } from '@interdomestik/database/client';
 import {
   Button,
   Dialog,
@@ -15,7 +16,7 @@ import {
 } from '@interdomestik/ui';
 import { Loader2, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 interface ClaimEvidenceUploadDialogProps {
@@ -28,6 +29,13 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
+  const supabase = useMemo(() => {
+    try {
+      return createClient();
+    } catch {
+      return null;
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -52,17 +60,21 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
         throw new Error(genResult.error);
       }
 
-      // 2. Upload to Storage
-      const uploadRes = await fetch(genResult.url, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type || 'application/octet-stream',
-        },
-      });
+      if (!supabase) {
+        throw new Error('Storage upload unavailable');
+      }
 
-      if (!uploadRes.ok) {
-        throw new Error(`Storage upload failed: ${uploadRes.statusText}`);
+      // 2. Upload to Storage via signed upload token.
+      const { error: uploadError } = await supabase.storage
+        .from(genResult.bucket)
+        .uploadToSignedUrl(genResult.path, genResult.token, file, {
+          contentType: file.type || 'application/octet-stream',
+          upsert: true,
+          cacheControl: '3600',
+        });
+
+      if (uploadError) {
+        throw new Error(uploadError.message || 'Storage upload failed');
       }
 
       // 3. Confirm in DB
@@ -72,7 +84,8 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
         file.name,
         file.type || 'application/octet-stream',
         file.size,
-        genResult.id
+        genResult.id,
+        genResult.bucket
       );
 
       if (!confirmRes.success) {
