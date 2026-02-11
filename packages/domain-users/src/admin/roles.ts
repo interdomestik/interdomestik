@@ -143,24 +143,59 @@ export async function revokeUserRoleCore(
   if (!role) return { error: 'Role is required' };
 
   const branchId = params.branchId ?? null;
+  const deletedRoles = await db.transaction(async tx => {
+    const roleDeleteScope =
+      branchId === null ? isNull(userRoles.branchId) : eq(userRoles.branchId, branchId);
 
-  const deletedRoles = await db
-    .delete(userRoles)
-    .where(
-      withTenant(
-        tenantId,
-        userRoles.tenantId,
-        and(
-          eq(userRoles.userId, params.userId),
-          eq(userRoles.role, role),
-          eq(userRoles.role, role),
-          branchId === null || branchId === undefined
-            ? isNull(userRoles.branchId)
-            : eq(userRoles.branchId, branchId)
+    const deleted = await tx
+      .delete(userRoles)
+      .where(
+        withTenant(
+          tenantId,
+          userRoles.tenantId,
+          and(eq(userRoles.userId, params.userId), eq(userRoles.role, role), roleDeleteScope)
         )
       )
-    )
-    .returning({ id: userRoles.id });
+      .returning({ id: userRoles.id });
+
+    if (deleted.length === 0) {
+      return deleted;
+    }
+
+    const targetUser = await tx.query.user.findFirst({
+      where: withTenant(tenantId, user.tenantId, eq(user.id, params.userId)),
+      columns: { role: true },
+    });
+
+    if (!targetUser) {
+      throw new Error('Target user not found');
+    }
+
+    // Keep session-authoritative role fields coherent with role revocations.
+    if (targetUser.role === role) {
+      const remainingRoles = await tx.query.userRoles.findMany({
+        where: withTenant(tenantId, userRoles.tenantId, eq(userRoles.userId, params.userId)),
+        columns: { role: true, branchId: true },
+      });
+
+      const nextPrimaryRole = remainingRoles.find(r => r.role !== role) ?? null;
+      const nextRole = nextPrimaryRole?.role ?? 'member';
+      const nextBranchId = isBranchRequiredRole(nextRole)
+        ? (nextPrimaryRole?.branchId ?? null)
+        : null;
+
+      await tx
+        .update(user)
+        .set({
+          role: nextRole,
+          branchId: nextBranchId,
+          updatedAt: new Date(),
+        })
+        .where(withTenant(tenantId, user.tenantId, eq(user.id, params.userId)));
+    }
+
+    return deleted;
+  });
 
   if (deletedRoles.length === 0) {
     return { error: 'Role revoke did not persist' };
