@@ -1,12 +1,11 @@
 import { getStaffClaimDetail } from '@interdomestik/domain-claims';
-import { claimStageHistory, db } from '@interdomestik/database';
-import { and, desc, eq, isNotNull } from 'drizzle-orm';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 import { auth } from '@/lib/auth';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
+import { getLatestPublicStatusNoteCore } from './_core';
 
 interface PageProps {
   params: Promise<{
@@ -34,18 +33,9 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
 
   if (!detail) return notFound();
 
-  const latestStatusNote = await db.query.claimStageHistory.findFirst({
-    where: and(
-      eq(claimStageHistory.claimId, id),
-      eq(claimStageHistory.tenantId, session.user.tenantId),
-      eq(claimStageHistory.isPublic, true),
-      isNotNull(claimStageHistory.note)
-    ),
-    columns: {
-      note: true,
-      createdAt: true,
-    },
-    orderBy: [desc(claimStageHistory.createdAt)],
+  const latestStatusNote = await getLatestPublicStatusNoteCore({
+    claimId: id,
+    tenantId: session.user.tenantId,
   });
 
   return (
