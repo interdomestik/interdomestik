@@ -37,7 +37,5 @@ export default async function MemberNumberResolverPage({ params }: ResolverPageP
     notFound();
   }
 
-  const tenantId = session.user.tenantId;
-  const query = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : '';
-  redirect(`/${locale}/admin/users/${result.userId}${query}`);
+  redirect(`/${locale}/admin/users/${result.userId}`);
 }

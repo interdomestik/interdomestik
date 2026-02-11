@@ -28,10 +28,12 @@ export async function AdminUserDetailV2Page({
   id,
   locale,
   searchParams,
+  tenantId,
 }: {
   id: string;
   locale: string;
   searchParams: Record<string, string | string[] | undefined>;
+  tenantId: string | null;
 }) {
   setRequestLocale(locale);
 
@@ -39,6 +41,7 @@ export async function AdminUserDetailV2Page({
 
   const result = await getAdminUserProfileCore({
     userId: id,
+    tenantId,
     recentClaimsLimit: RECENT_CLAIMS_LIMIT,
   });
   if (result.kind === 'not_found') {
@@ -83,7 +86,7 @@ export async function AdminUserDetailV2Page({
         membershipBadgeClass={membershipBadgeClass}
       />
 
-      <AdminUserRolesPanel userId={member.id} />
+      <AdminUserRolesPanel userId={member.id} tenantId={tenantId} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <MembershipInfoCard
