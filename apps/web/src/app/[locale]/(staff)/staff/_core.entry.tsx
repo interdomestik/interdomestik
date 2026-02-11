@@ -20,11 +20,12 @@ export default async function StaffLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await getSessionSafe('StaffLayout');
+  const [session, allMessages] = await Promise.all([
+    getSessionSafe('StaffLayout'),
+    getMessages({ locale }),
+  ]);
   const sessionNonNull = requireSessionOrRedirect(session, locale);
   await requireEffectivePortalAccessOrNotFound(sessionNonNull, ['staff', 'branch_manager']);
-
-  const allMessages = await getMessages({ locale });
 
   const messages = {
     ...pickMessages(allMessages, BASE_NAMESPACES),

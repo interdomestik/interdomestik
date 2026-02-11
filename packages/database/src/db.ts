@@ -43,7 +43,10 @@ const rlsDatabaseUrl = process.env.DATABASE_URL_RLS ?? adminDatabaseUrl;
 const adminQueryClient =
   globalQueryClients.queryClientAdmin ?? createQueryClient(adminDatabaseUrl, 'admin');
 const rlsQueryClient =
-  globalQueryClients.queryClientRls ?? createQueryClient(rlsDatabaseUrl, 'rls');
+  globalQueryClients.queryClientRls ??
+  (rlsDatabaseUrl === adminDatabaseUrl
+    ? adminQueryClient
+    : createQueryClient(rlsDatabaseUrl, 'rls'));
 
 globalQueryClients.queryClientAdmin = adminQueryClient;
 globalQueryClients.queryClientRls = rlsQueryClient;

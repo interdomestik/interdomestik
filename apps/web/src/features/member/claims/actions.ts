@@ -124,7 +124,8 @@ export async function confirmUpload(
   originalName: string,
   mimeType: string,
   fileSize: number,
-  fileId: string // The pre-generated ID
+  fileId: string, // The pre-generated ID
+  uploadedBucket?: string
 ): Promise<ConfirmUploadResult> {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -135,6 +136,18 @@ export async function confirmUpload(
   }
 
   const tenantId = ensureTenantId(session);
+  let resolvedBucket: string;
+  try {
+    resolvedBucket = resolveEvidenceBucketName();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Upload bucket configuration error';
+    console.error('[member/claims] Bucket configuration error', {
+      message,
+      nodeEnv: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
+    });
+    return { success: false, error: message };
+  }
 
   // Authorization Check
   const claim = await db.query.claims.findFirst({
@@ -146,6 +159,13 @@ export async function confirmUpload(
   }
 
   try {
+    if (uploadedBucket && uploadedBucket !== resolvedBucket) {
+      console.warn('[member/claims] confirmUpload bucket mismatch; using resolved bucket', {
+        uploadedBucket,
+        resolvedBucket,
+      });
+    }
+
     await db.insert(claimDocuments).values({
       id: fileId,
       tenantId: tenantId,
@@ -154,6 +174,7 @@ export async function confirmUpload(
       filePath: storagePath,
       fileType: mimeType,
       fileSize,
+      bucket: resolvedBucket,
       category: 'evidence',
       uploadedBy: session.user.id,
     });

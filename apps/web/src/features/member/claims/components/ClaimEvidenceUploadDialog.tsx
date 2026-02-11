@@ -84,7 +84,8 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
         file.name,
         file.type || 'application/octet-stream',
         file.size,
-        genResult.id
+        genResult.id,
+        genResult.bucket
       );
 
       if (!confirmRes.success) {
