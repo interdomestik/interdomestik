@@ -11,8 +11,8 @@
 - Deployer: release-gate runner
 - Change summary:
 - Deterministic scripted release gate run
-- Scope: ALL (P0.1, P0.2, P0.3, P0.4, P1.1, P1.2, P1.3, P1.5.1)
-- Generated at: 2026-02-11T13:10:02.989Z
+- Scope: ALL (P0.1, P0.2, P0.3, P0.4, P0.6, P1.1, P1.2, P1.3, P1.5.1)
+- Generated at: 2026-02-11T13:21:37.736Z
 
 ## Preconditions
 
@@ -92,6 +92,82 @@ Observed:
 
 - removed_role=promoter remaining_in_roles_table=false
 
+## P0.6 RBAC Stress Matrix v1
+
+**Result:** PASS
+
+### S1 Mixed roles: member+agent
+
+- Account used: agent
+- URL(s): https://interdomestik-web.vercel.app/en/member | https://interdomestik-web.vercel.app/en/agent | https://interdomestik-web.vercel.app/en/staff | https://interdomestik-web.vercel.app/en/admin
+- Expected markers: /member member=true; /agent agent=true; /staff staff=false; /admin admin=false
+- Observed markers: https://interdomestik-web.vercel.app/en/member => member=true, agent=true, staff=false, admin=false, notFound=false, rolesTable=false || https://interdomestik-web.vercel.app/en/agent => member=true, agent=true, staff=false, admin=false, notFound=false, rolesTable=false || https://interdomestik-web.vercel.app/en/staff => member=false, agent=false, staff=false, admin=false, notFound=true, rolesTable=false || https://interdomestik-web.vercel.app/en/admin => member=false, agent=false, staff=false, admin=false, notFound=true, rolesTable=false
+- Result: PASS
+
+### S2 Mixed roles: member+staff
+
+- Account used: staff
+- URL(s): https://interdomestik-web.vercel.app/en/member | https://interdomestik-web.vercel.app/en/staff | https://interdomestik-web.vercel.app/en/agent | https://interdomestik-web.vercel.app/en/admin
+- Expected markers: /member member=true; /staff staff=true; /agent agent=false; /admin admin=false
+- Observed markers: https://interdomestik-web.vercel.app/en/member => member=true, agent=false, staff=true, admin=false, notFound=false, rolesTable=false || https://interdomestik-web.vercel.app/en/staff => member=true, agent=false, staff=true, admin=false, notFound=false, rolesTable=false || https://interdomestik-web.vercel.app/en/agent => member=false, agent=false, staff=false, admin=false, notFound=true, rolesTable=false || https://interdomestik-web.vercel.app/en/admin => member=false, agent=false, staff=false, admin=false, notFound=true, rolesTable=false
+- Result: PASS
+
+### S3 Agent elevation attempt -> admin resource
+
+- Account used: agent
+- URL(s): https://interdomestik-web.vercel.app/en/admin/users/golden_ks_staff
+- Expected markers: (notFound=true OR admin=false) AND rolesTable=false
+- Observed markers: member=false, agent=false, staff=false, admin=false, notFound=true, rolesTable=false
+- Result: PASS
+
+### S4 Staff elevation attempt -> agent portal
+
+- Account used: staff
+- URL(s): https://interdomestik-web.vercel.app/en/agent
+- Expected markers: member=-, agent=false, staff=-, admin=-, notFound=-, rolesTable=-
+- Observed markers: member=false, agent=false, staff=false, admin=false, notFound=true, rolesTable=false
+- Result: PASS
+
+### S5 Tenant override injection (optional)
+
+- Account used: admin_ks
+- URL(s): N/A
+- Expected markers: notFound=true OR rolesTable=false
+- Observed markers: SKIPPED: RELEASE_GATE_MK_USER_URL missing
+- Result: SKIPPED
+
+### S6 Roles payload sanity (INFO only)
+
+- Account used: agent
+- URL(s): https://interdomestik-web.vercel.app/en/agent
+- Expected markers: INFO capture if visible
+- Observed markers: INFO: roles indicator not exposed
+- Result: INFO
+
+### S7 Admin != Staff
+
+- Account used: admin_ks
+- URL(s): https://interdomestik-web.vercel.app/en/staff
+- Expected markers: member=-, agent=-, staff=false, admin=-, notFound=-, rolesTable=-
+- Observed markers: member=false, agent=false, staff=false, admin=false, notFound=true, rolesTable=false
+- Result: PASS
+
+### S8 Admin != Agent
+
+- Account used: admin_ks
+- URL(s): https://interdomestik-web.vercel.app/en/agent
+- Expected markers: member=-, agent=false, staff=-, admin=-, notFound=-, rolesTable=-
+- Observed markers: member=false, agent=false, staff=false, admin=false, notFound=true, rolesTable=false
+- Result: PASS
+
+### S9 Staff != Agent (explicit pairwise)
+
+- Account used: staff
+- URL(s): https://interdomestik-web.vercel.app/en/agent
+- Expected markers: member=-, agent=false, staff=-, admin=-, notFound=-, rolesTable=-
+- Observed markers: member=false, agent=false, staff=false, admin=false, notFound=true, rolesTable=false
+- Result: PASS
+
 ---
 
 # P1 — Must-Pass Functionality
@@ -102,10 +178,10 @@ Observed:
 
 Observed:
 
-- upload file listed after submit: gate-upload-1770815354903.txt
+- upload file listed after submit: gate-upload-1770816053113.txt
 - after hard refresh listed=true
 - after logout/login listed=true
-- signed upload statuses: 200@https://gunosplgrvnvrftudttr.supabase.co/storage/v1/object/upload/sign/claim-evidence/pii/tenants/tenant_ks/claims/golden_ks_a_claim_05/5fa7f8a9-7125-4d0c-b036-9524bfb17dfb.txt?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OWMyODZlNy0wZWZlLTQ5OGItOTkxNS0zMzNhYmUxNDhhZWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjbGFpbS1ldmlkZW5jZS9waWkvdGVuYW50cy90ZW5hbnRfa3MvY2xhaW1zL2dvbGRlbl9rc19hX2NsYWltXzA1LzVmYTdmOGE5LTcxMjUtNGQwYy1iMDM2LTk1MjRiZmIxN2RmYi50eHQiLCJ1cHNlcnQiOnRydWUsImlhdCI6MTc3MDgxNTM2MiwiZXhwIjoxNzcwODIyNTYyfQ.FgGv-UOI_QBq53sz1oR-7IiQWoUAi9h5glOUd1EA97M
+- signed upload statuses: 200@https://gunosplgrvnvrftudttr.supabase.co/storage/v1/object/upload/sign/claim-evidence/pii/tenants/tenant_ks/claims/golden_ks_a_claim_05/c91a70bd-97d8-4e11-836a-f54827aa1c11.txt?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OWMyODZlNy0wZWZlLTQ5OGItOTkxNS0zMzNhYmUxNDhhZWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjbGFpbS1ldmlkZW5jZS9waWkvdGVuYW50cy90ZW5hbnRfa3MvY2xhaW1zL2dvbGRlbl9rc19hX2NsYWltXzA1L2M5MWE3MGJkLTk3ZDgtNGUxMS04MzZhLWY1NDgyN2FhMWMxMS50eHQiLCJ1cHNlcnQiOnRydWUsImlhdCI6MTc3MDgxNjA1OCwiZXhwIjoxNzcwODIzMjU4fQ.dScZPvhVzTvFSU1AQU0wF6VY3PbzUVyZvCz6NFVuyzs
 
 ## P1.2 Member Evidence Download Works
 
@@ -114,7 +190,7 @@ Observed:
 Observed:
 
 - download response 200 observed=true
-- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/5fa7f8a9-7125-4d0c-b036-9524bfb17dfb/download
+- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/c91a70bd-97d8-4e11-836a-f54827aa1c11/download
 - inline/open action succeeded=true
 
 ## P1.3 Staff Claim Update Persistence (Status + Note)
@@ -129,9 +205,9 @@ Observed:
 - claim_url=https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_08
 - detail_not_found=false
 - staff_page_ready_on_detail=false
-- status_change=Submitted -> Draft
-- note persisted=true note="gate-note-1770815390987"
-- status persisted=true expected="Draft" actual="Draft"
+- status_change=Draft -> Submitted
+- note persisted=true note="gate-note-1770816086399"
+- status persisted=true expected="Submitted" actual="Submitted"
 
 ---
 
@@ -149,8 +225,8 @@ Observed:
 - Retrieving project…
 - Fetching logs...
 - TIME HOST LEVEL STATUS MESSAGE
-- 14:09:38.17 interdomestik-web.vercel.app error λ GET /api/documents/5fa7f8a9-7125-4d0c-b036-9524bfb17dfb/download --- Audit log…
-- 14:09:36.13 interdomestik-web.vercel.app error λ GET /api/documents/5fa7f8a9-7125-4d0c-b036-9524bfb17dfb/download 200 Audit log…
+- 14:21:14.68 interdomestik-web.vercel.app error λ GET /api/documents/c91a70bd-97d8-4e11-836a-f54827aa1c11/download 200 Audit log…
+- 14:21:13.01 interdomestik-web.vercel.app error λ GET /api/documents/c91a70bd-97d8-4e11-836a-f54827aa1c11/download 200 Audit log…
 
 ---
 

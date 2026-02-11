@@ -20,6 +20,27 @@ function renderCheckResult(check) {
   return check.status || 'SKIPPED';
 }
 
+function renderP06Scenarios(p06) {
+  const scenarios = Array.isArray(p06.scenarios) ? p06.scenarios : [];
+  if (scenarios.length === 0) return ['- N/A'];
+
+  const lines = [];
+  for (const scenario of scenarios) {
+    lines.push(`### ${scenario.id} ${scenario.title}`);
+    lines.push('');
+    lines.push(`- Account used: ${scenario.account || 'unknown'}`);
+    lines.push(`- URL(s): ${(scenario.urls || []).join(' | ') || 'N/A'}`);
+    lines.push(`- Expected markers: ${scenario.expectedSummary || 'N/A'}`);
+    lines.push(`- Observed markers: ${scenario.observedSummary || 'N/A'}`);
+    lines.push(`- Result: ${scenario.result || 'N/A'}`);
+    if (scenario.failureSignature) {
+      lines.push(`- Failure signature: ${scenario.failureSignature}`);
+    }
+    lines.push('');
+  }
+  return lines;
+}
+
 function writeReleaseGateReport(input) {
   const now = input.generatedAt || new Date();
   const day = toDateStamp(now);
@@ -34,6 +55,7 @@ function writeReleaseGateReport(input) {
   const p02 = getCheck(input.checks, 'P0.2');
   const p03 = getCheck(input.checks, 'P0.3');
   const p04 = getCheck(input.checks, 'P0.4');
+  const p06 = getCheck(input.checks, 'P0.6');
   const p11 = getCheck(input.checks, 'P1.1');
   const p12 = getCheck(input.checks, 'P1.2');
   const p13 = getCheck(input.checks, 'P1.3');
@@ -120,6 +142,12 @@ function writeReleaseGateReport(input) {
     '',
     'Observed:',
     ...asList(p04.evidence),
+    '',
+    '## P0.6 RBAC Stress Matrix v1',
+    '',
+    `**Result:** ${renderCheckResult(p06)}`,
+    '',
+    ...renderP06Scenarios(p06),
     '',
     '---',
     '',

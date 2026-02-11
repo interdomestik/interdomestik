@@ -173,15 +173,13 @@ async function loginAs(page, params) {
 }
 
 async function markerSnapshot(page) {
-  const markerKeys = ['member', 'agent', 'staff', 'admin'];
-  const snapshot = {};
-  for (const markerKey of markerKeys) {
-    snapshot[markerKey] = await page
-      .getByTestId(MARKERS[markerKey])
-      .isVisible({ timeout: TIMEOUTS.quickMarker })
-      .catch(() => false);
-  }
-  return snapshot;
+  const snapshot = await checkPortalMarkers(page);
+  return {
+    member: snapshot.member,
+    agent: snapshot.agent,
+    staff: snapshot.staff,
+    admin: snapshot.admin,
+  };
 }
 
 function markerSummary(route, markerState) {
@@ -190,6 +188,71 @@ function markerSummary(route, markerState) {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function checkPortalMarkers(page) {
+  const markerKeys = ['member', 'agent', 'staff', 'admin', 'notFound'];
+  const snapshot = {};
+  for (const markerKey of markerKeys) {
+    snapshot[markerKey] = await page
+      .getByTestId(MARKERS[markerKey])
+      .isVisible({ timeout: TIMEOUTS.quickMarker })
+      .catch(() => false);
+  }
+
+  snapshot.rolesTable = await page
+    .locator(SELECTORS.userRolesTable)
+    .isVisible({ timeout: TIMEOUTS.quickMarker })
+    .catch(() => false);
+  return snapshot;
+}
+
+function markersToString(markers) {
+  return `member=${markers.member}, agent=${markers.agent}, staff=${markers.staff}, admin=${markers.admin}, notFound=${markers.notFound}, rolesTable=${markers.rolesTable}`;
+}
+
+async function waitForReadyMarker(page, timeoutMs) {
+  const start = Date.now();
+  let observed = await checkPortalMarkers(page);
+  while (Date.now() - start < timeoutMs) {
+    const hasReadyMarker =
+      observed.notFound || observed.member || observed.agent || observed.staff || observed.admin;
+    if (hasReadyMarker) break;
+    await sleep(250);
+    observed = await checkPortalMarkers(page);
+  }
+  return observed;
+}
+
+function compareExpectedMarkers(expected, observed) {
+  const mismatches = [];
+  for (const [key, expectedValue] of Object.entries(expected)) {
+    if (typeof expectedValue !== 'boolean') continue;
+    if (observed[key] !== expectedValue) {
+      mismatches.push(`${key} expected ${expectedValue} got ${observed[key]}`);
+    }
+  }
+  return mismatches;
+}
+
+async function assertUrlMarkers(page, label, url, expected) {
+  await page.goto(url, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
+  const observed = await waitForReadyMarker(page, 10_000);
+  const hasReadyMarker =
+    observed.notFound || observed.member || observed.agent || observed.staff || observed.admin;
+  const mismatches = compareExpectedMarkers(expected, observed);
+  if (!hasReadyMarker) {
+    mismatches.push('no readiness marker visible within 10s');
+  }
+
+  return {
+    label,
+    url,
+    expected,
+    observed,
+    status: mismatches.length === 0 ? 'PASS' : 'FAIL',
+    mismatches,
+  };
 }
 
 async function collectMarkersWithWait(page, preferredMarker) {
@@ -460,6 +523,369 @@ async function runP03AndP04(browser, runCtx) {
     checkResult('P0.3', failuresP03.length ? 'FAIL' : 'PASS', evidenceP03, failuresP03),
     checkResult('P0.4', failuresP04.length ? 'FAIL' : 'PASS', evidenceP04, failuresP04),
   ];
+}
+
+async function runP06(browser, runCtx) {
+  const failures = [];
+  const evidence = [];
+  const scenarios = [];
+
+  async function withAccount(accountKey, fn) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    try {
+      await loginAs(page, {
+        account: accountKey,
+        credentials: runCtx.credentials[accountKey],
+        baseUrl: runCtx.baseUrl,
+        locale: runCtx.locale,
+      });
+      return await fn(page);
+    } finally {
+      await context.close();
+    }
+  }
+
+  function recordScenario(scenario) {
+    scenarios.push(scenario);
+    evidence.push(
+      `${scenario.id} ${scenario.title} result=${scenario.result} account=${scenario.account}`
+    );
+    evidence.push(`  url=${scenario.urls.join(' | ')}`);
+    evidence.push(`  expected=${scenario.expectedSummary}`);
+    evidence.push(`  observed=${scenario.observedSummary}`);
+    if (scenario.failureSignature) {
+      evidence.push(`  signature=${scenario.failureSignature}`);
+    }
+  }
+
+  function mismatchSignatureFor(id, mismatch) {
+    return `P0.6_${id}_MARKER_MISMATCH ${mismatch}`;
+  }
+
+  async function runSimpleScenario(input) {
+    const { id, title, accountKey, route, expected } = input;
+    try {
+      const result = await withAccount(accountKey, async page =>
+        assertUrlMarkers(
+          page,
+          `${id} ${title}`,
+          buildRoute(runCtx.baseUrl, runCtx.locale, route),
+          expected
+        )
+      );
+      const mismatch = result.mismatches[0] || '';
+      const failureSignature = mismatch ? mismatchSignatureFor(id, mismatch) : '';
+      if (failureSignature) failures.push(failureSignature);
+      recordScenario({
+        id,
+        title,
+        account: accountKey,
+        urls: [result.url],
+        expectedSummary: markersToString({
+          ...{
+            member: '-',
+            agent: '-',
+            staff: '-',
+            admin: '-',
+            notFound: '-',
+            rolesTable: '-',
+          },
+          ...expected,
+        }),
+        observedSummary: markersToString(result.observed),
+        result: result.status,
+        failureSignature,
+      });
+    } catch (error) {
+      const failureSignature = `P0.6_${id}_EXCEPTION message=${String(error.message || error)}`;
+      failures.push(failureSignature);
+      recordScenario({
+        id,
+        title,
+        account: accountKey,
+        urls: [buildRoute(runCtx.baseUrl, runCtx.locale, route)],
+        expectedSummary: JSON.stringify(expected),
+        observedSummary: 'exception',
+        result: 'FAIL',
+        failureSignature,
+      });
+    }
+  }
+
+  await withAccount('agent', async page => {
+    const urls = ['/member', '/agent', '/staff', '/admin'].map(route =>
+      buildRoute(runCtx.baseUrl, runCtx.locale, route)
+    );
+    const checks = [
+      { url: urls[0], expected: { member: true } },
+      { url: urls[1], expected: { agent: true } },
+      { url: urls[2], expected: { staff: false } },
+      { url: urls[3], expected: { admin: false } },
+    ];
+    const observedRows = [];
+    const mismatches = [];
+    for (const check of checks) {
+      const result = await assertUrlMarkers(page, 'S1', check.url, check.expected);
+      observedRows.push(`${check.url} => ${markersToString(result.observed)}`);
+      for (const mismatch of result.mismatches) {
+        mismatches.push(mismatch);
+      }
+    }
+    const failureSignature = mismatches[0] ? mismatchSignatureFor('S1', mismatches[0]) : '';
+    if (failureSignature) failures.push(failureSignature);
+    recordScenario({
+      id: 'S1',
+      title: 'Mixed roles: member+agent',
+      account: 'agent',
+      urls,
+      expectedSummary:
+        '/member member=true; /agent agent=true; /staff staff=false; /admin admin=false',
+      observedSummary: observedRows.join(' || '),
+      result: failureSignature ? 'FAIL' : 'PASS',
+      failureSignature,
+    });
+  }).catch(error => {
+    const failureSignature = `P0.6_S1_EXCEPTION message=${String(error.message || error)}`;
+    failures.push(failureSignature);
+    recordScenario({
+      id: 'S1',
+      title: 'Mixed roles: member+agent',
+      account: 'agent',
+      urls: ['/member', '/agent', '/staff', '/admin'].map(route =>
+        buildRoute(runCtx.baseUrl, runCtx.locale, route)
+      ),
+      expectedSummary:
+        '/member member=true; /agent agent=true; /staff staff=false; /admin admin=false',
+      observedSummary: 'exception',
+      result: 'FAIL',
+      failureSignature,
+    });
+  });
+
+  await withAccount('staff', async page => {
+    const urls = ['/member', '/staff', '/agent', '/admin'].map(route =>
+      buildRoute(runCtx.baseUrl, runCtx.locale, route)
+    );
+    const checks = [
+      { url: urls[0], expected: { member: true } },
+      { url: urls[1], expected: { staff: true } },
+      { url: urls[2], expected: { agent: false } },
+      { url: urls[3], expected: { admin: false } },
+    ];
+    const observedRows = [];
+    const mismatches = [];
+    for (const check of checks) {
+      const result = await assertUrlMarkers(page, 'S2', check.url, check.expected);
+      observedRows.push(`${check.url} => ${markersToString(result.observed)}`);
+      for (const mismatch of result.mismatches) {
+        mismatches.push(mismatch);
+      }
+    }
+    const failureSignature = mismatches[0] ? mismatchSignatureFor('S2', mismatches[0]) : '';
+    if (failureSignature) failures.push(failureSignature);
+    recordScenario({
+      id: 'S2',
+      title: 'Mixed roles: member+staff',
+      account: 'staff',
+      urls,
+      expectedSummary:
+        '/member member=true; /staff staff=true; /agent agent=false; /admin admin=false',
+      observedSummary: observedRows.join(' || '),
+      result: failureSignature ? 'FAIL' : 'PASS',
+      failureSignature,
+    });
+  }).catch(error => {
+    const failureSignature = `P0.6_S2_EXCEPTION message=${String(error.message || error)}`;
+    failures.push(failureSignature);
+    recordScenario({
+      id: 'S2',
+      title: 'Mixed roles: member+staff',
+      account: 'staff',
+      urls: ['/member', '/staff', '/agent', '/admin'].map(route =>
+        buildRoute(runCtx.baseUrl, runCtx.locale, route)
+      ),
+      expectedSummary:
+        '/member member=true; /staff staff=true; /agent agent=false; /admin admin=false',
+      observedSummary: 'exception',
+      result: 'FAIL',
+      failureSignature,
+    });
+  });
+
+  try {
+    await withAccount('agent', async page => {
+      const url = buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_staff');
+      const result = await assertUrlMarkers(page, 'S3', url, { rolesTable: false });
+      const allowed = result.observed.notFound || !result.observed.admin;
+      const passes = allowed && result.observed.rolesTable === false;
+      const failureSignature = passes
+        ? ''
+        : `P0.6_S3_MARKER_MISMATCH expected (notFound=true OR admin=false) AND rolesTable=false got ${markersToString(result.observed)}`;
+      if (failureSignature) failures.push(failureSignature);
+      recordScenario({
+        id: 'S3',
+        title: 'Agent elevation attempt -> admin resource',
+        account: 'agent',
+        urls: [url],
+        expectedSummary: '(notFound=true OR admin=false) AND rolesTable=false',
+        observedSummary: markersToString(result.observed),
+        result: passes ? 'PASS' : 'FAIL',
+        failureSignature,
+      });
+    });
+  } catch (error) {
+    const failureSignature = `P0.6_S3_EXCEPTION message=${String(error.message || error)}`;
+    failures.push(failureSignature);
+    recordScenario({
+      id: 'S3',
+      title: 'Agent elevation attempt -> admin resource',
+      account: 'agent',
+      urls: [buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_staff')],
+      expectedSummary: '(notFound=true OR admin=false) AND rolesTable=false',
+      observedSummary: 'exception',
+      result: 'FAIL',
+      failureSignature,
+    });
+  }
+
+  await runSimpleScenario({
+    id: 'S4',
+    title: 'Staff elevation attempt -> agent portal',
+    accountKey: 'staff',
+    route: '/agent',
+    expected: { agent: false },
+  });
+
+  {
+    const mkUserUrl = String(process.env.RELEASE_GATE_MK_USER_URL || '').trim();
+    if (!mkUserUrl) {
+      recordScenario({
+        id: 'S5',
+        title: 'Tenant override injection (optional)',
+        account: 'admin_ks',
+        urls: [],
+        expectedSummary: 'notFound=true OR rolesTable=false',
+        observedSummary: 'SKIPPED: RELEASE_GATE_MK_USER_URL missing',
+        result: 'SKIPPED',
+      });
+    } else {
+      try {
+        await withAccount('admin_ks', async page => {
+          const url = /^https?:\/\//i.test(mkUserUrl)
+            ? mkUserUrl
+            : buildRoute(runCtx.baseUrl, runCtx.locale, mkUserUrl);
+          const result = await assertUrlMarkers(page, 'S5', url, {});
+          const passes = result.observed.notFound || result.observed.rolesTable === false;
+          const failureSignature = passes
+            ? ''
+            : `P0.6_S5_MARKER_MISMATCH expected (notFound=true OR rolesTable=false) got ${markersToString(result.observed)}`;
+          if (failureSignature) failures.push(failureSignature);
+          recordScenario({
+            id: 'S5',
+            title: 'Tenant override injection (optional)',
+            account: 'admin_ks',
+            urls: [url],
+            expectedSummary: 'notFound=true OR rolesTable=false',
+            observedSummary: markersToString(result.observed),
+            result: failureSignature ? 'FAIL' : 'PASS',
+            failureSignature,
+          });
+        });
+      } catch (error) {
+        const failureSignature = `P0.6_S5_EXCEPTION message=${String(error.message || error)}`;
+        failures.push(failureSignature);
+        recordScenario({
+          id: 'S5',
+          title: 'Tenant override injection (optional)',
+          account: 'admin_ks',
+          urls: [mkUserUrl],
+          expectedSummary: 'notFound=true OR rolesTable=false',
+          observedSummary: 'exception',
+          result: 'FAIL',
+          failureSignature,
+        });
+      }
+    }
+  }
+
+  try {
+    await withAccount('agent', async page => {
+      const url = buildRoute(runCtx.baseUrl, runCtx.locale, '/agent');
+      await page.goto(url, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
+      await waitForReadyMarker(page, 10_000);
+      const candidateSelectors = [
+        '[data-testid="session-roles"]',
+        '[data-testid="session-role"]',
+        '[data-testid="user-roles"]',
+        '[data-testid="roles-indicator"]',
+      ];
+      let indicator = '';
+      for (const selector of candidateSelectors) {
+        const visible = await page
+          .locator(selector)
+          .first()
+          .isVisible({ timeout: TIMEOUTS.quickMarker })
+          .catch(() => false);
+        if (!visible) continue;
+        indicator = (
+          await page
+            .locator(selector)
+            .first()
+            .innerText()
+            .catch(() => '')
+        ).trim();
+        if (indicator) break;
+      }
+      recordScenario({
+        id: 'S6',
+        title: 'Roles payload sanity (INFO only)',
+        account: 'agent',
+        urls: [url],
+        expectedSummary: 'INFO capture if visible',
+        observedSummary: indicator || 'INFO: roles indicator not exposed',
+        result: 'INFO',
+      });
+    });
+  } catch (error) {
+    recordScenario({
+      id: 'S6',
+      title: 'Roles payload sanity (INFO only)',
+      account: 'agent',
+      urls: [buildRoute(runCtx.baseUrl, runCtx.locale, '/agent')],
+      expectedSummary: 'INFO capture if visible',
+      observedSummary: `INFO: capture failed (${String(error.message || error)})`,
+      result: 'INFO',
+    });
+  }
+
+  await runSimpleScenario({
+    id: 'S7',
+    title: 'Admin != Staff',
+    accountKey: 'admin_ks',
+    route: '/staff',
+    expected: { staff: false },
+  });
+
+  await runSimpleScenario({
+    id: 'S8',
+    title: 'Admin != Agent',
+    accountKey: 'admin_ks',
+    route: '/agent',
+    expected: { agent: false },
+  });
+
+  await runSimpleScenario({
+    id: 'S9',
+    title: 'Staff != Agent (explicit pairwise)',
+    accountKey: 'staff',
+    route: '/agent',
+    expected: { agent: false },
+  });
+
+  const result = checkResult('P0.6', failures.length > 0 ? 'FAIL' : 'PASS', evidence, failures);
+  result.scenarios = scenarios;
+  return result;
 }
 
 async function runP11AndP12(browser, runCtx) {
@@ -997,6 +1423,7 @@ async function main() {
       if (selected.includes('P0.3')) checks.push(roleChecks[0]);
       if (selected.includes('P0.4')) checks.push(roleChecks[1]);
     }
+    if (selected.includes('P0.6')) checks.push(await runP06(browser, runCtx));
     if (selected.includes('P1.1') || selected.includes('P1.2')) {
       const memberChecks = await runP11AndP12(browser, runCtx);
       if (selected.includes('P1.1')) checks.push(memberChecks[0]);
