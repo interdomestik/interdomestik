@@ -134,6 +134,40 @@ function ipForRole(role: Role): string {
   }
 }
 
+function readyMarkersForRole(role: Exclude<Role, 'admin_mk'>): string[] {
+  switch (role) {
+    case 'staff':
+      return ['staff-page-ready', 'dashboard-page-ready'];
+    case 'admin':
+      return ['admin-page-ready', 'dashboard-page-ready'];
+    case 'member':
+    case 'member_empty':
+      return ['member-dashboard-ready', 'dashboard-page-ready'];
+    case 'agent':
+    case 'branch_manager':
+      return ['dashboard-page-ready', 'agent-members-ready', 'action-campaign'];
+  }
+}
+
+async function assertAnyReadyMarker(
+  page: Page,
+  markers: string[],
+  timeoutMs = 30000
+): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    for (const marker of markers) {
+      if ((await page.getByTestId(marker).count()) > 0) {
+        await expect(page.getByTestId(marker).first()).toBeVisible({ timeout: 2000 });
+        return marker;
+      }
+    }
+    await page.waitForTimeout(200);
+  }
+
+  throw new Error(`No readiness marker visible. Expected one of: ${markers.join(', ')}`);
+}
+
 function getUserForTenant(role: Role, tenant: Tenant) {
   // Keep `admin_mk` as a legacy alias for MK admin.
   if (role === 'admin_mk') return E2E_USERS.MK_ADMIN;
@@ -325,12 +359,13 @@ async function performLogin(
   // Use testInfo-derived base URL (should be 127.0.0.1)
   const targetUrl = new URL(targetPath, info.baseURL).toString();
   await gotoApp(page, targetUrl, testInfo, { marker: 'domcontentloaded' });
-  const marker = 'dashboard-page-ready';
+  const markers = readyMarkersForRole(roleForRoute);
 
   try {
-    await expect(page.getByTestId(marker)).toBeVisible({ timeout: 30000 });
+    await assertAnyReadyMarker(page, markers, 30000);
   } catch (e) {
-    console.error(`[Auth Diagnostics] Marker "${marker}" NOT FOUND for ${role}`);
+    console.error(`[Auth Diagnostics] No readiness marker found for ${role}`);
+    console.error(`[Auth Diagnostics] Expected one of: ${markers.join(', ')}`);
     console.error(`[Auth Diagnostics] Current URL: ${page.url()}`);
     const html = await page.content();
     console.error(`[Auth Diagnostics] Page HTML preview (first 500 chars): ${html.slice(0, 500)}`);
@@ -391,10 +426,10 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
     await performLogin(page, role, info, testInfo, tenant);
   }
 
-  // Final check with strict marker
-  // Final check with strict marker
-  const marker = 'dashboard-page-ready';
-  await gotoApp(page, targetPath, testInfo, { marker });
+  // Final check with strict marker set for the active portal.
+  const markers = readyMarkersForRole(roleForRoute);
+  await gotoApp(page, targetPath, testInfo, { marker: 'body' });
+  await assertAnyReadyMarker(page, markers, 30000);
   // Phase 3: Post-ensure validation (Contract guarantee)
   const sessionUrl = new URL('/api/auth/get-session', info.origin).toString();
   const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};

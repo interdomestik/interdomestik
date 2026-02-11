@@ -3,10 +3,10 @@ import { gotoApp } from '../utils/navigation';
 
 test.describe('Auth Rendering Contract (Regression Protection)', () => {
   const routes = [
-    { name: 'Staff', path: '/staff', marker: 'dashboard-page-ready' },
-    { name: 'Admin', path: '/admin', marker: 'dashboard-page-ready' },
+    { name: 'Staff', path: '/staff', marker: 'staff-page-ready' },
+    { name: 'Admin', path: '/admin', marker: 'admin-page-ready' },
     { name: 'Agent', path: '/agent', marker: 'dashboard-page-ready' },
-    { name: 'Member', path: '/member', marker: 'dashboard-page-ready' },
+    { name: 'Member', path: '/member', marker: 'member-dashboard-ready' },
   ];
 
   for (const route of routes) {

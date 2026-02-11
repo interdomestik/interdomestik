@@ -58,8 +58,19 @@ done
 BETTER_AUTH_TRUSTED_ORIGINS="$(IFS=','; echo "${!ORIGIN_SET[*]}")"
 export BETTER_AUTH_TRUSTED_ORIGINS
 
+# Playwright gates must be deterministic and must not depend on whatever DATABASE_URL
+# happens to be configured in a developer's .env.local (which can point to production).
+# Allow explicit override via E2E_DATABASE_URL; default to local Supabase.
+if [[ "${PLAYWRIGHT:-}" == "1" ]]; then
+	export DATABASE_URL="${E2E_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+fi
+
 if [[ -z "${DATABASE_URL:-}" ]]; then
 	export DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+fi
+
+if [[ -z "${DATABASE_URL_RLS:-}" ]]; then
+	export DATABASE_URL_RLS="${DATABASE_URL}"
 fi
 
 # Increase DB timeouts to prevent negative timeout warnings in slow CI envs
