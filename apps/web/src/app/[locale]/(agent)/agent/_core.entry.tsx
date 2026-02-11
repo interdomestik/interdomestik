@@ -1,5 +1,6 @@
 import { AgentDashboardV2Page } from '@/features/agent/dashboard/components/AgentDashboardV2Page';
 import { auth } from '@/lib/auth';
+import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
 import { db } from '@interdomestik/database/db';
 import { agentSettings } from '@interdomestik/database/schema';
 import { eq } from 'drizzle-orm';
@@ -20,6 +21,7 @@ export default async function AgentDashboardEntry({
   if (!session?.user?.id) {
     redirect('/auth/login');
   }
+  await requireEffectivePortalAccessOrNotFound(session, ['agent']);
 
   // Fetch tier
   let tier = 'standard';

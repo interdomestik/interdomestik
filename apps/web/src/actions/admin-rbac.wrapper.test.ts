@@ -51,6 +51,9 @@ vi.mock('@/lib/auth', () => ({
     },
   },
 }));
+vi.mock('@/server/auth/effective-portal-access', () => ({
+  requireEffectivePortalAccessOrUnauthorized: vi.fn(async () => undefined),
+}));
 
 describe('admin-rbac.core', () => {
   const MOCK_BRANCH_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -170,30 +173,30 @@ describe('admin-rbac.core', () => {
   });
 
   describe('tenant guard', () => {
-    it('rejects grantUserRole when tenantId is missing', async () => {
+    it('derives tenantId from session when grantUserRole tenantId is missing', async () => {
+      mockGrantUserRoleCore.mockResolvedValueOnce({ success: true });
       const result = await grantUserRole({
         userId: '123e4567-e89b-12d3-a456-426614174000',
         role: 'member',
       });
 
-      expect(mockGrantUserRoleCore).not.toHaveBeenCalled();
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain('Tenant context is required');
-      }
+      expect(mockGrantUserRoleCore).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: 'tenant-1' })
+      );
+      expect(result.success).toBe(true);
     });
 
-    it('rejects revokeUserRole when tenantId is missing', async () => {
+    it('derives tenantId from session when revokeUserRole tenantId is missing', async () => {
+      mockRevokeUserRoleCore.mockResolvedValueOnce({ success: true });
       const result = await revokeUserRole({
         userId: '123e4567-e89b-12d3-a456-426614174000',
         role: 'member',
       });
 
-      expect(mockRevokeUserRoleCore).not.toHaveBeenCalled();
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain('Tenant context is required');
-      }
+      expect(mockRevokeUserRoleCore).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: 'tenant-1' })
+      );
+      expect(result.success).toBe(true);
     });
 
     it('returns BRANCH_REQUIRED when grant role is branch-scoped without branch', async () => {

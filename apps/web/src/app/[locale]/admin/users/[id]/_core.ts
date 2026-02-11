@@ -5,7 +5,7 @@ import {
   userNotificationPreferences,
   user as userTable,
 } from '@interdomestik/database/schema';
-import { count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 
 export type AdminUserClaimCounts = {
   total: number;
@@ -67,9 +67,9 @@ export type AdminUserProfileOk = {
 
 export type AdminUserProfileResult = { kind: 'not_found' } | AdminUserProfileOk;
 
-async function getMemberWithAgent(userId: string) {
+async function getMemberWithAgent(userId: string, tenantId: string) {
   return db.query.user.findFirst({
-    where: eq(userTable.id, userId),
+    where: and(eq(userTable.id, userId), eq(userTable.tenantId, tenantId)),
     with: {
       agent: true,
     },
@@ -78,24 +78,30 @@ async function getMemberWithAgent(userId: string) {
 
 export async function getAdminUserProfileCore(args: {
   userId: string;
+  tenantId: string | null;
   recentClaimsLimit: number;
 }): Promise<AdminUserProfileResult> {
-  const member = await getMemberWithAgent(args.userId);
+  if (!args.tenantId) return { kind: 'not_found' };
+
+  const member = await getMemberWithAgent(args.userId, args.tenantId);
 
   if (!member) return { kind: 'not_found' };
 
   const [subscription, preferences, claimCounts, recentClaims] = await Promise.all([
     db.query.subscriptions.findFirst({
-      where: eq(subscriptions.userId, member.id),
+      where: and(eq(subscriptions.userId, member.id), eq(subscriptions.tenantId, args.tenantId)),
       orderBy: (table, { desc: descFn }) => [descFn(table.createdAt)],
     }),
     db.query.userNotificationPreferences.findFirst({
-      where: eq(userNotificationPreferences.userId, member.id),
+      where: and(
+        eq(userNotificationPreferences.userId, member.id),
+        eq(userNotificationPreferences.tenantId, args.tenantId)
+      ),
     }),
     db
       .select({ status: claims.status, total: count() })
       .from(claims)
-      .where(eq(claims.userId, member.id))
+      .where(and(eq(claims.userId, member.id), eq(claims.tenantId, args.tenantId)))
       .groupBy(claims.status),
     db
       .select({
@@ -107,7 +113,7 @@ export async function getAdminUserProfileCore(args: {
         createdAt: claims.createdAt,
       })
       .from(claims)
-      .where(eq(claims.userId, member.id))
+      .where(and(eq(claims.userId, member.id), eq(claims.tenantId, args.tenantId)))
       .orderBy(desc(claims.createdAt))
       .limit(args.recentClaimsLimit),
   ]);
