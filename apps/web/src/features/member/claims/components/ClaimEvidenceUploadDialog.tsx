@@ -103,7 +103,13 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
         <div className="grid w-full items-center gap-4">
           <div className="flex flex-col space-y-1.5">
             <Label htmlFor="file">File</Label>
-            <Input id="file" type="file" onChange={handleFileChange} disabled={uploading} />
+            <Input
+              id="file"
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,text/plain"
+              onChange={handleFileChange}
+              disabled={uploading}
+            />
           </div>
         </div>
         <DialogFooter className="sm:justify-start">

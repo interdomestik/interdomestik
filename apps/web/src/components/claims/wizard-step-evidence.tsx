@@ -18,7 +18,7 @@ import {
 } from '@interdomestik/ui/components/tooltip';
 import { useTranslations } from 'next-intl';
 
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'text/plain'];
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 const CATEGORY_PROMPTS: Record<string, string[]> = {

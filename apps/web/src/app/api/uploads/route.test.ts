@@ -214,4 +214,27 @@ describe('POST /api/uploads', () => {
     );
     expect(hoisted.createSignedUploadUrl).toHaveBeenCalled();
   });
+
+  it('allows text files for claim evidence uploads', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
+
+    const req = new Request('http://localhost:3000/api/uploads', {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName: 'notes.txt',
+        fileType: 'text/plain',
+        fileSize: 120,
+        claimId: 'claim-1',
+      }),
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.upload.path).toContain('.txt');
+    expect(hoisted.createSignedUploadUrl).toHaveBeenCalled();
+  });
 });
