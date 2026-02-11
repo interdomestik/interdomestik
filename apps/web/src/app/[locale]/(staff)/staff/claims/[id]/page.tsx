@@ -1,4 +1,6 @@
 import { getStaffClaimDetail } from '@interdomestik/domain-claims';
+import { claimStageHistory, db } from '@interdomestik/database';
+import { and, desc, eq, isNotNull } from 'drizzle-orm';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -31,6 +33,20 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   });
 
   if (!detail) return notFound();
+
+  const latestStatusNote = await db.query.claimStageHistory.findFirst({
+    where: and(
+      eq(claimStageHistory.claimId, id),
+      eq(claimStageHistory.tenantId, session.user.tenantId),
+      eq(claimStageHistory.isPublic, true),
+      isNotNull(claimStageHistory.note)
+    ),
+    columns: {
+      note: true,
+      createdAt: true,
+    },
+    orderBy: [desc(claimStageHistory.createdAt)],
+  });
 
   return (
     <div className="space-y-6" data-testid="staff-claim-detail-ready">
@@ -94,6 +110,26 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
             <div className="font-medium text-slate-900">{detail.agent.name}</div>
           ) : (
             <div className="text-muted-foreground">Unassigned</div>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-note">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Latest status note
+        </h2>
+        <div className="mt-3 space-y-1 text-sm">
+          {latestStatusNote?.note ? (
+            <>
+              <p className="whitespace-pre-wrap text-slate-900">{latestStatusNote.note}</p>
+              <p className="text-xs text-muted-foreground">
+                {latestStatusNote.createdAt
+                  ? new Date(latestStatusNote.createdAt).toLocaleString()
+                  : ''}
+              </p>
+            </>
+          ) : (
+            <p className="text-muted-foreground">No public status notes yet.</p>
           )}
         </div>
       </section>

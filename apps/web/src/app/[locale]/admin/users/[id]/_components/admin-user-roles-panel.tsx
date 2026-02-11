@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@interdomestik/ui/components/select';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -63,11 +63,15 @@ function formatBranchName(b: Branch | { name: string; code?: string | null }) {
   return `${b.name}${codeSuffix}`;
 }
 
-export function AdminUserRolesPanel({ userId }: { userId: string }) {
+export function AdminUserRolesPanel({
+  userId,
+  tenantId,
+}: {
+  userId: string;
+  tenantId: string | null;
+}) {
   const router = useRouter();
   const params = useParams<{ locale?: string | string[] }>();
-  const searchParams = useSearchParams();
-  const tenantId = searchParams.get('tenantId') ?? undefined;
   const hasTenantContext = Boolean(tenantId);
   const locale = Array.isArray(params?.locale) ? params.locale[0] : params?.locale;
 
