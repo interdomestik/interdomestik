@@ -12,7 +12,7 @@
 - Change summary:
 - Deterministic scripted release gate run
 - Scope: ALL (P0.1, P0.2, P0.3, P0.4, P0.6, P1.1, P1.2, P1.3, P1.5.1)
-- Generated at: 2026-02-11T13:21:37.736Z
+- Generated at: 2026-02-11T13:35:27.190Z
 
 ## Preconditions
 
@@ -131,10 +131,10 @@ Observed:
 ### S5 Tenant override injection (optional)
 
 - Account used: admin_ks
-- URL(s): N/A
+- URL(s): https://interdomestik-web.vercel.app/en/admin/users/golden_mk_admin?tenantId=tenant_mk
 - Expected markers: notFound=true OR rolesTable=false
-- Observed markers: SKIPPED: RELEASE_GATE_MK_USER_URL missing
-- Result: SKIPPED
+- Observed markers: member=false, agent=false, staff=false, admin=false, notFound=true, rolesTable=false
+- Result: PASS
 
 ### S6 Roles payload sanity (INFO only)
 
@@ -178,10 +178,10 @@ Observed:
 
 Observed:
 
-- upload file listed after submit: gate-upload-1770816053113.txt
+- upload file listed after submit: gate-upload-1770816882727.txt
 - after hard refresh listed=true
 - after logout/login listed=true
-- signed upload statuses: 200@https://gunosplgrvnvrftudttr.supabase.co/storage/v1/object/upload/sign/claim-evidence/pii/tenants/tenant_ks/claims/golden_ks_a_claim_05/c91a70bd-97d8-4e11-836a-f54827aa1c11.txt?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OWMyODZlNy0wZWZlLTQ5OGItOTkxNS0zMzNhYmUxNDhhZWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjbGFpbS1ldmlkZW5jZS9waWkvdGVuYW50cy90ZW5hbnRfa3MvY2xhaW1zL2dvbGRlbl9rc19hX2NsYWltXzA1L2M5MWE3MGJkLTk3ZDgtNGUxMS04MzZhLWY1NDgyN2FhMWMxMS50eHQiLCJ1cHNlcnQiOnRydWUsImlhdCI6MTc3MDgxNjA1OCwiZXhwIjoxNzcwODIzMjU4fQ.dScZPvhVzTvFSU1AQU0wF6VY3PbzUVyZvCz6NFVuyzs
+- signed upload statuses: 200@https://gunosplgrvnvrftudttr.supabase.co/storage/v1/object/upload/sign/claim-evidence/pii/tenants/tenant_ks/claims/golden_ks_a_claim_05/bd97d4fe-8c44-481f-9f65-596822dac5e4.txt?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OWMyODZlNy0wZWZlLTQ5OGItOTkxNS0zMzNhYmUxNDhhZWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjbGFpbS1ldmlkZW5jZS9waWkvdGVuYW50cy90ZW5hbnRfa3MvY2xhaW1zL2dvbGRlbl9rc19hX2NsYWltXzA1L2JkOTdkNGZlLThjNDQtNDgxZi05ZjY1LTU5NjgyMmRhYzVlNC50eHQiLCJ1cHNlcnQiOnRydWUsImlhdCI6MTc3MDgxNjg4OSwiZXhwIjoxNzcwODI0MDg5fQ.I21Q2blNOL7RW2uWwWpNmauprMnG7VfXWdoQ7v8ihdo
 
 ## P1.2 Member Evidence Download Works
 
@@ -190,7 +190,7 @@ Observed:
 Observed:
 
 - download response 200 observed=true
-- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/c91a70bd-97d8-4e11-836a-f54827aa1c11/download
+- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/bd97d4fe-8c44-481f-9f65-596822dac5e4/download
 - inline/open action succeeded=true
 
 ## P1.3 Staff Claim Update Persistence (Status + Note)
@@ -206,7 +206,7 @@ Observed:
 - detail_not_found=false
 - staff_page_ready_on_detail=false
 - status_change=Draft -> Submitted
-- note persisted=true note="gate-note-1770816086399"
+- note persisted=true note="gate-note-1770816917055"
 - status persisted=true expected="Submitted" actual="Submitted"
 
 ---
@@ -225,8 +225,8 @@ Observed:
 - Retrieving project…
 - Fetching logs...
 - TIME HOST LEVEL STATUS MESSAGE
-- 14:21:14.68 interdomestik-web.vercel.app error λ GET /api/documents/c91a70bd-97d8-4e11-836a-f54827aa1c11/download 200 Audit log…
-- 14:21:13.01 interdomestik-web.vercel.app error λ GET /api/documents/c91a70bd-97d8-4e11-836a-f54827aa1c11/download 200 Audit log…
+- 14:35:04.38 interdomestik-web.vercel.app error λ GET /api/documents/bd97d4fe-8c44-481f-9f65-596822dac5e4/download 200 Audit log…
+- 14:35:01.85 interdomestik-web.vercel.app error λ GET /api/documents/bd97d4fe-8c44-481f-9f65-596822dac5e4/download 200 Audit log…
 
 ---
 

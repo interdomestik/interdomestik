@@ -97,6 +97,16 @@ function buildRoute(baseUrl, locale, routePath) {
   return `${baseUrl}/${locale}${normalized}`;
 }
 
+function buildRouteAllowingLocalePath(baseUrl, locale, routePath) {
+  const normalized = routePath.startsWith('/') ? routePath : `/${routePath}`;
+  if (/^https?:\/\//i.test(normalized)) return normalized;
+  const localePrefix = `/${locale}/`;
+  if (normalized === `/${locale}` || normalized.startsWith(localePrefix)) {
+    return `${baseUrl}${normalized}`;
+  }
+  return buildRoute(baseUrl, locale, normalized);
+}
+
 function getMissingEnv(requiredVars) {
   return requiredVars.filter(
     varName => !process.env[varName] || String(process.env[varName]).trim() === ''
@@ -774,7 +784,7 @@ async function runP06(browser, runCtx) {
         await withAccount('admin_ks', async page => {
           const url = /^https?:\/\//i.test(mkUserUrl)
             ? mkUserUrl
-            : buildRoute(runCtx.baseUrl, runCtx.locale, mkUserUrl);
+            : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, mkUserUrl);
           const result = await assertUrlMarkers(page, 'S5', url, {});
           const passes = result.observed.notFound || result.observed.rolesTable === false;
           const failureSignature = passes
