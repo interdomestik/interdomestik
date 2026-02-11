@@ -12,7 +12,7 @@
 - Change summary:
 - Deterministic scripted release gate run
 - Scope: ALL (P0.1, P0.2, P0.3, P0.4, P1.1, P1.2, P1.3, P1.5.1)
-- Generated at: 2026-02-11T11:39:30.503Z
+- Generated at: 2026-02-11T13:10:02.989Z
 
 ## Preconditions
 
@@ -102,10 +102,10 @@ Observed:
 
 Observed:
 
-- upload file listed after submit: gate-upload-1770809932892.txt
+- upload file listed after submit: gate-upload-1770815354903.txt
 - after hard refresh listed=true
 - after logout/login listed=true
-- signed upload statuses: 200@https://gunosplgrvnvrftudttr.supabase.co/storage/v1/object/upload/sign/claim-evidence/pii/tenants/tenant_ks/claims/golden_ks_a_claim_05/ad00118f-cc7b-4fc5-891e-3d8d0cb2d46b.txt?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OWMyODZlNy0wZWZlLTQ5OGItOTkxNS0zMzNhYmUxNDhhZWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjbGFpbS1ldmlkZW5jZS9waWkvdGVuYW50cy90ZW5hbnRfa3MvY2xhaW1zL2dvbGRlbl9rc19hX2NsYWltXzA1L2FkMDAxMThmLWNjN2ItNGZjNS04OTFlLTNkOGQwY2IyZDQ2Yi50eHQiLCJ1cHNlcnQiOnRydWUsImlhdCI6MTc3MDgwOTkzOSwiZXhwIjoxNzcwODE3MTM5fQ.f61f4HIUqSDH7xywu_iYJ5vWwC-Cj2FjTsEZvHcwkrE
+- signed upload statuses: 200@https://gunosplgrvnvrftudttr.supabase.co/storage/v1/object/upload/sign/claim-evidence/pii/tenants/tenant_ks/claims/golden_ks_a_claim_05/5fa7f8a9-7125-4d0c-b036-9524bfb17dfb.txt?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV82OWMyODZlNy0wZWZlLTQ5OGItOTkxNS0zMzNhYmUxNDhhZWQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJjbGFpbS1ldmlkZW5jZS9waWkvdGVuYW50cy90ZW5hbnRfa3MvY2xhaW1zL2dvbGRlbl9rc19hX2NsYWltXzA1LzVmYTdmOGE5LTcxMjUtNGQwYy1iMDM2LTk1MjRiZmIxN2RmYi50eHQiLCJ1cHNlcnQiOnRydWUsImlhdCI6MTc3MDgxNTM2MiwiZXhwIjoxNzcwODIyNTYyfQ.FgGv-UOI_QBq53sz1oR-7IiQWoUAi9h5glOUd1EA97M
 
 ## P1.2 Member Evidence Download Works
 
@@ -114,7 +114,7 @@ Observed:
 Observed:
 
 - download response 200 observed=true
-- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/ad00118f-cc7b-4fc5-891e-3d8d0cb2d46b/download
+- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/5fa7f8a9-7125-4d0c-b036-9524bfb17dfb/download
 - inline/open action succeeded=true
 
 ## P1.3 Staff Claim Update Persistence (Status + Note)
@@ -123,10 +123,15 @@ Observed:
 
 Observed:
 
-- claim_url=https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_09
+- staff_claims_list_url=https://interdomestik-web.vercel.app/en/staff/claims
+- staff_page_ready_on_list=true
+- claim_source=STAFF_CLAIM_URL
+- claim_url=https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_08
+- detail_not_found=false
+- staff_page_ready_on_detail=false
 - status_change=Submitted -> Draft
-- note persisted=true note="gate-note-1770809960641"
-- status persisted=true
+- note persisted=true note="gate-note-1770815390987"
+- status persisted=true expected="Draft" actual="Draft"
 
 ---
 
@@ -144,8 +149,8 @@ Observed:
 - Retrieving project…
 - Fetching logs...
 - TIME HOST LEVEL STATUS MESSAGE
-- 12:39:12.52 interdomestik-web.vercel.app error λ GET /api/documents/ad00118f-cc7b-4fc5-891e-3d8d0cb2d46b/download 200 Audit log…
-- 12:39:10.76 interdomestik-web.vercel.app error λ GET /api/documents/ad00118f-cc7b-4fc5-891e-3d8d0cb2d46b/download 200 Audit log…
+- 14:09:38.17 interdomestik-web.vercel.app error λ GET /api/documents/5fa7f8a9-7125-4d0c-b036-9524bfb17dfb/download --- Audit log…
+- 14:09:36.13 interdomestik-web.vercel.app error λ GET /api/documents/5fa7f8a9-7125-4d0c-b036-9524bfb17dfb/download 200 Audit log…
 
 ---
 
