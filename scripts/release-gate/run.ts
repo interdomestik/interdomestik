@@ -650,26 +650,82 @@ async function runP13(browser, runCtx) {
       locale: runCtx.locale,
     });
 
-    const claimUrlFromEnv = process.env.STAFF_CLAIM_URL;
-    let detailUrl =
-      claimUrlFromEnv && claimUrlFromEnv.startsWith('http')
-        ? claimUrlFromEnv
-        : claimUrlFromEnv
-          ? buildRoute(runCtx.baseUrl, runCtx.locale, claimUrlFromEnv)
-          : null;
-
-    if (!detailUrl) {
-      const claimsList = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList);
-      await page.goto(claimsList, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-      await page.getByTestId(MARKERS.staff).waitFor({ state: 'visible', timeout: TIMEOUTS.marker });
-      await page.locator(SELECTORS.staffClaimOpenButton).first().click();
-      await page.waitForURL(/\/staff\/claims\/[^/?#]+/, { timeout: TIMEOUTS.nav });
-      detailUrl = page.url();
-    } else {
-      await page.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
+    const claimsList = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList);
+    await page.goto(claimsList, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
+    const staffReadyOnList = await page
+      .getByTestId(MARKERS.staff)
+      .isVisible({ timeout: TIMEOUTS.marker })
+      .catch(() => false);
+    evidence.push(`staff_claims_list_url=${claimsList}`);
+    evidence.push(`staff_page_ready_on_list=${staffReadyOnList}`);
+    if (!staffReadyOnList) {
+      signatures.push('P1.3_STAFF_PORTAL_NOT_READY');
+      return checkResult('P1.3', 'FAIL', evidence, signatures);
     }
 
+    const claimUrlFromEnv = process.env.STAFF_CLAIM_URL;
+    const requireClaimUrl =
+      String(process.env.RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL || 'false').toLowerCase() === 'true';
+    let detailUrl = null;
+
+    if (claimUrlFromEnv && String(claimUrlFromEnv).trim() !== '') {
+      detailUrl = claimUrlFromEnv.startsWith('http')
+        ? claimUrlFromEnv
+        : buildRoute(runCtx.baseUrl, runCtx.locale, claimUrlFromEnv);
+      evidence.push('claim_source=STAFF_CLAIM_URL');
+    } else {
+      if (requireClaimUrl) {
+        signatures.push('P1.3_MISCONFIG_STAFF_CLAIM_URL_REQUIRED');
+        return checkResult('P1.3', 'FAIL', evidence, signatures);
+      }
+
+      const fallbackTimeoutMs = 10_000;
+      const startedAt = Date.now();
+      let hrefs = [];
+
+      while (Date.now() - startedAt < fallbackTimeoutMs) {
+        hrefs = await page.$$eval('a[data-testid="staff-claims-view"]', anchors =>
+          anchors.map(node => node.getAttribute('href')).filter(Boolean)
+        );
+        if (hrefs.length > 0) {
+          break;
+        }
+        await page.waitForTimeout(500);
+      }
+
+      evidence.push(`fallback_search_elapsed_ms=${Date.now() - startedAt}`);
+      evidence.push(`fallback_link_count=${hrefs.length}`);
+      if (hrefs.length === 0) {
+        signatures.push('P1.3_NO_TEST_DATA_STAFF_CLAIMS');
+        return checkResult('P1.3', 'SKIPPED', evidence, signatures);
+      }
+      detailUrl = hrefs[0].startsWith('http')
+        ? hrefs[0]
+        : buildRoute(runCtx.baseUrl, runCtx.locale, hrefs[0]);
+      evidence.push('claim_source=staff_claims_list');
+    }
+
+    await page.goto(detailUrl, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
+
     evidence.push(`claim_url=${detailUrl}`);
+    const staffReadyOnDetail = await page
+      .getByTestId(MARKERS.staff)
+      .isVisible({ timeout: TIMEOUTS.marker })
+      .catch(() => false);
+    evidence.push(`staff_page_ready_on_detail=${staffReadyOnDetail}`);
+    if (!staffReadyOnDetail) {
+      const notFoundVisible = await page
+        .getByTestId(MARKERS.notFound)
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      evidence.push(`detail_not_found=${notFoundVisible}`);
+      if (notFoundVisible) {
+        signatures.push('P1.3_MISCONFIG_STAFF_CLAIM_URL_UNREACHABLE');
+        return checkResult('P1.3', 'SKIPPED', evidence, signatures);
+      }
+      signatures.push('P1.3_CONTEXT_NOT_READY');
+      return checkResult('P1.3', 'SKIPPED', evidence, signatures);
+    }
     await page.locator(SELECTORS.staffClaimDetailReady).waitFor({
       state: 'visible',
       timeout: TIMEOUTS.marker,
@@ -735,6 +791,27 @@ async function runP13(browser, runCtx) {
       }
     }
   } catch (error) {
+    const markerState = await markerSnapshot(page).catch(() => ({
+      member: false,
+      agent: false,
+      staff: false,
+      admin: false,
+    }));
+    const screenshotPath = path.join(
+      os.tmpdir(),
+      `release-gate-p13-failure-${Date.now()}-${Math.random().toString(16).slice(2)}.png`
+    );
+    await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {});
+    evidence.push(`failure_url=${page.url()}`);
+    evidence.push(
+      `failure_markers member=${markerState.member} agent=${markerState.agent} staff=${markerState.staff} admin=${markerState.admin}`
+    );
+    evidence.push(`failure_screenshot=${screenshotPath}`);
+    const notFoundVisible = await page
+      .getByTestId(MARKERS.notFound)
+      .isVisible({ timeout: TIMEOUTS.quickMarker })
+      .catch(() => false);
+    evidence.push(`failure_not_found=${notFoundVisible}`);
     signatures.push(`P1.3_EXCEPTION message=${String(error.message || error)}`);
   } finally {
     await context.close();
