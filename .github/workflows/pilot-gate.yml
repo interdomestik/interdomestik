@@ -1,0 +1,114 @@
+name: Pilot Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: pilot-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pilot-gate:
+    name: pr:verify + pilot:check
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interdomestik_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d interdomestik_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      CI: 'true'
+      PLAYWRIGHT: '1'
+      PORT: 3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      RELEASE_GATE_MEMBER_EMAIL: ${{ secrets.RELEASE_GATE_MEMBER_EMAIL }}
+      RELEASE_GATE_MEMBER_PASSWORD: ${{ secrets.RELEASE_GATE_MEMBER_PASSWORD }}
+      RELEASE_GATE_AGENT_EMAIL: ${{ secrets.RELEASE_GATE_AGENT_EMAIL }}
+      RELEASE_GATE_AGENT_PASSWORD: ${{ secrets.RELEASE_GATE_AGENT_PASSWORD }}
+      RELEASE_GATE_STAFF_EMAIL: ${{ secrets.RELEASE_GATE_STAFF_EMAIL }}
+      RELEASE_GATE_STAFF_PASSWORD: ${{ secrets.RELEASE_GATE_STAFF_PASSWORD }}
+      RELEASE_GATE_ADMIN_KS_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_KS_EMAIL }}
+      RELEASE_GATE_ADMIN_KS_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_KS_PASSWORD }}
+      RELEASE_GATE_ADMIN_MK_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_MK_EMAIL }}
+      RELEASE_GATE_ADMIN_MK_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_MK_PASSWORD }}
+      RELEASE_GATE_MK_USER_URL: ${{ secrets.RELEASE_GATE_MK_USER_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          install-playwright: true
+
+      - name: Validate required gate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          required_vars=(
+            BETTER_AUTH_SECRET
+            RELEASE_GATE_MEMBER_EMAIL
+            RELEASE_GATE_MEMBER_PASSWORD
+            RELEASE_GATE_AGENT_EMAIL
+            RELEASE_GATE_AGENT_PASSWORD
+            RELEASE_GATE_STAFF_EMAIL
+            RELEASE_GATE_STAFF_PASSWORD
+            RELEASE_GATE_ADMIN_KS_EMAIL
+            RELEASE_GATE_ADMIN_KS_PASSWORD
+            RELEASE_GATE_ADMIN_MK_EMAIL
+            RELEASE_GATE_ADMIN_MK_PASSWORD
+          )
+          for name in "${required_vars[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("${name}")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 2
+          fi
+
+      - name: Prepare CI database
+        shell: bash
+        run: |
+          set -euo pipefail
+          until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+          pnpm db:migrate
+          pnpm seed:e2e
+          pnpm seed:assert-e2e
+
+      - name: Run PR verification
+        run: pnpm pr:verify
+
+      - name: Run pilot gate
+        run: pnpm pilot:check
+
+      - name: Upload release gate reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-gate-reports
+          path: docs/release-gates/*.md
+          if-no-files-found: warn
+          retention-days: 14
