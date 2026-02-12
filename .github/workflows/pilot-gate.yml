@@ -40,17 +40,19 @@ jobs:
       BETTER_AUTH_URL: http://127.0.0.1:3000
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-      RELEASE_GATE_MEMBER_EMAIL: ${{ secrets.RELEASE_GATE_MEMBER_EMAIL }}
-      RELEASE_GATE_MEMBER_PASSWORD: ${{ secrets.RELEASE_GATE_MEMBER_PASSWORD }}
-      RELEASE_GATE_AGENT_EMAIL: ${{ secrets.RELEASE_GATE_AGENT_EMAIL }}
-      RELEASE_GATE_AGENT_PASSWORD: ${{ secrets.RELEASE_GATE_AGENT_PASSWORD }}
-      RELEASE_GATE_STAFF_EMAIL: ${{ secrets.RELEASE_GATE_STAFF_EMAIL }}
-      RELEASE_GATE_STAFF_PASSWORD: ${{ secrets.RELEASE_GATE_STAFF_PASSWORD }}
-      RELEASE_GATE_ADMIN_KS_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_KS_EMAIL }}
-      RELEASE_GATE_ADMIN_KS_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_KS_PASSWORD }}
-      RELEASE_GATE_ADMIN_MK_EMAIL: ${{ secrets.RELEASE_GATE_ADMIN_MK_EMAIL }}
-      RELEASE_GATE_ADMIN_MK_PASSWORD: ${{ secrets.RELEASE_GATE_ADMIN_MK_PASSWORD }}
-      RELEASE_GATE_MK_USER_URL: ${{ secrets.RELEASE_GATE_MK_USER_URL }}
+      RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@interdomestik.com
+      RELEASE_GATE_MEMBER_PASSWORD: GoldenPass123!
+      RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
+      RELEASE_GATE_AGENT_PASSWORD: GoldenPass123!
+      RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
+      RELEASE_GATE_STAFF_PASSWORD: GoldenPass123!
+      RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com
+      RELEASE_GATE_ADMIN_KS_PASSWORD: GoldenPass123!
+      RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@interdomestik.com
+      RELEASE_GATE_ADMIN_MK_PASSWORD: GoldenPass123!
+      RELEASE_GATE_MK_USER_URL: ''
+      STAFF_CLAIM_URL: ''
+      RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL: 'false'
     steps:
       - uses: actions/checkout@v4
 
@@ -65,16 +67,6 @@ jobs:
           missing=()
           required_vars=(
             BETTER_AUTH_SECRET
-            RELEASE_GATE_MEMBER_EMAIL
-            RELEASE_GATE_MEMBER_PASSWORD
-            RELEASE_GATE_AGENT_EMAIL
-            RELEASE_GATE_AGENT_PASSWORD
-            RELEASE_GATE_STAFF_EMAIL
-            RELEASE_GATE_STAFF_PASSWORD
-            RELEASE_GATE_ADMIN_KS_EMAIL
-            RELEASE_GATE_ADMIN_KS_PASSWORD
-            RELEASE_GATE_ADMIN_MK_EMAIL
-            RELEASE_GATE_ADMIN_MK_PASSWORD
           )
           for name in "${required_vars[@]}"; do
             if [[ -z "${!name:-}" ]]; then
