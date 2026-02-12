@@ -100,7 +100,7 @@ jobs:
         run: pnpm pr:verify
 
       - name: Run pilot gate
-        run: pnpm pilot:check
+        run: pnpm -s release:gate:prod:raw --baseUrl http://127.0.0.1:3000
 
       - name: Upload release gate reports
         if: always()
