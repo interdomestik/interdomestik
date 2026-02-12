@@ -98,6 +98,9 @@ jobs:
           pnpm seed:e2e
           pnpm seed:assert-e2e
 
+      - name: Build web standalone artifact
+        run: pnpm --filter @interdomestik/web run build:ci
+
       - name: Run PR verification
         run: pnpm pr:verify
 
