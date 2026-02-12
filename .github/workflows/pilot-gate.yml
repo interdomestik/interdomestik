@@ -99,8 +99,32 @@ jobs:
       - name: Run PR verification
         run: pnpm pr:verify
 
+      - name: Start web server for release gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter @interdomestik/web run start:ci > /tmp/web-start.log 2>&1 &
+          echo $! > /tmp/web-start.pid
+          for _ in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Web server failed to become healthy on 127.0.0.1:3000"
+          cat /tmp/web-start.log || true
+          exit 1
+
       - name: Run pilot gate
         run: pnpm -s release:gate:prod:raw --baseUrl http://127.0.0.1:3000
+
+      - name: Stop web server
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f /tmp/web-start.pid ]]; then
+            kill "$(cat /tmp/web-start.pid)" || true
+          fi
 
       - name: Upload release gate reports
         if: always()
