@@ -77,6 +77,11 @@ function writeReleaseGateReport(input) {
   const p12 = getCheck(input.checks, 'P1.2');
   const p13 = getCheck(input.checks, 'P1.3');
   const p151 = getCheck(input.checks, 'P1.5.1');
+  const p21 = getCheck(input.checks, 'P2.1');
+  const p22 = getCheck(input.checks, 'P2.2');
+  const p23 = getCheck(input.checks, 'P2.3');
+  const p24 = getCheck(input.checks, 'P2.4');
+  const p25 = getCheck(input.checks, 'P2.5');
 
   const failingSignatures = input.checks.flatMap(check => check.signatures || []);
   const verdict = failingSignatures.length > 0 ? 'NO-GO' : 'GO';
@@ -118,6 +123,7 @@ function writeReleaseGateReport(input) {
     '- Admin role add/remove',
     '- Evidence upload/download + persistence',
     '- Staff claim update persistence',
+    '- Cross-role claim lifecycle checks (P2)',
     '- Production error log sweep',
     '',
     '## Test Accounts Used',
@@ -190,6 +196,45 @@ function writeReleaseGateReport(input) {
     '',
     'Observed:',
     ...asList(p13.evidence),
+    '',
+    '---',
+    '',
+    '# P2 — Cross-Role Business Flows',
+    '',
+    '## P2.1 Claim visibility across member/staff/admin/agent',
+    '',
+    `**Result:** ${renderCheckResult(p21)}`,
+    '',
+    'Observed:',
+    ...asList(p21.evidence),
+    '',
+    '## P2.2 Admin assignment persistence',
+    '',
+    `**Result:** ${renderCheckResult(p22)}`,
+    '',
+    'Observed:',
+    ...asList(p22.evidence),
+    '',
+    '## P2.3 Staff update reflected on member surface',
+    '',
+    `**Result:** ${renderCheckResult(p23)}`,
+    '',
+    'Observed:',
+    ...asList(p23.evidence),
+    '',
+    '## P2.4 Document download header validation',
+    '',
+    `**Result:** ${renderCheckResult(p24)}`,
+    '',
+    'Observed:',
+    ...asList(p24.evidence),
+    '',
+    '## P2.5 Role grant/revoke effective-access verification',
+    '',
+    `**Result:** ${renderCheckResult(p25)}`,
+    '',
+    'Observed:',
+    ...asList(p25.evidence),
     '',
     '---',
     '',
