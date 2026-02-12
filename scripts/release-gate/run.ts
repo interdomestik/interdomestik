@@ -126,6 +126,13 @@ function checkResult(id, status, evidence, signatures) {
   };
 }
 
+function envFlag(name, defaultValue) {
+  const value = process.env[name];
+  if (value == null || String(value).trim() === '') return defaultValue;
+  const normalized = String(value).trim().toLowerCase();
+  return normalized === '1' || normalized === 'true' || normalized === 'yes';
+}
+
 function roleMarkerForAccount(accountKey) {
   if (accountKey === 'admin_ks' || accountKey === 'admin_mk') return MARKERS.admin;
   return MARKERS[ACCOUNTS[accountKey].roleMarker];
@@ -308,6 +315,7 @@ async function runP01(browser, runCtx) {
   const accounts = ['member', 'agent', 'staff', 'admin_ks'];
   const evidence = [];
   const failures = [];
+  let memberDriftSignatureAdded = false;
 
   for (const account of accounts) {
     const context = await browser.newContext();
@@ -331,6 +339,19 @@ async function runP01(browser, runCtx) {
 
         const current = await collectMarkersWithWait(page, matrix.canonical);
         evidence.push(`${account} ${markerSummary(route, current)}`);
+
+        if (
+          account === 'member' &&
+          portal === 'member' &&
+          current.member === true &&
+          (current.agent === true || current.staff === true || current.admin === true) &&
+          !memberDriftSignatureAdded
+        ) {
+          memberDriftSignatureAdded = true;
+          failures.push(
+            `P0.1_MISCONFIG_MEMBER_ROLE_DRIFT account=member route=/${runCtx.locale}${route} visible=${JSON.stringify(current)}`
+          );
+        }
 
         if (portal === matrix.canonical && current[matrix.canonical] !== true) {
           failures.push(
@@ -947,6 +968,7 @@ async function runP11AndP12(browser, runCtx) {
   let documentsDownloadStatuses = [];
   let persistenceAfterRefresh = false;
   let persistenceAfterRelogin = false;
+  const requireMemberUpload = envFlag('RELEASE_GATE_REQUIRE_MEMBER_UPLOAD', true);
 
   page.on('response', response => {
     const url = response.url();
@@ -972,7 +994,25 @@ async function runP11AndP12(browser, runCtx) {
     const uploadButtonsCount = await uploadButtons.count();
     evidenceP11.push(`member documents upload button count=${uploadButtonsCount}`);
     if (uploadButtonsCount === 0) {
-      throw new Error('NO_MEMBER_DOCUMENT_UPLOAD_BUTTONS');
+      if (requireMemberUpload) {
+        signaturesP11.push(
+          'P1.1_MISCONFIG_MEMBER_UPLOAD_PRECONDITION_NOT_MET reason=no_upload_entry_buttons'
+        );
+        return [
+          checkResult('P1.1', 'FAIL', evidenceP11, signaturesP11),
+          checkResult('P1.2', 'SKIPPED', evidenceP12, [
+            'P1.2_SKIPPED_DEPENDENCY_P1.1_MEMBER_UPLOAD_PRECONDITION',
+          ]),
+        ];
+      }
+      return [
+        checkResult('P1.1', 'SKIPPED', evidenceP11, [
+          'P1.1_SKIPPED_MEMBER_UPLOAD_PRECONDITION_NOT_MET',
+        ]),
+        checkResult('P1.2', 'SKIPPED', evidenceP12, [
+          'P1.2_SKIPPED_DEPENDENCY_P1.1_MEMBER_UPLOAD_PRECONDITION',
+        ]),
+      ];
     }
 
     const uploadButton = uploadButtons.first();
@@ -1111,7 +1151,14 @@ async function runP11AndP12(browser, runCtx) {
 
     await reloginContext.close();
   } catch (error) {
-    signaturesP11.push(`P1.1_EXCEPTION message=${String(error.message || error)}`);
+    const rawMessage = String(error.message || error);
+    if (rawMessage.includes('NO_MEMBER_DOCUMENT_UPLOAD_BUTTONS')) {
+      signaturesP11.push(
+        'P1.1_MISCONFIG_MEMBER_UPLOAD_PRECONDITION_NOT_MET reason=no_upload_entry_buttons'
+      );
+    } else {
+      signaturesP11.push(`P1.1_EXCEPTION message=${rawMessage}`);
+    }
     await context.close().catch(() => {});
   } finally {
     fs.rmSync(uploadPath, { force: true });
@@ -1538,7 +1585,10 @@ async function main() {
     }
 
     const hasFailure = checks.some(check => check.status === 'FAIL');
-    process.exit(hasFailure ? 1 : 0);
+    const hasMisconfig = checks.some(check =>
+      (check.signatures || []).some(signature => signature.includes('_MISCONFIG_'))
+    );
+    process.exit(hasMisconfig ? 2 : hasFailure ? 1 : 0);
   } finally {
     await browser.close();
   }
