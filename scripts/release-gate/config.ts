@@ -11,7 +11,23 @@ const DEFAULTS = {
 const SUITES = {
   p0: ['P0.1', 'P0.2', 'P0.3', 'P0.4', 'P0.6'],
   p1: ['P1.1', 'P1.2', 'P1.3', 'P1.5.1'],
-  all: ['P0.1', 'P0.2', 'P0.3', 'P0.4', 'P0.6', 'P1.1', 'P1.2', 'P1.3', 'P1.5.1'],
+  p2: ['P2.1', 'P2.2', 'P2.3', 'P2.4', 'P2.5'],
+  all: [
+    'P0.1',
+    'P0.2',
+    'P0.3',
+    'P0.4',
+    'P0.6',
+    'P1.1',
+    'P1.2',
+    'P1.3',
+    'P1.5.1',
+    'P2.1',
+    'P2.2',
+    'P2.3',
+    'P2.4',
+    'P2.5',
+  ],
 };
 
 const ROUTES = {
@@ -127,6 +143,16 @@ const REQUIRED_ENV_BY_SUITE = {
     ACCOUNTS.member.passwordVar,
     ACCOUNTS.staff.emailVar,
     ACCOUNTS.staff.passwordVar,
+  ],
+  p2: [
+    ACCOUNTS.member.emailVar,
+    ACCOUNTS.member.passwordVar,
+    ACCOUNTS.agent.emailVar,
+    ACCOUNTS.agent.passwordVar,
+    ACCOUNTS.staff.emailVar,
+    ACCOUNTS.staff.passwordVar,
+    ACCOUNTS.admin_ks.emailVar,
+    ACCOUNTS.admin_ks.passwordVar,
   ],
   all: [
     ACCOUNTS.member.emailVar,
