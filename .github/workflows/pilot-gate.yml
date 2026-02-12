@@ -101,6 +101,9 @@ jobs:
       - name: Build web standalone artifact
         run: pnpm --filter @interdomestik/web run build:ci
 
+      - name: Generate Playwright auth states
+        run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
+
       - name: Run PR verification
         run: pnpm pr:verify
 
