@@ -116,15 +116,18 @@ describe('AdminUserRolesPanel', () => {
     });
   });
 
-  it('shows remove action, revokes role, and refreshes router', async () => {
+  it('shows remove action, revokes role, and removal sticks after refresh', async () => {
     rbacMocks.listUserRoles
       .mockResolvedValueOnce({
         success: true,
         data: [{ id: 'role-1', role: 'agent', branchId: null }],
       })
+      .mockResolvedValueOnce({ success: true, data: [] })
       .mockResolvedValueOnce({ success: true, data: [] });
 
-    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+    const rendered = render(
+      <AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />
+    );
 
     const removeButton = await screen.findByRole('button', { name: 'Remove' });
     fireEvent.click(removeButton);
@@ -140,6 +143,15 @@ describe('AdminUserRolesPanel', () => {
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(2);
       expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
       expect(screen.getByText('No roles assigned')).toBeInTheDocument();
+    });
+
+    rendered.unmount();
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+
+    await waitFor(() => {
+      expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(3);
+      expect(screen.getByText('No roles assigned')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument();
     });
   });
 

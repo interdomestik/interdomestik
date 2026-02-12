@@ -20,6 +20,7 @@ const mockDeleteBranchCore = vi.fn();
 const mockListUserRolesCore = vi.fn();
 const mockGrantUserRoleCore = vi.fn();
 const mockRevokeUserRoleCore = vi.fn();
+const mockRevalidatePath = vi.fn();
 
 vi.mock('@interdomestik/domain-users/admin/rbac', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,6 +54,9 @@ vi.mock('@/lib/auth', () => ({
 }));
 vi.mock('@/server/auth/effective-portal-access', () => ({
   requireEffectivePortalAccessOrUnauthorized: vi.fn(async () => undefined),
+}));
+vi.mock('next/cache', () => ({
+  revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
 }));
 
 describe('admin-rbac.core', () => {
@@ -191,6 +195,26 @@ describe('admin-rbac.core', () => {
       const result = await revokeUserRole({
         userId: '123e4567-e89b-12d3-a456-426614174000',
         role: 'member',
+        locale: 'en',
+      });
+
+      expect(mockRevokeUserRoleCore).toHaveBeenCalledWith(
+        expect.objectContaining({ tenantId: 'tenant-1' })
+      );
+      expect(result.success).toBe(true);
+      expect(mockRevalidatePath).toHaveBeenCalledWith(
+        '/en/admin/users/123e4567-e89b-12d3-a456-426614174000'
+      );
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/en/admin/users');
+    });
+
+    it('ignores provided tenantId for non-super-admin revoke and uses session tenant', async () => {
+      mockRevokeUserRoleCore.mockResolvedValueOnce({ success: true });
+
+      const result = await revokeUserRole({
+        userId: '123e4567-e89b-12d3-a456-426614174000',
+        role: 'agent',
+        tenantId: 'tenant-foreign',
       });
 
       expect(mockRevokeUserRoleCore).toHaveBeenCalledWith(
