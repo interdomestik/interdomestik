@@ -27,14 +27,42 @@ if (!fs.existsSync(JOURNAL_PATH)) {
   fail(`Drizzle journal not found: ${JOURNAL_PATH}`);
 }
 
-const journal = JSON.parse(fs.readFileSync(JOURNAL_PATH, 'utf8'));
-const entries = Array.isArray(journal?.entries) ? journal.entries : [];
-const journalSql = new Set(
-  entries
-    .map(entry => String(entry?.tag || '').trim())
-    .filter(Boolean)
-    .map(tag => `${tag}.sql`)
-);
+let journalRaw = '';
+let journal = null;
+
+try {
+  journalRaw = fs.readFileSync(JOURNAL_PATH, 'utf8');
+} catch (error) {
+  fail(`Unable to read Drizzle journal at ${JOURNAL_PATH}: ${String(error.message || error)}`);
+}
+
+try {
+  journal = JSON.parse(journalRaw);
+} catch (error) {
+  fail(`Invalid JSON in ${JOURNAL_PATH}: ${String(error.message || error)}`);
+}
+
+if (!Array.isArray(journal?.entries)) {
+  fail(`Invalid journal shape in ${JOURNAL_PATH}: expected "entries" array`);
+}
+
+const invalidEntries = journal.entries
+  .map((entry, index) => ({ entry, index }))
+  .filter(item => {
+    const tag = typeof item.entry?.tag === 'string' ? item.entry.tag.trim() : '';
+    return tag.length === 0;
+  });
+
+if (invalidEntries.length > 0) {
+  fail(
+    [
+      `Invalid journal entries in ${JOURNAL_PATH}: expected non-empty "tag"`,
+      ...invalidEntries.map(item => `  - entries[${item.index}]`),
+    ].join('\n')
+  );
+}
+
+const journalSql = new Set(journal.entries.map(entry => `${entry.tag.trim()}.sql`));
 
 const sqlFiles = fs.readdirSync(DRIZZLE_DIR).filter(name => name.endsWith('.sql')).sort();
 
