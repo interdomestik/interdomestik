@@ -17,23 +17,25 @@ vi.mock('next-intl', () => ({
 
 describe('MemberClaimDetailOpsPage', () => {
   it('translates claim timeline status keys without using the claims namespace', () => {
+    const now = new Date();
     render(
       <MemberClaimDetailOpsPage
-        // Minimal DTO surface used by the component.
         claim={{
           id: 'claim-1',
           title: 'Test Claim',
-          description: 'desc',
-          amount: 0,
-          currency: 'EUR',
           status: 'evaluation',
-          createdAt: new Date().toISOString() as any,
-          updatedAt: null as any,
+          statusLabelKey: 'claims-tracking.status.evaluation',
+          createdAt: now,
+          updatedAt: null,
+          description: 'desc',
+          amount: '0',
+          currency: 'EUR',
+          canShare: false,
           documents: [],
           timeline: [
             {
               id: 't1',
-              date: new Date().toISOString() as any,
+              date: now,
               statusFrom: 'submitted',
               statusTo: 'evaluation',
               labelKey: 'claims-tracking.status.evaluation',
