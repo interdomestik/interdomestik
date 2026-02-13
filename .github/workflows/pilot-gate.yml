@@ -46,12 +46,12 @@ jobs:
       RELEASE_GATE_AGENT_PASSWORD: GoldenPass123!
       RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
       RELEASE_GATE_STAFF_PASSWORD: GoldenPass123!
-      RELEASE_GATE_ADMIN_KS_EMAIL: admin.mk@interdomestik.com
+      RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com
       RELEASE_GATE_ADMIN_KS_PASSWORD: GoldenPass123!
       RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@interdomestik.com
       RELEASE_GATE_ADMIN_MK_PASSWORD: GoldenPass123!
       RELEASE_GATE_MK_USER_URL: ''
-      RELEASE_GATE_TARGET_USER_URL: /admin/users/golden_mk_member_1
+      RELEASE_GATE_TARGET_USER_URL: /admin/users/golden_ks_staff
       STAFF_CLAIM_URL: ''
       RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL: 'false'
     steps:
