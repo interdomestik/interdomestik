@@ -1,8 +1,6 @@
 import { getAgentUsers } from '@/actions/agent-users';
 import { AgentUsersFilters } from '@/components/agent/agent-users-filters';
 import { AgentUsersSections } from '@/components/agent/agent-users-sections';
-import { Link } from '@/i18n/routing';
-import { Button } from '@interdomestik/ui';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 type Props = {
@@ -25,9 +23,6 @@ export default async function AgentUsersPage({ params, searchParams }: Readonly<
           <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
           <p className="text-muted-foreground">{t('description')}</p>
         </div>
-        <Button asChild>
-          <Link href="/agent/clients/new">{t('register_member') || 'Register Member'}</Link>
-        </Button>
       </div>
 
       <AgentUsersFilters />

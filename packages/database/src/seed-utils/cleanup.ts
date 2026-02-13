@@ -40,6 +40,13 @@ export async function cleanupByPrefixes(
         .delete(dbSchema.claimTrackingTokens)
         .where(inArray(dbSchema.claimTrackingTokens.claimId, allClaimIds));
     }
+    // Manual cascade: claim_threads has FK -> claim with ON DELETE NO ACTION.
+    // If threads exist for a claim, deleting the claim without deleting threads will fail.
+    if (dbSchema.claimThreads) {
+      await db
+        .delete(dbSchema.claimThreads)
+        .where(inArray(dbSchema.claimThreads.claimId, allClaimIds));
+    }
     await db
       .delete(dbSchema.claimDocuments)
       .where(inArray(dbSchema.claimDocuments.claimId, allClaimIds));
@@ -137,14 +144,30 @@ export async function cleanupByPrefixes(
     console.log(`  Found ${allUserIds.length} users to clean up. removing dependencies...`);
 
     // Helper for batching if needed, but for seeds 100-200 is fine in one IN clause usually.
-    // 1. Identify and Clean up Claims by User ID
+    // 1. Identify and Clean up Claims linked to these users.
+    // We must delete claims where these users appear as claimant (userId) OR staff/assigner,
+    // otherwise FK constraints can block user deletion during deterministic reset.
     const userClaimIds = await db.query.claims.findMany({
-      where: inArray(dbSchema.claims.userId, allUserIds),
+      where: or(
+        inArray(dbSchema.claims.userId, allUserIds),
+        inArray(dbSchema.claims.staffId, allUserIds),
+        inArray(dbSchema.claims.assignedById, allUserIds),
+        inArray(dbSchema.claims.agentId, allUserIds)
+      ),
       columns: { id: true },
     });
 
     const cIds = userClaimIds.map(c => c.id);
     if (cIds.length > 0) {
+      if (dbSchema.claimTrackingTokens) {
+        await db
+          .delete(dbSchema.claimTrackingTokens)
+          .where(inArray(dbSchema.claimTrackingTokens.claimId, cIds));
+      }
+      // Manual cascade: claim_threads has FK -> claim with ON DELETE NO ACTION.
+      if (dbSchema.claimThreads) {
+        await db.delete(dbSchema.claimThreads).where(inArray(dbSchema.claimThreads.claimId, cIds));
+      }
       await db
         .delete(dbSchema.claimDocuments)
         .where(inArray(dbSchema.claimDocuments.claimId, cIds));
@@ -154,7 +177,16 @@ export async function cleanupByPrefixes(
         .where(inArray(dbSchema.claimStageHistory.claimId, cIds));
     }
 
-    await db.delete(dbSchema.claims).where(inArray(dbSchema.claims.userId, allUserIds));
+    await db
+      .delete(dbSchema.claims)
+      .where(
+        or(
+          inArray(dbSchema.claims.userId, allUserIds),
+          inArray(dbSchema.claims.staffId, allUserIds),
+          inArray(dbSchema.claims.assignedById, allUserIds),
+          inArray(dbSchema.claims.agentId, allUserIds)
+        )
+      );
 
     // 2. Delete Accounts & Sessions
     await db.delete(dbSchema.account).where(inArray(dbSchema.account.userId, allUserIds));
