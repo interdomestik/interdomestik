@@ -130,7 +130,7 @@ should_autorebuild() {
 refresh_stamp_status() {
 	STAMP_STATUS_REASON=""
 	STAMP_GIT_SHA=""
-	CURRENT_GIT_SHA="$(git -C "${ROOT_DIR}" rev-parse HEAD 2>/dev/null || true)"
+	CURRENT_GIT_SHA="$(resolve_current_git_sha)"
 
 	if [[ ! -f "${STANDALONE_STAMP_FILE}" ]]; then
 		STAMP_STATUS_REASON="missing-stamp"
@@ -141,12 +141,34 @@ refresh_stamp_status() {
 		node -e "const fs=require('node:fs');const stamp=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(stamp.gitSha ?? '');" "${STANDALONE_STAMP_FILE}" 2>/dev/null || true
 	)"
 
-	if [[ -z "${CURRENT_GIT_SHA}" || -z "${STAMP_GIT_SHA}" || "${CURRENT_GIT_SHA}" != "${STAMP_GIT_SHA}" ]]; then
+	if [[ -z "${STAMP_GIT_SHA}" ]]; then
+		STAMP_STATUS_REASON="stale-stamp"
+		return 1
+	fi
+
+	if [[ "${CURRENT_GIT_SHA}" != "unknown" && "${STAMP_GIT_SHA}" != "unknown" && "${CURRENT_GIT_SHA}" != "${STAMP_GIT_SHA}" ]]; then
 		STAMP_STATUS_REASON="stale-stamp"
 		return 1
 	fi
 
 	return 0
+}
+
+resolve_current_git_sha() {
+	local gitSha
+	gitSha="$(git -C "${ROOT_DIR}" rev-parse HEAD 2>/dev/null || true)"
+	if [[ -n "${gitSha}" ]]; then
+		printf '%s' "${gitSha}"
+		return 0
+	fi
+
+	local envSha="${GITHUB_SHA:-${VERCEL_GIT_COMMIT_SHA:-${SOURCE_COMMIT:-${COMMIT_SHA:-}}}}"
+	if [[ -n "${envSha}" ]]; then
+		printf '%s' "${envSha}"
+		return 0
+	fi
+
+	printf '%s' "unknown"
 }
 
 rebuild_standalone_once() {
