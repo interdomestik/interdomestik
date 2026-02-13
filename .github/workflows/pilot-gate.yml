@@ -52,6 +52,7 @@ jobs:
       RELEASE_GATE_ADMIN_MK_PASSWORD: GoldenPass123!
       RELEASE_GATE_MK_USER_URL: ''
       RELEASE_GATE_TARGET_USER_URL: /admin/users/golden_mk_admin?tenantId=tenant_mk
+      RELEASE_GATE_REQUIRE_ROLE_PANEL: 'false'
       STAFF_CLAIM_URL: ''
       RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL: 'false'
     steps:
