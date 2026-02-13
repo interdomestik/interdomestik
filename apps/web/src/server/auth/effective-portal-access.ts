@@ -73,7 +73,9 @@ export async function requireEffectivePortalAccessOrNotFound(
     const allowed = await hasEffectivePortalAccess(session, allowedRoles, options);
     if (!allowed) notFound();
   } catch (error) {
-    console.error('[PortalAccess] Authorization check failed:', error);
+    // Access failures are an expected control-flow path (and the caller intentionally returns notFound()).
+    // Logging as error pollutes production error logs and breaks pilot log gates.
+    console.warn('[PortalAccess] Authorization check failed:', error);
     notFound();
   }
 }
