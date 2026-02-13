@@ -516,6 +516,16 @@ async function runP03AndP04(browser, runCtx) {
 
     const resolvedTarget = await ensureRolePanelLoaded(targetUrl);
     if (!resolvedTarget) {
+      const requireRolePanel = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL !== 'false';
+      if (!requireRolePanel) {
+        const reason = `role_panel_unavailable target=${targetUrl} (RELEASE_GATE_REQUIRE_ROLE_PANEL=false)`;
+        evidenceP03.push(reason);
+        evidenceP04.push(reason);
+        return [
+          checkResult('P0.3', 'SKIPPED', evidenceP03, []),
+          checkResult('P0.4', 'SKIPPED', evidenceP04, []),
+        ];
+      }
       failuresP03.push(`P0.3_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
       failuresP04.push(`P0.4_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
       return [
