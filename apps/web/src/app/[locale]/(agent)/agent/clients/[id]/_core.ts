@@ -7,6 +7,7 @@ import {
   userNotificationPreferences,
   user as userTable,
 } from '@interdomestik/database/schema';
+import { getAgentMemberDetail } from '@interdomestik/domain-agent';
 import { and, count, desc, eq } from 'drizzle-orm';
 
 const RECENT_CLAIMS_LIMIT = 6;
@@ -49,7 +50,7 @@ export type AgentClientProfileResult =
 
 export async function getAgentClientProfileCore(args: {
   memberId: string;
-  viewer: { id: string; role?: string | null };
+  viewer: { id: string; role?: string | null; tenantId?: string | null };
 }): Promise<AgentClientProfileResult> {
   const { memberId, viewer } = args;
 
@@ -73,7 +74,22 @@ export async function getAgentClientProfileCore(args: {
       .limit(1);
 
     if (assignments.length === 0) {
-      return { kind: 'forbidden' };
+      // Auth widening (Phase C pilot):
+      // Allow if the member is assigned to the agent via domain-agent assignment rules.
+      // Do not re-implement assignment logic in web.
+      if (!viewer.tenantId) {
+        return { kind: 'forbidden' };
+      }
+
+      const assignment = await getAgentMemberDetail({
+        agentId: viewer.id,
+        tenantId: viewer.tenantId,
+        memberId: member.id,
+      });
+
+      if (!assignment) {
+        return { kind: 'forbidden' };
+      }
     }
   }
 

@@ -23,13 +23,18 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
     return notFound();
   }
 
+  const role = (session.user as { role?: string | null }).role;
+  if (role !== 'agent') {
+    return notFound();
+  }
+
   const t = await getTranslations('agent-members.members.profile');
   const tCommon = await getTranslations('common');
   const tClaims = await getTranslations('claims');
 
   const result = await getAgentClientProfileCore({
     memberId: id,
-    viewer: { id: session.user.id, role: (session.user as { role?: string | null }).role },
+    viewer: { id: session.user.id, role, tenantId: session.user.tenantId },
   });
 
   if (result.kind !== 'ok') {
@@ -42,7 +47,7 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
   const translationProps = { t, tCommon, tClaims };
 
   return (
-    <div className="space-y-8">
+    <section data-testid="agent-member-detail-ready" className="space-y-8">
       <MemberHeader member={member} membership={membership} {...translationProps} />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -71,6 +76,6 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
 
       {/* Member Notes Section */}
       <MemberNotesCard memberId={member.id} memberName={member.name || t('labels.unknown')} />
-    </div>
+    </section>
   );
 }
