@@ -5,8 +5,8 @@ Generated (UTC): 2026-02-13T18:13:51Z
 ## Environment
 
 - Alias URL: https://interdomestik-web.vercel.app
-- Deployment ID: dpl_HEpjHNZdHz8YWjSpd7WKtpRVrdZL
-- Deployment URL: https://interdomestik-ehjwctxjg-ecohub.vercel.app
+- Deployment ID: dpl_2oEiHSbsg9RbQrkmCMbRAqb6LtWG
+- Deployment URL: https://interdomestik-88xscc5sc-ecohub.vercel.app
 - Evidence bundle dirs:
   - Bundle A: `tmp/pilot-evidence/p2/20260213-180344/`
   - Bundle B: `tmp/pilot-evidence/p2/20260213-175139/`
@@ -105,13 +105,14 @@ Tainted (do not use): `member.ks.a1@interdomestik.com`
 
 ### Status
 
-**PARTIAL** (Staff self-assign confirmed; Admin assign + persistence still needs manual confirmation screenshots in production after deploy).
+**PASS** (Admin assigned claim in Ops Center; persistence captured via updated Ops header.)
 
 ### Evidence Table
 
 | URL                                                                          | Expected                          | Actual                                    | Proof                                                                                                      |
 | ---------------------------------------------------------------------------- | --------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `https://interdomestik-web.vercel.app/en/staff/claims/pJa_mHrqdX_idSuJOtVcB` | "Assign to me" works and persists | Action available; status update succeeded | `tmp/pilot-evidence/p2/20260213-175139/screens/p23-staff-after-status-update-2026-02-13T18-04-43-890Z.png` |
+| `https://interdomestik-web.vercel.app/en/admin/claims/pJa_mHrqdX_idSuJOtVcB` | Admin can assign owner            | Assigned to Arber Krasniqi                | `tmp/pilot-evidence/p2/20260213-184125/screens/p22-admin-claim-after-assign-2026-02-13T18-57-25-008Z.png`  |
 
 ## P2.3 Staff Updates Claim Status/Note; Member Sees Update
 
@@ -163,3 +164,18 @@ Tainted (do not use): `member.ks.a1@interdomestik.com`
 2. i18n missing message error on member claim timeline rendering
 
 Both are fixed in this branch with unit tests; re-run P2 log gates after deployment.
+
+## Post-Deploy Verification (After PR Merge)
+
+Production alias was redeployed from merged `main` and now points to:
+
+- Alias: `https://interdomestik-web.vercel.app`
+- Deployment ID: `dpl_2oEiHSbsg9RbQrkmCMbRAqb6LtWG`
+- Deployment URL: `https://interdomestik-88xscc5sc-ecohub.vercel.app`
+- Probe evidence dir: `tmp/pilot-evidence/p2/20260213-184125/`
+
+Post-deploy probes executed:
+
+- Member claim detail loads and timeline renders: `tmp/pilot-evidence/p2/20260213-184125/screens/postdeploy-member-claim-2026-02-13T18-54-20-396Z.png`
+- Authenticated document download returns PDF headers and PDF magic bytes: `tmp/pilot-evidence/p2/20260213-184125/network/postdeploy-doc-download-headers-2026-02-13T18-54-21-624Z.json`
+- Log gate after probes: `tmp/pilot-evidence/p2/20260213-184125/logs/vercel_logs_errors_30m_after_postdeploy_probe.jsonl` (0 errors)
