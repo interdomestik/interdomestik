@@ -40,6 +40,13 @@ export async function cleanupByPrefixes(
         .delete(dbSchema.claimTrackingTokens)
         .where(inArray(dbSchema.claimTrackingTokens.claimId, allClaimIds));
     }
+    // Manual cascade: claim_threads has FK -> claim with ON DELETE NO ACTION.
+    // If threads exist for a claim, deleting the claim without deleting threads will fail.
+    if (dbSchema.claimThreads) {
+      await db
+        .delete(dbSchema.claimThreads)
+        .where(inArray(dbSchema.claimThreads.claimId, allClaimIds));
+    }
     await db
       .delete(dbSchema.claimDocuments)
       .where(inArray(dbSchema.claimDocuments.claimId, allClaimIds));
@@ -156,6 +163,10 @@ export async function cleanupByPrefixes(
         await db
           .delete(dbSchema.claimTrackingTokens)
           .where(inArray(dbSchema.claimTrackingTokens.claimId, cIds));
+      }
+      // Manual cascade: claim_threads has FK -> claim with ON DELETE NO ACTION.
+      if (dbSchema.claimThreads) {
+        await db.delete(dbSchema.claimThreads).where(inArray(dbSchema.claimThreads.claimId, cIds));
       }
       await db
         .delete(dbSchema.claimDocuments)
