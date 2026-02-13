@@ -8,8 +8,9 @@ Generated (UTC): 2026-02-13T18:13:51Z
 - Deployment ID: dpl_HEpjHNZdHz8YWjSpd7WKtpRVrdZL
 - Deployment URL: https://interdomestik-ehjwctxjg-ecohub.vercel.app
 - Evidence bundle dirs:
-  - Prior bundle: `tmp/pilot-evidence/p2/20260213-180344/`
-  - Current bundle: `tmp/pilot-evidence/p2/20260213-175139/`
+  - Bundle A: `tmp/pilot-evidence/p2/20260213-180344/`
+  - Bundle B: `tmp/pilot-evidence/p2/20260213-175139/`
+  - Note: bundle timestamps were created using different clock sources (local vs UTC) during capture; treat them as IDs, not strict ordering.
 
 ## Accounts Used (Masked)
 

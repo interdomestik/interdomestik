@@ -11,15 +11,19 @@ import { registerMemberCore } from './agent/register-member';
 import { updateLeadStatusCore } from './agent/update-lead-status';
 
 function resolveLocaleFromReferer(referer: string | null): string {
-  if (!referer) return 'en';
+  // Keep in sync with apps/web/src/i18n/routing.ts (localePrefix: 'always').
+  const defaultLocale = 'sq';
+  const locales = ['sq', 'en', 'sr', 'mk'] as const;
+
+  if (!referer) return defaultLocale;
   try {
     const url = new URL(referer);
     const first = url.pathname.split('/').find(Boolean);
-    if (first && ['sq', 'en', 'sr', 'mk'].includes(first)) return first;
+    if (first && (locales as readonly string[]).includes(first)) return first;
   } catch {
     // ignore
   }
-  return 'en';
+  return defaultLocale;
 }
 
 export async function createLead(prevState: unknown, formData: FormData) {
@@ -60,8 +64,9 @@ export async function updateLeadStatus(leadId: string, stage: string) {
     return result;
   }
 
-  revalidatePath(`/agent/leads/${leadId}`);
-  revalidatePath('/agent/leads');
+  const locale = resolveLocaleFromReferer((await headers()).get('referer'));
+  revalidatePath(`/${locale}/agent/leads/${leadId}`);
+  revalidatePath(`/${locale}/agent/leads`);
   return result;
 }
 
@@ -76,7 +81,8 @@ export async function logActivity(leadId: string, type: string, summary: string)
     return result;
   }
 
-  revalidatePath(`/agent/leads/${leadId}`);
+  const locale = resolveLocaleFromReferer((await headers()).get('referer'));
+  revalidatePath(`/${locale}/agent/leads/${leadId}`);
   return result;
 }
 
