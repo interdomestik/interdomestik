@@ -5,6 +5,7 @@ import path from 'node:path';
 
 const DRIZZLE_DIR = path.resolve(process.cwd(), 'packages/database/drizzle');
 const JOURNAL_PATH = path.join(DRIZZLE_DIR, 'meta', '_journal.json');
+const MIGRATION_FILE_PATTERN = /^\d{4}_.+\.sql$/;
 
 // Baseline exceptions currently present on main. Keep this list short and temporary.
 const LEGACY_ORPHAN_ALLOWLIST = new Set([
@@ -64,7 +65,10 @@ if (invalidEntries.length > 0) {
 
 const journalSql = new Set(journal.entries.map(entry => `${entry.tag.trim()}.sql`));
 
-const sqlFiles = fs.readdirSync(DRIZZLE_DIR).filter(name => name.endsWith('.sql')).sort();
+const sqlFiles = fs
+  .readdirSync(DRIZZLE_DIR)
+  .filter(name => MIGRATION_FILE_PATTERN.test(name))
+  .sort();
 
 const missingFromDisk = [...journalSql].filter(file => !sqlFiles.includes(file)).sort();
 const orphanedAll = sqlFiles.filter(file => !journalSql.has(file)).sort();
@@ -80,6 +84,7 @@ if (missingFromDisk.length > 0) {
       ...missingFromDisk.map(file => `  - ${file}`),
       '',
       'Regenerate migrations or repair packages/database/drizzle/meta/_journal.json.',
+      'Recommended: pnpm --filter @interdomestik/database generate --name <migration_name>',
     ].join('\n')
   );
 }
@@ -91,6 +96,8 @@ if (orphanedUnexpected.length > 0) {
       ...orphanedUnexpected.map(file => `  - ${file}`),
       '',
       'Use drizzle-kit generate so new migrations are tracked in _journal.json.',
+      'Recommended: pnpm --filter @interdomestik/database generate --name <migration_name>',
+      'Never drop raw migration SQL into packages/database/drizzle without journal entries.',
       'If this is a sanctioned legacy exception, add it to LEGACY_ORPHAN_ALLOWLIST in scripts/check-drizzle-migration-journal.mjs.',
     ].join('\n')
   );
