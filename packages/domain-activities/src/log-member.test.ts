@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { logActivityCore } from './log-member';
 
 const mocks = vi.hoisted(() => ({
+  execute: vi.fn(),
   findMember: vi.fn(),
   insert: vi.fn(),
   values: vi.fn(),
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   db: {
+    execute: (...args: unknown[]) => mocks.execute(...args),
     query: {
       user: {
         findFirst: mocks.findMember,
@@ -40,6 +42,7 @@ describe('logActivityCore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.execute.mockResolvedValue([{ regclass: 'member_activities' }]);
     mocks.insert.mockReturnValue({ values: mocks.values });
     mocks.findMember.mockResolvedValue({
       id: 'member-1',
