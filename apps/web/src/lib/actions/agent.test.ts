@@ -1,8 +1,16 @@
-import { auth } from '@/lib/auth';
 import { db } from '@interdomestik/database/db';
 import { redirect } from 'next/navigation';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createLead, logActivity, updateLeadStatus } from './agent';
+import { createLead, logActivity, registerMember, updateLeadStatus } from './agent';
+import { getAgentSession } from './agent/context';
+
+vi.mock('./agent/context', () => ({
+  getAgentSession: vi.fn(),
+}));
+
+vi.mock('./agent/register-member', () => ({
+  registerMemberCore: vi.fn(),
+}));
 
 vi.mock('@interdomestik/database/db', () => ({
   db: {
@@ -24,14 +32,6 @@ vi.mock('@interdomestik/database/schema', () => ({
   crmActivities: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
 }));
 
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: vi.fn(),
-    },
-  },
-}));
-
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
@@ -41,7 +41,10 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next/headers', () => ({
-  headers: vi.fn().mockResolvedValue({}),
+  headers: vi.fn().mockResolvedValue({
+    get: (key: string) =>
+      key.toLowerCase() === 'referer' ? 'https://example.test/en/agent/clients/new' : null,
+  }),
 }));
 
 vi.mock('nanoid', async importOriginal => {
@@ -60,7 +63,7 @@ describe('agent actions', () => {
 
   describe('createLead', () => {
     it('should create lead if valid', async () => {
-      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
       });
 
@@ -78,17 +81,17 @@ describe('agent actions', () => {
       }
 
       expect(db.insert).toHaveBeenCalled();
-      expect(redirect).toHaveBeenCalledWith('/agent/leads');
+      expect(redirect).toHaveBeenCalledWith('/en/agent/leads');
     });
 
     it('should return error if unauthorized', async () => {
-      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       const result = await createLead(null, new FormData());
       expect(result).toEqual({ error: 'Unauthorized', fields: undefined });
     });
 
     it('should return validation error if fields missing', async () => {
-      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: { id: 'agent1', role: 'agent', tenantId: 'tenant_mk' },
       });
       const formData = new FormData();
@@ -101,7 +104,7 @@ describe('agent actions', () => {
 
   describe('updateLeadStatus', () => {
     it('should update status if owned by agent', async () => {
-      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: { id: 'agent1', role: 'agent' },
       });
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -115,7 +118,7 @@ describe('agent actions', () => {
     });
 
     it('should fail if not owner', async () => {
-      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: { id: 'agent1', role: 'agent' },
       });
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -130,7 +133,7 @@ describe('agent actions', () => {
 
   describe('logActivity', () => {
     it('should log activity', async () => {
-      (auth.api.getSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: { id: 'agent1', role: 'agent' },
       });
       (db.query.crmLeads.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -141,6 +144,31 @@ describe('agent actions', () => {
       const result = await logActivity('lead1', 'call', 'Called user');
       expect(result).toEqual({ success: true });
       expect(db.insert).toHaveBeenCalled();
+    });
+  });
+
+  describe('registerMember', () => {
+    it('should redirect to agent clients after registering member (locale-aware redirect wrapper)', async () => {
+      const { getAgentSession } = await import('./agent/context');
+      const { registerMemberCore } = await import('./agent/register-member');
+
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', name: 'Agent', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
+      });
+
+      (registerMemberCore as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true });
+
+      const formData = new FormData();
+      formData.set('fullName', 'P2-A-2026-02-13');
+      formData.set('email', 'p2-a@example.test');
+      formData.set('phone', '+38344111222');
+      formData.set('password', 'GoldenPass123!');
+      formData.set('planId', 'standard');
+
+      const result = await registerMember(null, formData);
+
+      expect(result).toBeUndefined();
+      expect(redirect).toHaveBeenCalledWith('/en/agent/clients');
     });
   });
 });

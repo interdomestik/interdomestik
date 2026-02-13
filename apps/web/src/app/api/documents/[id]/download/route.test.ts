@@ -122,6 +122,7 @@ describe('GET /api/documents/[id]/download', () => {
     expect(data).toEqual({ error: 'Forbidden' });
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
+        tenantId: 'tenant_mk',
         action: 'document.forbidden',
         entityType: 'claim_document',
         entityId: 'doc-1',
@@ -167,6 +168,7 @@ describe('GET /api/documents/[id]/download', () => {
 
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
+        tenantId: 'tenant_mk',
         action: 'document.download',
         entityType: 'claim_document',
         entityId: 'doc-1',
@@ -207,6 +209,7 @@ describe('GET /api/documents/[id]/download', () => {
 
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
+        tenantId: 'tenant_mk',
         action: 'document.view',
         entityType: 'claim_document',
         entityId: 'doc-1',

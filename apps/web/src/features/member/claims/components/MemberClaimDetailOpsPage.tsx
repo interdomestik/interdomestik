@@ -20,11 +20,16 @@ interface MemberClaimDetailOpsPageProps {
 
 export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProps) {
   const t = useTranslations('claims');
+  const tTrackingStatus = useTranslations('claims-tracking.status');
 
   // Transform events and translate titles
   const opsEvents = toOpsTimelineEvents(claim.timeline).map(e => ({
     ...e,
-    title: t(e.title), // Translate the labelKey
+    // claim.timeline labelKey is a fully qualified key (e.g. "claims-tracking.status.evaluation").
+    // Translating it within the "claims" namespace causes missing-message errors in production.
+    title: e.title.startsWith('claims-tracking.status.')
+      ? tTrackingStatus(e.title.replace('claims-tracking.status.', ''))
+      : e.title,
   }));
 
   const opsDocuments = toOpsDocuments(claim.documents);

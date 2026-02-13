@@ -197,4 +197,17 @@ describe('AdminUserRolesPanel', () => {
       expect(rbacMocks.grantUserRole).not.toHaveBeenCalled();
     });
   });
+
+  it('offers staff as a grantable role option', async () => {
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+
+    await waitFor(() => {
+      expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByTestId('role-select-trigger'));
+
+    // Contract: staff role must be grantable/revokable for P2.5.
+    expect(screen.getByTestId('role-option-staff')).toBeInTheDocument();
+  });
 });
