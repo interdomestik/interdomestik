@@ -2,8 +2,21 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
-const DRIZZLE_DIR = path.resolve(process.cwd(), 'packages/database/drizzle');
+function resolveRepoRoot() {
+  const git = spawnSync('git', ['rev-parse', '--show-toplevel'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+  });
+  if (git.status === 0 && git.stdout.trim()) {
+    return git.stdout.trim();
+  }
+  return process.cwd();
+}
+
+const REPO_ROOT = resolveRepoRoot();
+const DRIZZLE_DIR = path.resolve(REPO_ROOT, 'packages/database/drizzle');
 const JOURNAL_PATH = path.join(DRIZZLE_DIR, 'meta', '_journal.json');
 const MIGRATION_FILE_PATTERN = /^\d{4}_.+\.sql$/;
 
