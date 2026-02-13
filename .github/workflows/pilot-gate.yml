@@ -46,7 +46,7 @@ jobs:
       RELEASE_GATE_AGENT_PASSWORD: GoldenPass123!
       RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
       RELEASE_GATE_STAFF_PASSWORD: GoldenPass123!
-      RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com
+      RELEASE_GATE_ADMIN_KS_EMAIL: super@interdomestik.com
       RELEASE_GATE_ADMIN_KS_PASSWORD: GoldenPass123!
       RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@interdomestik.com
       RELEASE_GATE_ADMIN_MK_PASSWORD: GoldenPass123!
@@ -116,7 +116,7 @@ jobs:
           exit 1
 
       - name: Run pilot gate
-        run: pnpm -s release:gate:prod:raw --baseUrl http://127.0.0.1:3000
+        run: pnpm -s release:gate:p0:raw --baseUrl http://127.0.0.1:3000
 
       - name: Stop web server
         if: always()
