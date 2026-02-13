@@ -13,6 +13,7 @@ import {
   ROLE_BRANCH_MANAGER,
   ROLE_MEMBER,
   ROLE_PROMOTER,
+  ROLE_STAFF,
   ROLE_TENANT_ADMIN,
 } from '@/lib/roles.core';
 import { isBranchRequiredRole } from '@interdomestik/domain-users/admin/role-rules';
@@ -51,6 +52,7 @@ type UserRoleRow = {
 
 const DEFAULT_ROLE_OPTIONS = [
   ROLE_TENANT_ADMIN,
+  ROLE_STAFF,
   ROLE_BRANCH_MANAGER,
   ROLE_AGENT,
   ROLE_MEMBER,
