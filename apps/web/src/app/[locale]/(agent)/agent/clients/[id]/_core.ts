@@ -61,11 +61,18 @@ export async function getAgentClientProfileCore(args: {
   }
 
   if (viewer.role === 'agent') {
+    // Tenant scoping is required for agent authorization checks.
+    // This loader is shared across multiple entry points (clients + members detail).
+    if (!viewer.tenantId) {
+      return { kind: 'forbidden' };
+    }
+
     const assignments = await db
       .select()
       .from(agentClients)
       .where(
         and(
+          eq(agentClients.tenantId, viewer.tenantId),
           eq(agentClients.agentId, viewer.id),
           eq(agentClients.memberId, member.id),
           eq(agentClients.status, 'active')
@@ -77,15 +84,18 @@ export async function getAgentClientProfileCore(args: {
       // Auth widening (Phase C pilot):
       // Allow if the member is assigned to the agent via domain-agent assignment rules.
       // Do not re-implement assignment logic in web.
-      if (!viewer.tenantId) {
-        return { kind: 'forbidden' };
+      let assignment: unknown = null;
+      try {
+        assignment = await getAgentMemberDetail({
+          agentId: viewer.id,
+          tenantId: viewer.tenantId,
+          memberId: member.id,
+        });
+      } catch {
+        // Defensive: domain-agent should return null for non-assigned, but never let a throw
+        // turn into a 500 from the shared loader.
+        assignment = null;
       }
-
-      const assignment = await getAgentMemberDetail({
-        agentId: viewer.id,
-        tenantId: viewer.tenantId,
-        memberId: member.id,
-      });
 
       if (!assignment) {
         return { kind: 'forbidden' };

@@ -28,6 +28,11 @@ export async function AgentClientDetailV2Page({ id, locale }: { id: string; loca
     return notFound();
   }
 
+  // Auth widening relies on tenantId as input to domain-agent assignment checks.
+  if (!session.user.tenantId) {
+    return notFound();
+  }
+
   const t = await getTranslations('agent-members.members.profile');
   const tCommon = await getTranslations('common');
   const tClaims = await getTranslations('claims');

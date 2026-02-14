@@ -37,7 +37,8 @@ export async function getAgentMemberDetail(params: {
     where: and(
       eq(agentClients.tenantId, tenantId),
       eq(agentClients.agentId, agentId),
-      eq(agentClients.memberId, memberId)
+      eq(agentClients.memberId, memberId),
+      eq(agentClients.status, 'active')
     ),
     columns: { id: true },
     with: {
