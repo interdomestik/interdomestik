@@ -20,7 +20,7 @@ interface RecentClaimsCardProps {
 export function RecentClaimsCard({ recentClaims, t, tClaims }: RecentClaimsCardProps) {
   if (!tClaims) return null;
   return (
-    <Card>
+    <Card data-testid="agent-member-detail-claims">
       <CardHeader>
         <CardTitle className="text-sm font-medium">{t('sections.recent_claims')}</CardTitle>
       </CardHeader>
@@ -43,7 +43,7 @@ export function RecentClaimsCard({ recentClaims, t, tClaims }: RecentClaimsCardP
               {recentClaims.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={1} className="h-24 text-center text-muted-foreground">
-                    {t('labels.no_claims')}
+                    <span data-testid="agent-member-detail-no-claims">{t('labels.no_claims')}</span>
                   </TableCell>
                 </TableRow>
               )}

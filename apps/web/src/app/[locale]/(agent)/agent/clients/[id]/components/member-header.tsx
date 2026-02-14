@@ -40,7 +40,9 @@ export function MemberHeader({ member, membership, t, tCommon }: MemberHeaderPro
             </Avatar>
             <div>
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-semibold">{member.name || t('labels.unknown')}</h1>
+                <h1 data-testid="agent-member-detail-header" className="text-2xl font-semibold">
+                  {member.name || t('labels.unknown')}
+                </h1>
                 <Badge variant="outline">{getRoleLabel(tCommon, member.role)}</Badge>
                 <Badge className={membershipBadgeClass} variant="outline">
                   {t(`status.${membershipStatus}`)}

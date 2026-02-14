@@ -6,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
   prefsFindFirst: vi.fn(),
   memberActivitiesFindMany: vi.fn(),
   dbSelect: vi.fn(),
+  getAgentMemberDetail: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database/db', () => ({
@@ -25,6 +26,7 @@ vi.mock('@interdomestik/database/schema', () => ({
   subscriptions: { userId: 'subscriptions.userId', createdAt: 'subscriptions.createdAt' },
   userNotificationPreferences: { userId: 'prefs.userId' },
   agentClients: {
+    tenantId: 'agentClients.tenantId',
     agentId: 'agentClients.agentId',
     memberId: 'agentClients.memberId',
     status: 'agentClients.status',
@@ -48,6 +50,10 @@ vi.mock('drizzle-orm', () => ({
   count: vi.fn(() => ({ kind: 'count' })),
 }));
 
+vi.mock('@interdomestik/domain-agent', () => ({
+  getAgentMemberDetail: hoisted.getAgentMemberDetail,
+}));
+
 import { getAgentClientProfileCore } from './_core';
 
 function createSelectChain(result: unknown) {
@@ -66,7 +72,7 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'v1', role: 'agent' },
+      viewer: { id: 'v1', role: 'agent', tenantId: 'tenant_ks' },
     });
 
     expect(res).toEqual({ kind: 'not_found' });
@@ -78,7 +84,57 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'agent-1', role: 'agent' },
+      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
+    });
+
+    expect(res).toEqual({ kind: 'forbidden' });
+  });
+
+  it('allows access when agent has no link but domain-agent assignment check succeeds', async () => {
+    hoisted.userFindFirst.mockResolvedValue({ id: 'm1', agentId: null, agent: null });
+
+    // No agentClients link.
+    hoisted.dbSelect
+      .mockReturnValueOnce(createSelectChain([]))
+      // claimCounts
+      .mockReturnValueOnce(createSelectChain([]))
+      // recentClaims
+      .mockReturnValueOnce(createSelectChain([]));
+
+    hoisted.getAgentMemberDetail.mockResolvedValue({ member: { id: 'm1' } });
+    hoisted.subscriptionsFindFirst.mockResolvedValue(null);
+    hoisted.prefsFindFirst.mockResolvedValue(null);
+    hoisted.memberActivitiesFindMany.mockResolvedValue([]);
+
+    const res = await getAgentClientProfileCore({
+      memberId: 'm1',
+      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
+    });
+
+    expect(res.kind).toBe('ok');
+  });
+
+  it('denies access when agent has no link and domain-agent assignment check fails', async () => {
+    hoisted.userFindFirst.mockResolvedValue({ id: 'm1', agentId: null, agent: null });
+    hoisted.dbSelect.mockReturnValueOnce(createSelectChain([]));
+    hoisted.getAgentMemberDetail.mockResolvedValue(null);
+
+    const res = await getAgentClientProfileCore({
+      memberId: 'm1',
+      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
+    });
+
+    expect(res).toEqual({ kind: 'forbidden' });
+  });
+
+  it('denies access when domain-agent assignment check throws', async () => {
+    hoisted.userFindFirst.mockResolvedValue({ id: 'm1', agentId: null, agent: null });
+    hoisted.dbSelect.mockReturnValueOnce(createSelectChain([]));
+    hoisted.getAgentMemberDetail.mockRejectedValue(new Error('boom'));
+
+    const res = await getAgentClientProfileCore({
+      memberId: 'm1',
+      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
     });
 
     expect(res).toEqual({ kind: 'forbidden' });
@@ -103,7 +159,7 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'agent-1', role: 'agent' },
+      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
     });
 
     if (res.kind !== 'ok') {
@@ -129,7 +185,7 @@ describe('getAgentClientProfileCore', () => {
 
     const res = await getAgentClientProfileCore({
       memberId: 'm1',
-      viewer: { id: 'agent-1', role: 'agent' },
+      viewer: { id: 'agent-1', role: 'agent', tenantId: 'tenant_ks' },
     });
 
     if (res.kind !== 'ok') {
