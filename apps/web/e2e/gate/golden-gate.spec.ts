@@ -16,6 +16,11 @@ const USERS = {
     password: E2E_PASSWORD,
     tenant: 'tenant_mk',
   },
+  BM_KS_A: {
+    email: E2E_USERS.KS_BRANCH_MANAGER.email,
+    password: E2E_PASSWORD,
+    tenant: 'tenant_ks',
+  },
   AGENT_MK_A1: { email: E2E_USERS.MK_AGENT.email, password: E2E_PASSWORD, tenant: 'tenant_mk' },
   MEMBER_MK_1: { email: E2E_USERS.MK_MEMBER.email, password: E2E_PASSWORD, tenant: 'tenant_mk' },
   MEMBER_KS_1: { email: E2E_USERS.KS_MEMBER.email, password: E2E_PASSWORD, tenant: 'tenant_ks' },
@@ -107,10 +112,12 @@ test.describe('Golden Gate: Critical Path', () => {
       await expect(page.getByText(SEEDED_DATA.CLAIM_MK_1.title)).not.toBeVisible();
     });
 
-    test('Branch Isolation: MK BM (Branch A) cannot see Branch B Claims', async ({
+    test('Branch Isolation: Branch A manager cannot see Branch B Claims', async ({
       page,
     }, testInfo) => {
-      await performLocalLogin(page, USERS.BM_MK_A, testInfo, 'admin');
+      const isMkProject = testInfo.project.name.includes('mk');
+      const branchManager = isMkProject ? USERS.BM_MK_A : USERS.BM_KS_A;
+      await performLocalLogin(page, branchManager, testInfo, 'admin');
 
       await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
         marker: 'admin-claims-v2-ready',
