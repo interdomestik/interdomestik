@@ -148,6 +148,7 @@ async function loginAs(page, params) {
   const { account, credentials, baseUrl, locale } = params;
   const origin = new URL(baseUrl).origin;
   const loginUrl = `${origin}/api/auth/sign-in/email`;
+  const tenantId = ACCOUNTS[account]?.tenantId;
 
   await page.context().clearCookies();
 
@@ -167,6 +168,7 @@ async function loginAs(page, params) {
           Origin: origin,
           Referer: `${origin}/${locale}/login`,
           'x-forwarded-for': ROLE_IPS[account] || ROLE_IPS.member,
+          ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
         },
       });
     } catch (networkError) {

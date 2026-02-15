@@ -11,12 +11,19 @@ const USERS = {
   TENANT_ADMIN_MK: { email: E2E_USERS.MK_ADMIN.email, password: E2E_PASSWORD, tenant: 'tenant_mk' },
   TENANT_ADMIN_KS: { email: E2E_USERS.KS_ADMIN.email, password: E2E_PASSWORD, tenant: 'tenant_ks' },
   STAFF_MK: { email: E2E_USERS.MK_STAFF.email, password: E2E_PASSWORD, tenant: 'tenant_mk' },
+  STAFF_KS: { email: E2E_USERS.KS_STAFF.email, password: E2E_PASSWORD, tenant: 'tenant_ks' },
   BM_MK_A: {
     email: E2E_USERS.MK_BRANCH_MANAGER.email,
     password: E2E_PASSWORD,
     tenant: 'tenant_mk',
   },
+  BM_KS_A: {
+    email: E2E_USERS.KS_BRANCH_MANAGER.email,
+    password: E2E_PASSWORD,
+    tenant: 'tenant_ks',
+  },
   AGENT_MK_A1: { email: E2E_USERS.MK_AGENT.email, password: E2E_PASSWORD, tenant: 'tenant_mk' },
+  AGENT_KS_A1: { email: E2E_USERS.KS_AGENT.email, password: E2E_PASSWORD, tenant: 'tenant_ks' },
   MEMBER_MK_1: { email: E2E_USERS.MK_MEMBER.email, password: E2E_PASSWORD, tenant: 'tenant_mk' },
   MEMBER_KS_1: { email: E2E_USERS.KS_MEMBER.email, password: E2E_PASSWORD, tenant: 'tenant_ks' },
 };
@@ -61,6 +68,10 @@ async function performLocalLogin(
   await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
 }
 
+function isMkProject(testInfo: import('@playwright/test').TestInfo): boolean {
+  return testInfo.project.name.includes('mk');
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // GATE TESTS - CRITICAL PATH ONLY
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -99,6 +110,7 @@ test.describe('Golden Gate: Critical Path', () => {
     });
 
     test('Tenant Isolation: KS Admin cannot see MK Claims', async ({ page }, testInfo) => {
+      test.skip(isMkProject(testInfo), 'KS-only tenant isolation check');
       await performLocalLogin(page, USERS.TENANT_ADMIN_KS, testInfo, 'admin');
 
       await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
@@ -107,10 +119,11 @@ test.describe('Golden Gate: Critical Path', () => {
       await expect(page.getByText(SEEDED_DATA.CLAIM_MK_1.title)).not.toBeVisible();
     });
 
-    test('Branch Isolation: MK BM (Branch A) cannot see Branch B Claims', async ({
+    test('Branch Isolation: Branch A manager cannot see Branch B Claims', async ({
       page,
     }, testInfo) => {
-      await performLocalLogin(page, USERS.BM_MK_A, testInfo, 'admin');
+      const branchManager = isMkProject(testInfo) ? USERS.BM_MK_A : USERS.BM_KS_A;
+      await performLocalLogin(page, branchManager, testInfo, 'admin');
 
       await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
         marker: 'admin-claims-v2-ready',
@@ -124,7 +137,8 @@ test.describe('Golden Gate: Critical Path', () => {
     });
 
     test('Staff (MK) can process claims but has restricted access', async ({ page }, testInfo) => {
-      await performLocalLogin(page, USERS.STAFF_MK, testInfo, 'staff');
+      const staffUser = isMkProject(testInfo) ? USERS.STAFF_MK : USERS.STAFF_KS;
+      await performLocalLogin(page, staffUser, testInfo, 'staff');
 
       // Navigate to Staff Claims
       await gotoApp(page, routes.staffClaims(testInfo), testInfo, { marker: 'page-title' });
@@ -138,7 +152,8 @@ test.describe('Golden Gate: Critical Path', () => {
     });
 
     test('Agent Scoping: Agent sees only assigned members claims', async ({ page }, testInfo) => {
-      await performLocalLogin(page, USERS.AGENT_MK_A1, testInfo, 'agent');
+      const agentUser = isMkProject(testInfo) ? USERS.AGENT_MK_A1 : USERS.AGENT_KS_A1;
+      await performLocalLogin(page, agentUser, testInfo, 'agent');
 
       // Navigate to agent dashboard
       await gotoApp(page, routes.agent(testInfo), testInfo, { marker: 'dashboard-page-ready' });
@@ -148,6 +163,7 @@ test.describe('Golden Gate: Critical Path', () => {
 
   test.describe('3. Admin Dashboards [smoke]', () => {
     test('Super Admin sees global stats', async ({ page }, testInfo) => {
+      test.skip(!isMkProject(testInfo), 'Super admin fixture is seeded under MK tenant only');
       await performLocalLogin(page, USERS.SUPER_ADMIN, testInfo, 'admin');
 
       await expect(page.getByRole('heading', { name: /Admin|Paneli/i }).first()).toBeVisible({
@@ -219,7 +235,8 @@ test.describe('Golden Gate: Critical Path', () => {
 
   test.describe('7. Claims V2 ', () => {
     test('Claims List: Loads V2 Dashboard style and filters tabs', async ({ page }, testInfo) => {
-      await performLocalLogin(page, USERS.TENANT_ADMIN_MK, testInfo, 'admin');
+      const tenantAdmin = isMkProject(testInfo) ? USERS.TENANT_ADMIN_MK : USERS.TENANT_ADMIN_KS;
+      await performLocalLogin(page, tenantAdmin, testInfo, 'admin');
 
       // Navigate to Claims List with explicit view=list
       await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {

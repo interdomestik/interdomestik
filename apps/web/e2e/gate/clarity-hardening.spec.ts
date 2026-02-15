@@ -10,7 +10,7 @@ async function performAgentLogin(
   const baseUrl = testInfo.project.use.baseURL?.toString() ?? '';
   const origin = new URL(baseUrl).origin;
   const loginURL = `${origin}/api/auth/sign-in/email`;
-  const agent = E2E_USERS.KS_AGENT;
+  const agent = testInfo.project.name.includes('mk') ? E2E_USERS.MK_AGENT : E2E_USERS.KS_AGENT;
 
   const res = await page.request.post(loginURL, {
     data: { email: agent.email, password: E2E_PASSWORD },
