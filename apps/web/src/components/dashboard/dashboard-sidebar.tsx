@@ -90,44 +90,40 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
             </SidebarGroup>
           )}
 
-          {/* Section 3: Personal Coverage (Claims, Docs) */}
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-4 mb-2">
-              {isAgent ? 'My Protection' : 'Membership'}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-1">
-                {/* For Agents, show all member items (Claims, etc). For Members, show rest. */}
-                {memberItems.slice(isAgent ? 0 : 1).map(item => {
-                  // Hide Member Claims for Agents to avoid confusion with Agent Claims
-                  if (isAgent && item.href === '/member/claims') return null;
+          {/* Section 3: Membership (Members only) */}
+          {!isAgent && (
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-4 mb-2">
+                Membership
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-1">
+                  {memberItems.slice(1).map(item => {
+                    const isExactMatch = pathname === item.href;
+                    const isParentRoute = pathname.startsWith(item.href + '/');
+                    const hasMoreSpecificMatch = memberItems.some(
+                      other =>
+                        other.href !== item.href &&
+                        other.href.startsWith(item.href + '/') &&
+                        pathname.startsWith(other.href)
+                    );
+                    const isActive = isExactMatch || (isParentRoute && !hasMoreSpecificMatch);
 
-                  // More precise active check: exact match OR startsWith but not a more specific route
-                  const isExactMatch = pathname === item.href;
-                  const isParentRoute = pathname.startsWith(item.href + '/');
-                  // Don't mark parent as active if we're on a child route that has its own nav item
-                  const hasMoreSpecificMatch = memberItems.some(
-                    other =>
-                      other.href !== item.href &&
-                      other.href.startsWith(item.href + '/') &&
-                      pathname.startsWith(other.href)
-                  );
-                  const isActive = isExactMatch || (isParentRoute && !hasMoreSpecificMatch);
-
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <NavItem
-                        href={item.href}
-                        title={item.title}
-                        icon={item.icon}
-                        isActive={isActive}
-                      />
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        <NavItem
+                          href={item.href}
+                          title={item.title}
+                          icon={item.icon}
+                          isActive={isActive}
+                        />
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
 
           {/* Section 4: Admin (If applicable) */}
           {adminItems.length > 0 && (

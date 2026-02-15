@@ -49,34 +49,57 @@ export function useDashboardNavigation(agentTier: string = 'standard') {
 
   const isAgent = role === 'agent';
 
-  // 1. Personal Membership Items (Always visible)
-  const memberItems = [
-    {
-      title: isAgent ? 'Member Hub' : t('overview'),
-      href: '/member',
-      icon: LayoutDashboard,
-    },
-    {
-      title: t('claims'),
-      href: '/member/claims',
-      icon: FileText,
-    },
-    {
-      title: t('documents'),
-      href: '/member/documents',
-      icon: FolderOpen,
-    },
-    {
-      title: t('newClaim'),
-      href: '/member/claims/new',
-      icon: FilePlus,
-    },
-    {
-      title: t('settings'),
-      href: '/member/settings',
-      icon: Settings,
-    },
-  ];
+  // 1. Personal Membership / Protection Items
+  const memberItems = isAgent
+    ? [
+        {
+          title: 'Member Hub',
+          href: '/agent/workspace',
+          icon: LayoutDashboard,
+        },
+        {
+          title: t('documents'),
+          href: '/agent/members',
+          icon: FolderOpen,
+        },
+        {
+          title: t('newClaim'),
+          href: '/agent/claims',
+          icon: FilePlus,
+        },
+        {
+          title: t('settings'),
+          href: '/agent/settings',
+          icon: Settings,
+        },
+      ]
+    : [
+        {
+          title: t('overview'),
+          href: '/member',
+          icon: LayoutDashboard,
+        },
+        {
+          title: t('claims'),
+          href: '/member/claims',
+          icon: FileText,
+        },
+        {
+          title: t('documents'),
+          href: '/member/documents',
+          icon: FolderOpen,
+        },
+        {
+          title: t('newClaim'),
+          href: '/member/claims/new',
+          icon: FilePlus,
+        },
+        {
+          title: t('settings'),
+          href: '/member/settings',
+          icon: Settings,
+        },
+      ];
 
   // 2. Agent Sales Items (Only for agents)
   const agentItems: { title: string; href: string; icon: IconType }[] = [];
