@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { loadTenantOptions } from './_core';
+import { getLoginTenantBootstrapRedirect, loadTenantOptions } from './_core';
 
 vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
@@ -28,5 +28,35 @@ describe('login core', () => {
     });
 
     expect(result).toEqual([]);
+  });
+
+  it('returns bootstrap redirect when query tenant is valid but context tenant is missing', () => {
+    const result = getLoginTenantBootstrapRedirect({
+      locale: 'sq',
+      tenantIdFromQuery: 'tenant_mk',
+      tenantIdFromContext: null,
+    });
+
+    expect(result).toBe('/sq/login/tenant-context?tenantId=tenant_mk&next=%2Fsq%2Flogin');
+  });
+
+  it('returns null when query tenant matches current context tenant', () => {
+    const result = getLoginTenantBootstrapRedirect({
+      locale: 'sq',
+      tenantIdFromQuery: 'tenant_mk',
+      tenantIdFromContext: 'tenant_mk',
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('returns null when query tenant is invalid', () => {
+    const result = getLoginTenantBootstrapRedirect({
+      locale: 'sq',
+      tenantIdFromQuery: 'invalid',
+      tenantIdFromContext: null,
+    });
+
+    expect(result).toBeNull();
   });
 });

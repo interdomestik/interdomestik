@@ -79,6 +79,7 @@ describe('POST /api/auth/[...all]', () => {
   it('logs audit event for password reset request (no PII)', async () => {
     const req = new Request('http://localhost:3000/api/auth/request-password-reset', {
       method: 'POST',
+      headers: { host: 'ks.localhost:3000' },
     });
 
     const res = await POST(req);
@@ -89,6 +90,7 @@ describe('POST /api/auth/[...all]', () => {
       expect.objectContaining({
         action: 'auth.password_reset_requested',
         entityType: 'auth',
+        tenantId: 'tenant_ks',
         metadata: { route: '/api/auth/request-password-reset' },
         headers: req.headers,
       })
