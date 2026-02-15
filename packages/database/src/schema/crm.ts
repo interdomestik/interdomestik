@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { tenants } from './tenants';
@@ -71,24 +71,39 @@ export const crmDeals = pgTable('crm_deals', {
   updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
 });
 
-export const memberActivities = pgTable('member_activities', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  agentId: text('agent_id')
-    .notNull()
-    .references(() => user.id),
-  memberId: text('member_id')
-    .notNull()
-    .references(() => user.id),
-  type: text('type').notNull(), // 'call', 'email', 'meeting', 'note', 'other'
-  subject: text('subject').notNull(),
-  description: text('description'),
-  occurredAt: timestamp('occurred_at').defaultNow(),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
-});
+export const memberActivities = pgTable(
+  'member_activities',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => user.id),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => user.id),
+    type: text('type').notNull(), // 'call', 'email', 'meeting', 'note', 'other'
+    subject: text('subject').notNull(),
+    description: text('description'),
+    occurredAt: timestamp('occurred_at').defaultNow(),
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').$onUpdate(() => new Date()),
+  },
+  table => [
+    index('member_activities_tenant_member_occurred_idx').on(
+      table.tenantId,
+      table.memberId,
+      table.occurredAt
+    ),
+    index('member_activities_tenant_agent_occurred_idx').on(
+      table.tenantId,
+      table.agentId,
+      table.occurredAt
+    ),
+  ]
+);
 
 // Legacy leads table
 export const leads = pgTable('leads', {
