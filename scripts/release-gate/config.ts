@@ -75,6 +75,7 @@ const ACCOUNTS = {
   member: {
     key: 'member',
     roleMarker: 'member',
+    tenantId: 'tenant_ks',
     emailVar: 'RELEASE_GATE_MEMBER_EMAIL',
     passwordVar: 'RELEASE_GATE_MEMBER_PASSWORD',
     label: 'Member-only',
@@ -82,6 +83,7 @@ const ACCOUNTS = {
   agent: {
     key: 'agent',
     roleMarker: 'agent',
+    tenantId: 'tenant_ks',
     emailVar: 'RELEASE_GATE_AGENT_EMAIL',
     passwordVar: 'RELEASE_GATE_AGENT_PASSWORD',
     label: 'Agent',
@@ -89,6 +91,7 @@ const ACCOUNTS = {
   staff: {
     key: 'staff',
     roleMarker: 'staff',
+    tenantId: 'tenant_ks',
     emailVar: 'RELEASE_GATE_STAFF_EMAIL',
     passwordVar: 'RELEASE_GATE_STAFF_PASSWORD',
     label: 'Staff',
@@ -96,6 +99,7 @@ const ACCOUNTS = {
   admin_ks: {
     key: 'admin_ks',
     roleMarker: 'admin',
+    tenantId: 'tenant_ks',
     emailVar: 'RELEASE_GATE_ADMIN_KS_EMAIL',
     passwordVar: 'RELEASE_GATE_ADMIN_KS_PASSWORD',
     label: 'Admin (KS)',
@@ -103,6 +107,7 @@ const ACCOUNTS = {
   admin_mk: {
     key: 'admin_mk',
     roleMarker: 'admin',
+    tenantId: 'tenant_mk',
     emailVar: 'RELEASE_GATE_ADMIN_MK_EMAIL',
     passwordVar: 'RELEASE_GATE_ADMIN_MK_PASSWORD',
     label: 'Admin (MK)',
