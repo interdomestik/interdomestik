@@ -135,8 +135,9 @@ describe('DashboardSidebar', () => {
     expect(screen.getByText('Workspace')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
     expect(screen.getByText('Help')).toBeInTheDocument();
-    // V3 Change: Agents see member items too
-    expect(screen.getByText('Documents')).toBeInTheDocument();
+    expect(screen.queryByText('My Protection')).not.toBeInTheDocument();
+    expect(screen.queryByText('Documents')).not.toBeInTheDocument();
+    expect(screen.queryByText('Overview')).not.toBeInTheDocument();
   });
 
   it('renders admin menu items for admin role', () => {

@@ -73,6 +73,29 @@ describe('useDashboardNavigation', () => {
     });
   });
 
+  it('maps agent protection links to agent routes only', async () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { role: 'agent' } },
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof authClient.useSession>);
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      const items = screen.getAllByTestId('nav-item');
+      const protectionTargets = ['Member Hub', 'documents', 'newClaim', 'settings'];
+      const selected = items.filter(item =>
+        protectionTargets.includes(item.getAttribute('data-title') || '')
+      );
+
+      expect(selected.length).toBe(4);
+      for (const item of selected) {
+        expect(item.getAttribute('data-href')?.startsWith('/agent/')).toBe(true);
+      }
+    });
+  });
+
   it('returns canonical admin dashboard link', async () => {
     mockUseSession.mockReturnValue({
       data: { user: { role: 'admin' } },
