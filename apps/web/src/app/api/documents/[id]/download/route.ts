@@ -33,6 +33,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Audit logs are tenant-scoped. Session should carry tenantId (via shared-auth).
+  const tenantId = (session.user as { tenantId?: string | null }).tenantId ?? null;
+
   const url = new URL(request.url);
   const dispositionParam = url.searchParams.get('disposition');
   const disposition: 'inline' | 'attachment' =
@@ -64,6 +67,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       await logAuditEvent({
         actorId: session.user.id,
         actorRole: session.user.role || null,
+        tenantId,
         action: 'document.forbidden',
         entityType: 'claim_document',
         entityId: id,
@@ -78,6 +82,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   await logAuditEvent({
     actorId: session.user.id,
     actorRole: access.audit.actorRole,
+    tenantId,
     action: access.audit.action as any,
     entityType: access.audit.entityType,
     entityId: access.audit.entityId,

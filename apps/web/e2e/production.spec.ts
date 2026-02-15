@@ -3,6 +3,7 @@ import { routes } from './routes';
 import { gotoApp } from './utils/navigation';
 // Credentials from seed script
 const MEMBER_KS = { email: 'member.ks.a1@interdomestik.com', password: 'GoldenPass123!' };
+const MEMBER_MK = { email: 'member.mk.1@interdomestik.com', password: 'GoldenPass123!' };
 const ADMIN_KS = { email: 'admin.ks@interdomestik.com', password: 'GoldenPass123!' };
 const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: 'GoldenPass123!' };
 
@@ -11,6 +12,10 @@ const ADMIN_MK = { email: 'admin.mk@interdomestik.com', password: 'GoldenPass123
 const RUN_ID = Date.now();
 function getClaimTitle(testInfo: TestInfo) {
   return `Auto Smoke ${testInfo.project.name} ${RUN_ID}`;
+}
+
+function isMkProject(testInfo: TestInfo): boolean {
+  return testInfo.project.name.includes('mk');
 }
 
 async function loginAs(
@@ -52,7 +57,10 @@ async function loginAs(
 test.describe.serial('@smoke Production Smoke Test Plan', () => {
   test.describe('Phase A: Authentication & Routing (Member) @smoke', () => {
     test('Member (KS) sees v3 dashboard without legacy claims list', async ({ page }, testInfo) => {
-      await loginAs(page, { ...MEMBER_KS, tenant: 'tenant_ks' }, testInfo);
+      const memberUser = isMkProject(testInfo)
+        ? { ...MEMBER_MK, tenant: 'tenant_mk' }
+        : { ...MEMBER_KS, tenant: 'tenant_ks' };
+      await loginAs(page, memberUser, testInfo);
 
       await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
       await expect(page.getByTestId('portal-surface-indicator')).toContainText(/Portal: Member/i);
@@ -73,7 +81,10 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       page.on('console', msg => console.log(`[Browser] ${msg.text()}`));
 
       // 1. Login
-      await loginAs(page, { ...MEMBER_KS, tenant: 'tenant_ks' }, testInfo);
+      const memberUser = isMkProject(testInfo)
+        ? { ...MEMBER_MK, tenant: 'tenant_mk' }
+        : { ...MEMBER_KS, tenant: 'tenant_ks' };
+      await loginAs(page, memberUser, testInfo);
 
       // 2. Verify Dashboard (Member lands on /member)
       await expect(page).toHaveURL(/\/member/);
@@ -127,7 +138,10 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
     test('Admin (KS) can find the newly created claim', async ({ page }, testInfo) => {
       const CLAIM_TITLE = getClaimTitle(testInfo);
       // Login Admin
-      await loginAs(page, { ...ADMIN_KS, tenant: 'tenant_ks' }, testInfo);
+      const adminUser = isMkProject(testInfo)
+        ? { ...ADMIN_MK, tenant: 'tenant_mk' }
+        : { ...ADMIN_KS, tenant: 'tenant_ks' };
+      await loginAs(page, adminUser, testInfo);
 
       // Navigate to claims list view explicitly to use filters
       await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
@@ -148,30 +162,37 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
 
   test.describe('Phase C: Manager & Isolation', () => {
     test('Admin (KS) can access dashboard metrics', async ({ page }, testInfo) => {
-      await loginAs(page, { ...ADMIN_KS, tenant: 'tenant_ks' }, testInfo);
+      const adminUser = isMkProject(testInfo)
+        ? { ...ADMIN_MK, tenant: 'tenant_mk' }
+        : { ...ADMIN_KS, tenant: 'tenant_ks' };
+      await loginAs(page, adminUser, testInfo);
 
       // Basic check that admin dashboard loaded
       await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
     });
 
     test('Admin (MK) CANNOT view KS claims (Isolation)', async ({ page }, testInfo) => {
-      const CLAIM_TITLE = getClaimTitle(testInfo);
-      await loginAs(page, { ...ADMIN_MK, tenant: 'tenant_mk' }, testInfo);
+      test.skip(
+        isMkProject(testInfo),
+        'Cross-tenant isolation assertion is only meaningful from KS project context'
+      );
+      const baseURL =
+        testInfo.project.use.baseURL || process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
+      const origin = new URL(baseURL).origin;
+      const loginURL = `${origin}/api/auth/sign-in/email`;
 
-      // Navigate to list view
-      await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
-        marker: 'admin-claims-v2-ready',
+      const res = await page.request.post(loginURL, {
+        data: { email: ADMIN_MK.email, password: ADMIN_MK.password },
+        headers: {
+          Origin: origin,
+          Referer: `${origin}/login`,
+        },
       });
 
-      // Readiness Check
-      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible({ timeout: 15000 });
-
-      // Search for the KS claim title
-      const searchInput = page.getByTestId('claims-search-input');
-      await searchInput.fill(CLAIM_TITLE);
-
-      // Should NOT see the claim (Cross Tenant)
-      await expect(page.getByText(CLAIM_TITLE)).not.toBeVisible({ timeout: 5000 });
+      expect(res.status()).toBe(401);
+      await expect
+        .poll(async () => await res.text(), { message: 'Expected tenant guard denial payload' })
+        .toContain('WRONG_TENANT_CONTEXT');
     });
   });
 

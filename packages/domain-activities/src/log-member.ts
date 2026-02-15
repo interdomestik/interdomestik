@@ -7,6 +7,18 @@ import type { ActionResult, ActivitySession } from './types';
 
 export type { LogActivityInput } from './schema';
 
+async function hasMemberActivitiesTable(): Promise<boolean> {
+  // Keep this check local to avoid importing extra helpers and to prevent noisy prod errors
+  // if the optional member_activities table hasn't been migrated yet.
+  try {
+    const rows = await db.execute(`SELECT to_regclass('public.member_activities') AS regclass`);
+    const first = rows[0] as unknown as { regclass?: string | null; to_regclass?: string | null };
+    return Boolean(first?.regclass ?? first?.to_regclass);
+  } catch {
+    return false;
+  }
+}
+
 export async function logActivityCore(params: {
   session: ActivitySession | null;
   data: LogActivityInput;
@@ -32,6 +44,10 @@ export async function logActivityCore(params: {
   const { memberId, type, subject, description } = result.data;
 
   try {
+    if (!(await hasMemberActivitiesTable())) {
+      return { success: false, error: 'Activity log unavailable' };
+    }
+
     const member = await db.query.user.findFirst({
       where: eq(user.id, memberId),
     });
@@ -61,7 +77,8 @@ export async function logActivityCore(params: {
 
     return { success: true, error: undefined };
   } catch (error) {
-    console.error('Failed to log activity:', error);
+    // Avoid polluting production error logs when optional activity capture isn't available.
+    console.warn('Failed to log activity:', error);
     return { success: false, error: 'Failed to log activity. Please try again.' };
   }
 }

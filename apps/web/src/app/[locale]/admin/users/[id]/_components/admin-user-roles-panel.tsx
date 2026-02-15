@@ -13,6 +13,7 @@ import {
   ROLE_BRANCH_MANAGER,
   ROLE_MEMBER,
   ROLE_PROMOTER,
+  ROLE_STAFF,
   ROLE_TENANT_ADMIN,
 } from '@/lib/roles.core';
 import { isBranchRequiredRole } from '@interdomestik/domain-users/admin/role-rules';
@@ -33,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@interdomestik/ui/components/select';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -51,6 +52,7 @@ type UserRoleRow = {
 
 const DEFAULT_ROLE_OPTIONS = [
   ROLE_TENANT_ADMIN,
+  ROLE_STAFF,
   ROLE_BRANCH_MANAGER,
   ROLE_AGENT,
   ROLE_MEMBER,
@@ -63,11 +65,15 @@ function formatBranchName(b: Branch | { name: string; code?: string | null }) {
   return `${b.name}${codeSuffix}`;
 }
 
-export function AdminUserRolesPanel({ userId }: { userId: string }) {
+export function AdminUserRolesPanel({
+  userId,
+  tenantId,
+}: {
+  userId: string;
+  tenantId: string | null;
+}) {
   const router = useRouter();
   const params = useParams<{ locale?: string | string[] }>();
-  const searchParams = useSearchParams();
-  const tenantId = searchParams.get('tenantId') ?? undefined;
   const hasTenantContext = Boolean(tenantId);
   const locale = Array.isArray(params?.locale) ? params.locale[0] : params?.locale;
 

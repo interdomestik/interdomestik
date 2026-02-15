@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
 const hoisted = vi.hoisted(() => ({
   getSession: vi.fn(),
   enforceRateLimit: vi.fn(),
+  storageFrom: vi.fn(),
   createSignedUploadUrl: vi.fn(),
   findClaimFirst: vi.fn(),
 }));
@@ -37,9 +38,7 @@ vi.mock('@interdomestik/database', () => ({
   },
   createAdminClient: () => ({
     storage: {
-      from: () => ({
-        createSignedUploadUrl: hoisted.createSignedUploadUrl,
-      }),
+      from: hoisted.storageFrom,
     },
   }),
 }));
@@ -48,11 +47,18 @@ describe('POST /api/uploads', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
+    hoisted.storageFrom.mockReturnValue({
+      createSignedUploadUrl: hoisted.createSignedUploadUrl,
+    });
     hoisted.createSignedUploadUrl.mockResolvedValue({
       data: { token: 'tok-1', signedUrl: 'https://signed.example.com/upload' },
       error: null,
     });
     hoisted.findClaimFirst.mockResolvedValue({ id: 'claim-1', userId: 'user-1' });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -180,6 +186,9 @@ describe('POST /api/uploads', () => {
   });
 
   it('returns 200 with signed upload details', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET', 'claim-evidence');
+
     hoisted.getSession.mockResolvedValue({
       user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
     });
@@ -212,6 +221,55 @@ describe('POST /api/uploads', () => {
     expect(data.upload.path).toContain(
       '/tenants/tenant_mk/claims/user-1/claim-1/evidence-123-My_File.pdf'
     );
+    expect(hoisted.storageFrom).toHaveBeenCalledWith('claim-evidence');
     expect(hoisted.createSignedUploadUrl).toHaveBeenCalled();
+  });
+
+  it('allows text files for claim evidence uploads', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
+
+    const req = new Request('http://localhost:3000/api/uploads', {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName: 'notes.txt',
+        fileType: 'text/plain',
+        fileSize: 120,
+        claimId: 'claim-1',
+      }),
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.upload.path).toContain('.txt');
+    expect(hoisted.createSignedUploadUrl).toHaveBeenCalled();
+  });
+
+  it('returns 500 when bucket is missing in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET', '');
+
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' },
+    });
+
+    const req = new Request('http://localhost:3000/api/uploads', {
+      method: 'POST',
+      body: JSON.stringify({
+        fileName: 'file.pdf',
+        fileType: 'application/pdf',
+        fileSize: 100,
+      }),
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data).toEqual({ error: 'Supabase evidence bucket is not configured' });
+    expect(hoisted.storageFrom).not.toHaveBeenCalled();
   });
 });

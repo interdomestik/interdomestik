@@ -28,10 +28,6 @@ vi.mock('next/navigation', () => ({
     refresh: navigationMocks.refresh,
   }),
   useParams: () => ({ locale: 'en' }),
-  useSearchParams: () => ({
-    get: (key: string) => (key === 'tenantId' ? navigationState.tenantId : null),
-    toString: () => (navigationState.tenantId ? `tenantId=${navigationState.tenantId}` : ''),
-  }),
 }));
 
 vi.mock('sonner', () => ({
@@ -59,7 +55,7 @@ describe('AdminUserRolesPanel', () => {
   });
 
   it('passes tenantId into listBranches and listUserRoles', async () => {
-    render(<AdminUserRolesPanel userId="user-1" />);
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
 
     await waitFor(() => {
       expect(rbacMocks.listBranches).toHaveBeenCalled();
@@ -85,13 +81,19 @@ describe('AdminUserRolesPanel', () => {
         data: [{ id: 'role-1', role: 'member', branchId: null }],
       });
 
-    const rendered = render(<AdminUserRolesPanel userId="user-1" />);
+    const rendered = render(
+      <AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />
+    );
 
     await waitFor(() => {
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(1);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Grant role' }));
+    const grantButton = screen.getByRole('button', { name: 'Grant role' });
+    await waitFor(() => {
+      expect(grantButton).toBeEnabled();
+    });
+    fireEvent.click(grantButton);
 
     await waitFor(() => {
       expect(rbacMocks.grantUserRole).toHaveBeenCalledWith({
@@ -107,22 +109,25 @@ describe('AdminUserRolesPanel', () => {
     });
 
     rendered.unmount();
-    render(<AdminUserRolesPanel userId="user-1" />);
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
     await waitFor(() => {
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(3);
       expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
     });
   });
 
-  it('shows remove action, revokes role, and refreshes router', async () => {
+  it('shows remove action, revokes role, and removal sticks after refresh', async () => {
     rbacMocks.listUserRoles
       .mockResolvedValueOnce({
         success: true,
         data: [{ id: 'role-1', role: 'agent', branchId: null }],
       })
+      .mockResolvedValueOnce({ success: true, data: [] })
       .mockResolvedValueOnce({ success: true, data: [] });
 
-    render(<AdminUserRolesPanel userId="user-1" />);
+    const rendered = render(
+      <AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />
+    );
 
     const removeButton = await screen.findByRole('button', { name: 'Remove' });
     fireEvent.click(removeButton);
@@ -139,12 +144,21 @@ describe('AdminUserRolesPanel', () => {
       expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
       expect(screen.getByText('No roles assigned')).toBeInTheDocument();
     });
+
+    rendered.unmount();
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+
+    await waitFor(() => {
+      expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(3);
+      expect(screen.getByText('No roles assigned')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument();
+    });
   });
 
   it('disables role actions and skips role mutations when tenantId is missing', async () => {
     navigationState.tenantId = null;
 
-    render(<AdminUserRolesPanel userId="user-1" />);
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
 
     expect(
       screen.getByText('Missing tenant context. Reopen this profile from the tenant user list.')
@@ -166,7 +180,7 @@ describe('AdminUserRolesPanel', () => {
   });
 
   it('disables grant when selected role requires branch and branch is tenant-wide', async () => {
-    render(<AdminUserRolesPanel userId="user-1" />);
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
 
     await waitFor(() => {
       expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(1);
@@ -182,5 +196,18 @@ describe('AdminUserRolesPanel', () => {
     await waitFor(() => {
       expect(rbacMocks.grantUserRole).not.toHaveBeenCalled();
     });
+  });
+
+  it('offers staff as a grantable role option', async () => {
+    render(<AdminUserRolesPanel userId="user-1" tenantId={navigationState.tenantId} />);
+
+    await waitFor(() => {
+      expect(rbacMocks.listUserRoles).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByTestId('role-select-trigger'));
+
+    // Contract: staff role must be grantable/revokable for P2.5.
+    expect(screen.getByTestId('role-option-staff')).toBeInTheDocument();
   });
 });

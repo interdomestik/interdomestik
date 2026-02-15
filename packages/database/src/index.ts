@@ -4,10 +4,10 @@ export * from './types';
 // Export client creators
 export { createClient } from './client';
 export { createAdminClient, createServerSupabaseClient } from './server';
-export { withTenantContext } from './tenant';
+export { withTenantContext, withTenantDb } from './tenant';
 
 // Export Drizzle instance and schema
-export { db } from './db';
+export { db, dbAdmin, dbRls } from './db';
 export * from './schema';
 
 // Re-export Drizzle helpers so consumers use the same module instance

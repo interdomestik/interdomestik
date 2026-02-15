@@ -1,0 +1,138 @@
+name: Pilot Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: pilot-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  pilot-gate:
+    name: pr:verify + pilot:check
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interdomestik_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d interdomestik_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      CI: 'true'
+      PLAYWRIGHT: '1'
+      PORT: 3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@interdomestik.com
+      RELEASE_GATE_MEMBER_PASSWORD: GoldenPass123!
+      RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
+      RELEASE_GATE_AGENT_PASSWORD: GoldenPass123!
+      RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
+      RELEASE_GATE_STAFF_PASSWORD: GoldenPass123!
+      RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com
+      RELEASE_GATE_ADMIN_KS_PASSWORD: GoldenPass123!
+      RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@interdomestik.com
+      RELEASE_GATE_ADMIN_MK_PASSWORD: GoldenPass123!
+      RELEASE_GATE_MK_USER_URL: ''
+      RELEASE_GATE_TARGET_USER_URL: /admin/users/golden_mk_admin?tenantId=tenant_mk
+      RELEASE_GATE_REQUIRE_ROLE_PANEL: 'false'
+      STAFF_CLAIM_URL: ''
+      RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          install-playwright: true
+
+      - name: Validate required gate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          required_vars=(
+            BETTER_AUTH_SECRET
+          )
+          for name in "${required_vars[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("${name}")
+            fi
+          done
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 2
+          fi
+
+      - name: Prepare CI database
+        shell: bash
+        run: |
+          set -euo pipefail
+          until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+          pnpm db:migrate
+          pnpm seed:e2e
+          pnpm seed:assert-e2e
+
+      - name: Build web standalone artifact
+        run: pnpm --filter @interdomestik/web run build:ci
+
+      - name: Generate Playwright auth states
+        run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
+
+      - name: Run PR verification
+        run: pnpm pr:verify
+
+      - name: Start web server for release gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter @interdomestik/web run start:ci > /tmp/web-start.log 2>&1 &
+          echo $! > /tmp/web-start.pid
+          for _ in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Web server failed to become healthy on 127.0.0.1:3000"
+          cat /tmp/web-start.log || true
+          exit 1
+
+      - name: Run pilot gate
+        run: pnpm -s release:gate:p0:raw --baseUrl http://127.0.0.1:3000
+
+      - name: Stop web server
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f /tmp/web-start.pid ]]; then
+            kill "$(cat /tmp/web-start.pid)" || true
+          fi
+
+      - name: Upload release gate reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pilot-gate-reports
+          path: docs/release-gates/*.md
+          if-no-files-found: warn
+          retention-days: 14

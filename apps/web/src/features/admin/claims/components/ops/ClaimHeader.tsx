@@ -22,6 +22,7 @@ import type { NextActionsResult } from '../../components/detail/getNextActions';
 import type { ClaimOpsDetail } from '../../types';
 import { ClaimOriginBadges } from '../shared/ClaimOriginBadges';
 import { InfoPill } from '../shared/InfoPill';
+import { buildAdminUserProfileHref } from './claim-header-links';
 
 interface ClaimHeaderProps {
   claim: ClaimOpsDetail;
@@ -38,6 +39,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
   const tFilters = useTranslations('admin.claims_page.filters');
   const tPage = useTranslations('admin.claims_page');
   const searchParams = useSearchParams();
+  const memberProfileHref = buildAdminUserProfileHref(claim.memberId, searchParams);
 
   // Construct smart back URL: preserve filters/page, but drop poolAnchor to force refresh
   const createBackUrl = () => {
@@ -244,7 +246,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                   </div>
                   <div className="w-[1px] h-3 self-center bg-sky-200" />
                   <Link
-                    href={`/${locale}/admin/users/${claim.memberId}`}
+                    href={memberProfileHref}
                     className="flex items-center gap-1 px-2 py-0.5 hover:underline decoration-sky-700/50"
                   >
                     <span className="text-[10px] font-medium max-w-[150px] truncate">

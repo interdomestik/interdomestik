@@ -1,3 +1,11 @@
+import {
+  coerceTenantId,
+  resolveTenantFromHost,
+  TENANT_COOKIE_NAME,
+  TENANT_HEADER_NAME,
+  type TenantId,
+} from '@/lib/tenant/tenant-hosts';
+
 export type AuthMethod = 'GET' | 'POST';
 
 export function getAuthRateLimitConfig(method: AuthMethod): {
@@ -18,6 +26,131 @@ export type PasswordResetAuditEvent = {
   entityType: 'auth';
   metadata: { route: '/api/auth/request-password-reset' };
 };
+
+export type SignInTenantGuardResult =
+  | { decision: 'allow' }
+  | {
+      decision: 'deny';
+      code: 'WRONG_TENANT_CONTEXT';
+      message: 'Wrong tenant context';
+      reason: 'missing_tenant_context' | 'tenant_mismatch';
+      resolvedTenantId: TenantId | null;
+    };
+
+function parseCookieValue(cookieHeader: string | null, cookieName: string): string | null {
+  if (!cookieHeader) return null;
+  const cookies = cookieHeader.split(';');
+  for (const entry of cookies) {
+    const [rawName, ...rest] = entry.trim().split('=');
+    if (rawName !== cookieName) continue;
+    const value = rest.join('=').trim();
+    if (!value) return null;
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
+  return null;
+}
+
+export function resolveTenantIdForPasswordResetAudit(
+  url: string,
+  headers: Headers
+): TenantId | null {
+  const host = headers.get('x-forwarded-host') ?? headers.get('host') ?? '';
+  const tenantFromHost = resolveTenantFromHost(host);
+  if (tenantFromHost) return tenantFromHost;
+
+  const tenantFromCookie = coerceTenantId(
+    parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME) ?? undefined
+  );
+  if (tenantFromCookie) return tenantFromCookie;
+
+  const tenantFromHeader = coerceTenantId(headers.get(TENANT_HEADER_NAME) ?? undefined);
+  if (tenantFromHeader) return tenantFromHeader;
+
+  try {
+    const tenantFromQuery = coerceTenantId(new URL(url).searchParams.get('tenantId') ?? undefined);
+    if (tenantFromQuery) return tenantFromQuery;
+  } catch {
+    // ignore malformed URL and fall through to null
+  }
+
+  return null;
+}
+
+export function isEmailPasswordSignInUrl(url: string): boolean {
+  try {
+    return new URL(url).pathname.endsWith('/api/auth/sign-in/email');
+  } catch {
+    return false;
+  }
+}
+
+export function resolveTenantIdForEmailSignIn(headers: Headers): TenantId | null {
+  const host = headers.get('x-forwarded-host') ?? headers.get('host') ?? '';
+  const tenantFromHost = resolveTenantFromHost(host);
+  if (tenantFromHost) return tenantFromHost;
+
+  const tenantFromCookie = coerceTenantId(
+    parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME) ?? undefined
+  );
+  if (tenantFromCookie) return tenantFromCookie;
+
+  const tenantFromHeader = coerceTenantId(headers.get(TENANT_HEADER_NAME) ?? undefined);
+  if (tenantFromHeader) return tenantFromHeader;
+
+  // Intentionally no query-param fallback for sign-in enforcement.
+  return null;
+}
+
+export function extractEmailFromSignInBody(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null;
+  const raw = (body as { email?: unknown }).email;
+  if (typeof raw !== 'string') return null;
+  const normalized = raw.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+}
+
+export async function evaluateEmailSignInTenantGuard(args: {
+  url: string;
+  headers: Headers;
+  body: unknown;
+  lookupUserTenantByEmail: (email: string) => Promise<TenantId | null>;
+}): Promise<SignInTenantGuardResult | null> {
+  const { url, headers, body, lookupUserTenantByEmail } = args;
+  if (!isEmailPasswordSignInUrl(url)) return null;
+
+  const resolvedTenantId = resolveTenantIdForEmailSignIn(headers);
+  if (!resolvedTenantId) {
+    return {
+      decision: 'deny',
+      code: 'WRONG_TENANT_CONTEXT',
+      message: 'Wrong tenant context',
+      reason: 'missing_tenant_context',
+      resolvedTenantId: null,
+    };
+  }
+
+  const email = extractEmailFromSignInBody(body);
+  if (!email) return { decision: 'allow' };
+
+  const userTenantId = await lookupUserTenantByEmail(email);
+  if (!userTenantId) return { decision: 'allow' };
+
+  if (userTenantId !== resolvedTenantId) {
+    return {
+      decision: 'deny',
+      code: 'WRONG_TENANT_CONTEXT',
+      message: 'Wrong tenant context',
+      reason: 'tenant_mismatch',
+      resolvedTenantId,
+    };
+  }
+
+  return { decision: 'allow' };
+}
 
 export function getPasswordResetAuditEventFromUrl(url: string): PasswordResetAuditEvent | null {
   try {

@@ -20,6 +20,13 @@ interface ActivityFeedProps {
   readonly activities: Activity[];
 }
 
+function getRelativeOccurredAt(occurredAt: Date | string | null): string {
+  if (!occurredAt) return 'Unknown time';
+  const parsed = occurredAt instanceof Date ? occurredAt : new Date(occurredAt);
+  if (Number.isNaN(parsed.getTime())) return 'Unknown time';
+  return formatDistanceToNow(parsed, { addSuffix: true });
+}
+
 const getActivityIcon = (type: string) => {
   switch (type) {
     case 'call':
@@ -91,11 +98,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                   </Badge>
                 </div>
                 <time className="text-xs text-muted-foreground">
-                  {activity.occurredAt
-                    ? formatDistanceToNow(new Date(activity.occurredAt as string | Date), {
-                        addSuffix: true,
-                      })
-                    : 'Unknown time'}
+                  {getRelativeOccurredAt(activity.occurredAt)}
                 </time>
               </div>
 

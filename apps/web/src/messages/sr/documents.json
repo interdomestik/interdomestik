@@ -1,18 +1,21 @@
 {
   "documents": {
-    "title": "Documents",
-    "subtitle": "All documents attached to your claims.",
-    "empty": "No documents uploaded yet.",
-    "filesCount": "Files: {count}",
-    "viewClaim": "View claim",
-    "emptyList": "No documents attached.",
+    "title": "Dokumenta",
+    "subtitle": "Sva dokumenta povezana sa vašim zahtevima.",
+    "empty": "Još nema otpremljenih dokumenata.",
+    "filesCount": "Dokumenata: {count}",
+    "uploadEvidence": "Otpremi dokaz",
+    "createClaim": "Kreiraj zahtev",
+    "viewClaim": "Prikaži zahtev",
+    "claimFallback": "Zahtev",
+    "emptyList": "Nema priloženih dokumenata.",
     "actions": {
-      "view": "View",
-      "download": "Download"
+      "view": "Prikaži",
+      "download": "Preuzmi"
     },
     "errors": {
-      "view": "Failed to load document. Please try again.",
-      "download": "Failed to download document. Please try again."
+      "view": "Neuspešno učitavanje dokumenta. Pokušajte ponovo.",
+      "download": "Neuspešno preuzimanje dokumenta. Pokušajte ponovo."
     }
   }
 }

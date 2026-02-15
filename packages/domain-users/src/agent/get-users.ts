@@ -23,7 +23,7 @@ export async function getAgentUsersCore(params: {
 
   const tenantId = ensureTenantId(session);
 
-  const conditions: SQL[] = [eq(user.role, 'user')];
+  const conditions: SQL[] = [inArray(user.role, ['user', 'member'])];
 
   if (session.user.role === 'agent') {
     const links = await db

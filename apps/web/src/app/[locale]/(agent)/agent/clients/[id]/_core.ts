@@ -7,6 +7,7 @@ import {
   userNotificationPreferences,
   user as userTable,
 } from '@interdomestik/database/schema';
+import { getAgentMemberDetail } from '@interdomestik/domain-agent';
 import { and, count, desc, eq } from 'drizzle-orm';
 
 const RECENT_CLAIMS_LIMIT = 6;
@@ -49,7 +50,7 @@ export type AgentClientProfileResult =
 
 export async function getAgentClientProfileCore(args: {
   memberId: string;
-  viewer: { id: string; role?: string | null };
+  viewer: { id: string; role?: string | null; tenantId?: string | null };
 }): Promise<AgentClientProfileResult> {
   const { memberId, viewer } = args;
 
@@ -60,11 +61,18 @@ export async function getAgentClientProfileCore(args: {
   }
 
   if (viewer.role === 'agent') {
+    // Tenant scoping is required for agent authorization checks.
+    // This loader is shared across multiple entry points (clients + members detail).
+    if (!viewer.tenantId) {
+      return { kind: 'forbidden' };
+    }
+
     const assignments = await db
       .select()
       .from(agentClients)
       .where(
         and(
+          eq(agentClients.tenantId, viewer.tenantId),
           eq(agentClients.agentId, viewer.id),
           eq(agentClients.memberId, member.id),
           eq(agentClients.status, 'active')
@@ -73,7 +81,25 @@ export async function getAgentClientProfileCore(args: {
       .limit(1);
 
     if (assignments.length === 0) {
-      return { kind: 'forbidden' };
+      // Auth widening (Phase C pilot):
+      // Allow if the member is assigned to the agent via domain-agent assignment rules.
+      // Do not re-implement assignment logic in web.
+      let assignment: unknown = null;
+      try {
+        assignment = await getAgentMemberDetail({
+          agentId: viewer.id,
+          tenantId: viewer.tenantId,
+          memberId: member.id,
+        });
+      } catch {
+        // Defensive: domain-agent should return null for non-assigned, but never let a throw
+        // turn into a 500 from the shared loader.
+        assignment = null;
+      }
+
+      if (!assignment) {
+        return { kind: 'forbidden' };
+      }
     }
   }
 

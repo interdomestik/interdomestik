@@ -58,8 +58,24 @@ done
 BETTER_AUTH_TRUSTED_ORIGINS="$(IFS=','; echo "${!ORIGIN_SET[*]}")"
 export BETTER_AUTH_TRUSTED_ORIGINS
 
+# Playwright gates must be deterministic and must not depend on whatever DATABASE_URL
+# happens to be configured in a developer's .env.local (which can point to production).
+# Preserve an explicitly provided DATABASE_URL (CI), allow E2E_DATABASE_URL override,
+# and otherwise default to local Supabase.
+if [[ "${PLAYWRIGHT:-}" == "1" ]]; then
+	if [[ -n "${E2E_DATABASE_URL:-}" ]]; then
+		export DATABASE_URL="${E2E_DATABASE_URL}"
+	elif [[ -z "${DATABASE_URL:-}" ]]; then
+		export DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+	fi
+fi
+
 if [[ -z "${DATABASE_URL:-}" ]]; then
 	export DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+fi
+
+if [[ -z "${DATABASE_URL_RLS:-}" ]]; then
+	export DATABASE_URL_RLS="${DATABASE_URL}"
 fi
 
 # Increase DB timeouts to prevent negative timeout warnings in slow CI envs
@@ -85,6 +101,11 @@ STANDALONE_STAMP_FILE="${WEB_DIR}/.next/standalone/.build-stamp.json"
 STANDALONE_STATIC_DIR="${WEB_DIR}/.next/standalone/.next/static"
 STANDALONE_APP_STATIC_DIR="${WEB_DIR}/.next/standalone/apps/web/.next/static"
 BUILD_STATIC_DIR="${WEB_DIR}/.next/static"
+STANDALONE_AUTOREBUILD="${STANDALONE_AUTOREBUILD:-true}"
+DID_STANDALONE_REBUILD=0
+CURRENT_GIT_SHA=""
+STAMP_GIT_SHA=""
+STAMP_STATUS_REASON=""
 
 if [[ -d "${BUILD_STATIC_DIR}" ]]; then
 	mkdir -p "$(dirname "${STANDALONE_STATIC_DIR}")"
@@ -93,23 +114,102 @@ if [[ -d "${BUILD_STATIC_DIR}" ]]; then
 	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_APP_STATIC_DIR}"
 fi
 
-if [[ ! -f "${STANDALONE_STAMP_FILE}" ]]; then
-	echo "❌ Missing standalone build stamp: ${STANDALONE_STAMP_FILE}" >&2
-	echo "   Standalone artifact may be stale. Run: pnpm --filter @interdomestik/web run build:ci" >&2
-	exit 1
-fi
+should_autorebuild() {
+	local value
+	value="$(printf '%s' "${STANDALONE_AUTOREBUILD}" | tr '[:upper:]' '[:lower:]')"
+	case "${value}" in
+	false | 0 | no | off)
+		return 1
+		;;
+	*)
+		return 0
+		;;
+	esac
+}
 
-CURRENT_GIT_SHA="$(git -C "${ROOT_DIR}" rev-parse HEAD 2>/dev/null || true)"
-STAMP_GIT_SHA="$(
-	node -e "const fs=require('node:fs');const stamp=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(stamp.gitSha ?? '');" "${STANDALONE_STAMP_FILE}" 2>/dev/null || true
-)"
+refresh_stamp_status() {
+	STAMP_STATUS_REASON=""
+	STAMP_GIT_SHA=""
+	CURRENT_GIT_SHA="$(resolve_current_git_sha)"
 
-if [[ -z "${CURRENT_GIT_SHA}" || -z "${STAMP_GIT_SHA}" || "${CURRENT_GIT_SHA}" != "${STAMP_GIT_SHA}" ]]; then
-	echo "❌ Standalone artifact is stale." >&2
+	if [[ ! -f "${STANDALONE_STAMP_FILE}" ]]; then
+		STAMP_STATUS_REASON="missing-stamp"
+		return 1
+	fi
+
+	STAMP_GIT_SHA="$(
+		node -e "const fs=require('node:fs');const stamp=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(stamp.gitSha ?? '');" "${STANDALONE_STAMP_FILE}" 2>/dev/null || true
+	)"
+
+	if [[ -z "${STAMP_GIT_SHA}" ]]; then
+		STAMP_STATUS_REASON="stale-stamp"
+		return 1
+	fi
+
+	if [[ "${CURRENT_GIT_SHA}" != "unknown" && "${STAMP_GIT_SHA}" != "unknown" && "${CURRENT_GIT_SHA}" != "${STAMP_GIT_SHA}" ]]; then
+		STAMP_STATUS_REASON="stale-stamp"
+		return 1
+	fi
+
+	return 0
+}
+
+resolve_current_git_sha() {
+	local gitSha
+	gitSha="$(git -C "${ROOT_DIR}" rev-parse HEAD 2>/dev/null || true)"
+	if [[ -n "${gitSha}" ]]; then
+		printf '%s' "${gitSha}"
+		return 0
+	fi
+
+	local envSha="${GITHUB_SHA:-${VERCEL_GIT_COMMIT_SHA:-${SOURCE_COMMIT:-${COMMIT_SHA:-}}}}"
+	if [[ -n "${envSha}" ]]; then
+		printf '%s' "${envSha}"
+		return 0
+	fi
+
+	printf '%s' "unknown"
+}
+
+rebuild_standalone_once() {
+	if (( DID_STANDALONE_REBUILD == 1 )); then
+		return 1
+	fi
+
+	if ! should_autorebuild; then
+		return 1
+	fi
+
+	DID_STANDALONE_REBUILD=1
+	echo "⚠️ Standalone artifact ${STAMP_STATUS_REASON} -> rebuilding with build:ci" >&2
 	echo "   stamp gitSha: ${STAMP_GIT_SHA:-<missing>}" >&2
 	echo "   current HEAD: ${CURRENT_GIT_SHA:-<missing>}" >&2
-	echo "   Rebuild with: pnpm --filter @interdomestik/web run build:ci" >&2
-	exit 1
+	pnpm --filter @interdomestik/web run build:ci
+	return 0
+}
+
+if ! refresh_stamp_status; then
+	if rebuild_standalone_once; then
+		if ! refresh_stamp_status; then
+			echo "❌ Standalone artifact is still invalid after auto-rebuild." >&2
+			echo "   reason: ${STAMP_STATUS_REASON}" >&2
+			echo "   stamp gitSha: ${STAMP_GIT_SHA:-<missing>}" >&2
+			echo "   current HEAD: ${CURRENT_GIT_SHA:-<missing>}" >&2
+			echo "   Try: pnpm --filter @interdomestik/web run build:ci" >&2
+			exit 1
+		fi
+	else
+		if [[ "${STAMP_STATUS_REASON}" == "missing-stamp" ]]; then
+			echo "❌ Missing standalone build stamp: ${STANDALONE_STAMP_FILE}" >&2
+		else
+			echo "❌ Standalone artifact is stale." >&2
+		fi
+		echo "   stamp gitSha: ${STAMP_GIT_SHA:-<missing>}" >&2
+		echo "   current HEAD: ${CURRENT_GIT_SHA:-<missing>}" >&2
+		echo "   Rebuild with: pnpm --filter @interdomestik/web run build:ci" >&2
+		echo "   Override: STANDALONE_AUTOREBUILD=true to auto-rebuild once" >&2
+		exit 1
+	fi
 fi
 
 if [[ -f "${STANDALONE_SERVER}" ]]; then

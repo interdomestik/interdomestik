@@ -1,7 +1,8 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import { claims, db, documents } from '@interdomestik/database';
+import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
+import { claimDocuments, claims, db } from '@interdomestik/database';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
@@ -9,10 +10,8 @@ import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
-const EVIDENCE_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
-
 export type GenerateUploadUrlResult =
-  | { success: true; url: string; path: string; id: string }
+  | { success: true; url: string; path: string; id: string; token: string; bucket: string }
   | { success: false; error: string };
 
 export async function generateUploadUrl(
@@ -30,6 +29,18 @@ export async function generateUploadUrl(
   }
 
   const tenantId = ensureTenantId(session);
+  let evidenceBucket: string;
+  try {
+    evidenceBucket = resolveEvidenceBucketName();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Upload bucket configuration error';
+    console.error('[member/claims] Bucket configuration error', {
+      message,
+      nodeEnv: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
+    });
+    return { success: false, error: message };
+  }
 
   // Authorization: Ensure claim exists and belongs to user/tenant
   const claim = await db.query.claims.findFirst({
@@ -77,12 +88,18 @@ export async function generateUploadUrl(
 
   try {
     const { data, error } = await supabase.storage
-      .from(EVIDENCE_BUCKET)
-      .createSignedUploadUrl(path);
+      .from(evidenceBucket)
+      .createSignedUploadUrl(path, { upsert: true });
 
-    if (error || !data?.signedUrl) {
-      console.error('Supabase signed URL error:', error);
-      return { success: false, error: 'Failed to generate upload URL' };
+    if (error || !data?.signedUrl || !data?.token) {
+      const detail = error?.message ?? 'Unknown storage error';
+      console.error('Supabase signed URL error:', {
+        bucket: evidenceBucket,
+        path,
+        detail,
+        error,
+      });
+      return { success: false, error: `Failed to generate upload URL: ${detail}` };
     }
 
     return {
@@ -90,6 +107,8 @@ export async function generateUploadUrl(
       url: data.signedUrl,
       path: path,
       id: fileId,
+      token: data.token,
+      bucket: evidenceBucket,
     };
   } catch (err) {
     console.error('generateUploadUrl error:', err);
@@ -105,7 +124,8 @@ export async function confirmUpload(
   originalName: string,
   mimeType: string,
   fileSize: number,
-  fileId: string // The pre-generated ID
+  fileId: string, // The pre-generated ID
+  uploadedBucket?: string
 ): Promise<ConfirmUploadResult> {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -116,6 +136,18 @@ export async function confirmUpload(
   }
 
   const tenantId = ensureTenantId(session);
+  let resolvedBucket: string;
+  try {
+    resolvedBucket = resolveEvidenceBucketName();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Upload bucket configuration error';
+    console.error('[member/claims] Bucket configuration error', {
+      message,
+      nodeEnv: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
+    });
+    return { success: false, error: message };
+  }
 
   // Authorization Check
   const claim = await db.query.claims.findFirst({
@@ -127,15 +159,23 @@ export async function confirmUpload(
   }
 
   try {
-    await db.insert(documents).values({
+    if (uploadedBucket && uploadedBucket !== resolvedBucket) {
+      console.error('[member/claims] confirmUpload bucket mismatch', {
+        uploadedBucket,
+        resolvedBucket,
+      });
+      return { success: false, error: 'Upload bucket mismatch detected. Please retry upload.' };
+    }
+
+    await db.insert(claimDocuments).values({
       id: fileId,
       tenantId: tenantId,
-      entityType: 'claim',
-      entityId: claimId,
-      fileName: originalName,
-      mimeType: mimeType,
-      fileSize: fileSize,
-      storagePath: storagePath,
+      claimId,
+      name: originalName,
+      filePath: storagePath,
+      fileType: mimeType,
+      fileSize,
+      bucket: resolvedBucket,
       category: 'evidence',
       uploadedBy: session.user.id,
     });

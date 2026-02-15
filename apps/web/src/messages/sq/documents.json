@@ -4,7 +4,10 @@
     "subtitle": "Të gjitha dokumentet e bashkangjitura me kërkesat për dëmshpërblim tuaja.",
     "empty": "Nuk ka dokumente të ngarkuara ende.",
     "filesCount": "Skedarë: {count}",
+    "uploadEvidence": "Ngarko dëshmi",
+    "createClaim": "Krijo kërkesë",
     "viewClaim": "Shiko kërkesën për dëmshpërblim",
+    "claimFallback": "Kërkesë",
     "emptyList": "Nuk ka dokumente të bashkangjitura.",
     "actions": {
       "view": "Shiko",

@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 
 import { auth } from '@/lib/auth';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
+import { getLatestPublicStatusNoteCore } from './_core';
 
 interface PageProps {
   params: Promise<{
@@ -31,6 +32,11 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   });
 
   if (!detail) return notFound();
+
+  const latestStatusNote = await getLatestPublicStatusNoteCore({
+    claimId: id,
+    tenantId: session.user.tenantId,
+  });
 
   return (
     <div className="space-y-6" data-testid="staff-claim-detail-ready">
@@ -94,6 +100,26 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
             <div className="font-medium text-slate-900">{detail.agent.name}</div>
           ) : (
             <div className="text-muted-foreground">Unassigned</div>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-note">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Latest status note
+        </h2>
+        <div className="mt-3 space-y-1 text-sm">
+          {latestStatusNote?.note ? (
+            <>
+              <p className="whitespace-pre-wrap text-slate-900">{latestStatusNote.note}</p>
+              <p className="text-xs text-muted-foreground">
+                {latestStatusNote.createdAt
+                  ? new Date(latestStatusNote.createdAt).toLocaleString()
+                  : ''}
+              </p>
+            </>
+          ) : (
+            <p className="text-muted-foreground">No public status notes yet.</p>
           )}
         </div>
       </section>

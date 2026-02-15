@@ -2,10 +2,11 @@ import { LoginForm } from '@/components/auth/login-form';
 import { getSessionSafe } from '@/components/shell/session';
 import { TenantSelector, type TenantOption } from '@/components/auth/tenant-selector';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
+import { coerceTenantId } from '@/lib/tenant/tenant-hosts';
 import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 import { setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
-import { loadTenantOptions } from './_core';
+import { getLoginTenantBootstrapRedirect, loadTenantOptions } from './_core';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -25,9 +26,16 @@ export default async function LoginPage({ params, searchParams }: Props) {
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const resolvedTenantId = await resolveTenantIdFromRequest({
+  const tenantIdFromContext = await resolveTenantIdFromRequest();
+  const bootstrapRedirect = getLoginTenantBootstrapRedirect({
+    locale,
     tenantIdFromQuery: resolvedSearchParams?.tenantId ?? null,
+    tenantIdFromContext,
   });
+  if (bootstrapRedirect) redirect(bootstrapRedirect);
+
+  const resolvedTenantId =
+    tenantIdFromContext ?? coerceTenantId(resolvedSearchParams?.tenantId ?? undefined);
 
   const [{ db }, { tenants }, drizzle] = await Promise.all([
     import('@interdomestik/database/db'),
