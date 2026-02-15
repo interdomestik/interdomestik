@@ -1,7 +1,7 @@
 import { and, claims, db, eq } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { isNull } from 'drizzle-orm';
+import { isNull, or } from 'drizzle-orm';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type { ActionResult } from './types';
@@ -28,7 +28,7 @@ export async function assignClaimCore(
   const readScope =
     branchId != null
       ? and(eq(claims.id, claimId), eq(claims.branchId, branchId))
-      : and(eq(claims.id, claimId), eq(claims.staffId, user.id));
+      : and(eq(claims.id, claimId), or(eq(claims.staffId, user.id), isNull(claims.staffId)));
   const scopedWhere = withTenant(tenantId, claims.tenantId, readScope);
 
   try {

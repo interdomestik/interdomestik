@@ -31,6 +31,8 @@ const mocks = vi.hoisted(() => {
     and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
     desc: vi.fn(value => ({ value, op: 'desc' })),
     inArray: vi.fn((column, values) => ({ column, values, op: 'inArray' })),
+    or: vi.fn((...conditions) => ({ conditions, op: 'or' })),
+    isNull: vi.fn(column => ({ column, op: 'isNull' })),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
   };
 });
@@ -47,6 +49,11 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
+}));
+
+vi.mock('drizzle-orm', () => ({
+  or: mocks.or,
+  isNull: mocks.isNull,
 }));
 
 import { getStaffClaimsList } from './get-staff-claims-list';
@@ -110,7 +117,7 @@ describe('getStaffClaimsList', () => {
     expect(result).toEqual([]);
   });
 
-  it('enforces staffId-only scope when branchId is null', async () => {
+  it('includes own and unassigned claims when branchId is null', async () => {
     mocks.claimChain.limit.mockResolvedValue([]);
 
     await getStaffClaimsList({
@@ -127,7 +134,13 @@ describe('getStaffClaimsList', () => {
         op: 'and',
         conditions: expect.arrayContaining([
           expect.objectContaining({ op: 'inArray' }),
-          expect.objectContaining({ op: 'eq', left: 'claims.staff_id', right: 'staff-3' }),
+          expect.objectContaining({
+            op: 'or',
+            conditions: expect.arrayContaining([
+              expect.objectContaining({ op: 'eq', left: 'claims.staff_id', right: 'staff-3' }),
+              expect.objectContaining({ op: 'isNull', column: 'claims.staff_id' }),
+            ]),
+          }),
         ]),
       })
     );

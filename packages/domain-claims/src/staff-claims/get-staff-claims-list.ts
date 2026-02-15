@@ -1,5 +1,6 @@
 import { and, claims, db, desc, eq, inArray, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { isNull, or } from 'drizzle-orm';
 import { ACTIONABLE_CLAIM_STATUSES } from '../claims/constants';
 
 export type StaffClaimsListItem = {
@@ -31,7 +32,9 @@ export async function getStaffClaimsList(params: {
 }): Promise<StaffClaimsListItem[]> {
   const { staffId, tenantId, branchId, limit } = params;
   const scopeCondition =
-    branchId != null ? eq(claims.branchId, branchId) : eq(claims.staffId, staffId);
+    branchId != null
+      ? eq(claims.branchId, branchId)
+      : or(eq(claims.staffId, staffId), isNull(claims.staffId));
   const scopedWhere = withTenant(
     tenantId,
     claims.tenantId,
