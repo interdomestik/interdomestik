@@ -225,6 +225,13 @@
       "when": 1770936797388,
       "tag": "0031_enable_claim_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1771200000000,
+      "tag": "0032_member_activities_backfill",
+      "breakpoints": true
     }
   ]
 }
