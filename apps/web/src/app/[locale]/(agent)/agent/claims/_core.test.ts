@@ -96,6 +96,31 @@ describe('getAgentClaimsCore', () => {
     }
     expect(mockParams.db.query.user.findMany).toHaveBeenCalledTimes(2);
   });
+
+  it('does not duplicate members present in both direct and agent_clients sources', async () => {
+    const mockParams = createMockParams();
+    const overlappingMember = { id: 'm4', name: 'Member 4', email: 'm4@test.com' };
+
+    mockParams.db.query.user.findMany
+      .mockResolvedValueOnce([overlappingMember])
+      .mockResolvedValueOnce([overlappingMember]);
+    mockParams.mocks.selectWhere.mockResolvedValue([{ memberId: 'm4' }]);
+    mockParams.db.query.claims.findMany.mockResolvedValue([
+      { id: 'c4', userId: 'm4', title: 'Claim 4', status: 'submitted', createdAt: new Date() },
+    ]);
+
+    const result = await getAgentClaimsCore(mockParams);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.length).toBe(1);
+      expect(result.data[0].memberId).toBe('m4');
+      expect(result.data[0].claims).toEqual([
+        expect.objectContaining({ id: 'c4', status: 'submitted' }),
+      ]);
+    }
+    expect(mockParams.db.query.user.findMany).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('buildAgentWorkspaceClaimHref', () => {
