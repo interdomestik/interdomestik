@@ -51,28 +51,7 @@ export function useDashboardNavigation(agentTier: string = 'standard') {
 
   // 1. Personal Membership / Protection Items
   const memberItems = isAgent
-    ? [
-        {
-          title: 'Member Hub',
-          href: '/agent/workspace',
-          icon: LayoutDashboard,
-        },
-        {
-          title: t('documents'),
-          href: '/agent/members',
-          icon: FolderOpen,
-        },
-        {
-          title: t('newClaim'),
-          href: '/agent/claims',
-          icon: FilePlus,
-        },
-        {
-          title: t('settings'),
-          href: '/agent/settings',
-          icon: Settings,
-        },
-      ]
+    ? []
     : [
         {
           title: t('overview'),

@@ -2,23 +2,34 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildAgentWorkspaceClaimHref, getAgentClaimsCore } from './_core';
 
 describe('getAgentClaimsCore', () => {
-  const mockParams = {
-    tenantId: 'tenant-1',
-    userId: 'agent-1',
-    role: 'agent',
-    db: {
-      query: {
-        user: {
-          findMany: vi.fn(),
+  function createMockParams() {
+    const selectWhere = vi.fn();
+    const selectFrom = vi.fn(() => ({ where: selectWhere }));
+    const select = vi.fn(() => ({ from: selectFrom }));
+
+    return {
+      tenantId: 'tenant-1',
+      userId: 'agent-1',
+      role: 'agent',
+      db: {
+        query: {
+          user: {
+            findMany: vi.fn(),
+          },
+          claims: {
+            findMany: vi.fn(),
+          },
         },
-        claims: {
-          findMany: vi.fn(),
-        },
+        select,
       },
-    },
-  };
+      mocks: {
+        selectWhere,
+      },
+    };
+  }
 
   it('returns forbidden for non-agent role', async () => {
+    const mockParams = createMockParams();
     const result = await getAgentClaimsCore({ ...mockParams, role: 'member' });
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -27,7 +38,10 @@ describe('getAgentClaimsCore', () => {
   });
 
   it('returns empty array if no members found', async () => {
+    const mockParams = createMockParams();
     mockParams.db.query.user.findMany.mockResolvedValue([]);
+    mockParams.mocks.selectWhere.mockResolvedValue([]);
+
     const result = await getAgentClaimsCore(mockParams);
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -36,6 +50,7 @@ describe('getAgentClaimsCore', () => {
   });
 
   it('groups claims by member correctly', async () => {
+    const mockParams = createMockParams();
     const mockMembers = [
       { id: 'm1', name: 'Member 1', email: 'm1@test.com' },
       { id: 'm2', name: 'Member 2', email: 'm2@test.com' },
@@ -46,6 +61,7 @@ describe('getAgentClaimsCore', () => {
     ];
 
     mockParams.db.query.user.findMany.mockResolvedValue(mockMembers);
+    mockParams.mocks.selectWhere.mockResolvedValue([]);
     mockParams.db.query.claims.findMany.mockResolvedValue(mockClaims);
 
     const result = await getAgentClaimsCore(mockParams);
@@ -55,6 +71,55 @@ describe('getAgentClaimsCore', () => {
       expect(result.data[0].memberId).toBe('m1');
       expect(result.data[0].claims.length).toBe(2);
     }
+  });
+
+  it('includes claims for members linked via active agent_clients relation', async () => {
+    const mockParams = createMockParams();
+    mockParams.db.query.user.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'm3', name: 'Member 3', email: 'm3@test.com' }]);
+    mockParams.mocks.selectWhere.mockResolvedValue([{ memberId: 'm3' }]);
+    mockParams.db.query.claims.findMany.mockResolvedValue([
+      { id: 'c3', userId: 'm3', title: 'Claim 3', status: 'submitted', createdAt: new Date() },
+    ]);
+
+    const result = await getAgentClaimsCore(mockParams);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data).toEqual([
+        expect.objectContaining({
+          memberId: 'm3',
+          claims: [expect.objectContaining({ id: 'c3' })],
+        }),
+      ]);
+    }
+    expect(mockParams.db.query.user.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not duplicate members present in both direct and agent_clients sources', async () => {
+    const mockParams = createMockParams();
+    const overlappingMember = { id: 'm4', name: 'Member 4', email: 'm4@test.com' };
+
+    mockParams.db.query.user.findMany
+      .mockResolvedValueOnce([overlappingMember])
+      .mockResolvedValueOnce([overlappingMember]);
+    mockParams.mocks.selectWhere.mockResolvedValue([{ memberId: 'm4' }]);
+    mockParams.db.query.claims.findMany.mockResolvedValue([
+      { id: 'c4', userId: 'm4', title: 'Claim 4', status: 'submitted', createdAt: new Date() },
+    ]);
+
+    const result = await getAgentClaimsCore(mockParams);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.length).toBe(1);
+      expect(result.data[0].memberId).toBe('m4');
+      expect(result.data[0].claims).toEqual([
+        expect.objectContaining({ id: 'c4', status: 'submitted' }),
+      ]);
+    }
+    expect(mockParams.db.query.user.findMany).toHaveBeenCalledTimes(1);
   });
 });
 

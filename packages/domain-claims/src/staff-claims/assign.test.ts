@@ -32,6 +32,8 @@ const mocks = vi.hoisted(() => {
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
     eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
     and: vi.fn((...conditions) => ({ op: 'and', conditions })),
+    or: vi.fn((...conditions) => ({ op: 'or', conditions })),
+    isNull: vi.fn(column => ({ column, op: 'isNull' })),
     ensureTenantId: vi.fn(() => 'tenant-1'),
     logAuditEvent: vi.fn(),
     claims: {
@@ -62,6 +64,11 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 
 vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: mocks.ensureTenantId,
+}));
+
+vi.mock('drizzle-orm', () => ({
+  isNull: mocks.isNull,
+  or: mocks.or,
 }));
 
 function createSession(options: {
@@ -173,7 +180,7 @@ describe('staff assignClaimCore', () => {
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();
   });
 
-  it('denies branchless staff self-assign on unassigned claims', async () => {
+  it('denies branchless staff when claim is not in scope', async () => {
     mocks.selectChain.limit.mockResolvedValue([]);
 
     const result = await assignClaimCore({
@@ -183,8 +190,28 @@ describe('staff assignClaimCore', () => {
 
     expect(result).toEqual({ success: false, error: 'Claim not found or access denied' });
     expect(mocks.eq).toHaveBeenCalledWith('claims.staff_id', 'staff-1');
+    expect(mocks.isNull).toHaveBeenCalledWith('claims.staff_id');
+    expect(mocks.or).toHaveBeenCalled();
     expect(mocks.eq).not.toHaveBeenCalledWith('claims.branch_id', expect.anything());
     expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('allows branchless staff to self-assign unassigned claim in tenant scope', async () => {
+    mocks.selectChain.limit.mockResolvedValue([{ id: 'claim-1', staffId: null, branchId: null }]);
+    mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
+
+    const result = await assignClaimCore(
+      {
+        claimId: 'claim-1',
+        session: createSession({ userId: 'staff-1', branchId: null }),
+        requestHeaders: new Headers(),
+      },
+      { logAuditEvent: mocks.logAuditEvent }
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(mocks.update).toHaveBeenCalledTimes(1);
+    expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
   });
 
   it('allows branchless staff idempotent reaffirm only for own assigned claims', async () => {
