@@ -73,7 +73,7 @@ describe('useDashboardNavigation', () => {
     });
   });
 
-  it('maps agent protection links to agent routes only', async () => {
+  it('does not include member protection items for agents', async () => {
     mockUseSession.mockReturnValue({
       data: { user: { role: 'agent' } },
       isPending: false,
@@ -84,15 +84,34 @@ describe('useDashboardNavigation', () => {
 
     await waitFor(() => {
       const items = screen.getAllByTestId('nav-item');
-      const protectionTargets = ['Member Hub', 'documents', 'newClaim', 'settings'];
-      const selected = items.filter(item =>
-        protectionTargets.includes(item.getAttribute('data-title') || '')
-      );
+      const protectionTargets = ['overview', 'claims', 'documents', 'newClaim', 'settings'];
+      const selected = items.filter(item => {
+        const title = item.getAttribute('data-title') || '';
+        const href = item.getAttribute('data-href') || '';
+        return protectionTargets.includes(title) || href.startsWith('/member');
+      });
 
-      expect(selected.length).toBe(4);
-      for (const item of selected) {
-        expect(item.getAttribute('data-href')?.startsWith('/agent/')).toBe(true);
-      }
+      expect(selected.length).toBe(0);
+    });
+  });
+
+  it('does not contain duplicate navigation hrefs for agents', async () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { role: 'agent' } },
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof authClient.useSession>);
+
+    render(<HookHarness />);
+
+    await waitFor(() => {
+      const items = screen.getAllByTestId('nav-item');
+      const hrefs = items
+        .map(item => item.getAttribute('data-href'))
+        .filter((href): href is string => href !== null);
+      const uniqueHrefs = new Set(hrefs);
+
+      expect(uniqueHrefs.size).toBe(hrefs.length);
     });
   });
 
