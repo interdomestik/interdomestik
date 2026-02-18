@@ -34,3 +34,5 @@ export const getFeatureFlag = (flag: FeatureFlag): boolean => {
 
   return defaults[flag] ?? false;
 };
+
+export const isUiV2Enabled = (): boolean => process.env.NEXT_PUBLIC_UI_V2 === 'true';
