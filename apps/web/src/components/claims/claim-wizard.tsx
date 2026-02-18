@@ -4,6 +4,7 @@ import { submitClaim } from '@/actions/claims';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useRouter } from '@/i18n/routing';
 import { ClaimsEvents } from '@/lib/analytics';
+import { isUiV2Enabled } from '@/lib/flags';
 import { createClaimSchema, type CreateClaimValues } from '@/lib/validators/claims';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@interdomestik/ui/components/button';
@@ -39,6 +40,7 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
   const router = useRouter();
   const t = useTranslations('claims.wizard');
   const tCommon = useTranslations('common');
+  const uiV2Enabled = isUiV2Enabled();
   const hasTrackedOpen = React.useRef(false);
 
   const steps = [
@@ -51,6 +53,8 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
   const [currentStep, setCurrentStep] = React.useState(initialCategory ? 1 : 0);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isLoaded, setIsLoaded] = React.useState(false);
+  const [inlineError, setInlineError] = React.useState<string | null>(null);
+  const [createdClaimId, setCreatedClaimId] = React.useState<string | null>(null);
 
   const form = useForm({
     resolver: zodResolver(createClaimSchema),
@@ -100,17 +104,27 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
     try {
       if (!validator || (await validator(form as any))) {
         console.log('[Wizard] Validation passed');
+        setInlineError(null);
         ClaimsEvents.stepCompleted(currentStep, STEP_NAMES[currentStep]);
         setCurrentStep(prev => Math.min(prev + 1, steps.length - 1));
       } else {
         console.log('[Wizard] Validation failed', form.formState.errors);
+        if (uiV2Enabled) {
+          setInlineError('Please complete required fields');
+        }
       }
     } catch (err) {
       console.error('[Wizard] Validation error', err);
+      if (uiV2Enabled) {
+        setInlineError('Please complete required fields');
+      }
     }
   };
 
-  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
+  const prevStep = () => {
+    setInlineError(null);
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
 
   async function onSubmit(data: any) {
     setIsSubmitting(true);
@@ -120,6 +134,24 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
         ClaimsEvents.submitted('success');
         toast.success('Claim submitted successfully!');
         setDraft(null);
+        if (uiV2Enabled) {
+          const payload =
+            result && typeof result === 'object' && 'data' in result
+              ? (result as { data?: unknown }).data
+              : result;
+          const claimId =
+            payload && typeof payload === 'object' && 'claimId' in payload
+              ? typeof (payload as { claimId?: unknown }).claimId === 'string'
+                ? (payload as { claimId: string }).claimId
+                : null
+              : null;
+          if (claimId) {
+            setCreatedClaimId(claimId);
+          } else {
+            setCreatedClaimId('unknown-claim-id');
+          }
+          return;
+        }
         router.push('/member/claims');
       } else {
         ClaimsEvents.failed('submission_failed');
@@ -135,6 +167,37 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
   }
 
   const progress = ((currentStep + 1) / steps.length) * 100;
+  const nextStepLabel = uiV2Enabled
+    ? currentStep === 0
+      ? 'Continue -> Details'
+      : currentStep === 1
+        ? 'Continue -> Upload'
+        : 'Continue -> Review'
+    : tCommon('next');
+  const submitLabel = uiV2Enabled ? 'Submit claim' : t('submitClaim');
+
+  if (createdClaimId) {
+    return (
+      <div className="max-w-3xl mx-auto py-8 px-4">
+        <div
+          data-testid="claim-created-success"
+          className="rounded-lg border border-green-200 bg-green-50 p-6 space-y-3 text-green-900"
+        >
+          <h2 className="text-xl font-semibold">Claim created</h2>
+          <p>
+            Claim ID: <span className="font-mono font-semibold">{createdClaimId}</span>
+          </p>
+          <a
+            data-testid="claim-created-go-to-claim"
+            href={`/member/claims/${createdClaimId}`}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Go to claim
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
@@ -172,7 +235,7 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
 
             {currentStep < steps.length - 1 ? (
               <Button type="button" onClick={e => nextStep(e)} data-testid="wizard-next">
-                {tCommon('next')}
+                {nextStepLabel}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
@@ -186,13 +249,21 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
                   tCommon('processing')
                 ) : (
                   <>
-                    {t('submitClaim')}
+                    {submitLabel}
                     <Check className="ml-2 h-4 w-4" />
                   </>
                 )}
               </Button>
             )}
           </div>
+          {inlineError ? (
+            <div
+              data-testid="wizard-inline-error"
+              className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {inlineError}
+            </div>
+          ) : null}
         </form>
       </Form>
     </div>
