@@ -61,6 +61,93 @@
       "health_safety": "Zdravlje i bezbednost",
       "my_documents": "Moja dokumenta",
       "contact_center": "Kontakt centar"
+    },
+    "member": {
+      "home": {
+        "hero": {
+          "title": "Zaštićeni ste uz Interdomestik",
+          "subtitle": "Brza podrška, vođenje korak po korak i privatnost.",
+          "trust": {
+            "private": "Privatnost po difoltu",
+            "support247": "Linija podrške 24/7",
+            "guided": "Vođenje od prvog kontakta"
+          }
+        },
+        "cta": {
+          "help_now": "Zatraži pomoć sada (60 sek)",
+          "start_claim": "Prijavi slučaj"
+        },
+        "benefits": {
+          "title": "Glavne pogodnosti",
+          "abroad": {
+            "title": "Pomoć u inostranstvu (Green Card)",
+            "body": "Dobijte smernice po državi kada se incident desi u inostranstvu."
+          },
+          "diaspora": {
+            "title": "Podrška za dijasporu",
+            "body": "Praktična podrška za članove koji žive ili putuju van zemlje."
+          },
+          "fast": {
+            "title": "Brza asistencija",
+            "body": "Brzo kontaktirajte podršku i dobijte jasne sledeće korake."
+          }
+        },
+        "qa": {
+          "title": "Brze radnje",
+          "abroad": "Nezgoda u inostranstvu?",
+          "incident_guide": "Vodič za nezgodu",
+          "help_now": "Zatraži pomoć sada (60 sek)",
+          "documents": "Dokumenti",
+          "benefits": "Pogodnosti",
+          "support": "Podrška",
+          "start_claim": "Prijavi slučaj"
+        },
+        "chip": {
+          "invite_earn": "Pozovi i zaradi"
+        },
+        "how": {
+          "title": "Kako funkcioniše",
+          "step1": "Kontaktirajte nas",
+          "step2": "Mi vas vodimo",
+          "step3": "Rešavamo slučaj zajedno"
+        },
+        "claims": {
+          "title": "Status slučaja",
+          "status_label": "Status",
+          "continue": "Nastavi slučaj",
+          "start": "Prijavi slučaj",
+          "next_step_label": "Poslednji slučaj",
+          "empty": "Trenutno nema aktivnog slučaja. Prijavite kada vam je potrebna podrška."
+        },
+        "center": {
+          "title": "Članski centar",
+          "notifications": "Obaveštenja",
+          "profile": "Profil i podešavanja",
+          "support": "Podrška"
+        },
+        "footer": {
+          "privacy": "Podaci o članstvu i slučajevima obrađuju se bezbedno.",
+          "security": "Hitno? Koristite poziv od 60 sekundi za vođenu podršku.",
+          "contact": "Kontakt podrška"
+        }
+      }
+    },
+    "shell": {
+      "search_placeholder": "Pretraži...",
+      "search_title": "Pretraži",
+      "search_action": "Pretraži",
+      "portal_label": "Portal: {portal}",
+      "surface_label": "Površina: {surface}",
+      "portal": {
+        "member": "Član",
+        "agent": "Agent",
+        "staff": "Osoblje",
+        "admin": "Admin"
+      },
+      "surface": {
+        "legacy": "legacy",
+        "v3": "v3"
+      }
     }
   }
 }

@@ -45,7 +45,7 @@ export function SidebarUserMenu() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground rounded-xl hover:bg-muted/50 transition-colors"
+              className="rounded-xl border border-slate-200 bg-white/80 transition-colors hover:bg-slate-50 data-[state=open]:bg-slate-100 data-[state=open]:text-slate-900"
               data-testid="sidebar-user-menu-button"
             >
               <Avatar className="h-8 w-8 rounded-lg bg-primary/10 text-primary">
@@ -64,7 +64,7 @@ export function SidebarUserMenu() {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur"
             side="bottom"
             align="end"
             sideOffset={4}

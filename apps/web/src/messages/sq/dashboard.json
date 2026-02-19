@@ -59,6 +59,93 @@
       "health_safety": "Shëndeti dhe Siguria",
       "my_documents": "Dokumentet e Mia",
       "contact_center": "Qendra e Kontaktit"
+    },
+    "member": {
+      "home": {
+        "hero": {
+          "title": "Je i mbrojtur me Interdomestik",
+          "subtitle": "Ndihmë e shpejtë, udhëzim hap-pas-hapi, privatësi e garantuar.",
+          "trust": {
+            "private": "Privatësi e garantuar",
+            "support247": "Linjë ndihme 24/7",
+            "guided": "Udhëzim nga kontakti i parë"
+          }
+        },
+        "cta": {
+          "help_now": "Merr ndihmë tani (60 sek)",
+          "start_claim": "Nis raportimin e rastit"
+        },
+        "benefits": {
+          "title": "Përfitimet kryesore",
+          "abroad": {
+            "title": "Aksident jashtë vendit (Green Card)",
+            "body": "Merr udhëzime sipas shtetit kur ke incident jashtë."
+          },
+          "diaspora": {
+            "title": "Mbështetje për diasporën",
+            "body": "Mbështetje praktike për anëtarët që jetojnë ose udhëtojnë jashtë."
+          },
+          "fast": {
+            "title": "Asistencë e shpejtë",
+            "body": "Kontakto ndihmën shpejt dhe merr hapat e qartë."
+          }
+        },
+        "qa": {
+          "title": "Veprime të shpejta",
+          "abroad": "Aksident jashtë?",
+          "incident_guide": "Udhëzues për aksident",
+          "help_now": "Merr ndihmë tani (60 sek)",
+          "documents": "Dokumente",
+          "benefits": "Përfitimet",
+          "support": "Mbështetje",
+          "start_claim": "Nis raportimin e rastit"
+        },
+        "chip": {
+          "invite_earn": "Fto miqtë"
+        },
+        "how": {
+          "title": "Si funksionon",
+          "step1": "Na kontakto",
+          "step2": "Ne të udhëzojmë",
+          "step3": "E zgjidhim rastin bashkë"
+        },
+        "claims": {
+          "title": "Statusi i rastit",
+          "status_label": "Statusi",
+          "continue": "Vazhdo rastin",
+          "start": "Raporto rastin",
+          "next_step_label": "Rasti i fundit",
+          "empty": "Nuk ke rast aktiv për momentin. Raporto rastin kur të duhet mbështetje."
+        },
+        "center": {
+          "title": "Qendra e anëtarit",
+          "notifications": "Njoftimet",
+          "profile": "Profili & cilësimet",
+          "support": "Mbështetje"
+        },
+        "footer": {
+          "privacy": "Të dhënat e anëtarësisë dhe rastit trajtohen në mënyrë të sigurt.",
+          "security": "Për urgjencë përdor thirrjen 60 sek për ndihmë të udhëzuar.",
+          "contact": "Kontakto mbështetjen"
+        }
+      }
+    },
+    "shell": {
+      "search_placeholder": "Kërko...",
+      "search_title": "Kërko",
+      "search_action": "Kërko",
+      "portal_label": "Portali: {portal}",
+      "surface_label": "Sipërfaqja: {surface}",
+      "portal": {
+        "member": "Anëtar",
+        "agent": "Agjent",
+        "staff": "Staf",
+        "admin": "Admin"
+      },
+      "surface": {
+        "legacy": "legacy",
+        "v3": "v3"
+      }
     }
   }
 }

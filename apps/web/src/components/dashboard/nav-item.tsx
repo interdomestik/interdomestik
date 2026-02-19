@@ -4,8 +4,6 @@ import { Link } from '@/i18n/routing';
 import { cn } from '@interdomestik/ui/lib/utils';
 import { motion } from 'framer-motion';
 import { LucideIcon } from 'lucide-react';
-import { usePathname } from 'next/navigation'; // Use standard hook for matching
-
 interface NavItemProps {
   href: string;
   title: string;
@@ -25,15 +23,12 @@ export function NavItem({
   className,
   onClick,
 }: NavItemProps) {
-  // If isActive is not provided, derive it (optional)
-  // But usually passed from parent for precise control
-
   return (
     <Link
       href={href}
       onClick={onClick}
       className={cn(
-        'group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+        'group relative flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
         isActive
           ? 'text-primary-foreground'
           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
@@ -53,12 +48,21 @@ export function NavItem({
       )}
 
       {/* Content (Relative to sit on top of background) */}
-      <Icon
+      <span
         className={cn(
-          'relative z-10 size-5 shrink-0 transition-transform duration-300',
-          isActive ? 'scale-110' : 'group-hover:scale-110'
+          'relative z-10 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition',
+          isActive ? 'bg-white/18' : 'bg-slate-100 group-hover:bg-slate-200'
         )}
-      />
+      >
+        <Icon
+          className={cn(
+            'size-[17px] shrink-0 transition-transform duration-300',
+            isActive
+              ? 'scale-105 text-white'
+              : 'text-slate-500 group-hover:scale-105 group-hover:text-slate-700'
+          )}
+        />
+      </span>
 
       <span className="relative z-10 truncate">{title}</span>
 

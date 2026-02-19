@@ -55,7 +55,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
     <ErrorBoundary>
       <Suspense fallback={<MemberDashboardSkeleton />}>
         {uiV2Enabled ? (
-          <MemberDashboardV2 data={data} locale={locale} />
+          <MemberDashboardV2 data={data} locale={locale} tenantId={session.user.tenantId ?? null} />
         ) : (
           <MemberDashboardView data={data} locale={locale} />
         )}

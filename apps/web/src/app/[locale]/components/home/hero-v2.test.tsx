@@ -4,14 +4,14 @@ import { HeroV2 } from './hero-v2';
 import { getStartClaimHrefForSession } from '../../home-v2.core';
 
 describe('HeroV2', () => {
-  it('renders Start a claim CTA when UI_V2 is enabled and user is signed out', () => {
+  it('renders localized CTA when UI_V2 is enabled and user is signed out', () => {
     const href = getStartClaimHrefForSession({ locale: 'sq', session: null });
 
     render(<HeroV2 locale="sq" startClaimHref={href} />);
 
     const cta = screen.getByTestId('hero-v2-start-claim');
     expect(cta).toBeInTheDocument();
-    expect(cta).toHaveTextContent('Start a claim');
+    expect(cta).toHaveTextContent('Nis raportimin');
     expect(cta).toHaveAttribute('href', '/sq/register');
   });
 

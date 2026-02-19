@@ -59,6 +59,93 @@
       "health_safety": "Health & Safety",
       "my_documents": "My Documents",
       "contact_center": "Contact Center"
+    },
+    "member": {
+      "home": {
+        "hero": {
+          "title": "You are protected with Interdomestik",
+          "subtitle": "Fast support, step-by-step guidance, and private handling.",
+          "trust": {
+            "private": "Private by default",
+            "support247": "24/7 support line",
+            "guided": "Guided from first contact"
+          }
+        },
+        "cta": {
+          "help_now": "Get help now (60-sec call)",
+          "start_claim": "Report case"
+        },
+        "benefits": {
+          "title": "Top member benefits",
+          "abroad": {
+            "title": "Abroad accident help (Green Card)",
+            "body": "Get country-specific guidance when incidents happen abroad."
+          },
+          "diaspora": {
+            "title": "Diaspora support",
+            "body": "Practical support for members living or traveling outside Kosovo."
+          },
+          "fast": {
+            "title": "Fast assistance",
+            "body": "Reach support quickly and get clear next steps."
+          }
+        },
+        "qa": {
+          "title": "Quick actions",
+          "abroad": "Accident abroad?",
+          "incident_guide": "Incident guide",
+          "help_now": "Get help now (60-sec call)",
+          "documents": "Documents",
+          "benefits": "Benefits",
+          "support": "Support",
+          "start_claim": "Report case"
+        },
+        "chip": {
+          "invite_earn": "Invite & Earn"
+        },
+        "how": {
+          "title": "How it works",
+          "step1": "Contact us",
+          "step2": "We guide you",
+          "step3": "We resolve the case together"
+        },
+        "claims": {
+          "title": "Your claim status",
+          "status_label": "Status",
+          "continue": "Continue your case",
+          "start": "Report case",
+          "next_step_label": "Latest case",
+          "empty": "No active case right now. Report one when you need support."
+        },
+        "center": {
+          "title": "Member center",
+          "notifications": "Notifications",
+          "profile": "Profile & settings",
+          "support": "Support"
+        },
+        "footer": {
+          "privacy": "Your membership data and case details are handled securely.",
+          "security": "Need urgent help? Use the 60-second call for guided assistance.",
+          "contact": "Contact support"
+        }
+      }
+    },
+    "shell": {
+      "search_placeholder": "Search...",
+      "search_title": "Search",
+      "search_action": "Search",
+      "portal_label": "Portal: {portal}",
+      "surface_label": "Surface: {surface}",
+      "portal": {
+        "member": "Member",
+        "agent": "Agent",
+        "staff": "Staff",
+        "admin": "Admin"
+      },
+      "surface": {
+        "legacy": "legacy",
+        "v3": "v3"
+      }
     }
   }
 }

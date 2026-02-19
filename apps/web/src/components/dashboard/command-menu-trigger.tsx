@@ -3,9 +3,11 @@
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '@interdomestik/ui';
 import { Search } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 export function CommandMenuTrigger() {
+  const t = useTranslations('dashboard.shell');
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const pathname = usePathname();
@@ -55,8 +57,8 @@ export function CommandMenuTrigger() {
         className="relative h-9 w-full justify-start rounded-[0.5rem] bg-background/50 text-sm font-normal text-muted-foreground shadow-none sm:pr-12 md:w-40 lg:w-64"
         onClick={() => setOpen(true)}
       >
-        <span className="hidden lg:inline-flex">Search...</span>
-        <span className="inline-flex lg:hidden">Search...</span>
+        <span className="hidden lg:inline-flex">{t('search_placeholder')}</span>
+        <span className="inline-flex lg:hidden">{t('search_placeholder')}</span>
         <kbd className="pointer-events-none absolute right-[0.3rem] top-[0.3rem] hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
           <span className="text-xs">⌘</span>K
         </kbd>
@@ -64,7 +66,7 @@ export function CommandMenuTrigger() {
 
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
-          <DialogTitle>Search</DialogTitle>
+          <DialogTitle>{t('search_title')}</DialogTitle>
         </DialogHeader>
         <form className="space-y-3" onSubmit={handleSubmit}>
           <div className="flex items-center gap-2">
@@ -72,12 +74,12 @@ export function CommandMenuTrigger() {
             <Input
               autoFocus
               value={query}
-              placeholder="Search..."
+              placeholder={t('search_placeholder')}
               onChange={event => setQuery(event.target.value)}
             />
           </div>
           <div className="flex justify-end">
-            <Button type="submit">Search</Button>
+            <Button type="submit">{t('search_action')}</Button>
           </div>
         </form>
       </DialogContent>

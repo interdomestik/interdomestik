@@ -18,19 +18,19 @@ export function SidebarBrand({ role }: SidebarBrandProps) {
         : '/member';
 
   return (
-    <SidebarHeader className="h-20 flex items-center justify-center border-b border-white/10">
+    <SidebarHeader className="m-2 h-20 rounded-2xl border border-white/70 bg-white/80 shadow-[0_20px_38px_-34px_rgba(15,23,42,0.8)] backdrop-blur-xl">
       <Link
         href={homeHref}
-        className="flex items-center gap-3 font-bold text-xl px-2 w-full group-data-[state=collapsed]:justify-center group hover:opacity-90 transition-opacity"
+        className="group flex w-full items-center gap-3 px-3 font-bold text-xl transition-opacity hover:opacity-90 group-data-[state=collapsed]:justify-center"
       >
-        <div className="h-10 w-10 rounded-xl brand-gradient flex items-center justify-center text-white shadow-lg shadow-primary/25 transition-transform group-hover:scale-105 shrink-0">
-          <Shield className="h-6 w-6" />
+        <div className="brand-gradient flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-[0_14px_24px_-16px_rgba(37,99,235,0.95)] transition-transform group-hover:scale-105">
+          <Shield className="h-5 w-5" />
         </div>
-        <div className="flex flex-col group-data-[state=collapsed]:hidden animate-in fade-in duration-300">
-          <span className="leading-none bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 tracking-tight">
+        <div className="animate-in fade-in flex flex-col duration-300 group-data-[state=collapsed]:hidden">
+          <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text leading-none tracking-tight text-transparent">
             Interdomestik
           </span>
-          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1">
+          <span className="mt-1 inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
             {role === 'agent' ? t('agentPortal') : t('memberPortal')}
           </span>
         </div>

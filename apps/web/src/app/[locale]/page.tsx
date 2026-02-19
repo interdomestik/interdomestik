@@ -39,11 +39,18 @@ export default async function HomePage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
   const uiV2Enabled = isUiV2Enabled();
+  const requestHeaders = await headers();
+  const host = requestHeaders.get('host')?.toLowerCase() ?? '';
+  const hostTenantHint = host.startsWith('mk.')
+    ? 'tenant_mk'
+    : host.startsWith('ks.')
+      ? 'tenant_ks'
+      : null;
 
   // V3 Change: Fetch real session to enable dashboard redirection
   const session = await auth.api
     .getSession({
-      headers: await headers(),
+      headers: requestHeaders,
     })
     .catch(() => null);
 
@@ -71,7 +78,11 @@ export default async function HomePage({ params }: Props) {
       <main className="min-h-screen">
         <Header />
         {uiV2Enabled ? (
-          <HeroV2 locale={locale} startClaimHref={startClaimHref} />
+          <HeroV2
+            locale={locale}
+            startClaimHref={startClaimHref}
+            tenantId={session?.user?.tenantId ?? hostTenantHint}
+          />
         ) : (
           <>
             <HeroSection />
