@@ -52,19 +52,50 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
+  useLocale: () => 'sq',
+  useTranslations: () => (key: string, values?: Record<string, string | number>) => {
     const translations: Record<string, string> = {
       step1: 'Category',
       step2: 'Details',
       step3: 'Evidence',
       step4: 'Review',
+      progress: 'Step {current} of {total}',
+      continue_details: 'Continue -> Details',
+      continue_upload: 'Continue -> Upload',
+      continue_review: 'Continue -> Review',
+      submit_label: 'Submit case',
+      required_fields: 'Please complete required fields',
+      submit_success: 'Case submitted successfully.',
+      submit_failed: 'Submission failed. Please try again.',
+      submit_unexpected: 'An unexpected error occurred.',
       submitClaim: 'Submit Claim',
+      'help.title': 'Need help?',
+      'help.call_60s': 'Get help now (60-sec call)',
+      'help.whatsapp': 'WhatsApp support',
       back: 'Back',
       next: 'Next',
       processing: 'Processing...',
+      title: 'Case created',
+      case_id: 'Case ID',
+      next_step_1: 'Step 1',
+      next_step_2: 'Step 2',
+      help_call: 'Call now',
+      help_whatsapp: 'WhatsApp',
+      go_to_claim: 'Go to case',
     };
-    return translations[key] || key;
+    const message = translations[key] || key;
+    if (!values) return message;
+    return message
+      .replace('{current}', String(values.current ?? ''))
+      .replace('{total}', String(values.total ?? ''));
   },
+}));
+
+vi.mock('@/lib/support-contacts', () => ({
+  getSupportContacts: () => ({
+    telHref: 'tel:+38349900600',
+    whatsappHref: 'https://wa.me/38349900600',
+  }),
 }));
 
 vi.mock('sonner', () => ({
@@ -123,12 +154,18 @@ describe('ClaimWizard UI V2', () => {
 
     render(<ClaimWizard />);
 
+    expect(screen.getByTestId('claim-wizard-help')).toBeInTheDocument();
+    expect(screen.getByTestId('claim-wizard-help-call')).toHaveAttribute(
+      'href',
+      'tel:+38349900600'
+    );
     fireEvent.click(screen.getByTestId('wizard-next'));
 
     expect(await screen.findByTestId('wizard-inline-error')).toBeVisible();
     expect(screen.getByTestId('wizard-inline-error')).toHaveTextContent(
       'Please complete required fields'
     );
+    expect(screen.getByTestId('claims-wizard-disclaimer')).toBeInTheDocument();
   });
 
   it('shows claim-created success state with claim id on final submit', async () => {
@@ -147,11 +184,21 @@ describe('ClaimWizard UI V2', () => {
 
     const success = await screen.findByTestId('claim-created-success');
     expect(success).toBeVisible();
-    expect(success).toHaveTextContent('Claim created');
+    expect(success).toHaveTextContent('Case created');
     expect(success).toHaveTextContent('CLM-TEST-123');
+    expect(screen.getByTestId('claim-created-id')).toHaveTextContent('Case ID');
+    expect(screen.getByTestId('claim-created-next-steps')).toBeInTheDocument();
+    expect(screen.getByTestId('claim-created-help-call')).toHaveAttribute(
+      'href',
+      'tel:+38349900600'
+    );
+    expect(screen.getByTestId('claim-created-help-whatsapp')).toHaveAttribute(
+      'href',
+      'https://wa.me/38349900600'
+    );
     expect(screen.getByTestId('claim-created-go-to-claim')).toHaveAttribute(
       'href',
-      '/member/claims/CLM-TEST-123'
+      '/sq/member/claims/CLM-TEST-123'
     );
     expect(mockPush).not.toHaveBeenCalled();
   });

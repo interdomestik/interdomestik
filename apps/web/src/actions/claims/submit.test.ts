@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { submitClaimCore } from './submit.core';
+import { submitClaimCore as submitClaimCoreDomain } from '@interdomestik/domain-claims/claims/submit';
 
 // Mock domain logic
 vi.mock('@interdomestik/domain-claims/claims/submit', () => ({
@@ -44,6 +45,10 @@ describe('actions/claims/submit', () => {
 
   it('succeeds when rate limit allows', async () => {
     mockRateLimit.mockResolvedValueOnce({ limited: false });
+    (submitClaimCoreDomain as any).mockResolvedValueOnce({
+      success: true,
+      claimId: 'claim-1',
+    });
 
     const result = await submitClaimCore({
       session: validSession as any,
@@ -51,7 +56,7 @@ describe('actions/claims/submit', () => {
       data: validData as any,
     });
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({ success: true, claimId: 'claim-1' });
     expect(mockRateLimit).toHaveBeenCalled();
   });
 

@@ -58,18 +58,24 @@ vi.mock('@/i18n/routing', () => ({
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
+  useLocale: () => 'en',
+  useTranslations: () => (key: string, values?: Record<string, string | number>) => {
     const translations: Record<string, string> = {
       step1: 'Category',
       step2: 'Details',
       step3: 'Evidence',
       step4: 'Review',
+      progress: 'Step {current} of {total}',
       submitClaim: 'Submit Claim',
       back: 'Back',
       next: 'Next',
       processing: 'Processing...',
     };
-    return translations[key] || key;
+    const message = translations[key] || key;
+    if (!values) return message;
+    return message
+      .replace('{current}', String(values.current ?? ''))
+      .replace('{total}', String(values.total ?? ''));
   },
 }));
 

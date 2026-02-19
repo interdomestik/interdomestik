@@ -167,7 +167,9 @@ export function WizardStepDetails() {
         <div className="border-t pt-6 mt-2">
           <FormLabel className="mb-3 font-medium flex items-center gap-2">
             {t('voice_note_label', { defaultMessage: 'Or Record a Voice Message' })}
-            <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">New</span>
+            <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+              {t('new_badge')}
+            </span>
           </FormLabel>
           <VoiceRecorder
             onRecordingComplete={async (blob: Blob) => {
@@ -179,7 +181,7 @@ export function WizardStepDetails() {
               formData.append('file', blob, filename);
 
               const { toast } = await import('sonner');
-              const loader = toast.loading('Uploading voice note...');
+              const loader = toast.loading(t('voice_uploading'));
 
               try {
                 const { uploadVoiceNote } = await import('@/actions/uploads/upload');
@@ -201,12 +203,12 @@ export function WizardStepDetails() {
                   form.setValue('files', [...currentFiles, newFile]);
                   form.setValue('voiceNoteUrl', result.url); // Keep for UI feedback
 
-                  toast.success('Voice note attached!', { id: loader });
+                  toast.success(t('voice_uploaded'), { id: loader });
                 } else {
-                  toast.error('Upload failed: ' + result.error, { id: loader });
+                  toast.error(`${t('voice_upload_failed')}: ${result.error}`, { id: loader });
                 }
               } catch {
-                toast.error('Upload failed', { id: loader });
+                toast.error(t('voice_upload_failed'), { id: loader });
               }
             }}
             onClear={() => {

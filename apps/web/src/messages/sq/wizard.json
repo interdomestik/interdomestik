@@ -48,7 +48,11 @@
       "description_placeholder": "Përshkruani saktësisht çfarë ndodhi...",
       "helpfulTips": "💡 Këshilla të Dobishme:",
       "voice_note_label": "Ose Inçizo një Mesazh zanor",
-      "voice_note_desc": "Kalo shkrimin. Shpjego çfarë ndodhi në 60 sekonda."
+      "voice_note_desc": "Kalo shkrimin. Shpjego çfarë ndodhi në 60 sekonda.",
+      "new_badge": "E re",
+      "voice_uploading": "Duke ngarkuar mesazhin zanor...",
+      "voice_uploaded": "Mesazhi zanor u bashkëngjit!",
+      "voice_upload_failed": "Ngarkimi dështoi"
     },
     "categoryFields": {
       "vehicle": {
@@ -109,7 +113,9 @@
       "description": "Përshkrimi",
       "evidence": "Dëshmi",
       "amount": "Shuma e Kërkuar",
-      "files_attached": "{count} skedarë bashkangjitur"
+      "files_attached": "{count} skedarë bashkangjitur",
+      "offline_title": "Nuk je i lidhur me internet",
+      "offline_description": "Rasti ruhet si draft, por dërgimi bëhet pasi të rikthehet lidhja."
     }
   }
 }

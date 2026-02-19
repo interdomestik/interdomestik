@@ -95,7 +95,35 @@
       "step2": "Detajet",
       "step3": "Dëshmi",
       "step4": "Rishiko",
-      "submitClaim": "Dërgo Kërkesën për Dëmshpërblim"
+      "progress": "Hapi {current} nga {total}",
+      "continue_details": "Vazhdo -> Detajet",
+      "continue_upload": "Vazhdo -> Dëshmitë",
+      "continue_review": "Vazhdo -> Rishikimi",
+      "submit_label": "Dërgo rastin",
+      "required_fields": "Plotëso fushat e detyrueshme",
+      "submit_success": "Rasti u dërgua me sukses.",
+      "submit_failed": "Dërgimi dështoi. Ju lutemi provoni përsëri.",
+      "submit_unexpected": "Ndodhi një gabim i papritur.",
+      "submitClaim": "Dërgo Kërkesën për Dëmshpërblim",
+      "help": {
+        "title": "Ke nevojë për ndihmë?",
+        "call_60s": "Merr ndihmë tani (60 sek)",
+        "whatsapp": "Ndihmë në WhatsApp"
+      }
+    },
+    "disclaimer": {
+      "not_insurer": "Interdomestik nuk është sigurues. Ne ofrojmë udhëzim dhe menaxhim të rastit.",
+      "insurer_decides": "Vendimi final dhe pagesa bëhen nga siguruesi.",
+      "privacy": "Dokumentet tuaja trajtohen në mënyrë të sigurt."
+    },
+    "success": {
+      "title": "Rasti u krijua",
+      "case_id": "ID e rastit",
+      "next_step_1": "Ekipi ynë shqyrton raportimin dhe dëshmitë.",
+      "next_step_2": "Do të marrësh hapat e radhës në aplikacion ose nga mbështetja.",
+      "help_call": "Telefono tani",
+      "help_whatsapp": "WhatsApp",
+      "go_to_claim": "Shko te rasti"
     },
     "actions": {
       "editDraft": "Redakto skicën",
