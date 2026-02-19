@@ -95,6 +95,7 @@ export const APP_NAMESPACES = [
 export const AGENT_NAMESPACES = [
   'common',
   'nav',
+  'dashboard',
   'agent',
   'agent-claims',
   'agent-crm',
@@ -109,6 +110,7 @@ export const AGENT_NAMESPACES = [
 export const STAFF_NAMESPACES = [
   'common',
   'nav',
+  'dashboard',
   'agent',
   'agent-claims',
   'claims',
@@ -119,6 +121,7 @@ export const ADMIN_NAMESPACES = [
   'admin',
   'common',
   'nav',
+  'dashboard',
   'admin-common',
   'admin-dashboard',
   'admin-users',
