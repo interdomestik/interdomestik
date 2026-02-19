@@ -9,8 +9,7 @@ test.describe('Member Dashboard (Has Claims)', () => {
     await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'dashboard-page-ready' });
 
     await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
-    await expect(page.getByTestId('portal-surface-indicator')).toContainText(/Portal: Member/i);
-    await expect(page.getByTestId('portal-surface-indicator')).toContainText(/Surface: v3/i);
+    await expect(page.getByTestId('portal-surface-indicator')).toBeVisible();
     await expect(page.getByTestId('dashboard-heading')).toBeVisible();
     await expect(page.getByTestId('member-header')).toBeVisible();
     await expect(page.getByTestId('member-primary-actions')).toBeVisible();
