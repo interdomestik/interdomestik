@@ -40,6 +40,12 @@ jobs:
       BETTER_AUTH_URL: http://127.0.0.1:3000
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+      SENTRY_ENVIRONMENT: production
+      SENTRY_SEVERITY_THRESHOLD: error
       RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@interdomestik.com
       RELEASE_GATE_MEMBER_PASSWORD: GoldenPass123!
       RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
@@ -55,6 +61,9 @@ jobs:
       RELEASE_GATE_REQUIRE_ROLE_PANEL: 'false'
       STAFF_CLAIM_URL: ''
       RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL: 'false'
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      EVIDENCE_DIR: tmp/pilot-evidence/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
 
@@ -69,6 +78,12 @@ jobs:
           missing=()
           required_vars=(
             BETTER_AUTH_SECRET
+            SONAR_TOKEN
+            SONAR_HOST_URL
+            SONAR_PROJECT_KEY
+            SENTRY_AUTH_TOKEN
+            SENTRY_ORG
+            SENTRY_PROJECT
           )
           for name in "${required_vars[@]}"; do
             if [[ -z "${!name:-}" ]]; then
@@ -95,6 +110,21 @@ jobs:
       - name: Build web standalone artifact
         run: pnpm --filter @interdomestik/web run build:ci
 
+      - name: Run Sonar quality gate
+        run: bash scripts/sonar-gate.sh
+
+      - name: Upload Sonar gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonarqube-gate-${{ github.run_id }}
+          path: |
+            ${{ env.EVIDENCE_DIR }}/logs/sonar-scan.log
+            ${{ env.EVIDENCE_DIR }}/logs/sonar-qualitygate.json
+            ${{ env.EVIDENCE_DIR }}/notes/sonar-summary.md
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Generate Playwright auth states
         run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
 
@@ -117,8 +147,15 @@ jobs:
           cat /tmp/web-start.log || true
           exit 1
 
+      - name: Open Sentry Seer sweep window (pre)
+        run: bash scripts/sentry-seer-sweep.sh pre
+
       - name: Run pilot gate
         run: pnpm -s release:gate:p0:raw --baseUrl http://127.0.0.1:3000
+
+      - name: Close Sentry Seer sweep window (post)
+        if: always()
+        run: bash scripts/sentry-seer-sweep.sh post
 
       - name: Stop web server
         if: always()
@@ -127,6 +164,21 @@ jobs:
           if [[ -f /tmp/web-start.pid ]]; then
             kill "$(cat /tmp/web-start.pid)" || true
           fi
+
+      - name: Upload Seer sweep artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentry-seer-sweep-${{ github.run_id }}
+          path: |
+            ${{ env.EVIDENCE_DIR }}/logs/sentry-issues-window-pre.md
+            ${{ env.EVIDENCE_DIR }}/logs/sentry-issues-window-post.md
+            ${{ env.EVIDENCE_DIR }}/logs/sentry-issues-window-post.json
+            ${{ env.EVIDENCE_DIR }}/logs/seer-automation-payload.json
+            ${{ env.EVIDENCE_DIR }}/logs/sentry-seer-automation-response.json
+            ${{ env.EVIDENCE_DIR }}/notes/seer-findings.md
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Upload release gate reports
         if: always()
