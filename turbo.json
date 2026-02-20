@@ -18,18 +18,18 @@
     "NEXT_PUBLIC_PADDLE_PRICE_*"
   ],
   "globalDependencies": ["**/.env.*local"],
-  "globalPassThroughEnv": [
-    "RESEND_API_KEY",
-    "RESEND_FROM_EMAIL",
-    "DB_MAX_CONNECTIONS",
-    "UPSTASH_REDIS_REST_URL",
-    "UPSTASH_REDIS_REST_TOKEN"
-  ],
+  "globalPassThroughEnv": ["DB_MAX_CONNECTIONS"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "passThroughEnv": [
+        "RESEND_API_KEY",
+        "RESEND_FROM_EMAIL",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN"
+      ]
     },
     "dev": {
       "cache": false,
@@ -41,7 +41,13 @@
     },
     "type-check": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "tsconfig.json"]
+      "inputs": ["$TURBO_DEFAULT$", "tsconfig.json"],
+      "passThroughEnv": [
+        "RESEND_API_KEY",
+        "RESEND_FROM_EMAIL",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN"
+      ]
     },
     "clean": {
       "cache": false
