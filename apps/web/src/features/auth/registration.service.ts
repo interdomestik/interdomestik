@@ -1,5 +1,6 @@
 import { db } from '@interdomestik/database/db';
 import { user } from '@interdomestik/database/schema';
+import type { TenantId } from '@/lib/tenant/tenant-hosts';
 import { nanoid } from 'nanoid';
 
 // Simple transaction retry for testing
@@ -35,8 +36,9 @@ export async function registerUser(params: {
   email: string;
   name: string;
   role?: 'user' | 'admin' | 'super_admin' | 'staff' | 'agent' | 'branch_manager';
+  tenantId: TenantId;
 }) {
-  const { email, name, role = 'user' } = params;
+  const { email, name, role = 'user', tenantId } = params;
 
   // Simple unique check
   const existing = await db.query.user.findFirst({
@@ -52,7 +54,7 @@ export async function registerUser(params: {
   await withTransactionRetry(async tx => {
     await tx.insert(user).values({
       id: userId,
-      tenantId: 'default-tenant', // Simplified for testing
+      tenantId,
       name: name.trim(),
       email: email.toLowerCase().trim(),
       emailVerified: false,
