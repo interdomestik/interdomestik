@@ -14,7 +14,7 @@ import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { Session } from './context';
 
 export type SubmitClaimResult =
-  | { success: true }
+  | { success: true; claimId: string }
   | { success: false; error: string; code?: string };
 
 export async function submitClaimCore(params: {
@@ -46,13 +46,15 @@ export async function submitClaimCore(params: {
     }
   }
   try {
-    await submitClaimCoreDomain(params, {
+    const result = await submitClaimCoreDomain(params, {
       logAuditEvent,
       notifyClaimSubmitted,
       revalidatePath,
     });
-    // Explicitly return success result
-    return { success: true };
+    if (result.success && typeof result.claimId === 'string') {
+      return { success: true, claimId: result.claimId };
+    }
+    return { success: false, error: 'Failed to submit, please try again.' };
   } catch (error) {
     // Map ClaimValidationError to proper 400/403 response
     // Expected validation - do NOT send to Sentry

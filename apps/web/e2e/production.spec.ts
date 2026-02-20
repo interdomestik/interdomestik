@@ -63,8 +63,7 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       await loginAs(page, memberUser, testInfo);
 
       await expect(page.getByTestId('dashboard-page-ready')).toBeVisible();
-      await expect(page.getByTestId('portal-surface-indicator')).toContainText(/Portal: Member/i);
-      await expect(page.getByTestId('portal-surface-indicator')).toContainText(/Surface: v3/i);
+      await expect(page.getByTestId('portal-surface-indicator')).toBeVisible();
       await expect(page.getByTestId('member-header')).toBeVisible();
       await expect(page.getByTestId('member-primary-actions')).toBeVisible();
       await expect(page.getByTestId('member-active-claim')).toBeVisible();

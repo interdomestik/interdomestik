@@ -330,7 +330,12 @@ describe('Claim Actions', () => {
     it('should insert claim and documents when payload is valid', async () => {
       mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
 
-      await submitClaim(validPayload);
+      const result = await submitClaim(validPayload);
+
+      expect(result).toEqual({
+        success: true,
+        claimId: 'test-id',
+      });
 
       expect(mockDbInsert).toHaveBeenNthCalledWith(
         1,
@@ -389,6 +394,9 @@ describe('Claim Actions', () => {
         error: 'Validation failed',
         code: 'INVALID_PAYLOAD',
       });
+
+      const failed = await submitClaim(invalidPayload as CreateClaimValues);
+      expect(failed).not.toHaveProperty('claimId');
     });
 
     it('should throw on database error during claim insert', async () => {

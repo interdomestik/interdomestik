@@ -48,7 +48,11 @@
       "description_placeholder": "Describe exactly what happened...",
       "helpfulTips": "💡 Helpful Tips:",
       "voice_note_label": "Or Record a Voice Message",
-      "voice_note_desc": "Skip typing. Explain what happened in 60 seconds."
+      "voice_note_desc": "Skip typing. Explain what happened in 60 seconds.",
+      "new_badge": "New",
+      "voice_uploading": "Uploading voice note...",
+      "voice_uploaded": "Voice note attached!",
+      "voice_upload_failed": "Upload failed"
     },
     "categoryFields": {
       "vehicle": {
@@ -109,7 +113,9 @@
       "description": "Description",
       "evidence": "Evidence",
       "amount": "Claim Amount",
-      "files_attached": "{count} files attached"
+      "files_attached": "{count} files attached",
+      "offline_title": "You are offline",
+      "offline_description": "Your case is saved as a draft, but you cannot submit until connection is restored."
     }
   }
 }

@@ -155,7 +155,7 @@ export async function submitClaimCore(
     await deps.revalidatePath('/member/claims');
   }
 
-  return { success: true };
+  return { success: true, claimId };
 }
 
 function validateClaimFiles(

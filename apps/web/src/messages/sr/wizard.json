@@ -40,7 +40,11 @@
       "description_placeholder": "Describe exactly what happened...",
       "helpfulTips": "💡 Helpful Tips:",
       "voice_note_label": "Or Record a Voice Message",
-      "voice_note_desc": "Skip typing. Explain what happened in 60 seconds."
+      "voice_note_desc": "Skip typing. Explain what happened in 60 seconds.",
+      "new_badge": "New",
+      "voice_uploading": "Uploading voice note...",
+      "voice_uploaded": "Voice note attached!",
+      "voice_upload_failed": "Upload failed"
     },
     "review": {
       "title": "Rishiko & Dërgo",
@@ -53,7 +57,9 @@
       "description": "Përshkrimi",
       "evidence": "Dëshmi",
       "amount": "Shuma e Kërkuar",
-      "files_attached": "{count} skedarë bashkangjitur"
+      "files_attached": "{count} skedarë bashkangjitur",
+      "offline_title": "You are offline",
+      "offline_description": "Your case is saved as a draft, but you cannot submit until connection is restored."
     },
     "quickTags": {
       "flight_delay": "Flight Delay",

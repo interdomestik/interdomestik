@@ -36,6 +36,7 @@ describe('Agent Workspace Claims Query Contracts', () => {
     };
 
     it('assembles claims applying basic isolation filters', async () => {
+      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
       mockDb.query.claims.findMany.mockResolvedValue([
         { id: 'c1', claimNumber: 'CLM-001', user: { id: 'u1' }, branch: { name: 'B1' } },
       ]);
@@ -57,6 +58,52 @@ describe('Agent Workspace Claims Query Contracts', () => {
 
       // Assert that select (unread) was called with a where clause (Contract: must filter)
       expect(mockDb.where).toHaveBeenCalledWith(expect.anything());
+    });
+
+    it('injects selected claim when selectedClaimId is not in initial page', async () => {
+      const claimsPageRows = [
+        {
+          id: 'visible-1',
+          claimNumber: 'CLM-001',
+          user: { id: 'u1' },
+          branch: { name: 'B1' },
+          title: 'Visible Claim',
+          status: 'submitted',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          userId: 'u1',
+        },
+      ];
+      const selectedClaimRow = {
+        id: 'target-1',
+        claimNumber: 'CLM-002',
+        user: { id: 'u2' },
+        branch: { name: 'B1' },
+        title: 'Target Claim',
+        status: 'submitted',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: 'u2',
+      };
+      let findManyCalls = 0;
+      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+      mockDb.query.claims.findMany.mockImplementation(async () => {
+        findManyCalls += 1;
+        return findManyCalls === 1 ? claimsPageRows : [selectedClaimRow];
+      });
+      mockDb.groupBy.mockResolvedValueOnce([{ claimId: 'visible-1', count: 0 }]);
+      mockDb.orderBy.mockResolvedValueOnce([{ claimId: 'visible-1', content: 'hello' }]);
+
+      const result = await getAgentWorkspaceClaimsCore({
+        tenantId: 't1',
+        userId: 'a1',
+        db: mockDb,
+        selectedClaimId: 'target-1',
+      });
+
+      expect(result.claims).toHaveLength(2);
+      expect(result.claims.map(c => c.id)).toContain('target-1');
+      expect(findManyCalls).toBe(2);
     });
   });
 });

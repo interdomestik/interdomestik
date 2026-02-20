@@ -14,19 +14,27 @@ import { WifiOff } from 'lucide-react';
 export function WizardReview() {
   const tEvidence = useTranslations('evidence');
   const t = useTranslations('wizard.review');
+  const tCategory = useTranslations('claimCategories');
   const form = useFormContext<CreateClaimValues>();
   const values = form.getValues();
   const { isOffline } = useNetwork();
+  const categoryLabels: Partial<Record<CreateClaimValues['category'], string>> = {
+    vehicle: tCategory('vehicle.title'),
+    property: tCategory('property.title'),
+    injury: tCategory('injury.title'),
+    travel: tCategory('travel.title'),
+  };
+  const categoryLabel = values.category
+    ? (categoryLabels[values.category] ?? values.category.replace('_', ' '))
+    : '-';
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       {isOffline && (
         <Alert variant="destructive">
           <WifiOff className="h-4 w-4" />
-          <AlertTitle>You are offline</AlertTitle>
-          <AlertDescription>
-            Your claim is saved as a draft, but you cannot submit until connection is restored.
-          </AlertDescription>
+          <AlertTitle>{t('offline_title')}</AlertTitle>
+          <AlertDescription>{t('offline_description')}</AlertDescription>
         </Alert>
       )}
       <div className="text-center">
@@ -42,7 +50,7 @@ export function WizardReview() {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-muted-foreground">{t('category')}</p>
-              <p className="font-medium capitalize">{values.category?.replace('_', ' ')}</p>
+              <p className="font-medium capitalize">{categoryLabel}</p>
             </div>
             <div>
               <p className="text-muted-foreground">{t('date')}</p>

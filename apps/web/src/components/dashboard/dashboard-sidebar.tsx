@@ -26,13 +26,15 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
   return (
     <Sidebar
       collapsible="icon"
-      className={`border-r border-white/10 transition-colors duration-500 ${
-        isAgent ? 'bg-slate-950/40 backdrop-blur-2xl' : 'bg-background/60 backdrop-blur-xl'
+      className={`border-r transition-colors duration-500 ${
+        isAgent
+          ? 'border-white/10 bg-slate-950/40 backdrop-blur-2xl'
+          : 'border-slate-200/80 bg-gradient-to-b from-slate-50/95 via-white/95 to-slate-100/95 backdrop-blur-xl'
       } supports-[backdrop-filter]:bg-transparent`}
     >
       <SidebarBrand role={role} />
 
-      <SidebarContent className="px-3 py-4 space-y-2">
+      <SidebarContent className="mx-2 my-3 rounded-2xl border border-white/70 bg-white/70 px-2.5 py-3 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.65)] backdrop-blur-xl">
         <LayoutGroup id="sidebar-nav">
           {/* Section 1: Dashboard (Context Aware) */}
           <SidebarGroup>
@@ -71,7 +73,7 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
                 Sales & Network
               </SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu className="gap-1">
+                <SidebarMenu className="gap-1.5">
                   {agentItems.slice(1).map(item => {
                     const isActive = pathname.startsWith(item.href);
                     return (
@@ -97,7 +99,7 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
                 Membership
               </SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu className="gap-1">
+                <SidebarMenu className="gap-1.5">
                   {memberItems.slice(1).map(item => {
                     const isExactMatch = pathname === item.href;
                     const isParentRoute = pathname.startsWith(item.href + '/');
@@ -132,7 +134,7 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
                 Admin
               </SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu className="gap-1">
+                <SidebarMenu className="gap-1.5">
                   {adminItems.map(item => (
                     <SidebarMenuItem key={item.href}>
                       <NavItem
@@ -150,7 +152,7 @@ export function DashboardSidebar({ agentTier = 'standard' }: { agentTier?: strin
         </LayoutGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2 border-t border-white/10">
+      <SidebarFooter className="m-2 rounded-xl border border-white/70 bg-white/70 p-2 shadow-[0_14px_30px_-26px_rgba(15,23,42,0.7)] backdrop-blur-xl">
         <SidebarUserMenu />
       </SidebarFooter>
       <SidebarRail />

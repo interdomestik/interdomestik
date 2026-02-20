@@ -15,6 +15,19 @@ export interface AgentMemberClaimsDTO {
   }[];
 }
 
+export function buildAgentClaimsWhere(params: {
+  tenantId: string;
+  memberIds: string[];
+  branchId?: string | null;
+}) {
+  const base = and(eq(claims.tenantId, params.tenantId), inArray(claims.userId, params.memberIds));
+  if (!params.branchId) {
+    return base;
+  }
+
+  return and(base, eq(claims.branchId, params.branchId));
+}
+
 export type AgentClaimsResult =
   | { ok: true; data: AgentMemberClaimsDTO[] }
   | { ok: false; code: 'UNAUTHORIZED' | 'FORBIDDEN' | 'INTERNAL' };
@@ -34,7 +47,7 @@ export async function getAgentClaimsCore(params: {
   branchId?: string | null;
   db: any;
 }): Promise<AgentClaimsResult> {
-  const { tenantId, userId, role, db } = params;
+  const { tenantId, userId, role, branchId, db } = params;
 
   // 1. Role Gating
   const allowedRoles = ['agent', 'admin', 'tenant_admin', 'super_admin'];
@@ -100,8 +113,7 @@ export async function getAgentClaimsCore(params: {
     // We use a simplified visibility logic here for the core.
     const memberClaims = await db.query.claims.findMany({
       where: and(
-        eq(claims.tenantId, tenantId),
-        inArray(claims.userId, memberIds),
+        buildAgentClaimsWhere({ tenantId, memberIds, branchId }),
         ne(claims.status, 'draft')
       ),
       orderBy: desc(claims.updatedAt),

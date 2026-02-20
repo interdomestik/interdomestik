@@ -1,5 +1,5 @@
 import { claimMessages, claims, user } from '@interdomestik/database/schema';
-import { and, count, desc, eq, inArray, isNull, ne } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 
 export interface AgentProClaimDTO {
   id: string;
@@ -25,6 +25,66 @@ export interface AgentWorkspaceClaimsResult {
   claims: AgentProClaimDTO[];
 }
 
+const WORKSPACE_CLAIM_LIMIT = 100;
+
+type ClaimRow = {
+  id: string;
+  title: string | null;
+  claimNumber: string | null;
+  status: string | null;
+  createdAt: Date | string | null;
+  updatedAt: Date | string | null;
+  user?: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
+  branch?: {
+    name: string | null;
+  } | null;
+};
+
+function normalizeClaimDate(value: Date | string | null): Date {
+  if (value instanceof Date) return value;
+  if (typeof value === 'string') return new Date(value);
+  return new Date();
+}
+
+function mapToAgentProClaim(c: ClaimRow): AgentProClaimDTO {
+  return {
+    id: c.id,
+    title: c.title ?? 'Untitled',
+    claimNumber: c.claimNumber ?? 'N/A',
+    status: c.status ?? 'draft',
+    createdAt: normalizeClaimDate(c.createdAt),
+    updatedAt: normalizeClaimDate(c.updatedAt),
+    member: c.user
+      ? {
+          id: c.user.id,
+          name: c.user.name ?? '',
+          email: c.user.email,
+        }
+      : null,
+    branch: c.branch
+      ? {
+          name: c.branch.name ?? 'N/A',
+        }
+      : null,
+    unreadCount: 0,
+    lastMessage: null,
+    policy: null,
+  };
+}
+
+function dedupeClaimsById(claims: AgentProClaimDTO[]): AgentProClaimDTO[] {
+  const seen = new Set<string>();
+  return claims.filter(claim => {
+    if (seen.has(claim.id)) return false;
+    seen.add(claim.id);
+    return true;
+  });
+}
+
 /**
  * Pure helper for the claims where clause.
  */
@@ -33,16 +93,54 @@ export function buildAgentWorkspaceClaimsWhere(params: {
   branchId?: string | null;
 }) {
   if (params.branchId) {
-    return and(eq(claims.tenantId, params.tenantId), eq(claims.branchId, params.branchId));
+    return and(
+      eq(claims.tenantId, params.tenantId),
+      or(eq(claims.branchId, params.branchId), isNull(claims.branchId))
+    );
   }
   return eq(claims.tenantId, params.tenantId);
 }
 
-/**
- * Pure helper for unread messages where clause.
- * Must exclude agent's own messages and scope to specific claims.
- */
-export function buildUnreadMessagesWhere(params: { userId: string; claimIds: string[] }) {
+function buildAgentWorkspaceClaimByIdWhere(params: {
+  tenantId: string;
+  branchId?: string | null;
+  claimId: string;
+}) {
+  return and(buildAgentWorkspaceClaimsWhere(params), eq(claims.id, params.claimId));
+}
+
+async function getClaimByIdInWorkspaceScope(params: {
+  tenantId: string;
+  branchId?: string | null;
+  claimId: string;
+  db: any;
+}): Promise<AgentProClaimDTO | null> {
+  const { tenantId, claimId, branchId, db } = params;
+
+  const matched = await db.query.claims.findMany({
+    where: buildAgentWorkspaceClaimByIdWhere({ tenantId, branchId, claimId }),
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      branch: {
+        columns: {
+          name: true,
+        },
+      },
+    },
+    limit: 1,
+  });
+
+  if (!matched.length) return null;
+  return mapToAgentProClaim(matched[0] as ClaimRow);
+}
+
+function buildUnreadMessagesWhere(params: { userId: string; claimIds: string[] }) {
   return and(
     inArray(claimMessages.claimId, params.claimIds),
     isNull(claimMessages.readAt),
@@ -58,8 +156,9 @@ export async function getAgentWorkspaceClaimsCore(params: {
   tenantId: string;
   userId: string;
   db: any;
+  selectedClaimId?: string;
 }): Promise<AgentWorkspaceClaimsResult> {
-  const { tenantId, userId, db } = params;
+  const { tenantId, userId, db, selectedClaimId } = params;
 
   // 0. Fetch Agent Context (Branch)
   const agent = await db.query.user.findFirst({
@@ -85,10 +184,10 @@ export async function getAgentWorkspaceClaimsCore(params: {
         },
       },
     },
-    limit: 100,
+    limit: WORKSPACE_CLAIM_LIMIT,
   });
 
-  const claimIds = claimsData.map((c: Record<string, unknown>) => c.id as string);
+  const claimIds = (claimsData as Record<string, unknown>[]).map(c => c.id as string);
   const unreadMap = new Map<string, number>();
   const snippetMap = new Map<string, string>();
 
@@ -123,30 +222,31 @@ export async function getAgentWorkspaceClaimsCore(params: {
     );
   }
 
-  // 4. Map to DTOs
-  const mappedClaims: AgentProClaimDTO[] = (claimsData as any[]).map((c: any) => ({
-    id: c.id,
-    title: c.title ?? 'Untitled',
-    claimNumber: c.claimNumber ?? 'N/A',
-    status: c.status ?? 'draft',
-    createdAt: c.createdAt instanceof Date ? c.createdAt : new Date(c.createdAt),
-    updatedAt: c.updatedAt instanceof Date ? c.updatedAt : new Date(c.updatedAt),
-    member: c.user
-      ? {
-          id: c.user.id,
-          name: c.user.name ?? '',
-          email: c.user.email,
-        }
-      : null,
-    branch: c.branch
-      ? {
-          name: c.branch.name,
-        }
-      : null,
-    unreadCount: unreadMap.get(c.id) || 0,
-    lastMessage: snippetMap.get(c.id) || null,
-    policy: null,
-  }));
+  // 4. Resolve direct selection by claimId even when not in first-page results.
+  const selectedClaim =
+    typeof selectedClaimId === 'string' && selectedClaimId.trim() !== ''
+      ? claimIds.includes(selectedClaimId.trim())
+        ? null
+        : await getClaimByIdInWorkspaceScope({
+            tenantId,
+            claimId: selectedClaimId.trim(),
+            branchId: agent?.branchId,
+            db,
+          })
+      : null;
 
-  return { claims: mappedClaims };
+  const mappedClaims: AgentProClaimDTO[] = claimsData.map((c: any) => {
+    const dto = mapToAgentProClaim(c as ClaimRow);
+    dto.unreadCount = unreadMap.get(dto.id) || 0;
+    dto.lastMessage = snippetMap.get(dto.id) || null;
+    return dto;
+  });
+
+  const finalClaims = dedupeClaimsById(
+    selectedClaim ? [...mappedClaims, selectedClaim] : mappedClaims
+  )
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    .slice(0, WORKSPACE_CLAIM_LIMIT);
+
+  return { claims: finalClaims };
 }

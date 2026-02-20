@@ -95,7 +95,35 @@
       "step2": "Detalji",
       "step3": "Dokazi",
       "step4": "Pregled",
-      "submitClaim": "Podnesi Zahtev"
+      "progress": "Korak {current} od {total}",
+      "continue_details": "Nastavi -> Detalji",
+      "continue_upload": "Nastavi -> Dokazi",
+      "continue_review": "Nastavi -> Pregled",
+      "submit_label": "Podnesi slučaj",
+      "required_fields": "Popunite obavezna polja",
+      "submit_success": "Slučaj je uspešno podnet.",
+      "submit_failed": "Podnošenje nije uspelo. Pokušajte ponovo.",
+      "submit_unexpected": "Došlo je do neočekivane greške.",
+      "submitClaim": "Podnesi Zahtev",
+      "help": {
+        "title": "Treba vam pomoć?",
+        "call_60s": "Zatraži pomoć sada (60 sek)",
+        "whatsapp": "WhatsApp podrška"
+      }
+    },
+    "disclaimer": {
+      "not_insurer": "Interdomestik nije osiguravač. Pružamo vođenje i podršku u vođenju slučaja.",
+      "insurer_decides": "Konačnu odluku i isplatu donosi osiguravač.",
+      "privacy": "Vaši dokumenti se obrađuju bezbedno."
+    },
+    "success": {
+      "title": "Slučaj je kreiran",
+      "case_id": "ID slučaja",
+      "next_step_1": "Naš tim pregleda prijavu i dokaze.",
+      "next_step_2": "Dobićete sledeće korake u aplikaciji ili preko podrške.",
+      "help_call": "Pozovi odmah",
+      "help_whatsapp": "WhatsApp",
+      "go_to_claim": "Idi na slučaj"
     },
     "actions": {
       "editDraft": "Uredi nacrt",

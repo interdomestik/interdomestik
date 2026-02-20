@@ -12,27 +12,12 @@ export function TrustStatsSection() {
     { value: t('response'), label: t('responseLabel'), icon: Clock, color: 'text-amber-500' },
   ];
 
-  // Partner logos - real partners and placeholders
+  // Partner logos - show only confirmed partners on pilot surfaces
   const partners = [
     {
       name: 'Mint Fintech Group',
       logo: '/partners/mint-fintech.png',
       url: 'https://mint.com.mk/',
-    },
-    {
-      name: 'Auto Service Partner',
-      initial: 'AS',
-      placeholder: true,
-    },
-    {
-      name: 'Medical Center',
-      initial: 'MC',
-      placeholder: true,
-    },
-    {
-      name: 'Legal Partners',
-      initial: 'LP',
-      placeholder: true,
     },
   ];
 
@@ -64,32 +49,26 @@ export function TrustStatsSection() {
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
             {partners.map(partner => (
               <div key={partner.name} className="group">
-                {partner.placeholder ? (
-                  <div
-                    className="h-12 w-28 rounded-lg bg-slate-800 flex items-center justify-center text-slate-200 font-bold text-sm"
-                    title={partner.name}
-                  >
-                    {partner.initial}
-                  </div>
-                ) : (
-                  <a
-                    href={partner.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block h-12 w-28 rounded-lg bg-white/10 p-2 hover:bg-white/20 transition-colors"
-                    title={partner.name}
-                  >
-                    <Image
-                      src={partner.logo!}
-                      alt={partner.name}
-                      width={112}
-                      height={48}
-                      className="h-full w-full object-contain filter brightness-0 invert opacity-70 group-hover:opacity-100 transition-opacity"
-                    />
-                  </a>
-                )}
+                <a
+                  href={partner.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-12 w-28 rounded-lg bg-white/10 p-2 hover:bg-white/20 transition-colors"
+                  title={partner.name}
+                >
+                  <Image
+                    src={partner.logo!}
+                    alt={partner.name}
+                    width={112}
+                    height={48}
+                    className="h-full w-full object-contain filter brightness-0 invert opacity-70 group-hover:opacity-100 transition-opacity"
+                  />
+                </a>
               </div>
             ))}
+            <div className="h-12 rounded-lg border border-slate-700 bg-slate-800/70 px-4 text-sm font-semibold text-slate-300 inline-flex items-center">
+              {t('partnerNetworkLabel')}
+            </div>
           </div>
         </div>
       </div>

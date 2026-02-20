@@ -83,7 +83,7 @@ describe('WizardReview', () => {
   it('displays category', () => {
     render(<WizardReview />);
     expect(screen.getByText('Category')).toBeInTheDocument();
-    expect(screen.getByText('vehicle')).toBeInTheDocument();
+    expect(screen.getByText('vehicle.title')).toBeInTheDocument();
   });
 
   it('displays company name', () => {

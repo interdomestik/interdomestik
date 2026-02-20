@@ -95,7 +95,35 @@
       "step2": "Details",
       "step3": "Evidence",
       "step4": "Review",
-      "submitClaim": "Submit Claim"
+      "progress": "Step {current} of {total}",
+      "continue_details": "Continue -> Details",
+      "continue_upload": "Continue -> Upload",
+      "continue_review": "Continue -> Review",
+      "submit_label": "Submit case",
+      "required_fields": "Please complete required fields",
+      "submit_success": "Case submitted successfully.",
+      "submit_failed": "Submission failed. Please try again.",
+      "submit_unexpected": "An unexpected error occurred.",
+      "submitClaim": "Submit Claim",
+      "help": {
+        "title": "Need help?",
+        "call_60s": "Get help now (60-sec call)",
+        "whatsapp": "WhatsApp support"
+      }
+    },
+    "disclaimer": {
+      "not_insurer": "Interdomestik is not an insurer. We provide guidance and case management support.",
+      "insurer_decides": "Final decision and payment are made by the insurer.",
+      "privacy": "Your documents are handled securely."
+    },
+    "success": {
+      "title": "Case created",
+      "case_id": "Case ID",
+      "next_step_1": "Our team reviews your report and evidence.",
+      "next_step_2": "You receive next-step guidance in-app or by support contact.",
+      "help_call": "Call now",
+      "help_whatsapp": "WhatsApp",
+      "go_to_claim": "Go to case"
     },
     "actions": {
       "editDraft": "Edit draft",
