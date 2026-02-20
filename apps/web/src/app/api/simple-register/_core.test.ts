@@ -13,6 +13,7 @@ describe('simpleRegisterApiCore', () => {
       email: 'test@example.com',
       name: 'Test User',
       password: 'password123',
+      tenantId: 'tenant_ks',
     };
 
     const result = await simpleRegisterApiCore(body, mockServices);
@@ -24,7 +25,12 @@ describe('simpleRegisterApiCore', () => {
   });
 
   it('returns badRequest for short password', async () => {
-    const body = { email: 'test@example.com', name: 'Test', password: '123' };
+    const body = {
+      email: 'test@example.com',
+      name: 'Test',
+      password: '123',
+      tenantId: 'tenant_ks',
+    };
     const result = await simpleRegisterApiCore(body, mockServices);
 
     expect(result.kind).toBe('badRequest');
@@ -36,7 +42,12 @@ describe('simpleRegisterApiCore', () => {
   it('returns conflict if email exists', async () => {
     mockServices.registerUserFn.mockRejectedValue(new Error('Email already exists'));
 
-    const body = { email: 'existing@example.com', name: 'Test', password: 'password123' };
+    const body = {
+      email: 'existing@example.com',
+      name: 'Test',
+      password: 'password123',
+      tenantId: 'tenant_ks',
+    };
     const result = await simpleRegisterApiCore(body, mockServices);
 
     expect(result.kind).toBe('conflict');
