@@ -27,6 +27,19 @@
     "trustBadgeSecurity": "SERTIFIKOVANA BEZBEDNOST",
     "trustBadgeSupport": "NAJBOLJE OCENJENA PODRŠKA",
     "trustBadgeService": "GARANTOVANA USLUGA",
-    "digitalCardSticky": "Preuzmite digitalnu karticu danas"
+    "digitalCardSticky": "Preuzmite digitalnu karticu danas",
+    "v2_title": "Prijavite slučaj brzo, sa jasnim praćenjem.",
+    "v2_subtitle": "Pokrenite za nekoliko minuta, jednom učitajte dokaze i pratite svaki sledeći korak jasno.",
+    "v2_helpNow": "Dobijte pomoć sada (60 sek)",
+    "v2_helpMeta": "24/7 • brzi odgovor",
+    "v2_start": "Pokreni zahtev",
+    "v2_whatsapp": "WhatsApp",
+    "v2_invite": "Pozovite i zaradite",
+    "v2_idTitle": "Vaša digitalna članarska kartica",
+    "v2_idMeta": "Članski ID",
+    "v2_idLink": "Pogledajte karticu",
+    "v2_idPreview": "Pregled",
+    "v2_trust": "Sigurno • Brzo • Transparentno • Pilot u KS/MK",
+    "v2_steps": ["Član", "Otpremi", "Pregled tima"]
   }
 }

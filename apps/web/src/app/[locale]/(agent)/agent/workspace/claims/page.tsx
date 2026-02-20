@@ -43,6 +43,7 @@ export default async function AgentWorkspaceClaimsPage({ searchParams }: Props) 
   const { claims } = await getAgentWorkspaceClaimsCore({
     tenantId,
     userId: session.user.id,
+    role: session.user.role,
     db,
     selectedClaimId,
   });

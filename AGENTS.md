@@ -19,6 +19,17 @@ The following rules are non-negotiable for all agents (human or AI):
   - `pnpm security:guard`
   - E2E Gate specs
 
+## No-touch zones (require explicit Atlas + Sentinel approval)
+
+- `apps/web/src/proxy.ts`
+- `apps/web/src/lib/tenant/`
+- `apps/web/src/lib/auth/`
+- `apps/web/src/server/auth/`
+- `apps/web/src/app/api/` (authz/tenant contract changes)
+- `packages/shared-auth/`
+- `packages/database/src/`
+- `packages/database/migrations/`
+
 ## Project Overview
 
 - **Type**: Next.js 15 monorepo with Turborepo
@@ -78,6 +89,20 @@ pnpm e2e:gate
 ```
 
 PRs that fail either check are invalid.
+
+### Required Evidence
+
+Before merge:
+
+- Any deploy evidence packet must include:
+  - `logs/sentry-issues-window-pre.md`
+  - `logs/sentry-issues-window-post.md`
+  - `notes/seer-findings.md`
+- Any PR touching no-touch zones must include Sonar quality-gate proof:
+  - `logs/sonar-scan.log`
+  - `logs/sonar-qualitygate.json`
+  - `notes/sonar-summary.md`
+- PR template must reference Sonar gate status and attach scan evidence.
 
 ### Single Test Commands
 

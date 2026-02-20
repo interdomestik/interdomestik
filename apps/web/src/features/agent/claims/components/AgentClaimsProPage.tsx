@@ -66,12 +66,14 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
     setViewMode('details'); // Reset view on new selection
     const params = new URLSearchParams(searchParams);
     params.set('selected', id);
+    params.delete('claimId');
     router.replace(`?${params.toString()}`);
   };
 
   const handleClose = () => {
     const params = new URLSearchParams(searchParams);
     params.delete('selected');
+    params.delete('claimId');
     router.replace(`?${params.toString()}`);
   };
 
@@ -160,6 +162,8 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
   }));
 
   const selectedClaim = claims.find(c => c.id === selectedId);
+  const requestedClaimId = selectedId ?? undefined;
+  const claimNotAccessible = !!requestedClaimId && !selectedClaim;
 
   // Actions Logic
   const actions = useMemo(() => {
@@ -188,6 +192,16 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
 
   return (
     <div className="space-y-6" data-testid="agent-claims-pro-page">
+      {selectedClaim && (
+        <span className="sr-only" data-testid="workspace-selected-claim-id">
+          {selectedClaim.id}
+        </span>
+      )}
+      {claimNotAccessible && (
+        <span className="sr-only" data-testid="workspace-claim-not-accessible">
+          Claim is not accessible
+        </span>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

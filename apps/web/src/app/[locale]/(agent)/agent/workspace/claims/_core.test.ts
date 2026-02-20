@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { getAgentWorkspaceClaimsCore } from './_core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { canResolveWorkspaceClaimById, getAgentWorkspaceClaimsCore } from './_core';
 
 // Mock the module to allow spying on internal calls if possible, or use the spy on the imported module
 // However, since we are testing the core function which calls helpers *directly* (not via exports usually),
@@ -17,6 +17,17 @@ import { getAgentWorkspaceClaimsCore } from './_core';
 // but failed due to Drizzle object complexity.
 
 describe('Agent Workspace Claims Query Contracts', () => {
+  describe('canResolveWorkspaceClaimById', () => {
+    it('allows workspace claim resolution for agent/admin roles only', () => {
+      expect(canResolveWorkspaceClaimById('agent')).toBe(true);
+      expect(canResolveWorkspaceClaimById('admin')).toBe(true);
+      expect(canResolveWorkspaceClaimById('tenant_admin')).toBe(true);
+      expect(canResolveWorkspaceClaimById('super_admin')).toBe(true);
+      expect(canResolveWorkspaceClaimById('member')).toBe(false);
+      expect(canResolveWorkspaceClaimById(null)).toBe(false);
+    });
+  });
+
   describe('getAgentWorkspaceClaimsCore (Integration)', () => {
     const mockDb = {
       query: {
@@ -35,8 +46,15 @@ describe('Agent Workspace Claims Query Contracts', () => {
       orderBy: vi.fn(),
     };
 
-    it('assembles claims applying basic isolation filters', async () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
       mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+      mockDb.query.claims.findMany.mockResolvedValue([]);
+      mockDb.groupBy.mockResolvedValue([]);
+      mockDb.orderBy.mockResolvedValue([]);
+    });
+
+    it('assembles claims applying basic isolation filters', async () => {
       mockDb.query.claims.findMany.mockResolvedValue([
         { id: 'c1', claimNumber: 'CLM-001', user: { id: 'u1' }, branch: { name: 'B1' } },
       ]);
@@ -86,7 +104,6 @@ describe('Agent Workspace Claims Query Contracts', () => {
         userId: 'u2',
       };
       let findManyCalls = 0;
-      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
       mockDb.query.claims.findMany.mockImplementation(async () => {
         findManyCalls += 1;
         return findManyCalls === 1 ? claimsPageRows : [selectedClaimRow];
@@ -99,11 +116,109 @@ describe('Agent Workspace Claims Query Contracts', () => {
         userId: 'a1',
         db: mockDb,
         selectedClaimId: 'target-1',
+        role: 'agent',
       });
 
       expect(result.claims).toHaveLength(2);
       expect(result.claims.map(c => c.id)).toContain('target-1');
       expect(findManyCalls).toBe(2);
+    });
+
+    it('keeps selected claim in result even when it falls outside default top-100 ordering', async () => {
+      const now = Date.now();
+      const claimsPageRows = Array.from({ length: 100 }, (_, index) => ({
+        id: `visible-${index + 1}`,
+        claimNumber: `CLM-${index + 1}`,
+        user: { id: 'u1' },
+        branch: { name: 'B1' },
+        title: `Visible Claim ${index + 1}`,
+        status: 'submitted',
+        createdAt: new Date(now - index * 1000),
+        updatedAt: new Date(now - index * 1000),
+        userId: 'u1',
+      }));
+      const selectedClaimRow = {
+        id: 'target-old',
+        claimNumber: 'CLM-999',
+        user: { id: 'u2' },
+        branch: { name: 'B1' },
+        title: 'Older selected claim',
+        status: 'submitted',
+        createdAt: new Date('2020-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2020-01-01T00:00:00.000Z'),
+        userId: 'u2',
+      };
+
+      let findManyCalls = 0;
+      mockDb.query.claims.findMany.mockImplementation(async () => {
+        findManyCalls += 1;
+        return findManyCalls === 1 ? claimsPageRows : [selectedClaimRow];
+      });
+
+      const result = await getAgentWorkspaceClaimsCore({
+        tenantId: 't1',
+        userId: 'a1',
+        db: mockDb,
+        selectedClaimId: 'target-old',
+        role: 'agent',
+      });
+
+      expect(result.claims).toHaveLength(100);
+      expect(result.claims[0]?.id).toBe('target-old');
+      expect(result.claims.map(c => c.id)).toContain('target-old');
+    });
+
+    it('does not attempt fetch-by-id for disallowed role', async () => {
+      mockDb.query.claims.findMany.mockResolvedValue([
+        {
+          id: 'visible-1',
+          claimNumber: 'CLM-001',
+          user: { id: 'u1' },
+          branch: { name: 'B1' },
+          title: 'Visible Claim',
+          status: 'submitted',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          userId: 'u1',
+        },
+      ]);
+
+      const result = await getAgentWorkspaceClaimsCore({
+        tenantId: 't1',
+        userId: 'a1',
+        db: mockDb,
+        selectedClaimId: 'target-1',
+        role: 'member',
+      });
+
+      expect(mockDb.query.claims.findMany).toHaveBeenCalledTimes(1);
+      expect(result.claims.map(c => c.id)).not.toContain('target-1');
+    });
+
+    it('does not attempt fetch-by-id when role is missing', async () => {
+      mockDb.query.claims.findMany.mockResolvedValue([
+        {
+          id: 'visible-1',
+          claimNumber: 'CLM-001',
+          user: { id: 'u1' },
+          branch: { name: 'B1' },
+          title: 'Visible Claim',
+          status: 'submitted',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          userId: 'u1',
+        },
+      ]);
+
+      const result = await getAgentWorkspaceClaimsCore({
+        tenantId: 't1',
+        userId: 'a1',
+        db: mockDb,
+        selectedClaimId: 'target-1',
+      });
+
+      expect(mockDb.query.claims.findMany).toHaveBeenCalledTimes(1);
+      expect(result.claims.map(c => c.id)).not.toContain('target-1');
     });
   });
 });

@@ -1,10 +1,34 @@
 # Global Review Policy
-* @arbenl
+* @interdomestik/interdomestik-platform
 
 # Governance Documentation Owners
-/README.md @arbenl
-/LEGAL/NOTICE.md @arbenl
-/AGENTS.md @arbenl
-/apps/web/e2e/README.md @arbenl
-/.github/workflows/ @arbenl
-/scripts/check-docs-contract.mjs @arbenl
+/AGENTS.md @interdomestik/interdomestik-platform
+/.codex/ @interdomestik/interdomestik-platform @interdomestik/interdomestik-security
+/.github/CODEOWNERS @interdomestik/interdomestik-platform
+/.github/pull_request_template.md @interdomestik/interdomestik-platform
+/README.md @interdomestik/interdomestik-platform
+/LEGAL/NOTICE.md @interdomestik/interdomestik-platform
+/apps/web/e2e/README.md @interdomestik/interdomestik-platform
+/.github/workflows/ @interdomestik/interdomestik-platform
+/scripts/check-docs-contract.mjs @interdomestik/interdomestik-platform
+
+# Pilot high-risk ownership (tenant/auth/db/proxy boundaries)
+/apps/web/src/proxy.ts @interdomestik/interdomestik-platform @interdomestik/interdomestik-security
+/apps/web/src/lib/tenant/ @interdomestik/interdomestik-security
+/apps/web/src/lib/auth/ @interdomestik/interdomestik-security
+/apps/web/src/server/auth/ @interdomestik/interdomestik-security
+/apps/web/src/app/api/ @interdomestik/interdomestik-security
+/packages/shared-auth/ @interdomestik/interdomestik-security
+/packages/database/src/ @interdomestik/interdomestik-security
+/packages/database/migrations/ @interdomestik/interdomestik-security
+/packages/database/drizzle/ @interdomestik/interdomestik-security
+
+# Governance + compliance scripts (process-definition risk)
+/scripts/security-setup.sh @interdomestik/interdomestik-platform @interdomestik/interdomestik-security
+/scripts/security-scan.sh @interdomestik/interdomestik-platform @interdomestik/interdomestik-security
+/scripts/security-tests.sh @interdomestik/interdomestik-platform @interdomestik/interdomestik-security
+/scripts/check-docs-contract.mjs @interdomestik/interdomestik-platform @interdomestik/interdomestik-security
+
+# Optional: UI ownership for non-blocking review routing
+/apps/web/src/components/ @interdomestik/interdomestik-frontend
+/apps/web/src/features/ @interdomestik/interdomestik-frontend

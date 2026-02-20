@@ -1,3 +1,5 @@
+import type { TenantId } from '@/lib/tenant/tenant-hosts';
+
 export type SimpleRegisterResult =
   | { kind: 'ok'; data: any }
   | { kind: 'badRequest'; error: string }
@@ -8,6 +10,7 @@ export interface SimpleRegisterServices {
     email: string;
     name: string;
     role?: any; // Using any to match the service's complex union type
+    tenantId: TenantId;
   }) => Promise<any>;
 }
 
@@ -19,7 +22,7 @@ export async function simpleRegisterApiCore(
   body: any,
   services: SimpleRegisterServices
 ): Promise<SimpleRegisterResult> {
-  const { email, name, role = 'user', password } = body;
+  const { email, name, role = 'user', password, tenantId } = body;
 
   // 1. Basic validation
   if (!email || !name || !password || password.length < 6) {
@@ -31,7 +34,7 @@ export async function simpleRegisterApiCore(
 
   try {
     // 2. Call Service
-    const user = await services.registerUserFn({ email, name, role });
+    const user = await services.registerUserFn({ email, name, role, tenantId });
 
     return {
       kind: 'ok',

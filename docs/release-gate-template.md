@@ -135,6 +135,28 @@ Notes:
 
 - Authorization-deny entries during negative testing are expected; functional errors are not.
 
+## P1.6 — Post-deploy Seer Sweep (60m)
+
+**Result:** <PASS/FAIL>
+
+Scope:
+
+- Environment: <production|staging>
+- Sweep window start: <UTC timestamp>
+- Sweep window end: <UTC timestamp>
+
+Artifacts:
+
+- `logs/sentry-issues-window-pre.md`
+- `logs/sentry-issues-window-post.md`
+- `notes/seer-findings.md`
+
+Issue checks:
+
+- High-severity issues since deploy: <count>
+- Seer RCA run on high-severity issues: <list of issue links + short summary>
+- Rollback / hotfix decision: <continue | monitor | rollback>
+
 ---
 
 # Verdict

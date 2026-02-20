@@ -147,13 +147,13 @@ jobs:
           cat /tmp/web-start.log || true
           exit 1
 
-      - name: Open Sentry Seer sweep window (pre)
+      - name: Open Sentry Seer sweep window for pilot-gate (pre)
         run: bash scripts/sentry-seer-sweep.sh pre
 
       - name: Run pilot gate
         run: pnpm -s release:gate:p0:raw --baseUrl http://127.0.0.1:3000
 
-      - name: Close Sentry Seer sweep window (post)
+      - name: Close Sentry Seer sweep window for pilot-gate (post)
         if: always()
         run: bash scripts/sentry-seer-sweep.sh post
 

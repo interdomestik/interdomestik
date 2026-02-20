@@ -20,10 +20,10 @@ function toE164(value: string): string {
 }
 
 function inferMarket(params: SupportContactsInput): 'ks' | 'mk' {
-  const tenant = (params.tenantId || '').toLowerCase();
+  const tenant = (params.tenantId || '').trim().toLowerCase();
   const locale = (params.locale || '').toLowerCase();
 
-  if (tenant.includes('mk') || locale === 'mk') {
+  if (tenant === 'tenant_mk' || locale.startsWith('mk')) {
     return 'mk';
   }
   return 'ks';

@@ -26,6 +26,12 @@ export interface AgentWorkspaceClaimsResult {
 }
 
 const WORKSPACE_CLAIM_LIMIT = 100;
+const WORKSPACE_CLAIM_BY_ID_ALLOWED_ROLES = new Set([
+  'agent',
+  'admin',
+  'tenant_admin',
+  'super_admin',
+]);
 
 type ClaimRow = {
   id: string;
@@ -83,6 +89,11 @@ function dedupeClaimsById(claims: AgentProClaimDTO[]): AgentProClaimDTO[] {
     seen.add(claim.id);
     return true;
   });
+}
+
+export function canResolveWorkspaceClaimById(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return WORKSPACE_CLAIM_BY_ID_ALLOWED_ROLES.has(role);
 }
 
 /**
@@ -148,6 +159,20 @@ function buildUnreadMessagesWhere(params: { userId: string; claimIds: string[] }
   );
 }
 
+function ensureSelectedClaimIncluded(params: {
+  claims: AgentProClaimDTO[];
+  selectedClaim: AgentProClaimDTO | null;
+}): AgentProClaimDTO[] {
+  const limitedClaims = params.claims.slice(0, WORKSPACE_CLAIM_LIMIT);
+  if (!params.selectedClaim) return limitedClaims;
+
+  if (limitedClaims.some(claim => claim.id === params.selectedClaim?.id)) {
+    return limitedClaims;
+  }
+
+  return [params.selectedClaim, ...limitedClaims.slice(0, WORKSPACE_CLAIM_LIMIT - 1)];
+}
+
 /**
  * Pure core logic for the Agent Workspace Claims Page.
  * Fetches claims, unread counts, and last message snippets.
@@ -157,14 +182,18 @@ export async function getAgentWorkspaceClaimsCore(params: {
   userId: string;
   db: any;
   selectedClaimId?: string;
+  role?: string | null;
 }): Promise<AgentWorkspaceClaimsResult> {
-  const { tenantId, userId, db, selectedClaimId } = params;
+  const { tenantId, userId, db, selectedClaimId, role } = params;
 
   // 0. Fetch Agent Context (Branch)
   const agent = await db.query.user.findFirst({
     where: eq(user.id, userId),
-    columns: { branchId: true },
+    columns: { branchId: true, role: true },
   });
+  const effectiveRole = role ?? (agent as Record<string, unknown>)?.role;
+  const normalizedRole =
+    typeof effectiveRole === 'string' ? effectiveRole.trim().toLowerCase() : effectiveRole;
 
   // 1. Fetch Claims for Agent's Scope
   const claimsData = await db.query.claims.findMany({
@@ -224,7 +253,9 @@ export async function getAgentWorkspaceClaimsCore(params: {
 
   // 4. Resolve direct selection by claimId even when not in first-page results.
   const selectedClaim =
-    typeof selectedClaimId === 'string' && selectedClaimId.trim() !== ''
+    canResolveWorkspaceClaimById(normalizedRole) &&
+    typeof selectedClaimId === 'string' &&
+    selectedClaimId.trim() !== ''
       ? claimIds.includes(selectedClaimId.trim())
         ? null
         : await getClaimByIdInWorkspaceScope({
@@ -242,11 +273,11 @@ export async function getAgentWorkspaceClaimsCore(params: {
     return dto;
   });
 
-  const finalClaims = dedupeClaimsById(
+  const sortedClaims = dedupeClaimsById(
     selectedClaim ? [...mappedClaims, selectedClaim] : mappedClaims
-  )
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-    .slice(0, WORKSPACE_CLAIM_LIMIT);
+  ).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+  const finalClaims = ensureSelectedClaimIncluded({ claims: sortedClaims, selectedClaim });
 
   return { claims: finalClaims };
 }

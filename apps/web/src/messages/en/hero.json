@@ -27,6 +27,19 @@
     "trustBadgeSecurity": "CERTIFIED SECURITY",
     "trustBadgeSupport": "TOP RATED SUPPORT",
     "trustBadgeService": "GUARANTEED SERVICE",
-    "digitalCardSticky": "Get your digital ID today"
+    "digitalCardSticky": "Get your digital ID today",
+    "v2_title": "File your claim quickly, with transparent follow-up.",
+    "v2_subtitle": "Start in minutes, upload evidence once, and track every next step clearly.",
+    "v2_helpNow": "Get help now (60 sec)",
+    "v2_helpMeta": "24/7 • fast response",
+    "v2_start": "Start a claim",
+    "v2_whatsapp": "WhatsApp",
+    "v2_invite": "Invite & Earn",
+    "v2_idTitle": "Your Digital Membership Card",
+    "v2_idMeta": "Member ID",
+    "v2_idLink": "View card",
+    "v2_idPreview": "Preview",
+    "v2_trust": "Secure • Fast • Transparent • Used in pilot in KS/MK",
+    "v2_steps": ["Member", "Upload", "Staff review"]
   }
 }

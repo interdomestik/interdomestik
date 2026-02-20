@@ -57,14 +57,14 @@ fs.writeFileSync(stateFile, JSON.stringify(payload, null, 2));
 NODE
 
   cat > "$PRE_FILE" <<EOF
-# Sentry Issue Window (Pre-deploy)
+# Sentry Issue Window (Pilot-gate pre)
 
 - Evidence run: ${RUN_ID}
 - Window start (UTC): ${START_ISO}
 - Organization: ${SENTRY_ORG:-not configured}
 - Project: ${SENTRY_PROJECT:-not configured}
 - Environment: ${SENTRY_ENVIRONMENT}
-- Deployment ref: ${RUN_REF}
+- Run reference: ${RUN_REF}
 - Window minutes: ${WINDOW_MINUTES}
 - Query: ${SENTRY_QUERY:-<none>}
 - Threshold: ${SENTRY_SEVERITY_THRESHOLD}
@@ -120,7 +120,7 @@ if [[ -n "${SENTRY_ENVIRONMENT}" ]]; then
 fi
 
 HTTP_STATUS="$(curl "${curl_args[@]}" -o "$RESPONSE_FILE" -w '%{http_code}' -X GET)"
-if [[ "$HTTP_STATUS" != 2* ]]; then
+if [[ ! "$HTTP_STATUS" =~ ^2[0-9]{2}$ ]]; then
   echo "Sentry API request failed (HTTP $HTTP_STATUS)." >&2
   cat "$RESPONSE_FILE" >&2 || true
   exit 1
@@ -216,7 +216,7 @@ const issueRows = windowed.length
   : '- No issues in the configured time window.';
 
 const postContent = [
-  '# Sentry Issue Window (Post-deploy)',
+  '# Sentry Issue Window (Pilot-gate post)',
   '',
   `- Organization: ${org}`,
   `- Project: ${project}`,
@@ -320,13 +320,13 @@ if [[ -n "${SENTRY_SEER_AUTOMATION_URL}" ]]; then
   fi
 
   AUTOMATION_STATUS="$(curl "${AUTOMATION_CURL_ARGS[@]}" || true)"
-  if [[ "$AUTOMATION_STATUS" == 2* ]]; then
+  if [[ "$AUTOMATION_STATUS" =~ ^2[0-9]{2}$ ]]; then
     echo "Seer automation acknowledged (HTTP ${AUTOMATION_STATUS})."
   else
     echo "Seer automation call not successful (HTTP ${AUTOMATION_STATUS:-unknown}); check ${AUTOMATION_RESPONSE_FILE}." >&2
   fi
 fi
 
-echo "Seer deploy evidence collected:"
+echo "Seer evidence collected:"
 echo "- Window: ${START_ISO} → ${END_ISO}"
 echo "- Output: ${POST_FILE}, ${NOTES_FILE}"

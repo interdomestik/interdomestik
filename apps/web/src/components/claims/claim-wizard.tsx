@@ -140,16 +140,7 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
         toast.success(t('submit_success'));
         setDraft(null);
         if (uiV2Enabled) {
-          const payload =
-            result && typeof result === 'object' && 'data' in result
-              ? (result as { data?: unknown }).data
-              : result;
-          const claimId =
-            payload && typeof payload === 'object' && 'claimId' in payload
-              ? typeof (payload as { claimId?: unknown }).claimId === 'string'
-                ? (payload as { claimId: string }).claimId
-                : null
-              : null;
+          const claimId = result.success ? result.claimId : null;
           if (claimId) {
             setCreatedClaimId(claimId);
           } else {

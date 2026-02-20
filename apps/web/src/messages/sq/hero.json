@@ -27,6 +27,19 @@
     "trustBadgeSecurity": "SIGURI E CERTIFIKUAR",
     "trustBadgeSupport": "MBËSHTETJE E NIVELIT LARTË",
     "trustBadgeService": "SHËRBIM I GARANTUAR",
-    "digitalCardSticky": "Merr Kartën Digjitale Sot"
+    "digitalCardSticky": "Merr Kartën Digjitale Sot",
+    "v2_title": "Raporto rastin shpejt, me ndjekje të qartë.",
+    "v2_subtitle": "Nis në pak minuta, ngarko dëshmitë një herë dhe ndiq çdo hap pa paqartësi.",
+    "v2_helpNow": "Ndihmë tani (60 sek)",
+    "v2_helpMeta": "24/7 • përgjigje e shpejtë",
+    "v2_start": "Nis raportimin",
+    "v2_whatsapp": "WhatsApp",
+    "v2_invite": "Fto & Fito",
+    "v2_idTitle": "Karta juaj Digjitale e Anëtarësisë",
+    "v2_idMeta": "ID e anëtarit",
+    "v2_idLink": "Shiko kartën",
+    "v2_idPreview": "Paraqitje",
+    "v2_trust": "E sigurt • E shpejtë • Transparente • Pilot në KS/MK",
+    "v2_steps": ["Anëtar", "Ngarko", "Shqyrtim"]
   }
 }

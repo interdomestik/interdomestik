@@ -1,4 +1,5 @@
 import { ArrowRight, PhoneCall, ShieldCheck } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getSupportContacts } from '@/lib/support-contacts';
 
 type HeroV2Props = {
@@ -8,40 +9,26 @@ type HeroV2Props = {
 };
 
 export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
-  const isAlbanian = locale.startsWith('sq');
-  const steps = isAlbanian
-    ? ['Anëtar', 'Ngarko', 'Shqyrtim']
+  const tHero = useTranslations('hero');
+  const rawSteps = tHero.raw('v2_steps');
+  const steps = Array.isArray(rawSteps)
+    ? (rawSteps as string[])
     : ['Member', 'Upload', 'Staff review'];
   const contacts = getSupportContacts({ tenantId, locale });
-  const copy = isAlbanian
-    ? {
-        title: 'Raporto rastin shpejt, me ndjekje të qartë.',
-        subtitle: 'Nis në pak minuta, ngarko dëshmitë një herë dhe ndiq çdo hap pa paqartësi.',
-        helpNow: 'Ndihmë tani (60 sek)',
-        helpMeta: '24/7 • përgjigje e shpejtë',
-        start: 'Nis raportimin',
-        whatsapp: 'WhatsApp',
-        invite: 'Fto & Fito',
-        idTitle: 'Karta juaj Digjitale e Anëtarësisë',
-        idMeta: 'ID e anëtarit',
-        idLink: 'Shiko kartën',
-        idPreview: 'Paraqitje',
-        trust: 'E sigurt • E shpejtë • Transparente • Pilot në KS/MK',
-      }
-    : {
-        title: 'File your claim quickly, with transparent follow-up.',
-        subtitle: 'Start in minutes, upload evidence once, and track every next step clearly.',
-        helpNow: 'Get help now (60 sec)',
-        helpMeta: '24/7 • fast response',
-        start: 'Start a claim',
-        whatsapp: 'WhatsApp',
-        invite: 'Invite & Earn',
-        idTitle: 'Your Digital Membership Card',
-        idMeta: 'Member ID',
-        idLink: 'View card',
-        idPreview: 'Preview',
-        trust: 'Secure • Fast • Transparent • Used in pilot in KS/MK',
-      };
+  const copy = {
+    title: tHero('v2_title'),
+    subtitle: tHero('v2_subtitle'),
+    helpNow: tHero('v2_helpNow'),
+    helpMeta: tHero('v2_helpMeta'),
+    start: tHero('v2_start'),
+    whatsapp: tHero('v2_whatsapp'),
+    invite: tHero('v2_invite'),
+    idTitle: tHero('v2_idTitle'),
+    idMeta: tHero('v2_idMeta'),
+    idLink: tHero('v2_idLink'),
+    idPreview: tHero('v2_idPreview'),
+    trust: tHero('v2_trust'),
+  };
   const telHref = contacts.telHref;
   const whatsappHref = contacts.whatsappHref;
 
