@@ -1,0 +1,19 @@
+name = "Sentinel"
+enabled = true
+can_modify_product = false
+mode = "security"
+owned_scope = [
+  "apps/web/src/lib/tenant/",
+  "apps/web/src/lib/auth/",
+  "apps/web/src/server/auth/",
+  "packages/shared-auth/",
+  "packages/database/",
+  "apps/web/src/app/api/"
+]
+checks = [
+  "tenant isolation",
+  "auth boundary usage",
+  "routing and proxy constraints",
+  "API contract stability"
+]
+notes = "Read-only by default; approves boundary-impact changes only with explicit exception."

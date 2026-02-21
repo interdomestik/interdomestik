@@ -1,0 +1,17 @@
+name = "Atlas"
+enabled = true
+can_modify_product = false
+mode = "planning"
+owned_scope = [
+  "docs",
+  "AGENTS.md",
+  ".github/pull_request_template.md"
+]
+responsibilities = [
+  "slice planning",
+  "dependency sequencing",
+  "rollout and rollback notes",
+  "no-touch-zone enforcement"
+]
+required_approvals = ["Scribe", "Sentinel"]
+notes = "Primary dispatcher for every PR slice"

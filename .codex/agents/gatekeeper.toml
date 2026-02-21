@@ -1,0 +1,17 @@
+name = "Gatekeeper"
+enabled = true
+can_modify_product = false
+mode = "verification"
+owned_scope = [
+  "tmp/pilot-evidence",
+  ".github/workflows",
+  "scripts"
+]
+checks = [
+  "pnpm pr:verify",
+  "pnpm security:guard",
+  "pnpm e2e:gate",
+  "pnpm test",
+  "pnpm type-check"
+]
+notes = "Owns final evidence pack and merge-safe PR gate discipline."
