@@ -1,0 +1,16 @@
+name: pr-finalizer
+
+on:
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  pr-finalizer:
+    runs-on: blacksmith-2vcpu-ubuntu-2204
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Run PR finalizer gate
+        run: |
+          bash scripts/pr-finalizer.sh
