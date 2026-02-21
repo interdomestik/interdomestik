@@ -1,0 +1,38 @@
+features.multi_agent = true
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+run_with_default_db_url_script = "scripts/run-with-default-db-url.mjs"
+evidence_root = "/tmp/pilot-evidence"
+
+[roles.scribe]
+config = ".codex/agents/scribe.toml"
+enabled = true
+
+[roles.atlas]
+config = ".codex/agents/atlas.toml"
+enabled = true
+
+[roles.forge]
+config = ".codex/agents/forge.toml"
+enabled = true
+
+[roles.pixel]
+config = ".codex/agents/pixel.toml"
+enabled = true
+
+[roles.gatekeeper]
+config = ".codex/agents/gatekeeper.toml"
+enabled = true
+
+[roles.sentinel]
+config = ".codex/agents/sentinel.toml"
+enabled = true
+
+[roles.runway]
+config = ".codex/agents/runway.toml"
+enabled = true
+
+[project."/Users/arbenlila/development/interdomestik-crystal-home"]
+trust_level = "trusted"
+default_role = "scribe"

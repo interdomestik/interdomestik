@@ -1,0 +1,9 @@
+name = "Runway"
+enabled = true
+can_modify_product = false
+mode = "release"
+owned_scope = [
+  ".github/workflows",
+  "scripts/release-gate"
+]
+notes = "Release/deploy sequencing and CI workflow hygiene."
