@@ -1383,7 +1383,7 @@ async function runP13(browser, runCtx) {
     if (claimUrlFromEnv && String(claimUrlFromEnv).trim() !== '') {
       detailUrl = claimUrlFromEnv.startsWith('http')
         ? claimUrlFromEnv
-        : buildRoute(runCtx.baseUrl, runCtx.locale, claimUrlFromEnv);
+        : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, claimUrlFromEnv);
       evidence.push('claim_source=STAFF_CLAIM_URL');
     } else {
       if (requireClaimUrl) {
@@ -1413,7 +1413,7 @@ async function runP13(browser, runCtx) {
       }
       detailUrl = hrefs[0].startsWith('http')
         ? hrefs[0]
-        : buildRoute(runCtx.baseUrl, runCtx.locale, hrefs[0]);
+        : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, hrefs[0]);
       evidence.push('claim_source=staff_claims_list');
     }
 
@@ -1775,6 +1775,7 @@ async function main() {
 }
 
 module.exports = {
+  buildRouteAllowingLocalePath,
   computeRetryDelayMs,
   parseRetryAfterSeconds,
   sessionCacheKeyForAccount,
