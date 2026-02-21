@@ -53,3 +53,31 @@ test('buildRouteAllowingLocalePath avoids duplicate locale prefixes', () => {
     'https://interdomestik-web.vercel.app/en/staff/claims/claim_123'
   );
 });
+
+test('buildRouteAllowingLocalePath handles edge cases', () => {
+  const baseUrl = 'https://interdomestik-web.vercel.app';
+
+  // 1) Absolute URL should be returned as-is
+  assert.equal(
+    buildRouteAllowingLocalePath(baseUrl, 'en', 'https://example.com/path'),
+    'https://example.com/path'
+  );
+
+  // 2) Path without leading slash should be normalized
+  assert.equal(
+    buildRouteAllowingLocalePath(baseUrl, 'en', 'staff/claims/claim_123'),
+    'https://interdomestik-web.vercel.app/en/staff/claims/claim_123'
+  );
+
+  // 3) Just the locale path should not get duplicated
+  assert.equal(
+    buildRouteAllowingLocalePath(baseUrl, 'en', '/en'),
+    'https://interdomestik-web.vercel.app/en'
+  );
+
+  // 4) Different locale should behave the same way
+  assert.equal(
+    buildRouteAllowingLocalePath(baseUrl, 'fr', '/dashboard'),
+    'https://interdomestik-web.vercel.app/fr/dashboard'
+  );
+});
