@@ -11,3 +11,6 @@ ts,day,report_path,log_path
 "20260221-215103","day-10-p0","docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md","tmp/pilot-evidence/day-10-p0/20260221-215103/logs/release-gate.log"
 "20260221-220117","day-11-p1","docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md","tmp/pilot-evidence/day-11-p1/20260221-220117/logs/release-gate.log"
 "20260221-220427","day-12-all","docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md","tmp/pilot-evidence/day-12-all/20260221-220427/logs/release-gate.log"
+"20260221-223627","day-13-p0","docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md","tmp/pilot-evidence/day-13-p0/20260221-223627/logs/release-gate.log"
+"20260221-224518","day-14-p1","docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md","tmp/pilot-evidence/day-14-p1/20260221-224518/logs/release-gate.log"
+"20260221-224834","day-15-all","docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md","tmp/pilot-evidence/day-15-all/20260221-224834/logs/release-gate.log"
