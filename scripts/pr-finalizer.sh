@@ -103,11 +103,11 @@ require_gh_checks() {
     local check_count
 
     if [[ "${check_name}" == "CI" ]]; then
-      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select(.workflow_name == "CI")]')"
+      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | test("^ci$|^pr:verify"; "i"))]')"
     elif [[ "${check_name}" == "Secret Scan" ]]; then
-      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select(.workflow_name == "Secret Scan")]')"
+      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | test("^secret scan$|^gitleaks"; "i"))]')"
     else
-      matching_checks="$(echo "${checks_json}" | jq --arg NAME "$check_name" '[.check_runs | .[] | select(.name | startswith($NAME))]')"
+      matching_checks="$(echo "${checks_json}" | jq --arg NAME "$check_name" '[.check_runs | .[] | select((.name // .workflow_name // "") | test(("^" + $NAME); "i"))]')"
     fi
 
     check_count="$(echo "${matching_checks}" | jq 'length')"
