@@ -8,3 +8,6 @@ ts,day,report_path,log_path
 "20260221-205835","day-07-p0","docs/release-gates/2026-02-11_production_dpl_3UMSijeubaShN5f4zkLK6LKPm4rs.md","tmp/pilot-evidence/day-07-p0/20260221-205835/logs/release-gate.log"
 "20260221-210800","day-08-p1","docs/release-gates/2026-02-11_production_dpl_3UMSijeubaShN5f4zkLK6LKPm4rs.md","tmp/pilot-evidence/day-08-p1/20260221-210800/logs/release-gate.log"
 "20260221-211129","day-09-all","docs/release-gates/2026-02-11_production_dpl_3UMSijeubaShN5f4zkLK6LKPm4rs.md","tmp/pilot-evidence/day-09-all/20260221-211129/logs/release-gate.log"
+"20260221-215103","day-10-p0","docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md","tmp/pilot-evidence/day-10-p0/20260221-215103/logs/release-gate.log"
+"20260221-220117","day-11-p1","docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md","tmp/pilot-evidence/day-11-p1/20260221-220117/logs/release-gate.log"
+"20260221-220427","day-12-all","docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md","tmp/pilot-evidence/day-12-all/20260221-220427/logs/release-gate.log"
