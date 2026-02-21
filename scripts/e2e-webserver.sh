@@ -22,12 +22,33 @@ export PLAYWRIGHT="${PLAYWRIGHT:-1}"
 
 load_env_file() {
 	local filePath="$1"
-	if [[ -f "${filePath}" ]]; then
-		set -a
-		# shellcheck disable=SC1090
-		source "${filePath}"
-		set +a
+	if [[ ! -f "${filePath}" ]]; then
+		return
 	fi
+
+	while IFS= read -r rawLine || [[ -n "${rawLine}" ]]; do
+		local line
+		line="$(printf '%s' "${rawLine}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+		[[ -z "${line}" || "${line}" == \#* ]] && continue
+
+		if [[ "${line}" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+			local key="${BASH_REMATCH[1]}"
+			local value="${BASH_REMATCH[2]}"
+
+			# Preserve explicit env overrides provided by caller/CI.
+			if [[ -n "${!key:-}" ]]; then
+				continue
+			fi
+
+			if [[ "${value}" =~ ^\"(.*)\"$ ]]; then
+				value="${BASH_REMATCH[1]}"
+			elif [[ "${value}" =~ ^\'(.*)\'$ ]]; then
+				value="${BASH_REMATCH[1]}"
+			fi
+
+			export "${key}=${value}"
+		fi
+	done < "${filePath}"
 }
 
 # Standalone `node .next/standalone/.../server.js` does not auto-load .env files.
