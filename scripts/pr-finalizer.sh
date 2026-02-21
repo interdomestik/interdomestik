@@ -71,25 +71,33 @@ require_gh_checks() {
     fail "unable to resolve pull request number"
   fi
 
-  local payload
-  payload="$(gh pr view "${pr_number}" --json statusCheckRollup --repo "${GITHUB_REPOSITORY:-}")"
+  local checks_json
+  checks_json="$(gh pr checks "${pr_number}" --json name,state,bucket,workflow --repo "${GITHUB_REPOSITORY:-}")"
+  if [[ -z "${checks_json}" || "${checks_json}" == "null" ]]; then
+    fail "unable to read check status for PR #${pr_number}"
+  fi
 
   for check_name in "${required_checks[@]}"; do
-    check_result="$(echo "${payload}" | jq -r --arg NAME "$check_name" '
-      if (.statusCheckRollup | type == "array") then
-        .statusCheckRollup
-      elif (.statusCheckRollup | type == "object") then
-        (.statusCheckRollup.nodes // [])
-      else
-        []
-      end
-      | map(select(.name == $NAME))
-      | .[0]
-      | .conclusion // .state // "missing"
-    ')"
+    local matching_checks
+    local check_result
+    local check_count
 
-    if [[ "${check_result}" != "SUCCESS" ]]; then
-      fail "required check '${check_name}' is not SUCCESS (found: ${check_result})"
+    if [[ "${check_name}" == "CI" ]]; then
+      matching_checks="$(echo "${checks_json}" | jq '[.[] | select(.workflow == "CI")]')"
+    elif [[ "${check_name}" == "Secret Scan" ]]; then
+      matching_checks="$(echo "${checks_json}" | jq '[.[] | select(.workflow == "Secret Scan")]')"
+    else
+      matching_checks="$(echo "${checks_json}" | jq --arg NAME "$check_name" '[.[] | select(.name | startswith($NAME))]')"
+    fi
+
+    check_count="$(echo "${matching_checks}" | jq 'length')"
+    if [[ "${check_count}" -eq 0 ]]; then
+      fail "required checks for '${check_name}' are not present"
+    fi
+
+    check_result="$(echo "${matching_checks}" | jq 'map(select(.bucket != "pass")) | length')"
+    if [[ "${check_result}" -ne 0 ]]; then
+      fail "required checks for '${check_name}' are not passing (found: ${check_result} non-passing)"
     fi
   done
 
