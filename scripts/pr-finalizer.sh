@@ -21,7 +21,7 @@ required_checks=(
   "pnpm-audit"
   "gitleaks"
 )
-max_check_retries=30
+max_check_retries=120
 check_retry_delay_seconds=10
 
 run_step() {
