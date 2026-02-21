@@ -7,6 +7,11 @@ on:
 
 jobs:
   pr-finalizer:
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      statuses: read
     runs-on: blacksmith-2vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
