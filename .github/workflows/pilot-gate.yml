@@ -75,24 +75,40 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          missing=()
-          required_vars=(
-            BETTER_AUTH_SECRET
-            SONAR_TOKEN
-            SONAR_HOST_URL
-            SONAR_PROJECT_KEY
-            SENTRY_AUTH_TOKEN
-            SENTRY_ORG
-            SENTRY_PROJECT
-          )
-          for name in "${required_vars[@]}"; do
+          if [[ -z "${BETTER_AUTH_SECRET:-}" ]]; then
+            echo "::error::Missing required secret: BETTER_AUTH_SECRET"
+            exit 2
+          fi
+
+          sonar_vars=(SONAR_TOKEN SONAR_HOST_URL SONAR_PROJECT_KEY)
+          sentry_vars=(SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT)
+
+          sonar_missing=()
+          sentry_missing=()
+
+          for name in "${sonar_vars[@]}"; do
             if [[ -z "${!name:-}" ]]; then
-              missing+=("${name}")
+              sonar_missing+=("${name}")
             fi
           done
-          if (( ${#missing[@]} > 0 )); then
-            echo "::error::Missing required secrets: ${missing[*]}"
-            exit 2
+          for name in "${sentry_vars[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              sentry_missing+=("${name}")
+            fi
+          done
+
+          if (( ${#sonar_missing[@]} == 0 )); then
+            echo "SONAR_GATE_ENABLED=true" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Skipping Sonar gate due to missing configuration: ${sonar_missing[*]}"
+            echo "SONAR_GATE_ENABLED=false" >> "$GITHUB_ENV"
+          fi
+
+          if (( ${#sentry_missing[@]} == 0 )); then
+            echo "SENTRY_SEER_ENABLED=true" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Skipping Sentry Seer sweep due to missing configuration: ${sentry_missing[*]}"
+            echo "SENTRY_SEER_ENABLED=false" >> "$GITHUB_ENV"
           fi
 
       - name: Prepare CI database
@@ -111,6 +127,7 @@ jobs:
         run: pnpm --filter @interdomestik/web run build:ci
 
       - name: Run Sonar quality gate
+        if: env.SONAR_GATE_ENABLED == 'true'
         run: bash scripts/sonar-gate.sh
 
       - name: Upload Sonar gate artifacts
@@ -148,13 +165,14 @@ jobs:
           exit 1
 
       - name: Open Sentry Seer sweep window (pre)
+        if: env.SENTRY_SEER_ENABLED == 'true'
         run: bash scripts/sentry-seer-sweep.sh pre
 
       - name: Run pilot gate
         run: pnpm -s release:gate:p0:raw --baseUrl http://127.0.0.1:3000
 
       - name: Close Sentry Seer sweep window (post)
-        if: always()
+        if: always() && env.SENTRY_SEER_ENABLED == 'true'
         run: bash scripts/sentry-seer-sweep.sh post
 
       - name: Stop web server

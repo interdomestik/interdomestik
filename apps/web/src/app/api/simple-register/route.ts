@@ -1,14 +1,26 @@
 import { registerUser } from '@/features/auth/registration.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { simpleRegisterApiCore } from './_core';
+import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-
-    const result = await simpleRegisterApiCore(body, {
-      registerUserFn: registerUser,
+    const tenantId = await resolveTenantIdFromRequest({
+      tenantIdFromQuery: req.nextUrl.searchParams.get('tenantId'),
     });
+
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Missing tenant context' }, { status: 400 });
+    }
+
+    const result = await simpleRegisterApiCore(
+      body,
+      {
+        registerUserFn: registerUser,
+      },
+      tenantId
+    );
 
     switch (result.kind) {
       case 'ok':

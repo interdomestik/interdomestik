@@ -153,6 +153,9 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
           if (claimId) {
             setCreatedClaimId(claimId);
           } else {
+            console.error('[Wizard] Claim submission succeeded but no claimId was returned', {
+              payload,
+            });
             setCreatedClaimId('unknown-claim-id');
           }
           return;
