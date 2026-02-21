@@ -17,16 +17,37 @@ required_checks=(
   "CI"
   "Secret Scan"
   "e2e-gate"
-  "pr:verify"
+  "pr:verify + pilot:check"
   "pnpm-audit"
   "gitleaks"
 )
+max_check_retries=30
+check_retry_delay_seconds=10
 
 run_step() {
   local name="$1"
   shift
   printf '\n[pr-finalizer] Running: %s\n' "$name"
   "$@"
+}
+
+resolve_matching_checks() {
+  local check_name="$1"
+  local checks="$2"
+
+  if [[ "${check_name}" == "CI" ]]; then
+    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)(audit|static|unit|e2e-gate)$"))]'
+  elif [[ "${check_name}" == "pr:verify + pilot:check" ]]; then
+    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)pr:verify\\s*\\+\\s*pilot:check\\s*$"))]'
+  elif [[ "${check_name}" == "Secret Scan" ]]; then
+    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | test("^secret scan$|^gitleaks"; "i"))]'
+  elif [[ "${check_name}" == "pnpm-audit" ]]; then
+    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)pnpm-audit$"))]'
+  elif [[ "${check_name}" == "gitleaks" ]]; then
+    echo "${checks}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("(^|.*/\\s*)gitleaks$"))]'
+  else
+    echo "${checks}" | jq --arg NAME "$check_name" '[.check_runs | .[] | select((.name // .workflow_name // "") | test(("^" + $NAME); "i"))]'
+  fi
 }
 
 fail() {
@@ -99,7 +120,7 @@ require_gh_checks() {
   fi
 
   local checks_json
-  checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?per_page=100")"
+  checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=latest&per_page=100")"
   if [[ -z "${checks_json}" || "${checks_json}" == "null" ]]; then
     fail "unable to read check runs for commit ${head_sha}"
   fi
@@ -112,24 +133,56 @@ require_gh_checks() {
   # Skip validating the finalizer job itself to avoid circular dependency checks.
   local excluded_check="pr-finalizer"
 
-    if [[ "${check_name}" == "CI" ]]; then
-      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("^(audit|static|unit|e2e-gate)$"))]')"
-    elif [[ "${check_name}" == "pr:verify" ]]; then
-      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("pr:verify\\s*\\+\\s*pilot:check"))]')"
-    elif [[ "${check_name}" == "Secret Scan" ]]; then
-      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | test("^secret scan$|^gitleaks"; "i"))]')"
-    else
-      matching_checks="$(echo "${checks_json}" | jq --arg NAME "$check_name" '[.check_runs | .[] | select((.name // .workflow_name // "") | test(("^" + $NAME); "i"))]')"
-    fi
-
+    matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
     matching_checks="$(echo "${matching_checks}" | jq --arg EXCLUDED "$excluded_check" '[.[] | select((.name // .workflow_name // "") != $EXCLUDED)]')"
 
-    check_count="$(echo "${matching_checks}" | jq 'length')"
-    if [[ "${check_name}" == "CI" && "${check_count}" -ne 4 ]]; then
-      fail "required checks for '${check_name}' are incomplete (found: ${check_count}/4 CI jobs)"
-    elif [[ "${check_count}" -eq 0 ]]; then
-      fail "required checks for '${check_name}' are not present"
-    fi
+    for attempt in $(seq 1 "${max_check_retries}"); do
+      check_count="$(echo "${matching_checks}" | jq 'length')"
+      if [[ "${check_name}" == "CI" && "${check_count}" -ne 4 ]]; then
+        if [[ "${attempt}" -ge "${max_check_retries}" ]]; then
+          fail "required checks for '${check_name}' are incomplete (found: ${check_count}/4 CI jobs)"
+        fi
+        echo "[pr-finalizer] INFO: '${check_name}' checks not all present yet (found: ${check_count}/4). Retrying in ${check_retry_delay_seconds}s..."
+        sleep "${check_retry_delay_seconds}"
+        checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=latest&per_page=100")"
+        matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
+        matching_checks="$(echo "${matching_checks}" | jq --arg EXCLUDED "$excluded_check" '[.[] | select((.name // .workflow_name // "") != $EXCLUDED)]')"
+        continue
+      fi
+
+      if [[ "${check_count}" -eq 0 ]]; then
+        if [[ "${attempt}" -ge "${max_check_retries}" ]]; then
+          fail "required checks for '${check_name}' are not present"
+        fi
+
+        echo "[pr-finalizer] INFO: '${check_name}' check is not present yet. Retrying in ${check_retry_delay_seconds}s..."
+        sleep "${check_retry_delay_seconds}"
+        checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=latest&per_page=100")"
+        matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
+        matching_checks="$(echo "${matching_checks}" | jq --arg EXCLUDED "$excluded_check" '[.[] | select((.name // .workflow_name // "") != $EXCLUDED)]')"
+        continue
+      fi
+
+      check_result="$(echo "${matching_checks}" | jq 'map(select((.status | ascii_downcase) != "completed" or (.conclusion | ascii_downcase) != "success")) | length')"
+      if [[ "${check_result}" -eq 0 ]]; then
+        break
+      fi
+
+      in_progress_count="$(echo "${matching_checks}" | jq 'map(select((.status | ascii_downcase) != "completed")) | length')"
+      if [[ "${in_progress_count}" -eq 0 ]]; then
+        break
+      fi
+
+      if [[ "${attempt}" -ge "${max_check_retries}" ]]; then
+        fail "required checks for '${check_name}' are not passing (found: ${check_result} non-passing) after ${max_check_retries} retries"
+      fi
+
+      echo "[pr-finalizer] INFO: '${check_name}' checks still running (${in_progress_count} in progress). Retrying in ${check_retry_delay_seconds}s..."
+      sleep "${check_retry_delay_seconds}"
+      checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?filter=latest&per_page=100")"
+      matching_checks="$(resolve_matching_checks "${check_name}" "${checks_json}")"
+      matching_checks="$(echo "${matching_checks}" | jq --arg EXCLUDED "$excluded_check" '[.[] | select((.name // .workflow_name // "") != $EXCLUDED)]')"
+    done
 
     check_result="$(echo "${matching_checks}" | jq 'map(select((.status | ascii_downcase) != "completed" or (.conclusion | ascii_downcase) != "success")) | length')"
     if [[ "${check_result}" -ne 0 ]]; then
