@@ -189,9 +189,8 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       });
 
       expect(res.status()).toBe(401);
-      await expect
-        .poll(async () => await res.text(), { message: 'Expected tenant guard denial payload' })
-        .toContain('WRONG_TENANT_CONTEXT');
+      const bodyText = await res.text();
+      expect(bodyText).toContain('WRONG_TENANT_CONTEXT');
     });
   });
 
