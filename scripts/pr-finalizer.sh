@@ -71,10 +71,30 @@ require_gh_checks() {
     fail "unable to resolve pull request number"
   fi
 
+  local repo="${GITHUB_REPOSITORY:-}"
+  if [[ -z "${repo}" ]]; then
+    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\\.git$##' || true)"
+  fi
+  if [[ -z "${repo}" ]]; then
+    fail "unable to resolve repository context"
+  fi
+
+  local pr_json
+  pr_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/pulls/${pr_number}")"
+  if [[ -z "${pr_json}" || "${pr_json}" == "null" ]]; then
+    fail "unable to read PR data for #${pr_number} in ${repo}"
+  fi
+
+  local head_sha
+  head_sha="$(echo "${pr_json}" | jq -r '.head.sha // empty')"
+  if [[ -z "${head_sha}" || "${head_sha}" == "null" ]]; then
+    fail "unable to resolve head SHA for PR #${pr_number}"
+  fi
+
   local checks_json
-  checks_json="$(gh pr checks "${pr_number}" --json name,state,bucket,workflow --repo "${GITHUB_REPOSITORY:-}")"
+  checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${head_sha}/check-runs?per_page=100")"
   if [[ -z "${checks_json}" || "${checks_json}" == "null" ]]; then
-    fail "unable to read check status for PR #${pr_number}"
+    fail "unable to read check runs for commit ${head_sha}"
   fi
 
   for check_name in "${required_checks[@]}"; do
@@ -83,11 +103,11 @@ require_gh_checks() {
     local check_count
 
     if [[ "${check_name}" == "CI" ]]; then
-      matching_checks="$(echo "${checks_json}" | jq '[.[] | select(.workflow == "CI")]')"
+      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select(.workflow_name == "CI")]')"
     elif [[ "${check_name}" == "Secret Scan" ]]; then
-      matching_checks="$(echo "${checks_json}" | jq '[.[] | select(.workflow == "Secret Scan")]')"
+      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select(.workflow_name == "Secret Scan")]')"
     else
-      matching_checks="$(echo "${checks_json}" | jq --arg NAME "$check_name" '[.[] | select(.name | startswith($NAME))]')"
+      matching_checks="$(echo "${checks_json}" | jq --arg NAME "$check_name" '[.check_runs | .[] | select(.name | startswith($NAME))]')"
     fi
 
     check_count="$(echo "${matching_checks}" | jq 'length')"
@@ -95,7 +115,7 @@ require_gh_checks() {
       fail "required checks for '${check_name}' are not present"
     fi
 
-    check_result="$(echo "${matching_checks}" | jq 'map(select(.bucket != "pass")) | length')"
+    check_result="$(echo "${matching_checks}" | jq 'map(select(.status != "completed" or .conclusion != "success")) | length')"
     if [[ "${check_result}" -ne 0 ]]; then
       fail "required checks for '${check_name}' are not passing (found: ${check_result} non-passing)"
     fi
