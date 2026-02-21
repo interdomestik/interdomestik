@@ -6,6 +6,7 @@ import {
   Bell,
   FilePlus2,
   FolderOpen,
+  MessageCircleMore,
   Globe2,
   HeartHandshake,
   LifeBuoy,
@@ -52,6 +53,10 @@ export function MemberDashboardV2({ data, locale, tenantId }: MemberDashboardV2P
             | 'rejected'
         )
       : activeClaim?.stageLabel;
+  const activeClaimSummary =
+    activeClaim && (activeClaim.claimNumber || activeClaim.id)
+      ? `${activeClaim.claimNumber ?? activeClaim.id} · ${activeStageLabel}`
+      : null;
 
   const quickActions = [
     {
@@ -107,10 +112,14 @@ export function MemberDashboardV2({ data, locale, tenantId }: MemberDashboardV2P
       <div className="relative pb-10 sm:space-y-4 lg:grid lg:grid-cols-12 lg:gap-5 lg:space-y-0 xl:gap-6">
         <div className="space-y-3.5 sm:space-y-4 lg:space-y-6 lg:col-span-7 xl:col-span-8">
           <section
-            className="rounded-2xl border border-white/15 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4.5 text-white shadow-[0_26px_54px_-30px_rgba(15,23,42,0.92)] sm:p-5 lg:p-6"
+            className="relative overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4.5 text-white shadow-[0_26px_54px_-30px_rgba(15,23,42,0.92)] sm:p-5 lg:p-6"
             data-testid="member-hero"
           >
-            <div data-testid="member-header" className="space-y-3">
+            <div className="pointer-events-none absolute inset-0 opacity-55" aria-hidden="true">
+              <div className="absolute -left-16 top-6 h-40 w-40 rounded-full bg-cyan-300/30 blur-3xl" />
+              <div className="absolute -right-16 top-16 h-36 w-36 rounded-full bg-emerald-300/30 blur-3xl" />
+            </div>
+            <div data-testid="member-header" className="relative space-y-3">
               <h1
                 className="text-[1.85rem] font-semibold leading-[1.08] tracking-tight text-white max-[375px]:text-[1.62rem] sm:text-[1.95rem] lg:text-3xl xl:text-4xl"
                 data-testid="dashboard-heading"
@@ -124,6 +133,17 @@ export function MemberDashboardV2({ data, locale, tenantId }: MemberDashboardV2P
               >
                 {t('hero.subtitle')}
               </p>
+              {activeClaimSummary ? (
+                <p
+                  data-testid="member-hero-active-claim-summary"
+                  className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-500/10 px-3 py-1 text-sm text-emerald-100"
+                >
+                  <MessageCircleMore className="h-3.5 w-3.5 text-emerald-200" />
+                  {activeClaimSummary}
+                </p>
+              ) : (
+                <p className="text-xs font-medium text-slate-300">{t('claims.empty')}</p>
+              )}
               <div
                 className="flex flex-wrap items-center gap-2 text-[11px] font-medium leading-4 text-slate-100"
                 data-testid="member-hero-trust-row"
@@ -155,7 +175,7 @@ export function MemberDashboardV2({ data, locale, tenantId }: MemberDashboardV2P
               <a
                 data-testid="member-start-claim-cta"
                 href={`/${locale}/member/claims/new`}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2 text-[0.98rem] font-medium text-white backdrop-blur transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 max-[375px]:w-full lg:px-4 lg:py-2.5"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2 text-[0.98rem] font-medium text-white shadow-[0_8px_18px_-14px_rgba(255,255,255,0.55)] backdrop-blur transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 max-[375px]:w-full lg:px-4 lg:py-2.5"
               >
                 <span data-testid="cta-start-claim">{t('cta.start_claim')}</span>
                 <ArrowRight className="h-[17px] w-[17px]" />
@@ -242,7 +262,7 @@ export function MemberDashboardV2({ data, locale, tenantId }: MemberDashboardV2P
                   key={action.testId}
                   data-testid={action.testId}
                   href={action.href}
-                  className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-center text-[0.97rem] font-medium leading-5 text-slate-800 shadow-[0_10px_18px_-22px_rgba(15,23,42,0.8)] transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm max-[375px]:text-[0.92rem]"
+                  className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-center text-[0.97rem] font-medium leading-5 text-slate-800 shadow-[0_10px_18px_-22px_rgba(15,23,42,0.8)] transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-sm max-[375px]:text-[0.92rem]"
                 >
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-slate-50 transition group-hover:bg-slate-100">
                     <action.icon className="h-[17px] w-[17px] shrink-0 text-slate-500 transition group-hover:text-slate-700" />
