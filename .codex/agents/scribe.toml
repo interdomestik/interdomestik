@@ -1,0 +1,16 @@
+name = "Scribe"
+mode = "safety"
+enabled = true
+can_modify_product = false
+write_authority = "advisory"
+owned_scope = [
+  "REQUIREMENTS.md",
+  "ACCEPTANCE.md",
+  "RISKS.md",
+  "docs/pilot"
+]
+required_artifacts = [
+  "docs/PILOT_RUNBOOK.md",
+  "AGENTS.md"
+]
+notes = "Owns PR framing and risk capture; no code edits."
