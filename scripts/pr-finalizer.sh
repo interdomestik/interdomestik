@@ -107,13 +107,15 @@ require_gh_checks() {
   for check_name in "${required_checks[@]}"; do
     local matching_checks
     local check_result
-  local check_count
+    local check_count
 
   # Skip validating the finalizer job itself to avoid circular dependency checks.
   local excluded_check="pr-finalizer"
 
     if [[ "${check_name}" == "CI" ]]; then
-      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | test("^ci$|^pr:verify"; "i"))]')"
+      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("^(audit|static|unit|e2e-gate)$"))]')"
+    elif [[ "${check_name}" == "pr:verify" ]]; then
+      matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | ascii_downcase | test("pr:verify\\s*\\+\\s*pilot:check"))]')"
     elif [[ "${check_name}" == "Secret Scan" ]]; then
       matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | test("^secret scan$|^gitleaks"; "i"))]')"
     else
@@ -123,11 +125,13 @@ require_gh_checks() {
     matching_checks="$(echo "${matching_checks}" | jq --arg EXCLUDED "$excluded_check" '[.[] | select((.name // .workflow_name // "") != $EXCLUDED)]')"
 
     check_count="$(echo "${matching_checks}" | jq 'length')"
-    if [[ "${check_count}" -eq 0 ]]; then
+    if [[ "${check_name}" == "CI" && "${check_count}" -ne 4 ]]; then
+      fail "required checks for '${check_name}' are incomplete (found: ${check_count}/4 CI jobs)"
+    elif [[ "${check_count}" -eq 0 ]]; then
       fail "required checks for '${check_name}' are not present"
     fi
 
-    check_result="$(echo "${matching_checks}" | jq 'map(select(.status != "completed" or .conclusion != "success")) | length')"
+    check_result="$(echo "${matching_checks}" | jq 'map(select((.status | ascii_downcase) != "completed" or (.conclusion | ascii_downcase) != "success")) | length')"
     if [[ "${check_result}" -ne 0 ]]; then
       fail "required checks for '${check_name}' are not passing (found: ${check_result} non-passing)"
     fi
