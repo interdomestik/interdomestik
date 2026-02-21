@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 const {
+  buildRouteAllowingLocalePath,
   computeRetryDelayMs,
   parseRetryAfterSeconds,
   sessionCacheKeyForAccount,
@@ -39,4 +40,16 @@ test('computeRetryDelayMs keeps jitter within expected bounds', () => {
 test('sessionCacheKeyForAccount keys cache by account label', () => {
   assert.equal(sessionCacheKeyForAccount('admin_ks'), 'Admin-(KS)');
   assert.equal(sessionCacheKeyForAccount('member'), 'Member-only');
+});
+
+test('buildRouteAllowingLocalePath avoids duplicate locale prefixes', () => {
+  const baseUrl = 'https://interdomestik-web.vercel.app';
+  assert.equal(
+    buildRouteAllowingLocalePath(baseUrl, 'en', '/en/staff/claims/claim_123'),
+    'https://interdomestik-web.vercel.app/en/staff/claims/claim_123'
+  );
+  assert.equal(
+    buildRouteAllowingLocalePath(baseUrl, 'en', '/staff/claims/claim_123'),
+    'https://interdomestik-web.vercel.app/en/staff/claims/claim_123'
+  );
 });
