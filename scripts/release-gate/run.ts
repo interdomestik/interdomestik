@@ -144,65 +144,236 @@ function resolvePlaywright() {
   return require(modulePath);
 }
 
-async function loginAs(page, params) {
-  const { account, credentials, baseUrl, locale } = params;
-  const origin = new URL(baseUrl).origin;
-  const loginUrl = `${origin}/api/auth/sign-in/email`;
-  const tenantId = ACCOUNTS[account]?.tenantId;
+const LOGIN_MAX_ATTEMPTS_PER_ACCOUNT = 3;
+const LOGIN_FALLBACK_RETRY_DELAYS_SECONDS = [1, 3, 6];
+const LOGIN_JITTER_BOUNDS_MS = {
+  min: 100,
+  max: 350,
+};
 
-  await page.context().clearCookies();
+let loginMutex = Promise.resolve();
 
-  const retryDelaysMs = [0, 1200, 3000, 6000];
-  let response = null;
-  for (let attempt = 0; attempt < retryDelaysMs.length; attempt += 1) {
-    if (retryDelaysMs[attempt] > 0) {
-      await sleep(retryDelaysMs[attempt]);
-    }
-    try {
-      response = await page.request.post(loginUrl, {
-        data: {
-          email: credentials.email,
-          password: credentials.password,
-        },
-        headers: {
-          Origin: origin,
-          Referer: `${origin}/${locale}/login`,
-          'x-forwarded-for': ROLE_IPS[account] || ROLE_IPS.member,
-          ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
-        },
-      });
-    } catch (networkError) {
-      response = null;
-      const canRetry = attempt < retryDelaysMs.length - 1;
-      if (!canRetry) {
-        throw networkError;
-      }
-      continue;
-    }
+function normalizeAccountLabel(label) {
+  return String(label || '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^A-Za-z0-9()_-]/g, '');
+}
 
-    if (response.ok()) break;
-    const status = response.status();
-    const shouldRetry = status === 429 || status === 408 || (status >= 500 && status <= 599);
-    if (!shouldRetry || attempt === retryDelaysMs.length - 1) {
-      break;
-    }
+function sessionCacheKeyForAccount(accountKey) {
+  const configured = ACCOUNTS[accountKey]?.label || accountKey;
+  return normalizeAccountLabel(configured);
+}
+
+function parseRetryAfterSeconds(value, nowMs = Date.now()) {
+  if (value == null) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const directSeconds = Number.parseInt(raw, 10);
+  if (Number.isFinite(directSeconds) && directSeconds >= 0) {
+    return directSeconds;
   }
 
-  if (!response || !response.ok()) {
-    const status = response ? response.status() : 'no-response';
-    const url = response ? response.url() : loginUrl;
-    throw new Error(`AUTH_LOGIN_FAILED account=${account} status=${status} url=${url}`);
-  }
+  const asDateMs = Date.parse(raw);
+  if (Number.isNaN(asDateMs)) return null;
+  const deltaSeconds = Math.ceil((asDateMs - nowMs) / 1000);
+  return Math.max(0, deltaSeconds);
+}
 
-  const defaultPath =
-    account === 'agent' ? ROUTES.rbacTargets[1] : account.replace('_ks', '').replace('_mk', '');
+function randomJitterMs(min, max, randomFn = Math.random) {
+  const span = max - min + 1;
+  const raw = Number(randomFn());
+  const bounded = Number.isFinite(raw) ? Math.min(Math.max(raw, 0), 0.999999) : 0.5;
+  return min + Math.floor(bounded * span);
+}
+
+function computeRetryDelayMs({ attempt, retryAfterSeconds, randomFn = Math.random }) {
+  const fallbackIndex = Math.min(
+    Math.max(attempt - 1, 0),
+    LOGIN_FALLBACK_RETRY_DELAYS_SECONDS.length - 1
+  );
+  const fallbackBaseMs = LOGIN_FALLBACK_RETRY_DELAYS_SECONDS[fallbackIndex] * 1000;
+  const retryAfterBaseMs =
+    typeof retryAfterSeconds === 'number' && Number.isFinite(retryAfterSeconds)
+      ? Math.max(0, retryAfterSeconds) * 1000
+      : null;
+  const baseMs = retryAfterBaseMs == null ? fallbackBaseMs : retryAfterBaseMs;
+  const jitterMs = randomJitterMs(LOGIN_JITTER_BOUNDS_MS.min, LOGIN_JITTER_BOUNDS_MS.max, randomFn);
+  return {
+    baseMs,
+    jitterMs,
+    totalMs: baseMs + jitterMs,
+  };
+}
+
+function defaultPathForAccount(account) {
+  return account === 'agent'
+    ? ROUTES.rbacTargets[1]
+    : account.replace('_ks', '').replace('_mk', '');
+}
+
+function logLoginAttempt({ account, attempt, status, retryAfterSeconds }) {
+  const retryAfterValue =
+    typeof retryAfterSeconds === 'number' && Number.isFinite(retryAfterSeconds)
+      ? retryAfterSeconds
+      : 'none';
+  console.log(
+    `[release-gate][login-attempt] account_label=${sessionCacheKeyForAccount(account)} attempt=${attempt} status=${status} retry_after_s=${retryAfterValue}`
+  );
+}
+
+function isAuthExpiryResponse(response, origin) {
+  const status = response.status();
+  if (status !== 401 && status !== 403) return false;
+  const responseUrl = response.url();
+  if (!responseUrl.startsWith(origin)) return false;
+  return (
+    responseUrl.includes('/api/auth/') ||
+    responseUrl.includes('/api/session') ||
+    responseUrl.includes('/session')
+  );
+}
+
+async function bootstrapAccountLanding(page, params) {
+  const { account, baseUrl, locale } = params;
+  const defaultPath = defaultPathForAccount(account);
   const targetUrl = buildRoute(baseUrl, locale, `/${defaultPath}`);
+  const origin = new URL(baseUrl).origin;
 
-  // Keep login bootstrap tolerant: account data can drift, and strict role marker
-  // assertions here create false exceptions before route-specific checks run.
-  // Route checks (P0.1/P0.6/etc.) remain authoritative for marker semantics.
-  await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
-  await page.waitForTimeout(300);
+  let sawAuthExpiry = false;
+  const onResponse = response => {
+    if (isAuthExpiryResponse(response, origin)) {
+      sawAuthExpiry = true;
+    }
+  };
+
+  page.on('response', onResponse);
+  try {
+    // Keep login bootstrap tolerant: account data can drift, and strict role marker
+    // assertions here create false exceptions before route-specific checks run.
+    // Route checks (P0.1/P0.6/etc.) remain authoritative for marker semantics.
+    await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
+    await page.waitForTimeout(300);
+  } finally {
+    page.off('response', onResponse);
+  }
+
+  return { targetUrl, sawAuthExpiry };
+}
+
+function queueLoginOperation(operation) {
+  const current = loginMutex.then(() => operation());
+  loginMutex = current.catch(() => {});
+  return current;
+}
+
+function createAuthState() {
+  return {
+    sessionStateByAccount: new Map(),
+    loginAttemptsByAccount: new Map(),
+  };
+}
+
+async function loginAs(page, params) {
+  return queueLoginOperation(async () => {
+    const { account, credentials, baseUrl, locale } = params;
+    const authState = params.authState || createAuthState();
+    const accountCacheKey = sessionCacheKeyForAccount(account);
+    const cachedSessionState = authState.sessionStateByAccount.get(accountCacheKey);
+
+    if (cachedSessionState && Array.isArray(cachedSessionState.cookies)) {
+      await page.context().clearCookies();
+      if (cachedSessionState.cookies.length > 0) {
+        await page.context().addCookies(cachedSessionState.cookies);
+      }
+
+      const bootstrapFromCache = await bootstrapAccountLanding(page, { account, baseUrl, locale });
+      if (!bootstrapFromCache.sawAuthExpiry) {
+        return;
+      }
+
+      authState.sessionStateByAccount.delete(accountCacheKey);
+    }
+
+    const origin = new URL(baseUrl).origin;
+    const loginUrl = `${origin}/api/auth/sign-in/email`;
+    const tenantId = ACCOUNTS[account]?.tenantId;
+
+    await page.context().clearCookies();
+
+    let response = null;
+
+    while (true) {
+      const attempt = (authState.loginAttemptsByAccount.get(accountCacheKey) || 0) + 1;
+      authState.loginAttemptsByAccount.set(accountCacheKey, attempt);
+
+      if (attempt > LOGIN_MAX_ATTEMPTS_PER_ACCOUNT) {
+        throw new Error(
+          `AUTH_LOGIN_RETRY_LIMIT_EXCEEDED account=${account} attempts=${LOGIN_MAX_ATTEMPTS_PER_ACCOUNT} url=${loginUrl}`
+        );
+      }
+
+      try {
+        response = await page.request.post(loginUrl, {
+          data: {
+            email: credentials.email,
+            password: credentials.password,
+          },
+          headers: {
+            Origin: origin,
+            Referer: `${origin}/${locale}/login`,
+            'x-forwarded-for': ROLE_IPS[account] || ROLE_IPS.member,
+            ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
+          },
+        });
+      } catch (networkError) {
+        logLoginAttempt({
+          account,
+          attempt,
+          status: 'network-error',
+          retryAfterSeconds: null,
+        });
+        if (attempt >= LOGIN_MAX_ATTEMPTS_PER_ACCOUNT) {
+          throw networkError;
+        }
+        const delay = computeRetryDelayMs({ attempt });
+        await sleep(delay.totalMs);
+        continue;
+      }
+
+      const status = response.status();
+      const retryAfterSeconds = parseRetryAfterSeconds(response.headers()['retry-after']);
+      logLoginAttempt({ account, attempt, status, retryAfterSeconds });
+
+      if (response.ok()) break;
+
+      const shouldRetry = status === 429 || status === 408 || (status >= 500 && status <= 599);
+      if (!shouldRetry) break;
+
+      if (attempt >= LOGIN_MAX_ATTEMPTS_PER_ACCOUNT) {
+        if (status === 429) {
+          throw new Error(
+            `AUTH_LOGIN_RATE_LIMIT_EXHAUSTED account=${account} attempts=${attempt} status=429 retry_after_s=${retryAfterSeconds ?? 'none'} url=${response.url()}`
+          );
+        }
+        break;
+      }
+
+      const delay = computeRetryDelayMs({ attempt, retryAfterSeconds });
+      await sleep(delay.totalMs);
+    }
+
+    if (!response || !response.ok()) {
+      const status = response ? response.status() : 'no-response';
+      const url = response ? response.url() : loginUrl;
+      throw new Error(`AUTH_LOGIN_FAILED account=${account} status=${status} url=${url}`);
+    }
+
+    await bootstrapAccountLanding(page, { account, baseUrl, locale });
+    const storageState = await page.context().storageState();
+    authState.sessionStateByAccount.set(accountCacheKey, storageState);
+  });
 }
 
 async function markerSnapshot(page) {
@@ -328,6 +499,7 @@ async function runP01(browser, runCtx) {
         credentials: runCtx.credentials[account],
         baseUrl: runCtx.baseUrl,
         locale: runCtx.locale,
+        authState: runCtx.authState,
       });
 
       const matrix = expectedMatrixForAccount(account);
@@ -389,6 +561,7 @@ async function runP02(browser, runCtx) {
       credentials: runCtx.credentials.admin_mk,
       baseUrl: runCtx.baseUrl,
       locale: runCtx.locale,
+      authState: runCtx.authState,
     });
 
     const route = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.crossTenantProbe);
@@ -514,6 +687,7 @@ async function runP03AndP04(browser, runCtx) {
       credentials: runCtx.credentials.admin_ks,
       baseUrl: runCtx.baseUrl,
       locale: runCtx.locale,
+      authState: runCtx.authState,
     });
 
     const resolvedTarget = await ensureRolePanelLoaded(targetUrl);
@@ -614,6 +788,7 @@ async function runP06(browser, runCtx) {
         credentials: runCtx.credentials[accountKey],
         baseUrl: runCtx.baseUrl,
         locale: runCtx.locale,
+        authState: runCtx.authState,
       });
       return await fn(page);
     } finally {
@@ -998,6 +1173,7 @@ async function runP11AndP12(browser, runCtx) {
       credentials: runCtx.credentials.member,
       baseUrl: runCtx.baseUrl,
       locale: runCtx.locale,
+      authState: runCtx.authState,
     });
 
     const docsUrl = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.memberDocuments);
@@ -1077,6 +1253,7 @@ async function runP11AndP12(browser, runCtx) {
       credentials: runCtx.credentials.member,
       baseUrl: runCtx.baseUrl,
       locale: runCtx.locale,
+      authState: runCtx.authState,
     });
     await reloginPage.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
     const reloginStart = Date.now();
@@ -1193,6 +1370,7 @@ async function runP13(browser, runCtx) {
       credentials: runCtx.credentials.staff,
       baseUrl: runCtx.baseUrl,
       locale: runCtx.locale,
+      authState: runCtx.authState,
     });
 
     const claimsList = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList);
@@ -1543,6 +1721,7 @@ async function main() {
       envName: args.envName,
       credentials,
       deployment,
+      authState: createAuthState(),
     };
 
     const selected = SUITES[args.suite];
@@ -1606,7 +1785,15 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.error(`[release-gate] Fatal error: ${String(error.message || error)}`);
-  process.exit(2);
-});
+module.exports = {
+  computeRetryDelayMs,
+  parseRetryAfterSeconds,
+  sessionCacheKeyForAccount,
+};
+
+if (require.main === module) {
+  main().catch(error => {
+    console.error(`[release-gate] Fatal error: ${String(error.message || error)}`);
+    process.exit(2);
+  });
+}
