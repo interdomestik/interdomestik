@@ -50,6 +50,7 @@ export default async function AgentWorkspaceClaimsPage({ searchParams }: Props) 
   return (
     <AgentClaimsProPage
       claims={claims}
+      selectedClaimId={selectedClaimId}
       currentUser={{
         id: session.user.id,
         name: session.user.name,

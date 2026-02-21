@@ -1,5 +1,5 @@
-import { E2E_USERS, claims, db, eq, user } from '@interdomestik/database';
-import { and, isNull, or } from 'drizzle-orm';
+import { E2E_USERS, agentClients, claims, db, user } from '@interdomestik/database';
+import { and, desc, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
@@ -23,14 +23,29 @@ async function resolveAccessibleClaimId(agentEmail: string) {
     throw new Error(`Expected seeded agent id for ${agentEmail}`);
   }
 
+  const seededAssignment = await db.query.agentClients.findFirst({
+    where: and(
+      eq(agentClients.tenantId, seededAgent.tenantId),
+      eq(agentClients.agentId, seededAgent.id),
+      eq(agentClients.status, 'active')
+    ),
+    columns: { memberId: true },
+    orderBy: [desc(agentClients.id)],
+  });
+
+  if (!seededAssignment?.memberId) {
+    throw new Error(`Expected seeded active assignment for ${agentEmail}`);
+  }
+
   const existing = await db.query.claims.findFirst({
-    where: seededAgent.branchId
-      ? and(
-          eq(claims.tenantId, seededAgent.tenantId),
-          or(eq(claims.branchId, seededAgent.branchId), isNull(claims.branchId))
-        )
-      : eq(claims.tenantId, seededAgent.tenantId),
+    where: and(
+      eq(claims.tenantId, seededAgent.tenantId),
+      eq(claims.userId, seededAssignment.memberId),
+      eq(claims.status, 'submitted'),
+      ...(seededAgent.branchId ? [eq(claims.branchId, seededAgent.branchId)] : [])
+    ),
     columns: { id: true },
+    orderBy: [desc(claims.createdAt)],
   });
 
   if (existing?.id) return existing.id;
@@ -39,7 +54,7 @@ async function resolveAccessibleClaimId(agentEmail: string) {
   await db.insert(claims).values({
     id: fallbackClaimId,
     tenantId: seededAgent.tenantId,
-    userId: seededAgent.id,
+    userId: seededAssignment.memberId,
     title: `E2E fallback claim ${fallbackClaimId}`,
     companyName: 'Interdomestik QA',
     category: 'vehicle',
