@@ -12,5 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - name: Run PR finalizer gate
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           bash scripts/pr-finalizer.sh

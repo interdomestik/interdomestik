@@ -53,6 +53,11 @@ pr_context() {
 }
 
 require_gh_checks() {
+  local gh_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+  if [[ -n "${gh_token}" ]]; then
+    export GH_TOKEN="${gh_token}"
+  fi
+
   if ! command -v gh >/dev/null 2>&1; then
     fail "GitHub CLI (gh) is required for check validation"
   fi
