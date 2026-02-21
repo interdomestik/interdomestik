@@ -25,7 +25,7 @@ Keep shared authentication contracts stable and prevent cross-boundary security 
 ## Hard-stop signatures
 
 - Session claim mismatch.
-- tenant binding missing.
+- Tenant binding missing.
 - auth boundary bypass or role privilege drift.
 - unexpected auth failure spikes.
 
