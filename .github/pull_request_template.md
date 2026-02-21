@@ -33,5 +33,5 @@
 ## Merge readiness
 
 - [ ] All GitHub review threads resolved.
-- [ ] Required checks green (`CI`, `Secret Scan`, `e2e:gate`, `pr:verify`, `security:guard`).
+- [ ] Required checks green (`CI`, `Secret Scan`, `e2e-gate`, `pr:verify + pilot:check`, `pnpm-audit`, `gitleaks`).
 - [ ] Evidence artifact paths are present and complete.

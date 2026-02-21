@@ -16,7 +16,10 @@ EOF
 required_checks=(
   "CI"
   "Secret Scan"
+  "e2e-gate"
   "pr:verify"
+  "pnpm-audit"
+  "gitleaks"
 )
 
 run_step() {
@@ -32,6 +35,10 @@ fail() {
 }
 
 require_clean_tree() {
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    return 0
+  fi
+
   if ! git diff --quiet --no-ext-diff --ignore-submodules --exit-code; then
     fail "working tree is not clean"
   fi
@@ -100,7 +107,10 @@ require_gh_checks() {
   for check_name in "${required_checks[@]}"; do
     local matching_checks
     local check_result
-    local check_count
+  local check_count
+
+  # Skip validating the finalizer job itself to avoid circular dependency checks.
+  local excluded_check="pr-finalizer"
 
     if [[ "${check_name}" == "CI" ]]; then
       matching_checks="$(echo "${checks_json}" | jq '[.check_runs | .[] | select((.name // .workflow_name // "") | test("^ci$|^pr:verify"; "i"))]')"
@@ -109,6 +119,8 @@ require_gh_checks() {
     else
       matching_checks="$(echo "${checks_json}" | jq --arg NAME "$check_name" '[.check_runs | .[] | select((.name // .workflow_name // "") | test(("^" + $NAME); "i"))]')"
     fi
+
+    matching_checks="$(echo "${matching_checks}" | jq --arg EXCLUDED "$excluded_check" '[.[] | select((.name // .workflow_name // "") != $EXCLUDED)]')"
 
     check_count="$(echo "${matching_checks}" | jq 'length')"
     if [[ "${check_count}" -eq 0 ]]; then
