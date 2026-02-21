@@ -45,6 +45,7 @@ export type AgentProClaim = {
 
 interface AgentClaimsProPageProps {
   claims: AgentProClaim[];
+  selectedClaimId?: string | null;
   currentUser: {
     id: string;
     name: string;
@@ -53,12 +54,16 @@ interface AgentClaimsProPageProps {
   };
 }
 
-export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPageProps) {
+export function AgentClaimsProPage({
+  claims,
+  selectedClaimId,
+  currentUser,
+}: AgentClaimsProPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   // URL Selection for Drawer
-  const selectedId = getSelectedClaimId(searchParams);
+  const selectedId = (selectedClaimId?.trim() || getSelectedClaimId(searchParams)) ?? null;
   // Drawer View Mode
   const [viewMode, setViewMode] = useState<'details' | 'messaging'>('details');
 
@@ -160,6 +165,7 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
   }));
 
   const selectedClaim = claims.find(c => c.id === selectedId);
+  const showNotAccessibleClaimState = Boolean(selectedId) && !selectedClaim;
 
   // Actions Logic
   const actions = useMemo(() => {
@@ -209,6 +215,15 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
         </div>
       </div>
 
+      {showNotAccessibleClaimState ? (
+        <div
+          className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+          data-testid="workspace-claim-not-accessible"
+        >
+          This claim is not accessible.
+        </div>
+      ) : null}
+
       {/* Filters */}
       <OpsFiltersBar
         tabs={[
@@ -232,6 +247,7 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
         open={!!selectedClaim}
         onOpenChange={open => !open && handleClose()}
         title={selectedClaim ? `Claim ${selectedClaim.claimNumber}` : ''}
+        testId="ops-drawer"
         footer={
           viewMode === 'details' && selectedClaim ? (
             <OpsActionBar secondary={actions.secondary} />
@@ -240,6 +256,9 @@ export function AgentClaimsProPage({ claims, currentUser }: AgentClaimsProPagePr
       >
         {selectedClaim && (
           <div className="space-y-6" data-testid="ops-drawer-content">
+            <p className="text-xs text-muted-foreground" data-testid="workspace-selected-claim-id">
+              {selectedClaim.id}
+            </p>
             {viewMode === 'details' ? (
               <div className="space-y-6">
                 <div className="p-4 bg-muted/50 rounded-lg">

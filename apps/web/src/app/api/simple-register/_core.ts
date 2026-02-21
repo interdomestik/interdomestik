@@ -1,13 +1,18 @@
+import type { TenantId } from '@/lib/tenant/tenant-hosts';
+
 export type SimpleRegisterResult =
   | { kind: 'ok'; data: any }
   | { kind: 'badRequest'; error: string }
   | { kind: 'conflict'; error: string };
 
+type TenantRole = 'super_admin' | 'admin' | 'staff' | 'branch_manager' | 'agent' | 'user';
+
 export interface SimpleRegisterServices {
   registerUserFn: (params: {
     email: string;
     name: string;
-    role?: any; // Using any to match the service's complex union type
+    role?: TenantRole;
+    tenantId: TenantId;
   }) => Promise<any>;
 }
 
@@ -17,9 +22,18 @@ export interface SimpleRegisterServices {
  */
 export async function simpleRegisterApiCore(
   body: any,
-  services: SimpleRegisterServices
+  services: SimpleRegisterServices,
+  tenantIdOverride?: TenantId
 ): Promise<SimpleRegisterResult> {
-  const { email, name, role = 'user', password } = body;
+  const { email, name, role = 'user', password, tenantId: tenantIdFromBody } = body;
+  const tenantId = tenantIdOverride ?? tenantIdFromBody;
+
+  if (!tenantId) {
+    return {
+      kind: 'badRequest',
+      error: 'Missing tenant context',
+    };
+  }
 
   // 1. Basic validation
   if (!email || !name || !password || password.length < 6) {
@@ -31,7 +45,7 @@ export async function simpleRegisterApiCore(
 
   try {
     // 2. Call Service
-    const user = await services.registerUserFn({ email, name, role });
+    const user = await services.registerUserFn({ email, name, role, tenantId });
 
     return {
       kind: 'ok',

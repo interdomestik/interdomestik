@@ -18,13 +18,7 @@
     "NEXT_PUBLIC_PADDLE_PRICE_*"
   ],
   "globalDependencies": ["**/.env.*local"],
-  "globalPassThroughEnv": [
-    "RESEND_API_KEY",
-    "RESEND_FROM_EMAIL",
-    "DB_MAX_CONNECTIONS",
-    "UPSTASH_REDIS_REST_URL",
-    "UPSTASH_REDIS_REST_TOKEN"
-  ],
+  "globalPassThroughEnv": ["DB_MAX_CONNECTIONS"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

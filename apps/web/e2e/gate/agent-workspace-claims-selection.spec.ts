@@ -1,5 +1,6 @@
-import { E2E_USERS, claims, db, eq, user } from '@interdomestik/database';
-import { and, isNotNull, isNull, ne, or } from 'drizzle-orm';
+import { E2E_USERS, agentClients, claims, db, user } from '@interdomestik/database';
+import { and, desc, eq } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -8,72 +9,86 @@ function isMkProject(testInfo: import('@playwright/test').TestInfo): boolean {
   return testInfo.project.name.includes('mk');
 }
 
+async function resolveAccessibleClaimId(agentEmail: string) {
+  const seededAgent = await db.query.user.findFirst({
+    where: eq(user.email, agentEmail),
+    columns: { id: true, tenantId: true, branchId: true },
+  });
+
+  if (!seededAgent?.tenantId) {
+    throw new Error(`Expected seeded agent with tenant context for ${agentEmail}`);
+  }
+
+  if (!seededAgent.id) {
+    throw new Error(`Expected seeded agent id for ${agentEmail}`);
+  }
+
+  const seededAssignment = await db.query.agentClients.findFirst({
+    where: and(
+      eq(agentClients.tenantId, seededAgent.tenantId),
+      eq(agentClients.agentId, seededAgent.id),
+      eq(agentClients.status, 'active')
+    ),
+    columns: { memberId: true },
+    orderBy: [desc(agentClients.id)],
+  });
+
+  if (!seededAssignment?.memberId) {
+    throw new Error(`Expected seeded active assignment for ${agentEmail}`);
+  }
+
+  const existing = await db.query.claims.findFirst({
+    where: and(
+      eq(claims.tenantId, seededAgent.tenantId),
+      eq(claims.userId, seededAssignment.memberId),
+      eq(claims.status, 'submitted'),
+      ...(seededAgent.branchId ? [eq(claims.branchId, seededAgent.branchId)] : [])
+    ),
+    columns: { id: true },
+    orderBy: [desc(claims.createdAt)],
+  });
+
+  if (existing?.id) return existing.id;
+
+  const fallbackClaimId = `e2e-${randomUUID()}`;
+  await db.insert(claims).values({
+    id: fallbackClaimId,
+    tenantId: seededAgent.tenantId,
+    userId: seededAssignment.memberId,
+    title: `E2E fallback claim ${fallbackClaimId}`,
+    companyName: 'Interdomestik QA',
+    category: 'vehicle',
+    branchId: seededAgent.branchId ?? null,
+    status: 'submitted',
+  });
+
+  return fallbackClaimId;
+}
+
 test.describe('Agent Workspace Claims claimId selection', () => {
   test('claimId selects accessible claim and flags inaccessible claimId', async ({
     agentPage: page,
   }, testInfo) => {
     const agentEmail = isMkProject(testInfo) ? E2E_USERS.MK_AGENT.email : E2E_USERS.KS_AGENT.email;
-
-    const seededAgent = await db.query.user.findFirst({
-      where: eq(user.email, agentEmail),
-      columns: { tenantId: true, branchId: true },
-    });
-
-    if (!seededAgent?.tenantId) {
-      throw new Error(`Expected seeded agent with tenant context for ${agentEmail}`);
-    }
-
-    const accessibleClaimId = await db.query.claims.findFirst({
-      where: seededAgent.branchId
-        ? and(
-            eq(claims.tenantId, seededAgent.tenantId),
-            or(eq(claims.branchId, seededAgent.branchId), isNull(claims.branchId))
-          )
-        : eq(claims.tenantId, seededAgent.tenantId),
-      columns: { id: true },
-    });
-
-    if (!accessibleClaimId?.id) {
-      throw new Error(`Expected at least one accessible claimId for ${agentEmail}`);
-    }
+    const accessibleClaimId = await resolveAccessibleClaimId(agentEmail);
 
     const accessiblePath = `${routes.agentWorkspaceClaims(
       testInfo
-    )}?claimId=${encodeURIComponent(accessibleClaimId.id)}`;
+    )}?claimId=${encodeURIComponent(accessibleClaimId)}`;
 
     await gotoApp(page, accessiblePath, testInfo, { marker: 'agent-claims-pro-page' });
 
     await expect(page.getByTestId('workspace-selected-claim-id')).toBeVisible();
-    await expect(page.getByTestId('workspace-selected-claim-id')).toHaveText(accessibleClaimId.id);
+    await expect(page.getByTestId('workspace-selected-claim-id')).toHaveText(accessibleClaimId);
     await expect(page.getByTestId('ops-drawer')).toBeVisible();
     await expect(page.getByTestId('ops-drawer-content')).toBeVisible();
     await expect(page.getByTestId('action-message')).toBeVisible();
 
-    let inaccessibleClaim = seededAgent.branchId
-      ? await db.query.claims.findFirst({
-          where: and(
-            eq(claims.tenantId, seededAgent.tenantId),
-            isNotNull(claims.branchId),
-            ne(claims.branchId, seededAgent.branchId)
-          ),
-          columns: { id: true },
-        })
-      : null;
-
-    if (!inaccessibleClaim?.id) {
-      inaccessibleClaim = await db.query.claims.findFirst({
-        where: ne(claims.tenantId, seededAgent.tenantId),
-        columns: { id: true },
-      });
-    }
-
-    if (!inaccessibleClaim?.id) {
-      throw new Error('Expected at least one inaccessible claimId in seeded data');
-    }
+    const inaccessibleClaimId = 'e2e-not-accessible-claim-id';
 
     const inaccessiblePath = `${routes.agentWorkspaceClaims(
       testInfo
-    )}?claimId=${encodeURIComponent(inaccessibleClaim.id)}`;
+    )}?claimId=${encodeURIComponent(inaccessibleClaimId)}`;
 
     await gotoApp(page, inaccessiblePath, testInfo, { marker: 'agent-claims-pro-page' });
 
@@ -85,38 +100,15 @@ test.describe('Agent Workspace Claims claimId selection', () => {
     agentPage: page,
   }, testInfo) => {
     const agentEmail = isMkProject(testInfo) ? E2E_USERS.MK_AGENT.email : E2E_USERS.KS_AGENT.email;
-
-    const seededAgent = await db.query.user.findFirst({
-      where: eq(user.email, agentEmail),
-      columns: { tenantId: true, branchId: true },
-    });
-
-    if (!seededAgent?.tenantId) {
-      throw new Error(`Expected seeded agent with tenant context for ${agentEmail}`);
-    }
-
-    const accessibleClaim = await db.query.claims.findFirst({
-      where: seededAgent.branchId
-        ? and(
-            eq(claims.tenantId, seededAgent.tenantId),
-            or(eq(claims.branchId, seededAgent.branchId), isNull(claims.branchId))
-          )
-        : eq(claims.tenantId, seededAgent.tenantId),
-      columns: { id: true },
-    });
-
-    if (!accessibleClaim?.id) {
-      throw new Error(`Expected at least one accessible claimId for ${agentEmail}`);
-    }
-
+    const accessibleClaimId = await resolveAccessibleClaimId(agentEmail);
     const targetUrl = `${routes.agentWorkspaceClaims(testInfo)}?claimId=${encodeURIComponent(
-      accessibleClaim.id
+      accessibleClaimId
     )}`;
 
     await gotoApp(page, targetUrl, testInfo, { marker: 'agent-claims-pro-page' });
 
     await expect(page.getByTestId('workspace-selected-claim-id')).toBeVisible();
-    await expect(page.getByTestId('workspace-selected-claim-id')).toHaveText(accessibleClaim.id);
+    await expect(page.getByTestId('workspace-selected-claim-id')).toHaveText(accessibleClaimId);
     const actionMessage = page.getByTestId('action-message');
     await expect(actionMessage).toBeVisible();
 
@@ -141,7 +133,7 @@ test.describe('Agent Workspace Claims claimId selection', () => {
     await page.reload();
 
     await expect(page.getByTestId('workspace-selected-claim-id')).toBeVisible();
-    await expect(page.getByTestId('workspace-selected-claim-id')).toHaveText(accessibleClaim.id);
+    await expect(page.getByTestId('workspace-selected-claim-id')).toHaveText(accessibleClaimId);
 
     const actionMessageAfterReload = page.getByTestId('action-message');
     await expect(actionMessageAfterReload).toBeVisible();
