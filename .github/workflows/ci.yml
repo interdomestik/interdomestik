@@ -92,29 +92,6 @@ jobs:
             exit 1
           fi
 
-      - name: Build Web App
-        run: pnpm --filter @interdomestik/web run build:ci
-
-      - name: Debug Next Standalone Output
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Listing apps/web/.next root:"
-          ls -la apps/web/.next || echo ".next missing"
-          echo "Listing apps/web/.next/standalone:"
-          ls -la apps/web/.next/standalone || echo "standalone missing"
-          echo "Listing apps/web/.next/standalone/apps/web (if present):"
-          ls -la apps/web/.next/standalone/apps/web || echo "apps/web missing"
-          echo "Finding server.js under apps/web/.next (maxdepth 4):"
-          find apps/web/.next -maxdepth 4 -name server.js -print || true
-
-      - name: DB Setup
-        run: |
-          until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do echo "Waiting for postgres..."; sleep 2; done
-          pnpm db:migrate
-          pnpm seed:e2e
-          pnpm seed:assert-e2e
-
       - name: Generate Playwright Auth State
         run: |
           pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
