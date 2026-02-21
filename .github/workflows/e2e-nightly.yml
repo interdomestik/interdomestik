@@ -55,18 +55,6 @@ jobs:
         with:
           install-playwright: true
 
-      - name: Build web
-        run: pnpm --filter @interdomestik/web run build:ci
-
-      - name: Debug Build Output
-        run: |
-          echo "Listing apps/web/.next root:"
-          ls -la apps/web/.next || echo ".next missing"
-          echo "Listing apps/web/.next/standalone:"
-          ls -la apps/web/.next/standalone || echo "standalone missing"
-          echo "Finding server.js under apps/web/.next (maxdepth 4):"
-          find apps/web/.next -maxdepth 4 -name server.js -print || true
-
       - name: DB migrations
         run: pnpm db:migrate
 
