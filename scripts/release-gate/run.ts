@@ -271,7 +271,6 @@ function queueLoginOperation(operation) {
 function createAuthState() {
   return {
     sessionStateByAccount: new Map(),
-    loginAttemptsByAccount: new Map(),
   };
 }
 
@@ -303,17 +302,7 @@ async function loginAs(page, params) {
     await page.context().clearCookies();
 
     let response = null;
-
-    while (true) {
-      const attempt = (authState.loginAttemptsByAccount.get(accountCacheKey) || 0) + 1;
-      authState.loginAttemptsByAccount.set(accountCacheKey, attempt);
-
-      if (attempt > LOGIN_MAX_ATTEMPTS_PER_ACCOUNT) {
-        throw new Error(
-          `AUTH_LOGIN_RETRY_LIMIT_EXCEEDED account=${account} attempts=${LOGIN_MAX_ATTEMPTS_PER_ACCOUNT} url=${loginUrl}`
-        );
-      }
-
+    for (let attempt = 1; attempt <= LOGIN_MAX_ATTEMPTS_PER_ACCOUNT; attempt += 1) {
       try {
         response = await page.request.post(loginUrl, {
           data: {
