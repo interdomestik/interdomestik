@@ -33,17 +33,32 @@ load_env_file() {
 
 		if [[ "${line}" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
 			local key="${BASH_REMATCH[1]}"
-			local value="${BASH_REMATCH[2]}"
+			local originalValue="${BASH_REMATCH[2]}"
+			local value="${originalValue}"
+			local isQuoted=0
 
-			# Preserve explicit env overrides provided by caller/CI.
-			if [[ -n "${!key:-}" ]]; then
+			# Preserve explicit env overrides provided by caller/CI (including empty values).
+			if [[ -n "${!key+x}" ]]; then
 				continue
 			fi
 
+			# Trim a single trailing CR (for CRLF files).
+			value="${value%$'\r'}"
+
 			if [[ "${value}" =~ ^\"(.*)\"$ ]]; then
 				value="${BASH_REMATCH[1]}"
+				isQuoted=1
 			elif [[ "${value}" =~ ^\'(.*)\'$ ]]; then
 				value="${BASH_REMATCH[1]}"
+				isQuoted=1
+			fi
+
+			if [[ "${isQuoted}" -eq 0 ]]; then
+				value="$(printf '%s' "${value}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+				if [[ "${value}" == *[[:space:]]\#* ]]; then
+					value="${value%%[[:space:]]\#*}"
+					value="$(printf '%s' "${value}" | sed -e 's/[[:space:]]*$//')"
+				fi
 			fi
 
 			export "${key}=${value}"
