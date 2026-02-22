@@ -53,7 +53,7 @@ export async function getAdminClaimDetailsCore(args: {
       bucket: claimDocuments.bucket,
     })
     .from(claimDocuments)
-    .where(eq(claimDocuments.claimId, args.claimId));
+    .where(and(eq(claimDocuments.claimId, args.claimId), eq(claimDocuments.tenantId, tenantId)));
 
   const adminClient = createAdminClient();
 

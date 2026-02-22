@@ -64,6 +64,7 @@ export async function getMemberClaimDetailsCore(args: {
 
   if (!claim) return { kind: 'not_found' };
   if (claim.userId !== viewerUserId) return { kind: 'not_found' };
+  if (!claim.tenantId) return { kind: 'not_found' };
 
   const documents = await db
     .select({
@@ -74,7 +75,7 @@ export async function getMemberClaimDetailsCore(args: {
       createdAt: claimDocuments.createdAt,
     })
     .from(claimDocuments)
-    .where(eq(claimDocuments.claimId, claimId));
+    .where(and(eq(claimDocuments.claimId, claimId), eq(claimDocuments.tenantId, claim.tenantId)));
 
   const publicStageHistoryRows = await db
     .select({
@@ -82,7 +83,13 @@ export async function getMemberClaimDetailsCore(args: {
       createdAt: claimStageHistory.createdAt,
     })
     .from(claimStageHistory)
-    .where(and(eq(claimStageHistory.claimId, claimId), eq(claimStageHistory.isPublic, true)))
+    .where(
+      and(
+        eq(claimStageHistory.claimId, claimId),
+        eq(claimStageHistory.tenantId, claim.tenantId),
+        eq(claimStageHistory.isPublic, true)
+      )
+    )
     .orderBy(desc(claimStageHistory.createdAt));
 
   const normalizedDocuments: MemberClaimDocument[] = (
