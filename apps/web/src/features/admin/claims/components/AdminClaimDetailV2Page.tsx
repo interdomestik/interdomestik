@@ -22,7 +22,12 @@ export async function AdminClaimDetailV2Page({ id, locale }: { id: string; local
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return notFound();
 
-  const tenantId = ensureTenantId(session);
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return notFound();
+  }
   const result = await getOpsClaimDetail(id);
   if (result.kind === 'not_found') return notFound();
 

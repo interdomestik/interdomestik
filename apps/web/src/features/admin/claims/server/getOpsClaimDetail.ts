@@ -1,12 +1,13 @@
 import { auth } from '@/lib/auth';
+import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import {
   and,
   claimDocuments,
   claims,
   createAdminClient,
-  db,
   eq,
   user,
+  withTenantContext,
 } from '@interdomestik/database';
 import { ClaimStatus } from '@interdomestik/database/constants';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -24,60 +25,99 @@ type ClaimWithRelations = typeof claims.$inferSelect & {
 };
 
 export async function getOpsClaimDetail(claimId: string): Promise<OpsClaimDetailResult> {
-  // 0. Get tenant context (P0 fix: tenant guard)
-  const session = await auth.api.getSession({ headers: await headers() });
+  // 0. Resolve tenant context from trusted host + session and fail closed.
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) return { kind: 'not_found' };
-  const tenantId = ensureTenantId(session);
+  let sessionTenantId: string;
+  try {
+    sessionTenantId = ensureTenantId(session);
+  } catch {
+    return { kind: 'not_found' };
+  }
+  const requestHost = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
+  const hostTenantId = resolveTenantFromHost(requestHost);
+  if (!hostTenantId || hostTenantId !== sessionTenantId) return { kind: 'not_found' };
+  const tenantId = hostTenantId;
 
-  // 1. Fetch Claim + Relations with tenant guard
-  const claim = (await db.query.claims.findFirst({
-    where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
-    with: {
-      staff: {
-        columns: {
-          name: true,
-          email: true,
-        },
-      },
-      branch: {
-        columns: {
-          id: true,
-          code: true,
-          name: true,
-        },
-      },
-      // Note: agent fetched separately as relation inference is tricky without schema export
+  // 1-2. Read claim detail under tenant DB context (RLS where configured) + explicit tenant predicates.
+  const { claim, userData, agentData, rawDocs } = await withTenantContext(
+    {
+      tenantId,
+      role: session.user?.role ?? undefined,
     },
-  })) as unknown as ClaimWithRelations | undefined;
+    async tx => {
+      const claim = (await tx.query.claims.findFirst({
+        where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
+        with: {
+          staff: {
+            columns: {
+              name: true,
+              email: true,
+            },
+          },
+          branch: {
+            columns: {
+              id: true,
+              code: true,
+              name: true,
+            },
+          },
+          // Note: agent fetched separately as relation inference is tricky without schema export
+        },
+      })) as unknown as ClaimWithRelations | undefined;
+
+      if (!claim) {
+        return {
+          claim: null,
+          userData: null,
+          agentData: null as { name: string } | null,
+          rawDocs: [] as Array<{
+            id: string;
+            name: string | null;
+            fileSize: number | null;
+            fileType: string | null;
+            createdAt: Date | null;
+            filePath: string | null;
+            bucket: string | null;
+          }>,
+        };
+      }
+
+      const [userData] = await tx
+        .select()
+        .from(user)
+        .where(and(eq(user.id, claim.userId), eq(user.tenantId, tenantId)))
+        .limit(1);
+
+      let agentData: { name: string } | null = null;
+      if (claim.agentId) {
+        const [a] = await tx
+          .select({ name: user.name })
+          .from(user)
+          .where(and(eq(user.id, claim.agentId), eq(user.tenantId, tenantId)))
+          .limit(1);
+        agentData = a ? { name: a.name } : null;
+      }
+
+      const rawDocs = await tx
+        .select({
+          id: claimDocuments.id,
+          name: claimDocuments.name,
+          fileSize: claimDocuments.fileSize,
+          fileType: claimDocuments.fileType,
+          createdAt: claimDocuments.createdAt,
+          filePath: claimDocuments.filePath,
+          bucket: claimDocuments.bucket,
+        })
+        .from(claimDocuments)
+        .where(and(eq(claimDocuments.claimId, claimId), eq(claimDocuments.tenantId, tenantId)));
+
+      return { claim, userData: userData ?? null, agentData, rawDocs };
+    }
+  );
 
   if (!claim) return { kind: 'not_found' };
-
-  // 1b. Fetch User (Claimant) & Agent separately
-  const [userData] = await db.select().from(user).where(eq(user.id, claim.userId)).limit(1);
-
-  let agentData: { name: string } | null = null;
-  if (claim.agentId) {
-    const [a] = await db
-      .select({ name: user.name })
-      .from(user)
-      .where(eq(user.id, claim.agentId))
-      .limit(1);
-    agentData = a ? { name: a.name } : null;
-  }
-
-  // 2. Fetch Documents
-  const rawDocs = await db
-    .select({
-      id: claimDocuments.id,
-      name: claimDocuments.name,
-      fileSize: claimDocuments.fileSize,
-      fileType: claimDocuments.fileType,
-      createdAt: claimDocuments.createdAt,
-      filePath: claimDocuments.filePath,
-      bucket: claimDocuments.bucket,
-    })
-    .from(claimDocuments)
-    .where(eq(claimDocuments.claimId, claimId));
 
   const adminClient = createAdminClient();
   const docs = await Promise.all(

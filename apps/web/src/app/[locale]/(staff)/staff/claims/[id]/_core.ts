@@ -36,9 +36,10 @@ export type LatestPublicStatusNote = {
 
 export async function getStaffClaimDetailsCore(args: {
   claimId: string;
+  tenantId: string;
 }): Promise<StaffClaimDetailsResult> {
   const claim = await db.query.claims.findFirst({
-    where: eq(claims.id, args.claimId),
+    where: and(eq(claims.id, args.claimId), eq(claims.tenantId, args.tenantId)),
     with: {
       user: true,
     },
@@ -56,7 +57,9 @@ export async function getStaffClaimDetailsCore(args: {
         createdAt: claimDocuments.createdAt,
       })
       .from(claimDocuments)
-      .where(eq(claimDocuments.claimId, args.claimId)),
+      .where(
+        and(eq(claimDocuments.claimId, args.claimId), eq(claimDocuments.tenantId, args.tenantId))
+      ),
     db
       .select({
         id: claimStageHistory.id,
@@ -70,7 +73,12 @@ export async function getStaffClaimDetailsCore(args: {
       })
       .from(claimStageHistory)
       .leftJoin(user, eq(claimStageHistory.changedById, user.id))
-      .where(eq(claimStageHistory.claimId, args.claimId))
+      .where(
+        and(
+          eq(claimStageHistory.claimId, args.claimId),
+          eq(claimStageHistory.tenantId, args.tenantId)
+        )
+      )
       .orderBy(desc(claimStageHistory.createdAt)),
   ]);
 

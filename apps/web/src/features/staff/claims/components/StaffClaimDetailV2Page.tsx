@@ -32,8 +32,11 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
   if (session?.user?.role !== 'staff') {
     return notFound();
   }
+  if (!session.user.tenantId) {
+    return notFound();
+  }
 
-  const result = await getStaffClaimDetailsCore({ claimId: id });
+  const result = await getStaffClaimDetailsCore({ claimId: id, tenantId: session.user.tenantId });
   if (result.kind !== 'ok') return notFound();
 
   const { claim, documents, stageHistory } = result;
