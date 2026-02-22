@@ -16,6 +16,7 @@ vi.mock('@interdomestik/database', () => ({
   },
   claims: {
     id: 'claims.id',
+    tenantId: 'claims.tenantId',
   },
   claimDocuments: {
     id: 'claimDocuments.id',
@@ -24,11 +25,13 @@ vi.mock('@interdomestik/database', () => ({
     fileType: 'claimDocuments.fileType',
     createdAt: 'claimDocuments.createdAt',
     claimId: 'claimDocuments.claimId',
+    tenantId: 'claimDocuments.tenantId',
   },
   claimStageHistory: {
     toStatus: 'claimStageHistory.toStatus',
     createdAt: 'claimStageHistory.createdAt',
     claimId: 'claimStageHistory.claimId',
+    tenantId: 'claimStageHistory.tenantId',
     isPublic: 'claimStageHistory.isPublic',
   },
   eq: vi.fn(),
@@ -107,14 +110,30 @@ describe('getMemberClaimDetailsCore', () => {
   });
 
   it('returns not_found when claim owned by someone else', async () => {
-    hoisted.findClaimFirst.mockResolvedValueOnce({ id: 'c1', userId: 'other' });
+    hoisted.findClaimFirst.mockResolvedValueOnce({
+      id: 'c1',
+      userId: 'other',
+      tenantId: 'tenant_mk',
+    });
+
+    const result = await getMemberClaimDetailsCore({ claimId: 'c1', viewerUserId: 'u1' });
+    expect(result).toEqual({ kind: 'not_found' });
+  });
+
+  it('returns not_found when claim tenant is missing', async () => {
+    hoisted.findClaimFirst.mockResolvedValueOnce({ id: 'c1', userId: 'u1', tenantId: null });
 
     const result = await getMemberClaimDetailsCore({ claimId: 'c1', viewerUserId: 'u1' });
     expect(result).toEqual({ kind: 'not_found' });
   });
 
   it('returns ok with documents and history', async () => {
-    hoisted.findClaimFirst.mockResolvedValueOnce({ id: 'c1', userId: 'u1', status: 'submitted' });
+    hoisted.findClaimFirst.mockResolvedValueOnce({
+      id: 'c1',
+      userId: 'u1',
+      tenantId: 'tenant_mk',
+      status: 'submitted',
+    });
 
     const docs = [
       {

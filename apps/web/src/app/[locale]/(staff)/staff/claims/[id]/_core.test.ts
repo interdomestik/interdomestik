@@ -14,10 +14,11 @@ vi.mock('@interdomestik/database', () => ({
     select: hoisted.dbSelect,
   },
   eq: vi.fn((a: unknown, b: unknown) => ({ eq: [a, b] })),
-  claims: { id: 'claims.id' },
+  claims: { id: 'claims.id', tenantId: 'claims.tenantId' },
   claimDocuments: {
     id: 'claimDocuments.id',
     claimId: 'claimDocuments.claimId',
+    tenantId: 'claimDocuments.tenantId',
     name: 'claimDocuments.name',
     fileSize: 'claimDocuments.fileSize',
     fileType: 'claimDocuments.fileType',
@@ -26,6 +27,7 @@ vi.mock('@interdomestik/database', () => ({
   claimStageHistory: {
     id: 'claimStageHistory.id',
     claimId: 'claimStageHistory.claimId',
+    tenantId: 'claimStageHistory.tenantId',
     fromStatus: 'claimStageHistory.fromStatus',
     toStatus: 'claimStageHistory.toStatus',
     note: 'claimStageHistory.note',
@@ -37,7 +39,9 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('drizzle-orm', () => ({
+  and: vi.fn((...args: unknown[]) => ({ and: args })),
   desc: vi.fn((x: unknown) => ({ desc: x })),
+  isNotNull: vi.fn((x: unknown) => ({ isNotNull: x })),
 }));
 
 import { getStaffClaimDetailsCore } from './_core';
@@ -61,7 +65,7 @@ describe('getStaffClaimDetailsCore', () => {
   it('returns not_found when claim does not exist', async () => {
     hoisted.claimsFindFirst.mockResolvedValue(null);
 
-    const result = await getStaffClaimDetailsCore({ claimId: 'c1' });
+    const result = await getStaffClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant_mk' });
 
     expect(result).toEqual({ kind: 'not_found' });
   });
@@ -100,7 +104,7 @@ describe('getStaffClaimDetailsCore', () => {
       .mockReturnValueOnce(createSelectChain(docsResult, 'where'))
       .mockReturnValueOnce(createSelectChain(historyResult, 'orderBy'));
 
-    const result = await getStaffClaimDetailsCore({ claimId: 'c1' });
+    const result = await getStaffClaimDetailsCore({ claimId: 'c1', tenantId: 'tenant_mk' });
 
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;
