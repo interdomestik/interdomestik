@@ -140,6 +140,8 @@ jobs:
           set +e
           REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test 2>&1 | tee "${log_file}"
           exit_code=${PIPESTATUS[0]}
+          # Required by write-rc-manifest.mjs to prove the RLS integration check ran.
+          echo "RLS_INTEGRATION_RAN=1" | tee -a "${log_file}"
           set -e
           printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/rls.exit"
           exit "${exit_code}"
@@ -191,6 +193,19 @@ jobs:
         run: |
           set -euo pipefail
           pnpm -s release:gate:raw --suite all --baseUrl "${RC_BASE_URL}" 2>&1 | tee "${RC_LOGS_DIR}/release-gate-all.log"
+
+      - name: RC check - required Playwright gate suite
+        if: always() && !cancelled()
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-ks-sq --project=gate-mk-mk --workers=1 \
+            2>&1 | tee "${RC_LOGS_DIR}/required-playwright.log"
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/required-playwright.exit"
+          exit "${exit_code}"
 
       - name: RC check - no-skip
         if: always() && !cancelled()
@@ -245,9 +260,11 @@ jobs:
                 });
               }
 
-              const manifestPath = 'scripts/release-gate/v1-required-specs.json';
-              const reportPath = path.resolve('apps/web/test-results/report.json');
-              const junitPath = path.resolve('apps/web/test-results/junit.xml');
+              const manifestPath =
+                process.env.RC_MANIFEST_PATH || 'scripts/release-gate/v1-required-specs.json';
+              const resultsDir = process.env.RC_RESULTS_DIR || 'apps/web/test-results';
+              const reportPath = path.resolve(resultsDir, 'report.json');
+              const junitPath = path.resolve(resultsDir, 'junit.xml');
 
               const manifest = readJson(manifestPath, 'manifest');
               const requiredSpecs = manifest?.required?.playwright?.specs;
