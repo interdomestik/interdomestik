@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup
         uses: ./.github/actions/setup
@@ -59,16 +61,32 @@ jobs:
           echo "pnpm audit gate failed after retries." >&2
           exit 1
 
-      - name: Gitleaks license notice
+      - name: Install gitleaks CLI
+        shell: bash
         run: |
-          if [ -z "${GITLEAKS_LICENSE:-}" ]; then
-            echo "Gitleaks license not set. Add GitHub Secret 'GITLEAKS_LICENSE' to enable secret scanning."
-          fi
-        env:
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          set -euo pipefail
 
-      - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          version="8.30.0"
+          archive="gitleaks_${version}_linux_x64.tar.gz"
+
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}" -o "/tmp/${archive}"
+          tar -xzf "/tmp/${archive}" -C /tmp gitleaks
+          install /tmp/gitleaks "$HOME/.local/bin/gitleaks"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          gitleaks version
+
+      - name: Run gitleaks (blocking)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/gitleaks-artifacts
+          gitleaks git --redact --report-format sarif --report-path /tmp/gitleaks-artifacts/gitleaks.sarif
+
+      - name: Upload gitleaks report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-gitleaks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/gitleaks-artifacts/gitleaks.sarif
+          if-no-files-found: warn
