@@ -1,0 +1,394 @@
+name: Release Candidate
+
+on:
+  push:
+    branches:
+      - 'rc/*'
+  workflow_dispatch:
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rc-gate:
+    name: RC Command Pack
+    runs-on: blacksmith-4vcpu-ubuntu-2204
+    timeout-minutes: 120
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interdomestik_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d interdomestik_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      CI: 'true'
+      PLAYWRIGHT: '1'
+      PORT: 3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
+      E2E_API_SECRET: test-secret-placeholder
+      RC_MANIFEST_PATH: scripts/release-gate/v1-required-specs.json
+      RC_BASE_URL: http://127.0.0.1:3000
+      RC_RUN_ID: rc-${{ github.run_id }}-${{ github.run_attempt }}
+      RC_ROOT_DIR: tmp/release-rc/rc-${{ github.run_id }}-${{ github.run_attempt }}
+      RC_LOGS_DIR: tmp/release-rc/rc-${{ github.run_id }}-${{ github.run_attempt }}/logs
+      RC_RESULTS_DIR: apps/web/test-results
+      RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@interdomestik.com
+      RELEASE_GATE_MEMBER_PASSWORD: GoldenPass123!
+      RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
+      RELEASE_GATE_AGENT_PASSWORD: GoldenPass123!
+      RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
+      RELEASE_GATE_STAFF_PASSWORD: GoldenPass123!
+      RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com
+      RELEASE_GATE_ADMIN_KS_PASSWORD: GoldenPass123!
+      RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@interdomestik.com
+      RELEASE_GATE_ADMIN_MK_PASSWORD: GoldenPass123!
+      RELEASE_GATE_MK_USER_URL: ''
+      RELEASE_GATE_TARGET_USER_URL: /admin/users/golden_mk_admin?tenantId=tenant_mk
+      RELEASE_GATE_REQUIRE_ROLE_PANEL: 'false'
+      STAFF_CLAIM_URL: ''
+      RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          install-playwright: true
+
+      - name: Prepare RC workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RC_LOGS_DIR}" "${RC_RESULTS_DIR}"
+          echo "run_id=${RC_RUN_ID}" > "${RC_LOGS_DIR}/run-metadata.txt"
+          echo "ref=${GITHUB_REF}" >> "${RC_LOGS_DIR}/run-metadata.txt"
+          echo "sha=${GITHUB_SHA}" >> "${RC_LOGS_DIR}/run-metadata.txt"
+
+      - name: Prepare CI database
+        shell: bash
+        run: |
+          set -euo pipefail
+          until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+          pnpm db:migrate
+          pnpm seed:e2e
+          pnpm seed:assert-e2e
+
+      - name: Build web standalone artifact
+        run: pnpm --filter @interdomestik/web run build:ci
+
+      - name: Generate Playwright auth states
+        run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
+
+      - name: RC check - security guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="${RC_LOGS_DIR}/security_guard.log"
+          set +e
+          pnpm security:guard 2>&1 | tee "${log_file}"
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/security_guard.exit"
+          exit "${exit_code}"
+
+      - name: RC check - i18n gate (manifest conditional)
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="${RC_LOGS_DIR}/i18n_production_gate.log"
+
+          if node - <<'NODE'
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync('scripts/release-gate/v1-required-specs.json', 'utf8'));
+          const cmd = manifest?.required?.commands?.i18n_production_gate;
+          process.exit(typeof cmd === 'string' && cmd.trim().length > 0 ? 0 : 1);
+          NODE
+          then
+            set +e
+            pnpm i18n:check 2>&1 | tee "${log_file}"
+            exit_code=${PIPESTATUS[0]}
+            set -e
+            printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/i18n_production_gate.exit"
+            exit "${exit_code}"
+          fi
+
+          printf 'i18n_production_gate command not required by manifest; skipped\n' | tee "${log_file}"
+          printf '0\n' > "${RC_LOGS_DIR}/i18n_production_gate.exit"
+
+      - name: RC check - RLS integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="${RC_LOGS_DIR}/rls.log"
+          set +e
+          REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test 2>&1 | tee "${log_file}"
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/rls.exit"
+          exit "${exit_code}"
+
+      - name: RC check - pr:verify:hosts
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="${RC_LOGS_DIR}/pr_verify_hosts.log"
+          set +e
+          pnpm pr:verify:hosts 2>&1 | tee "${log_file}"
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/pr_verify_hosts.exit"
+          exit "${exit_code}"
+
+      - name: Start web server for release-gate suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter @interdomestik/web run start:ci > "${RC_LOGS_DIR}/web-start.log" 2>&1 &
+          echo $! > /tmp/release-candidate-web.pid
+
+          for _ in {1..60}; do
+            if curl -fsS "${RC_BASE_URL}/api/health" > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "::error::Web server failed to become healthy on ${RC_BASE_URL}"
+          cat "${RC_LOGS_DIR}/web-start.log" || true
+          exit 1
+
+      - name: RC release-gate suite - p0
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm -s release:gate:p0:raw --baseUrl "${RC_BASE_URL}" 2>&1 | tee "${RC_LOGS_DIR}/release-gate-p0.log"
+
+      - name: RC release-gate suite - p1
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm -s release:gate:p1:raw --baseUrl "${RC_BASE_URL}" 2>&1 | tee "${RC_LOGS_DIR}/release-gate-p1.log"
+
+      - name: RC release-gate suite - all
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm -s release:gate:raw --suite all --baseUrl "${RC_BASE_URL}" 2>&1 | tee "${RC_LOGS_DIR}/release-gate-all.log"
+
+      - name: RC check - no-skip
+        if: always() && !cancelled()
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          node scripts/release-gate/check-no-skip.mjs --manifest "${RC_MANIFEST_PATH}" \
+            2>&1 | tee "${RC_LOGS_DIR}/no-skip.log"
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/no-skip.exit"
+          exit "${exit_code}"
+
+      - name: RC check - required-suite verifier
+        if: always() && !cancelled()
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          {
+            if [[ -f "scripts/release-gate/verify-required-specs.mjs" ]]; then
+              node scripts/release-gate/verify-required-specs.mjs \
+                --manifest "${RC_MANIFEST_PATH}" \
+                --playwright-json "${RC_RESULTS_DIR}/report.json" \
+                --junit "${RC_RESULTS_DIR}/junit.xml"
+            else
+              echo "::warning::Missing scripts/release-gate/verify-required-specs.mjs; using inline fallback verifier."
+              node - <<'NODE'
+              const fs = require('node:fs');
+              const path = require('node:path');
+
+              function normalize(filePath) {
+                return String(filePath || '').replace(/\\/g, '/');
+              }
+
+              function readJson(filePath, label) {
+                try {
+                  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+                } catch (error) {
+                  throw new Error(`Unable to parse ${label}: ${filePath}`);
+                }
+              }
+
+              function hasMatch(files, requiredPath) {
+                return files.some(filePath => {
+                  return (
+                    filePath === requiredPath ||
+                    filePath.endsWith(`/${requiredPath}`) ||
+                    requiredPath.endsWith(`/${filePath}`)
+                  );
+                });
+              }
+
+              const manifestPath = 'scripts/release-gate/v1-required-specs.json';
+              const reportPath = path.resolve('apps/web/test-results/report.json');
+              const junitPath = path.resolve('apps/web/test-results/junit.xml');
+
+              const manifest = readJson(manifestPath, 'manifest');
+              const requiredSpecs = manifest?.required?.playwright?.specs;
+              if (!Array.isArray(requiredSpecs) || requiredSpecs.length === 0) {
+                throw new Error('Manifest missing required.playwright.specs');
+              }
+
+              if (!fs.existsSync(reportPath)) {
+                throw new Error(`Playwright JSON report not found: ${reportPath}`);
+              }
+              if (!fs.existsSync(junitPath)) {
+                throw new Error(`Playwright JUnit report not found: ${junitPath}`);
+              }
+
+              const report = readJson(reportPath, 'Playwright JSON report');
+              const jsonFiles = new Set();
+
+              function collectFromSpec(spec) {
+                if (!spec || typeof spec !== 'object') {
+                  return;
+                }
+                if (typeof spec.file === 'string' && spec.file.length > 0) {
+                  jsonFiles.add(normalize(spec.file));
+                }
+                if (typeof spec?.location?.file === 'string' && spec.location.file.length > 0) {
+                  jsonFiles.add(normalize(spec.location.file));
+                }
+              }
+
+              function collectFromSuite(suite) {
+                if (!suite || typeof suite !== 'object') {
+                  return;
+                }
+                if (typeof suite?.location?.file === 'string' && suite.location.file.length > 0) {
+                  jsonFiles.add(normalize(suite.location.file));
+                }
+                if (Array.isArray(suite.specs)) {
+                  for (const spec of suite.specs) {
+                    collectFromSpec(spec);
+                  }
+                }
+                if (Array.isArray(suite.suites)) {
+                  for (const nestedSuite of suite.suites) {
+                    collectFromSuite(nestedSuite);
+                  }
+                }
+              }
+
+              if (Array.isArray(report.suites)) {
+                for (const suite of report.suites) {
+                  collectFromSuite(suite);
+                }
+              }
+              if (Array.isArray(report.specs)) {
+                for (const spec of report.specs) {
+                  collectFromSpec(spec);
+                }
+              }
+
+              const junitContent = fs.readFileSync(junitPath, 'utf8');
+              const junitFiles = Array.from(junitContent.matchAll(/file="([^"]+)"/g), match => normalize(match[1]));
+
+              const normalizedRequired = requiredSpecs.map(spec => normalize(spec));
+              const normalizedJsonFiles = Array.from(jsonFiles).map(filePath => normalize(filePath));
+
+              const missingFromJson = normalizedRequired.filter(spec => !hasMatch(normalizedJsonFiles, spec));
+              const missingFromJunit = normalizedRequired.filter(spec => !hasMatch(junitFiles, spec));
+
+              if (missingFromJson.length > 0 || missingFromJunit.length > 0) {
+                if (missingFromJson.length > 0) {
+                  console.error(
+                    `Missing required specs from Playwright JSON report (${missingFromJson.length}):\n${missingFromJson.join('\n')}`
+                  );
+                }
+                if (missingFromJunit.length > 0) {
+                  console.error(
+                    `Missing required specs from JUnit report (${missingFromJunit.length}):\n${missingFromJunit.join('\n')}`
+                  );
+                }
+                process.exit(1);
+              }
+
+              console.log(
+                `Inline verifier succeeded for ${normalizedRequired.length} required spec(s) against JSON and JUnit reports.`
+              );
+              NODE
+            fi
+          } 2>&1 | tee "${RC_LOGS_DIR}/verify-required-specs.log"
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/verify-required-specs.exit"
+          exit "${exit_code}"
+
+      - name: Write RC manifest
+        if: always() && !cancelled()
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/release-gate/write-rc-manifest.mjs \
+            --manifest "${RC_MANIFEST_PATH}" \
+            --run-id "${RC_RUN_ID}" \
+            --results-dir "${RC_RESULTS_DIR}" \
+            --logs-dir "${RC_LOGS_DIR}" \
+            2>&1 | tee "${RC_LOGS_DIR}/write-rc-manifest.log"
+
+      - name: Capture streak pack
+        if: always() && !cancelled()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f "scripts/release-gate/streak/capture-streak.mjs" ]]; then
+            node scripts/release-gate/streak/capture-streak.mjs \
+              --run-id "${RC_RUN_ID}" \
+              --manifest "${RC_MANIFEST_PATH}" \
+              --rc-root "tmp/release-rc" \
+              --out-root "tmp/release-streak" \
+              2>&1 | tee "${RC_LOGS_DIR}/capture-streak.log"
+          else
+            echo "::warning::A04 streak script not present; skipping streak capture for this run." \
+              | tee "${RC_LOGS_DIR}/capture-streak.log"
+          fi
+
+      - name: Stop web server
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f /tmp/release-candidate-web.pid ]]; then
+            kill "$(cat /tmp/release-candidate-web.pid)" || true
+          fi
+
+      - name: Upload RC artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.RC_ROOT_DIR }}
+            tmp/release-streak
+            apps/web/test-results
+            apps/web/playwright-report
+            docs/release-gates/*.md
+          if-no-files-found: warn
+          retention-days: 14
