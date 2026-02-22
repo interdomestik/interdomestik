@@ -19,20 +19,20 @@ Status command: pnpm v1:status
 ## Completed
 
 - [x] P00 - Program ratified and persisted in-repo (this file + program file) | Date: 2026-02-22 | Evidence: git history
+- [x] A01 - Required-suite manifest added at `scripts/release-gate/v1-required-specs.json` | Date: 2026-02-22 | Evidence: `jq . scripts/release-gate/v1-required-specs.json` + per-spec file existence check
 
 ## Next Up (work top-down)
 
-1. A01 - Add required-suite manifest at scripts/release-gate/v1-required-specs.json
-2. A02 - Add required-suite no-skip checker at scripts/release-gate/check-no-skip.mjs
-3. A03 - Add required-suite execution verifier at scripts/release-gate/verify-required-specs.mjs
-4. A04 - Add RC evidence manifest writer at scripts/release-gate/write-rc-manifest.mjs
-5. A05 - Add streak scripts at scripts/release-gate/streak/compute-anchor.mjs and scripts/release-gate/streak/capture-streak.mjs
+1. A02 - Add required-suite no-skip checker at scripts/release-gate/check-no-skip.mjs
+2. A03 - Add required-suite execution verifier at scripts/release-gate/verify-required-specs.mjs
+3. A04 - Add RC evidence manifest writer at scripts/release-gate/write-rc-manifest.mjs
+4. A05 - Add streak scripts at scripts/release-gate/streak/compute-anchor.mjs and scripts/release-gate/streak/capture-streak.mjs
 
 ## Milestone Actions
 
 ### M0-A Gate Foundation (2026-02-23 to 2026-02-27)
 
-- [ ] A01 - Create required-suite manifest. Verify: `node scripts/release-gate/verify-required-specs.mjs --manifest scripts/release-gate/v1-required-specs.json --playwright-json apps/web/test-results/report.json`
+- [x] A01 - Create required-suite manifest. Verify: `node scripts/release-gate/verify-required-specs.mjs --manifest scripts/release-gate/v1-required-specs.json --playwright-json apps/web/test-results/report.json` | Date: 2026-02-22 | Evidence: `scripts/release-gate/v1-required-specs.json` + `jq` + spec file existence check
 - [ ] A02 - Enforce no skip/fixme/quarantine in required suites. Verify: `node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json`
 - [ ] A03 - Write rc.json evidence contract. Verify: `node scripts/release-gate/write-rc-manifest.mjs`
 - [ ] A04 - Add streak anchor and daily capture scripts. Verify: `node scripts/release-gate/streak/compute-anchor.mjs && node scripts/release-gate/streak/capture-streak.mjs`
@@ -83,4 +83,5 @@ Status command: pnpm v1:status
 
 ## Notes Log (append newest first)
 
+- 2026-02-22: A01 completed (required-suite manifest created and validated).
 - 2026-02-22: Tracker created and linked to operational plan.
