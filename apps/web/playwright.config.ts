@@ -23,6 +23,9 @@ const MK_MEMBER_STATE = path.join(AUTH_DIR, 'mk', 'member.json');
 const GATE_STATE_DIR = path.resolve(__dirname, '.playwright', 'state');
 const GATE_KS_STATE = path.join(GATE_STATE_DIR, 'ks.json');
 const GATE_MK_STATE = path.join(GATE_STATE_DIR, 'mk.json');
+const TEST_RESULTS_DIR = path.resolve(__dirname, 'test-results');
+const JUNIT_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'junit.xml');
+const JSON_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'report.json');
 
 function requireState(statePath: string) {
   if (fs.existsSync(statePath)) return;
@@ -69,6 +72,8 @@ function loadEnvManual(envPath: string) {
 
 envPaths.forEach(loadEnvManual);
 
+fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
+
 if (!process.env.DATABASE_URL) {
   console.log('⚠️ DATABASE_URL not found, using default local fallback.');
   process.env.DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
@@ -80,7 +85,18 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 4 : '50%',
-  reporter: process.env.CI ? [['html'], ['list']] : [['list']],
+  reporter: process.env.CI
+    ? [
+        ['html'],
+        ['list'],
+        ['junit', { outputFile: JUNIT_REPORT_FILE }],
+        ['json', { outputFile: JSON_REPORT_FILE }],
+      ]
+    : [
+        ['list'],
+        ['junit', { outputFile: JUNIT_REPORT_FILE }],
+        ['json', { outputFile: JSON_REPORT_FILE }],
+      ],
   timeout: 60 * 1000,
   snapshotDir: './e2e/snapshots',
   expect: {
