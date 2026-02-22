@@ -1,7 +1,9 @@
-import { branches, db, eq } from '@interdomestik/database';
+import { E2E_PASSWORD, E2E_USERS, and, branches, db, eq } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+
+const PILOT_TENANT_ID = 'pilot-mk';
 
 test.describe('C1 Pilot: Branch + Agent Assignment', () => {
   // Use unique names to avoid conflicts if test reruns without full reset
@@ -22,6 +24,7 @@ test.describe('C1 Pilot: Branch + Agent Assignment', () => {
     });
 
     await adminPage.getByTestId('create-branch-button').click();
+    await expect(adminPage.getByTestId('branch-name-input')).toBeVisible({ timeout: 10_000 });
     await adminPage.getByTestId('branch-name-input').fill(branchName);
     await adminPage.getByTestId('branch-code-input').fill(branchCode);
     await adminPage.getByTestId('branch-submit-button').click();
@@ -62,17 +65,32 @@ test.describe('C1 Pilot: Branch + Agent Assignment', () => {
     // Wait for portal content
     await expect(adminPage.getByTestId('branch-select-content')).toBeVisible();
 
+    await expect
+      .poll(
+        async () => {
+          const branchRecord = await db.query.branches.findFirst({
+            where: and(eq(branches.tenantId, PILOT_TENANT_ID), eq(branches.code, branchCode)),
+            columns: { id: true },
+          });
+          return branchRecord?.id ?? null;
+        },
+        { timeout: 10_000 }
+      )
+      .not.toBeNull();
+
     const createdBranch = await db.query.branches.findFirst({
-      where: eq(branches.code, branchCode),
+      where: and(eq(branches.tenantId, PILOT_TENANT_ID), eq(branches.code, branchCode)),
       columns: { id: true },
     });
     if (!createdBranch?.id) {
       throw new Error(`Expected created branch with code ${branchCode}`);
     }
 
-    const branchOption = adminPage.getByTestId(`branch-option-${createdBranch.id}`);
-    await branchOption.scrollIntoViewIfNeeded();
-    await branchOption.click({ force: true });
+    const branchOption = adminPage
+      .getByTestId('branch-select-content')
+      .getByTestId(`branch-option-${createdBranch.id}`);
+    await expect(branchOption).toBeVisible();
+    await branchOption.click();
     console.log(`[Test] Selected branch: ${branchName}`);
 
     await adminPage.getByRole('button', { name: /Grant role/i }).click();
@@ -94,8 +112,8 @@ test.describe('C1 Pilot: Branch + Agent Assignment', () => {
     const agentPage = await agentContext.newPage();
 
     await agentPage.goto('/en/login');
-    await agentPage.fill('input[name="email"]', 'agent.pilot.2@interdomestik.com');
-    await agentPage.fill('input[name="password"]', 'GoldenPass123!');
+    await agentPage.getByTestId('login-email').fill(E2E_USERS.PILOT_MK_AGENT_2.email);
+    await agentPage.getByTestId('login-password').fill(E2E_PASSWORD);
     await agentPage.getByTestId('login-submit').click();
 
     // Explicitly navigate to dashboard root, bypassing canonical redirect to /members

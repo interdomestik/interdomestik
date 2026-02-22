@@ -34,8 +34,11 @@ test.describe('C1 Pilot: Staff claim triage', () => {
     }
     const alignedBranchId = seededPilotStaff.branchId;
 
-    // Keep this flow deterministic even if another pilot spec changed agent branch assignment.
-    await db.update(user).set({ branchId: alignedBranchId }).where(eq(user.id, seededAgent.id));
+    if (seededAgent.branchId !== alignedBranchId) {
+      throw new Error(
+        `Seed precondition mismatch: agent.pilot branch (${seededAgent.branchId}) must match staff branch (${alignedBranchId})`
+      );
+    }
 
     const timestamp = Date.now();
     const memberEmail = `member.mk.pilot.c104.${timestamp}@interdomestik.com`;
