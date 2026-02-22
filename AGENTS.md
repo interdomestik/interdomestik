@@ -78,6 +78,7 @@ pnpm e2e:gate
 ```
 
 PRs that fail either check are invalid.
+For deterministic local host-routed verification, use `pnpm pr:verify:hosts`; CI should continue using `pnpm pr:verify` with explicit host env.
 
 ### Single Test Commands
 
@@ -385,6 +386,8 @@ pnpm pr:verify
 pnpm security:guard
 pnpm e2e:gate
 ```
+
+For deterministic local host-routed verification, use `pnpm pr:verify:hosts`; CI should continue using `pnpm pr:verify` with explicit host env.
 
 For single test debugging:
 
