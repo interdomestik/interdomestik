@@ -5,11 +5,11 @@ import path from 'node:path';
 import process from 'node:process';
 
 const DISALLOWED_PATTERNS = [
-  { token: 'test.skip', regex: /\btest\.skip\b/ },
-  { token: 'test.fixme', regex: /\btest\.fixme\b/ },
-  { token: 'describe.skip', regex: /\bdescribe\.skip\b/ },
-  { token: 'describe.fixme', regex: /\bdescribe\.fixme\b/ },
-  { token: '@quarantine', regex: /@quarantine\b/ },
+  { token: 'test.skip', hasLeadingWordBoundary: true, hasTrailingWordBoundary: true },
+  { token: 'test.fixme', hasLeadingWordBoundary: true, hasTrailingWordBoundary: true },
+  { token: 'describe.skip', hasLeadingWordBoundary: true, hasTrailingWordBoundary: true },
+  { token: 'describe.fixme', hasLeadingWordBoundary: true, hasTrailingWordBoundary: true },
+  { token: '@quarantine', hasLeadingWordBoundary: false, hasTrailingWordBoundary: true },
 ];
 
 function printUsage() {
@@ -22,6 +22,28 @@ function normalizePath(filePath) {
   return filePath.split(path.sep).join('/');
 }
 
+class CliUsageError extends Error {}
+
+function isWordChar(char) {
+  return /[A-Za-z0-9_]/.test(char);
+}
+
+function hasWordBoundaryBefore(content, index) {
+  if (index <= 0) {
+    return true;
+  }
+
+  return !isWordChar(content[index - 1]);
+}
+
+function hasWordBoundaryAfter(content, index) {
+  if (index >= content.length) {
+    return true;
+  }
+
+  return !isWordChar(content[index]);
+}
+
 function parseArgs(argv) {
   const args = { manifest: '' };
 
@@ -31,7 +53,7 @@ function parseArgs(argv) {
     if (value === '--manifest') {
       const manifestPath = argv[index + 1];
       if (!manifestPath || manifestPath.startsWith('--')) {
-        throw new Error('Missing value for --manifest');
+        throw new CliUsageError('Missing value for --manifest');
       }
       args.manifest = manifestPath;
       index += 1;
@@ -43,11 +65,11 @@ function parseArgs(argv) {
       process.exit(0);
     }
 
-    throw new Error(`Unknown argument: ${value}`);
+    throw new CliUsageError(`Unknown argument: ${value}`);
   }
 
   if (!args.manifest) {
-    throw new Error('--manifest is required');
+    throw new CliUsageError('--manifest is required');
   }
 
   return args;
@@ -84,14 +106,102 @@ function parseManifest(manifestPath) {
 
 function findViolations(content) {
   const violations = [];
-  const lines = content.split(/\r?\n/);
+  let line = 1;
+  let inSingleLineComment = false;
+  let inBlockComment = false;
+  let inString = false;
+  let stringDelimiter = '';
+  let escaped = false;
 
-  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
-    const line = lines[lineIndex];
-    for (const pattern of DISALLOWED_PATTERNS) {
-      if (pattern.regex.test(line)) {
-        violations.push({ line: lineIndex + 1, token: pattern.token });
+  for (let index = 0; index < content.length; index += 1) {
+    const char = content[index];
+    const nextChar = content[index + 1] ?? '';
+
+    if (inSingleLineComment) {
+      if (char === '\n') {
+        line += 1;
+        inSingleLineComment = false;
       }
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === '\n') {
+        line += 1;
+      }
+
+      if (char === '*' && nextChar === '/') {
+        inBlockComment = false;
+        index += 1;
+      }
+      continue;
+    }
+
+    if (inString) {
+      if (char === '\n') {
+        line += 1;
+      }
+
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+
+      if (char === stringDelimiter) {
+        inString = false;
+        stringDelimiter = '';
+      }
+      continue;
+    }
+
+    if (char === '\n') {
+      line += 1;
+      continue;
+    }
+
+    if (char === '/' && nextChar === '/') {
+      inSingleLineComment = true;
+      index += 1;
+      continue;
+    }
+
+    if (char === '/' && nextChar === '*') {
+      inBlockComment = true;
+      index += 1;
+      continue;
+    }
+
+    if (char === '\'' || char === '"' || char === '`') {
+      inString = true;
+      stringDelimiter = char;
+      escaped = false;
+      continue;
+    }
+
+    for (const pattern of DISALLOWED_PATTERNS) {
+      if (!content.startsWith(pattern.token, index)) {
+        continue;
+      }
+
+      const tokenStart = index;
+      const tokenEnd = tokenStart + pattern.token.length;
+
+      if (pattern.hasLeadingWordBoundary && !hasWordBoundaryBefore(content, tokenStart)) {
+        continue;
+      }
+
+      if (pattern.hasTrailingWordBoundary && !hasWordBoundaryAfter(content, tokenEnd)) {
+        continue;
+      }
+
+      violations.push({ line, token: pattern.token });
+      index = tokenEnd - 1;
+      break;
     }
   }
 
@@ -109,14 +219,28 @@ function main() {
 
   for (const specPath of requiredSpecs) {
     const absoluteSpecPath = path.resolve(repoRoot, specPath);
-    const relativeSpecPath = normalizePath(path.relative(repoRoot, absoluteSpecPath));
+    const rawRelativeSpecPath = path.relative(repoRoot, absoluteSpecPath);
+    if (rawRelativeSpecPath.startsWith('..') || path.isAbsolute(rawRelativeSpecPath)) {
+      throw new Error(`Spec path escapes repository root: ${specPath}`);
+    }
+
+    const relativeSpecPath = normalizePath(rawRelativeSpecPath);
 
     if (!fs.existsSync(absoluteSpecPath)) {
       missingSpecs.push(relativeSpecPath);
       continue;
     }
 
-    const content = fs.readFileSync(absoluteSpecPath, 'utf8');
+    let content;
+    try {
+      content = fs.readFileSync(absoluteSpecPath, 'utf8');
+    } catch (error) {
+      throw new Error(
+        `Unable to read spec file: ${relativeSpecPath}${
+          error instanceof Error ? `: ${error.message}` : ''
+        }`
+      );
+    }
     const violations = findViolations(content);
 
     for (const violation of violations) {
@@ -138,7 +262,7 @@ function main() {
 
   if (missingSpecs.length > 0 || tokenViolations.length > 0) {
     console.error(
-      `Found ${tokenViolations.length} no-skip violation(s) across ${requiredSpecs.length} required spec file(s).`
+      `Found ${missingSpecs.length} missing spec(s) and ${tokenViolations.length} no-skip violation(s) across ${requiredSpecs.length} required spec file(s).`
     );
     process.exit(1);
   }
@@ -152,6 +276,8 @@ try {
   main();
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
-  printUsage();
+  if (error instanceof CliUsageError) {
+    printUsage();
+  }
   process.exit(1);
 }
