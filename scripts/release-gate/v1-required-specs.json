@@ -1,0 +1,42 @@
+{
+  "required": {
+    "playwright": {
+      "projects": ["gate-ks-sq", "gate-mk-mk"],
+      "specs": [
+        "apps/web/e2e/gate/admin-clarity.spec.ts",
+        "apps/web/e2e/gate/agent-workspace-claims-selection.spec.ts",
+        "apps/web/e2e/gate/auth-rendering-contract.spec.ts",
+        "apps/web/e2e/gate/c1-pilot-admin.spec.ts",
+        "apps/web/e2e/gate/clarity-hardening.spec.ts",
+        "apps/web/e2e/gate/golden-gate.spec.ts",
+        "apps/web/e2e/gate/member-diaspora.spec.ts",
+        "apps/web/e2e/gate/member-documents-upload-entry.spec.ts",
+        "apps/web/e2e/gate/member-home-cta.spec.ts",
+        "apps/web/e2e/gate/seed-contract.spec.ts",
+        "apps/web/e2e/gate/staff-clarity.spec.ts",
+        "apps/web/e2e/gate/subscription-contract.spec.ts",
+        "apps/web/e2e/gate/tenant-resolution.spec.ts",
+        "apps/web/e2e/gate/verification.spec.ts"
+      ],
+      "noRetries": true
+    },
+    "commands": {
+      "security_guard": "pnpm security:guard",
+      "rls": "REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test",
+      "pr_verify_hosts": "pnpm pr:verify:hosts"
+    }
+  },
+  "no_touch_zones": [
+    "apps/web/src/proxy.ts",
+    "apps/web/src/lib/proxy-logic.ts",
+    "apps/web/src/lib/tenant/**",
+    "apps/web/src/lib/auth/**",
+    "apps/web/src/server/auth/**",
+    "apps/web/src/app/api/**",
+    "packages/shared-auth/**",
+    "packages/database/**",
+    "packages/domain-membership-billing/**",
+    ".github/workflows/**",
+    "scripts/release-gate/**"
+  ]
+}
