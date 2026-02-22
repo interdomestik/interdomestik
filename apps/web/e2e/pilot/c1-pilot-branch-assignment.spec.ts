@@ -1,3 +1,4 @@
+import { branches, db, eq } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
@@ -33,7 +34,7 @@ test.describe('C1 Pilot: Branch + Agent Assignment', () => {
     console.log(`[Test] Branch ${branchCode} created successfully.`);
 
     // 2. Assign Agent to Branch
-    const agentId = 'golden_pilot_mk_agent';
+    const agentId = 'golden_pilot_mk_agent_2';
     console.log(`[Test] Assigning agent ${agentId} to branch ${branchName}`);
     await gotoApp(adminPage, `/en/admin/users/${agentId}`, testInfo, { marker: 'body' });
 
@@ -61,11 +62,17 @@ test.describe('C1 Pilot: Branch + Agent Assignment', () => {
     // Wait for portal content
     await expect(adminPage.getByTestId('branch-select-content')).toBeVisible();
 
-    // Find option by text within the content container
-    await adminPage
-      .getByTestId('branch-select-content')
-      .getByText(branchName, { exact: false })
-      .click();
+    const createdBranch = await db.query.branches.findFirst({
+      where: eq(branches.code, branchCode),
+      columns: { id: true },
+    });
+    if (!createdBranch?.id) {
+      throw new Error(`Expected created branch with code ${branchCode}`);
+    }
+
+    const branchOption = adminPage.getByTestId(`branch-option-${createdBranch.id}`);
+    await branchOption.scrollIntoViewIfNeeded();
+    await branchOption.click({ force: true });
     console.log(`[Test] Selected branch: ${branchName}`);
 
     await adminPage.getByRole('button', { name: /Grant role/i }).click();
@@ -87,9 +94,9 @@ test.describe('C1 Pilot: Branch + Agent Assignment', () => {
     const agentPage = await agentContext.newPage();
 
     await agentPage.goto('/en/login');
-    await agentPage.fill('input[name="email"]', 'agent.pilot@interdomestik.com');
+    await agentPage.fill('input[name="email"]', 'agent.pilot.2@interdomestik.com');
     await agentPage.fill('input[name="password"]', 'GoldenPass123!');
-    await agentPage.getByRole('button', { name: /Login|Sign In|Hyr/i }).click();
+    await agentPage.getByTestId('login-submit').click();
 
     // Explicitly navigate to dashboard root, bypassing canonical redirect to /members
     await agentPage.waitForURL(/\/en\/agent/); // Wait for login redirect first
