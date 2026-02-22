@@ -22,12 +22,13 @@ Status command: pnpm v1:status
 - [x] A01 - Required-suite manifest added at `scripts/release-gate/v1-required-specs.json` | Date: 2026-02-22 | Evidence: `jq . scripts/release-gate/v1-required-specs.json` + per-spec file existence check
 - [x] A02 - Required-suite no-skip checker added at `scripts/release-gate/check-no-skip.mjs` | Date: 2026-02-22 | Evidence: `node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json` + temp-manifest injected `test.skip` exits 1
 - [x] A03 - RC evidence manifest writer added at `scripts/release-gate/write-rc-manifest.mjs` | Date: 2026-02-22 | Evidence: `node scripts/release-gate/write-rc-manifest.mjs --manifest scripts/release-gate/v1-required-specs.json --run-id test-run --results-dir tmp/release-rc/test-run/results --logs-dir tmp/release-rc/test-run/logs` + `jq . tmp/release-rc/test-run/rc.json` + `tmp/release-rc/test-run/rc.json.sha256`
+- [x] A04 - Streak anchor/capture scripts added at `scripts/release-gate/streak/compute-anchor.mjs` and `scripts/release-gate/streak/capture-streak.mjs` | Date: 2026-02-22 | Evidence: `node scripts/release-gate/streak/compute-anchor.mjs` + `node scripts/release-gate/streak/capture-streak.mjs` + `tmp/release-streak/2026-02-22/run-2026-02-22T21-19-34-841Z-e012d7af/pack.sha256`
 
 ## Next Up (work top-down)
 
-1. A04 - Add streak scripts at scripts/release-gate/streak/compute-anchor.mjs and scripts/release-gate/streak/capture-streak.mjs
-2. A05 - Update Playwright to emit JUnit and JSON reports
-3. A06 - Add release-candidate workflow
+1. A05 - Update Playwright to emit JUnit and JSON reports
+2. A06 - Add release-candidate workflow
+3. A07 - Make secret scan blocking on `release/*` and `rc/*`
 
 ## Milestone Actions
 
@@ -36,7 +37,7 @@ Status command: pnpm v1:status
 - [x] A01 - Create required-suite manifest. Verify: `node scripts/release-gate/verify-required-specs.mjs --manifest scripts/release-gate/v1-required-specs.json --playwright-json apps/web/test-results/report.json` | Date: 2026-02-22 | Evidence: `scripts/release-gate/v1-required-specs.json` + `jq` + spec file existence check
 - [x] A02 - Enforce no skip/fixme/quarantine in required suites. Verify: `node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json` | Date: 2026-02-22 | Evidence: emits `file:line: matched_token` and exits non-zero on violations
 - [x] A03 - Write rc.json evidence contract. Verify: `node scripts/release-gate/write-rc-manifest.mjs --manifest scripts/release-gate/v1-required-specs.json --run-id test-run --results-dir tmp/release-rc/test-run/results --logs-dir tmp/release-rc/test-run/logs` | Date: 2026-02-22 | Evidence: `tmp/release-rc/test-run/rc.json` + `tmp/release-rc/test-run/rc.json.sha256` + `checks.rls_integration_ran=true`
-- [ ] A04 - Add streak anchor and daily capture scripts. Verify: `node scripts/release-gate/streak/compute-anchor.mjs && node scripts/release-gate/streak/capture-streak.mjs`
+- [x] A04 - Add streak anchor and daily capture scripts. Verify: `node scripts/release-gate/streak/compute-anchor.mjs && node scripts/release-gate/streak/capture-streak.mjs` | Date: 2026-02-22 | Evidence: `anchor_sha=bccc12e6333ebb0f8d916d483d3c4f529ff45ac4` + `tmp/release-streak/2026-02-22/run-2026-02-22T21-19-34-841Z-e012d7af/pack.sha256`
 - [ ] A05 - Update Playwright to emit JUnit and JSON reports. Verify: `pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-ks-sq --workers=1`
 - [ ] A06 - Add release-candidate workflow. Verify: run `.github/workflows/release-candidate.yml` on `rc/*` branch
 - [ ] A07 - Make secret scan blocking on `release/*` and `rc/*`. Verify: security workflow fails on seeded secret
@@ -84,6 +85,8 @@ Status command: pnpm v1:status
 
 ## Notes Log (append newest first)
 
+- 2026-02-22: A04 handoff completed: Atlas confirmed A04 scope/dependencies (`scripts/release-gate/streak/*` + tracker evidence update), Runway implemented, Gatekeeper verified via required local commands; Sentinel review not required (no boundary-owned paths touched).
+- 2026-02-22: A04 completed (added streak anchor/capture scripts with repo-relative path handling, immutable run directory policy, and pack-level SHA256 checksums).
 - 2026-02-22: A03 completed (RC evidence manifest writer added; emits `rc.json` and `rc.json.sha256`, with `checks.rls_integration_ran=true` from `rls.log` marker).
 - 2026-02-22: A02 completed (no-skip checker added; required-suite scan currently reports existing `test.skip` violations as intended by policy).
 - 2026-02-22: A01 completed (required-suite manifest created and validated).
