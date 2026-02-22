@@ -63,7 +63,12 @@ async function findKsClaimWithArtifacts(): Promise<KsClaimArtifacts> {
     columns: { id: true, tenantId: true, title: true },
   });
 
-  const messageByClaimId = new Map(ksMessages.map(message => [message.claimId, message]));
+  const messageByClaimId = new Map<string, (typeof ksMessages)[number]>();
+  for (const message of ksMessages) {
+    if (!messageByClaimId.has(message.claimId)) {
+      messageByClaimId.set(message.claimId, message);
+    }
+  }
   const claimById = new Map(ksClaims.map(claim => [claim.id, claim]));
 
   for (const document of ksDocuments) {
@@ -87,7 +92,7 @@ async function findKsClaimWithArtifacts(): Promise<KsClaimArtifacts> {
 
 async function loginActorAdmin(page: Page) {
   const origin = `http://${ACTOR_HOST}`;
-  const response = await page.request.post('/api/auth/sign-in/email', {
+  const response = await page.request.post(new URL('/api/auth/sign-in/email', origin).toString(), {
     data: {
       email: ACTOR_ADMIN_EMAIL,
       password: E2E_PASSWORD,
