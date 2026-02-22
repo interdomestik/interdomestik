@@ -25,12 +25,12 @@ Status command: pnpm v1:status
 - [x] A04 - Streak anchor/capture scripts added at `scripts/release-gate/streak/compute-anchor.mjs` and `scripts/release-gate/streak/capture-streak.mjs` | Date: 2026-02-22 | Evidence: `node scripts/release-gate/streak/compute-anchor.mjs` + `node scripts/release-gate/streak/capture-streak.mjs` + `tmp/release-streak/2026-02-22/run-2026-02-22T21-19-34-841Z-e012d7af/pack.sha256`
 - [x] A05 - Playwright gate reporters emit JUnit/XML and JSON outputs at `apps/web/test-results/junit.xml` and `apps/web/test-results/report.json` | Date: 2026-02-22 | Evidence: `pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-ks-sq --workers=1` + `test -f apps/web/test-results/junit.xml` + `test -f apps/web/test-results/report.json`
 - [x] A06 - Release-candidate workflow added at `.github/workflows/release-candidate.yml` | Date: 2026-02-22 | Evidence: `https://github.com/interdomestik/interdomestik/actions/runs/22286625815` + artifact `release-candidate-artifacts-22286625815-1`
+- [x] A07 - Secret scan blocking on `release/*` and `rc/*` in security workflows | Date: 2026-02-22 | Evidence: `rg -n "continue-on-error:\\s*true|gitleaks|secret" .github/workflows/security.yml .github/workflows/secret-scan.yml` + PR runs `22287449326` (Security) / `22287449314` (Secret Scan) + RC smoke runs `22287448408` (Security) / `22287448415` (Secret Scan)
 
 ## Next Up (work top-down)
 
-1. A07 - Make secret scan blocking on `release/*` and `rc/*`
-2. A08 - Enforce mandatory RLS integration for RC (`REQUIRE_RLS_INTEGRATION=1`)
-3. A09 - Unify tenant resolver usage in sensitive surfaces
+1. A08 - Enforce mandatory RLS integration for RC (`REQUIRE_RLS_INTEGRATION=1`)
+2. A09 - Unify tenant resolver usage in sensitive surfaces
 
 ## Milestone Actions
 
@@ -42,7 +42,7 @@ Status command: pnpm v1:status
 - [x] A04 - Add streak anchor and daily capture scripts. Verify: `node scripts/release-gate/streak/compute-anchor.mjs && node scripts/release-gate/streak/capture-streak.mjs` | Date: 2026-02-22 | Evidence: `anchor_sha=bccc12e6333ebb0f8d916d483d3c4f529ff45ac4` + `tmp/release-streak/2026-02-22/run-2026-02-22T21-19-34-841Z-e012d7af/pack.sha256`
 - [x] A05 - Update Playwright to emit JUnit and JSON reports. Verify: `pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-ks-sq --workers=1` | Date: 2026-02-22 | Evidence: `apps/web/playwright.config.ts` reporter includes `junit` + `json` outputFile settings and gate run emits both files in `apps/web/test-results/`
 - [x] A06 - Add release-candidate workflow. Verify: run `.github/workflows/release-candidate.yml` on `rc/*` branch | Date: 2026-02-22 | Evidence: run `22286625815` (`rc/pr6-a06-smoke`) uploaded artifact `release-candidate-artifacts-22286625815-1` with release-gate outputs + test results + rc manifest + streak pack
-- [ ] A07 - Make secret scan blocking on `release/*` and `rc/*`. Verify: security workflow fails on seeded secret
+- [x] A07 - Make secret scan blocking on `release/*` and `rc/*`. Verify: workflow triggers on `rc/**` + `release/**`; gitleaks runs blocking in both workflows and uploads SARIF artifact evidence | Date: 2026-02-22 | Evidence: PR runs `22287449326` / `22287449314`; RC smoke runs `22287448408` / `22287448415`
 
 ### M0-B Security and Isolation Closure (2026-02-28 to 2026-03-08)
 
@@ -87,6 +87,7 @@ Status command: pnpm v1:status
 
 ## Notes Log (append newest first)
 
+- 2026-02-22: A07 handoff completed: Atlas confirmed A07 scope/touched files (`.github/workflows/security.yml`, `.github/workflows/secret-scan.yml`), Runway implemented rc/release triggers + blocking gitleaks CLI with SARIF artifact uploads, Gatekeeper verified `rg` policy check and PR/RC workflow evidence (`22287449326`, `22287449314`, `22287448408`, `22287448415`); Sentinel review not required (no boundary-owned product paths touched).
 - 2026-02-22: A06 handoff completed: Atlas confirmed A06 slice/dependencies (`.github/workflows/release-candidate.yml` + tracker evidence update; A04/A05 present), Runway implemented RC orchestration, Gatekeeper verified formatting + RC branch run `22286625815` and artifact upload `release-candidate-artifacts-22286625815-1`; Sentinel review not required (no boundary-owned product paths touched).
 - 2026-02-22: A05 handoff completed: Atlas confirmed scope/path (`apps/web/playwright.config.ts` only, no boundary-owned paths), Forge implemented reporter outputs, Gatekeeper verified gate command + reporter artifacts; Sentinel review not required.
 - 2026-02-22: A04 handoff completed: Atlas confirmed A04 scope/dependencies (`scripts/release-gate/streak/*` + tracker evidence update), Runway implemented, Gatekeeper verified via required local commands; Sentinel review not required (no boundary-owned paths touched).
