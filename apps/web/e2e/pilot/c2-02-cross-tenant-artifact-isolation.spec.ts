@@ -1,4 +1,12 @@
-import { E2E_PASSWORD, E2E_USERS, claimDocuments, db, eq, user } from '@interdomestik/database';
+import {
+  E2E_PASSWORD,
+  E2E_USERS,
+  and,
+  claimDocuments,
+  db,
+  eq,
+  user,
+} from '@interdomestik/database';
 import { getMessagesForClaimCore } from '@interdomestik/domain-communications/messages/get';
 import { sendMessageDbCore } from '@interdomestik/domain-communications/messages/send';
 import type { Page } from '@playwright/test';
@@ -6,7 +14,13 @@ import { expect, test } from '../fixtures/auth.fixture';
 
 import { createSignedUploadCore } from '@/app/api/uploads/_core';
 
-const MK_HOST = process.env.MK_HOST ?? 'mk.127.0.0.1.nip.io:3000';
+const ACTOR_HOST = process.env.C2_ACTOR_HOST ?? process.env.MK_HOST ?? 'mk.127.0.0.1.nip.io:3000';
+const ACTOR_LOGIN_PATH = process.env.C2_ACTOR_LOGIN_PATH ?? '/mk/login';
+const ACTOR_ADMIN_OVERVIEW_PATH = process.env.C2_ACTOR_ADMIN_OVERVIEW_PATH ?? '/mk/admin/overview';
+const ACTOR_ADMIN_CLAIMS_PREFIX = process.env.C2_ACTOR_ADMIN_CLAIMS_PREFIX ?? '/mk/admin/claims';
+const ACTOR_ADMIN_EMAIL = process.env.C2_ACTOR_EMAIL ?? E2E_USERS.MK_ADMIN.email;
+const ACTOR_ADMIN_TENANT_ID = process.env.C2_ACTOR_TENANT_ID ?? E2E_USERS.MK_ADMIN.tenantId;
+const TARGET_TENANT_ID = process.env.C2_TARGET_TENANT_ID ?? E2E_USERS.KS_MEMBER.tenantId;
 
 type SessionUser = {
   id: string;
@@ -24,31 +38,38 @@ type KsClaimArtifacts = {
 
 async function findKsClaimWithArtifacts(): Promise<KsClaimArtifacts> {
   const ksDocuments = await db.query.claimDocuments.findMany({
-    where: eq(claimDocuments.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+    where: eq(claimDocuments.tenantId, TARGET_TENANT_ID),
     columns: { id: true, claimId: true, tenantId: true },
     orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
     limit: 40,
   });
 
+  if (ksDocuments.length === 0) {
+    throw new Error('Expected seeded KS claim with linked document and message');
+  }
+
+  const claimIds = Array.from(new Set(ksDocuments.map(document => document.claimId)));
+
+  const ksMessages = await db.query.claimMessages.findMany({
+    where: (table, { and: andInner, eq: eqInner, inArray: inArrayInner }) =>
+      andInner(inArrayInner(table.claimId, claimIds), eqInner(table.tenantId, TARGET_TENANT_ID)),
+    columns: { id: true, claimId: true, tenantId: true },
+    orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
+  });
+
+  const ksClaims = await db.query.claims.findMany({
+    where: (table, { and: andInner, eq: eqInner, inArray: inArrayInner }) =>
+      andInner(inArrayInner(table.id, claimIds), eqInner(table.tenantId, TARGET_TENANT_ID)),
+    columns: { id: true, tenantId: true, title: true },
+  });
+
+  const messageByClaimId = new Map(ksMessages.map(message => [message.claimId, message]));
+  const claimById = new Map(ksClaims.map(claim => [claim.id, claim]));
+
   for (const document of ksDocuments) {
-    const message = await db.query.claimMessages.findFirst({
-      where: (table, { and, eq: eqInner }) =>
-        and(eqInner(table.claimId, document.claimId), eqInner(table.tenantId, document.tenantId)),
-      columns: { id: true, claimId: true, tenantId: true },
-      orderBy: (table, { desc }) => [desc(table.createdAt), desc(table.id)],
-    });
-
-    if (!message) {
-      continue;
-    }
-
-    const claim = await db.query.claims.findFirst({
-      where: (table, { and, eq: eqInner }) =>
-        and(eqInner(table.id, document.claimId), eqInner(table.tenantId, document.tenantId)),
-      columns: { id: true, tenantId: true, title: true },
-    });
-
-    if (!claim) {
+    const message = messageByClaimId.get(document.claimId);
+    const claim = claimById.get(document.claimId);
+    if (!message || !claim) {
       continue;
     }
 
@@ -64,11 +85,21 @@ async function findKsClaimWithArtifacts(): Promise<KsClaimArtifacts> {
   throw new Error('Expected seeded KS claim with linked document and message');
 }
 
-async function loginMkAdmin(page: Page) {
-  await page.goto('/mk/login', { waitUntil: 'domcontentloaded' });
-  await page.getByTestId('login-email').fill(E2E_USERS.MK_ADMIN.email);
-  await page.getByTestId('login-password').fill(E2E_PASSWORD);
-  await page.getByTestId('login-submit').click();
+async function loginActorAdmin(page: Page) {
+  const origin = `http://${ACTOR_HOST}`;
+  const response = await page.request.post('/api/auth/sign-in/email', {
+    data: {
+      email: ACTOR_ADMIN_EMAIL,
+      password: E2E_PASSWORD,
+    },
+    headers: {
+      Origin: origin,
+      Referer: `${origin}${ACTOR_LOGIN_PATH}`,
+      'x-forwarded-host': ACTOR_HOST,
+    },
+  });
+  expect(response.ok(), `Expected API login success for ${ACTOR_ADMIN_EMAIL}`).toBe(true);
+  await page.goto(ACTOR_ADMIN_OVERVIEW_PATH, { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/(?:mk\/)?admin(?:\/overview)?(?:[/?#]|$)/, { timeout: 30_000 });
 }
 
@@ -109,25 +140,25 @@ test('C2-02: cross-tenant IDs denied for claim/doc/upload/message', async ({ bro
   };
 
   const mkAdmin = await db.query.user.findFirst({
-    where: eq(user.email, E2E_USERS.MK_ADMIN.email),
+    where: and(eq(user.email, ACTOR_ADMIN_EMAIL), eq(user.tenantId, ACTOR_ADMIN_TENANT_ID)),
     columns: { id: true, role: true, tenantId: true },
   });
-  if (!mkAdmin?.id || mkAdmin.tenantId !== E2E_USERS.MK_ADMIN.tenantId) {
-    throw new Error('Expected seeded MK admin user');
+  if (!mkAdmin?.id || mkAdmin.tenantId !== ACTOR_ADMIN_TENANT_ID) {
+    throw new Error('Expected seeded actor admin user');
   }
 
   const mkContext = await browser.newContext({
-    baseURL: `http://${MK_HOST}`,
-    extraHTTPHeaders: { 'x-forwarded-host': MK_HOST },
+    baseURL: `http://${ACTOR_HOST}`,
+    extraHTTPHeaders: { 'x-forwarded-host': ACTOR_HOST },
     locale: 'mk-MK',
   });
   const mkAdminPage = await mkContext.newPage();
 
   try {
-    await loginMkAdmin(mkAdminPage);
+    await loginActorAdmin(mkAdminPage);
 
     const claimResponse = await mkAdminPage.goto(
-      `/mk/admin/claims/${encodeURIComponent(ksClaim.id)}`,
+      `${ACTOR_ADMIN_CLAIMS_PREFIX}/${encodeURIComponent(ksClaim.id)}`,
       { waitUntil: 'domcontentloaded' }
     );
     const claimStatus = claimResponse?.status() ?? 0;
@@ -193,7 +224,7 @@ test('C2-02: cross-tenant IDs denied for claim/doc/upload/message', async ({ bro
 
     const messageSendResult = await sendMessageDbCore({
       session: mkSession as { user: SessionUser },
-      requestHeaders: new Headers({ 'x-forwarded-host': MK_HOST }),
+      requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
       claimId: ksClaim.id,
       content: `C2-02 denial probe ${Date.now()}`,
       isInternal: false,
