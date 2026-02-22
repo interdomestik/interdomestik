@@ -191,7 +191,138 @@ require_gh_checks() {
   done
 
   # Review-thread-level unresolved checks vary by gh API version; keep this step intentionally
-  # aligned to available fields and enforce unresolved threads in review process separately.
+  # aligned to available fields and enforce unresolved threads via GraphQL.
+}
+
+require_review_threads_resolved() {
+  local gh_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+  if [[ -n "${gh_token}" ]]; then
+    export GH_TOKEN="${gh_token}"
+  fi
+
+  if ! command -v gh >/dev/null 2>&1; then
+    fail "GitHub CLI (gh) is required for review-thread validation"
+  fi
+  if ! command -v jq >/dev/null 2>&1; then
+    fail "jq is required for review-thread parsing"
+  fi
+
+  local pr_number
+  pr_number="$(pr_context)"
+  if [[ -z "${pr_number}" || "${pr_number}" == "null" ]]; then
+    fail "unable to resolve pull request number for review-thread validation"
+  fi
+
+  local repo="${GITHUB_REPOSITORY:-}"
+  if [[ -z "${repo}" ]]; then
+    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\\.git$##' || true)"
+  fi
+  if [[ -z "${repo}" ]]; then
+    fail "unable to resolve repository context for review-thread validation"
+  fi
+
+  local owner repo_name
+  owner="${repo%%/*}"
+  repo_name="${repo##*/}"
+  if [[ -z "${owner}" || -z "${repo_name}" ]]; then
+    fail "unable to parse owner/repo from '${repo}'"
+  fi
+
+  local query
+  query="$(cat <<'GRAPHQL'
+query($owner: String!, $repo: String!, $prNumber: Int!, $cursor: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $prNumber) {
+      reviewThreads(first: 100, after: $cursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          isResolved
+          comments(first: 20) {
+            nodes {
+              url
+              author {
+                login
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+GRAPHQL
+)"
+
+  local cursor=""
+  local unresolved_total=0
+  local unresolved_copilot=0
+  local -a unresolved_samples=()
+
+  while true; do
+    local response
+    if [[ -z "${cursor}" ]]; then
+      response="$(gh api graphql -f query="${query}" -f owner="${owner}" -f repo="${repo_name}" -F prNumber="${pr_number}")"
+    else
+      response="$(gh api graphql -f query="${query}" -f owner="${owner}" -f repo="${repo_name}" -F prNumber="${pr_number}" -f cursor="${cursor}")"
+    fi
+
+    local threads_path=".data.repository.pullRequest.reviewThreads"
+    if [[ "$(echo "${response}" | jq -r "${threads_path} == null")" == "true" ]]; then
+      fail "unable to read review threads from GitHub GraphQL API"
+    fi
+
+    local -a unresolved_rows=()
+    mapfile -t unresolved_rows < <(
+      echo "${response}" | jq -r '
+        .data.repository.pullRequest.reviewThreads.nodes[]
+        | select(.isResolved == false)
+        | [
+            (.comments.nodes[0].url // "n/a"),
+            (([.comments.nodes[].author.login // "unknown"] | unique | join(","))),
+            (([.comments.nodes[].author.login // ""] | any(test("copilot"; "i"))) | tostring)
+          ]
+        | @tsv
+      '
+    )
+
+    local row
+    for row in "${unresolved_rows[@]}"; do
+      unresolved_total=$((unresolved_total + 1))
+      IFS=$'\t' read -r thread_url thread_authors thread_has_copilot <<<"${row}"
+      if [[ "${thread_has_copilot}" == "true" ]]; then
+        unresolved_copilot=$((unresolved_copilot + 1))
+      fi
+      if [[ "${#unresolved_samples[@]}" -lt 5 ]]; then
+        unresolved_samples+=("${thread_url} [authors=${thread_authors}]")
+      fi
+    done
+
+    local has_next_page
+    has_next_page="$(echo "${response}" | jq -r "${threads_path}.pageInfo.hasNextPage")"
+    if [[ "${has_next_page}" != "true" ]]; then
+      break
+    fi
+
+    cursor="$(echo "${response}" | jq -r "${threads_path}.pageInfo.endCursor")"
+    if [[ -z "${cursor}" || "${cursor}" == "null" ]]; then
+      break
+    fi
+  done
+
+  if [[ "${unresolved_total}" -gt 0 ]]; then
+    echo "[pr-finalizer] FAIL: unresolved review threads: ${unresolved_total} (copilot-related: ${unresolved_copilot})" >&2
+    if [[ "${#unresolved_samples[@]}" -gt 0 ]]; then
+      echo "[pr-finalizer] Sample unresolved threads:" >&2
+      local sample
+      for sample in "${unresolved_samples[@]}"; do
+        echo "  - ${sample}" >&2
+      done
+    fi
+    fail "resolve all review threads, including Copilot feedback, then rerun finalizer"
+  fi
 }
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -202,5 +333,6 @@ fi
 require_clean_tree
 run_local_verifications
 require_gh_checks
+require_review_threads_resolved
 
 echo "[pr-finalizer] PASS: working tree, local checks, CI status checks, and review threads all pass"
