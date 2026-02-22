@@ -26,12 +26,20 @@ test.describe('C1 Pilot: Staff to member status loop', () => {
 
     const seededPilotStaff = await db.query.user.findFirst({
       where: eq(user.email, 'staff.pilot@interdomestik.com'),
-      columns: { id: true, tenantId: true },
+      columns: { id: true, tenantId: true, branchId: true },
     });
 
-    if (!seededPilotStaff?.id || seededPilotStaff.tenantId !== PILOT_TENANT_ID) {
+    if (
+      !seededPilotStaff?.id ||
+      seededPilotStaff.tenantId !== PILOT_TENANT_ID ||
+      !seededPilotStaff.branchId
+    ) {
       throw new Error('Expected seeded pilot staff user in pilot-mk tenant');
     }
+    const alignedBranchId = seededPilotStaff.branchId;
+
+    // Keep this flow deterministic even if another pilot spec changed agent branch assignment.
+    await db.update(user).set({ branchId: alignedBranchId }).where(eq(user.id, seededAgent.id));
 
     const timestamp = Date.now();
     const memberEmail = `member.mk.pilot.c105.${timestamp}@interdomestik.com`;
@@ -134,7 +142,7 @@ test.describe('C1 Pilot: Staff to member status loop', () => {
       }
 
       expect(createdClaim.tenantId).toBe(PILOT_TENANT_ID);
-      expect(createdClaim.branchId).toBe(seededAgent.branchId);
+      expect(createdClaim.branchId).toBe(alignedBranchId);
       expect(createdClaim.userId).toBe(createdMember.id);
       expect(createdClaim.staffId).toBeNull();
 
