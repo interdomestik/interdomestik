@@ -84,6 +84,7 @@
     "release:gate:staging": "node scripts/run-with-dotenv.mjs pnpm -s release:gate:staging:raw",
     "pilot:check": "node scripts/run-with-dotenv.mjs pnpm -s release:gate:prod:raw",
     "release:gate:raw": "tsx scripts/release-gate/run.ts",
+    "release:gate:check-no-skip": "node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json",
     "release:gate:p0:raw": "tsx scripts/release-gate/run.ts --suite p0",
     "release:gate:p1:raw": "tsx scripts/release-gate/run.ts --suite p1",
     "release:gate:prod:raw": "tsx scripts/release-gate/run.ts --envName production --suite all",
