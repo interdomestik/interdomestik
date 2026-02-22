@@ -21,12 +21,13 @@ Status command: pnpm v1:status
 - [x] P00 - Program ratified and persisted in-repo (this file + program file) | Date: 2026-02-22 | Evidence: git history
 - [x] A01 - Required-suite manifest added at `scripts/release-gate/v1-required-specs.json` | Date: 2026-02-22 | Evidence: `jq . scripts/release-gate/v1-required-specs.json` + per-spec file existence check
 - [x] A02 - Required-suite no-skip checker added at `scripts/release-gate/check-no-skip.mjs` | Date: 2026-02-22 | Evidence: `node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json` + temp-manifest injected `test.skip` exits 1
+- [x] A03 - RC evidence manifest writer added at `scripts/release-gate/write-rc-manifest.mjs` | Date: 2026-02-22 | Evidence: `node scripts/release-gate/write-rc-manifest.mjs --manifest scripts/release-gate/v1-required-specs.json --run-id test-run --results-dir tmp/release-rc/test-run/results --logs-dir tmp/release-rc/test-run/logs` + `jq . tmp/release-rc/test-run/rc.json` + `tmp/release-rc/test-run/rc.json.sha256`
 
 ## Next Up (work top-down)
 
-1. A03 - Add required-suite execution verifier at scripts/release-gate/verify-required-specs.mjs
-2. A04 - Add RC evidence manifest writer at scripts/release-gate/write-rc-manifest.mjs
-3. A05 - Add streak scripts at scripts/release-gate/streak/compute-anchor.mjs and scripts/release-gate/streak/capture-streak.mjs
+1. A04 - Add streak scripts at scripts/release-gate/streak/compute-anchor.mjs and scripts/release-gate/streak/capture-streak.mjs
+2. A05 - Update Playwright to emit JUnit and JSON reports
+3. A06 - Add release-candidate workflow
 
 ## Milestone Actions
 
@@ -34,7 +35,7 @@ Status command: pnpm v1:status
 
 - [x] A01 - Create required-suite manifest. Verify: `node scripts/release-gate/verify-required-specs.mjs --manifest scripts/release-gate/v1-required-specs.json --playwright-json apps/web/test-results/report.json` | Date: 2026-02-22 | Evidence: `scripts/release-gate/v1-required-specs.json` + `jq` + spec file existence check
 - [x] A02 - Enforce no skip/fixme/quarantine in required suites. Verify: `node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json` | Date: 2026-02-22 | Evidence: emits `file:line: matched_token` and exits non-zero on violations
-- [ ] A03 - Write rc.json evidence contract. Verify: `node scripts/release-gate/write-rc-manifest.mjs`
+- [x] A03 - Write rc.json evidence contract. Verify: `node scripts/release-gate/write-rc-manifest.mjs --manifest scripts/release-gate/v1-required-specs.json --run-id test-run --results-dir tmp/release-rc/test-run/results --logs-dir tmp/release-rc/test-run/logs` | Date: 2026-02-22 | Evidence: `tmp/release-rc/test-run/rc.json` + `tmp/release-rc/test-run/rc.json.sha256` + `checks.rls_integration_ran=true`
 - [ ] A04 - Add streak anchor and daily capture scripts. Verify: `node scripts/release-gate/streak/compute-anchor.mjs && node scripts/release-gate/streak/capture-streak.mjs`
 - [ ] A05 - Update Playwright to emit JUnit and JSON reports. Verify: `pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-ks-sq --workers=1`
 - [ ] A06 - Add release-candidate workflow. Verify: run `.github/workflows/release-candidate.yml` on `rc/*` branch
@@ -83,6 +84,7 @@ Status command: pnpm v1:status
 
 ## Notes Log (append newest first)
 
+- 2026-02-22: A03 completed (RC evidence manifest writer added; emits `rc.json` and `rc.json.sha256`, with `checks.rls_integration_ran=true` from `rls.log` marker).
 - 2026-02-22: A02 completed (no-skip checker added; required-suite scan currently reports existing `test.skip` violations as intended by policy).
 - 2026-02-22: A01 completed (required-suite manifest created and validated).
 - 2026-02-22: Tracker created and linked to operational plan.
