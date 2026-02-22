@@ -73,6 +73,7 @@ Status command: pnpm v1:status
 ## Daily RC Run Checklist
 
 - [ ] Run `pnpm security:guard`
+- [ ] Run `pnpm i18n:check`
 - [ ] Run `REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test`
 - [ ] Run `pnpm pr:verify:hosts`
 - [ ] Run p0/p1/all release gate suites
@@ -83,5 +84,6 @@ Status command: pnpm v1:status
 
 ## Notes Log (append newest first)
 
+- 2026-02-22: Added mandatory RC i18n gate (`pnpm i18n:check`) for en/sq/mk/sr namespace parity.
 - 2026-02-22: A01 completed (required-suite manifest created and validated).
 - 2026-02-22: Tracker created and linked to operational plan.
