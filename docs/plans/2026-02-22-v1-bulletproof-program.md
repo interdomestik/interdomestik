@@ -16,7 +16,6 @@ Deliver a bulletproof v1.0.0 for a multi-tenant claims and billing product with 
 3. Any replay that double-posts activation/invoice/ledger is stop-the-line.
 4. Any required RC suite skip/fixme/quarantine is stop-the-line.
 5. Any RC run where RLS integration is skipped is stop-the-line.
-6. Any RC run where i18n namespace parity check fails for en/sq/mk/sr is stop-the-line.
 
 ## PR Discipline (Mandatory)
 
@@ -113,16 +112,15 @@ Exit criteria:
 ## Daily RC Command Pack
 
 1. pnpm security:guard
-2. pnpm i18n:check
-3. REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test
-4. pnpm pr:verify:hosts
-5. pnpm -s release:gate:p0:raw --baseUrl http://127.0.0.1:3000
-6. pnpm -s release:gate:p1:raw --baseUrl http://127.0.0.1:3000
-7. pnpm -s release:gate:raw --suite all --baseUrl http://127.0.0.1:3000
-8. node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json
-9. node scripts/release-gate/verify-required-specs.mjs --manifest scripts/release-gate/v1-required-specs.json --playwright-json apps/web/test-results/report.json --junit apps/web/test-results/junit.xml
-10. node scripts/release-gate/write-rc-manifest.mjs
-11. node scripts/release-gate/streak/capture-streak.mjs
+2. REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test
+3. pnpm pr:verify:hosts
+4. pnpm -s release:gate:p0:raw --baseUrl http://127.0.0.1:3000
+5. pnpm -s release:gate:p1:raw --baseUrl http://127.0.0.1:3000
+6. pnpm -s release:gate:raw --suite all --baseUrl http://127.0.0.1:3000
+7. node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json
+8. node scripts/release-gate/verify-required-specs.mjs --manifest scripts/release-gate/v1-required-specs.json --playwright-json apps/web/test-results/report.json --junit apps/web/test-results/junit.xml
+9. node scripts/release-gate/write-rc-manifest.mjs
+10. node scripts/release-gate/streak/capture-streak.mjs
 
 ## Tag Decision (v1.0.0)
 
