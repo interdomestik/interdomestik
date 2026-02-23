@@ -25,6 +25,14 @@ Deliver a bulletproof v1.0.0 for a multi-tenant claims and billing product with 
 4. Address all review comments (including Copilot feedback), push, and rerun `pnpm pr:finalize`.
 5. Merge only when `pnpm pr:finalize` passes on the latest SHA.
 
+## Test Delta Policy (Mandatory for A12-A22)
+
+1. Any PR that changes logic/security/payment behavior must add or update unit tests in the same PR.
+2. Any PR that changes tenant boundaries, auth/routing trust, webhook handling, billing lifecycle, or other cross-role user flows must add or update integration/e2e coverage in the same PR.
+3. Required suites must stay deterministic: no `test.skip`, `test.fixme`, `describe.skip`, `describe.fixme`, or `@quarantine` in required specs.
+4. No merge if behavior changed and test delta is absent unless explicitly approved by Atlas + Sentinel + Gatekeeper and recorded in tracker notes.
+5. Evidence must include exact test commands run and pass/fail output references in the tracker entry for that action.
+
 ## Streak Reset Scope (10-day evidence policy)
 
 Reset streak if a PR changes:
@@ -66,6 +74,7 @@ Exit criteria:
 - host/session mismatch fails closed in sensitive surfaces.
 - member upload ownership and membership tenant scoping covered by tests.
 - AL tenant config added (dark), isolation matrix green.
+- new/updated unit tests for every modified boundary logic file and e2e proof for changed isolation flows.
 
 ### M1 (2026-03-09 to 2026-03-22): MoR by Tenant Entity
 
@@ -77,6 +86,7 @@ Exit criteria:
 - one-secret verification per entity; metadata mismatch rejected.
 - idempotency and transaction linkage constraints enforced.
 - invoice and append-only ledger invariants pass.
+- billing unit tests and replay/mismatch integration/e2e scenarios added for each changed billing behavior.
 
 ### M2 (2026-03-23 to 2026-03-29): Analytics and Growth Instrumentation
 
@@ -87,6 +97,7 @@ Exit criteria:
 - funnel coverage across landing -> activation -> first claim.
 - tenant_id and experiment variant captured at >=99%.
 - paid activation telemetry differs <=2% from DB truth.
+- instrumentation unit tests and at least one end-to-end funnel validation updated for event correctness.
 
 ### M3 (2026-03-30 to 2026-04-05): Conversion UX Package
 
@@ -98,6 +109,7 @@ Exit criteria:
 - plan continuity pricing -> register -> checkout implemented.
 - dashboard next-best-action flow live.
 - A/B tests launched with guardrails.
+- UX changes backed by updated component/unit tests and e2e coverage for modified critical paths.
 
 ### M4 (2026-04-06 to 2026-04-15): Evidence Streak and Tag Readiness
 
