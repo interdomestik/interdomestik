@@ -117,9 +117,22 @@ type SubscriptionDunningInput =
   | null
   | undefined;
 
-export async function getMemberDocumentsCore(userId: string) {
+export async function getMemberDocumentsCore(args: {
+  userId: string;
+  tenantId: string | null | undefined;
+}) {
+  const tenantId = args.tenantId;
+  if (!tenantId) {
+    return [];
+  }
+
   return db.query.documents.findMany({
-    where: (docs, { and, eq }) => and(eq(docs.entityType, 'member'), eq(docs.entityId, userId)),
+    where: (docs, { and: andFn, eq: eqFn }) =>
+      andFn(
+        eqFn(docs.entityType, 'member'),
+        eqFn(docs.entityId, args.userId),
+        eqFn(docs.tenantId, tenantId)
+      ),
     orderBy: (docs, { desc }) => [desc(docs.uploadedAt)],
   });
 }

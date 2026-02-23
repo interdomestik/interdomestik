@@ -36,6 +36,7 @@ vi.mock('@interdomestik/database', () => ({
 import {
   computeDunningState,
   getDaysRemaining,
+  getMemberDocumentsCore,
   getMemberSubscriptionsCore,
   getMembershipPageModelCore,
   isGracePeriodExpired,
@@ -167,6 +168,58 @@ describe('membership core', () => {
     ).resolves.toEqual([]);
 
     expect(hoisted.findSubscriptionMany).not.toHaveBeenCalled();
+  });
+
+  it('applies tenant and user predicates for member document reads', async () => {
+    await getMemberDocumentsCore({
+      userId: 'member-1',
+      tenantId: 'tenant-ks',
+    });
+
+    const queryArg = hoisted.findDocumentsMany.mock.calls[0]?.[0] as
+      | {
+          where?: (
+            docs: { entityType: string; entityId: string; tenantId: string },
+            operators: {
+              and: (...args: unknown[]) => unknown;
+              eq: (left: unknown, right: unknown) => unknown;
+            }
+          ) => unknown;
+        }
+      | undefined;
+
+    expect(queryArg).toBeDefined();
+    expect(typeof queryArg?.where).toBe('function');
+
+    const whereAnd = vi.fn((...args: unknown[]) => ({ op: 'and', args }));
+    const whereEq = vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right }));
+
+    queryArg?.where?.(
+      {
+        entityType: 'documents.entity_type',
+        entityId: 'documents.entity_id',
+        tenantId: 'documents.tenant_id',
+      },
+      {
+        and: whereAnd,
+        eq: whereEq,
+      }
+    );
+
+    expect(whereEq).toHaveBeenCalledWith('documents.entity_type', 'member');
+    expect(whereEq).toHaveBeenCalledWith('documents.entity_id', 'member-1');
+    expect(whereEq).toHaveBeenCalledWith('documents.tenant_id', 'tenant-ks');
+  });
+
+  it('returns empty member documents when tenant context is missing', async () => {
+    await expect(
+      getMemberDocumentsCore({
+        userId: 'member-1',
+        tenantId: null,
+      })
+    ).resolves.toEqual([]);
+
+    expect(hoisted.findDocumentsMany).not.toHaveBeenCalled();
   });
 
   it('returns null for cross-tenant subscription read attempts with same user id', async () => {
