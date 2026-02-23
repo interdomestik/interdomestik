@@ -106,7 +106,7 @@ require_gh_checks() {
 
   local repo="${GITHUB_REPOSITORY:-}"
   if [[ -z "${repo}" ]]; then
-    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\\.git$##' || true)"
+    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' || true)"
   fi
   if [[ -z "${repo}" ]]; then
     fail "unable to resolve repository context"
@@ -220,7 +220,7 @@ require_review_threads_resolved() {
 
   local repo="${GITHUB_REPOSITORY:-}"
   if [[ -z "${repo}" ]]; then
-    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\\.git$##' || true)"
+    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' || true)"
   fi
   if [[ -z "${repo}" ]]; then
     fail "unable to resolve repository context for review-thread validation"
