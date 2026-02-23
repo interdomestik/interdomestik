@@ -19,7 +19,7 @@
     "security": {
       "sectionTitle": "Безбедност",
       "title": "Промени лозинка",
-      "description": "Ensure your account is secure.",
+      "description": "Осигурете се дека вашата сметка е безбедна.",
       "currentPassword": "Тековна лозинка",
       "newPassword": "Нова лозинка",
       "confirmPassword": "Потврди лозинка",

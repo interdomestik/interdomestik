@@ -19,7 +19,7 @@
     "security": {
       "sectionTitle": "Bezbednost",
       "title": "Promeni lozinku",
-      "description": "Ensure your account is secure.",
+      "description": "Uverite se da je vaš nalog bezbedan.",
       "currentPassword": "Trenutna lozinka",
       "newPassword": "Nova lozinka",
       "confirmPassword": "Potvrdi lozinku",

@@ -4,26 +4,26 @@
       "flight_delay": {
         "label": "Доцнење на лет",
         "description": "EU261 надомест до €600",
-        "examples": "Vonesë ose anulim i fluturimit, probleme me bagazhet"
+        "examples": "Доцнење или откажување на лет, проблеми со багаж"
       },
       "damaged_goods": {
         "label": "Оштетена стока",
         "description": "Производите пристигнале скршени или не како што се опишани",
-        "examples": "Paketime të dëmtuara, produkte me defekt, dërgesa të gabuara"
+        "examples": "Оштетени пакети, неисправни производи, погрешни испораки"
       },
       "service_issue": {
         "label": "Проблем со услуга",
         "description": "Лоша услуга од комунални, телекомуникации итн.",
-        "examples": "Ndërprerje interneti, faturim i gabuar, shërbim i pakënaqshëm"
+        "examples": "Прекин на интернет, погрешно фактурирање, незадоволителна услуга"
       },
       "other": {
         "label": "Друго",
         "description": "Секој друг потрошувачки спор",
-        "examples": "Mosmarrëveshje kontraktuale, çështje punësimi, sigurime"
+        "examples": "Договорни спорови, работни спорови, осигурување"
       },
-      "title": "Çfarë lloj Kërkese për Dëmshpërblim është kjo?",
-      "subtitle": "Zgjidhni kategorinë që i përshtatet më mirë çështjes suaj.",
-      "freeConsultation": "✨ Konsultim Falas i Përfshirë"
+      "title": "Каков вид на барање е ова?",
+      "subtitle": "Изберете ја категоријата што најдобро одговара на вашиот случај.",
+      "freeConsultation": "✨ Вклучена бесплатна консултација"
     },
     "details": {
       "title": "Кажете ни што се случи",
@@ -47,17 +47,17 @@
       "voice_upload_failed": "Прикачувањето не успеа"
     },
     "review": {
-      "title": "Rishiko & Dërgo",
-      "subtitle": "Ju lutemi kontrolloni detajet para dërgimit.",
-      "summary": "Përmbledhja e Kërkesës për Dëmshpërblim",
-      "category": "Kategoria",
-      "date": "Data",
-      "company": "Kompania",
-      "claim_title": "Titulli",
-      "description": "Përshkrimi",
-      "evidence": "Dëshmi",
-      "amount": "Shuma e Kërkuar",
-      "files_attached": "{count} skedarë bashkangjitur",
+      "title": "Прегледај и поднеси",
+      "subtitle": "Ве молиме проверете ги деталите пред поднесување.",
+      "summary": "Преглед на барањето за надомест",
+      "category": "Категорија",
+      "date": "Датум",
+      "company": "Компанија",
+      "claim_title": "Наслов",
+      "description": "Опис",
+      "evidence": "Докази",
+      "amount": "Побаран износ",
+      "files_attached": "{count} прикачени датотеки",
       "offline_title": "Офлајн сте",
       "offline_description": "Вашиот случај е зачуван како нацрт, но не можете да го поднесете додека не се врати врската."
     },
