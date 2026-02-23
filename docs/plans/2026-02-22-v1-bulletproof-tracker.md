@@ -16,6 +16,13 @@ Status command: pnpm v1:status
 7. Run `pnpm pr:finalize` again.
 8. Merge only when finalizer passes on latest SHA.
 
+## Mandatory Test Delta (A12-A22)
+
+1. If code behavior changes, add/update at least one unit test in the same PR.
+2. If boundary/user-flow behavior changes (tenant/auth/api/billing/funnel), add/update integration or e2e coverage in the same PR.
+3. Document both test deltas in the action evidence line with exact command(s).
+4. If no test delta is added for a behavior change, block merge unless Atlas + Sentinel + Gatekeeper approve and note the exception in Notes Log.
+
 ## Completed
 
 - [x] P00 - Program ratified and persisted in-repo (this file + program file) | Date: 2026-02-22 | Evidence: git history
@@ -77,6 +84,13 @@ Status command: pnpm v1:status
 
 - [ ] A22 - Complete 10 consecutive daily full-green RC runs. Verify: daily artifact packs in `tmp/release-streak/`
 
+## Test Delta Checklist (use in every A12-A22 PR)
+
+- [ ] Unit test delta added for changed logic files.
+- [ ] Integration/e2e test delta added for changed boundary or user-flow behavior.
+- [ ] No skip/fixme/quarantine introduced in required suites.
+- [ ] Tracker evidence line includes exact test commands executed.
+
 ## Daily RC Run Checklist
 
 - [ ] Run `pnpm security:guard`
@@ -90,6 +104,7 @@ Status command: pnpm v1:status
 
 ## Notes Log (append newest first)
 
+- 2026-02-23: Added mandatory test-delta policy for A12-A22 (unit + integration/e2e in same PR for behavior changes).
 - 2026-02-23: A11 handoff status: Atlas confirmed A11 scope and sensitive endpoint list (`/api/auth/*`, `/api/register/*`, `/api/webhooks/paddle/*`, `/api/billing/*`, checkout-session creation endpoints, mutation-heavy claim endpoints) and repo applicability (`/api/billing/*` and checkout-session routes not present; claim mutation route applicable at `/api/uploads`); Forge implemented fail-closed production-sensitive behavior in `apps/web/src/lib/rate-limit.core.ts` with `RATE_LIMIT_BACKEND_MISSING` telemetry plus strict call-site wiring in `apps/web/src/app/api/auth/[...all]/route.ts`, `apps/web/src/app/api/register/route.ts`, `apps/web/src/app/api/webhooks/paddle/route.ts`, `apps/web/src/app/api/uploads/route.ts`; Sentinel pre-review completed for auth/api boundary paths before gate; Gatekeeper verified targeted unit evidence (`pnpm --filter @interdomestik/web test:unit --run src/lib/rate-limit.core.test.ts` and `pnpm --filter @interdomestik/web test:unit --run 'src/app/api/auth/[...all]/route.test.ts' src/app/api/register/route.test.ts src/app/api/webhooks/paddle/route.test.ts src/app/api/uploads/route.test.ts`) and owns final `pnpm pr:finalize` merge gate; Sentinel post-review completed for boundary-impacting updates.
 - 2026-02-23: A10 handoff status: Atlas confirmed boundary-impacting scope/acceptance paths (`apps/web/src/features/member/claims/actions.ts`, `apps/web/src/app/api/uploads/route.ts`, `apps/web/src/app/api/uploads/_core.ts`, `apps/web/src/app/api/uploads/route.test.ts`, `apps/web/src/features/member/claims/actions.test.ts`) and A10 criteria (member-only claim upload ownership at route+action layer, safe deny, no path/upload URL leak); Forge implemented owner-scoped claim predicates in member upload actions with safe 404 responses and added ownership denial assertions in route tests + new action unit tests; Sentinel pre-review completed for auth/tenant/api boundary changes, Gatekeeper verified targeted unit test evidence command above, Sentinel post-review completed for boundary impact with no route contract changes.
 - 2026-02-23: A09 handoff status: Atlas confirmed boundary-impacting scope/acceptance paths (`apps/web/src/lib/tenant/tenant-hosts.ts`, `apps/web/src/lib/proxy-logic.ts`, `apps/web/src/app/api/auth/[...all]/_core.ts`, `apps/web/src/app/api/register/route.ts`, `apps/web/src/app/api/simple-register/route.ts`), Forge implemented canonical source resolver and host/session fail-closed guard on `/api/register`, Sentinel pre-review completed for tenant/auth/api boundary changes, Gatekeeper verified targeted unit commands + gate isolation contract (`e2e/gate/tenant-resolution.spec.ts` on `gate-ks-sq` + `gate-mk-mk`); requested pilot scenario command with gate projects currently reports `No tests found` due project `testMatch` scoping, Sentinel post-review pending before merge.
