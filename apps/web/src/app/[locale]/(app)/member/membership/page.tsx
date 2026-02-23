@@ -13,7 +13,10 @@ export default async function MembershipPage() {
     redirect('/login');
   }
 
-  const subscriptions = await getMemberSubscriptionsCore(session.user.id);
+  const subscriptions = await getMemberSubscriptionsCore({
+    userId: session.user.id,
+    tenantId: session.user.tenantId ?? null,
+  });
   const documents = await getMemberDocumentsCore(session.user.id);
 
   return (
