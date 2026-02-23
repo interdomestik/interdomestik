@@ -24,7 +24,7 @@ export async function getPaymentUpdateUrlCore(params: {
   }
 
   try {
-    const paddle = getPaddle();
+    const paddle = getPaddle({ tenantId });
     const transaction =
       await paddle.subscriptions.getPaymentMethodChangeTransaction(subscriptionId);
 
