@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   headers: vi.fn<() => Promise<Headers>>(),
@@ -15,9 +15,18 @@ vi.mock('next/headers', () => ({
 import { resolveTenantIdFromRequest } from './tenant-request';
 
 describe('tenant-request', () => {
+  const mutableEnv = process.env as Record<string, string | undefined>;
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalVercelEnv = process.env.VERCEL_ENV;
+
   beforeEach(() => {
     mocks.headers.mockReset();
     mocks.cookieGet.mockReset();
+  });
+
+  afterEach(() => {
+    mutableEnv.NODE_ENV = originalNodeEnv;
+    mutableEnv.VERCEL_ENV = originalVercelEnv;
   });
 
   it('Host wins over cookie/header/query', async () => {
@@ -84,5 +93,16 @@ describe('tenant-request', () => {
     mocks.cookieGet.mockReturnValue({ value: 'nope' });
 
     await expect(resolveTenantIdFromRequest({ tenantIdFromQuery: 'nope' })).resolves.toBe(null);
+  });
+
+  it('keeps non-sensitive fallback behavior in production mode by design', async () => {
+    mutableEnv.NODE_ENV = 'production';
+    delete mutableEnv.VERCEL_ENV;
+    mocks.headers.mockResolvedValue(new Headers({ host: 'localhost:3000' }));
+    mocks.cookieGet.mockReturnValue(undefined);
+
+    await expect(resolveTenantIdFromRequest({ tenantIdFromQuery: 'tenant_ks' })).resolves.toBe(
+      'tenant_ks'
+    );
   });
 });

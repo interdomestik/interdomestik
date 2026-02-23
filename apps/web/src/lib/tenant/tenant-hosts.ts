@@ -3,6 +3,17 @@ export type TenantId = 'tenant_mk' | 'tenant_ks';
 export const TENANT_COOKIE_NAME = 'tenantId';
 export const TENANT_HEADER_NAME = 'x-tenant-id';
 
+export type TenantResolutionSources = {
+  host?: string | null;
+  cookieTenantId?: string | null;
+  headerTenantId?: string | null;
+  queryTenantId?: string | null;
+};
+
+export type TenantResolutionOptions = {
+  productionSensitive?: boolean;
+};
+
 function normalizeHost(host: string): string {
   const raw = host.split(',')[0]?.trim() ?? '';
   const withoutPort = raw.replace(/:\d+$/, '');
@@ -69,4 +80,41 @@ export function isTenantHost(host: string): boolean {
 export function coerceTenantId(value: string | null | undefined): TenantId | null {
   if (!value) return null;
   return isTenantId(value) ? value : null;
+}
+
+function isProductionLikeEnvironment(): boolean {
+  return process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+}
+
+export function resolveTenantIdFromSources(
+  sources: TenantResolutionSources,
+  options: TenantResolutionOptions = {}
+): TenantId | null {
+  const hostTenant = resolveTenantFromHost(sources.host ?? '');
+  if (hostTenant) return hostTenant;
+
+  const cookieTenant = coerceTenantId(sources.cookieTenantId);
+  if (cookieTenant) return cookieTenant;
+
+  const headerTenant = coerceTenantId(sources.headerTenantId);
+  if (headerTenant) return headerTenant;
+
+  const allowQueryFallback = !(options.productionSensitive && isProductionLikeEnvironment());
+  if (!allowQueryFallback) {
+    return null;
+  }
+
+  const queryTenant = coerceTenantId(sources.queryTenantId);
+  if (queryTenant) return queryTenant;
+
+  return null;
+}
+
+export function hasHostSessionTenantMismatch(
+  hostTenantId: TenantId | null,
+  sessionTenantId: string | null | undefined
+): boolean {
+  if (!hostTenantId) return false;
+  const normalizedSessionTenantId = coerceTenantId(sessionTenantId ?? undefined);
+  return normalizedSessionTenantId !== null && normalizedSessionTenantId !== hostTenantId;
 }

@@ -1,14 +1,24 @@
 import { registerUser } from '@/features/auth/registration.service';
+import {
+  resolveTenantIdFromSources,
+  TENANT_COOKIE_NAME,
+  TENANT_HEADER_NAME,
+} from '@/lib/tenant/tenant-hosts';
 import { NextRequest, NextResponse } from 'next/server';
 import { simpleRegisterApiCore } from './_core';
-import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const tenantId = await resolveTenantIdFromRequest({
-      tenantIdFromQuery: req.nextUrl.searchParams.get('tenantId'),
-    });
+    const tenantId = resolveTenantIdFromSources(
+      {
+        host: req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '',
+        cookieTenantId: req.cookies.get(TENANT_COOKIE_NAME)?.value ?? null,
+        headerTenantId: req.headers.get(TENANT_HEADER_NAME),
+        queryTenantId: req.nextUrl.searchParams.get('tenantId'),
+      },
+      { productionSensitive: true }
+    );
 
     if (!tenantId) {
       return NextResponse.json({ error: 'Missing tenant context' }, { status: 400 });

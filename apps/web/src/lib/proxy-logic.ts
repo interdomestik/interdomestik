@@ -1,4 +1,8 @@
 import { routing } from '@/i18n/routing';
+import {
+  resolveTenantFromHost as resolveTenantFromCanonicalHost,
+  TENANT_COOKIE_NAME,
+} from '@/lib/tenant/tenant-hosts';
 import { NextRequest, NextResponse } from 'next/server';
 
 const PROTECTED_TOP_LEVEL = new Set(['member', 'admin', 'staff', 'agent']);
@@ -8,18 +12,12 @@ const SESSION_COOKIE_NAMES = [
   '__Host-better-auth.session_token',
 ] as const;
 
-const TENANT_COOKIE_NAME = 'tenantId';
-
 function resolveTenantFromHost(host: string): 'tenant_mk' | 'tenant_ks' | 'pilot-mk' | null {
+  const canonicalTenant = resolveTenantFromCanonicalHost(host);
+  if (canonicalTenant) return canonicalTenant;
+
   const raw = host.split(':')[0].toLowerCase();
-
-  if (raw.startsWith('mk.')) return 'tenant_mk';
-  if (raw.startsWith('ks.')) return 'tenant_ks';
   if (raw.startsWith('pilot.')) return 'pilot-mk';
-
-  // Robust nip.io check
-  if (raw.includes('mk.127.0.0.1.nip.io')) return 'tenant_mk';
-  if (raw.includes('ks.127.0.0.1.nip.io')) return 'tenant_ks';
   if (raw.includes('pilot.127.0.0.1.nip.io')) return 'pilot-mk';
 
   return null;

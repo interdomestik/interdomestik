@@ -1,14 +1,26 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { coerceTenantId, isTenantHost, resolveTenantFromHost, type TenantId } from './tenant-hosts';
+import {
+  coerceTenantId,
+  hasHostSessionTenantMismatch,
+  isTenantHost,
+  resolveTenantFromHost,
+  resolveTenantIdFromSources,
+  type TenantId,
+} from './tenant-hosts';
 
 describe('tenant-hosts', () => {
+  const mutableEnv = process.env as Record<string, string | undefined>;
   const originalKsHost = process.env.KS_HOST;
   const originalMkHost = process.env.MK_HOST;
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalVercelEnv = process.env.VERCEL_ENV;
 
   afterEach(() => {
-    process.env.KS_HOST = originalKsHost;
-    process.env.MK_HOST = originalMkHost;
+    mutableEnv.KS_HOST = originalKsHost;
+    mutableEnv.MK_HOST = originalMkHost;
+    mutableEnv.NODE_ENV = originalNodeEnv;
+    mutableEnv.VERCEL_ENV = originalVercelEnv;
   });
 
   it('resolves canonical local hosts', () => {
@@ -23,7 +35,7 @@ describe('tenant-hosts', () => {
   });
 
   it('supports env host overrides (with or without port)', () => {
-    process.env.KS_HOST = 'ks.dev.example:1234';
+    mutableEnv.KS_HOST = 'ks.dev.example:1234';
 
     expect(resolveTenantFromHost('ks.dev.example')).toBe('tenant_ks');
     expect(resolveTenantFromHost('ks.dev.example:1234')).toBe('tenant_ks');
@@ -47,5 +59,84 @@ describe('tenant-hosts', () => {
     expect(isTenantHost('mk.localhost')).toBe(true);
     expect(isTenantHost('localhost')).toBe(false);
     expect(ks).toBe('tenant_ks');
+  });
+
+  it('uses host as canonical source when other tenant hints conflict', () => {
+    expect(
+      resolveTenantIdFromSources({
+        host: 'ks.localhost:3000',
+        cookieTenantId: 'tenant_mk',
+        headerTenantId: 'tenant_mk',
+        queryTenantId: 'tenant_mk',
+      })
+    ).toBe('tenant_ks');
+  });
+
+  it('uses cookie/header fallback in production-sensitive mode when host is neutral', () => {
+    mutableEnv.NODE_ENV = 'production';
+    delete mutableEnv.VERCEL_ENV;
+
+    expect(
+      resolveTenantIdFromSources(
+        {
+          host: 'localhost:3000',
+          cookieTenantId: 'tenant_mk',
+          headerTenantId: 'tenant_mk',
+          queryTenantId: 'tenant_mk',
+        },
+        { productionSensitive: true }
+      )
+    ).toBe('tenant_mk');
+  });
+
+  it('blocks query-only fallback in production-sensitive mode', () => {
+    mutableEnv.NODE_ENV = 'production';
+    delete mutableEnv.VERCEL_ENV;
+
+    expect(
+      resolveTenantIdFromSources(
+        {
+          host: 'localhost:3000',
+          queryTenantId: 'tenant_mk',
+        },
+        { productionSensitive: true }
+      )
+    ).toBeNull();
+  });
+
+  it('retains query fallback behavior in non-production environments', () => {
+    mutableEnv.NODE_ENV = 'test';
+    delete mutableEnv.VERCEL_ENV;
+
+    expect(
+      resolveTenantIdFromSources(
+        {
+          host: 'localhost:3000',
+          queryTenantId: 'tenant_mk',
+        },
+        { productionSensitive: true }
+      )
+    ).toBe('tenant_mk');
+  });
+
+  it('returns false for host/session mismatch check when host tenant is missing', () => {
+    expect(hasHostSessionTenantMismatch(null, 'tenant_mk')).toBe(false);
+  });
+
+  it('returns false for host/session mismatch check when session tenant is missing', () => {
+    expect(hasHostSessionTenantMismatch('tenant_mk', null)).toBe(false);
+    expect(hasHostSessionTenantMismatch('tenant_mk', undefined)).toBe(false);
+  });
+
+  it('returns true for host/session mismatch check when tenants differ', () => {
+    expect(hasHostSessionTenantMismatch('tenant_mk', 'tenant_ks')).toBe(true);
+  });
+
+  it('returns false for host/session mismatch check when tenants match', () => {
+    expect(hasHostSessionTenantMismatch('tenant_mk', 'tenant_mk')).toBe(false);
+  });
+
+  it('returns false for host/session mismatch check when session tenant is invalid', () => {
+    expect(hasHostSessionTenantMismatch('tenant_mk', 'tenant_unknown')).toBe(false);
   });
 });

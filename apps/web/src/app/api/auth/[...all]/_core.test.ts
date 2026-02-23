@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   evaluateEmailSignInTenantGuard,
@@ -8,6 +8,19 @@ import {
   resolveTenantIdForEmailSignIn,
   resolveTenantIdForPasswordResetAudit,
 } from './_core';
+
+const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
+const ORIGINAL_VERCEL_ENV = process.env.VERCEL_ENV;
+const MUTABLE_ENV = process.env as Record<string, string | undefined>;
+
+function resetEnv() {
+  MUTABLE_ENV.NODE_ENV = ORIGINAL_NODE_ENV;
+  MUTABLE_ENV.VERCEL_ENV = ORIGINAL_VERCEL_ENV;
+}
+
+afterEach(() => {
+  resetEnv();
+});
 
 describe('getPasswordResetAuditEventFromUrl', () => {
   it('returns audit payload for password reset route', () => {
@@ -86,6 +99,40 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
       )
     ).toBeNull();
   });
+
+  it('falls back to cookie/header when host is neutral in production', () => {
+    MUTABLE_ENV.NODE_ENV = 'production';
+    delete MUTABLE_ENV.VERCEL_ENV;
+    const headers = new Headers({
+      host: 'interdomestik-web.vercel.app',
+      cookie: 'tenantId=tenant_mk',
+      'x-tenant-id': 'tenant_ks',
+    });
+
+    expect(
+      resolveTenantIdForPasswordResetAudit(
+        'https://interdomestik-web.vercel.app/api/auth/request-password-reset?tenantId=tenant_mk',
+        headers
+      )
+    ).toBe('tenant_mk');
+  });
+
+  it('keeps host as canonical in production when fallback hints conflict', () => {
+    MUTABLE_ENV.NODE_ENV = 'production';
+    delete MUTABLE_ENV.VERCEL_ENV;
+    const headers = new Headers({
+      host: 'ks.localhost:3000',
+      cookie: 'tenantId=tenant_mk',
+      'x-tenant-id': 'tenant_mk',
+    });
+
+    expect(
+      resolveTenantIdForPasswordResetAudit(
+        'https://interdomestik-web.vercel.app/api/auth/request-password-reset?tenantId=tenant_mk',
+        headers
+      )
+    ).toBe('tenant_ks');
+  });
 });
 
 describe('isEmailPasswordSignInUrl', () => {
@@ -123,6 +170,28 @@ describe('resolveTenantIdForEmailSignIn', () => {
   it('does not use query fallback', () => {
     const headers = new Headers();
     expect(resolveTenantIdForEmailSignIn(headers)).toBeNull();
+  });
+
+  it('falls back to cookie/header in production when host is neutral', () => {
+    MUTABLE_ENV.NODE_ENV = 'production';
+    delete MUTABLE_ENV.VERCEL_ENV;
+    const headers = new Headers({
+      host: 'localhost:3000',
+      cookie: 'tenantId=tenant_mk',
+      'x-tenant-id': 'tenant_ks',
+    });
+    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_mk');
+  });
+
+  it('uses host tenant in production when fallback hints conflict', () => {
+    MUTABLE_ENV.NODE_ENV = 'production';
+    delete MUTABLE_ENV.VERCEL_ENV;
+    const headers = new Headers({
+      host: 'ks.localhost:3000',
+      cookie: 'tenantId=tenant_mk',
+      'x-tenant-id': 'tenant_mk',
+    });
+    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
   });
 });
 
