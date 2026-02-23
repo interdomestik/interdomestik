@@ -4,8 +4,7 @@ import { NextRequest } from 'next/server';
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   resolveBillingEntityFromPathSegment: vi.fn(),
-  resolveBillingEntityConfig: vi.fn(),
-  getPaddleForEntity: vi.fn(),
+  getPaddleAndConfigForEntity: vi.fn(),
   handlePaddleWebhookCore: vi.fn(),
 }));
 
@@ -15,8 +14,7 @@ vi.mock('@/lib/rate-limit', () => ({
 
 vi.mock('@interdomestik/domain-membership-billing/paddle-server', () => ({
   resolveBillingEntityFromPathSegment: hoisted.resolveBillingEntityFromPathSegment,
-  resolveBillingEntityConfig: hoisted.resolveBillingEntityConfig,
-  getPaddleForEntity: hoisted.getPaddleForEntity,
+  getPaddleAndConfigForEntity: hoisted.getPaddleAndConfigForEntity,
 }));
 
 vi.mock('../_core', () => ({
@@ -30,11 +28,13 @@ describe('POST /api/webhooks/paddle/[entity]', () => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
     hoisted.resolveBillingEntityFromPathSegment.mockReturnValue('ks');
-    hoisted.resolveBillingEntityConfig.mockReturnValue({
-      entity: 'ks',
-      webhookSecret: 'whsec_ks',
+    hoisted.getPaddleAndConfigForEntity.mockReturnValue({
+      paddle: { mocked: true },
+      config: {
+        entity: 'ks',
+        webhookSecret: 'whsec_ks',
+      },
     });
-    hoisted.getPaddleForEntity.mockReturnValue({ mocked: true });
     hoisted.handlePaddleWebhookCore.mockResolvedValue({ status: 200, body: { ok: true } });
   });
 
@@ -88,8 +88,7 @@ describe('POST /api/webhooks/paddle/[entity]', () => {
     expect(res.status).toBe(202);
     expect(data).toEqual({ accepted: true });
     expect(hoisted.resolveBillingEntityFromPathSegment).toHaveBeenCalledWith('ks');
-    expect(hoisted.resolveBillingEntityConfig).toHaveBeenCalledWith('ks');
-    expect(hoisted.getPaddleForEntity).toHaveBeenCalledWith('ks');
+    expect(hoisted.getPaddleAndConfigForEntity).toHaveBeenCalledWith('ks');
     expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledWith(
       expect.objectContaining({
         signature: 'sig_ks',

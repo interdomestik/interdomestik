@@ -236,23 +236,43 @@ export function resetPaddleClientCacheForTests(): void {
   paddleEntityClients.clear();
 }
 
-export function getPaddleForEntity(
+export type PaddleEntityContext = {
+  paddle: Paddle;
+  config: BillingEntityConfig;
+};
+
+export function getPaddleAndConfigForEntity(
   entity: BillingEntity,
   options: ResolveBillingEntityConfigOptions = {}
-): Paddle {
+): PaddleEntityContext {
   const config = resolveBillingEntityConfig(entity, options);
   const environment = resolvePaddleEnvironment();
   const cacheKey = buildPaddleClientCacheKey(config, environment);
   const existing = paddleEntityClients.get(entity);
 
   if (existing && existing.cacheKey === cacheKey) {
-    return existing.client;
+    return {
+      paddle: existing.client,
+      config,
+    };
   }
 
   const paddle = new Paddle(config.apiKey, {
     environment,
   });
   paddleEntityClients.set(entity, { cacheKey, client: paddle });
+
+  return {
+    paddle,
+    config,
+  };
+}
+
+export function getPaddleForEntity(
+  entity: BillingEntity,
+  options: ResolveBillingEntityConfigOptions = {}
+): Paddle {
+  const { paddle } = getPaddleAndConfigForEntity(entity, options);
   return paddle;
 }
 

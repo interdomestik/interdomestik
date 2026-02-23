@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { enforceRateLimit } from '@/lib/rate-limit';
 import {
-  getPaddleForEntity,
-  resolveBillingEntityConfig,
+  getPaddleAndConfigForEntity,
   resolveBillingEntityFromPathSegment,
 } from '@interdomestik/domain-membership-billing/paddle-server';
 
@@ -32,8 +31,8 @@ export async function POST(req: NextRequest, { params }: WebhookRouteContext) {
   }
 
   try {
-    const paddle = getPaddleForEntity(entity);
-    const { webhookSecret: secret } = resolveBillingEntityConfig(entity);
+    const { paddle, config } = getPaddleAndConfigForEntity(entity);
+    const secret = config.webhookSecret;
     const signature = req.headers.get('paddle-signature');
     const bodyText = await req.text();
 
