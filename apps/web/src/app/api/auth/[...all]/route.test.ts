@@ -54,6 +54,12 @@ describe('GET /api/auth/[...all]', () => {
     expect(await res.text()).toBe('ok');
     expect(hoisted.handlerGET).toHaveBeenCalledTimes(1);
     expect(hoisted.handlerGET).toHaveBeenCalledWith(req);
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'api/auth',
+        productionSensitive: true,
+      })
+    );
   });
 });
 
@@ -104,5 +110,11 @@ describe('POST /api/auth/[...all]', () => {
 
     expect(res.status).toBe(200);
     expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'api/auth',
+        productionSensitive: true,
+      })
+    );
   });
 });
