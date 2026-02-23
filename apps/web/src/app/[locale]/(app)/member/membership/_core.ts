@@ -97,9 +97,17 @@ export function isGracePeriodExpired(args: { endDate: Date | null; now?: Date })
   return now.getTime() > endDate.getTime();
 }
 
-type SubscriptionQueryResult = Awaited<ReturnType<typeof db.query.subscriptions.findFirst>>;
+function getSubscriptionWithPlanQuery() {
+  return db.query.subscriptions.findFirst({
+    with: {
+      plan: true,
+    },
+  });
+}
 
-export type SubscriptionRecord = NonNullable<SubscriptionQueryResult>;
+export type SubscriptionRecord = NonNullable<
+  Awaited<ReturnType<typeof getSubscriptionWithPlanQuery>>
+>;
 
 type SubscriptionDunningInput =
   | {
