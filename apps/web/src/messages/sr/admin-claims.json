@@ -43,32 +43,32 @@
           "draft": "Нацрт",
           "other": "Остали"
         },
-        "group_header": "{label} • {count}",
+        "group_header": "{label} • {count} stavki",
         "row": {
           "stage_line": "{stage} • {days} дана",
           "owner_waiting": "Чека се {owner}",
           "owner_assigned": "Додељено: {name} ({role})",
           "owner_system": "Системска пауза",
           "stuck": "Захтева пажњу",
-          "branch_type": "{branch} • {type}",
-          "member": "{name} ({email})",
-          "amount_unknown": "—",
-          "metadata_condensed": "{member} • {branch}"
+          "branch_type": "{branch} • Tip: {type}",
+          "member": "{name} (e-pošta: {email})",
+          "amount_unknown": "N/D",
+          "metadata_condensed": "Član: {member} • Filijala: {branch}"
         },
         "empty_state": "Нема оперативних захтева за овај филтер."
       },
       "source": {
         "origin_label": "Poreklo",
         "branch": "Filijala",
-        "agent": "Agent",
+        "agent": "Zastupnik",
         "member": "Član",
         "unknown": "Nepoznat",
         "created": "Креирано",
         "origin": {
-          "portal": "Portal",
-          "agent": "Agent",
-          "admin": "Admin",
-          "api": "API"
+          "portal": "Korisnički portal",
+          "agent": "Zastupnik",
+          "admin": "Administrator",
+          "api": "API servis"
         }
       },
       "filters": {
@@ -145,31 +145,40 @@
         "refresh": "Освежи"
       },
       "next_actions": {
-        "title": "Next Step",
-        "secondary_label": "Also available",
+        "title": "Sledeći korak",
+        "secondary_label": "Takođe dostupno",
         "stuck": "Заглављено",
         "days": "дана",
         "status": "Статус",
         "actions": {
           "assign": {
-            "label": "Assign to Me",
-            "description": "Take ownership to unblock this claim."
+            "label": "Dodeli meni",
+            "description": "Preuzmi vlasništvo da odblokiraš ovaj zahtev."
           },
           "update_status": {
-            "label": "Advance Status",
-            "description": "Move claim to next stage."
+            "label": "Pomeri status",
+            "description": "Pomeri zahtev u sledeću fazu."
           },
-          "ack_sla": { "label": "Acknowledge Breach", "description": "SLA missed. Note required." },
-          "escalate": { "label": "Escalate", "description": "Request manager attention." },
+          "ack_sla": {
+            "label": "Potvrdi prekršaj",
+            "description": "SLA je probijen. Potrebna je beleška."
+          },
+          "escalate": {
+            "label": "Eskaliraj",
+            "description": "Zatraži pažnju menadžera."
+          },
           "message_poke": {
-            "label": "Send Reminder",
-            "description": "Member has been unresponsive."
+            "label": "Pošalji podsetnik",
+            "description": "Član ne odgovara."
           },
           "review_blockers": {
-            "label": "Review Blockers",
-            "description": "Check timeline for issues."
+            "label": "Pregledaj blokade",
+            "description": "Proveri vremensku liniju zbog problema."
           },
-          "reopen": { "label": "Reopen Claim", "description": "Move back to evaluation." },
+          "reopen": {
+            "label": "Ponovo otvori zahtev",
+            "description": "Vrati nazad u evaluaciju."
+          },
           "message_respond": {
             "label": "Dodaj belešku",
             "description": "Dodaj internu belešku za dodeljenog vlasnika."
@@ -185,7 +194,7 @@
           "stuck": "Zaglavljeno ({days} dana)",
           "unassigned": "Nedodeljeno",
           "back_to_queue": "Nazad u red",
-          "sla": "SLA",
+          "sla": "SLA rok",
           "breach": "Prekršaj",
           "days": "дана",
           "status": "Статус"
@@ -202,7 +211,7 @@
         "no_docs": "Nema otpremljenih dokumenata.",
         "types": {
           "image": "Slika",
-          "audio": "Audio",
+          "audio": "Audio zapis",
           "document": "Dokument"
         }
       },

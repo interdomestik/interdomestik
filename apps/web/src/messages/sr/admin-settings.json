@@ -1,33 +1,33 @@
 {
   "admin": {
     "settings_page": {
-      "title": "Admin Settings",
-      "description": "Configure system-wide parameters and platform behavior.",
+      "title": "Administratorska podešavanja",
+      "description": "Podesi parametre za ceo sistem i ponašanje platforme.",
       "sections": {
         "general": {
-          "title": "General",
-          "description": "Basic platform identification and contact info.",
-          "app_name": "Application Name",
-          "support_email": "Support Email"
+          "title": "Opšte",
+          "description": "Osnovna identifikacija platforme i kontakt podaci.",
+          "app_name": "Naziv aplikacije",
+          "support_email": "Imejl podrške"
         },
         "claims": {
-          "title": "Claims Processing",
-          "description": "Rules and automation for claim processing.",
-          "auto_assignment": "Auto-assignment of agents",
-          "auto_assignment_desc": "Automatically assign new claims to available agents.",
-          "default_expiry": "Default claim expiry (days)"
+          "title": "Obrada zahteva",
+          "description": "Pravila i automatizacija za obradu zahteva.",
+          "auto_assignment": "Automatska dodela agenata",
+          "auto_assignment_desc": "Automatski dodeli nove zahteve dostupnim agentima.",
+          "default_expiry": "Podrazumevano isticanje zahteva (dani)"
         },
         "system": {
-          "title": "System",
-          "description": "System health and maintenance controls.",
-          "maintenance_mode": "Maintenance Mode",
-          "maintenance_mode_desc": "Prevent user access while performing updates.",
-          "verbose_logging": "Verbose Logging",
-          "verbose_logging_desc": "Enable detailed logs for debugging purposes."
+          "title": "Sistem",
+          "description": "Kontrole zdravlja sistema i održavanja.",
+          "maintenance_mode": "Režim održavanja",
+          "maintenance_mode_desc": "Onemogući pristup korisnicima tokom ažuriranja.",
+          "verbose_logging": "Detaljno logovanje",
+          "verbose_logging_desc": "Omogući detaljne logove za potrebe otklanjanja grešaka."
         }
       },
-      "save_changes": "Save Changes",
-      "success_message": "Settings updated successfully"
+      "save_changes": "Sačuvaj izmene",
+      "success_message": "Podešavanja su uspešno ažurirana"
     }
   }
 }

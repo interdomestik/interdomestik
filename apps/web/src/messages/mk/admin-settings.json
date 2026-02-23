@@ -1,33 +1,33 @@
 {
   "admin": {
     "settings_page": {
-      "title": "Admin Settings",
-      "description": "Configure system-wide parameters and platform behavior.",
+      "title": "Администраторски поставки",
+      "description": "Конфигурирај параметри за целиот систем и однесувањето на платформата.",
       "sections": {
         "general": {
-          "title": "General",
-          "description": "Basic platform identification and contact info.",
-          "app_name": "Application Name",
-          "support_email": "Support Email"
+          "title": "Општо",
+          "description": "Основна идентификација на платформата и контакт информации.",
+          "app_name": "Име на апликацијата",
+          "support_email": "Е-пошта за поддршка"
         },
         "claims": {
-          "title": "Claims Processing",
-          "description": "Rules and automation for claim processing.",
-          "auto_assignment": "Auto-assignment of agents",
-          "auto_assignment_desc": "Automatically assign new claims to available agents.",
-          "default_expiry": "Default claim expiry (days)"
+          "title": "Обработка на барања",
+          "description": "Правила и автоматизација за обработка на барања.",
+          "auto_assignment": "Автоматско доделување на агенти",
+          "auto_assignment_desc": "Автоматски доделувај нови барања на достапни агенти.",
+          "default_expiry": "Стандарден рок на барање (дена)"
         },
         "system": {
-          "title": "System",
-          "description": "System health and maintenance controls.",
-          "maintenance_mode": "Maintenance Mode",
-          "maintenance_mode_desc": "Prevent user access while performing updates.",
-          "verbose_logging": "Verbose Logging",
-          "verbose_logging_desc": "Enable detailed logs for debugging purposes."
+          "title": "Систем",
+          "description": "Контроли за здравје и одржување на системот.",
+          "maintenance_mode": "Режим на одржување",
+          "maintenance_mode_desc": "Спречи пристап на корисници додека се извршуваат ажурирања.",
+          "verbose_logging": "Детално логирање",
+          "verbose_logging_desc": "Овозможи детални логови за дебагирање."
         }
       },
-      "save_changes": "Save Changes",
-      "success_message": "Settings updated successfully"
+      "save_changes": "Зачувај промени",
+      "success_message": "Поставките се успешно ажурирани"
     }
   }
 }
