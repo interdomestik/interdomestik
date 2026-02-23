@@ -43,17 +43,17 @@
           "draft": "Нацрт",
           "other": "Други"
         },
-        "group_header": "{label} • {count}",
+        "group_header": "{label} • {count} ставки",
         "row": {
           "stage_line": "{stage} • {days} дена",
           "owner_waiting": "Се чека {owner}",
           "owner_assigned": "Назначен: {name} ({role})",
           "owner_system": "Системска пауза",
           "stuck": "Бара внимание",
-          "branch_type": "{branch} • {type}",
-          "member": "{name} ({email})",
-          "amount_unknown": "—",
-          "metadata_condensed": "{member} • {branch}"
+          "branch_type": "{branch} • Тип: {type}",
+          "member": "{name} (е-пошта: {email})",
+          "amount_unknown": "Н/Д",
+          "metadata_condensed": "Член: {member} • Филијала: {branch}"
         },
         "empty_state": "Нема оперативни барања за овој филтер."
       },
@@ -67,8 +67,8 @@
         "origin": {
           "portal": "Портал",
           "agent": "Агент",
-          "admin": "Admin",
-          "api": "API"
+          "admin": "Админ",
+          "api": "АПИ"
         }
       },
       "filters": {
@@ -145,31 +145,40 @@
         "refresh": "Освежи"
       },
       "next_actions": {
-        "title": "Next Step",
-        "secondary_label": "Also available",
+        "title": "Следен чекор",
+        "secondary_label": "Исто така достапно",
         "stuck": "Заглавено",
         "days": "дена",
         "status": "Статус",
         "actions": {
           "assign": {
-            "label": "Assign to Me",
-            "description": "Take ownership to unblock this claim."
+            "label": "Додели на мене",
+            "description": "Преземи одговорност за да го одблокираш ова барање."
           },
           "update_status": {
-            "label": "Advance Status",
-            "description": "Move claim to next stage."
+            "label": "Унапреди статус",
+            "description": "Премести го барањето во следната фаза."
           },
-          "ack_sla": { "label": "Acknowledge Breach", "description": "SLA missed. Note required." },
-          "escalate": { "label": "Escalate", "description": "Request manager attention." },
+          "ack_sla": {
+            "label": "Потврди прекршок",
+            "description": "СЛА е пропуштен. Потребна е белешка."
+          },
+          "escalate": {
+            "label": "Ескалирај",
+            "description": "Побарај внимание од менаџер."
+          },
           "message_poke": {
-            "label": "Send Reminder",
-            "description": "Member has been unresponsive."
+            "label": "Испрати потсетник",
+            "description": "Членот не одговара."
           },
           "review_blockers": {
-            "label": "Review Blockers",
-            "description": "Check timeline for issues."
+            "label": "Прегледај блокади",
+            "description": "Провери ја временската линија за проблеми."
           },
-          "reopen": { "label": "Reopen Claim", "description": "Move back to evaluation." },
+          "reopen": {
+            "label": "Повторно отвори барање",
+            "description": "Врати го назад во евалуација."
+          },
           "message_respond": {
             "label": "Додај белешка",
             "description": "Додај внатрешна белешка за доделениот одговорен."
@@ -185,7 +194,7 @@
           "stuck": "Заглавено ({days} дена)",
           "unassigned": "Неназначено",
           "back_to_queue": "Назад во ред",
-          "sla": "SLA",
+          "sla": "SLA рок",
           "breach": "Прекршок",
           "days": "дена",
           "status": "Статус"

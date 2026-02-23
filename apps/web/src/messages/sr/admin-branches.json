@@ -18,8 +18,8 @@
       "fields": {
         "name": "Naziv filijale",
         "code": "Kod filijale",
-        "slug": "Slug",
-        "status": "Status",
+        "slug": "Slug oznaka",
+        "status": "Status filijale",
         "isActive": "Status aktivnosti"
       },
       "status": {
@@ -49,8 +49,8 @@
       "list_description": "Trenutno imate {count} registrovanih filijala.",
       "table_name": "Naziv filijale",
       "table_code": "Kod",
-      "table_status": "Status",
-      "table_kpis": "KPIs",
+      "table_status": "Status filijale",
+      "table_kpis": "KPI pokazatelji",
       "table_open_claims": "Otvorene Štete",
       "table_cash_pending": "Keš na Čekanju",
       "table_sla_breaches": "SLA Prekršaji",
@@ -71,28 +71,28 @@
         "agents_description": "{count, plural, =0 {Nema agenata} =1 {1 agent} other {# agenata}} u ovoj filijali",
         "no_agents": "Nema agenata u ovoj filijali.",
         "col_rank": "Rang",
-        "col_agent_name": "Agent",
+        "col_agent_name": "Zastupnik",
         "col_members": "Članovi",
         "col_active_claims": "Aktivni",
         "col_submitted_30d": "Podneti (30d)",
         "unknown_agent": "Nepoznat"
       },
-      "create_branch": "New Branch",
-      "create_branch_title": "Create New Branch",
-      "create_branch_description": "Add a new branch to your organization.",
-      "field_name": "Branch Name",
-      "placeholder_name": "e.g. Main Branch",
-      "field_code": "Branch Code",
-      "placeholder_code": "e.g. BR-001",
-      "submit": "Create",
-      "create_error": "Creation failed",
-      "create_success": "Branch created",
-      "create_success_description": "Branch {name} created successfully.",
-      "unexpected_error": "An unexpected error occurred.",
+      "create_branch": "Nova filijala",
+      "create_branch_title": "Kreiraj novu filijalu",
+      "create_branch_description": "Dodaj novu filijalu svojoj organizaciji.",
+      "field_name": "Naziv filijale",
+      "placeholder_name": "npr. Glavna filijala",
+      "field_code": "Kod filijale",
+      "placeholder_code": "npr. BR-001",
+      "submit": "Kreiraj",
+      "create_error": "Kreiranje nije uspelo",
+      "create_success": "Filijala je kreirana",
+      "create_success_description": "Filijala {name} je uspešno kreirana.",
+      "unexpected_error": "Došlo je do neočekivane greške.",
       "active_operations": "Aktivne Operacije",
       "inactive_branch": "Neaktivna Filijala",
       "search_placeholder": "Pretraži filijale...",
-      "filter_status": "Status",
+      "filter_status": "Status filijale",
       "filter_all": "Svi statusi",
       "filter_attention": "Zahteva pažnju",
       "sort_label": "Sortiraj po",
@@ -101,10 +101,40 @@
       "sort_cash_pending_desc": "Keš na čekanju (Više-Niže)",
       "sort_sla_breaches_desc": "SLA prekršaji (Više-Niže)",
       "health": {
-        "healthy": "Zdravo Stanje",
-        "watch": "Zahteva Pažnju",
-        "urgent": "Hitno",
-        "inactive": "Neaktivno"
+        "tooltip": {
+          "healthy": {
+            "title": "Operacije su pod kontrolom.",
+            "action": "Nije potrebna akcija.",
+            "bullets": [
+              "Nema kritičnih kašnjenja",
+              "Isplate se odvijaju normalno",
+              "Zahtevi napreduju na vreme"
+            ]
+          },
+          "attention": {
+            "title": "Neka pitanja zahtevaju praćenje.",
+            "action": "Pregledaj otvorene stavke.",
+            "bullets": [
+              "Nekoliko zahteva ili isplata zahteva dodatno praćenje",
+              "Otkrivena su manja kašnjenja",
+              "Rizik je pod kontrolom ako se reaguje na vreme"
+            ]
+          },
+          "urgent": {
+            "title": "Potrebna je hitna akcija.",
+            "action": "Istraži i reši danas.",
+            "bullets": [
+              "Zahtevi kasne iznad prihvatljivih rokova",
+              "Isplate čekaju verifikaciju",
+              "Operativni rizik je visok"
+            ]
+          },
+          "inactive": {
+            "title": "Filijala trenutno nije operativna.",
+            "action": "Proveri status filijale.",
+            "bullets": ["Nema aktivnih zahteva ili detektovane aktivnosti"]
+          }
+        }
       },
       "health_score": "Zdravlje {score}/100",
       "filters": {
@@ -144,12 +174,12 @@
       },
       "agent_health": {
         "title": "Zdravlje Agenata",
-        "agent": "Agent",
+        "agent": "Zastupnik",
         "score": "Rezultat",
         "open": "Otvoreni",
         "cash": "Gotovina",
-        "sla": "SLA",
-        "table_status": "Status",
+        "sla": "SLA rok",
+        "table_status": "Status zdravlja",
         "status": {
           "healthy": "Zdravo",
           "attention": "Pažnja",
@@ -163,42 +193,6 @@
         "name": "Član Osoblja",
         "workload": "Aktivne Štete",
         "no_staff": "Nisu pronađena dodeljivanja osoblja"
-      },
-      "health": {
-        "tooltip": {
-          "healthy": {
-            "title": "Operations are under control.",
-            "action": "No action needed.",
-            "bullets": [
-              "No critical delays",
-              "Payments are flowing normally",
-              "Claims are progressing on time"
-            ]
-          },
-          "attention": {
-            "title": "Some issues require monitoring.",
-            "action": "Review open items.",
-            "bullets": [
-              "A few claims or payments need follow-up",
-              "Minor delays detected",
-              "Risk is manageable if addressed early"
-            ]
-          },
-          "urgent": {
-            "title": "Immediate action required.",
-            "action": "Investigate and resolve today.",
-            "bullets": [
-              "Claims are delayed beyond acceptable limits",
-              "Payments are pending verification",
-              "Operational risk is high"
-            ]
-          },
-          "inactive": {
-            "title": "Branch is not currently operational.",
-            "action": "Verify branch status.",
-            "bullets": ["No active claims or activity detected"]
-          }
-        }
       }
     }
   }

@@ -18,7 +18,7 @@
       "fields": {
         "name": "Име на филијала",
         "code": "Шифра на филијала",
-        "slug": "Slug",
+        "slug": "Слаг",
         "status": "Статус",
         "isActive": "Статус на активност"
       },
@@ -44,8 +44,6 @@
       "no_branches_subtitle": "Пробајте да ги прилагодите филтрите или креирајте нова филијала.",
       "status_active": "Активно",
       "status_inactive": "Неактивно",
-      "status_active": "Активно",
-      "status_inactive": "Неактивно",
       "active_operations": "Целосен Оперативен Статус",
       "inactive_branch": "Суспендирани Операции",
       "list_title": "Листа на филијали",
@@ -53,7 +51,7 @@
       "table_name": "Име на филијала",
       "table_code": "Шифра",
       "table_status": "Статус",
-      "table_kpis": "KPIs",
+      "table_kpis": "КПИ",
       "table_open_claims": "Отворени Штети",
       "table_cash_pending": "Кеш во Чекање",
       "table_sla_breaches": "SLA Прекршувања",
@@ -90,23 +88,53 @@
         "col_submitted_30d": "Поднесени (30д)",
         "unknown_agent": "Непознат"
       },
-      "create_branch": "New Branch",
-      "create_branch_title": "Create New Branch",
-      "create_branch_description": "Add a new branch to your organization.",
-      "field_name": "Branch Name",
-      "placeholder_name": "e.g. Main Branch",
-      "field_code": "Branch Code",
-      "placeholder_code": "e.g. BR-001",
-      "submit": "Create",
-      "create_error": "Creation failed",
-      "create_success": "Branch created",
-      "create_success_description": "Branch {name} created successfully.",
-      "unexpected_error": "An unexpected error occurred.",
+      "create_branch": "Нова филијала",
+      "create_branch_title": "Креирај нова филијала",
+      "create_branch_description": "Додај нова филијала во организацијата.",
+      "field_name": "Име на филијала",
+      "placeholder_name": "пр. Главна филијала",
+      "field_code": "Шифра на филијала",
+      "placeholder_code": "пр. BR-001",
+      "submit": "Креирај",
+      "create_error": "Креирањето не успеа",
+      "create_success": "Филијалата е креирана",
+      "create_success_description": "Филијалата {name} е успешно креирана.",
+      "unexpected_error": "Се појави неочекувана грешка.",
       "health": {
-        "healthy": "Здрава Состојба",
-        "watch": "Бара Внимание",
-        "urgent": "Итно",
-        "inactive": "Неактивна"
+        "tooltip": {
+          "healthy": {
+            "title": "Операциите се под контрола.",
+            "action": "Не е потребна акција.",
+            "bullets": [
+              "Нема критични доцнења",
+              "Исплатите се одвиваат нормално",
+              "Барањата напредуваат навреме"
+            ]
+          },
+          "attention": {
+            "title": "Одредени проблеми бараат следење.",
+            "action": "Прегледај ги отворените ставки.",
+            "bullets": [
+              "Неколку барања или исплати бараат дополнително следење",
+              "Откриени се помали доцнења",
+              "Ризикот е управлив ако се реагира навреме"
+            ]
+          },
+          "urgent": {
+            "title": "Потребна е итна акција.",
+            "action": "Истражи и реши денес.",
+            "bullets": [
+              "Барањата доцнат над прифатливите рокови",
+              "Исплатите чекаат верификација",
+              "Оперативниот ризик е висок"
+            ]
+          },
+          "inactive": {
+            "title": "Филијалата моментално не е оперативна.",
+            "action": "Провери го статусот на филијалата.",
+            "bullets": ["Нема активни барања или детектирана активност"]
+          }
+        }
       },
       "health_score": "Здравје {score}/100",
       "filters": {
@@ -150,7 +178,7 @@
         "score": "Резултат",
         "open": "Отворени",
         "cash": "Кеш",
-        "sla": "SLA",
+        "sla": "SLA рок",
         "table_status": "Статус",
         "status": {
           "healthy": "Здраво",
@@ -165,42 +193,6 @@
         "name": "Член на Персонал",
         "workload": "Активни Штети",
         "no_staff": "Не се пронајдени доделувања на персонал"
-      },
-      "health": {
-        "tooltip": {
-          "healthy": {
-            "title": "Operations are under control.",
-            "action": "No action needed.",
-            "bullets": [
-              "No critical delays",
-              "Payments are flowing normally",
-              "Claims are progressing on time"
-            ]
-          },
-          "attention": {
-            "title": "Some issues require monitoring.",
-            "action": "Review open items.",
-            "bullets": [
-              "A few claims or payments need follow-up",
-              "Minor delays detected",
-              "Risk is manageable if addressed early"
-            ]
-          },
-          "urgent": {
-            "title": "Immediate action required.",
-            "action": "Investigate and resolve today.",
-            "bullets": [
-              "Claims are delayed beyond acceptable limits",
-              "Payments are pending verification",
-              "Operational risk is high"
-            ]
-          },
-          "inactive": {
-            "title": "Branch is not currently operational.",
-            "action": "Verify branch status.",
-            "bullets": ["No active claims or activity detected"]
-          }
-        }
       }
     }
   }
