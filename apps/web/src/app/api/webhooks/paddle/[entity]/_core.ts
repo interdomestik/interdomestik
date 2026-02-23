@@ -51,27 +51,31 @@ function resolveExplicitEntity(data: unknown): BillingEntity | null {
 }
 
 async function resolveTenantIdFromWebhookData(data: unknown): Promise<string | null> {
-  const payload = (data ?? {}) as PaddleWebhookData;
-  const customData = resolveCustomData(payload);
-  const userId = customData.userId;
+  try {
+    const payload = (data ?? {}) as PaddleWebhookData;
+    const customData = resolveCustomData(payload);
+    const userId = customData.userId;
 
-  if (userId) {
-    const userRecord = await db.query.user.findFirst({
-      where: (users, { eq }) => eq(users.id, userId),
+    if (userId) {
+      const userRecord = await db.query.user.findFirst({
+        where: (users, { eq }) => eq(users.id, userId),
+        columns: { tenantId: true },
+      });
+      if (userRecord?.tenantId) return userRecord.tenantId;
+    }
+
+    const subscriptionId = payload.id || payload.subscriptionId || payload.subscription_id;
+    if (!subscriptionId) return null;
+
+    const subscription = await db.query.subscriptions.findFirst({
+      where: (subs, { eq }) => eq(subs.id, subscriptionId),
       columns: { tenantId: true },
     });
-    if (userRecord?.tenantId) return userRecord.tenantId;
+
+    return subscription?.tenantId ?? null;
+  } catch {
+    return null;
   }
-
-  const subscriptionId = payload.id || payload.subscriptionId || payload.subscription_id;
-  if (!subscriptionId) return null;
-
-  const subscription = await db.query.subscriptions.findFirst({
-    where: (subs, { eq }) => eq(subs.id, subscriptionId),
-    columns: { tenantId: true },
-  });
-
-  return subscription?.tenantId ?? null;
 }
 
 async function isEntityMismatch(expectedEntity: BillingEntity, data: unknown): Promise<boolean> {
@@ -88,11 +92,15 @@ async function isEntityMismatch(expectedEntity: BillingEntity, data: unknown): P
     }
   }
 
-  const tenantId = await resolveTenantIdFromWebhookData(data);
-  if (!tenantId) return false;
+  try {
+    const tenantId = await resolveTenantIdFromWebhookData(data);
+    if (!tenantId) return false;
 
-  const tenantEntity = resolveBillingEntityForTenantId(tenantId);
-  return Boolean(tenantEntity && tenantEntity !== expectedEntity);
+    const tenantEntity = resolveBillingEntityForTenantId(tenantId);
+    return Boolean(tenantEntity && tenantEntity !== expectedEntity);
+  } catch {
+    return false;
+  }
 }
 
 async function preflightEntityMismatchCheck(args: {

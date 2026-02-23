@@ -141,6 +141,53 @@ describe('handlePaddleWebhookEntityCore', () => {
     expect(hoisted.handlePaddleWebhookCore).not.toHaveBeenCalled();
   });
 
+  it('rejects webhook when payload metadata entity disagrees with expected entity', async () => {
+    hoisted.verifyPaddleWebhook.mockResolvedValue({
+      eventData: {
+        eventType: 'transaction.completed',
+        eventId: 'evt_mk',
+        data: {
+          customData: {
+            entity: 'mk',
+          },
+        },
+      },
+      signatureValid: true,
+      signatureBypassed: false,
+    });
+
+    const result = await handlePaddleWebhookEntityCore({
+      expectedEntity: 'ks',
+      paddle: { mocked: true } as never,
+      headers: new Headers({ 'paddle-signature': 'sig_mk' }),
+      signature: 'sig_mk',
+      secret: 'whsec_ks',
+      bodyText: '{"event_type":"transaction.completed"}',
+    });
+
+    expect(result.status).toBe(401);
+    expect(result.body).toEqual({ error: 'Webhook entity mismatch' });
+    expect(hoisted.dbUserFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.dbSubscriptionFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.handlePaddleWebhookCore).not.toHaveBeenCalled();
+  });
+
+  it('delegates to shared core when tenant lookup throws during mismatch check', async () => {
+    hoisted.dbUserFindFirst.mockRejectedValue(new Error('db unavailable'));
+
+    const result = await handlePaddleWebhookEntityCore({
+      expectedEntity: 'ks',
+      paddle: { mocked: true } as never,
+      headers: new Headers({ 'paddle-signature': 'sig_ks' }),
+      signature: 'sig_ks',
+      secret: 'whsec_ks',
+      bodyText: '{"event_type":"transaction.completed"}',
+    });
+
+    expect(result).toEqual({ status: 200, body: { success: true } });
+    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledTimes(1);
+  });
+
   it('falls back to shared core handling when preflight signature verification fails', async () => {
     hoisted.verifyPaddleWebhook.mockRejectedValue(new Error('invalid signature'));
     hoisted.handlePaddleWebhookCore.mockResolvedValue({
