@@ -93,15 +93,16 @@ export function resolveTenantIdFromSources(
   const hostTenant = resolveTenantFromHost(sources.host ?? '');
   if (hostTenant) return hostTenant;
 
-  if (options.productionSensitive && isProductionLikeEnvironment()) {
-    return null;
-  }
-
   const cookieTenant = coerceTenantId(sources.cookieTenantId);
   if (cookieTenant) return cookieTenant;
 
   const headerTenant = coerceTenantId(sources.headerTenantId);
   if (headerTenant) return headerTenant;
+
+  const allowQueryFallback = !(options.productionSensitive && isProductionLikeEnvironment());
+  if (!allowQueryFallback) {
+    return null;
+  }
 
   const queryTenant = coerceTenantId(sources.queryTenantId);
   if (queryTenant) return queryTenant;

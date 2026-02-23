@@ -71,7 +71,7 @@ describe('tenant-hosts', () => {
     ).toBe('tenant_ks');
   });
 
-  it('fails closed in production-sensitive mode when host cannot be resolved', () => {
+  it('uses cookie/header fallback in production-sensitive mode when host is neutral', () => {
     mutableEnv.NODE_ENV = 'production';
     delete mutableEnv.VERCEL_ENV;
 
@@ -85,10 +85,25 @@ describe('tenant-hosts', () => {
         },
         { productionSensitive: true }
       )
+    ).toBe('tenant_mk');
+  });
+
+  it('blocks query-only fallback in production-sensitive mode', () => {
+    mutableEnv.NODE_ENV = 'production';
+    delete mutableEnv.VERCEL_ENV;
+
+    expect(
+      resolveTenantIdFromSources(
+        {
+          host: 'localhost:3000',
+          queryTenantId: 'tenant_mk',
+        },
+        { productionSensitive: true }
+      )
     ).toBeNull();
   });
 
-  it('retains fallback behavior in non-production environments', () => {
+  it('retains query fallback behavior in non-production environments', () => {
     mutableEnv.NODE_ENV = 'test';
     delete mutableEnv.VERCEL_ENV;
 
@@ -96,7 +111,7 @@ describe('tenant-hosts', () => {
       resolveTenantIdFromSources(
         {
           host: 'localhost:3000',
-          cookieTenantId: 'tenant_mk',
+          queryTenantId: 'tenant_mk',
         },
         { productionSensitive: true }
       )

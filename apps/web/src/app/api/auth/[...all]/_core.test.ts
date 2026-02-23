@@ -100,7 +100,7 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
     ).toBeNull();
   });
 
-  it('fails closed in production when host is not tenant-qualified', () => {
+  it('falls back to cookie/header when host is neutral in production', () => {
     MUTABLE_ENV.NODE_ENV = 'production';
     delete MUTABLE_ENV.VERCEL_ENV;
     const headers = new Headers({
@@ -114,7 +114,7 @@ describe('resolveTenantIdForPasswordResetAudit', () => {
         'https://interdomestik-web.vercel.app/api/auth/request-password-reset?tenantId=tenant_mk',
         headers
       )
-    ).toBeNull();
+    ).toBe('tenant_mk');
   });
 
   it('keeps host as canonical in production when fallback hints conflict', () => {
@@ -172,7 +172,7 @@ describe('resolveTenantIdForEmailSignIn', () => {
     expect(resolveTenantIdForEmailSignIn(headers)).toBeNull();
   });
 
-  it('fails closed in production when host is unknown', () => {
+  it('falls back to cookie/header in production when host is neutral', () => {
     MUTABLE_ENV.NODE_ENV = 'production';
     delete MUTABLE_ENV.VERCEL_ENV;
     const headers = new Headers({
@@ -180,7 +180,7 @@ describe('resolveTenantIdForEmailSignIn', () => {
       cookie: 'tenantId=tenant_mk',
       'x-tenant-id': 'tenant_ks',
     });
-    expect(resolveTenantIdForEmailSignIn(headers)).toBeNull();
+    expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_mk');
   });
 
   it('uses host tenant in production when fallback hints conflict', () => {
