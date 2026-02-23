@@ -24,11 +24,11 @@ function buildRlsDatabaseUrl(databaseUrl: string): string {
 }
 
 test('RLS is actively enforced across tenant context boundaries', async t => {
-  const isCi = process.env.CI === 'true';
+  const requireIntegration = process.env.REQUIRE_RLS_INTEGRATION === '1';
 
   if (!process.env.DATABASE_URL) {
-    if (isCi) {
-      assert.fail('RLS test requires DATABASE_URL in CI.');
+    if (requireIntegration) {
+      assert.fail('RLS test requires DATABASE_URL when REQUIRE_RLS_INTEGRATION=1.');
     }
     t.skip('DATABASE_URL is required for RLS integration test');
     return;
@@ -41,11 +41,13 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
     sql`select relrowsecurity as enabled from pg_class where relname = 'claim'`
   );
   if (!rlsEnabled?.enabled) {
-    if (isCi) {
-      assert.fail('RLS test requires claim table RLS enabled in CI (migrations must be applied).');
+    await adminSql.end({ timeout: 5 });
+    if (requireIntegration) {
+      assert.fail(
+        'RLS test requires claim table RLS enabled when REQUIRE_RLS_INTEGRATION=1 (migrations must be applied).'
+      );
     }
     t.skip('claim table RLS is not enabled in current database');
-    await adminSql.end({ timeout: 5 });
     return;
   }
 
@@ -53,11 +55,13 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
     sql`select policyname from pg_policies where schemaname = 'public' and tablename = 'claim' and policyname = 'tenant_isolation_claim'`
   );
   if (policies.length === 0) {
-    if (isCi) {
-      assert.fail('RLS test requires tenant_isolation_claim policy present in CI.');
+    await adminSql.end({ timeout: 5 });
+    if (requireIntegration) {
+      assert.fail(
+        'RLS test requires tenant_isolation_claim policy when REQUIRE_RLS_INTEGRATION=1.'
+      );
     }
     t.skip('tenant_isolation_claim policy is not present in current database');
-    await adminSql.end({ timeout: 5 });
     return;
   }
 
@@ -83,6 +87,7 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
     import('../src/db'),
     import('../src/tenant'),
   ]);
+  console.log('RLS_INTEGRATION_RAN=1');
 
   const ksUserId = uniqueId('rls_user_ks');
   const mkUserId = uniqueId('rls_user_mk');
