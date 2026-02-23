@@ -5,7 +5,7 @@ const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   resolveBillingEntityFromPathSegment: vi.fn(),
   getPaddleAndConfigForEntity: vi.fn(),
-  handlePaddleWebhookCore: vi.fn(),
+  handlePaddleWebhookEntityCore: vi.fn(),
 }));
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -17,8 +17,8 @@ vi.mock('@interdomestik/domain-membership-billing/paddle-server', () => ({
   getPaddleAndConfigForEntity: hoisted.getPaddleAndConfigForEntity,
 }));
 
-vi.mock('../_core', () => ({
-  handlePaddleWebhookCore: hoisted.handlePaddleWebhookCore,
+vi.mock('./_core', () => ({
+  handlePaddleWebhookEntityCore: hoisted.handlePaddleWebhookEntityCore,
 }));
 
 import { POST } from './route';
@@ -35,7 +35,7 @@ describe('POST /api/webhooks/paddle/[entity]', () => {
         webhookSecret: 'whsec_ks',
       },
     });
-    hoisted.handlePaddleWebhookCore.mockResolvedValue({ status: 200, body: { ok: true } });
+    hoisted.handlePaddleWebhookEntityCore.mockResolvedValue({ status: 200, body: { ok: true } });
   });
 
   it('returns early when rate limited', async () => {
@@ -65,11 +65,12 @@ describe('POST /api/webhooks/paddle/[entity]', () => {
 
     expect(res.status).toBe(404);
     expect(data).toEqual({ error: 'Unknown billing entity' });
-    expect(hoisted.handlePaddleWebhookCore).not.toHaveBeenCalled();
+    expect(hoisted.getPaddleAndConfigForEntity).not.toHaveBeenCalled();
+    expect(hoisted.handlePaddleWebhookEntityCore).not.toHaveBeenCalled();
   });
 
   it('uses entity-scoped billing config for webhook handling', async () => {
-    hoisted.handlePaddleWebhookCore.mockResolvedValue({
+    hoisted.handlePaddleWebhookEntityCore.mockResolvedValue({
       status: 202,
       body: { accepted: true },
     });
@@ -88,9 +89,12 @@ describe('POST /api/webhooks/paddle/[entity]', () => {
     expect(res.status).toBe(202);
     expect(data).toEqual({ accepted: true });
     expect(hoisted.resolveBillingEntityFromPathSegment).toHaveBeenCalledWith('ks');
-    expect(hoisted.getPaddleAndConfigForEntity).toHaveBeenCalledWith('ks');
-    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledWith(
+    expect(hoisted.getPaddleAndConfigForEntity).toHaveBeenCalledWith('ks', {
+      allowLegacyFallback: false,
+    });
+    expect(hoisted.handlePaddleWebhookEntityCore).toHaveBeenCalledWith(
       expect.objectContaining({
+        expectedEntity: 'ks',
         signature: 'sig_ks',
         secret: 'whsec_ks',
         bodyText: 'payload-ks',
