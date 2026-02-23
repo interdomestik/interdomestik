@@ -160,6 +160,7 @@ describe('POST /api/uploads', () => {
 
     expect(res.status).toBe(404);
     expect(data).toEqual({ error: 'Claim not found' });
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it('returns 403 when claim is owned by someone else', async () => {
@@ -183,6 +184,8 @@ describe('POST /api/uploads', () => {
 
     expect(res.status).toBe(403);
     expect(data).toEqual({ error: 'Forbidden' });
+    expect(data).not.toHaveProperty('upload');
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it('returns 200 with signed upload details', async () => {

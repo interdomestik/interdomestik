@@ -12,7 +12,7 @@ import { headers } from 'next/headers';
 
 export type GenerateUploadUrlResult =
   | { success: true; url: string; path: string; id: string; token: string; bucket: string }
-  | { success: false; error: string };
+  | { success: false; error: string; status: 401 | 404 | 413 | 500 };
 
 export async function generateUploadUrl(
   claimId: string,
@@ -25,7 +25,7 @@ export async function generateUploadUrl(
   });
 
   if (!session) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: 'Unauthorized', status: 401 };
   }
 
   const tenantId = ensureTenantId(session);
@@ -39,35 +39,25 @@ export async function generateUploadUrl(
       nodeEnv: process.env.NODE_ENV,
       vercelEnv: process.env.VERCEL_ENV,
     });
-    return { success: false, error: message };
+    return { success: false, error: message, status: 500 };
   }
 
-  // Authorization: Ensure claim exists and belongs to user/tenant
+  // Authorization: fail-closed to claims owned by the current member and tenant.
   const claim = await db.query.claims.findFirst({
     where: and(
       eq(claims.id, claimId),
-      eq(claims.tenantId, tenantId)
-      // For members, strictly enforce user ownership. For staff/agents, this would be different.
-      // Assuming this action is member-facing only for now.
-      // If shared, we need role checks.
-      // Best safety: eq(claims.policyHolderId, session.user.id) ?
-      // But claims might be linked differently.
-      // Let's assume tenant isolation + valid ID is enough prevention for random attacks
-      // BUT strict member ownership is better if schema supports it.
-      // Checking schema via context is hard without reading it.
-      // Safest safest is relying on the fact that the page wouldn't load if they didn't have access.
-      // But for an action, we should check.
-      // Let's just check tenantId and existence for now to avoid breaking if schema differs.
+      eq(claims.tenantId, tenantId),
+      eq(claims.userId, session.user.id)
     ),
   });
 
   if (!claim) {
-    return { success: false, error: 'Claim not found or access denied' };
+    return { success: false, error: 'Claim not found', status: 404 };
   }
 
   // Validation
   if (fileSize > 50 * 1024 * 1024) {
-    return { success: false, error: 'File too large (max 50MB)' };
+    return { success: false, error: 'File too large (max 50MB)', status: 413 };
   }
 
   // Path: pii/tenants/{tenantId}/claims/{claimId}/{uuid}.{ext}
@@ -81,7 +71,7 @@ export async function generateUploadUrl(
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing Supabase configuration');
-    return { success: false, error: 'Configuration error' };
+    return { success: false, error: 'Configuration error', status: 500 };
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -99,7 +89,7 @@ export async function generateUploadUrl(
         detail,
         error,
       });
-      return { success: false, error: `Failed to generate upload URL: ${detail}` };
+      return { success: false, error: `Failed to generate upload URL: ${detail}`, status: 500 };
     }
 
     return {
@@ -112,11 +102,13 @@ export async function generateUploadUrl(
     };
   } catch (err) {
     console.error('generateUploadUrl error:', err);
-    return { success: false, error: 'Unexpected error' };
+    return { success: false, error: 'Unexpected error', status: 500 };
   }
 }
 
-export type ConfirmUploadResult = { success: true } | { success: false; error: string };
+export type ConfirmUploadResult =
+  | { success: true }
+  | { success: false; error: string; status: 401 | 404 | 409 | 500 };
 
 export async function confirmUpload(
   claimId: string,
@@ -132,7 +124,7 @@ export async function confirmUpload(
   });
 
   if (!session) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: 'Unauthorized', status: 401 };
   }
 
   const tenantId = ensureTenantId(session);
@@ -146,16 +138,20 @@ export async function confirmUpload(
       nodeEnv: process.env.NODE_ENV,
       vercelEnv: process.env.VERCEL_ENV,
     });
-    return { success: false, error: message };
+    return { success: false, error: message, status: 500 };
   }
 
-  // Authorization Check
+  // Authorization: fail-closed to claims owned by the current member and tenant.
   const claim = await db.query.claims.findFirst({
-    where: and(eq(claims.id, claimId), eq(claims.tenantId, tenantId)),
+    where: and(
+      eq(claims.id, claimId),
+      eq(claims.tenantId, tenantId),
+      eq(claims.userId, session.user.id)
+    ),
   });
 
   if (!claim) {
-    return { success: false, error: 'Unauthorized' };
+    return { success: false, error: 'Claim not found', status: 404 };
   }
 
   try {
@@ -164,7 +160,11 @@ export async function confirmUpload(
         uploadedBucket,
         resolvedBucket,
       });
-      return { success: false, error: 'Upload bucket mismatch detected. Please retry upload.' };
+      return {
+        success: false,
+        error: 'Upload bucket mismatch detected. Please retry upload.',
+        status: 409,
+      };
     }
 
     await db.insert(claimDocuments).values({
@@ -184,6 +184,6 @@ export async function confirmUpload(
     return { success: true };
   } catch (err) {
     console.error('confirmUpload error:', err);
-    return { success: false, error: 'Failed to save document metadata' };
+    return { success: false, error: 'Failed to save document metadata', status: 500 };
   }
 }
