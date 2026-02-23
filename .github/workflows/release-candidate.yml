@@ -140,8 +140,6 @@ jobs:
           set +e
           REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test 2>&1 | tee "${log_file}"
           exit_code=${PIPESTATUS[0]}
-          # Required by write-rc-manifest.mjs to prove the RLS integration check ran.
-          echo "RLS_INTEGRATION_RAN=1" | tee -a "${log_file}"
           set -e
           printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/rls.exit"
           exit "${exit_code}"
