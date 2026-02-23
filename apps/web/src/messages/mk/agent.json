@@ -1,14 +1,14 @@
 {
   "agent": {
-    "title": "Agent Workspace",
+    "title": "Работен простор на агент",
     "crm": "Преглед на CRM",
-    "dashboard": "Dashboard",
-    "claims": "Claims",
-    "members": "Members",
+    "dashboard": "Контролна табла",
+    "claims": "Барања",
+    "members": "Членови",
     "stats": {
-      "total": "Total Claims",
-      "new": "New (Submitted)",
-      "verification": "In Verification",
+      "total": "Вкупно барања",
+      "new": "Нови (поднесени)",
+      "verification": "Во верификација",
       "closed": "Решени / Одбиени"
     },
     "pipeline": {
@@ -30,9 +30,9 @@
       "actions": "Actions",
       "triage": "Triage",
       "message_alert": "New message ({count})",
-      "no_claims": "No claims found.",
+      "no_claims": "Нема пронајдени барања.",
       "no_claims_ready": "Claim List Component Coming Soon",
-      "recent_activity": "Recent Activity"
+      "recent_activity": "Неодамнешна активност"
     },
     "actions": {
       "approve": "Approve",
@@ -42,10 +42,10 @@
     },
     "details": {
       "title": "Claim Details",
-      "claimantInfo": "Claimant Information",
+      "claimantInfo": "Информации за подносителот",
       "name": "Name",
       "email": "Email",
-      "description": "Description",
+      "description": "Опис",
       "amount": "Amount",
       "company": "Subject / Company",
       "title_label": "Title",
@@ -81,38 +81,38 @@
       "priority_text": "All claims from Interdomestik Insurance need to be verified within 24 hours.",
       "deadline": "Upcoming Deadline",
       "deadline_text": "End of quarter reporting starts on Monday. Ensure all resolved cases are documented.",
-      "noteDescription": "Add a note about this member's interaction or important details.",
-      "addNote": "Add Note",
-      "editNote": "Edit Note",
-      "newNote": "New Note",
-      "noNotes": "No notes yet",
-      "noNotesDescription": "Start tracking interactions with {name}.",
-      "noteType": "Note Type",
-      "noteContent": "Content",
-      "noteContentPlaceholder": "Enter your note here...",
-      "cancel": "Cancel",
-      "create": "Create",
-      "update": "Update",
-      "saving": "Saving...",
-      "edit": "Edit",
-      "delete": "Delete",
-      "pin": "Pin",
-      "unpin": "Unpin",
-      "loading": "Loading notes...",
-      "noteCreated": "Note created",
-      "noteUpdated": "Note updated",
-      "noteDeleted": "Note deleted",
-      "createError": "Failed to create note",
-      "updateError": "Failed to update note",
-      "deleteError": "Failed to delete note",
-      "pinError": "Failed to toggle pin",
+      "noteDescription": "Додај белешка за интеракцијата на овој член или важни детали.",
+      "addNote": "Додај белешка",
+      "editNote": "Уреди белешка",
+      "newNote": "Нова белешка",
+      "noNotes": "Сè уште нема белешки",
+      "noNotesDescription": "Почнете да ги следите интеракциите со {name}.",
+      "noteType": "Тип на белешка",
+      "noteContent": "Содржина",
+      "noteContentPlaceholder": "Внесете ја вашата белешка тука...",
+      "cancel": "Откажи",
+      "create": "Креирај",
+      "update": "Ажурирај",
+      "saving": "Се зачувува...",
+      "edit": "Уреди",
+      "delete": "Избриши",
+      "pin": "Закачи",
+      "unpin": "Откачи",
+      "loading": "Се вчитуваат белешките...",
+      "noteCreated": "Белешката е креирана",
+      "noteUpdated": "Белешката е ажурирана",
+      "noteDeleted": "Белешката е избришана",
+      "createError": "Неуспешно креирање белешка",
+      "updateError": "Неуспешно ажурирање белешка",
+      "deleteError": "Неуспешно бришење белешка",
+      "pinError": "Неуспешна промена на закачување",
       "types": {
-        "call": "Call",
-        "meeting": "Meeting",
-        "email": "Email",
-        "general": "General",
-        "follow_up": "Follow-up",
-        "issue": "Issue"
+        "call": "Повик",
+        "meeting": "Состанок",
+        "email": "Е-пошта",
+        "general": "Општо",
+        "follow_up": "Следење",
+        "issue": "Проблем"
       }
     },
     "members_page": {
@@ -238,53 +238,53 @@
         "actions": "Actions"
       },
       "stages": {
-        "new": "New",
-        "contacted": "Contacted",
-        "qualified": "Qualified",
-        "proposal": "Proposal",
-        "won": "Won",
-        "lost": "Lost"
+        "new": "Нов",
+        "contacted": "Контактиран",
+        "qualified": "Квалификуван",
+        "proposal": "Понуда",
+        "won": "Добиен",
+        "lost": "Изгубен"
       }
     },
     "commissions": {
-      "title": "Commissions",
-      "summary": "Commission Summary",
-      "pending": "Pending",
-      "approved": "Approved",
-      "paid": "Paid",
-      "items": "items",
-      "recentCommissions": "Recent Commissions",
-      "noCommissions": "No commissions yet",
-      "noCommissionsHint": "Start referring members to earn commissions.",
+      "title": "Провизии",
+      "summary": "Преглед на провизии",
+      "pending": "Во чекање",
+      "approved": "Одобрени",
+      "paid": "Исплатени",
+      "items": "ставки",
+      "recentCommissions": "Неодамнешни провизии",
+      "noCommissions": "Сè уште нема провизии",
+      "noCommissionsHint": "Почнете да препорачувате членови за да заработите провизии.",
       "types": {
-        "new_membership": "New Membership",
-        "renewal": "Renewal",
-        "upgrade": "Upgrade",
-        "b2b": "B2B Deal"
+        "new_membership": "Ново членство",
+        "renewal": "Обнова",
+        "upgrade": "Надградба",
+        "b2b": "B2B договор"
       },
       "status": {
-        "pending": "Pending",
-        "approved": "Approved",
-        "paid": "Paid",
-        "void": "Void"
+        "pending": "Во чекање",
+        "approved": "Одобрено",
+        "paid": "Исплатено",
+        "void": "Поништено"
       },
       "referralLink": {
-        "title": "Your Referral Link",
-        "description": "Share this link to earn commissions on new memberships.",
-        "copied": "Copied!",
-        "copyError": "Failed to copy link",
-        "loadError": "Failed to load referral link"
+        "title": "Вашата реферална врска",
+        "description": "Споделете ја оваа врска за да заработите провизии за нови членства.",
+        "copied": "Копирано!",
+        "copyError": "Неуспешно копирање на врската",
+        "loadError": "Неуспешно вчитување на рефералната врска"
       }
     },
     "leaderboard": {
-      "title": "Top Agents",
-      "week": "Week",
-      "month": "Month",
-      "allTime": "All Time",
-      "noData": "No leaderboard data yet",
-      "you": "You",
-      "deals": "deals",
-      "yourRank": "Your rank"
+      "title": "Топ агенти",
+      "week": "Недела",
+      "month": "Месец",
+      "allTime": "Севкупно",
+      "noData": "Сè уште нема податоци за рангирање",
+      "you": "Вие",
+      "deals": "договори",
+      "yourRank": "Ваш ранг"
     }
   }
 }
