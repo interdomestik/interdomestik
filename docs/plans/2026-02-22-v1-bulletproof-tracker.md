@@ -20,7 +20,7 @@ Status command: pnpm v1:status
 
 1. If code behavior changes, add/update at least one unit test in the same PR.
 2. If boundary/user-flow behavior changes (tenant/auth/api/billing/funnel), add/update integration or e2e coverage in the same PR.
-3. Document both test deltas in the action evidence line with exact command(s).
+3. Document both test deltas in the action evidence line with exact test command(s) run and pass/fail output references for that action (fully satisfying Test Delta Policy point 5).
 4. If no test delta is added for a behavior change, block merge unless Atlas + Sentinel + Gatekeeper approve and note the exception in Notes Log.
 
 ## Completed
