@@ -2,6 +2,7 @@ import { sendThankYouLetterCore } from '@/actions/thank-you-letter/send';
 import { logAuditEvent } from '@/lib/audit';
 import { sendPaymentFailedEmail } from '@/lib/email';
 import { db } from '@interdomestik/database';
+import type { BillingEntity } from '@interdomestik/domain-membership-billing/paddle-server';
 import {
   handlePaddleEvent,
   insertWebhookEvent,
@@ -27,8 +28,6 @@ type PaddleWebhookData = {
   customData?: { userId?: string };
   custom_data?: { userId?: string };
 };
-
-type BillingEntity = 'ks' | 'mk' | 'al';
 
 type PaddleTransactionData = {
   id?: string;
@@ -135,10 +134,11 @@ export async function handlePaddleWebhookCore(args: {
     });
   } catch {
     try {
+      const normalizedEventIdFromPayload = normalizeText(eventIdFromPayload);
       const processingScopeKey = resolveProcessingScopeKey({ billingEntity });
       const dedupeKey = resolveScopedDedupeKey({
         processingScopeKey,
-        eventId: eventIdFromPayload,
+        eventId: normalizedEventIdFromPayload,
         payloadHash,
       });
 
@@ -148,7 +148,7 @@ export async function handlePaddleWebhookCore(args: {
           processingScopeKey,
           dedupeKey,
           eventType: eventTypeFromPayload,
-          eventId: eventIdFromPayload,
+          eventId: normalizedEventIdFromPayload ?? undefined,
           eventTimestamp: eventTimestampFromPayload,
           payloadHash,
           parsedPayload,
@@ -175,13 +175,14 @@ export async function handlePaddleWebhookCore(args: {
     (eventData as { eventId?: string }).eventId ||
     (eventData as { event_id?: string }).event_id ||
     eventIdFromPayload;
+  const normalizedEventId = normalizeText(eventId);
   const data = (eventData as { data?: unknown }).data;
 
   const tenantId = await resolveWebhookTenantId(data);
   const processingScopeKey = resolveProcessingScopeKey({ tenantId, billingEntity });
   const dedupeKey = resolveScopedDedupeKey({
     processingScopeKey,
-    eventId,
+    eventId: normalizedEventId,
     payloadHash,
   });
   const providerTransactionId = resolveProviderTransactionId({ eventType, data });
@@ -192,7 +193,7 @@ export async function handlePaddleWebhookCore(args: {
       processingScopeKey,
       dedupeKey,
       eventType,
-      eventId,
+      eventId: normalizedEventId ?? undefined,
       providerTransactionId,
       signatureValid,
       signatureBypassed,
@@ -248,7 +249,7 @@ export async function handlePaddleWebhookCore(args: {
       }
     );
     await markWebhookProcessed(
-      { headers, webhookEventRowId, eventType, eventId, tenantId },
+      { headers, webhookEventRowId, eventType, eventId: normalizedEventId ?? undefined, tenantId },
       { logAuditEvent }
     );
   } catch (processingError) {
@@ -257,7 +258,7 @@ export async function handlePaddleWebhookCore(args: {
         headers,
         webhookEventRowId,
         eventType,
-        eventId,
+        eventId: normalizedEventId ?? undefined,
         error: processingError,
         tenantId,
       },
