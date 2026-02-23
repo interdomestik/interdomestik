@@ -1,7 +1,6 @@
 import { cookies, headers } from 'next/headers';
 import {
-  coerceTenantId,
-  resolveTenantFromHost,
+  resolveTenantIdFromSources,
   TENANT_COOKIE_NAME,
   TENANT_HEADER_NAME,
   type TenantId,
@@ -26,18 +25,12 @@ export async function resolveTenantIdFromRequest(
   options: ResolveTenantOptions = {}
 ): Promise<TenantId | null> {
   const h = await headers();
+  const cookieStore = await cookies();
 
-  const hostTenant = resolveTenantFromHost(getRequestHost(h));
-  if (hostTenant) return hostTenant;
-
-  const cookieTenant = coerceTenantId((await cookies()).get(TENANT_COOKIE_NAME)?.value);
-  if (cookieTenant) return cookieTenant;
-
-  const headerTenant = coerceTenantId(h.get(TENANT_HEADER_NAME) ?? undefined);
-  if (headerTenant) return headerTenant;
-
-  const queryTenant = coerceTenantId(options.tenantIdFromQuery ?? undefined);
-  if (queryTenant) return queryTenant;
-
-  return null;
+  return resolveTenantIdFromSources({
+    host: getRequestHost(h),
+    cookieTenantId: cookieStore.get(TENANT_COOKIE_NAME)?.value ?? null,
+    headerTenantId: h.get(TENANT_HEADER_NAME),
+    queryTenantId: options.tenantIdFromQuery ?? null,
+  });
 }

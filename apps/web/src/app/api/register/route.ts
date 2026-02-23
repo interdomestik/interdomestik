@@ -1,36 +1,31 @@
 import { registerMemberCore } from '@/lib/actions/agent/register-member';
 import { auth } from '@/lib/auth';
 import {
+  hasHostSessionTenantMismatch,
   TENANT_COOKIE_NAME,
   TENANT_HEADER_NAME,
-  coerceTenantId,
   resolveTenantFromHost,
+  resolveTenantIdFromSources,
 } from '@/lib/tenant/tenant-hosts';
 import { NextRequest, NextResponse } from 'next/server';
 import { registerUserApiCore } from './_core';
 
+function getRequestHost(req: NextRequest): string {
+  return req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '';
+}
+
 function resolveTenantIdFromRequest(
   req: NextRequest
 ): ReturnType<typeof resolveTenantFromHost> | null {
-  const isProdRegistrationFlow =
-    process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
-
-  const hostTenant = resolveTenantFromHost(
-    req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? ''
+  return resolveTenantIdFromSources(
+    {
+      host: getRequestHost(req),
+      cookieTenantId: req.cookies.get(TENANT_COOKIE_NAME)?.value ?? null,
+      headerTenantId: req.headers.get(TENANT_HEADER_NAME),
+      queryTenantId: req.nextUrl.searchParams.get('tenantId'),
+    },
+    { productionSensitive: true }
   );
-  if (hostTenant) return hostTenant;
-
-  const cookieTenant = coerceTenantId(req.cookies.get(TENANT_COOKIE_NAME)?.value);
-  if (cookieTenant) return cookieTenant;
-
-  if (isProdRegistrationFlow) {
-    return null;
-  }
-
-  const headerTenant = coerceTenantId(req.headers.get(TENANT_HEADER_NAME));
-  if (headerTenant) return headerTenant;
-
-  return coerceTenantId(req.nextUrl.searchParams.get('tenantId'));
 }
 
 export async function POST(req: NextRequest) {
@@ -44,6 +39,16 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    const hostTenantId = resolveTenantFromHost(getRequestHost(req));
+    const sessionTenantId = (session.user as { tenantId?: string | null }).tenantId;
+
+    if (hasHostSessionTenantMismatch(hostTenantId, sessionTenantId)) {
+      return NextResponse.json(
+        { code: 'WRONG_TENANT_CONTEXT', message: 'Wrong tenant context' },
+        { status: 401 }
+      );
+    }
+
     const tenantId = resolveTenantIdFromRequest(req);
 
     if (!tenantId) {

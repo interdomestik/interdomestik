@@ -27,10 +27,11 @@ Status command: pnpm v1:status
 - [x] A06 - Release-candidate workflow added at `.github/workflows/release-candidate.yml` | Date: 2026-02-22 | Evidence: `https://github.com/interdomestik/interdomestik/actions/runs/22286625815` + artifact `release-candidate-artifacts-22286625815-1`
 - [x] A07 - Secret scan blocking on `release/*` and `rc/*` in security workflows | Date: 2026-02-22 | Evidence: `rg -n "continue-on-error:\\s*true|gitleaks|secret" .github/workflows/security.yml .github/workflows/secret-scan.yml` + PR runs `22287449326` (Security) / `22287449314` (Secret Scan) + RC smoke runs `22287448408` (Security) / `22287448415` (Secret Scan)
 - [x] A08 - Enforce mandatory RLS integration for RC (`REQUIRE_RLS_INTEGRATION=1`) | Date: 2026-02-23 | Evidence: `REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test` exits non-zero when `DATABASE_URL` is missing; `pnpm db:rls:test` preserves local skip ergonomics when DB env is absent; `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test` prints `RLS_INTEGRATION_RAN=1`
+- [x] A09 - Unify tenant resolver usage in sensitive surfaces | Date: 2026-02-23 | Evidence: `pnpm --filter @interdomestik/web test:unit --run src/lib/tenant/tenant-hosts.test.ts` + `pnpm --filter @interdomestik/web test:unit --run 'src/app/api/auth/[...all]/_core.test.ts'` + `KS_HOST=ks.127.0.0.1.nip.io:3000 MK_HOST=mk.127.0.0.1.nip.io:3000 PILOT_HOST=pilot.127.0.0.1.nip.io:3000 pnpm --filter @interdomestik/web exec playwright test e2e/gate/tenant-resolution.spec.ts --project=gate-ks-sq --project=gate-mk-mk --workers=1 --max-failures=1`
 
 ## Next Up (work top-down)
 
-1. A09 - Unify tenant resolver usage in sensitive surfaces
+1. A10 - Enforce member upload ownership
 
 ## Milestone Actions
 
@@ -47,7 +48,7 @@ Status command: pnpm v1:status
 ### M0-B Security and Isolation Closure (2026-02-28 to 2026-03-08)
 
 - [x] A08 - Enforce mandatory RLS integration for RC (`REQUIRE_RLS_INTEGRATION=1`). Verify: `REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test` | Date: 2026-02-23 | Evidence: required mode hard-fails on missing `DATABASE_URL` and missing RLS/policy prerequisites; RC marker is emitted only by integration run path (`RLS_INTEGRATION_RAN=1`)
-- [ ] A09 - Unify tenant resolver usage in sensitive surfaces. Verify: targeted unit tests + isolation scenario
+- [x] A09 - Unify tenant resolver usage in sensitive surfaces. Verify: targeted unit tests + isolation scenario | Date: 2026-02-23 | Evidence: canonical resolver `resolveTenantIdFromSources` is now used by `apps/web/src/lib/proxy-logic.ts`, `apps/web/src/app/api/auth/[...all]/_core.ts`, `apps/web/src/app/api/register/route.ts`, `apps/web/src/app/api/simple-register/route.ts`; targeted unit commands pass and gate isolation contract pass command above is green
 - [ ] A10 - Enforce member upload ownership. Verify: upload/member action unit tests
 - [ ] A11 - Implement fail-closed rate limits on sensitive endpoints. Verify: rate-limit core unit tests
 - [ ] A12 - Add tenant predicates for membership/subscription reads. Verify: membership core unit tests
@@ -87,6 +88,7 @@ Status command: pnpm v1:status
 
 ## Notes Log (append newest first)
 
+- 2026-02-23: A09 handoff status: Atlas confirmed boundary-impacting scope/acceptance paths (`apps/web/src/lib/tenant/tenant-hosts.ts`, `apps/web/src/lib/proxy-logic.ts`, `apps/web/src/app/api/auth/[...all]/_core.ts`, `apps/web/src/app/api/register/route.ts`, `apps/web/src/app/api/simple-register/route.ts`), Forge implemented canonical source resolver and host/session fail-closed guard on `/api/register`, Sentinel pre-review completed for tenant/auth/api boundary changes, Gatekeeper verified targeted unit commands + gate isolation contract (`e2e/gate/tenant-resolution.spec.ts` on `gate-ks-sq` + `gate-mk-mk`); requested pilot scenario command with gate projects currently reports `No tests found` due project `testMatch` scoping, Sentinel post-review pending before merge.
 - 2026-02-23: A08 handoff status: Atlas confirmed boundary-impacting scope (`packages/database/test/rls-engaged.test.ts` + RC workflow marker path), Forge implemented required-mode hard-fail behavior and integration-only marker emission, Sentinel pre-review completed for `packages/database` changes, Gatekeeper verified required/non-required/integration-capable command evidence (`REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test`, `pnpm db:rls:test`, `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test`); Sentinel post-review pending before merge.
 - 2026-02-22: A07 handoff completed: Atlas confirmed A07 scope/touched files (`.github/workflows/security.yml`, `.github/workflows/secret-scan.yml`), Runway implemented rc/release triggers + blocking gitleaks CLI with SARIF artifact uploads, Gatekeeper verified `rg` policy check and PR/RC workflow evidence (`22287449326`, `22287449314`, `22287448408`, `22287448415`); Sentinel review not required (no boundary-owned product paths touched).
 - 2026-02-22: A06 handoff completed: Atlas confirmed A06 slice/dependencies (`.github/workflows/release-candidate.yml` + tracker evidence update; A04/A05 present), Runway implemented RC orchestration, Gatekeeper verified formatting + RC branch run `22286625815` and artifact upload `release-candidate-artifacts-22286625815-1`; Sentinel review not required (no boundary-owned product paths touched).

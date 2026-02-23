@@ -1,6 +1,5 @@
 import {
-  coerceTenantId,
-  resolveTenantFromHost,
+  resolveTenantIdFromSources,
   TENANT_COOKIE_NAME,
   TENANT_HEADER_NAME,
   type TenantId,
@@ -54,30 +53,31 @@ function parseCookieValue(cookieHeader: string | null, cookieName: string): stri
   return null;
 }
 
+function getRequestHost(headers: Headers): string {
+  return headers.get('x-forwarded-host') ?? headers.get('host') ?? '';
+}
+
 export function resolveTenantIdForPasswordResetAudit(
   url: string,
   headers: Headers
 ): TenantId | null {
-  const host = headers.get('x-forwarded-host') ?? headers.get('host') ?? '';
-  const tenantFromHost = resolveTenantFromHost(host);
-  if (tenantFromHost) return tenantFromHost;
-
-  const tenantFromCookie = coerceTenantId(
-    parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME) ?? undefined
-  );
-  if (tenantFromCookie) return tenantFromCookie;
-
-  const tenantFromHeader = coerceTenantId(headers.get(TENANT_HEADER_NAME) ?? undefined);
-  if (tenantFromHeader) return tenantFromHeader;
+  let queryTenantId: string | null = null;
 
   try {
-    const tenantFromQuery = coerceTenantId(new URL(url).searchParams.get('tenantId') ?? undefined);
-    if (tenantFromQuery) return tenantFromQuery;
+    queryTenantId = new URL(url).searchParams.get('tenantId');
   } catch {
     // ignore malformed URL and fall through to null
   }
 
-  return null;
+  return resolveTenantIdFromSources(
+    {
+      host: getRequestHost(headers),
+      cookieTenantId: parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME),
+      headerTenantId: headers.get(TENANT_HEADER_NAME),
+      queryTenantId,
+    },
+    { productionSensitive: true }
+  );
 }
 
 export function isEmailPasswordSignInUrl(url: string): boolean {
@@ -89,20 +89,14 @@ export function isEmailPasswordSignInUrl(url: string): boolean {
 }
 
 export function resolveTenantIdForEmailSignIn(headers: Headers): TenantId | null {
-  const host = headers.get('x-forwarded-host') ?? headers.get('host') ?? '';
-  const tenantFromHost = resolveTenantFromHost(host);
-  if (tenantFromHost) return tenantFromHost;
-
-  const tenantFromCookie = coerceTenantId(
-    parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME) ?? undefined
+  return resolveTenantIdFromSources(
+    {
+      host: getRequestHost(headers),
+      cookieTenantId: parseCookieValue(headers.get('cookie'), TENANT_COOKIE_NAME),
+      headerTenantId: headers.get(TENANT_HEADER_NAME),
+    },
+    { productionSensitive: true }
   );
-  if (tenantFromCookie) return tenantFromCookie;
-
-  const tenantFromHeader = coerceTenantId(headers.get(TENANT_HEADER_NAME) ?? undefined);
-  if (tenantFromHeader) return tenantFromHeader;
-
-  // Intentionally no query-param fallback for sign-in enforcement.
-  return null;
 }
 
 export function extractEmailFromSignInBody(body: unknown): string | null {

@@ -1,14 +1,25 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { coerceTenantId, isTenantHost, resolveTenantFromHost, type TenantId } from './tenant-hosts';
+import {
+  coerceTenantId,
+  isTenantHost,
+  resolveTenantFromHost,
+  resolveTenantIdFromSources,
+  type TenantId,
+} from './tenant-hosts';
 
 describe('tenant-hosts', () => {
+  const mutableEnv = process.env as Record<string, string | undefined>;
   const originalKsHost = process.env.KS_HOST;
   const originalMkHost = process.env.MK_HOST;
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalVercelEnv = process.env.VERCEL_ENV;
 
   afterEach(() => {
-    process.env.KS_HOST = originalKsHost;
-    process.env.MK_HOST = originalMkHost;
+    mutableEnv.KS_HOST = originalKsHost;
+    mutableEnv.MK_HOST = originalMkHost;
+    mutableEnv.NODE_ENV = originalNodeEnv;
+    mutableEnv.VERCEL_ENV = originalVercelEnv;
   });
 
   it('resolves canonical local hosts', () => {
@@ -23,7 +34,7 @@ describe('tenant-hosts', () => {
   });
 
   it('supports env host overrides (with or without port)', () => {
-    process.env.KS_HOST = 'ks.dev.example:1234';
+    mutableEnv.KS_HOST = 'ks.dev.example:1234';
 
     expect(resolveTenantFromHost('ks.dev.example')).toBe('tenant_ks');
     expect(resolveTenantFromHost('ks.dev.example:1234')).toBe('tenant_ks');
@@ -47,5 +58,48 @@ describe('tenant-hosts', () => {
     expect(isTenantHost('mk.localhost')).toBe(true);
     expect(isTenantHost('localhost')).toBe(false);
     expect(ks).toBe('tenant_ks');
+  });
+
+  it('uses host as canonical source when other tenant hints conflict', () => {
+    expect(
+      resolveTenantIdFromSources({
+        host: 'ks.localhost:3000',
+        cookieTenantId: 'tenant_mk',
+        headerTenantId: 'tenant_mk',
+        queryTenantId: 'tenant_mk',
+      })
+    ).toBe('tenant_ks');
+  });
+
+  it('fails closed in production-sensitive mode when host cannot be resolved', () => {
+    mutableEnv.NODE_ENV = 'production';
+    delete mutableEnv.VERCEL_ENV;
+
+    expect(
+      resolveTenantIdFromSources(
+        {
+          host: 'localhost:3000',
+          cookieTenantId: 'tenant_mk',
+          headerTenantId: 'tenant_mk',
+          queryTenantId: 'tenant_mk',
+        },
+        { productionSensitive: true }
+      )
+    ).toBeNull();
+  });
+
+  it('retains fallback behavior in non-production environments', () => {
+    mutableEnv.NODE_ENV = 'test';
+    delete mutableEnv.VERCEL_ENV;
+
+    expect(
+      resolveTenantIdFromSources(
+        {
+          host: 'localhost:3000',
+          cookieTenantId: 'tenant_mk',
+        },
+        { productionSensitive: true }
+      )
+    ).toBe('tenant_mk');
   });
 });
