@@ -1,5 +1,6 @@
 export { sha256Hex } from './crypto';
 export { handlePaddleEvent } from './handle';
+export { persistInvoiceAndLedgerInvariants } from './invariants';
 export { parsePaddleWebhookBody } from './parse';
 export {
   insertWebhookEvent,

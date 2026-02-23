@@ -239,6 +239,13 @@
       "when": 1771872000000,
       "tag": "0033_webhook_scope_transaction_linkage",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1771958400000,
+      "tag": "0034_invoice_append_only_ledger_invariants",
+      "breakpoints": true
     }
   ]
 }
