@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
     limit: 60,
     windowSeconds: 60,
     headers: req.headers,
+    productionSensitive: true,
   });
   if (limited) return limited;
 

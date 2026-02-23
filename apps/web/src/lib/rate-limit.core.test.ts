@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { enforceRateLimit, enforceRateLimitForAction } from './rate-limit.core';
 
 // Mock dependencies
@@ -21,10 +21,13 @@ vi.mock('@upstash/redis', () => ({
 
 describe('rate-limit.core', () => {
   const originalEnv = process.env;
+  const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
   beforeEach(() => {
-    vi.resetModules();
     mockLimit.mockReset();
+    warnSpy.mockClear();
+    errorSpy.mockClear();
     process.env = { ...originalEnv };
     Object.assign(process.env, {
       UPSTASH_REDIS_REST_URL: 'https://mock.upstash.io',
@@ -41,11 +44,16 @@ describe('rate-limit.core', () => {
     process.env = originalEnv;
   });
 
+  afterAll(() => {
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
   describe('enforceRateLimit', () => {
     const mockHeaders = new Headers();
     mockHeaders.set('x-forwarded-for', '127.0.0.1');
 
-    it('should allow request if env vars are missing in production (fail-open)', async () => {
+    it('should allow request if env vars are missing in production for non-sensitive paths', async () => {
       vi.stubEnv('NODE_ENV', 'production');
       delete process.env.UPSTASH_REDIS_REST_URL;
       delete process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -55,8 +63,29 @@ describe('rate-limit.core', () => {
         windowSeconds: 60,
         headers: mockHeaders,
       });
-      // Now expects null (allowed) instead of 503
       expect(res).toBeNull();
+    });
+
+    it('should fail closed with 503 for missing env on production-sensitive paths', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      delete process.env.UPSTASH_REDIS_REST_URL;
+      delete process.env.UPSTASH_REDIS_REST_TOKEN;
+      const res = await enforceRateLimit({
+        name: 'api/auth',
+        limit: 10,
+        windowSeconds: 60,
+        headers: mockHeaders,
+        productionSensitive: true,
+      });
+      expect(res?.status).toBe(503);
+      expect(res?.headers.get('Retry-After')).toBe('60');
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('RATE_LIMIT_BACKEND_MISSING'),
+        expect.objectContaining({
+          name: 'api/auth',
+          reason: 'missing_env',
+        })
+      );
     });
 
     it('should allow request if env vars are missing in development', async () => {
@@ -105,6 +134,27 @@ describe('rate-limit.core', () => {
       expect(res?.headers.get('Retry-After')).toBe('2');
     });
 
+    it('should fail closed with 503 when backend is unavailable on production-sensitive paths', async () => {
+      mockLimit.mockRejectedValue(new Error('Upstash timeout'));
+      const res = await enforceRateLimit({
+        name: 'api/webhooks/paddle',
+        limit: 10,
+        windowSeconds: 45,
+        headers: mockHeaders,
+        productionSensitive: true,
+      });
+
+      expect(res?.status).toBe(503);
+      expect(res?.headers.get('Retry-After')).toBe('45');
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('RATE_LIMIT_BACKEND_MISSING'),
+        expect.objectContaining({
+          name: 'api/webhooks/paddle',
+          reason: 'backend_unavailable',
+        })
+      );
+    });
+
     it('should resolve IP from x-real-ip if forwarded-for is missing', async () => {
       const headers = new Headers();
       headers.set('x-real-ip', '10.0.0.1');
@@ -120,7 +170,7 @@ describe('rate-limit.core', () => {
     const mockHeaders = new Headers();
     mockHeaders.set('x-forwarded-for', '127.0.0.1');
 
-    it('should return limited: false if env missing in production (fail-open)', async () => {
+    it('should return limited: false if env missing in production for non-sensitive actions', async () => {
       vi.stubEnv('NODE_ENV', 'production');
       delete process.env.UPSTASH_REDIS_REST_URL;
       delete process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -131,6 +181,33 @@ describe('rate-limit.core', () => {
         headers: mockHeaders,
       });
       expect(res).toEqual({ limited: false });
+    });
+
+    it('should return 503 payload when env is missing for production-sensitive actions', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      delete process.env.UPSTASH_REDIS_REST_URL;
+      delete process.env.UPSTASH_REDIS_REST_TOKEN;
+      const res = await enforceRateLimitForAction({
+        name: 'api/register',
+        limit: 10,
+        windowSeconds: 30,
+        headers: mockHeaders,
+        productionSensitive: true,
+      });
+
+      expect(res).toEqual({
+        limited: true,
+        status: 503,
+        retryAfter: 30,
+        error: 'Service unavailable',
+      });
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('RATE_LIMIT_BACKEND_MISSING'),
+        expect.objectContaining({
+          name: 'api/register',
+          reason: 'missing_env',
+        })
+      );
     });
 
     it('should return limited: false if env missing in dev', async () => {
@@ -165,6 +242,31 @@ describe('rate-limit.core', () => {
         headers: mockHeaders,
       });
       expect(res).toEqual(expect.objectContaining({ limited: true, status: 429 }));
+    });
+
+    it('should return 503 payload when backend is unavailable for production-sensitive actions', async () => {
+      mockLimit.mockRejectedValue(new Error('Upstash timeout'));
+      const res = await enforceRateLimitForAction({
+        name: 'api/uploads',
+        limit: 10,
+        windowSeconds: 25,
+        headers: mockHeaders,
+        productionSensitive: true,
+      });
+
+      expect(res).toEqual({
+        limited: true,
+        status: 503,
+        retryAfter: 25,
+        error: 'Service unavailable',
+      });
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('RATE_LIMIT_BACKEND_MISSING'),
+        expect.objectContaining({
+          name: 'api/uploads',
+          reason: 'backend_unavailable',
+        })
+      );
     });
   });
 });

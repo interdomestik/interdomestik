@@ -224,6 +224,12 @@ describe('POST /api/uploads', () => {
     expect(data.upload.path).toContain(
       '/tenants/tenant_mk/claims/user-1/claim-1/evidence-123-My_File.pdf'
     );
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'api/uploads',
+        productionSensitive: true,
+      })
+    );
     expect(hoisted.storageFrom).toHaveBeenCalledWith('claim-evidence');
     expect(hoisted.createSignedUploadUrl).toHaveBeenCalled();
   });

@@ -71,5 +71,11 @@ describe('POST /api/webhooks/paddle', () => {
         headers: req.headers,
       })
     );
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'api/webhooks/paddle',
+        productionSensitive: true,
+      })
+    );
   });
 });

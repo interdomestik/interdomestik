@@ -1,5 +1,6 @@
 import { registerMemberCore } from '@/lib/actions/agent/register-member';
 import { auth } from '@/lib/auth';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import {
   hasHostSessionTenantMismatch,
   TENANT_COOKIE_NAME,
@@ -29,6 +30,15 @@ function resolveTenantIdFromRequest(
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await enforceRateLimit({
+    name: 'api/register',
+    limit: 5,
+    windowSeconds: 60,
+    headers: req.headers,
+    productionSensitive: true,
+  });
+  if (limited) return limited;
+
   const session = await auth.api.getSession({
     headers: req.headers,
   });

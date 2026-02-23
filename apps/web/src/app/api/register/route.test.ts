@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 
 const hoisted = vi.hoisted(() => ({
   getSession: vi.fn(),
+  enforceRateLimit: vi.fn(),
   registerUserApiCore: vi.fn(),
   registerMemberCore: vi.fn(),
 }));
@@ -13,6 +14,10 @@ vi.mock('@/lib/auth', () => ({
       getSession: hoisted.getSession,
     },
   },
+}));
+
+vi.mock('@/lib/rate-limit', () => ({
+  enforceRateLimit: hoisted.enforceRateLimit,
 }));
 
 vi.mock('./_core', () => ({
@@ -41,6 +46,7 @@ function buildRequest(headers: HeadersInit = {}): NextRequest {
 describe('POST /api/register', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.enforceRateLimit.mockResolvedValue(null);
     hoisted.getSession.mockResolvedValue({
       user: { id: 'actor-1', name: 'Actor One', tenantId: 'tenant_mk' },
     });
@@ -80,6 +86,23 @@ describe('POST /api/register', () => {
         registerMemberFn: expect.any(Function),
       })
     );
+    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'api/register',
+        productionSensitive: true,
+      })
+    );
+  });
+
+  it('returns early when rate limited', async () => {
+    hoisted.enforceRateLimit.mockResolvedValue(new Response('limited', { status: 503 }));
+
+    const res = await POST(buildRequest({ host: 'mk.localhost:3000' }));
+
+    expect(res.status).toBe(503);
+    expect(await res.text()).toBe('limited');
+    expect(hoisted.getSession).not.toHaveBeenCalled();
+    expect(hoisted.registerUserApiCore).not.toHaveBeenCalled();
   });
 
   it('allows neutral host requests when tenant context comes from fallback sources', async () => {

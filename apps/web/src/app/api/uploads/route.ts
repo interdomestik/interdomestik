@@ -11,6 +11,7 @@ export async function POST(req: Request) {
     limit: 10,
     windowSeconds: 60,
     headers: req.headers,
+    productionSensitive: true,
   });
   if (limited) return limited;
 
