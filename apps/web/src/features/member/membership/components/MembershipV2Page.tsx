@@ -44,6 +44,7 @@ export async function MembershipV2Page() {
 
   const { subscription, dunning } = await getMembershipPageModelCore({
     userId: session.user.id,
+    tenantId: session.user.tenantId ?? null,
   });
 
   const { isPastDue, isInGracePeriod, isGraceExpired, daysRemaining } = dunning;

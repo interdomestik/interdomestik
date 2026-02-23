@@ -1,4 +1,4 @@
-import { db, eq, subscriptions } from '@interdomestik/database';
+import { and, db, eq, subscriptions } from '@interdomestik/database';
 
 export type MembershipDunningState = {
   isPastDue: boolean;
@@ -14,14 +14,20 @@ export type MembershipPageModel = {
 
 export async function getMembershipPageModelCore(args: {
   userId: string;
+  tenantId: string | null | undefined;
   now?: Date;
 }): Promise<MembershipPageModel> {
-  const subscriptionResult = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, args.userId),
-    with: {
-      plan: true,
-    },
-  });
+  const subscriptionResult = args.tenantId
+    ? await db.query.subscriptions.findFirst({
+        where: and(
+          eq(subscriptions.userId, args.userId),
+          eq(subscriptions.tenantId, args.tenantId)
+        ),
+        with: {
+          plan: true,
+        },
+      })
+    : null;
 
   const subscription = (subscriptionResult ?? null) as SubscriptionRecord | null;
 
@@ -34,9 +40,16 @@ export async function getMembershipPageModelCore(args: {
   };
 }
 
-export async function getMemberSubscriptionsCore(userId: string) {
+export async function getMemberSubscriptionsCore(args: {
+  userId: string;
+  tenantId: string | null | undefined;
+}) {
+  if (!args.tenantId) {
+    return [];
+  }
+
   return db.query.subscriptions.findMany({
-    where: eq(subscriptions.userId, userId),
+    where: and(eq(subscriptions.userId, args.userId), eq(subscriptions.tenantId, args.tenantId)),
     with: {
       plan: true,
     },
@@ -84,13 +97,17 @@ export function isGracePeriodExpired(args: { endDate: Date | null; now?: Date })
   return now.getTime() > endDate.getTime();
 }
 
-export const _subscriptionQuery = db.query.subscriptions.findFirst({
-  with: {
-    plan: true,
-  },
-});
+function getSubscriptionWithPlanQuery() {
+  return db.query.subscriptions.findFirst({
+    with: {
+      plan: true,
+    },
+  });
+}
 
-export type SubscriptionRecord = NonNullable<Awaited<typeof _subscriptionQuery>>;
+export type SubscriptionRecord = NonNullable<
+  Awaited<ReturnType<typeof getSubscriptionWithPlanQuery>>
+>;
 
 type SubscriptionDunningInput =
   | {
@@ -100,9 +117,22 @@ type SubscriptionDunningInput =
   | null
   | undefined;
 
-export async function getMemberDocumentsCore(userId: string) {
+export async function getMemberDocumentsCore(args: {
+  userId: string;
+  tenantId: string | null | undefined;
+}) {
+  const tenantId = args.tenantId;
+  if (!tenantId) {
+    return [];
+  }
+
   return db.query.documents.findMany({
-    where: (docs, { and, eq }) => and(eq(docs.entityType, 'member'), eq(docs.entityId, userId)),
+    where: (docs, { and: andFn, eq: eqFn }) =>
+      andFn(
+        eqFn(docs.entityType, 'member'),
+        eqFn(docs.entityId, args.userId),
+        eqFn(docs.tenantId, tenantId)
+      ),
     orderBy: (docs, { desc }) => [desc(docs.uploadedAt)],
   });
 }

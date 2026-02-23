@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth';
-import { db, eq, subscriptions } from '@interdomestik/database';
+import { and, db, eq, subscriptions } from '@interdomestik/database';
 import { Badge, Button } from '@interdomestik/ui';
 import { ChevronLeft, Phone, QrCode, ShieldCheck, Wallet } from 'lucide-react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -21,9 +21,13 @@ export default async function MemberCardPage({ params }: { params: Promise<{ loc
 
   const t = await getTranslations('membership.card');
 
-  const subscription = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, session.user.id),
-  });
+  const tenantId = (session.user as { tenantId?: string | null }).tenantId ?? null;
+
+  const subscription = tenantId
+    ? await db.query.subscriptions.findFirst({
+        where: and(eq(subscriptions.userId, session.user.id), eq(subscriptions.tenantId, tenantId)),
+      })
+    : null;
 
   if (subscription?.status !== 'active') {
     // If not active, user shouldn't see the card
