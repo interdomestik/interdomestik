@@ -232,6 +232,13 @@
       "when": 1771200000000,
       "tag": "0032_member_activities_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1771872000000,
+      "tag": "0033_webhook_scope_transaction_linkage",
+      "breakpoints": true
     }
   ]
 }

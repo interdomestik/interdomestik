@@ -28,6 +28,61 @@ type PaddleWebhookData = {
   custom_data?: { userId?: string };
 };
 
+type BillingEntity = 'ks' | 'mk' | 'al';
+
+type PaddleTransactionData = {
+  id?: string;
+  transactionId?: string;
+  transaction_id?: string;
+};
+
+function normalizeText(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function resolveProcessingScopeKey(params: {
+  tenantId?: string | null;
+  billingEntity?: BillingEntity;
+}): string {
+  const tenantId = normalizeText(params.tenantId);
+  if (tenantId) return `tenant:${tenantId}`;
+
+  if (params.billingEntity) return `entity:${params.billingEntity}`;
+
+  return 'global';
+}
+
+function resolveScopedDedupeKey(params: {
+  processingScopeKey: string;
+  eventId?: string | null;
+  payloadHash: string;
+}): string {
+  const eventId = normalizeText(params.eventId);
+  if (eventId) {
+    return `paddle:${params.processingScopeKey}:event:${eventId}`;
+  }
+
+  return `paddle:${params.processingScopeKey}:sha256:${params.payloadHash}`;
+}
+
+function resolveProviderTransactionId(params: {
+  eventType?: string | null;
+  data: unknown;
+}): string | null {
+  if (!params.eventType || !params.eventType.startsWith('transaction.')) {
+    return null;
+  }
+
+  const payload = (params.data ?? {}) as PaddleTransactionData;
+  return (
+    normalizeText(payload.id) ||
+    normalizeText(payload.transactionId) ||
+    normalizeText(payload.transaction_id)
+  );
+}
+
 async function resolveWebhookTenantId(data: unknown): Promise<string | null> {
   const payload = (data ?? {}) as PaddleWebhookData;
   const customData = payload.customData || payload.custom_data;
@@ -57,8 +112,9 @@ export async function handlePaddleWebhookCore(args: {
   signature: string | null;
   secret: string | undefined;
   bodyText: string;
+  billingEntity?: BillingEntity;
 }): Promise<PaddleWebhookCoreResult> {
-  const { paddle, headers, signature, secret, bodyText } = args;
+  const { paddle, headers, signature, secret, bodyText, billingEntity } = args;
 
   if (!signature || !secret) {
     return { status: 400, body: { error: 'Missing signature or secret' } };
@@ -79,13 +135,17 @@ export async function handlePaddleWebhookCore(args: {
     });
   } catch {
     try {
-      const dedupeKey = eventIdFromPayload
-        ? `paddle:${eventIdFromPayload}`
-        : `paddle:sha256:${payloadHash}`;
+      const processingScopeKey = resolveProcessingScopeKey({ billingEntity });
+      const dedupeKey = resolveScopedDedupeKey({
+        processingScopeKey,
+        eventId: eventIdFromPayload,
+        payloadHash,
+      });
 
       await persistInvalidSignatureAttempt(
         {
           headers,
+          processingScopeKey,
           dedupeKey,
           eventType: eventTypeFromPayload,
           eventId: eventIdFromPayload,
@@ -117,15 +177,23 @@ export async function handlePaddleWebhookCore(args: {
     eventIdFromPayload;
   const data = (eventData as { data?: unknown }).data;
 
-  const dedupeKey = eventId ? `paddle:${eventId}` : `paddle:sha256:${payloadHash}`;
   const tenantId = await resolveWebhookTenantId(data);
+  const processingScopeKey = resolveProcessingScopeKey({ tenantId, billingEntity });
+  const dedupeKey = resolveScopedDedupeKey({
+    processingScopeKey,
+    eventId,
+    payloadHash,
+  });
+  const providerTransactionId = resolveProviderTransactionId({ eventType, data });
 
   const insertResult = await insertWebhookEvent(
     {
       headers,
+      processingScopeKey,
       dedupeKey,
       eventType,
       eventId,
+      providerTransactionId,
       signatureValid,
       signatureBypassed,
       eventTimestamp: eventTimestampFromPayload,

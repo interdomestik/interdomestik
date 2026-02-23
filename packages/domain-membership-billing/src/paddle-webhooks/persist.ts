@@ -7,6 +7,7 @@ import type { PaddleWebhookAuditDeps } from './types';
 export async function persistInvalidSignatureAttempt(
   params: {
     headers: Headers;
+    processingScopeKey: string;
     dedupeKey: string;
     eventType: string | undefined;
     eventId: string | undefined;
@@ -23,6 +24,7 @@ export async function persistInvalidSignatureAttempt(
       id: nanoid(),
       tenantId: params.tenantId ?? null,
       provider: 'paddle',
+      processingScopeKey: params.processingScopeKey,
       dedupeKey: params.dedupeKey,
       eventType: params.eventType ?? null,
       eventId: params.eventId ?? null,
@@ -31,9 +33,7 @@ export async function persistInvalidSignatureAttempt(
       payloadHash: params.payloadHash,
       payload: params.parsedPayload,
     })
-    .onConflictDoNothing({
-      target: webhookEvents.dedupeKey,
-    });
+    .onConflictDoNothing();
 
   if (deps.logAuditEvent) {
     await deps.logAuditEvent({
@@ -54,9 +54,11 @@ export async function persistInvalidSignatureAttempt(
 export async function insertWebhookEvent(
   params: {
     headers: Headers;
+    processingScopeKey: string;
     dedupeKey: string;
     eventType: string | undefined;
     eventId: string | undefined;
+    providerTransactionId?: string | null;
     signatureValid: boolean;
     signatureBypassed: boolean;
     eventTimestamp: Date | null;
@@ -72,17 +74,17 @@ export async function insertWebhookEvent(
       id: nanoid(),
       tenantId: params.tenantId ?? null,
       provider: 'paddle',
+      processingScopeKey: params.processingScopeKey,
       dedupeKey: params.dedupeKey,
       eventType: params.eventType ?? null,
       eventId: params.eventId ?? null,
+      providerTransactionId: params.providerTransactionId ?? null,
       signatureValid: params.signatureValid || params.signatureBypassed,
       eventTimestamp: params.eventTimestamp,
       payloadHash: params.payloadHash,
       payload: params.parsedPayload,
     })
-    .onConflictDoNothing({
-      target: webhookEvents.dedupeKey,
-    })
+    .onConflictDoNothing()
     .returning({ id: webhookEvents.id });
 
   if (inserted.length === 0) {
@@ -94,8 +96,10 @@ export async function insertWebhookEvent(
         metadata: {
           provider: 'paddle',
           dedupeKey: params.dedupeKey,
+          processingScopeKey: params.processingScopeKey,
           eventType: params.eventType,
           eventId: params.eventId,
+          providerTransactionId: params.providerTransactionId ?? null,
           signatureBypassed: params.signatureBypassed,
         },
         headers: params.headers,
@@ -117,6 +121,8 @@ export async function insertWebhookEvent(
         provider: 'paddle',
         eventType: params.eventType,
         eventId: params.eventId,
+        processingScopeKey: params.processingScopeKey,
+        providerTransactionId: params.providerTransactionId ?? null,
         signatureValid: params.signatureValid,
         signatureBypassed: params.signatureBypassed,
       },

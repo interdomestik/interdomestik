@@ -155,5 +155,6 @@ export async function handlePaddleWebhookEntityCore(args: {
     signature: args.signature,
     secret: args.secret,
     bodyText: args.bodyText,
+    billingEntity: args.expectedEntity,
   });
 }

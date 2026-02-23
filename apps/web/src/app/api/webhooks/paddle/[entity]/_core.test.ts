@@ -91,6 +91,11 @@ describe('handlePaddleWebhookEntityCore', () => {
       })
     );
     expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledTimes(1);
+    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billingEntity: 'ks',
+      })
+    );
   });
 
   it('rejects webhook when resolved tenant maps to a different entity', async () => {
@@ -186,6 +191,11 @@ describe('handlePaddleWebhookEntityCore', () => {
 
     expect(result).toEqual({ status: 200, body: { success: true } });
     expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledTimes(1);
+    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billingEntity: 'ks',
+      })
+    );
   });
 
   it('falls back to shared core handling when preflight signature verification fails', async () => {
@@ -206,5 +216,10 @@ describe('handlePaddleWebhookEntityCore', () => {
 
     expect(result).toEqual({ status: 401, body: { error: 'Invalid signature' } });
     expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledTimes(1);
+    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billingEntity: 'ks',
+      })
+    );
   });
 });
