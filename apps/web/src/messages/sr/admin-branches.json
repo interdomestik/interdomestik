@@ -106,33 +106,33 @@
             "title": "Operacije su pod kontrolom.",
             "action": "Nije potrebna akcija.",
             "bullets": [
-              "No critical delays",
-              "Payments are flowing normally",
-              "Claims are progressing on time"
+              "Nema kritičnih kašnjenja",
+              "Isplate se odvijaju normalno",
+              "Zahtevi napreduju na vreme"
             ]
           },
           "attention": {
             "title": "Neka pitanja zahtevaju praćenje.",
             "action": "Pregledaj otvorene stavke.",
             "bullets": [
-              "A few claims or payments need follow-up",
-              "Minor delays detected",
-              "Risk is manageable if addressed early"
+              "Nekoliko zahteva ili isplata zahteva dodatno praćenje",
+              "Otkrivena su manja kašnjenja",
+              "Rizik je pod kontrolom ako se reaguje na vreme"
             ]
           },
           "urgent": {
             "title": "Potrebna je hitna akcija.",
             "action": "Istraži i reši danas.",
             "bullets": [
-              "Claims are delayed beyond acceptable limits",
-              "Payments are pending verification",
-              "Operational risk is high"
+              "Zahtevi kasne iznad prihvatljivih rokova",
+              "Isplate čekaju verifikaciju",
+              "Operativni rizik je visok"
             ]
           },
           "inactive": {
             "title": "Filijala trenutno nije operativna.",
             "action": "Proveri status filijale.",
-            "bullets": ["No active claims or activity detected"]
+            "bullets": ["Nema aktivnih zahteva ili detektovane aktivnosti"]
           }
         }
       },

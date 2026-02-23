@@ -106,33 +106,33 @@
             "title": "Операциите се под контрола.",
             "action": "Не е потребна акција.",
             "bullets": [
-              "No critical delays",
-              "Payments are flowing normally",
-              "Claims are progressing on time"
+              "Нема критични доцнења",
+              "Исплатите се одвиваат нормално",
+              "Барањата напредуваат навреме"
             ]
           },
           "attention": {
             "title": "Одредени проблеми бараат следење.",
             "action": "Прегледај ги отворените ставки.",
             "bullets": [
-              "A few claims or payments need follow-up",
-              "Minor delays detected",
-              "Risk is manageable if addressed early"
+              "Неколку барања или исплати бараат дополнително следење",
+              "Откриени се помали доцнења",
+              "Ризикот е управлив ако се реагира навреме"
             ]
           },
           "urgent": {
             "title": "Потребна е итна акција.",
             "action": "Истражи и реши денес.",
             "bullets": [
-              "Claims are delayed beyond acceptable limits",
-              "Payments are pending verification",
-              "Operational risk is high"
+              "Барањата доцнат над прифатливите рокови",
+              "Исплатите чекаат верификација",
+              "Оперативниот ризик е висок"
             ]
           },
           "inactive": {
             "title": "Филијалата моментално не е оперативна.",
             "action": "Провери го статусот на филијалата.",
-            "bullets": ["No active claims or activity detected"]
+            "bullets": ["Нема активни барања или детектирана активност"]
           }
         }
       },
@@ -178,7 +178,7 @@
         "score": "Резултат",
         "open": "Отворени",
         "cash": "Кеш",
-        "sla": "СЛА",
+        "sla": "SLA рок",
         "table_status": "Статус",
         "status": {
           "healthy": "Здраво",
