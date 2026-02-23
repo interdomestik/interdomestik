@@ -7,7 +7,7 @@ import {
   resolveBillingEntityFromPathSegment,
 } from '@interdomestik/domain-membership-billing/paddle-server';
 
-import { handlePaddleWebhookCore } from '../_core';
+import { handlePaddleWebhookEntityCore } from './_core';
 
 type WebhookRouteContext = {
   params: Promise<{ entity: string }>;
@@ -31,12 +31,15 @@ export async function POST(req: NextRequest, { params }: WebhookRouteContext) {
   }
 
   try {
-    const { paddle, config } = getPaddleAndConfigForEntity(entity);
+    const { paddle, config } = getPaddleAndConfigForEntity(entity, {
+      allowLegacyFallback: false,
+    });
     const secret = config.webhookSecret;
     const signature = req.headers.get('paddle-signature');
     const bodyText = await req.text();
 
-    const result = await handlePaddleWebhookCore({
+    const result = await handlePaddleWebhookEntityCore({
+      expectedEntity: entity,
       paddle,
       headers: req.headers,
       signature,
