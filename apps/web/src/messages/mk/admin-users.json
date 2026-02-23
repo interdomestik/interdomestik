@@ -1,109 +1,109 @@
 {
   "admin": {
     "users_page": {
-      "title": "User Management",
-      "description": "Manage platform users and role assignments.",
-      "add_agent": "Add Agent",
-      "add_agent_title": "Add New Agent",
-      "add_agent_description": "Select a staff member to promote to agent.",
-      "select_user": "Select User",
-      "select_user_placeholder": "Select a user",
-      "select_branch": "Select Branch",
-      "select_branch_placeholder": "Select a branch",
-      "no_branch": "No Branch",
-      "cancel": "Cancel",
-      "confirm": "Confirm",
-      "add_agent_success": "Agent added",
-      "add_agent_success_desc": "User successfully promoted to agent.",
-      "add_agent_error": "Error adding agent",
-      "unexpected_error": "An unexpected error occurred."
+      "title": "Управување со корисници",
+      "description": "Управувајте со корисниците на платформата и доделувањето улоги.",
+      "add_agent": "Додај агент",
+      "add_agent_title": "Додај нов агент",
+      "add_agent_description": "Изберете член на персоналот за унапредување во агент.",
+      "select_user": "Избери корисник",
+      "select_user_placeholder": "Избери корисник",
+      "select_branch": "Избери филијала",
+      "select_branch_placeholder": "Избери филијала",
+      "no_branch": "Нема филијала",
+      "cancel": "Откажи",
+      "confirm": "Потврди",
+      "add_agent_success": "Агентот е додаден",
+      "add_agent_success_desc": "Корисникот е успешно унапреден во агент.",
+      "add_agent_error": "Грешка при додавање агент",
+      "unexpected_error": "Се случи неочекувана грешка."
     },
     "users_filters": {
-      "search_placeholder": "Search by name or email",
+      "search_placeholder": "Пребарај по име или е-пошта",
       "labels": {
-        "role": "Role",
-        "assignment": "Assignment"
+        "role": "Улога",
+        "assignment": "Доделување"
       },
       "roles": {
-        "all": "All roles",
-        "user": "Members",
-        "agent": "Agents",
-        "staff": "Staff",
-        "admin": "Admins"
+        "all": "Сите улоги",
+        "user": "Членови",
+        "agent": "Агенти",
+        "staff": "Персонал",
+        "admin": "Администратори"
       },
       "assignments": {
-        "all": "All assignments",
-        "assigned": "Assigned",
-        "unassigned": "Unassigned"
+        "all": "Сите доделувања",
+        "assigned": "Доделени",
+        "unassigned": "Недоделени"
       }
     },
     "users_table": {
       "sections": {
-        "members": "Members",
-        "agents": "Agents",
-        "staff": "Staff",
-        "unassigned": "Unassigned"
+        "members": "Членови",
+        "agents": "Агенти",
+        "staff": "Персонал",
+        "unassigned": "Недоделени"
       },
       "headers": {
-        "user": "User",
-        "role": "Role",
-        "assigned_agent": "Assigned Agent",
-        "joined": "Joined"
+        "user": "Корисник",
+        "role": "Улога",
+        "assigned_agent": "Доделен агент",
+        "joined": "Приклучен"
       },
-      "message_alert": "New message ({count})",
-      "select_agent": "Select Agent",
-      "unassigned": "Unassigned",
-      "no_users": "No users found",
-      "success_message": "User assigned successfully",
-      "view_profile": "View profile"
+      "message_alert": "Нова порака ({count})",
+      "select_agent": "Избери агент",
+      "unassigned": "Недоделени",
+      "no_users": "Нема пронајдени корисници",
+      "success_message": "Корисникот е успешно доделен",
+      "view_profile": "Преглед на профил"
     },
     "member_profile": {
       "actions": {
-        "back": "Back to users",
-        "view_claim": "View claim"
+        "back": "Назад кон корисници",
+        "view_claim": "Прегледај барање"
       },
       "sections": {
-        "membership": "Membership",
-        "agent": "Assigned agent",
-        "preferences": "Notification preferences",
-        "claims_overview": "Claims overview",
-        "recent_claims": "Recent claims"
+        "membership": "Членство",
+        "agent": "Доделен агент",
+        "preferences": "Преференции за известувања",
+        "claims_overview": "Преглед на барања",
+        "recent_claims": "Неодамнешни барања"
       },
       "labels": {
-        "member_id": "Member ID",
-        "joined": "Joined",
-        "email_verified_yes": "Email verified",
-        "email_verified_no": "Email not verified",
-        "status": "Status",
-        "plan": "Plan",
-        "period_end": "Period end",
-        "cancel_at_period_end": "Cancel at period end",
-        "no_agent": "No agent assigned",
-        "preferences_unset": "Preferences not set",
-        "no_claims": "No claims yet",
-        "unknown": "Unknown",
-        "not_set": "Not set"
+        "member_id": "ID на член",
+        "joined": "Приклучен",
+        "email_verified_yes": "Е-пошта потврдена",
+        "email_verified_no": "Е-пошта не е потврдена",
+        "status": "Статус",
+        "plan": "План",
+        "period_end": "Крај на период",
+        "cancel_at_period_end": "Откажи на крај на периодот",
+        "no_agent": "Нема доделен агент",
+        "preferences_unset": "Преференциите не се поставени",
+        "no_claims": "Сè уште нема барања",
+        "unknown": "Непознато",
+        "not_set": "Не е поставено"
       },
       "status": {
-        "active": "Active",
-        "past_due": "Past due",
-        "paused": "Paused",
-        "canceled": "Canceled",
-        "none": "Not subscribed"
+        "active": "Активно",
+        "past_due": "Во доцнење",
+        "paused": "Паузирано",
+        "canceled": "Откажано",
+        "none": "Не е претплатен"
       },
       "preferences": {
-        "email_claims": "Email claim updates",
-        "email_newsletter": "Email newsletter",
-        "email_marketing": "Email marketing",
-        "push_claims": "Push claim updates",
-        "push_messages": "Push messages",
-        "in_app": "In-app notifications"
+        "email_claims": "Е-пошта за ажурирања на барања",
+        "email_newsletter": "Е-поштен билтен",
+        "email_marketing": "Маркетинг е-пошта",
+        "push_claims": "Push ажурирања за барања",
+        "push_messages": "Push пораки",
+        "in_app": "Известувања во апликацијата"
       },
       "claims": {
-        "total": "Total claims",
-        "open": "Open claims",
-        "resolved": "Resolved",
-        "rejected": "Rejected"
+        "total": "Вкупно барања",
+        "open": "Отворени барања",
+        "resolved": "Решени",
+        "rejected": "Одбиени"
       }
     }
   }
