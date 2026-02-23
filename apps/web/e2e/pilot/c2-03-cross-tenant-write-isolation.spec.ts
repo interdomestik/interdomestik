@@ -11,10 +11,10 @@ import {
 import { updateClaimStatusCore as updateAdminClaimStatusCore } from '@interdomestik/domain-claims/admin-claims/update-status';
 import { sendMessageDbCore } from '@interdomestik/domain-communications/messages/send';
 import { expect, test } from '../fixtures/auth.fixture';
+import { isAlActorHost, resolveActorHost } from './_host';
 
 import { createSignedUploadCore } from '@/app/api/uploads/_core';
 
-const ACTOR_HOST = process.env.C2_ACTOR_HOST ?? process.env.MK_HOST ?? 'mk.127.0.0.1.nip.io:3000';
 const ACTOR_ADMIN_EMAIL = process.env.C2_ACTOR_EMAIL ?? E2E_USERS.MK_ADMIN.email;
 const ACTOR_ADMIN_TENANT_ID = process.env.C2_ACTOR_TENANT_ID ?? E2E_USERS.MK_ADMIN.tenantId;
 const TARGET_TENANT_ID = process.env.C2_TARGET_TENANT_ID ?? E2E_USERS.KS_MEMBER.tenantId;
@@ -102,7 +102,12 @@ async function findKsClaimTarget(): Promise<KsClaimTarget> {
 
 test.describe.configure({ mode: 'serial' });
 
-test('C2-03: cross-tenant write attempts are denied without mutation', async () => {
+test('C2-03: cross-tenant write attempts are denied without mutation', async ({}, testInfo) => {
+  const actorHost = resolveActorHost(testInfo);
+  if (testInfo.project.name === 'gate-al-sq') {
+    expect(isAlActorHost(actorHost)).toBe(true);
+  }
+
   const target = await findKsClaimTarget();
 
   const mkAdmin = await db.query.user.findFirst({
@@ -129,7 +134,7 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async () 
       claimId: target.claimId,
       newStatus: attemptedStatus,
       session: actorSession as AdminSession,
-      requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
+      requestHeaders: new Headers({ 'x-forwarded-host': actorHost }),
     })
   ).rejects.toThrow('Claim not found');
 
@@ -142,7 +147,7 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async () 
   const messageProbe = `C2-03 cross-tenant message probe ${Date.now()}`;
   const messageResult = await sendMessageDbCore({
     session: actorSession,
-    requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
+    requestHeaders: new Headers({ 'x-forwarded-host': actorHost }),
     claimId: target.claimId,
     content: messageProbe,
     isInternal: false,
@@ -194,6 +199,7 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async () 
   console.log('MARKER_C2_03_STATUS_WRITE_DENIED');
   console.log('MARKER_C2_03_MESSAGE_WRITE_DENIED');
   console.log('MARKER_C2_03_UPLOAD_WRITE_DENIED');
+  console.log(`C2_03_ACTOR_HOST=${actorHost}`);
   console.log(`C2_03_TARGET_CLAIM_ID=${target.claimId}`);
   console.log(`C2_03_TARGET_DOCUMENT_ID=${target.documentId}`);
   console.log(`C2_03_TARGET_CLAIM_TITLE=${target.claimTitle}`);

@@ -13,12 +13,14 @@ describe('tenant-hosts', () => {
   const mutableEnv = process.env as Record<string, string | undefined>;
   const originalKsHost = process.env.KS_HOST;
   const originalMkHost = process.env.MK_HOST;
+  const originalAlHost = process.env.AL_HOST;
   const originalNodeEnv = process.env.NODE_ENV;
   const originalVercelEnv = process.env.VERCEL_ENV;
 
   afterEach(() => {
     mutableEnv.KS_HOST = originalKsHost;
     mutableEnv.MK_HOST = originalMkHost;
+    mutableEnv.AL_HOST = originalAlHost;
     mutableEnv.NODE_ENV = originalNodeEnv;
     mutableEnv.VERCEL_ENV = originalVercelEnv;
   });
@@ -26,11 +28,13 @@ describe('tenant-hosts', () => {
   it('resolves canonical local hosts', () => {
     expect(resolveTenantFromHost('ks.localhost')).toBe('tenant_ks');
     expect(resolveTenantFromHost('mk.localhost')).toBe('tenant_mk');
+    expect(resolveTenantFromHost('al.localhost')).toBe('tenant_al');
   });
 
   it('handles ports, casing, and trailing dot', () => {
     expect(resolveTenantFromHost('KS.LOCALHOST:3000')).toBe('tenant_ks');
     expect(resolveTenantFromHost('mk.localhost:3000')).toBe('tenant_mk');
+    expect(resolveTenantFromHost('al.localhost:3000')).toBe('tenant_al');
     expect(resolveTenantFromHost('mk.localhost.')).toBe('tenant_mk');
   });
 
@@ -41,14 +45,26 @@ describe('tenant-hosts', () => {
     expect(resolveTenantFromHost('ks.dev.example:1234')).toBe('tenant_ks');
   });
 
+  it('supports AL env host overrides (with or without port)', () => {
+    mutableEnv.AL_HOST = 'al.dev.example:4321';
+
+    expect(resolveTenantFromHost('al.dev.example')).toBe('tenant_al');
+    expect(resolveTenantFromHost('al.dev.example:4321')).toBe('tenant_al');
+  });
+
   it('returns null for unknown hosts', () => {
     expect(resolveTenantFromHost('localhost')).toBeNull();
     expect(resolveTenantFromHost('example.com')).toBeNull();
   });
 
+  it('supports nip.io-style host fallback for AL', () => {
+    expect(resolveTenantFromHost('al.127.0.0.1.nip.io')).toBe('tenant_al');
+  });
+
   it('coerces tenantId values safely', () => {
     expect(coerceTenantId('tenant_ks')).toBe('tenant_ks');
     expect(coerceTenantId('tenant_mk')).toBe('tenant_mk');
+    expect(coerceTenantId('tenant_al')).toBe('tenant_al');
     expect(coerceTenantId('tenant_nope')).toBeNull();
     expect(coerceTenantId(null)).toBeNull();
   });
@@ -57,6 +73,7 @@ describe('tenant-hosts', () => {
     const ks: TenantId = 'tenant_ks';
     expect(isTenantHost('ks.localhost')).toBe(true);
     expect(isTenantHost('mk.localhost')).toBe(true);
+    expect(isTenantHost('al.localhost')).toBe(true);
     expect(isTenantHost('localhost')).toBe(false);
     expect(ks).toBe('tenant_ks');
   });

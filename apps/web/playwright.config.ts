@@ -9,6 +9,7 @@ const BASE_URL = `http://${BASE_HOST}:${PORT}`;
 // Use nip.io to avoid /etc/hosts dependency in CI
 const KS_HOST = process.env.KS_HOST ?? `ks.${BIND_HOST}.nip.io:${PORT}`;
 const MK_HOST = process.env.MK_HOST ?? `mk.${BIND_HOST}.nip.io:${PORT}`;
+const AL_HOST = process.env.AL_HOST ?? `al.${BIND_HOST}.nip.io:${PORT}`;
 const PILOT_HOST = process.env.PILOT_HOST ?? `pilot.${BIND_HOST}.nip.io:${PORT}`;
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
 
@@ -26,6 +27,26 @@ const GATE_MK_STATE = path.join(GATE_STATE_DIR, 'mk.json');
 const TEST_RESULTS_DIR = path.resolve(__dirname, 'test-results');
 const JUNIT_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'junit.xml');
 const JSON_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'report.json');
+
+const GATE_DEFAULT_MATCH = ['gate/**/*.spec.ts'];
+const PILOT_MATRIX_MATCH_GUARD = '/pilot/';
+const RUNNING_PILOT_MATRIX = process.argv.some(arg => arg.includes(PILOT_MATRIX_MATCH_GUARD));
+const GATE_KS_PILOT_MATCH = ['pilot/scenario-01-ks-e2e.spec.ts'];
+const GATE_MK_PILOT_MATCH = [
+  'pilot/c2-02-cross-tenant-artifact-isolation.spec.ts',
+  'pilot/c2-03-cross-tenant-write-isolation.spec.ts',
+  'pilot/c2-04-cross-tenant-staff-member-write-isolation.spec.ts',
+];
+const GATE_AL_PILOT_MATCH = ['pilot/c2-03-cross-tenant-write-isolation.spec.ts'];
+const NOOP_TEST_MATCH = ['__never__/__none__.spec.ts'];
+
+const GATE_KS_TEST_MATCH = RUNNING_PILOT_MATRIX
+  ? [...GATE_DEFAULT_MATCH, ...GATE_KS_PILOT_MATCH]
+  : GATE_DEFAULT_MATCH;
+const GATE_MK_TEST_MATCH = RUNNING_PILOT_MATRIX
+  ? [...GATE_DEFAULT_MATCH, ...GATE_MK_PILOT_MATCH]
+  : GATE_DEFAULT_MATCH;
+const GATE_AL_TEST_MATCH = RUNNING_PILOT_MATRIX ? GATE_AL_PILOT_MATCH : NOOP_TEST_MATCH;
 
 function requireState(statePath: string) {
   if (fs.existsSync(statePath)) return;
@@ -126,7 +147,7 @@ export default defineConfig({
     // ═══════════════════════════════════════════════════════════════════════════
     {
       name: 'gate-ks-sq',
-      testMatch: ['gate/**/*.spec.ts'],
+      testMatch: GATE_KS_TEST_MATCH,
       use: {
         ...devices['Desktop Chrome'],
         baseURL: tenantBaseUrl(KS_HOST, 'sq'),
@@ -140,7 +161,7 @@ export default defineConfig({
     },
     {
       name: 'gate-mk-mk',
-      testMatch: ['gate/**/*.spec.ts'],
+      testMatch: GATE_MK_TEST_MATCH,
       use: {
         ...devices['Desktop Chrome'],
         baseURL: tenantBaseUrl(MK_HOST, 'mk'),
@@ -148,6 +169,19 @@ export default defineConfig({
           'x-forwarded-host': MK_HOST,
         },
         storageState: GATE_MK_STATE,
+        actionTimeout: 20 * 1000,
+        navigationTimeout: 60 * 1000,
+      },
+    },
+    {
+      name: 'gate-al-sq',
+      testMatch: GATE_AL_TEST_MATCH,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: tenantBaseUrl(AL_HOST, 'sq'),
+        extraHTTPHeaders: {
+          'x-forwarded-host': AL_HOST,
+        },
         actionTimeout: 20 * 1000,
         navigationTimeout: 60 * 1000,
       },
@@ -255,7 +289,7 @@ export default defineConfig({
       NODE_OPTIONS: '--dns-result-order=ipv4first',
       NEXT_PUBLIC_APP_URL: BASE_URL,
       BETTER_AUTH_URL: BASE_URL,
-      BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},http://${PILOT_HOST},${BASE_URL}`,
+      BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},${BASE_URL}`,
       INTERDOMESTIK_AUTOMATED: '1',
       PLAYWRIGHT: '1',
       NEXT_PUBLIC_BILLING_TEST_MODE: '1',

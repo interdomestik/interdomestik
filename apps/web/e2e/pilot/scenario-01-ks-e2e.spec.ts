@@ -1,7 +1,12 @@
-import { E2E_USERS, claims, db, eq } from '@interdomestik/database';
+import { E2E_PASSWORD, E2E_USERS, claims, db, eq } from '@interdomestik/database';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+
+const MK_ACTOR_HOST =
+  process.env.C2_ACTOR_HOST ?? process.env.MK_HOST ?? 'mk.127.0.0.1.nip.io:3000';
+const MK_LOGIN_PATH = process.env.C2_ACTOR_LOGIN_PATH ?? '/mk/login';
+const MK_ADMIN_CLAIMS_PREFIX = process.env.C2_ACTOR_ADMIN_CLAIMS_PREFIX ?? '/mk/admin/claims';
 
 function claimIdFromMemberSuccessPath(href: string): string {
   const trimmed = href.trim().split('?')[0];
@@ -215,11 +220,12 @@ test('Scenario S1 KS Chain', async ({
   await expect(adminClaimCard.getByTestId('state-spine')).toBeVisible({ timeout: 20_000 });
 
   console.log('MARKER_ADMIN_READY');
+  process.env.SCENARIO_S1_CLAIM_ID = claimId;
   console.log(`SCENARIO_S1_CLAIM_ID=${claimId}`);
   console.log(`SCENARIO_S1_ADMIN_STATE=${persistedClaim.status}`);
 });
 
-test('Scenario S1 KS Isolation', async ({ adminPage }, testInfo) => {
+test('Scenario S1 KS Isolation', async ({ browser }) => {
   const claimId = process.env.SCENARIO_S1_CLAIM_ID;
   if (!claimId) {
     throw new Error('SCENARIO_S1_CLAIM_ID environment variable is missing');
@@ -238,41 +244,69 @@ test('Scenario S1 KS Isolation', async ({ adminPage }, testInfo) => {
     );
   }
 
-  const response = await gotoApp(
-    adminPage,
-    `/admin/claims/${encodeURIComponent(claimId)}`,
-    testInfo,
-    {
-      marker: 'body',
-    }
-  );
-  const statusCode = response?.status() ?? 0;
-  const isLoginRedirect = /\/login(?:[/?#]|$)/i.test(adminPage.url());
-  const isNotFound = await adminPage
-    .getByTestId('not-found-page')
-    .isVisible()
-    .catch(() => false);
-  const html = await adminPage.content();
-  const hasServer404Fallback = html.includes('NEXT_HTTP_ERROR_FALLBACK;404');
-  const hasNotFoundMarkup = html.includes('data-testid=\"not-found-page\"');
-  const isDeniedByStatus = statusCode === 401 || statusCode === 403 || statusCode === 404;
-  if (
-    !isLoginRedirect &&
-    !isNotFound &&
-    !isDeniedByStatus &&
-    !hasServer404Fallback &&
-    !hasNotFoundMarkup
-  ) {
-    throw new Error(
-      `Isolation breach: MK admin could access KS claim ${claimId} without isolation rejection (status=${statusCode}, url=${adminPage.url()})`
-    );
-  }
+  const origin = `http://${MK_ACTOR_HOST}`;
+  const mkContext = await browser.newContext({
+    baseURL: origin,
+    extraHTTPHeaders: {
+      'x-forwarded-host': MK_ACTOR_HOST,
+    },
+    locale: 'mk-MK',
+  });
+  const mkAdminPage = await mkContext.newPage();
 
-  const hasClaimState = await adminPage
-    .getByTestId(`admin-claim-status-${claimId}`)
-    .isVisible()
-    .catch(() => false);
-  if (hasClaimState) {
-    throw new Error(`Isolation breach: MK admin sees KS claim state for ${claimId}`);
+  try {
+    const loginResponse = await mkAdminPage.request.post(
+      new URL('/api/auth/sign-in/email', origin).toString(),
+      {
+        data: {
+          email: E2E_USERS.MK_ADMIN.email,
+          password: E2E_PASSWORD,
+        },
+        headers: {
+          Origin: origin,
+          Referer: `${origin}${MK_LOGIN_PATH}`,
+          'x-forwarded-host': MK_ACTOR_HOST,
+        },
+      }
+    );
+    expect(loginResponse.ok(), `Expected MK admin API login success on ${MK_ACTOR_HOST}`).toBe(
+      true
+    );
+
+    const response = await mkAdminPage.goto(
+      `${origin}${MK_ADMIN_CLAIMS_PREFIX}/${encodeURIComponent(claimId)}`,
+      { waitUntil: 'domcontentloaded' }
+    );
+    const statusCode = response?.status() ?? 0;
+    const isLoginRedirect = /\/(?:mk\/)?login(?:[/?#]|$)/i.test(mkAdminPage.url());
+    const isNotFound = await mkAdminPage
+      .getByTestId('not-found-page')
+      .isVisible()
+      .catch(() => false);
+    const html = await mkAdminPage.content();
+    const hasServer404Fallback = html.includes('NEXT_HTTP_ERROR_FALLBACK;404');
+    const hasNotFoundMarkup = html.includes('data-testid=\"not-found-page\"');
+    const isDeniedByStatus = statusCode === 401 || statusCode === 403 || statusCode === 404;
+    if (
+      !isLoginRedirect &&
+      !isNotFound &&
+      !isDeniedByStatus &&
+      !hasServer404Fallback &&
+      !hasNotFoundMarkup
+    ) {
+      throw new Error(
+        `Isolation breach: MK admin could access KS claim ${claimId} without isolation rejection (status=${statusCode}, url=${mkAdminPage.url()})`
+      );
+    }
+
+    const hasClaimState = await mkAdminPage
+      .getByTestId(`admin-claim-status-${claimId}`)
+      .isVisible()
+      .catch(() => false);
+    if (hasClaimState) {
+      throw new Error(`Isolation breach: MK admin sees KS claim state for ${claimId}`);
+    }
+  } finally {
+    await mkContext.close();
   }
 });
