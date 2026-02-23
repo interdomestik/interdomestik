@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   coerceTenantId,
+  hasHostSessionTenantMismatch,
   isTenantHost,
   resolveTenantFromHost,
   resolveTenantIdFromSources,
@@ -116,5 +117,26 @@ describe('tenant-hosts', () => {
         { productionSensitive: true }
       )
     ).toBe('tenant_mk');
+  });
+
+  it('returns false for host/session mismatch check when host tenant is missing', () => {
+    expect(hasHostSessionTenantMismatch(null, 'tenant_mk')).toBe(false);
+  });
+
+  it('returns false for host/session mismatch check when session tenant is missing', () => {
+    expect(hasHostSessionTenantMismatch('tenant_mk', null)).toBe(false);
+    expect(hasHostSessionTenantMismatch('tenant_mk', undefined)).toBe(false);
+  });
+
+  it('returns true for host/session mismatch check when tenants differ', () => {
+    expect(hasHostSessionTenantMismatch('tenant_mk', 'tenant_ks')).toBe(true);
+  });
+
+  it('returns false for host/session mismatch check when tenants match', () => {
+    expect(hasHostSessionTenantMismatch('tenant_mk', 'tenant_mk')).toBe(false);
+  });
+
+  it('returns false for host/session mismatch check when session tenant is invalid', () => {
+    expect(hasHostSessionTenantMismatch('tenant_mk', 'tenant_unknown')).toBe(false);
   });
 });
