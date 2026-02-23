@@ -12,7 +12,9 @@ const SESSION_COOKIE_NAMES = [
   '__Host-better-auth.session_token',
 ] as const;
 
-function resolveTenantFromHost(host: string): 'tenant_mk' | 'tenant_ks' | 'pilot-mk' | null {
+function resolveTenantFromHost(
+  host: string
+): 'tenant_mk' | 'tenant_ks' | 'tenant_al' | 'pilot-mk' | null {
   const canonicalTenant = resolveTenantFromCanonicalHost(host);
   if (canonicalTenant) return canonicalTenant;
 
