@@ -48,7 +48,7 @@ export default async function PricingPage({ params }: PricingPageProps) {
       />
 
       <div className="mt-20 text-center">
-        <p className="text-sm text-muted-foreground">30-Day Money-Back Guarantee</p>
+        <p className="text-sm text-muted-foreground">{t('moneyBackGuarantee')}</p>
       </div>
     </div>
   );

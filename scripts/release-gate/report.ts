@@ -216,7 +216,7 @@ function writeReleaseGateReport(input) {
     '',
     '## Follow-ups / Tech Debt',
     '',
-    '- i18n coverage intentionally excluded from this gate; handled by nightly jobs.',
+    '- i18n is mandatory in RC gates (`pnpm i18n:check` + `e2e/gate/i18n-production-locales.spec.ts`).',
   ].join('\n');
 
   fs.writeFileSync(reportPath, `${content}\n`, 'utf8');

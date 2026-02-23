@@ -35,7 +35,7 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
       priceId: isYearly ? PADDLE_PRICES.standard.yearly : PADDLE_PRICES.standard.monthly,
       name: t('standard.name'),
       price: isYearly ? '€20' : '€3',
-      period: isYearly ? t('standard.period') : '/month',
+      period: isYearly ? t('standard.period') : t('perMonth'),
       description: t('standard.description'),
       features: [
         t('standard.features.0'),
@@ -54,7 +54,7 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
       priceId: isYearly ? PADDLE_PRICES.family.yearly : PADDLE_PRICES.family.monthly,
       name: t('family.name'),
       price: isYearly ? '€35' : '€5',
-      period: isYearly ? t('family.period') : '/month',
+      period: isYearly ? t('family.period') : t('perMonth'),
       description: t('family.description'),
       features: [
         t('family.features.0'),
@@ -71,7 +71,7 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
       priceId: isYearly ? PADDLE_PRICES.business.yearly : PADDLE_PRICES.business.monthly,
       name: t('business.name'),
       price: isYearly ? '€95' : '€10',
-      period: isYearly ? t('business.period') : '/month',
+      period: isYearly ? t('business.period') : t('perMonth'),
       description: t('business.description'),
       features: [
         t('business.features.0'),
@@ -199,7 +199,7 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
                 </div>
                 {isYearly && (
                   <span className="text-[11px] font-black text-green-600 uppercase tracking-widest bg-green-50 px-3 py-1 rounded-md mt-2">
-                    Billed Annually
+                    {t('billedAnnually')}
                   </span>
                 )}
               </div>

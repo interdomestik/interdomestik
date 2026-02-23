@@ -35,6 +35,14 @@ const { locales, baseLocale } = parseArgs(process.argv.slice(2));
 
 const MESSAGES_DIR = path.join(ROOT, 'apps/web/src/messages');
 const BASE_DIR = path.join(MESSAGES_DIR, baseLocale);
+const CRITICAL_LOCALIZED_KEYS = {
+  pricing: [
+    'pricing.title',
+    'pricing.cta',
+    'pricing.billedAnnually',
+    'pricing.moneyBackGuarantee',
+  ],
+};
 
 // Auto-discover namespaces from 'en' directory
 const namespaces = fs
@@ -63,6 +71,15 @@ function flatten(obj, prefix = '') {
     }
     return acc;
   }, []);
+}
+
+function readValue(obj, dottedKey) {
+  return dottedKey.split('.').reduce((acc, key) => {
+    if (acc && typeof acc === 'object' && key in acc) {
+      return acc[key];
+    }
+    return undefined;
+  }, obj);
 }
 
 let failures = [];
@@ -103,6 +120,20 @@ for (const ns of namespaces) {
         missing.slice(0, 5).join(', ') +
         (missing.length > 5 ? `... (${missing.length} total)` : '');
       failures.push(`[${locale}] missing keys in ${ns}: ${missingStr}`);
+    }
+
+    for (const dottedKey of CRITICAL_LOCALIZED_KEYS[ns] ?? []) {
+      const baseValue = readValue(base, dottedKey);
+      const translatedValue = readValue(data, dottedKey);
+
+      if (typeof baseValue !== 'string' || typeof translatedValue !== 'string') {
+        failures.push(`[${locale}] invalid critical i18n key ${ns}:${dottedKey}`);
+        continue;
+      }
+
+      if (baseValue.trim() === translatedValue.trim()) {
+        failures.push(`[${locale}] critical i18n key matches base locale: ${ns}:${dottedKey}`);
+      }
     }
   }
 }

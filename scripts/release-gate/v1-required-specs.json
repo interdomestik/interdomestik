@@ -9,6 +9,7 @@
         "apps/web/e2e/gate/c1-pilot-admin.spec.ts",
         "apps/web/e2e/gate/clarity-hardening.spec.ts",
         "apps/web/e2e/gate/golden-gate.spec.ts",
+        "apps/web/e2e/gate/i18n-production-locales.spec.ts",
         "apps/web/e2e/gate/member-diaspora.spec.ts",
         "apps/web/e2e/gate/member-documents-upload-entry.spec.ts",
         "apps/web/e2e/gate/member-home-cta.spec.ts",
