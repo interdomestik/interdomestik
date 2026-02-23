@@ -7,18 +7,26 @@ import {
 
 const ORIGINAL_ENV = { ...process.env };
 
+function setEnv(name: string, value: string): void {
+  (process.env as Record<string, string | undefined>)[name] = value;
+}
+
+function unsetEnv(name: string): void {
+  delete (process.env as Record<string, string | undefined>)[name];
+}
+
 function clearBillingEnv(): void {
-  delete process.env.PADDLE_API_KEY;
-  delete process.env.PADDLE_WEBHOOK_SECRET_KEY;
-  delete process.env.PADDLE_API_KEY_KS;
-  delete process.env.PADDLE_API_KEY_MK;
-  delete process.env.PADDLE_API_KEY_AL;
-  delete process.env.PADDLE_WEBHOOK_SECRET_KEY_KS;
-  delete process.env.PADDLE_WEBHOOK_SECRET_KEY_MK;
-  delete process.env.PADDLE_WEBHOOK_SECRET_KEY_AL;
-  delete process.env.NEXT_PUBLIC_PADDLE_ENV;
-  delete process.env.VERCEL_ENV;
-  delete process.env.NODE_ENV;
+  unsetEnv('PADDLE_API_KEY');
+  unsetEnv('PADDLE_WEBHOOK_SECRET_KEY');
+  unsetEnv('PADDLE_API_KEY_KS');
+  unsetEnv('PADDLE_API_KEY_MK');
+  unsetEnv('PADDLE_API_KEY_AL');
+  unsetEnv('PADDLE_WEBHOOK_SECRET_KEY_KS');
+  unsetEnv('PADDLE_WEBHOOK_SECRET_KEY_MK');
+  unsetEnv('PADDLE_WEBHOOK_SECRET_KEY_AL');
+  unsetEnv('NEXT_PUBLIC_PADDLE_ENV');
+  unsetEnv('VERCEL_ENV');
+  unsetEnv('NODE_ENV');
 }
 
 describe('paddle-server billing entity mapping', () => {
@@ -38,11 +46,11 @@ describe('paddle-server billing entity mapping', () => {
   });
 
   it('throws in production-like mode when required entity env config is missing', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.PADDLE_API_KEY_MK = 'pdl_api_mk';
-    process.env.PADDLE_WEBHOOK_SECRET_KEY_MK = 'whsec_mk';
-    process.env.PADDLE_API_KEY_AL = 'pdl_api_al';
-    process.env.PADDLE_WEBHOOK_SECRET_KEY_AL = 'whsec_al';
+    setEnv('NODE_ENV', 'production');
+    setEnv('PADDLE_API_KEY_MK', 'pdl_api_mk');
+    setEnv('PADDLE_WEBHOOK_SECRET_KEY_MK', 'whsec_mk');
+    setEnv('PADDLE_API_KEY_AL', 'pdl_api_al');
+    setEnv('PADDLE_WEBHOOK_SECRET_KEY_AL', 'whsec_al');
 
     expect(() => assertBillingEntityEnvConfigured()).toThrow(
       'Missing billing configuration for entity ks'
@@ -50,10 +58,10 @@ describe('paddle-server billing entity mapping', () => {
   });
 
   it('uses explicit non-production fallback when entity-scoped env is not configured', () => {
-    process.env.NODE_ENV = 'test';
-    process.env.NEXT_PUBLIC_PADDLE_ENV = 'sandbox';
-    process.env.PADDLE_API_KEY = 'pdl_api_shared';
-    process.env.PADDLE_WEBHOOK_SECRET_KEY = 'whsec_shared';
+    setEnv('NODE_ENV', 'test');
+    setEnv('NEXT_PUBLIC_PADDLE_ENV', 'sandbox');
+    setEnv('PADDLE_API_KEY', 'pdl_api_shared');
+    setEnv('PADDLE_WEBHOOK_SECRET_KEY', 'whsec_shared');
 
     const config = resolveBillingEntityConfig('ks');
     expect(config.apiKey).toBe('pdl_api_shared');
