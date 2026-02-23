@@ -66,6 +66,11 @@ require_clean_tree() {
 }
 
 run_local_verifications() {
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo "[pr-finalizer] INFO: skipping local type-check/test in CI; required checks cover them."
+    return 0
+  fi
+
   run_step "pnpm type-check" pnpm type-check
   run_step "pnpm test" pnpm test
 }
@@ -101,7 +106,7 @@ require_gh_checks() {
 
   local repo="${GITHUB_REPOSITORY:-}"
   if [[ -z "${repo}" ]]; then
-    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\\.git$##' || true)"
+    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' || true)"
   fi
   if [[ -z "${repo}" ]]; then
     fail "unable to resolve repository context"
@@ -215,7 +220,7 @@ require_review_threads_resolved() {
 
   local repo="${GITHUB_REPOSITORY:-}"
   if [[ -z "${repo}" ]]; then
-    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\\.git$##' || true)"
+    repo="$(git remote get-url origin 2>/dev/null | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' || true)"
   fi
   if [[ -z "${repo}" ]]; then
     fail "unable to resolve repository context for review-thread validation"

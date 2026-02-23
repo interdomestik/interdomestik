@@ -5,6 +5,15 @@ import { config as dotenvConfig } from 'dotenv';
 
 dotenvConfig({ path: '.env.local' });
 
+// Guard against empty host entries in .env.local (e.g. KS_HOST=)
+// which can poison Playwright base URLs (http:///sq, http:///mk).
+for (const key of ['KS_HOST', 'MK_HOST', 'AL_HOST', 'PILOT_HOST']) {
+  const value = process.env[key];
+  if (typeof value === 'string' && value.trim() === '') {
+    delete process.env[key];
+  }
+}
+
 const [command, ...args] = process.argv.slice(2);
 
 if (!command) {

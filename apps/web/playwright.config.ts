@@ -6,11 +6,6 @@ const PORT = 3000;
 const BASE_HOST = '127.0.0.1';
 const BIND_HOST = '127.0.0.1';
 const BASE_URL = `http://${BASE_HOST}:${PORT}`;
-// Use nip.io to avoid /etc/hosts dependency in CI
-const KS_HOST = process.env.KS_HOST ?? `ks.${BIND_HOST}.nip.io:${PORT}`;
-const MK_HOST = process.env.MK_HOST ?? `mk.${BIND_HOST}.nip.io:${PORT}`;
-const AL_HOST = process.env.AL_HOST ?? `al.${BIND_HOST}.nip.io:${PORT}`;
-const PILOT_HOST = process.env.PILOT_HOST ?? `pilot.${BIND_HOST}.nip.io:${PORT}`;
 const WEB_SERVER_SCRIPT = path.resolve(__dirname, '../../scripts/e2e-webserver.sh');
 
 function tenantBaseUrl(hostWithPort: string, locale: string): string {
@@ -92,6 +87,23 @@ function loadEnvManual(envPath: string) {
 }
 
 envPaths.forEach(loadEnvManual);
+
+function envOrFallback(name: string, fallback: string): string {
+  const rawValue = process.env[name];
+  if (typeof rawValue !== 'string') {
+    return fallback;
+  }
+
+  const normalized = rawValue.trim();
+  return normalized.length > 0 ? normalized : fallback;
+}
+
+// Use nip.io to avoid /etc/hosts dependency in CI.
+// Empty env values should not override working defaults.
+const KS_HOST = envOrFallback('KS_HOST', `ks.${BIND_HOST}.nip.io:${PORT}`);
+const MK_HOST = envOrFallback('MK_HOST', `mk.${BIND_HOST}.nip.io:${PORT}`);
+const AL_HOST = envOrFallback('AL_HOST', `al.${BIND_HOST}.nip.io:${PORT}`);
+const PILOT_HOST = envOrFallback('PILOT_HOST', `pilot.${BIND_HOST}.nip.io:${PORT}`);
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
 
