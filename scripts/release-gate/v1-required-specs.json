@@ -22,7 +22,7 @@
     },
     "commands": {
       "security_guard": "pnpm security:guard",
-      "i18n_production_gate": "pnpm i18n:check",
+      "i18n_production_gate": "pnpm i18n:check && pnpm i18n:purity:check",
       "rls": "REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test",
       "pr_verify_hosts": "pnpm pr:verify:hosts"
     }
