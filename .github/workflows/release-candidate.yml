@@ -122,8 +122,17 @@ jobs:
           NODE
           then
             set +e
+            exit_code=0
             pnpm i18n:check 2>&1 | tee "${log_file}"
-            exit_code=${PIPESTATUS[0]}
+            i18n_check_exit=${PIPESTATUS[0]}
+            if [[ ${i18n_check_exit} -ne 0 ]]; then
+              exit_code=${i18n_check_exit}
+            fi
+            pnpm i18n:purity:check --report="${RC_LOGS_DIR}/i18n-purity-report.json" 2>&1 | tee -a "${log_file}"
+            i18n_purity_exit=${PIPESTATUS[0]}
+            if [[ ${i18n_purity_exit} -ne 0 ]]; then
+              exit_code=${i18n_purity_exit}
+            fi
             set -e
             printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/i18n_production_gate.exit"
             exit "${exit_code}"
