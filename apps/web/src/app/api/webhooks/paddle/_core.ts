@@ -46,10 +46,10 @@ function resolveProcessingScopeKey(params: {
   tenantId?: string | null;
   billingEntity?: BillingEntity;
 }): string {
+  if (params.billingEntity) return `entity:${params.billingEntity}`;
+
   const tenantId = normalizeText(params.tenantId);
   if (tenantId) return `tenant:${tenantId}`;
-
-  if (params.billingEntity) return `entity:${params.billingEntity}`;
 
   return 'global';
 }
