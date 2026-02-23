@@ -38,4 +38,11 @@ runs:
       if: inputs.install-playwright == 'true'
       shell: bash
       run: |
-        pnpm --filter @interdomestik/web exec playwright install --with-deps
+        set -euo pipefail
+
+        # Most CI paths only run Chromium projects; avoid downloading unused engines.
+        if [[ "${{ steps.playwright-cache.outputs.cache-hit }}" == "true" ]]; then
+          pnpm --filter @interdomestik/web exec playwright install chromium
+        else
+          pnpm --filter @interdomestik/web exec playwright install --with-deps chromium
+        fi
