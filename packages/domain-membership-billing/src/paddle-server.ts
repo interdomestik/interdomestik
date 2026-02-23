@@ -3,6 +3,10 @@ import { Environment, Paddle } from '@paddle/paddle-node-sdk';
 export type BillingTenantId = 'tenant_ks' | 'tenant_mk' | 'tenant_al';
 export type BillingEntity = 'ks' | 'mk' | 'al';
 
+const LEGACY_PADDLE_API_KEY_ENV = 'PADDLE_API_KEY';
+const LEGACY_PADDLE_WEBHOOK_SECRET_ENV = 'PADDLE_WEBHOOK_SECRET_KEY';
+const DEFAULT_BILLING_ENTITY_ENV = 'PADDLE_DEFAULT_BILLING_ENTITY';
+
 type BillingEntityEnvVars = {
   apiKey: string;
   webhookSecret: string;
@@ -12,7 +16,13 @@ type ResolveBillingEntityConfigOptions = {
   allowLegacyFallback?: boolean;
 };
 
+export type GetPaddleOptions = ResolveBillingEntityConfigOptions & {
+  tenantId?: string | null;
+  entity?: string | null;
+};
+
 export type BillingEntityConfig = {
+  // Sensitive: never log this object directly (contains secrets).
   entity: BillingEntity;
   tenantId: BillingTenantId;
   apiKey: string;
@@ -50,36 +60,33 @@ const BILLING_ENTITY_ENV_VARS: Record<BillingEntity, BillingEntityEnvVars> = {
 };
 
 const BILLING_ENTITIES: readonly BillingEntity[] = ['ks', 'mk', 'al'];
+const BILLING_TENANTS: readonly BillingTenantId[] = ['tenant_ks', 'tenant_mk', 'tenant_al'];
 
-let paddleClient: Paddle | null = null;
-const paddleEntityClients = new Map<BillingEntity, Paddle>();
+type PaddleClientCacheEntry = {
+  cacheKey: string;
+  client: Paddle;
+};
+
+const paddleEntityClients = new Map<BillingEntity, PaddleClientCacheEntry>();
 
 function getOptionalEnv(name: string): string | undefined {
   const value = process.env[name];
   return value && value.trim().length > 0 ? value : undefined;
 }
 
-function getRequiredEnv(name: string): string {
-  const value = getOptionalEnv(name);
-  if (!value) {
-    throw new Error(`${name} is missing`);
-  }
-  return value;
-}
-
 function isBillingEntity(value: string): value is BillingEntity {
-  return value === 'ks' || value === 'mk' || value === 'al';
+  return (BILLING_ENTITIES as readonly string[]).includes(value);
 }
 
 function isBillingTenantId(value: string): value is BillingTenantId {
-  return value === 'tenant_ks' || value === 'tenant_mk' || value === 'tenant_al';
+  return (BILLING_TENANTS as readonly string[]).includes(value);
 }
 
 function isProductionLikeBillingMode(): boolean {
   return (
     process.env.NODE_ENV === 'production' ||
     process.env.VERCEL_ENV === 'production' ||
-    process.env.NEXT_PUBLIC_PADDLE_ENV === Environment.production
+    process.env.NEXT_PUBLIC_PADDLE_ENV === 'production'
   );
 }
 
@@ -92,10 +99,11 @@ function shouldAllowLegacyFallback(options: ResolveBillingEntityConfigOptions): 
 
 function resolvePaddleEnvironment(): Environment {
   const value = getOptionalEnv('NEXT_PUBLIC_PADDLE_ENV');
-  if (!value || value === Environment.sandbox) {
+  // The env var is string-based; map known values to SDK Environment values explicitly.
+  if (!value || value === 'sandbox') {
     return Environment.sandbox;
   }
-  if (value === Environment.production) {
+  if (value === 'production') {
     return Environment.production;
   }
   throw new Error(`NEXT_PUBLIC_PADDLE_ENV must be "sandbox" or "production", received "${value}".`);
@@ -142,27 +150,29 @@ export function resolveBillingEntityConfig(
 
   const allowLegacyFallback = shouldAllowLegacyFallback(options);
   if (allowLegacyFallback) {
-    const fallbackApiKey = getOptionalEnv('PADDLE_API_KEY');
-    const fallbackWebhookSecret = getOptionalEnv('PADDLE_WEBHOOK_SECRET_KEY');
+    const fallbackApiKey = getOptionalEnv(LEGACY_PADDLE_API_KEY_ENV);
+    const fallbackWebhookSecret = getOptionalEnv(LEGACY_PADDLE_WEBHOOK_SECRET_ENV);
     if (fallbackApiKey && fallbackWebhookSecret) {
       return {
         entity,
         tenantId: resolveBillingTenantIdForEntity(entity),
         apiKey: fallbackApiKey,
         webhookSecret: fallbackWebhookSecret,
-        apiKeyEnvVar: envVars.apiKey,
-        webhookSecretEnvVar: envVars.webhookSecret,
+        apiKeyEnvVar: LEGACY_PADDLE_API_KEY_ENV,
+        webhookSecretEnvVar: LEGACY_PADDLE_WEBHOOK_SECRET_ENV,
         source: 'legacy-fallback',
       };
     }
   }
 
-  const missingEnv = [
-    !apiKey ? envVars.apiKey : null,
-    !webhookSecret ? envVars.webhookSecret : null,
-  ]
-    .filter((name): name is string => Boolean(name))
-    .join(', ');
+  const missingEnvVars: string[] = [];
+  if (!apiKey) {
+    missingEnvVars.push(envVars.apiKey);
+  }
+  if (!webhookSecret) {
+    missingEnvVars.push(envVars.webhookSecret);
+  }
+  const missingEnv = missingEnvVars.join(', ');
   const mode = isProductionLikeBillingMode() ? 'production-like mode' : 'non-production mode';
   const fallbackHint = allowLegacyFallback
     ? ' Set entity-scoped values or set PADDLE_API_KEY + PADDLE_WEBHOOK_SECRET_KEY for explicit local fallback.'
@@ -181,34 +191,78 @@ export function assertBillingEntityEnvConfigured(
   }
 }
 
+function resolveRequestedBillingEntity(options: GetPaddleOptions): BillingEntity {
+  const entityFromOption = resolveBillingEntityFromPathSegment(options.entity);
+  if (options.entity !== undefined && options.entity !== null && !entityFromOption) {
+    throw new Error(
+      `Unknown billing entity "${options.entity}". Expected one of: ${BILLING_ENTITIES.join(', ')}`
+    );
+  }
+  if (entityFromOption) {
+    return entityFromOption;
+  }
+
+  const entityFromTenant = resolveBillingEntityForTenantId(options.tenantId);
+  if (options.tenantId !== undefined && options.tenantId !== null && !entityFromTenant) {
+    throw new Error(
+      `Unknown billing tenant "${options.tenantId}". Expected one of: ${BILLING_TENANTS.join(', ')}`
+    );
+  }
+  if (entityFromTenant) {
+    return entityFromTenant;
+  }
+
+  const defaultEntity = resolveBillingEntityFromPathSegment(
+    getOptionalEnv(DEFAULT_BILLING_ENTITY_ENV)
+  );
+  if (defaultEntity) {
+    return defaultEntity;
+  }
+
+  if (isProductionLikeBillingMode()) {
+    throw new Error(
+      `Unable to resolve billing entity. Provide tenant/entity context or set ${DEFAULT_BILLING_ENTITY_ENV}.`
+    );
+  }
+
+  return 'ks';
+}
+
+function buildPaddleClientCacheKey(config: BillingEntityConfig, environment: Environment): string {
+  return `${environment}:${config.apiKey}`;
+}
+
+export function resetPaddleClientCacheForTests(): void {
+  paddleEntityClients.clear();
+}
+
 export function getPaddleForEntity(
   entity: BillingEntity,
   options: ResolveBillingEntityConfigOptions = {}
 ): Paddle {
-  const existing = paddleEntityClients.get(entity);
-  if (existing) return existing;
-
   const config = resolveBillingEntityConfig(entity, options);
+  const environment = resolvePaddleEnvironment();
+  const cacheKey = buildPaddleClientCacheKey(config, environment);
+  const existing = paddleEntityClients.get(entity);
+
+  if (existing && existing.cacheKey === cacheKey) {
+    return existing.client;
+  }
+
   const paddle = new Paddle(config.apiKey, {
-    environment: resolvePaddleEnvironment(),
+    environment,
   });
-  paddleEntityClients.set(entity, paddle);
+  paddleEntityClients.set(entity, { cacheKey, client: paddle });
   return paddle;
 }
 
-export function getPaddle(): Paddle {
-  if (paddleClient) return paddleClient;
+export function getPaddle(options: GetPaddleOptions = {}): Paddle {
+  const allowLegacyFallback = shouldAllowLegacyFallback(options);
 
-  if (isProductionLikeBillingMode()) {
+  if (!allowLegacyFallback) {
     assertBillingEntityEnvConfigured({ allowLegacyFallback: false });
   }
 
-  const apiKey = getRequiredEnv('PADDLE_API_KEY');
-  const env = resolvePaddleEnvironment();
-
-  paddleClient = new Paddle(apiKey, {
-    environment: env,
-  });
-
-  return paddleClient;
+  const entity = resolveRequestedBillingEntity(options);
+  return getPaddleForEntity(entity, { allowLegacyFallback });
 }

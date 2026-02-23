@@ -27,7 +27,7 @@ export async function cancelSubscriptionCore(
   }
 
   try {
-    const paddle = getPaddle();
+    const paddle = getPaddle({ tenantId });
     await paddle.subscriptions.cancel(subscriptionId, {
       effectiveFrom: 'next_billing_period',
     });
