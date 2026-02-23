@@ -1,6 +1,6 @@
 {
   "agent": {
-    "title": "Agent Workspace",
+    "title": "Radni prostor agenta",
     "crm": "Pregled CRM-a",
     "dashboard": "Kontrolna tabla",
     "leads": "Potencijalni klijenti",
@@ -13,37 +13,37 @@
       "table": {
         "firstName": "Ime",
         "lastName": "Prezime",
-        "email": "Email",
-        "status": "Status",
+        "email": "E-pošta",
+        "status": "Faza",
         "actions": "Akcije"
       },
       "form": {
         "firstName": "Ime",
         "lastName": "Prezime",
-        "email": "Email",
+        "email": "E-pošta",
         "phone": "Telefon",
         "notes": "Napomene",
         "submit": "Kreiraj potencijalnog klijenta"
       }
     },
     "deals": "Dogovori",
-    "claims": "Claims",
-    "members": "Members",
+    "claims": "Zahtevi",
+    "members": "Članovi",
     "stats": {
-      "total": "Total Claims",
-      "new": "New (Submitted)",
-      "verification": "In Verification",
-      "closed": "Resolved / Rejected"
+      "total": "Ukupno zahteva",
+      "new": "Novi (podneti)",
+      "verification": "U verifikaciji",
+      "closed": "Rešeni / Odbijeni"
     },
     "pipeline": {
-      "title": "Pipeline Overview",
-      "subtitle": "Your sales funnel performance",
-      "new_leads": "New Leads",
-      "contacted": "Contacted",
-      "won": "Won"
+      "title": "Pregled prodajnog toka",
+      "subtitle": "Učinak vašeg prodajnog levka",
+      "new_leads": "Novi potencijalni klijenti",
+      "contacted": "Kontaktirani",
+      "won": "Dobijeni"
     },
-    "claims_queue": "Claims Queue",
-    "settings": "Settings",
+    "claims_queue": "Red zahteva",
+    "settings": "Podešavanja",
     "manage_triage": "Manage and triage all submitted claims.",
     "table": {
       "claimant": "Claimant",
@@ -54,9 +54,9 @@
       "actions": "Actions",
       "triage": "Triage",
       "message_alert": "New message ({count})",
-      "no_claims": "No claims found.",
+      "no_claims": "Nema pronađenih zahteva.",
       "no_claims_ready": "Claim List Component Coming Soon",
-      "recent_activity": "Recent Activity"
+      "recent_activity": "Nedavne aktivnosti"
     },
     "actions": {
       "approve": "Approve",
@@ -66,10 +66,10 @@
     },
     "details": {
       "title": "Claim Details",
-      "claimantInfo": "Claimant Information",
+      "claimantInfo": "Podaci podnosioca",
       "name": "Name",
       "email": "Email",
-      "description": "Description",
+      "description": "Opis",
       "amount": "Amount",
       "company": "Subject / Company",
       "title_label": "Title",
@@ -105,38 +105,38 @@
       "priority_text": "All claims from Interdomestik Insurance need to be verified within 24 hours.",
       "deadline": "Upcoming Deadline",
       "deadline_text": "End of quarter reporting starts on Monday. Ensure all resolved cases are documented.",
-      "noteDescription": "Add a note about this member's interaction or important details.",
-      "addNote": "Add Note",
-      "editNote": "Edit Note",
-      "newNote": "New Note",
-      "noNotes": "No notes yet",
-      "noNotesDescription": "Start tracking interactions with {name}.",
-      "noteType": "Note Type",
-      "noteContent": "Content",
-      "noteContentPlaceholder": "Enter your note here...",
-      "cancel": "Cancel",
-      "create": "Create",
-      "update": "Update",
-      "saving": "Saving...",
-      "edit": "Edit",
-      "delete": "Delete",
-      "pin": "Pin",
-      "unpin": "Unpin",
-      "loading": "Loading notes...",
-      "noteCreated": "Note created",
-      "noteUpdated": "Note updated",
-      "noteDeleted": "Note deleted",
-      "createError": "Failed to create note",
-      "updateError": "Failed to update note",
-      "deleteError": "Failed to delete note",
-      "pinError": "Failed to toggle pin",
+      "noteDescription": "Dodajte belešku o interakciji ovog člana ili važne detalje.",
+      "addNote": "Dodaj belešku",
+      "editNote": "Izmeni belešku",
+      "newNote": "Nova beleška",
+      "noNotes": "Još nema beleški",
+      "noNotesDescription": "Počnite da pratite interakcije sa {name}.",
+      "noteType": "Tip beleške",
+      "noteContent": "Sadržaj",
+      "noteContentPlaceholder": "Unesite belešku ovde...",
+      "cancel": "Otkaži",
+      "create": "Kreiraj",
+      "update": "Ažuriraj",
+      "saving": "Čuvanje...",
+      "edit": "Izmeni",
+      "delete": "Obriši",
+      "pin": "Zakači",
+      "unpin": "Otkači",
+      "loading": "Učitavanje beleški...",
+      "noteCreated": "Beleška je kreirana",
+      "noteUpdated": "Beleška je ažurirana",
+      "noteDeleted": "Beleška je obrisana",
+      "createError": "Kreiranje beleške nije uspelo",
+      "updateError": "Ažuriranje beleške nije uspelo",
+      "deleteError": "Brisanje beleške nije uspelo",
+      "pinError": "Promena kačenja nije uspela",
       "types": {
-        "call": "Call",
-        "meeting": "Meeting",
-        "email": "Email",
-        "general": "General",
-        "follow_up": "Follow-up",
-        "issue": "Issue"
+        "call": "Poziv",
+        "meeting": "Sastanak",
+        "email": "E-pošta",
+        "general": "Opšte",
+        "follow_up": "Praćenje",
+        "issue": "Problem"
       }
     },
     "members_page": {
@@ -217,9 +217,9 @@
       "message_alert": "New message ({count})",
       "no_users": "No members found."
     },
-    "crm": "CRM Overview",
-    "leads": "Leads",
-    "deals": "Deals",
+    "crm": "Pregled CRM-a",
+    "leads": "Potencijalni klijenti",
+    "deals": "Dogovori",
     "crm_dashboard": {
       "title": "Sales Overview",
       "subtitle": "Track your performance and pipeline.",
@@ -241,53 +241,53 @@
         "actions": "Actions"
       },
       "stages": {
-        "new": "New",
-        "contacted": "Contacted",
-        "qualified": "Qualified",
-        "proposal": "Proposal",
-        "won": "Won",
-        "lost": "Lost"
+        "new": "Novi",
+        "contacted": "Kontaktirani",
+        "qualified": "Kvalifikovani",
+        "proposal": "Ponuda",
+        "won": "Dobijeni",
+        "lost": "Izgubljeni"
       }
     },
     "commissions": {
-      "title": "Commissions",
-      "summary": "Commission Summary",
-      "pending": "Pending",
-      "approved": "Approved",
-      "paid": "Paid",
-      "items": "items",
-      "recentCommissions": "Recent Commissions",
-      "noCommissions": "No commissions yet",
-      "noCommissionsHint": "Start referring members to earn commissions.",
+      "title": "Provizije",
+      "summary": "Pregled provizija",
+      "pending": "Na čekanju",
+      "approved": "Odobreno",
+      "paid": "Isplaćeno",
+      "items": "stavki",
+      "recentCommissions": "Nedavne provizije",
+      "noCommissions": "Još nema provizija",
+      "noCommissionsHint": "Počnite da preporučujete članove da biste zaradili provizije.",
       "types": {
-        "new_membership": "New Membership",
-        "renewal": "Renewal",
-        "upgrade": "Upgrade",
-        "b2b": "B2B Deal"
+        "new_membership": "Novo članstvo",
+        "renewal": "Obnova",
+        "upgrade": "Nadogradnja",
+        "b2b": "B2B dogovor"
       },
       "status": {
-        "pending": "Pending",
-        "approved": "Approved",
-        "paid": "Paid",
-        "void": "Void"
+        "pending": "Na čekanju",
+        "approved": "Odobreno",
+        "paid": "Isplaćeno",
+        "void": "Poništeno"
       },
       "referralLink": {
-        "title": "Your Referral Link",
-        "description": "Share this link to earn commissions on new memberships.",
-        "copied": "Copied!",
-        "copyError": "Failed to copy link",
-        "loadError": "Failed to load referral link"
+        "title": "Vaš referalni link",
+        "description": "Podelite ovaj link da biste zaradili provizije na nova članstva.",
+        "copied": "Kopirano!",
+        "copyError": "Kopiranje linka nije uspelo",
+        "loadError": "Učitavanje referalnog linka nije uspelo"
       }
     },
     "leaderboard": {
-      "title": "Top Agents",
-      "week": "Week",
-      "month": "Month",
-      "allTime": "All Time",
-      "noData": "No leaderboard data yet",
-      "you": "You",
-      "deals": "deals",
-      "yourRank": "Your rank"
+      "title": "Najbolji agenti",
+      "week": "Nedelja",
+      "month": "Mesec",
+      "allTime": "Ukupno",
+      "noData": "Još nema podataka o rangiranju",
+      "you": "Vi",
+      "deals": "dogovora",
+      "yourRank": "Vaš rang"
     }
   }
 }

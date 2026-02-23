@@ -1,45 +1,45 @@
 {
   "common": {
     "appName": "Interdomestik",
-    "loading": "Loading...",
-    "processing": "Processing...",
-    "save": "Save",
-    "cancel": "Cancel",
-    "submit": "Submit",
-    "delete": "Delete",
-    "edit": "Edit",
-    "view": "View",
-    "back": "Back",
-    "next": "Next",
-    "previous": "Previous",
-    "search": "Search",
-    "filter": "Filter",
-    "all": "All",
-    "none": "None",
-    "yes": "Yes",
-    "no": "No",
-    "or": "or",
-    "and": "and",
-    "tryAgain": "Try again",
-    "admin": "Admin",
+    "loading": "Učitavanje...",
+    "processing": "Obrada...",
+    "save": "Sačuvaj",
+    "cancel": "Otkaži",
+    "submit": "Pošalji",
+    "delete": "Obriši",
+    "edit": "Izmeni",
+    "view": "Pregled",
+    "back": "Nazad",
+    "next": "Sledeće",
+    "previous": "Prethodno",
+    "search": "Pretraga",
+    "filter": "Filtriraj",
+    "all": "Sve",
+    "none": "Nijedno",
+    "yes": "Da",
+    "no": "Ne",
+    "or": "ili",
+    "and": "i",
+    "tryAgain": "Pokušajte ponovo",
+    "admin": "Administrator",
     "pagination": {
-      "pageOf": "Page {page} of {total}"
+      "pageOf": "Strana {page} od {total}"
     },
     "notFound": {
-      "title": "Page not found",
-      "description": "Sorry, we could not find the page you were looking for."
+      "title": "Stranica nije pronađena",
+      "description": "Žao nam je, nismo mogli da pronađemo stranicu koju ste tražili."
     },
     "roles": {
-      "admin": "Administrator",
-      "agent": "Agent",
-      "staff": "Staff",
-      "user": "Member"
+      "admin": "Admin",
+      "agent": "Zastupnik",
+      "staff": "Osoblje",
+      "user": "Član"
     },
     "errors": {
-      "title": "Error",
-      "generic": "Something went wrong. Please try again.",
-      "retry": "Please try again. If the problem persists, contact support.",
-      "unauthorized": "Unauthorized"
+      "title": "Greška",
+      "generic": "Došlo je do greške. Pokušajte ponovo.",
+      "retry": "Pokušajte ponovo. Ako problem i dalje postoji, kontaktirajte podršku.",
+      "unauthorized": "Neovlašćeno"
     },
     "cookie_consent": {
       "title": "Podešavanja kolačića",
@@ -49,6 +49,6 @@
       "decline": "Samo neophodni"
     },
     "companyName": "Interdomestik",
-    "tagline": "There when you need us"
+    "tagline": "Tu kada vam zatrebamo"
   }
 }
