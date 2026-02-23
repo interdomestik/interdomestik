@@ -2,23 +2,23 @@
   "wizard": {
     "categories": {
       "flight_delay": {
-        "label": "Flight Delay",
-        "description": "EU261 Compensation up to €600",
+        "label": "Доцнење на лет",
+        "description": "EU261 надомест до €600",
         "examples": "Vonesë ose anulim i fluturimit, probleme me bagazhet"
       },
       "damaged_goods": {
-        "label": "Damaged Goods",
-        "description": "Items arrived broken or not as described",
+        "label": "Оштетена стока",
+        "description": "Производите пристигнале скршени или не како што се опишани",
         "examples": "Paketime të dëmtuara, produkte me defekt, dërgesa të gabuara"
       },
       "service_issue": {
-        "label": "Service Issue",
-        "description": "Poor service from utilities, telecom, etc.",
+        "label": "Проблем со услуга",
+        "description": "Лоша услуга од комунални, телекомуникации итн.",
         "examples": "Ndërprerje interneti, faturim i gabuar, shërbim i pakënaqshëm"
       },
       "other": {
-        "label": "Other",
-        "description": "Any other consumer dispute",
+        "label": "Друго",
+        "description": "Секој друг потрошувачки спор",
         "examples": "Mosmarrëveshje kontraktuale, çështje punësimi, sigurime"
       },
       "title": "Çfarë lloj Kërkese për Dëmshpërblim është kjo?",
@@ -26,25 +26,25 @@
       "freeConsultation": "✨ Konsultim Falas i Përfshirë"
     },
     "details": {
-      "title": "Tell us what happened",
-      "subtitle": "Details help us process your claim faster.",
-      "claim_title": "Claim Title",
-      "claim_title_placeholder": "e.g. Flight delay to Berlin",
-      "claim_title_desc": "A short summary of the issue.",
-      "company": "Company Name",
-      "company_placeholder": "e.g. Lufthansa, Zara, VK Egnatia",
-      "amount": "Amount (Optional)",
-      "currency": "Currency",
-      "date": "Date of Incident",
-      "description": "Description",
-      "description_placeholder": "Describe exactly what happened...",
-      "helpfulTips": "💡 Helpful Tips:",
-      "voice_note_label": "Or Record a Voice Message",
-      "voice_note_desc": "Skip typing. Explain what happened in 60 seconds.",
-      "new_badge": "New",
-      "voice_uploading": "Uploading voice note...",
-      "voice_uploaded": "Voice note attached!",
-      "voice_upload_failed": "Upload failed"
+      "title": "Кажете ни што се случи",
+      "subtitle": "Деталите ни помагаат побрзо да го обработиме вашето барање.",
+      "claim_title": "Наслов на барање",
+      "claim_title_placeholder": "пр. Доцнење на лет до Берлин",
+      "claim_title_desc": "Краток преглед на проблемот.",
+      "company": "Име на компанија",
+      "company_placeholder": "пр. Lufthansa, Zara, VK Egnatia",
+      "amount": "Износ (опционално)",
+      "currency": "Валута",
+      "date": "Датум на настан",
+      "description": "Опис",
+      "description_placeholder": "Опишете точно што се случи...",
+      "helpfulTips": "💡 Корисни совети:",
+      "voice_note_label": "Или снимете гласовна порака",
+      "voice_note_desc": "Прескокнете пишување. Објаснете што се случи за 60 секунди.",
+      "new_badge": "Ново",
+      "voice_uploading": "Се прикачува гласовна белешка...",
+      "voice_uploaded": "Гласовната белешка е прикачена!",
+      "voice_upload_failed": "Прикачувањето не успеа"
     },
     "review": {
       "title": "Rishiko & Dërgo",
@@ -58,63 +58,63 @@
       "evidence": "Dëshmi",
       "amount": "Shuma e Kërkuar",
       "files_attached": "{count} skedarë bashkangjitur",
-      "offline_title": "You are offline",
-      "offline_description": "Your case is saved as a draft, but you cannot submit until connection is restored."
+      "offline_title": "Офлајн сте",
+      "offline_description": "Вашиот случај е зачуван како нацрт, но не можете да го поднесете додека не се врати врската."
     },
     "quickTags": {
-      "flight_delay": "Flight Delay",
-      "car_accident": "Car Accident",
-      "water_damage": "Water Damage",
-      "workplace_injury": "Workplace Injury",
-      "theft": "Theft",
-      "medical_malpractice": "Medical Malpractice"
+      "flight_delay": "Доцнење на лет",
+      "car_accident": "Сообраќајна несреќа",
+      "water_damage": "Штета од вода",
+      "workplace_injury": "Повреда на работно место",
+      "theft": "Кражба",
+      "medical_malpractice": "Медицинска небрежност"
     },
     "categoryFields": {
       "vehicle": {
-        "titlePlaceholder": "e.g., Car accident on highway",
-        "titleDesc": "Brief summary of the vehicle incident",
-        "companyPlaceholder": "e.g., Insurance company, Other driver's insurance",
-        "descriptionPlaceholder": "Describe the accident: what happened, where, who was involved, extent of damage to your vehicle..."
+        "titlePlaceholder": "пр., Сообраќајна несреќа на автопат",
+        "titleDesc": "Краток преглед на инцидентот со возило",
+        "companyPlaceholder": "пр., Осигурителна компанија, осигурување на друг возач",
+        "descriptionPlaceholder": "Опишете ја несреќата: што се случи, каде, кој беше вклучен, степенот на штета на вашето возило..."
       },
       "property": {
-        "titlePlaceholder": "e.g., Water damage in apartment",
-        "titleDesc": "Brief summary of the property damage",
-        "companyPlaceholder": "e.g., Property management, Insurance company",
-        "descriptionPlaceholder": "Describe the damage: what caused it, which areas are affected, when you discovered it, any emergency actions taken..."
+        "titlePlaceholder": "пр., Штета од вода во стан",
+        "titleDesc": "Краток преглед на штетата на имотот",
+        "companyPlaceholder": "пр., Управител на имот, осигурителна компанија",
+        "descriptionPlaceholder": "Опишете ја штетата: што ја предизвика, кои области се засегнати, кога ја забележавте, дали се преземени итни мерки..."
       },
       "injury": {
-        "titlePlaceholder": "e.g., Workplace injury - back strain",
-        "titleDesc": "Brief summary of the injury",
-        "companyPlaceholder": "e.g., Employer, Hospital, Insurance company",
-        "descriptionPlaceholder": "Describe the injury: how it happened, what body parts are affected, medical treatment received, current symptoms..."
+        "titlePlaceholder": "пр., Повреда на работа - истегнување на грб",
+        "titleDesc": "Краток преглед на повредата",
+        "companyPlaceholder": "пр., Работодавец, болница, осигурителна компанија",
+        "descriptionPlaceholder": "Опишете ја повредата: како се случи, кои делови од телото се засегнати, добиен медицински третман, тековни симптоми..."
       },
       "travel": {
-        "titlePlaceholder": "e.g., Flight delay to Berlin",
-        "titleDesc": "Brief summary of the travel issue",
-        "companyPlaceholder": "e.g., Lufthansa, Ryanair, Booking.com",
-        "descriptionPlaceholder": "Describe what happened: flight details, scheduled vs actual times, reason for delay/cancellation if known, compensation requested..."
+        "titlePlaceholder": "пр., Доцнење на лет до Берлин",
+        "titleDesc": "Краток преглед на проблемот со патување",
+        "companyPlaceholder": "пр., Lufthansa, Ryanair, Booking.com",
+        "descriptionPlaceholder": "Опишете што се случи: детали за летот, планирано наспроти реално време, причина за доцнење/откажување ако е позната, побарана надомест..."
       }
     },
     "categoryInstructions": {
       "vehicle": {
-        "title": "Vehicle Damage Claim Details",
-        "subtitle": "Provide details about the accident or damage to your vehicle.",
-        "tips": "Include: date and time of incident, location, other parties involved, police report number if applicable, and description of damage."
+        "title": "Детали за барање за штета на возило",
+        "subtitle": "Наведете детали за несреќата или штетата на вашето возило.",
+        "tips": "Вклучете: датум и време на инцидентот, локација, други вклучени страни, број на полициски записник ако има, и опис на штетата."
       },
       "property": {
-        "title": "Property Damage Claim Details",
-        "subtitle": "Describe the damage to your property and how it occurred.",
-        "tips": "Include: type of property, cause of damage (fire, water, storm, etc.), extent of damage, and any emergency repairs made."
+        "title": "Детали за барање за штета на имот",
+        "subtitle": "Опишете ја штетата на вашиот имот и како настанала.",
+        "tips": "Вклучете: тип на имот, причина за штетата (пожар, вода, невреме итн.), степен на штета и евентуални итни поправки."
       },
       "injury": {
-        "title": "Personal Injury Claim Details",
-        "subtitle": "Provide information about your injury and medical treatment.",
-        "tips": "Include: nature of injury, where and how it occurred, medical treatment received, healthcare providers, and ongoing symptoms or limitations."
+        "title": "Детали за барање за лична повреда",
+        "subtitle": "Наведете информации за вашата повреда и медицинскиот третман.",
+        "tips": "Вклучете: природа на повредата, каде и како се случила, добиен медицински третман, здравствени установи и тековни симптоми или ограничувања."
       },
       "travel": {
-        "title": "Travel & Flight Claim Details",
-        "subtitle": "Provide your flight or travel booking information.",
-        "tips": "Include: booking reference, flight number, departure/arrival airports, scheduled vs actual times, and reason for delay/cancellation if known."
+        "title": "Детали за барање за патување и лет",
+        "subtitle": "Наведете ги вашите информации за лет или патничка резервација.",
+        "tips": "Вклучете: референца на резервација, број на лет, аеродроми на поаѓање/пристигнување, планирано наспроти реално време и причина за доцнење/откажување ако е позната."
       }
     }
   }

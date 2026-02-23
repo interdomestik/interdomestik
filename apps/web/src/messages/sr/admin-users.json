@@ -1,109 +1,109 @@
 {
   "admin": {
     "users_page": {
-      "title": "User Management",
-      "description": "Manage platform users and role assignments.",
-      "add_agent": "Add Agent",
-      "add_agent_title": "Add New Agent",
-      "add_agent_description": "Select a staff member to promote to agent.",
-      "select_user": "Select User",
-      "select_user_placeholder": "Select a user",
-      "select_branch": "Select Branch",
-      "select_branch_placeholder": "Select a branch",
-      "no_branch": "No Branch",
-      "cancel": "Cancel",
-      "confirm": "Confirm",
-      "add_agent_success": "Agent added",
-      "add_agent_success_desc": "User successfully promoted to agent.",
-      "add_agent_error": "Error adding agent",
-      "unexpected_error": "An unexpected error occurred."
+      "title": "Upravljanje korisnicima",
+      "description": "Upravljajte korisnicima platforme i dodelom uloga.",
+      "add_agent": "Dodaj agenta",
+      "add_agent_title": "Dodaj novog agenta",
+      "add_agent_description": "Izaberite člana osoblja za unapređenje u agenta.",
+      "select_user": "Izaberi korisnika",
+      "select_user_placeholder": "Izaberi korisnika",
+      "select_branch": "Izaberi filijalu",
+      "select_branch_placeholder": "Izaberi filijalu",
+      "no_branch": "Nema filijale",
+      "cancel": "Otkaži",
+      "confirm": "Potvrdi",
+      "add_agent_success": "Agent je dodat",
+      "add_agent_success_desc": "Korisnik je uspešno unapređen u agenta.",
+      "add_agent_error": "Greška pri dodavanju agenta",
+      "unexpected_error": "Došlo je do neočekivane greške."
     },
     "users_filters": {
-      "search_placeholder": "Search by name or email",
+      "search_placeholder": "Pretraži po imenu ili e-pošti",
       "labels": {
-        "role": "Role",
-        "assignment": "Assignment"
+        "role": "Uloga",
+        "assignment": "Dodela"
       },
       "roles": {
-        "all": "All roles",
-        "user": "Members",
-        "agent": "Agents",
-        "staff": "Staff",
-        "admin": "Admins"
+        "all": "Sve uloge",
+        "user": "Članovi",
+        "agent": "Agenti",
+        "staff": "Osoblje",
+        "admin": "Administratori"
       },
       "assignments": {
-        "all": "All assignments",
-        "assigned": "Assigned",
-        "unassigned": "Unassigned"
+        "all": "Sve dodele",
+        "assigned": "Dodeljeni",
+        "unassigned": "Nedodeljeni"
       }
     },
     "users_table": {
       "sections": {
-        "members": "Members",
-        "agents": "Agents",
-        "staff": "Staff",
-        "unassigned": "Unassigned"
+        "members": "Članovi",
+        "agents": "Agenti",
+        "staff": "Osoblje",
+        "unassigned": "Nedodeljeni"
       },
       "headers": {
-        "user": "User",
-        "role": "Role",
-        "assigned_agent": "Assigned Agent",
-        "joined": "Joined"
+        "user": "Korisnik",
+        "role": "Uloga",
+        "assigned_agent": "Dodeljeni agent",
+        "joined": "Pridružen"
       },
-      "message_alert": "New message ({count})",
-      "select_agent": "Select Agent",
-      "unassigned": "Unassigned",
-      "no_users": "No users found",
-      "success_message": "User assigned successfully",
-      "view_profile": "View profile"
+      "message_alert": "Nova poruka ({count})",
+      "select_agent": "Izaberi agenta",
+      "unassigned": "Nedodeljeni",
+      "no_users": "Nema pronađenih korisnika",
+      "success_message": "Korisnik je uspešno dodeljen",
+      "view_profile": "Prikaži profil"
     },
     "member_profile": {
       "actions": {
-        "back": "Back to users",
-        "view_claim": "View claim"
+        "back": "Nazad na korisnike",
+        "view_claim": "Prikaži zahtev"
       },
       "sections": {
-        "membership": "Membership",
-        "agent": "Assigned agent",
-        "preferences": "Notification preferences",
-        "claims_overview": "Claims overview",
-        "recent_claims": "Recent claims"
+        "membership": "Članstvo",
+        "agent": "Dodeljeni agent",
+        "preferences": "Podešavanja obaveštenja",
+        "claims_overview": "Pregled zahteva",
+        "recent_claims": "Nedavni zahtevi"
       },
       "labels": {
-        "member_id": "Member ID",
-        "joined": "Joined",
-        "email_verified_yes": "Email verified",
-        "email_verified_no": "Email not verified",
-        "status": "Status",
-        "plan": "Plan",
-        "period_end": "Period end",
-        "cancel_at_period_end": "Cancel at period end",
-        "no_agent": "No agent assigned",
-        "preferences_unset": "Preferences not set",
-        "no_claims": "No claims yet",
-        "unknown": "Unknown",
-        "not_set": "Not set"
+        "member_id": "ID člana",
+        "joined": "Pridružen",
+        "email_verified_yes": "E-pošta potvrđena",
+        "email_verified_no": "E-pošta nije potvrđena",
+        "status": "Stanje",
+        "plan": "Paket",
+        "period_end": "Kraj perioda",
+        "cancel_at_period_end": "Otkaži na kraju perioda",
+        "no_agent": "Nema dodeljenog agenta",
+        "preferences_unset": "Podešavanja nisu postavljena",
+        "no_claims": "Još nema zahteva",
+        "unknown": "Nepoznato",
+        "not_set": "Nije postavljeno"
       },
       "status": {
-        "active": "Active",
-        "past_due": "Past due",
-        "paused": "Paused",
-        "canceled": "Canceled",
-        "none": "Not subscribed"
+        "active": "Aktivan",
+        "past_due": "U kašnjenju",
+        "paused": "Pauziran",
+        "canceled": "Otkazan",
+        "none": "Nije pretplaćen"
       },
       "preferences": {
-        "email_claims": "Email claim updates",
-        "email_newsletter": "Email newsletter",
-        "email_marketing": "Email marketing",
-        "push_claims": "Push claim updates",
-        "push_messages": "Push messages",
-        "in_app": "In-app notifications"
+        "email_claims": "E-pošta ažuriranja zahteva",
+        "email_newsletter": "E-pošta bilten",
+        "email_marketing": "Marketinške e-poruke",
+        "push_claims": "Push ažuriranja zahteva",
+        "push_messages": "Push poruke",
+        "in_app": "Obaveštenja u aplikaciji"
       },
       "claims": {
-        "total": "Total claims",
-        "open": "Open claims",
-        "resolved": "Resolved",
-        "rejected": "Rejected"
+        "total": "Ukupno zahteva",
+        "open": "Otvoreni zahtevi",
+        "resolved": "Rešeni",
+        "rejected": "Odbijeni"
       }
     }
   }
