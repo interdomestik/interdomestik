@@ -9,6 +9,7 @@ import {
   markWebhookFailed,
   markWebhookProcessed,
   parsePaddleWebhookBody,
+  persistInvoiceAndLedgerInvariants,
   persistInvalidSignatureAttempt,
   sha256Hex,
   verifyPaddleWebhook,
@@ -212,6 +213,20 @@ export async function handlePaddleWebhookCore(args: {
   const webhookEventRowId = insertResult.webhookEventRowId;
 
   try {
+    await persistInvoiceAndLedgerInvariants(
+      {
+        headers,
+        webhookEventRowId,
+        eventType,
+        eventId: normalizedEventId ?? undefined,
+        tenantId,
+        billingEntity: billingEntity ?? null,
+        providerTransactionId,
+        data,
+      },
+      { logAuditEvent }
+    );
+
     // Intercept transaction.completed for Lead Conversion
     if (eventType === 'transaction.completed' && data) {
       const payload = data as {

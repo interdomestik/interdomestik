@@ -8,6 +8,7 @@ export * from './enums';
 export * from './agents';
 export * from './auth';
 export * from './automation';
+export * from './billing';
 export * from './claim-threads';
 export * from './claims';
 export * from './counters';
