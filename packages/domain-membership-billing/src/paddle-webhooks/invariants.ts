@@ -24,16 +24,17 @@ function normalizeText(value: string | null | undefined): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
-function normalizeAmount(value: string | null | undefined): string {
+function normalizeAmount(value: string | null | undefined): string | null {
   const normalized = normalizeText(value);
-  if (!normalized) return '0';
-  return /^-?\d+(\.\d+)?$/.test(normalized) ? normalized : '0';
+  if (!normalized) return null;
+  return /^-?\d+(\.\d+)?$/.test(normalized) ? normalized : null;
 }
 
-function normalizeCurrencyCode(value: string | null | undefined): string {
+function normalizeCurrencyCode(value: string | null | undefined): string | null {
   const normalized = normalizeText(value);
-  if (!normalized) return 'EUR';
-  return normalized.toUpperCase();
+  if (!normalized) return null;
+  const uppercase = normalized.toUpperCase();
+  return /^[A-Z]{3}$/.test(uppercase) ? uppercase : null;
 }
 
 function resolveInvariantScope(params: {
@@ -109,7 +110,19 @@ export async function persistInvoiceAndLedgerInvariants(
   const payload = (params.data ?? {}) as TransactionInvariantPayload;
   const totals = payload.details?.totals || {};
   const amount = normalizeAmount(totals.total);
+  if (!amount) {
+    throw new Error(
+      `Missing or invalid transaction total for invoice/ledger invariant persistence: ${providerTransactionId}`
+    );
+  }
+
   const currencyCode = normalizeCurrencyCode(totals.currencyCode || totals.currency_code);
+  if (!currencyCode) {
+    throw new Error(
+      `Missing or invalid transaction currency code for invoice/ledger invariant persistence: ${providerTransactionId}`
+    );
+  }
+
   const subscriptionId = normalizeText(payload.subscriptionId || payload.subscription_id);
 
   const result = await db.transaction(async tx => {
@@ -139,6 +152,8 @@ export async function persistInvoiceAndLedgerInvariants(
           billingInvoices.billingEntity,
           billingInvoices.providerTransactionId,
         ],
+        // Keep the originally posted invoice row immutable; replays intentionally
+        // reuse the first row instead of mutating history to point at later webhook events.
         set: {
           updatedAt: sql`${billingInvoices.updatedAt}`,
         },

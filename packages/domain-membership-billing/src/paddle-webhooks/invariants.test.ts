@@ -119,6 +119,50 @@ describe('persistInvoiceAndLedgerInvariants', () => {
     ).rejects.toThrow('Billing entity mismatch');
   });
 
+  it('rejects transaction events without a valid amount total', async () => {
+    await expect(
+      persistInvoiceAndLedgerInvariants({
+        headers: new Headers(),
+        webhookEventRowId: 'we_1',
+        eventType: 'transaction.completed',
+        eventId: 'evt_1',
+        tenantId: 'tenant_ks',
+        providerTransactionId: 'tx_1',
+        data: {
+          details: {
+            totals: {
+              total: 'invalid-amount',
+              currencyCode: 'EUR',
+            },
+          },
+        },
+      })
+    ).rejects.toThrow('Missing or invalid transaction total');
+    expect(hoisted.transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects transaction events without a valid currency code', async () => {
+    await expect(
+      persistInvoiceAndLedgerInvariants({
+        headers: new Headers(),
+        webhookEventRowId: 'we_1',
+        eventType: 'transaction.completed',
+        eventId: 'evt_1',
+        tenantId: 'tenant_ks',
+        providerTransactionId: 'tx_1',
+        data: {
+          details: {
+            totals: {
+              total: '1000',
+              currencyCode: 'EURO',
+            },
+          },
+        },
+      })
+    ).rejects.toThrow('Missing or invalid transaction currency code');
+    expect(hoisted.transaction).not.toHaveBeenCalled();
+  });
+
   it('persists tenant/entity-scoped invoice and append-only ledger entry', async () => {
     const result = await persistInvoiceAndLedgerInvariants({
       headers: new Headers(),
@@ -186,7 +230,14 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         eventId: 'evt_1',
         tenantId: 'tenant_ks',
         providerTransactionId: 'tx_1',
-        data: {},
+        data: {
+          details: {
+            totals: {
+              total: '1000',
+              currencyCode: 'EUR',
+            },
+          },
+        },
       },
       { logAuditEvent }
     );
@@ -199,7 +250,14 @@ describe('persistInvoiceAndLedgerInvariants', () => {
         eventId: 'evt_2',
         tenantId: 'tenant_ks',
         providerTransactionId: 'tx_1',
-        data: {},
+        data: {
+          details: {
+            totals: {
+              total: '1000',
+              currencyCode: 'EUR',
+            },
+          },
+        },
       },
       { logAuditEvent }
     );
