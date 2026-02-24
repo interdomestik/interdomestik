@@ -123,7 +123,7 @@ while [[ $# -gt 0 ]]; do
       fail "unknown argument: $1"
       ;;
   esac
- done
+  done
 
 run_step 'verify clean working tree' require_clean_tree
 

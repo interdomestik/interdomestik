@@ -51,7 +51,7 @@ fetch_checks_json() {
 
   local output status
   set +e
-  output="$(${cmd[@]} 2>&1)"
+  output="$("${cmd[@]}" 2>&1)"
   status=$?
   set -e
 
@@ -154,7 +154,7 @@ while [[ $# -gt 0 ]]; do
       fail "unknown argument: $1"
       ;;
   esac
- done
+  done
 
 require_tools
 

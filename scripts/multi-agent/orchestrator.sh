@@ -100,7 +100,7 @@ while [[ $# -gt 0 ]]; do
       fail "unknown argument: $1"
       ;;
   esac
- done
+  done
 
 mkdir -p "$LOG_ROOT"
 
