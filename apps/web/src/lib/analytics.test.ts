@@ -2,10 +2,12 @@ import posthog from 'posthog-js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ClaimsEvents,
+  FunnelEvents,
   RegistrationEvents,
   analytics,
   identifyUser,
   resetIdentity,
+  resolveFunnelVariant,
   trackEvent,
 } from './analytics';
 
@@ -96,6 +98,103 @@ describe('analytics', () => {
     it('should track failed', () => {
       ClaimsEvents.failed('network_error');
       expect(posthog.capture).toHaveBeenCalledWith('claim_failed', { error: 'network_error' });
+    });
+  });
+
+  describe('resolveFunnelVariant', () => {
+    it('returns hero_v2 when ui v2 is enabled', () => {
+      expect(resolveFunnelVariant(true)).toBe('hero_v2');
+    });
+
+    it('returns hero_v1 when ui v2 is disabled', () => {
+      expect(resolveFunnelVariant(false)).toBe('hero_v1');
+    });
+  });
+
+  describe('FunnelEvents', () => {
+    it('tracks landing with tenant_id and variant', () => {
+      FunnelEvents.landingViewed({
+        tenantId: 'tenant_ks',
+        variant: 'hero_v2',
+        locale: 'sq',
+      });
+
+      expect(posthog.capture).toHaveBeenCalledWith('funnel_landing_viewed', {
+        tenant_id: 'tenant_ks',
+        variant: 'hero_v2',
+        locale: 'sq',
+      });
+    });
+
+    it('falls back tenant_id to tenant_unknown when missing', () => {
+      FunnelEvents.activationCompleted({
+        tenantId: null,
+        variant: 'hero_v2',
+      });
+
+      expect(posthog.capture).toHaveBeenCalledWith('funnel_activation_completed', {
+        tenant_id: 'tenant_unknown',
+        variant: 'hero_v2',
+      });
+    });
+
+    it('tracks first claim submission with context and claim id', () => {
+      FunnelEvents.firstClaimSubmitted(
+        {
+          tenantId: 'tenant_mk',
+          variant: 'hero_v2',
+        },
+        {
+          claim_id: 'clm_123',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('funnel_first_claim_submitted', {
+        tenant_id: 'tenant_mk',
+        variant: 'hero_v2',
+        claim_id: 'clm_123',
+      });
+    });
+
+    it('tracks retention pulse with day bucket', () => {
+      FunnelEvents.retentionPulse(
+        {
+          tenantId: 'tenant_al',
+          variant: 'hero_v1',
+        },
+        {
+          retention_day: 7,
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('retention_pulse', {
+        tenant_id: 'tenant_al',
+        variant: 'hero_v1',
+        retention_day: 7,
+      });
+    });
+
+    it('does not allow properties to override tenant or variant context', () => {
+      FunnelEvents.landingViewed(
+        {
+          tenantId: 'tenant_ks',
+          variant: 'hero_v2',
+          locale: 'sq',
+        },
+        {
+          tenant_id: 'tenant_bad',
+          variant: 'hero_v1',
+          locale: 'en',
+          source: 'test',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('funnel_landing_viewed', {
+        tenant_id: 'tenant_ks',
+        variant: 'hero_v2',
+        locale: 'sq',
+        source: 'test',
+      });
     });
   });
 

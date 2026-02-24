@@ -3,7 +3,7 @@
 import { submitClaim } from '@/actions/claims';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useRouter } from '@/i18n/routing';
-import { ClaimsEvents } from '@/lib/analytics';
+import { ClaimsEvents, FunnelEvents, resolveFunnelVariant } from '@/lib/analytics';
 import { isUiV2Enabled } from '@/lib/flags';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { createClaimSchema, type CreateClaimValues } from '@/lib/validators/claims';
@@ -24,6 +24,7 @@ import { WizardStepEvidence } from './wizard-step-evidence';
 
 type ClaimWizardProps = {
   initialCategory?: string;
+  tenantId?: string | null;
 };
 
 const STEP_NAMES = ['category', 'details', 'evidence', 'review'];
@@ -37,7 +38,7 @@ const STEP_VALIDATION: Record<
   2: async () => true,
 };
 
-export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
+export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
   const router = useRouter();
   const t = useTranslations('claims.wizard');
   const tDisclaimer = useTranslations('claims.disclaimer');
@@ -137,19 +138,30 @@ export function ClaimWizard({ initialCategory }: ClaimWizardProps) {
       const result = await submitClaim(data);
       if (result.success) {
         ClaimsEvents.submitted('success');
+        const payload =
+          result && typeof result === 'object' && 'data' in result
+            ? (result as { data?: unknown }).data
+            : result;
+        const claimId =
+          payload && typeof payload === 'object' && 'claimId' in payload
+            ? typeof (payload as { claimId?: unknown }).claimId === 'string'
+              ? (payload as { claimId: string }).claimId
+              : null
+            : null;
+        const normalizedClaimId = claimId ?? 'unknown-claim-id';
+        FunnelEvents.firstClaimSubmitted(
+          {
+            tenantId: tenantId ?? null,
+            variant: resolveFunnelVariant(uiV2Enabled),
+            locale,
+          },
+          {
+            claim_id: normalizedClaimId,
+          }
+        );
         toast.success(t('submit_success'));
         setDraft(null);
         if (uiV2Enabled) {
-          const payload =
-            result && typeof result === 'object' && 'data' in result
-              ? (result as { data?: unknown }).data
-              : result;
-          const claimId =
-            payload && typeof payload === 'object' && 'claimId' in payload
-              ? typeof (payload as { claimId?: unknown }).claimId === 'string'
-                ? (payload as { claimId: string }).claimId
-                : null
-              : null;
           if (claimId) {
             setCreatedClaimId(claimId);
           } else {

@@ -70,7 +70,7 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
         </div>
       </div>
       <div className="flex-1 p-6">
-        <ClaimWizard initialCategory={preselectedCategory} />
+        <ClaimWizard initialCategory={preselectedCategory} tenantId={tenantId} />
       </div>
     </div>
   );

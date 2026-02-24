@@ -10,6 +10,37 @@ export function trackEvent(eventName: string, properties?: Record<string, unknow
   }
 }
 
+export type FunnelVariant = 'hero_v1' | 'hero_v2';
+
+type FunnelContext = {
+  tenantId: string | null | undefined;
+  variant: FunnelVariant;
+  locale?: string;
+};
+
+type FunnelProperties = Record<string, unknown>;
+
+function normalizeTenantId(tenantId: string | null | undefined): string {
+  const normalized = tenantId?.trim();
+  return normalized && normalized.length > 0 ? normalized : 'tenant_unknown';
+}
+
+function withFunnelContext(
+  context: FunnelContext,
+  properties?: FunnelProperties
+): Record<string, unknown> {
+  return {
+    ...(properties ?? {}),
+    tenant_id: normalizeTenantId(context.tenantId),
+    variant: context.variant,
+    ...(context.locale ? { locale: context.locale } : {}),
+  };
+}
+
+export function resolveFunnelVariant(uiV2Enabled: boolean): FunnelVariant {
+  return uiV2Enabled ? 'hero_v2' : 'hero_v1';
+}
+
 // ============================================================================
 // Pre-defined Events for Critical Flows
 // ============================================================================
@@ -28,6 +59,17 @@ export const ClaimsEvents = {
     trackEvent('claim_step_completed', { step, stepName }),
   submitted: (claimId: string) => trackEvent('claim_submitted', { claimId }),
   failed: (error: string) => trackEvent('claim_failed', { error }),
+};
+
+export const FunnelEvents = {
+  landingViewed: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackEvent('funnel_landing_viewed', withFunnelContext(context, properties)),
+  activationCompleted: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackEvent('funnel_activation_completed', withFunnelContext(context, properties)),
+  firstClaimSubmitted: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackEvent('funnel_first_claim_submitted', withFunnelContext(context, properties)),
+  retentionPulse: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackEvent('retention_pulse', withFunnelContext(context, properties)),
 };
 
 /** User identification (link PostHog to your user ID) */

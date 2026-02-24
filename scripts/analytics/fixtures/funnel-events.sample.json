@@ -1,0 +1,34 @@
+[
+  {
+    "event": "funnel_landing_viewed",
+    "properties": {
+      "tenant_id": "tenant_ks",
+      "variant": "hero_v2",
+      "locale": "sq"
+    }
+  },
+  {
+    "event": "funnel_activation_completed",
+    "properties": {
+      "tenant_id": "tenant_ks",
+      "variant": "hero_v2",
+      "plan_id": "standard"
+    }
+  },
+  {
+    "event": "funnel_first_claim_submitted",
+    "properties": {
+      "tenant_id": "tenant_ks",
+      "variant": "hero_v2",
+      "claim_id": "CLM-1001"
+    }
+  },
+  {
+    "event": "retention_pulse",
+    "properties": {
+      "tenant_id": "tenant_ks",
+      "variant": "hero_v2",
+      "surface": "member_dashboard"
+    }
+  }
+]
