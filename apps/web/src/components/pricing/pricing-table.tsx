@@ -107,10 +107,12 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
     includeBillingTestFlag: boolean
   ) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
-    const params = new URLSearchParams({ priceId, planId });
+    const params = new URLSearchParams();
     if (includeBillingTestFlag) {
       params.set('test', 'true');
     }
+    params.set('priceId', priceId);
+    params.set('planId', planId);
     router.push(`/member/membership/success?${params.toString()}`);
   };
 

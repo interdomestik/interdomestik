@@ -163,6 +163,25 @@ describe('PricingTable', () => {
     });
   });
 
+  it('keeps billing test success URL contract with test flag first', async () => {
+    vi.useFakeTimers();
+
+    try {
+      render(<PricingTable userId="user-123" email="test@example.com" billingTestMode />);
+
+      const joinButtons = screen.getAllByText('cta');
+      fireEvent.click(joinButtons[0]);
+
+      await vi.runAllTimersAsync();
+
+      expect(mockRouterPush).toHaveBeenCalledWith(
+        `/member/membership/success?test=true&priceId=${PADDLE_PRICES.standard.yearly}&planId=standard`
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('falls back to simulated checkout in development when client token is missing', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', '');
