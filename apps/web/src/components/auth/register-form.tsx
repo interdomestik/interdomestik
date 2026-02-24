@@ -38,9 +38,54 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
   const [error, setError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [passwordValue, setPasswordValue] = React.useState('');
+  const [confirmPasswordValue, setConfirmPasswordValue] = React.useState('');
+  const [passwordTouched, setPasswordTouched] = React.useState(false);
+  const [confirmPasswordTouched, setConfirmPasswordTouched] = React.useState(false);
+
+  const getErrorMessage = React.useCallback(
+    (key: string, fallback: string) => {
+      const translated = t(key);
+      return translated === key ? fallback : translated;
+    },
+    [t]
+  );
+
+  const passwordsMismatchMessage = getErrorMessage(
+    'errors.passwordsMismatch',
+    'Passwords do not match.'
+  );
+  const missingTenantMessage = getErrorMessage(
+    'errors.missingTenant',
+    'Tenant context is missing. Please select a tenant to continue.'
+  );
+  const userExistsMessage = getErrorMessage(
+    'errors.userExists',
+    'This email already exists. Please use a different one.'
+  );
+  const unexpectedErrorMessage = getErrorMessage(
+    'errors.unexpected',
+    'An unexpected error occurred.'
+  );
+
+  const showPasswordMismatch =
+    passwordValue.length > 0 &&
+    confirmPasswordValue.length > 0 &&
+    passwordValue !== confirmPasswordValue &&
+    (passwordTouched || confirmPasswordTouched);
+  const passwordMismatchHintId = 'register-password-mismatch';
+  const isSubmitDisabled = loading || showPasswordMismatch;
+
+  React.useEffect(() => {
+    if (!showPasswordMismatch && error === passwordsMismatchMessage) {
+      setError(null);
+    }
+  }, [error, passwordsMismatchMessage, showPasswordMismatch]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setPasswordTouched(true);
+    setConfirmPasswordTouched(true);
     setError(null);
     setLoading(true);
 
@@ -51,13 +96,13 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
     const passwordConfirm = formData.get('confirmPassword') as string;
 
     if (password !== passwordConfirm) {
-      setError(t('errors.passwordsMismatch'));
+      setError(passwordsMismatchMessage);
       setLoading(false);
       return;
     }
 
     if (!resolvedTenantId) {
-      setError(t('errors.missingTenant'));
+      setError(missingTenantMessage);
       setLoading(false);
       return;
     }
@@ -77,9 +122,9 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
         // Translate common error messages
         const errorMessage = signUpError.message?.toLowerCase() || '';
         if (errorMessage.includes('already exists') || errorMessage.includes('user exists')) {
-          setError(t('errors.userExists'));
+          setError(userExistsMessage);
         } else {
-          setError(signUpError.message || t('errors.unexpected'));
+          setError(signUpError.message || unexpectedErrorMessage);
         }
         setLoading(false);
       } else {
@@ -87,7 +132,7 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
         router.push(loginHref);
       }
     } catch {
-      setError(t('errors.unexpected'));
+      setError(unexpectedErrorMessage);
       setLoading(false);
     }
   };
@@ -113,9 +158,13 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
         <CardDescription className="text-muted-foreground">{t('subtitle')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4" onSubmit={handleSubmit} aria-busy={loading}>
           {error && (
-            <div className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md">
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md"
+            >
               {error}
             </div>
           )}
@@ -161,12 +210,22 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
                 className="bg-background/50 pr-10"
                 suppressHydrationWarning
                 disabled={loading}
+                value={passwordValue}
+                onChange={e => {
+                  setPasswordValue(e.target.value);
+                  setPasswordTouched(true);
+                }}
+                onBlur={() => setPasswordTouched(true)}
+                aria-invalid={showPasswordMismatch || undefined}
+                aria-describedby={showPasswordMismatch ? passwordMismatchHintId : undefined}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                disabled={loading}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -185,16 +244,31 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
                 className="bg-background/50 pr-10"
                 suppressHydrationWarning
                 disabled={loading}
+                value={confirmPasswordValue}
+                onChange={e => {
+                  setConfirmPasswordValue(e.target.value);
+                  setConfirmPasswordTouched(true);
+                }}
+                onBlur={() => setConfirmPasswordTouched(true)}
+                aria-invalid={showPasswordMismatch || undefined}
+                aria-describedby={showPasswordMismatch ? passwordMismatchHintId : undefined}
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 tabIndex={-1}
+                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                disabled={loading}
               >
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            {showPasswordMismatch && (
+              <p id={passwordMismatchHintId} className="text-xs text-red-500">
+                {passwordsMismatchMessage}
+              </p>
+            )}
           </div>
           <div className="flex items-start gap-2">
             <Checkbox id="terms" required className="mt-0.5" disabled={loading} />
@@ -207,7 +281,12 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
           </div>
 
           <div className="pt-2">
-            <Button type="submit" className="w-full font-semibold" size="lg" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full font-semibold"
+              size="lg"
+              disabled={isSubmitDisabled}
+            >
               {loading ? (
                 <div className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
