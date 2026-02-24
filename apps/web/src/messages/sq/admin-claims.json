@@ -46,17 +46,17 @@
           "draft": "Skicë",
           "other": "Të tjera"
         },
-        "group_header": "{label} • {count}",
+        "group_header": "{label} • {count} raste",
         "row": {
           "stage_line": "{stage} • {days} ditë",
           "owner_waiting": "Në pritje të {owner}",
           "owner_assigned": "Përgjegjës: {name} ({role})",
           "owner_system": "Në pritje sistemike",
           "stuck": "Kërkon vëmendje",
-          "branch_type": "{branch} • {type}",
-          "member": "{name} ({email})",
+          "branch_type": "{branch} • Lloji: {type}",
+          "member": "{name} (email: {email})",
           "amount_unknown": "—",
-          "metadata_condensed": "{member} • {branch}"
+          "metadata_condensed": "Anëtari: {member} • Dega: {branch}"
         },
         "empty_state": "Nuk ka kërkesa operative për këtë filtër."
       },
@@ -68,10 +68,10 @@
         "unknown": "I panjohur",
         "created": "Krijuar më",
         "origin": {
-          "portal": "Portal",
+          "portal": "Portali",
           "agent": "Agjent",
-          "admin": "Admin",
-          "api": "API"
+          "admin": "Administrator",
+          "api": "Shërbimi API"
         }
       },
       "filters": {
@@ -192,7 +192,7 @@
           "stuck": "Ngecur",
           "unassigned": "Pa caktuar",
           "back_to_queue": "Kthehu në Radhë",
-          "sla": "SLA",
+          "sla": "Afati SLA",
           "breach": "Tejkalim",
           "days": "ditë",
           "status": "Statusi"
@@ -209,7 +209,7 @@
         "no_docs": "Nuk ka dokumente të ngarkuara.",
         "types": {
           "image": "Imazh",
-          "audio": "Audio",
+          "audio": "Regjistrim audio",
           "document": "Dokument"
         }
       },

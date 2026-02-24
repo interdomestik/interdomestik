@@ -21,7 +21,7 @@
         "form": {
           "full_name": "Целосно име",
           "full_name_placeholder": "пр. Марко Марковски",
-          "email": "Email",
+          "email": "Е-пошта",
           "email_placeholder": "marko@example.com",
           "phone": "Телефон",
           "phone_placeholder": "+389 70 ...",

@@ -1,19 +1,19 @@
 {
   "legal": {
     "terms": {
-      "title": "Terms of Service",
-      "intro": "Welcome to Interdomestik Asistenca. These terms govern your membership.",
+      "title": "Uslovi korišćenja",
+      "intro": "Dobrodošli u Interdomestik Asistenca. Ovi uslovi uređuju vaše članstvo.",
       "sections": {
-        "membership": "Membership is valid for 1 year from the date of purchase. It includes access to our protection network and discount mediation.",
-        "services": "We provide claim handling assistance, legal consultation, and damage assessment.",
-        "fees": "Membership fees are non-refundable after the 30-day guarantee period. Success fees apply only upon successful claim recovery."
+        "membership": "Članstvo važi 1 godinu od datuma kupovine. Uključuje pristup našoj mreži zaštite i posredovanje uz popust.",
+        "services": "Pružamo podršku u obradi zahteva, pravne konsultacije i procenu štete.",
+        "fees": "Članarine nisu refundabilne nakon garantnog perioda od 30 dana. Naknada za uspeh se primenjuje samo nakon uspešnog povraćaja potraživanja."
       }
     },
     "privacy": {
-      "title": "Privacy Policy"
+      "title": "Politika privatnosti"
     },
     "refund": {
-      "title": "Refund Policy"
+      "title": "Politika refundacije"
     }
   }
 }
