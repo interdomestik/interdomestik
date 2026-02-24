@@ -104,12 +104,22 @@ function validateFunnelContext(events, minContextRatio) {
     }
   }
 
-  const contextRatio = totalFunnelEvents === 0 ? 1 : withFullContext / totalFunnelEvents;
-  const passed = contextRatio >= minContextRatio;
+  const requiredEventNames = Array.from(REQUIRED_EVENTS);
+  const missingEvents = requiredEventNames.filter(
+    eventName => !eventStats[eventName] || toNumber(eventStats[eventName].total) === 0
+  );
+  const contextRatio = totalFunnelEvents === 0 ? 0 : withFullContext / totalFunnelEvents;
+  const hasEvents = totalFunnelEvents > 0;
+  const passed = hasEvents && missingEvents.length === 0 && contextRatio >= minContextRatio;
 
   return {
     passed,
     threshold: minContextRatio,
+    checks: {
+      has_events: hasEvents,
+      has_all_required_events: missingEvents.length === 0,
+      missing_events: missingEvents,
+    },
     totals: {
       funnel_events: totalFunnelEvents,
       with_context: withFullContext,
@@ -153,6 +163,9 @@ function main() {
     console.log(
       `[analytics] funnel context coverage ${report.totals.with_context}/${report.totals.funnel_events} (${report.totals.context_ratio})`
     );
+    if (!report.checks.has_all_required_events) {
+      console.log(`[analytics] missing required events: ${report.checks.missing_events.join(', ')}`);
+    }
     console.log(
       `[analytics] threshold ${report.threshold} => ${report.passed ? 'PASS' : 'FAIL'} | report: ${path.relative(process.cwd(), reportPath)}`
     );

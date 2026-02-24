@@ -173,6 +173,29 @@ describe('analytics', () => {
         retention_day: 7,
       });
     });
+
+    it('does not allow properties to override tenant or variant context', () => {
+      FunnelEvents.landingViewed(
+        {
+          tenantId: 'tenant_ks',
+          variant: 'hero_v2',
+          locale: 'sq',
+        },
+        {
+          tenant_id: 'tenant_bad',
+          variant: 'hero_v1',
+          locale: 'en',
+          source: 'test',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('funnel_landing_viewed', {
+        tenant_id: 'tenant_ks',
+        variant: 'hero_v2',
+        locale: 'sq',
+        source: 'test',
+      });
+    });
   });
 
   describe('analytics compatibility object', () => {

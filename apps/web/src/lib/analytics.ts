@@ -30,10 +30,10 @@ function withFunnelContext(
   properties?: FunnelProperties
 ): Record<string, unknown> {
   return {
+    ...(properties ?? {}),
     tenant_id: normalizeTenantId(context.tenantId),
     variant: context.variant,
     ...(context.locale ? { locale: context.locale } : {}),
-    ...(properties ?? {}),
   };
 }
 

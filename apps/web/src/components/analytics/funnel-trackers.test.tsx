@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FunnelActivationTracker, FunnelLandingTracker } from './funnel-trackers';
 
 const mockLandingViewed = vi.fn();
@@ -15,6 +15,10 @@ vi.mock('@/lib/analytics', () => ({
 }));
 
 describe('Funnel trackers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('tracks landing with tenant and variant context', () => {
     render(<FunnelLandingTracker tenantId="tenant_ks" locale="sq" uiV2Enabled={true} />);
 

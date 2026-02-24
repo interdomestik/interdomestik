@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { MemberDashboardData } from '@interdomestik/domain-member';
 import { MemberDashboardV2 } from './member-dashboard-v2';
 import { vi } from 'vitest';
@@ -33,6 +33,10 @@ function makeData(overrides?: Partial<MemberDashboardData>): MemberDashboardData
 }
 
 describe('MemberDashboardV2', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders the locked section order blocks', () => {
     render(<MemberDashboardV2 data={makeData()} locale="en" />);
 
