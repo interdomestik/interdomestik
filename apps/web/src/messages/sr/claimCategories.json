@@ -21,7 +21,7 @@
     "travel": {
       "title": "Putovanje i let",
       "description": "Zahtevi za kašnjenje letova, otkazivanja i izgubljeni prtljag.",
-      "examples": "e.g., EU261 compensation up to €600"
+      "examples": "npr., Naknada prema EU261 do 600 €"
     },
     "quickSelectLabel": "Ili izaberite određeni tip zahteva:"
   }
