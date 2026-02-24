@@ -6,7 +6,7 @@ const mockPush = vi.fn();
 const mockTrigger = vi.fn();
 const mockSubmitClaim = vi.fn();
 const mockFunnelFirstClaimSubmitted = vi.fn();
-const mockResolveFunnelVariant = vi.fn(() => 'hero_v2');
+const mockResolveFunnelVariant = vi.fn((_enabled: boolean) => 'hero_v2');
 
 vi.mock('react-hook-form', () => {
   const actual = vi.importActual('react-hook-form');
@@ -109,7 +109,7 @@ vi.mock('sonner', () => ({
 }));
 
 vi.mock('@/actions/claims', () => ({
-  submitClaim: mockSubmitClaim,
+  submitClaim: (...args: [unknown]) => mockSubmitClaim(...args),
 }));
 
 vi.mock('@/lib/analytics', () => ({
@@ -120,9 +120,9 @@ vi.mock('@/lib/analytics', () => ({
     failed: vi.fn(),
   },
   FunnelEvents: {
-    firstClaimSubmitted: mockFunnelFirstClaimSubmitted,
+    firstClaimSubmitted: (...args: [unknown, unknown?]) => mockFunnelFirstClaimSubmitted(...args),
   },
-  resolveFunnelVariant: mockResolveFunnelVariant,
+  resolveFunnelVariant: (...args: [boolean]) => mockResolveFunnelVariant(...args),
 }));
 
 vi.mock('./wizard-step-category', () => ({

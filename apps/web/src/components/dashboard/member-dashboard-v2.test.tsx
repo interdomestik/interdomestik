@@ -13,9 +13,9 @@ vi.mock('next-intl', () => ({
 
 vi.mock('@/lib/analytics', () => ({
   FunnelEvents: {
-    retentionPulse: mockRetentionPulse,
+    retentionPulse: (...args: [unknown, unknown?]) => mockRetentionPulse(...args),
   },
-  resolveFunnelVariant: mockResolveFunnelVariant,
+  resolveFunnelVariant: (...args: [boolean]) => mockResolveFunnelVariant(...args),
 }));
 
 function makeData(overrides?: Partial<MemberDashboardData>): MemberDashboardData {
