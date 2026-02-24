@@ -98,6 +98,73 @@ describe('handlePaddleWebhookEntityCore', () => {
     );
   });
 
+  it('delegates to shared core when expected entity is mk and tenant resolves to tenant_mk', async () => {
+    hoisted.verifyPaddleWebhook.mockResolvedValue({
+      eventData: {
+        eventType: 'transaction.completed',
+        eventId: 'evt_mk',
+        data: {
+          customData: {
+            userId: 'user_mk',
+          },
+        },
+      },
+      signatureValid: true,
+      signatureBypassed: false,
+    });
+    hoisted.dbUserFindFirst.mockResolvedValue({ tenantId: 'tenant_mk' });
+
+    const result = await handlePaddleWebhookEntityCore({
+      expectedEntity: 'mk',
+      paddle: { mocked: true } as never,
+      headers: new Headers({ 'paddle-signature': 'sig_mk' }),
+      signature: 'sig_mk',
+      secret: 'whsec_mk',
+      bodyText: '{"event_type":"transaction.completed"}',
+    });
+
+    expect(result).toEqual({ status: 200, body: { success: true } });
+    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledTimes(1);
+    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billingEntity: 'mk',
+      })
+    );
+  });
+
+  it('delegates to shared core when expected entity is al and explicit tenant metadata is tenant_al', async () => {
+    hoisted.verifyPaddleWebhook.mockResolvedValue({
+      eventData: {
+        eventType: 'transaction.completed',
+        eventId: 'evt_al',
+        data: {
+          customData: {
+            tenantId: 'tenant_al',
+          },
+        },
+      },
+      signatureValid: true,
+      signatureBypassed: false,
+    });
+
+    const result = await handlePaddleWebhookEntityCore({
+      expectedEntity: 'al',
+      paddle: { mocked: true } as never,
+      headers: new Headers({ 'paddle-signature': 'sig_al' }),
+      signature: 'sig_al',
+      secret: 'whsec_al',
+      bodyText: '{"event_type":"transaction.completed"}',
+    });
+
+    expect(result).toEqual({ status: 200, body: { success: true } });
+    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledTimes(1);
+    expect(hoisted.handlePaddleWebhookCore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billingEntity: 'al',
+      })
+    );
+  });
+
   it('rejects webhook when resolved tenant maps to a different entity', async () => {
     hoisted.dbUserFindFirst.mockResolvedValue({ tenantId: 'tenant_mk' });
 
