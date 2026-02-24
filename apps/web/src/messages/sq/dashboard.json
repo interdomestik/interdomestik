@@ -140,11 +140,11 @@
         "member": "Anëtar",
         "agent": "Agjent",
         "staff": "Staf",
-        "admin": "Admin"
+        "admin": "Administrator"
       },
       "surface": {
-        "legacy": "legacy",
-        "v3": "v3"
+        "legacy": "Trashëguar",
+        "v3": "V3"
       }
     }
   }

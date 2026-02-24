@@ -1,22 +1,22 @@
 {
   "howMembershipWorks": {
-    "title": "How Membership Works",
-    "subtitle": "4 simple steps to become a protected member",
+    "title": "Kako funkcioniše članstvo",
+    "subtitle": "4 jednostavna koraka da postanete zaštićen član",
     "step1": {
-      "title": "Join the Club",
-      "description": "Choose your plan and become a member in just 2 minutes."
+      "title": "Pridružite se klubu",
+      "description": "Izaberite svoj plan i postanite član za samo 2 minuta."
     },
     "step2": {
-      "title": "Get Your Digital Card",
-      "description": "Receive your card instantly via email and Apple/Google Wallet."
+      "title": "Preuzmite svoju digitalnu karticu",
+      "description": "Odmah primite karticu putem e-pošte i Apple/Google Wallet-a."
     },
     "step3": {
-      "title": "Access Your Benefits",
-      "description": "Use the 24/7 hotline, damage calculator, and partner discounts."
+      "title": "Iskoristite pogodnosti",
+      "description": "Koristite 24/7 hotline, kalkulator štete i partnerske popuste."
     },
     "step4": {
-      "title": "Get Help When Needed",
-      "description": "When an accident happens, call us and we handle everything."
+      "title": "Dobijte pomoć kada je potrebno",
+      "description": "Kada se desi nezgoda, pozovite nas i mi rešavamo sve."
     }
   }
 }

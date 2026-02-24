@@ -113,7 +113,7 @@
         },
         "claims": {
           "title": "Status slučaja",
-          "status_label": "Status",
+          "status_label": "Status slučaja",
           "continue": "Nastavi slučaj",
           "start": "Prijavi slučaj",
           "next_step_label": "Poslednji slučaj",
@@ -136,17 +136,17 @@
       "search_placeholder": "Pretraži...",
       "search_title": "Pretraži",
       "search_action": "Pretraži",
-      "portal_label": "Portal: {portal}",
+      "portal_label": "Portal sistema: {portal}",
       "surface_label": "Površina: {surface}",
       "portal": {
         "member": "Član",
-        "agent": "Agent",
+        "agent": "Zastupnik",
         "staff": "Osoblje",
-        "admin": "Admin"
+        "admin": "Administrator"
       },
       "surface": {
-        "legacy": "legacy",
-        "v3": "v3"
+        "legacy": "Nasleđeni",
+        "v3": "V3"
       }
     }
   }

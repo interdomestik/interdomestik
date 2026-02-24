@@ -21,10 +21,10 @@
         "form": {
           "full_name": "Emri i Plotë",
           "full_name_placeholder": "p.sh. Filan Fisteku",
-          "email": "Email",
+          "email": "Adresa e email-it",
           "email_placeholder": "emri@shembull.com",
           "phone": "Telefoni",
-          "phone_placeholder": "+383 44 ...",
+          "phone_placeholder": "+383 44 123 456",
           "plan": "Plani i Anëtarësimit",
           "select_plan": "Zgjidh planin",
           "notes": "Shënime",
@@ -80,7 +80,7 @@
         "preferences": {
           "email_claims": "Email përditësime të kërkesave",
           "email_newsletter": "Email buletini",
-          "email_marketing": "Email marketing",
+          "email_marketing": "Marketing me email",
           "push_claims": "Njoftime push për kërkesat",
           "push_messages": "Njoftime push për mesazhe",
           "in_app": "Njoftime në aplikacion"

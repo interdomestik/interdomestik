@@ -21,7 +21,7 @@
         "form": {
           "full_name": "Puno ime",
           "full_name_placeholder": "npr. Marko Marković",
-          "email": "Email",
+          "email": "E-pošta",
           "email_placeholder": "marko@example.com",
           "phone": "Telefon",
           "phone_placeholder": "+381 63 ...",
@@ -60,8 +60,8 @@
           "joined": "Pridružen",
           "email_verified_yes": "Email verifikovan",
           "email_verified_no": "Email nije verifikovan",
-          "status": "Status",
-          "plan": "Plan",
+          "status": "Status članstva",
+          "plan": "Plan članstva",
           "period_end": "Kraj perioda",
           "cancel_at_period_end": "Otkaži na kraju perioda",
           "no_agent": "Nema dodeljenog agenta",
@@ -80,7 +80,7 @@
         "preferences": {
           "email_claims": "Email ažuriranja zahteva",
           "email_newsletter": "Email bilten",
-          "email_marketing": "Email marketing",
+          "email_marketing": "Marketing putem e-pošte",
           "push_claims": "Push ažuriranja zahteva",
           "push_messages": "Push poruke",
           "in_app": "Notifikacije u aplikaciji"
@@ -93,7 +93,7 @@
         }
       },
       "filters": {
-        "search_label": "Search members",
+        "search_label": "Pretraži članove",
         "search_placeholder": "Pretraži po imenu ili emailu"
       },
       "table": {
@@ -103,8 +103,8 @@
         },
         "headers": {
           "user": "Član",
-          "status": "Status",
-          "plan": "Plan",
+          "status": "Status članstva",
+          "plan": "Plan članstva",
           "period_end": "Ističe",
           "actions": "Radnje"
         },

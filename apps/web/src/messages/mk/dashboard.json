@@ -145,8 +145,8 @@
         "admin": "Админ"
       },
       "surface": {
-        "legacy": "legacy",
-        "v3": "v3"
+        "legacy": "Наследен",
+        "v3": "V3"
       }
     }
   }
