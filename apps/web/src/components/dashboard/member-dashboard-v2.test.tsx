@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MemberDashboardData } from '@interdomestik/domain-member';
 import { MemberDashboardV2 } from './member-dashboard-v2';
@@ -77,6 +77,13 @@ describe('MemberDashboardV2', () => {
 
     expect(screen.getByTestId('claims-module-state-empty')).toBeInTheDocument();
     expect(screen.queryByTestId('claims-module-state-active')).not.toBeInTheDocument();
+    expect(screen.getByTestId('member-hero-claim-spotlight-empty')).toBeInTheDocument();
+    expect(screen.queryByTestId('member-hero-claim-spotlight-active')).not.toBeInTheDocument();
+    expect(screen.getByTestId('claims-module-empty-illustration')).toBeInTheDocument();
+    expect(screen.getByTestId('cta-learn-claim-process')).toHaveAttribute(
+      'href',
+      '/en/member/claim-report'
+    );
   });
 
   it('shows expanded claims module when there is an active claim', () => {
@@ -102,5 +109,19 @@ describe('MemberDashboardV2', () => {
     expect(screen.getByTestId('claims-module-state-active')).toBeInTheDocument();
     expect(screen.queryByTestId('claims-module-state-empty')).not.toBeInTheDocument();
     expect(screen.getByTestId('cta-continue-claim')).toBeInTheDocument();
+    expect(screen.getByTestId('member-hero-claim-spotlight-active')).toBeInTheDocument();
+    expect(screen.queryByTestId('member-hero-claim-spotlight-empty')).not.toBeInTheDocument();
+    expect(screen.getByTestId('claims-module-active-status-pill')).toBeInTheDocument();
+    expect(screen.getByTestId('claims-module-active-next-step')).toBeInTheDocument();
+  });
+
+  it('highlights priority quick actions for faster discovery', () => {
+    render(<MemberDashboardV2 data={makeData()} locale="en" />);
+
+    const priorityActions = screen.getByTestId('member-quick-actions-priority');
+    const priorityArea = within(priorityActions);
+
+    expect(priorityArea.getByTestId('qa-help-now')).toHaveAttribute('data-priority', 'high');
+    expect(priorityArea.getByTestId('qa-start-claim')).toHaveAttribute('data-priority', 'high');
   });
 });
