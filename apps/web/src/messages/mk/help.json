@@ -1,30 +1,30 @@
 {
   "help": {
-    "title": "Help & Support",
-    "description": "Need assistance with your claim or have questions about our services? Reach out to our team.",
+    "title": "Помош и поддршка",
+    "description": "Ви треба помош со вашето барање или имате прашања за нашите услуги? Контактирајте го нашиот тим.",
     "contact": {
-      "title": "Contact Support",
-      "description": "Our team is available Monday to Friday, 9:00 - 17:00.",
-      "callUs": "Call Us",
-      "emailUs": "Email Us",
+      "title": "Контактирајте поддршка",
+      "description": "Нашиот тим е достапен од понеделник до петок, 9:00 - 17:00.",
+      "callUs": "Јавете ни се",
+      "emailUs": "Пишете ни",
       "whatsapp": "WhatsApp",
-      "chatWithUs": "Chat with us"
+      "chatWithUs": "Разговарајте со нас"
     },
     "faq": {
-      "title": "Common Questions",
+      "title": "Чести прашања",
       "q1": {
-        "question": "How long does a claim take?",
-        "answer": "Typically 2-4 weeks for initial assessment."
+        "question": "Колку време трае едно барање?",
+        "answer": "Вообичаено 2-4 недели за почетна проценка."
       },
       "q2": {
-        "question": "What documents do I need?",
-        "answer": "Proof of purchase, photos of damage, and incident report."
+        "question": "Кои документи ми се потребни?",
+        "answer": "Доказ за купување, фотографии од штетата и извештај за инцидент."
       }
     },
     "legal": {
-      "title": "Legal Resources",
-      "consumerRights": "Consumer Rights Guide",
-      "consumerRightsDesc": "Learn about your rights under current consumer protection laws."
+      "title": "Правни ресурси",
+      "consumerRights": "Водич за права на потрошувачи",
+      "consumerRightsDesc": "Дознајте ги вашите права според важечките закони за заштита на потрошувачите."
     }
   }
 }

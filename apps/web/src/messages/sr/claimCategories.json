@@ -1,28 +1,28 @@
 {
   "claimCategories": {
-    "title": "What Can We Help You With?",
-    "subtitle": "Select your claim type to get started. Our experts specialize in each category.",
-    "startClaim": "Start Claim",
+    "title": "Kako možemo da vam pomognemo?",
+    "subtitle": "Izaberite tip zahteva da biste započeli. Naši stručnjaci su specijalizovani za svaku kategoriju.",
+    "startClaim": "Pokreni zahtev",
     "vehicle": {
-      "title": "Vehicle Damage",
-      "description": "Car accidents, collision damage, theft, and vandalism claims.",
-      "examples": "e.g., Traffic accidents, hit-and-run, parking damage"
+      "title": "Šteta na vozilu",
+      "description": "Saobraćajne nezgode, šteta od sudara, krađa i vandalizam.",
+      "examples": "npr., Saobraćajne nezgode, udar i bekstvo, šteta pri parkiranju"
     },
     "property": {
-      "title": "Property Damage",
-      "description": "Home, apartment, and building damage claims.",
-      "examples": "e.g., Water damage, fire, storm, burglary"
+      "title": "Šteta na imovini",
+      "description": "Zahtevi za štetu na kući, stanu i objektima.",
+      "examples": "npr., Šteta od vode, požar, oluja, provala"
     },
     "injury": {
-      "title": "Personal Injury",
-      "description": "Medical expenses, rehabilitation, and compensation for injuries.",
-      "examples": "e.g., Workplace injuries, accidents, medical malpractice"
+      "title": "Lične povrede",
+      "description": "Medicinski troškovi, rehabilitacija i naknada za povrede.",
+      "examples": "npr., Povrede na radu, nezgode, lekarska greška"
     },
     "travel": {
-      "title": "Travel & Flight",
-      "description": "Flight delays, cancellations, and lost baggage claims.",
+      "title": "Putovanje i let",
+      "description": "Zahtevi za kašnjenje letova, otkazivanja i izgubljeni prtljag.",
       "examples": "e.g., EU261 compensation up to €600"
     },
-    "quickSelectLabel": "Or select a specific claim type:"
+    "quickSelectLabel": "Ili izaberite određeni tip zahteva:"
   }
 }
