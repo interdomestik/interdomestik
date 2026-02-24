@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
 const VALID_MODES = new Set(['auto', 'single', 'multi']);
 const VALID_COMPLEXITIES = new Set(['low', 'medium', 'high']);
 
@@ -208,6 +211,11 @@ function main() {
   process.stdout.write(`${JSON.stringify(decision, null, 2)}\n`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+function isDirectExecution() {
+  if (!process.argv[1]) return false;
+  return pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
+}
+
+if (isDirectExecution()) {
   main();
 }

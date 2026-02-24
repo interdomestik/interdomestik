@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 function ensureNonEmptyString(value, label) {
   const normalized = String(value || '').trim();
@@ -172,7 +173,12 @@ function main() {
   throw new Error(`Unsupported mode: ${args.mode}`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+function isDirectExecution() {
+  if (!process.argv[1]) return false;
+  return pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
+}
+
+if (isDirectExecution()) {
   try {
     main();
   } catch (error) {
@@ -180,4 +186,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
 }
-

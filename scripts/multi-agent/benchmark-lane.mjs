@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { buildBenchmarkScorecard } from './benchmark-core.mjs';
 
@@ -247,7 +247,12 @@ function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+function isDirectExecution() {
+  if (!process.argv[1]) return false;
+  return pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
+}
+
+if (isDirectExecution()) {
   try {
     main();
   } catch (error) {

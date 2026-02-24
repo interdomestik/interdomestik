@@ -2,6 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { computeRoleMetrics } from './benchmark-core.mjs';
 
@@ -132,7 +133,12 @@ function main() {
   process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+function isDirectExecution() {
+  if (!process.argv[1]) return false;
+  return pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
+}
+
+if (isDirectExecution()) {
   try {
     main();
   } catch (error) {
