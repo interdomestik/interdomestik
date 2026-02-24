@@ -1,27 +1,27 @@
 {
   "faq": {
-    "title": "Frequently Asked Questions",
-    "subtitle": "Everything you need to know about membership",
+    "title": "Često postavljana pitanja",
+    "subtitle": "Sve što treba da znate o članstvu",
     "questions": [
       {
-        "question": "What if I don't need help during the year?",
-        "answer": "Your membership stays active and ready when you need it. Plus, you have access to the damage calculator, guides, and partner discounts all year."
+        "question": "Šta ako mi tokom godine ne zatreba pomoć?",
+        "answer": "Vaše članstvo ostaje aktivno i spremno kada vam zatreba. Pored toga, tokom cele godine imate pristup kalkulatoru štete, vodičima i partnerskim popustima."
       },
       {
-        "question": "How is Interdomestik different from insurance?",
-        "answer": "We're not insurance. We're your protection club - legal and technical experts who work for you, not the insurer. Pay just €20/year plus success fee only when you win."
+        "question": "Po čemu se Interdomestik razlikuje od osiguranja?",
+        "answer": "Mi nismo osiguranje. Mi smo vaš klub zaštite - pravni i tehnički stručnjaci koji rade za vas, a ne za osiguravača. Plaćate samo 20 € godišnje, uz naknadu za uspeh samo kada ostvarite naplatu."
       },
       {
-        "question": "How fast can I file a claim?",
-        "answer": "In 60 seconds! Call our 24/7 hotline or send a WhatsApp message. No forms, no waiting."
+        "question": "Koliko brzo mogu da podnesem zahtev?",
+        "answer": "Za 60 sekundi! Pozovite našu 24/7 liniju ili pošaljite WhatsApp poruku. Bez formulara, bez čekanja."
       },
       {
-        "question": "What if I don't win the claim?",
-        "answer": "If we don't recover money for you, you don't pay a success fee. No Win, No Fee."
+        "question": "Šta ako ne uspem sa zahtevom?",
+        "answer": "Ako vam ne naplatimo novac, ne plaćate naknadu za uspeh. Bez uspeha, bez naknade."
       },
       {
-        "question": "Can I cancel my membership?",
-        "answer": "Yes! You have a 30-day money-back guarantee. If you're not satisfied, get your money back. After that, you can cancel before renewal."
+        "question": "Mogu li da otkažem članstvo?",
+        "answer": "Da! Imate 30-dnevnu garanciju povraćaja novca. Ako niste zadovoljni, vraćamo vam novac. Nakon toga članstvo možete otkazati pre obnove."
       }
     ]
   }

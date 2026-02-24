@@ -25,7 +25,7 @@
     "or": "ose",
     "and": "dhe",
     "tryAgain": "Provo përsëri",
-    "admin": "Admin",
+    "admin": "Administrator",
     "pagination": {
       "pageOf": "Faqja {page} nga {total}"
     },
@@ -34,7 +34,7 @@
       "description": "Na vjen keq, nuk e gjetëm faqen që kërkuat."
     },
     "roles": {
-      "admin": "Administrator",
+      "admin": "Administratori",
       "agent": "Agjent",
       "member": "Anëtar",
       "staff": "Staf",

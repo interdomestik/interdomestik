@@ -18,7 +18,7 @@
       "fields": {
         "name": "Emri",
         "code": "Kodi",
-        "slug": "Slug",
+        "slug": "Identifikuesi URL",
         "status": "Statusi",
         "isActive": "Statusi Aktiv"
       },
@@ -44,16 +44,14 @@
       "no_branches_subtitle": "Provoni të rregulloni filtrat tuaj ose krijoni një degë të re.",
       "status_active": "Aktive",
       "status_inactive": "Joaktive",
-      "status_active": "Aktive",
-      "status_inactive": "Joaktive",
       "active_operations": "Statusi i Plotë Operacional",
-      "inactive_branch": "Oparacionet e Pezulluara",
+      "inactive_branch": "Operacionet e Pezulluara",
       "list_title": "Lista e Degëve",
       "list_description": "Aktualisht keni {count} degë të regjistruara.",
       "table_name": "Emri i Degës",
       "table_code": "Kodi",
       "table_status": "Statusi",
-      "table_kpis": "KPIs",
+      "table_kpis": "Treguesit kyç",
       "table_open_claims": "Dëmet e Hapura",
       "table_cash_pending": "Cash në Pritje",
       "table_sla_breaches": "Shkeljet SLA",
@@ -103,8 +101,7 @@
       "create_error": "Gabim gjatë krijimit",
       "create_success": "Dega u krijua",
       "create_success_description": "Dega {name} u krijua me sukses.",
-      "unexpected_error": "An unexpected error occurred.",
-
+      "unexpected_error": "Ndodhi një gabim i papritur.",
       "health_score": "Shëndeti {score}/100",
       "filters": {
         "needs_attention": "Kërkon Vëmendje"
@@ -146,8 +143,8 @@
         "agent": "Agjenti",
         "score": "Rezultati",
         "open": "Hapur",
-        "cash": "Cash",
-        "sla": "SLA",
+        "cash": "Para",
+        "sla": "Afati",
         "table_status": "Statusi",
         "status": {
           "healthy": "Gjendje e Shëndetshme",
@@ -163,7 +160,6 @@
         "workload": "Dëme Aktive",
         "no_staff": "Nuk u gjetën caktime stafi"
       },
-
       "health": {
         "healthy": "Gjendje e Shëndetshme",
         "watch": "Kërkon Vëmendje",

@@ -13,14 +13,14 @@
       "table": {
         "firstName": "Emri",
         "lastName": "Mbiemri",
-        "email": "Email",
+        "email": "E-mail",
         "status": "Statusi",
         "actions": "Veprimet"
       },
       "form": {
         "firstName": "Emri",
         "lastName": "Mbiemri",
-        "email": "Email",
+        "email": "E-mail",
         "phone": "Telefoni",
         "notes": "Shënime",
         "submit": "Krijo Lead"
@@ -87,7 +87,7 @@
       "types": {
         "call": "Thirrje",
         "meeting": "Takim",
-        "email": "Email",
+        "email": "E-mail",
         "general": "E Përgjithshme",
         "follow_up": "Ndjekje",
         "issue": "Problem"

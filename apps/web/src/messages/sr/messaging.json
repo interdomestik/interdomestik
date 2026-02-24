@@ -1,24 +1,24 @@
 {
   "messaging": {
-    "title": "Mesazhet",
-    "placeholder": "Shkruani mesazhin tuaj...",
-    "sent": "Mesazhi u dërgua",
-    "sendError": "Dështoi dërgimi i mesazhit",
-    "shortcut": "Shtypni Ctrl+Enter për të dërguar",
-    "agentBadge": "Agjent",
-    "internalNote": "Shënim i Brendshëm",
-    "internalNoteLabel": "Dërgo si shënim të brendshëm (vetëm agjentët)",
-    "today": "Sot",
-    "yesterday": "Dje",
+    "title": "Poruke",
+    "placeholder": "Napišite svoju poruku...",
+    "sent": "Poruka je poslata",
+    "sendError": "Slanje poruke nije uspelo",
+    "shortcut": "Pritisnite Ctrl+Enter za slanje",
+    "agentBadge": "Zastupnik",
+    "internalNote": "Interna beleška",
+    "internalNoteLabel": "Pošalji kao internu belešku (samo agenti)",
+    "today": "Danas",
+    "yesterday": "Juče",
     "empty": {
-      "title": "Nuk ka mesazhe ende",
-      "description": "Filloni një bisedë me agjentin tuaj të caktuar. Ai do të përgjigjet brenda 24 orëve."
+      "title": "Još nema poruka",
+      "description": "Započnite razgovor sa svojim dodeljenim agentom. Odgovoriće u roku od 24 sata."
     },
     "quickReplies": {
-      "greeting": "Hello, how can I help you?",
-      "docs_request": "Please upload the required documents.",
-      "status_update": "Your claim is being processed.",
-      "closing": "Thank you for reaching out."
+      "greeting": "Zdravo, kako mogu da vam pomognem?",
+      "docs_request": "Molimo otpremite potrebnu dokumentaciju.",
+      "status_update": "Vaš zahtev je u obradi.",
+      "closing": "Hvala što ste nas kontaktirali."
     }
   }
 }
