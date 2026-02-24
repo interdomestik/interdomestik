@@ -105,5 +105,51 @@ describe('Agent Workspace Claims Query Contracts', () => {
       expect(result.claims.map(c => c.id)).toContain('target-1');
       expect(findManyCalls).toBe(2);
     });
+
+    it('keeps selected claim in the final capped list when selected claim is older', async () => {
+      const claimsPageRows = Array.from({ length: 100 }, (_, index) => ({
+        id: `visible-${index + 1}`,
+        claimNumber: `CLM-${String(index + 1).padStart(3, '0')}`,
+        user: { id: `u-${index + 1}` },
+        branch: { name: 'B1' },
+        title: `Visible Claim ${index + 1}`,
+        status: 'submitted',
+        createdAt: new Date(2026, 0, 1, 0, index + 1),
+        updatedAt: new Date(2026, 0, 1, 0, index + 1),
+        userId: `u-${index + 1}`,
+      }));
+
+      const selectedClaimRow = {
+        id: 'target-older',
+        claimNumber: 'CLM-999',
+        user: { id: 'u-target' },
+        branch: { name: 'B1' },
+        title: 'Target Older Claim',
+        status: 'submitted',
+        createdAt: new Date(2025, 0, 1, 0, 0, 0),
+        updatedAt: new Date(2025, 0, 1, 0, 0, 0),
+        userId: 'u-target',
+      };
+
+      let findManyCalls = 0;
+      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+      mockDb.query.claims.findMany.mockImplementation(async () => {
+        findManyCalls += 1;
+        return findManyCalls === 1 ? claimsPageRows : [selectedClaimRow];
+      });
+      mockDb.groupBy.mockResolvedValueOnce([]);
+      mockDb.orderBy.mockResolvedValueOnce([]);
+
+      const result = await getAgentWorkspaceClaimsCore({
+        tenantId: 't1',
+        userId: 'a1',
+        db: mockDb,
+        selectedClaimId: 'target-older',
+      });
+
+      expect(result.claims).toHaveLength(100);
+      expect(result.claims.map(c => c.id)).toContain('target-older');
+      expect(findManyCalls).toBe(2);
+    });
   });
 });

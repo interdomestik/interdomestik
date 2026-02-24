@@ -116,7 +116,7 @@ test.describe('Agent Workspace Claims claimId selection', () => {
 
       await gotoApp(page, inaccessiblePath, testInfo, { marker: 'agent-claims-pro-page' });
 
-      await expect(page.getByTestId('workspace-claim-not-accessible')).toBeVisible();
+      await expect(page.getByTestId('workspace-claim-not-accessible').first()).toBeVisible();
       await expect(page.getByTestId('workspace-selected-claim-id')).toHaveCount(0);
     } finally {
       await cleanupFallbackClaim(accessibleClaimId, createdFallback);

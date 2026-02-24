@@ -159,6 +159,10 @@ export async function getAgentWorkspaceClaimsCore(params: {
   selectedClaimId?: string;
 }): Promise<AgentWorkspaceClaimsResult> {
   const { tenantId, userId, db, selectedClaimId } = params;
+  const requestedSelectedClaimId =
+    typeof selectedClaimId === 'string' && selectedClaimId.trim() !== ''
+      ? selectedClaimId.trim()
+      : null;
 
   // 0. Fetch Agent Context (Branch)
   const agent = await db.query.user.findFirst({
@@ -223,17 +227,16 @@ export async function getAgentWorkspaceClaimsCore(params: {
   }
 
   // 4. Resolve direct selection by claimId even when not in first-page results.
-  const selectedClaim =
-    typeof selectedClaimId === 'string' && selectedClaimId.trim() !== ''
-      ? claimIds.includes(selectedClaimId.trim())
-        ? null
-        : await getClaimByIdInWorkspaceScope({
-            tenantId,
-            claimId: selectedClaimId.trim(),
-            branchId: agent?.branchId,
-            db,
-          })
-      : null;
+  const selectedClaim = requestedSelectedClaimId
+    ? claimIds.includes(requestedSelectedClaimId)
+      ? null
+      : await getClaimByIdInWorkspaceScope({
+          tenantId,
+          claimId: requestedSelectedClaimId,
+          branchId: agent?.branchId,
+          db,
+        })
+    : null;
 
   const mappedClaims: AgentProClaimDTO[] = claimsData.map((c: any) => {
     const dto = mapToAgentProClaim(c as ClaimRow);
@@ -242,11 +245,40 @@ export async function getAgentWorkspaceClaimsCore(params: {
     return dto;
   });
 
-  const finalClaims = dedupeClaimsById(
+  const sortedClaims = dedupeClaimsById(
     selectedClaim ? [...mappedClaims, selectedClaim] : mappedClaims
-  )
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-    .slice(0, WORKSPACE_CLAIM_LIMIT);
+  ).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
-  return { claims: finalClaims };
+  const cappedClaims = sortedClaims.slice(0, WORKSPACE_CLAIM_LIMIT);
+
+  if (!requestedSelectedClaimId) {
+    return { claims: cappedClaims };
+  }
+
+  if (cappedClaims.some(claim => claim.id === requestedSelectedClaimId)) {
+    return { claims: cappedClaims };
+  }
+
+  const selectedFromWorkspaceScope = sortedClaims.find(
+    claim => claim.id === requestedSelectedClaimId
+  );
+
+  if (!selectedFromWorkspaceScope) {
+    return { claims: cappedClaims };
+  }
+
+  if (cappedClaims.length < WORKSPACE_CLAIM_LIMIT) {
+    return {
+      claims: [...cappedClaims, selectedFromWorkspaceScope].sort(
+        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+      ),
+    };
+  }
+
+  const claimsWithForcedSelection = [
+    ...cappedClaims.slice(0, WORKSPACE_CLAIM_LIMIT - 1),
+    selectedFromWorkspaceScope,
+  ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+  return { claims: claimsWithForcedSelection };
 }
