@@ -11,8 +11,8 @@
     "billedAnnually": "Faturuar çdo vit",
     "billedMonthly": "Faturuar çdo muaj",
     "basic": {
-      "name": "Bazik",
-      "price": "€15",
+      "name": "Bazë",
+      "price": "15 €",
       "period": "/viti",
       "description": "Mbrojtje bazë për individë",
       "features": [
@@ -24,9 +24,9 @@
       ]
     },
     "standard": {
-      "name": "Asistenca",
-      "price": "€20",
-      "monthlyPrice": "€2",
+      "name": "Asistenca (Standard)",
+      "price": "20 €",
+      "monthlyPrice": "2 €",
       "period": "/vit",
       "description": "Mbrojtje e plotë për individë",
       "features": [
@@ -40,9 +40,9 @@
       "popular": "Më e zgjedhura"
     },
     "family": {
-      "name": "Asistenca+",
-      "price": "€35",
-      "monthlyPrice": "€4",
+      "name": "Asistenca+ (Familjar)",
+      "price": "35 €",
+      "monthlyPrice": "4 €",
       "period": "/vit",
       "description": "Mbrojtje për gjithë shtëpinë",
       "features": [
@@ -54,8 +54,8 @@
     },
     "business": {
       "name": "Biznesi",
-      "price": "€95",
-      "monthlyPrice": "€10",
+      "price": "95 €",
+      "monthlyPrice": "10 €",
       "period": "/vit",
       "description": "Mbrojtje profesionale për bizneset",
       "features": [

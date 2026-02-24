@@ -82,17 +82,17 @@
       }
     },
     "analytics": {
-      "title": "Analytics Overview",
-      "description": "Platform performance and claim distribution metrics.",
+      "title": "Преглед на аналитиката",
+      "description": "Метрики за перформансите на платформата и распределбата на побарувањата.",
       "metrics": {
-        "total_value": "Total Claim Value",
-        "avg_value": "Average Claim Amount",
-        "success_rate": "Resolution Rate",
-        "active_users": "Active Claimants"
+        "total_value": "Вкупна вредност на побарувањата",
+        "avg_value": "Просечен износ на побарување",
+        "success_rate": "Стапка на решавање",
+        "active_users": "Активни подносители"
       },
-      "status_distribution": "Distribution by Status",
-      "category_distribution": "Distribution by Category",
-      "no_data": "Insufficient data for visualization"
+      "status_distribution": "Распределба по статус",
+      "category_distribution": "Распределба по категорија",
+      "no_data": "Недоволно податоци за визуелизација"
     }
   }
 }

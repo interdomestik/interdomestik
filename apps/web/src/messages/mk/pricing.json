@@ -12,7 +12,7 @@
     "billedMonthly": "Се наплаќа месечно",
     "basic": {
       "name": "Базик",
-      "price": "€15",
+      "price": "15 €",
       "period": "/годишно",
       "description": "Основна заштита за поединци",
       "features": [
@@ -25,8 +25,8 @@
     },
     "standard": {
       "name": "Асистенца",
-      "price": "€20",
-      "monthlyPrice": "€2",
+      "price": "20 €",
+      "monthlyPrice": "2 €",
       "period": "/годишно",
       "description": "Комплетна заштита за поединци",
       "features": [
@@ -41,8 +41,8 @@
     },
     "family": {
       "name": "Асистенца+",
-      "price": "€35",
-      "monthlyPrice": "€4",
+      "price": "35 €",
+      "monthlyPrice": "4 €",
       "period": "/годишно",
       "description": "Заштита за целото домаќинство",
       "features": [
@@ -54,8 +54,8 @@
     },
     "business": {
       "name": "Бизнис",
-      "price": "€95",
-      "monthlyPrice": "€10",
+      "price": "95 €",
+      "monthlyPrice": "10 €",
       "period": "/годишно",
       "description": "Професионална заштита за фирми",
       "features": [

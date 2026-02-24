@@ -11,8 +11,8 @@
     "billedAnnually": "Naplaćuje se godišnje",
     "billedMonthly": "Naplaćuje se mesečno",
     "basic": {
-      "name": "Bazik",
-      "price": "€15",
+      "name": "Osnovni",
+      "price": "15 €",
       "period": "/godišnje",
       "description": "Osnovna zaštita za pojedince",
       "features": [
@@ -24,9 +24,9 @@
       ]
     },
     "standard": {
-      "name": "Asistenca",
-      "price": "€20",
-      "monthlyPrice": "€2",
+      "name": "Asistenca (Standard)",
+      "price": "20 €",
+      "monthlyPrice": "2 €",
       "period": "/godišnje",
       "description": "Kompletna zaštita za pojedince",
       "features": [
@@ -40,9 +40,9 @@
       "popular": "Najpopularnije"
     },
     "family": {
-      "name": "Asistenca+",
-      "price": "€35",
-      "monthlyPrice": "€4",
+      "name": "Asistenca+ (Porodični)",
+      "price": "35 €",
+      "monthlyPrice": "4 €",
       "period": "/godišnje",
       "description": "Zaštita za celo domaćinstvo",
       "features": [
@@ -54,8 +54,8 @@
     },
     "business": {
       "name": "Biznis",
-      "price": "€95",
-      "monthlyPrice": "€10",
+      "price": "95 €",
+      "monthlyPrice": "10 €",
       "period": "/godišnje",
       "description": "Profesionalna zaštita za firme",
       "features": [
@@ -72,8 +72,8 @@
       "title": "Planovi članstva - Interdomestik",
       "description": "Pridružite se klubu zaštite. Dostupni Standard i Porodični planovi."
     },
-    "mainHeading1": "Choose the protection",
-    "mainHeading2": "that suits you.",
-    "joinSecurely": "Join securely"
+    "mainHeading1": "Izaberite zaštitu",
+    "mainHeading2": "koja vam odgovara.",
+    "joinSecurely": "Pridružite se bezbedno"
   }
 }
