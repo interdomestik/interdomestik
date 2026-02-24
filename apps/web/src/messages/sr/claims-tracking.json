@@ -2,88 +2,88 @@
   "claims-tracking": {
     "tracking": {
       "header": {
-        "share_link": "Share Tracking Link",
-        "link_copied": "Link copied to clipboard",
-        "error_generating_link": "Failed to generate link",
-        "share_dialog_title": "Share Claim Status",
-        "share_dialog_desc": "Anyone with this link can view the current status of this claim. The link expires in 7 days."
+        "share_link": "Podeli link za praćenje",
+        "link_copied": "Link je kopiran u privremenu memoriju",
+        "error_generating_link": "Nije uspelo generisanje linka",
+        "share_dialog_title": "Podeli status zahteva",
+        "share_dialog_desc": "Svako ko ima ovaj link može da vidi trenutni status ovog zahteva. Link ističe za 7 dana."
       },
       "timeline": {
-        "empty": "No timeline events available."
+        "empty": "Nema dostupnih događaja na vremenskoj liniji."
       },
       "documents": {
-        "title": "Documents",
-        "empty": "No documents uploaded yet."
+        "title": "Dokumenti",
+        "empty": "Još nema otpremljenih dokumenata."
       },
       "public": {
-        "title": "Claim Status",
-        "last_updated": "Last updated on {date}",
-        "next_step_title": "What happens next?",
-        "no_pii_notice": "This is a secure, limited view. For full details, please log in."
+        "title": "Status zahteva",
+        "last_updated": "Poslednje ažuriranje: {date}",
+        "next_step_title": "Šta sledi?",
+        "no_pii_notice": "Ovo je bezbedan, ograničen prikaz. Za pune detalje, prijavite se."
       }
     },
     "status": {
-      "draft": "Draft",
-      "submitted": "Submitted",
-      "verification": "Verification",
-      "evaluation": "Evaluation",
-      "negotiation": "Negotiation",
-      "court": "Court",
-      "resolved": "Resolved",
-      "rejected": "Rejected",
+      "draft": "Nacrt",
+      "submitted": "Podneto",
+      "verification": "Verifikacija",
+      "evaluation": "Procena",
+      "negotiation": "Pregovori",
+      "court": "Sud",
+      "resolved": "Rešeno",
+      "rejected": "Odbijeno",
       "next_step": {
-        "draft": "Please submit your claim for review.",
-        "submitted": "We have received your claim and will assign it to a case manager shortly.",
-        "verification": "We are verifying the provided documents and evidence.",
-        "evaluation": "Our experts are evaluating the damages and liability.",
-        "negotiation": "We are negotiating with the insurance company for a fair settlement.",
-        "court": "Legal proceedings have been initiated.",
-        "resolved": "The claim has been finalized.",
-        "rejected": "The claim could not be processed."
+        "draft": "Molimo podnesite svoj zahtev na pregled.",
+        "submitted": "Primili smo vaš zahtev i uskoro ćemo ga dodeliti menadžeru slučaja.",
+        "verification": "Proveravamo dostavljene dokumente i dokaze.",
+        "evaluation": "Naši stručnjaci procenjuju štetu i odgovornost.",
+        "negotiation": "Pregovaramo sa osiguravajućom kompanijom radi pravične nagodbe.",
+        "court": "Pokrenut je sudski postupak.",
+        "resolved": "Zahtev je finalizovan.",
+        "rejected": "Zahtev nije mogao biti obrađen."
       }
     }
   },
   "claims-tracking": {
     "tracking": {
       "header": {
-        "share_link": "Share Tracking Link",
-        "link_copied": "Link copied to clipboard",
-        "error_generating_link": "Failed to generate link",
-        "share_dialog_title": "Share Claim Status",
-        "share_dialog_desc": "Anyone with this link can view the current status of this claim. The link expires in 7 days."
+        "share_link": "Podeli link za praćenje",
+        "link_copied": "Link je kopiran u privremenu memoriju",
+        "error_generating_link": "Nije uspelo generisanje linka",
+        "share_dialog_title": "Podeli status zahteva",
+        "share_dialog_desc": "Svako ko ima ovaj link može da vidi trenutni status ovog zahteva. Link ističe za 7 dana."
       },
       "timeline": {
-        "empty": "No timeline events available."
+        "empty": "Nema dostupnih događaja na vremenskoj liniji."
       },
       "documents": {
-        "title": "Documents",
-        "empty": "No documents uploaded yet."
+        "title": "Dokumenti",
+        "empty": "Još nema otpremljenih dokumenata."
       },
       "public": {
-        "title": "Claim Status",
-        "last_updated": "Last updated on {date}",
-        "next_step_title": "What happens next?",
-        "no_pii_notice": "This is a secure, limited view. For full details, please log in."
+        "title": "Status zahteva",
+        "last_updated": "Poslednje ažuriranje: {date}",
+        "next_step_title": "Šta sledi?",
+        "no_pii_notice": "Ovo je bezbedan, ograničen prikaz. Za pune detalje, prijavite se."
       }
     },
     "status": {
-      "draft": "Draft",
-      "submitted": "Submitted",
-      "verification": "Verification",
-      "evaluation": "Evaluation",
-      "negotiation": "Negotiation",
-      "court": "Court",
-      "resolved": "Resolved",
-      "rejected": "Rejected",
+      "draft": "Nacrt",
+      "submitted": "Podneto",
+      "verification": "Verifikacija",
+      "evaluation": "Procena",
+      "negotiation": "Pregovori",
+      "court": "Sud",
+      "resolved": "Rešeno",
+      "rejected": "Odbijeno",
       "next_step": {
-        "draft": "Please submit your claim for review.",
-        "submitted": "We have received your claim and will assign it to a case manager shortly.",
-        "verification": "We are verifying the provided documents and evidence.",
-        "evaluation": "Our experts are evaluating the damages and liability.",
-        "negotiation": "We are negotiating with the insurance company for a fair settlement.",
-        "court": "Legal proceedings have been initiated.",
-        "resolved": "The claim has been finalized.",
-        "rejected": "The claim could not be processed."
+        "draft": "Molimo podnesite svoj zahtev na pregled.",
+        "submitted": "Primili smo vaš zahtev i uskoro ćemo ga dodeliti menadžeru slučaja.",
+        "verification": "Proveravamo dostavljene dokumente i dokaze.",
+        "evaluation": "Naši stručnjaci procenjuju štetu i odgovornost.",
+        "negotiation": "Pregovaramo sa osiguravajućom kompanijom radi pravične nagodbe.",
+        "court": "Pokrenut je sudski postupak.",
+        "resolved": "Zahtev je finalizovan.",
+        "rejected": "Zahtev nije mogao biti obrađen."
       }
     }
   }
