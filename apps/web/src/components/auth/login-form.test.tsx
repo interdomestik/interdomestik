@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginForm } from './login-form';
 
+let mockSearchParams = new URLSearchParams('');
+
 const mockCanAccessAdmin = vi.fn();
 vi.mock('@/actions/admin-access', () => ({
   canAccessAdmin: () => mockCanAccessAdmin(),
@@ -48,7 +50,7 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(''),
+  useSearchParams: () => mockSearchParams,
   usePathname: () => '/en/login',
 }));
 
@@ -114,6 +116,7 @@ vi.mock('@interdomestik/ui', () => ({
 describe('LoginForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams('');
     mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
     mockCanAccessAdmin.mockResolvedValue(false);
   });
@@ -301,5 +304,32 @@ describe('LoginForm', () => {
 
     const registerLink = screen.getByText('Register');
     expect(registerLink.closest('a')).toHaveAttribute('href', '/register');
+  });
+
+  it('preserves selected plan in register link continuity', () => {
+    mockSearchParams = new URLSearchParams('tenantId=tenant_ks&plan=standard');
+    render(<LoginForm />);
+
+    const registerLink = screen.getByText('Register');
+    expect(registerLink.closest('a')).toHaveAttribute(
+      'href',
+      '/register?tenantId=tenant_ks&plan=standard'
+    );
+  });
+
+  it('redirects members to selected plan flow after login when plan query is present', async () => {
+    mockSearchParams = new URLSearchParams('plan=standard');
+    mockSignInEmail.mockResolvedValue({ error: null });
+    mockGetSession.mockResolvedValue({ data: { user: { role: 'user' } } });
+
+    render(<LoginForm />);
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByText('Sign In'));
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/pricing?plan=standard');
+    });
   });
 });

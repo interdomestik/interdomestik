@@ -204,7 +204,10 @@ export function PricingSection() {
               </div>
 
               <div className="relative z-10 w-full">
-                <Link href="/register">
+                <Link
+                  data-testid={`pricing-plan-link-${plan.id}`}
+                  href={`/register?plan=${plan.id}`}
+                >
                   <Button
                     size="xl"
                     className={`w-full h-16 text-lg font-black rounded-2xl transition-all duration-300 ${

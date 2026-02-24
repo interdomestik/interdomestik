@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RegisterForm } from './register-form';
 
+let mockSearchParams = new URLSearchParams('');
+
 // Mock authClient
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
@@ -36,7 +38,7 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(''),
+  useSearchParams: () => mockSearchParams,
   usePathname: () => '/en/register',
 }));
 
@@ -51,6 +53,7 @@ vi.mock('@/i18n/routing', () => ({
 describe('RegisterForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams('');
   });
 
   it('renders the title and subtitle', () => {
@@ -99,5 +102,13 @@ describe('RegisterForm', () => {
     render(<RegisterForm />);
 
     expect(screen.getByText('or')).toBeInTheDocument();
+  });
+
+  it('preserves selected plan in login link continuity', () => {
+    mockSearchParams = new URLSearchParams('tenantId=tenant_mk&plan=family');
+    render(<RegisterForm />);
+
+    const loginLink = screen.getByText('Sign in').closest('a');
+    expect(loginLink).toHaveAttribute('href', '/login?tenantId=tenant_mk&plan=family');
   });
 });

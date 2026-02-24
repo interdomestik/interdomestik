@@ -76,7 +76,13 @@ export default async function HomePage({ params }: Props) {
 
   return (
     <NextIntlClientProvider messages={messages} locale={locale}>
-      <main className="min-h-screen">
+      <main
+        className="min-h-screen"
+        data-testid="landing-page-ready"
+        data-experiment="home-funnel"
+        data-variant={uiV2Enabled ? 'hero_v2' : 'hero_v1'}
+      >
+        <div data-testid="page-ready" className="sr-only" aria-hidden="true" />
         <Header />
         {uiV2Enabled ? (
           <>
@@ -90,6 +96,15 @@ export default async function HomePage({ params }: Props) {
               startClaimHref={startClaimHref}
               tenantId={session?.user?.tenantId ?? hostTenantHint}
             />
+            <TrustStrip />
+            <VoiceClaimSection />
+            <MemberBenefitsSection />
+            <PricingSection />
+            <HowMembershipWorksSection />
+            <TrustStatsSection />
+            <TestimonialsSection />
+            <FAQSection />
+            <CTASection />
           </>
         ) : (
           <>

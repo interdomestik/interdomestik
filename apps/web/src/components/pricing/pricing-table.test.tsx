@@ -6,6 +6,7 @@ import { PricingTable } from './pricing-table';
 
 // Mock dependencies
 import { MouseEventHandler, ReactNode } from 'react';
+let mockSearchParams = new URLSearchParams('');
 
 // Mock dependencies
 vi.mock('@interdomestik/ui', () => ({
@@ -49,7 +50,7 @@ vi.mock('@/i18n/routing', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(''),
+  useSearchParams: () => mockSearchParams,
   useRouter: () => ({ push: vi.fn() }),
 }));
 
@@ -78,10 +79,19 @@ describe('PricingTable', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams('');
     process.env.NEXT_PUBLIC_PILOT_MODE = originalPilotMode;
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(
       mockPaddle as unknown as import('@paddle/paddle-js').Paddle
     );
+  });
+
+  it('marks the query-selected plan card for continuity', () => {
+    mockSearchParams = new URLSearchParams('plan=family');
+    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+
+    expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1');
+    expect(screen.getByTestId('plan-card-standard')).toHaveAttribute('data-selected-plan', '0');
   });
 
   it('renders plans correctly', () => {

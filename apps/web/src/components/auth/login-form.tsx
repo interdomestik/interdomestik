@@ -31,8 +31,17 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const tenantIdFromQuery = searchParams.get('tenantId') || undefined;
+  const planIdFromQuery = searchParams.get('plan') || undefined;
   const resolvedTenantId = tenantId ?? tenantIdFromQuery;
-  const registerHref = resolvedTenantId ? `/register?tenantId=${resolvedTenantId}` : '/register';
+  const registerParams = new URLSearchParams();
+  if (resolvedTenantId) {
+    registerParams.set('tenantId', resolvedTenantId);
+  }
+  if (planIdFromQuery) {
+    registerParams.set('plan', planIdFromQuery);
+  }
+  const registerHref =
+    registerParams.size > 0 ? `/register?${registerParams.toString()}` : '/register';
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
@@ -77,9 +86,7 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               }
 
               const { data: session } = await authClient.getSession();
-              console.log('Login Session User:', session?.user); // DEBUG: Full user object
               const role = (session?.user as { role?: string })?.role;
-              console.log('LOGIN DEBUG: role =', role, ', isAdmin =', isAdmin(role)); // DEBUG: Role check
 
               const isAdminRole = isAdmin(role);
               if (isAdminRole) {
@@ -102,6 +109,13 @@ export function LoginForm({ tenantId }: { tenantId?: string }) {
               if (!target) {
                 setError(`${t('error')} (Unsupported account role)`);
                 setLoading(false);
+                return;
+              }
+
+              if (planIdFromQuery && target === '/member') {
+                const pricingParams = new URLSearchParams();
+                pricingParams.set('plan', planIdFromQuery);
+                router.push(`/pricing?${pricingParams.toString()}`);
                 return;
               }
 
