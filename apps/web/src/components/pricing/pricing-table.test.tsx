@@ -7,6 +7,7 @@ import { PricingTable } from './pricing-table';
 // Mock dependencies
 import { MouseEventHandler, ReactNode } from 'react';
 let mockSearchParams = new URLSearchParams('');
+const mockRouterPush = vi.fn();
 
 // Mock dependencies
 vi.mock('@interdomestik/ui', () => ({
@@ -44,11 +45,6 @@ vi.mock('lucide-react', () => ({
   Building2: () => <span>🏢</span>,
 }));
 
-vi.mock('@/i18n/routing', () => ({
-  Link: ({ children }: { children: ReactNode }) => <a>{children}</a>,
-  useRouter: () => ({ push: vi.fn() }),
-}));
-
 vi.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
   useRouter: () => ({ push: vi.fn() }),
@@ -60,7 +56,7 @@ vi.mock('@/i18n/routing', () => ({
   ),
   redirect: vi.fn(),
   usePathname: () => '/',
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockRouterPush }),
   getPathname: vi.fn(),
 }));
 
@@ -79,7 +75,9 @@ describe('PricingTable', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     mockSearchParams = new URLSearchParams('');
+    mockRouterPush.mockReset();
     process.env.NEXT_PUBLIC_PILOT_MODE = originalPilotMode;
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(
       mockPaddle as unknown as import('@paddle/paddle-js').Paddle
@@ -163,5 +161,35 @@ describe('PricingTable', () => {
     await waitFor(() => {
       expect(mockPaddle.Checkout.open).not.toHaveBeenCalled();
     });
+  });
+
+  it('falls back to simulated checkout in development when Paddle is unavailable', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', '');
+    vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
+
+    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    vi.useFakeTimers();
+
+    try {
+      render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+
+      const joinButtons = screen.getAllByText('cta');
+      fireEvent.click(joinButtons[0]);
+
+      await vi.runAllTimersAsync();
+
+      expect(mockRouterPush).toHaveBeenCalledWith(
+        `/member/membership/success?test=true&priceId=${PADDLE_PRICES.standard.yearly}&planId=standard`
+      );
+
+      expect(alertMock).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+      alertMock.mockRestore();
+      consoleWarn.mockRestore();
+    }
   });
 });

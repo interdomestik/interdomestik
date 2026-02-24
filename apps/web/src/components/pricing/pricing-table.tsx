@@ -91,6 +91,15 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
   const isBillingTestMode = billingTestMode ?? process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
   const planFromQuery = searchParams.get('plan')?.trim().toLowerCase() ?? '';
   const selectedPlanId = PLANS.some(plan => plan.id === planFromQuery) ? planFromQuery : null;
+  const paddleClientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim() ?? '';
+  const hasPaddleClientToken = paddleClientToken.length > 0 && !paddleClientToken.endsWith('...');
+  const shouldUseDevCheckoutFallback =
+    process.env.NODE_ENV === 'development' && !isBillingTestMode && !hasPaddleClientToken;
+
+  const redirectToSimulatedSuccess = async (planId: string, priceId: string) => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    router.push(`/member/membership/success?test=true&priceId=${priceId}&planId=${planId}`);
+  };
 
   const handleAction = async (planId: string, priceId: string) => {
     if (process.env.NEXT_PUBLIC_PILOT_MODE === 'true') return;
@@ -98,10 +107,13 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
 
     setLoading(priceId);
     try {
-      if (isBillingTestMode) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Simulate redirect to success page with dummy data
-        router.push(`/member/membership/success?test=true&priceId=${priceId}&planId=${planId}`);
+      if (isBillingTestMode || shouldUseDevCheckoutFallback) {
+        if (shouldUseDevCheckoutFallback) {
+          console.warn(
+            'Paddle client token missing in development, falling back to simulated checkout.'
+          );
+        }
+        await redirectToSimulatedSuccess(planId, priceId);
         return;
       }
 
@@ -127,6 +139,11 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
         });
       } else {
         console.error('Paddle not initialized');
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Paddle unavailable in development, falling back to simulated checkout.');
+          await redirectToSimulatedSuccess(planId, priceId);
+          return;
+        }
         alert('Payment system unavailable. Please check configuration.');
       }
     } catch (error) {
