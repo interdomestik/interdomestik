@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://interdomestik.local/schemas/a2a-task-envelope.schema.json",
+  "title": "A2A Task Envelope",
+  "type": "object",
+  "required": ["protocol", "version", "task", "messages", "artifacts"],
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "const": "a2a"
+    },
+    "version": {
+      "type": "string"
+    },
+    "task": {
+      "type": "object",
+      "required": ["id", "kind", "role", "objective", "status"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string" },
+        "role": { "type": "string", "minLength": 1 },
+        "objective": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "role", "createdAt", "content"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "role": { "type": "string", "minLength": 1 },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "content": { "type": "array" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "mimeType", "data"],
+        "properties": {
+          "type": { "type": "string", "minLength": 1 },
+          "mimeType": { "type": "string", "minLength": 1 },
+          "data": {}
+        },
+        "additionalProperties": true
+      }
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}
