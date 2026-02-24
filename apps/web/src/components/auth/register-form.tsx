@@ -24,8 +24,16 @@ export function RegisterForm({ tenantId }: { tenantId?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tenantIdFromQuery = searchParams.get('tenantId') || undefined;
+  const planIdFromQuery = searchParams.get('plan') || undefined;
   const resolvedTenantId = tenantId ?? tenantIdFromQuery;
-  const loginHref = resolvedTenantId ? `/login?tenantId=${resolvedTenantId}` : '/login';
+  const loginParams = new URLSearchParams();
+  if (resolvedTenantId) {
+    loginParams.set('tenantId', resolvedTenantId);
+  }
+  if (planIdFromQuery) {
+    loginParams.set('plan', planIdFromQuery);
+  }
+  const loginHref = loginParams.size > 0 ? `/login?${loginParams.toString()}` : '/login';
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
