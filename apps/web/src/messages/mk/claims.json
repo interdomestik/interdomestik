@@ -81,7 +81,7 @@
       "service_issue": "Проблем со услуга",
       "liability": "Одговорност",
       "medical": "Медицински",
-      "test": "Test",
+      "test": "Тест",
       "other": "Друго"
     },
     "priority": {
@@ -122,7 +122,7 @@
       "next_step_1": "Нашиот тим го прегледува пријавувањето и доказите.",
       "next_step_2": "Ќе добиете следни чекори во апликацијата или преку поддршката.",
       "help_call": "Јави се сега",
-      "help_whatsapp": "WhatsApp",
+      "help_whatsapp": "WhatsApp поддршка",
       "go_to_claim": "Отвори случај"
     },
     "actions": {

@@ -1,12 +1,12 @@
 {
   "trustStats": {
-    "recovered": "€2.5M",
+    "recovered": "2,5M €",
     "recoveredLabel": "e rikuperuar",
-    "cases": "5,000+",
+    "cases": "5.000+",
     "casesLabel": "raste të mbështetura",
-    "members": "8,500+",
+    "members": "8.500+",
     "membersLabel": "anëtarë aktivë",
-    "response": "24h",
+    "response": "24 orë",
     "responseLabel": "koha e përgjigjes",
     "partnersTitle": "Besuar nga partnerët tanë",
     "partnerNetworkLabel": "Rrjeti i partnerëve"

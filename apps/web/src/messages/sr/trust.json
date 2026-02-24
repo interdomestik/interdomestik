@@ -1,15 +1,15 @@
 {
   "trust": {
-    "claimsProcessed": "Claims Processed",
-    "compensationWon": "Compensation Won",
-    "successRate": "Success Rate",
-    "responseTime": "First Response",
-    "activeMembers": "Active Members",
-    "activeMembersValue": "8,500+",
-    "memberSavings": "Member Savings",
-    "memberSavingsValue": "€150K+",
-    "successRateValue": "94%",
-    "hotlineResponse": "Hotline Response",
-    "hotlineResponseValue": "<60s"
+    "claimsProcessed": "Obrađeni zahtevi",
+    "compensationWon": "Dobijena naknada",
+    "successRate": "Stopa uspeha",
+    "responseTime": "Prvi odgovor",
+    "activeMembers": "Aktivni članovi",
+    "activeMembersValue": "8.500+",
+    "memberSavings": "Uštede članova",
+    "memberSavingsValue": "150.000 €+",
+    "successRateValue": "94 %",
+    "hotlineResponse": "Odgovor hitne linije",
+    "hotlineResponseValue": "<60 s"
   }
 }

@@ -1,12 +1,12 @@
 {
   "trust": {
     "activeMembers": "Anëtarë Aktivë",
-    "activeMembersValue": "8,500+",
+    "activeMembersValue": "8.500+",
     "memberSavings": "Kursimet e Anëtarëve",
-    "memberSavingsValue": "€150K+",
+    "memberSavingsValue": "150 mijë €+",
     "successRate": "Shkalla e Suksesit",
-    "successRateValue": "94%",
+    "successRateValue": "94 %",
     "hotlineResponse": "Përgjigja në Linjë",
-    "hotlineResponseValue": "<60s"
+    "hotlineResponseValue": "<60 s"
   }
 }

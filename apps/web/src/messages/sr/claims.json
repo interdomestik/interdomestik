@@ -13,7 +13,7 @@
       "title": "Naslov",
       "company": "Kompanija",
       "category": "Kategorija",
-      "status": "Status",
+      "status": "Stanje",
       "amount": "Iznos",
       "created": "Kreirano"
     },
@@ -47,20 +47,20 @@
       "rejected": "Odbijeno"
     },
     "owner": {
-      "staff": "Staff",
-      "member": "Member / Agent",
-      "agent": "Agent",
-      "admin": "Admin",
-      "system": "System",
-      "unknown": "System"
+      "staff": "Osoblje",
+      "member": "Član / Zastupnik",
+      "agent": "Zastupnik",
+      "admin": "Administrator",
+      "system": "Sistem",
+      "unknown": "Sistem"
     },
     "owner_genitive": {
-      "staff": "Staff",
-      "member": "Member / Agent",
-      "agent": "Agent",
-      "admin": "Admin",
-      "system": "System",
-      "unknown": "System"
+      "staff": "osoblja",
+      "member": "člana / zastupnika",
+      "agent": "zastupnika",
+      "admin": "administratora",
+      "system": "sistema",
+      "unknown": "sistema"
     },
     "category": {
       "consumer": "Potrošač",
@@ -81,7 +81,7 @@
       "service_issue": "Problem sa uslugom",
       "liability": "Odgovornost",
       "medical": "Medicinski",
-      "test": "Test",
+      "test": "Testiranje",
       "other": "Ostalo"
     },
     "priority": {
@@ -122,7 +122,7 @@
       "next_step_1": "Naš tim pregleda prijavu i dokaze.",
       "next_step_2": "Dobićete sledeće korake u aplikaciji ili preko podrške.",
       "help_call": "Pozovi odmah",
-      "help_whatsapp": "WhatsApp",
+      "help_whatsapp": "WhatsApp podrška",
       "go_to_claim": "Idi na slučaj"
     },
     "actions": {
@@ -157,7 +157,7 @@
       "actor_system": "Sistem",
       "actor_staff": "Osoblje",
       "actor_member": "Član",
-      "actor_admin": "Admin"
+      "actor_admin": "Administrator"
     }
   }
 }
