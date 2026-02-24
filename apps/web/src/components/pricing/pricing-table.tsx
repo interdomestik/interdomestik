@@ -91,6 +91,30 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
   const isBillingTestMode = billingTestMode ?? process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
   const planFromQuery = searchParams.get('plan')?.trim().toLowerCase() ?? '';
   const selectedPlanId = PLANS.some(plan => plan.id === planFromQuery) ? planFromQuery : null;
+  const paddleClientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim() ?? '';
+  const normalizedPaddleClientToken = paddleClientToken.toLowerCase();
+  const hasPaddleClientToken =
+    paddleClientToken.length > 0 &&
+    !normalizedPaddleClientToken.includes('...') &&
+    !normalizedPaddleClientToken.includes('***') &&
+    !normalizedPaddleClientToken.includes('your_client_token_here');
+  const shouldUseDevCheckoutFallback =
+    process.env.NODE_ENV === 'development' && !isBillingTestMode && !hasPaddleClientToken;
+
+  const redirectToSimulatedSuccess = async (
+    planId: string,
+    priceId: string,
+    includeBillingTestFlag: boolean
+  ) => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const params = new URLSearchParams();
+    if (includeBillingTestFlag) {
+      params.set('test', 'true');
+    }
+    params.set('priceId', priceId);
+    params.set('planId', planId);
+    router.push(`/member/membership/success?${params.toString()}`);
+  };
 
   const handleAction = async (planId: string, priceId: string) => {
     if (process.env.NEXT_PUBLIC_PILOT_MODE === 'true') return;
@@ -98,10 +122,13 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
 
     setLoading(priceId);
     try {
-      if (isBillingTestMode) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Simulate redirect to success page with dummy data
-        router.push(`/member/membership/success?test=true&priceId=${priceId}&planId=${planId}`);
+      if (isBillingTestMode || shouldUseDevCheckoutFallback) {
+        if (shouldUseDevCheckoutFallback) {
+          console.warn(
+            'Paddle client token missing in development, falling back to simulated checkout.'
+          );
+        }
+        await redirectToSimulatedSuccess(planId, priceId, isBillingTestMode);
         return;
       }
 
