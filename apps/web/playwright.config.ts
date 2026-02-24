@@ -98,6 +98,36 @@ function envOrFallback(name: string, fallback: string): string {
   return normalized.length > 0 ? normalized : fallback;
 }
 
+const RAW_PADDLE_ENV = envOrFallback('NEXT_PUBLIC_PADDLE_ENV', 'sandbox').toLowerCase();
+const NORMALIZED_PADDLE_ENV =
+  RAW_PADDLE_ENV.split(/\s+/)[0] === 'production' ? 'production' : 'sandbox';
+process.env.NEXT_PUBLIC_PADDLE_ENV = NORMALIZED_PADDLE_ENV;
+
+const PADDLE_SHARED_API_KEY = envOrFallback('PADDLE_API_KEY', 'pdl_api_key_e2e_shared');
+const PADDLE_SHARED_WEBHOOK_SECRET = envOrFallback('PADDLE_WEBHOOK_SECRET_KEY', 'whsec_e2e_shared');
+const PADDLE_API_KEY_KS = envOrFallback('PADDLE_API_KEY_KS', `${PADDLE_SHARED_API_KEY}_ks`);
+const PADDLE_API_KEY_MK = envOrFallback('PADDLE_API_KEY_MK', `${PADDLE_SHARED_API_KEY}_mk`);
+const PADDLE_API_KEY_AL = envOrFallback('PADDLE_API_KEY_AL', `${PADDLE_SHARED_API_KEY}_al`);
+const PADDLE_WEBHOOK_SECRET_KEY_KS = envOrFallback(
+  'PADDLE_WEBHOOK_SECRET_KEY_KS',
+  `${PADDLE_SHARED_WEBHOOK_SECRET}_ks`
+);
+const PADDLE_WEBHOOK_SECRET_KEY_MK = envOrFallback(
+  'PADDLE_WEBHOOK_SECRET_KEY_MK',
+  `${PADDLE_SHARED_WEBHOOK_SECRET}_mk`
+);
+const PADDLE_WEBHOOK_SECRET_KEY_AL = envOrFallback(
+  'PADDLE_WEBHOOK_SECRET_KEY_AL',
+  `${PADDLE_SHARED_WEBHOOK_SECRET}_al`
+);
+
+process.env.PADDLE_API_KEY_KS = PADDLE_API_KEY_KS;
+process.env.PADDLE_API_KEY_MK = PADDLE_API_KEY_MK;
+process.env.PADDLE_API_KEY_AL = PADDLE_API_KEY_AL;
+process.env.PADDLE_WEBHOOK_SECRET_KEY_KS = PADDLE_WEBHOOK_SECRET_KEY_KS;
+process.env.PADDLE_WEBHOOK_SECRET_KEY_MK = PADDLE_WEBHOOK_SECRET_KEY_MK;
+process.env.PADDLE_WEBHOOK_SECRET_KEY_AL = PADDLE_WEBHOOK_SECRET_KEY_AL;
+
 // Use nip.io to avoid /etc/hosts dependency in CI.
 // Empty env values should not override working defaults.
 const KS_HOST = envOrFallback('KS_HOST', `ks.${BIND_HOST}.nip.io:${PORT}`);
