@@ -1,18 +1,18 @@
 {
   "partners": {
-    "memberExclusive": "Member Exclusive",
-    "title": "Partner Discounts",
-    "subtitle": "As an Asistenca member, you get exclusive discounts from our trusted partners across Kosovo and the region.",
-    "discountLabel": "Member discount",
+    "memberExclusive": "Ekskluzivno za članove",
+    "title": "Partnerski popusti",
+    "subtitle": "Kao član Asistence, dobijate ekskluzivne popuste od naših pouzdanih partnera širom Kosova i regiona.",
+    "discountLabel": "Popust za članove",
     "categories": {
-      "insurance": "Insurance",
-      "legal": "Legal Services",
-      "automotive": "Automotive",
-      "health": "Healthcare",
-      "property": "Property"
+      "insurance": "Osiguranje",
+      "legal": "Pravne usluge",
+      "automotive": "Automobilske usluge",
+      "health": "Zdravstvo",
+      "property": "Nekretnine"
     },
-    "ctaTitle": "Become a Member Today",
-    "ctaDescription": "Unlock all partner discounts and get 24/7 protection for your family.",
-    "ctaButton": "View Membership Plans"
+    "ctaTitle": "Postanite član danas",
+    "ctaDescription": "Otključajte sve partnerske popuste i obezbedite 24/7 zaštitu za svoju porodicu.",
+    "ctaButton": "Pogledajte planove članstva"
   }
 }

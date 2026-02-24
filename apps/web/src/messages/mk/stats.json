@@ -1,16 +1,16 @@
 {
   "stats": {
-    "verifiedBadge": "Verified Statistics",
-    "title": "Our Impact in Numbers",
-    "subtitle": "Transparent, verified results from our claim assistance services across the Balkans.",
-    "totalClaims": "Total Claims Handled",
-    "successRate": "Success Rate",
-    "totalRecovered": "Total Recovered",
-    "avgResponse": "Avg Response Time",
-    "trustTitle": "Why Trust These Numbers?",
-    "trustDescription": "All statistics are derived from verified claim resolutions and independently audited quarterly.",
-    "dataSecurity": "Data Protected",
-    "verifiedResults": "Verified Results",
-    "legalCompliance": "Legal Compliance"
+    "verifiedBadge": "Проверена статистика",
+    "title": "Нашето влијание во бројки",
+    "subtitle": "Транспарентни, проверени резултати од нашите услуги за помош при побарувања низ Балканот.",
+    "totalClaims": "Вкупно обработени побарувања",
+    "successRate": "Стапка на успешност",
+    "totalRecovered": "Вкупно повратени средства",
+    "avgResponse": "Просечно време на одговор",
+    "trustTitle": "Зошто да им верувате на овие бројки?",
+    "trustDescription": "Сите статистики се изведени од проверени решенија на побарувања и независно се ревидираат квартално.",
+    "dataSecurity": "Заштитени податоци",
+    "verifiedResults": "Проверени резултати",
+    "legalCompliance": "Правна усогласеност"
   }
 }

@@ -9,90 +9,90 @@
       "table": {
         "amount": "Iznos",
         "verification": "Verifikacija",
-        "branch": "Branch",
-        "lead": "Lead",
-        "agent": "Agent",
-        "proof": "Proof",
-        "status": "Status",
-        "verifier": "Verifier",
-        "date": "Date",
-        "note": "Note",
-        "actions": "Actions"
+        "branch": "Filijala",
+        "lead": "Potencijalni klijent",
+        "agent": "Zastupnik",
+        "proof": "Dokaz",
+        "status": "Status zahteva",
+        "verifier": "Verifikator",
+        "date": "Datum",
+        "note": "Napomena",
+        "actions": "Akcije"
       },
       "tabs": {
-        "queue": "Queue",
-        "history": "History"
+        "queue": "Red",
+        "history": "Istorija"
       },
       "status": {
-        "pending": "Pending",
-        "succeeded": "Approved",
-        "rejected": "Rejected",
-        "needs_info": "Needs Info",
-        "resubmitted": "Resubmitted"
+        "pending": "Na čekanju",
+        "succeeded": "Odobreno",
+        "rejected": "Odbijeno",
+        "needs_info": "Potrebne informacije",
+        "resubmitted": "Ponovo poslato"
       },
       "stats": {
-        "count": "Total Requests",
-        "pending_count": "Pending Requests",
-        "pending_value": "Total Value",
-        "total_value": "Total Value"
+        "count": "Ukupno zahteva",
+        "pending_count": "Zahtevi na čekanju",
+        "pending_value": "Vrednost na čekanju",
+        "total_value": "Ukupna vrednost"
       },
       "filters": {
-        "branch_placeholder": "Select Branch",
-        "all_branches": "All Branches"
+        "branch_placeholder": "Izaberite filijalu",
+        "all_branches": "Sve filijale"
       },
       "toasts": {
-        "approve_success": "Payment approved.",
-        "reject_success": "Payment rejected.",
-        "needs_info_success": "Info request sent.",
-        "note_required": "Note is required.",
-        "error": "An error occurred during verification."
+        "approve_success": "Plaćanje je odobreno.",
+        "reject_success": "Plaćanje je odbijeno.",
+        "needs_info_success": "Zahtev za informacijama je poslat.",
+        "note_required": "Napomena je obavezna.",
+        "error": "Došlo je do greške tokom verifikacije."
       },
       "actions": {
-        "approve": "Approve",
-        "reject": "Reject",
-        "view_proof": "View Proof",
-        "needs_info": "Needs Info",
-        "cancel": "Cancel",
-        "submit": "Submit",
-        "details": "Details"
+        "approve": "Odobri",
+        "reject": "Odbij",
+        "view_proof": "Prikaži dokaz",
+        "needs_info": "Potrebne informacije",
+        "cancel": "Otkaži",
+        "submit": "Pošalji",
+        "details": "Detalji"
       },
       "drawer": {
-        "title": "Verification Details",
-        "documents": "Documents",
-        "timeline": "Event Timeline"
+        "title": "Detalji verifikacije",
+        "documents": "Dokumenta",
+        "timeline": "Tok događaja"
       },
       "labels": {
-        "missing_proof": "Proof Missing",
-        "note": "Note"
+        "missing_proof": "Nedostaje dokaz",
+        "note": "Napomena"
       },
       "dialogs": {
-        "needs_info_title": "Request Additional Info"
+        "needs_info_title": "Zatraži dodatne informacije"
       },
       "placeholders": {
-        "search": "Search (Name, Email, ID)...",
-        "needs_info_note": "Describe what info is missing..."
+        "search": "Pretraži (Ime, Email, ID)...",
+        "needs_info_note": "Opišite koje informacije nedostaju..."
       },
-      "empty_state": "No pending cash verification requests found.",
-      "search_placeholder": "Search (Name, Email, Branch)...",
+      "empty_state": "Nema zahteva za verifikaciju gotovinskih plaćanja na čekanju.",
+      "search_placeholder": "Pretraži (Ime, Email, Filijala)...",
       "kpis": {
-        "pending": "Pending",
-        "needs_info": "Needs Info",
-        "resubmitted": "Resubmitted",
-        "approved": "Approved"
+        "pending": "Na čekanju",
+        "needs_info": "Potrebne informacije",
+        "resubmitted": "Ponovo poslato",
+        "approved": "Odobreno"
       }
     },
     "analytics": {
-      "title": "Analytics Overview",
-      "description": "Platform performance and claim distribution metrics.",
+      "title": "Pregled analitike",
+      "description": "Metrike učinka platforme i raspodele zahteva za odštetu.",
       "metrics": {
-        "total_value": "Total Claim Value",
-        "avg_value": "Average Claim Amount",
-        "success_rate": "Resolution Rate",
-        "active_users": "Active Claimants"
+        "total_value": "Ukupna vrednost zahteva za odštetu",
+        "avg_value": "Prosečan iznos zahteva za odštetu",
+        "success_rate": "Stopa rešavanja",
+        "active_users": "Aktivni podnosioci"
       },
-      "status_distribution": "Distribution by Status",
-      "category_distribution": "Distribution by Category",
-      "no_data": "Insufficient data for visualization"
+      "status_distribution": "Raspodela po statusu",
+      "category_distribution": "Raspodela po kategoriji",
+      "no_data": "Nema dovoljno podataka za vizuelizaciju"
     }
   }
 }
