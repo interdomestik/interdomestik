@@ -111,22 +111,22 @@ printf '[verification-agent] label=%s attempt=%s/%s\n' "$STEP_LABEL" "$ATTEMPT" 
 log_excerpt="$(tail -n 500 "$LOG_FILE" 2>/dev/null || true)"
 
 if match_pattern 'EADDRINUSE|address already in use|Port 3000|port 3000' "$log_excerpt"; then
-  run_fix "clear-port-3000" bash -lc "if lsof -ti :3000 >/dev/null 2>&1; then lsof -ti :3000 | xargs kill -9; fi"
+  run_fix "clear-port-3000" bash -lc 'pids="$(lsof -ti :3000 2>/dev/null || true)"; if [[ -n "$pids" ]]; then printf "%s\n" "$pids" | xargs kill || printf "%s\n" "$pids" | xargs kill -9; fi'
   exit $?
 fi
 
 if match_pattern 'ECONNREFUSED|connection refused|postgres.*ready|database.*unreachable|could not connect' "$log_excerpt"; then
-  run_fix "db-migrate-refresh" bash -lc "cd '$ROOT_DIR' && pnpm db:migrate"
+  run_fix "db-migrate-refresh" env ROOT_DIR="$ROOT_DIR" bash -lc 'cd "$ROOT_DIR" && pnpm db:migrate'
   exit $?
 fi
 
 if match_pattern 'playwright|storage state|state file|setup\.state' "$log_excerpt"; then
-  run_fix "refresh-playwright-state" bash -lc "cd '$ROOT_DIR' && pnpm --filter @interdomestik/web test:e2e -- e2e/setup.state.spec.ts --project=setup-ks --project=setup-mk"
+  run_fix "refresh-playwright-state" env ROOT_DIR="$ROOT_DIR" bash -lc 'cd "$ROOT_DIR" && pnpm --filter @interdomestik/web test:e2e -- e2e/setup.state.spec.ts --project=setup-ks --project=setup-mk'
   exit $?
 fi
 
 if match_pattern 'Cannot find module|ERR_MODULE_NOT_FOUND|ERR_PNPM_OUTDATED_LOCKFILE|command not found' "$log_excerpt"; then
-  run_fix "pnpm-install-frozen-lockfile" bash -lc "cd '$ROOT_DIR' && pnpm install --frozen-lockfile"
+  run_fix "pnpm-install-frozen-lockfile" env ROOT_DIR="$ROOT_DIR" bash -lc 'cd "$ROOT_DIR" && pnpm install --frozen-lockfile'
   exit $?
 fi
 

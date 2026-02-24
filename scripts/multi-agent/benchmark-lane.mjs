@@ -158,6 +158,7 @@ function runBenchmarkCase({ benchmark, suiteDefaults, rootDir, runDir, index }) 
   const endedMs = Date.now();
   const latencyMs = Math.max(0, endedMs - startedMs);
   const success = child.status === 0;
+  const timedOut = child.error?.code === 'ETIMEDOUT';
   const output = [child.stdout || '', child.stderr || ''].filter(Boolean).join('\n');
   fs.writeFileSync(logPath, output, 'utf8');
 
@@ -169,7 +170,7 @@ function runBenchmarkCase({ benchmark, suiteDefaults, rootDir, runDir, index }) 
     role,
     command,
     success,
-    exitCode: child.status ?? 1,
+    exitCode: timedOut ? 124 : child.status ?? 1,
     latencyMs,
     tokenCount: Math.max(0, Math.round(tokenEstimate)),
     costUsd,

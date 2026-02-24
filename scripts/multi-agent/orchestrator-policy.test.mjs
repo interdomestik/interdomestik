@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { decideExecutionMode } from './orchestrator-policy.mjs';
 
@@ -43,4 +45,16 @@ test('auto mode selects single-agent when complexity is low and budget is tight'
 
   assert.equal(decision.selectedMode, 'single');
   assert.ok(decision.reasonCodes.includes('budget_pressure'));
+});
+
+test('cli treats --requires-boundary-review as flag when followed by another option', () => {
+  const scriptPath = fileURLToPath(new URL('./orchestrator-policy.mjs', import.meta.url));
+  const child = spawnSync(
+    process.execPath,
+    [scriptPath, '--complexity', 'medium', '--requires-boundary-review', '--format', 'mode'],
+    { encoding: 'utf8' }
+  );
+
+  assert.equal(child.status, 0);
+  assert.equal(child.stdout.trim(), 'multi');
 });

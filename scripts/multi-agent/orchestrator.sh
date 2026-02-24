@@ -9,9 +9,13 @@ ROLE_SCORECARD_FILE=""
 PR_REF=""
 RUN_PREFLIGHT=1
 RUN_GATES=1
+RUN_MARKETING=0
 RUN_FINALIZER=0
 WATCH_CI=0
 CI_INTERVAL=20
+MARKETING_SURFACE="both"
+MARKETING_STRICT=0
+MARKETING_MIN_SCORE=85
 EXECUTION_MODE="auto"
 TASK_COMPLEXITY="high"
 ESTIMATED_COST_USD="0"
@@ -32,6 +36,7 @@ Usage: bash scripts/multi-agent/orchestrator.sh [options]
 
 Enterprise multi-agent entrypoint with explicit lanes:
   - preflight-agent
+  - marketing-agent (optional UX/CRO scorecard)
   - gate lane (security/rls/pr-verify-hosts/e2e-gate)
   - finalizer-agent (optional)
 
@@ -40,6 +45,10 @@ Options:
   --log-root <path>         Override run log root (default: tmp/multi-agent/run-<UTC>)
   --skip-preflight          Skip preflight lane
   --skip-gates              Skip gate lane
+  --marketing               Run marketing-agent lane
+  --marketing-surface <member-dashboard|landing-hero|both>  Marketing lane target (default: both)
+  --marketing-strict        Fail marketing lane when score is below threshold
+  --marketing-min-score <0-100>  Minimum score for --marketing-strict (default: 85)
   --finalize                Run finalizer-agent at the end
   --watch-ci                Keep CI monitor running in finalizer mode
   --ci-interval <seconds>   CI watch interval (default: 20)
@@ -282,6 +291,24 @@ while [[ $# -gt 0 ]]; do
       RUN_GATES=0
       shift
       ;;
+    --marketing)
+      RUN_MARKETING=1
+      shift
+      ;;
+    --marketing-surface)
+      [[ $# -ge 2 ]] || fail 'missing value for --marketing-surface'
+      MARKETING_SURFACE="$2"
+      shift 2
+      ;;
+    --marketing-strict)
+      MARKETING_STRICT=1
+      shift
+      ;;
+    --marketing-min-score)
+      [[ $# -ge 2 ]] || fail 'missing value for --marketing-min-score'
+      MARKETING_MIN_SCORE="$2"
+      shift 2
+      ;;
     --finalize)
       RUN_FINALIZER=1
       shift
@@ -361,6 +388,17 @@ if ! [[ "$AUTO_RETRY_MAX" =~ ^[0-9]+$ ]]; then
   fail '--auto-retry-max must be a non-negative integer'
 fi
 
+if ! [[ "$MARKETING_MIN_SCORE" =~ ^[0-9]+$ ]] || [[ "$MARKETING_MIN_SCORE" -gt 100 ]]; then
+  fail '--marketing-min-score must be an integer between 0 and 100'
+fi
+
+case "$MARKETING_SURFACE" in
+  member-dashboard|landing-hero|both) ;;
+  *)
+    fail '--marketing-surface must be one of: member-dashboard, landing-hero, both'
+    ;;
+esac
+
 EVENTS_FILE="${LOG_ROOT}/events.ndjson"
 ROLE_SCORECARD_FILE="${LOG_ROOT}/role-scorecard.json"
 mkdir -p "$LOG_ROOT"
@@ -379,14 +417,7 @@ POLICY_JSON="$(
     --format json
 )"
 SELECTED_MODE="$(
-  node "$ROOT_DIR/scripts/multi-agent/orchestrator-policy.mjs" \
-    --mode "$EXECUTION_MODE" \
-    --complexity "$TASK_COMPLEXITY" \
-    --estimated-cost-usd "$ESTIMATED_COST_USD" \
-    --budget-usd "$BUDGET_USD" \
-    --task-count "$TASK_COUNT" \
-    --requires-boundary-review "$REQUIRES_BOUNDARY_REVIEW" \
-    --format mode
+  printf '%s\n' "$POLICY_JSON" | node -e "const fs=require('node:fs'); const policy=JSON.parse(fs.readFileSync(0,'utf8')); process.stdout.write(String(policy.selectedMode || 'single'));"
 )"
 
 printf '[orchestrator] run_id=%s\n' "$RUN_ID"
@@ -407,6 +438,16 @@ if [[ "$SELECTED_MODE" == "single" ]]; then
   else
     printf '[orchestrator] skip gate lane\n'
   fi
+
+  if [[ "$RUN_MARKETING" -eq 1 ]]; then
+    marketing_cmd=(bash "$ROOT_DIR/scripts/multi-agent/marketing-agent.sh" --log-dir "$LOG_ROOT/marketing" --surface "$MARKETING_SURFACE" --min-score "$MARKETING_MIN_SCORE")
+    if [[ "$MARKETING_STRICT" -eq 1 ]]; then
+      marketing_cmd+=(--strict)
+    fi
+    run_role_step_with_retries "single-agent" "single-agent-marketing" "${marketing_cmd[@]}"
+  else
+    printf '[orchestrator] skip marketing-agent\n'
+  fi
 else
   if [[ "$RUN_PREFLIGHT" -eq 1 ]]; then
     run_role_step_with_retries "preflight-agent" "preflight-agent" bash "$ROOT_DIR/scripts/multi-agent/preflight-agent.sh" --log-dir "$LOG_ROOT/preflight"
@@ -421,6 +462,16 @@ else
     run_role_step_with_retries "gatekeeper" "gate-e2e-gate" bash -lc "cd '$ROOT_DIR' && pnpm e2e:gate"
   else
     printf '[orchestrator] skip gate lane\n'
+  fi
+
+  if [[ "$RUN_MARKETING" -eq 1 ]]; then
+    marketing_cmd=(bash "$ROOT_DIR/scripts/multi-agent/marketing-agent.sh" --log-dir "$LOG_ROOT/marketing" --surface "$MARKETING_SURFACE" --min-score "$MARKETING_MIN_SCORE")
+    if [[ "$MARKETING_STRICT" -eq 1 ]]; then
+      marketing_cmd+=(--strict)
+    fi
+    run_role_step_with_retries "marketing-agent" "marketing-agent" "${marketing_cmd[@]}"
+  else
+    printf '[orchestrator] skip marketing-agent\n'
   fi
 fi
 

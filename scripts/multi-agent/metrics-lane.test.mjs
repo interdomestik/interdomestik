@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { enrichEvents } from './metrics-lane.mjs';
+import { enrichEvents, parseEventsNdjson } from './metrics-lane.mjs';
 
 test('enrichEvents applies role profile defaults and success mapping', () => {
   const events = [
@@ -32,3 +32,18 @@ test('enrichEvents applies role profile defaults and success mapping', () => {
   assert.equal(enriched[1].costUsd, 0.005);
 });
 
+test('parseEventsNdjson ignores trailing partial record from interrupted writes', () => {
+  const raw = '{"role":"gatekeeper","status":0}\n{"role":"reviewer"';
+  const parsed = parseEventsNdjson(raw, 'events.ndjson');
+
+  assert.equal(parsed.events.length, 1);
+  assert.equal(parsed.events[0].role, 'gatekeeper');
+  assert.equal(parsed.skippedTrailingPartial, true);
+});
+
+test('parseEventsNdjson fails for malformed non-trailing records', () => {
+  assert.throws(
+    () => parseEventsNdjson('{"role":"gatekeeper"}\n{invalid}\n{"role":"reviewer"}\n', 'events.ndjson'),
+    /Invalid NDJSON in events.ndjson:2/
+  );
+});

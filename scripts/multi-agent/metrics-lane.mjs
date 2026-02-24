@@ -64,14 +64,41 @@ function readProfile(profilePath) {
   return JSON.parse(fs.readFileSync(absolutePath, 'utf8'));
 }
 
+export function parseEventsNdjson(raw, sourceLabel = 'events.ndjson') {
+  const lines = String(raw || '').split('\n');
+  const events = [];
+  let skippedTrailingPartial = false;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    if (!line) continue;
+
+    try {
+      events.push(JSON.parse(line));
+    } catch (error) {
+      const isTrailingLine = index === lines.length - 1;
+      const isLikelyPartial = isTrailingLine && !String(raw || '').endsWith('\n');
+      if (isLikelyPartial) {
+        skippedTrailingPartial = true;
+        continue;
+      }
+      throw new Error(`Invalid NDJSON in ${sourceLabel}:${index + 1} (${error.message})`);
+    }
+  }
+
+  return { events, skippedTrailingPartial };
+}
+
 function readEvents(eventsPath) {
   const absolutePath = path.resolve(eventsPath);
   const raw = fs.readFileSync(absolutePath, 'utf8');
-  return raw
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line));
+  const parsed = parseEventsNdjson(raw, absolutePath);
+  if (parsed.skippedTrailingPartial) {
+    process.stderr.write(
+      `[metrics-lane] WARN: ignored trailing partial NDJSON record in ${absolutePath}\n`
+    );
+  }
+  return parsed.events;
 }
 
 function roleCostModel(profile, role) {

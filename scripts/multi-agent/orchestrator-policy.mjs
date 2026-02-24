@@ -41,6 +41,21 @@ function parseBoolean(value, fallback = false) {
   return fallback;
 }
 
+function isBooleanToken(value) {
+  if (value == null) return false;
+  const normalized = String(value)
+    .trim()
+    .toLowerCase();
+  return (
+    normalized === '1' ||
+    normalized === '0' ||
+    normalized === 'true' ||
+    normalized === 'false' ||
+    normalized === 'yes' ||
+    normalized === 'no'
+  );
+}
+
 function complexityScore(complexity) {
   if (complexity === 'high') return 3;
   if (complexity === 'medium') return 2;
@@ -174,13 +189,13 @@ function parseArgs(argv) {
       i += 1;
       continue;
     }
-    if (token === '--requires-boundary-review' && next) {
-      parsed.requiresBoundaryReview = parseBoolean(next, false);
-      i += 1;
-      continue;
-    }
     if (token === '--requires-boundary-review') {
-      parsed.requiresBoundaryReview = true;
+      if (isBooleanToken(next)) {
+        parsed.requiresBoundaryReview = parseBoolean(next, false);
+        i += 1;
+      } else {
+        parsed.requiresBoundaryReview = true;
+      }
       continue;
     }
     if (token === '--format' && next) {
