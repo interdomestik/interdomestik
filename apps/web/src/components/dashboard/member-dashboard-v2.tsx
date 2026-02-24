@@ -15,7 +15,9 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useEffect } from 'react';
 
+import { FunnelEvents, resolveFunnelVariant } from '@/lib/analytics';
 import { getSupportContacts } from '@/lib/support-contacts';
 
 type MemberDashboardV2Props = {
@@ -28,6 +30,19 @@ export function MemberDashboardV2({ data, locale, tenantId }: MemberDashboardV2P
   const t = useTranslations('dashboard.member.home');
   const tClaimStage = useTranslations('claims.stage');
   const contacts = getSupportContacts({ tenantId, locale });
+  useEffect(() => {
+    FunnelEvents.retentionPulse(
+      {
+        tenantId: tenantId ?? null,
+        variant: resolveFunnelVariant(true),
+        locale,
+      },
+      {
+        surface: 'member_dashboard',
+      }
+    );
+  }, [locale, tenantId]);
+
   const activeClaim = data.claims.find(claim => claim.id === data.activeClaimId) ?? null;
   const knownStages = new Set([
     'draft',

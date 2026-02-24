@@ -1,5 +1,7 @@
 import { PwaInstallButton } from '@/components/pwa/install-button';
+import { FunnelActivationTracker } from '@/components/analytics/funnel-trackers';
 import { auth } from '@/lib/auth';
+import { isUiV2Enabled } from '@/lib/flags';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { CheckCircle2, Phone, QrCode, Smartphone, Wallet } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
@@ -26,6 +28,8 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const isTest = resolvedSearchParams.test === 'true';
   const { planId, priceId } = resolvedSearchParams;
+  const uiV2Enabled = isUiV2Enabled();
+  const tenantId = session.user.tenantId ?? null;
 
   const t = await getTranslations({ locale, namespace: 'membership.success' });
 
@@ -37,6 +41,12 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
           on the client side to avoid revalidatePath-during-render errors.
       */}
       {isTest && planId && priceId && <MockActivationTrigger planId={planId} priceId={priceId} />}
+      <FunnelActivationTracker
+        tenantId={tenantId}
+        locale={locale}
+        uiV2Enabled={uiV2Enabled}
+        planId={planId ?? null}
+      />
 
       <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-50 mb-6">

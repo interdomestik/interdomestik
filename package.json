@@ -30,6 +30,7 @@
     "mcp:test": "pnpm mcp:audit && pnpm test",
     "qa": "pnpm --filter @interdomestik/qa check",
     "docs:verify": "node scripts/verify-v3-docs.mjs",
+    "analytics:validate:funnel": "node scripts/analytics/validate-funnel-events.mjs --input scripts/analytics/fixtures/funnel-events.sample.json --report tmp/analytics/funnel-validation-report.json --min-context-ratio 0.99",
     "i18n:check": "node scripts/check-i18n.mjs",
     "i18n:sync": "node scripts/sync-i18n.mjs",
     "i18n:purity:check": "node scripts/check-i18n-purity.mjs",

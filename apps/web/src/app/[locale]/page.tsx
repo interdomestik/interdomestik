@@ -6,6 +6,7 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth.core';
 import { isUiV2Enabled } from '@/lib/flags';
 import dynamic from 'next/dynamic';
+import { FunnelLandingTracker } from '@/components/analytics/funnel-trackers';
 import { getLocaleLandingCore } from './_core';
 import { getStartClaimHrefForSession } from './home-v2.core';
 
@@ -78,11 +79,18 @@ export default async function HomePage({ params }: Props) {
       <main className="min-h-screen">
         <Header />
         {uiV2Enabled ? (
-          <HeroV2
-            locale={locale}
-            startClaimHref={startClaimHref}
-            tenantId={session?.user?.tenantId ?? hostTenantHint}
-          />
+          <>
+            <FunnelLandingTracker
+              tenantId={session?.user?.tenantId ?? hostTenantHint}
+              locale={locale}
+              uiV2Enabled={uiV2Enabled}
+            />
+            <HeroV2
+              locale={locale}
+              startClaimHref={startClaimHref}
+              tenantId={session?.user?.tenantId ?? hostTenantHint}
+            />
+          </>
         ) : (
           <>
             <HeroSection />

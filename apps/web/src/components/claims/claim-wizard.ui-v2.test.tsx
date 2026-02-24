@@ -5,6 +5,8 @@ import { ClaimWizard } from './claim-wizard';
 const mockPush = vi.fn();
 const mockTrigger = vi.fn();
 const mockSubmitClaim = vi.fn();
+const mockFunnelFirstClaimSubmitted = vi.fn();
+const mockResolveFunnelVariant = vi.fn(() => 'hero_v2');
 
 vi.mock('react-hook-form', () => {
   const actual = vi.importActual('react-hook-form');
@@ -110,6 +112,19 @@ vi.mock('@/actions/claims', () => ({
   submitClaim: (...args: unknown[]) => mockSubmitClaim(...args),
 }));
 
+vi.mock('@/lib/analytics', () => ({
+  ClaimsEvents: {
+    wizardOpened: vi.fn(),
+    stepCompleted: vi.fn(),
+    submitted: vi.fn(),
+    failed: vi.fn(),
+  },
+  FunnelEvents: {
+    firstClaimSubmitted: (...args: unknown[]) => mockFunnelFirstClaimSubmitted(...args),
+  },
+  resolveFunnelVariant: (...args: unknown[]) => mockResolveFunnelVariant(...args),
+}));
+
 vi.mock('./wizard-step-category', () => ({
   WizardStepCategory: () => <div data-testid="step-category">Category Step</div>,
 }));
@@ -152,7 +167,7 @@ describe('ClaimWizard UI V2', () => {
   it('shows a visible inline error when next-step validation fails', async () => {
     mockTrigger.mockResolvedValue(false);
 
-    render(<ClaimWizard />);
+    render(<ClaimWizard tenantId="tenant_mk" />);
 
     expect(screen.getByTestId('claim-wizard-help')).toBeInTheDocument();
     expect(screen.getByTestId('claim-wizard-help-call')).toHaveAttribute(
@@ -172,7 +187,7 @@ describe('ClaimWizard UI V2', () => {
     mockTrigger.mockResolvedValue(true);
     mockSubmitClaim.mockResolvedValue({ success: true, claimId: 'CLM-TEST-123' });
 
-    render(<ClaimWizard />);
+    render(<ClaimWizard tenantId="tenant_mk" />);
 
     fireEvent.click(screen.getByTestId('wizard-next'));
     await waitFor(() => expect(screen.getByText(/Step 2 of 4/)).toBeInTheDocument());
@@ -201,5 +216,16 @@ describe('ClaimWizard UI V2', () => {
       '/sq/member/claims/CLM-TEST-123'
     );
     expect(mockPush).not.toHaveBeenCalled();
+    expect(mockResolveFunnelVariant).toHaveBeenCalledWith(true);
+    expect(mockFunnelFirstClaimSubmitted).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant_mk',
+        variant: 'hero_v2',
+        locale: 'sq',
+      },
+      {
+        claim_id: 'CLM-TEST-123',
+      }
+    );
   });
 });

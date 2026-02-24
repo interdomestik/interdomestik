@@ -4,8 +4,18 @@ import type { MemberDashboardData } from '@interdomestik/domain-member';
 import { MemberDashboardV2 } from './member-dashboard-v2';
 import { vi } from 'vitest';
 
+const mockRetentionPulse = vi.fn();
+const mockResolveFunnelVariant = vi.fn((enabled: boolean) => (enabled ? 'hero_v2' : 'hero_v1'));
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
+}));
+
+vi.mock('@/lib/analytics', () => ({
+  FunnelEvents: {
+    retentionPulse: (...args: unknown[]) => mockRetentionPulse(...args),
+  },
+  resolveFunnelVariant: (...args: unknown[]) => mockResolveFunnelVariant(...args),
 }));
 
 function makeData(overrides?: Partial<MemberDashboardData>): MemberDashboardData {
@@ -40,6 +50,22 @@ describe('MemberDashboardV2', () => {
     render(<MemberDashboardV2 data={makeData()} locale="mk" tenantId="tenant_mk" />);
 
     expect(screen.getByTestId('cta-get-help-now')).toHaveAttribute('href', 'tel:+38970337140');
+  });
+
+  it('tracks retention pulse with tenant and variant', () => {
+    render(<MemberDashboardV2 data={makeData()} locale="en" tenantId="tenant_mk" />);
+
+    expect(mockResolveFunnelVariant).toHaveBeenCalledWith(true);
+    expect(mockRetentionPulse).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant_mk',
+        variant: 'hero_v2',
+        locale: 'en',
+      },
+      {
+        surface: 'member_dashboard',
+      }
+    );
   });
 
   it('shows collapsed claims module when there is no active claim', () => {
