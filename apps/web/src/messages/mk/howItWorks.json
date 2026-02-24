@@ -1,22 +1,22 @@
 {
   "howItWorks": {
-    "title": "How It Works",
-    "subtitle": "Simple 4-step process to get your compensation",
+    "title": "Како функционира",
+    "subtitle": "Едноставен процес во 4 чекори за да ја добиете вашата отштета",
     "step1": {
-      "title": "Submit Your Claim",
-      "description": "Fill out our simple form with your incident details and upload any evidence."
+      "title": "Поднесете го вашето барање",
+      "description": "Пополнете го нашиот едноставен формулар со детали за инцидентот и прикачете докази."
     },
     "step2": {
-      "title": "Free Evaluation",
-      "description": "Our experts review your case within 24 hours and assess your chances."
+      "title": "Бесплатна проценка",
+      "description": "Нашите експерти го разгледуваат вашиот случај во рок од 24 часа и ги проценуваат шансите."
     },
     "step3": {
-      "title": "We Handle Everything",
-      "description": "We negotiate with insurers and opposing parties on your behalf."
+      "title": "Ние се грижиме за сè",
+      "description": "Ние преговараме со осигурителите и спротивната страна во ваше име."
     },
     "step4": {
-      "title": "Get Compensated",
-      "description": "Receive your payout. We only charge if you win — No Win, No Fee."
+      "title": "Добијте отштета",
+      "description": "Добијте ја вашата исплата. Наплаќаме само ако победите — Нема добивка, нема надомест."
     }
   }
 }

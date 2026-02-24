@@ -50,7 +50,7 @@
       "staff": "Staf",
       "member": "Anëtar / Agjent",
       "agent": "Agjent",
-      "admin": "Admin",
+      "admin": "Admini",
       "system": "Sistem",
       "unknown": "Sistem"
     },
@@ -73,7 +73,7 @@
       "auto": "Automjet",
       "vehicle": "Automjet",
       "travel": "Udhëtim",
-      "retail": "Retail",
+      "retail": "Shitje me pakicë",
       "real_estate": "Pasuri e Paluajtshme",
       "property": "Pronë",
       "flight_delay": "Vonesë Fluturimi",
@@ -81,12 +81,12 @@
       "service_issue": "Problem Shërbimi",
       "liability": "Përgjegjësi Ligjore",
       "medical": "Mjekësor",
-      "test": "Test",
+      "test": "Provë",
       "other": "Tjetër"
     },
     "priority": {
       "low": "I Ulët",
-      "normal": "Normal",
+      "normal": "I Mesëm",
       "high": "I Lartë",
       "urgent": "Urgjent"
     },
@@ -122,7 +122,7 @@
       "next_step_1": "Ekipi ynë shqyrton raportimin dhe dëshmitë.",
       "next_step_2": "Do të marrësh hapat e radhës në aplikacion ose nga mbështetja.",
       "help_call": "Telefono tani",
-      "help_whatsapp": "WhatsApp",
+      "help_whatsapp": "Ndihmë në WhatsApp",
       "go_to_claim": "Shko te rasti"
     },
     "actions": {
@@ -157,7 +157,7 @@
       "actor_system": "Sistem",
       "actor_staff": "Staf",
       "actor_member": "Anëtar",
-      "actor_admin": "Admin"
+      "actor_admin": "Admini"
     }
   }
 }

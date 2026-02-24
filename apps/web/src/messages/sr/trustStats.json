@@ -1,14 +1,14 @@
 {
   "trustStats": {
-    "recovered": "€2.5M",
-    "recoveredLabel": "recovered",
-    "cases": "5,000+",
-    "casesLabel": "cases supported",
-    "members": "8,500+",
-    "membersLabel": "active members",
-    "response": "24h",
-    "responseLabel": "response time",
-    "partnersTitle": "Trusted by our partners",
+    "recovered": "2,5M €",
+    "recoveredLabel": "naplaćeno",
+    "cases": "5.000+",
+    "casesLabel": "podržanih slučajeva",
+    "members": "8.500+",
+    "membersLabel": "aktivnih članova",
+    "response": "24 h",
+    "responseLabel": "vreme odgovora",
+    "partnersTitle": "Naši partneri nam veruju",
     "partnerNetworkLabel": "Mreža partnera"
   }
 }

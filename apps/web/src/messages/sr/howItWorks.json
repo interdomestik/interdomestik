@@ -1,22 +1,22 @@
 {
   "howItWorks": {
-    "title": "How It Works",
-    "subtitle": "Simple 4-step process to get your compensation",
+    "title": "Kako funkcioniše",
+    "subtitle": "Jednostavan proces u 4 koraka da dobijete svoju odštetu",
     "step1": {
-      "title": "Submit Your Claim",
-      "description": "Fill out our simple form with your incident details and upload any evidence."
+      "title": "Podnesite svoj zahtev",
+      "description": "Popunite naš jednostavan formular sa detaljima incidenta i priložite dokaze."
     },
     "step2": {
-      "title": "Free Evaluation",
-      "description": "Our experts review your case within 24 hours and assess your chances."
+      "title": "Besplatna procena",
+      "description": "Naši stručnjaci pregledaju vaš slučaj u roku od 24 sata i procene vaše šanse."
     },
     "step3": {
-      "title": "We Handle Everything",
-      "description": "We negotiate with insurers and opposing parties on your behalf."
+      "title": "Mi rešavamo sve",
+      "description": "Pregovaramo sa osiguravačima i suprotnim stranama u vaše ime."
     },
     "step4": {
-      "title": "Get Compensated",
-      "description": "Receive your payout. We only charge if you win — No Win, No Fee."
+      "title": "Dobijte odštetu",
+      "description": "Primite isplatu. Naplaćujemo samo ako pobedite — Nema pobede, nema naknade."
     }
   }
 }

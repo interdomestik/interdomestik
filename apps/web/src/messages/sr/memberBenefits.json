@@ -1,38 +1,38 @@
 {
   "memberBenefits": {
-    "title": "Membership Benefits",
-    "subtitle": "What you get as a member of our protection club",
+    "title": "Pogodnosti članstva",
+    "subtitle": "Šta dobijate kao član našeg kluba zaštite",
     "hotline": {
-      "title": "24/7 Emergency Hotline",
-      "description": "Call anytime, day or night. Our experts are always ready.",
-      "highlight": "No Waiting"
+      "title": "24/7 Hitna linija",
+      "description": "Pozovite u bilo koje vreme, danju ili noću. Naši stručnjaci su uvek spremni.",
+      "highlight": "Bez čekanja"
     },
     "voiceClaim": {
-      "title": "Voice Claims",
-      "description": "File your claim by phone in 60 seconds. No forms, no stress.",
-      "highlight": "60 Seconds"
+      "title": "Glasovni zahtevi",
+      "description": "Podnesite zahtev telefonom za 60 sekundi. Bez formulara, bez stresa.",
+      "highlight": "60 sekundi"
     },
     "legalConsult": {
-      "title": "Legal Consultations",
-      "description": "Unlimited consultations with legal experts for any issue.",
-      "highlight": "Unlimited"
+      "title": "Pravne konsultacije",
+      "description": "Neograničene konsultacije sa pravnim stručnjacima za svako pitanje.",
+      "highlight": "Neograničeno"
     },
     "calculator": {
-      "title": "Damage Calculator",
-      "description": "Calculate your damage value instantly with our tools.",
-      "highlight": "Free"
+      "title": "Kalkulator štete",
+      "description": "Izračunajte vrednost svoje štete odmah pomoću naših alata.",
+      "highlight": "Besplatno"
     },
     "partnerDiscounts": {
-      "title": "Partner Discounts",
-      "description": "10-20% off at car services, clinics, and legal offices.",
-      "highlight": "Up to 20%"
+      "title": "Partnerski popusti",
+      "description": "10-20% popusta u auto-servisima, klinikama i advokatskim kancelarijama.",
+      "highlight": "Do 20%"
     },
     "guides": {
-      "title": "Expert Guides",
-      "description": "Checklists and guides for every type of accident and situation.",
-      "highlight": "Ready-to-Use"
+      "title": "Stručni vodiči",
+      "description": "Kontrolne liste i vodiči za svaku vrstu nezgode i situacije.",
+      "highlight": "Spremno za upotrebu"
     },
-    "mainHeading1": "Protection that",
-    "mainHeading2": "belongs to you only."
+    "mainHeading1": "Zaštita koja",
+    "mainHeading2": "pripada samo vama."
   }
 }
