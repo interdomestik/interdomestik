@@ -91,8 +91,14 @@ describe('Agent Workspace Claims Query Contracts', () => {
         findManyCalls += 1;
         return findManyCalls === 1 ? claimsPageRows : [selectedClaimRow];
       });
-      mockDb.groupBy.mockResolvedValueOnce([{ claimId: 'visible-1', count: 0 }]);
-      mockDb.orderBy.mockResolvedValueOnce([{ claimId: 'visible-1', content: 'hello' }]);
+      mockDb.groupBy.mockResolvedValueOnce([
+        { claimId: 'visible-1', count: 0 },
+        { claimId: 'target-1', count: 2 },
+      ]);
+      mockDb.orderBy.mockResolvedValueOnce([
+        { claimId: 'visible-1', content: 'hello' },
+        { claimId: 'target-1', content: 'selected-message' },
+      ]);
 
       const result = await getAgentWorkspaceClaimsCore({
         tenantId: 't1',
@@ -103,6 +109,10 @@ describe('Agent Workspace Claims Query Contracts', () => {
 
       expect(result.claims).toHaveLength(2);
       expect(result.claims.map(c => c.id)).toContain('target-1');
+      expect(result.claims.find(c => c.id === 'target-1')).toMatchObject({
+        unreadCount: 2,
+        lastMessage: 'selected-message',
+      });
       expect(findManyCalls).toBe(2);
     });
 

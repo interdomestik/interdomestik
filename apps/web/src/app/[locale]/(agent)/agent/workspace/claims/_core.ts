@@ -192,41 +192,8 @@ export async function getAgentWorkspaceClaimsCore(params: {
   });
 
   const claimIds = (claimsData as Record<string, unknown>[]).map(c => c.id as string);
-  const unreadMap = new Map<string, number>();
-  const snippetMap = new Map<string, string>();
 
-  if (claimIds.length > 0) {
-    // 2. Fetch Unread Counts (incoming messages only)
-    const unreadCounts = await db
-      .select({
-        claimId: claimMessages.claimId,
-        count: count(claimMessages.id),
-      })
-      .from(claimMessages)
-      .where(buildUnreadMessagesWhere({ userId, claimIds }))
-      .groupBy(claimMessages.claimId);
-
-    unreadCounts.forEach((row: Record<string, unknown>) =>
-      unreadMap.set(row.claimId as string, Number(row.count))
-    );
-
-    // 3. Fetch Last Messages (using selectDistinctOn for PG or manual aggregation if needed)
-    const lastMessages = await db
-      .selectDistinctOn([claimMessages.claimId], {
-        claimId: claimMessages.claimId,
-        content: claimMessages.content,
-        createdAt: claimMessages.createdAt,
-      })
-      .from(claimMessages)
-      .where(inArray(claimMessages.claimId, claimIds))
-      .orderBy(claimMessages.claimId, desc(claimMessages.createdAt));
-
-    lastMessages.forEach((row: Record<string, unknown>) =>
-      snippetMap.set(row.claimId as string, row.content as string)
-    );
-  }
-
-  // 4. Resolve direct selection by claimId even when not in first-page results.
+  // 2. Resolve direct selection by claimId even when not in first-page results.
   const selectedClaim = requestedSelectedClaimId
     ? claimIds.includes(requestedSelectedClaimId)
       ? null
@@ -237,6 +204,49 @@ export async function getAgentWorkspaceClaimsCore(params: {
           db,
         })
     : null;
+
+  const metadataClaimIds =
+    selectedClaim && !claimIds.includes(selectedClaim.id)
+      ? [...claimIds, selectedClaim.id]
+      : claimIds;
+  const unreadMap = new Map<string, number>();
+  const snippetMap = new Map<string, string>();
+
+  if (metadataClaimIds.length > 0) {
+    // 3. Fetch Unread Counts (incoming messages only)
+    const unreadCounts = await db
+      .select({
+        claimId: claimMessages.claimId,
+        count: count(claimMessages.id),
+      })
+      .from(claimMessages)
+      .where(buildUnreadMessagesWhere({ userId, claimIds: metadataClaimIds }))
+      .groupBy(claimMessages.claimId);
+
+    unreadCounts.forEach((row: Record<string, unknown>) =>
+      unreadMap.set(row.claimId as string, Number(row.count))
+    );
+
+    // 4. Fetch Last Messages (using selectDistinctOn for PG or manual aggregation if needed)
+    const lastMessages = await db
+      .selectDistinctOn([claimMessages.claimId], {
+        claimId: claimMessages.claimId,
+        content: claimMessages.content,
+        createdAt: claimMessages.createdAt,
+      })
+      .from(claimMessages)
+      .where(inArray(claimMessages.claimId, metadataClaimIds))
+      .orderBy(claimMessages.claimId, desc(claimMessages.createdAt));
+
+    lastMessages.forEach((row: Record<string, unknown>) =>
+      snippetMap.set(row.claimId as string, row.content as string)
+    );
+  }
+
+  if (selectedClaim) {
+    selectedClaim.unreadCount = unreadMap.get(selectedClaim.id) || 0;
+    selectedClaim.lastMessage = snippetMap.get(selectedClaim.id) || null;
+  }
 
   const mappedClaims: AgentProClaimDTO[] = claimsData.map((c: any) => {
     const dto = mapToAgentProClaim(c as ClaimRow);
@@ -265,14 +275,6 @@ export async function getAgentWorkspaceClaimsCore(params: {
 
   if (!selectedFromWorkspaceScope) {
     return { claims: cappedClaims };
-  }
-
-  if (cappedClaims.length < WORKSPACE_CLAIM_LIMIT) {
-    return {
-      claims: [...cappedClaims, selectedFromWorkspaceScope].sort(
-        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
-      ),
-    };
   }
 
   const claimsWithForcedSelection = [
