@@ -1,28 +1,28 @@
 {
   "claimCategories": {
-    "title": "What Can We Help You With?",
-    "subtitle": "Select your claim type to get started. Our experts specialize in each category.",
-    "startClaim": "Start Claim",
+    "title": "За што можеме да ви помогнеме?",
+    "subtitle": "Изберете го типот на барање за да започнете. Нашите експерти се специјализирани за секоја категорија.",
+    "startClaim": "Започни барање",
     "vehicle": {
-      "title": "Vehicle Damage",
-      "description": "Car accidents, collision damage, theft, and vandalism claims.",
-      "examples": "e.g., Traffic accidents, hit-and-run, parking damage"
+      "title": "Штета на возило",
+      "description": "Сообраќајни несреќи, штета од судир, кражба и вандализам.",
+      "examples": "на пр., Сообраќајни несреќи, удар и бегство, штета при паркирање"
     },
     "property": {
-      "title": "Property Damage",
-      "description": "Home, apartment, and building damage claims.",
-      "examples": "e.g., Water damage, fire, storm, burglary"
+      "title": "Штета на имот",
+      "description": "Барања за штета на куќа, стан и објекти.",
+      "examples": "на пр., Штета од вода, пожар, бура, провала"
     },
     "injury": {
-      "title": "Personal Injury",
-      "description": "Medical expenses, rehabilitation, and compensation for injuries.",
-      "examples": "e.g., Workplace injuries, accidents, medical malpractice"
+      "title": "Лична повреда",
+      "description": "Медицински трошоци, рехабилитација и надомест за повреди.",
+      "examples": "на пр., Повреди на работно место, несреќи, лекарска грешка"
     },
     "travel": {
-      "title": "Travel & Flight",
-      "description": "Flight delays, cancellations, and lost baggage claims.",
-      "examples": "e.g., EU261 compensation up to €600"
+      "title": "Патување и летови",
+      "description": "Барања за доцнење на летови, откажувања и изгубен багаж.",
+      "examples": "на пр., Надомест според EU261 до 600 €"
     },
-    "quickSelectLabel": "Or select a specific claim type:"
+    "quickSelectLabel": "Или изберете конкретен тип на барање:"
   }
 }

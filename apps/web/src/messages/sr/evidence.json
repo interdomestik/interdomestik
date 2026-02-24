@@ -1,15 +1,15 @@
 {
   "evidence": {
-    "title": "Add Evidence",
-    "subtitle": "Upload receipts, tickets, or photos.",
+    "title": "Dodajte dokaze",
+    "subtitle": "Otpremite račune, karte ili fotografije.",
     "upload": {
-      "cta": "Click to upload files",
-      "sub": "PDF, JPG, or PNG up to 10MB",
-      "secure": "Signed URL uploads · PII-tagged storage"
+      "cta": "Kliknite da otpremite fajlove",
+      "sub": "PDF, JPG ili PNG do 10MB",
+      "secure": "Otpremanje preko potpisanog URL-a · Skladištenje označeno kao PII"
     },
-    "tooltip": "Clear evidence increases your chance of success by 40%. Include any police reports or medical bills.",
-    "promptTitle": "Add these for faster results",
-    "promptDescription": "Pick a couple of items below so we can start quickly.",
+    "tooltip": "Jasni dokazi povećavaju vašu šansu za uspeh za 40%. Uključite policijske izveštaje ili medicinske račune.",
+    "promptTitle": "Dodajte ovo za brže rezultate",
+    "promptDescription": "Izaberite nekoliko stavki ispod da bismo brzo počeli.",
     "prompts": {
       "flight_delay": [
         "Bileta ose boarding pass",
@@ -30,19 +30,19 @@
       "default": ["Foto ose screenshote", "Fatura/kupona", "Çdo korrespondencë zyrtare"]
     },
     "validation": {
-      "mime": "Only PDF, JPG, or PNG files are allowed.",
-      "size": "Files must be 10MB or smaller.",
-      "prepare": "Failed to prepare upload. Please try again.",
-      "upload": "Upload failed. Please try again."
+      "mime": "Dozvoljeni su samo PDF, JPG ili PNG fajlovi.",
+      "size": "Fajlovi moraju biti 10MB ili manji.",
+      "prepare": "Priprema otpremanja nije uspela. Pokušajte ponovo.",
+      "upload": "Otpremanje nije uspelo. Pokušajte ponovo."
     },
     "emptyWarning": {
-      "title": "You can submit without evidence",
-      "body": "But your claim moves faster with receipts or photos. Add them now or later."
+      "title": "Možete poslati i bez dokaza",
+      "body": "Ali vaš zahtev ide brže uz račune ili fotografije. Dodajte ih sada ili kasnije."
     },
-    "privacyBadgeTitle": "Your data stays private",
-    "privacyBadge": "PII-tagged files, signed URLs, encrypted in transit.",
-    "slaTitle": "Response SLA",
-    "slaCopy": "We respond in under 24h on new submissions.",
-    "consent": "By submitting, you agree to our Terms of Service and Privacy Policy."
+    "privacyBadgeTitle": "Vaši podaci ostaju privatni",
+    "privacyBadge": "Fajlovi označeni kao PII, potpisani URL-ovi, šifrovano u prenosu.",
+    "slaTitle": "SLA odgovora",
+    "slaCopy": "Odgovaramo za manje od 24h na nove prijave.",
+    "consent": "Slanjem se slažete sa našim Uslovima korišćenja i Politikom privatnosti."
   }
 }

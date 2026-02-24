@@ -1,34 +1,34 @@
 {
   "consumerRights": {
-    "title": "Your Consumer Rights",
-    "intro": "Know your rights under the Law on Consumer Protection in Kosovo (No. 06/L-034).",
+    "title": "Вашите потрошувачки права",
+    "intro": "Запознајте ги вашите права според Законот за заштита на потрошувачите во Косово (бр. 06/L-034).",
     "rights": {
       "safety": {
-        "title": "Right to Safety",
-        "description": "Protection against products and services that are hazardous to life and health."
+        "title": "Право на безбедност",
+        "description": "Заштита од производи и услуги што се опасни по животот и здравјето."
       },
       "information": {
-        "title": "Right to Information",
-        "description": "Access to clear, accurate, and truthful information about goods and services."
+        "title": "Право на информираност",
+        "description": "Пристап до јасни, точни и вистинити информации за стоки и услуги."
       },
       "redress": {
-        "title": "Right to Redress",
-        "description": "Compensation for faulty goods, including repair, replacement, or refund."
+        "title": "Право на обештетување",
+        "description": "Надомест за неисправни производи, вклучувајќи поправка, замена или поврат на средства."
       },
       "representation": {
-        "title": "Right to Representation",
-        "description": "The right to form and join consumer associations to protect collective interests."
+        "title": "Право на застапување",
+        "description": "Право на формирање и приклучување кон здруженија на потрошувачи за заштита на колективните интереси."
       },
       "choice": {
-        "title": "Right to Choice",
-        "description": "The ability to choose from a range of products and services at competitive prices."
+        "title": "Право на избор",
+        "description": "Можност да избирате од палета производи и услуги по конкурентни цени."
       },
       "education": {
-        "title": "Right to Education",
-        "description": "Access to programs and information that help you make informed decisions."
+        "title": "Право на едукација",
+        "description": "Пристап до програми и информации што ви помагаат да носите информирани одлуки."
       }
     },
-    "cta": "Start a Claim",
-    "learnMore": "Learn More"
+    "cta": "Започнете барање",
+    "learnMore": "Дознајте повеќе"
   }
 }
