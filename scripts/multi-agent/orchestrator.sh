@@ -18,6 +18,13 @@ ESTIMATED_COST_USD="0"
 BUDGET_USD="5"
 TASK_COUNT=1
 REQUIRES_BOUNDARY_REVIEW=0
+AUTO_RETRY_MAX=3
+AUTO_RETRY_ENABLED=1
+ENABLE_CDD_CONTEXT=1
+REQUIRE_CDD_CONTEXT=0
+LAST_STEP_LOG=""
+LAST_STEP_STATUS=0
+declare -a USER_CONTEXT_FILES=()
 
 usage() {
   cat <<'USAGE'
@@ -42,6 +49,11 @@ Options:
   --budget-usd <number>                    Budget cap for policy evaluation (default: 5)
   --task-count <integer>                   Independent task count for policy evaluation
   --requires-boundary-review <bool>        Boundary/security review required (default: false)
+  --auto-retry-max <integer>               Verification auto-repair retries per failed step (default: 3)
+  --no-auto-retry                          Disable verification auto-repair loop
+  --context-file <path>                    Explicit CDD context file (repeatable)
+  --require-cdd-context                    Fail if no CDD context artifacts are found
+  --no-cdd-context                         Disable CDD context provisioning
   -h, --help                Show this help
 USAGE
 }
@@ -90,12 +102,148 @@ run_role_step() {
   set -e
   ended_ms="$(node -e 'process.stdout.write(String(Date.now()))')"
   latency_ms="$((ended_ms - started_ms))"
+  LAST_STEP_LOG="$log_file"
+  LAST_STEP_STATUS="$cmd_status"
   append_event "$role" "$label" "$cmd_status" "$latency_ms"
 
   if [[ "$cmd_status" -ne 0 ]]; then
     printf '[orchestrator] step failed: role=%s label=%s status=%s\n' "$role" "$label" "$cmd_status" >&2
     return "$cmd_status"
   fi
+}
+
+run_verification_agent() {
+  local failed_label="$1"
+  local log_file="$2"
+  local attempt_number="$3"
+  local started_ms
+  local ended_ms
+  local latency_ms
+  local status
+
+  started_ms="$(node -e 'process.stdout.write(String(Date.now()))')"
+  printf '[orchestrator] [verification-agent] attempt=%s/%s label=%s\n' \
+    "$attempt_number" "$AUTO_RETRY_MAX" "$failed_label"
+  set +e
+  bash "$ROOT_DIR/scripts/multi-agent/verification-agent.sh" \
+    --root "$ROOT_DIR" \
+    --label "$failed_label" \
+    --log-file "$log_file" \
+    --attempt "$attempt_number" \
+    --max-attempts "$AUTO_RETRY_MAX"
+  status=$?
+  set -e
+  ended_ms="$(node -e 'process.stdout.write(String(Date.now()))')"
+  latency_ms="$((ended_ms - started_ms))"
+  append_event "verification-agent" "auto-repair-${failed_label}" "$status" "$latency_ms"
+  return "$status"
+}
+
+run_role_step_with_retries() {
+  local role="$1"
+  local label="$2"
+  shift 2
+  local -a cmd=("$@")
+  local retry_count=0
+
+  while true; do
+    local attempt_label="$label"
+    if [[ "$retry_count" -gt 0 ]]; then
+      attempt_label="$label (retry $retry_count/$AUTO_RETRY_MAX)"
+    fi
+
+    if run_role_step "$role" "$attempt_label" "${cmd[@]}"; then
+      return 0
+    fi
+
+    if [[ "$AUTO_RETRY_ENABLED" -eq 0 ]]; then
+      printf '[orchestrator] auto-retry disabled; escalating failure to human owner\n' >&2
+      return "$LAST_STEP_STATUS"
+    fi
+
+    if [[ "$retry_count" -ge "$AUTO_RETRY_MAX" ]]; then
+      printf '[orchestrator] auto-retry exhausted after %s attempts; escalating failure to human owner\n' "$AUTO_RETRY_MAX" >&2
+      return "$LAST_STEP_STATUS"
+    fi
+
+    local next_attempt
+    next_attempt=$((retry_count + 1))
+    if run_verification_agent "$label" "$LAST_STEP_LOG" "$next_attempt"; then
+      retry_count="$next_attempt"
+      continue
+    fi
+
+    local remediation_status=$?
+    if [[ "$remediation_status" -eq 3 ]]; then
+      printf '[orchestrator] verification-agent found no deterministic remediation; escalating failure to human owner\n' >&2
+      return "$LAST_STEP_STATUS"
+    fi
+
+    printf '[orchestrator] verification-agent failed with status=%s; escalating failure to human owner\n' "$remediation_status" >&2
+    return "$LAST_STEP_STATUS"
+  done
+}
+
+build_cdd_context_bundle() {
+  if [[ "$ENABLE_CDD_CONTEXT" -ne 1 ]]; then
+    printf '[orchestrator] cdd-context disabled\n'
+    append_event "context-agent" "cdd-context-disabled" "0" "0"
+    return 0
+  fi
+
+  local -a candidates=()
+  local -a found_files=()
+  local context_bundle
+
+  if [[ "${#USER_CONTEXT_FILES[@]}" -gt 0 ]]; then
+    candidates=("${USER_CONTEXT_FILES[@]}")
+  else
+    candidates=(
+      "$ROOT_DIR/product.md"
+      "$ROOT_DIR/tech-stack.md"
+      "$ROOT_DIR/workflow.md"
+      "$ROOT_DIR/context/product.md"
+      "$ROOT_DIR/context/tech-stack.md"
+      "$ROOT_DIR/context/workflow.md"
+      "$ROOT_DIR/docs/context/product.md"
+      "$ROOT_DIR/docs/context/tech-stack.md"
+      "$ROOT_DIR/docs/context/workflow.md"
+    )
+  fi
+
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      found_files+=("$candidate")
+    fi
+  done
+
+  if [[ "${#found_files[@]}" -eq 0 ]]; then
+    if [[ "$REQUIRE_CDD_CONTEXT" -eq 1 ]]; then
+      fail 'CDD context required but no context files were found'
+    fi
+    printf '[orchestrator] cdd-context not found; continuing without context bundle\n'
+    append_event "context-agent" "cdd-context-missing" "3" "0"
+    return 0
+  fi
+
+  context_bundle="$LOG_ROOT/context-bundle.md"
+  {
+    printf '# Multi-Agent Context Bundle\n\n'
+    printf 'Generated: %s\n\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    local context_file
+    for context_file in "${found_files[@]}"; do
+      printf '## %s\n\n' "$context_file"
+      cat "$context_file"
+      printf '\n\n'
+    done
+  } >"$context_bundle"
+
+  export MULTI_AGENT_CONTEXT_BUNDLE="$context_bundle"
+  export MULTI_AGENT_CONTEXT_FILES="$(IFS=,; printf '%s' "${found_files[*]}")"
+  printf '[orchestrator] cdd-context-bundle=%s\n' "$MULTI_AGENT_CONTEXT_BUNDLE"
+  printf '[orchestrator] cdd-context-files=%s\n' "$MULTI_AGENT_CONTEXT_FILES"
+  append_event "context-agent" "cdd-context-ready" "0" "0"
 }
 
 materialize_role_metrics() {
@@ -177,6 +325,28 @@ while [[ $# -gt 0 ]]; do
       REQUIRES_BOUNDARY_REVIEW="$2"
       shift 2
       ;;
+    --auto-retry-max)
+      [[ $# -ge 2 ]] || fail 'missing value for --auto-retry-max'
+      AUTO_RETRY_MAX="$2"
+      shift 2
+      ;;
+    --no-auto-retry)
+      AUTO_RETRY_ENABLED=0
+      shift
+      ;;
+    --context-file)
+      [[ $# -ge 2 ]] || fail 'missing value for --context-file'
+      USER_CONTEXT_FILES+=("$2")
+      shift 2
+      ;;
+    --require-cdd-context)
+      REQUIRE_CDD_CONTEXT=1
+      shift
+      ;;
+    --no-cdd-context)
+      ENABLE_CDD_CONTEXT=0
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -187,11 +357,16 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if ! [[ "$AUTO_RETRY_MAX" =~ ^[0-9]+$ ]]; then
+  fail '--auto-retry-max must be a non-negative integer'
+fi
+
 EVENTS_FILE="${LOG_ROOT}/events.ndjson"
 ROLE_SCORECARD_FILE="${LOG_ROOT}/role-scorecard.json"
 mkdir -p "$LOG_ROOT"
 : >"$EVENTS_FILE"
 trap materialize_role_metrics EXIT
+build_cdd_context_bundle
 
 POLICY_JSON="$(
   node "$ROOT_DIR/scripts/multi-agent/orchestrator-policy.mjs" \
@@ -222,28 +397,28 @@ append_event "orchestrator" "policy-decision" "0" "0"
 
 if [[ "$SELECTED_MODE" == "single" ]]; then
   if [[ "$RUN_PREFLIGHT" -eq 1 ]]; then
-    run_role_step "single-agent" "single-agent-preflight" bash "$ROOT_DIR/scripts/multi-agent/preflight-agent.sh" --log-dir "$LOG_ROOT/preflight"
+    run_role_step_with_retries "single-agent" "single-agent-preflight" bash "$ROOT_DIR/scripts/multi-agent/preflight-agent.sh" --log-dir "$LOG_ROOT/preflight"
   else
     printf '[orchestrator] skip preflight-agent\n'
   fi
 
   if [[ "$RUN_GATES" -eq 1 ]]; then
-    run_role_step "single-agent" "single-agent-gate-pack" bash -lc "cd '$ROOT_DIR' && pnpm security:guard && REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test && pnpm pr:verify:hosts && pnpm e2e:gate"
+    run_role_step_with_retries "single-agent" "single-agent-gate-pack" bash -lc "cd '$ROOT_DIR' && pnpm security:guard && REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test && pnpm pr:verify:hosts && pnpm e2e:gate"
   else
     printf '[orchestrator] skip gate lane\n'
   fi
 else
   if [[ "$RUN_PREFLIGHT" -eq 1 ]]; then
-    run_role_step "preflight-agent" "preflight-agent" bash "$ROOT_DIR/scripts/multi-agent/preflight-agent.sh" --log-dir "$LOG_ROOT/preflight"
+    run_role_step_with_retries "preflight-agent" "preflight-agent" bash "$ROOT_DIR/scripts/multi-agent/preflight-agent.sh" --log-dir "$LOG_ROOT/preflight"
   else
     printf '[orchestrator] skip preflight-agent\n'
   fi
 
   if [[ "$RUN_GATES" -eq 1 ]]; then
-    run_role_step "gatekeeper" "gate-security-guard" bash -lc "cd '$ROOT_DIR' && pnpm security:guard"
-    run_role_step "gatekeeper" "gate-rls-required" bash -lc "cd '$ROOT_DIR' && REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test"
-    run_role_step "gatekeeper" "gate-pr-verify-hosts" bash -lc "cd '$ROOT_DIR' && pnpm pr:verify:hosts"
-    run_role_step "gatekeeper" "gate-e2e-gate" bash -lc "cd '$ROOT_DIR' && pnpm e2e:gate"
+    run_role_step_with_retries "gatekeeper" "gate-security-guard" bash -lc "cd '$ROOT_DIR' && pnpm security:guard"
+    run_role_step_with_retries "gatekeeper" "gate-rls-required" bash -lc "cd '$ROOT_DIR' && REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test"
+    run_role_step_with_retries "gatekeeper" "gate-pr-verify-hosts" bash -lc "cd '$ROOT_DIR' && pnpm pr:verify:hosts"
+    run_role_step_with_retries "gatekeeper" "gate-e2e-gate" bash -lc "cd '$ROOT_DIR' && pnpm e2e:gate"
   else
     printf '[orchestrator] skip gate lane\n'
   fi
@@ -258,7 +433,7 @@ if [[ "$RUN_FINALIZER" -eq 1 ]]; then
     finalizer_cmd+=(--watch-ci --ci-interval "$CI_INTERVAL")
   fi
 
-  run_role_step "finalizer-agent" "finalizer-agent" "${finalizer_cmd[@]}"
+  run_role_step_with_retries "finalizer-agent" "finalizer-agent" "${finalizer_cmd[@]}"
 fi
 
 printf '\n[orchestrator] PASS\n'

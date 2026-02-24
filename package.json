@@ -110,6 +110,7 @@
     "multiagent:benchmark": "node scripts/multi-agent/benchmark-lane.mjs",
     "multiagent:benchmark:weekly": "bash scripts/multi-agent/weekly-benchmark.sh",
     "multiagent:metrics": "node scripts/multi-agent/metrics-lane.mjs",
+    "multiagent:verify-fix": "bash scripts/multi-agent/verification-agent.sh",
     "db:push": "pnpm --filter @interdomestik/database push",
     "start:system": "./scripts/start-system.sh",
     "start:system:quick": "./scripts/start-system-quick.sh",

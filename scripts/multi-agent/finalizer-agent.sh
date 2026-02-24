@@ -42,6 +42,15 @@ run_step() {
   "$@"
 }
 
+print_context() {
+  if [[ -n "${MULTI_AGENT_CONTEXT_BUNDLE:-}" && -f "${MULTI_AGENT_CONTEXT_BUNDLE:-}" ]]; then
+    printf '[finalizer-agent] context-bundle=%s\n' "$MULTI_AGENT_CONTEXT_BUNDLE"
+    printf '[finalizer-agent] context-files=%s\n' "${MULTI_AGENT_CONTEXT_FILES:-unknown}"
+  else
+    printf '[finalizer-agent] context-bundle=none\n'
+  fi
+}
+
 require_clean_tree() {
   if ! git -C "$ROOT_DIR" diff --quiet --no-ext-diff --ignore-submodules --exit-code; then
     fail 'working tree has unstaged changes'
@@ -125,6 +134,7 @@ while [[ $# -gt 0 ]]; do
   esac
   done
 
+print_context
 run_step 'verify clean working tree' require_clean_tree
 
 if [[ "$PUSH_BRANCH" -eq 1 ]]; then

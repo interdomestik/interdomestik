@@ -31,6 +31,7 @@ Core commands:
 - `pnpm multiagent:benchmark:weekly` -> weekly benchmark wrapper
 - `pnpm multiagent:metrics` -> role scorecard from orchestrator events
 - `pnpm multiagent:a2a` -> A2A-style request/result adapter
+- `pnpm multiagent:verify-fix` -> deterministic verification-agent log triage/remediation
 
 Core artifacts:
 
@@ -60,10 +61,37 @@ Rule of thumb:
 ### 2) Run orchestrator with explicit signals
 
 ```bash
-pnpm multiagent:run -- --execution-mode auto --task-complexity medium --task-count 2 --estimated-cost-usd 2 --budget-usd 5 --requires-boundary-review false
+pnpm multiagent:run -- --execution-mode auto --task-complexity medium --task-count 2 --estimated-cost-usd 2 --budget-usd 5 --requires-boundary-review false --auto-retry-max 3
 ```
 
 This gives mode decision + step evidence + role scorecard in one flow.
+
+### 2b) Bind CDD context to every run
+
+When context artifacts exist, the orchestrator now bundles them automatically from:
+
+- `product.md`
+- `tech-stack.md`
+- `workflow.md`
+
+And common variants under `context/` or `docs/context/`.
+
+If you want strict enforcement:
+
+```bash
+pnpm multiagent:run -- --require-cdd-context
+```
+
+If you store context elsewhere, pass explicit files:
+
+```bash
+pnpm multiagent:run -- --context-file /abs/path/product.md --context-file /abs/path/tech-stack.md --context-file /abs/path/workflow.md
+```
+
+The resolved bundle is exported to roles through:
+
+- `MULTI_AGENT_CONTEXT_BUNDLE`
+- `MULTI_AGENT_CONTEXT_FILES`
 
 ### 3) Review role scorecard after every run
 
@@ -194,6 +222,24 @@ Recommended:
 
 Why it works: moves optimization from guesswork to measured role-level adjustments.
 
+### Scenario 6: Map-Reduce fan-out/fan-in for parallel tasks
+
+Goal: split independent workstreams and consolidate with one reviewer agent.
+
+Recommended:
+
+1. Fan-out in `multi` mode with explicit task count:
+
+```bash
+pnpm multiagent:run -- --execution-mode auto --task-complexity high --task-count 5 --estimated-cost-usd 4 --budget-usd 8
+```
+
+2. Let worker roles execute independently (map phase).
+3. Route outputs to a single reviewer/finalizer role for merge and gate checks (reduce phase).
+4. Use role scorecard to confirm fan-out improved throughput without lowering `qualityPerDollar`.
+
+Why it works: parallel generation plus centralized merge control keeps speed high and regressions contained.
+
 ---
 
 ## Failure Handling
@@ -214,7 +260,17 @@ If orchestrator role scorecard is missing:
 2. Recompute manually:
 
 ```bash
-pnpm multiagent:metrics -- --events tmp/multi-agent/run-<id>/events.ndjson --out tmp/multi-agent/run-<id>/role-scorecard.json
+  pnpm multiagent:metrics -- --events tmp/multi-agent/run-<id>/events.ndjson --out tmp/multi-agent/run-<id>/role-scorecard.json
+```
+
+If an orchestrator step fails:
+
+1. Verification-agent automatically reads the failed log and attempts deterministic remediation (up to `--auto-retry-max`, default `3`).
+2. If remediation is unavailable or retries are exhausted, orchestrator escalates to human owner with the failed log path.
+3. Manual fallback:
+
+```bash
+pnpm multiagent:verify-fix -- --label "<failed-step>" --log-file tmp/multi-agent/run-<id>/<step-log>.log --attempt 1 --max-attempts 3
 ```
 
 ---

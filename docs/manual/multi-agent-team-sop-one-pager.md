@@ -30,12 +30,14 @@ Decision:
 ## 2) Run orchestrator
 
 ```bash
-pnpm multiagent:run -- --execution-mode auto --task-complexity medium --task-count 2 --estimated-cost-usd 2 --budget-usd 5
+pnpm multiagent:run -- --execution-mode auto --task-complexity medium --task-count 2 --estimated-cost-usd 2 --budget-usd 5 --auto-retry-max 3
 ```
 
 Optional:
 
 - Add `--finalize --pr <PR_NUMBER> --watch-ci` when ready for closeout.
+- Add `--require-cdd-context` to enforce context artifacts.
+- Add repeated `--context-file <path>` when CDD files live outside default locations.
 
 ## 3) Review run evidence
 
@@ -51,8 +53,8 @@ Minimum expected:
 
 ## 4) If failures occur
 
-- Open step logs in `tmp/multi-agent/run-<id>/`.
-- Fix root cause.
+- Default behavior: verification-agent auto-attempts deterministic remediation up to `3` retries.
+- If still failing, open step logs in `tmp/multi-agent/run-<id>/` and escalate with root-cause notes.
 - Re-run only required lane(s), then full gate path.
 
 ---
@@ -109,6 +111,19 @@ pnpm multiagent:a2a -- --mode import-result --input a2a-result.json --output int
 Contract schema:
 
 - `scripts/multi-agent/contracts/a2a-task-envelope.schema.json`
+
+## 5) Map-Reduce execution pattern (parallel feature tracks)
+
+Use for independent subtasks that can merge through one reviewer:
+
+```bash
+pnpm multiagent:run -- --execution-mode auto --task-complexity high --task-count 5 --estimated-cost-usd 4 --budget-usd 8
+```
+
+Interpretation:
+
+- map: multiple workers run in parallel tracks
+- reduce: one reviewer/finalizer role merges outputs and runs required gates
 
 ---
 
