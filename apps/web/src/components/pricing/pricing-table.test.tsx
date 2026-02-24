@@ -163,7 +163,7 @@ describe('PricingTable', () => {
     });
   });
 
-  it('falls back to simulated checkout in development when Paddle is unavailable', async () => {
+  it('falls back to simulated checkout in development when client token is missing', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', '');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
@@ -182,7 +182,7 @@ describe('PricingTable', () => {
       await vi.runAllTimersAsync();
 
       expect(mockRouterPush).toHaveBeenCalledWith(
-        `/member/membership/success?test=true&priceId=${PADDLE_PRICES.standard.yearly}&planId=standard`
+        `/member/membership/success?priceId=${PADDLE_PRICES.standard.yearly}&planId=standard`
       );
 
       expect(alertMock).not.toHaveBeenCalled();
@@ -191,5 +191,61 @@ describe('PricingTable', () => {
       alertMock.mockRestore();
       consoleWarn.mockRestore();
     }
+  });
+
+  it('treats placeholder Paddle tokens as missing in development fallback mode', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', 'test_***');
+    vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
+
+    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    vi.useFakeTimers();
+
+    try {
+      render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+
+      const joinButtons = screen.getAllByText('cta');
+      fireEvent.click(joinButtons[0]);
+
+      await vi.runAllTimersAsync();
+
+      expect(mockRouterPush).toHaveBeenCalledWith(
+        `/member/membership/success?priceId=${PADDLE_PRICES.standard.yearly}&planId=standard`
+      );
+      expect(alertMock).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+      alertMock.mockRestore();
+      consoleWarn.mockRestore();
+    }
+  });
+
+  it('keeps payment unavailable alert in development when a token exists but Paddle init fails', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', 'test_valid_token_1234567890');
+    vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(null);
+
+    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
+
+    const joinButtons = screen.getAllByText('cta');
+    fireEvent.click(joinButtons[0]);
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(
+        'Payment system unavailable. Please check configuration.'
+      );
+    });
+
+    expect(mockRouterPush).not.toHaveBeenCalled();
+
+    alertMock.mockRestore();
+    consoleWarn.mockRestore();
+    consoleError.mockRestore();
   });
 });

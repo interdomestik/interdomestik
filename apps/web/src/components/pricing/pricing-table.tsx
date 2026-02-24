@@ -92,13 +92,26 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
   const planFromQuery = searchParams.get('plan')?.trim().toLowerCase() ?? '';
   const selectedPlanId = PLANS.some(plan => plan.id === planFromQuery) ? planFromQuery : null;
   const paddleClientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim() ?? '';
-  const hasPaddleClientToken = paddleClientToken.length > 0 && !paddleClientToken.endsWith('...');
+  const normalizedPaddleClientToken = paddleClientToken.toLowerCase();
+  const hasPaddleClientToken =
+    paddleClientToken.length > 0 &&
+    !normalizedPaddleClientToken.includes('...') &&
+    !normalizedPaddleClientToken.includes('***') &&
+    !normalizedPaddleClientToken.includes('your_client_token_here');
   const shouldUseDevCheckoutFallback =
     process.env.NODE_ENV === 'development' && !isBillingTestMode && !hasPaddleClientToken;
 
-  const redirectToSimulatedSuccess = async (planId: string, priceId: string) => {
+  const redirectToSimulatedSuccess = async (
+    planId: string,
+    priceId: string,
+    includeBillingTestFlag: boolean
+  ) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
-    router.push(`/member/membership/success?test=true&priceId=${priceId}&planId=${planId}`);
+    const params = new URLSearchParams({ priceId, planId });
+    if (includeBillingTestFlag) {
+      params.set('test', 'true');
+    }
+    router.push(`/member/membership/success?${params.toString()}`);
   };
 
   const handleAction = async (planId: string, priceId: string) => {
@@ -113,7 +126,7 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
             'Paddle client token missing in development, falling back to simulated checkout.'
           );
         }
-        await redirectToSimulatedSuccess(planId, priceId);
+        await redirectToSimulatedSuccess(planId, priceId, isBillingTestMode);
         return;
       }
 
@@ -139,11 +152,6 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
         });
       } else {
         console.error('Paddle not initialized');
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Paddle unavailable in development, falling back to simulated checkout.');
-          await redirectToSimulatedSuccess(planId, priceId);
-          return;
-        }
         alert('Payment system unavailable. Please check configuration.');
       }
     } catch (error) {
