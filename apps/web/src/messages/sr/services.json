@@ -8,71 +8,71 @@
       "title": "No Win, No Fee",
       "desc": "You pay nothing upfront. Our service fee is deducted only from the final compensation.",
       "speed": {
-        "title": "Fast Intake",
-        "description": "Takes less than 5 minutes to submit."
+        "title": "Brza prijava",
+        "description": "Potrebno je manje od 5 minuta za podnošenje."
       },
       "response": {
-        "title": "24h Response",
-        "description": "We review every new claim within 24 hours."
+        "title": "Odgovor za 24h",
+        "description": "Pregledamo svaki novi zahtev u roku od 24 sata."
       },
       "secure": {
-        "title": "Secure Data",
-        "description": "Your documents are encrypted and protected."
+        "title": "Bezbedni podaci",
+        "description": "Vaši dokumenti su šifrovani i zaštićeni."
       }
     },
     "meta": {
-      "title": "Prime Services | Interdomestik",
-      "description": "Fast, safe, and professional claim handling for vehicle damage, property issues, and personal injury."
+      "title": "Premium usluge | Interdomestik",
+      "description": "Brza, bezbedna i profesionalna obrada zahteva za štetu na vozilu, imovinske probleme i lične povrede."
     },
     "hero": {
-      "title": "Professional Claim Resolution Service",
-      "subtitle": "We handle the complexity of claims so you can get the compensation you deserve. Fast, safe, and transparent.",
-      "cta": "Start Your Claim"
+      "title": "Profesionalna usluga rešavanja zahteva",
+      "subtitle": "Mi preuzimamo složenost zahteva kako biste dobili odštetu koju zaslužujete. Brzo, bezbedno i transparentno.",
+      "cta": "Pokreni svoj zahtev"
     },
     "solutions": {
-      "title": "What We Solve",
+      "title": "Šta rešavamo",
       "vehicle": {
-        "title": "Vehicle & Traffic",
-        "description": "Collision damage, third-party liability claims, and hit-and-run incidents."
+        "title": "Vozila i saobraćaj",
+        "description": "Šteta u sudarima, zahtevi za odgovornost treće strane i incidenti „udari i beži“."
       },
       "property": {
-        "title": "Property Damage",
-        "description": "Fire, flood, theft, or damage to your home or business premises."
+        "title": "Imovinska šteta",
+        "description": "Požar, poplava, krađa ili šteta na vašem domu ili poslovnom prostoru."
       },
       "injury": {
-        "title": "Personal Injury",
-        "description": "Compensation for injuries sustained due to accidents or negligence."
+        "title": "Lične povrede",
+        "description": "Odšteta za povrede nastale usled nesreće ili nepažnje."
       },
       "flight": {
-        "title": "Flight Delays",
-        "description": "Up to €600 compensation for delayed or cancelled flights (EU261)."
+        "title": "Kašnjenje letova",
+        "description": "Do €600 odštete za kašnjenja ili otkazane letove (EU261)."
       }
     },
     "process": {
-      "title": "How It Works",
+      "title": "Kako funkcioniše",
       "step1": {
-        "title": "1. Start Claim",
-        "description": "Complete our simple guided wizard in under 5 minutes."
+        "title": "1. Pokreni zahtev",
+        "description": "Popunite naš jednostavan vođeni obrazac za manje od 5 minuta."
       },
       "step2": {
-        "title": "2. We Review",
-        "description": "Our experts analyze your case and evidence within 24 hours."
+        "title": "2. Mi pregledamo",
+        "description": "Naši stručnjaci analiziraju vaš slučaj i dokaze u roku od 24 sata."
       },
       "step3": {
-        "title": "3. Resolution",
-        "description": "We negotiate with the opposing party to secure your compensation."
+        "title": "3. Rešenje",
+        "description": "Pregovaramo sa drugom stranom kako bismo obezbedili vašu odštetu."
       }
     },
     "faq": {
-      "title": "Frequently Asked Questions",
-      "q1": "How much does it cost?",
-      "a1": "We operate on a 'No Win, No Fee' basis for most claims. You only pay a small percentage if we succeed.",
-      "q2": "How long does it take?",
-      "a2": "Simple claims are resolved in weeks. Complex cases may take longer, but we keep you updated."
+      "title": "Često postavljana pitanja",
+      "q1": "Koliko košta?",
+      "a1": "Radimo po principu 'Nema dobitka, nema naknade' za većinu zahteva. Plaćate mali procenat samo ako uspemo.",
+      "q2": "Koliko dugo traje?",
+      "a2": "Jednostavni zahtevi se rešavaju za nekoliko nedelja. Složeniji slučajevi mogu trajati duže, ali vas redovno obaveštavamo."
     },
     "finalCta": {
-      "title": "Ready to get started?",
-      "btn": "Open a Claim Now"
+      "title": "Spremni da počnete?",
+      "btn": "Otvorite zahtev sada"
     }
   }
 }
