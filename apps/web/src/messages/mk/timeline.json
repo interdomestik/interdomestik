@@ -1,7 +1,7 @@
 {
   "timeline": {
-    "nextSla": "Next SLA: {target}",
-    "atRisk": "Needs attention",
-    "updatedAt": "Last updated: {date}"
+    "nextSla": "Следен SLA: {target}",
+    "atRisk": "Потребно внимание",
+    "updatedAt": "Последно ажурирано: {date}"
   }
 }

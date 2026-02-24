@@ -1,39 +1,39 @@
 {
   "testimonials": {
-    "title": "Success Stories",
-    "subtitle": "What our members say",
+    "title": "Priče o uspehu",
+    "subtitle": "Šta kažu naši članovi",
     "stories": [
       {
-        "quote": "After the accident I didn't know what to do. Interdomestik helped me recover €3,200 in just 3 weeks.",
+        "quote": "Posle nesreće nisam znao šta da radim. Interdomestik mi je pomogao da naplatim 3.200 € za samo 3 nedelje.",
         "name": "Arben M.",
-        "role": "Standard Member",
-        "amount": "€3,200",
-        "time": "3 weeks"
+        "role": "Standardni član",
+        "amount": "3.200 €",
+        "time": "3 nedelje"
       },
       {
-        "quote": "The insurer offered me only €800. With Interdomestik's experts, I got €2,100.",
+        "quote": "Osiguravač mi je ponudio samo 800 €. Uz stručnjake Interdomestika dobio sam 2.100 €.",
         "name": "Flutura K.",
-        "role": "Family Member",
-        "amount": "€2,100",
-        "time": "5 weeks"
+        "role": "Porodični član",
+        "amount": "2.100 €",
+        "time": "5 nedelja"
       },
       {
-        "quote": "The process was so simple. One phone call and they handled everything.",
+        "quote": "Proces je bio vrlo jednostavan. Jedan telefonski poziv i oni su rešili sve.",
         "name": "Besnik H.",
-        "role": "Standard Member",
-        "amount": "€1,850",
-        "time": "4 weeks"
+        "role": "Standardni član",
+        "amount": "1.850 €",
+        "time": "4 nedelje"
       },
       {
-        "quote": "As a business, we needed a reliable partner. Interdomestik protects our 10 vehicles.",
+        "quote": "Kao poslovnom korisniku, bio nam je potreban pouzdan partner. Interdomestik štiti naših 10 vozila.",
         "name": "Albana S.",
-        "role": "Business Member",
-        "amount": "€5,400",
-        "time": "6 weeks"
+        "role": "Poslovni član",
+        "amount": "5.400 €",
+        "time": "6 nedelja"
       }
     ],
-    "mainHeading1": "Stories that",
-    "mainHeading2": "inspire trust.",
-    "recoveredIn": "Recovered in"
+    "mainHeading1": "Priče koje",
+    "mainHeading2": "ulivaju poverenje.",
+    "recoveredIn": "Naplaćeno za"
   }
 }

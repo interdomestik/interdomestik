@@ -6,7 +6,7 @@
       "table": {
         "claimant": "Podnosilac",
         "claim": "Zahtev",
-        "status": "Status",
+        "status": "Stanje",
         "amount": "Iznos",
         "date": "Datum",
         "actions": "Radnje",
@@ -26,13 +26,13 @@
         "title": "Detalji zahteva",
         "claimantInfo": "Informacije o podnosiocu",
         "name": "Ime",
-        "email": "Email",
+        "email": "E-pošta",
         "description": "Opis",
         "amount": "Iznos",
         "company": "Predmet / Kompanija",
         "title_label": "Naslov",
         "category_label": "Kategorija",
-        "status_label": "Status",
+        "status_label": "Stanje",
         "evidence": "Dokazni fajlovi",
         "noEvidence": "Nema otpremljenih dokumenata.",
         "notes": "Interne beleške",
@@ -56,7 +56,7 @@
         "reject": "Odbij zahtev",
         "notice": "Promena statusa odmah ažurira korisnikovu vremensku liniju."
       },
-      "claims_queue": "Claims Queue"
+      "claims_queue": "Red zahteva"
     }
   }
 }
