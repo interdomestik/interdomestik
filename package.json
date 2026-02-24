@@ -60,7 +60,7 @@
     "e2e:gate:mk": "./scripts/m4-gatekeeper.sh && pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=mk-mk --max-failures=1 --trace=retain-on-failure --reporter=line",
     "e2e:gate:ks:fast": "./scripts/m4-gatekeeper.sh && PW_FAST_GATES=1 pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-ks-sq --max-failures=1 --trace=retain-on-failure --reporter=line",
     "e2e:gate:mk:fast": "./scripts/m4-gatekeeper.sh && PW_FAST_GATES=1 pnpm --filter @interdomestik/web exec playwright test e2e/gate --project=gate-mk-mk --max-failures=1 --trace=retain-on-failure --reporter=line",
-    "check:fast": "node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web e2e:gate:fast",
+    "check:fast": "node scripts/run-with-default-db-url.mjs pnpm e2e:gate:fast",
     "check:static": "pnpm format:check && pnpm lint && pnpm type-check",
     "check:all": "pnpm format:check && pnpm lint && pnpm type-check && pnpm i18n:check && pnpm i18n:purity:check && pnpm check:entrypoints && pnpm test:unit:domains && pnpm test",
     "check": "pnpm check:fast && pnpm build",
