@@ -8,10 +8,10 @@ const mockResolveFunnelVariant = vi.fn((enabled: boolean) => (enabled ? 'hero_v2
 
 vi.mock('@/lib/analytics', () => ({
   FunnelEvents: {
-    landingViewed: (...args: unknown[]) => mockLandingViewed(...args),
-    activationCompleted: (...args: unknown[]) => mockActivationCompleted(...args),
+    landingViewed: mockLandingViewed,
+    activationCompleted: mockActivationCompleted,
   },
-  resolveFunnelVariant: (...args: unknown[]) => mockResolveFunnelVariant(...args),
+  resolveFunnelVariant: mockResolveFunnelVariant,
 }));
 
 describe('Funnel trackers', () => {

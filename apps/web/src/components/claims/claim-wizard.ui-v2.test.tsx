@@ -109,7 +109,7 @@ vi.mock('sonner', () => ({
 }));
 
 vi.mock('@/actions/claims', () => ({
-  submitClaim: (...args: unknown[]) => mockSubmitClaim(...args),
+  submitClaim: mockSubmitClaim,
 }));
 
 vi.mock('@/lib/analytics', () => ({
@@ -120,9 +120,9 @@ vi.mock('@/lib/analytics', () => ({
     failed: vi.fn(),
   },
   FunnelEvents: {
-    firstClaimSubmitted: (...args: unknown[]) => mockFunnelFirstClaimSubmitted(...args),
+    firstClaimSubmitted: mockFunnelFirstClaimSubmitted,
   },
-  resolveFunnelVariant: (...args: unknown[]) => mockResolveFunnelVariant(...args),
+  resolveFunnelVariant: mockResolveFunnelVariant,
 }));
 
 vi.mock('./wizard-step-category', () => ({
