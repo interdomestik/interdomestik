@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { PricingSection } from './pricing-section';
 
@@ -7,13 +8,13 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
 }));
 
 vi.mock('@interdomestik/ui', () => ({
-  Button: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+  Button: ({ children }: { children: ReactNode }) => <button>{children}</button>,
 }));
 
 describe('PricingSection', () => {

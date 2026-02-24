@@ -7,6 +7,7 @@ import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 interface PricingTableProps {
@@ -25,6 +26,7 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
   const t = useTranslations('pricing');
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
   const [isYearly, setIsYearly] = useState(true);
   const isPilotMode = process.env.NEXT_PUBLIC_PILOT_MODE === 'true';
@@ -87,6 +89,8 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
   ];
 
   const isBillingTestMode = billingTestMode ?? process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
+  const planFromQuery = searchParams.get('plan')?.trim().toLowerCase() ?? '';
+  const selectedPlanId = PLANS.some(plan => plan.id === planFromQuery) ? planFromQuery : null;
 
   const handleAction = async (planId: string, priceId: string) => {
     if (process.env.NEXT_PUBLIC_PILOT_MODE === 'true') return;
@@ -167,11 +171,12 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
           <div
             key={plan.id}
             data-testid={`plan-card-${plan.id}`}
+            data-selected-plan={selectedPlanId === plan.id ? '1' : '0'}
             className={`bg-white rounded-[2rem] p-10 relative transition-all duration-300 border-2 ${
               plan.popular
                 ? 'border-primary shadow-2xl shadow-primary/10 md:scale-105 z-10'
                 : 'border-slate-100 shadow-xl'
-            }`}
+            } ${selectedPlanId === plan.id ? 'ring-2 ring-primary/40 ring-offset-2' : ''}`}
           >
             {plan.popular && (
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">

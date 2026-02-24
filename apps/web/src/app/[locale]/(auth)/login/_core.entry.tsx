@@ -10,7 +10,7 @@ import { getLoginTenantBootstrapRedirect, loadTenantOptions } from './_core';
 
 type Props = {
   params: Promise<{ locale: string }>;
-  searchParams?: Promise<{ tenantId?: string }>;
+  searchParams?: Promise<{ tenantId?: string; plan?: string }>;
 };
 
 export default async function LoginPage({ params, searchParams }: Props) {
@@ -30,6 +30,7 @@ export default async function LoginPage({ params, searchParams }: Props) {
   const bootstrapRedirect = getLoginTenantBootstrapRedirect({
     locale,
     tenantIdFromQuery: resolvedSearchParams?.tenantId ?? null,
+    planIdFromQuery: resolvedSearchParams?.plan ?? null,
     tenantIdFromContext,
   });
   if (bootstrapRedirect) redirect(bootstrapRedirect);

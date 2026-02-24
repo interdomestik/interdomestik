@@ -40,6 +40,19 @@ describe('login core', () => {
     expect(result).toBe('/sq/login/tenant-context?tenantId=tenant_mk&next=%2Fsq%2Flogin');
   });
 
+  it('preserves valid plan continuity in tenant bootstrap redirect', () => {
+    const result = getLoginTenantBootstrapRedirect({
+      locale: 'sq',
+      tenantIdFromQuery: 'tenant_mk',
+      planIdFromQuery: 'family',
+      tenantIdFromContext: null,
+    });
+
+    expect(result).toBe(
+      '/sq/login/tenant-context?tenantId=tenant_mk&next=%2Fsq%2Flogin%3Fplan%3Dfamily'
+    );
+  });
+
   it('returns null when query tenant matches current context tenant', () => {
     const result = getLoginTenantBootstrapRedirect({
       locale: 'sq',
