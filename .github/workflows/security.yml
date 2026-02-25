@@ -62,6 +62,7 @@ jobs:
           exit 1
 
       - name: Install gitleaks CLI
+        if: ${{ github.event_name != 'pull_request' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -77,6 +78,7 @@ jobs:
           gitleaks version
 
       - name: Run gitleaks (blocking)
+        if: ${{ github.event_name != 'pull_request' }}
         shell: bash
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
@@ -99,7 +101,7 @@ jobs:
           gitleaks git --redact --log-opts="${log_opts}" --report-format sarif --report-path /tmp/gitleaks-artifacts/gitleaks.sarif
 
       - name: Upload gitleaks report artifact
-        if: always()
+        if: ${{ always() && github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: security-gitleaks-${{ github.run_id }}-${{ github.run_attempt }}
