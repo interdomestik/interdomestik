@@ -306,7 +306,10 @@ GRAPHQL
     fi
 
     local -a unresolved_rows=()
-    mapfile -t unresolved_rows < <(
+    local unresolved_row
+    while IFS= read -r unresolved_row; do
+      unresolved_rows+=("${unresolved_row}")
+    done < <(
       echo "${response}" | jq -r '
         .data.repository.pullRequest.reviewThreads.nodes[]
         | select(.isResolved == false)
