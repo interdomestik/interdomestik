@@ -1,5 +1,5 @@
-import { E2E_USERS, agentClients, claims, db, user } from '@interdomestik/database';
-import { and, desc, eq } from 'drizzle-orm';
+import { E2E_USERS, agentClients, claimMessages, claims, db, user } from '@interdomestik/database';
+import { and, desc, eq, like } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
@@ -85,6 +85,33 @@ async function cleanupFallbackClaim(claimId: string, wasCreatedFallback: boolean
   }
 }
 
+const MESSAGE_PERSISTENCE_PREFIX = 'E2E persistence';
+
+async function cleanupPersistenceMessages(claimId: string, content?: string): Promise<void> {
+  try {
+    if (content) {
+      await db
+        .delete(claimMessages)
+        .where(and(eq(claimMessages.claimId, claimId), eq(claimMessages.content, content)));
+      return;
+    }
+
+    await db
+      .delete(claimMessages)
+      .where(
+        and(
+          eq(claimMessages.claimId, claimId),
+          like(claimMessages.content, `${MESSAGE_PERSISTENCE_PREFIX}%`)
+        )
+      );
+  } catch (error) {
+    console.warn(
+      `[agent-workspace-e2e] Failed to cleanup persistence messages for claim ${claimId}:`,
+      error instanceof Error ? error.message : String(error)
+    );
+  }
+}
+
 test.describe('Agent Workspace Claims claimId selection', () => {
   test('claimId selects accessible claim and flags inaccessible claimId', async ({
     agentPage: page,
@@ -129,8 +156,14 @@ test.describe('Agent Workspace Claims claimId selection', () => {
     const agentEmail = isMkProject(testInfo) ? E2E_USERS.MK_AGENT.email : E2E_USERS.KS_AGENT.email;
     const { claimId: accessibleClaimId, createdFallback } =
       await resolveAccessibleClaimId(agentEmail);
+    const uniqueText = `${MESSAGE_PERSISTENCE_PREFIX} ${Date.now()} ${Math.random()
+      .toString(36)
+      .slice(2, 8)}`;
 
     try {
+      // Keep this probe deterministic and bounded across repeated/CI runs.
+      await cleanupPersistenceMessages(accessibleClaimId);
+
       const targetUrl = `${routes.agentWorkspaceClaims(testInfo)}?claimId=${encodeURIComponent(
         accessibleClaimId
       )}`;
@@ -149,7 +182,6 @@ test.describe('Agent Workspace Claims claimId selection', () => {
       const messagingPanel = page.locator('[data-testid="messaging-panel"]:visible');
       await expect(messagingPanel).toBeVisible({ timeout: 15000 });
 
-      const uniqueText = `E2E persistence ${Date.now()} ${Math.random().toString(36).slice(2, 8)}`;
       const messageInput = messagingPanel.getByTestId('message-input');
       await messageInput.fill(uniqueText);
 
@@ -179,6 +211,7 @@ test.describe('Agent Workspace Claims claimId selection', () => {
         refreshedMessagingPanel.locator('p.whitespace-pre-wrap').filter({ hasText: uniqueText })
       ).toBeVisible({ timeout: 10000 });
     } finally {
+      await cleanupPersistenceMessages(accessibleClaimId, uniqueText);
       await cleanupFallbackClaim(accessibleClaimId, createdFallback);
     }
   });
