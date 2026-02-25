@@ -305,10 +305,18 @@ GRAPHQL
       fail "unable to read review threads from GitHub GraphQL API"
     fi
 
-    local -a unresolved_rows=()
-    local unresolved_row
-    while IFS= read -r unresolved_row; do
-      unresolved_rows+=("${unresolved_row}")
+    local thread_url thread_authors thread_has_copilot
+    while IFS=$'\t' read -r thread_url thread_authors thread_has_copilot; do
+      if [[ -z "${thread_url}${thread_authors}${thread_has_copilot}" ]]; then
+        continue
+      fi
+      unresolved_total=$((unresolved_total + 1))
+      if [[ "${thread_has_copilot}" == "true" ]]; then
+        unresolved_copilot=$((unresolved_copilot + 1))
+      fi
+      if [[ "${#unresolved_samples[@]}" -lt 5 ]]; then
+        unresolved_samples+=("${thread_url} [authors=${thread_authors}]")
+      fi
     done < <(
       echo "${response}" | jq -r '
         .data.repository.pullRequest.reviewThreads.nodes[]
@@ -321,18 +329,6 @@ GRAPHQL
         | @tsv
       '
     )
-
-    local row
-    for row in "${unresolved_rows[@]-}"; do
-      unresolved_total=$((unresolved_total + 1))
-      IFS=$'\t' read -r thread_url thread_authors thread_has_copilot <<<"${row}"
-      if [[ "${thread_has_copilot}" == "true" ]]; then
-        unresolved_copilot=$((unresolved_copilot + 1))
-      fi
-      if [[ "${#unresolved_samples[@]}" -lt 5 ]]; then
-        unresolved_samples+=("${thread_url} [authors=${thread_authors}]")
-      fi
-    done
 
     local has_next_page
     has_next_page="$(echo "${response}" | jq -r "${threads_path}.pageInfo.hasNextPage")"
