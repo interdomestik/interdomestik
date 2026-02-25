@@ -10,6 +10,31 @@ import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
+const SIGNED_UPLOAD_MAX_ATTEMPTS = 3;
+const SIGNED_UPLOAD_RETRY_DELAY_MS = process.env.NODE_ENV === 'test' ? 0 : 250;
+const TRANSIENT_UPLOAD_ERROR_PATTERNS = [
+  /fetch failed/i,
+  /network/i,
+  /timed?\s*out/i,
+  /econnreset/i,
+  /ehostunreach/i,
+  /enotfound/i,
+  /socket hang up/i,
+  /temporar/i,
+  /service unavailable/i,
+  /too many requests/i,
+];
+
+function shouldRetrySignedUpload(message: string): boolean {
+  return TRANSIENT_UPLOAD_ERROR_PATTERNS.some(pattern => pattern.test(message));
+}
+
+async function waitForSignedUploadRetry(attempt: number): Promise<void> {
+  if (SIGNED_UPLOAD_RETRY_DELAY_MS <= 0) return;
+  const delay = SIGNED_UPLOAD_RETRY_DELAY_MS * attempt;
+  await new Promise(resolve => setTimeout(resolve, delay));
+}
+
 export type GenerateUploadUrlResult =
   | { success: true; url: string; path: string; id: string; token: string; bucket: string }
   | { success: false; error: string; status: 401 | 404 | 413 | 500 };
@@ -66,7 +91,7 @@ export async function generateUploadUrl(
   const path = `pii/tenants/${tenantId}/claims/${claimId}/${fileId}.${ext}`;
 
   // Supabase
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
@@ -77,28 +102,48 @@ export async function generateUploadUrl(
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { data, error } = await supabase.storage
-      .from(evidenceBucket)
-      .createSignedUploadUrl(path, { upsert: true });
+    for (let attempt = 1; attempt <= SIGNED_UPLOAD_MAX_ATTEMPTS; attempt += 1) {
+      const { data, error } = await supabase.storage
+        .from(evidenceBucket)
+        .createSignedUploadUrl(path, { upsert: true });
 
-    if (error || !data?.signedUrl || !data?.token) {
+      if (!error && data?.signedUrl && data?.token) {
+        return {
+          success: true,
+          url: data.signedUrl,
+          path: path,
+          id: fileId,
+          token: data.token,
+          bucket: evidenceBucket,
+        };
+      }
+
       const detail = error?.message ?? 'Unknown storage error';
+      const retryable = shouldRetrySignedUpload(detail);
+      const hasAttemptsLeft = attempt < SIGNED_UPLOAD_MAX_ATTEMPTS;
+
       console.error('Supabase signed URL error:', {
         bucket: evidenceBucket,
         path,
         detail,
         error,
+        attempt,
+        maxAttempts: SIGNED_UPLOAD_MAX_ATTEMPTS,
+        retryable,
       });
+
+      if (retryable && hasAttemptsLeft) {
+        await waitForSignedUploadRetry(attempt);
+        continue;
+      }
+
       return { success: false, error: `Failed to generate upload URL: ${detail}`, status: 500 };
     }
 
     return {
-      success: true,
-      url: data.signedUrl,
-      path: path,
-      id: fileId,
-      token: data.token,
-      bucket: evidenceBucket,
+      success: false,
+      error: 'Failed to generate upload URL: Unknown storage error',
+      status: 500,
     };
   } catch (err) {
     console.error('generateUploadUrl error:', err);

@@ -74,6 +74,14 @@ load_env_file "${ROOT_DIR}/.env.local"
 load_env_file "${WEB_DIR}/.env"
 load_env_file "${WEB_DIR}/.env.local"
 
+# Prefer runtime-resolved server Supabase URL where available.
+if [[ -z "${SUPABASE_URL:-}" && -n "${NEXT_PUBLIC_SUPABASE_URL:-}" ]]; then
+	export SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL}"
+fi
+if [[ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" && -n "${SUPABASE_URL:-}" ]]; then
+	export NEXT_PUBLIC_SUPABASE_URL="${SUPABASE_URL}"
+fi
+
 # Always ensure nip.io subdomains are trusted for E2E, even in production
 NIPIO_ORIGINS=(
 	"http://ks.127.0.0.1.nip.io:3000"
@@ -84,14 +92,32 @@ NIPIO_ORIGINS=(
 )
 
 IFS=',' read -ra EXISTING_ORIGINS <<< "${BETTER_AUTH_TRUSTED_ORIGINS:-}"
-declare -A ORIGIN_SET
+MERGED_ORIGINS=""
+append_unique_origin() {
+	local origin="$1"
+	origin="$(printf '%s' "${origin}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+	[[ -z "${origin}" ]] && return
+
+	case ",${MERGED_ORIGINS}," in
+	*",${origin},"*)
+		return 0
+		;;
+	esac
+
+	if [[ -z "${MERGED_ORIGINS}" ]]; then
+		MERGED_ORIGINS="${origin}"
+	else
+		MERGED_ORIGINS="${MERGED_ORIGINS},${origin}"
+	fi
+}
+
 for o in "${EXISTING_ORIGINS[@]}"; do
-	[[ -n "$o" ]] && ORIGIN_SET["$o"]=1
+	append_unique_origin "${o}"
 done
 for nipio in "${NIPIO_ORIGINS[@]}"; do
-	ORIGIN_SET["$nipio"]=1
+	append_unique_origin "${nipio}"
 done
-BETTER_AUTH_TRUSTED_ORIGINS="$(IFS=','; echo "${!ORIGIN_SET[*]}")"
+BETTER_AUTH_TRUSTED_ORIGINS="${MERGED_ORIGINS}"
 export BETTER_AUTH_TRUSTED_ORIGINS
 
 # Playwright gates must be deterministic and must not depend on whatever DATABASE_URL
@@ -126,6 +152,8 @@ fi
 echo "E2E webserver env:"
 echo "  BASE_URL=${BASE_URL}"
 echo "  NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}"
+echo "  SUPABASE_URL=${SUPABASE_URL:-unset}"
+echo "  NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-unset}"
 echo "  BETTER_AUTH_URL=${BETTER_AUTH_URL}"
 echo "  BETTER_AUTH_TRUSTED_ORIGINS=${BETTER_AUTH_TRUSTED_ORIGINS}"
 echo "  HOSTNAME=${HOSTNAME}"

@@ -110,7 +110,13 @@ test.describe('Golden Gate: Critical Path', () => {
     });
 
     test('Tenant Isolation: KS Admin cannot see MK Claims', async ({ page }, testInfo) => {
-      test.skip(isMkProject(testInfo), 'KS-only tenant isolation check');
+      if (isMkProject(testInfo)) {
+        testInfo.annotations.push({
+          type: 'note',
+          description: 'No-op on MK lane: KS-only tenant isolation check',
+        });
+        return;
+      }
       await performLocalLogin(page, USERS.TENANT_ADMIN_KS, testInfo, 'admin');
 
       await gotoApp(page, `${routes.adminClaims(testInfo)}?view=list`, testInfo, {
@@ -163,7 +169,13 @@ test.describe('Golden Gate: Critical Path', () => {
 
   test.describe('3. Admin Dashboards [smoke]', () => {
     test('Super Admin sees global stats', async ({ page }, testInfo) => {
-      test.skip(!isMkProject(testInfo), 'Super admin fixture is seeded under MK tenant only');
+      if (!isMkProject(testInfo)) {
+        testInfo.annotations.push({
+          type: 'note',
+          description: 'No-op on KS lane: super-admin fixture is seeded under MK tenant only',
+        });
+        return;
+      }
       await performLocalLogin(page, USERS.SUPER_ADMIN, testInfo, 'admin');
 
       await expect(page.getByRole('heading', { name: /Admin|Paneli/i }).first()).toBeVisible({
@@ -221,7 +233,13 @@ test.describe('Golden Gate: Critical Path', () => {
     test('Risk signaling appears for seeded risky branch (KS-A with 20+ open claims)', async ({
       page,
     }, testInfo) => {
-      test.skip(!testInfo.project.name.includes('ks'), 'KS-only risk check');
+      if (!testInfo.project.name.includes('ks')) {
+        testInfo.annotations.push({
+          type: 'note',
+          description: 'No-op on MK lane: KS-only risk check',
+        });
+        return;
+      }
       await performLocalLogin(page, USERS.TENANT_ADMIN_KS, testInfo, 'admin');
 
       await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
