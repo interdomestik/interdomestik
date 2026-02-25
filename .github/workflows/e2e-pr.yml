@@ -77,6 +77,9 @@ jobs:
       - name: E2E Subscription Lifecycle (KS+MK)
         run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk
 
+      - name: E2E Smoke Suite (KS+MK)
+        run: node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run e2e:smoke
+
       - name: Upload Playwright Artifacts
         if: always()
         uses: actions/upload-artifact@v4
