@@ -55,6 +55,7 @@ apps/web/e2e/.auth/
 .DS_Store
 *.pem
 *.log
+*.backup
 
 # Supabase
 supabase/.temp
@@ -87,3 +88,19 @@ apps/web/.playwright/
 next-env.d.ts
 **/next-env.d.ts
 tmp/
+
+# Generated analysis/build artifacts (keep out of git history)
+packages/ui/storybook-static/
+apps/web/registration-ui-state.png
+interdomestikv*.png
+smoke*.txt
+dependencies.json
+dependency_paths.json
+current_sonar_issues.json
+full_audit_results.json
+knip-results.json
+outdated.json
+remaining_*.json
+dummy.png
+dummy.mp3
+backups/
