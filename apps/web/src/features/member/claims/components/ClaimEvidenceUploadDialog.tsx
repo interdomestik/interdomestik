@@ -64,11 +64,21 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
 
       if (!uploadResponse.ok) {
         const responseBody = await uploadResponse.text().catch(() => '');
-        throw new Error(
-          responseBody
-            ? `Storage upload failed: ${responseBody}`
-            : `Storage upload failed (${uploadResponse.status})`
-        );
+        const requestId =
+          uploadResponse.headers.get('x-request-id') ??
+          uploadResponse.headers.get('x-amz-request-id') ??
+          undefined;
+
+        console.error('Storage upload failed', {
+          status: uploadResponse.status,
+          requestId,
+          body: responseBody,
+        });
+
+        const baseMessage = `Storage upload failed (${uploadResponse.status})`;
+        const messageWithId = requestId ? `${baseMessage} - Request ID: ${requestId}` : baseMessage;
+
+        throw new Error(messageWithId);
       }
 
       // 3. Confirm in DB

@@ -156,7 +156,16 @@ function fileBasename(filePath) {
   return segments.length ? segments[segments.length - 1] : normalized;
 }
 
-function hasReportMatch(requiredSpec, reportFiles) {
+function buildBasenameCountMap(filePaths) {
+  const counts = new Map();
+  for (const filePath of filePaths) {
+    const basename = fileBasename(filePath);
+    counts.set(basename, (counts.get(basename) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function hasReportMatch(requiredSpec, reportFiles, allowBasenameMatch) {
   const normalizedRequired = normalizePath(requiredSpec);
   const reportRelativeRequired = normalizedRequired.startsWith('apps/web/')
     ? normalizedRequired.slice('apps/web/'.length)
@@ -167,16 +176,20 @@ function hasReportMatch(requiredSpec, reportFiles) {
     const normalizedReport = normalizePath(reportFile);
     if (
       normalizedReport === normalizedRequired ||
-      normalizedReport === reportRelativeRequired ||
-      normalizedReport === requiredBase
+      normalizedReport === reportRelativeRequired
     ) {
+      return true;
+    }
+    if (allowBasenameMatch && normalizedReport === requiredBase) {
       return true;
     }
     if (
       normalizedReport.endsWith(`/${normalizedRequired}`) ||
-      normalizedReport.endsWith(`/${reportRelativeRequired}`) ||
-      normalizedReport.endsWith(`/${requiredBase}`)
+      normalizedReport.endsWith(`/${reportRelativeRequired}`)
     ) {
+      return true;
+    }
+    if (allowBasenameMatch && normalizedReport.endsWith(`/${requiredBase}`)) {
       return true;
     }
   }
@@ -216,8 +229,13 @@ function main() {
   const requiredSpecs = getRequiredSpecs(manifest);
   const report = readJson(playwrightJsonPath, 'Playwright JSON report');
   const reportFiles = collectReportSpecFiles(report);
+  const requiredBasenameCounts = buildBasenameCountMap(requiredSpecs);
 
-  const missing = requiredSpecs.filter(spec => !hasReportMatch(spec, reportFiles));
+  const missing = requiredSpecs.filter(spec => {
+    const basename = fileBasename(spec);
+    const allowBasenameMatch = (requiredBasenameCounts.get(basename) ?? 0) === 1;
+    return !hasReportMatch(spec, reportFiles, allowBasenameMatch);
+  });
   if (missing.length > 0) {
     console.error('Required specs missing from Playwright report:');
     for (const filePath of missing) {

@@ -137,6 +137,22 @@ describe('member claim upload actions', () => {
     expect(hoisted.createSignedUploadUrl).toHaveBeenCalledTimes(2);
   });
 
+  it('fails after exhausting transient signed upload retries', async () => {
+    hoisted.createSignedUploadUrl.mockResolvedValue({
+      data: null,
+      error: { message: 'fetch failed' },
+    });
+
+    const result = await generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024);
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Failed to generate upload URL: fetch failed',
+      status: 500,
+    });
+    expect(hoisted.createSignedUploadUrl).toHaveBeenCalledTimes(3);
+  });
+
   it('does not retry non-transient signed upload URL errors', async () => {
     hoisted.createSignedUploadUrl.mockResolvedValue({
       data: null,
