@@ -6,6 +6,14 @@ import path from 'node:path';
 const FAIL_RESULT_STATUSES = new Set(['failed', 'timedOut', 'interrupted']);
 const PASS_RESULT_STATUSES = new Set(['passed']);
 
+function readRequiredValue(argv, index, token) {
+  const value = argv[index + 1];
+  if (typeof value !== 'string' || value.length === 0 || value.startsWith('--')) {
+    throw new Error(`Missing value for ${token}`);
+  }
+  return value;
+}
+
 function parseArgs(argv) {
   const parsed = {};
 
@@ -17,10 +25,12 @@ function parseArgs(argv) {
       case '--out-md':
       case '--flaky-files-out':
       case '--repo-root':
-      case '--rewrite-summary-out':
-        parsed[token.slice(2)] = argv[i + 1];
+      case '--rewrite-summary-out': {
+        const value = readRequiredValue(argv, i, token);
+        parsed[token.slice(2)] = value;
         i += 1;
         break;
+      }
       case '--rewrite':
         parsed.rewrite = true;
         break;
@@ -68,16 +78,50 @@ function collectSpecsFromSuite(suite, output) {
   }
 }
 
+function isPathWithinDir(targetPath, baseDir) {
+  const resolvedBase = path.resolve(baseDir);
+  const resolvedTarget = path.resolve(targetPath);
+  const relative = path.relative(resolvedBase, resolvedTarget);
+
+  if (relative === '') {
+    return true;
+  }
+  if (relative === '..') {
+    return false;
+  }
+  if (relative.startsWith(`..${path.sep}`)) {
+    return false;
+  }
+  if (path.isAbsolute(relative)) {
+    return false;
+  }
+  return true;
+}
+
+function buildUnknownSpecPath(repoRoot) {
+  return path.resolve(repoRoot, 'apps/web/e2e/__unknown__.spec.ts');
+}
+
 function normalizeSpecFile(specFile, reportRootDir, repoRoot) {
+  const safeFallback = buildUnknownSpecPath(repoRoot);
   if (typeof specFile !== 'string' || specFile.length === 0) {
-    return path.resolve(repoRoot, 'apps/web/e2e/__unknown__.spec.ts');
+    return safeFallback;
   }
 
-  if (path.isAbsolute(specFile)) {
-    return path.resolve(specFile);
+  const candidate = path.isAbsolute(specFile)
+    ? path.resolve(specFile)
+    : path.resolve(reportRootDir, specFile);
+
+  if (!isPathWithinDir(candidate, repoRoot)) {
+    return safeFallback;
   }
 
-  return path.resolve(reportRootDir, specFile);
+  return candidate;
+}
+
+function isRewritePathAllowed(filePath, repoRoot) {
+  const allowedRoot = path.resolve(repoRoot, 'apps/web/e2e');
+  return isPathWithinDir(filePath, allowedRoot);
 }
 
 function deriveOutcome(testEntry) {
@@ -125,9 +169,15 @@ function insertImport(content, importLine) {
 
 function rewriteFlakyFiles(flakyFiles, repoRoot) {
   const changedFiles = [];
+  const skippedUnsafeFiles = [];
   let totalReplacements = 0;
 
   for (const filePath of flakyFiles) {
+    if (!isRewritePathAllowed(filePath, repoRoot)) {
+      skippedUnsafeFiles.push(filePath);
+      continue;
+    }
+
     if (!fs.existsSync(filePath)) continue;
 
     const original = fs.readFileSync(filePath, 'utf8');
@@ -173,6 +223,7 @@ function rewriteFlakyFiles(flakyFiles, repoRoot) {
 
   return {
     changedFiles,
+    skippedUnsafeFiles,
     totalReplacements,
   };
 }
@@ -318,7 +369,7 @@ function main() {
           .filter(file => fs.existsSync(file) && countPattern(file, /\.waitForTimeout\s*\(/g) > 0),
         repoRoot
       )
-    : { changedFiles: [], totalReplacements: 0 };
+    : { changedFiles: [], skippedUnsafeFiles: [], totalReplacements: 0 };
 
   const payload = {
     generatedAt: new Date().toISOString(),
@@ -368,6 +419,7 @@ function main() {
     '## Rewrite Summary',
     `- Enabled: ${args.rewrite ? 'yes' : 'no'}`,
     `- Changed files: ${rewriteResult.changedFiles.length}`,
+    `- Skipped unsafe files: ${rewriteResult.skippedUnsafeFiles.length}`,
     `- Replacements: ${rewriteResult.totalReplacements}`,
     ...(rewriteResult.changedFiles.length > 0
       ? rewriteResult.changedFiles.map(

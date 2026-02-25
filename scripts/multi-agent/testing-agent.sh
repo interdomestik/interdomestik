@@ -158,6 +158,7 @@ mkdir -p "$RUNS_DIR" "$ANALYSIS_DIR"
 COMMAND="$(resolve_command)"
 ACTIVE_NODE_BIN="$(PATH="$PATH_WITH_NODE" command -v node || true)"
 ACTIVE_NODE_VERSION="$(PATH="$PATH_WITH_NODE" node -v 2>/dev/null || printf 'unknown')"
+PLAYWRIGHT_REPORT_JSON="$ROOT_DIR/apps/web/test-results/report.json"
 
 print_context
 printf '[testing-agent] suite=%s runs=%s\n' "$SUITE" "$RUNS"
@@ -192,7 +193,7 @@ for ((i = 1; i <= RUNS; i++)); do
     ) | tee -a "$run_log"
   fi
 
-  rm -f "$ROOT_DIR/apps/web/test-results/report.json"
+  rm -f "$PLAYWRIGHT_REPORT_JSON"
 
   set +e
   (
@@ -205,10 +206,12 @@ for ((i = 1; i <= RUNS; i++)); do
 
   printf '%s\n' "$cmd_status" >"$run_status_file"
 
-  if [[ -f "$ROOT_DIR/apps/web/test-results/report.json" ]]; then
-    cp "$ROOT_DIR/apps/web/test-results/report.json" "$run_report"
+  if [[ -f "$PLAYWRIGHT_REPORT_JSON" ]]; then
+    cp "$PLAYWRIGHT_REPORT_JSON" "$run_report"
   else
-    printf '{"stats":{"expected":0,"unexpected":1,"flaky":0,"skipped":0,"duration":0},"suites":[]}\n' >"$run_report"
+    printf '[testing-agent] (%s) ERROR: expected Playwright JSON report at %s but file was not found.\n' \
+      "$run_name" "$PLAYWRIGHT_REPORT_JSON" | tee -a "$run_log"
+    fail "missing Playwright JSON report; verify the test command emits report.json"
   fi
 
   printf '[testing-agent] (%s) exit-status=%s report=%s\n' "$run_name" "$cmd_status" "$run_report"
@@ -231,19 +234,19 @@ if [[ "$REWRITE_DETERMINISTIC" -eq 1 ]]; then
   analyze_args+=(--rewrite --rewrite-summary-out "$REWRITE_SUMMARY_JSON")
 fi
 
-node "$ROOT_DIR/scripts/multi-agent/testing-agent-analyze.mjs" "${analyze_args[@]}"
+PATH="$PATH_WITH_NODE" node "$ROOT_DIR/scripts/multi-agent/testing-agent-analyze.mjs" "${analyze_args[@]}"
 
 FLAKY_COUNT="$(
-  node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(p.totals.flakyTests));" "$SUMMARY_JSON"
+  PATH="$PATH_WITH_NODE" node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(p.totals.flakyTests));" "$SUMMARY_JSON"
 )"
 CONSISTENT_FAILURES="$(
-  node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(p.totals.consistentFailingTests));" "$SUMMARY_JSON"
+  PATH="$PATH_WITH_NODE" node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(p.totals.consistentFailingTests));" "$SUMMARY_JSON"
 )"
 FAILED_RUNS="$(
-  node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(p.totals.failedRuns));" "$SUMMARY_JSON"
+  PATH="$PATH_WITH_NODE" node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(p.totals.failedRuns));" "$SUMMARY_JSON"
 )"
 OBSERVED_TESTS="$(
-  node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(p.totals.observedTests));" "$SUMMARY_JSON"
+  PATH="$PATH_WITH_NODE" node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(p.totals.observedTests));" "$SUMMARY_JSON"
 )"
 
 printf '\n[testing-agent] flaky-tests=%s consistent-failing-tests=%s failed-runs=%s observed-tests=%s\n' \
