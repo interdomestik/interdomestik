@@ -10,12 +10,19 @@ PR_REF=""
 RUN_PREFLIGHT=1
 RUN_GATES=1
 RUN_MARKETING=0
+RUN_TESTING=0
 RUN_FINALIZER=0
 WATCH_CI=0
 CI_INTERVAL=20
 MARKETING_SURFACE="both"
 MARKETING_STRICT=0
 MARKETING_MIN_SCORE=85
+TESTING_RUNS=10
+TESTING_SUITE="gate-fast"
+TESTING_COMMAND=""
+TESTING_STRICT=0
+TESTING_REWRITE=0
+TESTING_RESET_EACH_RUN=0
 EXECUTION_MODE="auto"
 TASK_COMPLEXITY="high"
 ESTIMATED_COST_USD="0"
@@ -37,6 +44,7 @@ Usage: bash scripts/multi-agent/orchestrator.sh [options]
 Enterprise multi-agent entrypoint with explicit lanes:
   - preflight-agent
   - marketing-agent (optional UX/CRO scorecard)
+  - testing-agent (optional flaky test audit)
   - gate lane (security/rls/pr-verify-hosts/e2e-gate)
   - finalizer-agent (optional)
 
@@ -49,6 +57,13 @@ Options:
   --marketing-surface <member-dashboard|landing-hero|both>  Marketing lane target (default: both)
   --marketing-strict        Fail marketing lane when score is below threshold
   --marketing-min-score <0-100>  Minimum score for --marketing-strict (default: 85)
+  --testing                 Run testing-agent lane
+  --testing-runs <integer>  Number of repeated test runs for flake detection (default: 10)
+  --testing-suite <gate-fast|gate|custom>  Testing lane suite preset (default: gate-fast)
+  --testing-command "<cmd>" Custom test command when --testing-suite custom
+  --testing-strict          Fail when flaky tests are detected
+  --testing-rewrite         Rewrite flaky sleep-based waits to deterministic marker waits
+  --testing-reset-each-run  Run m4-gatekeeper before each repeated run
   --finalize                Run finalizer-agent at the end
   --watch-ci                Keep CI monitor running in finalizer mode
   --ci-interval <seconds>   CI watch interval (default: 20)
@@ -309,6 +324,37 @@ while [[ $# -gt 0 ]]; do
       MARKETING_MIN_SCORE="$2"
       shift 2
       ;;
+    --testing)
+      RUN_TESTING=1
+      shift
+      ;;
+    --testing-runs)
+      [[ $# -ge 2 ]] || fail 'missing value for --testing-runs'
+      TESTING_RUNS="$2"
+      shift 2
+      ;;
+    --testing-suite)
+      [[ $# -ge 2 ]] || fail 'missing value for --testing-suite'
+      TESTING_SUITE="$2"
+      shift 2
+      ;;
+    --testing-command)
+      [[ $# -ge 2 ]] || fail 'missing value for --testing-command'
+      TESTING_COMMAND="$2"
+      shift 2
+      ;;
+    --testing-strict)
+      TESTING_STRICT=1
+      shift
+      ;;
+    --testing-rewrite)
+      TESTING_REWRITE=1
+      shift
+      ;;
+    --testing-reset-each-run)
+      TESTING_RESET_EACH_RUN=1
+      shift
+      ;;
     --finalize)
       RUN_FINALIZER=1
       shift
@@ -399,6 +445,21 @@ case "$MARKETING_SURFACE" in
     ;;
 esac
 
+if ! [[ "$TESTING_RUNS" =~ ^[0-9]+$ ]] || [[ "$TESTING_RUNS" -lt 1 ]]; then
+  fail '--testing-runs must be a positive integer'
+fi
+
+case "$TESTING_SUITE" in
+  gate-fast|gate|custom) ;;
+  *)
+    fail '--testing-suite must be one of: gate-fast, gate, custom'
+    ;;
+esac
+
+if [[ "$TESTING_SUITE" == "custom" && -z "$TESTING_COMMAND" ]]; then
+  fail '--testing-command is required when --testing-suite custom'
+fi
+
 EVENTS_FILE="${LOG_ROOT}/events.ndjson"
 ROLE_SCORECARD_FILE="${LOG_ROOT}/role-scorecard.json"
 mkdir -p "$LOG_ROOT"
@@ -448,6 +509,25 @@ if [[ "$SELECTED_MODE" == "single" ]]; then
   else
     printf '[orchestrator] skip marketing-agent\n'
   fi
+
+  if [[ "$RUN_TESTING" -eq 1 ]]; then
+    testing_cmd=(bash "$ROOT_DIR/scripts/multi-agent/testing-agent.sh" --log-dir "$LOG_ROOT/testing" --runs "$TESTING_RUNS" --suite "$TESTING_SUITE")
+    if [[ "$TESTING_SUITE" == "custom" ]]; then
+      testing_cmd+=(--command "$TESTING_COMMAND")
+    fi
+    if [[ "$TESTING_STRICT" -eq 1 ]]; then
+      testing_cmd+=(--strict)
+    fi
+    if [[ "$TESTING_REWRITE" -eq 1 ]]; then
+      testing_cmd+=(--rewrite-deterministic)
+    fi
+    if [[ "$TESTING_RESET_EACH_RUN" -eq 1 ]]; then
+      testing_cmd+=(--reset-each-run)
+    fi
+    run_role_step_with_retries "single-agent" "single-agent-testing" "${testing_cmd[@]}"
+  else
+    printf '[orchestrator] skip testing-agent\n'
+  fi
 else
   if [[ "$RUN_PREFLIGHT" -eq 1 ]]; then
     run_role_step_with_retries "preflight-agent" "preflight-agent" bash "$ROOT_DIR/scripts/multi-agent/preflight-agent.sh" --log-dir "$LOG_ROOT/preflight"
@@ -472,6 +552,25 @@ else
     run_role_step_with_retries "marketing-agent" "marketing-agent" "${marketing_cmd[@]}"
   else
     printf '[orchestrator] skip marketing-agent\n'
+  fi
+
+  if [[ "$RUN_TESTING" -eq 1 ]]; then
+    testing_cmd=(bash "$ROOT_DIR/scripts/multi-agent/testing-agent.sh" --log-dir "$LOG_ROOT/testing" --runs "$TESTING_RUNS" --suite "$TESTING_SUITE")
+    if [[ "$TESTING_SUITE" == "custom" ]]; then
+      testing_cmd+=(--command "$TESTING_COMMAND")
+    fi
+    if [[ "$TESTING_STRICT" -eq 1 ]]; then
+      testing_cmd+=(--strict)
+    fi
+    if [[ "$TESTING_REWRITE" -eq 1 ]]; then
+      testing_cmd+=(--rewrite-deterministic)
+    fi
+    if [[ "$TESTING_RESET_EACH_RUN" -eq 1 ]]; then
+      testing_cmd+=(--reset-each-run)
+    fi
+    run_role_step_with_retries "testing-agent" "testing-agent" "${testing_cmd[@]}"
+  else
+    printf '[orchestrator] skip testing-agent\n'
   fi
 fi
 

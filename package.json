@@ -102,6 +102,8 @@
     "pr:verify:hosts": "bash scripts/pr-verify-hosts.sh",
     "pr:finalize": "bash scripts/pr-finalizer.sh",
     "multiagent:preflight": "bash scripts/multi-agent/preflight-agent.sh",
+    "multiagent:marketing": "bash scripts/multi-agent/marketing-agent.sh",
+    "multiagent:testing": "bash scripts/multi-agent/testing-agent.sh",
     "multiagent:ci-monitor": "bash scripts/multi-agent/ci-monitor-agent.sh",
     "multiagent:finalizer": "bash scripts/multi-agent/finalizer-agent.sh",
     "multiagent:run": "bash scripts/multi-agent/orchestrator.sh",

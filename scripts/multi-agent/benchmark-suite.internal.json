@@ -36,7 +36,7 @@
       "id": "swe-a2a-contract-regression",
       "style": "swe-style",
       "role": "integration-adapter",
-      "command": "node --test scripts/multi-agent/orchestrator-policy.test.mjs scripts/multi-agent/benchmark-core.test.mjs scripts/multi-agent/a2a-adapter.test.mjs",
+      "command": "node --test scripts/multi-agent/orchestrator-policy.test.mjs scripts/multi-agent/benchmark-core.test.mjs scripts/multi-agent/a2a-adapter.test.mjs scripts/multi-agent/testing-agent-analyze.test.mjs",
       "timeoutSeconds": 900
     }
   ]

@@ -15,6 +15,14 @@
     "tokensPerRun": 1200,
     "usdPer1kTokens": 0.01
   },
+  "marketing-agent": {
+    "tokensPerRun": 1800,
+    "usdPer1kTokens": 0.01
+  },
+  "testing-agent": {
+    "tokensPerRun": 2600,
+    "usdPer1kTokens": 0.01
+  },
   "gatekeeper": {
     "tokensPerRun": 2400,
     "usdPer1kTokens": 0.01
