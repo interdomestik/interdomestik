@@ -13,8 +13,10 @@ Runs local finalization checks for PR readiness:
 
 Environment:
   PR_FINALIZER_SKIP_CHECK_POLLING=true|false
-    - default in CI: true (avoid duplicate waiting for checks already enforced by branch protection)
-    - default locally: false
+    - default in CI (GITHUB_ACTIONS=true): true (avoid duplicate waiting for checks already enforced by branch protection)
+    - default locally (no GITHUB_ACTIONS): false
+    - when set, this variable overrides the default in all environments
+      (for example, set PR_FINALIZER_SKIP_CHECK_POLLING=false in CI to force polling)
 EOF
 }
 
