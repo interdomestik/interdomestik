@@ -47,6 +47,15 @@ run_step() {
   ) 2>&1 | tee "$log_file"
 }
 
+print_context() {
+  if [[ -n "${MULTI_AGENT_CONTEXT_BUNDLE:-}" && -f "${MULTI_AGENT_CONTEXT_BUNDLE:-}" ]]; then
+    printf '[preflight-agent] context-bundle=%s\n' "$MULTI_AGENT_CONTEXT_BUNDLE"
+    printf '[preflight-agent] context-files=%s\n' "${MULTI_AGENT_CONTEXT_FILES:-unknown}"
+  else
+    printf '[preflight-agent] context-bundle=none\n'
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --)
@@ -81,6 +90,7 @@ mkdir -p "$LOG_DIR"
 export DATABASE_URL="${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
 export BETTER_AUTH_SECRET="${BETTER_AUTH_SECRET:-test-secret-for-local-dev-only-32chars-minimum}"
 
+print_context
 run_step "tooling-check" bash -lc "cd '$ROOT_DIR' && node --version && pnpm --version"
 
 if [[ "$SKIP_INSTALL" -eq 0 ]]; then

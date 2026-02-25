@@ -1,0 +1,30 @@
+{
+  "default": {
+    "tokensPerRun": 1000,
+    "usdPer1kTokens": 0.01
+  },
+  "orchestrator": {
+    "tokensPerRun": 800,
+    "usdPer1kTokens": 0.01
+  },
+  "single-agent": {
+    "tokensPerRun": 1400,
+    "usdPer1kTokens": 0.01
+  },
+  "preflight-agent": {
+    "tokensPerRun": 1200,
+    "usdPer1kTokens": 0.01
+  },
+  "gatekeeper": {
+    "tokensPerRun": 2400,
+    "usdPer1kTokens": 0.01
+  },
+  "finalizer-agent": {
+    "tokensPerRun": 1600,
+    "usdPer1kTokens": 0.01
+  },
+  "integration-adapter": {
+    "tokensPerRun": 900,
+    "usdPer1kTokens": 0.01
+  }
+}

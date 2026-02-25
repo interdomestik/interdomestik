@@ -1,0 +1,38 @@
+name: Multi-Agent Benchmark Weekly
+
+on:
+  schedule:
+    - cron: '30 7 * * 1'
+  workflow_dispatch: {}
+
+concurrency:
+  group: multi-agent-benchmark-weekly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: blacksmith-2vcpu-ubuntu-2204
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup toolchain
+        uses: ./.github/actions/setup
+
+      - name: Run weekly internal benchmark lane
+        run: |
+          pnpm multiagent:benchmark -- --suite scripts/multi-agent/benchmark-suite.internal.json --out-dir tmp/multi-agent/benchmarks/weekly --run-id weekly-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload weekly benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-agent-benchmark-${{ github.run_id }}-${{ github.run_attempt }}
+          path: tmp/multi-agent/benchmarks/weekly
+          if-no-files-found: warn
+          retention-days: 30

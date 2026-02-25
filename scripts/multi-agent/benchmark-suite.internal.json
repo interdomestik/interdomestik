@@ -1,0 +1,43 @@
+{
+  "suiteName": "Multi-Agent Internal Benchmark Suite",
+  "description": "Repeatable Terminal-Bench/OSWorld/SWE-style internal benchmark lane for Interdomestik multi-agent operations.",
+  "defaults": {
+    "timeoutSeconds": 1800,
+    "usdPer1kTokens": 0.01,
+    "tokenEstimateByRole": {
+      "gatekeeper": 2400,
+      "preflight-agent": 1200,
+      "orchestrator": 800,
+      "integration-adapter": 900
+    }
+  },
+  "benchmarks": [
+    {
+      "id": "terminal-security-guard",
+      "style": "terminal-bench-style",
+      "role": "gatekeeper",
+      "command": "pnpm security:guard",
+      "timeoutSeconds": 900
+    },
+    {
+      "id": "osworld-preflight-readiness",
+      "style": "osworld-style",
+      "role": "preflight-agent",
+      "command": "bash scripts/multi-agent/preflight-agent.sh --skip-install --skip-state",
+      "timeoutSeconds": 900
+    },
+    {
+      "id": "swe-policy-decision",
+      "style": "swe-style",
+      "role": "orchestrator",
+      "command": "node scripts/multi-agent/orchestrator-policy.mjs --mode auto --complexity high --task-count 3 --estimated-cost-usd 3 --budget-usd 6 --requires-boundary-review true --format json"
+    },
+    {
+      "id": "swe-a2a-contract-regression",
+      "style": "swe-style",
+      "role": "integration-adapter",
+      "command": "node --test scripts/multi-agent/orchestrator-policy.test.mjs scripts/multi-agent/benchmark-core.test.mjs scripts/multi-agent/a2a-adapter.test.mjs",
+      "timeoutSeconds": 900
+    }
+  ]
+}

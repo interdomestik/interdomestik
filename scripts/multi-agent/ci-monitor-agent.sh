@@ -39,6 +39,14 @@ require_tools() {
   command -v jq >/dev/null 2>&1 || fail 'jq is required'
 }
 
+print_context() {
+  if [[ -n "${MULTI_AGENT_CONTEXT_BUNDLE:-}" && -f "${MULTI_AGENT_CONTEXT_BUNDLE:-}" ]]; then
+    printf '[ci-monitor-agent] context-bundle=%s\n' "$MULTI_AGENT_CONTEXT_BUNDLE"
+  else
+    printf '[ci-monitor-agent] context-bundle=none\n'
+  fi
+}
+
 fetch_checks_json() {
   local -a cmd=(gh pr checks)
   if [[ -n "$PR_REF" ]]; then
@@ -157,6 +165,7 @@ while [[ $# -gt 0 ]]; do
   done
 
 require_tools
+print_context
 
 while true; do
   json="$(fetch_checks_json)"
