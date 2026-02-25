@@ -36,6 +36,7 @@ jobs:
           node scripts/check-env-ci.mjs
           pnpm track:audit
           pnpm purity:audit
+          pnpm db:migrations:check-journal
           # Contract Compliance: pnpm check is covered by e2e-gate job
 
   static:
@@ -68,6 +69,8 @@ jobs:
           UPSTASH_REDIS_REST_URL: http://localhost:8080
           UPSTASH_REDIS_REST_TOKEN: dummy-token
         run: pnpm test
+      - name: Release Gate Unit Tests
+        run: pnpm test:release-gate
 
   e2e-gate:
     runs-on: blacksmith-4vcpu-ubuntu-2204
@@ -108,6 +111,11 @@ jobs:
           pnpm seed:e2e
           pnpm seed:assert-e2e
           pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
+
+      - name: RLS Integration Test
+        env:
+          REQUIRE_RLS_INTEGRATION: '1'
+        run: pnpm db:rls:test
 
       - name: E2E Contract Check (Auth Rendering)
         run: |
