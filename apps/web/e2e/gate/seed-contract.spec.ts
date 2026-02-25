@@ -4,7 +4,13 @@ import { gotoApp } from '../utils/navigation';
 
 test.describe('Seed Contract Verification', () => {
   test('Tenant KS has required branch codes', async ({ adminPage: page }, testInfo) => {
-    test.skip(!testInfo.project.name.includes('ks'), 'KS-only contract');
+    if (!testInfo.project.name.includes('ks')) {
+      testInfo.annotations.push({
+        type: 'note',
+        description: 'No-op on MK lane: KS-only branch contract',
+      });
+      return;
+    }
 
     await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
 
@@ -15,7 +21,13 @@ test.describe('Seed Contract Verification', () => {
   });
 
   test('Tenant MK has required branch codes', async ({ adminPage: page }, testInfo) => {
-    test.skip(!testInfo.project.name.includes('mk'), 'MK-only contract');
+    if (!testInfo.project.name.includes('mk')) {
+      testInfo.annotations.push({
+        type: 'note',
+        description: 'No-op on KS lane: MK-only branch contract',
+      });
+      return;
+    }
 
     await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
 
@@ -26,7 +38,13 @@ test.describe('Seed Contract Verification', () => {
   });
 
   test('Isolation: KS Admin cannot see MK Branches', async ({ adminPage: page }, testInfo) => {
-    test.skip(!testInfo.project.name.includes('ks'), 'KS-only check');
+    if (!testInfo.project.name.includes('ks')) {
+      testInfo.annotations.push({
+        type: 'note',
+        description: 'No-op on MK lane: KS-only isolation check',
+      });
+      return;
+    }
 
     await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
 
@@ -37,7 +55,13 @@ test.describe('Seed Contract Verification', () => {
   });
 
   test('Isolation: MK Admin cannot see KS Branches', async ({ adminPage: page }, testInfo) => {
-    test.skip(!testInfo.project.name.includes('mk'), 'MK-only check');
+    if (!testInfo.project.name.includes('mk')) {
+      testInfo.annotations.push({
+        type: 'note',
+        description: 'No-op on KS lane: MK-only isolation check',
+      });
+      return;
+    }
 
     await gotoApp(page, routes.adminBranches(testInfo), testInfo, { marker: 'branches-screen' });
 

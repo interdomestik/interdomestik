@@ -644,30 +644,80 @@ async function runP03AndP04(browser, runCtx) {
         ? buildRoute(runCtx.baseUrl, runCtx.locale, targetFromEnv)
         : defaultTarget;
 
+  async function waitForRolePanelVisible(timeoutMs = TIMEOUTS.nav) {
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < timeoutMs) {
+      const triggerVisible = await page
+        .locator(SELECTORS.roleSelectTrigger)
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      if (triggerVisible) return true;
+
+      const tableVisible = await page
+        .locator(SELECTORS.userRolesTable)
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      if (tableVisible) {
+        const grantVisible = await page
+          .getByRole('button', { name: SELECTORS.grantRoleButtonName })
+          .isVisible({ timeout: TIMEOUTS.quickMarker })
+          .catch(() => false);
+        if (grantVisible) return true;
+      }
+
+      await sleep(300);
+    }
+
+    return false;
+  }
+
+  async function tryRolePanelTarget(targetUrl) {
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
+    const visible = await waitForRolePanelVisible(TIMEOUTS.nav);
+    return visible ? page.url() : null;
+  }
+
   async function ensureRolePanelLoaded(initialTargetUrl) {
-    await page.goto(initialTargetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-    const initialVisible = await page
-      .locator(SELECTORS.roleSelectTrigger)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
-    if (initialVisible) return page.url();
+    const fallbackSeedTargets = [
+      initialTargetUrl,
+      defaultTarget,
+      buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/pack_ks_staff_extra'),
+      buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_a_member_1'),
+    ];
+    const uniqueTargets = [...new Set(fallbackSeedTargets.filter(Boolean))];
+
+    for (const target of uniqueTargets) {
+      const resolved = await tryRolePanelTarget(target).catch(() => null);
+      if (resolved) return resolved;
+    }
 
     await page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users'), {
       waitUntil: 'domcontentloaded',
       timeout: TIMEOUTS.nav,
     });
-    const profileLink = page.locator('a[href*="/admin/users/"]').first();
-    const hasProfileLink = await profileLink
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
-    if (!hasProfileLink) return null;
-    await profileLink.click();
-    await page.waitForLoadState('domcontentloaded', { timeout: TIMEOUTS.nav });
-    const visible = await page
-      .locator(SELECTORS.roleSelectTrigger)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
-    return visible ? page.url() : null;
+    await page
+      .getByTestId('admin-users-page')
+      .first()
+      .waitFor({ state: 'visible', timeout: TIMEOUTS.nav })
+      .catch(() => {});
+
+    const profileHrefs = await page
+      .$$eval('a[href*="/admin/users/"]', anchors =>
+        anchors
+          .map(anchor => anchor.getAttribute('href'))
+          .filter(Boolean)
+          .slice(0, 8)
+      )
+      .catch(() => []);
+
+    for (const href of profileHrefs) {
+      const candidateUrl = buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, href);
+      const resolved = await tryRolePanelTarget(candidateUrl).catch(() => null);
+      if (resolved) return resolved;
+    }
+
+    return null;
   }
 
   try {
@@ -1134,17 +1184,70 @@ async function runP11AndP12(browser, runCtx) {
   const signaturesP12 = [];
 
   const now = Date.now();
-  const uploadName = `gate-upload-${now}.txt`;
+  const uploadName = `gate-upload-${now}.pdf`;
   const uploadPath = path.join(os.tmpdir(), uploadName);
-  fs.writeFileSync(uploadPath, `release-gate upload ${now}\n`, 'utf8');
+  // Minimal valid PDF payload to satisfy strict bucket MIME policies.
+  const uploadPdf = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 44 >>
+stream
+BT /F1 12 Tf 20 100 Td (release-gate) Tj ET
+endstream
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF
+`;
+  fs.writeFileSync(uploadPath, uploadPdf, 'utf8');
 
   const context = await browser.newContext({ acceptDownloads: true });
   const page = await context.newPage();
+  const clientSignals = [];
+  const pushClientSignal = signal => {
+    if (clientSignals.length < 10 && signal) {
+      clientSignals.push(String(signal).slice(0, 400));
+    }
+  };
   let signedUploadStatuses = [];
   let documentsDownloadStatuses = [];
   let persistenceAfterRefresh = false;
   let persistenceAfterRelogin = false;
   const requireMemberUpload = envFlag('RELEASE_GATE_REQUIRE_MEMBER_UPLOAD', true);
+  const waitForUploadedFileVisible = async (targetPage, options = {}) => {
+    const timeoutMs = Number(options.timeoutMs ?? TIMEOUTS.upload);
+    const reloadBetweenAttempts = options.reloadBetweenAttempts === true;
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < timeoutMs) {
+      const isVisible = await targetPage
+        .getByText(uploadName)
+        .first()
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      if (isVisible) {
+        return true;
+      }
+
+      if (reloadBetweenAttempts) {
+        await targetPage
+          .reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav })
+          .catch(() => {});
+      } else {
+        await targetPage.waitForTimeout(450);
+      }
+    }
+
+    return false;
+  };
 
   page.on('response', response => {
     const url = response.url();
@@ -1154,6 +1257,21 @@ async function runP11AndP12(browser, runCtx) {
     if (url.includes('/api/documents/') && url.includes('/download')) {
       documentsDownloadStatuses.push(`${response.status()}@${url}`);
     }
+  });
+  page.on('console', msg => {
+    const text = msg.text();
+    const type = msg.type();
+    if (
+      type === 'error' ||
+      /upload flow error|storage upload unavailable|failed to generate upload url|mime type|supabase/i.test(
+        text
+      )
+    ) {
+      pushClientSignal(`console.${type}: ${text}`);
+    }
+  });
+  page.on('pageerror', error => {
+    pushClientSignal(`pageerror: ${String(error.message || error)}`);
   });
 
   try {
@@ -1210,20 +1328,17 @@ async function runP11AndP12(browser, runCtx) {
     }
     await page.setInputFiles(SELECTORS.fileInput, uploadPath);
     await page.getByRole('button', { name: SELECTORS.uploadButtonName }).click();
-    await page.waitForTimeout(1600);
-    await page.getByText(uploadName).waitFor({ state: 'visible', timeout: TIMEOUTS.upload });
-    evidenceP11.push(`upload file listed after submit: ${uploadName}`);
+    await page.waitForTimeout(1200);
+    const listedAfterSubmit = await waitForUploadedFileVisible(page, {
+      timeoutMs: TIMEOUTS.upload,
+      reloadBetweenAttempts: false,
+    });
+    evidenceP11.push(`upload file listed after submit=${listedAfterSubmit}`);
 
-    const refreshStart = Date.now();
-    while (Date.now() - refreshStart < TIMEOUTS.upload) {
-      await page.reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-      persistenceAfterRefresh = await page
-        .getByText(uploadName)
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (persistenceAfterRefresh) break;
-      await sleep(500);
-    }
+    persistenceAfterRefresh = await waitForUploadedFileVisible(page, {
+      timeoutMs: TIMEOUTS.upload,
+      reloadBetweenAttempts: true,
+    });
     evidenceP11.push(`after hard refresh listed=${persistenceAfterRefresh}`);
 
     await context.close();
@@ -1245,24 +1360,19 @@ async function runP11AndP12(browser, runCtx) {
       authState: runCtx.authState,
     });
     await reloginPage.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-    const reloginStart = Date.now();
-    while (Date.now() - reloginStart < TIMEOUTS.upload) {
-      persistenceAfterRelogin = await reloginPage
-        .getByText(uploadName)
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (persistenceAfterRelogin) break;
-      await reloginPage
-        .reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav })
-        .catch(() => {});
-      await sleep(500);
-    }
+    persistenceAfterRelogin = await waitForUploadedFileVisible(reloginPage, {
+      timeoutMs: TIMEOUTS.upload,
+      reloadBetweenAttempts: true,
+    });
     evidenceP11.push(`after logout/login listed=${persistenceAfterRelogin}`);
 
     const signed200 = signedUploadStatuses.some(entry => entry.startsWith('200@'));
     evidenceP11.push(
       `signed upload statuses: ${signedUploadStatuses.length ? signedUploadStatuses.join(' | ') : 'none captured'}`
     );
+    if (clientSignals.length > 0) {
+      evidenceP11.push(`client signals: ${clientSignals.join(' || ')}`);
+    }
     if (!persistenceAfterRefresh || !persistenceAfterRelogin) {
       signaturesP11.push(
         `P1.1_UPLOAD_PERSISTENCE_FAILED refresh=${persistenceAfterRefresh} relogin=${persistenceAfterRelogin} file=${uploadName}`
@@ -1336,6 +1446,10 @@ async function runP11AndP12(browser, runCtx) {
       );
     } else {
       signaturesP11.push(`P1.1_EXCEPTION message=${rawMessage}`);
+    }
+    if (clientSignals.length > 0) {
+      evidenceP11.push(`client signals: ${clientSignals.join(' || ')}`);
+      signaturesP11.push(`P1.1_CLIENT_SIGNAL ${clientSignals[0]}`);
     }
     await context.close().catch(() => {});
   } finally {

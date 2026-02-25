@@ -115,6 +115,44 @@ describe('member claim upload actions', () => {
     expect(hoisted.createSignedUploadUrl).toHaveBeenCalledTimes(1);
   });
 
+  it('retries transient signed upload URL failures before succeeding', async () => {
+    hoisted.createSignedUploadUrl
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: 'fetch failed' },
+      })
+      .mockResolvedValueOnce({
+        data: { signedUrl: 'https://signed.example.com/upload-2', token: 'upload-token-2' },
+        error: null,
+      });
+
+    const result = await generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        bucket: 'claim-evidence',
+      })
+    );
+    expect(hoisted.createSignedUploadUrl).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry non-transient signed upload URL errors', async () => {
+    hoisted.createSignedUploadUrl.mockResolvedValue({
+      data: null,
+      error: { message: 'mime type text/plain is not supported' },
+    });
+
+    const result = await generateUploadUrl('claim-1', 'evidence.txt', 'text/plain', 1024);
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Failed to generate upload URL: mime type text/plain is not supported',
+      status: 500,
+    });
+    expect(hoisted.createSignedUploadUrl).toHaveBeenCalledTimes(1);
+  });
+
   it('denies signed URL issuance for same-tenant claims owned by another member', async () => {
     hoisted.findClaimFirst.mockResolvedValue(null);
 
