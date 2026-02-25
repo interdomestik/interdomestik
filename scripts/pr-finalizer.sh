@@ -323,7 +323,7 @@ GRAPHQL
     )
 
     local row
-    for row in "${unresolved_rows[@]}"; do
+    for row in "${unresolved_rows[@]-}"; do
       unresolved_total=$((unresolved_total + 1))
       IFS=$'\t' read -r thread_url thread_authors thread_has_copilot <<<"${row}"
       if [[ "${thread_has_copilot}" == "true" ]]; then
