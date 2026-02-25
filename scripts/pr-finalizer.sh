@@ -10,6 +10,11 @@ Runs local finalization checks for PR readiness:
   - runs pnpm type-check
   - runs pnpm test
   - validates required GitHub checks and unresolved review threads
+
+Environment:
+  PR_FINALIZER_SKIP_CHECK_POLLING=true|false
+    - default in CI: true (avoid duplicate waiting for checks already enforced by branch protection)
+    - default locally: false
 EOF
 }
 
@@ -83,6 +88,28 @@ pr_context() {
 }
 
 require_gh_checks() {
+  local skip_polling_env="${PR_FINALIZER_SKIP_CHECK_POLLING:-}"
+  local skip_polling="false"
+
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    skip_polling="true"
+  fi
+
+  if [[ -n "${skip_polling_env}" ]]; then
+    case "${skip_polling_env,,}" in
+      1|true|yes|on) skip_polling="true" ;;
+      0|false|no|off) skip_polling="false" ;;
+      *)
+        fail "invalid PR_FINALIZER_SKIP_CHECK_POLLING value: ${skip_polling_env}"
+        ;;
+    esac
+  fi
+
+  if [[ "${skip_polling}" == "true" ]]; then
+    echo "[pr-finalizer] INFO: skipping required-check polling (handled by branch protection)."
+    return 0
+  fi
+
   local gh_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
   if [[ -n "${gh_token}" ]]; then
     export GH_TOKEN="${gh_token}"

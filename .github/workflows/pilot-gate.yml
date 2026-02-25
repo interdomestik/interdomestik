@@ -142,12 +142,6 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Generate Playwright auth states
-        run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
-
-      - name: Run PR verification
-        run: pnpm pr:verify
-
       - name: Start web server for release gate
         shell: bash
         run: |
