@@ -55,6 +55,7 @@ apps/web/e2e/.auth/
 .DS_Store
 *.pem
 *.log
+*.backup
 
 # Supabase
 supabase/.temp
