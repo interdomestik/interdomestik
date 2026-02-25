@@ -1,6 +1,6 @@
 # V1.0.0 Bulletproof Tracker
 
-Last updated: 2026-02-24
+Last updated: 2026-02-25
 Current phase: M0-A (Gate Foundation)
 Plan reference: docs/plans/2026-02-22-v1-bulletproof-program.md
 Status command: pnpm v1:status
@@ -88,7 +88,7 @@ Status command: pnpm v1:status
 
 ### M4 Evidence Streak (2026-04-06 to 2026-04-15)
 
-- [ ] A22 - Complete 10 consecutive daily full-green RC runs (Progress: 1/10; latest run: 2026-02-24). Verify: daily artifact packs in `tmp/release-streak/`
+- [ ] A22 - Complete 10 consecutive daily full-green RC runs (Progress: 2/10; latest run: 2026-02-25). Verify: daily artifact packs in `tmp/release-streak/`
 
 ## Test Delta Checklist (use in every A12-A22 PR)
 
@@ -110,6 +110,7 @@ Status command: pnpm v1:status
 
 ## Notes Log (append newest first)
 
+- 2026-02-25: A22 daily full-green run #2/10 status: local deterministic capture `a22-run-20260225T122458Z` completed with `failures=0`; required gates passed in sequence (`pnpm security:guard`, `pnpm i18n:check && pnpm i18n:purity:check`, `REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test`, `pnpm pr:verify:hosts`, `pnpm -s release:gate:p0:raw`, `pnpm -s release:gate:p1:raw`, `pnpm -s release:gate:raw --suite all`, `pnpm e2e:gate`, `node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json`, `node scripts/release-gate/verify-required-specs.mjs --manifest scripts/release-gate/v1-required-specs.json --playwright-json apps/web/test-results/report.json --junit apps/web/test-results/junit.xml`, `node scripts/release-gate/write-rc-manifest.mjs ...`, `node scripts/release-gate/streak/capture-streak.mjs --run-id a22-run-20260225T122458Z`); evidence at `tmp/release-rc/a22-run-20260225T122458Z/logs/_summary.log`, `tmp/release-rc/a22-run-20260225T122458Z/rc.json`, `tmp/release-streak/2026-02-25/a22-run-20260225T122458Z/pack.sha256`, and release report `docs/release-gates/2026-02-25_production_unknown.md` (`GO`).
 - 2026-02-24: A22 daily full-green run #1/10 (managed multi-agent) status: Orchestrator used isolated worktrees/branches (`codex/a22-orchestrator-20260224-192526`, `codex/a22-gatekeeper-20260224-192526`, `codex/a22-fixer-20260224-192526`, `codex/a22-scribe-20260224-192526`) and Gatekeeper completed required gates green with exact commands `pnpm security:guard` (pass), `REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test` (pass with `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`, `RLS_INTEGRATION_RAN=1`), `pnpm pr:verify:hosts` (pass; gate-fast `73 passed, 7 skipped`; smoke `13 passed, 1 skipped`), and `pnpm e2e:gate` (pass; `75 passed, 7 skipped`); preflight blockers resolved in-worker before rerun (`pnpm install --frozen-lockfile`, `pnpm --filter @interdomestik/web test:e2e -- e2e/setup.state.spec.ts --project=setup-ks --project=setup-mk`), with artifacts at `/Users/arbenlila/.config/superpowers/worktrees/interdomestik-v1/a22-gatekeeper-20260224-192526/tmp/release-streak/2026-02-24/a22-run-20260224-192526/gatekeeper/00-setup-pnpm-install.log`, `/Users/arbenlila/.config/superpowers/worktrees/interdomestik-v1/a22-gatekeeper-20260224-192526/tmp/release-streak/2026-02-24/a22-run-20260224-192526/gatekeeper/01-security-guard-attempt2.log`, `/Users/arbenlila/.config/superpowers/worktrees/interdomestik-v1/a22-gatekeeper-20260224-192526/tmp/release-streak/2026-02-24/a22-run-20260224-192526/gatekeeper/02-rls-required-attempt3-with-dburl.log`, `/Users/arbenlila/.config/superpowers/worktrees/interdomestik-v1/a22-gatekeeper-20260224-192526/tmp/release-streak/2026-02-24/a22-run-20260224-192526/gatekeeper/03-pr-verify-hosts-attempt2.log`, `/Users/arbenlila/.config/superpowers/worktrees/interdomestik-v1/a22-gatekeeper-20260224-192526/tmp/release-streak/2026-02-24/a22-run-20260224-192526/gatekeeper/04-e2e-gate.log`.
 - 2026-02-24: A21 merged status: PR #197 (`08ef1555`) merged to `main` after all required checks passed (`static`, `unit`, `e2e`, `e2e-gate`, `pr:verify + pilot:check`, `pr-finalizer`); tracker A21 lines updated to completed and Next Up advanced to A22.
 - 2026-02-24: A20 merged status: PR #198 (`24c357da`) merged to `main` after all required checks passed (`static`, `unit`, `e2e`, `e2e-gate`, `pr:verify + pilot:check`, `pr-finalizer`); tracker A20 lines updated to completed and Next Up advanced to A21.
