@@ -636,6 +636,7 @@ async function runP03AndP04(browser, runCtx) {
   const page = await context.newPage();
 
   const targetFromEnv = process.env.RELEASE_GATE_TARGET_USER_URL;
+  const hasExplicitTarget = typeof targetFromEnv === 'string' && targetFromEnv.trim().length > 0;
   const defaultTarget = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl);
   const targetUrl =
     targetFromEnv && targetFromEnv.startsWith('http')
@@ -679,8 +680,14 @@ async function runP03AndP04(browser, runCtx) {
   }
 
   async function ensureRolePanelLoaded(initialTargetUrl) {
+    const initialResolved = await tryRolePanelTarget(initialTargetUrl).catch(() => null);
+    if (initialResolved) return initialResolved;
+
+    // CI may provide a tenant-scoped explicit target that is intentionally inaccessible.
+    // In that case, do not mutate fallback users; allow caller to skip/fail via policy.
+    if (hasExplicitTarget) return null;
+
     const fallbackSeedTargets = [
-      initialTargetUrl,
       defaultTarget,
       buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/pack_ks_staff_extra'),
       buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_a_member_1'),
