@@ -72,6 +72,46 @@ jobs:
       - name: Release Gate Unit Tests
         run: pnpm test:release-gate
 
+  multi-agent-dry-run:
+    if: github.event_name == 'pull_request'
+    runs-on: blacksmith-2vcpu-ubuntu-2204
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Generate PR hardening DAG plan
+        id: pr_hardening_dry_run
+        run: |
+          set -euo pipefail
+          bash scripts/multi-agent/orchestrator.sh --pipeline pr-hardening --dry-run --pr "${{ github.event.pull_request.number }}"
+
+      - name: Validate PR hardening dry-run output root
+        if: always()
+        id: dry_run_root
+        run: |
+          set -euo pipefail
+          run_root="${{ steps.pr_hardening_dry_run.outputs.pr_hardening_run_root }}"
+          if [[ -z "${run_root}" ]]; then
+            echo "error: 'pr_hardening_run_root' output from 'pr_hardening_dry_run' step is empty." >&2
+            echo "Check the dry-run step logs for orchestrator output failures." >&2
+            exit 1
+          fi
+          echo "run_root=${run_root}" >>"$GITHUB_OUTPUT"
+
+      - name: Upload PR hardening dry-run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-agent-dry-run-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ steps.dry_run_root.outputs.run_root }}/run-manifest.md
+            ${{ steps.dry_run_root.outputs.run_root }}/dispatch-order.md
+            ${{ steps.dry_run_root.outputs.run_root }}/dry-run-plan.md
+            ${{ steps.dry_run_root.outputs.run_root }}/trace.ndjson
+          if-no-files-found: warn
+          retention-days: 14
+
   e2e-gate:
     runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 30

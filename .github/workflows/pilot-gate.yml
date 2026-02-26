@@ -200,3 +200,95 @@ jobs:
           path: docs/release-gates/*.md
           if-no-files-found: warn
           retention-days: 14
+
+  multi-agent-pr-hardening:
+    name: Multi-Agent PR Hardening + Merge Gate
+    needs:
+      - pilot-gate
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interdomestik_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d interdomestik_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      CI: 'true'
+      PLAYWRIGHT: '1'
+      PORT: 3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+        with:
+          install-playwright: true
+
+      - name: Prepare CI database
+        shell: bash
+        run: |
+          set -euo pipefail
+          until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+          pnpm db:migrate
+          pnpm seed:e2e
+          pnpm seed:assert-e2e
+
+      - name: Run full PR hardening pipeline
+        id: harden
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmd=(bash scripts/multi-agent/orchestrator.sh --pipeline pr-hardening)
+          if [[ -n "${{ github.event.pull_request.number || '' }}" ]]; then
+            cmd+=(--pr "${{ github.event.pull_request.number }}")
+          fi
+          "${cmd[@]}"
+
+      - name: Enforce multi-agent merge gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_root="${{ steps.harden.outputs.pr_hardening_run_root }}"
+          if [[ -z "${run_root}" ]]; then
+            echo "error: 'pr_hardening_run_root' output from 'harden' step is empty or unset." >&2
+            echo "Check the full PR hardening step logs for early failures before merge-gate." >&2
+            exit 1
+          fi
+          pnpm -s multiagent:merge-gate -- --run-root "${run_root}"
+
+      - name: Upload multi-agent hardening artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-agent-hardening-${{ github.run_id }}
+          path: |
+            ${{ steps.harden.outputs.pr_hardening_run_root }}/evidence/
+            ${{ steps.harden.outputs.pr_hardening_run_root }}/prompts/
+            ${{ steps.harden.outputs.pr_hardening_run_root }}/remediation/
+            ${{ steps.harden.outputs.pr_hardening_run_root }}/trace.ndjson
+            ${{ steps.harden.outputs.pr_hardening_run_root }}/run-manifest.md
+            ${{ steps.harden.outputs.pr_hardening_run_root }}/dispatch-order.md
+          if-no-files-found: warn
+          retention-days: 14

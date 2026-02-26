@@ -20,6 +20,22 @@ runs:
         node-version-file: '.nvmrc'
         cache: 'pnpm'
 
+    - name: Ensure ripgrep
+      shell: bash
+      run: |
+        set -euo pipefail
+        if command -v rg >/dev/null 2>&1; then
+          exit 0
+        fi
+
+        apt_cmd="apt-get"
+        if command -v sudo >/dev/null 2>&1; then
+          apt_cmd="sudo apt-get"
+        fi
+
+        ${apt_cmd} update
+        ${apt_cmd} install -y ripgrep
+
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
       shell: bash

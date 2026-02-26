@@ -2,10 +2,15 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$ROOT_DIR/scripts/multi-agent/pr-hardening-common.sh"
 LOG_DIR="${ROOT_DIR}/tmp/multi-agent/marketing"
 SURFACE="both"
 STRICT=0
 MIN_SCORE=85
+RUN_ROOT=""
+ROLE="marketing"
+CONTRACT_MODE=0
+FIRST_FAILING_COMMAND="none"
 
 SCORE=0
 MAX_SCORE=0
@@ -26,6 +31,7 @@ produces a scorecard report.
 Options:
   --surface <member-dashboard|landing-hero|both>  Audit target (default: both)
   --log-dir <path>                                 Output directory for reports
+  --run-root <path>                                Contract mode for PR hardening DAG evidence/status writes
   --strict                                         Exit non-zero when score < --min-score
   --min-score <0-100>                              Minimum passing score in strict mode (default: 85)
   -h, --help                                       Show this help
@@ -191,6 +197,12 @@ while [[ $# -gt 0 ]]; do
       LOG_DIR="$2"
       shift 2
       ;;
+    --run-root)
+      [[ $# -ge 2 ]] || fail 'missing value for --run-root'
+      RUN_ROOT="$2"
+      CONTRACT_MODE=1
+      shift 2
+      ;;
     --strict)
       STRICT=1
       shift
@@ -220,6 +232,11 @@ case "$SURFACE" in
     fail "--surface must be one of: member-dashboard, landing-hero, both"
     ;;
 esac
+
+if [[ "$CONTRACT_MODE" -eq 1 ]]; then
+  require_run_root "$RUN_ROOT"
+  LOG_DIR="$RUN_ROOT/evidence/$ROLE"
+fi
 
 MEMBER_DASHBOARD_FILE="$ROOT_DIR/apps/web/src/components/dashboard/member-dashboard-v2.tsx"
 LANDING_PAGE_FILE="$ROOT_DIR/apps/web/src/app/[locale]/page.tsx"
@@ -378,8 +395,28 @@ SCORE_PERCENT=$((SCORE * 100 / MAX_SCORE))
 
 printf '[marketing-agent] score=%s/%s (%s%%)\n' "$SCORE" "$MAX_SCORE" "$SCORE_PERCENT"
 printf '[marketing-agent] report=%s\n' "$REPORT_FILE"
-
+STATUS="PASS"
 if [[ "$STRICT" -eq 1 && "$SCORE_PERCENT" -lt "$MIN_SCORE" ]]; then
+  STATUS="FAIL"
+  FIRST_FAILING_COMMAND="marketing score gate (${SCORE_PERCENT}% < ${MIN_SCORE}%)"
+fi
+
+if [[ "$CONTRACT_MODE" -eq 1 ]]; then
+  cp "$REPORT_FILE" "$LOG_DIR/marketing-summary.md"
+  write_role_status "$ROLE" "$RUN_ROOT" "$STATUS" "$FIRST_FAILING_COMMAND" "score=${SCORE_PERCENT}% strict=$STRICT min_score=$MIN_SCORE"
+  if [[ "$STATUS" == "PASS" ]]; then
+    printf 'MARKETING_STATUS: PASS\n'
+    printf '[marketing-agent] PASS\n'
+    exit 0
+  fi
+
+  printf 'MARKETING_STATUS: FAIL\n'
+  printf 'FIRST_FAILING_COMMAND: %s\n' "$FIRST_FAILING_COMMAND"
+  printf '[marketing-agent] strict-mode failure: score %s%% is below minimum %s%%\n' "$SCORE_PERCENT" "$MIN_SCORE" >&2
+  exit 1
+fi
+
+if [[ "$STATUS" == "FAIL" ]]; then
   printf '[marketing-agent] strict-mode failure: score %s%% is below minimum %s%%\n' "$SCORE_PERCENT" "$MIN_SCORE" >&2
   exit 1
 fi

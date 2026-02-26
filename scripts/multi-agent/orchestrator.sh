@@ -2,11 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-RUN_ID="$(date -u +%Y%m%d-%H%M%S)"
+source "$ROOT_DIR/scripts/multi-agent/pr-hardening-common.sh"
+RUN_ID="$(date -u +%Y%m%d-%H%M%S)-$(random_suffix)"
 LOG_ROOT="${ROOT_DIR}/tmp/multi-agent/run-${RUN_ID}"
 EVENTS_FILE=""
 ROLE_SCORECARD_FILE=""
 PR_REF=""
+PIPELINE="default"
 RUN_PREFLIGHT=1
 RUN_GATES=1
 RUN_MARKETING=0
@@ -14,6 +16,12 @@ RUN_TESTING=0
 RUN_FINALIZER=0
 WATCH_CI=0
 CI_INTERVAL=20
+ALLOW_NODE_BYPASS=0
+PR_HARDENING_AUTO_REMEDIATE=1
+PR_HARDENING_MAX_REMEDIATION_ATTEMPTS=2
+PR_HARDENING_PUBLISH_SCRIBE_PR_COMMENT=1
+PR_HARDENING_AGENT_TIMEOUT_SECONDS=900
+PR_HARDENING_DRY_RUN=0
 MARKETING_SURFACE="both"
 MARKETING_STRICT=0
 MARKETING_MIN_SCORE=85
@@ -49,6 +57,7 @@ Enterprise multi-agent entrypoint with explicit lanes:
   - finalizer-agent (optional)
 
 Options:
+  --pipeline <default|pr-hardening>         Pipeline mode (default: default)
   --pr <number|url|branch>  PR selector for CI monitor/finalizer
   --log-root <path>         Override run log root (default: tmp/multi-agent/run-<UTC>)
   --skip-preflight          Skip preflight lane
@@ -67,6 +76,12 @@ Options:
   --finalize                Run finalizer-agent at the end
   --watch-ci                Keep CI monitor running in finalizer mode
   --ci-interval <seconds>   CI watch interval (default: 20)
+  --allow-node-bypass       Explicitly allow SKIP_NODE_GUARD=1
+  --no-auto-remediate       Disable PR-hardening remediation loop
+  --max-remediation-attempts <integer>  PR-hardening remediation attempt cap (default: 2)
+  --no-publish-scribe-pr-comment        Disable scribe PR comment publish in PR-hardening pipeline
+  --agent-timeout-seconds <integer>     PR-hardening role timeout cap in seconds (default: 900)
+  --dry-run                             In PR-hardening mode, prepare DAG artifacts only (no agents)
   --execution-mode <auto|single|multi>     Orchestration mode (default: auto)
   --task-complexity <low|medium|high>      Complexity signal for auto mode (default: high)
   --estimated-cost-usd <number>            Estimated run cost for policy evaluation
@@ -87,6 +102,58 @@ fail() {
   exit 1
 }
 
+normalize_runtime_environment() {
+  assert_node_bypass_policy "orchestrator" "$ALLOW_NODE_BYPASS"
+
+  if [[ "$ALLOW_NODE_BYPASS" -eq 1 ]]; then
+    export SKIP_NODE_GUARD=1
+    printf '[orchestrator] node guard bypass explicitly enabled\n'
+  fi
+
+  if [[ "${SKIP_NODE_GUARD:-}" != "1" ]]; then
+    bash "$ROOT_DIR/scripts/node-guard.sh"
+  else
+    printf '[orchestrator] SKIP_NODE_GUARD=1 (explicit bypass)\n'
+  fi
+
+  if [[ -z "${DATABASE_URL:-}" ]]; then
+    export DATABASE_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+    printf '[orchestrator] DATABASE_URL not set; defaulting to local deterministic URL\n'
+  fi
+}
+
+run_pr_hardening_pipeline() {
+  local -a cmd=(bash "$ROOT_DIR/scripts/multi-agent/pr-hardening-pipeline.sh")
+  if [[ -n "$PR_REF" ]]; then
+    cmd+=(--pr "$PR_REF")
+  fi
+  if [[ "$RUN_FINALIZER" -eq 1 ]]; then
+    cmd+=(--finalize)
+  fi
+  if [[ "$WATCH_CI" -eq 1 ]]; then
+    cmd+=(--watch-ci --ci-interval "$CI_INTERVAL")
+  fi
+  if [[ "$ALLOW_NODE_BYPASS" -eq 1 ]]; then
+    cmd+=(--allow-node-bypass)
+  fi
+  if [[ "$PR_HARDENING_AUTO_REMEDIATE" -ne 1 ]]; then
+    cmd+=(--no-auto-remediate)
+  fi
+  cmd+=(--max-remediation-attempts "$PR_HARDENING_MAX_REMEDIATION_ATTEMPTS")
+  if [[ "$PR_HARDENING_PUBLISH_SCRIBE_PR_COMMENT" -ne 1 ]]; then
+    cmd+=(--no-publish-scribe-pr-comment)
+  fi
+  cmd+=(--agent-timeout-seconds "$PR_HARDENING_AGENT_TIMEOUT_SECONDS")
+  if [[ "$PR_HARDENING_DRY_RUN" -eq 1 ]]; then
+    cmd+=(--dry-run)
+  fi
+  if [[ "$MARKETING_STRICT" -eq 1 ]]; then
+    cmd+=(--marketing-strict)
+  fi
+  cmd+=(--marketing-min-score "$MARKETING_MIN_SCORE")
+  "${cmd[@]}"
+}
+
 step=0
 append_event() {
   local role="$1"
@@ -97,6 +164,7 @@ append_event() {
   timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   printf '{"timestamp":"%s","role":"%s","label":"%s","status":%s,"latencyMs":%s}\n' \
     "$timestamp" "$role" "$label" "$status" "$latency_ms" >>"$EVENTS_FILE"
+  emit_trace_event "$LOG_ROOT" "$RUN_ID" "$role" "$label" "$status" "$latency_ms" ""
 }
 
 run_role_step() {
@@ -119,10 +187,14 @@ run_role_step() {
   printf '\n[orchestrator] [%s] %s\n' "$role" "$label"
   set +e
   (
-    set -x
-    "$@"
-  ) 2>&1 | tee "$log_file"
-  cmd_status=${PIPESTATUS[0]}
+    set -o pipefail
+    (
+      set -x
+      "$@"
+    ) 2>&1 | redact_stream | tee "$log_file"
+    exit "${PIPESTATUS[0]}"
+  )
+  cmd_status=$?
   set -e
   ended_ms="$(node -e 'process.stdout.write(String(Date.now()))')"
   latency_ms="$((ended_ms - started_ms))"
@@ -288,6 +360,11 @@ while [[ $# -gt 0 ]]; do
       shift
       continue
       ;;
+    --pipeline)
+      [[ $# -ge 2 ]] || fail 'missing value for --pipeline'
+      PIPELINE="$2"
+      shift 2
+      ;;
     --pr)
       [[ $# -ge 2 ]] || fail 'missing value for --pr'
       PR_REF="$2"
@@ -368,6 +445,32 @@ while [[ $# -gt 0 ]]; do
       CI_INTERVAL="$2"
       shift 2
       ;;
+    --allow-node-bypass)
+      ALLOW_NODE_BYPASS=1
+      shift
+      ;;
+    --no-auto-remediate)
+      PR_HARDENING_AUTO_REMEDIATE=0
+      shift
+      ;;
+    --max-remediation-attempts)
+      [[ $# -ge 2 ]] || fail 'missing value for --max-remediation-attempts'
+      PR_HARDENING_MAX_REMEDIATION_ATTEMPTS="$2"
+      shift 2
+      ;;
+    --agent-timeout-seconds)
+      [[ $# -ge 2 ]] || fail 'missing value for --agent-timeout-seconds'
+      PR_HARDENING_AGENT_TIMEOUT_SECONDS="$2"
+      shift 2
+      ;;
+    --dry-run)
+      PR_HARDENING_DRY_RUN=1
+      shift
+      ;;
+    --no-publish-scribe-pr-comment)
+      PR_HARDENING_PUBLISH_SCRIBE_PR_COMMENT=0
+      shift
+      ;;
     --execution-mode)
       [[ $# -ge 2 ]] || fail 'missing value for --execution-mode'
       EXECUTION_MODE="$2"
@@ -434,6 +537,14 @@ if ! [[ "$AUTO_RETRY_MAX" =~ ^[0-9]+$ ]]; then
   fail '--auto-retry-max must be a non-negative integer'
 fi
 
+if ! [[ "$PR_HARDENING_MAX_REMEDIATION_ATTEMPTS" =~ ^[0-9]+$ ]]; then
+  fail '--max-remediation-attempts must be a non-negative integer'
+fi
+
+if ! [[ "$PR_HARDENING_AGENT_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || [[ "$PR_HARDENING_AGENT_TIMEOUT_SECONDS" -lt 1 ]]; then
+  fail '--agent-timeout-seconds must be a positive integer'
+fi
+
 if ! [[ "$MARKETING_MIN_SCORE" =~ ^[0-9]+$ ]] || [[ "$MARKETING_MIN_SCORE" -gt 100 ]]; then
   fail '--marketing-min-score must be an integer between 0 and 100'
 fi
@@ -458,6 +569,20 @@ esac
 
 if [[ "$TESTING_SUITE" == "custom" && -z "$TESTING_COMMAND" ]]; then
   fail '--testing-command is required when --testing-suite custom'
+fi
+
+case "$PIPELINE" in
+  default|pr-hardening) ;;
+  *)
+    fail '--pipeline must be one of: default, pr-hardening'
+    ;;
+esac
+
+normalize_runtime_environment
+
+if [[ "$PIPELINE" == "pr-hardening" ]]; then
+  run_pr_hardening_pipeline
+  exit 0
 fi
 
 EVENTS_FILE="${LOG_ROOT}/events.ndjson"
