@@ -121,6 +121,68 @@ function isLoginDependentCheck(checkId) {
   return LOGIN_DEPENDENT_CHECKS.has(checkId);
 }
 
+function parseBooleanEnv(value) {
+  if (value == null) return null;
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized) return null;
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return null;
+}
+
+function shouldDisallowSkippedChecks(envName) {
+  const explicit = parseBooleanEnv(process.env.RELEASE_GATE_DISALLOW_SKIP);
+  if (explicit != null) return explicit;
+  return String(envName || '').toLowerCase() === 'production';
+}
+
+function enforceNoSkipOnSelectedChecks(checks, selected, envName) {
+  if (!shouldDisallowSkippedChecks(envName)) {
+    return checks;
+  }
+
+  const selectedSet = new Set(selected);
+  const byId = new Map(checks.map(check => [check.id, check]));
+
+  for (const checkId of selected) {
+    const check = byId.get(checkId);
+    if (!check) {
+      byId.set(
+        checkId,
+        checkResult(
+          checkId,
+          'FAIL',
+          [`skip_policy=disallowed env=${envName}`, 'execution_result=missing'],
+          [`${checkId}_NOT_EXECUTED`]
+        )
+      );
+      continue;
+    }
+
+    if (check.status === 'SKIPPED') {
+      const signatures = Array.from(
+        new Set([...(check.signatures || []), `${checkId}_SKIPPED_NOT_ALLOWED`])
+      );
+      byId.set(checkId, {
+        ...check,
+        status: 'FAIL',
+        evidence: [...(check.evidence || []), `skip_policy=disallowed env=${envName}`],
+        signatures,
+      });
+    }
+  }
+
+  const normalized = [];
+  for (const checkId of selected) {
+    const check = byId.get(checkId);
+    if (check) normalized.push(check);
+  }
+  for (const check of checks) {
+    if (!selectedSet.has(check.id)) normalized.push(check);
+  }
+  return normalized;
+}
+
 function preflightEvidenceLine({ endpoint, attempt, status, message }) {
   if (typeof status === 'number') {
     return `auth_preflight endpoint=${endpoint} attempt=${attempt} status=${status}`;
@@ -1756,6 +1818,8 @@ async function main() {
       checks.push(runVercelLogsSweep(runCtx));
     }
 
+    const normalizedChecks = enforceNoSkipOnSelectedChecks(checks, selected, runCtx.envName);
+
     const report = writeReleaseGateReport({
       outDir: args.outDir,
       envName: args.envName,
@@ -1766,7 +1830,7 @@ async function main() {
       deploymentSource: runCtx.deployment.source,
       generatedAt: new Date(),
       executedChecks: selected,
-      checks,
+      checks: normalizedChecks,
       accounts: {
         member: credentials.member.email,
         agent: credentials.agent.email,
@@ -1782,15 +1846,15 @@ async function main() {
     });
 
     console.log(`[release-gate] report=${report.reportPath}`);
-    for (const check of checks) {
+    for (const check of normalizedChecks) {
       console.log(`[release-gate] ${check.id}=${check.status}`);
       for (const signature of check.signatures || []) {
         console.error(`[release-gate] signature ${signature}`);
       }
     }
 
-    const hasFailure = checks.some(check => check.status === 'FAIL');
-    const hasMisconfig = checks.some(check =>
+    const hasFailure = normalizedChecks.some(check => check.status === 'FAIL');
+    const hasMisconfig = normalizedChecks.some(check =>
       (check.signatures || []).some(signature => signature.includes('_MISCONFIG_'))
     );
     process.exit(hasMisconfig ? 2 : hasFailure ? 1 : 0);
@@ -1803,11 +1867,13 @@ module.exports = {
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
   computeRetryDelayMs,
+  enforceNoSkipOnSelectedChecks,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
   sessionCacheKeyForAccount,
+  shouldDisallowSkippedChecks,
 };
 
 if (require.main === module) {

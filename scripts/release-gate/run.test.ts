@@ -5,14 +5,26 @@ const {
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
   computeRetryDelayMs,
+  enforceNoSkipOnSelectedChecks,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
   sessionCacheKeyForAccount,
+  shouldDisallowSkippedChecks,
 } = require('./run.ts');
 const { checkPortalMarkers } = require('./shared.ts');
 const { SELECTORS } = require('./config.ts');
+
+const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
+
+function restoreDisallowSkipEnv() {
+  if (ORIGINAL_DISALLOW_SKIP === undefined) {
+    delete process.env.RELEASE_GATE_DISALLOW_SKIP;
+  } else {
+    process.env.RELEASE_GATE_DISALLOW_SKIP = ORIGINAL_DISALLOW_SKIP;
+  }
+}
 
 test('parseRetryAfterSeconds parses integer seconds value', () => {
   assert.equal(parseRetryAfterSeconds('15', 0), 15);
@@ -144,4 +156,64 @@ test('isLoginDependentCheck maps suites to auth-dependent checks', () => {
   assert.equal(isLoginDependentCheck('P1.1'), true);
   assert.equal(isLoginDependentCheck('P1.3'), true);
   assert.equal(isLoginDependentCheck('P1.5.1'), false);
+});
+
+test('shouldDisallowSkippedChecks defaults to true for production and false otherwise', () => {
+  delete process.env.RELEASE_GATE_DISALLOW_SKIP;
+  try {
+    assert.equal(shouldDisallowSkippedChecks('production'), true);
+    assert.equal(shouldDisallowSkippedChecks('staging'), false);
+  } finally {
+    restoreDisallowSkipEnv();
+  }
+});
+
+test('shouldDisallowSkippedChecks supports explicit env override', () => {
+  try {
+    process.env.RELEASE_GATE_DISALLOW_SKIP = 'false';
+    assert.equal(shouldDisallowSkippedChecks('production'), false);
+
+    process.env.RELEASE_GATE_DISALLOW_SKIP = '1';
+    assert.equal(shouldDisallowSkippedChecks('staging'), true);
+  } finally {
+    restoreDisallowSkipEnv();
+  }
+});
+
+test('enforceNoSkipOnSelectedChecks promotes skipped or missing checks to FAIL when disallowed', () => {
+  delete process.env.RELEASE_GATE_DISALLOW_SKIP;
+  try {
+    const checks = [
+      { id: 'P0.1', status: 'PASS', evidence: ['ok'], signatures: [] },
+      { id: 'P1.1', status: 'SKIPPED', evidence: ['N/A'], signatures: ['P1.1_PRECONDITION'] },
+    ];
+    const selected = ['P0.1', 'P1.1', 'P1.2'];
+    const normalized = enforceNoSkipOnSelectedChecks(checks, selected, 'production');
+
+    const p11 = normalized.find(check => check.id === 'P1.1');
+    const p12 = normalized.find(check => check.id === 'P1.2');
+
+    assert.equal(p11.status, 'FAIL');
+    assert.ok(p11.signatures.includes('P1.1_PRECONDITION'));
+    assert.ok(p11.signatures.includes('P1.1_SKIPPED_NOT_ALLOWED'));
+    assert.equal(p11.evidence[p11.evidence.length - 1], 'skip_policy=disallowed env=production');
+
+    assert.equal(p12.status, 'FAIL');
+    assert.ok(p12.signatures.includes('P1.2_NOT_EXECUTED'));
+  } finally {
+    restoreDisallowSkipEnv();
+  }
+});
+
+test('enforceNoSkipOnSelectedChecks keeps skipped checks when skip policy is disabled', () => {
+  try {
+    process.env.RELEASE_GATE_DISALLOW_SKIP = '0';
+
+    const checks = [{ id: 'P1.3', status: 'SKIPPED', evidence: ['N/A'], signatures: [] }];
+    const normalized = enforceNoSkipOnSelectedChecks(checks, ['P1.3'], 'production');
+
+    assert.equal(normalized[0].status, 'SKIPPED');
+  } finally {
+    restoreDisallowSkipEnv();
+  }
 });
