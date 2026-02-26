@@ -5,6 +5,7 @@ const {
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
   computeRetryDelayMs,
+  evaluateCredentialPreflightResults,
   enforceNoSkipOnSelectedChecks,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
@@ -303,4 +304,26 @@ test('resolveReachableBaseUrl falls back to deployment URL when configured base 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test('evaluateCredentialPreflightResults flags all-auth-denied status sets as misconfiguration', () => {
+  const evaluation = evaluateCredentialPreflightResults([
+    { accountKey: 'member', status: 401 },
+    { accountKey: 'agent', status: 401 },
+    { accountKey: 'staff', status: 403 },
+  ]);
+
+  assert.equal(evaluation.hasSuccess, false);
+  assert.equal(evaluation.allAuthDenied, true);
+});
+
+test('evaluateCredentialPreflightResults does not flag misconfiguration when any account succeeds', () => {
+  const evaluation = evaluateCredentialPreflightResults([
+    { accountKey: 'member', status: 401 },
+    { accountKey: 'agent', status: 200 },
+    { accountKey: 'staff', status: 403 },
+  ]);
+
+  assert.equal(evaluation.hasSuccess, true);
+  assert.equal(evaluation.allAuthDenied, false);
 });

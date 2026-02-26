@@ -254,6 +254,16 @@ function preflightEvidenceLine({ endpoint, attempt, status, message }) {
   return `auth_preflight endpoint=${endpoint} attempt=${attempt} transport_error=${compactErrorMessage(message)}`;
 }
 
+function evaluateCredentialPreflightResults(results) {
+  const statuses = (results || [])
+    .map(entry => entry?.status)
+    .filter(status => typeof status === 'number');
+  const hasSuccess = statuses.some(status => status >= 200 && status < 300);
+  const allAuthDenied =
+    statuses.length > 0 && statuses.every(status => status === 401 || status === 403);
+  return { hasSuccess, allAuthDenied };
+}
+
 async function runAuthEndpointPreflight(runCtx) {
   const evidence = [];
   const signatures = [];
@@ -319,6 +329,74 @@ async function runAuthEndpointPreflight(runCtx) {
   }
 
   return { status: 'PASS', evidence, signatures };
+}
+
+async function runAuthCredentialPreflight(runCtx) {
+  const evidence = [];
+  const signatures = [];
+  const origin = new URL(runCtx.baseUrl).origin;
+  const loginUrl = `${origin}/api/auth/sign-in/email`;
+  const accountKeys = Object.keys(ACCOUNTS);
+  const results = [];
+
+  for (const accountKey of accountKeys) {
+    const credentials = runCtx.credentials?.[accountKey];
+    const email = credentials?.email || '';
+    const password = credentials?.password || '';
+
+    if (!email || !password) {
+      evidence.push(
+        `auth_credentials_preflight account=${accountKey} status=skipped_missing_creds`
+      );
+      continue;
+    }
+
+    const tenantId = ACCOUNTS[accountKey]?.tenantId;
+    try {
+      const response = await fetch(loginUrl, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          Origin: origin,
+          Referer: `${origin}/${runCtx.locale}/login`,
+          ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+        redirect: 'manual',
+        signal: AbortSignal.timeout(AUTH_PREFLIGHT_TIMEOUT_MS),
+      });
+      const status = response.status;
+      results.push({ accountKey, status });
+      evidence.push(
+        `auth_credentials_preflight account=${sessionCacheKeyForAccount(accountKey)} status=${status}`
+      );
+    } catch (error) {
+      const message = compactErrorMessage(error?.message || error, 320);
+      evidence.push(
+        `auth_credentials_preflight account=${sessionCacheKeyForAccount(accountKey)} transport_error=${message}`
+      );
+    }
+  }
+
+  const evaluation = evaluateCredentialPreflightResults(results);
+  if (evaluation.allAuthDenied) {
+    const summary = results.map(entry => `${entry.accountKey}:${entry.status}`).join(',');
+    signatures.push(`AUTH_CREDENTIALS_MISCONFIG all_accounts_denied statuses=${summary}`);
+    return {
+      status: 'FAIL',
+      evidence,
+      signatures,
+    };
+  }
+
+  return {
+    status: 'PASS',
+    evidence,
+    signatures,
+  };
 }
 
 function parseArgs(argv) {
@@ -1857,6 +1935,26 @@ async function main() {
       }
     }
 
+    if (!preflightBlocked && runCtx.envName === 'production' && loginDependentSelected.length > 0) {
+      const credentialPreflight = await runAuthCredentialPreflight(runCtx);
+      if (credentialPreflight.status !== 'PASS') {
+        preflightBlocked = true;
+        const firstSignature =
+          credentialPreflight.signatures[0] ||
+          'AUTH_CREDENTIALS_MISCONFIG all_accounts_denied statuses=unknown';
+        for (const checkId of loginDependentSelected) {
+          checks.push(
+            checkResult(
+              checkId,
+              'FAIL',
+              [...credentialPreflight.evidence],
+              [`${checkId}_MISCONFIG_CREDENTIALS_PRECHECK_FAILED ${firstSignature}`]
+            )
+          );
+        }
+      }
+    }
+
     if (!preflightBlocked) {
       if (selected.includes('P0.1')) checks.push(await runP01(browser, runCtx));
       if (selected.includes('P0.2')) checks.push(await runP02(browser, runCtx));
@@ -1926,6 +2024,7 @@ module.exports = {
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
   computeRetryDelayMs,
+  evaluateCredentialPreflightResults,
   enforceNoSkipOnSelectedChecks,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
