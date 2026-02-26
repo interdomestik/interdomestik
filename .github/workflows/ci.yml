@@ -72,6 +72,33 @@ jobs:
       - name: Release Gate Unit Tests
         run: pnpm test:release-gate
 
+  multi-agent-dry-run:
+    if: github.event_name == 'pull_request'
+    runs-on: blacksmith-2vcpu-ubuntu-2204
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Generate PR hardening DAG plan
+        id: pr_hardening_dry_run
+        run: |
+          set -euo pipefail
+          bash scripts/multi-agent/orchestrator.sh --pipeline pr-hardening --dry-run --pr "${{ github.event.pull_request.number }}"
+
+      - name: Upload PR hardening dry-run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-agent-dry-run-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ steps.pr_hardening_dry_run.outputs.pr_hardening_run_root }}/run-manifest.md
+            ${{ steps.pr_hardening_dry_run.outputs.pr_hardening_run_root }}/dispatch-order.md
+            ${{ steps.pr_hardening_dry_run.outputs.pr_hardening_run_root }}/dry-run-plan.md
+            ${{ steps.pr_hardening_dry_run.outputs.pr_hardening_run_root }}/trace.ndjson
+          if-no-files-found: warn
+          retention-days: 14
+
   e2e-gate:
     runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 30

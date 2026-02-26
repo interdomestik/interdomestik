@@ -107,6 +107,8 @@
     "multiagent:ci-monitor": "bash scripts/multi-agent/ci-monitor-agent.sh",
     "multiagent:finalizer": "bash scripts/multi-agent/finalizer-agent.sh",
     "multiagent:run": "bash scripts/multi-agent/orchestrator.sh",
+    "multiagent:pr-hardening": "bash scripts/multi-agent/orchestrator.sh --pipeline pr-hardening",
+    "multiagent:merge-gate": "bash scripts/multi-agent/merge-gate.sh",
     "multiagent:policy": "node scripts/multi-agent/orchestrator-policy.mjs",
     "multiagent:a2a": "node scripts/multi-agent/a2a-adapter.mjs",
     "multiagent:benchmark": "node scripts/multi-agent/benchmark-lane.mjs",
