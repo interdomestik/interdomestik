@@ -121,6 +121,25 @@ function isLoginDependentCheck(checkId) {
   return LOGIN_DEPENDENT_CHECKS.has(checkId);
 }
 
+function resolveTenantOverrideProbeUrl(runCtx) {
+  const configured = String(process.env.RELEASE_GATE_MK_USER_URL || '').trim();
+  if (configured) {
+    return {
+      source: 'env',
+      url: /^https?:\/\//i.test(configured)
+        ? configured
+        : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, configured),
+    };
+  }
+
+  const fallbackPath =
+    ROUTES.tenantOverrideProbeFallback || '/admin/users/golden_mk_staff?tenantId=tenant_mk';
+  return {
+    source: 'fallback',
+    url: buildRoute(runCtx.baseUrl, runCtx.locale, fallbackPath),
+  };
+}
+
 function parseBooleanEnv(value) {
   if (value == null) return null;
   const normalized = String(value).trim().toLowerCase();
@@ -905,54 +924,39 @@ async function runP06(browser, runCtx) {
   });
 
   {
-    const mkUserUrl = String(process.env.RELEASE_GATE_MK_USER_URL || '').trim();
-    if (!mkUserUrl) {
-      recordScenario({
-        id: 'S5',
-        title: 'Tenant override injection (optional)',
-        account: 'admin_ks',
-        urls: [],
-        expectedSummary: 'notFound=true OR rolesTable=false',
-        observedSummary: 'SKIPPED: RELEASE_GATE_MK_USER_URL missing',
-        result: 'SKIPPED',
-      });
-    } else {
-      try {
-        await withAccount('admin_ks', async page => {
-          const url = /^https?:\/\//i.test(mkUserUrl)
-            ? mkUserUrl
-            : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, mkUserUrl);
-          const result = await assertUrlMarkers(page, 'S5', url, {});
-          const passes = result.observed.notFound || result.observed.rolesTable === false;
-          const failureSignature = passes
-            ? ''
-            : `P0.6_S5_MARKER_MISMATCH expected (notFound=true OR rolesTable=false) got ${markersToString(result.observed)}`;
-          if (failureSignature) failures.push(failureSignature);
-          recordScenario({
-            id: 'S5',
-            title: 'Tenant override injection (optional)',
-            account: 'admin_ks',
-            urls: [url],
-            expectedSummary: 'notFound=true OR rolesTable=false',
-            observedSummary: markersToString(result.observed),
-            result: failureSignature ? 'FAIL' : 'PASS',
-            failureSignature,
-          });
-        });
-      } catch (error) {
-        const failureSignature = `P0.6_S5_EXCEPTION message=${String(error.message || error)}`;
-        failures.push(failureSignature);
+    const s5Probe = resolveTenantOverrideProbeUrl(runCtx);
+    try {
+      await withAccount('admin_ks', async page => {
+        const result = await assertUrlMarkers(page, 'S5', s5Probe.url, {});
+        const passes = result.observed.notFound || result.observed.rolesTable === false;
+        const failureSignature = passes
+          ? ''
+          : `P0.6_S5_MARKER_MISMATCH expected (notFound=true OR rolesTable=false) got ${markersToString(result.observed)}`;
+        if (failureSignature) failures.push(failureSignature);
         recordScenario({
           id: 'S5',
-          title: 'Tenant override injection (optional)',
+          title: 'Tenant override injection',
           account: 'admin_ks',
-          urls: [mkUserUrl],
+          urls: [s5Probe.url],
           expectedSummary: 'notFound=true OR rolesTable=false',
-          observedSummary: 'exception',
-          result: 'FAIL',
+          observedSummary: `source=${s5Probe.source} ${markersToString(result.observed)}`,
+          result: failureSignature ? 'FAIL' : 'PASS',
           failureSignature,
         });
-      }
+      });
+    } catch (error) {
+      const failureSignature = `P0.6_S5_EXCEPTION message=${String(error.message || error)}`;
+      failures.push(failureSignature);
+      recordScenario({
+        id: 'S5',
+        title: 'Tenant override injection',
+        account: 'admin_ks',
+        urls: [s5Probe.url],
+        expectedSummary: 'notFound=true OR rolesTable=false',
+        observedSummary: `source=${s5Probe.source} exception`,
+        result: 'FAIL',
+        failureSignature,
+      });
     }
   }
 
@@ -1872,6 +1876,7 @@ module.exports = {
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
+  resolveTenantOverrideProbeUrl,
   sessionCacheKeyForAccount,
   shouldDisallowSkippedChecks,
 };

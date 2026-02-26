@@ -10,6 +10,7 @@ const {
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
+  resolveTenantOverrideProbeUrl,
   sessionCacheKeyForAccount,
   shouldDisallowSkippedChecks,
 } = require('./run.ts');
@@ -215,5 +216,49 @@ test('enforceNoSkipOnSelectedChecks keeps skipped checks when skip policy is dis
     assert.equal(normalized[0].status, 'SKIPPED');
   } finally {
     restoreDisallowSkipEnv();
+  }
+});
+
+test('resolveTenantOverrideProbeUrl uses configured RELEASE_GATE_MK_USER_URL when provided', () => {
+  const original = process.env.RELEASE_GATE_MK_USER_URL;
+  try {
+    process.env.RELEASE_GATE_MK_USER_URL = '/en/admin/users/custom-tenant-user?tenantId=tenant_mk';
+    const resolved = resolveTenantOverrideProbeUrl({
+      baseUrl: 'https://interdomestik-web.vercel.app',
+      locale: 'en',
+    });
+    assert.equal(resolved.source, 'env');
+    assert.equal(
+      resolved.url,
+      'https://interdomestik-web.vercel.app/en/admin/users/custom-tenant-user?tenantId=tenant_mk'
+    );
+  } finally {
+    if (original === undefined) {
+      delete process.env.RELEASE_GATE_MK_USER_URL;
+    } else {
+      process.env.RELEASE_GATE_MK_USER_URL = original;
+    }
+  }
+});
+
+test('resolveTenantOverrideProbeUrl falls back to deterministic MK override probe', () => {
+  const original = process.env.RELEASE_GATE_MK_USER_URL;
+  try {
+    delete process.env.RELEASE_GATE_MK_USER_URL;
+    const resolved = resolveTenantOverrideProbeUrl({
+      baseUrl: 'https://interdomestik-web.vercel.app',
+      locale: 'en',
+    });
+    assert.equal(resolved.source, 'fallback');
+    assert.equal(
+      resolved.url,
+      'https://interdomestik-web.vercel.app/en/admin/users/golden_mk_staff?tenantId=tenant_mk'
+    );
+  } finally {
+    if (original === undefined) {
+      delete process.env.RELEASE_GATE_MK_USER_URL;
+    } else {
+      process.env.RELEASE_GATE_MK_USER_URL = original;
+    }
   }
 });

@@ -20,6 +20,7 @@ const ROUTES = {
   staffClaimsList: '/staff/claims',
   defaultAdminUserUrl: '/admin/users/golden_ks_a_member_1',
   crossTenantProbe: '/admin/users/golden_ks_staff?tenantId=tenant_ks',
+  tenantOverrideProbeFallback: '/admin/users/golden_mk_staff?tenantId=tenant_mk',
 };
 
 const MARKERS = {
