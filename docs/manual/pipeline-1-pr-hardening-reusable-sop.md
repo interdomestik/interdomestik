@@ -19,7 +19,7 @@ Run a repeatable, evidence-first hardening pipeline that improves speed through 
 
 1. `RUN_ID` (example: `pr-hardening-20260225T142829Z`)
 2. Artifact root:
-`/Users/arbenlila/development/_wt/interdomestik-v1/tmp/multi-agent/master/<RUN_ID>`
+`<repo-root>/tmp/multi-agent/master/<RUN_ID>` (or `$PR_HARDENING_RUN_ROOT` when set by orchestrator/CI)
 3. Contracts + prompts exist under:
    - `<artifact-root>/*-contract.md`
    - `<artifact-root>/prompts/*.md`

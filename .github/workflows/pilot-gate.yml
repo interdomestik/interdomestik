@@ -270,7 +270,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pnpm -s multiagent:merge-gate -- --run-root "${{ steps.harden.outputs.pr_hardening_run_root }}"
+          run_root="${{ steps.harden.outputs.pr_hardening_run_root }}"
+          if [[ -z "${run_root}" ]]; then
+            echo "error: 'pr_hardening_run_root' output from 'harden' step is empty or unset." >&2
+            echo "Check the full PR hardening step logs for early failures before merge-gate." >&2
+            exit 1
+          fi
+          pnpm -s multiagent:merge-gate -- --run-root "${run_root}"
 
       - name: Upload multi-agent hardening artifacts
         if: always()

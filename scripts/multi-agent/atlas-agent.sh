@@ -49,6 +49,7 @@ ORIGIN_DIFF_FILE="$EVIDENCE_DIR/diff-origin-main-name-status.txt"
 AUTHORITATIVE_DIFF_FILE="$EVIDENCE_DIR/diff-authoritative-name-status.txt"
 PATH_SENSITIVITY_FILE="$EVIDENCE_DIR/path-sensitivity-check.txt"
 RISK_FILE="$EVIDENCE_DIR/risk-recommendation.md"
+MAIN_SCOPE_REFERENCE="main...HEAD"
 
 cmd() {
   local command="$1"
@@ -90,7 +91,13 @@ if [[ "$AUTHORITATIVE_STATUS" -ne 0 && "$FIRST_FAILING_COMMAND" == "none" ]]; th
   FIRST_FAILING_COMMAND="git diff --name-status ${BASE_COMMIT}...HEAD"
 fi
 
-MAIN_COUNT="$(git -C "$ROOT_DIR" diff --name-only main...HEAD | wc -l | tr -d ' ')"
+if git -C "$ROOT_DIR" show-ref --verify --quiet refs/heads/main; then
+  MAIN_SCOPE_REFERENCE="main...HEAD"
+  MAIN_COUNT="$(git -C "$ROOT_DIR" diff --name-only main...HEAD | wc -l | tr -d ' ')"
+else
+  MAIN_SCOPE_REFERENCE="(missing refs/heads/main)"
+  MAIN_COUNT=0
+fi
 ORIGIN_COUNT="$(git -C "$ROOT_DIR" diff --name-only origin/main...HEAD | wc -l | tr -d ' ')"
 AUTHORITATIVE_COUNT="$(git -C "$ROOT_DIR" diff --name-only "$BASE_COMMIT"...HEAD | wc -l | tr -d ' ')"
 UI_TOUCHED="no"
@@ -102,6 +109,7 @@ fi
   echo "# Base Alignment"
   echo
   echo "- generated_utc: \`$(iso_utc)\`"
+  echo "- base_scope_reference: \`$MAIN_SCOPE_REFERENCE\`"
   echo "- base_scope_main_count: \`$MAIN_COUNT\`"
   echo "- base_scope_origin_main_count: \`$ORIGIN_COUNT\`"
   echo "- authoritative_base_ref: \`merge-base(HEAD,origin/main)\`"
@@ -131,7 +139,11 @@ RISK_CLASS="normal"
 RISK_REASON="no boundary condition detected"
 if [[ "$MAIN_COUNT" -eq 0 && "$ORIGIN_COUNT" -gt 0 ]]; then
   RISK_CLASS="boundary"
-  RISK_REASON="main...HEAD empty while origin/main...HEAD diverges"
+  if [[ "$MAIN_SCOPE_REFERENCE" == "(missing refs/heads/main)" ]]; then
+    RISK_REASON="local refs/heads/main missing while origin/main...HEAD diverges"
+  else
+    RISK_REASON="main...HEAD empty while origin/main...HEAD diverges"
+  fi
 fi
 
 {

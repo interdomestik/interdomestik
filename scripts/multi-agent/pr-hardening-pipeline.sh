@@ -21,6 +21,7 @@ MARKETING_MIN_SCORE=85
 AGENT_TIMEOUT_SECONDS=900
 
 BASE_COMMIT=""
+BASE_SCOPE_REFERENCE="main...HEAD"
 MAIN_COUNT=0
 ORIGIN_COUNT=0
 AUTHORITATIVE_COUNT=0
@@ -184,7 +185,13 @@ bootstrap_scope() {
   git -C "$ROOT_DIR" fetch origin --prune >/dev/null 2>&1 || true
 
   BASE_COMMIT="$(git -C "$ROOT_DIR" merge-base HEAD origin/main)"
-  MAIN_COUNT="$(git -C "$ROOT_DIR" diff --name-only main...HEAD | wc -l | tr -d ' ')"
+  if git -C "$ROOT_DIR" show-ref --verify --quiet refs/heads/main; then
+    BASE_SCOPE_REFERENCE="main...HEAD"
+    MAIN_COUNT="$(git -C "$ROOT_DIR" diff --name-only main...HEAD | wc -l | tr -d ' ')"
+  else
+    BASE_SCOPE_REFERENCE="(missing refs/heads/main)"
+    MAIN_COUNT=0
+  fi
   ORIGIN_COUNT="$(git -C "$ROOT_DIR" diff --name-only origin/main...HEAD | wc -l | tr -d ' ')"
   AUTHORITATIVE_COUNT="$(git -C "$ROOT_DIR" diff --name-only "$BASE_COMMIT"...HEAD | wc -l | tr -d ' ')"
 
@@ -212,7 +219,7 @@ write_manifest() {
 - phase: \`A22 / Phase C\`
 - execution_mode: \`$( [[ "$DRY_RUN" -eq 1 ]] && printf 'dry-run' || printf 'full' )\`
 - merge_gate_scope: \`full-pr-hardening\`
-- base_scope_reference: \`main...HEAD\`
+- base_scope_reference: \`$BASE_SCOPE_REFERENCE\`
 - base_scope_file_count: \`$MAIN_COUNT\`
 - secondary_scope_reference: \`origin/main...HEAD\`
 - secondary_scope_file_count: \`$ORIGIN_COUNT\`

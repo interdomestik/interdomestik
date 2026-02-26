@@ -85,7 +85,7 @@ async function cleanupFallbackClaim(claimId: string, wasCreatedFallback: boolean
   }
 }
 
-const MESSAGE_PERSISTENCE_PREFIX = 'E2E persistence';
+const MESSAGE_PERSISTENCE_PREFIX = 'E2E persistence agent-workspace-claims-selection';
 
 async function cleanupPersistenceMessages(claimId: string, content?: string): Promise<void> {
   try {
