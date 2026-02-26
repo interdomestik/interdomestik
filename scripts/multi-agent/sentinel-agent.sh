@@ -70,10 +70,12 @@ SECRET_SCAN_RAW="$EVIDENCE_DIR/secret-pattern-scan.raw"
 {
   echo "# Secret Pattern Scan"
   echo
+  # Match concrete secret formats to avoid false positives from detector regex literals.
+  secret_pattern="(-----BEGIN [A-Z ]*PRIVATE KEY-----|sk_live_[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*[:=][[:space:]]*['\\\"]?[A-Za-z0-9._-]{20,})"
   while IFS= read -r changed_file; do
     [[ -n "$changed_file" ]] || continue
     [[ -f "$ROOT_DIR/$changed_file" ]] || continue
-    if rg -n "(BEGIN [A-Z ]*PRIVATE KEY|sk_live_|AKIA[0-9A-Z]{16}|SUPABASE_SERVICE_ROLE_KEY)" "$ROOT_DIR/$changed_file"; then
+    if rg -n "$secret_pattern" "$ROOT_DIR/$changed_file"; then
       SECRET_HITS=$((SECRET_HITS + 1))
     fi
   done < <(git -C "$ROOT_DIR" diff --name-only "$BASE_COMMIT"...HEAD)
