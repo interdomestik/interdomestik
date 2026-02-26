@@ -41,6 +41,44 @@ const {
   waitForReadyMarker,
 } = require('./shared.ts');
 
+const VERCEL_LOG_STREAM_TIMEOUT_MS = 12_000;
+
+function isLegacyVercelLogsArgsUnsupported(output) {
+  return /unknown or unexpected option:\s*--environment/i.test(String(output || ''));
+}
+
+function parseVercelRuntimeJsonLines(raw) {
+  const entries = [];
+  for (const line of String(raw || '')
+    .split('\n')
+    .map(value => value.trim())
+    .filter(Boolean)) {
+    try {
+      const payload = JSON.parse(line);
+      entries.push(payload);
+    } catch {
+      // Ignore non-JSON banner/noise lines in mixed output streams.
+    }
+  }
+  return entries;
+}
+
+function runtimeEntryMessage(entry) {
+  if (!entry || typeof entry !== 'object') return '';
+  return String(entry.message || entry.text || entry.msg || '').trim();
+}
+
+function runtimeEntryLevel(entry) {
+  if (!entry || typeof entry !== 'object') return '';
+  return String(entry.level || entry.severity || '')
+    .trim()
+    .toLowerCase();
+}
+
+function isErrorRuntimeLevel(level) {
+  return level === 'error' || level === 'fatal';
+}
+
 function parseArgs(argv) {
   const parsed = {
     baseUrl: DEFAULTS.baseUrl,
@@ -1326,37 +1364,115 @@ function runVercelLogsSweep(runCtx) {
     timeout: 120_000,
   });
 
-  if (logs.error) {
-    evidence.push(`vercel logs failed to execute; skipped (${logs.error.message})`);
-    return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
-  }
-
   const combined = `${logs.stdout || ''}\n${logs.stderr || ''}`;
   const lines = combined
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean);
 
-  if (logs.status !== 0) {
-    evidence.push(`vercel logs exited ${logs.status}; skipped`);
-    evidence.push(...lines.slice(0, 4));
+  const legacySupported = !isLegacyVercelLogsArgsUnsupported(combined);
+  if (legacySupported) {
+    if (logs.error) {
+      evidence.push(`vercel logs failed to execute; skipped (${logs.error.message})`);
+      return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
+    }
+
+    if (logs.status !== 0) {
+      evidence.push(`vercel logs exited ${logs.status}; skipped`);
+      evidence.push(...lines.slice(0, 4));
+      return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
+    }
+
+    const meaningful = lines.filter(
+      line => !EXPECTED_VERCEL_LOG_NOISE.some(pattern => pattern.test(line))
+    );
+    evidence.push('log_mode=legacy');
+    evidence.push(`total error lines=${lines.length}`);
+    evidence.push(`non-noise lines=${meaningful.length}`);
+    evidence.push(...meaningful.slice(0, 6));
+
+    const unexpectedFunctional = meaningful.filter(line =>
+      FUNCTIONAL_LOG_ERROR_HINTS.some(pattern => pattern.test(line))
+    );
+    if (unexpectedFunctional.length > 0) {
+      signatures.push(...unexpectedFunctional.map(line => `P1.5.1_UNEXPECTED_ERROR ${line}`));
+      return checkResult('P1.5.1', 'FAIL', evidence, signatures);
+    }
+
+    return checkResult('P1.5.1', 'PASS', evidence, signatures);
+  }
+
+  const deploymentRef =
+    runCtx.deployment?.deploymentUrl && runCtx.deployment.deploymentUrl !== 'unknown'
+      ? runCtx.deployment.deploymentUrl
+      : runCtx.baseUrl;
+
+  const streamingLogs = spawnSync('vercel', ['logs', deploymentRef, '--json'], {
+    encoding: 'utf8',
+    env: process.env,
+    timeout: VERCEL_LOG_STREAM_TIMEOUT_MS,
+  });
+
+  const streamingCombined = `${streamingLogs.stdout || ''}\n${streamingLogs.stderr || ''}`;
+  const streamingLines = streamingCombined
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const timedOut = streamingLogs.error && streamingLogs.error.code === 'ETIMEDOUT';
+  const unexpectedRuntimeError =
+    streamingLogs.error &&
+    streamingLogs.error.code !== 'ETIMEDOUT' &&
+    streamingLogs.error.code !== 'ETERM';
+
+  if (unexpectedRuntimeError) {
+    evidence.push(`vercel logs stream failed; skipped (${streamingLogs.error.message})`);
+    evidence.push(...streamingLines.slice(0, 4));
     return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
   }
 
-  const meaningful = lines.filter(
-    line => !EXPECTED_VERCEL_LOG_NOISE.some(pattern => pattern.test(line))
-  );
+  if (streamingLogs.status != null && streamingLogs.status !== 0 && !timedOut) {
+    evidence.push(`vercel logs stream exited ${streamingLogs.status}; skipped`);
+    evidence.push(...streamingLines.slice(0, 4));
+    return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
+  }
 
-  evidence.push(`total error lines=${lines.length}`);
-  evidence.push(`non-noise lines=${meaningful.length}`);
-  evidence.push(...meaningful.slice(0, 6));
+  const runtimeEntries = parseVercelRuntimeJsonLines(streamingLogs.stdout);
+  const meaningfulRuntimeEntries = runtimeEntries.filter(entry => {
+    const message = runtimeEntryMessage(entry);
+    return message.length > 0 && !EXPECTED_VERCEL_LOG_NOISE.some(pattern => pattern.test(message));
+  });
+  const unexpectedFunctional = meaningfulRuntimeEntries.filter(entry => {
+    const level = runtimeEntryLevel(entry);
+    const message = runtimeEntryMessage(entry);
+    return (
+      isErrorRuntimeLevel(level) ||
+      FUNCTIONAL_LOG_ERROR_HINTS.some(pattern => pattern.test(message))
+    );
+  });
 
-  const unexpectedFunctional = meaningful.filter(line =>
-    FUNCTIONAL_LOG_ERROR_HINTS.some(pattern => pattern.test(line))
+  evidence.push('log_mode=streaming-json');
+  evidence.push(`deployment_ref=${deploymentRef}`);
+  evidence.push(`stream_window_ms=${VERCEL_LOG_STREAM_TIMEOUT_MS}`);
+  evidence.push(`stream_timed_out=${timedOut}`);
+  evidence.push(`runtime_entries=${runtimeEntries.length}`);
+  evidence.push(`runtime_non_noise_entries=${meaningfulRuntimeEntries.length}`);
+  evidence.push(
+    ...meaningfulRuntimeEntries.slice(0, 6).map(entry => {
+      const level = runtimeEntryLevel(entry) || 'unknown';
+      const message = runtimeEntryMessage(entry);
+      return `runtime_entry level=${level} message=${message}`;
+    })
   );
 
   if (unexpectedFunctional.length > 0) {
-    signatures.push(...unexpectedFunctional.map(line => `P1.5.1_UNEXPECTED_ERROR ${line}`));
+    signatures.push(
+      ...unexpectedFunctional.map(entry => {
+        const level = runtimeEntryLevel(entry) || 'unknown';
+        const message = runtimeEntryMessage(entry);
+        return `P1.5.1_UNEXPECTED_ERROR level=${level} message=${message}`;
+      })
+    );
     return checkResult('P1.5.1', 'FAIL', evidence, signatures);
   }
 
@@ -1533,6 +1649,8 @@ async function main() {
 module.exports = {
   buildRouteAllowingLocalePath,
   computeRetryDelayMs,
+  isLegacyVercelLogsArgsUnsupported,
+  parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
   sessionCacheKeyForAccount,
 };

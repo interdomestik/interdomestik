@@ -4,6 +4,8 @@ import test from 'node:test';
 const {
   buildRouteAllowingLocalePath,
   computeRetryDelayMs,
+  isLegacyVercelLogsArgsUnsupported,
+  parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
   sessionCacheKeyForAccount,
 } = require('./run.ts');
@@ -102,4 +104,26 @@ test('checkPortalMarkers treats Next fallback 404 template as not-found marker',
   const markers = await checkPortalMarkers(page);
   assert.equal(markers.notFound, true);
   assert.equal(markers.rolesTable, true);
+});
+
+test('isLegacyVercelLogsArgsUnsupported detects removed --environment flag support', () => {
+  const unsupportedOutput = 'Error: unknown or unexpected option: --environment';
+  assert.equal(isLegacyVercelLogsArgsUnsupported(unsupportedOutput), true);
+  assert.equal(isLegacyVercelLogsArgsUnsupported('vercel logs exited 0'), false);
+});
+
+test('parseVercelRuntimeJsonLines keeps valid JSON entries and ignores banner noise', () => {
+  const payload = [
+    'Vercel CLI 48.10.2',
+    '{"level":"error","message":"upload failed"}',
+    'Fetching deployment...',
+    '{"level":"info","message":"ready"}',
+  ].join('\n');
+
+  const entries = parseVercelRuntimeJsonLines(payload);
+  assert.equal(entries.length, 2);
+  assert.equal(entries[0].level, 'error');
+  assert.equal(entries[0].message, 'upload failed');
+  assert.equal(entries[1].level, 'info');
+  assert.equal(entries[1].message, 'ready');
 });
