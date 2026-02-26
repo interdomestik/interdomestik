@@ -308,6 +308,18 @@ async function checkPortalMarkers(page) {
       .catch(() => false);
   }
 
+  if (!snapshot.notFound) {
+    // Next.js can render fallback 404 templates without our explicit not-found marker.
+    const fallbackNotFoundTemplatePresent = await page
+      .locator(SELECTORS.notFoundFallbackTemplate)
+      .count()
+      .then(count => count > 0)
+      .catch(() => false);
+    if (fallbackNotFoundTemplatePresent) {
+      snapshot.notFound = true;
+    }
+  }
+
   snapshot.rolesTable = await page
     .locator(SELECTORS.userRolesTable)
     .isVisible({ timeout: TIMEOUTS.quickMarker })
@@ -392,6 +404,7 @@ module.exports = {
   assertUrlMarkers,
   buildRoute,
   buildRouteAllowingLocalePath,
+  checkPortalMarkers,
   checkResult,
   collectMarkersWithWait,
   computeRetryDelayMs,

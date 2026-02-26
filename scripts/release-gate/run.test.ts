@@ -7,6 +7,8 @@ const {
   parseRetryAfterSeconds,
   sessionCacheKeyForAccount,
 } = require('./run.ts');
+const { checkPortalMarkers } = require('./shared.ts');
+const { SELECTORS } = require('./config.ts');
 
 test('parseRetryAfterSeconds parses integer seconds value', () => {
   assert.equal(parseRetryAfterSeconds('15', 0), 15);
@@ -80,4 +82,24 @@ test('buildRouteAllowingLocalePath handles edge cases', () => {
     buildRouteAllowingLocalePath(baseUrl, 'fr', '/dashboard'),
     'https://interdomestik-web.vercel.app/fr/dashboard'
   );
+});
+
+test('checkPortalMarkers treats Next fallback 404 template as not-found marker', async () => {
+  const page = {
+    getByTestId(testId) {
+      return {
+        isVisible: async () => false,
+      };
+    },
+    locator(selector) {
+      return {
+        isVisible: async () => selector === SELECTORS.userRolesTable,
+        count: async () => (selector === SELECTORS.notFoundFallbackTemplate ? 1 : 0),
+      };
+    },
+  };
+
+  const markers = await checkPortalMarkers(page);
+  assert.equal(markers.notFound, true);
+  assert.equal(markers.rolesTable, true);
 });
