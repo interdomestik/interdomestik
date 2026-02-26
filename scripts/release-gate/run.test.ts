@@ -10,6 +10,7 @@ const {
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
+  resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   sessionCacheKeyForAccount,
   shouldDisallowSkippedChecks,
@@ -260,5 +261,46 @@ test('resolveTenantOverrideProbeUrl falls back to deterministic MK override prob
     } else {
       process.env.RELEASE_GATE_MK_USER_URL = original;
     }
+  }
+});
+
+test('resolveReachableBaseUrl keeps configured base when probe succeeds', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('', { status: 200 });
+
+  try {
+    const resolved = await resolveReachableBaseUrl('https://primary.example.com', {
+      deploymentUrl: 'https://deploy.example.vercel.app',
+    });
+    assert.equal(resolved.baseUrl, 'https://primary.example.com');
+    assert.equal(resolved.source, 'configured');
+    assert.equal(resolved.probeStatus, 200);
+    assert.equal(resolved.failures.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('resolveReachableBaseUrl falls back to deployment URL when configured base is unreachable', async () => {
+  const originalFetch = globalThis.fetch;
+  let attempt = 0;
+  globalThis.fetch = async () => {
+    attempt += 1;
+    if (attempt === 1) {
+      throw new Error('connect ECONNREFUSED primary.example.com:443');
+    }
+    return new Response('', { status: 200 });
+  };
+
+  try {
+    const resolved = await resolveReachableBaseUrl('https://primary.example.com', {
+      deploymentUrl: 'https://deploy.example.vercel.app',
+    });
+    assert.equal(resolved.baseUrl, 'https://deploy.example.vercel.app');
+    assert.equal(resolved.source, 'deployment_fallback');
+    assert.equal(resolved.probeStatus, 200);
+    assert.ok(resolved.failures[0].includes('probe_failed candidate=https://primary.example.com'));
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });

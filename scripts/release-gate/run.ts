@@ -117,6 +117,51 @@ function classifyInfraNetworkFailure(raw) {
   return matched ? message : null;
 }
 
+async function probeBaseUrl(candidateBaseUrl) {
+  const origin = new URL(candidateBaseUrl).origin;
+  const response = await fetch(origin, {
+    method: 'GET',
+    redirect: 'manual',
+    signal: AbortSignal.timeout(TIMEOUTS.nav),
+  });
+  return response.status;
+}
+
+function normalizeDeploymentBaseUrl(deploymentUrl) {
+  if (!deploymentUrl || deploymentUrl === 'unknown') return null;
+  try {
+    return normalizeBaseUrl(deploymentUrl);
+  } catch {
+    return null;
+  }
+}
+
+async function resolveReachableBaseUrl(configuredBaseUrl, deployment) {
+  const deploymentBaseUrl = normalizeDeploymentBaseUrl(deployment?.deploymentUrl);
+  const candidates = Array.from(new Set([configuredBaseUrl, deploymentBaseUrl].filter(Boolean)));
+  const failures = [];
+
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index];
+    try {
+      const status = await probeBaseUrl(candidate);
+      const source = index === 0 ? 'configured' : 'deployment_fallback';
+      return { baseUrl: candidate, source, probeStatus: status, failures };
+    } catch (error) {
+      failures.push(
+        `probe_failed candidate=${candidate} reason=${compactErrorMessage(error?.message || error)}`
+      );
+    }
+  }
+
+  return {
+    baseUrl: configuredBaseUrl,
+    source: 'configured_unreachable',
+    probeStatus: null,
+    failures,
+  };
+}
+
 function isLoginDependentCheck(checkId) {
   return LOGIN_DEPENDENT_CHECKS.has(checkId);
 }
@@ -1743,7 +1788,7 @@ async function detectDeploymentMetadata(baseUrl, browser) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const baseUrl = normalizeBaseUrl(args.baseUrl);
+  const configuredBaseUrl = normalizeBaseUrl(args.baseUrl);
   const requiredEnv = REQUIRED_ENV_BY_SUITE[args.suite] || REQUIRED_ENV_BY_SUITE.all;
   const missingEnv = getMissingEnv(requiredEnv);
   if (missingEnv.length > 0) {
@@ -1768,7 +1813,9 @@ async function main() {
   const checks = [];
 
   try {
-    const deployment = await detectDeploymentMetadata(baseUrl, browser);
+    const deployment = await detectDeploymentMetadata(configuredBaseUrl, browser);
+    const resolvedBase = await resolveReachableBaseUrl(configuredBaseUrl, deployment);
+    const baseUrl = resolvedBase.baseUrl;
     const runCtx = {
       baseUrl,
       locale: args.locale,
@@ -1778,6 +1825,14 @@ async function main() {
       deployment,
       authState: createAuthState(),
     };
+    console.log(
+      `[release-gate] base_url source=${resolvedBase.source} url=${baseUrl} probe_status=${String(
+        resolvedBase.probeStatus ?? 'unknown'
+      )}`
+    );
+    for (const failure of resolvedBase.failures) {
+      console.warn(`[release-gate] base_url ${failure}`);
+    }
 
     const selected = SUITES[args.suite];
     const loginDependentSelected = selected.filter(isLoginDependentCheck);
@@ -1876,6 +1931,7 @@ module.exports = {
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
+  resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   sessionCacheKeyForAccount,
   shouldDisallowSkippedChecks,
