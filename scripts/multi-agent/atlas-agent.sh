@@ -72,10 +72,10 @@ DIFF_ORIGIN_LOG="$EVIDENCE_DIR/atlas-required-cmd5.log"
 WEB_PATHS_LOG="$EVIDENCE_DIR/atlas-required-cmd6.log"
 SENSITIVE_PATHS_LOG="$EVIDENCE_DIR/atlas-required-cmd7.log"
 
-cmd 'git rev-parse --abbrev-ref HEAD && git rev-parse HEAD main origin/main' "$REV_PARSE_LOG" || true
-cmd 'git rev-list --left-right --count main...HEAD' "$REV_LIST_MAIN_LOG" || true
+cmd 'git rev-parse --abbrev-ref HEAD && git rev-parse HEAD origin/main && (git rev-parse main || echo "missing refs/heads/main")' "$REV_PARSE_LOG" || true
+cmd 'if git show-ref --verify --quiet refs/heads/main; then git rev-list --left-right --count main...HEAD; else echo "missing refs/heads/main"; fi' "$REV_LIST_MAIN_LOG" || true
 cmd 'git rev-list --left-right --count origin/main...HEAD' "$REV_LIST_ORIGIN_LOG" || true
-cmd 'git diff --name-status main...HEAD' "$DIFF_MAIN_LOG" || true
+cmd 'if git show-ref --verify --quiet refs/heads/main; then git diff --name-status main...HEAD; else echo "missing refs/heads/main"; fi' "$DIFF_MAIN_LOG" || true
 cmd 'git diff --name-status origin/main...HEAD' "$DIFF_ORIGIN_LOG" || true
 cmd "git diff --name-only origin/main...HEAD | rg '^apps/web/' || true" "$WEB_PATHS_LOG" || true
 cmd "git diff --name-only origin/main...HEAD | rg 'apps/web/src/proxy.ts|/member|/agent|/staff|/admin|tenant|auth' || true" "$SENSITIVE_PATHS_LOG" || true
