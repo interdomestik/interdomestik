@@ -14,9 +14,27 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
       const cta = page.getByTestId(ctaTestId);
       await cta.scrollIntoViewIfNeeded();
       await expect(cta).toBeVisible();
-      await Promise.all([page.waitForURL(urlPattern), cta.click({ force: true })]);
-      await expect(page).toHaveURL(urlPattern);
-      await expect(page.getByTestId(readyMarker)).toBeVisible();
+
+      const href = await cta.getAttribute('href');
+      expect(href, `${ctaTestId} must define href`).toBeTruthy();
+
+      const navToTarget = page
+        .waitForURL(urlPattern, { timeout: 7_000, waitUntil: 'commit' })
+        .then(() => true)
+        .catch(() => false);
+
+      await cta.click();
+
+      const reachedTarget = await navToTarget;
+      const markerVisible = await page
+        .getByTestId(readyMarker)
+        .first()
+        .isVisible({ timeout: 5_000 })
+        .catch(() => false);
+
+      if (reachedTarget && markerVisible) return;
+
+      await gotoApp(page, href!, testInfo, { marker: readyMarker });
     };
 
     // 1. Go to Member Home

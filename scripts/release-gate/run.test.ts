@@ -3,7 +3,9 @@ import test from 'node:test';
 
 const {
   buildRouteAllowingLocalePath,
+  classifyInfraNetworkFailure,
   computeRetryDelayMs,
+  isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
@@ -126,4 +128,20 @@ test('parseVercelRuntimeJsonLines keeps valid JSON entries and ignores banner no
   assert.equal(entries[0].message, 'upload failed');
   assert.equal(entries[1].level, 'info');
   assert.equal(entries[1].message, 'ready');
+});
+
+test('classifyInfraNetworkFailure identifies transport-level outages', () => {
+  const timeoutMessage = 'apiRequestContext.post: Timeout 30000ms exceeded.';
+  const refusedMessage = 'connect ECONNREFUSED 64.29.17.195:443';
+  const logicError = 'P1.3_DETAIL_READY_MARKER_MISSING';
+
+  assert.ok(classifyInfraNetworkFailure(timeoutMessage));
+  assert.ok(classifyInfraNetworkFailure(refusedMessage));
+  assert.equal(classifyInfraNetworkFailure(logicError), null);
+});
+
+test('isLoginDependentCheck maps suites to auth-dependent checks', () => {
+  assert.equal(isLoginDependentCheck('P1.1'), true);
+  assert.equal(isLoginDependentCheck('P1.3'), true);
+  assert.equal(isLoginDependentCheck('P1.5.1'), false);
 });

@@ -138,6 +138,13 @@ function logLoginAttempt({ account, attempt, status, retryAfterSeconds }) {
   );
 }
 
+function compactFailureMessage(raw, maxLength = 420) {
+  return String(raw || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
 function isAuthExpiryResponse(response, origin) {
   const status = response.status();
   if (status !== 401 && status !== 403) return false;
@@ -239,7 +246,11 @@ async function loginAs(page, params) {
           retryAfterSeconds: null,
         });
         if (attempt >= LOGIN_MAX_ATTEMPTS_PER_ACCOUNT) {
-          throw networkError;
+          const code = compactFailureMessage(networkError?.code || 'unknown', 64);
+          const message = compactFailureMessage(networkError?.message || networkError, 650);
+          throw new Error(
+            `AUTH_LOGIN_NETWORK_ERROR account=${account} attempts=${attempt} code=${code} message=${message}`
+          );
         }
         const delay = computeRetryDelayMs({ attempt });
         await sleep(delay.totalMs);

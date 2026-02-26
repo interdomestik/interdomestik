@@ -42,6 +42,30 @@ const {
 } = require('./shared.ts');
 
 const VERCEL_LOG_STREAM_TIMEOUT_MS = 12_000;
+const AUTH_PREFLIGHT_TIMEOUT_MS = 8_000;
+const AUTH_PREFLIGHT_MAX_ATTEMPTS = 3;
+const AUTH_PREFLIGHT_BACKOFF_MS = [500, 1_500, 3_000];
+const AUTH_PREFLIGHT_ACCEPTED_STATUSES = new Set([200, 204, 400, 401, 403, 404, 405, 429]);
+const LOGIN_DEPENDENT_CHECKS = new Set([
+  'P0.1',
+  'P0.2',
+  'P0.3',
+  'P0.4',
+  'P0.6',
+  'P1.1',
+  'P1.2',
+  'P1.3',
+]);
+const INFRA_NETWORK_ERROR_PATTERNS = [
+  /ECONNREFUSED/i,
+  /ETIMEDOUT/i,
+  /Timeout \d+ms exceeded/i,
+  /ENOTFOUND/i,
+  /EAI_AGAIN/i,
+  /ECONNRESET/i,
+  /socket hang up/i,
+  /AUTH_LOGIN_NETWORK_ERROR/i,
+];
 
 function isLegacyVercelLogsArgsUnsupported(output) {
   return /unknown or unexpected option:\s*--environment/i.test(String(output || ''));
@@ -77,6 +101,98 @@ function runtimeEntryLevel(entry) {
 
 function isErrorRuntimeLevel(level) {
   return level === 'error' || level === 'fatal';
+}
+
+function compactErrorMessage(raw, maxLength = 420) {
+  return String(raw || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function classifyInfraNetworkFailure(raw) {
+  const message = compactErrorMessage(raw, 650);
+  if (!message) return null;
+  const matched = INFRA_NETWORK_ERROR_PATTERNS.some(pattern => pattern.test(message));
+  return matched ? message : null;
+}
+
+function isLoginDependentCheck(checkId) {
+  return LOGIN_DEPENDENT_CHECKS.has(checkId);
+}
+
+function preflightEvidenceLine({ endpoint, attempt, status, message }) {
+  if (typeof status === 'number') {
+    return `auth_preflight endpoint=${endpoint} attempt=${attempt} status=${status}`;
+  }
+  return `auth_preflight endpoint=${endpoint} attempt=${attempt} transport_error=${compactErrorMessage(message)}`;
+}
+
+async function runAuthEndpointPreflight(runCtx) {
+  const evidence = [];
+  const signatures = [];
+  const origin = new URL(runCtx.baseUrl).origin;
+  const endpointPaths = [
+    '/api/auth/get-session?disableCookieCache=true&disableRefresh=true',
+    '/api/auth/sign-in/email',
+  ];
+
+  for (const endpointPath of endpointPaths) {
+    const endpoint = `${origin}${endpointPath}`;
+    let reached = false;
+
+    for (let attempt = 1; attempt <= AUTH_PREFLIGHT_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            Origin: origin,
+            Referer: `${origin}/${runCtx.locale}/login`,
+          },
+          redirect: 'manual',
+          signal: AbortSignal.timeout(AUTH_PREFLIGHT_TIMEOUT_MS),
+        });
+
+        evidence.push(preflightEvidenceLine({ endpoint, attempt, status: response.status }));
+        if (AUTH_PREFLIGHT_ACCEPTED_STATUSES.has(response.status)) {
+          reached = true;
+          break;
+        }
+
+        signatures.push(
+          `AUTH_PREFLIGHT_ENDPOINT_UNHEALTHY endpoint=${endpointPath} status=${response.status}`
+        );
+        return { status: 'FAIL', evidence, signatures };
+      } catch (error) {
+        const message = compactErrorMessage(error?.message || error);
+        evidence.push(preflightEvidenceLine({ endpoint, attempt, message }));
+        const infraMessage = classifyInfraNetworkFailure(message);
+
+        if (infraMessage && attempt < AUTH_PREFLIGHT_MAX_ATTEMPTS) {
+          const delay =
+            AUTH_PREFLIGHT_BACKOFF_MS[Math.min(attempt - 1, AUTH_PREFLIGHT_BACKOFF_MS.length - 1)];
+          await sleep(delay);
+          continue;
+        }
+
+        if (infraMessage) {
+          signatures.push(
+            `AUTH_PREFLIGHT_INFRA_NETWORK endpoint=${endpointPath} message=${infraMessage}`
+          );
+        } else {
+          signatures.push(`AUTH_PREFLIGHT_EXCEPTION endpoint=${endpointPath} message=${message}`);
+        }
+        return { status: 'FAIL', evidence, signatures };
+      }
+    }
+
+    if (!reached) {
+      signatures.push(`AUTH_PREFLIGHT_INFRA_NETWORK endpoint=${endpointPath} message=exhausted`);
+      return { status: 'FAIL', evidence, signatures };
+    }
+  }
+
+  return { status: 'PASS', evidence, signatures };
 }
 
 function parseArgs(argv) {
@@ -1120,12 +1236,18 @@ trailer
     await reloginContext.close();
   } catch (error) {
     const rawMessage = String(error.message || error);
+    const infraMessage = classifyInfraNetworkFailure(rawMessage);
     if (rawMessage.includes('NO_MEMBER_DOCUMENT_UPLOAD_BUTTONS')) {
       signaturesP11.push(
         'P1.1_MISCONFIG_MEMBER_UPLOAD_PRECONDITION_NOT_MET reason=no_upload_entry_buttons'
       );
+      signaturesP12.push('P1.2_SKIPPED_DEPENDENCY_P1.1_MEMBER_UPLOAD_PRECONDITION');
+    } else if (infraMessage) {
+      signaturesP11.push(`P1.1_INFRA_NETWORK message=${infraMessage}`);
+      signaturesP12.push(`P1.2_INFRA_NETWORK_DEPENDENCY message=${infraMessage}`);
     } else {
-      signaturesP11.push(`P1.1_EXCEPTION message=${rawMessage}`);
+      signaturesP11.push(`P1.1_EXCEPTION message=${compactErrorMessage(rawMessage, 650)}`);
+      signaturesP12.push('P1.2_DEPENDENCY_P1.1_EXCEPTION');
     }
     if (clientSignals.length > 0) {
       evidenceP11.push(`client signals: ${clientSignals.join(' || ')}`);
@@ -1330,7 +1452,13 @@ async function runP13(browser, runCtx) {
       .isVisible({ timeout: TIMEOUTS.quickMarker })
       .catch(() => false);
     evidence.push(`failure_not_found=${notFoundVisible}`);
-    signatures.push(`P1.3_EXCEPTION message=${String(error.message || error)}`);
+    const rawMessage = String(error.message || error);
+    const infraMessage = classifyInfraNetworkFailure(rawMessage);
+    if (infraMessage) {
+      signatures.push(`P1.3_INFRA_NETWORK message=${infraMessage}`);
+    } else {
+      signatures.push(`P1.3_EXCEPTION message=${compactErrorMessage(rawMessage, 650)}`);
+    }
   } finally {
     await context.close();
   }
@@ -1586,22 +1714,47 @@ async function main() {
     };
 
     const selected = SUITES[args.suite];
+    const loginDependentSelected = selected.filter(isLoginDependentCheck);
+    let preflightBlocked = false;
 
-    if (selected.includes('P0.1')) checks.push(await runP01(browser, runCtx));
-    if (selected.includes('P0.2')) checks.push(await runP02(browser, runCtx));
-    if (selected.includes('P0.3') || selected.includes('P0.4')) {
-      const roleChecks = await runP03AndP04(browser, runCtx);
-      if (selected.includes('P0.3')) checks.push(roleChecks[0]);
-      if (selected.includes('P0.4')) checks.push(roleChecks[1]);
+    if (runCtx.envName === 'production' && loginDependentSelected.length > 0) {
+      const preflight = await runAuthEndpointPreflight(runCtx);
+      if (preflight.status !== 'PASS') {
+        preflightBlocked = true;
+        const firstSignature =
+          preflight.signatures[0] || 'AUTH_PREFLIGHT_INFRA_NETWORK message=unknown';
+        for (const checkId of loginDependentSelected) {
+          checks.push(
+            checkResult(
+              checkId,
+              'FAIL',
+              [...preflight.evidence],
+              [`${checkId}_INFRA_NETWORK_PRECHECK_FAILED ${firstSignature}`]
+            )
+          );
+        }
+      }
     }
-    if (selected.includes('P0.6')) checks.push(await runP06(browser, runCtx));
-    if (selected.includes('P1.1') || selected.includes('P1.2')) {
-      const memberChecks = await runP11AndP12(browser, runCtx);
-      if (selected.includes('P1.1')) checks.push(memberChecks[0]);
-      if (selected.includes('P1.2')) checks.push(memberChecks[1]);
+
+    if (!preflightBlocked) {
+      if (selected.includes('P0.1')) checks.push(await runP01(browser, runCtx));
+      if (selected.includes('P0.2')) checks.push(await runP02(browser, runCtx));
+      if (selected.includes('P0.3') || selected.includes('P0.4')) {
+        const roleChecks = await runP03AndP04(browser, runCtx);
+        if (selected.includes('P0.3')) checks.push(roleChecks[0]);
+        if (selected.includes('P0.4')) checks.push(roleChecks[1]);
+      }
+      if (selected.includes('P0.6')) checks.push(await runP06(browser, runCtx));
+      if (selected.includes('P1.1') || selected.includes('P1.2')) {
+        const memberChecks = await runP11AndP12(browser, runCtx);
+        if (selected.includes('P1.1')) checks.push(memberChecks[0]);
+        if (selected.includes('P1.2')) checks.push(memberChecks[1]);
+      }
+      if (selected.includes('P1.3')) checks.push(await runP13(browser, runCtx));
+      if (selected.includes('P1.5.1')) checks.push(runVercelLogsSweep(runCtx));
+    } else if (selected.includes('P1.5.1')) {
+      checks.push(runVercelLogsSweep(runCtx));
     }
-    if (selected.includes('P1.3')) checks.push(await runP13(browser, runCtx));
-    if (selected.includes('P1.5.1')) checks.push(runVercelLogsSweep(runCtx));
 
     const report = writeReleaseGateReport({
       outDir: args.outDir,
@@ -1648,7 +1801,9 @@ async function main() {
 
 module.exports = {
   buildRouteAllowingLocalePath,
+  classifyInfraNetworkFailure,
   computeRetryDelayMs,
+  isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
