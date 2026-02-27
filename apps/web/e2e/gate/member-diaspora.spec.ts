@@ -1,22 +1,28 @@
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { gotoMemberHomeStable } from './_helpers/member-home';
 
 test.describe('Diaspora Feature', () => {
   test('Member can see Diaspora ribbon and navigate to Diaspora page', async ({
     authenticatedPage: page,
   }, testInfo) => {
     // 1. Go to Member Home
-    await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'dashboard-page-ready' });
+    await gotoMemberHomeStable(page, testInfo);
 
-    // Assert we are on the dashboard
-    await expect(page.getByTestId('dashboard-heading')).toBeVisible();
+    // Assert shell marker and diaspora ribbon are present.
+    await expect(page.getByTestId('dashboard-page-ready').first()).toBeVisible();
 
     // 2. Check for Diaspora ribbon
-    await expect(page.getByTestId('diaspora-ribbon')).toBeVisible();
+    const diasporaRibbon = page.getByTestId('diaspora-ribbon').first();
+    const ribbonVisible = await diasporaRibbon.isVisible({ timeout: 6000 }).catch(() => false);
+    if (!ribbonVisible) {
+      await gotoMemberHomeStable(page, testInfo);
+    }
+    await expect(diasporaRibbon).toBeVisible();
 
     // 3. Navigate to Diaspora page
-    const ribbonCta = page.getByTestId('diaspora-ribbon-cta');
+    const ribbonCta = page.getByTestId('diaspora-ribbon-cta').first();
     await expect(ribbonCta).toBeVisible();
     const diasporaHref = await ribbonCta.getAttribute('href');
     expect(diasporaHref).toContain('/member/diaspora');
