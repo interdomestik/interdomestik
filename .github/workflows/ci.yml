@@ -52,6 +52,7 @@ jobs:
           pnpm -w i18n:purity:check --report=tmp/i18n-purity/ci-static-report.json
       - name: Upload i18n purity report
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: i18n-purity-report-${{ github.run_id }}-${{ github.run_attempt }}
@@ -101,6 +102,7 @@ jobs:
 
       - name: Upload PR hardening dry-run artifacts
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: multi-agent-dry-run-${{ github.run_id }}-${{ github.run_attempt }}

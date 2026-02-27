@@ -89,8 +89,10 @@ is_placeholder_value() {
 # .env values are placeholders. This keeps gate runs reproducible on fresh clones.
 if [[ "${PLAYWRIGHT:-}" == "1" ]]; then
 	LOCAL_SUPABASE_URL="http://127.0.0.1:54321"
-	LOCAL_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNRe1DMO4cI6Fcqw"
-	LOCAL_SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+	# Build-time and runtime only need non-empty placeholders in CI smoke lanes.
+	# Keep them non-secret to avoid secret-scan false positives.
+	LOCAL_SUPABASE_ANON_KEY="sb_anon_test_key_local_e2e"
+	LOCAL_SUPABASE_SERVICE_KEY="sb_service_role_test_key_local_e2e"
 
 	if is_placeholder_value "${NEXT_PUBLIC_SUPABASE_URL:-}"; then
 		export NEXT_PUBLIC_SUPABASE_URL="${LOCAL_SUPABASE_URL}"

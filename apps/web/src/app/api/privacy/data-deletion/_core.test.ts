@@ -80,6 +80,9 @@ describe('requestDataDeletionCore', () => {
     expect(insertRequest).not.toHaveBeenCalled();
     expect(result.status).toBe(202);
     expect(result.body.success).toBe(true);
+    if (!result.body.success) {
+      throw new Error(`Expected success response, got error: ${result.body.error}`);
+    }
     expect(result.body.requestId).toBe('req_recent');
     expect(result.body.alreadyPending).toBe(true);
     expect(result.body.retryAfterDays).toBeGreaterThan(0);
