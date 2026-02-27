@@ -1,5 +1,6 @@
 'use client';
 
+import { useCookieConsent } from '@/lib/cookie-consent';
 import Script from 'next/script';
 
 type AnalyticsScriptsProps = {
@@ -7,8 +8,13 @@ type AnalyticsScriptsProps = {
 };
 
 export function AnalyticsScripts({ nonce }: AnalyticsScriptsProps) {
+  const { consent } = useCookieConsent();
   const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
   const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+
+  if (consent !== 'accepted') {
+    return null;
+  }
 
   return (
     <>

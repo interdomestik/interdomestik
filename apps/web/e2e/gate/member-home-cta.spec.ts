@@ -11,7 +11,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
       urlPattern: RegExp,
       readyMarker: string
     ) => {
-      const cta = page.getByTestId(ctaTestId);
+      const cta = page.getByTestId(ctaTestId).first();
       await cta.scrollIntoViewIfNeeded();
       await expect(cta).toBeVisible();
 
@@ -41,7 +41,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
 
     // Assert we are on the dashboard
-    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
+    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
     // 2. Incident Guide CTA
     await clickCtaAndAssertNavigation(
@@ -52,14 +52,14 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
 
     // Back to home
     await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
-    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
+    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
     // 3. Report CTA
     await clickCtaAndAssertNavigation('home-cta-report', /\/claim-report/, 'report-page-ready');
 
     // Back to home
     await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
-    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
+    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
     // 4. Green Card CTA
     await clickCtaAndAssertNavigation(
@@ -70,7 +70,7 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
 
     // Back to home
     await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
-    await expect(page.getByTestId('member-dashboard-ready')).toBeVisible();
+    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
     // 5. Benefits CTA
     await clickCtaAndAssertNavigation('home-cta-benefits', /\/benefits/, 'benefits-page-ready');
