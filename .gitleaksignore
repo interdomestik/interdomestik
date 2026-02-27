@@ -6,3 +6,8 @@
 # File: .github/workflows/ci.yml
 # Line: PADDLE_WEBHOOK_SECRET_KEY: test_secret
 8ddf6ca51d61d056f0669e0c609d3c7c2ee64ec1:PADDLE_WEBHOOK_SECRET_KEY:test_secret
+
+# Local Supabase demo JWTs used for deterministic E2E fallback (not production secrets).
+# Commit: 110eafe66d26520bc77941637f2b7eda62bb950f
+110eafe66d26520bc77941637f2b7eda62bb950f:scripts/e2e-webserver.sh:jwt:92
+110eafe66d26520bc77941637f2b7eda62bb950f:scripts/e2e-webserver.sh:jwt:93

@@ -18,8 +18,9 @@ const ROUTES = {
   rbacTargets: ['member', 'agent', 'staff', 'admin'],
   memberDocuments: '/member/documents',
   staffClaimsList: '/staff/claims',
-  defaultAdminUserUrl: '/admin/users/golden_ks_staff',
+  defaultAdminUserUrl: '/admin/users/golden_ks_a_member_1',
   crossTenantProbe: '/admin/users/golden_ks_staff?tenantId=tenant_ks',
+  tenantOverrideProbeFallback: '/admin/users/golden_mk_staff?tenantId=tenant_mk',
 };
 
 const MARKERS = {
@@ -52,6 +53,7 @@ const SELECTORS = {
   uploadButtonName: /^upload$/i,
   downloadButtonName: /download/i,
   inlineViewButtonName: /view/i,
+  notFoundFallbackTemplate: 'template[data-dgst*="404"]',
 };
 
 const TIMEOUTS = {

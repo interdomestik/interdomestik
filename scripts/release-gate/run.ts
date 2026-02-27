@@ -41,6 +41,422 @@ const {
   waitForReadyMarker,
 } = require('./shared.ts');
 
+const VERCEL_LOG_STREAM_TIMEOUT_MS = 12_000;
+const AUTH_PREFLIGHT_TIMEOUT_MS = 8_000;
+const AUTH_PREFLIGHT_MAX_ATTEMPTS = 3;
+const AUTH_PREFLIGHT_BACKOFF_MS = [500, 1_500, 3_000];
+const AUTH_PREFLIGHT_ACCEPTED_STATUSES = new Set([200, 204, 400, 401, 403, 404, 405, 429]);
+const LOGIN_DEPENDENT_CHECKS = new Set([
+  'P0.1',
+  'P0.2',
+  'P0.3',
+  'P0.4',
+  'P0.6',
+  'P1.1',
+  'P1.2',
+  'P1.3',
+]);
+const INFRA_NETWORK_ERROR_PATTERNS = [
+  /ECONNREFUSED/i,
+  /ETIMEDOUT/i,
+  /Timeout \d+ms exceeded/i,
+  /ENOTFOUND/i,
+  /EAI_AGAIN/i,
+  /ECONNRESET/i,
+  /socket hang up/i,
+  /AUTH_LOGIN_NETWORK_ERROR/i,
+];
+const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
+const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
+
+function isLegacyVercelLogsArgsUnsupported(output) {
+  return /unknown or unexpected option:\s*--environment/i.test(String(output || ''));
+}
+
+function parseVercelRuntimeJsonLines(raw) {
+  const entries = [];
+  for (const line of String(raw || '')
+    .split('\n')
+    .map(value => value.trim())
+    .filter(Boolean)) {
+    try {
+      const payload = JSON.parse(line);
+      entries.push(payload);
+    } catch {
+      // Ignore non-JSON banner/noise lines in mixed output streams.
+    }
+  }
+  return entries;
+}
+
+function runtimeEntryMessage(entry) {
+  if (!entry || typeof entry !== 'object') return '';
+  return String(entry.message || entry.text || entry.msg || '').trim();
+}
+
+function runtimeEntryLevel(entry) {
+  if (!entry || typeof entry !== 'object') return '';
+  return String(entry.level || entry.severity || '')
+    .trim()
+    .toLowerCase();
+}
+
+function isErrorRuntimeLevel(level) {
+  return level === 'error' || level === 'fatal';
+}
+
+function compactErrorMessage(raw, maxLength = 420) {
+  return String(raw || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function classifyInfraNetworkFailure(raw) {
+  const message = compactErrorMessage(raw, 650);
+  if (!message) return null;
+  const matched = INFRA_NETWORK_ERROR_PATTERNS.some(pattern => pattern.test(message));
+  return matched ? message : null;
+}
+
+async function seedCookieConsentState(args) {
+  const { context, page, baseUrl } = args;
+  const origin = new URL(baseUrl).origin;
+
+  await context
+    .addCookies([
+      {
+        name: COOKIE_CONSENT_COOKIE_NAME,
+        value: 'accepted',
+        url: origin,
+        path: '/',
+        sameSite: 'Lax',
+      },
+    ])
+    .catch(() => {});
+
+  await page.addInitScript(
+    ({ storageKey, cookieName }) => {
+      try {
+        window.localStorage.setItem(storageKey, 'accepted');
+      } catch {}
+      try {
+        document.cookie = `${cookieName}=accepted; Path=/; SameSite=Lax`;
+      } catch {}
+    },
+    {
+      storageKey: COOKIE_CONSENT_STORAGE_KEY,
+      cookieName: COOKIE_CONSENT_COOKIE_NAME,
+    }
+  );
+}
+
+async function probeBaseUrl(candidateBaseUrl) {
+  const origin = new URL(candidateBaseUrl).origin;
+  const response = await fetch(origin, {
+    method: 'GET',
+    redirect: 'manual',
+    signal: AbortSignal.timeout(TIMEOUTS.nav),
+  });
+  return response.status;
+}
+
+function normalizeDeploymentBaseUrl(deploymentUrl) {
+  if (!deploymentUrl || deploymentUrl === 'unknown') return null;
+  try {
+    return normalizeBaseUrl(deploymentUrl);
+  } catch {
+    return null;
+  }
+}
+
+async function resolveReachableBaseUrl(configuredBaseUrl, deployment) {
+  const deploymentBaseUrl = normalizeDeploymentBaseUrl(deployment?.deploymentUrl);
+  const candidates = Array.from(new Set([configuredBaseUrl, deploymentBaseUrl].filter(Boolean)));
+  const failures = [];
+
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index];
+    try {
+      const status = await probeBaseUrl(candidate);
+      const source = index === 0 ? 'configured' : 'deployment_fallback';
+      return { baseUrl: candidate, source, probeStatus: status, failures };
+    } catch (error) {
+      failures.push(
+        `probe_failed candidate=${candidate} reason=${compactErrorMessage(error?.message || error)}`
+      );
+    }
+  }
+
+  return {
+    baseUrl: configuredBaseUrl,
+    source: 'configured_unreachable',
+    probeStatus: null,
+    failures,
+  };
+}
+
+function isLoginDependentCheck(checkId) {
+  return LOGIN_DEPENDENT_CHECKS.has(checkId);
+}
+
+function resolveTenantOverrideProbeUrl(runCtx) {
+  const configured = String(process.env.RELEASE_GATE_MK_USER_URL || '').trim();
+  if (configured) {
+    return {
+      source: 'env',
+      url: /^https?:\/\//i.test(configured)
+        ? configured
+        : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, configured),
+    };
+  }
+
+  const fallbackPath =
+    ROUTES.tenantOverrideProbeFallback || '/admin/users/golden_mk_staff?tenantId=tenant_mk';
+  return {
+    source: 'fallback',
+    url: buildRoute(runCtx.baseUrl, runCtx.locale, fallbackPath),
+  };
+}
+
+function parseBooleanEnv(value) {
+  if (value == null) return null;
+  const normalized = String(value).trim().toLowerCase();
+  if (!normalized) return null;
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return null;
+}
+
+function shouldDisallowSkippedChecks(envName) {
+  const explicit = parseBooleanEnv(process.env.RELEASE_GATE_DISALLOW_SKIP);
+  if (explicit != null) return explicit;
+  return String(envName || '').toLowerCase() === 'production';
+}
+
+function checksAllowedToRemainSkipped() {
+  const allowed = new Set();
+  if (
+    String(process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL || '')
+      .trim()
+      .toLowerCase() === 'false'
+  ) {
+    allowed.add('P0.3');
+    allowed.add('P0.4');
+  }
+  return allowed;
+}
+
+function enforceNoSkipOnSelectedChecks(checks, selected, envName) {
+  if (!shouldDisallowSkippedChecks(envName)) {
+    return checks;
+  }
+
+  const selectedSet = new Set(selected);
+  const skipAllowedChecks = checksAllowedToRemainSkipped();
+  const byId = new Map(checks.map(check => [check.id, check]));
+
+  for (const checkId of selected) {
+    const check = byId.get(checkId);
+    if (!check) {
+      byId.set(
+        checkId,
+        checkResult(
+          checkId,
+          'FAIL',
+          [`skip_policy=disallowed env=${envName}`, 'execution_result=missing'],
+          [`${checkId}_NOT_EXECUTED`]
+        )
+      );
+      continue;
+    }
+
+    if (check.status === 'SKIPPED') {
+      if (skipAllowedChecks.has(checkId)) {
+        byId.set(checkId, {
+          ...check,
+          evidence: [
+            ...(check.evidence || []),
+            'skip_policy=allowed reason=RELEASE_GATE_REQUIRE_ROLE_PANEL=false',
+          ],
+        });
+        continue;
+      }
+      const signatures = Array.from(
+        new Set([...(check.signatures || []), `${checkId}_SKIPPED_NOT_ALLOWED`])
+      );
+      byId.set(checkId, {
+        ...check,
+        status: 'FAIL',
+        evidence: [...(check.evidence || []), `skip_policy=disallowed env=${envName}`],
+        signatures,
+      });
+    }
+  }
+
+  const normalized = [];
+  for (const checkId of selected) {
+    const check = byId.get(checkId);
+    if (check) normalized.push(check);
+  }
+  for (const check of checks) {
+    if (!selectedSet.has(check.id)) normalized.push(check);
+  }
+  return normalized;
+}
+
+function preflightEvidenceLine({ endpoint, attempt, status, message }) {
+  if (typeof status === 'number') {
+    return `auth_preflight endpoint=${endpoint} attempt=${attempt} status=${status}`;
+  }
+  return `auth_preflight endpoint=${endpoint} attempt=${attempt} transport_error=${compactErrorMessage(message)}`;
+}
+
+function evaluateCredentialPreflightResults(results) {
+  const statuses = (results || [])
+    .map(entry => entry?.status)
+    .filter(status => typeof status === 'number');
+  const hasSuccess = statuses.some(status => status >= 200 && status < 300);
+  const allAuthDenied =
+    statuses.length > 0 && statuses.every(status => status === 401 || status === 403);
+  return { hasSuccess, allAuthDenied };
+}
+
+async function runAuthEndpointPreflight(runCtx) {
+  const evidence = [];
+  const signatures = [];
+  const origin = new URL(runCtx.baseUrl).origin;
+  const endpointPaths = [
+    '/api/auth/get-session?disableCookieCache=true&disableRefresh=true',
+    '/api/auth/sign-in/email',
+  ];
+
+  for (const endpointPath of endpointPaths) {
+    const endpoint = `${origin}${endpointPath}`;
+    let reached = false;
+
+    for (let attempt = 1; attempt <= AUTH_PREFLIGHT_MAX_ATTEMPTS; attempt += 1) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            Origin: origin,
+            Referer: `${origin}/${runCtx.locale}/login`,
+          },
+          redirect: 'manual',
+          signal: AbortSignal.timeout(AUTH_PREFLIGHT_TIMEOUT_MS),
+        });
+
+        evidence.push(preflightEvidenceLine({ endpoint, attempt, status: response.status }));
+        if (AUTH_PREFLIGHT_ACCEPTED_STATUSES.has(response.status)) {
+          reached = true;
+          break;
+        }
+
+        signatures.push(
+          `AUTH_PREFLIGHT_ENDPOINT_UNHEALTHY endpoint=${endpointPath} status=${response.status}`
+        );
+        return { status: 'FAIL', evidence, signatures };
+      } catch (error) {
+        const message = compactErrorMessage(error?.message || error);
+        evidence.push(preflightEvidenceLine({ endpoint, attempt, message }));
+        const infraMessage = classifyInfraNetworkFailure(message);
+
+        if (infraMessage && attempt < AUTH_PREFLIGHT_MAX_ATTEMPTS) {
+          const delay =
+            AUTH_PREFLIGHT_BACKOFF_MS[Math.min(attempt - 1, AUTH_PREFLIGHT_BACKOFF_MS.length - 1)];
+          await sleep(delay);
+          continue;
+        }
+
+        if (infraMessage) {
+          signatures.push(
+            `AUTH_PREFLIGHT_INFRA_NETWORK endpoint=${endpointPath} message=${infraMessage}`
+          );
+        } else {
+          signatures.push(`AUTH_PREFLIGHT_EXCEPTION endpoint=${endpointPath} message=${message}`);
+        }
+        return { status: 'FAIL', evidence, signatures };
+      }
+    }
+
+    if (!reached) {
+      signatures.push(`AUTH_PREFLIGHT_INFRA_NETWORK endpoint=${endpointPath} message=exhausted`);
+      return { status: 'FAIL', evidence, signatures };
+    }
+  }
+
+  return { status: 'PASS', evidence, signatures };
+}
+
+async function runAuthCredentialPreflight(runCtx) {
+  const evidence = [];
+  const signatures = [];
+  const origin = new URL(runCtx.baseUrl).origin;
+  const loginUrl = `${origin}/api/auth/sign-in/email`;
+  const accountKeys = Object.keys(ACCOUNTS);
+  const results = [];
+
+  for (const accountKey of accountKeys) {
+    const credentials = runCtx.credentials?.[accountKey];
+    const email = credentials?.email || '';
+    const password = credentials?.password || '';
+
+    if (!email || !password) {
+      evidence.push(
+        `auth_credentials_preflight account=${accountKey} status=skipped_missing_creds`
+      );
+      continue;
+    }
+
+    const tenantId = ACCOUNTS[accountKey]?.tenantId;
+    try {
+      const response = await fetch(loginUrl, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          Origin: origin,
+          Referer: `${origin}/${runCtx.locale}/login`,
+          ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+        redirect: 'manual',
+        signal: AbortSignal.timeout(AUTH_PREFLIGHT_TIMEOUT_MS),
+      });
+      const status = response.status;
+      results.push({ accountKey, status });
+      evidence.push(
+        `auth_credentials_preflight account=${sessionCacheKeyForAccount(accountKey)} status=${status}`
+      );
+    } catch (error) {
+      const message = compactErrorMessage(error?.message || error, 320);
+      evidence.push(
+        `auth_credentials_preflight account=${sessionCacheKeyForAccount(accountKey)} transport_error=${message}`
+      );
+    }
+  }
+
+  const evaluation = evaluateCredentialPreflightResults(results);
+  if (evaluation.allAuthDenied) {
+    const summary = results.map(entry => `${entry.accountKey}:${entry.status}`).join(',');
+    signatures.push(`AUTH_CREDENTIALS_MISCONFIG all_accounts_denied statuses=${summary}`);
+    return {
+      status: 'FAIL',
+      evidence,
+      signatures,
+    };
+  }
+
+  return {
+    status: 'PASS',
+    evidence,
+    signatures,
+  };
+}
+
 function parseArgs(argv) {
   const parsed = {
     baseUrl: DEFAULTS.baseUrl,
@@ -262,10 +678,21 @@ async function runP03AndP04(browser, runCtx) {
   const roleToToggle = String(process.env.RELEASE_GATE_ROLE || 'promoter')
     .trim()
     .toLowerCase();
+  const requireRolePanel = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL !== 'false';
   const evidenceP03 = [];
   const evidenceP04 = [];
   const failuresP03 = [];
   const failuresP04 = [];
+
+  if (!requireRolePanel) {
+    const reason = 'role_panel_checks_disabled (RELEASE_GATE_REQUIRE_ROLE_PANEL=false)';
+    evidenceP03.push(reason);
+    evidenceP04.push(reason);
+    return [
+      checkResult('P0.3', 'SKIPPED', evidenceP03, []),
+      checkResult('P0.4', 'SKIPPED', evidenceP04, []),
+    ];
+  }
 
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -373,16 +800,6 @@ async function runP03AndP04(browser, runCtx) {
 
     const resolvedTarget = await ensureRolePanelLoaded(targetUrl);
     if (!resolvedTarget) {
-      const requireRolePanel = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL !== 'false';
-      if (!requireRolePanel) {
-        const reason = `role_panel_unavailable target=${targetUrl} (RELEASE_GATE_REQUIRE_ROLE_PANEL=false)`;
-        evidenceP03.push(reason);
-        evidenceP04.push(reason);
-        return [
-          checkResult('P0.3', 'SKIPPED', evidenceP03, []),
-          checkResult('P0.4', 'SKIPPED', evidenceP04, []),
-        ];
-      }
       failuresP03.push(`P0.3_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
       failuresP04.push(`P0.4_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
       return [
@@ -689,54 +1106,39 @@ async function runP06(browser, runCtx) {
   });
 
   {
-    const mkUserUrl = String(process.env.RELEASE_GATE_MK_USER_URL || '').trim();
-    if (!mkUserUrl) {
-      recordScenario({
-        id: 'S5',
-        title: 'Tenant override injection (optional)',
-        account: 'admin_ks',
-        urls: [],
-        expectedSummary: 'notFound=true OR rolesTable=false',
-        observedSummary: 'SKIPPED: RELEASE_GATE_MK_USER_URL missing',
-        result: 'SKIPPED',
-      });
-    } else {
-      try {
-        await withAccount('admin_ks', async page => {
-          const url = /^https?:\/\//i.test(mkUserUrl)
-            ? mkUserUrl
-            : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, mkUserUrl);
-          const result = await assertUrlMarkers(page, 'S5', url, {});
-          const passes = result.observed.notFound || result.observed.rolesTable === false;
-          const failureSignature = passes
-            ? ''
-            : `P0.6_S5_MARKER_MISMATCH expected (notFound=true OR rolesTable=false) got ${markersToString(result.observed)}`;
-          if (failureSignature) failures.push(failureSignature);
-          recordScenario({
-            id: 'S5',
-            title: 'Tenant override injection (optional)',
-            account: 'admin_ks',
-            urls: [url],
-            expectedSummary: 'notFound=true OR rolesTable=false',
-            observedSummary: markersToString(result.observed),
-            result: failureSignature ? 'FAIL' : 'PASS',
-            failureSignature,
-          });
-        });
-      } catch (error) {
-        const failureSignature = `P0.6_S5_EXCEPTION message=${String(error.message || error)}`;
-        failures.push(failureSignature);
+    const s5Probe = resolveTenantOverrideProbeUrl(runCtx);
+    try {
+      await withAccount('admin_ks', async page => {
+        const result = await assertUrlMarkers(page, 'S5', s5Probe.url, {});
+        const passes = result.observed.notFound || result.observed.rolesTable === false;
+        const failureSignature = passes
+          ? ''
+          : `P0.6_S5_MARKER_MISMATCH expected (notFound=true OR rolesTable=false) got ${markersToString(result.observed)}`;
+        if (failureSignature) failures.push(failureSignature);
         recordScenario({
           id: 'S5',
-          title: 'Tenant override injection (optional)',
+          title: 'Tenant override injection',
           account: 'admin_ks',
-          urls: [mkUserUrl],
+          urls: [s5Probe.url],
           expectedSummary: 'notFound=true OR rolesTable=false',
-          observedSummary: 'exception',
-          result: 'FAIL',
+          observedSummary: `source=${s5Probe.source} ${markersToString(result.observed)}`,
+          result: failureSignature ? 'FAIL' : 'PASS',
           failureSignature,
         });
-      }
+      });
+    } catch (error) {
+      const failureSignature = `P0.6_S5_EXCEPTION message=${String(error.message || error)}`;
+      failures.push(failureSignature);
+      recordScenario({
+        id: 'S5',
+        title: 'Tenant override injection',
+        account: 'admin_ks',
+        urls: [s5Probe.url],
+        expectedSummary: 'notFound=true OR rolesTable=false',
+        observedSummary: `source=${s5Probe.source} exception`,
+        result: 'FAIL',
+        failureSignature,
+      });
     }
   }
 
@@ -853,6 +1255,7 @@ trailer
 
   const context = await browser.newContext({ acceptDownloads: true });
   const page = await context.newPage();
+  await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
   const clientSignals = [];
   const pushClientSignal = signal => {
     if (clientSignals.length < 10 && signal) {
@@ -987,6 +1390,11 @@ trailer
 
     const reloginContext = await browser.newContext({ acceptDownloads: true });
     const reloginPage = await reloginContext.newPage();
+    await seedCookieConsentState({
+      context: reloginContext,
+      page: reloginPage,
+      baseUrl: runCtx.baseUrl,
+    });
     reloginPage.on('response', response => {
       const url = response.url();
       if (url.includes('/api/documents/') && url.includes('/download')) {
@@ -1082,12 +1490,18 @@ trailer
     await reloginContext.close();
   } catch (error) {
     const rawMessage = String(error.message || error);
+    const infraMessage = classifyInfraNetworkFailure(rawMessage);
     if (rawMessage.includes('NO_MEMBER_DOCUMENT_UPLOAD_BUTTONS')) {
       signaturesP11.push(
         'P1.1_MISCONFIG_MEMBER_UPLOAD_PRECONDITION_NOT_MET reason=no_upload_entry_buttons'
       );
+      signaturesP12.push('P1.2_SKIPPED_DEPENDENCY_P1.1_MEMBER_UPLOAD_PRECONDITION');
+    } else if (infraMessage) {
+      signaturesP11.push(`P1.1_INFRA_NETWORK message=${infraMessage}`);
+      signaturesP12.push(`P1.2_INFRA_NETWORK_DEPENDENCY message=${infraMessage}`);
     } else {
-      signaturesP11.push(`P1.1_EXCEPTION message=${rawMessage}`);
+      signaturesP11.push(`P1.1_EXCEPTION message=${compactErrorMessage(rawMessage, 650)}`);
+      signaturesP12.push('P1.2_DEPENDENCY_P1.1_EXCEPTION');
     }
     if (clientSignals.length > 0) {
       evidenceP11.push(`client signals: ${clientSignals.join(' || ')}`);
@@ -1109,6 +1523,7 @@ async function runP13(browser, runCtx) {
   const signatures = [];
   const context = await browser.newContext();
   const page = await context.newPage();
+  await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
   try {
     await loginAs(page, {
       account: 'staff',
@@ -1292,7 +1707,13 @@ async function runP13(browser, runCtx) {
       .isVisible({ timeout: TIMEOUTS.quickMarker })
       .catch(() => false);
     evidence.push(`failure_not_found=${notFoundVisible}`);
-    signatures.push(`P1.3_EXCEPTION message=${String(error.message || error)}`);
+    const rawMessage = String(error.message || error);
+    const infraMessage = classifyInfraNetworkFailure(rawMessage);
+    if (infraMessage) {
+      signatures.push(`P1.3_INFRA_NETWORK message=${infraMessage}`);
+    } else {
+      signatures.push(`P1.3_EXCEPTION message=${compactErrorMessage(rawMessage, 650)}`);
+    }
   } finally {
     await context.close();
   }
@@ -1326,37 +1747,115 @@ function runVercelLogsSweep(runCtx) {
     timeout: 120_000,
   });
 
-  if (logs.error) {
-    evidence.push(`vercel logs failed to execute; skipped (${logs.error.message})`);
-    return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
-  }
-
   const combined = `${logs.stdout || ''}\n${logs.stderr || ''}`;
   const lines = combined
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean);
 
-  if (logs.status !== 0) {
-    evidence.push(`vercel logs exited ${logs.status}; skipped`);
-    evidence.push(...lines.slice(0, 4));
+  const legacySupported = !isLegacyVercelLogsArgsUnsupported(combined);
+  if (legacySupported) {
+    if (logs.error) {
+      evidence.push(`vercel logs failed to execute; skipped (${logs.error.message})`);
+      return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
+    }
+
+    if (logs.status !== 0) {
+      evidence.push(`vercel logs exited ${logs.status}; skipped`);
+      evidence.push(...lines.slice(0, 4));
+      return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
+    }
+
+    const meaningful = lines.filter(
+      line => !EXPECTED_VERCEL_LOG_NOISE.some(pattern => pattern.test(line))
+    );
+    evidence.push('log_mode=legacy');
+    evidence.push(`total error lines=${lines.length}`);
+    evidence.push(`non-noise lines=${meaningful.length}`);
+    evidence.push(...meaningful.slice(0, 6));
+
+    const unexpectedFunctional = meaningful.filter(line =>
+      FUNCTIONAL_LOG_ERROR_HINTS.some(pattern => pattern.test(line))
+    );
+    if (unexpectedFunctional.length > 0) {
+      signatures.push(...unexpectedFunctional.map(line => `P1.5.1_UNEXPECTED_ERROR ${line}`));
+      return checkResult('P1.5.1', 'FAIL', evidence, signatures);
+    }
+
+    return checkResult('P1.5.1', 'PASS', evidence, signatures);
+  }
+
+  const deploymentRef =
+    runCtx.deployment?.deploymentUrl && runCtx.deployment.deploymentUrl !== 'unknown'
+      ? runCtx.deployment.deploymentUrl
+      : runCtx.baseUrl;
+
+  const streamingLogs = spawnSync('vercel', ['logs', deploymentRef, '--json'], {
+    encoding: 'utf8',
+    env: process.env,
+    timeout: VERCEL_LOG_STREAM_TIMEOUT_MS,
+  });
+
+  const streamingCombined = `${streamingLogs.stdout || ''}\n${streamingLogs.stderr || ''}`;
+  const streamingLines = streamingCombined
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const timedOut = streamingLogs.error && streamingLogs.error.code === 'ETIMEDOUT';
+  const unexpectedRuntimeError =
+    streamingLogs.error &&
+    streamingLogs.error.code !== 'ETIMEDOUT' &&
+    streamingLogs.error.code !== 'ETERM';
+
+  if (unexpectedRuntimeError) {
+    evidence.push(`vercel logs stream failed; skipped (${streamingLogs.error.message})`);
+    evidence.push(...streamingLines.slice(0, 4));
     return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
   }
 
-  const meaningful = lines.filter(
-    line => !EXPECTED_VERCEL_LOG_NOISE.some(pattern => pattern.test(line))
-  );
+  if (streamingLogs.status != null && streamingLogs.status !== 0 && !timedOut) {
+    evidence.push(`vercel logs stream exited ${streamingLogs.status}; skipped`);
+    evidence.push(...streamingLines.slice(0, 4));
+    return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
+  }
 
-  evidence.push(`total error lines=${lines.length}`);
-  evidence.push(`non-noise lines=${meaningful.length}`);
-  evidence.push(...meaningful.slice(0, 6));
+  const runtimeEntries = parseVercelRuntimeJsonLines(streamingLogs.stdout);
+  const meaningfulRuntimeEntries = runtimeEntries.filter(entry => {
+    const message = runtimeEntryMessage(entry);
+    return message.length > 0 && !EXPECTED_VERCEL_LOG_NOISE.some(pattern => pattern.test(message));
+  });
+  const unexpectedFunctional = meaningfulRuntimeEntries.filter(entry => {
+    const level = runtimeEntryLevel(entry);
+    const message = runtimeEntryMessage(entry);
+    return (
+      isErrorRuntimeLevel(level) ||
+      FUNCTIONAL_LOG_ERROR_HINTS.some(pattern => pattern.test(message))
+    );
+  });
 
-  const unexpectedFunctional = meaningful.filter(line =>
-    FUNCTIONAL_LOG_ERROR_HINTS.some(pattern => pattern.test(line))
+  evidence.push('log_mode=streaming-json');
+  evidence.push(`deployment_ref=${deploymentRef}`);
+  evidence.push(`stream_window_ms=${VERCEL_LOG_STREAM_TIMEOUT_MS}`);
+  evidence.push(`stream_timed_out=${timedOut}`);
+  evidence.push(`runtime_entries=${runtimeEntries.length}`);
+  evidence.push(`runtime_non_noise_entries=${meaningfulRuntimeEntries.length}`);
+  evidence.push(
+    ...meaningfulRuntimeEntries.slice(0, 6).map(entry => {
+      const level = runtimeEntryLevel(entry) || 'unknown';
+      const message = runtimeEntryMessage(entry);
+      return `runtime_entry level=${level} message=${message}`;
+    })
   );
 
   if (unexpectedFunctional.length > 0) {
-    signatures.push(...unexpectedFunctional.map(line => `P1.5.1_UNEXPECTED_ERROR ${line}`));
+    signatures.push(
+      ...unexpectedFunctional.map(entry => {
+        const level = runtimeEntryLevel(entry) || 'unknown';
+        const message = runtimeEntryMessage(entry);
+        return `P1.5.1_UNEXPECTED_ERROR level=${level} message=${message}`;
+      })
+    );
     return checkResult('P1.5.1', 'FAIL', evidence, signatures);
   }
 
@@ -1433,7 +1932,7 @@ async function detectDeploymentMetadata(baseUrl, browser) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const baseUrl = normalizeBaseUrl(args.baseUrl);
+  const configuredBaseUrl = normalizeBaseUrl(args.baseUrl);
   const requiredEnv = REQUIRED_ENV_BY_SUITE[args.suite] || REQUIRED_ENV_BY_SUITE.all;
   const missingEnv = getMissingEnv(requiredEnv);
   if (missingEnv.length > 0) {
@@ -1458,7 +1957,9 @@ async function main() {
   const checks = [];
 
   try {
-    const deployment = await detectDeploymentMetadata(baseUrl, browser);
+    const deployment = await detectDeploymentMetadata(configuredBaseUrl, browser);
+    const resolvedBase = await resolveReachableBaseUrl(configuredBaseUrl, deployment);
+    const baseUrl = resolvedBase.baseUrl;
     const runCtx = {
       baseUrl,
       locale: args.locale,
@@ -1468,24 +1969,79 @@ async function main() {
       deployment,
       authState: createAuthState(),
     };
+    console.log(
+      `[release-gate] base_url source=${resolvedBase.source} url=${baseUrl} probe_status=${String(
+        resolvedBase.probeStatus ?? 'unknown'
+      )}`
+    );
+    for (const failure of resolvedBase.failures) {
+      console.warn(`[release-gate] base_url ${failure}`);
+    }
 
     const selected = SUITES[args.suite];
+    const loginDependentSelected = selected.filter(isLoginDependentCheck);
+    let preflightBlocked = false;
 
-    if (selected.includes('P0.1')) checks.push(await runP01(browser, runCtx));
-    if (selected.includes('P0.2')) checks.push(await runP02(browser, runCtx));
-    if (selected.includes('P0.3') || selected.includes('P0.4')) {
-      const roleChecks = await runP03AndP04(browser, runCtx);
-      if (selected.includes('P0.3')) checks.push(roleChecks[0]);
-      if (selected.includes('P0.4')) checks.push(roleChecks[1]);
+    if (runCtx.envName === 'production' && loginDependentSelected.length > 0) {
+      const preflight = await runAuthEndpointPreflight(runCtx);
+      if (preflight.status !== 'PASS') {
+        preflightBlocked = true;
+        const firstSignature =
+          preflight.signatures[0] || 'AUTH_PREFLIGHT_INFRA_NETWORK message=unknown';
+        for (const checkId of loginDependentSelected) {
+          checks.push(
+            checkResult(
+              checkId,
+              'FAIL',
+              [...preflight.evidence],
+              [`${checkId}_INFRA_NETWORK_PRECHECK_FAILED ${firstSignature}`]
+            )
+          );
+        }
+      }
     }
-    if (selected.includes('P0.6')) checks.push(await runP06(browser, runCtx));
-    if (selected.includes('P1.1') || selected.includes('P1.2')) {
-      const memberChecks = await runP11AndP12(browser, runCtx);
-      if (selected.includes('P1.1')) checks.push(memberChecks[0]);
-      if (selected.includes('P1.2')) checks.push(memberChecks[1]);
+
+    if (!preflightBlocked && runCtx.envName === 'production' && loginDependentSelected.length > 0) {
+      const credentialPreflight = await runAuthCredentialPreflight(runCtx);
+      if (credentialPreflight.status !== 'PASS') {
+        preflightBlocked = true;
+        const firstSignature =
+          credentialPreflight.signatures[0] ||
+          'AUTH_CREDENTIALS_MISCONFIG all_accounts_denied statuses=unknown';
+        for (const checkId of loginDependentSelected) {
+          checks.push(
+            checkResult(
+              checkId,
+              'FAIL',
+              [...credentialPreflight.evidence],
+              [`${checkId}_MISCONFIG_CREDENTIALS_PRECHECK_FAILED ${firstSignature}`]
+            )
+          );
+        }
+      }
     }
-    if (selected.includes('P1.3')) checks.push(await runP13(browser, runCtx));
-    if (selected.includes('P1.5.1')) checks.push(runVercelLogsSweep(runCtx));
+
+    if (!preflightBlocked) {
+      if (selected.includes('P0.1')) checks.push(await runP01(browser, runCtx));
+      if (selected.includes('P0.2')) checks.push(await runP02(browser, runCtx));
+      if (selected.includes('P0.3') || selected.includes('P0.4')) {
+        const roleChecks = await runP03AndP04(browser, runCtx);
+        if (selected.includes('P0.3')) checks.push(roleChecks[0]);
+        if (selected.includes('P0.4')) checks.push(roleChecks[1]);
+      }
+      if (selected.includes('P0.6')) checks.push(await runP06(browser, runCtx));
+      if (selected.includes('P1.1') || selected.includes('P1.2')) {
+        const memberChecks = await runP11AndP12(browser, runCtx);
+        if (selected.includes('P1.1')) checks.push(memberChecks[0]);
+        if (selected.includes('P1.2')) checks.push(memberChecks[1]);
+      }
+      if (selected.includes('P1.3')) checks.push(await runP13(browser, runCtx));
+      if (selected.includes('P1.5.1')) checks.push(runVercelLogsSweep(runCtx));
+    } else if (selected.includes('P1.5.1')) {
+      checks.push(runVercelLogsSweep(runCtx));
+    }
+
+    const normalizedChecks = enforceNoSkipOnSelectedChecks(checks, selected, runCtx.envName);
 
     const report = writeReleaseGateReport({
       outDir: args.outDir,
@@ -1497,7 +2053,7 @@ async function main() {
       deploymentSource: runCtx.deployment.source,
       generatedAt: new Date(),
       executedChecks: selected,
-      checks,
+      checks: normalizedChecks,
       accounts: {
         member: credentials.member.email,
         agent: credentials.agent.email,
@@ -1513,15 +2069,15 @@ async function main() {
     });
 
     console.log(`[release-gate] report=${report.reportPath}`);
-    for (const check of checks) {
+    for (const check of normalizedChecks) {
       console.log(`[release-gate] ${check.id}=${check.status}`);
       for (const signature of check.signatures || []) {
         console.error(`[release-gate] signature ${signature}`);
       }
     }
 
-    const hasFailure = checks.some(check => check.status === 'FAIL');
-    const hasMisconfig = checks.some(check =>
+    const hasFailure = normalizedChecks.some(check => check.status === 'FAIL');
+    const hasMisconfig = normalizedChecks.some(check =>
       (check.signatures || []).some(signature => signature.includes('_MISCONFIG_'))
     );
     process.exit(hasMisconfig ? 2 : hasFailure ? 1 : 0);
@@ -1532,9 +2088,18 @@ async function main() {
 
 module.exports = {
   buildRouteAllowingLocalePath,
+  classifyInfraNetworkFailure,
   computeRetryDelayMs,
+  evaluateCredentialPreflightResults,
+  enforceNoSkipOnSelectedChecks,
+  isLoginDependentCheck,
+  isLegacyVercelLogsArgsUnsupported,
+  parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
+  resolveReachableBaseUrl,
+  resolveTenantOverrideProbeUrl,
   sessionCacheKeyForAccount,
+  shouldDisallowSkippedChecks,
 };
 
 if (require.main === module) {

@@ -18,6 +18,17 @@ function isMkProject(testInfo: TestInfo): boolean {
   return testInfo.project.name.includes('mk');
 }
 
+async function dismissCookieConsentIfVisible(page: Page): Promise<void> {
+  const banner = page.getByTestId('cookie-consent-banner');
+  if (!(await banner.count())) return;
+
+  const acceptButton = page.getByTestId('cookie-consent-accept').first();
+  if (!(await acceptButton.isVisible().catch(() => false))) return;
+
+  await acceptButton.click();
+  await expect(banner).toHaveCount(0);
+}
+
 async function loginAs(
   page: Page,
   user: { email: string; password?: string; tenant?: string },
@@ -51,6 +62,7 @@ async function loginAs(
 
   // Navigate to target path
   await gotoApp(page, targetPath, testInfo, { marker: 'dashboard-page-ready' });
+  await dismissCookieConsentIfVisible(page);
 }
 
 // Use serial to ensure Phase A creates claim before Phase B/C try to view it
@@ -87,10 +99,15 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
 
       // 2. Verify Dashboard (Member lands on /member)
       await expect(page).toHaveURL(/\/member/);
-      await page.evaluate(() => localStorage.clear());
+      await page.evaluate(() => {
+        localStorage.clear();
+        localStorage.setItem('interdomestik_cookie_consent_v1', 'accepted');
+        document.cookie = 'cookie_consent=accepted; Path=/; SameSite=Lax';
+      });
 
       // 3. Wizard
       await gotoApp(page, routes.memberNewClaim(testInfo), testInfo, { marker: 'page-ready' });
+      await dismissCookieConsentIfVisible(page);
       const bodyText = await page.textContent('body');
       expect(bodyText).not.toContain('MISSING_MESSAGE');
 
@@ -148,7 +165,9 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       });
 
       // Readiness Check: Wait for Admin V2 filters to load
-      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId('admin-claims-v2-ready').first()).toBeVisible({
+        timeout: 15000,
+      });
 
       // Search for the specific claim title using stable testid
       const searchInput = page.getByTestId('claims-search-input');

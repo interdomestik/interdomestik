@@ -74,6 +74,40 @@ load_env_file "${ROOT_DIR}/.env.local"
 load_env_file "${WEB_DIR}/.env"
 load_env_file "${WEB_DIR}/.env.local"
 
+is_placeholder_value() {
+	local value="${1:-}"
+	[[ -z "${value}" ]] && return 0
+	case "${value}" in
+	*"your-project.supabase.co"* | "your-anon-key" | "your-service-role-key" | "YOUR_"* | "your_"*)
+		return 0
+		;;
+	esac
+	return 1
+}
+
+# In deterministic Playwright mode, fall back to local Supabase defaults when
+# .env values are placeholders. This keeps gate runs reproducible on fresh clones.
+if [[ "${PLAYWRIGHT:-}" == "1" ]]; then
+	LOCAL_SUPABASE_URL="http://127.0.0.1:54321"
+	# Build-time and runtime only need non-empty placeholders in CI smoke lanes.
+	# Keep them non-secret to avoid secret-scan false positives.
+	LOCAL_SUPABASE_ANON_KEY="sb_anon_test_key_local_e2e"
+	LOCAL_SUPABASE_SERVICE_KEY="sb_service_role_test_key_local_e2e"
+
+	if is_placeholder_value "${NEXT_PUBLIC_SUPABASE_URL:-}"; then
+		export NEXT_PUBLIC_SUPABASE_URL="${LOCAL_SUPABASE_URL}"
+	fi
+	if is_placeholder_value "${SUPABASE_URL:-}"; then
+		export SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-${LOCAL_SUPABASE_URL}}"
+	fi
+	if is_placeholder_value "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}"; then
+		export NEXT_PUBLIC_SUPABASE_ANON_KEY="${LOCAL_SUPABASE_ANON_KEY}"
+	fi
+	if is_placeholder_value "${SUPABASE_SERVICE_ROLE_KEY:-}"; then
+		export SUPABASE_SERVICE_ROLE_KEY="${LOCAL_SUPABASE_SERVICE_KEY}"
+	fi
+fi
+
 # Prefer runtime-resolved server Supabase URL where available.
 if [[ -z "${SUPABASE_URL:-}" && -n "${NEXT_PUBLIC_SUPABASE_URL:-}" ]]; then
 	export SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL}"

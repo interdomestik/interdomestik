@@ -3,6 +3,7 @@ import { AnalyticsScripts } from '@/components/analytics/analytics-scripts';
 import { PwaRegistrar } from '@/components/pwa-registrar';
 
 import { ReferralTracker } from '@/components/analytics/referral-tracker';
+import { CookieConsentBanner } from '@/components/privacy/cookie-consent-banner';
 import { PostHogProvider } from '@/components/providers/posthog-provider';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
@@ -111,6 +112,7 @@ export default async function RootLayout({ children, params }: Props) {
                 <ReferralTracker />
                 <PwaRegistrar />
                 <AnalyticsScripts nonce={nonce} />
+                <CookieConsentBanner />
               </QueryProvider>
             </NextIntlClientProvider>
           </PostHogProvider>

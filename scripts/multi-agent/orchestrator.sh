@@ -620,7 +620,7 @@ if [[ "$SELECTED_MODE" == "single" ]]; then
   fi
 
   if [[ "$RUN_GATES" -eq 1 ]]; then
-    run_role_step_with_retries "single-agent" "single-agent-gate-pack" bash -lc "cd '$ROOT_DIR' && pnpm security:guard && REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test && pnpm pr:verify:hosts && pnpm e2e:gate"
+    run_role_step_with_retries "single-agent" "single-agent-gate-pack" bash -lc "cd '$ROOT_DIR' && pnpm security:guard && pnpm db:rls:test:required && pnpm pr:verify:hosts && pnpm e2e:gate"
   else
     printf '[orchestrator] skip gate lane\n'
   fi
@@ -662,7 +662,7 @@ else
 
   if [[ "$RUN_GATES" -eq 1 ]]; then
     run_role_step_with_retries "gatekeeper" "gate-security-guard" bash -lc "cd '$ROOT_DIR' && pnpm security:guard"
-    run_role_step_with_retries "gatekeeper" "gate-rls-required" bash -lc "cd '$ROOT_DIR' && REQUIRE_RLS_INTEGRATION=1 pnpm db:rls:test"
+    run_role_step_with_retries "gatekeeper" "gate-rls-required" bash -lc "cd '$ROOT_DIR' && pnpm db:rls:test:required"
     run_role_step_with_retries "gatekeeper" "gate-pr-verify-hosts" bash -lc "cd '$ROOT_DIR' && pnpm pr:verify:hosts"
     run_role_step_with_retries "gatekeeper" "gate-e2e-gate" bash -lc "cd '$ROOT_DIR' && pnpm e2e:gate"
   else

@@ -95,6 +95,62 @@ Idempotency is enforced via the `engagement_email_sends` table (unique `dedupe_k
 - Are we failing auth/rate-limit?
 - Do `audit_log` / `webhook_events` show activity for the incident window?
 
+## Incident response (first 30 minutes)
+
+### Severity
+
+- Sev1: tenant isolation/privacy/data-integrity breach, or sustained production outage.
+- Sev2: major workflow regression (claims, docs, billing) with active user impact.
+- Sev3: localized or low-impact degradation with workaround.
+
+### Immediate actions
+
+- Open an incident channel and assign one incident commander.
+- Capture exact start time, impacted tenant(s), and failing route(s).
+- Freeze non-emergency deploys until containment is complete.
+- Collect evidence:
+  - `pnpm security:guard`
+  - health check: `GET /api/health`
+  - latest gate summary and failing signatures
+  - Sentry issue/event links for the same window
+- Start mitigation (feature flag, rollback, or hotfix) within SLA:
+  - Sev1: immediate
+  - Sev2: same operating day
+  - Sev3: next scheduled review
+
+### Escalation path
+
+- On-call agent/staff -> admin owner -> engineering lead.
+- If privacy/legal exposure exists, notify legal/compliance owner in parallel.
+
+## Rollback procedure
+
+### Application rollback (Vercel)
+
+- Roll back to the latest healthy deployment in Vercel.
+- If rollback is not possible from UI, redeploy the last known-good commit/tag.
+- Re-run smoke/gate checks after rollback:
+  - `pnpm security:guard`
+  - `pnpm e2e:gate`
+  - `pnpm --filter @interdomestik/web run e2e:smoke`
+
+### Database rollback (Drizzle/Postgres)
+
+- Prefer forward-fix migrations; use rollback only when data risk is unacceptable.
+- Before any rollback:
+  - snapshot/backup database
+  - document affected migration IDs
+  - confirm restore plan owner
+- Execute rollback in staging first, then production under incident command.
+- After rollback, validate:
+  - tenant isolation checks
+  - critical claims/billing read/write flows
+  - audit log writes for restored services
+
+### Pilot stop/rollback policy
+
+- For pilot operations and stop criteria, follow `docs/pilot/PILOT_RUNBOOK.md`.
+
 ## Auth (password reset)
 
 ### What it is

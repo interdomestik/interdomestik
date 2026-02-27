@@ -16,7 +16,7 @@ permissions:
 jobs:
   pilot-gate:
     name: pr:verify + pilot:check
-    runs-on: ubuntu-22.04
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 60
     services:
       postgres:
@@ -132,6 +132,7 @@ jobs:
 
       - name: Upload Sonar gate artifacts
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: sonarqube-gate-${{ github.run_id }}
@@ -179,6 +180,7 @@ jobs:
 
       - name: Upload Seer sweep artifacts
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: sentry-seer-sweep-${{ github.run_id }}
@@ -194,6 +196,7 @@ jobs:
 
       - name: Upload release gate reports
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: pilot-gate-reports
@@ -208,7 +211,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    runs-on: ubuntu-22.04
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     timeout-minutes: 90
     services:
       postgres:
@@ -280,6 +283,7 @@ jobs:
 
       - name: Upload multi-agent hardening artifacts
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: multi-agent-hardening-${{ github.run_id }}

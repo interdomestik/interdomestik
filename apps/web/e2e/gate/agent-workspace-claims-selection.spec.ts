@@ -112,6 +112,22 @@ async function cleanupPersistenceMessages(claimId: string, content?: string): Pr
   }
 }
 
+async function waitForPersistedMessage(claimId: string, content: string): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const persistedMessage = await db.query.claimMessages.findFirst({
+          where: and(eq(claimMessages.claimId, claimId), eq(claimMessages.content, content)),
+          columns: { id: true },
+        });
+
+        return Boolean(persistedMessage?.id);
+      },
+      { timeout: 15000, intervals: [250, 500, 1000] }
+    )
+    .toBe(true);
+}
+
 test.describe('Agent Workspace Claims claimId selection', () => {
   test('claimId selects accessible claim and flags inaccessible claimId', async ({
     agentPage: page,
@@ -193,6 +209,7 @@ test.describe('Agent Workspace Claims claimId selection', () => {
         .locator('p.whitespace-pre-wrap')
         .filter({ hasText: uniqueText });
       await expect(sentMessage).toBeVisible({ timeout: 10000 });
+      await waitForPersistedMessage(accessibleClaimId, uniqueText);
 
       await page.reload();
 

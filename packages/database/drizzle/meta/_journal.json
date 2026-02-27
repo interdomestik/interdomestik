@@ -246,6 +246,13 @@
       "when": 1771958400000,
       "tag": "0034_invoice_append_only_ledger_invariants",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1772125375956,
+      "tag": "0035_enable_tenant_rls_coverage",
+      "breakpoints": true
     }
   ]
 }
