@@ -20,12 +20,21 @@ const { checkPortalMarkers } = require('./shared.ts');
 const { SELECTORS } = require('./config.ts');
 
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
+const ORIGINAL_REQUIRE_ROLE_PANEL = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
 
 function restoreDisallowSkipEnv() {
   if (ORIGINAL_DISALLOW_SKIP === undefined) {
     delete process.env.RELEASE_GATE_DISALLOW_SKIP;
   } else {
     process.env.RELEASE_GATE_DISALLOW_SKIP = ORIGINAL_DISALLOW_SKIP;
+  }
+}
+
+function restoreRequireRolePanelEnv() {
+  if (ORIGINAL_REQUIRE_ROLE_PANEL === undefined) {
+    delete process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
+  } else {
+    process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL = ORIGINAL_REQUIRE_ROLE_PANEL;
   }
 }
 
@@ -218,6 +227,36 @@ test('enforceNoSkipOnSelectedChecks keeps skipped checks when skip policy is dis
     assert.equal(normalized[0].status, 'SKIPPED');
   } finally {
     restoreDisallowSkipEnv();
+  }
+});
+
+test('enforceNoSkipOnSelectedChecks allows P0.3/P0.4 skip when role panel checks are disabled', () => {
+  delete process.env.RELEASE_GATE_DISALLOW_SKIP;
+  process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL = 'false';
+  try {
+    const checks = [
+      { id: 'P0.3', status: 'SKIPPED', evidence: ['N/A'], signatures: [] },
+      { id: 'P0.4', status: 'SKIPPED', evidence: ['N/A'], signatures: [] },
+    ];
+    const normalized = enforceNoSkipOnSelectedChecks(checks, ['P0.3', 'P0.4'], 'production');
+
+    const p03 = normalized.find(check => check.id === 'P0.3');
+    const p04 = normalized.find(check => check.id === 'P0.4');
+    assert.equal(p03.status, 'SKIPPED');
+    assert.equal(p04.status, 'SKIPPED');
+    assert.ok(!p03.signatures.includes('P0.3_SKIPPED_NOT_ALLOWED'));
+    assert.ok(!p04.signatures.includes('P0.4_SKIPPED_NOT_ALLOWED'));
+    assert.equal(
+      p03.evidence[p03.evidence.length - 1],
+      'skip_policy=allowed reason=RELEASE_GATE_REQUIRE_ROLE_PANEL=false'
+    );
+    assert.equal(
+      p04.evidence[p04.evidence.length - 1],
+      'skip_policy=allowed reason=RELEASE_GATE_REQUIRE_ROLE_PANEL=false'
+    );
+  } finally {
+    restoreDisallowSkipEnv();
+    restoreRequireRolePanelEnv();
   }
 });
 

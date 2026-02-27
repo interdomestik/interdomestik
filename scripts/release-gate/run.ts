@@ -234,12 +234,26 @@ function shouldDisallowSkippedChecks(envName) {
   return String(envName || '').toLowerCase() === 'production';
 }
 
+function checksAllowedToRemainSkipped() {
+  const allowed = new Set();
+  if (
+    String(process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL || '')
+      .trim()
+      .toLowerCase() === 'false'
+  ) {
+    allowed.add('P0.3');
+    allowed.add('P0.4');
+  }
+  return allowed;
+}
+
 function enforceNoSkipOnSelectedChecks(checks, selected, envName) {
   if (!shouldDisallowSkippedChecks(envName)) {
     return checks;
   }
 
   const selectedSet = new Set(selected);
+  const skipAllowedChecks = checksAllowedToRemainSkipped();
   const byId = new Map(checks.map(check => [check.id, check]));
 
   for (const checkId of selected) {
@@ -258,6 +272,16 @@ function enforceNoSkipOnSelectedChecks(checks, selected, envName) {
     }
 
     if (check.status === 'SKIPPED') {
+      if (skipAllowedChecks.has(checkId)) {
+        byId.set(checkId, {
+          ...check,
+          evidence: [
+            ...(check.evidence || []),
+            'skip_policy=allowed reason=RELEASE_GATE_REQUIRE_ROLE_PANEL=false',
+          ],
+        });
+        continue;
+      }
       const signatures = Array.from(
         new Set([...(check.signatures || []), `${checkId}_SKIPPED_NOT_ALLOWED`])
       );
