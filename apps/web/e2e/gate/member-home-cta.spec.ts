@@ -1,6 +1,6 @@
 import { expect, test } from '../fixtures/auth.fixture';
-import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { gotoMemberHomeStable } from './_helpers/member-home';
 
 const MEMBER_HOME_MARKER_TIMEOUT_MS = 30000;
 
@@ -40,13 +40,11 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     };
 
     // 1. Go to Member Home
-    await gotoApp(page, routes.member(test.info()), testInfo, {
-      marker: 'member-dashboard-ready',
-      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
-    });
+    await gotoMemberHomeStable(page, testInfo, MEMBER_HOME_MARKER_TIMEOUT_MS);
 
-    // Assert we are on the dashboard
-    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
+    // Assert dashboard shell and CTA surface are visible before clicking.
+    await expect(page.getByTestId('dashboard-page-ready').first()).toBeVisible();
+    await expect(page.getByTestId('home-cta-incident').first()).toBeVisible();
 
     // 2. Incident Guide CTA
     await clickCtaAndAssertNavigation(
@@ -56,21 +54,15 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     );
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, {
-      marker: 'member-dashboard-ready',
-      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
-    });
-    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
+    await gotoMemberHomeStable(page, testInfo, MEMBER_HOME_MARKER_TIMEOUT_MS);
+    await expect(page.getByTestId('home-cta-incident').first()).toBeVisible();
 
     // 3. Report CTA
     await clickCtaAndAssertNavigation('home-cta-report', /\/claim-report/, 'report-page-ready');
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, {
-      marker: 'member-dashboard-ready',
-      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
-    });
-    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
+    await gotoMemberHomeStable(page, testInfo, MEMBER_HOME_MARKER_TIMEOUT_MS);
+    await expect(page.getByTestId('home-cta-incident').first()).toBeVisible();
 
     // 4. Green Card CTA
     await clickCtaAndAssertNavigation(
@@ -80,11 +72,8 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     );
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, {
-      marker: 'member-dashboard-ready',
-      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
-    });
-    await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
+    await gotoMemberHomeStable(page, testInfo, MEMBER_HOME_MARKER_TIMEOUT_MS);
+    await expect(page.getByTestId('home-cta-incident').first()).toBeVisible();
 
     // 5. Benefits CTA
     await clickCtaAndAssertNavigation('home-cta-benefits', /\/benefits/, 'benefits-page-ready');
