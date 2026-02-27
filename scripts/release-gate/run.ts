@@ -66,6 +66,8 @@ const INFRA_NETWORK_ERROR_PATTERNS = [
   /socket hang up/i,
   /AUTH_LOGIN_NETWORK_ERROR/i,
 ];
+const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
+const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
 
 function isLegacyVercelLogsArgsUnsupported(output) {
   return /unknown or unexpected option:\s*--environment/i.test(String(output || ''));
@@ -115,6 +117,38 @@ function classifyInfraNetworkFailure(raw) {
   if (!message) return null;
   const matched = INFRA_NETWORK_ERROR_PATTERNS.some(pattern => pattern.test(message));
   return matched ? message : null;
+}
+
+async function seedCookieConsentState(args) {
+  const { context, page, baseUrl } = args;
+  const origin = new URL(baseUrl).origin;
+
+  await context
+    .addCookies([
+      {
+        name: COOKIE_CONSENT_COOKIE_NAME,
+        value: 'accepted',
+        url: origin,
+        path: '/',
+        sameSite: 'Lax',
+      },
+    ])
+    .catch(() => {});
+
+  await page.addInitScript(
+    ({ storageKey, cookieName }) => {
+      try {
+        window.localStorage.setItem(storageKey, 'accepted');
+      } catch {}
+      try {
+        document.cookie = `${cookieName}=accepted; Path=/; SameSite=Lax`;
+      } catch {}
+    },
+    {
+      storageKey: COOKIE_CONSENT_STORAGE_KEY,
+      cookieName: COOKIE_CONSENT_COOKIE_NAME,
+    }
+  );
 }
 
 async function probeBaseUrl(candidateBaseUrl) {
@@ -1196,6 +1230,7 @@ trailer
 
   const context = await browser.newContext({ acceptDownloads: true });
   const page = await context.newPage();
+  await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
   const clientSignals = [];
   const pushClientSignal = signal => {
     if (clientSignals.length < 10 && signal) {
@@ -1330,6 +1365,11 @@ trailer
 
     const reloginContext = await browser.newContext({ acceptDownloads: true });
     const reloginPage = await reloginContext.newPage();
+    await seedCookieConsentState({
+      context: reloginContext,
+      page: reloginPage,
+      baseUrl: runCtx.baseUrl,
+    });
     reloginPage.on('response', response => {
       const url = response.url();
       if (url.includes('/api/documents/') && url.includes('/download')) {
@@ -1458,6 +1498,7 @@ async function runP13(browser, runCtx) {
   const signatures = [];
   const context = await browser.newContext();
   const page = await context.newPage();
+  await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
   try {
     await loginAs(page, {
       account: 'staff',

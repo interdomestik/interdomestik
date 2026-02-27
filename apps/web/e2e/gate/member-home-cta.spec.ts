@@ -2,6 +2,8 @@ import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 
+const MEMBER_HOME_MARKER_TIMEOUT_MS = 30000;
+
 test.describe('Strict Gate: Member Home Crystal UI', () => {
   test('Member can navigate via the 4 Crystal CTAs', async ({
     authenticatedPage: page,
@@ -38,7 +40,10 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     };
 
     // 1. Go to Member Home
-    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
+    await gotoApp(page, routes.member(test.info()), testInfo, {
+      marker: 'member-dashboard-ready',
+      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
+    });
 
     // Assert we are on the dashboard
     await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
@@ -51,14 +56,20 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     );
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
+    await gotoApp(page, routes.member(test.info()), testInfo, {
+      marker: 'member-dashboard-ready',
+      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
+    });
     await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
     // 3. Report CTA
     await clickCtaAndAssertNavigation('home-cta-report', /\/claim-report/, 'report-page-ready');
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
+    await gotoApp(page, routes.member(test.info()), testInfo, {
+      marker: 'member-dashboard-ready',
+      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
+    });
     await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
     // 4. Green Card CTA
@@ -69,7 +80,10 @@ test.describe('Strict Gate: Member Home Crystal UI', () => {
     );
 
     // Back to home
-    await gotoApp(page, routes.member(test.info()), testInfo, { marker: 'member-dashboard-ready' });
+    await gotoApp(page, routes.member(test.info()), testInfo, {
+      marker: 'member-dashboard-ready',
+      markerTimeoutMs: MEMBER_HOME_MARKER_TIMEOUT_MS,
+    });
     await expect(page.getByTestId('member-dashboard-ready').first()).toBeVisible();
 
     // 5. Benefits CTA

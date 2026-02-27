@@ -136,7 +136,7 @@ test.describe('Golden Gate: Critical Path', () => {
       });
 
       // Verify V2 page is ready (explicit check)
-      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible();
+      await expect(page.getByTestId('admin-claims-v2-ready').first()).toBeVisible();
 
       // Ensure we see at least one row (Branch A claims)
       await expect(page.locator('table tbody tr')).not.toHaveCount(0);
@@ -262,11 +262,11 @@ test.describe('Golden Gate: Critical Path', () => {
       });
 
       // Verify Active Tab is default (using new stable testid)
-      const tabs = page.getByTestId('admin-claims-v2-ready');
-      await expect(tabs.getByTestId('claims-tab-active')).toBeVisible();
+      const tabs = page.getByTestId('admin-claims-v2-ready').first();
+      await expect(tabs.getByTestId('claims-tab-active').first()).toBeVisible();
 
       // Switch to Draft Tab
-      const draftTab = tabs.getByTestId('claims-tab-draft');
+      const draftTab = tabs.getByTestId('claims-tab-draft').first();
       await draftTab.click({ force: true });
 
       // Split assertions for better debuggability
@@ -274,7 +274,7 @@ test.describe('Golden Gate: Critical Path', () => {
       await expect(page).toHaveURL(/view=list/, { timeout: 5000 });
 
       // Ensure the component is still mounted and ready
-      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible();
+      await expect(page.getByTestId('admin-claims-v2-ready').first()).toBeVisible();
     });
   });
 });

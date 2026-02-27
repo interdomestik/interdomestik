@@ -165,7 +165,9 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       });
 
       // Readiness Check: Wait for Admin V2 filters to load
-      await expect(page.getByTestId('admin-claims-v2-ready')).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId('admin-claims-v2-ready').first()).toBeVisible({
+        timeout: 15000,
+      });
 
       // Search for the specific claim title using stable testid
       const searchInput = page.getByTestId('claims-search-input');

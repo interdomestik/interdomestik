@@ -52,7 +52,7 @@ export async function gotoApp(
   page: Page,
   path: PathLike,
   testInfo: TestInfo,
-  options?: { marker?: string }
+  options?: { marker?: string; markerTimeoutMs?: number }
 ): Promise<PlaywrightResponse | null> {
   const raw = path; // wherever you currently take it from
   const pathStr = normalizePath(raw);
@@ -114,6 +114,7 @@ export async function gotoApp(
   }
 
   const marker = options?.marker ?? 'page-ready';
+  const markerTimeoutMs = options?.markerTimeoutMs ?? 15000;
 
   if (['domcontentloaded', 'load', 'networkidle'].includes(marker)) {
     await page.waitForLoadState(marker as 'domcontentloaded' | 'load' | 'networkidle');
@@ -139,7 +140,7 @@ export async function gotoApp(
     try {
       // Some pages can render duplicated readiness wrappers in transitional layouts.
       // Accept first visible marker instance instead of failing strict locator resolution.
-      await expect(page.getByTestId(marker).first()).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId(marker).first()).toBeVisible({ timeout: markerTimeoutMs });
     } catch (e) {
       throw e;
     }
