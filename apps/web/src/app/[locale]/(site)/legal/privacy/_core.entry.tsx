@@ -24,7 +24,28 @@ export default function PrivacyPage() {
         <p>
           Your privacy is important to us. Included in your membership is strict data protection.
         </p>
-        {/* Placeholder content */}
+        <h2>How we handle your data</h2>
+        <p>
+          We collect only the information required to provide membership services, process claims,
+          and comply with legal obligations. Access is restricted by role and tenant scope.
+        </p>
+
+        <h2>Your rights</h2>
+        <p>
+          You can request access to your stored data, request correction, and request deletion where
+          legally permitted.
+        </p>
+
+        <h2>Deletion requests</h2>
+        <p>
+          Authenticated users can submit a deletion request using
+          <code> POST /api/privacy/data-deletion</code> with an optional JSON body:
+          <code>{` { "reason": "..." } `}</code>.
+        </p>
+        <p>
+          Requests are logged as compliance events and reviewed by operations before irreversible
+          deletion actions are performed.
+        </p>
       </div>
     </div>
   );
