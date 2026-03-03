@@ -59,7 +59,7 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-storybook": "^10.1.11",
     "postcss": "^8.5.0",
-    "storybook": "^8.6.15",
+    "storybook": "^8.6.17",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.0",
