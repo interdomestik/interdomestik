@@ -23,6 +23,7 @@ export PLAYWRIGHT="${PLAYWRIGHT:-1}"
 # Preserve explicit shell-provided values before sourcing env files.
 INHERITED_DATABASE_URL="${DATABASE_URL:-}"
 INHERITED_DATABASE_URL_RLS="${DATABASE_URL_RLS:-}"
+INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE="${NEXT_PUBLIC_BILLING_TEST_MODE:-}"
 
 load_env_file() {
 	local filePath="$1"
@@ -77,6 +78,10 @@ load_env_file "${ROOT_DIR}/.env"
 load_env_file "${ROOT_DIR}/.env.local"
 load_env_file "${WEB_DIR}/.env"
 load_env_file "${WEB_DIR}/.env.local"
+
+if [[ -n "${INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE:-}" ]]; then
+	export NEXT_PUBLIC_BILLING_TEST_MODE="${INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE}"
+fi
 
 is_placeholder_value() {
 	local value="${1:-}"

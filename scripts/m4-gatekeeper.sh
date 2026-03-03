@@ -22,12 +22,17 @@ cd "${ROOT_DIR}"
 
 # Preserve explicit shell-provided values before sourcing local env files.
 INHERITED_DATABASE_URL="${DATABASE_URL:-}"
+INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE="${NEXT_PUBLIC_BILLING_TEST_MODE:-}"
 
 if [ -f ".env.local" ]; then
   set -a
   # shellcheck disable=SC1091
   source ".env.local"
   set +a
+fi
+
+if [ -n "${INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE:-}" ]; then
+  export NEXT_PUBLIC_BILLING_TEST_MODE="${INHERITED_NEXT_PUBLIC_BILLING_TEST_MODE}"
 fi
 
 # Deterministic DB resolution for gate runs:
