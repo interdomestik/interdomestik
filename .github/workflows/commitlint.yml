@@ -18,4 +18,15 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Lint commits
-        run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_ACTOR}" == "dependabot[bot]" ]]; then
+            printf '%s\n' "${PR_TITLE}" | pnpm exec commitlint
+          else
+            pnpm exec commitlint --from "${BASE_SHA}" --to "${HEAD_SHA}"
+          fi

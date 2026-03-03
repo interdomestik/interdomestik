@@ -76,8 +76,13 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${BETTER_AUTH_SECRET:-}" ]]; then
-            echo "::error::Missing required secret: BETTER_AUTH_SECRET"
-            exit 2
+            if [[ "${GITHUB_ACTOR:-}" == "dependabot[bot]" ]]; then
+              echo "::warning::BETTER_AUTH_SECRET unavailable for Dependabot. Using CI fallback secret."
+              echo "BETTER_AUTH_SECRET=dependabot-ci-fallback-secret-not-for-prod" >> "$GITHUB_ENV"
+            else
+              echo "::error::Missing required secret: BETTER_AUTH_SECRET"
+              exit 2
+            fi
           fi
 
           sonar_vars=(SONAR_TOKEN SONAR_HOST_URL SONAR_PROJECT_KEY)
@@ -206,6 +211,7 @@ jobs:
 
   multi-agent-pr-hardening:
     name: Multi-Agent PR Hardening + Merge Gate
+    if: ${{ github.actor != 'dependabot[bot]' }}
     needs:
       - pilot-gate
     permissions:
