@@ -20,6 +20,9 @@ echo "🚧 [Gatekeeper] Starting Deterministic Reset..."
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
+# Preserve explicit shell-provided values before sourcing local env files.
+INHERITED_DATABASE_URL="${DATABASE_URL:-}"
+
 if [ -f ".env.local" ]; then
   set -a
   # shellcheck disable=SC1091
@@ -27,10 +30,24 @@ if [ -f ".env.local" ]; then
   set +a
 fi
 
-# Defaults for local Supabase
-if [ -z "${DATABASE_URL:-}" ]; then
+# Deterministic DB resolution for gate runs:
+# 1) E2E_DATABASE_URL override
+# 2) Explicit caller-provided DATABASE_URL
+# 3) Local Supabase fallback
+if [ -n "${E2E_DATABASE_URL:-}" ]; then
+  export DATABASE_URL="${E2E_DATABASE_URL}"
+elif [ -n "${INHERITED_DATABASE_URL:-}" ]; then
+  export DATABASE_URL="${INHERITED_DATABASE_URL}"
+elif [ -z "${DATABASE_URL:-}" ]; then
   export DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
   echo "⚠️  [Gatekeeper] DATABASE_URL not set; defaulting to ${DATABASE_URL}"
+fi
+
+if [ -n "${E2E_DATABASE_URL_RLS:-}" ]; then
+  export DATABASE_URL_RLS="${E2E_DATABASE_URL_RLS}"
+else
+  # Keep RLS/admin reads on the same deterministic DB unless explicitly overridden.
+  export DATABASE_URL_RLS="${DATABASE_URL}"
 fi
 
 if [ -z "${BETTER_AUTH_SECRET:-}" ]; then
