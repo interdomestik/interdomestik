@@ -75,6 +75,10 @@ export function AgentClaimsProPage({
   };
 
   const handleClose = () => {
+    if (!searchParams.has('selected')) {
+      return;
+    }
+
     const params = new URLSearchParams(searchParams);
     params.delete('selected');
     router.replace(`?${params.toString()}`);
