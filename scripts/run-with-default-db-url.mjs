@@ -8,9 +8,14 @@ if (!command) {
   process.exit(2);
 }
 
-process.env.DATABASE_URL =
+const resolvedDbUrl =
   process.env.DATABASE_URL ??
   'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+
+process.env.DATABASE_URL = resolvedDbUrl;
+process.env.DATABASE_URL_RLS = process.env.DATABASE_URL_RLS ?? resolvedDbUrl;
+process.env.E2E_DATABASE_URL = process.env.E2E_DATABASE_URL ?? resolvedDbUrl;
+process.env.E2E_DATABASE_URL_RLS = process.env.E2E_DATABASE_URL_RLS ?? process.env.DATABASE_URL_RLS;
 
 const child = spawn(command, args, {
   stdio: 'inherit',
