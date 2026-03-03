@@ -64,6 +64,7 @@ jobs:
       SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
       EVIDENCE_DIR: tmp/pilot-evidence/${{ github.run_id }}
+      PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login || '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -76,9 +77,10 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${BETTER_AUTH_SECRET:-}" ]]; then
-            if [[ "${GITHUB_ACTOR:-}" == "dependabot[bot]" ]]; then
-              echo "::warning::BETTER_AUTH_SECRET unavailable for Dependabot. Using CI fallback secret."
-              echo "BETTER_AUTH_SECRET=dependabot-ci-fallback-secret-not-for-prod" >> "$GITHUB_ENV"
+            if [[ "${PR_AUTHOR_LOGIN:-}" == "dependabot[bot]" ]]; then
+              echo "::warning::BETTER_AUTH_SECRET unavailable for Dependabot. Generating per-run CI fallback secret."
+              BETTER_AUTH_SECRET="$(openssl rand -hex 32)"
+              echo "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}" >> "$GITHUB_ENV"
             else
               echo "::error::Missing required secret: BETTER_AUTH_SECRET"
               exit 2
@@ -211,7 +213,7 @@ jobs:
 
   multi-agent-pr-hardening:
     name: Multi-Agent PR Hardening + Merge Gate
-    if: ${{ github.actor != 'dependabot[bot]' }}
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
     needs:
       - pilot-gate
     permissions:
