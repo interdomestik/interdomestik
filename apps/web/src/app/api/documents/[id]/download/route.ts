@@ -116,9 +116,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const filename = safeFilename(access.document.name || 'document');
   const encoded = encodeURIComponent(filename);
 
-  const body = 'stream' in file.data ? (file.data as any).stream() : file.data;
+  let body: BodyInit;
+  if (typeof (file.data as any)?.stream === 'function') {
+    body = (file.data as any).stream();
+  } else if (typeof (file.data as any)?.arrayBuffer === 'function') {
+    const buffer = await (file.data as any).arrayBuffer();
+    body = new Uint8Array(buffer);
+  } else {
+    body = file.data as any;
+  }
 
-  return new Response(body as any, {
+  return new Response(body, {
     status: 200,
     headers: {
       'Content-Type': access.document.fileType || 'application/octet-stream',
