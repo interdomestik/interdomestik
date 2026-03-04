@@ -1,0 +1,47 @@
+{
+  "version": "1.0.0",
+  "phase": "C",
+  "canonical_routes": ["/member", "/agent", "/staff", "/admin"],
+  "no_touch_patterns": [
+    "apps/web/src/proxy.ts",
+    "apps/web/src/lib/proxy-logic.ts",
+    "apps/web/src/lib/tenant/**",
+    "apps/web/src/lib/auth/**",
+    "apps/web/src/server/auth/**",
+    "apps/web/src/app/api/**",
+    "packages/shared-auth/**",
+    "packages/database/**",
+    "packages/domain-membership-billing/**",
+    ".github/workflows/**",
+    "scripts/release-gate/**"
+  ],
+  "protected_patterns": [
+    "apps/web/src/lib/canonical-routes.ts",
+    "apps/web/e2e/gate/**",
+    "apps/web/e2e/pilot/c2-03-cross-tenant-write-isolation.spec.ts",
+    "apps/web/e2e/utils/deterministic-waits.ts",
+    "packages/database/test/rls-engaged.test.ts",
+    "scripts/release-gate/v1-required-specs.json"
+  ],
+  "advisory_watch_patterns": [
+    "apps/web/src/app/**",
+    "apps/web/src/components/**",
+    "packages/domain-*/**",
+    "scripts/**"
+  ],
+  "clarity_markers": [
+    "page-ready",
+    "landing-page-ready",
+    "dashboard-page-ready",
+    "member-dashboard-ready",
+    "staff-page-ready",
+    "admin-page-ready",
+    "auth-ready",
+    "registration-page-ready"
+  ],
+  "tenant_isolation_specs": [
+    "apps/web/e2e/gate/tenant-resolution.spec.ts",
+    "apps/web/e2e/pilot/c2-03-cross-tenant-write-isolation.spec.ts",
+    "packages/database/test/rls-engaged.test.ts"
+  ]
+}

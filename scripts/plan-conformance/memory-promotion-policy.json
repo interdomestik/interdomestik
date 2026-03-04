@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "transitions": {
+    "candidate": ["validated", "obsolete"],
+    "validated": ["canonical", "obsolete"],
+    "canonical": ["obsolete"],
+    "obsolete": []
+  },
+  "approval_rules": {
+    "auto_policy": {
+      "canonical": {
+        "allowed_approval_types": ["auto_policy"],
+        "requires_approver": false,
+        "requires_auto_policy_pass": true
+      }
+    },
+    "owner_approval": {
+      "canonical": {
+        "allowed_approval_types": ["owner", "hitl"],
+        "requires_approver": true,
+        "requires_auto_policy_pass": false
+      }
+    },
+    "hitl_required": {
+      "canonical": {
+        "allowed_approval_types": ["hitl"],
+        "requires_approver": true,
+        "requires_auto_policy_pass": false
+      }
+    }
+  },
+  "default_transition_requirements": {
+    "allowed_approval_types": ["auto_policy", "owner", "hitl"],
+    "requires_approver": false,
+    "requires_auto_policy_pass": false
+  }
+}

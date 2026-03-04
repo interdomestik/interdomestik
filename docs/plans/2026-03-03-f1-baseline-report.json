@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "focus": "unrelated",
+  "generated_at": "2026-03-04T07:47:58.009Z",
+  "source_entries": 10,
+  "unrelated": {
+    "total_fail_or_warn": 0,
+    "unrelated_fail_or_warn": 0,
+    "unrelated_failure_rate_pct": 0
+  }
+}

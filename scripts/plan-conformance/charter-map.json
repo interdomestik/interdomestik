@@ -1,0 +1,41 @@
+{
+  "version": "1.0.0",
+  "effective_date": "2026-03-03",
+  "sprint_scope": ["A1", "A2", "B1", "F1.0"],
+  "advisory_only_epics": ["A2", "B1"],
+  "step_catalog": {
+    "A1": {
+      "allowed_file_patterns": ["scripts/plan-conformance/**", "docs/plans/**", "package.json"],
+      "steps": {
+        "A1.1": "Define typed memory schema and status model",
+        "A1.2": "Define deterministic ID and indexing discipline",
+        "A1.3": "Define candidate capture sources",
+        "A1.4": "Validate schema and deterministic parser behavior"
+      }
+    },
+    "A2": {
+      "allowed_file_patterns": ["scripts/plan-conformance/**", "docs/plans/**", "package.json"],
+      "steps": {
+        "A2.1": "Add advisory retrieval hook",
+        "A2.2": "Emit retrieval telemetry",
+        "A2.3": "Define promotion workflow and HITL policy"
+      }
+    },
+    "B1": {
+      "allowed_file_patterns": ["scripts/plan-conformance/**", "docs/plans/**", "package.json"],
+      "steps": {
+        "B1.1": "Build protected-path taxonomy",
+        "B1.2": "Generate advisory boundary diff report",
+        "B1.3": "Validate no-touch and scope contract logic"
+      }
+    },
+    "F1.0": {
+      "allowed_file_patterns": ["docs/plans/**", "scripts/plan-conformance/**", "package.json"],
+      "steps": {
+        "F1.0.1": "Baseline release gate pass/fail and runtime",
+        "F1.0.2": "Measure flaky and retry patterns",
+        "F1.0.3": "Measure unrelated failure rate"
+      }
+    }
+  }
+}
