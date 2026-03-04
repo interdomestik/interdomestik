@@ -253,6 +253,13 @@
       "when": 1772125375956,
       "tag": "0035_enable_tenant_rls_coverage",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1772622956000,
+      "tag": "0036_supabase_advisor_security_hardening",
+      "breakpoints": true
     }
   ]
 }
