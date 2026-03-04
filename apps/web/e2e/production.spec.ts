@@ -112,11 +112,23 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       expect(bodyText).not.toContain('MISSING_MESSAGE');
 
       // 4. Create Claim
-      const cat = page.getByTestId('category-vehicle').first();
-      await cat.scrollIntoViewIfNeeded();
-      await cat.click();
+      const categoryCard = page.getByTestId('category-vehicle').first();
       const nextBtn = page.getByTestId('wizard-next').first();
-      await nextBtn.click();
+      const claimTitleInput = page.getByTestId('claim-title-input');
+      await categoryCard.scrollIntoViewIfNeeded();
+      await expect(categoryCard).toBeVisible();
+
+      // Retry-aware transition: if hydration/rerender swallows the first click, re-attempt
+      // until the details step is actually visible.
+      await expect(async () => {
+        const detailsVisible = await claimTitleInput.isVisible().catch(() => false);
+        if (!detailsVisible) {
+          await categoryCard.click();
+          await nextBtn.click();
+        }
+        await expect(claimTitleInput).toBeVisible({ timeout: 3000 });
+      }).toPass({ timeout: 20000 });
+
       // Step 2: Details
       await page.getByTestId('claim-title-input').fill(CLAIM_TITLE);
       await page.getByTestId('claim-company-input').fill('Test Company');
@@ -126,12 +138,17 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
         .fill('Smoke test automation description that is long enough');
       await page.getByTestId('claim-amount-input').fill('100');
 
-      // Click Next and wait for Step 3
-      await page.getByTestId('wizard-next').first().click({ force: true });
-
       // Step 3: Evidence
-      await expect(page.getByTestId('step-evidence-title')).toBeVisible({ timeout: 20000 });
-      await page.getByTestId('wizard-next').first().click({ force: true });
+      const evidenceTitle = page.getByTestId('step-evidence-title');
+      await expect(async () => {
+        const evidenceVisible = await evidenceTitle.isVisible().catch(() => false);
+        if (!evidenceVisible) {
+          await page.getByTestId('wizard-next').first().click();
+        }
+        await expect(evidenceTitle).toBeVisible({ timeout: 3000 });
+      }).toPass({ timeout: 20000 });
+
+      await page.getByTestId('wizard-next').first().click();
 
       // Step 4: Review & Submit
       const submitButton = page.getByTestId('wizard-submit');

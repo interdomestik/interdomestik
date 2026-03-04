@@ -1,17 +1,33 @@
-#!/bin/bash
-# Helper to run commands inside the Golden Path Docker environment
-# Usage: ./scripts/docker-run.sh [command]
-# Example: ./scripts/docker-run.sh pnpm test:smoke
+#!/usr/bin/env bash
+set -euo pipefail
 
-if [ -z "$1" ]; then
-  echo "Usage: $0 [command]"
-  echo "Example: $0 pnpm test:smoke"
+# Helper to run commands inside the Docker Playwright service.
+# The service entrypoint is /bin/bash, so commands must be passed via -lc.
+
+RAW_MODE=0
+if [[ "${1:-}" == "--raw" ]]; then
+  RAW_MODE=1
+  shift
+fi
+
+if [[ "$#" -eq 0 ]]; then
+  echo "Usage: $0 [--raw] <command...>"
+  echo "Use --raw to pass a pre-composed shell command string."
+  echo "Example: $0 pnpm --filter @interdomestik/web test:smoke"
   exit 1
 fi
 
-# Ensure docker compose is up or at least built?
-# We assume the user has run `docker compose up -d` or wants this to spin up a standalone runner.
-# Using `run` allows interactive, one-off.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/docker-env-bootstrap.sh
+source "${SCRIPT_DIR}/docker-env-bootstrap.sh"
+prepare_docker_env
 
-echo "🐳 Running in Docker: $@"
-docker compose run --rm playwright "$@"
+if [[ "${RAW_MODE}" -eq 1 ]]; then
+  command_string="$*"
+else
+  printf -v command_string '%q ' "$@"
+  command_string="${command_string% }"
+fi
+
+echo "🐳 Running in Docker (playwright): ${command_string}"
+docker compose run --rm playwright -lc "${command_string}"
