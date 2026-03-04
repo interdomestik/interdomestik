@@ -229,12 +229,16 @@ CURRENT_GIT_SHA=""
 STAMP_GIT_SHA=""
 STAMP_STATUS_REASON=""
 
-if [[ -d "${BUILD_STATIC_DIR}" ]]; then
+link_standalone_static_assets() {
+	if [[ ! -d "${BUILD_STATIC_DIR}" ]]; then
+		return 0
+	fi
+
 	mkdir -p "$(dirname "${STANDALONE_STATIC_DIR}")"
 	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_STATIC_DIR}"
 	mkdir -p "$(dirname "${STANDALONE_APP_STATIC_DIR}")"
 	ln -sfn "${BUILD_STATIC_DIR}" "${STANDALONE_APP_STATIC_DIR}"
-fi
+}
 
 should_autorebuild() {
 	local value
@@ -307,6 +311,7 @@ rebuild_standalone_once() {
 	echo "   stamp gitSha: ${STAMP_GIT_SHA:-<missing>}" >&2
 	echo "   current HEAD: ${CURRENT_GIT_SHA:-<missing>}" >&2
 	pnpm --filter @interdomestik/web run build:ci
+	link_standalone_static_assets
 	return 0
 }
 
@@ -333,6 +338,8 @@ if ! refresh_stamp_status; then
 		exit 1
 	fi
 fi
+
+link_standalone_static_assets
 
 if [[ -f "${STANDALONE_SERVER}" ]]; then
 	exec node "${STANDALONE_SERVER}"

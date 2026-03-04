@@ -1,17 +1,40 @@
-#!/bin/bash
-# Helper to run commands inside the Golden Path Docker environment
-# Usage: ./scripts/docker-run.sh [command]
-# Example: ./scripts/docker-run.sh pnpm test:smoke
+#!/usr/bin/env bash
+set -euo pipefail
 
-if [ -z "$1" ]; then
-  echo "Usage: $0 [command]"
-  echo "Example: $0 pnpm test:smoke"
+# Helper to run commands inside the Docker Playwright service.
+# The service entrypoint is /bin/bash, so commands must be passed via -lc.
+
+if [[ "$#" -eq 0 ]]; then
+  echo "Usage: $0 <command...>"
+  echo "Example: $0 pnpm --filter @interdomestik/web test:smoke"
   exit 1
 fi
 
-# Ensure docker compose is up or at least built?
-# We assume the user has run `docker compose up -d` or wants this to spin up a standalone runner.
-# Using `run` allows interactive, one-off.
+if [[ ! -f ".env" ]]; then
+  echo "⚠️  Missing .env; creating from .env.example for local Docker runs."
+  cp .env.example .env
+fi
 
-echo "🐳 Running in Docker: $@"
-docker compose run --rm playwright "$@"
+if [[ ! -f "docker/.env" ]]; then
+  echo "⚠️  Missing docker/.env; creating from docker/.env.example."
+  cp docker/.env.example docker/.env
+fi
+
+# Normalize local defaults for container networking and auth requirements.
+if grep -Eq '^DATABASE_URL=postgresql://postgres:postgres@(localhost|127\.0\.0\.1):54322/postgres$' .env; then
+  sed -i.bak \
+    's#^DATABASE_URL=.*#DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres#' \
+    .env
+  rm -f .env.bak
+fi
+
+if grep -Eq '^BETTER_AUTH_SECRET=$' .env || \
+  grep -Eq '^BETTER_AUTH_SECRET=your-random-secret-key-min-32-chars$' .env; then
+  sed -i.bak \
+    's#^BETTER_AUTH_SECRET=.*#BETTER_AUTH_SECRET=local-docker-dev-secret-32chars-minimum#' \
+    .env
+  rm -f .env.bak
+fi
+
+echo "🐳 Running in Docker (playwright): $*"
+docker compose run --rm playwright -lc "$*"
