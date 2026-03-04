@@ -102,21 +102,24 @@ jobs:
         run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk
 
       # Phase 5 deterministic batch - SHARDED
+      # Keep deterministic projects only; smoke already runs separately below.
       - name: E2E Phase 5 Deterministic Batch
-        run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/agent-pro-leads.spec.ts apps/web/e2e/golden/agent-leads-drawer.spec.ts apps/web/e2e/golden/verification-list-ops.spec.ts apps/web/e2e/golden/verification-details-ops.spec.ts apps/web/e2e/golden/agent-pro-claims.spec.ts apps/web/e2e/golden/agent-pro-claims-messaging.spec.ts apps/web/e2e/golden/rbac-scope.spec.ts apps/web/e2e/golden/agent-pro-claims-rbac.spec.ts --project=gate-ks-sq --project=gate-mk-mk --project=smoke --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/agent-pro-leads.spec.ts apps/web/e2e/golden/agent-leads-drawer.spec.ts apps/web/e2e/golden/verification-list-ops.spec.ts apps/web/e2e/golden/verification-details-ops.spec.ts apps/web/e2e/golden/agent-pro-claims.spec.ts apps/web/e2e/golden/agent-pro-claims-messaging.spec.ts apps/web/e2e/golden/rbac-scope.spec.ts apps/web/e2e/golden/agent-pro-claims-rbac.spec.ts --project=gate-ks-sq --project=gate-mk-mk --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       # Smoke as final sanity
       - name: E2E Smoke
         if: matrix.shardIndex == 1
         run: pnpm --filter @interdomestik/web run test:smoke
 
-      # ---- Artifacts (always) ----
+      # ---- Artifacts (always on failure; never fail pipeline on quota issues) ----
       - name: Upload Playwright Report
-        if: always()
+        if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-${{ matrix.shardIndex }}
           path: |
             apps/web/playwright-report
             apps/web/test-results
-          retention-days: 14
+          if-no-files-found: ignore
+          retention-days: 5
