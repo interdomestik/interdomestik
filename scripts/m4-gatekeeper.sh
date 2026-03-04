@@ -39,13 +39,22 @@ fi
 # 1) E2E_DATABASE_URL override
 # 2) Explicit caller-provided DATABASE_URL
 # 3) Local Supabase fallback
+#
+# NOTE: Keep this precedence aligned with scripts/e2e-webserver.sh.
+# If gatekeeper and Playwright web server resolve different DB URLs,
+# gate runs can hang waiting on /api/health while checking a different DB.
 if [ -n "${E2E_DATABASE_URL:-}" ]; then
   export DATABASE_URL="${E2E_DATABASE_URL}"
 elif [ -n "${INHERITED_DATABASE_URL:-}" ]; then
   export DATABASE_URL="${INHERITED_DATABASE_URL}"
-elif [ -z "${DATABASE_URL:-}" ]; then
+else
+  # Ignore .env/.env.local DATABASE_URL for deterministic local parity when no
+  # explicit override is provided by caller shell or E2E_DATABASE_URL.
+  if [ -n "${DATABASE_URL:-}" ]; then
+    echo "ℹ️  [Gatekeeper] Ignoring env-file DATABASE_URL for Playwright gate parity"
+  fi
   export DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-  echo "⚠️  [Gatekeeper] DATABASE_URL not set; defaulting to ${DATABASE_URL}"
+  echo "⚠️  [Gatekeeper] Using local default DATABASE_URL=${DATABASE_URL}"
 fi
 
 if [ -n "${E2E_DATABASE_URL_RLS:-}" ]; then
@@ -89,7 +98,30 @@ ensure_disk_space() {
   fi
 }
 
+cleanup_stale_playwright_processes() {
+  echo "🧽 [Gatekeeper] Cleaning stale Playwright helper processes..."
+
+  # Stale Playwright test-server instances can survive interrupted runs and
+  # block subsequent gate execution before tests even start.
+  local patterns=(
+    '@playwright/test/cli.js test-server -c apps/web/playwright.config.ts'
+    'playwright test e2e/gate'
+    'playwright test e2e/setup.state.spec.ts'
+  )
+
+  for pattern in "${patterns[@]}"; do
+    local stale_pids
+    stale_pids="$(pgrep -f "${pattern}" 2>/dev/null || true)"
+    if [[ -n "${stale_pids}" ]]; then
+      echo "   terminating stale processes for pattern: ${pattern}"
+      kill ${stale_pids} 2>/dev/null || true
+    fi
+  done
+}
+
 # 0. Kill stale processes
+cleanup_stale_playwright_processes
+
 echo "💀 [Gatekeeper] Killing stale processes on port 3000..."
 PIDS="$(lsof -ti:3000 2>/dev/null || true)"
 if [ -n "$PIDS" ]; then

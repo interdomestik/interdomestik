@@ -320,7 +320,10 @@ export default defineConfig({
     // E2E runs against a production server (Next `start`) for artifact consistency.
     // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
     command: `bash ${WEB_SERVER_SCRIPT}`,
-    url: `${BASE_URL}/api/health`,
+    // Use a static readiness URL. DB correctness is enforced by gatekeeper before
+    // Playwright starts; /api/health can report degraded states unrelated to
+    // webserver boot and block test startup.
+    url: `${BASE_URL}/robots.txt`,
     reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
     timeout: 300 * 1000,
     env: {
