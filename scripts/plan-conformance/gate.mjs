@@ -10,6 +10,7 @@ const DEFAULT_NO_TOUCH_MANIFEST = path.join('scripts', 'release-gate', 'v1-requi
 const VALID_DECISIONS = new Set(['continue', 'pause', 'rollback']);
 const VALID_MODES = new Set(['advisory', 'enforced']);
 const VALID_CHECK_STATUSES = new Set(['pass', 'fail', 'warn', 'skip']);
+const VALID_RESULTS = new Set(['pass', 'fail']);
 
 function readJson(jsonPath) {
   const absolutePath = path.resolve(jsonPath);
@@ -30,7 +31,9 @@ function escapeRegexChar(char) {
 }
 
 function globToRegExp(pattern) {
-  const normalized = String(pattern || '').split(path.sep).join('/');
+  const normalized = String(pattern || '')
+    .split(path.sep)
+    .join('/');
   let out = '^';
 
   for (let index = 0; index < normalized.length; index += 1) {
@@ -56,7 +59,9 @@ function globToRegExp(pattern) {
 }
 
 function matchesPattern(filePath, pattern) {
-  const normalizedPath = String(filePath || '').split(path.sep).join('/');
+  const normalizedPath = String(filePath || '')
+    .split(path.sep)
+    .join('/');
   return globToRegExp(String(pattern || '')).test(normalizedPath);
 }
 
@@ -101,11 +106,20 @@ export function validateConformanceRecord(record, options = {}) {
   const epicId = String(record.epic_id || '');
   const mode = String(record.mode || '');
   const decision = String(record.decision || '');
+  const result = String(record.result || '');
+  const owner = String(record.owner || '');
+  const timestamp = String(record.timestamp || '');
 
   if (!stepId) errors.push('step_id is required');
   if (!epicId) errors.push('epic_id is required');
   if (!mode) errors.push('mode is required');
   if (!decision) errors.push('decision is required');
+  if (!result) errors.push('result is required');
+  if (!owner) errors.push('owner is required');
+  if (!timestamp) errors.push('timestamp is required');
+  if (typeof record.variance !== 'boolean') {
+    errors.push('variance must be a boolean');
+  }
 
   if (mode && !VALID_MODES.has(mode)) {
     errors.push(`unsupported mode: ${mode}`);
@@ -113,6 +127,14 @@ export function validateConformanceRecord(record, options = {}) {
 
   if (decision && !VALID_DECISIONS.has(decision)) {
     errors.push(`unsupported decision: ${decision}`);
+  }
+
+  if (result && !VALID_RESULTS.has(result)) {
+    errors.push(`unsupported result: ${result}`);
+  }
+
+  if (timestamp && !Number.isFinite(Date.parse(timestamp))) {
+    errors.push('timestamp must be ISO-parseable');
   }
 
   if (!Array.isArray(record.files_changed)) {
@@ -165,9 +187,7 @@ export function validateConformanceRecord(record, options = {}) {
   );
 
   if (blockingFailures.length > 0) {
-    errors.push(
-      `blocking checks failed: ${blockingFailures.map(check => check.name).join(', ')}`
-    );
+    errors.push(`blocking checks failed: ${blockingFailures.map(check => check.name).join(', ')}`);
   }
 
   if (advisoryFailures.length > 0) {

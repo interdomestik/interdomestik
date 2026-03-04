@@ -49,3 +49,19 @@ test('fails capture when no source matches', () => {
     /no candidate capture source matched/
   );
 });
+
+test('capture sanitizes scope to allowed keys only', () => {
+  const payload = captureCandidateFromEvent(
+    {
+      event_type: 'release_gate.no_go',
+      scope: {
+        tenant: 'tenant_mk',
+        unexpected_key: 'drop-me',
+      },
+    },
+    sourceMap
+  );
+
+  assert.equal(payload.record.scope.tenant, 'tenant_mk');
+  assert.equal(payload.record.scope.unexpected_key, undefined);
+});

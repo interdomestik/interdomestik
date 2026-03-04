@@ -7,11 +7,7 @@ import { pathToFileURL } from 'node:url';
 
 import { validateConformanceRecord } from './gate.mjs';
 
-const DEFAULT_LOG_MD = path.join(
-  'docs',
-  'plans',
-  '2026-03-03-implementation-conformance-log.md'
-);
+const DEFAULT_LOG_MD = path.join('docs', 'plans', '2026-03-03-implementation-conformance-log.md');
 const DEFAULT_LOG_JSONL = path.join(
   'docs',
   'plans',
@@ -52,12 +48,26 @@ function parseJsonl(logPath) {
     return [];
   }
 
-  return fs
-    .readFileSync(logPath, 'utf8')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line));
+  const contents = fs.readFileSync(logPath, 'utf8');
+  const lines = contents.split('\n');
+  const entries = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const rawLine = lines[index];
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+
+    try {
+      entries.push(JSON.parse(line));
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'invalid JSON';
+      throw new Error(`invalid JSONL at line ${index + 1}: ${reason}`);
+    }
+  }
+
+  return entries;
 }
 
 function buildHashMaterial(entryCore) {
@@ -65,7 +75,17 @@ function buildHashMaterial(entryCore) {
 }
 
 export function verifyAuditChain(auditPath) {
-  const entries = parseJsonl(auditPath);
+  let entries = [];
+  try {
+    entries = parseJsonl(auditPath);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'invalid JSONL';
+    return {
+      ok: false,
+      reason: `unable to parse audit log (${reason})`,
+      entries: [],
+    };
+  }
 
   let previousHash = 'GENESIS';
   let previousTimestamp = null;

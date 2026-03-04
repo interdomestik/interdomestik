@@ -74,3 +74,14 @@ test('audit verification fails on tampered hash chain', () => {
   assert.equal(verification.ok, false);
   assert.ok(/hash mismatch|hash chain mismatch/.test(verification.reason));
 });
+
+test('audit verification fails predictably on malformed JSONL line', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-conformance-log-'));
+  const auditPath = path.join(tempRoot, 'conformance.jsonl');
+
+  fs.writeFileSync(auditPath, '{"ok":true}\n{not-json}\n', 'utf8');
+
+  const verification = verifyAuditChain(auditPath);
+  assert.equal(verification.ok, false);
+  assert.ok(verification.reason.includes('invalid JSONL at line 2'));
+});

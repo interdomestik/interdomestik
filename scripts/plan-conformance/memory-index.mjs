@@ -27,11 +27,11 @@ function parseRegistry(registryPath) {
     });
 }
 
-function ensureArrayMapSet(map, key) {
-  if (!map[key]) {
-    map[key] = new Set();
+function ensureMapSet(map, key) {
+  if (!map.has(key)) {
+    map.set(key, new Set());
   }
-  return map[key];
+  return map.get(key);
 }
 
 function pushIndexKey(map, key, id) {
@@ -39,25 +39,25 @@ function pushIndexKey(map, key, id) {
     return;
   }
 
-  ensureArrayMapSet(map, key.trim()).add(id);
+  ensureMapSet(map, key.trim()).add(id);
 }
 
 function toSortedArrayMap(setMap) {
-  return Object.keys(setMap)
-    .sort()
-    .reduce((acc, key) => {
-      acc[key] = Array.from(setMap[key]).sort();
+  return Array.from(setMap.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .reduce((acc, [key, values]) => {
+      acc[key] = Array.from(values).sort();
       return acc;
-    }, {});
+    }, Object.create(null));
 }
 
 export function buildMemoryIndex(records) {
-  const triggerSignature = {};
-  const filePath = {};
-  const route = {};
-  const table = {};
-  const tenant = {};
-  const riskClass = {};
+  const triggerSignature = new Map();
+  const filePath = new Map();
+  const route = new Map();
+  const table = new Map();
+  const tenant = new Map();
+  const riskClass = new Map();
 
   for (const record of records) {
     if (!record || typeof record !== 'object') continue;
@@ -94,7 +94,9 @@ function writeIndex(indexPath, payload) {
 }
 
 function printUsage() {
-  console.log(`memory-index\n\nUsage:\n  node scripts/plan-conformance/memory-index.mjs [--registry <path>] [--out <path>]\n`);
+  console.log(
+    `memory-index\n\nUsage:\n  node scripts/plan-conformance/memory-index.mjs [--registry <path>] [--out <path>]\n`
+  );
 }
 
 function parseArgs(argv) {

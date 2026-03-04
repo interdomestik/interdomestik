@@ -6,7 +6,11 @@ import { pathToFileURL } from 'node:url';
 
 import { computeDeterministicMemoryId } from './memory-id.mjs';
 
-const DEFAULT_SOURCE_MAP = path.join('scripts', 'plan-conformance', 'candidate-capture-sources.json');
+const DEFAULT_SOURCE_MAP = path.join(
+  'scripts',
+  'plan-conformance',
+  'candidate-capture-sources.json'
+);
 const DEFAULT_OUT = path.join('tmp', 'plan-conformance', 'captured-candidate-memory.json');
 
 function readJson(filePath) {
@@ -14,7 +18,9 @@ function readJson(filePath) {
 }
 
 function printUsage() {
-  console.log(`memory-candidate-capture\n\nUsage:\n  node scripts/plan-conformance/memory-candidate-capture.mjs --event <event.json> [--source-map <path>] [--out <path>]\n`);
+  console.log(
+    `memory-candidate-capture\n\nUsage:\n  node scripts/plan-conformance/memory-candidate-capture.mjs --event <event.json> [--source-map <path>] [--out <path>]\n`
+  );
 }
 
 function parseArgs(argv) {
@@ -76,6 +82,25 @@ function toIso(value) {
   return new Date().toISOString();
 }
 
+const ALLOWED_SCOPE_KEYS = new Set(['file_path', 'route', 'table', 'tenant']);
+
+function sanitizeScope(value) {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  return Object.entries(value).reduce((acc, [key, nextValue]) => {
+    if (
+      ALLOWED_SCOPE_KEYS.has(key) &&
+      typeof nextValue === 'string' &&
+      nextValue.trim().length > 0
+    ) {
+      acc[key] = nextValue.trim();
+    }
+    return acc;
+  }, {});
+}
+
 export function captureCandidateFromEvent(event, sourceMap) {
   if (!event || typeof event !== 'object') {
     throw new Error('event payload must be an object');
@@ -83,13 +108,15 @@ export function captureCandidateFromEvent(event, sourceMap) {
 
   const source = matchSource(event, sourceMap);
   if (!source) {
-    throw new Error(`no candidate capture source matched event_type=${event.event_type || '<unknown>'}`);
+    throw new Error(
+      `no candidate capture source matched event_type=${event.event_type || '<unknown>'}`
+    );
   }
 
   const now = toIso(event.timestamp);
   const scope = {
-    ...(source.default_scope || {}),
-    ...(event.scope || {}),
+    ...sanitizeScope(source.default_scope || {}),
+    ...sanitizeScope(event.scope || {}),
   };
 
   const record = {

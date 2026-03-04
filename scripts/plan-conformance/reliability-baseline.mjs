@@ -11,6 +11,7 @@ const DEFAULT_CONFORMANCE_LOG = path.join(
 );
 const DEFAULT_OUT_PATH = path.join('docs', 'plans', '2026-03-03-f1-baseline-report.json');
 const VALID_FOCUS = new Set(['all', 'pass_fail', 'flake', 'unrelated']);
+const KNOWN_CHECK_STATUSES = new Set(['pass', 'fail', 'warn', 'skip']);
 
 function parseJsonl(filePath) {
   const absolutePath = path.resolve(filePath);
@@ -76,7 +77,7 @@ function computePassFail(entries) {
 
       const bucket = checksByName.get(name);
       bucket.total += 1;
-      if (bucket[status] !== undefined) {
+      if (KNOWN_CHECK_STATUSES.has(status)) {
         bucket[status] += 1;
       } else {
         bucket.unknown += 1;

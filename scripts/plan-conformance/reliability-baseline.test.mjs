@@ -42,3 +42,16 @@ test('computes unrelated failure rate from non-required fail/warn checks', () =>
   assert.equal(report.unrelated.unrelated_fail_or_warn, 1);
   assert.equal(report.unrelated.unrelated_failure_rate_pct, 50);
 });
+
+test('treats unknown and special statuses as unknown bucket entries', () => {
+  const report = buildReliabilityBaseline(
+    [
+      {
+        checks: [{ name: 'pnpm security:guard', status: '__proto__', required: true }],
+      },
+    ],
+    'pass_fail'
+  );
+
+  assert.equal(report.pass_fail.check_summary['pnpm security:guard'].unknown, 1);
+});

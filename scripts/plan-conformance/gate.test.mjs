@@ -45,13 +45,10 @@ function makeBaseRecord(overrides = {}) {
 }
 
 test('conformance parser rejects a step with unmapped scope', () => {
-  const result = validateConformanceRecord(
-    makeBaseRecord({ step_id: 'A1.999' }),
-    {
-      charterMap: TEST_CHARTER_MAP,
-      noTouchZones: NO_TOUCH_ZONES,
-    }
-  );
+  const result = validateConformanceRecord(makeBaseRecord({ step_id: 'A1.999' }), {
+    charterMap: TEST_CHARTER_MAP,
+    noTouchZones: NO_TOUCH_ZONES,
+  });
 
   assert.equal(result.ok, false);
   assert.ok(result.errors.some(error => error.includes('not mapped')));
@@ -112,4 +109,25 @@ test('promotion gate denies enforce mode when thresholds are unmet', () => {
   assert.equal(decision.pass_fail, false);
   assert.equal(decision.effective_mode, 'advisory');
   assert.ok(decision.unmet_thresholds.length >= 1);
+});
+
+test('conformance validation rejects malformed required governance fields', () => {
+  const result = validateConformanceRecord(
+    makeBaseRecord({
+      result: 'warn',
+      variance: 'no',
+      owner: '',
+      timestamp: 'not-a-date',
+    }),
+    {
+      charterMap: TEST_CHARTER_MAP,
+      noTouchZones: NO_TOUCH_ZONES,
+    }
+  );
+
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some(error => error.includes('unsupported result')));
+  assert.ok(result.errors.some(error => error.includes('variance must be a boolean')));
+  assert.ok(result.errors.some(error => error.includes('owner is required')));
+  assert.ok(result.errors.some(error => error.includes('timestamp must be ISO-parseable')));
 });

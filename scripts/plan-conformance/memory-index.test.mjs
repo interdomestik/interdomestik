@@ -27,3 +27,23 @@ test('buildMemoryIndex groups keys deterministically', () => {
   assert.deepEqual(index.keys.route['/admin'], ['mem_b']);
   assert.deepEqual(index.keys.table.claim, ['mem_a']);
 });
+
+test('buildMemoryIndex treats special object keys as plain keys', () => {
+  const index = buildMemoryIndex([
+    {
+      id: 'mem_proto',
+      trigger_signature: '__proto__',
+      risk_class: 'constructor',
+      scope: {
+        file_path: 'file.ts',
+        route: '/member',
+        table: 'toString',
+        tenant: 'tenant_a',
+      },
+    },
+  ]);
+
+  assert.deepEqual(index.keys.trigger_signature['__proto__'], ['mem_proto']);
+  assert.deepEqual(index.keys.risk_class.constructor, ['mem_proto']);
+  assert.deepEqual(index.keys.table.toString, ['mem_proto']);
+});
