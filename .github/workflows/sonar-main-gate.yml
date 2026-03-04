@@ -1,0 +1,61 @@
+name: Sonar Main Gate
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '35 3 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  sonar-gate:
+    runs-on: blacksmith-2vcpu-ubuntu-2204
+    timeout-minutes: 45
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      EVIDENCE_DIR: tmp/sonar-evidence/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      - name: Validate Sonar configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          for name in SONAR_TOKEN SONAR_HOST_URL SONAR_PROJECT_KEY; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+            fi
+          done
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "::error::Missing Sonar configuration: ${missing[*]}"
+            exit 2
+          fi
+
+      - name: Run Sonar quality gate (blocking on main/schedule)
+        env:
+          SONAR_ENFORCEMENT: enforce
+          SONAR_RUN_COVERAGE: true
+        run: bash scripts/sonar-gate.sh
+
+      - name: Upload Sonar gate artifacts
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonarqube-main-gate-${{ github.run_id }}
+          path: |
+            ${{ env.EVIDENCE_DIR }}/logs/sonar-scan.log
+            ${{ env.EVIDENCE_DIR }}/logs/sonar-qualitygate.json
+            ${{ env.EVIDENCE_DIR }}/notes/sonar-summary.md
+          if-no-files-found: warn
+          retention-days: 14

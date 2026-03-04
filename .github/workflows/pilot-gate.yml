@@ -133,8 +133,12 @@ jobs:
       - name: Build web standalone artifact
         run: pnpm --filter @interdomestik/web run build:ci
 
-      - name: Run Sonar quality gate
+      - name: Run Sonar quality gate (non-blocking on PR)
         if: env.SONAR_GATE_ENABLED == 'true'
+        continue-on-error: true
+        env:
+          SONAR_ENFORCEMENT: warn
+          SONAR_RUN_COVERAGE: false
         run: bash scripts/sonar-gate.sh
 
       - name: Upload Sonar gate artifacts
