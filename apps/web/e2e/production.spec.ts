@@ -169,12 +169,17 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
         timeout: 15000,
       });
 
-      // Search for the specific claim title using stable testid
-      const searchInput = page.getByTestId('claims-search-input');
+      // Scope to the active admin claims surface to avoid duplicate test id matches.
+      const searchInput = page
+        .getByTestId('admin-claims-v2-ready')
+        .getByTestId('claims-search-input')
+        .first();
       await searchInput.fill(CLAIM_TITLE);
 
-      // Verify visible
-      await expect(page.getByText(CLAIM_TITLE)).toBeVisible({ timeout: 15000 });
+      // Verify at least one matching result is visible.
+      await expect(page.getByRole('heading', { name: CLAIM_TITLE }).first()).toBeVisible({
+        timeout: 15000,
+      });
     });
   });
 
