@@ -12,7 +12,14 @@ ALTER TABLE public."seed_meta" ENABLE ROW LEVEL SECURITY;
 --> statement-breakpoint
 
 DO $$
+DECLARE
+  target_roles text;
 BEGIN
+  SELECT COALESCE(string_agg(quote_ident(rolname), ', '), 'public')
+    INTO target_roles
+  FROM pg_roles
+  WHERE rolname IN ('anon', 'authenticated');
+
   IF NOT EXISTS (
     SELECT 1
     FROM pg_policies
@@ -20,10 +27,10 @@ BEGIN
       AND tablename = 'account'
       AND policyname = 'No public access'
   ) THEN
-    CREATE POLICY "No public access" ON public."account"
-      FOR ALL TO anon, authenticated
-      USING (false)
-      WITH CHECK (false);
+    EXECUTE format(
+      'CREATE POLICY "No public access" ON public."account" FOR ALL TO %s USING (false) WITH CHECK (false)',
+      target_roles
+    );
   END IF;
 
   IF NOT EXISTS (
@@ -33,10 +40,10 @@ BEGIN
       AND tablename = 'session'
       AND policyname = 'No public access'
   ) THEN
-    CREATE POLICY "No public access" ON public."session"
-      FOR ALL TO anon, authenticated
-      USING (false)
-      WITH CHECK (false);
+    EXECUTE format(
+      'CREATE POLICY "No public access" ON public."session" FOR ALL TO %s USING (false) WITH CHECK (false)',
+      target_roles
+    );
   END IF;
 
   IF NOT EXISTS (
@@ -46,10 +53,10 @@ BEGIN
       AND tablename = 'verification'
       AND policyname = 'No public access'
   ) THEN
-    CREATE POLICY "No public access" ON public."verification"
-      FOR ALL TO anon, authenticated
-      USING (false)
-      WITH CHECK (false);
+    EXECUTE format(
+      'CREATE POLICY "No public access" ON public."verification" FOR ALL TO %s USING (false) WITH CHECK (false)',
+      target_roles
+    );
   END IF;
 
   IF NOT EXISTS (
@@ -59,10 +66,10 @@ BEGIN
       AND tablename = 'tenants'
       AND policyname = 'No public access'
   ) THEN
-    CREATE POLICY "No public access" ON public."tenants"
-      FOR ALL TO anon, authenticated
-      USING (false)
-      WITH CHECK (false);
+    EXECUTE format(
+      'CREATE POLICY "No public access" ON public."tenants" FOR ALL TO %s USING (false) WITH CHECK (false)',
+      target_roles
+    );
   END IF;
 
   IF NOT EXISTS (
@@ -72,10 +79,10 @@ BEGIN
       AND tablename = 'member_counters'
       AND policyname = 'No public access'
   ) THEN
-    CREATE POLICY "No public access" ON public."member_counters"
-      FOR ALL TO anon, authenticated
-      USING (false)
-      WITH CHECK (false);
+    EXECUTE format(
+      'CREATE POLICY "No public access" ON public."member_counters" FOR ALL TO %s USING (false) WITH CHECK (false)',
+      target_roles
+    );
   END IF;
 
   IF NOT EXISTS (
@@ -85,10 +92,10 @@ BEGIN
       AND tablename = 'seed_meta'
       AND policyname = 'No public access'
   ) THEN
-    CREATE POLICY "No public access" ON public."seed_meta"
-      FOR ALL TO anon, authenticated
-      USING (false)
-      WITH CHECK (false);
+    EXECUTE format(
+      'CREATE POLICY "No public access" ON public."seed_meta" FOR ALL TO %s USING (false) WITH CHECK (false)',
+      target_roles
+    );
   END IF;
 END
 $$;
