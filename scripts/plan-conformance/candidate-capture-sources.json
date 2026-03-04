@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "sources": [
+    {
+      "source_id": "release_gate_no_go",
+      "trigger_match": {
+        "event_type": "release_gate.no_go"
+      },
+      "store_type": "episodic",
+      "risk_class": "high",
+      "promotion_rule": "hitl_required",
+      "default_scope": {
+        "file_path": "scripts/release-gate/run.ts"
+      },
+      "verification_commands": ["pnpm release:gate:prod", "pnpm release:gate:check-no-skip"]
+    },
+    {
+      "source_id": "tenant_isolation_hard_stop",
+      "trigger_match": {
+        "event_type": "tenant.isolation.hard_stop"
+      },
+      "store_type": "procedural",
+      "risk_class": "critical",
+      "promotion_rule": "hitl_required",
+      "default_scope": {
+        "table": "claim",
+        "tenant": "tenant_mk"
+      },
+      "verification_commands": ["pnpm db:rls:test:required", "pnpm e2e:gate"]
+    },
+    {
+      "source_id": "reviewer_block_boundary",
+      "trigger_match": {
+        "event_type": "review.blocked.boundary"
+      },
+      "store_type": "semantic",
+      "risk_class": "high",
+      "promotion_rule": "owner_approval",
+      "default_scope": {
+        "file_path": "apps/web/src/lib/proxy-logic.ts"
+      },
+      "verification_commands": ["pnpm security:guard", "pnpm e2e:gate:fast"]
+    }
+  ]
+}
