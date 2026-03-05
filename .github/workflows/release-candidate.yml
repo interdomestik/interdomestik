@@ -16,7 +16,7 @@ permissions:
 jobs:
   rc-gate:
     name: RC Command Pack
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, interdomestik]
     timeout-minutes: 120
     services:
       postgres:
