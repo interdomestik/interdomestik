@@ -16,7 +16,7 @@ jobs:
       pull-requests: read
       checks: read
       statuses: read
-    runs-on: [self-hosted, interdomestik-linux]
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
