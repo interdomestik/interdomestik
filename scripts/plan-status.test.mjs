@@ -42,6 +42,12 @@ Canonical execution.
 | ID | Status | Owner | Work | Exit Criteria |
 | --- | --- | --- | --- | --- |
 | \`PG1\` | \`completed\` | \`platform\` | Ship the policy. | Audit passes. |
+
+## Proof Ledger
+
+| ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| \`PG1\` | \`governance:policy\` | \`manual\` | \`manual-20260305-governance\` | \`not_applicable\` | \`not_applicable\` | \`not_applicable\` | \`not_applicable\` | \`not_applicable\` | \`docs/plans/current-program.md\` |
 `
   );
 
@@ -53,6 +59,10 @@ Canonical execution.
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Current phase: Canonical execution\./);
   assert.match(result.stdout, /PG1 \[completed\] Ship the policy\./);
+  assert.match(
+    result.stdout,
+    /PG1 proof: source=governance:policy exec=manual run=manual-20260305-governance/
+  );
 });
 
 test('plan-status fails when canonical files are missing', () => {

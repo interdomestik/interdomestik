@@ -11,7 +11,7 @@ status_command: pnpm plan:status
 
 # Current Tracker
 
-> Authority: This is the only document allowed to define active execution status for program work.
+> Authority: This is the only document allowed to define active execution status and task-level proof for program work.
 
 ## Active Queue
 
@@ -28,6 +28,16 @@ status_command: pnpm plan:status
 ```bash
 pnpm plan:status
 ```
+
+## Proof Ledger
+
+| ID    | Source Refs                                            | Execution  | Run ID                                | Run Root               | Sonar            | Docker           | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                      |
+| ----- | ------------------------------------------------------ | ---------- | ------------------------------------- | ---------------------- | ---------------- | ---------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PG1` | `governance:policy`                                    | `manual`   | `manual-20260305-planning-governance` | `not_applicable`       | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/planning-governance-policy.md`; `scripts/plan-audit.mjs`; `.github/workflows/ci.yml`                                                                                                                                   |
+| `PG2` | `bulletproof:A22`                                      | `pending`  | `missing`                             | `missing`              | `missing`        | `missing`        | `missing`        | `pending`        | `docs/plans/2026-02-22-v1-bulletproof-tracker.md`; `docs/release-gates/2026-02-11_production_dpl_3UMSijeubaShN5f4zkLK6LKPm4rs.md`; `docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md`                  |
+| `PG3` | `charter:A1`; `charter:A2`; `charter:B1`; `charter:F1` | `scripted` | `advisory-20260304-foundation`        | `tmp/plan-conformance` | `not_applicable` | `not_applicable` | `not_applicable` | `pending`        | `docs/plans/2026-03-03-implementation-conformance-log.md`; `docs/plans/2026-03-03-implementation-conformance-log.jsonl`; `tmp/plan-conformance/advisory-signal-report.json`; `tmp/plan-conformance/advisory-retrieval-report.json` |
+| `PG4` | `charter:promotion-gate`                               | `blocked`  | `blocked`                             | `blocked`              | `not_applicable` | `not_applicable` | `not_applicable` | `pending`        | `docs/plans/2026-03-03-advisory-foundation-addendum.md`; `docs/plans/2026-03-03-implementation-conformance-log.md`                                                                                                                 |
+| `PG5` | `charter:C1`; `charter:D1`; `charter:E1`               | `blocked`  | `blocked`                             | `blocked`              | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/current-program.md`; `docs/plans/2026-03-03-advisory-foundation-addendum.md`                                                                                                                                           |
 
 ## Imported Historical Work
 

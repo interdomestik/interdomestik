@@ -4,6 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
+import {
+  ALLOWED_EXECUTION_MODES,
+  ALLOWED_PROOF_STATUSES,
+  ALLOWED_QUEUE_STATUSES,
+  isSpecialProofValue,
+  parseTrackerDocument,
+} from './plan-model.mjs';
+
 const ALLOWED_ROLES = new Set(['canonical_plan', 'tracker', 'execution_log', 'input']);
 const ALLOWED_STATUSES = new Set(['active', 'superseded', 'archived', 'draft']);
 const CANONICAL_PLAN_PATH = 'docs/plans/current-program.md';
@@ -135,6 +143,135 @@ function ensureReferencedPathExists(root, target) {
   return fs.existsSync(path.resolve(root, target));
 }
 
+function validateTrackerProofLedger(trackerDoc) {
+  const errors = [];
+  const { queueRows, proofRows } = parseTrackerDocument(trackerDoc.body);
+  const proofById = new Map();
+
+  for (const row of queueRows) {
+    if (!row.id) {
+      errors.push(`${trackerDoc.path}: active queue rows must declare an ID`);
+    }
+
+    if (!ALLOWED_QUEUE_STATUSES.has(row.status)) {
+      errors.push(
+        `${trackerDoc.path}: queue item ${row.id || '<unknown>'} has invalid status ${row.status}`
+      );
+    }
+  }
+
+  for (const row of proofRows) {
+    if (!row.id) {
+      errors.push(`${trackerDoc.path}: proof ledger rows must declare an ID`);
+      continue;
+    }
+
+    if (proofById.has(row.id)) {
+      errors.push(`${trackerDoc.path}: duplicate proof ledger row for ${row.id}`);
+      continue;
+    }
+
+    proofById.set(row.id, row);
+
+    if (row.sourceRefs.length === 0) {
+      errors.push(
+        `${trackerDoc.path}: proof ledger row ${row.id} must declare at least one source ref`
+      );
+    }
+
+    if (row.evidenceRefs.length === 0) {
+      errors.push(
+        `${trackerDoc.path}: proof ledger row ${row.id} must declare at least one evidence ref`
+      );
+    }
+
+    if (!ALLOWED_EXECUTION_MODES.has(row.execution)) {
+      errors.push(
+        `${trackerDoc.path}: proof ledger row ${row.id} has invalid execution mode ${row.execution}`
+      );
+    }
+
+    for (const [label, value] of Object.entries({
+      sonar: row.sonar,
+      docker: row.docker,
+      sentry: row.sentry,
+      learning: row.learning,
+    })) {
+      if (!ALLOWED_PROOF_STATUSES.has(value)) {
+        errors.push(
+          `${trackerDoc.path}: proof ledger row ${row.id} has invalid ${label} status ${value}`
+        );
+      }
+    }
+
+    if (row.execution === 'multi_agent') {
+      if (!row.runId || isSpecialProofValue(row.runId)) {
+        errors.push(
+          `${trackerDoc.path}: proof ledger row ${row.id} with multi_agent execution must declare a concrete run id`
+        );
+      }
+
+      if (!row.runRoot || isSpecialProofValue(row.runRoot)) {
+        errors.push(
+          `${trackerDoc.path}: proof ledger row ${row.id} with multi_agent execution must declare a concrete run root`
+        );
+      }
+    }
+  }
+
+  for (const queueRow of queueRows) {
+    const proofRow = proofById.get(queueRow.id);
+
+    if (!proofRow) {
+      errors.push(
+        `${trackerDoc.path}: active queue item ${queueRow.id} is missing a proof ledger row`
+      );
+      continue;
+    }
+
+    if (queueRow.status === 'completed') {
+      const completedValues = [
+        proofRow.runId,
+        proofRow.runRoot,
+        proofRow.sonar,
+        proofRow.docker,
+        proofRow.sentry,
+        proofRow.learning,
+      ];
+
+      if (
+        proofRow.execution === 'pending' ||
+        proofRow.execution === 'blocked' ||
+        completedValues.some(value => value === 'missing' || value === 'pending')
+      ) {
+        errors.push(
+          `${trackerDoc.path}: completed queue item ${queueRow.id} must not use missing or pending proof values`
+        );
+      }
+
+      if (
+        [proofRow.sonar, proofRow.docker, proofRow.sentry, proofRow.learning].some(
+          value => value === 'fail'
+        )
+      ) {
+        errors.push(
+          `${trackerDoc.path}: completed queue item ${queueRow.id} must not carry failing proof statuses`
+        );
+      }
+    }
+  }
+
+  for (const proofId of proofById.keys()) {
+    if (!queueRows.some(row => row.id === proofId)) {
+      errors.push(
+        `${trackerDoc.path}: proof ledger row ${proofId} does not match any active queue item`
+      );
+    }
+  }
+
+  return errors;
+}
+
 function validateDocs(root, docs) {
   const errors = [];
 
@@ -244,6 +381,10 @@ function validateDocs(root, docs) {
     errors.push(
       `active tracker must live at ${CANONICAL_TRACKER_PATH}, found ${activeTrackers[0].path}`
     );
+  }
+
+  if (activeTrackers.length === 1) {
+    errors.push(...validateTrackerProofLedger(activeTrackers[0]));
   }
 
   return errors;

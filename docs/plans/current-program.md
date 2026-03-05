@@ -29,6 +29,12 @@ Evidence-custody reconciliation and advisory-foundation execution.
 pnpm plan:status
 ```
 
+## Proof Command
+
+```bash
+pnpm plan:proof
+```
+
 ## Committed Priorities
 
 1. `PG1` Planning governance baseline
@@ -79,3 +85,12 @@ Any new roadmap, assessment, or strategy memo must end in one of two states:
 - left as non-committed input
 
 There is no third state.
+
+## Proof Chain
+
+Committed work is only considered inspectable when the tracker can answer this chain:
+
+1. source refs
+2. execution mode and run identity
+3. `sonar` / `docker` / `sentry` status
+4. learning status and evidence refs
