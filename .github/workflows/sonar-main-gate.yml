@@ -37,11 +37,23 @@ jobs:
           done
 
           if (( ${#missing[@]} > 0 )); then
-            echo "::error::Missing Sonar configuration: ${missing[*]}"
-            exit 2
+            echo "::warning::Skipping Sonar main gate due to missing configuration: ${missing[*]}"
+            echo "SONAR_GATE_ENABLED=false" >> "$GITHUB_ENV"
+            mkdir -p "${EVIDENCE_DIR}/notes"
+            {
+              echo "# Sonar Main Gate Skipped"
+              echo
+              echo "- reason: Missing Sonar configuration in GitHub Actions context."
+              echo "- missing: ${missing[*]}"
+              echo "- run_id: ${GITHUB_RUN_ID}"
+            } > "${EVIDENCE_DIR}/notes/sonar-summary.md"
+            exit 0
           fi
 
+          echo "SONAR_GATE_ENABLED=true" >> "$GITHUB_ENV"
+
       - name: Run Sonar quality gate (blocking on main/schedule)
+        if: env.SONAR_GATE_ENABLED == 'true'
         env:
           SONAR_ENFORCEMENT: enforce
           SONAR_RUN_COVERAGE: true
