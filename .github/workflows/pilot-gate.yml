@@ -183,6 +183,7 @@ jobs:
 
       - name: Close Sentry Seer sweep window (post)
         if: always() && env.SENTRY_SEER_ENABLED == 'true'
+        continue-on-error: true
         run: bash scripts/sentry-seer-sweep.sh post
 
       - name: Stop web server
