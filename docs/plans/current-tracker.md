@@ -1,0 +1,51 @@
+---
+plan_role: tracker
+status: active
+source_of_truth: true
+owner: platform
+last_reviewed: 2026-03-05
+current_program_path: docs/plans/current-program.md
+execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
+status_command: pnpm plan:status
+---
+
+# Current Tracker
+
+> Authority: This is the only document allowed to define active execution status for program work.
+
+## Active Queue
+
+| ID    | Status        | Owner                      | Work                                                                            | Exit Criteria                                                                  |
+| ----- | ------------- | -------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `PG1` | `completed`   | `platform`                 | Adopt planning governance policy, metadata, and audit enforcement.              | `pnpm plan:audit` passes and CI runs it.                                       |
+| `PG2` | `in_progress` | `qa-release`               | Reconcile `A22` evidence references with in-repo artifacts and release reports. | Missing artifacts are restored or tracker references are corrected.            |
+| `PG3` | `pending`     | `platform`                 | Populate advisory evidence for `A1`, `A2`, `B1`, and `F1` from live runs.       | `memory:validate` reports non-zero records and current advisory outputs exist. |
+| `PG4` | `blocked`     | `platform + qa + security` | Evaluate the advisory promotion gate.                                           | Two-week evidence window is complete and a signed decision is recorded.        |
+| `PG5` | `blocked`     | `product + platform`       | Start `C`, `D`, and `E` workstreams.                                            | `PG4` passes.                                                                  |
+
+## Status Command
+
+```bash
+pnpm plan:status
+```
+
+## Imported Historical Work
+
+- `A22` from the February bulletproof tracker remains active only through `PG2`.
+- `A1`, `A2`, `B1`, and `F1` from the March charter remain active only through `PG3` and `PG4`.
+
+## `PG2` Working Notes
+
+- imported source: `docs/plans/2026-02-22-v1-bulletproof-tracker.md`
+- imported claim: `A22` progress is `2/10`
+- repo-verifiable release-gate files currently present:
+  - `docs/release-gates/2026-02-11_production_dpl_3UMSijeubaShN5f4zkLK6LKPm4rs.md`
+  - `docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md`
+- unresolved discrepancy:
+  - the tracker cites a February 25 release report and local streak artifacts that are not present in the repository
+
+`PG2` closes only when that discrepancy is resolved in-repo.
+
+## Recommendation Pool
+
+The 12-point maturity assessment remains recommendation input. Its items are not committed work until they appear in the Active Queue above.

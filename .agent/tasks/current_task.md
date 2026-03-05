@@ -7,6 +7,10 @@ test_level: 'unit'
 roadmap_ref: ''
 branch: 'phase-2-leads-activity-logging'
 start_time: 'Wed Dec 24 12:20:55 CET 2025'
+status: 'superseded'
+source_of_truth: false
+superseded_by: 'docs/plans/current-tracker.md'
+status_command: 'pnpm plan:status'
 baseline:
   lint: 'pass'
   typecheck: 'pass'
@@ -15,7 +19,9 @@ baseline:
   log: '/Users/arbenlila/development/interdomestik/.agent/tasks/logs/qa_baseline_20251224_122034.log'
 ---
 
-# 🚀 Current Task: Phase 2 Leads Integration
+# Historical Local Task Snapshot: Phase 2 Leads Integration
+
+> Status: Superseded local agent task snapshot. Use `pnpm plan:status` or `docs/plans/current-tracker.md` for live status.
 
 ## 📋 10x Context Prompt
 

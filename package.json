@@ -107,6 +107,8 @@
     "release:gate:staging:raw": "tsx scripts/release-gate/run.ts --envName staging --suite all",
     "prepare": "husky && husky install",
     "track:audit": "node scripts/track-audit.mjs",
+    "plan:audit": "node scripts/plan-audit.mjs",
+    "plan:status": "node scripts/plan-status.mjs",
     "v1:status": "node scripts/v1-status.mjs",
     "ci:audit:docker": "bash scripts/ci-audit-docker.sh",
     "purity:audit": "node scripts/purity-audit.mjs",

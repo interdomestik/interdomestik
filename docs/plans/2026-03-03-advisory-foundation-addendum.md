@@ -1,4 +1,14 @@
+---
+plan_role: input
+status: active
+source_of_truth: false
+owner: platform
+last_reviewed: 2026-03-05
+---
+
 # Interdomestik Advisory Foundation Addendum
+
+> Status: Active supporting constraint document. It can limit execution, but it does not define current priorities.
 
 - version: `1.0.0`
 - effective_date: `2026-03-03`

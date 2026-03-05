@@ -1,9 +1,21 @@
-# V1.0.0 Bulletproof Tracker
+---
+plan_role: tracker
+status: superseded
+source_of_truth: false
+owner: qa-release
+last_reviewed: 2026-03-05
+superseded_by: docs/plans/current-tracker.md
+---
 
-Last updated: 2026-02-25
-Current phase: M0-A (Gate Foundation)
+# V1.0.0 Bulletproof Tracker (Historical)
+
+> Status: Superseded by `docs/plans/current-tracker.md`. Keep this file for historical evidence only.
+> Status note: fields such as `Current phase`, `Next Up`, and `Status command` below are historical snapshot data, not the live program state.
+
+Historical last updated: 2026-02-25
+Historical phase snapshot: M0-A (Gate Foundation)
 Plan reference: docs/plans/2026-02-22-v1-bulletproof-program.md
-Status command: pnpm v1:status
+Legacy status command: `pnpm v1:status` (historical only; use `pnpm plan:status` for the live program)
 
 ## Mandatory PR Loop (every PR)
 
@@ -44,7 +56,7 @@ Status command: pnpm v1:status
 - [x] A20 - Instrument funnel + retention with tenant_id and variant. Verify: analytics validation scripts/reports | Date: 2026-02-24 | Evidence: merged in PR #198 (`24c357da`); required CI checks green (`static`, `unit`, `e2e`, `e2e-gate`, `pr:verify + pilot:check`, `pr-finalizer`)
 - [x] A21 - Restore full funnel in hero-v2 and plan continuity. Verify: e2e + experiment checks | Date: 2026-02-24 | Evidence: merged in PR #197 (`08ef1555`); required CI checks green (`static`, `unit`, `e2e`, `e2e-gate`, `pr:verify + pilot:check`, `pr-finalizer`)
 
-## Next Up (work top-down)
+## Historical Next-Up Snapshot (work recorded at the time)
 
 1. A22 - Complete 10 consecutive daily full-green RC runs
 

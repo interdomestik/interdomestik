@@ -35,6 +35,7 @@ jobs:
         run: |
           node scripts/check-env-ci.mjs
           pnpm track:audit
+          pnpm plan:audit
           pnpm purity:audit
           pnpm db:migrations:check-journal
           # Contract Compliance: pnpm check is covered by e2e-gate job

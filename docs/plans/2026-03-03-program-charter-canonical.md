@@ -1,4 +1,15 @@
-# Interdomestik Program Charter (Canonical)
+---
+plan_role: input
+status: superseded
+source_of_truth: false
+owner: platform
+last_reviewed: 2026-03-05
+superseded_by: docs/plans/current-program.md
+---
+
+# Interdomestik Program Charter (Historical Canonical Snapshot)
+
+> Status: Historical charter input. Current priorities now live in `docs/plans/current-program.md`.
 
 - version: `1.0.0`
 - effective_date: `2026-03-03`
