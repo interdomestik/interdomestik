@@ -1,13 +1,20 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026-03-04T07:37:56.514Z",
-  "count": 0,
+  "generated_at": "2026-03-05T22:14:07.065Z",
+  "count": 2,
   "keys": {
-    "trigger_signature": {},
-    "file_path": {},
+    "trigger_signature": {
+      "plan.evidence.custody_gap": ["mem_4b16b3b38796f837", "mem_9764d927e1e5f10c"]
+    },
+    "file_path": {
+      "docs/plans/2026-02-22-v1-bulletproof-tracker.md": ["mem_9764d927e1e5f10c"],
+      "docs/plans/current-tracker.md": ["mem_4b16b3b38796f837"]
+    },
     "route": {},
     "table": {},
     "tenant": {},
-    "risk_class": {}
+    "risk_class": {
+      "high": ["mem_4b16b3b38796f837", "mem_9764d927e1e5f10c"]
+    }
   }
 }

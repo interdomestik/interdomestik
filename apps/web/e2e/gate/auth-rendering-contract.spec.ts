@@ -37,7 +37,7 @@ test.describe('Auth Rendering Contract (Regression Protection)', () => {
       await gotoApp(page, route.path, testInfo, { marker: route.marker });
 
       // Assert readiness marker
-      await expect(page.getByTestId(route.marker)).toBeVisible();
+      await expect(page.getByTestId(route.marker).first()).toBeVisible();
 
       // Assert no DYNAMIC_SERVER_USAGE errors in console (if they leak to client)
       // Note: Usually these are server-side build/render errors, but we check for any critical failures.

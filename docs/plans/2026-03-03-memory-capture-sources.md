@@ -28,6 +28,12 @@ Define deterministic sources that create `candidate` memory entries when high-ri
 - default store: `semantic`
 - default promotion rule: `owner_approval`
 
+4. `plan_evidence_custody_gap`
+
+- trigger: `plan.evidence.custody_gap`
+- default store: `procedural`
+- default promotion rule: `owner_approval`
+
 ## Capture Command
 
 ```bash

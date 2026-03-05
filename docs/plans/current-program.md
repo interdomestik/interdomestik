@@ -15,7 +15,7 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-Advisory evidence population and promotion preparation.
+Advisory evidence refreshed; promotion review remains blocked on the two-week evidence window.
 
 ## Program Goals
 

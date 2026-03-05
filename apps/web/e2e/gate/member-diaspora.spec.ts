@@ -6,17 +6,21 @@ test.describe('Diaspora Feature', () => {
   test('Member can see Diaspora ribbon and navigate to Diaspora page', async ({
     authenticatedPage: page,
   }, testInfo) => {
+    const memberDashboard = page.getByTestId('member-dashboard-ready').first();
+    const diasporaRibbon = memberDashboard.getByTestId('diaspora-ribbon').first();
+    const ribbonCta = diasporaRibbon.getByTestId('diaspora-ribbon-cta').first();
+
     // 1. Go to Member Home
     await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'dashboard-page-ready' });
 
     // Assert we are on the dashboard
-    await expect(page.getByTestId('dashboard-heading')).toBeVisible();
+    await expect(memberDashboard).toBeVisible();
+    await expect(memberDashboard.getByTestId('dashboard-heading').first()).toBeVisible();
 
     // 2. Check for Diaspora ribbon
-    await expect(page.getByTestId('diaspora-ribbon')).toBeVisible();
+    await expect(diasporaRibbon).toBeVisible();
 
     // 3. Navigate to Diaspora page
-    const ribbonCta = page.getByTestId('diaspora-ribbon-cta');
     await expect(ribbonCta).toBeVisible();
     const diasporaHref = await ribbonCta.getAttribute('href');
     expect(diasporaHref).toContain('/member/diaspora');

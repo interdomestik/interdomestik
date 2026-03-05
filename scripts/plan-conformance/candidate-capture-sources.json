@@ -40,6 +40,19 @@
         "file_path": "apps/web/src/lib/proxy-logic.ts"
       },
       "verification_commands": ["pnpm security:guard", "pnpm e2e:gate:fast"]
+    },
+    {
+      "source_id": "plan_evidence_custody_gap",
+      "trigger_match": {
+        "event_type": "plan.evidence.custody_gap"
+      },
+      "store_type": "procedural",
+      "risk_class": "high",
+      "promotion_rule": "owner_approval",
+      "default_scope": {
+        "file_path": "docs/plans/current-tracker.md"
+      },
+      "verification_commands": ["pnpm plan:audit", "pnpm plan:proof"]
     }
   ]
 }

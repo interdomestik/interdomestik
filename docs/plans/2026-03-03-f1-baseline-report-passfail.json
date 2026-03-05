@@ -1,0 +1,155 @@
+{
+  "version": "1.0.0",
+  "focus": "pass_fail",
+  "generated_at": "2026-03-05T22:14:17.646Z",
+  "source_entries": 13,
+  "pass_fail": {
+    "required_total": 49,
+    "required_pass": 49,
+    "required_fail": 0,
+    "required_pass_rate_pct": 100,
+    "check_summary": {
+      "pnpm security:guard": {
+        "total": 13,
+        "pass": 13,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm test:plan-conformance": {
+        "total": 11,
+        "pass": 11,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm memory:validate": {
+        "total": 7,
+        "pass": 6,
+        "fail": 0,
+        "warn": 0,
+        "skip": 1,
+        "unknown": 0,
+        "pass_rate_pct": 85.71
+      },
+      "pnpm memory:index": {
+        "total": 4,
+        "pass": 4,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm memory:candidate:capture": {
+        "total": 1,
+        "pass": 1,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm memory:retrieve": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm memory:advisory:report": {
+        "total": 1,
+        "pass": 1,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm memory:promote": {
+        "total": 1,
+        "pass": 1,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm boundary:taxonomy:validate": {
+        "total": 3,
+        "pass": 3,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm boundary:diff:report": {
+        "total": 2,
+        "pass": 2,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm boundary:contract:check": {
+        "total": 1,
+        "pass": 1,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm release:baseline:passfail": {
+        "total": 1,
+        "pass": 1,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm release:baseline:flaky": {
+        "total": 1,
+        "pass": 1,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm release:baseline:noise": {
+        "total": 1,
+        "pass": 1,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      },
+      "pnpm release:baseline:report": {
+        "total": 1,
+        "pass": 1,
+        "fail": 0,
+        "warn": 0,
+        "skip": 0,
+        "unknown": 0,
+        "pass_rate_pct": 100
+      }
+    }
+  },
+  "runtime": {
+    "sample_count": 0,
+    "median_ms": null,
+    "p95_ms": null,
+    "evidence": "Not Present in Current Repo Evidence"
+  }
+}
