@@ -17,7 +17,7 @@ env:
 
 jobs:
   build-push:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     permissions:
       contents: read
       packages: write
@@ -65,7 +65,7 @@ jobs:
 
   deploy-staging:
     needs: build-push
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     environment:
       name: staging
       url: https://staging.interdomestik.com
@@ -78,7 +78,7 @@ jobs:
 
   e2e-staging:
     needs: deploy-staging
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -91,7 +91,7 @@ jobs:
 
   deploy-production:
     needs: e2e-staging
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     environment:
       name: production
       url: https://app.interdomestik.com
@@ -103,7 +103,7 @@ jobs:
 
   verify-production:
     needs: deploy-production
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     steps:
       - name: Health Check
         run: |
