@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   benchmark:
-    runs-on: [self-hosted, interdomestik]
+    runs-on: [self-hosted, interdomestik-linux]
     timeout-minutes: 45
 
     steps:

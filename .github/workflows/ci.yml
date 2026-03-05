@@ -27,7 +27,7 @@ env:
 
 jobs:
   audit:
-    runs-on: [self-hosted, interdomestik]
+    runs-on: [self-hosted, interdomestik-linux]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -40,7 +40,7 @@ jobs:
           # Contract Compliance: pnpm check is covered by e2e-gate job
 
   static:
-    runs-on: [self-hosted, interdomestik]
+    runs-on: [self-hosted, interdomestik-linux]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -61,7 +61,7 @@ jobs:
           retention-days: 30
 
   unit:
-    runs-on: [self-hosted, interdomestik]
+    runs-on: [self-hosted, interdomestik-linux]
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -75,7 +75,7 @@ jobs:
 
   multi-agent-dry-run:
     if: github.event_name == 'pull_request'
-    runs-on: [self-hosted, interdomestik]
+    runs-on: [self-hosted, interdomestik-linux]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -115,7 +115,7 @@ jobs:
           retention-days: 14
 
   e2e-gate:
-    runs-on: [self-hosted, interdomestik]
+    runs-on: [self-hosted, interdomestik-linux]
     timeout-minutes: 30
     services:
       postgres:

@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   e2e:
-    runs-on: [self-hosted, interdomestik]
+    runs-on: [self-hosted, interdomestik-linux]
     timeout-minutes: 25
 
     services:

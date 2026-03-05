@@ -7,7 +7,7 @@ on:
 
 jobs:
   commitlint:
-    runs-on: [self-hosted, interdomestik]
+    runs-on: [self-hosted, interdomestik-linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
