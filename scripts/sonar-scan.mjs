@@ -29,9 +29,10 @@ async function waitForSonarUp({ statusUrl, timeoutMs }) {
 }
 
 function run(cmd, args, opts = {}) {
+  const { allowFailure = false, ...spawnOptions } = opts;
   const result = spawnSync(cmd, args, {
     stdio: 'inherit',
-    ...opts,
+    ...spawnOptions,
   });
 
   if (result.error) {
@@ -40,11 +41,18 @@ function run(cmd, args, opts = {}) {
   }
 
   if (typeof result.status === 'number' && result.status !== 0) {
+    if (allowFailure) {
+      return result.status;
+    }
     process.exit(result.status);
   }
+
+  return result.status ?? 0;
 }
 
 const sonarToken = process.env.SONAR_TOKEN;
+const sonarProjectKey = process.env.SONAR_PROJECT_KEY;
+const sonarOrganization = process.env.SONAR_ORGANIZATION;
 
 if (!sonarToken) {
   console.error(
@@ -69,6 +77,26 @@ if (!sonarToken) {
 const cwd = process.cwd();
 
 const sonarHostUrl = process.env.SONAR_HOST_URL ?? 'http://host.docker.internal:9000';
+const scannerProperties = [`-Dsonar.host.url=${sonarHostUrl}`];
+
+if (sonarProjectKey) {
+  scannerProperties.push(`-Dsonar.projectKey=${sonarProjectKey}`);
+}
+
+const isSonarCloud = sonarHostUrl.includes('sonarcloud.io');
+if (isSonarCloud) {
+  if (!sonarOrganization) {
+    console.error(
+      [
+        'Missing SONAR_ORGANIZATION for SonarCloud scan.',
+        '',
+        'Set SONAR_ORGANIZATION (example: human) in your environment.',
+      ].join('\n')
+    );
+    process.exit(2);
+  }
+  scannerProperties.push(`-Dsonar.organization=${sonarOrganization}`);
+}
 
 // If we are targeting the default local SonarQube, wait briefly for it to be ready.
 // This avoids the common “Failed to query server version” error when SonarQube is still booting.
@@ -79,9 +107,29 @@ if (sonarHostUrl.includes('host.docker.internal:9000')) {
   });
 }
 
-// NOTE: sonarsource/sonar-scanner-cli is amd64-only as of today.
-// On Apple Silicon (arm64), Docker Desktop will run linux/amd64 images via emulation.
-const dockerPlatform = process.arch === 'arm64' ? 'linux/amd64' : 'linux/amd64';
+const forceDocker = process.env.SONAR_SCANNER_FORCE_DOCKER === 'true';
+const shouldUseNativeArmScanner =
+  !forceDocker && process.platform === 'darwin' && process.arch === 'arm64';
+
+if (shouldUseNativeArmScanner) {
+  try {
+    const nativeArgs = ['--package=@sonar/scan', 'dlx', 'sonar-scanner', ...scannerProperties];
+    const nativeStatus = run('pnpm', nativeArgs, { allowFailure: true });
+    if (nativeStatus === 0) {
+      process.exit(0);
+    }
+    console.error(
+      `Native Sonar scanner failed with status ${nativeStatus}. Falling back to Docker scanner.`
+    );
+  } catch (error) {
+    console.error('Native Sonar scanner invocation failed. Falling back to Docker scanner.');
+    console.error(String(error));
+  }
+}
+
+const dockerPlatform = process.env.SONAR_DOCKER_PLATFORM?.trim() ?? '';
+const scannerImage =
+  process.env.SONAR_SCANNER_IMAGE?.trim() || 'sonarsource/sonar-scanner-cli:11.5';
 
 const dockerArgs = ['run', '--rm'];
 
@@ -101,9 +149,9 @@ dockerArgs.push(
   `${cwd}:/usr/src`,
   '-w',
   '/usr/src',
-  'sonarsource/sonar-scanner-cli:latest',
+  scannerImage,
   'sonar-scanner',
-  `-Dsonar.host.url=${sonarHostUrl}`
+  ...scannerProperties
 );
 
 try {

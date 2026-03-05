@@ -99,6 +99,10 @@ trap 'rm -f "$RESPONSE_FILE"' EXIT
 
 curl_args=(
   -sS
+  --http1.1
+  --retry 3
+  --retry-delay 2
+  --retry-all-errors
   -G
   --max-time 30
   --connect-timeout 10
@@ -106,7 +110,8 @@ curl_args=(
   -H "Content-Type: application/json"
   -H "Accept: application/json"
   --url "$API_URL"
-  --data-urlencode "statsPeriod=${WINDOW_MINUTES}m"
+  --data-urlencode "start=${START_ISO}"
+  --data-urlencode "end=${END_ISO}"
   --data "limit=${SENTRY_LIMIT}"
   --data "sort=freq"
 )
