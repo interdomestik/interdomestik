@@ -15,7 +15,7 @@ status_command: pnpm plan:status
 
 ## Current Phase
 
-Evidence-custody reconciliation and advisory-foundation execution.
+Advisory evidence population and promotion preparation.
 
 ## Program Goals
 
@@ -69,13 +69,18 @@ These documents can recommend or constrain work, but they do not define the live
 
 Source: `docs/plans/2026-02-22-v1-bulletproof-tracker.md`
 
+Reconciliation outcome recorded in:
+
+- `docs/plans/2026-03-05-a22-evidence-reconciliation.md`
+
 Current canonical interpretation:
 
-- the repo claims `2/10` daily full-green RC runs were completed on February 24 and February 25, 2026
-- the referenced February 24-25 evidence paths are not checked into this repository
-- the referenced `docs/release-gates/2026-02-25_production_unknown.md` report is not present in this repository
+- commits `9d6a4810b3b5420fe1e6f191efd1901fef1128b4` and `5308d18fc7954bef406ae2bd3d1f7fb30946edce` updated the legacy tracker to claim `1/10` and `2/10`
+- those commits changed only the tracker text; the referenced February 24-25 evidence paths are not checked into this repository or tracked in git history
+- the referenced `docs/release-gates/2026-02-25_production_unknown.md` report was never tracked in this repository
+- repository-verifiable `A22` progress is `0/10`
 
-Until that evidence is restored or the historical note is corrected, `A22` remains open through `PG2`.
+`PG2` is closed by correcting the canonical status to this repo-verifiable interpretation. Any future streak work must be recommitted as a new active tracker item with checked-in evidence.
 
 ## Review Rule
 
