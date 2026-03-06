@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [main, master, develop]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 concurrency:
   group: e2e-pr-${{ github.ref }}
   cancel-in-progress: true
@@ -50,13 +54,14 @@ jobs:
 
       - name: Evaluate validation surface
         id: validation_surface
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           changed_files_path="$(mktemp)"
-          base_ref="${{ github.event.pull_request.base.ref }}"
-          git fetch origin "${base_ref}" --depth=1
-          git diff --name-only "origin/${base_ref}...HEAD" >"${changed_files_path}"
+          node scripts/ci/github-pr-files.mjs \
+            --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
           node scripts/ci/validation-surface-policy.mjs \
             --event-name "${{ github.event_name }}" \
             --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"

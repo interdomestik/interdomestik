@@ -12,6 +12,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   pilot-gate:
@@ -77,14 +78,15 @@ jobs:
 
       - name: Evaluate validation surface
         id: validation_surface
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           changed_files_path="$(mktemp)"
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            base_ref="${{ github.event.pull_request.base.ref }}"
-            git fetch origin "${base_ref}" --depth=1
-            git diff --name-only "origin/${base_ref}...HEAD" >"${changed_files_path}"
+            node scripts/ci/github-pr-files.mjs \
+              --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
           fi
           node scripts/ci/validation-surface-policy.mjs \
             --event-name "${{ github.event_name }}" \
@@ -263,8 +265,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -272,14 +272,15 @@ jobs:
 
       - name: Evaluate full multi-agent hardening policy
         id: evaluate
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           changed_files_path="$(mktemp)"
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            base_ref="${{ github.event.pull_request.base.ref }}"
-            git fetch origin "${base_ref}" --depth=1
-            git diff --name-only "origin/${base_ref}...HEAD" >"${changed_files_path}"
+            node scripts/ci/github-pr-files.mjs \
+              --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
           fi
           node scripts/ci/multi-agent-policy.mjs \
             --event-name "${{ github.event_name }}" \
