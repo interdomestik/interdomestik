@@ -21,7 +21,7 @@ export function runScript(scriptPath, root, args = [], options = {}) {
     encoding: 'utf8',
     env: {
       ...process.env,
-      ...(options.env || {}),
+      ...options.env,
     },
   });
 }

@@ -33,19 +33,16 @@ test('docs-only PR skips heavy validation', () => {
   );
 });
 
-test('workflow and CI helper only PR skips heavy validation', () => {
+test('workflow-only PR skips heavy validation', () => {
   assert.deepEqual(
     evaluateValidationSurface({
       eventName: 'pull_request',
-      changedFiles: ['.github/workflows/pilot-gate.yml', 'scripts/ci/multi-agent-policy.mjs'],
+      changedFiles: ['.github/workflows/pilot-gate.yml', '.github/actions/setup/action.yml'],
     }),
     {
       shouldRun: false,
       reason: 'non_product_only_pr',
-      nonProductOnlyPaths: [
-        '.github/workflows/pilot-gate.yml',
-        'scripts/ci/multi-agent-policy.mjs',
-      ],
+      nonProductOnlyPaths: ['.github/workflows/pilot-gate.yml', '.github/actions/setup/action.yml'],
     }
   );
 });
@@ -60,6 +57,23 @@ test('planning governance helper scripts still skip heavy validation', () => {
       shouldRun: false,
       reason: 'non_product_only_pr',
       nonProductOnlyPaths: ['scripts/plan-test-helpers.mjs', 'docs/plans/current-program.md'],
+    }
+  );
+});
+
+test('CI policy script changes still run heavy validation', () => {
+  assert.deepEqual(
+    evaluateValidationSurface({
+      eventName: 'pull_request',
+      changedFiles: [
+        'scripts/ci/validation-surface-policy.mjs',
+        '.github/workflows/pilot-gate.yml',
+      ],
+    }),
+    {
+      shouldRun: true,
+      reason: 'runtime_sensitive_surface',
+      nonProductOnlyPaths: ['.github/workflows/pilot-gate.yml'],
     }
   );
 });

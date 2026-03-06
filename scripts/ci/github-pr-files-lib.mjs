@@ -4,7 +4,7 @@ const DEFAULT_API_BASE_URL = 'https://api.github.com';
 const PER_PAGE = 100;
 
 function parseRepositoryFullName(value) {
-  const normalized = String(value || '').trim();
+  const normalized = value?.toString().trim() ?? '';
   if (!normalized || !normalized.includes('/')) {
     return null;
   }
@@ -29,7 +29,7 @@ export function readPullRequestContext(eventPath, repositoryFullName = '') {
     parseRepositoryFullName(event.repository?.full_name);
 
   if (!resolvedRepositoryFullName) {
-    throw new Error('repository full name is required for pull request file discovery');
+    throw new TypeError('repository full name is required for pull request file discovery');
   }
 
   return {
@@ -46,11 +46,11 @@ export async function fetchPullRequestFiles({
   fetchImpl = globalThis.fetch,
 }) {
   if (!repositoryFullName) {
-    throw new Error('repositoryFullName is required');
+    throw new TypeError('repositoryFullName is required');
   }
 
   if (!Number.isInteger(pullRequestNumber)) {
-    throw new Error('pullRequestNumber must be an integer');
+    throw new TypeError('pullRequestNumber must be an integer');
   }
 
   if (!token) {
@@ -58,13 +58,11 @@ export async function fetchPullRequestFiles({
   }
 
   if (typeof fetchImpl !== 'function') {
-    throw new Error('fetch implementation is required');
+    throw new TypeError('fetch implementation is required');
   }
 
   const files = [];
-  let nextPage = 1;
-
-  while (nextPage !== null) {
+  for (let nextPage = 1; ; nextPage += 1) {
     const response = await fetchImpl(
       `${apiBaseUrl}/repos/${repositoryFullName}/pulls/${pullRequestNumber}/files?per_page=${PER_PAGE}&page=${nextPage}`,
       {
@@ -86,7 +84,9 @@ export async function fetchPullRequestFiles({
     const page = await response.json();
     files.push(...page.map(file => String(file?.filename || '').trim()).filter(Boolean));
 
-    nextPage = page.length === PER_PAGE ? nextPage + 1 : null;
+    if (page.length < PER_PAGE) {
+      break;
+    }
   }
 
   return files;

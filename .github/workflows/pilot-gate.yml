@@ -10,13 +10,12 @@ concurrency:
   group: pilot-gate-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  pull-requests: read
-
 jobs:
   pilot-gate:
     name: pr:verify + pilot:check
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     timeout-minutes: 60
     services:
@@ -262,6 +261,9 @@ jobs:
       should_run: ${{ steps.evaluate.outputs.should_run }}
       reason: ${{ steps.evaluate.outputs.reason }}
       matched_paths: ${{ steps.evaluate.outputs.matched_paths }}
+    permissions:
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
