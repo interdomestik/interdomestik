@@ -35,6 +35,7 @@ SENTRY_LIMIT="${SENTRY_LIMIT:-100}"
 SENTRY_SEVERITY_THRESHOLD="${SENTRY_SEVERITY_THRESHOLD:-error}"
 SENTRY_SEER_AUTOMATION_URL="${SENTRY_SEER_AUTOMATION_URL:-}"
 SENTRY_SEER_AUTOMATION_TOKEN="${SENTRY_SEER_AUTOMATION_TOKEN:-}"
+SENTRY_SWEEP_CONTEXT="${SENTRY_SWEEP_CONTEXT:-deploy verification}"
 
 mkdir -p "$SCOPE_LOG" "$SCOPE_NOTES"
 
@@ -57,9 +58,10 @@ fs.writeFileSync(stateFile, JSON.stringify(payload, null, 2));
 NODE
 
   cat > "$PRE_FILE" <<EOF
-# Sentry Issue Window (Pre-deploy)
+# Sentry Issue Window (${SENTRY_SWEEP_CONTEXT} / window opened)
 
 - Evidence run: ${RUN_ID}
+- Context: ${SENTRY_SWEEP_CONTEXT}
 - Window start (UTC): ${START_ISO}
 - Organization: ${SENTRY_ORG:-not configured}
 - Project: ${SENTRY_PROJECT:-not configured}
@@ -131,7 +133,7 @@ if [[ "$HTTP_STATUS" != 2* ]]; then
   exit 1
 fi
 
-node - "$RESPONSE_FILE" "$START_TS" "$END_TS" "$SENTRY_ORG" "$SENTRY_PROJECT" "$SENTRY_ENVIRONMENT" "$WINDOW_MINUTES" "$SENTRY_SEVERITY_THRESHOLD" "$START_ISO" "$END_ISO" "$POST_FILE" "$POST_JSON" "$NOTES_FILE" "$AUTOMATION_PAYLOAD_FILE" <<'NODE'
+node - "$RESPONSE_FILE" "$START_TS" "$END_TS" "$SENTRY_ORG" "$SENTRY_PROJECT" "$SENTRY_ENVIRONMENT" "$WINDOW_MINUTES" "$SENTRY_SEVERITY_THRESHOLD" "$START_ISO" "$END_ISO" "$SENTRY_SWEEP_CONTEXT" "$POST_FILE" "$POST_JSON" "$NOTES_FILE" "$AUTOMATION_PAYLOAD_FILE" <<'NODE'
 const fs = require('node:fs');
 
 const [
@@ -147,6 +149,7 @@ const [
   threshold,
   startIso,
   endIso,
+  sweepContext,
   postFile,
   postJsonFile,
   notesFile,
@@ -221,8 +224,9 @@ const issueRows = windowed.length
   : '- No issues in the configured time window.';
 
 const postContent = [
-  '# Sentry Issue Window (Post-deploy)',
+  `# Sentry Issue Window (${sweepContext} / window closed)`,
   '',
+  `- Context: ${sweepContext}`,
   `- Organization: ${org}`,
   `- Project: ${project}`,
   `- Environment: ${environment}`,
@@ -260,9 +264,10 @@ const noteRows = highSeverity.length
   : '- No high-severity issues in the window.';
 
 const notes = [
-  '# Seer Findings',
+  `# Seer Findings (${sweepContext})`,
   '',
   '## Window',
+  `- Context: ${sweepContext}`,
   `- Environment: ${environment}`,
   `- Organization: ${org}`,
   `- Project: ${project}`,
@@ -279,6 +284,7 @@ const notes = [
 ].join('\n');
 
 const payload = {
+  context: sweepContext,
   organization: org,
   project,
   environment,
