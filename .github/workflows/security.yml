@@ -19,7 +19,7 @@ jobs:
   # 1. PR Check: Runs pnpm audit to catch new vulnerabilities
   pnpm-audit:
     if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,14 +68,26 @@ jobs:
           set -euo pipefail
 
           version="8.30.0"
-          archive="gitleaks_${version}_linux_x64.tar.gz"
+          os="$(uname -s)"
+          arch="$(uname -m)"
+
+          case "${os}-${arch}" in
+            Linux-x86_64) archive="gitleaks_${version}_linux_x64.tar.gz" ;;
+            Linux-aarch64|Linux-arm64) archive="gitleaks_${version}_linux_arm64.tar.gz" ;;
+            Darwin-x86_64) archive="gitleaks_${version}_darwin_x64.tar.gz" ;;
+            Darwin-arm64) archive="gitleaks_${version}_darwin_arm64.tar.gz" ;;
+            *)
+              echo "Unsupported platform for gitleaks: ${os}-${arch}" >&2
+              exit 1
+              ;;
+          esac
 
           mkdir -p "$HOME/.local/bin"
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}" -o "/tmp/${archive}"
           tar -xzf "/tmp/${archive}" -C /tmp gitleaks
           install /tmp/gitleaks "$HOME/.local/bin/gitleaks"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          gitleaks version
+          "$HOME/.local/bin/gitleaks" version
 
       - name: Run gitleaks (blocking)
         if: ${{ github.event_name != 'pull_request' }}

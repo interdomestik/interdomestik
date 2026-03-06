@@ -16,8 +16,6 @@ overrides:
   minimatch: '>=10.2.3'
   esbuild: '>=0.25.0'
   '@modelcontextprotocol/sdk': '>=1.26.0'
-  hono: '>=4.12.4'
-  '@hono/node-server': '>=1.19.10'
   got: '>=11.8.5'
   electron: '>=35.7.5'
   rollup: 4.59.0
@@ -70,7 +68,7 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0
       hono:
-        specifier: '>=4.12.4'
+        specifier: ^4.11.10
         version: 4.12.5
       husky:
         specifier: ^8.0.0
@@ -2925,7 +2923,7 @@ packages:
       }
     engines: { node: '>=18.14.1' }
     peerDependencies:
-      hono: '>=4.12.4'
+      hono: ^4
 
   '@hookform/resolvers@5.2.2':
     resolution:
@@ -12092,7 +12090,7 @@ packages:
       express: '>=4.19.2'
       fastify: '>=4.21.0'
       h3: '>=1.8.1'
-      hono: '>=4.12.4'
+      hono: '>=4.2.7'
       koa: '>=2.14.2'
       next: '>=12.0.0'
       typescript: '>=5.8.0'

@@ -14,6 +14,15 @@ const sourceMap = {
       default_scope: { file_path: 'scripts/release-gate/run.ts' },
       verification_commands: ['pnpm release:gate:prod'],
     },
+    {
+      source_id: 'plan_evidence_custody_gap',
+      trigger_match: { event_type: 'plan.evidence.custody_gap' },
+      store_type: 'procedural',
+      risk_class: 'high',
+      promotion_rule: 'owner_approval',
+      default_scope: { file_path: 'docs/plans/current-tracker.md' },
+      verification_commands: ['pnpm plan:audit', 'pnpm plan:proof'],
+    },
   ],
 };
 
@@ -64,4 +73,21 @@ test('capture sanitizes scope to allowed keys only', () => {
 
   assert.equal(payload.record.scope.tenant, 'tenant_mk');
   assert.equal(payload.record.scope.unexpected_key, undefined);
+});
+
+test('captures plan evidence custody gaps as procedural memory', () => {
+  const payload = captureCandidateFromEvent(
+    {
+      event_type: 'plan.evidence.custody_gap',
+      timestamp: '2026-03-05T10:00:00.000Z',
+      lesson_hint: 'Do not count tracker progress without checked-in evidence.',
+    },
+    sourceMap
+  );
+
+  assert.equal(payload.source_id, 'plan_evidence_custody_gap');
+  assert.equal(payload.record.store_type, 'procedural');
+  assert.equal(payload.record.risk_class, 'high');
+  assert.equal(payload.record.scope.file_path, 'docs/plans/current-tracker.md');
+  assert.deepEqual(payload.record.verification_commands, ['pnpm plan:audit', 'pnpm plan:proof']);
 });

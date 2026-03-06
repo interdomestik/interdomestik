@@ -14,9 +14,15 @@ if (!fs.existsSync(trackerPath)) {
 const text = fs.readFileSync(trackerPath, 'utf8');
 const lines = text.split(/\r?\n/);
 
-const getValue = prefix => {
-  const line = lines.find(l => l.startsWith(prefix));
-  return line ? line.slice(prefix.length).trim() : 'n/a';
+const getValue = (...prefixes) => {
+  for (const prefix of prefixes) {
+    const line = lines.find(l => l.startsWith(prefix));
+    if (line) {
+      return line.slice(prefix.length).trim();
+    }
+  }
+
+  return 'n/a';
 };
 
 let section = 'General';
@@ -42,10 +48,13 @@ const doneActions = actionItems.filter(item => item.done);
 const openActions = actionItems.filter(item => !item.done);
 const nextActions = openActions.slice(0, 8);
 
-console.log('=== Interdomestik v1.0.0 Bulletproof Status ===');
+console.log('=== Interdomestik v1.0.0 Bulletproof Status (Legacy) ===');
+console.log('Use `pnpm plan:status` for the live program status.\n');
 console.log(`Tracker: ${trackerPath}`);
-console.log(`Last updated: ${getValue('Last updated:')}`);
-console.log(`Current phase: ${getValue('Current phase:')}`);
+console.log(`Historical last updated: ${getValue('Historical last updated:', 'Last updated:')}`);
+console.log(
+  `Historical phase snapshot: ${getValue('Historical phase snapshot:', 'Current phase:')}`
+);
 console.log(`Actions complete: ${doneActions.length}/${actionItems.length}`);
 console.log(`Actions open: ${openActions.length}`);
 
@@ -59,4 +68,5 @@ if (nextActions.length > 0) {
 }
 
 console.log('\nOpen tracker: docs/plans/2026-02-22-v1-bulletproof-tracker.md');
-console.log('Program plan: docs/plans/2026-02-22-v1-bulletproof-program.md');
+console.log('Live tracker: docs/plans/current-tracker.md');
+console.log('Live program: docs/plans/current-program.md');

@@ -1,4 +1,15 @@
+---
+plan_role: input
+status: superseded
+source_of_truth: false
+owner: platform
+last_reviewed: 2026-03-05
+superseded_by: docs/plans/current-program.md
+---
+
 # Interdomestik Engineering Maturity Assessment
+
+> Status: Historical assessment input only. Use `docs/plans/current-program.md` for current priorities.
 
 ## Executive-Ready Report | January 2026
 

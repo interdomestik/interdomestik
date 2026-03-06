@@ -72,6 +72,10 @@ const envPaths = [
   path.resolve(__dirname, '.env.local'),
 ];
 
+// Preserve explicit caller-provided env (including empty values), while still
+// allowing later env files (e.g. .env.local) to override earlier ones.
+const inheritedEnvKeys = new Set(Object.keys(process.env));
+
 function loadEnvManual(envPath: string) {
   if (!fs.existsSync(envPath)) return;
   const content = fs.readFileSync(envPath, 'utf8');
@@ -81,7 +85,8 @@ function loadEnvManual(envPath: string) {
     const [key, ...values] = trimmed.split('=');
     if (key && values.length > 0) {
       const val = values.join('=').trim().replace(/^['"]/, '').replace(/['"]$/, '');
-      if (!process.env[key]) process.env[key] = val;
+      if (inheritedEnvKeys.has(key)) return;
+      process.env[key] = val;
     }
   });
 }
@@ -137,9 +142,21 @@ const PILOT_HOST = envOrFallback('PILOT_HOST', `pilot.${BIND_HOST}.nip.io:${PORT
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
 
+const e2eDatabaseUrl = process.env.E2E_DATABASE_URL?.trim();
+if (e2eDatabaseUrl) {
+  process.env.DATABASE_URL = e2eDatabaseUrl;
+}
+
 if (!process.env.DATABASE_URL) {
   console.log('⚠️ DATABASE_URL not found, using default local fallback.');
   process.env.DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+}
+
+const e2eDatabaseUrlRls = process.env.E2E_DATABASE_URL_RLS?.trim();
+if (e2eDatabaseUrlRls) {
+  process.env.DATABASE_URL_RLS = e2eDatabaseUrlRls;
+} else if (!process.env.DATABASE_URL_RLS) {
+  process.env.DATABASE_URL_RLS = process.env.DATABASE_URL;
 }
 
 export default defineConfig({

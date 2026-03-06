@@ -27,7 +27,7 @@ env:
 
 jobs:
   audit:
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -35,12 +35,13 @@ jobs:
         run: |
           node scripts/check-env-ci.mjs
           pnpm track:audit
+          pnpm plan:audit
           pnpm purity:audit
           pnpm db:migrations:check-journal
           # Contract Compliance: pnpm check is covered by e2e-gate job
 
   static:
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -61,7 +62,7 @@ jobs:
           retention-days: 30
 
   unit:
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -75,7 +76,7 @@ jobs:
 
   multi-agent-dry-run:
     if: github.event_name == 'pull_request'
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -115,7 +116,7 @@ jobs:
           retention-days: 14
 
   e2e-gate:
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
       postgres:

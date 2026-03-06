@@ -1,4 +1,15 @@
+---
+plan_role: input
+status: superseded
+source_of_truth: false
+owner: platform
+last_reviewed: 2026-03-05
+superseded_by: docs/plans/current-program.md
+---
+
 # Interdomestik Engineering Maturity Assessment
+
+> Status: Historical assessment input only. Recommendations become active work only after they are copied into `docs/plans/current-program.md` and `docs/plans/current-tracker.md`.
 
 **Date**: January 19, 2026  
 **Assessor**: Principal Engineer Analysis  

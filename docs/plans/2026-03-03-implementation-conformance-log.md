@@ -1,4 +1,16 @@
+---
+plan_role: execution_log
+status: active
+source_of_truth: true
+owner: platform
+last_reviewed: 2026-03-05
+current_program_path: docs/plans/current-program.md
+current_tracker_path: docs/plans/current-tracker.md
+---
+
 # Implementation Conformance Log
+
+> Status: Active execution log for the current program.
 
 - version: `1.0.0`
 - effective_date: `2026-03-03`
