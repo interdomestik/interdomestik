@@ -8,6 +8,8 @@ ensure_docker_running() {
     echo "❌ Docker is not running. Start Docker and retry."
     exit 1
   fi
+
+  return 0
 }
 
 ensure_supabase_running() {
@@ -17,6 +19,8 @@ ensure_supabase_running() {
 
   echo "⚠️  Supabase is not running. Starting local Supabase..."
   pnpm --dir "${ROOT_DIR}" --filter @interdomestik/database exec supabase start
+
+  return 0
 }
 
 main() {
@@ -31,6 +35,8 @@ main() {
 
   echo "▶️  Starting app on host with hot reload..."
   exec pnpm dev
+
+  return 0
 }
 
 main "$@"

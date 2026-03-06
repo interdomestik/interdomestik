@@ -18,18 +18,26 @@ print_df() {
   echo ""
   docker system df || true
   echo ""
+
+  return 0
 }
 
 compose_down_all() {
   docker compose --profile infra --profile gate --profile db --profile sonar down --remove-orphans >/dev/null 2>&1 || true
+
+  return 0
 }
 
 compose_down_gate() {
   docker compose --profile gate down --remove-orphans >/dev/null 2>&1 || true
+
+  return 0
 }
 
 compose_down_sonar() {
   docker compose --profile sonar down -v --remove-orphans >/dev/null 2>&1 || true
+
+  return 0
 }
 
 remove_project_volumes() {
@@ -46,6 +54,8 @@ remove_project_volumes() {
   if [[ "$had_any" -eq 1 ]]; then
     echo "Removed unused compose volumes for project '${PROJECT_NAME}'."
   fi
+
+  return 0
 }
 
 remove_sonar_volumes() {
@@ -56,6 +66,8 @@ remove_sonar_volumes() {
     fi
     docker volume rm "$volume" >/dev/null 2>&1 || true
   done < <(docker volume ls -q | grep -E 'sonar' || true)
+
+  return 0
 }
 
 remove_gate_cache_volumes() {
@@ -76,15 +88,21 @@ remove_gate_cache_volumes() {
   if [[ "$had_any" -eq 1 ]]; then
     echo "Removed unused gate cache volumes for project '${PROJECT_NAME}'."
   fi
+
+  return 0
 }
 
 prune_builder_light() {
   docker buildx prune -f >/dev/null 2>&1 || \
     docker builder prune -f >/dev/null 2>&1 || true
+
+  return 0
 }
 
 prune_builder_full() {
   docker buildx prune -af >/dev/null 2>&1 || docker builder prune -af >/dev/null 2>&1 || true
+
+  return 0
 }
 
 if [[ "$MODE" == "full" && "$FLAG" != "--yes" && "$FORCE" != "1" ]]; then
@@ -126,6 +144,10 @@ case "$MODE" in
     prune_builder_full
     docker volume prune -f >/dev/null || true
     docker network prune -f >/dev/null || true
+    ;;
+  *)
+    echo "Usage: $0 [light|gate|sonar|full] [--yes]" >&2
+    exit 2
     ;;
 esac
 

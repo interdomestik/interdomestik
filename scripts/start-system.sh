@@ -8,6 +8,8 @@ ensure_docker_running() {
     echo "❌ Docker is not running. Start Docker and retry."
     exit 1
   fi
+
+  return 0
 }
 
 ensure_supabase_running() {
@@ -17,6 +19,8 @@ ensure_supabase_running() {
 
   echo "⚠️  Supabase is not running. Starting local Supabase..."
   pnpm --dir "${ROOT_DIR}" --filter @interdomestik/database exec supabase start
+
+  return 0
 }
 
 main() {
@@ -39,6 +43,8 @@ System ready:
 To stop parity services:
   docker compose --profile gate down --remove-orphans
 EOF
+
+  return 0
 }
 
 main "$@"

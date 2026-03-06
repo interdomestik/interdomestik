@@ -31,6 +31,8 @@ cleanup_gate_stack() {
   if [[ "${DOCKER_GATE_KEEP_RUNNING}" == "1" && "${DOCKER_GATE_RECLAIM}" == "1" ]]; then
     echo "5. Skipping reclaim because gate stack is kept running."
   fi
+
+  return 0
 }
 
 trap cleanup_gate_stack EXIT
@@ -42,6 +44,8 @@ build_gate_images() {
   fi
   docker_args+=(web playwright)
   docker "${docker_args[@]}"
+
+  return 0
 }
 
 wait_for_gate_web() {

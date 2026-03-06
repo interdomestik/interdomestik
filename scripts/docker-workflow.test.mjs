@@ -10,17 +10,38 @@ function readRepoFile(relativePath) {
   return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
 }
 
+function listLines(content) {
+  return content.split('\n').map(line => line.replace(/\r$/, ''));
+}
+
+function assertLineAbsent(content, expectedLine) {
+  assert.ok(
+    !listLines(content).some(line => line.trim() === expectedLine),
+    `Expected file to omit line: ${expectedLine}`
+  );
+}
+
+function resolveSystemBash() {
+  for (const candidate of ['/bin/bash', '/usr/bin/bash']) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  throw new Error('Expected bash to exist at a fixed system path');
+}
+
 test('playwright compose service uses stable named caches instead of throwaway anonymous volumes', () => {
   const compose = readRepoFile('docker-compose.yml');
 
   assert.match(compose, /playwright_pnpm_store:\s*\/pnpm-store/);
   assert.match(compose, /playwright_root_node_modules:\s*\/app\/node_modules/);
   assert.match(compose, /playwright_web_node_modules:\s*\/app\/apps\/web\/node_modules/);
-  assert.doesNotMatch(compose, /^\s*-\s*\/app\/node_modules\s*$/m);
-  assert.doesNotMatch(compose, /^\s*-\s*\/app\/apps\/web\/node_modules\s*$/m);
-  assert.doesNotMatch(compose, /^\s*-\s*\/app\/apps\/web\/\.next\s*$/m);
+  assertLineAbsent(compose, '- /app/node_modules');
+  assertLineAbsent(compose, '- /app/apps/web/node_modules');
+  assertLineAbsent(compose, '- /app/apps/web/.next');
   assert.doesNotMatch(compose, /playwright_web_next:\s*\/app\/apps\/web\/\.next/);
-  assert.doesNotMatch(compose, /^playwright_web_next:\s*$/m);
+  assertLineAbsent(compose, 'playwright_web_next:');
 });
 
 test('docker gate scripts avoid redundant playwright startup and reuse the same runner container shape', () => {
@@ -57,7 +78,7 @@ test('web docker path injects public Supabase client env into the browser build 
 });
 
 test('full startup script is valid bash', () => {
-  execFileSync('bash', ['-n', path.join(rootDir, 'scripts/start-system.sh')], {
+  execFileSync(resolveSystemBash(), ['-n', path.join(rootDir, 'scripts/start-system.sh')], {
     cwd: rootDir,
     stdio: 'pipe',
   });
