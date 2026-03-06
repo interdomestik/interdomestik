@@ -163,4 +163,8 @@ jobs:
 
       - name: E2E Gate Suite
         run: |
-          pnpm e2e:gate
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            pnpm e2e:gate:pr
+          else
+            pnpm e2e:gate
+          fi
