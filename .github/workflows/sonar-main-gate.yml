@@ -17,8 +17,9 @@ jobs:
     timeout-minutes: 45
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || secrets.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || secrets.SONAR_ORGANIZATION }}
       EVIDENCE_DIR: tmp/sonar-evidence/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
@@ -29,8 +30,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          sonar_vars=(SONAR_TOKEN SONAR_HOST_URL SONAR_PROJECT_KEY)
+          if [[ "${SONAR_HOST_URL:-}" == *"sonarcloud.io"* ]]; then
+            sonar_vars+=(SONAR_ORGANIZATION)
+          fi
+
           missing=()
-          for name in SONAR_TOKEN SONAR_HOST_URL SONAR_PROJECT_KEY; do
+          for name in "${sonar_vars[@]}"; do
             if [[ -z "${!name:-}" ]]; then
               missing+=("$name")
             fi
