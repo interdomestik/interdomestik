@@ -58,9 +58,29 @@ remove_sonar_volumes() {
   done < <(docker volume ls -q | grep -E 'sonar' || true)
 }
 
+remove_gate_cache_volumes() {
+  local had_any=0
+  while IFS= read -r volume; do
+    [[ -z "$volume" ]] && continue
+    case "$volume" in
+      *playwright_root_node_modules|*playwright_web_node_modules)
+        had_any=1
+        if docker ps -aq --filter "volume=${volume}" | grep -q .; then
+          continue
+        fi
+        docker volume rm "$volume" >/dev/null 2>&1 || true
+        ;;
+    esac
+  done < <(docker volume ls -q --filter "label=com.docker.compose.project=${PROJECT_NAME}")
+
+  if [[ "$had_any" -eq 1 ]]; then
+    echo "Removed unused gate cache volumes for project '${PROJECT_NAME}'."
+  fi
+}
+
 prune_builder_light() {
-  docker buildx prune -f --filter 'until=24h' >/dev/null 2>&1 || \
-    docker builder prune -f --filter 'until=24h' >/dev/null 2>&1 || true
+  docker buildx prune -f >/dev/null 2>&1 || \
+    docker builder prune -f >/dev/null 2>&1 || true
 }
 
 prune_builder_full() {
@@ -87,6 +107,7 @@ case "$MODE" in
     ;;
   gate)
     compose_down_gate
+    remove_gate_cache_volumes
     docker container prune -f >/dev/null || true
     docker image prune -f >/dev/null || true
     prune_builder_light
