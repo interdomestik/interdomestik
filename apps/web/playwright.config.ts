@@ -32,6 +32,7 @@ const GATE_MK_PILOT_MATCH = [
   'pilot/c2-03-cross-tenant-write-isolation.spec.ts',
   'pilot/c2-04-cross-tenant-staff-member-write-isolation.spec.ts',
 ];
+const GATE_MK_CONTRACT_MATCH = ['gate/seed-contract.spec.ts', 'gate/tenant-resolution.spec.ts'];
 const GATE_AL_PILOT_MATCH = ['pilot/c2-03-cross-tenant-write-isolation.spec.ts'];
 const NOOP_TEST_MATCH = ['__never__/__none__.spec.ts'];
 
@@ -221,6 +222,20 @@ export default defineConfig({
     {
       name: 'gate-mk-mk',
       testMatch: GATE_MK_TEST_MATCH,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: tenantBaseUrl(MK_HOST, 'mk'),
+        extraHTTPHeaders: {
+          'x-forwarded-host': MK_HOST,
+        },
+        storageState: GATE_MK_STATE,
+        actionTimeout: 20 * 1000,
+        navigationTimeout: 60 * 1000,
+      },
+    },
+    {
+      name: 'gate-mk-contract',
+      testMatch: GATE_MK_CONTRACT_MATCH,
       use: {
         ...devices['Desktop Chrome'],
         baseURL: tenantBaseUrl(MK_HOST, 'mk'),
