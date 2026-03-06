@@ -40,7 +40,10 @@ test('e2e gate scripts keep full and fast lanes distinct', () => {
   assert.match(prGateFast, /--project=gate-mk-contract/);
   assert.doesNotMatch(prGateFast, /--project=gate-mk-mk/);
 
-  assert.equal(fastCheck, 'node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast');
+  assert.equal(
+    fastCheck,
+    'node scripts/run-with-default-db-url.mjs pnpm e2e:state:setup && node scripts/run-with-default-db-url.mjs pnpm e2e:gate:pr:fast'
+  );
   assert.notEqual(fullGate, fastGate);
   assert.notEqual(prGate, prGateFast);
 });
