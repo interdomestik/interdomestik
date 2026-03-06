@@ -104,8 +104,89 @@ jobs:
   verify-production:
     needs: deploy-production
     runs-on: [self-hosted, interdomestik-linux]
+    timeout-minutes: 20
+    env:
+      BASE_URL: https://app.interdomestik.com
+      EVIDENCE_DIR: tmp/cd-evidence/${{ github.run_id }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG || secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT || secrets.SENTRY_PROJECT }}
+      SENTRY_ENVIRONMENT: production
+      SENTRY_SEVERITY_THRESHOLD: error
     steps:
-      - name: Health Check
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Validate optional Sentry Seer configuration
+        shell: bash
         run: |
-          echo "🏥 Checking health of https://app.interdomestik.com..."
-          # curl -f https://app.interdomestik.com/api/health
+          set -euo pipefail
+          sentry_vars=(SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT)
+          sentry_missing=()
+
+          for name in "${sentry_vars[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              sentry_missing+=("${name}")
+            fi
+          done
+
+          if (( ${#sentry_missing[@]} == 0 )); then
+            echo "SENTRY_SEER_ENABLED=true" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Skipping Sentry Seer sweep due to missing configuration: ${sentry_missing[*]}"
+            echo "SENTRY_SEER_ENABLED=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Open Sentry Seer sweep window
+        if: env.SENTRY_SEER_ENABLED == 'true'
+        shell: bash
+        env:
+          SENTRY_SWEEP_CONTEXT: post-deploy verification
+        run: bash scripts/sentry-seer-sweep.sh pre
+
+      - name: Health Check
+        shell: bash
+        run: |
+          set -euo pipefail
+          max_attempts=30
+          sleep_seconds=5
+
+          for attempt in $(seq 1 "${max_attempts}"); do
+            echo "🏥 Attempt ${attempt}/${max_attempts}: checking health of ${BASE_URL}..."
+
+            if curl -fsS "${BASE_URL}/api/health"; then
+              echo "✅ Health check succeeded on attempt ${attempt}."
+              exit 0
+            fi
+
+            if [[ "${attempt}" -lt "${max_attempts}" ]]; then
+              echo "Health check failed on attempt ${attempt}, retrying in ${sleep_seconds}s..."
+              sleep "${sleep_seconds}"
+            fi
+          done
+
+          echo "❌ Health check failed after ${max_attempts} attempts."
+          exit 1
+
+      - name: Close Sentry Seer sweep window
+        if: always() && env.SENTRY_SEER_ENABLED == 'true'
+        continue-on-error: true
+        shell: bash
+        env:
+          SENTRY_SWEEP_CONTEXT: post-deploy verification
+        run: bash scripts/sentry-seer-sweep.sh post
+
+      - name: Upload production verification artifacts
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-verification-${{ github.run_id }}
+          path: |
+            ${{ env.EVIDENCE_DIR }}/logs/*
+            ${{ env.EVIDENCE_DIR }}/notes/*
+          if-no-files-found: warn
+          retention-days: 14

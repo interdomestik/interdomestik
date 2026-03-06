@@ -14,6 +14,7 @@ jobs:
   pilot-gate:
     name: pr:verify + pilot:check
     permissions:
+      checks: read
       contents: read
       pull-requests: read
     runs-on: ubuntu-latest
@@ -46,8 +47,6 @@ jobs:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       SENTRY_ORG: ${{ vars.SENTRY_ORG || secrets.SENTRY_ORG }}
       SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT || secrets.SENTRY_PROJECT }}
-      SENTRY_ENVIRONMENT: production
-      SENTRY_SEVERITY_THRESHOLD: error
       RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@interdomestik.com
       RELEASE_GATE_MEMBER_PASSWORD: GoldenPass123!
       RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
@@ -66,6 +65,7 @@ jobs:
       SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || secrets.SONAR_PROJECT_KEY }}
       SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || secrets.SONAR_ORGANIZATION }}
+      SONAR_SCANNER_SKIP_JRE_PROVISIONING: 'true'
       EVIDENCE_DIR: tmp/pilot-evidence/${{ github.run_id }}
       PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login || '' }}
     steps:
@@ -123,19 +123,11 @@ jobs:
           if [[ "${SONAR_HOST_URL:-}" == *"sonarcloud.io"* ]]; then
             sonar_vars+=(SONAR_ORGANIZATION)
           fi
-          sentry_vars=(SENTRY_AUTH_TOKEN SENTRY_ORG SENTRY_PROJECT)
-
           sonar_missing=()
-          sentry_missing=()
 
           for name in "${sonar_vars[@]}"; do
             if [[ -z "${!name:-}" ]]; then
               sonar_missing+=("${name}")
-            fi
-          done
-          for name in "${sentry_vars[@]}"; do
-            if [[ -z "${!name:-}" ]]; then
-              sentry_missing+=("${name}")
             fi
           done
 
@@ -144,13 +136,6 @@ jobs:
           else
             echo "::warning::Skipping Sonar gate due to missing configuration: ${sonar_missing[*]}"
             echo "SONAR_GATE_ENABLED=false" >> "$GITHUB_ENV"
-          fi
-
-          if (( ${#sentry_missing[@]} == 0 )); then
-            echo "SENTRY_SEER_ENABLED=true" >> "$GITHUB_ENV"
-          else
-            echo "::warning::Skipping Sentry Seer sweep due to missing configuration: ${sentry_missing[*]}"
-            echo "SENTRY_SEER_ENABLED=false" >> "$GITHUB_ENV"
           fi
 
       - name: Prepare CI database
@@ -170,12 +155,18 @@ jobs:
         if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm --filter @interdomestik/web run build:ci
 
-      - name: Run Sonar quality gate (non-blocking on PR)
-        if: steps.validation_surface.outputs.should_run == 'true' && env.SONAR_GATE_ENABLED == 'true'
-        continue-on-error: true
+      - name: Await SonarCloud Code Analysis check
+        if: github.event_name == 'pull_request' && steps.validation_surface.outputs.should_run == 'true' && env.SONAR_GATE_ENABLED == 'true'
         env:
-          SONAR_ENFORCEMENT: warn
-          SONAR_RUN_COVERAGE: false
+          GH_TOKEN: ${{ github.token }}
+          SONAR_CHECK_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash scripts/sonar-check-run-gate.sh
+
+      - name: Run Sonar quality gate (manual fallback)
+        if: github.event_name != 'pull_request' && steps.validation_surface.outputs.should_run == 'true' && env.SONAR_GATE_ENABLED == 'true'
+        env:
+          SONAR_ENFORCEMENT: enforce
+          SONAR_RUN_COVERAGE: true
         run: bash scripts/sonar-gate.sh
 
       - name: Upload Sonar gate artifacts
@@ -208,18 +199,9 @@ jobs:
           cat /tmp/web-start.log || true
           exit 1
 
-      - name: Open Sentry Seer sweep window (pre)
-        if: steps.validation_surface.outputs.should_run == 'true' && env.SENTRY_SEER_ENABLED == 'true'
-        run: bash scripts/sentry-seer-sweep.sh pre
-
       - name: Run pilot gate
         if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm -s release:gate:p0:raw --baseUrl http://127.0.0.1:3000
-
-      - name: Close Sentry Seer sweep window (post)
-        if: always() && steps.validation_surface.outputs.should_run == 'true' && env.SENTRY_SEER_ENABLED == 'true'
-        continue-on-error: true
-        run: bash scripts/sentry-seer-sweep.sh post
 
       - name: Stop web server
         if: always() && steps.validation_surface.outputs.should_run == 'true'
@@ -228,22 +210,6 @@ jobs:
           if [[ -f /tmp/web-start.pid ]]; then
             kill "$(cat /tmp/web-start.pid)" || true
           fi
-
-      - name: Upload Seer sweep artifacts
-        if: always() && steps.validation_surface.outputs.should_run == 'true'
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: sentry-seer-sweep-${{ github.run_id }}
-          path: |
-            ${{ env.EVIDENCE_DIR }}/logs/sentry-issues-window-pre.md
-            ${{ env.EVIDENCE_DIR }}/logs/sentry-issues-window-post.md
-            ${{ env.EVIDENCE_DIR }}/logs/sentry-issues-window-post.json
-            ${{ env.EVIDENCE_DIR }}/logs/seer-automation-payload.json
-            ${{ env.EVIDENCE_DIR }}/logs/sentry-seer-automation-response.json
-            ${{ env.EVIDENCE_DIR }}/notes/seer-findings.md
-          if-no-files-found: warn
-          retention-days: 14
 
       - name: Upload release gate reports
         if: always() && steps.validation_surface.outputs.should_run == 'true'

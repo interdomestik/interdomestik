@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
-import { buildNativeScannerArgs } from './sonar-scan-lib.mjs';
+import { appendScannerProperties, buildNativeScannerArgs } from './sonar-scan-lib.mjs';
 
 async function waitForSonarUp({ statusUrl, timeoutMs }) {
   const start = Date.now();
@@ -79,7 +79,10 @@ if (!sonarToken) {
 const cwd = process.cwd();
 
 const sonarHostUrl = process.env.SONAR_HOST_URL ?? 'http://host.docker.internal:9000';
-const scannerProperties = [`-Dsonar.host.url=${sonarHostUrl}`];
+const skipJreProvisioning = process.env.SONAR_SCANNER_SKIP_JRE_PROVISIONING === 'true';
+const scannerProperties = appendScannerProperties([`-Dsonar.host.url=${sonarHostUrl}`], {
+  skipJreProvisioning,
+});
 
 if (sonarProjectKey) {
   scannerProperties.push(`-Dsonar.projectKey=${sonarProjectKey}`);
