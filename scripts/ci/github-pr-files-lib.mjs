@@ -91,3 +91,58 @@ export async function fetchPullRequestFiles({
 
   return files;
 }
+
+export async function fetchRepositoryFileContent({
+  apiBaseUrl = DEFAULT_API_BASE_URL,
+  repositoryFullName,
+  filePath,
+  ref,
+  token,
+  fetchImpl = globalThis.fetch,
+}) {
+  if (!repositoryFullName) {
+    throw new TypeError('repositoryFullName is required');
+  }
+
+  if (!filePath) {
+    throw new TypeError('filePath is required');
+  }
+
+  if (!ref) {
+    throw new TypeError('ref is required');
+  }
+
+  if (!token) {
+    throw new Error('GH_TOKEN or GITHUB_TOKEN is required');
+  }
+
+  if (typeof fetchImpl !== 'function') {
+    throw new TypeError('fetch implementation is required');
+  }
+
+  const response = await fetchImpl(
+    `${apiBaseUrl}/repos/${repositoryFullName}/contents/${filePath}?ref=${encodeURIComponent(ref)}`,
+    {
+      headers: {
+        accept: 'application/vnd.github+json',
+        authorization: `Bearer ${token}`,
+        'user-agent': 'interdomestik-ci',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const responseBody = await response.text();
+    throw new Error(
+      `failed to fetch repository file (${response.status} ${response.statusText}): ${responseBody}`
+    );
+  }
+
+  const payload = await response.json();
+
+  if (payload?.encoding !== 'base64' || typeof payload?.content !== 'string') {
+    throw new Error('repository file response missing base64 content');
+  }
+
+  return Buffer.from(payload.content.replace(/\n/g, ''), 'base64').toString('utf8');
+}
