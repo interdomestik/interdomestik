@@ -5,97 +5,68 @@ import test from 'node:test';
 import { createTempRoot, runScript, writeFile } from '../plan-test-helpers.mjs';
 import { evaluateValidationSurface } from './validation-surface-policy-lib.mjs';
 
-[
-  {
-    name: 'manual dispatch always runs heavy validation',
-    input: {
-      eventName: 'workflow_dispatch',
-      changedFiles: [],
-    },
-    expected: {
-      shouldRun: true,
-      reason: 'manual_dispatch',
-      nonProductOnlyPaths: [],
-    },
-  },
-  {
-    name: 'docs-only PR skips heavy validation',
-    input: {
-      eventName: 'pull_request',
-      changedFiles: ['docs/plans/current-program.md', 'README.md'],
-    },
-    expected: {
-      shouldRun: false,
-      reason: 'non_product_only_pr',
-      nonProductOnlyPaths: ['docs/plans/current-program.md', 'README.md'],
-    },
-  },
-  {
-    name: 'workflow-only PR skips heavy validation',
-    input: {
-      eventName: 'pull_request',
-      changedFiles: ['.github/workflows/pilot-gate.yml', '.github/actions/setup/action.yml'],
-    },
-    expected: {
-      shouldRun: false,
-      reason: 'non_product_only_pr',
-      nonProductOnlyPaths: ['.github/workflows/pilot-gate.yml', '.github/actions/setup/action.yml'],
-    },
-  },
-  {
-    name: 'planning governance helper scripts still skip heavy validation',
-    input: {
-      eventName: 'pull_request',
-      changedFiles: ['scripts/plan-test-helpers.mjs', 'docs/plans/current-program.md'],
-    },
-    expected: {
-      shouldRun: false,
-      reason: 'non_product_only_pr',
-      nonProductOnlyPaths: ['scripts/plan-test-helpers.mjs', 'docs/plans/current-program.md'],
-    },
-  },
-  {
-    name: 'CI policy script changes still run heavy validation',
-    input: {
-      eventName: 'pull_request',
-      changedFiles: [
-        'scripts/ci/validation-surface-policy.mjs',
-        '.github/workflows/pilot-gate.yml',
-      ],
-    },
-    expected: {
-      shouldRun: true,
-      reason: 'runtime_sensitive_surface',
-      nonProductOnlyPaths: ['.github/workflows/pilot-gate.yml'],
-    },
-  },
-  {
-    name: 'runtime-sensitive product changes still run heavy validation',
-    input: {
-      eventName: 'pull_request',
-      changedFiles: ['apps/web/src/features/member/home.tsx', 'docs/plans/current-program.md'],
-    },
-    expected: {
-      shouldRun: true,
-      reason: 'runtime_sensitive_surface',
-      nonProductOnlyPaths: ['docs/plans/current-program.md'],
-    },
-  },
-  {
-    name: 'missing changed files defaults to running heavy validation',
-    input: {
-      eventName: 'pull_request',
-      changedFiles: [],
-    },
-    expected: {
-      shouldRun: true,
-      reason: 'no_changed_files_detected',
-      nonProductOnlyPaths: [],
-    },
-  },
-].forEach(({ name, input, expected }) => {
+function decision(shouldRun, reason, nonProductOnlyPaths = []) {
+  return {
+    shouldRun,
+    reason,
+    nonProductOnlyPaths,
+  };
+}
+
+const DECISION_SCENARIOS = [
+  [
+    'manual dispatch always runs heavy validation',
+    'workflow_dispatch',
+    [],
+    decision(true, 'manual_dispatch'),
+  ],
+  [
+    'docs-only PR skips heavy validation',
+    'pull_request',
+    ['docs/plans/current-program.md', 'README.md'],
+    decision(false, 'non_product_only_pr', ['docs/plans/current-program.md', 'README.md']),
+  ],
+  [
+    'workflow-only PR skips heavy validation',
+    'pull_request',
+    ['.github/workflows/pilot-gate.yml', '.github/actions/setup/action.yml'],
+    decision(false, 'non_product_only_pr', [
+      '.github/workflows/pilot-gate.yml',
+      '.github/actions/setup/action.yml',
+    ]),
+  ],
+  [
+    'planning governance helper scripts still skip heavy validation',
+    'pull_request',
+    ['scripts/plan-test-helpers.mjs', 'docs/plans/current-program.md'],
+    decision(false, 'non_product_only_pr', [
+      'scripts/plan-test-helpers.mjs',
+      'docs/plans/current-program.md',
+    ]),
+  ],
+  [
+    'CI policy script changes still run heavy validation',
+    'pull_request',
+    ['scripts/ci/validation-surface-policy.mjs', '.github/workflows/pilot-gate.yml'],
+    decision(true, 'runtime_sensitive_surface', ['.github/workflows/pilot-gate.yml']),
+  ],
+  [
+    'runtime-sensitive product changes still run heavy validation',
+    'pull_request',
+    ['apps/web/src/features/member/home.tsx', 'docs/plans/current-program.md'],
+    decision(true, 'runtime_sensitive_surface', ['docs/plans/current-program.md']),
+  ],
+  [
+    'missing changed files defaults to running heavy validation',
+    'pull_request',
+    [],
+    decision(true, 'no_changed_files_detected'),
+  ],
+];
+
+DECISION_SCENARIOS.forEach(([name, eventName, changedFiles, expected]) => {
   test(name, () => {
-    assert.deepEqual(evaluateValidationSurface(input), expected);
+    assert.deepEqual(evaluateValidationSurface({ eventName, changedFiles }), expected);
   });
 });
 
