@@ -1,6 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
+import { buildNativeScannerArgs } from './sonar-scan-lib.mjs';
+
 async function waitForSonarUp({ statusUrl, timeoutMs }) {
   const start = Date.now();
   // Basic backoff: short sleeps, but don't hammer the server.
@@ -113,7 +115,7 @@ const shouldUseNativeArmScanner =
 
 if (shouldUseNativeArmScanner) {
   try {
-    const nativeArgs = ['--package=@sonar/scan', 'dlx', 'sonar-scanner', ...scannerProperties];
+    const nativeArgs = buildNativeScannerArgs(scannerProperties);
     const nativeStatus = run('pnpm', nativeArgs, { allowFailure: true });
     if (nativeStatus === 0) {
       process.exit(0);

@@ -1,60 +1,23 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-const SCRIPT_PATH = path.resolve(process.cwd(), 'scripts/plan-status.mjs');
-
-function writeFile(root, relativePath, content) {
-  const absolutePath = path.join(root, relativePath);
-  fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-  fs.writeFileSync(absolutePath, content);
-}
+import {
+  createTempRoot,
+  programDoc,
+  proofRow,
+  queueRow,
+  runScript,
+  trackerDoc,
+  writeFile,
+} from './plan-test-helpers.mjs';
 
 test('plan-status prints the current phase and queue from canonical files', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-status-'));
+  const root = createTempRoot('plan-status-');
 
-  writeFile(
-    root,
-    'docs/plans/current-program.md',
-    `# Current Program
+  writeFile(root, 'docs/plans/current-program.md', programDoc());
+  writeFile(root, 'docs/plans/current-tracker.md', trackerDoc([queueRow()], [proofRow()]));
 
-## Current Phase
-
-Canonical execution.
-
-## Program Goals
-
-1. One plan.
-2. One tracker.
-`
-  );
-
-  writeFile(
-    root,
-    'docs/plans/current-tracker.md',
-    `# Current Tracker
-
-## Active Queue
-
-| ID | Status | Owner | Work | Exit Criteria |
-| --- | --- | --- | --- | --- |
-| \`PG1\` | \`completed\` | \`platform\` | Ship the policy. | Audit passes. |
-
-## Proof Ledger
-
-| ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| \`PG1\` | \`governance:policy\` | \`manual\` | \`manual-20260305-governance\` | \`not_applicable\` | \`not_applicable\` | \`not_applicable\` | \`not_applicable\` | \`not_applicable\` | \`docs/plans/current-program.md\` |
-`
-  );
-
-  const result = spawnSync(process.execPath, [SCRIPT_PATH], {
-    cwd: root,
-    encoding: 'utf8',
-  });
+  const result = runScript('scripts/plan-status.mjs', root);
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Current phase: Canonical execution\./);
@@ -66,12 +29,22 @@ Canonical execution.
 });
 
 test('plan-status fails when canonical files are missing', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-status-missing-'));
-  const result = spawnSync(process.execPath, [SCRIPT_PATH], {
-    cwd: root,
-    encoding: 'utf8',
-  });
+  const root = createTempRoot('plan-status-missing-');
+  const result = runScript('scripts/plan-status.mjs', root);
 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /plan:status failed: missing/);
+});
+
+test('plan-status prints missing proof state when queue exists without proof rows', () => {
+  const root = createTempRoot('plan-status-missing-proof-');
+
+  writeFile(root, 'docs/plans/current-program.md', programDoc());
+  writeFile(root, 'docs/plans/current-tracker.md', trackerDoc([queueRow()], []));
+
+  const result = runScript('scripts/plan-status.mjs', root);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Proof snapshot:/);
+  assert.match(result.stdout, /PG1 proof: missing/);
 });

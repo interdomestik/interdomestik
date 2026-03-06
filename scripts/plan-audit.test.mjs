@@ -1,131 +1,47 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-const SCRIPT_PATH = path.resolve(process.cwd(), 'scripts/plan-audit.mjs');
-
-function writeFile(root, relativePath, content) {
-  const absolutePath = path.join(root, relativePath);
-  fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-  fs.writeFileSync(absolutePath, content);
-}
+import {
+  authoritativeDoc,
+  createTempRoot,
+  inputDoc,
+  proofRow,
+  queueRow,
+  runScript,
+  trackerDoc,
+  writeFile,
+  writeGovernedDocs,
+} from './plan-test-helpers.mjs';
 
 function runAudit(root) {
-  return spawnSync(process.execPath, [SCRIPT_PATH, '--root', root], {
-    encoding: 'utf8',
-  });
+  return runScript('scripts/plan-audit.mjs', root, ['--root', root]);
 }
 
-function authoritativeDoc(role, filePath, extra = '') {
-  return `---
-plan_role: ${role}
-status: active
-source_of_truth: true
-owner: platform
-last_reviewed: 2026-03-05
----
+function assertAuditFailure(prefix, configureRoot, expectedPattern) {
+  const root = createTempRoot(prefix);
+  writeGovernedDocs(root);
+  configureRoot(root);
 
-# ${filePath}
+  const result = runAudit(root);
 
-Authoritative content.
-${extra}`;
-}
-
-function trackerDoc(queueRows, proofRows) {
-  const queueBody = queueRows
-    .map(
-      row =>
-        `| \`${row.id}\` | \`${row.status}\` | \`${row.owner}\` | ${row.work} | ${row.exitCriteria} |`
-    )
-    .join('\n');
-  const proofBody = proofRows
-    .map(
-      row =>
-        `| \`${row.id}\` | ${row.sourceRefs} | \`${row.execution}\` | \`${row.runId}\` | \`${row.runRoot}\` | \`${row.sonar}\` | \`${row.docker}\` | \`${row.sentry}\` | \`${row.learning}\` | ${row.evidenceRefs} |`
-    )
-    .join('\n');
-
-  return `---
-plan_role: tracker
-status: active
-source_of_truth: true
-owner: platform
-last_reviewed: 2026-03-05
----
-
-# Current Tracker
-
-## Active Queue
-
-| ID | Status | Owner | Work | Exit Criteria |
-| --- | --- | --- | --- | --- |
-${queueBody}
-
-## Proof Ledger
-
-| ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-${proofBody}
-`;
-}
-
-function inputDoc(
-  status,
-  extraFrontMatter = '',
-  body = '> Status: Input only.\n\n# Input\n\nContext only.\n'
-) {
-  return `---
-plan_role: input
-status: ${status}
-source_of_truth: false
-owner: platform
-last_reviewed: 2026-03-05
-${extraFrontMatter}---
-
-${body}`;
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, expectedPattern);
 }
 
 test('passes with one canonical plan, one tracker, one execution log, and governed inputs', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-audit-pass-'));
+  const root = createTempRoot('plan-audit-pass-');
 
-  writeFile(
-    root,
-    'docs/plans/current-program.md',
-    authoritativeDoc('canonical_plan', 'current-program')
-  );
-  writeFile(
-    root,
-    'docs/plans/current-tracker.md',
-    trackerDoc(
+  writeGovernedDocs(root, {
+    tracker: trackerDoc(
+      [queueRow()],
       [
-        {
-          id: 'PG1',
-          status: 'completed',
-          owner: 'platform',
-          work: 'Ship the policy.',
-          exitCriteria: 'Audit passes.',
-        },
-      ],
-      [
-        {
-          id: 'PG1',
-          sourceRefs: '`governance:policy`',
-          execution: 'manual',
-          runId: 'manual-20260305-governance',
-          runRoot: 'not_applicable',
-          sonar: 'not_applicable',
-          docker: 'not_applicable',
-          sentry: 'not_applicable',
-          learning: 'not_applicable',
+        proofRow({
           evidenceRefs: '`docs/plans/current-program.md`; `docs/plans/current-tracker.md`',
-        },
-      ]
-    )
-  );
-  writeFile(root, 'docs/plans/current-log.md', authoritativeDoc('execution_log', 'current-log'));
+        }),
+      ],
+      { withFrontMatter: true }
+    ),
+  });
   writeFile(
     root,
     'docs/plans/legacy-plan.md',
@@ -152,258 +68,142 @@ test('passes with one canonical plan, one tracker, one execution log, and govern
 });
 
 test('fails when multiple active trackers exist', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-audit-duplicate-'));
-
-  writeFile(
-    root,
-    'docs/plans/current-program.md',
-    authoritativeDoc('canonical_plan', 'current-program')
+  assertAuditFailure(
+    'plan-audit-duplicate-',
+    root => {
+      writeFile(
+        root,
+        'docs/plans/other-tracker.md',
+        trackerDoc(
+          [
+            queueRow({
+              id: 'PG2',
+              status: 'pending',
+              work: 'Ship more policy.',
+              exitCriteria: 'Proof exists.',
+            }),
+          ],
+          [
+            proofRow({
+              id: 'PG2',
+              sourceRefs: '`governance:proof`',
+              execution: 'pending',
+              runId: 'pending',
+              runRoot: 'pending',
+              sonar: 'pending',
+              docker: 'pending',
+              sentry: 'pending',
+              learning: 'pending',
+            }),
+          ],
+          { withFrontMatter: true }
+        )
+      );
+    },
+    /expected exactly 1 active tracker source of truth/
   );
-  writeFile(
-    root,
-    'docs/plans/current-tracker.md',
-    trackerDoc(
-      [
-        {
-          id: 'PG1',
-          status: 'completed',
-          owner: 'platform',
-          work: 'Ship the policy.',
-          exitCriteria: 'Audit passes.',
-        },
-      ],
-      [
-        {
-          id: 'PG1',
-          sourceRefs: '`governance:policy`',
-          execution: 'manual',
-          runId: 'manual-20260305-governance',
-          runRoot: 'not_applicable',
-          sonar: 'not_applicable',
-          docker: 'not_applicable',
-          sentry: 'not_applicable',
-          learning: 'not_applicable',
-          evidenceRefs: '`docs/plans/current-program.md`',
-        },
-      ]
-    )
-  );
-  writeFile(
-    root,
-    'docs/plans/other-tracker.md',
-    trackerDoc(
-      [
-        {
-          id: 'PG2',
-          status: 'pending',
-          owner: 'platform',
-          work: 'Ship more policy.',
-          exitCriteria: 'Proof exists.',
-        },
-      ],
-      [
-        {
-          id: 'PG2',
-          sourceRefs: '`governance:proof`',
-          execution: 'pending',
-          runId: 'pending',
-          runRoot: 'pending',
-          sonar: 'pending',
-          docker: 'pending',
-          sentry: 'pending',
-          learning: 'pending',
-          evidenceRefs: '`docs/plans/current-program.md`',
-        },
-      ]
-    )
-  );
-  writeFile(root, 'docs/plans/current-log.md', authoritativeDoc('execution_log', 'current-log'));
-
-  const result = runAudit(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /expected exactly 1 active tracker source of truth/);
 });
 
 test('fails when a superseded doc omits superseded_by', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-audit-superseded-'));
-
-  writeFile(
-    root,
-    'docs/plans/current-program.md',
-    authoritativeDoc('canonical_plan', 'current-program')
+  assertAuditFailure(
+    'plan-audit-superseded-',
+    root => {
+      writeFile(
+        root,
+        'docs/plans/legacy.md',
+        inputDoc('superseded', '', '> Status: Superseded.\n\n# Legacy\n\nHistorical only.\n')
+      );
+    },
+    /superseded documents must declare a valid superseded_by path/
   );
-  writeFile(root, 'docs/plans/current-tracker.md', authoritativeDoc('tracker', 'current-tracker'));
-  writeFile(root, 'docs/plans/current-log.md', authoritativeDoc('execution_log', 'current-log'));
-  writeFile(
-    root,
-    'docs/plans/legacy.md',
-    inputDoc('superseded', '', '> Status: Superseded.\n\n# Legacy\n\nHistorical only.\n')
-  );
-
-  const result = runAudit(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /superseded documents must declare a valid superseded_by path/);
 });
 
 test('fails when an active input doc still claims live execution markers', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-audit-live-marker-'));
-
-  writeFile(
-    root,
-    'docs/plans/current-program.md',
-    authoritativeDoc('canonical_plan', 'current-program')
+  assertAuditFailure(
+    'plan-audit-live-marker-',
+    root => {
+      writeFile(
+        root,
+        'docs/plans/input.md',
+        inputDoc(
+          'active',
+          '',
+          '> Status: Active supporting input.\n\n# Input\n\n## Top 12 Next Actions\n\nShould fail.\n'
+        )
+      );
+    },
+    /active input docs may not present live execution markers/
   );
-  writeFile(root, 'docs/plans/current-tracker.md', authoritativeDoc('tracker', 'current-tracker'));
-  writeFile(root, 'docs/plans/current-log.md', authoritativeDoc('execution_log', 'current-log'));
-  writeFile(
-    root,
-    'docs/plans/input.md',
-    inputDoc(
-      'active',
-      '',
-      '> Status: Active supporting input.\n\n# Input\n\n## Top 12 Next Actions\n\nShould fail.\n'
-    )
-  );
-
-  const result = runAudit(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /active input docs may not present live execution markers/);
 });
 
 test('fails when an active queue item does not have a proof row', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-audit-proof-missing-'));
-
-  writeFile(
-    root,
-    'docs/plans/current-program.md',
-    authoritativeDoc('canonical_plan', 'current-program')
+  assertAuditFailure(
+    'plan-audit-proof-missing-',
+    root => {
+      writeFile(
+        root,
+        'docs/plans/current-tracker.md',
+        trackerDoc(
+          [
+            queueRow({
+              status: 'in_progress',
+              work: 'Reconcile proof.',
+              exitCriteria: 'Proof row exists.',
+            }),
+          ],
+          [],
+          { withFrontMatter: true }
+        )
+      );
+    },
+    /active queue item PG1 is missing a proof ledger row/
   );
-  writeFile(
-    root,
-    'docs/plans/current-tracker.md',
-    trackerDoc(
-      [
-        {
-          id: 'PG1',
-          status: 'in_progress',
-          owner: 'platform',
-          work: 'Reconcile proof.',
-          exitCriteria: 'Proof row exists.',
-        },
-      ],
-      []
-    )
-  );
-  writeFile(root, 'docs/plans/current-log.md', authoritativeDoc('execution_log', 'current-log'));
-
-  const result = runAudit(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /active queue item PG1 is missing a proof ledger row/);
 });
 
 test('fails when a completed queue item still carries missing proof statuses', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-audit-proof-completed-'));
-
-  writeFile(
-    root,
-    'docs/plans/current-program.md',
-    authoritativeDoc('canonical_plan', 'current-program')
-  );
-  writeFile(
-    root,
-    'docs/plans/current-tracker.md',
-    trackerDoc(
-      [
-        {
-          id: 'PG1',
-          status: 'completed',
-          owner: 'platform',
-          work: 'Ship the proof.',
-          exitCriteria: 'Proof complete.',
-        },
-      ],
-      [
-        {
-          id: 'PG1',
-          sourceRefs: '`maturity:#4`',
-          execution: 'multi_agent',
-          runId: 'missing',
-          runRoot: 'missing',
-          sonar: 'missing',
-          docker: 'missing',
-          sentry: 'missing',
-          learning: 'missing',
-          evidenceRefs: '`docs/plans/current-program.md`',
-        },
-      ]
-    )
-  );
-  writeFile(root, 'docs/plans/current-log.md', authoritativeDoc('execution_log', 'current-log'));
-
-  const result = runAudit(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(
-    result.stderr,
+  assertAuditFailure(
+    'plan-audit-proof-completed-',
+    root => {
+      writeFile(
+        root,
+        'docs/plans/current-tracker.md',
+        trackerDoc(
+          [queueRow({ work: 'Ship the proof.', exitCriteria: 'Proof complete.' })],
+          [
+            proofRow({
+              sourceRefs: '`maturity:#4`',
+              execution: 'multi_agent',
+              runId: 'missing',
+              runRoot: 'missing',
+              sonar: 'missing',
+              docker: 'missing',
+              sentry: 'missing',
+              learning: 'missing',
+            }),
+          ],
+          { withFrontMatter: true }
+        )
+      );
+    },
     /completed queue item PG1 must not use missing or pending proof values/
   );
 });
 
 test('fails when the local current task file does not redirect to canonical status', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-audit-local-task-'));
-
-  writeFile(
-    root,
-    'docs/plans/current-program.md',
-    authoritativeDoc('canonical_plan', 'current-program')
-  );
-  writeFile(
-    root,
-    'docs/plans/current-tracker.md',
-    trackerDoc(
-      [
-        {
-          id: 'PG1',
-          status: 'completed',
-          owner: 'platform',
-          work: 'Ship the policy.',
-          exitCriteria: 'Audit passes.',
-        },
-      ],
-      [
-        {
-          id: 'PG1',
-          sourceRefs: '`governance:policy`',
-          execution: 'manual',
-          runId: 'manual-20260305-governance',
-          runRoot: 'not_applicable',
-          sonar: 'not_applicable',
-          docker: 'not_applicable',
-          sentry: 'not_applicable',
-          learning: 'not_applicable',
-          evidenceRefs: '`docs/plans/current-program.md`',
-        },
-      ]
-    )
-  );
-  writeFile(root, 'docs/plans/current-log.md', authoritativeDoc('execution_log', 'current-log'));
-  writeFile(
-    root,
-    '.agent/tasks/current_task.md',
-    `---
+  assertAuditFailure(
+    'plan-audit-local-task-',
+    root => {
+      writeFile(
+        root,
+        '.agent/tasks/current_task.md',
+        `---
 task_name: legacy
 ---
 
 # Current Task
 `
+      );
+    },
+    /local task file must declare status: superseded/
   );
-
-  const result = runAudit(root);
-
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /local task file must declare status: superseded/);
 });

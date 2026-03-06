@@ -37,7 +37,7 @@ if (queueRows.length > 0) {
   }
 }
 
-if (proofRows.length > 0) {
+if (queueRows.length > 0) {
   console.log('\nProof snapshot:');
   for (const item of queueRows) {
     const proof = proofById.get(item.id);

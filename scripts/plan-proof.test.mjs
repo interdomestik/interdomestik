@@ -1,57 +1,43 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-const SCRIPT_PATH = path.resolve(process.cwd(), 'scripts/plan-proof.mjs');
-
-function writeFile(root, relativePath, content) {
-  const absolutePath = path.join(root, relativePath);
-  fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-  fs.writeFileSync(absolutePath, content);
-}
+import {
+  createTempRoot,
+  programDoc,
+  proofRow,
+  queueRow,
+  runScript,
+  trackerDoc,
+  writeFile,
+} from './plan-test-helpers.mjs';
 
 test('plan-proof prints proof state and evidence presence for tracker items', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-proof-'));
+  const root = createTempRoot('plan-proof-');
 
-  writeFile(
-    root,
-    'docs/plans/current-program.md',
-    `# Current Program
-
-## Current Phase
-
-Proof execution.
-`
-  );
-
+  writeFile(root, 'docs/plans/current-program.md', programDoc('Proof execution.'));
   writeFile(root, 'docs/existing-evidence.md', '# Evidence\n');
-
   writeFile(
     root,
     'docs/plans/current-tracker.md',
-    `# Current Tracker
-
-## Active Queue
-
-| ID | Status | Owner | Work | Exit Criteria |
-| --- | --- | --- | --- | --- |
-| \`PG1\` | \`in_progress\` | \`platform\` | Bind proof. | Evidence exists. |
-
-## Proof Ledger
-
-| ID | Source Refs | Execution | Run ID | Run Root | Sonar | Docker | Sentry | Learning | Evidence Refs |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| \`PG1\` | \`maturity:#4\`; \`bulletproof:A22\` | \`multi_agent\` | \`run-123\` | \`tmp/multi-agent/run-123\` | \`pass\` | \`pass\` | \`missing\` | \`pending\` | \`docs/existing-evidence.md\`; \`docs/missing-evidence.md\` |
-`
+    trackerDoc(
+      [queueRow({ status: 'in_progress', work: 'Bind proof.', exitCriteria: 'Evidence exists.' })],
+      [
+        proofRow({
+          sourceRefs: '`maturity:#4`; `bulletproof:A22`',
+          execution: 'multi_agent',
+          runId: 'run-123',
+          runRoot: 'tmp/multi-agent/run-123',
+          sonar: 'pass',
+          docker: 'pass',
+          sentry: 'missing',
+          learning: 'pending',
+          evidenceRefs: '`docs/existing-evidence.md`; `docs/missing-evidence.md`',
+        }),
+      ]
+    )
   );
 
-  const result = spawnSync(process.execPath, [SCRIPT_PATH], {
-    cwd: root,
-    encoding: 'utf8',
-  });
+  const result = runScript('scripts/plan-proof.mjs', root);
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /PG1 \[in_progress\] Bind proof\./);
