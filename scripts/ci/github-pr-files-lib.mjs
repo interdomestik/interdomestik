@@ -4,7 +4,7 @@ const DEFAULT_API_BASE_URL = 'https://api.github.com';
 const PER_PAGE = 100;
 
 function parseRepositoryFullName(value) {
-  const normalized = value?.toString().trim() ?? '';
+  const normalized = value == null ? '' : value.toString().trim();
   if (!normalized || !normalized.includes('/')) {
     return null;
   }

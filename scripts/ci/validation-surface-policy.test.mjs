@@ -5,106 +5,102 @@ import test from 'node:test';
 import { createTempRoot, runScript, writeFile } from '../plan-test-helpers.mjs';
 import { evaluateValidationSurface } from './validation-surface-policy-lib.mjs';
 
-test('manual dispatch always runs heavy validation', () => {
-  assert.deepEqual(
-    evaluateValidationSurface({
-      eventName: 'workflow_dispatch',
-      changedFiles: [],
-    }),
-    {
-      shouldRun: true,
-      reason: 'manual_dispatch',
-      nonProductOnlyPaths: [],
-    }
-  );
-});
+function expectValidationResult(name, input, expected) {
+  test(name, () => {
+    assert.deepEqual(evaluateValidationSurface(input), expected);
+  });
+}
 
-test('docs-only PR skips heavy validation', () => {
-  assert.deepEqual(
-    evaluateValidationSurface({
-      eventName: 'pull_request',
-      changedFiles: ['docs/plans/current-program.md', 'README.md'],
-    }),
-    {
-      shouldRun: false,
-      reason: 'non_product_only_pr',
-      nonProductOnlyPaths: ['docs/plans/current-program.md', 'README.md'],
-    }
-  );
-});
+expectValidationResult(
+  'manual dispatch always runs heavy validation',
+  {
+    eventName: 'workflow_dispatch',
+    changedFiles: [],
+  },
+  {
+    shouldRun: true,
+    reason: 'manual_dispatch',
+    nonProductOnlyPaths: [],
+  }
+);
 
-test('workflow-only PR skips heavy validation', () => {
-  assert.deepEqual(
-    evaluateValidationSurface({
-      eventName: 'pull_request',
-      changedFiles: ['.github/workflows/pilot-gate.yml', '.github/actions/setup/action.yml'],
-    }),
-    {
-      shouldRun: false,
-      reason: 'non_product_only_pr',
-      nonProductOnlyPaths: ['.github/workflows/pilot-gate.yml', '.github/actions/setup/action.yml'],
-    }
-  );
-});
+expectValidationResult(
+  'docs-only PR skips heavy validation',
+  {
+    eventName: 'pull_request',
+    changedFiles: ['docs/plans/current-program.md', 'README.md'],
+  },
+  {
+    shouldRun: false,
+    reason: 'non_product_only_pr',
+    nonProductOnlyPaths: ['docs/plans/current-program.md', 'README.md'],
+  }
+);
 
-test('planning governance helper scripts still skip heavy validation', () => {
-  assert.deepEqual(
-    evaluateValidationSurface({
-      eventName: 'pull_request',
-      changedFiles: ['scripts/plan-test-helpers.mjs', 'docs/plans/current-program.md'],
-    }),
-    {
-      shouldRun: false,
-      reason: 'non_product_only_pr',
-      nonProductOnlyPaths: ['scripts/plan-test-helpers.mjs', 'docs/plans/current-program.md'],
-    }
-  );
-});
+expectValidationResult(
+  'workflow-only PR skips heavy validation',
+  {
+    eventName: 'pull_request',
+    changedFiles: ['.github/workflows/pilot-gate.yml', '.github/actions/setup/action.yml'],
+  },
+  {
+    shouldRun: false,
+    reason: 'non_product_only_pr',
+    nonProductOnlyPaths: ['.github/workflows/pilot-gate.yml', '.github/actions/setup/action.yml'],
+  }
+);
 
-test('CI policy script changes still run heavy validation', () => {
-  assert.deepEqual(
-    evaluateValidationSurface({
-      eventName: 'pull_request',
-      changedFiles: [
-        'scripts/ci/validation-surface-policy.mjs',
-        '.github/workflows/pilot-gate.yml',
-      ],
-    }),
-    {
-      shouldRun: true,
-      reason: 'runtime_sensitive_surface',
-      nonProductOnlyPaths: ['.github/workflows/pilot-gate.yml'],
-    }
-  );
-});
+expectValidationResult(
+  'planning governance helper scripts still skip heavy validation',
+  {
+    eventName: 'pull_request',
+    changedFiles: ['scripts/plan-test-helpers.mjs', 'docs/plans/current-program.md'],
+  },
+  {
+    shouldRun: false,
+    reason: 'non_product_only_pr',
+    nonProductOnlyPaths: ['scripts/plan-test-helpers.mjs', 'docs/plans/current-program.md'],
+  }
+);
 
-test('runtime-sensitive product changes still run heavy validation', () => {
-  assert.deepEqual(
-    evaluateValidationSurface({
-      eventName: 'pull_request',
-      changedFiles: ['apps/web/src/features/member/home.tsx', 'docs/plans/current-program.md'],
-    }),
-    {
-      shouldRun: true,
-      reason: 'runtime_sensitive_surface',
-      nonProductOnlyPaths: ['docs/plans/current-program.md'],
-    }
-  );
-});
+expectValidationResult(
+  'CI policy script changes still run heavy validation',
+  {
+    eventName: 'pull_request',
+    changedFiles: ['scripts/ci/validation-surface-policy.mjs', '.github/workflows/pilot-gate.yml'],
+  },
+  {
+    shouldRun: true,
+    reason: 'runtime_sensitive_surface',
+    nonProductOnlyPaths: ['.github/workflows/pilot-gate.yml'],
+  }
+);
 
-test('missing changed files defaults to running heavy validation', () => {
-  assert.deepEqual(
-    evaluateValidationSurface({
-      eventName: 'pull_request',
-      changedFiles: [],
-    }),
-    {
-      shouldRun: true,
-      reason: 'no_changed_files_detected',
-      nonProductOnlyPaths: [],
-    }
-  );
-});
+expectValidationResult(
+  'runtime-sensitive product changes still run heavy validation',
+  {
+    eventName: 'pull_request',
+    changedFiles: ['apps/web/src/features/member/home.tsx', 'docs/plans/current-program.md'],
+  },
+  {
+    shouldRun: true,
+    reason: 'runtime_sensitive_surface',
+    nonProductOnlyPaths: ['docs/plans/current-program.md'],
+  }
+);
+
+expectValidationResult(
+  'missing changed files defaults to running heavy validation',
+  {
+    eventName: 'pull_request',
+    changedFiles: [],
+  },
+  {
+    shouldRun: true,
+    reason: 'no_changed_files_detected',
+    nonProductOnlyPaths: [],
+  }
+);
 
 test('CLI prints GitHub output fields for docs-only PRs', () => {
   const root = createTempRoot('validation-surface-policy-cli-');
