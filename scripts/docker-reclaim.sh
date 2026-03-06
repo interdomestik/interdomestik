@@ -82,6 +82,8 @@ remove_gate_cache_volumes() {
         fi
         docker volume rm "$volume" >/dev/null 2>&1 || true
         ;;
+      *)
+        ;;
     esac
   done < <(docker volume ls -q --filter "label=com.docker.compose.project=${PROJECT_NAME}")
 

@@ -214,6 +214,7 @@
       "got": ">=11.8.5",
       "electron": ">=35.7.5",
       "rollup": "4.59.0",
+      "express-rate-limit": "8.3.0",
       "serialize-javascript": ">=7.0.3"
     }
   },
