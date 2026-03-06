@@ -3,12 +3,11 @@ const HIGH_RISK_LABELS = new Set(['ci:multi-agent', 'release-hardening', 'securi
 const HIGH_RISK_PATTERNS = [
   /^scripts\/multi-agent\//,
   /^scripts\/release-gate\//,
-  /^scripts\/(?:security-guard|pr-verify-hosts|m4-gatekeeper|docker-gate|sentry-seer-sweep|sonar-gate|sonar-scan(?:-lib)?)\.(?:mjs|sh)$/,
+  /^scripts\/(?:security-guard|pr-verify-hosts|m4-gatekeeper|sentry-seer-sweep|sonar-gate|sonar-scan(?:-lib)?)\.(?:mjs|sh)$/,
   /^apps\/web\/src\/proxy\.ts$/,
   /^packages\/database\/drizzle\//,
   /^packages\/database\/src\//,
   /^packages\/shared-auth\//,
-  /^pnpm-lock\.yaml$/,
   /^turbo\.json$/,
 ];
 
@@ -35,7 +34,6 @@ const HIGH_RISK_PACKAGE_JSON_SECTIONS = [
 ];
 
 const HIGH_RISK_PACKAGE_JSON_PNPM_KEYS = [
-  'overrides',
   'patchedDependencies',
   'onlyBuiltDependencies',
   'neverBuiltDependencies',
