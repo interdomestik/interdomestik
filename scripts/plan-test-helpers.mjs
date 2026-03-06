@@ -13,12 +13,16 @@ export function writeFile(root, relativePath, content) {
   fs.writeFileSync(absolutePath, content);
 }
 
-export function runScript(scriptPath, root, args = []) {
+export function runScript(scriptPath, root, args = [], options = {}) {
   const absoluteScriptPath = path.resolve(process.cwd(), scriptPath);
 
   return spawnSync(process.execPath, [absoluteScriptPath, ...args], {
     cwd: root,
     encoding: 'utf8',
+    env: {
+      ...process.env,
+      ...options.env,
+    },
   });
 }
 

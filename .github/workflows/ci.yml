@@ -24,6 +24,8 @@ env:
   BETTER_AUTH_URL: http://127.0.0.1:3000
   PORT: 3000
   CI: 'true'
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
 
 jobs:
   audit:
@@ -148,21 +150,16 @@ jobs:
             exit 1
           fi
 
-      - name: Generate Playwright Auth State
+      - name: Prepare E2E Database
         run: |
           pnpm db:migrate
           pnpm seed:e2e
           pnpm seed:assert-e2e
-          pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
 
       - name: RLS Integration Test
         env:
           REQUIRE_RLS_INTEGRATION: '1'
         run: pnpm db:rls:test
-
-      - name: E2E Contract Check (Auth Rendering)
-        run: |
-          pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/gate/auth-rendering-contract.spec.ts --project=gate-ks-sq --project=gate-mk-mk --max-failures=1 --trace=retain-on-failure
 
       - name: E2E Gate Suite
         run: |

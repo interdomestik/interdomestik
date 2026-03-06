@@ -37,7 +37,7 @@ runs:
         ${apt_cmd} install -y ripgrep
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: pnpm install --frozen-lockfile --prefer-offline
       shell: bash
 
     - name: Playwright Browser Cache
