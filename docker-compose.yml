@@ -41,6 +41,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     container_name: interdomestik-web
     ports:
       - '3000:3000'
@@ -60,6 +61,7 @@ services:
       - S3_SECRET_KEY=minioadmin
       - S3_BUCKET_NAME=claim-evidence
       - NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 # Pass-through or dummy if using direct S3
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - NEXT_PUBLIC_APP_URL=http://127.0.0.1.nip.io:3000
       - NEXT_PUBLIC_SITE_URL=http://127.0.0.1.nip.io:3000
       - BETTER_AUTH_URL=http://127.0.0.1.nip.io:3000

@@ -1,9 +1,12 @@
 
 FROM node:20-alpine AS base
 
-# Allow build-time override of Supabase URL (critical for Docker networking)
+# Allow build-time override of public Supabase env (critical for Docker networking
+# and browser-side client initialization).
 ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 
 FROM base AS builder

@@ -46,6 +46,16 @@ test('docker gate reuses the external web service instead of rebuilding inside P
   assert.match(playwrightConfig, /webServer:\s*useExternalWebServer\s*\?\s*undefined\s*:\s*\{/);
 });
 
+test('web docker path injects public Supabase client env into the browser build and runtime', () => {
+  const compose = readRepoFile('docker-compose.yml');
+  const dockerfile = readRepoFile('apps/web/Dockerfile');
+
+  assert.match(dockerfile, /ARG NEXT_PUBLIC_SUPABASE_ANON_KEY/);
+  assert.match(dockerfile, /ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=\$NEXT_PUBLIC_SUPABASE_ANON_KEY/);
+  assert.match(compose, /NEXT_PUBLIC_SUPABASE_ANON_KEY: \$\{NEXT_PUBLIC_SUPABASE_ANON_KEY\}/);
+  assert.match(compose, /- NEXT_PUBLIC_SUPABASE_ANON_KEY=\$\{NEXT_PUBLIC_SUPABASE_ANON_KEY\}/);
+});
+
 test('full startup script is valid bash', () => {
   execFileSync('bash', ['-n', path.join(rootDir, 'scripts/start-system.sh')], {
     cwd: rootDir,
