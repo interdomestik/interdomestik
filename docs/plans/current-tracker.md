@@ -3,7 +3,7 @@ plan_role: tracker
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-03-05
+last_reviewed: 2026-03-06
 current_program_path: docs/plans/current-program.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -15,13 +15,13 @@ status_command: pnpm plan:status
 
 ## Active Queue
 
-| ID    | Status      | Owner                      | Work                                                                            | Exit Criteria                                                                  |
-| ----- | ----------- | -------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `PG1` | `completed` | `platform`                 | Adopt planning governance policy, metadata, and audit enforcement.              | `pnpm plan:audit` passes and CI runs it.                                       |
-| `PG2` | `completed` | `qa-release`               | Reconcile `A22` evidence references with in-repo artifacts and release reports. | Canonical status reflects only repo-verifiable `A22` evidence.                 |
-| `PG3` | `completed` | `platform`                 | Populate advisory evidence for `A1`, `A2`, `B1`, and `F1` from live runs.       | `memory:validate` reports non-zero records and current advisory outputs exist. |
-| `PG4` | `blocked`   | `platform + qa + security` | Evaluate the advisory promotion gate.                                           | Two-week evidence window is complete and a signed decision is recorded.        |
-| `PG5` | `blocked`   | `product + platform`       | Start `C`, `D`, and `E` workstreams.                                            | `PG4` passes.                                                                  |
+| ID    | Status      | Owner            | Work                                                                  | Exit Criteria                                                                                                      |
+| ----- | ----------- | ---------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `V01` | `completed` | `platform`       | Close or hard-restrict the unsafe alternate registration path.        | `/api/simple-register` is not a public non-canonical user-creation path and caller-controlled role input is gone.  |
+| `V02` | `pending`   | `platform`       | Canonicalize member creation and conversion write paths.              | Active flows use `packages/database/src/member-number.ts` and no duplicate generator remains in the write path.    |
+| `V03` | `pending`   | `platform + qa`  | Audit, repair, and instrument member-number integrity.                | Malformed member numbers are remediated and self-heal activity is measurable before any fallback removal.          |
+| `V04` | `pending`   | `platform`       | Enforce immediate backend guardrails and shared resilience utilities. | Local retry copies are removed, the current strict DB-boundary violation is fixed, and strict checks are wired in. |
+| `V05` | `pending`   | `platform + web` | Apply a narrow Next.js production-hardening slice.                    | Dynamic scope, provider depth, navigation hygiene, and font loading are improved or explicitly documented.         |
 
 ## Status Command
 
@@ -31,35 +31,27 @@ pnpm plan:status
 
 ## Proof Ledger
 
-| ID    | Source Refs                                            | Execution  | Run ID                                | Run Root         | Sonar            | Docker           | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                                             |
-| ----- | ------------------------------------------------------ | ---------- | ------------------------------------- | ---------------- | ---------------- | ---------------- | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PG1` | `governance:policy`                                    | `manual`   | `manual-20260305-planning-governance` | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/planning-governance-policy.md`; `scripts/plan-audit.mjs`; `.github/workflows/ci.yml`                                                                                                                                                                          |
-| `PG2` | `bulletproof:A22`; `commit:9d6a481`; `commit:5308d18`  | `manual`   | `manual-20260305-a22-reconciliation`  | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-03-05-a22-evidence-reconciliation.md`; `docs/plans/2026-02-22-v1-bulletproof-tracker.md`; `docs/release-gates/2026-02-11_production_dpl_3UMSijeubaShN5f4zkLK6LKPm4rs.md`; `docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md` |
-| `PG3` | `charter:A1`; `charter:A2`; `charter:B1`; `charter:F1` | `scripted` | `advisory-20260305-evidence-refresh`  | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `pass`           | `docs/plans/2026-03-05-pg3-advisory-evidence-refresh.md`; `docs/plans/2026-03-03-memory-registry.jsonl`; `docs/plans/2026-03-03-memory-index.json`; `docs/plans/2026-03-03-f1-baseline-report-all.json`                                                                   |
-| `PG4` | `charter:promotion-gate`                               | `blocked`  | `blocked`                             | `blocked`        | `not_applicable` | `not_applicable` | `not_applicable` | `pending`        | `docs/plans/2026-03-03-advisory-foundation-addendum.md`; `docs/plans/2026-03-03-implementation-conformance-log.md`                                                                                                                                                        |
-| `PG5` | `charter:C1`; `charter:D1`; `charter:E1`               | `blocked`  | `blocked`                             | `blocked`        | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/current-program.md`; `docs/plans/2026-03-03-advisory-foundation-addendum.md`                                                                                                                                                                                  |
+| ID    | Source Refs                                                            | Execution | Run ID                                       | Run Root         | Sonar            | Docker           | Sentry           | Learning         | Evidence Refs                                                                                                                                                                                                                                                                                                        |
+| ----- | ---------------------------------------------------------------------- | --------- | -------------------------------------------- | ---------------- | ---------------- | ---------------- | ---------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `V01` | `input:v0.1.0-production-background`; `risk:simple-register`           | `manual`  | `manual-20260306-v01-retire-simple-register` | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-03-06-v0-1-0-production-background-plan.md`; `apps/web/src/app/api/simple-register/route.ts`; `apps/web/src/app/api/simple-register/route.test.ts`; `docs/plans/current-tracker.md`                                                                                                                 |
+| `V02` | `input:v0.1.0-production-background`; `risk:member-write-paths`        | `pending` | `pending`                                    | `pending`        | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-03-06-v0-1-0-production-background-plan.md`; `packages/database/src/member-number.ts`; `apps/web/src/server/domains/members/member-number.ts`; `packages/domain-leads/src/convert.ts`; `apps/web/src/lib/actions/agent/register-member.core.ts`; `apps/web/src/lib/auth/hooks.ts`                   |
+| `V03` | `input:v0.1.0-production-background`; `risk:member-data-remediation`   | `pending` | `pending`                                    | `pending`        | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-03-06-v0-1-0-production-background-plan.md`; `packages/database/src/scripts/backfill-members.ts`; `apps/web/src/lib/auth/hooks.ts`; `apps/web/src/features/auth/registration.service.ts`; `apps/web/src/utils/member.ts`                                                                            |
+| `V04` | `input:v0.1.0-production-background`; `risk:boundary-and-resilience`   | `pending` | `pending`                                    | `pending`        | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-03-06-v0-1-0-production-background-plan.md`; `packages/shared-utils/src/resilience.ts`; `apps/web/src/lib/actions/agent/register-member.core.ts`; `apps/web/src/features/auth/registration.service.ts`; `scripts/check-entrypoints-no-db.mjs`; `apps/web/src/app/[locale]/(agent)/agent/layout.tsx` |
+| `V05` | `input:v0.1.0-production-background`; `risk:next-production-hardening` | `pending` | `pending`                                    | `pending`        | `not_applicable` | `not_applicable` | `not_applicable` | `not_applicable` | `docs/plans/2026-03-06-v0-1-0-production-background-plan.md`; `apps/web/src/app/[locale]/layout.tsx`; `apps/web/src/app/[locale]/_core.entry.tsx`; `apps/web/src/components/shell/authenticated-shell.tsx`; `apps/web/src/app/[locale]/components/home/hero-v2.tsx`; `packages/ui/src/globals.css`                   |
 
-## Imported Historical Work
+## Historical Queue Snapshot
 
-- `A22` from the February bulletproof tracker is reconciled through `PG2`; it is not an active streak in the current program.
-- `A1`, `A2`, `B1`, and `F1` from the March charter remain active only through `PG3` and `PG4`.
+- `PG1` planning governance baseline: completed on 2026-03-05.
+- `PG2` A22 evidence custody reconciliation: completed on 2026-03-05.
+- `PG3` advisory evidence population for `A1`, `A2`, `B1`, and `F1`: completed on 2026-03-05.
+- `PG4` advisory promotion review: removed from active sequencing during the 2026-03-06 production rebaseline.
+- `PG5` downstream `C`, `D`, and `E` workstream gate: removed from active sequencing during the 2026-03-06 production rebaseline.
 
-## `PG2` Working Notes
+## Historical Notes
 
-- imported source: `docs/plans/2026-02-22-v1-bulletproof-tracker.md`
-- historical docs-only claims:
-  - commit `9d6a4810b3b5420fe1e6f191efd1901fef1128b4` recorded `1/10`
-  - commit `5308d18fc7954bef406ae2bd3d1f7fb30946edce` recorded `2/10`
-- repo-verifiable release-gate files currently present:
-  - `docs/release-gates/2026-02-11_production_dpl_3UMSijeubaShN5f4zkLK6LKPm4rs.md`
-  - `docs/release-gates/2026-02-21_production_dpl_AQGjArgJBkjLDwB6CBXaCyVTS5Ax.md`
-- reconciliation result:
-  - the February 24-25 streak notes are preserved as historical assertions only
-  - the referenced February 24-25 release report and streak artifacts are not present in the repository or tracked git history
-  - repository-verifiable `A22` progress is `0/10`
-
-`PG2` is closed. Any future `A22` restart requires a new active tracker item with checked-in evidence.
+- `A22` remains reconciled through `docs/plans/2026-03-05-a22-evidence-reconciliation.md`.
+- Advisory memory and boundary evidence from March 3-5 remain supporting input, not active blockers.
 
 ## Recommendation Pool
 
-The 12-point maturity assessment remains recommendation input. Its items are not committed work until they appear in the Active Queue above.
+The maturity assessments and the March advisory tranche remain recommendation input. Their items are not committed work until they appear in the Active Queue above.
