@@ -1,7 +1,28 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildNativeScannerArgs } from './sonar-scan-lib.mjs';
+import { appendScannerProperties, buildNativeScannerArgs } from './sonar-scan-lib.mjs';
+
+test('appendScannerProperties adds skip JRE provisioning when requested', () => {
+  assert.deepEqual(
+    appendScannerProperties(['-Dsonar.host.url=https://sonarcloud.io'], {
+      skipJreProvisioning: true,
+    }),
+    ['-Dsonar.host.url=https://sonarcloud.io', '-Dsonar.scanner.skipJreProvisioning=true']
+  );
+});
+
+test('appendScannerProperties does not duplicate skip JRE provisioning property', () => {
+  assert.deepEqual(
+    appendScannerProperties(
+      ['-Dsonar.host.url=https://sonarcloud.io', '-Dsonar.scanner.skipJreProvisioning=true'],
+      {
+        skipJreProvisioning: true,
+      }
+    ),
+    ['-Dsonar.host.url=https://sonarcloud.io', '-Dsonar.scanner.skipJreProvisioning=true']
+  );
+});
 
 test('buildNativeScannerArgs places dlx before package selection', () => {
   assert.deepEqual(buildNativeScannerArgs(['-Dsonar.host.url=http://localhost:9000']), [

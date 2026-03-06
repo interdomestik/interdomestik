@@ -20,6 +20,7 @@ jobs:
       SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || secrets.SONAR_PROJECT_KEY }}
       SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || secrets.SONAR_ORGANIZATION }}
+      SONAR_SCANNER_SKIP_JRE_PROVISIONING: 'true'
       EVIDENCE_DIR: tmp/sonar-evidence/${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
