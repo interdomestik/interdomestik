@@ -39,6 +39,8 @@ jobs:
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       BETTER_AUTH_URL: http://127.0.0.1:3000
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -69,11 +71,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Evaluate validation surface
+        id: validation_surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed_files_path="$(mktemp)"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_ref="${{ github.event.pull_request.base.ref }}"
+            git fetch origin "${base_ref}" --depth=1
+            git diff --name-only "origin/${base_ref}...HEAD" >"${changed_files_path}"
+          fi
+          node scripts/ci/validation-surface-policy.mjs \
+            --event-name "${{ github.event_name }}" \
+            --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
+
+      - name: Skip pilot gate for non-product-only changes
+        if: steps.validation_surface.outputs.should_run != 'true'
+        run: |
+          echo "Skipping pilot gate."
+          echo "Reason: ${{ steps.validation_surface.outputs.reason }}"
+          echo "Non-product-only paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}"
+
       - uses: ./.github/actions/setup
+        if: steps.validation_surface.outputs.should_run == 'true'
         with:
           install-playwright: true
 
       - name: Validate required gate secrets
+        if: steps.validation_surface.outputs.should_run == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -123,6 +153,7 @@ jobs:
           fi
 
       - name: Prepare CI database
+        if: steps.validation_surface.outputs.should_run == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -135,10 +166,11 @@ jobs:
           pnpm seed:assert-e2e
 
       - name: Build web standalone artifact
+        if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm --filter @interdomestik/web run build:ci
 
       - name: Run Sonar quality gate (non-blocking on PR)
-        if: env.SONAR_GATE_ENABLED == 'true'
+        if: steps.validation_surface.outputs.should_run == 'true' && env.SONAR_GATE_ENABLED == 'true'
         continue-on-error: true
         env:
           SONAR_ENFORCEMENT: warn
@@ -146,7 +178,7 @@ jobs:
         run: bash scripts/sonar-gate.sh
 
       - name: Upload Sonar gate artifacts
-        if: always()
+        if: always() && steps.validation_surface.outputs.should_run == 'true'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -159,6 +191,7 @@ jobs:
           retention-days: 14
 
       - name: Start web server for release gate
+        if: steps.validation_surface.outputs.should_run == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -175,19 +208,20 @@ jobs:
           exit 1
 
       - name: Open Sentry Seer sweep window (pre)
-        if: env.SENTRY_SEER_ENABLED == 'true'
+        if: steps.validation_surface.outputs.should_run == 'true' && env.SENTRY_SEER_ENABLED == 'true'
         run: bash scripts/sentry-seer-sweep.sh pre
 
       - name: Run pilot gate
+        if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm -s release:gate:p0:raw --baseUrl http://127.0.0.1:3000
 
       - name: Close Sentry Seer sweep window (post)
-        if: always() && env.SENTRY_SEER_ENABLED == 'true'
+        if: always() && steps.validation_surface.outputs.should_run == 'true' && env.SENTRY_SEER_ENABLED == 'true'
         continue-on-error: true
         run: bash scripts/sentry-seer-sweep.sh post
 
       - name: Stop web server
-        if: always()
+        if: always() && steps.validation_surface.outputs.should_run == 'true'
         shell: bash
         run: |
           if [[ -f /tmp/web-start.pid ]]; then
@@ -195,7 +229,7 @@ jobs:
           fi
 
       - name: Upload Seer sweep artifacts
-        if: always()
+        if: always() && steps.validation_surface.outputs.should_run == 'true'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -211,7 +245,7 @@ jobs:
           retention-days: 14
 
       - name: Upload release gate reports
-        if: always()
+        if: always() && steps.validation_surface.outputs.should_run == 'true'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -220,11 +254,51 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  multi-agent-policy:
+    name: Multi-Agent Policy
+    outputs:
+      should_run: ${{ steps.evaluate.outputs.should_run }}
+      reason: ${{ steps.evaluate.outputs.reason }}
+      matched_paths: ${{ steps.evaluate.outputs.matched_paths }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Evaluate full multi-agent hardening policy
+        id: evaluate
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed_files_path="$(mktemp)"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_ref="${{ github.event.pull_request.base.ref }}"
+            git fetch origin "${base_ref}" --depth=1
+            git diff --name-only "origin/${base_ref}...HEAD" >"${changed_files_path}"
+          fi
+          node scripts/ci/multi-agent-policy.mjs \
+            --event-name "${{ github.event_name }}" \
+            --event-path "${GITHUB_EVENT_PATH}" \
+            --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
+
+      - name: Print policy decision
+        shell: bash
+        run: |
+          echo "should_run=${{ steps.evaluate.outputs.should_run }}"
+          echo "reason=${{ steps.evaluate.outputs.reason }}"
+          echo "matched_paths=${{ steps.evaluate.outputs.matched_paths }}"
+
   multi-agent-pr-hardening:
     name: Multi-Agent PR Hardening + Merge Gate
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]' }}
+    if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]') && needs.multi-agent-policy.outputs.should_run == 'true' }}
     needs:
       - pilot-gate
+      - multi-agent-policy
     permissions:
       contents: read
       pull-requests: write
@@ -251,6 +325,8 @@ jobs:
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
       BETTER_AUTH_URL: http://127.0.0.1:3000
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}

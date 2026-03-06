@@ -38,18 +38,47 @@ jobs:
       DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-secret-for-ci-only-do-not-use-in-production' }}
       NODE_OPTIONS: --max-old-space-size=4096
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
 
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Evaluate validation surface
+        id: validation_surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed_files_path="$(mktemp)"
+          base_ref="${{ github.event.pull_request.base.ref }}"
+          git fetch origin "${base_ref}" --depth=1
+          git diff --name-only "origin/${base_ref}...HEAD" >"${changed_files_path}"
+          node scripts/ci/validation-surface-policy.mjs \
+            --event-name "${{ github.event_name }}" \
+            --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
+
+      - name: Skip strict PR E2E for non-product-only changes
+        if: steps.validation_surface.outputs.should_run != 'true'
+        run: |
+          echo "Skipping strict PR E2E."
+          echo "Reason: ${{ steps.validation_surface.outputs.reason }}"
+          echo "Non-product-only paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}"
+
       - uses: ./.github/actions/setup
+        if: steps.validation_surface.outputs.should_run == 'true'
         with:
           install-playwright: true
 
       - name: DB migrations
+        if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm db:migrate
 
       - name: Strict Rule Guards (golden/gate)
+        if: steps.validation_surface.outputs.should_run == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -66,22 +95,27 @@ jobs:
           fi
 
       - name: Seed E2E DB
+        if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm seed:e2e
 
       - name: Build Web (Standalone)
+        if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm --filter @interdomestik/web run build:ci
 
       - name: Generate Playwright Gate Auth State (KS+MK)
+        if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
 
       - name: E2E Subscription Lifecycle (KS+MK)
+        if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk
 
       - name: E2E Smoke Suite (KS+MK)
+        if: steps.validation_surface.outputs.should_run == 'true'
         run: node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run e2e:smoke
 
       - name: Upload Playwright Artifacts
-        if: always()
+        if: always() && steps.validation_surface.outputs.should_run == 'true'
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
