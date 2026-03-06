@@ -58,16 +58,23 @@ const nextConfig = {
 };
 
 const finalConfig = bundleAnalyzer(withNextIntl(nextConfig));
+const sentryOrg = process.env.SENTRY_ORG?.trim();
+const sentryProject = process.env.SENTRY_PROJECT?.trim();
+const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
+const enableSentryBuildUpload = Boolean(sentryOrg && sentryProject && sentryAuthToken);
 
 export default withSentryConfig(withAxiom(finalConfig), {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 
-  org: 'interdomestik',
-  project: 'web-app',
+  org: sentryOrg,
+  project: sentryProject,
+  authToken: sentryAuthToken,
+  disable: !enableSentryBuildUpload,
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
+  telemetry: false,
 
   // For all available options, see:
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
