@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   sonar-gate:
-    runs-on: [self-hosted, interdomestik-linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
