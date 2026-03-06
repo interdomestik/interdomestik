@@ -9,6 +9,7 @@ on:
   workflow_dispatch: {}
 
 permissions:
+  checks: read
   contents: read
 
 jobs:
@@ -59,8 +60,15 @@ jobs:
 
           echo "SONAR_GATE_ENABLED=true" >> "$GITHUB_ENV"
 
-      - name: Run Sonar quality gate (blocking on main/schedule)
-        if: env.SONAR_GATE_ENABLED == 'true'
+      - name: Await SonarCloud Code Analysis check (blocking on push)
+        if: github.event_name == 'push' && env.SONAR_GATE_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SONAR_CHECK_SHA: ${{ github.sha }}
+        run: bash scripts/sonar-check-run-gate.sh
+
+      - name: Run Sonar quality gate (manual fallback)
+        if: github.event_name != 'push' && env.SONAR_GATE_ENABLED == 'true'
         env:
           SONAR_ENFORCEMENT: enforce
           SONAR_RUN_COVERAGE: true

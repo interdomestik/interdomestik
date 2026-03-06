@@ -14,6 +14,7 @@ jobs:
   pilot-gate:
     name: pr:verify + pilot:check
     permissions:
+      checks: read
       contents: read
       pull-requests: read
     runs-on: ubuntu-latest
@@ -154,8 +155,15 @@ jobs:
         if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm --filter @interdomestik/web run build:ci
 
-      - name: Run Sonar quality gate
-        if: steps.validation_surface.outputs.should_run == 'true' && env.SONAR_GATE_ENABLED == 'true'
+      - name: Await SonarCloud Code Analysis check
+        if: github.event_name == 'pull_request' && steps.validation_surface.outputs.should_run == 'true' && env.SONAR_GATE_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SONAR_CHECK_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash scripts/sonar-check-run-gate.sh
+
+      - name: Run Sonar quality gate (manual fallback)
+        if: github.event_name != 'pull_request' && steps.validation_surface.outputs.should_run == 'true' && env.SONAR_GATE_ENABLED == 'true'
         env:
           SONAR_ENFORCEMENT: enforce
           SONAR_RUN_COVERAGE: true
