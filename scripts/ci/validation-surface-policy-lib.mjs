@@ -3,6 +3,7 @@ const NON_PRODUCT_ONLY_PATTERNS = [
   /^\.agent\//,
   /^\.github\/(?:workflows|actions)\//,
   /^scripts\/ci\//,
+  /^scripts\/plan[^/]*\.mjs$/,
   /^(?:README|CHANGELOG|CONTRIBUTING|LICENSE)(?:\.[^.]+)?$/,
 ];
 

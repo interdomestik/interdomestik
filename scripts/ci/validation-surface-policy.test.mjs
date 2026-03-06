@@ -50,6 +50,20 @@ test('workflow and CI helper only PR skips heavy validation', () => {
   );
 });
 
+test('planning governance helper scripts still skip heavy validation', () => {
+  assert.deepEqual(
+    evaluateValidationSurface({
+      eventName: 'pull_request',
+      changedFiles: ['scripts/plan-test-helpers.mjs', 'docs/plans/current-program.md'],
+    }),
+    {
+      shouldRun: false,
+      reason: 'non_product_only_pr',
+      nonProductOnlyPaths: ['scripts/plan-test-helpers.mjs', 'docs/plans/current-program.md'],
+    }
+  );
+});
+
 test('runtime-sensitive product changes still run heavy validation', () => {
   assert.deepEqual(
     evaluateValidationSurface({
