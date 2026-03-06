@@ -1,20 +1,42 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "🚀 Quick Start Interdomestik System"
-echo "==================================="
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
-# Start everything in one go
-echo "Starting all services..."
-docker-compose --profile infra --profile gate up -d --build
+ensure_docker_running() {
+  if ! docker info >/dev/null 2>&1; then
+    echo "❌ Docker is not running. Start Docker and retry."
+    exit 1
+  fi
 
-echo "✅ System starting up!"
-echo ""
-echo "Services will be available at:"
-echo "   - Web App:     http://localhost:3000"
-echo "   - Mailpit:     http://localhost:8025"
-echo "   - MinIO:       http://localhost:9001"
-echo "   - Supabase:    http://localhost:54323"
-echo ""
-echo "Note: Make sure Supabase is running separately if needed."
-echo "To stop: docker-compose down"
+  return 0
+}
+
+ensure_supabase_running() {
+  if pnpm --dir "${ROOT_DIR}" --filter @interdomestik/database exec supabase status >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "⚠️  Supabase is not running. Starting local Supabase..."
+  pnpm --dir "${ROOT_DIR}" --filter @interdomestik/database exec supabase start
+
+  return 0
+}
+
+main() {
+  cd "${ROOT_DIR}"
+
+  echo "🚀 Quick Start Interdomestik System"
+  echo "==================================="
+
+  ensure_docker_running
+  bash "${ROOT_DIR}/scripts/docker-dev-up.sh"
+  ensure_supabase_running
+
+  echo "▶️  Starting app on host with hot reload..."
+  exec pnpm dev
+
+  return 0
+}
+
+main "$@"
