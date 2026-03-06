@@ -2,7 +2,8 @@
 
 import fs from 'node:fs';
 
-import { evaluateMultiAgentPolicy } from './multi-agent-policy-lib.mjs';
+import { fetchRepositoryFileContent } from './github-pr-files-lib.mjs';
+import { evaluateMultiAgentPolicy, evaluatePackageJsonRisk } from './multi-agent-policy-lib.mjs';
 
 function fail(message) {
   process.stderr.write(`multi-agent-policy failed: ${message}\n`);
@@ -45,13 +46,16 @@ function parseArgs(argv) {
   return parsed;
 }
 
-function readLabels(eventPath) {
-  if (!eventPath) {
-    return [];
+function readEvent(eventPath) {
+  if (!eventPath || !fs.existsSync(eventPath)) {
+    return null;
   }
 
-  const event = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
-  return (event.pull_request?.labels || []).map(label => label?.name || '');
+  return JSON.parse(fs.readFileSync(eventPath, 'utf8'));
+}
+
+function readLabels(event) {
+  return (event?.pull_request?.labels || []).map(label => label?.name || '');
 }
 
 function readChangedFiles(changedFilesPath) {
@@ -66,11 +70,64 @@ function readChangedFiles(changedFilesPath) {
     .filter(Boolean);
 }
 
+async function resolvePackageJsonRisk({ event, changedFiles }) {
+  if (!changedFiles.includes('package.json')) {
+    return null;
+  }
+
+  const repositoryFullName = String(event?.repository?.full_name || '').trim();
+  const baseRef = String(event?.pull_request?.base?.sha || '').trim();
+  const headRef = String(event?.pull_request?.head?.sha || '').trim();
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
+  const apiBaseUrl = process.env.GITHUB_API_URL || '';
+
+  if (!repositoryFullName || !baseRef || !headRef || !token) {
+    return {
+      shouldRun: true,
+      matchedPaths: ['package.json:analysis_unavailable'],
+    };
+  }
+
+  try {
+    const [beforeContent, afterContent] = await Promise.all([
+      fetchRepositoryFileContent({
+        apiBaseUrl,
+        repositoryFullName,
+        filePath: 'package.json',
+        ref: baseRef,
+        token,
+      }),
+      fetchRepositoryFileContent({
+        apiBaseUrl,
+        repositoryFullName,
+        filePath: 'package.json',
+        ref: headRef,
+        token,
+      }),
+    ]);
+
+    return evaluatePackageJsonRisk({ beforeContent, afterContent });
+  } catch (error) {
+    return {
+      shouldRun: true,
+      matchedPaths: [
+        `package.json:analysis_failed:${error instanceof Error ? error.message : String(error)}`,
+      ],
+    };
+  }
+}
+
 const { eventName, eventPath, changedFilesPath } = parseArgs(process.argv.slice(2));
+const event = readEvent(eventPath);
+const changedFiles = readChangedFiles(changedFilesPath);
 const result = evaluateMultiAgentPolicy({
   eventName,
-  labels: readLabels(eventPath),
-  changedFiles: readChangedFiles(changedFilesPath),
+  labels: readLabels(event),
+  changedFiles,
+  packageJsonRisk: await resolvePackageJsonRisk({
+    event,
+    changedFiles,
+  }),
 });
 
 process.stdout.write(`should_run=${String(result.shouldRun)}\n`);
