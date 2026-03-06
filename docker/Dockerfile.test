@@ -1,6 +1,15 @@
 FROM mcr.microsoft.com/playwright:v1.57.0-jammy
 
-RUN npm install -g pnpm@latest
+ENV CI=1
+ENV HUSKY=0
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+ENV PNPM_STORE_DIR=/pnpm-store
+
+RUN corepack enable \
+  && corepack prepare pnpm@10.28.2 --activate \
+  && pnpm -v
+
 WORKDIR /app
 
 # Ensure we have access to all directories

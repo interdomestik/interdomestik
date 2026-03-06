@@ -160,6 +160,8 @@ if (e2eDatabaseUrlRls) {
   process.env.DATABASE_URL_RLS = process.env.DATABASE_URL;
 }
 
+const useExternalWebServer = process.env.PW_EXTERNAL_SERVER === '1';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -348,40 +350,42 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    // E2E runs against a production server (Next `start`) for artifact consistency.
-    // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
-    command: `bash ${WEB_SERVER_SCRIPT}`,
-    // Use a static readiness URL. DB correctness is enforced by gatekeeper before
-    // Playwright starts; /api/health can report degraded states unrelated to
-    // webserver boot and block test startup.
-    url: `${BASE_URL}/robots.txt`,
-    reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
-    timeout: 300 * 1000,
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      PORT: String(PORT),
-      HOSTNAME: BIND_HOST,
-      NODE_OPTIONS: '--dns-result-order=ipv4first',
-      NEXT_PUBLIC_APP_URL: BASE_URL,
-      BETTER_AUTH_URL: BASE_URL,
-      BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},${BASE_URL}`,
-      INTERDOMESTIK_AUTOMATED: '1',
-      PLAYWRIGHT: '1',
-      NEXT_PUBLIC_BILLING_TEST_MODE: '1',
-      // Disable Sentry noise in E2E (placeholder DSNs cause console errors that break tests).
-      SENTRY_DSN: '',
-      NEXT_PUBLIC_SENTRY_DSN: '',
-      // Disable rate limiting completely by unsetting Upstash vars
-      UPSTASH_REDIS_REST_URL: '',
-      UPSTASH_REDIS_REST_TOKEN: '',
-      // Explicitly pass the secret for the standalone server
-      BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? '',
-      // Required for Paddle webhook signature validation tests.
-      ...(process.env.PADDLE_WEBHOOK_SECRET_KEY
-        ? { PADDLE_WEBHOOK_SECRET_KEY: process.env.PADDLE_WEBHOOK_SECRET_KEY }
-        : {}),
-    },
-  },
+  webServer: useExternalWebServer
+    ? undefined
+    : {
+        // E2E runs against a production server (Next `start`) for artifact consistency.
+        // Orchestration (build/migrate/seed) is explicit and performed outside Playwright.
+        command: `bash ${WEB_SERVER_SCRIPT}`,
+        // Use a static readiness URL. DB correctness is enforced by gatekeeper before
+        // Playwright starts; /api/health can report degraded states unrelated to
+        // webserver boot and block test startup.
+        url: `${BASE_URL}/robots.txt`,
+        reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
+        timeout: 300 * 1000,
+        env: {
+          ...process.env,
+          NODE_ENV: 'production',
+          PORT: String(PORT),
+          HOSTNAME: BIND_HOST,
+          NODE_OPTIONS: '--dns-result-order=ipv4first',
+          NEXT_PUBLIC_APP_URL: BASE_URL,
+          BETTER_AUTH_URL: BASE_URL,
+          BETTER_AUTH_TRUSTED_ORIGINS: `http://127.0.0.1:3000,http://localhost:3000,http://${KS_HOST},http://${MK_HOST},http://${AL_HOST},http://${PILOT_HOST},${BASE_URL}`,
+          INTERDOMESTIK_AUTOMATED: '1',
+          PLAYWRIGHT: '1',
+          NEXT_PUBLIC_BILLING_TEST_MODE: '1',
+          // Disable Sentry noise in E2E (placeholder DSNs cause console errors that break tests).
+          SENTRY_DSN: '',
+          NEXT_PUBLIC_SENTRY_DSN: '',
+          // Disable rate limiting completely by unsetting Upstash vars
+          UPSTASH_REDIS_REST_URL: '',
+          UPSTASH_REDIS_REST_TOKEN: '',
+          // Explicitly pass the secret for the standalone server
+          BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? '',
+          // Required for Paddle webhook signature validation tests.
+          ...(process.env.PADDLE_WEBHOOK_SECRET_KEY
+            ? { PADDLE_WEBHOOK_SECRET_KEY: process.env.PADDLE_WEBHOOK_SECRET_KEY }
+            : {}),
+        },
+      },
 });

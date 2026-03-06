@@ -11,6 +11,11 @@ prepare_docker_env
 DOCKER_GATE_REBUILD="${DOCKER_GATE_REBUILD:-0}"
 DOCKER_GATE_KEEP_RUNNING="${DOCKER_GATE_KEEP_RUNNING:-0}"
 DOCKER_GATE_RECLAIM="${DOCKER_GATE_RECLAIM:-1}"
+GATE_INFRA_SERVICES=(redis mailpit minio createbuckets)
+DOCKER_RUN_ARGS=(--raw)
+MAX_WEB_READY_ATTEMPTS="${MAX_WEB_READY_ATTEMPTS:-60}"
+WEB_READY_DELAY_SECONDS="${WEB_READY_DELAY_SECONDS:-2}"
+GATE_WEB_READY_URL="${GATE_WEB_READY_URL:-http://127.0.0.1:3000/robots.txt}"
 
 cleanup_gate_stack() {
   if [[ "${DOCKER_GATE_KEEP_RUNNING}" == "1" ]]; then
@@ -27,35 +32,83 @@ cleanup_gate_stack() {
   if [[ "${DOCKER_GATE_KEEP_RUNNING}" == "1" && "${DOCKER_GATE_RECLAIM}" == "1" ]]; then
     echo "5. Skipping reclaim because gate stack is kept running."
   fi
+
+  return 0
 }
 
 trap cleanup_gate_stack EXIT
+
+build_gate_images() {
+  local docker_args=(compose build)
+  if [[ "${DOCKER_GATE_REBUILD}" == "1" ]]; then
+    docker_args+=(--no-cache)
+  fi
+  docker_args+=(web playwright)
+  docker "${docker_args[@]}"
+
+  return 0
+}
+
+wait_for_gate_web() {
+  local attempt=1
+
+  while (( attempt <= MAX_WEB_READY_ATTEMPTS )); do
+    if curl --fail --silent --output /dev/null "${GATE_WEB_READY_URL}"; then
+      return 0
+    fi
+
+    sleep "${WEB_READY_DELAY_SECONDS}"
+    attempt=$((attempt + 1))
+  done
+
+  echo "❌ Timed out waiting for gate web service to become ready." >&2
+  docker compose --profile gate ps || true
+  docker logs --tail 200 interdomestik-web || true
+  return 1
+}
 
 # 1. Clean previous gate containers (fresh run)
 echo "1. Ensuring gate containers are fresh..."
 docker compose --profile gate down --remove-orphans
 
-# 2. Boot Gate profile (builds Web + Playwright)
-echo "2. Building & booting gate stack..."
+# 2. Build gate images once, then start infra services.
+echo "2. Building gate images..."
+build_gate_images
+
+echo "3. Booting gate infra services..."
+docker compose --profile gate up -d "${GATE_INFRA_SERVICES[@]}"
+
+# 4. Prepare dependencies and deterministic test data in Linux container.
+echo "4. Preparing gate runner in Linux container..."
 if [[ "${DOCKER_GATE_REBUILD}" == "1" ]]; then
-  docker compose --profile gate up -d --build
-else
-  docker compose --profile gate up -d
+  DOCKER_RUN_ARGS=(--build --raw)
 fi
 
-# 3. Run checks in a single Playwright container session so dependency hydration
-# and generated artifacts remain available for subsequent commands.
-echo "3. Running gate checks in Linux container..."
-./scripts/docker-run.sh --raw "\
-pnpm install && \
+./scripts/docker-run.sh "${DOCKER_RUN_ARGS[@]}" "\
+set -euo pipefail && \
+cleanup() { pnpm store prune >/dev/null 2>&1 || true; } && \
+trap cleanup EXIT && \
+pnpm install --frozen-lockfile --prefer-offline && \
 pnpm db:migrate && \
 pnpm --filter @interdomestik/database seed:e2e -- --reset && \
-pnpm --filter @interdomestik/database seed:assert-e2e && \
+pnpm --filter @interdomestik/database seed:assert-e2e"
+
+echo "5. Booting gate web service..."
+docker compose --profile gate up -d web
+
+echo "6. Waiting for gate web service..."
+wait_for_gate_web
+
+echo "7. Running smoke tests in Linux container..."
+./scripts/docker-run.sh --raw "\
+set -euo pipefail && \
+cleanup() { pnpm store prune >/dev/null 2>&1 || true; } && \
+trap cleanup EXIT && \
 SENTRY_AUTH_TOKEN= \
 SENTRY_ORG= \
 SENTRY_PROJECT= \
 SENTRY_DSN= \
 NEXT_PUBLIC_SENTRY_DSN= \
-SKIP_NODE_GUARD=1 pnpm --filter @interdomestik/web test:smoke"
+PW_EXTERNAL_SERVER=1 SKIP_NODE_GUARD=1 pnpm --filter @interdomestik/web test:smoke"
 
 echo "✅ Gate Passed!"
