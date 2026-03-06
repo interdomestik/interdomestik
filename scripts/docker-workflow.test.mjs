@@ -3,8 +3,10 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
-const rootDir = path.resolve(import.meta.dirname, '..');
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(scriptDir, '..');
 
 function readRepoFile(relativePath) {
   return fs.readFileSync(path.join(rootDir, relativePath), 'utf8');
@@ -52,10 +54,14 @@ test('docker gate scripts avoid redundant playwright startup and reuse the same 
   assert.match(gateScript, /GATE_INFRA_SERVICES=\(redis mailpit minio createbuckets\)/);
   assert.match(gateScript, /docker compose --profile gate up -d "\$\{GATE_INFRA_SERVICES\[@\]\}"/);
   assert.match(gateScript, /docker compose --profile gate up -d web/);
+  assert.match(gateScript, /GATE_WEB_READY_URL=/);
+  assert.match(gateScript, /curl --fail --silent --output \/dev\/null "\$\{GATE_WEB_READY_URL\}"/);
   assert.match(gateScript, /MAX_WEB_READY_ATTEMPTS=/);
   assert.match(runScript, /compose run --rm --no-deps/);
   assert.match(reclaimScript, /remove_gate_cache_volumes/);
-  assert.doesNotMatch(reclaimScript, /buildx prune -f --filter 'until=24h'/);
+  assert.match(reclaimScript, /prune_builder_gate/);
+  assert.match(reclaimScript, /buildx prune -f --filter "until=24h"/);
+  assert.match(reclaimScript, /gate\)[\s\S]*prune_builder_gate/);
 });
 
 test('docker gate reuses the external web service instead of rebuilding inside Playwright', () => {
@@ -73,7 +79,9 @@ test('web docker path injects public Supabase client env into the browser build 
 
   assert.match(dockerfile, /ARG NEXT_PUBLIC_SUPABASE_ANON_KEY/);
   assert.match(dockerfile, /ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=\$NEXT_PUBLIC_SUPABASE_ANON_KEY/);
+  assert.match(compose, /NEXT_PUBLIC_SUPABASE_URL: \$\{DOCKER_GATE_SUPABASE_URL:-http:\/\/localhost:54321\}/);
   assert.match(compose, /NEXT_PUBLIC_SUPABASE_ANON_KEY: \$\{NEXT_PUBLIC_SUPABASE_ANON_KEY\}/);
+  assert.match(compose, /- NEXT_PUBLIC_SUPABASE_URL=\$\{DOCKER_GATE_SUPABASE_URL:-http:\/\/localhost:54321\}/);
   assert.match(compose, /- NEXT_PUBLIC_SUPABASE_ANON_KEY=\$\{NEXT_PUBLIC_SUPABASE_ANON_KEY\}/);
 });
 

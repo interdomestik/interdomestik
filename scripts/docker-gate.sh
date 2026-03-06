@@ -15,6 +15,7 @@ GATE_INFRA_SERVICES=(redis mailpit minio createbuckets)
 DOCKER_RUN_ARGS=(--raw)
 MAX_WEB_READY_ATTEMPTS="${MAX_WEB_READY_ATTEMPTS:-60}"
 WEB_READY_DELAY_SECONDS="${WEB_READY_DELAY_SECONDS:-2}"
+GATE_WEB_READY_URL="${GATE_WEB_READY_URL:-http://127.0.0.1:3000/robots.txt}"
 
 cleanup_gate_stack() {
   if [[ "${DOCKER_GATE_KEEP_RUNNING}" == "1" ]]; then
@@ -52,9 +53,7 @@ wait_for_gate_web() {
   local attempt=1
 
   while (( attempt <= MAX_WEB_READY_ATTEMPTS )); do
-    if docker compose run --rm --no-deps playwright -lc \
-      "node -e \"fetch('http://web:3000/robots.txt').then(res => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))\"" \
-      >/dev/null 2>&1; then
+    if curl --fail --silent --output /dev/null "${GATE_WEB_READY_URL}"; then
       return 0
     fi
 

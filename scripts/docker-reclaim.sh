@@ -93,6 +93,13 @@ remove_gate_cache_volumes() {
 }
 
 prune_builder_light() {
+  docker buildx prune -f --filter "until=24h" >/dev/null 2>&1 || \
+    docker builder prune -f --filter "until=24h" >/dev/null 2>&1 || true
+
+  return 0
+}
+
+prune_builder_gate() {
   docker buildx prune -f >/dev/null 2>&1 || \
     docker builder prune -f >/dev/null 2>&1 || true
 
@@ -128,7 +135,7 @@ case "$MODE" in
     remove_gate_cache_volumes
     docker container prune -f >/dev/null || true
     docker image prune -f >/dev/null || true
-    prune_builder_light
+    prune_builder_gate
     ;;
   sonar)
     compose_down_sonar
