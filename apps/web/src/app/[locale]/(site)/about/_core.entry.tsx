@@ -9,9 +9,9 @@ import { getTranslations } from 'next-intl/server';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
-type AboutPageProps = {
+type AboutPageProps = Readonly<{
   params: Promise<{ locale: string }>;
-};
+}>;
 
 export default async function AboutPage({ params }: AboutPageProps) {
   const { locale } = await params;

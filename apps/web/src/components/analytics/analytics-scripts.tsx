@@ -2,7 +2,7 @@
 
 import { useCookieConsent } from '@/lib/cookie-consent';
 import Script from 'next/script';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type MetaPixelFunction = ((...args: unknown[]) => void) & {
   callMethod?: (...args: unknown[]) => void;
@@ -24,19 +24,27 @@ export function AnalyticsScripts() {
   const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
   const gtmBootstrappedRef = useRef(false);
   const metaBootstrappedRef = useRef(false);
+  const [isGtmReady, setIsGtmReady] = useState(false);
 
   useEffect(() => {
-    if (consent !== 'accepted' || !GTM_ID || gtmBootstrappedRef.current) {
+    if (consent !== 'accepted' || !GTM_ID) {
+      setIsGtmReady(false);
       return;
     }
 
-    const analyticsWindow = window as AnalyticsWindow;
+    if (gtmBootstrappedRef.current) {
+      setIsGtmReady(true);
+      return;
+    }
+
+    const analyticsWindow = globalThis as typeof globalThis & AnalyticsWindow;
     analyticsWindow.dataLayer = analyticsWindow.dataLayer ?? [];
     analyticsWindow.dataLayer.push({
       'gtm.start': Date.now(),
       event: 'gtm.js',
     });
     gtmBootstrappedRef.current = true;
+    setIsGtmReady(true);
   }, [consent, GTM_ID]);
 
   useEffect(() => {
@@ -44,7 +52,7 @@ export function AnalyticsScripts() {
       return;
     }
 
-    const analyticsWindow = window as AnalyticsWindow;
+    const analyticsWindow = globalThis as typeof globalThis & AnalyticsWindow;
     if (!analyticsWindow.fbq) {
       const fbq = ((...args: unknown[]) => {
         if (fbq.callMethod) {
@@ -73,7 +81,7 @@ export function AnalyticsScripts() {
 
   return (
     <>
-      {GTM_ID && (
+      {GTM_ID && isGtmReady && (
         <Script
           id="google-tag-manager-src"
           src={`https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`}
@@ -87,7 +95,7 @@ export function AnalyticsScripts() {
           src="https://connect.facebook.net/en_US/fbevents.js"
           strategy="afterInteractive"
           onLoad={() => {
-            const analyticsWindow = window as AnalyticsWindow;
+            const analyticsWindow = globalThis as typeof globalThis & AnalyticsWindow;
             analyticsWindow.fbq?.('init', META_PIXEL_ID);
             analyticsWindow.fbq?.('track', 'PageView');
           }}

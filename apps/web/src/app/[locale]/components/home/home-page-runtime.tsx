@@ -9,10 +9,10 @@ import { getLocaleLandingCore } from '../../_core';
 import { getStartClaimHrefForSession } from '../../home-v2.core';
 import { HeroV2 } from './hero-v2';
 
-type HomePageRuntimeProps = {
+type HomePageRuntimeProps = Readonly<{
   locale: string;
   uiV2Enabled: boolean;
-};
+}>;
 
 type LandingSession = {
   userId?: string;
@@ -41,7 +41,7 @@ export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
   const [hostTenantId, setHostTenantId] = useState<string | null>(null);
 
   useEffect(() => {
-    setHostTenantId(resolveTenantFromHost(window.location.host));
+    setHostTenantId(resolveTenantFromHost(globalThis.location.host));
   }, []);
 
   const landingSession = toLandingSession(session);

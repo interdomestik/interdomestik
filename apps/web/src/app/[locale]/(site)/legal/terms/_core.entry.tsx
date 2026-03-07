@@ -1,8 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 
-type TermsPageProps = {
+type TermsPageProps = Readonly<{
   params: Promise<{ locale: string }>;
-};
+}>;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
