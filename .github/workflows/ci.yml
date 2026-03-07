@@ -40,6 +40,7 @@ jobs:
           pnpm plan:audit
           pnpm purity:audit
           pnpm db:migrations:check-journal
+          # Contract Compliance: pnpm check remains the Golden Path marker.
           # Browser PR coverage lives in the dedicated PR E2E workflow.
           # Push/mainline gate coverage stays in the e2e-gate job below.
 
