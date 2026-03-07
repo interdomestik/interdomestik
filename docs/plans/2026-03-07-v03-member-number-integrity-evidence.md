@@ -20,10 +20,10 @@ last_reviewed: 2026-03-07
 
 ## Code Evidence
 
-- remediation classifier and audit summary in [member-number-remediation.ts](/Users/arbenlila/development/interdomestik-crystal-home/packages/database/src/member-number-remediation.ts)
-- repair-aware backfill flow in [backfill-members.ts](/Users/arbenlila/development/interdomestik-crystal-home/packages/database/src/scripts/backfill-members.ts)
-- self-heal lifecycle telemetry helper in [member-number-observability.ts](/Users/arbenlila/development/interdomestik-crystal-home/apps/web/src/lib/auth/member-number-observability.ts)
-- auth hook instrumentation in [hooks.ts](/Users/arbenlila/development/interdomestik-crystal-home/apps/web/src/lib/auth/hooks.ts)
+- remediation classifier and audit summary in [member-number-remediation.ts](../../packages/database/src/member-number-remediation.ts)
+- repair-aware backfill flow in [backfill-members.ts](../../packages/database/src/scripts/backfill-members.ts)
+- self-heal lifecycle telemetry helper in [member-number-observability.ts](../../apps/web/src/lib/auth/member-number-observability.ts)
+- auth hook instrumentation in [hooks.ts](../../apps/web/src/lib/auth/hooks.ts)
 
 ## Test Evidence
 
@@ -58,7 +58,7 @@ Audit and repair sequence:
 
 Allowed legacy identifiers intentionally preserved:
 
-- `PILOT-PR-*` seeded pilot member numbers from [seed-golden.ts](/Users/arbenlila/development/interdomestik-crystal-home/packages/database/src/seed-golden.ts#L137)
+- `PILOT-PR-*` seeded pilot member numbers from [seed-golden.ts](../../packages/database/src/seed-golden.ts#L137)
 
 Repairable malformed examples detected and fixed locally:
 
