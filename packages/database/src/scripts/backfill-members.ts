@@ -11,9 +11,10 @@
  */
 
 import 'dotenv/config';
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { generateMemberNumber, parseMemberNumber } from '../member-number';
+import { auditMemberNumbers } from '../member-number-remediation';
 import { memberCounters, user } from '../schema';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -62,7 +63,52 @@ async function initializeCountersFromExisting(years: Set<number>) {
 async function backfillMembers() {
   console.log('Starting Global Member Number Backfill...');
 
-  // 1. Find all members without memberNumber
+  const repairMalformed = process.argv.includes('--repair-malformed');
+
+  // 1. Audit all member numbers
+  const allMembers = await db
+    .select({
+      id: user.id,
+      createdAt: user.createdAt,
+      memberNumber: user.memberNumber,
+    })
+    .from(user)
+    .where(eq(user.role, 'member'))
+    .orderBy(asc(user.createdAt), asc(user.id));
+
+  const audit = auditMemberNumbers(allMembers);
+
+  console.log('Member number audit summary:');
+  console.log(`- Missing: ${audit.counts.missing}`);
+  console.log(`- Canonical: ${audit.counts.canonical}`);
+  console.log(`- Allowed legacy: ${audit.counts.legacyAllowed}`);
+  console.log(`- Repairable malformed: ${audit.counts.malformed}`);
+
+  if (audit.repairable.length > 0) {
+    console.log(
+      `Found ${audit.repairable.length} repairable malformed member numbers: ${audit.repairable
+        .slice(0, 10)
+        .map(row => `${row.id}:${row.memberNumber}`)
+        .join(', ')}`
+    );
+
+    if (repairMalformed) {
+      const repairableIds = audit.repairable.map(row => row.id);
+      await db
+        .update(user)
+        .set({
+          memberNumber: null,
+          memberNumberIssuedAt: null,
+        })
+        .where(inArray(user.id, repairableIds));
+
+      console.log(`Reset ${repairableIds.length} malformed member numbers for canonical reissue.`);
+    } else {
+      console.log('Run with --repair-malformed to null out repairable values before backfill.');
+    }
+  }
+
+  // 2. Find all members without memberNumber
   const usersToBackfill = await db
     .select({
       id: user.id,
@@ -79,7 +125,7 @@ async function backfillMembers() {
 
   console.log(`Found ${usersToBackfill.length} members to backfill.`);
 
-  // 2. Collect years and initialize counters
+  // 3. Collect years and initialize counters
   const years = new Set<number>();
   usersToBackfill.forEach(u => {
     years.add(u.createdAt.getFullYear());
@@ -87,12 +133,12 @@ async function backfillMembers() {
 
   await initializeCountersFromExisting(years);
 
-  // 3. Process each member
+  // 4. Process each member
   let successCount = 0;
   let failCount = 0;
 
   for (const u of usersToBackfill) {
-    // 3. Process each member
+    // 4. Process each member
     // Note: Generator now derives year from joinedAt internally
     // Use joinedAt if available (future-proof), fallback to createdAt
     const joinedAt = (u as any).joinedAt ?? u.createdAt;

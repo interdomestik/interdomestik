@@ -3,6 +3,8 @@ import { generateMemberNumberWithRetry } from '@interdomestik/database/member-nu
 import * as Sentry from '@sentry/nextjs';
 import { BetterAuthOptions } from 'better-auth';
 
+import { captureMemberNumberLifecycleEvent } from './member-number-observability';
+
 export const databaseHooks: BetterAuthOptions['databaseHooks'] = {
   user: {
     create: {
@@ -37,14 +39,29 @@ export const databaseHooks: BetterAuthOptions['databaseHooks'] = {
               throw new Error('User missing joinedAt/createdAt - cannot determine member year');
             }
             const joinedAt = new Date(dateSource);
+            const createdYear = joinedAt.getFullYear();
 
             const result = await generateMemberNumberWithRetry(db, {
               userId: user.id,
               joinedAt,
             });
+            captureMemberNumberLifecycleEvent('user_create_after_assigned', {
+              userId: user.id,
+              tenantId: (user as typeof user & { tenantId?: string }).tenantId ?? null,
+              email: (user as typeof user & { email?: string }).email ?? null,
+              memberNumber: result.memberNumber,
+              createdYear,
+              isNew: result.isNew,
+            });
             console.log(`[Auth] Member number ${result.memberNumber} assigned to user ${user.id}`);
           } catch (error) {
             const err = error as Error;
+            captureMemberNumberLifecycleEvent('user_create_after_failed', {
+              userId: user.id,
+              tenantId: (user as typeof user & { tenantId?: string }).tenantId ?? null,
+              email: (user as typeof user & { email?: string }).email ?? null,
+              errorMessage: err.message,
+            });
             // Capture to Sentry with enriched context for fast triage
             Sentry.captureException(err, {
               tags: {
@@ -107,10 +124,26 @@ export const databaseHooks: BetterAuthOptions['databaseHooks'] = {
               throw new Error('User missing joinedAt/createdAt - cannot determine member year');
             }
             const joinedAt = new Date(dateSource);
+            const createdYear = joinedAt.getFullYear();
+
+            captureMemberNumberLifecycleEvent('self_heal_invoked', {
+              userId: session.userId,
+              tenantId: existing[0].tenantId ?? null,
+              email: existing[0].email ?? null,
+              createdYear,
+            });
 
             const result = await generateMemberNumberWithRetry(db, {
               userId: session.userId,
               joinedAt,
+            });
+            captureMemberNumberLifecycleEvent('self_heal_resolved', {
+              userId: session.userId,
+              tenantId: existing[0].tenantId ?? null,
+              email: existing[0].email ?? null,
+              memberNumber: result.memberNumber,
+              createdYear,
+              isNew: result.isNew,
             });
             if (result.isNew) {
               console.log(
@@ -118,6 +151,10 @@ export const databaseHooks: BetterAuthOptions['databaseHooks'] = {
               );
             }
           } catch (error) {
+            captureMemberNumberLifecycleEvent('self_heal_failed', {
+              userId: session.userId,
+              errorMessage: error instanceof Error ? error.message : String(error),
+            });
             // Capture self-heal failures to Sentry for visibility
             Sentry.captureException(error, {
               tags: {
