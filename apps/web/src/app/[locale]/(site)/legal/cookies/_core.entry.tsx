@@ -1,6 +1,9 @@
 import { Metadata } from 'next';
-import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
+
+type CookiesPageProps = Readonly<{
+  params: Promise<{ locale: string }>;
+}>;
 
 export async function generateMetadata({
   params,
@@ -14,8 +17,9 @@ export async function generateMetadata({
   };
 }
 
-export default function CookiesPage() {
-  const t = useTranslations('legal.cookies');
+export default async function CookiesPage({ params }: CookiesPageProps) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'legal.cookies' });
 
   return (
     <div className="container py-20 max-w-4xl mx-auto">

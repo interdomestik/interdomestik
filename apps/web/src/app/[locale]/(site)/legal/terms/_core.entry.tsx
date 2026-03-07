@@ -1,5 +1,8 @@
-import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
+
+type TermsPageProps = Readonly<{
+  params: Promise<{ locale: string }>;
+}>;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -9,8 +12,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   };
 }
 
-export default function TermsPage() {
-  const t = useTranslations('legal.terms'); // Ensure you have this namespace
+export default async function TermsPage({ params }: TermsPageProps) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'legal.terms' });
 
   return (
     <div className="container py-20 max-w-4xl mx-auto">

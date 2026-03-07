@@ -1,3 +1,5 @@
+'use client';
+
 import { Link } from '@/i18n/routing';
 import { ArrowRight, MessageCircleMore, PhoneCall, ShieldCheck, Sparkles } from 'lucide-react';
 import { getSupportContacts } from '@/lib/support-contacts';

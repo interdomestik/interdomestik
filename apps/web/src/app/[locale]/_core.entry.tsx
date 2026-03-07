@@ -13,7 +13,6 @@ import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
@@ -81,8 +80,6 @@ type Props = {
 
 export default async function RootLayout({ children, params }: Props) {
   const { locale } = await params;
-  const headersList = await headers();
-  const nonce = headersList.get('x-nonce');
 
   // Ensure that the incoming locale is valid
   if (!routing.locales.includes(locale as (typeof routing.locales)[number])) {
@@ -127,7 +124,7 @@ export default async function RootLayout({ children, params }: Props) {
                 <AxeProvider />
                 <ReferralTracker />
                 <PwaRegistrar />
-                <AnalyticsScripts nonce={nonce} />
+                <AnalyticsScripts />
                 <CookieConsentBanner />
               </QueryProvider>
             </NextIntlClientProvider>

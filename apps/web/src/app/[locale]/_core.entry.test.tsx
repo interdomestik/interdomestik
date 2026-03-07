@@ -95,5 +95,6 @@ describe('RootLayout font wiring', () => {
     expect(body.props.className).toContain('font-inter');
     expect(body.props.className).toContain('font-space-grotesk');
     expect(body.props.className).toContain('antialiased');
+    expect(hoisted.headersMock).not.toHaveBeenCalled();
   });
 });

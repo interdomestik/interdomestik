@@ -5,12 +5,17 @@ import {
   CardHeader,
   CardTitle,
 } from '@interdomestik/ui/components/card';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 
 export { generateMetadata, generateViewport } from '@/app/_segment-exports';
 
-export default function AboutPage() {
-  const t = useTranslations('about');
+type AboutPageProps = Readonly<{
+  params: Promise<{ locale: string }>;
+}>;
+
+export default async function AboutPage({ params }: AboutPageProps) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'about' });
 
   return (
     <div className="container py-12 md:py-16 mx-auto">
