@@ -1,4 +1,3 @@
-import { db } from '@interdomestik/database/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerMemberCore } from './register-member.core';
 
@@ -7,17 +6,19 @@ const mocks = vi.hoisted(() => ({
     memberNumber: 'MEM-2026-000001',
     isNew: true,
   }),
+  withTransactionRetry: vi.fn(),
+  emailExecute: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database/db', () => ({
-  db: {
-    transaction: vi.fn(async cb => {
-      const tx = {
-        insert: vi.fn().mockReturnThis(),
-        values: vi.fn().mockResolvedValue(true),
-      };
-      return await cb(tx);
-    }),
+vi.mock('@interdomestik/shared-utils/resilience', () => ({
+  withTransactionRetry: mocks.withTransactionRetry,
+}));
+
+vi.mock('@interdomestik/shared-utils/circuit-breaker', () => ({
+  circuitBreakers: {
+    email: {
+      execute: mocks.emailExecute,
+    },
   },
 }));
 
@@ -47,6 +48,14 @@ describe('registerMemberCore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.withTransactionRetry.mockImplementation(async callback => {
+      const tx = {
+        insert: vi.fn().mockReturnThis(),
+        values: vi.fn().mockResolvedValue(true),
+      };
+      return await callback(tx);
+    });
+    mocks.emailExecute.mockImplementation(async operation => operation());
   });
 
   it('should register member successfully', async () => {
@@ -60,7 +69,7 @@ describe('registerMemberCore', () => {
     const result = await registerMemberCore(mockAgent, mockTenantId, mockBranchId, formData);
 
     expect(result).toEqual({ ok: true });
-    expect(db.transaction).toHaveBeenCalled();
+    expect(mocks.withTransactionRetry).toHaveBeenCalled();
     expect(mocks.generateMemberNumber).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -87,7 +96,7 @@ describe('registerMemberCore', () => {
   });
 
   it('should handle transaction errors (e.g., email duplicate)', async () => {
-    vi.mocked(db.transaction).mockRejectedValue(new Error('Duplicate'));
+    mocks.withTransactionRetry.mockRejectedValue(new Error('Duplicate'));
 
     const formData = new FormData();
     formData.append('fullName', 'John Doe');

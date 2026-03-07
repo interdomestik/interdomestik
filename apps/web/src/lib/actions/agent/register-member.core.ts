@@ -1,5 +1,4 @@
 import { sendMemberWelcomeEmail } from '@/lib/email';
-import { db } from '@interdomestik/database/db';
 import { generateMemberNumber } from '@interdomestik/database/member-number';
 import {
   account,
@@ -7,50 +6,11 @@ import {
   subscriptions,
   user as userTable,
 } from '@interdomestik/database/schema';
+import { circuitBreakers } from '@interdomestik/shared-utils/circuit-breaker';
+import { withTransactionRetry } from '@interdomestik/shared-utils/resilience';
 import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
 import { registerMemberSchema } from './schemas';
-
-type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-// Temporary retry implementation (will move to shared-utils)
-async function withTransactionRetry<T>(
-  operation: (tx: DbTransaction) => Promise<T>,
-  maxRetries = 3
-): Promise<T> {
-  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-    try {
-      return await db.transaction(operation);
-    } catch (error) {
-      const isLastAttempt = attempt > maxRetries;
-      const errMessage = (error as { message?: string })?.message?.toLowerCase() || '';
-      const isRetryable =
-        errMessage.includes('deadlock') || errMessage.includes('could not serialize');
-
-      if (isLastAttempt || !isRetryable) {
-        throw error;
-      }
-
-      const delay = Math.min(100 * Math.pow(2, attempt - 1), 1000);
-      console.warn(
-        `Transaction failed (attempt ${attempt}/${maxRetries + 1}), retrying in ${delay}ms:`,
-        error
-      );
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error('Max retries exceeded');
-}
-
-async function withCircuitBreaker<T>(operation: () => Promise<T>): Promise<T> {
-  // Simple circuit breaker for email service
-  try {
-    return await operation();
-  } catch (error) {
-    console.warn('Email service temporarily unavailable:', error);
-    throw error;
-  }
-}
 
 export async function registerMemberCore(
   agent: { id: string; name?: string | null },
@@ -145,7 +105,7 @@ export async function registerMemberCore(
 
     // Send email with circuit breaker protection
     try {
-      await withCircuitBreaker(() =>
+      await circuitBreakers.email.execute(() =>
         sendMemberWelcomeEmail(data.email, {
           memberName: data.fullName,
           agentName: agent.name || 'Your Agent',
