@@ -87,9 +87,9 @@ test('Heavy PR workflows skip runner startup for non-product-only changes', () =
 test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a lightweight preflight job', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGatePreflightJob = pilotGateWorkflow.jobs['pilot-gate-preflight'];
-  const preflightSteps = pilotGatePreflightJob.steps;
 
   assert.ok(pilotGatePreflightJob);
+  const preflightSteps = pilotGatePreflightJob.steps;
   assert.equal(pilotGatePreflightJob['runs-on'], 'ubuntu-latest');
   assert.equal(pilotGatePreflightJob.services, undefined);
   assert.equal(
@@ -112,9 +112,10 @@ test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a l
 test('Pilot gate heavy runner depends on preflight before Postgres, setup, build, and release-gate work', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate-runner'];
+
+  assert.ok(pilotGateJob);
   const steps = pilotGateJob.steps;
   const needs = normalizeNeeds(pilotGateJob.needs);
-
   const setupIndex = steps.findIndex(step => step?.uses === './.github/actions/setup');
   const manualSonarIndex = findStepIndex(steps, 'Run Sonar quality gate (manual fallback)');
   const prepareDbIndex = findStepIndex(steps, 'Prepare CI database');
@@ -137,9 +138,10 @@ test('Pilot gate heavy runner depends on preflight before Postgres, setup, build
 test('Required pilot gate wrapper fails or passes based on preflight and runner results without starting services itself', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate'];
+
+  assert.ok(pilotGateJob);
   const steps = pilotGateJob.steps;
   const needs = normalizeNeeds(pilotGateJob.needs);
-
   assert.ok(needs.includes('pilot-gate-preflight'));
   assert.ok(needs.includes('pilot-gate-runner'));
   assert.equal(pilotGateJob.if, 'always()');
