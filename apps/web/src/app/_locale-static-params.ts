@@ -1,5 +1,5 @@
-const STATIC_LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+import { LOCALES } from '@/i18n/locales';
 
 export function generateLocaleStaticParams() {
-  return STATIC_LOCALES.map(locale => ({ locale }));
+  return LOCALES.map(locale => ({ locale }));
 }

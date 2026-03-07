@@ -57,6 +57,7 @@ describe('HomePageRuntime', () => {
     await waitFor(() => {
       expect(hoisted.replaceMock).toHaveBeenCalledWith('/sq/member');
     });
+    expect(hoisted.replaceMock).toHaveBeenCalledTimes(1);
   });
 
   it('uses host tenant fallback for the V2 landing tracker and CTA when signed out', async () => {
@@ -74,6 +75,7 @@ describe('HomePageRuntime', () => {
         tenantId: 'tenant_mk',
       });
     });
+    expect(hoisted.funnelLandingTrackerMock).toHaveBeenCalledTimes(1);
   });
 
   it('uses session-aware CTA targeting for signed-in members on UI V2', async () => {

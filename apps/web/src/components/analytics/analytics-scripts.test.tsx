@@ -15,7 +15,7 @@ vi.mock('next/script', () => ({
 
     onLoad?.();
 
-    return <script data-testid={id} src={src} />;
+    return <div data-testid={id} data-src={src} />;
   },
 }));
 
