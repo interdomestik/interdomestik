@@ -1,6 +1,7 @@
 import { contactInfo } from '@/lib/contact';
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+export { generateLocaleStaticParams as generateStaticParams } from '@/app/_locale-static-params';
 
 import { getServicesPageContactModel } from './_core';
 import { ServicesPageSections } from './_sections';
