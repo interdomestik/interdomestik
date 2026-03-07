@@ -1,1 +1,1 @@
-export { default, generateMetadata } from './_core.entry';
+export { default, generateMetadata, generateViewport } from './_core.entry';
