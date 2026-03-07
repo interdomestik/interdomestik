@@ -1,8 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { HeroV2 } from './hero-v2';
 import { getStartClaimHrefForSession } from '../../home-v2.core';
-import { vi } from 'vitest';
 
 vi.mock('@/i18n/routing', () => ({
   Link: ({
