@@ -2,7 +2,18 @@ name: PR E2E (Strict Gate + Key Golden)
 
 on:
   pull_request:
-    branches: [main, master, develop]
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+      - '.agent/**'
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - 'scripts/plan*.mjs'
+      - 'README*'
+      - 'CHANGELOG*'
+      - 'CONTRIBUTING*'
+      - 'LICENSE*'
 
 permissions:
   contents: read
