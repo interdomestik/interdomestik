@@ -105,6 +105,36 @@ test('routing authority changes trigger full multi-agent hardening', () => {
   );
 });
 
+test('local docker workflow changes skip full multi-agent hardening', () => {
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'pull_request',
+      labels: [],
+      changedFiles: ['scripts/docker-gate.sh', 'docker-compose.yml'],
+    }),
+    {
+      shouldRun: false,
+      reason: 'default_skip_non_risky_pr',
+      matchedPaths: [],
+    }
+  );
+});
+
+test('lockfile-only changes skip full multi-agent hardening', () => {
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'pull_request',
+      labels: [],
+      changedFiles: ['pnpm-lock.yaml'],
+    }),
+    {
+      shouldRun: false,
+      reason: 'default_skip_non_risky_pr',
+      matchedPaths: [],
+    }
+  );
+});
+
 test('normal product changes skip full multi-agent hardening', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({
@@ -114,6 +144,39 @@ test('normal product changes skip full multi-agent hardening', () => {
         'apps/web/src/features/member/home.tsx',
         'apps/web/src/features/member/home.test.tsx',
       ],
+    }),
+    {
+      shouldRun: false,
+      reason: 'default_skip_non_risky_pr',
+      matchedPaths: [],
+    }
+  );
+});
+
+test('root package.json pnpm override changes skip full multi-agent hardening', () => {
+  const packageJsonRisk = evaluatePackageJsonRisk({
+    beforeContent: JSON.stringify({
+      pnpm: {
+        overrides: {
+          axios: '^1.0.0',
+        },
+      },
+    }),
+    afterContent: JSON.stringify({
+      pnpm: {
+        overrides: {
+          axios: '^1.1.0',
+        },
+      },
+    }),
+  });
+
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'pull_request',
+      labels: [],
+      changedFiles: ['package.json'],
+      packageJsonRisk,
     }),
     {
       shouldRun: false,
