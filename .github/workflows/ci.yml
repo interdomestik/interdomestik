@@ -36,6 +36,7 @@ jobs:
       - name: Run Audits
         run: |
           node scripts/check-env-ci.mjs
+          pnpm test:ci:contracts
           pnpm track:audit
           pnpm plan:audit
           pnpm purity:audit

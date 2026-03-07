@@ -105,6 +105,45 @@ test('routing authority changes trigger full multi-agent hardening', () => {
   );
 });
 
+test('database-sensitive changes follow the expected multi-agent hardening policy', () => {
+  const cases = [
+    [
+      'critical database tenant guard changes still trigger full multi-agent hardening',
+      'packages/database/src/tenant-security.ts',
+      true,
+      'high_risk_paths',
+    ],
+    [
+      'broad database product changes require explicit label before full multi-agent hardening',
+      'packages/database/src/schema/claims.ts',
+      false,
+      'label_required_for_high_risk_paths',
+    ],
+    [
+      'database migration changes require explicit label before full multi-agent hardening',
+      'packages/database/drizzle/0035_enable_tenant_rls_coverage.sql',
+      false,
+      'label_required_for_high_risk_paths',
+    ],
+  ];
+
+  for (const [name, changedFile, shouldRun, reason] of cases) {
+    assert.deepEqual(
+      evaluateMultiAgentPolicy({
+        eventName: 'pull_request',
+        labels: [],
+        changedFiles: [changedFile],
+      }),
+      {
+        shouldRun,
+        reason,
+        matchedPaths: [changedFile],
+      },
+      name
+    );
+  }
+});
+
 test('normal product changes skip full multi-agent hardening', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({

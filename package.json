@@ -69,6 +69,7 @@
     "check:static": "pnpm format:check && pnpm lint && pnpm type-check",
     "check:all": "pnpm format:check && pnpm lint && pnpm type-check && pnpm i18n:check && pnpm i18n:purity:check && pnpm check:entrypoints:strict && pnpm test:unit:domains && pnpm test",
     "check": "pnpm check:fast && pnpm build",
+    "test:ci:contracts": "node --test scripts/ci/*.test.mjs",
     "sonar:start": "docker compose --profile sonar up -d sonarqube db",
     "sonar:stop": "docker compose --profile sonar stop sonarqube db",
     "sonar:down": "docker compose --profile sonar down --remove-orphans",
