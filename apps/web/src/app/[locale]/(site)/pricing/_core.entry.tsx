@@ -1,13 +1,11 @@
-import { PricingTable } from '@/components/pricing/pricing-table';
-import { auth } from '@/lib/auth';
+import { generateLocaleStaticParams } from '@/app/_locale-static-params';
 import { getTranslations } from 'next-intl/server';
-import { headers } from 'next/headers';
+import type { Metadata } from 'next';
+import { PricingPageRuntime } from './pricing-page-runtime';
 
-interface PricingPageProps {
+type PricingPageProps = Readonly<{
   params: Promise<{ locale: string }>;
-}
-
-import { Metadata } from 'next';
+}>;
 
 export async function generateMetadata({ params }: PricingPageProps): Promise<Metadata> {
   const { locale } = await params;
@@ -20,7 +18,6 @@ export async function generateMetadata({ params }: PricingPageProps): Promise<Me
 
 export default async function PricingPage({ params }: PricingPageProps) {
   const { locale } = await params;
-  const session = await auth.api.getSession({ headers: await headers() });
   const t = await getTranslations({ locale, namespace: 'pricing' });
 
   const billingTestMode = process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
@@ -41,11 +38,7 @@ export default async function PricingPage({ params }: PricingPageProps) {
         <p className="text-xl text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <PricingTable
-        userId={session?.user?.id}
-        email={session?.user?.email}
-        billingTestMode={billingTestMode}
-      />
+      <PricingPageRuntime billingTestMode={billingTestMode} />
 
       <div className="mt-20 text-center">
         <p className="text-sm text-muted-foreground">30-Day Money-Back Guarantee</p>
@@ -55,3 +48,4 @@ export default async function PricingPage({ params }: PricingPageProps) {
 }
 
 export { generateViewport } from '@/app/_segment-exports';
+export const generateStaticParams = generateLocaleStaticParams;
