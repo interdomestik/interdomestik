@@ -21,62 +21,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pilot-gate:
-    name: pr:verify + pilot:check
+  pilot-gate-preflight:
+    name: Pilot Gate Preflight
     permissions:
       checks: read
       contents: read
       pull-requests: read
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: interdomestik_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres -d interdomestik_test"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
+    outputs:
+      should_run: ${{ steps.validation_surface.outputs.should_run }}
+      reason: ${{ steps.validation_surface.outputs.reason }}
+      non_product_only_paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}
+      sonar_gate_enabled: ${{ steps.validate_secrets.outputs.sonar_gate_enabled }}
+      needs_dependabot_better_auth_fallback: ${{ steps.validate_secrets.outputs.needs_dependabot_better_auth_fallback }}
     env:
-      CI: 'true'
-      PLAYWRIGHT: '1'
-      PORT: 3000
-      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
-      BETTER_AUTH_URL: http://127.0.0.1:3000
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      SENTRY_ORG: ${{ vars.SENTRY_ORG || secrets.SENTRY_ORG }}
-      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT || secrets.SENTRY_PROJECT }}
-      RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@interdomestik.com
-      RELEASE_GATE_MEMBER_PASSWORD: GoldenPass123!
-      RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
-      RELEASE_GATE_AGENT_PASSWORD: GoldenPass123!
-      RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
-      RELEASE_GATE_STAFF_PASSWORD: GoldenPass123!
-      RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com
-      RELEASE_GATE_ADMIN_KS_PASSWORD: GoldenPass123!
-      RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@interdomestik.com
-      RELEASE_GATE_ADMIN_MK_PASSWORD: GoldenPass123!
-      RELEASE_GATE_MK_USER_URL: ''
-      RELEASE_GATE_TARGET_USER_URL: /admin/users/golden_mk_admin?tenantId=tenant_mk
-      RELEASE_GATE_REQUIRE_ROLE_PANEL: 'false'
-      STAFF_CLAIM_URL: ''
-      RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL: 'false'
       SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || secrets.SONAR_PROJECT_KEY }}
       SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || secrets.SONAR_ORGANIZATION }}
-      SONAR_SCANNER_SKIP_JRE_PROVISIONING: 'true'
-      EVIDENCE_DIR: tmp/pilot-evidence/${{ github.run_id }}
       PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login || '' }}
     steps:
       - uses: actions/checkout@v4
@@ -109,19 +72,26 @@ jobs:
           echo "Non-product-only paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}"
 
       - name: Validate required gate secrets
-        if: steps.validation_surface.outputs.should_run == 'true'
+        id: validate_secrets
         shell: bash
         run: |
           set -euo pipefail
+          if [[ "${{ steps.validation_surface.outputs.should_run }}" != "true" ]]; then
+            echo "sonar_gate_enabled=false" >> "$GITHUB_OUTPUT"
+            echo "needs_dependabot_better_auth_fallback=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           if [[ -z "${BETTER_AUTH_SECRET:-}" ]]; then
             if [[ "${PR_AUTHOR_LOGIN:-}" == "dependabot[bot]" ]]; then
-              echo "::warning::BETTER_AUTH_SECRET unavailable for Dependabot. Generating per-run CI fallback secret."
-              BETTER_AUTH_SECRET="$(openssl rand -hex 32)"
-              echo "BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}" >> "$GITHUB_ENV"
+              echo "::warning::BETTER_AUTH_SECRET unavailable for Dependabot. Heavy gate will generate a per-run CI fallback secret."
+              echo "needs_dependabot_better_auth_fallback=true" >> "$GITHUB_OUTPUT"
             else
               echo "::error::Missing required secret: BETTER_AUTH_SECRET"
               exit 2
             fi
+          else
+            echo "needs_dependabot_better_auth_fallback=false" >> "$GITHUB_OUTPUT"
           fi
 
           sonar_vars=(SONAR_TOKEN SONAR_HOST_URL SONAR_PROJECT_KEY)
@@ -137,33 +107,104 @@ jobs:
           done
 
           if (( ${#sonar_missing[@]} == 0 )); then
-            echo "SONAR_GATE_ENABLED=true" >> "$GITHUB_ENV"
+            echo "sonar_gate_enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::Skipping Sonar gate due to missing configuration: ${sonar_missing[*]}"
-            echo "SONAR_GATE_ENABLED=false" >> "$GITHUB_ENV"
+            echo "sonar_gate_enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Await SonarCloud Code Analysis check
-        if: github.event_name == 'pull_request' && steps.validation_surface.outputs.should_run == 'true' && env.SONAR_GATE_ENABLED == 'true'
+        if: github.event_name == 'pull_request' && steps.validation_surface.outputs.should_run == 'true' && steps.validate_secrets.outputs.sonar_gate_enabled == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           SONAR_CHECK_SHA: ${{ github.event.pull_request.head.sha }}
         run: bash scripts/sonar-check-run-gate.sh
 
+  pilot-gate-runner:
+    name: Pilot Gate Runner
+    needs:
+      - pilot-gate-preflight
+    if: needs.pilot-gate-preflight.outputs.should_run == 'true'
+    permissions:
+      checks: read
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: interdomestik_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d interdomestik_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      CI: 'true'
+      PLAYWRIGHT: '1'
+      PORT: 3000
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      SONAR_GATE_ENABLED: ${{ needs.pilot-gate-preflight.outputs.sonar_gate_enabled }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ vars.SENTRY_ORG || secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT || secrets.SENTRY_PROJECT }}
+      RELEASE_GATE_MEMBER_EMAIL: member.ks.a1@interdomestik.com
+      RELEASE_GATE_MEMBER_PASSWORD: GoldenPass123!
+      RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
+      RELEASE_GATE_AGENT_PASSWORD: GoldenPass123!
+      RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
+      RELEASE_GATE_STAFF_PASSWORD: GoldenPass123!
+      RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com
+      RELEASE_GATE_ADMIN_KS_PASSWORD: GoldenPass123!
+      RELEASE_GATE_ADMIN_MK_EMAIL: admin.mk@interdomestik.com
+      RELEASE_GATE_ADMIN_MK_PASSWORD: GoldenPass123!
+      RELEASE_GATE_MK_USER_URL: ''
+      RELEASE_GATE_TARGET_USER_URL: /admin/users/golden_mk_admin?tenantId=tenant_mk
+      RELEASE_GATE_REQUIRE_ROLE_PANEL: 'false'
+      STAFF_CLAIM_URL: ''
+      RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL: 'false'
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || secrets.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || secrets.SONAR_ORGANIZATION }}
+      SONAR_SCANNER_SKIP_JRE_PROVISIONING: 'true'
+      EVIDENCE_DIR: tmp/pilot-evidence/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate BETTER_AUTH_SECRET fallback for Dependabot
+        if: needs.pilot-gate-preflight.outputs.needs_dependabot_better_auth_fallback == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          fallback_secret="$(openssl rand -hex 32)"
+          echo "::add-mask::${fallback_secret}"
+          echo "BETTER_AUTH_SECRET=${fallback_secret}" >> "$GITHUB_ENV"
+
       - uses: ./.github/actions/setup
-        if: steps.validation_surface.outputs.should_run == 'true'
         with:
           install-playwright: true
 
       - name: Run Sonar quality gate (manual fallback)
-        if: github.event_name != 'pull_request' && steps.validation_surface.outputs.should_run == 'true' && env.SONAR_GATE_ENABLED == 'true'
+        if: github.event_name != 'pull_request' && env.SONAR_GATE_ENABLED == 'true'
         env:
           SONAR_ENFORCEMENT: enforce
           SONAR_RUN_COVERAGE: true
         run: bash scripts/sonar-gate.sh
 
       - name: Upload Sonar gate artifacts
-        if: always() && steps.validation_surface.outputs.should_run == 'true'
+        if: always()
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -176,7 +217,6 @@ jobs:
           retention-days: 14
 
       - name: Prepare CI database
-        if: steps.validation_surface.outputs.should_run == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -189,11 +229,9 @@ jobs:
           pnpm seed:assert-e2e
 
       - name: Build web standalone artifact
-        if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm --filter @interdomestik/web run build:ci
 
       - name: Start web server for release gate
-        if: steps.validation_surface.outputs.should_run == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -210,11 +248,10 @@ jobs:
           exit 1
 
       - name: Run pilot gate
-        if: steps.validation_surface.outputs.should_run == 'true'
         run: pnpm -s release:gate:p0:raw --baseUrl http://127.0.0.1:3000
 
       - name: Stop web server
-        if: always() && steps.validation_surface.outputs.should_run == 'true'
+        if: always()
         shell: bash
         run: |
           if [[ -f /tmp/web-start.pid ]]; then
@@ -222,7 +259,7 @@ jobs:
           fi
 
       - name: Upload release gate reports
-        if: always() && steps.validation_surface.outputs.should_run == 'true'
+        if: always()
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
@@ -230,6 +267,39 @@ jobs:
           path: docs/release-gates/*.md
           if-no-files-found: warn
           retention-days: 14
+
+  pilot-gate:
+    name: pr:verify + pilot:check
+    if: always()
+    needs:
+      - pilot-gate-preflight
+      - pilot-gate-runner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce pilot gate preflight/result contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          preflight_result="${{ needs.pilot-gate-preflight.result }}"
+          should_run="${{ needs.pilot-gate-preflight.outputs.should_run }}"
+          reason="${{ needs.pilot-gate-preflight.outputs.reason }}"
+          runner_result="${{ needs.pilot-gate-runner.result }}"
+
+          if [[ "${preflight_result}" != "success" ]]; then
+            echo "::error::Pilot gate preflight failed before the heavy runner became eligible."
+            exit 1
+          fi
+
+          if [[ "${should_run}" != "true" ]]; then
+            echo "Pilot gate skipped."
+            echo "Reason: ${reason}"
+            exit 0
+          fi
+
+          if [[ "${runner_result}" != "success" ]]; then
+            echo "::error::Pilot gate runner did not complete successfully (result=${runner_result})."
+            exit 1
+          fi
 
   multi-agent-policy:
     name: Multi-Agent Policy

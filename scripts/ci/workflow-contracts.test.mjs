@@ -22,6 +22,18 @@ function findStepIndex(steps, name) {
   return steps.findIndex(step => step?.name === name);
 }
 
+function normalizeNeeds(needs) {
+  if (Array.isArray(needs)) {
+    return needs;
+  }
+
+  if (typeof needs === 'string') {
+    return [needs];
+  }
+
+  return [];
+}
+
 test('CI PR path keeps only RLS coverage while PR E2E owns browser validation', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
@@ -72,31 +84,68 @@ test('Heavy PR workflows skip runner startup for non-product-only changes', () =
   assert.deepEqual(pilotGateWorkflow.on.pull_request['paths-ignore'], expectedIgnoredPaths);
 });
 
-test('Pilot gate fails fast on Sonar and secrets before dependency install and build', () => {
+test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a lightweight preflight job', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
-  const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate'];
+  const pilotGatePreflightJob = pilotGateWorkflow.jobs['pilot-gate-preflight'];
+  const preflightSteps = pilotGatePreflightJob.steps;
+
+  assert.ok(pilotGatePreflightJob);
+  assert.equal(pilotGatePreflightJob['runs-on'], 'ubuntu-latest');
+  assert.equal(pilotGatePreflightJob.services, undefined);
+  assert.equal(
+    pilotGatePreflightJob.outputs.should_run,
+    '${{ steps.validation_surface.outputs.should_run }}'
+  );
+  assert.equal(
+    pilotGatePreflightJob.outputs.sonar_gate_enabled,
+    '${{ steps.validate_secrets.outputs.sonar_gate_enabled }}'
+  );
+  assert.ok(findStep(preflightSteps, 'Evaluate validation surface'));
+  assert.ok(findStep(preflightSteps, 'Validate required gate secrets'));
+  assert.ok(findStep(preflightSteps, 'Await SonarCloud Code Analysis check'));
+  assert.equal(
+    preflightSteps.some(step => step?.uses === './.github/actions/setup'),
+    false
+  );
+});
+
+test('Pilot gate heavy runner depends on preflight before Postgres, setup, build, and release-gate work', () => {
+  const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
+  const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate-runner'];
   const steps = pilotGateJob.steps;
+  const needs = normalizeNeeds(pilotGateJob.needs);
 
   const setupIndex = steps.findIndex(step => step?.uses === './.github/actions/setup');
-  const validateSecretsIndex = findStepIndex(steps, 'Validate required gate secrets');
-  const awaitSonarIndex = findStepIndex(steps, 'Await SonarCloud Code Analysis check');
   const manualSonarIndex = findStepIndex(steps, 'Run Sonar quality gate (manual fallback)');
   const prepareDbIndex = findStepIndex(steps, 'Prepare CI database');
   const buildIndex = findStepIndex(steps, 'Build web standalone artifact');
 
-  assert.ok(validateSecretsIndex >= 0);
-  assert.ok(awaitSonarIndex >= 0);
-  assert.ok(manualSonarIndex >= 0);
+  assert.ok(needs.includes('pilot-gate-preflight'));
+  assert.equal(pilotGateJob.if, "needs.pilot-gate-preflight.outputs.should_run == 'true'");
   assert.ok(setupIndex >= 0);
+  assert.ok(manualSonarIndex >= 0);
   assert.ok(prepareDbIndex >= 0);
   assert.ok(buildIndex >= 0);
-
-  assert.ok(validateSecretsIndex < setupIndex);
-  assert.ok(awaitSonarIndex < setupIndex);
   assert.ok(setupIndex < prepareDbIndex);
   assert.ok(manualSonarIndex < prepareDbIndex);
-  assert.ok(awaitSonarIndex < prepareDbIndex);
   assert.ok(manualSonarIndex < buildIndex);
+  assert.equal(findStep(steps, 'Evaluate validation surface'), undefined);
+  assert.equal(findStep(steps, 'Validate required gate secrets'), undefined);
+  assert.equal(findStep(steps, 'Await SonarCloud Code Analysis check'), undefined);
+});
+
+test('Required pilot gate wrapper fails or passes based on preflight and runner results without starting services itself', () => {
+  const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
+  const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate'];
+  const steps = pilotGateJob.steps;
+  const needs = normalizeNeeds(pilotGateJob.needs);
+
+  assert.ok(needs.includes('pilot-gate-preflight'));
+  assert.ok(needs.includes('pilot-gate-runner'));
+  assert.equal(pilotGateJob.if, 'always()');
+  assert.equal(pilotGateJob['runs-on'], 'ubuntu-latest');
+  assert.equal(pilotGateJob.services, undefined);
+  assert.ok(findStep(steps, 'Enforce pilot gate preflight/result contract'));
 });
 
 test('CI audit job runs the scripts/ci contract suite', () => {
