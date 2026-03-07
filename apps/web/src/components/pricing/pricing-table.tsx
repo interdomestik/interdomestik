@@ -7,8 +7,7 @@ import { Badge, Button } from '@interdomestik/ui';
 import { getCookie } from 'cookies-next';
 import { Building2, Check, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type PricingTableProps = Readonly<{
   userId?: string;
@@ -16,6 +15,13 @@ type PricingTableProps = Readonly<{
   billingTestMode?: boolean;
   isSessionPending?: boolean;
 }>;
+
+const PLAN_IDS = ['standard', 'family', 'business'] as const;
+
+function getSelectedPlanIdFromSearch(search: string) {
+  const planFromQuery = new URLSearchParams(search).get('plan')?.trim().toLowerCase() ?? '';
+  return PLAN_IDS.includes(planFromQuery as (typeof PLAN_IDS)[number]) ? planFromQuery : null;
+}
 
 function getPlanColorClass(color: string) {
   if (color === 'blue') return 'bg-blue-50 text-blue-600';
@@ -32,9 +38,9 @@ export function PricingTable({
   const t = useTranslations('pricing');
   const locale = useLocale();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
   const [isYearly, setIsYearly] = useState(true);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const isPilotMode = process.env.NEXT_PUBLIC_PILOT_MODE === 'true';
 
   const PLANS = [
@@ -95,8 +101,6 @@ export function PricingTable({
   ];
 
   const isBillingTestMode = billingTestMode ?? process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
-  const planFromQuery = searchParams.get('plan')?.trim().toLowerCase() ?? '';
-  const selectedPlanId = PLANS.some(plan => plan.id === planFromQuery) ? planFromQuery : null;
   const paddleClientToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN?.trim() ?? '';
   const normalizedPaddleClientToken = paddleClientToken.toLowerCase();
   const hasPaddleClientToken =
@@ -106,6 +110,19 @@ export function PricingTable({
     !normalizedPaddleClientToken.includes('your_client_token_here');
   const shouldUseDevCheckoutFallback =
     process.env.NODE_ENV === 'development' && !isBillingTestMode && !hasPaddleClientToken;
+
+  useEffect(() => {
+    const syncSelectedPlanFromLocation = () => {
+      setSelectedPlanId(getSelectedPlanIdFromSearch(globalThis.location?.search ?? ''));
+    };
+
+    syncSelectedPlanFromLocation();
+    globalThis.addEventListener('popstate', syncSelectedPlanFromLocation);
+
+    return () => {
+      globalThis.removeEventListener('popstate', syncSelectedPlanFromLocation);
+    };
+  }, []);
 
   const redirectToSimulatedSuccess = async (
     planId: string,

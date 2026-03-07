@@ -6,7 +6,6 @@ import { PricingTable } from './pricing-table';
 
 // Mock dependencies
 import { MouseEventHandler, ReactNode } from 'react';
-let mockSearchParams = new URLSearchParams('');
 const mockRouterPush = vi.fn();
 
 // Mock dependencies
@@ -45,11 +44,6 @@ vi.mock('lucide-react', () => ({
   Building2: () => <span>🏢</span>,
 }));
 
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => mockSearchParams,
-  useRouter: () => ({ push: vi.fn() }),
-}));
-
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
@@ -76,19 +70,21 @@ describe('PricingTable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
-    mockSearchParams = new URLSearchParams('');
     mockRouterPush.mockReset();
     process.env.NEXT_PUBLIC_PILOT_MODE = originalPilotMode;
+    window.history.replaceState({}, '', '/pricing');
     vi.spyOn(paddleLib, 'getPaddleInstance').mockResolvedValue(
       mockPaddle as unknown as import('@paddle/paddle-js').Paddle
     );
   });
 
-  it('marks the query-selected plan card for continuity', () => {
-    mockSearchParams = new URLSearchParams('plan=family');
+  it('marks the query-selected plan card for continuity after hydration', async () => {
+    window.history.replaceState({}, '', '/pricing?plan=family');
     render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
 
-    expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1');
+    await waitFor(() => {
+      expect(screen.getByTestId('plan-card-family')).toHaveAttribute('data-selected-plan', '1');
+    });
     expect(screen.getByTestId('plan-card-standard')).toHaveAttribute('data-selected-plan', '0');
   });
 
