@@ -10,11 +10,12 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
-interface PricingTableProps {
+type PricingTableProps = Readonly<{
   userId?: string;
   email?: string;
   billingTestMode?: boolean;
-}
+  isSessionPending?: boolean;
+}>;
 
 function getPlanColorClass(color: string) {
   if (color === 'blue') return 'bg-blue-50 text-blue-600';
@@ -22,7 +23,12 @@ function getPlanColorClass(color: string) {
   return 'bg-indigo-50 text-indigo-600';
 }
 
-export function PricingTable({ userId, email, billingTestMode }: PricingTableProps) {
+export function PricingTable({
+  userId,
+  email,
+  billingTestMode,
+  isSessionPending = false,
+}: PricingTableProps) {
   const t = useTranslations('pricing');
   const locale = useLocale();
   const router = useRouter();
@@ -263,13 +269,15 @@ export function PricingTable({ userId, email, billingTestMode }: PricingTablePro
                   : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
               }`}
               variant={plan.popular ? 'default' : 'outline'}
-              disabled={isPilotMode || loading === plan.priceId}
-              asChild={!userId && !isPilotMode}
+              disabled={isPilotMode || isSessionPending || loading === plan.priceId}
+              asChild={!userId && !isPilotMode && !isSessionPending}
               onClick={
-                userId && !isPilotMode ? () => handleAction(plan.id, plan.priceId) : undefined
+                userId && !isPilotMode && !isSessionPending
+                  ? () => handleAction(plan.id, plan.priceId)
+                  : undefined
               }
             >
-              {!userId && !isPilotMode ? (
+              {!userId && !isPilotMode && !isSessionPending ? (
                 <Link href={`/register?plan=${plan.id}`}>{t('cta')}</Link>
               ) : (
                 <>

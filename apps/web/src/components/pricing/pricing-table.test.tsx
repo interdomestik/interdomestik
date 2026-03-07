@@ -182,6 +182,13 @@ describe('PricingTable', () => {
     }
   });
 
+  it('keeps plan CTAs disabled while session state is still resolving', () => {
+    render(<PricingTable billingTestMode={false} isSessionPending />);
+
+    const joinButtons = screen.getAllByText('cta');
+    expect(joinButtons[0]).toBeDisabled();
+  });
+
   it('falls back to simulated checkout in development when client token is missing', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('NEXT_PUBLIC_PADDLE_CLIENT_TOKEN', '');
