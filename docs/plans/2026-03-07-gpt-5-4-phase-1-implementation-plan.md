@@ -8,7 +8,7 @@ last_reviewed: 2026-03-07
 
 # GPT-5.4 Phase 1 Implementation Plan
 
-> Status: Active supporting input. This plan does not replace [current-program.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/plans/current-program.md) or [current-tracker.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/plans/current-tracker.md). It defines the background AI runway after the `v0.1.0` convergence slice is stable enough to absorb it.
+> Status: Active supporting input. This plan does not replace [current-program.md](./current-program.md) or [current-tracker.md](./current-tracker.md). It defines the background AI runway after the `v0.1.0` convergence slice is stable enough to absorb it.
 >
 > For Claude: REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
@@ -45,17 +45,17 @@ This matches the current repo direction better than two alternatives:
 
 These facts shape the plan:
 
-- the current policy analyzer is regex-based and image analysis is still a stub in [policy-analyzer.ts](/Users/arbenlila/development/interdomestik-crystal-home/apps/web/src/lib/ai/policy-analyzer.ts#L37)
-- the policy route core still uses `any` for analysis and persistence in [\_core.ts](/Users/arbenlila/development/interdomestik-crystal-home/apps/web/src/app/api/policies/analyze/_core.ts#L4)
-- policy persistence stores raw `analysisJson` only in [policies.ts](/Users/arbenlila/development/interdomestik-crystal-home/packages/database/src/schema/policies.ts#L6)
-- the repo already has tenant-safe polymorphic document patterns in [documents.ts](/Users/arbenlila/development/interdomestik-crystal-home/packages/database/src/schema/documents.ts#L33)
-- async work is not durable today because the local queue is an in-memory singleton in [job-queue.ts](/Users/arbenlila/development/interdomestik-crystal-home/packages/shared-utils/src/job-queue.ts#L18)
-- Inngest exists, but only for cron messaging in [functions.ts](/Users/arbenlila/development/interdomestik-crystal-home/apps/web/src/lib/inngest/functions.ts#L13)
-- the web package does not currently include an OpenAI SDK dependency in [package.json](/Users/arbenlila/development/interdomestik-crystal-home/apps/web/package.json#L28)
+- the current policy analyzer is regex-based and image analysis is still a stub in [policy-analyzer.ts](../../apps/web/src/lib/ai/policy-analyzer.ts#L37)
+- the policy route core still uses `any` for analysis and persistence in [analyze \_core.ts](../../apps/web/src/app/api/policies/analyze/_core.ts#L4)
+- policy persistence stores raw `analysisJson` only in [policies.ts](../../packages/database/src/schema/policies.ts#L6)
+- the repo already has tenant-safe polymorphic document patterns in [documents.ts](../../packages/database/src/schema/documents.ts#L33)
+- async work is not durable today because the local queue is an in-memory singleton in [job-queue.ts](../../packages/shared-utils/src/job-queue.ts#L18)
+- Inngest exists, but only for cron messaging in [functions.ts](../../apps/web/src/lib/inngest/functions.ts#L13)
+- the web package does not currently include an OpenAI SDK dependency in [apps/web/package.json](../../apps/web/package.json#L28)
 
 ## Explicit Non-Goals
 
-- no changes to [proxy.ts](/Users/arbenlila/development/interdomestik-crystal-home/apps/web/src/proxy.ts)
+- no changes to [proxy.ts](../../apps/web/src/proxy.ts)
 - no route renames
 - no autonomous claim decisions
 - no autonomous legal determinations
@@ -89,8 +89,8 @@ Everything else stays out until these four are typed, durable, and measurable.
 - Create: `packages/domain-ai/src/schemas/legal-doc-extract.ts`
 - Create: `packages/domain-ai/src/schemas/claim-summary.ts`
 - Test: `packages/domain-ai/src/schemas/policy-extract.test.ts`
-- Modify: `/Users/arbenlila/development/interdomestik-crystal-home/package.json`
-- Modify: `/Users/arbenlila/development/interdomestik-crystal-home/apps/web/package.json`
+- Modify: `../../package.json`
+- Modify: `../../apps/web/package.json`
 
 **Step 1: Write the failing schema tests**
 
@@ -502,8 +502,8 @@ git commit -m "feat: add claim and legal ai workflows"
 - Create: `scripts/ai/eval/legal-extract.dataset.json`
 - Create: `scripts/ai/eval/run.mjs`
 - Create: `scripts/ai/eval/README.md`
-- Modify: `/Users/arbenlila/development/interdomestik-crystal-home/package.json`
-- Modify: `/Users/arbenlila/development/interdomestik-crystal-home/.github/workflows/ci.yml`
+- Modify: `../../package.json`
+- Modify: `../../.github/workflows/ci.yml`
 - Create: `packages/domain-ai/src/telemetry.ts`
 - Create: `packages/domain-ai/src/telemetry.test.ts`
 
