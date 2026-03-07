@@ -5,11 +5,9 @@ import { AuthenticatedShell } from '@/components/shell/authenticated-shell';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { AGENT_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { requireEffectivePortalAccessOrNotFound } from '@/server/auth/effective-portal-access';
-import { db } from '@interdomestik/database/db';
-import { agentSettings } from '@interdomestik/database/schema';
 import { SidebarInset, SidebarProvider } from '@interdomestik/ui';
-import { eq } from 'drizzle-orm';
 import { getMessages, setRequestLocale } from 'next-intl/server';
+import { getAgentTier } from './_layout.core';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -28,15 +26,9 @@ export default async function AgentLayout({
   const sessionNonNull = requireSessionOrRedirect(session, locale);
   await requireEffectivePortalAccessOrNotFound(sessionNonNull, ['agent']);
 
-  // Fetch agent tier for RBAC Sidebar
-  let agentTier = 'standard';
-  if (sessionNonNull.user.id) {
-    const settings = await db.query.agentSettings.findFirst({
-      where: eq(agentSettings.agentId, sessionNonNull.user.id),
-      columns: { tier: true },
-    });
-    if (settings?.tier) agentTier = settings.tier;
-  }
+  const agentTier = sessionNonNull.user.id
+    ? await getAgentTier({ agentId: sessionNonNull.user.id })
+    : 'standard';
 
   // Load agent-specific messages for client components
   const allMessages = await getMessages();
