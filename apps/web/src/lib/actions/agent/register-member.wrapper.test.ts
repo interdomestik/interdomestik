@@ -2,6 +2,13 @@ import { db } from '@interdomestik/database/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerMemberCore } from './register-member.core';
 
+const mocks = vi.hoisted(() => ({
+  generateMemberNumber: vi.fn().mockResolvedValue({
+    memberNumber: 'MEM-2026-000001',
+    isNew: true,
+  }),
+}));
+
 vi.mock('@interdomestik/database/db', () => ({
   db: {
     transaction: vi.fn(async cb => {
@@ -25,8 +32,8 @@ vi.mock('@/lib/email', () => ({
   sendMemberWelcomeEmail: vi.fn(),
 }));
 
-vi.mock('@/server/domains/members/member-number', () => ({
-  generateMemberNumber: vi.fn().mockResolvedValue('MEM-2026-000001'),
+vi.mock('@interdomestik/database/member-number', () => ({
+  generateMemberNumber: mocks.generateMemberNumber,
 }));
 
 vi.mock('nanoid', () => ({
@@ -54,6 +61,13 @@ describe('registerMemberCore', () => {
 
     expect(result).toEqual({ ok: true });
     expect(db.transaction).toHaveBeenCalled();
+    expect(mocks.generateMemberNumber).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        userId: 'new-id',
+        joinedAt: expect.any(Date),
+      })
+    );
   });
 
   it('should fail validation', async () => {
