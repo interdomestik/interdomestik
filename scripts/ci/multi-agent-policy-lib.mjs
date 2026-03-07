@@ -73,6 +73,66 @@ function parsePackageJsonContent(content, label) {
   return JSON.parse(content);
 }
 
+function createPolicyDecision(shouldRun, reason, matchedPaths = []) {
+  return {
+    shouldRun,
+    reason,
+    matchedPaths,
+  };
+}
+
+function findLabelOverrideDecision(labels = []) {
+  for (const label of normalizeLabels(labels)) {
+    if (HIGH_RISK_LABELS.has(label)) {
+      return createPolicyDecision(true, `label:${label}`);
+    }
+  }
+
+  return null;
+}
+
+function collectChangedFileRisk(changedFiles = []) {
+  const normalizedChangedFiles = normalizeChangedFiles(changedFiles);
+  const matchedPaths = [];
+  const labelGatedMatchedPaths = [];
+
+  for (const filePath of normalizedChangedFiles) {
+    if (filePath === 'package.json') {
+      continue;
+    }
+
+    if (AUTO_RUN_HIGH_RISK_PATTERNS.some(pattern => pattern.test(filePath))) {
+      matchedPaths.push(filePath);
+      continue;
+    }
+
+    if (LABEL_GATED_HIGH_RISK_PATTERNS.some(pattern => pattern.test(filePath))) {
+      labelGatedMatchedPaths.push(filePath);
+    }
+  }
+
+  return {
+    normalizedChangedFiles,
+    matchedPaths,
+    labelGatedMatchedPaths,
+  };
+}
+
+function appendPackageJsonRisk(normalizedChangedFiles, packageJsonRisk, matchedPaths) {
+  if (!normalizedChangedFiles.includes('package.json')) {
+    return;
+  }
+
+  if (!packageJsonRisk) {
+    matchedPaths.push('package.json:analysis_missing');
+    return;
+  }
+
+  if (packageJsonRisk.shouldRun) {
+    matchedPaths.push(...packageJsonRisk.matchedPaths);
+  }
+}
+
 export function evaluatePackageJsonRisk({ beforeContent = '', afterContent = '' }) {
   const matchedPaths = [];
 
@@ -127,78 +187,36 @@ export function evaluateMultiAgentPolicy({
   packageJsonRisk = null,
 }) {
   if (eventName === 'workflow_dispatch') {
-    return {
-      shouldRun: true,
-      reason: 'manual_dispatch',
-      matchedPaths: [],
-    };
+    return createPolicyDecision(true, 'manual_dispatch');
   }
 
   if (eventName !== 'pull_request') {
-    return {
-      shouldRun: false,
-      reason: `unsupported_event:${eventName || 'unknown'}`,
-      matchedPaths: [],
-    };
+    return createPolicyDecision(false, `unsupported_event:${eventName || 'unknown'}`);
   }
 
-  const normalizedLabels = normalizeLabels(labels);
-  for (const label of normalizedLabels) {
-    if (HIGH_RISK_LABELS.has(label)) {
-      return {
-        shouldRun: true,
-        reason: `label:${label}`,
-        matchedPaths: [],
-      };
-    }
+  const labelOverrideDecision = findLabelOverrideDecision(labels);
+  if (labelOverrideDecision) {
+    return labelOverrideDecision;
   }
 
-  const normalizedChangedFiles = normalizeChangedFiles(changedFiles);
-  const matchedPaths = [];
-  const labelGatedMatchedPaths = [];
-
-  for (const filePath of normalizedChangedFiles) {
-    if (filePath === 'package.json') {
-      continue;
-    }
-
-    if (AUTO_RUN_HIGH_RISK_PATTERNS.some(pattern => pattern.test(filePath))) {
-      matchedPaths.push(filePath);
-      continue;
-    }
-
-    if (LABEL_GATED_HIGH_RISK_PATTERNS.some(pattern => pattern.test(filePath))) {
-      labelGatedMatchedPaths.push(filePath);
-    }
-  }
-
-  if (normalizedChangedFiles.includes('package.json')) {
-    if (!packageJsonRisk) {
-      matchedPaths.push('package.json:analysis_missing');
-    } else if (packageJsonRisk.shouldRun) {
-      matchedPaths.push(...packageJsonRisk.matchedPaths);
-    }
-  }
+  const { normalizedChangedFiles, matchedPaths, labelGatedMatchedPaths } =
+    collectChangedFileRisk(changedFiles);
+  appendPackageJsonRisk(normalizedChangedFiles, packageJsonRisk, matchedPaths);
 
   if (matchedPaths.length > 0) {
-    return {
-      shouldRun: true,
-      reason: 'high_risk_paths',
-      matchedPaths: [...matchedPaths, ...labelGatedMatchedPaths],
-    };
+    return createPolicyDecision(true, 'high_risk_paths', [
+      ...matchedPaths,
+      ...labelGatedMatchedPaths,
+    ]);
   }
 
   if (labelGatedMatchedPaths.length > 0) {
-    return {
-      shouldRun: false,
-      reason: 'label_required_for_high_risk_paths',
-      matchedPaths: labelGatedMatchedPaths,
-    };
+    return createPolicyDecision(
+      false,
+      'label_required_for_high_risk_paths',
+      labelGatedMatchedPaths
+    );
   }
 
-  return {
-    shouldRun: false,
-    reason: 'default_skip_non_risky_pr',
-    matchedPaths: [],
-  };
+  return createPolicyDecision(false, 'default_skip_non_risky_pr');
 }
