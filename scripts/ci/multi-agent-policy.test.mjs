@@ -107,43 +107,38 @@ test('routing authority changes trigger full multi-agent hardening', () => {
 
 test('database-sensitive changes follow the expected multi-agent hardening policy', () => {
   const cases = [
-    {
-      name: 'critical database tenant guard changes still trigger full multi-agent hardening',
-      changedFiles: ['packages/database/src/tenant-security.ts'],
-      expected: {
-        shouldRun: true,
-        reason: 'high_risk_paths',
-        matchedPaths: ['packages/database/src/tenant-security.ts'],
-      },
-    },
-    {
-      name: 'broad database product changes require explicit label before full multi-agent hardening',
-      changedFiles: ['packages/database/src/schema/claims.ts'],
-      expected: {
-        shouldRun: false,
-        reason: 'label_required_for_high_risk_paths',
-        matchedPaths: ['packages/database/src/schema/claims.ts'],
-      },
-    },
-    {
-      name: 'database migration changes require explicit label before full multi-agent hardening',
-      changedFiles: ['packages/database/drizzle/0035_enable_tenant_rls_coverage.sql'],
-      expected: {
-        shouldRun: false,
-        reason: 'label_required_for_high_risk_paths',
-        matchedPaths: ['packages/database/drizzle/0035_enable_tenant_rls_coverage.sql'],
-      },
-    },
+    [
+      'critical database tenant guard changes still trigger full multi-agent hardening',
+      'packages/database/src/tenant-security.ts',
+      true,
+      'high_risk_paths',
+    ],
+    [
+      'broad database product changes require explicit label before full multi-agent hardening',
+      'packages/database/src/schema/claims.ts',
+      false,
+      'label_required_for_high_risk_paths',
+    ],
+    [
+      'database migration changes require explicit label before full multi-agent hardening',
+      'packages/database/drizzle/0035_enable_tenant_rls_coverage.sql',
+      false,
+      'label_required_for_high_risk_paths',
+    ],
   ];
 
-  for (const { name, changedFiles, expected } of cases) {
+  for (const [name, changedFile, shouldRun, reason] of cases) {
     assert.deepEqual(
       evaluateMultiAgentPolicy({
         eventName: 'pull_request',
         labels: [],
-        changedFiles,
+        changedFiles: [changedFile],
       }),
-      expected,
+      {
+        shouldRun,
+        reason,
+        matchedPaths: [changedFile],
+      },
       name
     );
   }

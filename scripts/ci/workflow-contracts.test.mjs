@@ -93,7 +93,17 @@ test('Pilot gate fails fast on Sonar and secrets before dependency install and b
 
   assert.ok(validateSecretsIndex < setupIndex);
   assert.ok(awaitSonarIndex < setupIndex);
+  assert.ok(setupIndex < prepareDbIndex);
   assert.ok(manualSonarIndex < prepareDbIndex);
   assert.ok(awaitSonarIndex < prepareDbIndex);
   assert.ok(manualSonarIndex < buildIndex);
+});
+
+test('CI audit job runs the scripts/ci contract suite', () => {
+  const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
+  const auditJob = ciWorkflow.jobs.audit;
+  const auditRunStep = findStep(auditJob.steps, 'Run Audits');
+
+  assert.ok(auditRunStep);
+  assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
 });

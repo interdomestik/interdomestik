@@ -70,3 +70,7 @@ test('web package exposes full and PR gate lanes separately', () => {
   assert.match(prGateFast, /--project=gate-mk-contract/);
   assert.doesNotMatch(prGateFast, /--project=gate-mk-mk/);
 });
+
+test('root package exposes the scripts/ci contract suite', () => {
+  assert.equal(packageJson.scripts['test:ci:contracts'], 'node --test scripts/ci/*.test.mjs');
+});
