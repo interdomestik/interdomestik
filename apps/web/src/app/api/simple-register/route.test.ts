@@ -11,12 +11,7 @@ describe('POST /api/simple-register', () => {
         headers: {
           'content-type': 'application/json',
         },
-        body: JSON.stringify({
-          email: 'member@example.com',
-          name: 'Member Example',
-          password: 'password123',
-          role: 'admin',
-        }),
+        body: JSON.stringify({}),
       }
     );
 
