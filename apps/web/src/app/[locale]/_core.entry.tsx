@@ -10,12 +10,25 @@ import { BASE_NAMESPACES, pickMessages } from '@/i18n/messages';
 import { routing } from '@/i18n/routing';
 import '@interdomestik/ui/globals.css';
 import type { Metadata } from 'next';
+import { Inter, Space_Grotesk } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
+
+const inter = Inter({
+  subsets: ['latin', 'latin-ext', 'cyrillic'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+});
 
 export async function generateMetadata({
   params,
@@ -85,7 +98,10 @@ export default async function RootLayout({ children, params }: Props) {
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className="antialiased" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} ${spaceGrotesk.variable} antialiased`}
+        suppressHydrationWarning
+      >
         <div
           data-testid="page-ready"
           style={{

@@ -1,8 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MemberDashboardData } from '@interdomestik/domain-member';
 import { MemberDashboardV2 } from './member-dashboard-v2';
-import { vi } from 'vitest';
 
 const mockRetentionPulse = vi.fn();
 const mockResolveFunnelVariant = vi.fn((enabled: boolean) => (enabled ? 'hero_v2' : 'hero_v1'));

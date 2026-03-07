@@ -1,4 +1,7 @@
-import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
+import {
+  getCanonicalRouteForRole,
+  stripLocalePrefixFromCanonicalRoute,
+} from '@/lib/canonical-routes';
 
 type LandingSession = {
   userId?: string;
@@ -12,12 +15,13 @@ export function getStartClaimHrefForSession(params: {
   const { locale, session } = params;
 
   if (!session?.userId) {
-    return `/${locale}/register`;
+    return '/register';
   }
 
   if (session.role === 'member' || session.role === 'user') {
-    return `/${locale}/member/claims/new`;
+    return '/member/claims/new';
   }
 
-  return getCanonicalRouteForRole(session.role ?? null, locale) ?? `/${locale}/register`;
+  const canonical = getCanonicalRouteForRole(session.role ?? null, locale);
+  return stripLocalePrefixFromCanonicalRoute(canonical, locale) ?? '/register';
 }

@@ -1,3 +1,4 @@
+import { Link } from '@/i18n/routing';
 import { ArrowRight, MessageCircleMore, PhoneCall, ShieldCheck, Sparkles } from 'lucide-react';
 import { getSupportContacts } from '@/lib/support-contacts';
 
@@ -81,14 +82,14 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
                   {copy.helpNow}
                 </a>
               ) : null}
-              <a
+              <Link
                 data-testid="hero-v2-start-claim"
                 href={startClaimHref}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
               >
                 {copy.start}
                 <ArrowRight className="h-4 w-4" />
-              </a>
+              </Link>
             </div>
             <p className="text-sm font-medium text-slate-500">{copy.helpMeta}</p>
 
@@ -103,13 +104,13 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
                   {copy.whatsapp}
                 </a>
               ) : null}
-              <a
+              <Link
                 data-testid="hero-v2-invite-chip"
-                href={`/${locale}/register`}
+                href="/register"
                 className="inline-flex min-h-9 items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
               >
                 {copy.invite}
-              </a>
+              </Link>
             </div>
 
             <div
@@ -128,13 +129,13 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
                     </p>
                   </div>
                 </div>
-                <a
+                <Link
                   data-testid="hero-v2-digital-id-link"
-                  href={`/${locale}/member`}
+                  href="/member"
                   className="text-xs font-semibold text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline"
                 >
                   {copy.idLink}
-                </a>
+                </Link>
               </div>
             </div>
           </div>
