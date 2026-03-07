@@ -105,6 +105,51 @@ test('routing authority changes trigger full multi-agent hardening', () => {
   );
 });
 
+test('critical database tenant guard changes still trigger full multi-agent hardening', () => {
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'pull_request',
+      labels: [],
+      changedFiles: ['packages/database/src/tenant-security.ts'],
+    }),
+    {
+      shouldRun: true,
+      reason: 'high_risk_paths',
+      matchedPaths: ['packages/database/src/tenant-security.ts'],
+    }
+  );
+});
+
+test('broad database product changes require explicit label before full multi-agent hardening', () => {
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'pull_request',
+      labels: [],
+      changedFiles: ['packages/database/src/schema/claims.ts'],
+    }),
+    {
+      shouldRun: false,
+      reason: 'label_required_for_high_risk_paths',
+      matchedPaths: ['packages/database/src/schema/claims.ts'],
+    }
+  );
+});
+
+test('database migration changes require explicit label before full multi-agent hardening', () => {
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'pull_request',
+      labels: [],
+      changedFiles: ['packages/database/drizzle/0035_enable_tenant_rls_coverage.sql'],
+    }),
+    {
+      shouldRun: false,
+      reason: 'label_required_for_high_risk_paths',
+      matchedPaths: ['packages/database/drizzle/0035_enable_tenant_rls_coverage.sql'],
+    }
+  );
+});
+
 test('normal product changes skip full multi-agent hardening', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({

@@ -1,15 +1,20 @@
 const HIGH_RISK_LABELS = new Set(['ci:multi-agent', 'release-hardening', 'security-hardening']);
 
-const HIGH_RISK_PATTERNS = [
+const AUTO_RUN_HIGH_RISK_PATTERNS = [
   /^scripts\/multi-agent\//,
   /^scripts\/release-gate\//,
   /^scripts\/(?:security-guard|pr-verify-hosts|m4-gatekeeper|docker-gate|sentry-seer-sweep|sonar-gate|sonar-scan(?:-lib)?)\.(?:mjs|sh)$/,
   /^apps\/web\/src\/proxy\.ts$/,
-  /^packages\/database\/drizzle\//,
-  /^packages\/database\/src\//,
+  /^packages\/database\/src\/(?:db|migrate|server|tenant|tenant-security)\.ts$/,
+  /^packages\/database\/src\/schema\/(?:auth|policies|rbac|tenants)\.ts$/,
   /^packages\/shared-auth\//,
   /^pnpm-lock\.yaml$/,
   /^turbo\.json$/,
+];
+
+const LABEL_GATED_HIGH_RISK_PATTERNS = [
+  /^packages\/database\/drizzle\//,
+  /^packages\/database\/src\//,
 ];
 
 const HIGH_RISK_PACKAGE_JSON_SCRIPT_PATTERNS = [
@@ -149,9 +154,23 @@ export function evaluateMultiAgentPolicy({
   }
 
   const normalizedChangedFiles = normalizeChangedFiles(changedFiles);
-  const matchedPaths = normalizedChangedFiles
-    .filter(filePath => filePath !== 'package.json')
-    .filter(filePath => HIGH_RISK_PATTERNS.some(pattern => pattern.test(filePath)));
+  const matchedPaths = [];
+  const labelGatedMatchedPaths = [];
+
+  for (const filePath of normalizedChangedFiles) {
+    if (filePath === 'package.json') {
+      continue;
+    }
+
+    if (AUTO_RUN_HIGH_RISK_PATTERNS.some(pattern => pattern.test(filePath))) {
+      matchedPaths.push(filePath);
+      continue;
+    }
+
+    if (LABEL_GATED_HIGH_RISK_PATTERNS.some(pattern => pattern.test(filePath))) {
+      labelGatedMatchedPaths.push(filePath);
+    }
+  }
 
   if (normalizedChangedFiles.includes('package.json')) {
     if (!packageJsonRisk) {
@@ -165,7 +184,15 @@ export function evaluateMultiAgentPolicy({
     return {
       shouldRun: true,
       reason: 'high_risk_paths',
-      matchedPaths,
+      matchedPaths: [...matchedPaths, ...labelGatedMatchedPaths],
+    };
+  }
+
+  if (labelGatedMatchedPaths.length > 0) {
+    return {
+      shouldRun: false,
+      reason: 'label_required_for_high_risk_paths',
+      matchedPaths: labelGatedMatchedPaths,
     };
   }
 
