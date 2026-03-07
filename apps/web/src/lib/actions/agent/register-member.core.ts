@@ -1,6 +1,6 @@
 import { sendMemberWelcomeEmail } from '@/lib/email';
-import { generateMemberNumber } from '@/server/domains/members/member-number';
 import { db } from '@interdomestik/database/db';
+import { generateMemberNumber } from '@interdomestik/database/member-number';
 import {
   account,
   agentClients,
@@ -111,7 +111,10 @@ export async function registerMemberCore(
 
       // 2. Generate and Assign Global Member Number
       // This helper handles the atomic increment and updates the user record
-      await generateMemberNumber(tx, userId, now.getFullYear());
+      await generateMemberNumber(tx, {
+        userId,
+        joinedAt: now,
+      });
 
       await tx.insert(agentClients).values({
         id: nanoid(),
