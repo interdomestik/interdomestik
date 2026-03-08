@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
 const hoisted = vi.hoisted(() => ({
+  enforceRateLimit: vi.fn(),
   getSession: vi.fn(),
   submitAiReview: vi.fn(),
 }));
@@ -14,6 +15,10 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
+vi.mock('@/lib/rate-limit', () => ({
+  enforceRateLimit: hoisted.enforceRateLimit,
+}));
+
 vi.mock('./_core', () => ({
   submitAiReview: hoisted.submitAiReview,
 }));
@@ -21,6 +26,7 @@ vi.mock('./_core', () => ({
 describe('POST /api/ai/reviews/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.enforceRateLimit.mockResolvedValue(null);
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -104,5 +110,26 @@ describe('POST /api/ai/reviews/[id]', () => {
       id: 'run-1',
       reviewStatus: 'corrected',
     });
+  });
+
+  it('returns the rate-limit response before parsing the review payload', async () => {
+    hoisted.enforceRateLimit.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const request = new Request('http://localhost:3000/api/ai/reviews/run-1', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'approve' }),
+    });
+    const response = await POST(request, { params: Promise.resolve({ id: 'run-1' }) });
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toEqual({ error: 'Too many requests' });
+    expect(hoisted.getSession).not.toHaveBeenCalled();
+    expect(hoisted.submitAiReview).not.toHaveBeenCalled();
   });
 });

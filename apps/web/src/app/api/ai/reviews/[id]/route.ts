@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { isStaffOrHigher } from '@interdomestik/shared-auth';
 import { NextResponse } from 'next/server';
 import { submitAiReview } from './_core';
@@ -14,6 +15,14 @@ function isReviewAction(value: unknown): value is ReviewAction {
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const limited = await enforceRateLimit({
+    name: 'api/ai/reviews:post',
+    limit: 15,
+    windowSeconds: 60,
+    headers: request.headers,
+  });
+  if (limited) return limited;
+
   const session = await auth.api.getSession({ headers: request.headers });
 
   if (!session) {

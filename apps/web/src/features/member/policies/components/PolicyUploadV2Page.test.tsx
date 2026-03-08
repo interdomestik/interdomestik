@@ -133,5 +133,11 @@ describe('PolicyUploadV2Page', () => {
     expect(hoisted.fetch).toHaveBeenNthCalledWith(3, '/api/ai/runs/run-1', expect.any(Object));
     expect(screen.getByText('Needs Review')).toBeInTheDocument();
     expect(screen.getByText('Confirm deductible')).toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(6000);
+    });
+
+    expect(hoisted.fetch).toHaveBeenCalledTimes(3);
   });
 });

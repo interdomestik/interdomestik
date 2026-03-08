@@ -97,7 +97,8 @@ export async function submitAiReview(args: {
       .where(
         and(
           eq(documentExtractions.sourceRunId, args.runId),
-          eq(documentExtractions.reviewStatus, existingRun.extractionReviewStatus ?? 'pending')
+          eq(documentExtractions.reviewStatus, existingRun.extractionReviewStatus ?? 'pending'),
+          eq(documentExtractions.tenantId, args.tenantId)
         )
       );
 
@@ -113,7 +114,7 @@ export async function submitAiReview(args: {
               : null,
           analysisJson: correctedExtraction,
         })
-        .where(eq(policies.id, existingRun.entityId));
+        .where(and(eq(policies.id, existingRun.entityId), eq(policies.tenantId, args.tenantId)));
     }
   });
 

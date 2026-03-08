@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { enforceRateLimit } from '@/lib/rate-limit';
 import { getAiRun } from '@interdomestik/domain-ai';
 import { isStaffOrHigher } from '@interdomestik/shared-auth';
 import { NextResponse } from 'next/server';
@@ -8,6 +9,14 @@ function isPrivilegedRole(role: string | null | undefined) {
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const limited = await enforceRateLimit({
+    name: 'api/ai/runs:get',
+    limit: 60,
+    windowSeconds: 60,
+    headers: request.headers,
+  });
+  if (limited) return limited;
+
   const session = await auth.api.getSession({ headers: request.headers });
 
   if (!session) {

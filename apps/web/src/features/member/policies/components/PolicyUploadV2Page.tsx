@@ -177,6 +177,9 @@ export function PolicyUploadV2Page() {
     if (!runId) {
       return;
     }
+    if (isTerminalWorkflowState(queuedRun?.workflowState)) {
+      return;
+    }
 
     const refreshCurrentRun = () => {
       refreshQueuedRun(runId).catch(error => {
@@ -190,7 +193,7 @@ export function PolicyUploadV2Page() {
     return () => {
       globalThis.clearInterval(intervalId);
     };
-  }, [queuedRun?.runId, refreshQueuedRun]);
+  }, [queuedRun?.runId, queuedRun?.workflowState, refreshQueuedRun]);
 
   const handleAnalyze = async () => {
     if (!file) return;
@@ -287,8 +290,8 @@ export function PolicyUploadV2Page() {
               <div className="rounded-md border bg-background px-3 py-3 text-sm">
                 <p className="font-medium">Warnings</p>
                 <ul className="mt-2 list-disc pl-5 text-muted-foreground">
-                  {queuedRun.warnings.map(warning => (
-                    <li key={warning}>{warning}</li>
+                  {queuedRun.warnings.map((warning, index) => (
+                    <li key={`${index}-${warning}`}>{warning}</li>
                   ))}
                 </ul>
               </div>

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
 
 const hoisted = vi.hoisted(() => ({
+  enforceRateLimit: vi.fn(),
   getAiRun: vi.fn(),
   getSession: vi.fn(),
 }));
@@ -14,6 +15,10 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
+vi.mock('@/lib/rate-limit', () => ({
+  enforceRateLimit: hoisted.enforceRateLimit,
+}));
+
 vi.mock('@interdomestik/domain-ai', () => ({
   getAiRun: hoisted.getAiRun,
 }));
@@ -21,6 +26,7 @@ vi.mock('@interdomestik/domain-ai', () => ({
 describe('GET /api/ai/runs/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.enforceRateLimit.mockResolvedValue(null);
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -110,5 +116,21 @@ describe('GET /api/ai/runs/[id]', () => {
       errorCode: null,
       errorMessage: null,
     });
+  });
+
+  it('returns the rate-limit response when polling exceeds the limit', async () => {
+    hoisted.enforceRateLimit.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const request = new Request('http://localhost:3000/api/ai/runs/run-1');
+    const response = await GET(request, { params: Promise.resolve({ id: 'run-1' }) });
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toEqual({ error: 'Too many requests' });
+    expect(hoisted.getSession).not.toHaveBeenCalled();
   });
 });
