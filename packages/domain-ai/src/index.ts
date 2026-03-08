@@ -1,5 +1,6 @@
 export * from './client';
 export * from './models';
+export * from './read-models/get-run';
 export * from './types';
 export * from './schemas/claim-intake-extract';
 export * from './schemas/claim-summary';

@@ -17,9 +17,9 @@ status_command: pnpm plan:status
 
 `v0.1.0` production rebaseline is active.
 
-The release-convergence slice `V01` through `V05` is complete. The current program has now also completed two measured AI runway slices, `AI01` and `AI02`, without reopening routing, auth, tenancy, or request-path risk.
+The release-convergence slice `V01` through `V05` is complete. The current program has now also completed three measured AI runway slices, `AI01`, `AI02`, and `AI03`, without reopening routing, auth, tenancy, or request-path risk.
 
-`AI03` is now promoted as the active background AI runway slice. Its scope is limited to moving policy extraction off the request path into a durable Inngest workflow while preserving the current routing, auth, tenancy, and read-model boundaries.
+`AI04` is now promoted as the active AI runway slice. Its scope is limited to exposing tenant-scoped AI run status and human-review surfaces while preserving the current routing, auth, tenancy, and background workflow boundaries established by `AI03`.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -28,8 +28,9 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
 2. Keep the completed AI runway boundary slice reversible and off the request path.
 3. Keep `AI02` complete as the canonical provenance persistence layer for durable AI runs.
-4. Land `AI03` only as queued policy extraction and background execution wiring, with no routing, auth, or tenancy refactors.
-5. Preserve the broader GPT-5.4 runway as input without letting it widen the active `v0.1.0` scope beyond `AI03`.
+4. Keep `AI03` complete as the canonical queued policy extraction and background execution slice.
+5. Land `AI04` only as run-status and human-review surfaces on top of the existing provenance and workflow layers, with no routing, auth, or tenancy refactors.
+6. Preserve the broader GPT-5.4 runway as input without letting it widen the active `v0.1.0` scope beyond `AI04`.
 
 ## Status Command
 
@@ -58,9 +59,9 @@ pnpm plan:proof
 
 ## Next Committed Priority
 
-`AI03` Move policy extraction to the Inngest background workflow.
+`AI04` Expose AI run status and human review surfaces.
 
-Exit criteria: `/api/policies/analyze` uploads the document, creates a queued `ai_run`, emits `policy/extract.requested`, and Inngest completes the extraction by updating `document_extractions` and the policy read model without keeping AI on the request path.
+Exit criteria: authenticated tenant-scoped APIs expose AI run workflow status and human review actions, and the member policy upload flow reflects queued, processing, completed, needs-review, and failed states without reopening synchronous AI request-path work.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -87,8 +88,9 @@ These documents can recommend or constrain work, but they do not define the live
 
 - `AI01` was copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is now complete.
 - `AI02` was copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is now complete as the provenance slice.
-- `AI03` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` as the active workflow slice.
-- `AI04` through `AI06` remain supporting input until they are separately copied into `current-program.md` and `current-tracker.md`.
+- `AI03` was copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is now complete as the workflow slice.
+- `AI04` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` as the active status-and-review slice.
+- `AI05` and `AI06` remain supporting input until they are separately copied into `current-program.md` and `current-tracker.md`.
 
 ## Historical Foundation, Not Current Sequencing
 

@@ -35,6 +35,7 @@
     "@interdomestik/domain-activities": "workspace:*",
     "@interdomestik/domain-analytics": "workspace:*",
     "@interdomestik/domain-agent": "workspace:*",
+    "@interdomestik/domain-ai": "workspace:*",
     "@interdomestik/domain-claims": "workspace:*",
     "@interdomestik/domain-communications": "workspace:*",
     "@interdomestik/domain-country-guidance": "workspace:*",

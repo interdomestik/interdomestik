@@ -10,6 +10,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@interdomestik/ui': path.resolve(__dirname, '../../packages/ui/src'),
       '@interdomestik/database': path.resolve(__dirname, '../../packages/database/src'),
+      '@interdomestik/domain-ai': path.resolve(__dirname, '../../packages/domain-ai/src'),
       'server-only': path.resolve(__dirname, './src/test/__mocks__/server-only.ts'),
     },
   },
