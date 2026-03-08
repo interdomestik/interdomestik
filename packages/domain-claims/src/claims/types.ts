@@ -1,3 +1,5 @@
+import type { QueuedClaimAiRun } from './ai-workflows';
+
 export type ClaimsSession = {
   user: {
     id: string;
@@ -38,6 +40,8 @@ export type ClaimsDeps = {
     claim: { id: string; title: string },
     agentName: string
   ) => unknown;
+  dispatchClaimAiRun?: (queuedRun: QueuedClaimAiRun) => Promise<void> | void;
+  markClaimAiRunDispatchFailed?: (args: { runId: string; message: string }) => Promise<void> | void;
   revalidatePath?: (path: string) => Promise<void> | void;
 };
 

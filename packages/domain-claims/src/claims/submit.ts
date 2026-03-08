@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
+import { queueClaimDocumentAiWorkflows, type QueuedClaimAiRun } from './ai-workflows';
 import { buildClaimDocumentRows } from './documents';
 import type { ClaimsDeps, ClaimsSession } from './types';
 
@@ -26,6 +27,187 @@ export class ClaimValidationError extends Error {
   }
 }
 
+type ClaimAssignmentContext = {
+  subscription: Awaited<ReturnType<typeof getActiveSubscription>>;
+  branchId: string | null;
+  agentId: string | null;
+};
+
+function resolveDefaultBranchId(value: unknown): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalizedValue = value as { branchId?: string } | string;
+  if (typeof normalizedValue === 'string') {
+    return normalizedValue;
+  }
+
+  return normalizedValue.branchId ?? null;
+}
+
+async function loadClaimAssignmentContext(
+  userId: string,
+  tenantId: string
+): Promise<ClaimAssignmentContext> {
+  const subscription = await getActiveSubscription(userId, tenantId);
+  const defaultBranchSetting = await db.query.tenantSettings.findFirst({
+    where: and(
+      eq(tenantSettings.tenantId, tenantId),
+      eq(tenantSettings.category, 'rbac'),
+      eq(tenantSettings.key, 'default_branch_id')
+    ),
+  });
+
+  return {
+    subscription,
+    branchId: subscription?.branchId ?? resolveDefaultBranchId(defaultBranchSetting?.value),
+    agentId: subscription?.agentId ?? null,
+  };
+}
+
+async function persistSubmittedClaim(args: {
+  claimId: string;
+  tenantId: string;
+  userId: string;
+  branchId: string | null;
+  agentId: string | null;
+  data: CreateClaimValues;
+}): Promise<QueuedClaimAiRun[]> {
+  const { title, description, category, companyName, claimAmount, currency, incidentDate, files } =
+    args.data;
+  let queuedRuns: QueuedClaimAiRun[] = [];
+
+  await db.transaction(async tx => {
+    await tx.insert(claims).values({
+      id: args.claimId,
+      tenantId: args.tenantId,
+      userId: args.userId,
+      branchId: args.branchId,
+      agentId: args.agentId,
+      title,
+      description: description || undefined,
+      category,
+      companyName,
+      claimAmount: claimAmount || undefined,
+      currency: currency || 'EUR',
+      status: 'submitted',
+    });
+
+    if (!files?.length) {
+      return;
+    }
+
+    const documentRows = buildClaimDocumentRows({
+      claimId: args.claimId,
+      uploadedBy: args.userId,
+      files,
+      tenantId: args.tenantId,
+    });
+
+    await tx.insert(claimDocuments).values(documentRows);
+
+    queuedRuns = await queueClaimDocumentAiWorkflows({
+      tx,
+      claimId: args.claimId,
+      tenantId: args.tenantId,
+      userId: args.userId,
+      files: documentRows.map(documentRow => ({
+        documentId: documentRow.id,
+        name: documentRow.name,
+        path: documentRow.filePath,
+        type: documentRow.fileType,
+        size: documentRow.fileSize,
+        bucket: documentRow.bucket,
+        category: documentRow.category,
+      })),
+      claimSnapshot: {
+        title,
+        description,
+        category,
+        companyName,
+        claimAmount,
+        currency,
+        incidentDate,
+      },
+    });
+  });
+
+  return queuedRuns;
+}
+
+async function logClaimSubmittedAudit(args: {
+  deps: ClaimsDeps;
+  session: ClaimsSession;
+  tenantId: string;
+  requestHeaders: Headers;
+  claimId: string;
+  data: CreateClaimValues;
+}) {
+  if (!args.deps.logAuditEvent) {
+    return;
+  }
+
+  await args.deps.logAuditEvent({
+    actorId: args.session.user.id,
+    actorRole: args.session.user.role,
+    tenantId: args.tenantId,
+    action: 'claim.submitted',
+    entityType: 'claim',
+    entityId: args.claimId,
+    metadata: {
+      status: 'submitted',
+      category: args.data.category,
+      companyName: args.data.companyName,
+      claimAmount: args.data.claimAmount || null,
+      documents: args.data.files?.length || 0,
+    },
+    headers: args.requestHeaders,
+  });
+}
+
+async function dispatchQueuedClaimAiRuns(
+  queuedRuns: QueuedClaimAiRun[],
+  deps: ClaimsDeps
+): Promise<void> {
+  if (!deps.dispatchClaimAiRun) {
+    return;
+  }
+
+  for (const queuedRun of queuedRuns) {
+    try {
+      await deps.dispatchClaimAiRun(queuedRun);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to dispatch claim AI run.';
+      if (deps.markClaimAiRunDispatchFailed) {
+        await deps.markClaimAiRunDispatchFailed({
+          runId: queuedRun.runId,
+          message,
+        });
+      }
+    }
+  }
+}
+
+function notifyClaimSubmitted(args: {
+  deps: ClaimsDeps;
+  session: ClaimsSession;
+  claimId: string;
+  data: CreateClaimValues;
+}) {
+  if (!args.deps.notifyClaimSubmitted) {
+    return;
+  }
+
+  Promise.resolve(
+    args.deps.notifyClaimSubmitted(args.session.user.id, args.session.user.email || '', {
+      id: args.claimId,
+      title: args.data.title,
+      category: args.data.category,
+    })
+  ).catch((err: Error) => console.error('Failed to send claim submitted notification:', err));
+}
+
 export async function submitClaimCore(
   params: {
     session: ClaimsSession | null;
@@ -41,38 +223,9 @@ export async function submitClaimCore(
   }
 
   const tenantId = ensureTenantId(session);
+  const assignment = await loadClaimAssignmentContext(session.user.id, tenantId);
 
-  // Task A: Fix Claims Attribution
-  // 1. Fetch active subscription to get user's assigned branch/agent
-  const subscription = await getActiveSubscription(session.user.id, tenantId);
-
-  // 2. Fetch tenant default branch as fallback
-  // Logic: query tenant_settings for category='rbac', key='default_branch_id'
-  const defaultBranchSetting = await db.query.tenantSettings.findFirst({
-    where: and(
-      eq(tenantSettings.tenantId, tenantId),
-      eq(tenantSettings.category, 'rbac'),
-      eq(tenantSettings.key, 'default_branch_id')
-    ),
-  });
-
-  // 3. Determine final branchId/agentId
-  // Priority: Subscription > Default > null (should not happen if configured correctly)
-  let branchId = subscription?.branchId ?? null;
-  const agentId = subscription?.agentId ?? null;
-
-  if (!branchId && defaultBranchSetting?.value) {
-    // strict cast as we know the shape of value provided it's set correctly
-    const val = defaultBranchSetting.value as { branchId?: string } | string;
-    if (typeof val === 'string') {
-      branchId = val;
-    } else if (typeof val === 'object' && val.branchId) {
-      branchId = val.branchId;
-    }
-  }
-
-  // 4. Enforce Access: User must have an active subscription OR be in a grace period allowed by getActiveSubscription
-  if (!subscription) {
+  if (!assignment.subscription) {
     throw new ClaimValidationError('Membership required to file a claim.', 'MEMBERSHIP_REQUIRED');
   }
 
@@ -82,74 +235,38 @@ export async function submitClaimCore(
     throw new ClaimValidationError('Validation failed', 'INVALID_PAYLOAD');
   }
 
-  const { title, description, category, companyName, claimAmount, currency, files } = result.data;
-
   // Security: Validate ALL files before creating ANY database records
-  validateClaimFiles(files, session, tenantId);
+  validateClaimFiles(result.data.files, session, tenantId);
 
   const claimId = nanoid();
+  let queuedRuns: QueuedClaimAiRun[];
 
   try {
-    await db.transaction(async tx => {
-      await tx.insert(claims).values({
-        id: claimId,
-        tenantId,
-        userId: session.user.id,
-        branchId, // Added: derived from sub or default
-        agentId, // Added: derived from sub
-        title,
-        description: description || undefined,
-        category,
-        companyName,
-        claimAmount: claimAmount || undefined,
-        currency: currency || 'EUR',
-        status: 'submitted',
-      });
-
-      if (files?.length) {
-        const documentRows = buildClaimDocumentRows({
-          claimId,
-          uploadedBy: session.user.id,
-          files,
-          tenantId,
-        });
-
-        await tx.insert(claimDocuments).values(documentRows);
-      }
+    queuedRuns = await persistSubmittedClaim({
+      claimId,
+      tenantId,
+      userId: session.user.id,
+      branchId: assignment.branchId,
+      agentId: assignment.agentId,
+      data: result.data,
     });
 
-    if (deps.logAuditEvent) {
-      await deps.logAuditEvent({
-        actorId: session.user.id,
-        actorRole: session.user.role,
-        tenantId,
-        action: 'claim.submitted',
-        entityType: 'claim',
-        entityId: claimId,
-        metadata: {
-          status: 'submitted',
-          category,
-          companyName,
-          claimAmount: claimAmount || null,
-          documents: files?.length || 0,
-        },
-        headers: requestHeaders,
-      });
-    }
+    await logClaimSubmittedAudit({
+      deps,
+      session,
+      tenantId,
+      requestHeaders,
+      claimId,
+      data: result.data,
+    });
   } catch (error) {
     console.error('Failed to create claim:', error);
     throw new Error('Failed to create claim. Please try again.');
   }
 
-  if (deps.notifyClaimSubmitted) {
-    Promise.resolve(
-      deps.notifyClaimSubmitted(session.user.id, session.user.email || '', {
-        id: claimId,
-        title,
-        category,
-      })
-    ).catch((err: Error) => console.error('Failed to send claim submitted notification:', err));
-  }
+  await dispatchQueuedClaimAiRuns(queuedRuns, deps);
+
+  notifyClaimSubmitted({ deps, session, claimId, data: result.data });
 
   if (deps.revalidatePath) {
     await deps.revalidatePath('/member/claims');

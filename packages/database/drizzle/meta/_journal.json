@@ -274,6 +274,13 @@
       "when": 1772967880178,
       "tag": "0038_add_policy_document_entity",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1773002400000,
+      "tag": "0039_add_legal_claim_document_category",
+      "breakpoints": true
     }
   ]
 }

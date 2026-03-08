@@ -134,6 +134,7 @@ export function WizardStepEvidence() {
         size: file.size,
         bucket: upload.bucket,
         classification: payload.classification || 'pii',
+        category: 'evidence',
       };
 
       const currentFiles = form.getValues('files') ?? [];

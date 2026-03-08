@@ -518,6 +518,9 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../database
+      '@interdomestik/domain-ai':
+        specifier: workspace:*
+        version: link:../domain-ai
       '@interdomestik/domain-membership-billing':
         specifier: workspace:*
         version: link:../domain-membership-billing

@@ -1,8 +1,13 @@
 'use server';
 
+import {
+  emitClaimAiRunRequestedService,
+  markClaimAiRunDispatchFailedService,
+} from '@/lib/ai/claim-workflows';
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { claimDocuments, claims, db } from '@interdomestik/database';
+import { queueClaimDocumentAiWorkflows } from '@interdomestik/domain-claims/claims/ai-workflows';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
@@ -155,15 +160,27 @@ export type ConfirmUploadResult =
   | { success: true }
   | { success: false; error: string; status: 401 | 404 | 409 | 500 };
 
-export async function confirmUpload(
-  claimId: string,
-  storagePath: string,
-  originalName: string,
-  mimeType: string,
-  fileSize: number,
-  fileId: string, // The pre-generated ID
-  uploadedBucket?: string
-): Promise<ConfirmUploadResult> {
+export type ConfirmUploadParams = {
+  claimId: string;
+  storagePath: string;
+  originalName: string;
+  mimeType: string;
+  fileSize: number;
+  fileId: string;
+  uploadedBucket?: string;
+  category?: 'evidence' | 'legal';
+};
+
+export async function confirmUpload({
+  claimId,
+  storagePath,
+  originalName,
+  mimeType,
+  fileSize,
+  fileId,
+  uploadedBucket,
+  category = 'evidence',
+}: ConfirmUploadParams): Promise<ConfirmUploadResult> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -212,18 +229,49 @@ export async function confirmUpload(
       };
     }
 
-    await db.insert(claimDocuments).values({
-      id: fileId,
-      tenantId: tenantId,
-      claimId,
-      name: originalName,
-      filePath: storagePath,
-      fileType: mimeType,
-      fileSize,
-      bucket: resolvedBucket,
-      category: 'evidence',
-      uploadedBy: session.user.id,
+    const queuedRuns = await db.transaction(async tx => {
+      await tx.insert(claimDocuments).values({
+        id: fileId,
+        tenantId: tenantId,
+        claimId,
+        name: originalName,
+        filePath: storagePath,
+        fileType: mimeType,
+        fileSize,
+        bucket: resolvedBucket,
+        category,
+        uploadedBy: session.user.id,
+      });
+
+      return queueClaimDocumentAiWorkflows({
+        tx,
+        claimId,
+        tenantId,
+        userId: session.user.id,
+        files: [
+          {
+            documentId: fileId,
+            name: originalName,
+            path: storagePath,
+            type: mimeType,
+            size: fileSize,
+            bucket: resolvedBucket,
+            category,
+          },
+        ],
+      });
     });
+
+    for (const queuedRun of queuedRuns) {
+      try {
+        await emitClaimAiRunRequestedService(queuedRun);
+      } catch (error) {
+        await markClaimAiRunDispatchFailedService({
+          runId: queuedRun.runId,
+          message: error instanceof Error ? error.message : 'Failed to dispatch claim AI run.',
+        });
+      }
+    }
 
     revalidatePath(`/[locale]/(app)/member/claims/${claimId}`);
     return { success: true };

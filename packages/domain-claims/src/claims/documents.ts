@@ -7,6 +7,7 @@ type ClaimFileInput = {
   size: number;
   bucket: string;
   classification?: string;
+  category?: 'evidence' | 'legal';
 };
 
 export function buildClaimDocumentRows(params: {
@@ -27,7 +28,7 @@ export function buildClaimDocumentRows(params: {
     fileSize: file.size,
     bucket: file.bucket,
     classification: file.classification || 'pii',
-    category: 'evidence' as const,
+    category: file.category || ('evidence' as const),
     uploadedBy,
   }));
 }

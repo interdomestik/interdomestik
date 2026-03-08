@@ -170,6 +170,7 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
           size: 1024,
           bucket: 'claim-evidence',
           classification: 'pii',
+          category: 'evidence',
         },
       ],
     },

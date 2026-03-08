@@ -14,7 +14,11 @@ const hoisted = vi.hoisted(() => {
     storageFrom: vi.fn(),
     insertValues: vi.fn(),
     insert: vi.fn(),
+    transaction: vi.fn(),
     revalidatePath: vi.fn(),
+    queueClaimDocumentAiWorkflows: vi.fn(),
+    emitClaimAiRunRequestedService: vi.fn(),
+    markClaimAiRunDispatchFailedService: vi.fn(),
     and,
     eq,
   };
@@ -48,6 +52,7 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
     insert: hoisted.insert,
+    transaction: hoisted.transaction,
   },
   claims: {
     id: 'claims.id',
@@ -55,6 +60,15 @@ vi.mock('@interdomestik/database', () => ({
     userId: 'claims.user_id',
   },
   claimDocuments: 'claim_documents',
+}));
+
+vi.mock('@interdomestik/domain-claims/claims/ai-workflows', () => ({
+  queueClaimDocumentAiWorkflows: hoisted.queueClaimDocumentAiWorkflows,
+}));
+
+vi.mock('@/lib/ai/claim-workflows', () => ({
+  emitClaimAiRunRequestedService: hoisted.emitClaimAiRunRequestedService,
+  markClaimAiRunDispatchFailedService: hoisted.markClaimAiRunDispatchFailedService,
 }));
 
 vi.mock('drizzle-orm', () => ({
@@ -97,7 +111,20 @@ describe('member claim upload actions', () => {
     hoisted.insert.mockReturnValue({
       values: hoisted.insertValues,
     });
+    hoisted.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) =>
+      callback({
+        insert: hoisted.insert,
+      })
+    );
     hoisted.insertValues.mockResolvedValue(undefined);
+    hoisted.queueClaimDocumentAiWorkflows.mockResolvedValue([
+      {
+        runId: 'run-1',
+        workflow: 'legal_doc_extract',
+        claimId: 'claim-1',
+        documentId: 'uuid-1',
+      },
+    ]);
 
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://supabase.example.com');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
@@ -189,15 +216,15 @@ describe('member claim upload actions', () => {
   it('denies confirmUpload when claim is not owned by the member', async () => {
     hoisted.findClaimFirst.mockResolvedValue(null);
 
-    const result = await confirmUpload(
-      'claim-1',
-      'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
-      'evidence.pdf',
-      'application/pdf',
-      1024,
-      'uuid-1',
-      'claim-evidence'
-    );
+    const result = await confirmUpload({
+      claimId: 'claim-1',
+      storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
+      originalName: 'evidence.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 1024,
+      fileId: 'uuid-1',
+      uploadedBucket: 'claim-evidence',
+    });
 
     expect(result).toEqual({ success: false, error: 'Claim not found', status: 404 });
     expect(hoisted.insert).not.toHaveBeenCalled();
@@ -209,5 +236,42 @@ describe('member claim upload actions', () => {
         ]),
       }),
     });
+  });
+
+  it('queues a legal-document ai run after confirming the upload metadata', async () => {
+    const result = await confirmUpload({
+      claimId: 'claim-1',
+      storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
+      originalName: 'demand-letter.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 1024,
+      fileId: 'uuid-1',
+      uploadedBucket: 'claim-evidence',
+      category: 'legal',
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.transaction).toHaveBeenCalledOnce();
+    expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');
+    expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimId: 'claim-1',
+        tenantId: 'tenant-1',
+        userId: 'member-1',
+        files: [
+          expect.objectContaining({
+            documentId: 'uuid-1',
+            category: 'legal',
+            name: 'demand-letter.pdf',
+          }),
+        ],
+      })
+    );
+    expect(hoisted.emitClaimAiRunRequestedService).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runId: 'run-1',
+        workflow: 'legal_doc_extract',
+      })
+    );
   });
 });
