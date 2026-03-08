@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-03-07
+last_reviewed: 2026-03-08
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -17,14 +17,16 @@ status_command: pnpm plan:status
 
 `v0.1.0` production rebaseline is active.
 
-The release-convergence slice `V01` through `V05` is complete. The current program now holds those gains in place while opening one measured AI runway slice that does not reopen routing, auth, tenancy, or request-path risk.
+The release-convergence slice `V01` through `V05` is complete. The current program has now also completed one measured AI runway slice, `AI01`, without reopening routing, auth, tenancy, or request-path risk.
+
+No additional AI slice is currently promoted into the live program.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
 
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
-2. Start the AI runway with one reversible, typed boundary slice that stays off the request path.
+2. Keep the completed AI runway boundary slice reversible and off the request path.
 3. Keep routing, auth, tenancy, and customer-facing decision flows unchanged unless they are explicitly re-promoted.
 4. Preserve the broader GPT-5.4 runway as input without letting it widen the active `v0.1.0` scope.
 
@@ -55,8 +57,9 @@ pnpm plan:proof
 
 ## Next Committed Priority
 
-1. `AI01` Create the typed `domain-ai` boundary and schema contracts.
-   Exit criteria: `packages/domain-ai` exists with a client boundary, model-profile map, and typed extraction/summary schemas whose tests prove valid output is accepted and malformed output is rejected.
+No new priority is promoted as of 2026-03-08.
+
+`AI01` is complete. `AI02` through `AI06` remain supporting input until they are separately copied into `current-program.md` and `current-tracker.md`.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -81,7 +84,7 @@ These documents can recommend or constrain work, but they do not define the live
 
 ## Promotion Note
 
-- `AI01` is copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md`.
+- `AI01` was copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is now complete.
 - `AI02` through `AI06` remain supporting input until they are separately copied into `current-program.md` and `current-tracker.md`.
 
 ## Historical Foundation, Not Current Sequencing
