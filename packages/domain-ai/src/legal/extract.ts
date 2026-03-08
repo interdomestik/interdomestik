@@ -1,22 +1,43 @@
 import { legalDocExtractSchema, type LegalDocExtract } from '../schemas/legal-doc-extract';
+import { extractFirstIsoLikeDate, normalizeText, toIsoDate } from '../shared/text';
 
-function normalizeText(value: string | null | undefined) {
-  return (value ?? '').replaceAll(/\s+/g, ' ').trim();
-}
+function extractAfterLabel(
+  text: string,
+  labels: string[],
+  stopTokens: string[],
+  keepCapitalizedOnly = false
+) {
+  const normalized = normalizeText(text);
+  const normalizedLower = normalized.toLowerCase();
 
-function toIsoDate(value: Date | string | null | undefined) {
-  if (!value) return null;
+  for (const label of labels) {
+    const labelIndex = normalizedLower.indexOf(label);
+    if (labelIndex < 0) {
+      continue;
+    }
 
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return value;
+    const start = labelIndex + label.length;
+    let end = normalized.length;
+
+    for (const stopToken of stopTokens) {
+      const stopIndex = normalizedLower.indexOf(stopToken, start);
+      if (stopIndex >= 0 && stopIndex < end) {
+        end = stopIndex;
+      }
+    }
+
+    const candidate = normalizeText(normalized.slice(start, end));
+    if (!candidate) {
+      continue;
+    }
+    if (keepCapitalizedOnly && !/^[A-Z]/.test(candidate)) {
+      continue;
+    }
+
+    return candidate.replace(/[.,]$/u, '').trim();
   }
 
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return date.toISOString().slice(0, 10);
+  return '';
 }
 
 function detectDocumentType(text: string, fileName: string): LegalDocExtract['documentType'] {
@@ -31,28 +52,38 @@ function detectDocumentType(text: string, fileName: string): LegalDocExtract['do
 }
 
 function extractIssuer(text: string) {
-  const match =
-    text.match(/\bissued by\s+([^.,]+?)(?:\s+in\s+|\s+on\s+|[.,])/i) ??
-    text.match(/\bfrom\s+([^.,]+?)(?:\s+in\s+|\s+on\s+|[.,])/i);
-  return normalizeText(match?.[1]);
+  return extractAfterLabel(text, ['issued by ', 'from '], [' in ', ' on ', '.', ',']);
 }
 
 function extractJurisdiction(text: string) {
-  const match =
-    text.match(/\bin\s+([A-Z][A-Za-z ]+?)(?:\s+on\s+|[.,])/i) ??
-    text.match(/\bjurisdiction[:=-]?\s*([A-Z][A-Za-z ]+?)(?:[.,]|$)/i);
-  return normalizeText(match?.[1]);
+  return (
+    extractAfterLabel(text, ['jurisdiction:', 'jurisdiction=', 'jurisdiction-'], ['.', ',']) ||
+    extractAfterLabel(text, ['in '], [' on ', '.', ','], true)
+  );
 }
 
 function extractEffectiveDate(text: string) {
-  const match = text.match(/\b(20\d{2})[-/](\d{2})[-/](\d{2})\b/);
-  if (!match) return null;
-  return `${match[1]}-${match[2]}-${match[3]}`;
+  return extractFirstIsoLikeDate(text);
 }
 
 function extractObligations(text: string) {
-  const matches = text.match(/\b(?:must|shall)\s+[^.]+/gi) ?? [];
-  return matches.map(match => normalizeText(match));
+  return text
+    .split('.')
+    .map(sentence => normalizeText(sentence))
+    .flatMap(sentence => {
+      const normalizedLower = sentence.toLowerCase();
+      for (const marker of [' must ', ' shall ', 'must ', 'shall ']) {
+        const markerIndex = normalizedLower.indexOf(marker);
+        if (markerIndex < 0) {
+          continue;
+        }
+
+        const obligation = normalizeText(sentence.slice(markerIndex).replace(/^you\s+/i, ''));
+        return obligation ? [obligation] : [];
+      }
+
+      return [];
+    });
 }
 
 export async function extractLegalDocument(args: {
@@ -75,8 +106,9 @@ export async function extractLegalDocument(args: {
     warnings.push('Jurisdiction could not be extracted from the uploaded legal document.');
   }
 
-  const effectiveDate = extractEffectiveDate(text) ?? toIsoDate(args.uploadedAt) ?? '1970-01-01';
-  if (!extractEffectiveDate(text)) {
+  const extractedEffectiveDate = extractEffectiveDate(text);
+  const effectiveDate = extractedEffectiveDate ?? toIsoDate(args.uploadedAt) ?? '1970-01-01';
+  if (!extractedEffectiveDate) {
     warnings.push(
       'Effective date was inferred from upload timing because the document text was sparse.'
     );

@@ -107,6 +107,48 @@ import {
   processClaimDocumentWorkflowRunService,
 } from './claim-workflows';
 
+function buildQueuedRun(
+  overrides: Partial<{
+    workflow: 'claim_intake_extract' | 'legal_doc_extract';
+    documentId: string;
+    storagePath: string;
+    fileName: string;
+    requestJson: Record<string, unknown>;
+  }> = {}
+) {
+  return {
+    runId: 'run-1',
+    tenantId: 'tenant-1',
+    workflow: 'claim_intake_extract' as const,
+    documentId: 'doc-1',
+    claimId: 'claim-1',
+    storagePath: 'pii/tenants/tenant-1/claims/claim-1/evidence.pdf',
+    fileName: 'evidence.pdf',
+    mimeType: 'application/pdf',
+    uploadedAt: new Date('2026-03-08T10:00:00.000Z'),
+    status: 'queued',
+    requestJson: {
+      claimSnapshot: {
+        incidentDate: '2026-02-15',
+      },
+    },
+    claimTitle: 'Flight delay claim',
+    claimDescription: 'Delay overnight.',
+    claimCategory: 'travel',
+    claimCompanyName: 'Airline Co',
+    claimAmount: '650.00',
+    claimCurrency: 'EUR',
+    ...overrides,
+  };
+}
+
+function buildProcessingDeps(analyzePdfResult: string) {
+  return {
+    downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
+    analyzePdf: vi.fn().mockResolvedValue(analyzePdfResult),
+  };
+}
+
 describe('emitClaimAiRunRequestedService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -158,31 +200,7 @@ describe('processClaimDocumentWorkflowRunService', () => {
   });
 
   it('processes a queued claim-intake run and persists a document extraction', async () => {
-    mocks.selectWhere.mockResolvedValue([
-      {
-        runId: 'run-1',
-        tenantId: 'tenant-1',
-        workflow: 'claim_intake_extract',
-        documentId: 'doc-1',
-        claimId: 'claim-1',
-        storagePath: 'pii/tenants/tenant-1/claims/claim-1/evidence.pdf',
-        fileName: 'evidence.pdf',
-        mimeType: 'application/pdf',
-        uploadedAt: new Date('2026-03-08T10:00:00.000Z'),
-        status: 'queued',
-        requestJson: {
-          claimSnapshot: {
-            incidentDate: '2026-02-15',
-          },
-        },
-        claimTitle: 'Flight delay claim',
-        claimDescription: 'Delay overnight.',
-        claimCategory: 'travel',
-        claimCompanyName: 'Airline Co',
-        claimAmount: '650.00',
-        claimCurrency: 'EUR',
-      },
-    ]);
+    mocks.selectWhere.mockResolvedValue([buildQueuedRun()]);
     mocks.extractClaimIntake.mockResolvedValue({
       title: 'Flight delay claim',
       summary: 'Extracted from claim context.',
@@ -197,10 +215,7 @@ describe('processClaimDocumentWorkflowRunService', () => {
 
     const result = await processClaimDocumentWorkflowRunService({
       runId: 'run-1',
-      deps: {
-        downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
-        analyzePdf: vi.fn().mockResolvedValue('Country: IT'),
-      },
+      deps: buildProcessingDeps('Country: IT'),
     });
 
     expect(result).toEqual({
@@ -226,25 +241,13 @@ describe('processClaimDocumentWorkflowRunService', () => {
 
   it('processes a queued legal-document run and persists a legal extraction', async () => {
     mocks.selectWhere.mockResolvedValue([
-      {
-        runId: 'run-1',
-        tenantId: 'tenant-1',
+      buildQueuedRun({
         workflow: 'legal_doc_extract',
         documentId: 'doc-2',
-        claimId: 'claim-1',
         storagePath: 'pii/tenants/tenant-1/claims/claim-1/demand-letter.pdf',
         fileName: 'demand-letter.pdf',
-        mimeType: 'application/pdf',
-        uploadedAt: new Date('2026-03-08T10:00:00.000Z'),
-        status: 'queued',
         requestJson: {},
-        claimTitle: 'Flight delay claim',
-        claimDescription: 'Delay overnight.',
-        claimCategory: 'travel',
-        claimCompanyName: 'Airline Co',
-        claimAmount: '650.00',
-        claimCurrency: 'EUR',
-      },
+      }),
     ]);
     mocks.extractLegalDocument.mockResolvedValue({
       documentType: 'demand_letter',
@@ -259,10 +262,7 @@ describe('processClaimDocumentWorkflowRunService', () => {
 
     const result = await processClaimDocumentWorkflowRunService({
       runId: 'run-1',
-      deps: {
-        downloadFile: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
-        analyzePdf: vi.fn().mockResolvedValue('Demand letter issued by Contoso Legal'),
-      },
+      deps: buildProcessingDeps('Demand letter issued by Contoso Legal'),
     });
 
     expect(result).toEqual({

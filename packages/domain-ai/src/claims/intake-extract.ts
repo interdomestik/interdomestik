@@ -1,4 +1,5 @@
 import { claimIntakeExtractSchema, type ClaimIntakeExtract } from '../schemas/claim-intake-extract';
+import { extractFirstIsoLikeDate, normalizeText, toIsoDate } from '../shared/text';
 
 type ClaimContext = {
   title: string;
@@ -12,36 +13,31 @@ type ClaimSnapshot = {
   incidentDate?: string | null | undefined;
 };
 
-function normalizeText(value: string | null | undefined) {
-  return (value ?? '').replaceAll(/\s+/g, ' ').trim();
-}
-
-function toIsoDate(value: Date | string | null | undefined) {
-  if (!value) return null;
-
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return value;
-  }
-
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return date.toISOString().slice(0, 10);
-}
-
-function extractDate(text: string) {
-  const match = text.match(/\b(20\d{2})[-/](\d{2})[-/](\d{2})\b/);
-  if (!match) return null;
-
-  return `${match[1]}-${match[2]}-${match[3]}`;
-}
-
 function extractCountryCode(text: string) {
-  const labeled = text.match(/\bcountry(?:\s*code)?\s*[:=-]?\s*([A-Z]{2})\b/i);
-  if (labeled) {
-    return labeled[1]?.toUpperCase() ?? null;
+  const normalized = normalizeText(text);
+  const normalizedLower = normalized.toLowerCase();
+
+  for (const label of ['country code', 'country']) {
+    const labelIndex = normalizedLower.indexOf(label);
+    if (labelIndex < 0) {
+      continue;
+    }
+
+    let cursor = labelIndex + label.length;
+    while (cursor < normalized.length && normalized[cursor] === ' ') {
+      cursor += 1;
+    }
+    if ([':', '=', '-'].includes(normalized[cursor] ?? '')) {
+      cursor += 1;
+    }
+    while (cursor < normalized.length && normalized[cursor] === ' ') {
+      cursor += 1;
+    }
+
+    const countryCode = normalized.slice(cursor, cursor + 2);
+    if (countryCode.length === 2 && countryCode.split('').every(char => /[A-Za-z]/.test(char))) {
+      return countryCode.toUpperCase();
+    }
   }
 
   return null;
@@ -89,10 +85,10 @@ export async function extractClaimIntake(args: {
 
   const incidentDate =
     toIsoDate(args.claimSnapshot?.incidentDate) ??
-    extractDate(documentText) ??
+    extractFirstIsoLikeDate(documentText) ??
     toIsoDate(args.uploadedAt) ??
     '1970-01-01';
-  if (!args.claimSnapshot?.incidentDate && !extractDate(documentText)) {
+  if (!args.claimSnapshot?.incidentDate && !extractFirstIsoLikeDate(documentText)) {
     warnings.push(
       'Incident date inferred from upload timing because the claim payload was missing it.'
     );
