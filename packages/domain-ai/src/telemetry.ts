@@ -1,9 +1,5 @@
 import type { AiWorkflow } from './types';
 
-export type AiRunStatus = string;
-
-export type AiReviewStatus = string;
-
 export interface AiTelemetryInput {
   workflow: AiWorkflow;
   tenantId: string;
@@ -13,8 +9,8 @@ export interface AiTelemetryInput {
   inputTokens?: number | null;
   outputTokens?: number | null;
   cachedInputTokens?: number | null;
-  status?: AiRunStatus | null;
-  reviewStatus?: AiReviewStatus | null;
+  status?: string | null;
+  reviewStatus?: string | null;
   costUsd?: number | null;
 }
 
@@ -27,8 +23,8 @@ export interface AiTelemetryEvent {
   inputTokens: number;
   outputTokens: number;
   cachedInputTokens: number;
-  status: AiRunStatus;
-  reviewStatus: AiReviewStatus;
+  status: string;
+  reviewStatus: string;
   costUsd: number;
 }
 
