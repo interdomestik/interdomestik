@@ -303,7 +303,7 @@ generate_contracts_and_prompts() {
     "- run: pnpm security:guard + secret/path scans"
   write_contract "breaker" \
     "Stress release-gate change surface for fragility and regression risk." \
-    "- run: diff/help/test/pattern scans for scripts/release-gate/*"
+    "- run: diff/help/pattern scans for scripts/release-gate/*"
   write_contract "gatekeeper" \
     "Run mandatory gates and issue final GO/NO-GO verdict." \
     "- run: verify upstream evidence contract, then pnpm e2e:gate"
