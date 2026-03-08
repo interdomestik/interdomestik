@@ -23,6 +23,7 @@ export interface AnalyzePolicyDeps {
     policyId: string;
     userId: string;
   }) => Promise<void>;
+  markRunDispatchFailed: (args: { runId: string; message: string }) => Promise<void>;
 }
 
 export interface AnalyzePolicyParams {
@@ -63,6 +64,15 @@ function isValidUpload(file: File) {
 
 function sanitizeFileName(name: string) {
   return name.replaceAll(/[^\w.-]+/g, '_');
+}
+
+function buildInternalErrorMessage(error: unknown) {
+  const prefix = 'Internal error while analyzing policy';
+  if (error instanceof Error && error.message) {
+    return `${prefix}: ${error.message}`;
+  }
+
+  return prefix;
 }
 
 export async function analyzePolicyCore(
@@ -111,12 +121,35 @@ export async function analyzePolicyCore(
       fileSize: file.size,
     });
 
-    await deps.emitRequestedRun({
-      runId: queuedAnalysis.runId,
-      tenantId: session.tenantId,
-      policyId: queuedAnalysis.policyId,
-      userId: session.userId,
-    });
+    try {
+      await deps.emitRequestedRun({
+        runId: queuedAnalysis.runId,
+        tenantId: session.tenantId,
+        policyId: queuedAnalysis.policyId,
+        userId: session.userId,
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error && error.message ? error.message : 'Event dispatch failed';
+
+      try {
+        await deps.markRunDispatchFailed({
+          runId: queuedAnalysis.runId,
+          message,
+        });
+      } catch (dispatchFailureError) {
+        console.error(
+          'Failed to mark queued policy analysis run as failed after dispatch error:',
+          dispatchFailureError
+        );
+      }
+
+      return {
+        ok: false,
+        code: 'INTERNAL_ERROR',
+        message: `Failed to queue policy analysis: ${message}`,
+      };
+    }
 
     return {
       ok: true,
@@ -128,6 +161,11 @@ export async function analyzePolicyCore(
       },
     };
   } catch (error: unknown) {
-    return { ok: false, code: 'INTERNAL_ERROR', error };
+    return {
+      ok: false,
+      code: 'INTERNAL_ERROR',
+      message: buildInternalErrorMessage(error),
+      error,
+    };
   }
 }

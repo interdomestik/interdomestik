@@ -5,6 +5,7 @@ const mockDeps: AnalyzePolicyDeps = {
   uploadFile: vi.fn().mockResolvedValue({ ok: true, filePath: 'mock/path' }),
   queuePolicyAnalysis: vi.fn().mockResolvedValue({ policyId: 'policy-1', runId: 'run-1' }),
   emitRequestedRun: vi.fn().mockResolvedValue(undefined),
+  markRunDispatchFailed: vi.fn().mockResolvedValue(undefined),
 };
 
 const mockFile = (name: string, type: string, size = 1000) => {
@@ -78,5 +79,45 @@ describe('analyzePolicyCore', () => {
         status: 'queued',
       },
     });
+  });
+
+  it('marks the queued run failed when event dispatch fails', async () => {
+    vi.mocked(mockDeps.emitRequestedRun).mockRejectedValueOnce(new Error('Inngest unavailable'));
+
+    const result = await analyzePolicyCore({
+      file: mockFile('policy.jpg', 'image/jpeg'),
+      buffer: mockBuffer,
+      session: mockSession,
+      deps: mockDeps,
+    });
+
+    expect(mockDeps.markRunDispatchFailed).toHaveBeenCalledWith({
+      runId: 'run-1',
+      message: 'Inngest unavailable',
+    });
+    expect(result).toEqual({
+      ok: false,
+      code: 'INTERNAL_ERROR',
+      message: 'Failed to queue policy analysis: Inngest unavailable',
+    });
+  });
+
+  it('returns a stable internal error message for unexpected failures', async () => {
+    vi.mocked(mockDeps.uploadFile).mockRejectedValueOnce(new Error('storage offline'));
+
+    const result = await analyzePolicyCore({
+      file: mockFile('policy.pdf', 'application/pdf'),
+      buffer: mockBuffer,
+      session: mockSession,
+      deps: mockDeps,
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: false,
+        code: 'INTERNAL_ERROR',
+        message: 'Internal error while analyzing policy: storage offline',
+      })
+    );
   });
 });

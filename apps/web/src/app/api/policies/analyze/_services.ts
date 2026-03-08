@@ -195,6 +195,21 @@ export async function emitPolicyExtractionRequestedService(args: PolicyExtractRe
   });
 }
 
+export async function markPolicyAnalysisRunDispatchFailedService(args: {
+  runId: string;
+  message: string;
+}) {
+  await db
+    .update(aiRuns)
+    .set({
+      status: 'failed',
+      completedAt: new Date(),
+      errorCode: 'policy_extract_dispatch_failed',
+      errorMessage: args.message,
+    })
+    .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.status, 'queued')));
+}
+
 async function downloadPolicyFileService(filePath: string): Promise<Buffer> {
   const adminClient = createAdminClient();
   const { data, error } = await adminClient.storage.from(POLICIES_BUCKET).download(filePath);
@@ -230,11 +245,12 @@ export async function processPolicyAnalysisRunService(args: {
       tenantId: aiRuns.tenantId,
       documentId: aiRuns.documentId,
       policyId: aiRuns.entityId,
-      fileUrl: aiRuns.requestJson,
+      storagePath: documents.storagePath,
       requestJson: aiRuns.requestJson,
       status: aiRuns.status,
     })
     .from(aiRuns)
+    .innerJoin(documents, eq(documents.id, aiRuns.documentId))
     .where(
       and(
         eq(aiRuns.id, runId),
@@ -258,8 +274,16 @@ export async function processPolicyAnalysisRunService(args: {
     };
   }
 
+  if (queuedRun.status !== 'queued') {
+    return {
+      status: 'skipped',
+      runId,
+      policyId,
+    };
+  }
+
   const startedAt = new Date();
-  await db
+  const [claimedRun] = await db
     .update(aiRuns)
     .set({
       status: 'processing',
@@ -267,13 +291,25 @@ export async function processPolicyAnalysisRunService(args: {
       errorCode: null,
       errorMessage: null,
     })
-    .where(eq(aiRuns.id, runId));
+    .where(and(eq(aiRuns.id, runId), eq(aiRuns.status, 'queued')))
+    .returning({ id: aiRuns.id });
+
+  if (!claimedRun) {
+    return {
+      status: 'skipped',
+      runId,
+      policyId,
+    };
+  }
 
   try {
     const requestJson = queuedRun.requestJson ?? {};
     const fileName = getRequestStringValue(requestJson, 'fileName');
     const mimeType = getRequestStringValue(requestJson, 'mimeType');
-    const fileUrl = getRequestFileUrl(requestJson, queuedRun.fileUrl);
+    const fileUrl = getRequestFileUrl(requestJson, queuedRun.storagePath);
+    if (!fileUrl) {
+      throw new Error('Queued policy analysis run is missing a storage path.');
+    }
     const fileBuffer = await deps.downloadFile(fileUrl);
     let analysis: PolicyAnalysis;
 
@@ -300,21 +336,24 @@ export async function processPolicyAnalysisRunService(args: {
         })
         .where(eq(policies.id, policyId));
 
-      await tx.insert(documentExtractions).values({
-        id: nanoid(),
-        tenantId: queuedRun.tenantId,
-        documentId,
-        entityType: 'policy',
-        entityId: policyId,
-        workflow: 'policy_extract',
-        schemaVersion: 'policy_extract_v1',
-        extractedJson: analysis,
-        warnings: [],
-        sourceRunId: runId,
-        reviewStatus: 'pending',
-        createdAt: completedAt,
-        updatedAt: completedAt,
-      });
+      await tx
+        .insert(documentExtractions)
+        .values({
+          id: nanoid(),
+          tenantId: queuedRun.tenantId,
+          documentId,
+          entityType: 'policy',
+          entityId: policyId,
+          workflow: 'policy_extract',
+          schemaVersion: 'policy_extract_v1',
+          extractedJson: analysis,
+          warnings: [],
+          sourceRunId: runId,
+          reviewStatus: 'pending',
+          createdAt: completedAt,
+          updatedAt: completedAt,
+        })
+        .onConflictDoNothing({ target: documentExtractions.sourceRunId });
 
       await tx
         .update(aiRuns)

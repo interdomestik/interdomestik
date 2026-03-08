@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
+  const txInsertOnConflictDoNothing = vi.fn().mockResolvedValue(undefined);
   const txInsertValues = vi.fn();
   const txInsertReturning = vi.fn();
   const txInsert = vi.fn(() => ({
@@ -24,13 +25,20 @@ const mocks = vi.hoisted(() => {
   );
 
   const selectWhere = vi.fn();
+  const selectInnerJoin = vi.fn(() => ({
+    where: selectWhere,
+  }));
   const selectFrom = vi.fn(() => ({
+    innerJoin: selectInnerJoin,
     where: selectWhere,
   }));
   const select = vi.fn(() => ({
     from: selectFrom,
   }));
-  const updateWhere = vi.fn().mockResolvedValue(undefined);
+  const updateReturning = vi.fn();
+  const updateWhere = vi.fn(() => ({
+    returning: updateReturning,
+  }));
   const updateSet = vi.fn(() => ({
     where: updateWhere,
   }));
@@ -53,15 +61,18 @@ const mocks = vi.hoisted(() => {
       .mockReturnValueOnce('extraction-1'),
     select,
     selectFrom,
+    selectInnerJoin,
     selectWhere,
     transaction,
     txInsert,
+    txInsertOnConflictDoNothing,
     txInsertReturning,
     txInsertValues,
     txUpdate,
     txUpdateSet,
     txUpdateWhere,
     update,
+    updateReturning,
     updateSet,
     updateWhere,
   };
@@ -77,8 +88,11 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('@interdomestik/database/schema', () => ({
   aiRuns: { __name: 'ai_runs' },
-  documentExtractions: { __name: 'document_extractions' },
-  documents: { __name: 'documents' },
+  documentExtractions: {
+    __name: 'document_extractions',
+    sourceRunId: { __name: 'document_extractions.source_run_id' },
+  },
+  documents: { __name: 'documents', id: { __name: 'documents.id' } },
   policies: { __name: 'policies' },
 }));
 
@@ -102,9 +116,11 @@ describe('queuePolicyAnalysisService', () => {
       .mockReturnValueOnce('run-1')
       .mockReturnValueOnce('extraction-1');
     mocks.txInsertValues.mockImplementation(() => ({
+      onConflictDoNothing: mocks.txInsertOnConflictDoNothing,
       returning: mocks.txInsertReturning,
     }));
     mocks.txInsertReturning.mockResolvedValue([{ id: 'policy-1' }]);
+    mocks.txInsertOnConflictDoNothing.mockResolvedValue(undefined);
   });
 
   it('persists a placeholder policy, document, and queued ai run in one transaction', async () => {
@@ -136,7 +152,10 @@ describe('queuePolicyAnalysisService', () => {
     );
     expect(mocks.txInsertReturning).toHaveBeenCalledOnce();
 
-    expect(mocks.txInsert).toHaveBeenNthCalledWith(2, { __name: 'documents' });
+    expect(mocks.txInsert).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ __name: 'documents' })
+    );
     expect(mocks.txInsertValues).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
@@ -195,12 +214,19 @@ describe('processPolicyAnalysisRunService', () => {
         tenantId: 'tenant-1',
         documentId: 'document-1',
         policyId: 'policy-1',
-        fileUrl: 'pii/tenants/tenant-1/policies/user-1/file.pdf',
-        fileName: 'file.pdf',
-        mimeType: 'application/pdf',
+        storagePath: 'pii/tenants/tenant-1/policies/user-1/file.pdf',
+        requestJson: {
+          fileName: 'file.pdf',
+          mimeType: 'application/pdf',
+        },
+        status: 'queued',
       },
     ]);
-    mocks.txInsertValues.mockResolvedValue(undefined);
+    mocks.updateReturning.mockResolvedValue([{ id: 'run-1' }]);
+    mocks.txInsertValues.mockImplementation(() => ({
+      onConflictDoNothing: mocks.txInsertOnConflictDoNothing,
+      returning: mocks.txInsertReturning,
+    }));
   });
 
   it('completes a queued run and persists the extraction in the background path', async () => {
@@ -241,6 +267,7 @@ describe('processPolicyAnalysisRunService', () => {
         startedAt: expect.any(Date),
       })
     );
+    expect(mocks.updateReturning).toHaveBeenCalledWith({ id: undefined });
     expect(mocks.transaction).toHaveBeenCalledOnce();
     expect(mocks.txUpdate).toHaveBeenCalledTimes(2);
     expect(mocks.txUpdate).toHaveBeenNthCalledWith(1, { __name: 'policies' });
@@ -252,7 +279,9 @@ describe('processPolicyAnalysisRunService', () => {
         analysisJson: analysis,
       })
     );
-    expect(mocks.txInsert).toHaveBeenCalledWith({ __name: 'document_extractions' });
+    expect(mocks.txInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ __name: 'document_extractions' })
+    );
     expect(mocks.txInsertValues).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'extraction-1',
@@ -270,6 +299,9 @@ describe('processPolicyAnalysisRunService', () => {
         updatedAt: expect.any(Date),
       })
     );
+    expect(mocks.txInsertOnConflictDoNothing).toHaveBeenCalledWith({
+      target: { __name: 'document_extractions.source_run_id' },
+    });
     expect(mocks.txUpdate).toHaveBeenNthCalledWith(2, { __name: 'ai_runs' });
     expect(mocks.txUpdateSet).toHaveBeenNthCalledWith(
       2,
@@ -279,5 +311,26 @@ describe('processPolicyAnalysisRunService', () => {
         completedAt: expect.any(Date),
       })
     );
+  });
+
+  it('skips when another worker already claimed the queued run', async () => {
+    mocks.updateReturning.mockResolvedValueOnce([]);
+
+    const result = await processPolicyAnalysisRunService({
+      runId: 'run-1',
+      deps: {
+        downloadFile: vi.fn(),
+        analyzeImage: vi.fn(),
+        analyzePdf: vi.fn(),
+        analyzeText: vi.fn(),
+      },
+    });
+
+    expect(result).toEqual({
+      status: 'skipped',
+      runId: 'run-1',
+      policyId: 'policy-1',
+    });
+    expect(mocks.transaction).not.toHaveBeenCalled();
   });
 });

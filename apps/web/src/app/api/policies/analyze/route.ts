@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { analyzePolicyCore } from './_core';
 import {
   emitPolicyExtractionRequestedService,
+  markPolicyAnalysisRunDispatchFailedService,
   queuePolicyAnalysisService,
   uploadPolicyFileService,
 } from './_services';
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
         uploadFile: uploadPolicyFileService,
         queuePolicyAnalysis: queuePolicyAnalysisService,
         emitRequestedRun: emitPolicyExtractionRequestedService,
+        markRunDispatchFailed: markPolicyAnalysisRunDispatchFailedService,
       },
     });
 
@@ -64,7 +66,10 @@ export async function POST(req: NextRequest) {
       RATE_LIMIT: 429,
     };
 
-    return NextResponse.json({ error: result.message }, { status: statusMap[result.code] || 500 });
+    return NextResponse.json(
+      { error: result.message ?? 'Server error' },
+      { status: statusMap[result.code] || 500 }
+    );
   } catch (error: unknown) {
     console.error('Handler Error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
