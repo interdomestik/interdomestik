@@ -19,17 +19,17 @@ export type ClaimAiFileInput = {
   type: string;
   size: number;
   bucket: string;
-  category?: string | null | undefined;
+  category?: string | null;
 };
 
 export type ClaimAiClaimSnapshot = {
   title: string;
-  description?: string | null | undefined;
+  description?: string | null;
   category: string;
   companyName: string;
-  claimAmount?: string | null | undefined;
-  currency?: string | null | undefined;
-  incidentDate?: string | null | undefined;
+  claimAmount?: string | null;
+  currency?: string | null;
+  incidentDate?: string | null;
 };
 
 export type QueuedClaimAiRun = {
@@ -41,7 +41,7 @@ export type QueuedClaimAiRun = {
 
 type InsertableTx = {
   insert: (table: any) => {
-    values: (value: any) => Promise<unknown> | unknown;
+    values: (value: Record<string, unknown> | Array<Record<string, unknown>>) => unknown;
   };
 };
 
@@ -65,7 +65,7 @@ function buildInputHash(args: {
   documentId: string;
   path: string;
   category: ClaimAiDocumentCategory;
-  claimSnapshot?: ClaimAiClaimSnapshot | null | undefined;
+  claimSnapshot?: ClaimAiClaimSnapshot | null;
 }) {
   return createHash('sha256').update(JSON.stringify(args)).digest('hex');
 }
@@ -76,7 +76,7 @@ export async function queueClaimDocumentAiWorkflows(args: {
   tenantId: string;
   userId: string;
   files: ClaimAiFileInput[];
-  claimSnapshot?: ClaimAiClaimSnapshot | null | undefined;
+  claimSnapshot?: ClaimAiClaimSnapshot | null;
 }): Promise<QueuedClaimAiRun[]> {
   if (args.files.length === 0) {
     return [];

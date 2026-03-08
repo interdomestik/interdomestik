@@ -160,16 +160,27 @@ export type ConfirmUploadResult =
   | { success: true }
   | { success: false; error: string; status: 401 | 404 | 409 | 500 };
 
-export async function confirmUpload(
-  claimId: string,
-  storagePath: string,
-  originalName: string,
-  mimeType: string,
-  fileSize: number,
-  fileId: string, // The pre-generated ID
-  uploadedBucket?: string,
-  category: 'evidence' | 'legal' = 'evidence'
-): Promise<ConfirmUploadResult> {
+export type ConfirmUploadParams = {
+  claimId: string;
+  storagePath: string;
+  originalName: string;
+  mimeType: string;
+  fileSize: number;
+  fileId: string;
+  uploadedBucket?: string;
+  category?: 'evidence' | 'legal';
+};
+
+export async function confirmUpload({
+  claimId,
+  storagePath,
+  originalName,
+  mimeType,
+  fileSize,
+  fileId,
+  uploadedBucket,
+  category = 'evidence',
+}: ConfirmUploadParams): Promise<ConfirmUploadResult> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });

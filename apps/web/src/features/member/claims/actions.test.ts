@@ -216,15 +216,15 @@ describe('member claim upload actions', () => {
   it('denies confirmUpload when claim is not owned by the member', async () => {
     hoisted.findClaimFirst.mockResolvedValue(null);
 
-    const result = await confirmUpload(
-      'claim-1',
-      'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
-      'evidence.pdf',
-      'application/pdf',
-      1024,
-      'uuid-1',
-      'claim-evidence'
-    );
+    const result = await confirmUpload({
+      claimId: 'claim-1',
+      storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
+      originalName: 'evidence.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 1024,
+      fileId: 'uuid-1',
+      uploadedBucket: 'claim-evidence',
+    });
 
     expect(result).toEqual({ success: false, error: 'Claim not found', status: 404 });
     expect(hoisted.insert).not.toHaveBeenCalled();
@@ -239,16 +239,16 @@ describe('member claim upload actions', () => {
   });
 
   it('queues a legal-document ai run after confirming the upload metadata', async () => {
-    const result = await confirmUpload(
-      'claim-1',
-      'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
-      'demand-letter.pdf',
-      'application/pdf',
-      1024,
-      'uuid-1',
-      'claim-evidence',
-      'legal'
-    );
+    const result = await confirmUpload({
+      claimId: 'claim-1',
+      storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
+      originalName: 'demand-letter.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 1024,
+      fileId: 'uuid-1',
+      uploadedBucket: 'claim-evidence',
+      category: 'legal',
+    });
 
     expect(result).toEqual({ success: true });
     expect(hoisted.transaction).toHaveBeenCalledOnce();

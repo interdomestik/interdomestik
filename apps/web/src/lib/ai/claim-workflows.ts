@@ -150,8 +150,7 @@ export async function processClaimDocumentWorkflowRunService(args: {
     .where(and(eq(aiRuns.id, args.runId), eq(aiRuns.entityType, 'claim')));
 
   if (
-    !queuedRun ||
-    !queuedRun.documentId ||
+    !queuedRun?.documentId ||
     !queuedRun.claimId ||
     (queuedRun.workflow !== 'claim_intake_extract' && queuedRun.workflow !== 'legal_doc_extract')
   ) {

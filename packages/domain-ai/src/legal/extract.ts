@@ -87,9 +87,9 @@ function extractObligations(text: string) {
 }
 
 export async function extractLegalDocument(args: {
-  documentText?: string | null | undefined;
-  fileName?: string | null | undefined;
-  uploadedAt?: Date | string | null | undefined;
+  documentText?: string | null;
+  fileName?: string | null;
+  uploadedAt?: Date | string | null;
 }): Promise<LegalDocExtract> {
   const text = normalizeText(args.documentText);
   const fileName = normalizeText(args.fileName);

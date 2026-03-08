@@ -88,16 +88,16 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
       }
 
       // 3. Confirm in DB
-      const confirmRes = await confirmUpload(
+      const confirmRes = await confirmUpload({
         claimId,
-        genResult.path,
-        file.name,
-        file.type || 'application/octet-stream',
-        file.size,
-        genResult.id,
-        genResult.bucket,
-        category
-      );
+        storagePath: genResult.path,
+        originalName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        fileSize: file.size,
+        fileId: genResult.id,
+        uploadedBucket: genResult.bucket,
+        category,
+      });
 
       if (!confirmRes.success) {
         throw new Error(confirmRes.error);

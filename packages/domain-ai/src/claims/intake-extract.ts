@@ -10,7 +10,7 @@ type ClaimContext = {
 };
 
 type ClaimSnapshot = {
-  incidentDate?: string | null | undefined;
+  incidentDate?: string | null;
 };
 
 function extractCountryCode(text: string) {
@@ -75,9 +75,9 @@ function parseAmount(value: string | number | null | undefined) {
 
 export async function extractClaimIntake(args: {
   claim: ClaimContext;
-  claimSnapshot?: ClaimSnapshot | null | undefined;
-  documentText?: string | null | undefined;
-  uploadedAt?: Date | string | null | undefined;
+  claimSnapshot?: ClaimSnapshot | null;
+  documentText?: string | null;
+  uploadedAt?: Date | string | null;
 }): Promise<ClaimIntakeExtract> {
   const documentText = normalizeText(args.documentText);
   const description = normalizeText(args.claim.description);

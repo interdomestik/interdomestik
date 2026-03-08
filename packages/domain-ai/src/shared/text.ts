@@ -46,7 +46,7 @@ export function extractFirstIsoLikeDate(text: string) {
     if (
       year.length !== 4 ||
       !year.split('').every(isDigit) ||
-      year[0] !== '2' ||
+      !year.startsWith('2') ||
       (firstSeparator !== '-' && firstSeparator !== '/') ||
       month.length !== 2 ||
       !month.split('').every(isDigit) ||

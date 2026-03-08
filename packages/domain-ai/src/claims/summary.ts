@@ -10,8 +10,8 @@ type ClaimSummaryContext = {
 };
 
 type ExtractionSummary = {
-  summary?: string | null | undefined;
-  warnings?: string[] | null | undefined;
+  summary?: string | null;
+  warnings?: string[] | null;
 };
 
 function normalizeText(value: string | null | undefined) {
@@ -33,9 +33,15 @@ function parseAmount(value: string | number | null | undefined) {
   return 0;
 }
 
+function getUrgency(amount: number): ClaimSummary['urgency'] {
+  if (amount >= 5000) return 'high';
+  if (amount >= 1000) return 'medium';
+  return 'low';
+}
+
 export async function summarizeClaim(args: {
   claim: ClaimSummaryContext;
-  extractions?: ExtractionSummary[] | null | undefined;
+  extractions?: ExtractionSummary[] | null;
 }): Promise<ClaimSummary> {
   const amount = parseAmount(args.claim.claimAmount);
   const extractionWarnings = (args.extractions ?? []).flatMap(extraction =>
@@ -70,7 +76,7 @@ export async function summarizeClaim(args: {
     recommendedActions.push('Collect a fuller claimant narrative.');
   }
 
-  const urgency = amount >= 5000 ? 'high' : amount >= 1000 ? 'medium' : 'low';
+  const urgency = getUrgency(amount);
   const confidence = extractionWarnings.length > 0 ? 0.62 : 0.74;
 
   return claimSummarySchema.parse({
