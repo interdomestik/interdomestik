@@ -1,20 +1,14 @@
-import type { AiModel, AiWorkflow } from './types';
+import type { AiWorkflow } from './types';
 
-type AnyString = string & {};
+export type AiRunStatus = string;
 
-type KnownAiRunStatus = 'queued' | 'processing' | 'completed' | 'failed' | 'skipped';
-
-type KnownAiReviewStatus = 'pending' | 'approved' | 'rejected' | 'corrected';
-
-export type AiRunStatus = KnownAiRunStatus | AnyString;
-
-export type AiReviewStatus = KnownAiReviewStatus | AnyString;
+export type AiReviewStatus = string;
 
 export interface AiTelemetryInput {
   workflow: AiWorkflow;
   tenantId: string;
   promptVersion: string;
-  model: AiModel | AnyString;
+  model: string;
   latencyMs?: number | null;
   inputTokens?: number | null;
   outputTokens?: number | null;
