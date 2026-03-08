@@ -34,6 +34,9 @@ jobs:
       should_run: ${{ steps.validation_surface.outputs.should_run }}
       reason: ${{ steps.validation_surface.outputs.reason }}
       non_product_only_paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}
+      ai_eval_should_run: ${{ steps.ai_eval_surface.outputs.should_run }}
+      ai_eval_reason: ${{ steps.ai_eval_surface.outputs.reason }}
+      ai_eval_matched_paths: ${{ steps.ai_eval_surface.outputs.matched_paths }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,6 +57,20 @@ jobs:
               --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
           fi
           node scripts/ci/validation-surface-policy.mjs \
+            --event-name "${{ github.event_name }}" \
+            --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
+      - name: Evaluate AI eval surface
+        if: github.event_name == 'pull_request'
+        id: ai_eval_surface
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed_files_path="$(mktemp)"
+          node scripts/ci/github-pr-files.mjs \
+            --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
+          node scripts/ci/ai-eval-surface.mjs \
             --event-name "${{ github.event_name }}" \
             --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
 
@@ -114,6 +131,22 @@ jobs:
         run: pnpm test
       - name: Release Gate Unit Tests
         run: pnpm test:release-gate
+
+  ai-eval:
+    needs:
+      - validation-surface
+    if: github.event_name == 'pull_request' && needs.validation-surface.outputs.ai_eval_should_run == 'true'
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Explain AI eval surface
+        run: |
+          echo "AI eval reason: ${{ needs.validation-surface.outputs.ai_eval_reason }}"
+          echo "AI eval matched paths: ${{ needs.validation-surface.outputs.ai_eval_matched_paths }}"
+      - name: Run AI eval fixtures
+        run: pnpm ai:eval
 
   multi-agent-dry-run:
     if: github.event_name == 'pull_request'

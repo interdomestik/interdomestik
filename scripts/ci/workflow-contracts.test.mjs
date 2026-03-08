@@ -79,6 +79,35 @@ test('CI PR path keeps only RLS coverage while PR E2E owns browser validation', 
   assert.ok(findStep(prE2eJob.steps, 'E2E Smoke Suite (KS+MK)'));
 });
 
+test('CI includes a PR-only non-blocking AI eval lane keyed off AI file changes', () => {
+  const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
+  const validationSurfaceJob = ciWorkflow.jobs['validation-surface'];
+  const aiEvalJob = ciWorkflow.jobs['ai-eval'];
+
+  assert.equal(
+    validationSurfaceJob.outputs.ai_eval_should_run,
+    '${{ steps.ai_eval_surface.outputs.should_run }}'
+  );
+  assert.equal(validationSurfaceJob.outputs.ai_eval_reason, '${{ steps.ai_eval_surface.outputs.reason }}');
+  assert.equal(
+    validationSurfaceJob.outputs.ai_eval_matched_paths,
+    '${{ steps.ai_eval_surface.outputs.matched_paths }}'
+  );
+  assert.ok(findStep(validationSurfaceJob.steps, 'Evaluate AI eval surface'));
+
+  assert.ok(aiEvalJob);
+  assert.deepEqual(normalizeNeeds(aiEvalJob.needs), ['validation-surface']);
+  assert.equal(
+    aiEvalJob.if,
+    "github.event_name == 'pull_request' && needs.validation-surface.outputs.ai_eval_should_run == 'true'"
+  );
+  assert.equal(aiEvalJob['continue-on-error'], true);
+  assert.ok(findStep(aiEvalJob.steps, 'Explain AI eval surface'));
+  const runStep = findStep(aiEvalJob.steps, 'Run AI eval fixtures');
+  assert.ok(runStep);
+  assert.equal(runStep.run, 'pnpm ai:eval');
+});
+
 test('Heavy PR workflows skip runner startup for docs-only and planning-only changes', () => {
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');

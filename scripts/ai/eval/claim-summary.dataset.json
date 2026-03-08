@@ -1,0 +1,85 @@
+{
+  "workflow": "claim_summary",
+  "cases": [
+    {
+      "id": "travel-claim-summary",
+      "input": {
+        "claim": {
+          "title": "Delayed baggage claim",
+          "description": "Airline lost my luggage for three days.",
+          "category": "travel",
+          "companyName": "Airline Co",
+          "claimAmount": "1200.00",
+          "currency": "EUR"
+        },
+        "extractions": [
+          {
+            "summary": "The uploaded baggage report confirms a three-day delay.",
+            "warnings": ["Receipt totals still need confirmation"]
+          }
+        ]
+      },
+      "expected": {
+        "exact": {
+          "urgency": "medium"
+        },
+        "contains": {
+          "summary": ["Delayed baggage claim"],
+          "keyPoints": ["Category: travel", "Company: Airline Co", "Estimated amount: 1200.00 EUR"],
+          "recommendedActions": ["Review extraction warnings before contacting the counterparty."],
+          "warnings": ["Receipt totals still need confirmation"]
+        },
+        "mustBeAbsent": []
+      },
+      "telemetry": {
+        "tenantId": "eval-tenant-b",
+        "promptVersion": "claim_summary_v1",
+        "model": "gpt-5-mini",
+        "latencyMs": 540,
+        "inputTokens": 620,
+        "outputTokens": 145,
+        "cachedInputTokens": 110,
+        "status": "completed",
+        "reviewStatus": "approved",
+        "costUsd": 0.008
+      }
+    },
+    {
+      "id": "sparse-claim-summary",
+      "input": {
+        "claim": {
+          "title": "Unknown issue",
+          "description": "",
+          "category": null,
+          "companyName": null,
+          "claimAmount": null,
+          "currency": null
+        },
+        "extractions": []
+      },
+      "expected": {
+        "exact": {
+          "urgency": "low"
+        },
+        "contains": {
+          "summary": ["Unknown issue"],
+          "keyPoints": ["Category: other", "Company: Unknown company"],
+          "recommendedActions": ["Collect a fuller claimant narrative."]
+        },
+        "mustBeAbsent": []
+      },
+      "telemetry": {
+        "tenantId": "eval-tenant-b",
+        "promptVersion": "claim_summary_v1",
+        "model": "gpt-5-mini",
+        "latencyMs": 410,
+        "inputTokens": 240,
+        "outputTokens": 90,
+        "cachedInputTokens": 30,
+        "status": "completed",
+        "reviewStatus": "pending",
+        "costUsd": 0.004
+      }
+    }
+  ]
+}
