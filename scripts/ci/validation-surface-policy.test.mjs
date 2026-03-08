@@ -57,16 +57,25 @@ const DECISION_SCENARIOS = [
     ]),
   ],
   [
-    'CI policy script changes still run heavy validation',
+    'CI orchestration-only changes skip heavy validation',
     'pull_request',
     ['scripts/ci/validation-surface-policy.mjs', '.github/workflows/pilot-gate.yml'],
-    decision(true, 'runtime_sensitive_surface', ['.github/workflows/pilot-gate.yml']),
+    decision(false, 'non_product_only_pr', [
+      'scripts/ci/validation-surface-policy.mjs',
+      '.github/workflows/pilot-gate.yml',
+    ]),
   ],
   [
     'runtime-sensitive product changes still run heavy validation',
     'pull_request',
     ['apps/web/src/features/member/home.tsx', 'docs/plans/current-program.md'],
     decision(true, 'runtime_sensitive_surface', ['docs/plans/current-program.md']),
+  ],
+  [
+    'product changes alongside CI orchestration still run heavy validation',
+    'pull_request',
+    ['apps/web/src/features/member/home.tsx', 'scripts/multi-agent/orchestrator.sh'],
+    decision(true, 'runtime_sensitive_surface', ['scripts/multi-agent/orchestrator.sh']),
   ],
   [
     'missing changed files defaults to running heavy validation',

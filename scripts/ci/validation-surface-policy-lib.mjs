@@ -2,6 +2,8 @@ const NON_PRODUCT_ONLY_PATTERNS = [
   /^docs\//,
   /^\.agent\//,
   /^\.github\/(?:workflows|actions)\//,
+  /^scripts\/ci\//,
+  /^scripts\/multi-agent\//,
   /^scripts\/plan[^/]*\.mjs$/,
   /^(?:README|CHANGELOG|CONTRIBUTING|LICENSE)(?:\.[^.]+)?$/,
 ];

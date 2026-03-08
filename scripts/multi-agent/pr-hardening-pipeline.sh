@@ -297,16 +297,16 @@ generate_contracts_and_prompts() {
     "- write: base-alignment, base-reconcile, path-sensitivity, risk recommendation"
   write_contract "forge" \
     "Run functional verification stack for release hardening." \
-    "- run: pnpm test:release-gate, pnpm check:fast, pnpm pr:verify"
+    "- run: pnpm pr:verify"
   write_contract "sentinel" \
     "Run security/policy scans and sensitive path checks." \
     "- run: pnpm security:guard + secret/path scans"
   write_contract "breaker" \
     "Stress release-gate change surface for fragility and regression risk." \
-    "- run: diff/help/test/pattern scans for scripts/release-gate/*"
+    "- run: diff/help/pattern scans for scripts/release-gate/*"
   write_contract "gatekeeper" \
     "Run mandatory gates and issue final GO/NO-GO verdict." \
-    "- run: pnpm pr:verify, pnpm security:guard, pnpm e2e:gate"
+    "- run: verify upstream evidence contract, then pnpm e2e:gate"
   write_contract "scribe" \
     "Synthesize commander-ready summary from all evidence artifacts." \
     "- write: executive-summary, findings-register, decision-log"

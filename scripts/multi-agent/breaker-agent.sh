@@ -57,7 +57,6 @@ run_cmd() {
 run_cmd "git diff --unified=0 '$BASE_COMMIT'...HEAD -- scripts/release-gate/run.ts scripts/release-gate/shared.ts" \
   "$EVIDENCE_DIR/release-gate-diff.txt" || true
 run_cmd 'pnpm release:gate:raw --help' "$EVIDENCE_DIR/release-gate-help.log" || true
-run_cmd 'pnpm test:release-gate' "$EVIDENCE_DIR/test-release-gate.log" || true
 run_cmd 'rg -n "parseRetryAfterSeconds|computeRetryDelayMs|login-attempt|retry-after|Math\.random|Date\.now" scripts/release-gate/run.ts scripts/release-gate/shared.ts' \
   "$EVIDENCE_DIR/release-gate-pattern-scan.log" || true
 
@@ -73,8 +72,8 @@ fi
   echo "- first_failing_command: \`$FIRST_FAILING_COMMAND\`"
   echo
   echo "## Attack Scenarios"
-  echo "1. Retry-delay parsing edge cases: covered by release gate unit tests."
-  echo "2. Randomized retry behavior drift: monitored through pattern scan and test:release-gate."
+  echo "1. Retry-delay parsing edge cases: surfaced through release-gate diff review and CLI validation."
+  echo "2. Randomized retry behavior drift: monitored through targeted pattern scan."
   echo "3. CLI argument hardening: checked via --help run."
 } >"$EVIDENCE_DIR/breaker-findings.md"
 

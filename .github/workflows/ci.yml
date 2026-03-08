@@ -28,6 +28,35 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM || secrets.TURBO_TEAM }}
 
 jobs:
+  validation-surface:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.validation_surface.outputs.should_run }}
+      reason: ${{ steps.validation_surface.outputs.reason }}
+      non_product_only_paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+      - name: Evaluate validation surface
+        id: validation_surface
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed_files_path="$(mktemp)"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            node scripts/ci/github-pr-files.mjs \
+              --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
+          fi
+          node scripts/ci/validation-surface-policy.mjs \
+            --event-name "${{ github.event_name }}" \
+            --changed-files-path "${changed_files_path}" >>"$GITHUB_OUTPUT"
+
   audit:
     runs-on: ubuntu-latest
     steps:
@@ -46,6 +75,9 @@ jobs:
           # Push/mainline gate coverage stays in the e2e-gate job below.
 
   static:
+    needs:
+      - validation-surface
+    if: needs.validation-surface.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +100,9 @@ jobs:
           retention-days: 30
 
   unit:
+    needs:
+      - validation-surface
+    if: needs.validation-surface.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -122,6 +157,9 @@ jobs:
           retention-days: 14
 
   e2e-gate:
+    needs:
+      - validation-surface
+    if: needs.validation-surface.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
