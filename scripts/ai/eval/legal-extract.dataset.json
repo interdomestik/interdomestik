@@ -1,0 +1,71 @@
+{
+  "workflow": "legal_doc_extract",
+  "cases": [
+    {
+      "id": "demand-letter",
+      "input": {
+        "documentText": "Demand letter issued by Contoso Legal in Germany on 2026-02-20. You must respond within 14 days and preserve all receipts.",
+        "fileName": "demand-letter.pdf",
+        "uploadedAt": "2026-03-08T10:00:00.000Z"
+      },
+      "expected": {
+        "exact": {
+          "documentType": "demand_letter",
+          "effectiveDate": "2026-02-20"
+        },
+        "contains": {
+          "issuer": ["Contoso Legal"],
+          "jurisdiction": ["Germany"],
+          "summary": ["Demand letter"],
+          "obligations": ["respond within 14 days"]
+        },
+        "mustBeAbsent": []
+      },
+      "telemetry": {
+        "tenantId": "eval-tenant-c",
+        "promptVersion": "legal_doc_extract_v1",
+        "model": "gpt-5.4",
+        "latencyMs": 1360,
+        "inputTokens": 740,
+        "outputTokens": 190,
+        "cachedInputTokens": 180,
+        "status": "completed",
+        "reviewStatus": "approved",
+        "costUsd": 0.018
+      }
+    },
+    {
+      "id": "empty-legal-upload",
+      "input": {
+        "documentText": "",
+        "fileName": "legal-upload.png",
+        "uploadedAt": "2026-03-08T10:00:00.000Z"
+      },
+      "expected": {
+        "exact": {
+          "documentType": "other",
+          "issuer": "Unknown issuer",
+          "jurisdiction": "Unknown jurisdiction",
+          "effectiveDate": "2026-03-08"
+        },
+        "contains": {
+          "summary": ["legal-upload.png"],
+          "warnings": ["Effective date was inferred", "Document text was empty"]
+        },
+        "mustBeAbsent": ["obligations"]
+      },
+      "telemetry": {
+        "tenantId": "eval-tenant-c",
+        "promptVersion": "legal_doc_extract_v1",
+        "model": "gpt-5.4",
+        "latencyMs": 880,
+        "inputTokens": 180,
+        "outputTokens": 80,
+        "cachedInputTokens": 20,
+        "status": "completed",
+        "reviewStatus": "rejected",
+        "costUsd": 0.006
+      }
+    }
+  ]
+}

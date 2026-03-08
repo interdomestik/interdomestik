@@ -1,0 +1,68 @@
+{
+  "workflow": "policy_extract",
+  "cases": [
+    {
+      "id": "policy-numeric-amounts",
+      "input": {
+        "documentText": "Home insurance policy number POL-12345. Coverage: EUR 75000. Deductible: EUR 1000."
+      },
+      "expected": {
+        "exact": {
+          "policyNumber": "POL-12345",
+          "coverageAmount": 75000,
+          "currency": "EUR",
+          "deductible": 1000
+        },
+        "contains": {
+          "warnings": ["Provider could not be extracted"]
+        },
+        "mustBeAbsent": ["provider"]
+      },
+      "telemetry": {
+        "tenantId": "eval-tenant-a",
+        "promptVersion": "policy_extract_v1",
+        "model": "gpt-5.4",
+        "latencyMs": 1180,
+        "inputTokens": 820,
+        "outputTokens": 170,
+        "cachedInputTokens": 240,
+        "status": "completed",
+        "reviewStatus": "approved",
+        "costUsd": 0.021
+      }
+    },
+    {
+      "id": "policy-sparse-text",
+      "input": {
+        "documentText": "Insurance welcome letter with general terms only."
+      },
+      "expected": {
+        "exact": {
+          "coverageAmount": 0,
+          "currency": "EUR",
+          "deductible": 0
+        },
+        "contains": {
+          "warnings": [
+            "Policy number could not be extracted",
+            "Coverage amount could not be extracted",
+            "Deductible could not be extracted"
+          ]
+        },
+        "mustBeAbsent": ["provider", "policyNumber"]
+      },
+      "telemetry": {
+        "tenantId": "eval-tenant-a",
+        "promptVersion": "policy_extract_v1",
+        "model": "gpt-5.4",
+        "latencyMs": 910,
+        "inputTokens": 430,
+        "outputTokens": 120,
+        "cachedInputTokens": 90,
+        "status": "completed",
+        "reviewStatus": "corrected",
+        "costUsd": 0.011
+      }
+    }
+  ]
+}

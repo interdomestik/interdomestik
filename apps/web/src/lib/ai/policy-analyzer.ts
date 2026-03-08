@@ -36,7 +36,7 @@ function extractPolicyNumber(text: string) {
 
 function extractLabeledAmount(label: string, text: string) {
   const pattern = new RegExp(
-    String.raw`${label}[^0-9]{0,20}([${EURO}$${POUND}]|EUR|USD|GBP)?\s*([0-9][0-9,.])`,
+    String.raw`(?:${label})[^0-9]{0,20}?([${EURO}$${POUND}]|EUR|USD|GBP)?\s*([0-9][0-9,.]*)`,
     'i'
   );
   const match = pattern.exec(text);
@@ -45,7 +45,7 @@ function extractLabeledAmount(label: string, text: string) {
   const currencyRaw = match[1] ?? '';
   const amountRaw = match[2] ?? '';
   const currency = CURRENCY_SYMBOLS[currencyRaw] || currencyRaw || undefined;
-  const amount = amountRaw.replaceAll(',', '');
+  const amount = amountRaw.replaceAll(',', '').replace(/[.,]$/u, '');
 
   return { amount, currency };
 }
