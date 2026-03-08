@@ -79,15 +79,13 @@ test('CI PR path keeps only RLS coverage while PR E2E owns browser validation', 
   assert.ok(findStep(prE2eJob.steps, 'E2E Smoke Suite (KS+MK)'));
 });
 
-test('Heavy PR workflows skip runner startup for non-product-only changes', () => {
+test('Heavy PR workflows skip runner startup for docs-only and planning-only changes', () => {
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
 
   const expectedIgnoredPaths = [
     'docs/**',
     '.agent/**',
-    '.github/workflows/**',
-    '.github/actions/**',
     'scripts/plan*.mjs',
     'README*',
     'CHANGELOG*',
