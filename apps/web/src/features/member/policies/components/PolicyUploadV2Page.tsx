@@ -11,19 +11,15 @@ import {
   Input,
   Label,
 } from '@interdomestik/ui';
-import { CheckCircle, Loader2, Upload } from 'lucide-react';
+import { Clock3, Loader2, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-type PolicyAnalysis = {
-  provider?: string;
-  policyNumber?: string | null;
-  coverageAmount?: number | string;
-  currency?: string;
-  deductible?: number | string;
-  hiddenPerks?: string[];
-  summary?: string;
+type QueuedPolicyAnalysis = {
+  policyId?: string;
+  runId?: string;
+  status?: string;
 };
 
 export function PolicyUploadV2Page() {
@@ -31,12 +27,12 @@ export function PolicyUploadV2Page() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<PolicyAnalysis | null>(null);
+  const [queuedRun, setQueuedRun] = useState<QueuedPolicyAnalysis | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       setFile(e.target.files[0]);
-      setAnalysisResult(null);
+      setQueuedRun(null);
     }
   };
 
@@ -59,9 +55,8 @@ export function PolicyUploadV2Page() {
       }
 
       const data = await res.json();
-      setAnalysisResult(data.analysis);
-      toast.success('Policy analyzed successfully!');
-      // Optionally redirect or show result there
+      setQueuedRun(data);
+      toast.success('Policy queued for AI analysis.');
       router.refresh();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to analyze policy';
@@ -114,57 +109,35 @@ export function PolicyUploadV2Page() {
         </CardContent>
       </Card>
 
-      {analysisResult && (
-        <Card className="border-green-500 bg-green-50 dark:bg-green-950/10">
+      {queuedRun && (
+        <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950/10">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <CardTitle>Analysis Complete</CardTitle>
+              <Clock3 className="h-5 w-5 text-amber-600" />
+              <CardTitle>Analysis Queued</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Provider</Label>
-                <div className="font-semibold">{analysisResult.provider}</div>
-              </div>
-              <div>
-                <Label>Policy Number</Label>
-                <div className="font-semibold">{analysisResult.policyNumber || 'N/A'}</div>
-              </div>
-              <div>
-                <Label>Coverage</Label>
-                <div className="font-semibold">
-                  {analysisResult.coverageAmount} {analysisResult.currency}
-                </div>
-              </div>
-              <div>
-                <Label>Deductible</Label>
-                <div className="font-semibold">
-                  {analysisResult.deductible} {analysisResult.currency}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-blue-600 font-bold">Hidden Perks Found</Label>
-              <ul className="list-disc pl-5 mt-1 space-y-1">
-                {analysisResult.hiddenPerks?.map(perk => (
-                  <li key={perk} className="text-sm font-medium">
-                    {perk}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {analysisResult.summary && (
-              <div className="bg-white dark:bg-zinc-900 p-4 rounded-md border text-sm italic">
-                "{analysisResult.summary}"
+            <p className="text-sm text-muted-foreground">
+              Your policy was uploaded successfully and is now being processed in the background.
+              Refresh the policies page shortly to see extracted details.
+            </p>
+            {queuedRun.runId && (
+              <div className="rounded-md border bg-background px-3 py-2 text-sm">
+                <span className="text-muted-foreground">Run ID:</span>{' '}
+                <span className="font-mono">{queuedRun.runId}</span>
               </div>
             )}
 
             <div className="pt-4">
-              <Button variant="outline" className="w-full" onClick={() => setFile(null)}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setFile(null);
+                  setQueuedRun(null);
+                }}
+              >
                 Upload Another
               </Button>
             </div>

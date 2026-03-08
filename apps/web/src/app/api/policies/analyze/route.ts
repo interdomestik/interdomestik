@@ -1,40 +1,15 @@
 import { ApiErrorCode } from '@/core-contracts';
-import { analyzePolicyImages, analyzePolicyText } from '@/lib/ai/policy-analyzer';
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzePolicyCore } from './_core';
-import { analyzePdfService, savePolicyService, uploadPolicyFileService } from './_services';
-
-// Timeout Wrapper Helper
-const ANALYSIS_TIMEOUT_MS =
-  Number.parseInt(process.env.POLICY_ANALYSIS_TIMEOUT_MS || '', 10) || 15_000;
-class PolicyAnalysisTimeoutError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'PolicyAnalysisTimeoutError';
-  }
-}
-async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => {
-      reject(new PolicyAnalysisTimeoutError(`${label} timed out`));
-    }, ANALYSIS_TIMEOUT_MS);
-  });
-  try {
-    return await Promise.race([promise, timeout]);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
-}
-
-// Wrapped AI Services
-const analyzeImageWithTimeout = (buf: Buffer) =>
-  withTimeout(analyzePolicyImages([buf]), 'Image analysis');
-const analyzeTextWithTimeout = (text: string) =>
-  withTimeout(analyzePolicyText(text), 'Text analysis');
+import {
+  emitPolicyExtractionRequestedService,
+  markPolicyAnalysisRunDispatchFailedService,
+  queuePolicyAnalysisService,
+  uploadPolicyFileService,
+} from './_services';
 
 export async function POST(req: NextRequest) {
   try {
@@ -67,15 +42,14 @@ export async function POST(req: NextRequest) {
       },
       deps: {
         uploadFile: uploadPolicyFileService,
-        analyzeImage: analyzeImageWithTimeout,
-        analyzePdf: analyzePdfService,
-        analyzeText: analyzeTextWithTimeout,
-        savePolicy: savePolicyService,
+        queuePolicyAnalysis: queuePolicyAnalysisService,
+        emitRequestedRun: emitPolicyExtractionRequestedService,
+        markRunDispatchFailed: markPolicyAnalysisRunDispatchFailedService,
       },
     });
 
     if (result.ok) {
-      return NextResponse.json(result.data);
+      return NextResponse.json(result.data, { status: 202 });
     }
 
     // Map Error Codes to HTTP Status
@@ -92,7 +66,10 @@ export async function POST(req: NextRequest) {
       RATE_LIMIT: 429,
     };
 
-    return NextResponse.json({ error: result.message }, { status: statusMap[result.code] || 500 });
+    return NextResponse.json(
+      { error: result.message ?? 'Server error' },
+      { status: statusMap[result.code] || 500 }
+    );
   } catch (error: unknown) {
     console.error('Handler Error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

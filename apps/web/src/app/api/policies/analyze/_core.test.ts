@@ -3,10 +3,9 @@ import { analyzePolicyCore, AnalyzePolicyDeps } from './_core';
 
 const mockDeps: AnalyzePolicyDeps = {
   uploadFile: vi.fn().mockResolvedValue({ ok: true, filePath: 'mock/path' }),
-  analyzeImage: vi.fn(),
-  analyzePdf: vi.fn(),
-  analyzeText: vi.fn(),
-  savePolicy: vi.fn().mockImplementation(data => Promise.resolve({ ...data, id: 'p1' })),
+  queuePolicyAnalysis: vi.fn().mockResolvedValue({ policyId: 'policy-1', runId: 'run-1' }),
+  emitRequestedRun: vi.fn().mockResolvedValue(undefined),
+  markRunDispatchFailed: vi.fn().mockResolvedValue(undefined),
 };
 
 const mockFile = (name: string, type: string, size = 1000) => {
@@ -46,8 +45,44 @@ describe('analyzePolicyCore', () => {
     expect(result).toEqual({ ok: false, code: 'PAYLOAD_TOO_LARGE', message: 'File too large' });
   });
 
-  it('handles image flow correctly', async () => {
-    vi.mocked(mockDeps.analyzeImage).mockResolvedValueOnce({ provider: 'mock-ai' });
+  it('queues a valid upload for background analysis', async () => {
+    const result = await analyzePolicyCore({
+      file: mockFile('policy.jpg', 'image/jpeg'),
+      buffer: mockBuffer,
+      session: mockSession,
+      deps: mockDeps,
+    });
+
+    expect(mockDeps.uploadFile).toHaveBeenCalledWith(expect.objectContaining({ tenantId: 't1' }));
+    expect(mockDeps.queuePolicyAnalysis).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 't1',
+        userId: 'u1',
+        fileUrl: 'mock/path',
+        fileName: 'policy.jpg',
+        mimeType: 'image/jpeg',
+        fileSize: 1000,
+      })
+    );
+    expect(mockDeps.emitRequestedRun).toHaveBeenCalledWith({
+      runId: 'run-1',
+      tenantId: 't1',
+      policyId: 'policy-1',
+      userId: 'u1',
+    });
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        success: true,
+        policyId: 'policy-1',
+        runId: 'run-1',
+        status: 'queued',
+      },
+    });
+  });
+
+  it('marks the queued run failed when event dispatch fails', async () => {
+    vi.mocked(mockDeps.emitRequestedRun).mockRejectedValueOnce(new Error('Inngest unavailable'));
 
     const result = await analyzePolicyCore({
       file: mockFile('policy.jpg', 'image/jpeg'),
@@ -56,17 +91,19 @@ describe('analyzePolicyCore', () => {
       deps: mockDeps,
     });
 
-    expect(mockDeps.analyzeImage).toHaveBeenCalled();
-    expect(mockDeps.uploadFile).toHaveBeenCalledWith(expect.objectContaining({ tenantId: 't1' }));
-    expect(mockDeps.savePolicy).toHaveBeenCalled();
-    expect(result.ok).toBe(true);
+    expect(mockDeps.markRunDispatchFailed).toHaveBeenCalledWith({
+      runId: 'run-1',
+      message: 'Inngest unavailable',
+    });
+    expect(result).toEqual({
+      ok: false,
+      code: 'INTERNAL_ERROR',
+      message: 'Failed to queue policy analysis: Inngest unavailable',
+    });
   });
 
-  it('handles PDF flow correctly', async () => {
-    vi.mocked(mockDeps.analyzePdf).mockResolvedValueOnce(
-      'Valid text content from PDF that is definitely longer than fifty characters to pass the validation check required by the core business logic.'
-    );
-    vi.mocked(mockDeps.analyzeText).mockResolvedValueOnce({ provider: 'mock-text-ai' });
+  it('returns a stable internal error message for unexpected failures', async () => {
+    vi.mocked(mockDeps.uploadFile).mockRejectedValueOnce(new Error('storage offline'));
 
     const result = await analyzePolicyCore({
       file: mockFile('policy.pdf', 'application/pdf'),
@@ -75,26 +112,12 @@ describe('analyzePolicyCore', () => {
       deps: mockDeps,
     });
 
-    expect(mockDeps.analyzePdf).toHaveBeenCalled();
-    expect(mockDeps.analyzeText).toHaveBeenCalled();
-    expect(mockDeps.savePolicy).toHaveBeenCalled();
-    expect(result.ok).toBe(true);
-  });
-
-  it('returns UNPROCESSABLE_ENTITY for scanned (empty text) PDFs', async () => {
-    vi.mocked(mockDeps.analyzePdf).mockResolvedValueOnce(''); // Empty text
-
-    const result = await analyzePolicyCore({
-      file: mockFile('scanned.pdf', 'application/pdf'),
-      buffer: mockBuffer,
-      session: mockSession,
-      deps: mockDeps,
-    });
-
-    expect(result).toEqual({
-      ok: false,
-      code: 'UNPROCESSABLE_ENTITY',
-      message: expect.stringContaining('Scanned PDFs'),
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: false,
+        code: 'INTERNAL_ERROR',
+        message: 'Internal error while analyzing policy: storage offline',
+      })
+    );
   });
 });

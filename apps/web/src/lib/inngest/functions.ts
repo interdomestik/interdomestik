@@ -3,6 +3,7 @@ import {
   processEmailSequences,
   processSeasonalCampaigns,
 } from '@interdomestik/domain-communications/cron-service';
+import { processPolicyAnalysisRunService } from '@/app/api/policies/analyze/_services';
 import { inngest } from './client';
 
 /**
@@ -48,7 +49,19 @@ export const seasonalCampaigns = inngest.createFunction(
   }
 );
 
+export const policyExtractionRequested = inngest.createFunction(
+  { id: 'policy-extraction-requested' },
+  { event: 'policy/extract.requested' },
+  async ({ event, step }) => {
+    return step.run('process-policy-extraction', async () => {
+      return processPolicyAnalysisRunService({
+        runId: event.data.runId,
+      });
+    });
+  }
+);
+
 /**
  * All Inngest functions to register with the handler
  */
-export const inngestFunctions = [dailyEmailSequences, seasonalCampaigns];
+export const inngestFunctions = [dailyEmailSequences, seasonalCampaigns, policyExtractionRequested];

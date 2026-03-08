@@ -17,9 +17,9 @@ status_command: pnpm plan:status
 
 `v0.1.0` production rebaseline is active.
 
-The release-convergence slice `V01` through `V05` is complete. The current program has now also completed one measured AI runway slice, `AI01`, without reopening routing, auth, tenancy, or request-path risk.
+The release-convergence slice `V01` through `V05` is complete. The current program has now also completed two measured AI runway slices, `AI01` and `AI02`, without reopening routing, auth, tenancy, or request-path risk.
 
-`AI02` is now promoted as the active background AI runway slice. Its scope is limited to provenance persistence for `ai_runs` and `document_extractions`, with no routing, auth, tenancy, or request-path AI changes.
+`AI03` is now promoted as the active background AI runway slice. Its scope is limited to moving policy extraction off the request path into a durable Inngest workflow while preserving the current routing, auth, tenancy, and read-model boundaries.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -27,9 +27,9 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
 2. Keep the completed AI runway boundary slice reversible and off the request path.
-3. Land `AI02` only as tenant-scoped provenance infrastructure for durable background AI runs.
-4. Keep routing, auth, tenancy, and customer-facing decision flows unchanged unless they are explicitly re-promoted.
-5. Preserve the broader GPT-5.4 runway as input without letting it widen the active `v0.1.0` scope beyond `AI02`.
+3. Keep `AI02` complete as the canonical provenance persistence layer for durable AI runs.
+4. Land `AI03` only as queued policy extraction and background execution wiring, with no routing, auth, or tenancy refactors.
+5. Preserve the broader GPT-5.4 runway as input without letting it widen the active `v0.1.0` scope beyond `AI03`.
 
 ## Status Command
 
@@ -58,16 +58,16 @@ pnpm plan:proof
 
 ## Next Committed Priority
 
-`AI02` Add provenance-first AI persistence for `ai_runs` and `document_extractions`.
+`AI03` Move policy extraction to the Inngest background workflow.
 
-Exit criteria: `packages/database` defines tenant-scoped provenance tables, migration coverage, and RLS for durable background AI runs, establishing `ai_runs` and `document_extractions` as the canonical persistence surface for later workflow wiring.
+Exit criteria: `/api/policies/analyze` uploads the document, creates a queued `ai_run`, emits `policy/extract.requested`, and Inngest completes the extraction by updating `document_extractions` and the policy read model without keeping AI on the request path.
 
 ## Do Not Reopen The Convergence Boundary
 
 - broad domain extraction campaigns
 - routing, auth, or tenancy architecture refactors
 - repo-wide RLS rollout
-- request-path AI inference or autonomous customer-facing decisions
+- synchronous request-path AI inference or autonomous customer-facing decisions
 - enterprise hardening items that do not reduce the `v0.1.0` failure surface
 
 ## Inputs, Not Active Plans
@@ -86,8 +86,9 @@ These documents can recommend or constrain work, but they do not define the live
 ## Promotion Note
 
 - `AI01` was copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is now complete.
-- `AI02` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` as the active provenance slice.
-- `AI03` through `AI06` remain supporting input until they are separately copied into `current-program.md` and `current-tracker.md`.
+- `AI02` was copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is now complete as the provenance slice.
+- `AI03` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` as the active workflow slice.
+- `AI04` through `AI06` remain supporting input until they are separately copied into `current-program.md` and `current-tracker.md`.
 
 ## Historical Foundation, Not Current Sequencing
 
