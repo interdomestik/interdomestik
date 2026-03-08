@@ -11,8 +11,8 @@ import {
   Input,
   Label,
 } from '@interdomestik/ui';
+import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, CheckCircle2, Clock3, Loader2, Upload } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { startTransition, useEffect, useEffectEvent, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -33,41 +33,85 @@ type QueuedPolicyAnalysis = {
   errorMessage?: string | null;
 };
 
+type StatusPresentation = {
+  title: string;
+  description: string;
+  className: string;
+  icon: React.ReactNode;
+};
+
+type StatusTone = 'amber' | 'blue' | 'emerald' | 'red';
+
+type StaticStatusConfig = {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  iconClassName: string;
+  tone: StatusTone;
+};
+
 function isTerminalWorkflowState(state: WorkflowState | undefined) {
   return state === 'completed' || state === 'needs_review' || state === 'failed';
 }
 
-function getStatusPresentation(run: QueuedPolicyAnalysis) {
+const STATUS_TONE_CLASS_NAMES: Record<StatusTone, string> = {
+  amber: 'border-amber-500 bg-amber-50 dark:bg-amber-950/10',
+  blue: 'border-blue-500 bg-blue-50 dark:bg-blue-950/10',
+  emerald: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/10',
+  red: 'border-red-500 bg-red-50 dark:bg-red-950/10',
+};
+
+const STATIC_STATUS_CONFIG: Record<Exclude<WorkflowState, 'failed'>, StaticStatusConfig> = {
+  queued: {
+    title: 'Analysis Queued',
+    description:
+      'Your policy was uploaded successfully and is now waiting for background processing to start.',
+    icon: Clock3,
+    iconClassName: 'h-5 w-5 text-amber-600',
+    tone: 'amber',
+  },
+  processing: {
+    title: 'Analysis In Progress',
+    description:
+      'Your policy is being analyzed in the background. This usually completes in under a minute.',
+    icon: Loader2,
+    iconClassName: 'h-5 w-5 animate-spin text-blue-600',
+    tone: 'blue',
+  },
+  completed: {
+    title: 'Analysis Complete',
+    description: 'Your policy analysis finished successfully. Refresh to see the latest details.',
+    icon: CheckCircle2,
+    iconClassName: 'h-5 w-5 text-emerald-600',
+    tone: 'emerald',
+  },
+  needs_review: {
+    title: 'Needs Review',
+    description:
+      'The AI found policy details, but a reviewer still needs to confirm a few items before this is considered final.',
+    icon: AlertCircle,
+    iconClassName: 'h-5 w-5 text-amber-600',
+    tone: 'amber',
+  },
+};
+
+function createStatusPresentation({
+  title,
+  description,
+  icon: Icon,
+  iconClassName,
+  tone,
+}: StaticStatusConfig): StatusPresentation {
+  return {
+    title,
+    description,
+    className: STATUS_TONE_CLASS_NAMES[tone],
+    icon: <Icon className={iconClassName} />,
+  };
+}
+
+function getStatusPresentation(run: QueuedPolicyAnalysis): StatusPresentation {
   const workflowState = run.workflowState ?? 'queued';
-
-  if (workflowState === 'processing') {
-    return {
-      title: 'Analysis In Progress',
-      description:
-        'Your policy is being analyzed in the background. This usually completes in under a minute.',
-      className: 'border-blue-500 bg-blue-50 dark:bg-blue-950/10',
-      icon: <Loader2 className="h-5 w-5 animate-spin text-blue-600" />,
-    };
-  }
-
-  if (workflowState === 'completed') {
-    return {
-      title: 'Analysis Complete',
-      description: 'Your policy analysis finished successfully. Refresh to see the latest details.',
-      className: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/10',
-      icon: <CheckCircle2 className="h-5 w-5 text-emerald-600" />,
-    };
-  }
-
-  if (workflowState === 'needs_review') {
-    return {
-      title: 'Needs Review',
-      description:
-        'The AI found policy details, but a reviewer still needs to confirm a few items before this is considered final.',
-      className: 'border-amber-500 bg-amber-50 dark:bg-amber-950/10',
-      icon: <AlertCircle className="h-5 w-5 text-amber-600" />,
-    };
-  }
 
   if (workflowState === 'failed') {
     return {
@@ -75,22 +119,15 @@ function getStatusPresentation(run: QueuedPolicyAnalysis) {
       description:
         run.errorMessage ||
         'The background run did not complete. You can upload the document again to retry.',
-      className: 'border-red-500 bg-red-50 dark:bg-red-950/10',
+      className: STATUS_TONE_CLASS_NAMES.red,
       icon: <AlertCircle className="h-5 w-5 text-red-600" />,
     };
   }
 
-  return {
-    title: 'Analysis Queued',
-    description:
-      'Your policy was uploaded successfully and is now waiting for background processing to start.',
-    className: 'border-amber-500 bg-amber-50 dark:bg-amber-950/10',
-    icon: <Clock3 className="h-5 w-5 text-amber-600" />,
-  };
+  return createStatusPresentation(STATIC_STATUS_CONFIG[workflowState]);
 }
 
 export function PolicyUploadV2Page() {
-  useTranslations('Dashboard'); // Assuming generic dashboard translations for now
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -120,7 +157,7 @@ export function PolicyUploadV2Page() {
       const data = (await res.json()) as QueuedPolicyAnalysis;
       startTransition(() => {
         setQueuedRun(current => {
-          if (!current || current.runId !== runId) {
+          if (current?.runId !== runId) {
             return current;
           }
 
@@ -141,14 +178,17 @@ export function PolicyUploadV2Page() {
       return;
     }
 
-    void refreshQueuedRun(runId);
+    const refreshCurrentRun = () => {
+      refreshQueuedRun(runId).catch(error => {
+        console.error('Unexpected queued run refresh failure:', error);
+      });
+    };
 
-    const intervalId = window.setInterval(() => {
-      void refreshQueuedRun(runId);
-    }, 3000);
+    refreshCurrentRun();
+    const intervalId = globalThis.setInterval(refreshCurrentRun, 3000);
 
     return () => {
-      window.clearInterval(intervalId);
+      globalThis.clearInterval(intervalId);
     };
   }, [queuedRun?.runId, refreshQueuedRun]);
 
