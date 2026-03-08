@@ -43,6 +43,8 @@ jobs:
       PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login || '' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -59,6 +61,9 @@ jobs:
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             node scripts/ci/github-pr-files.mjs \
               --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            git fetch --no-tags origin main --depth=1
+            git diff --name-only origin/main...HEAD >"${changed_files_path}"
           fi
           node scripts/ci/validation-surface-policy.mjs \
             --event-name "${{ github.event_name }}" \
@@ -313,6 +318,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -329,6 +336,9 @@ jobs:
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             node scripts/ci/github-pr-files.mjs \
               --event-path "${GITHUB_EVENT_PATH}" >"${changed_files_path}"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            git fetch --no-tags origin main --depth=1
+            git diff --name-only origin/main...HEAD >"${changed_files_path}"
           fi
           node scripts/ci/multi-agent-policy.mjs \
             --event-name "${{ github.event_name }}" \

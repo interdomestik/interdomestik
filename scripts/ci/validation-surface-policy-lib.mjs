@@ -15,15 +15,9 @@ function isNonProductOnlyPath(filePath) {
 }
 
 export function evaluateValidationSurface({ eventName, changedFiles = [] }) {
-  if (eventName === 'workflow_dispatch') {
-    return {
-      shouldRun: true,
-      reason: 'manual_dispatch',
-      nonProductOnlyPaths: [],
-    };
-  }
+  const normalizedChangedFiles = normalizeChangedFiles(changedFiles);
 
-  if (eventName !== 'pull_request') {
+  if (eventName !== 'pull_request' && eventName !== 'workflow_dispatch') {
     return {
       shouldRun: true,
       reason: `event:${eventName || 'unknown'}`,
@@ -31,11 +25,10 @@ export function evaluateValidationSurface({ eventName, changedFiles = [] }) {
     };
   }
 
-  const normalizedChangedFiles = normalizeChangedFiles(changedFiles);
   if (normalizedChangedFiles.length === 0) {
     return {
       shouldRun: true,
-      reason: 'no_changed_files_detected',
+      reason: eventName === 'workflow_dispatch' ? 'manual_dispatch' : 'no_changed_files_detected',
       nonProductOnlyPaths: [],
     };
   }

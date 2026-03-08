@@ -15,10 +15,22 @@ function decision(shouldRun, reason, nonProductOnlyPaths = []) {
 
 const DECISION_SCENARIOS = [
   [
-    'manual dispatch always runs heavy validation',
+    'manual dispatch defaults to heavy validation when changed files are unavailable',
     'workflow_dispatch',
     [],
     decision(true, 'manual_dispatch'),
+  ],
+  [
+    'manual dispatch skips heavy validation for docs-only branches when changed files are available',
+    'workflow_dispatch',
+    ['docs/plans/current-program.md', 'README.md'],
+    decision(false, 'non_product_only_pr', ['docs/plans/current-program.md', 'README.md']),
+  ],
+  [
+    'manual dispatch still runs heavy validation for runtime-sensitive branches when changed files are available',
+    'workflow_dispatch',
+    ['apps/web/src/features/member/home.tsx', 'docs/plans/current-program.md'],
+    decision(true, 'runtime_sensitive_surface', ['docs/plans/current-program.md']),
   ],
   [
     'docs-only PR skips heavy validation',
