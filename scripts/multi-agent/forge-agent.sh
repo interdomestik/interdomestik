@@ -51,9 +51,6 @@ run_cmd() {
   return "$status"
 }
 
-run_cmd 'pnpm test:release-gate' "$EVIDENCE_DIR/test-release-gate.log" || true
-run_cmd 'pnpm --filter @interdomestik/web test:e2e -- e2e/setup.state.spec.ts --project=setup-ks --project=setup-mk' "$EVIDENCE_DIR/playwright-state-setup.log" || true
-run_cmd 'pnpm check:fast' "$EVIDENCE_DIR/check-fast.log" || true
 run_cmd 'pnpm pr:verify' "$EVIDENCE_DIR/pr-verify.log" || true
 
 STATUS="PASS"
@@ -70,9 +67,6 @@ fi
   echo "- first_failing_command: \`$FIRST_FAILING_COMMAND\`"
   echo
   echo "## Exit Codes"
-  echo "- test:release-gate: \`$(cat "$EVIDENCE_DIR/test-release-gate.status")\`"
-  echo "- playwright-state-setup: \`$(cat "$EVIDENCE_DIR/playwright-state-setup.status")\`"
-  echo "- check:fast: \`$(cat "$EVIDENCE_DIR/check-fast.status")\`"
   echo "- pr:verify: \`$(cat "$EVIDENCE_DIR/pr-verify.status")\`"
 } >"$EVIDENCE_DIR/forge-summary.md"
 

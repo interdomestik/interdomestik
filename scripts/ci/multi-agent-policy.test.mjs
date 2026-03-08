@@ -174,6 +174,21 @@ test('database-sensitive changes follow the expected multi-agent hardening polic
   }
 });
 
+test('lockfile-only changes require explicit label before full multi-agent hardening', () => {
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'pull_request',
+      labels: [],
+      changedFiles: ['pnpm-lock.yaml'],
+    }),
+    {
+      shouldRun: false,
+      reason: 'label_required_for_high_risk_paths',
+      matchedPaths: ['pnpm-lock.yaml'],
+    }
+  );
+});
+
 test('normal product changes skip full multi-agent hardening', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({

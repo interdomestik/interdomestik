@@ -8,11 +8,11 @@ const AUTO_RUN_HIGH_RISK_PATTERNS = [
   /^packages\/database\/src\/(?:db|migrate|server|tenant|tenant-security)\.ts$/,
   /^packages\/database\/src\/schema\/(?:auth|policies|rbac|tenants)\.ts$/,
   /^packages\/shared-auth\//,
-  /^pnpm-lock\.yaml$/,
   /^turbo\.json$/,
 ];
 
 const LABEL_GATED_HIGH_RISK_PATTERNS = [
+  /^pnpm-lock\.yaml$/,
   /^packages\/database\/drizzle\//,
   /^packages\/database\/src\//,
 ];

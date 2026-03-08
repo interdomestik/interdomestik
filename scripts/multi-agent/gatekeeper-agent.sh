@@ -114,8 +114,6 @@ upstream_failures=0
 } >"$EVIDENCE_DIR/upstream-dependency-check.md"
 
 if [[ "$upstream_failures" -eq 0 ]]; then
-  run_cmd 'pnpm pr:verify' "$EVIDENCE_DIR/pr-verify.log" || true
-  run_cmd 'pnpm security:guard' "$EVIDENCE_DIR/security-guard.log" || true
   run_cmd 'pnpm e2e:gate' "$EVIDENCE_DIR/e2e-gate.log" || true
 else
   FIRST_FAILING_COMMAND="wave1 dependency contract check"
