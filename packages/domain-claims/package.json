@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./claims/types": "./src/claims/types.ts",
     "./claims/documents": "./src/claims/documents.ts",
+    "./claims/ai-workflows": "./src/claims/ai-workflows.ts",
     "./claims/create": "./src/claims/create.ts",
     "./claims/submit": "./src/claims/submit.ts",
     "./claims/status": "./src/claims/status.ts",
@@ -29,6 +30,7 @@
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
+    "@interdomestik/domain-ai": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
     "drizzle-orm": "^0.45.1",

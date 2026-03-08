@@ -1,7 +1,11 @@
 import { db } from '@/lib/db.server';
 import { and, eq } from '@interdomestik/database';
 import { aiRuns, documentExtractions, policies } from '@interdomestik/database/schema';
-import { policyExtractSchema } from '@interdomestik/domain-ai';
+import {
+  claimIntakeExtractSchema,
+  legalDocExtractSchema,
+  policyExtractSchema,
+} from '@interdomestik/domain-ai';
 
 type ReviewAction = 'approve' | 'reject' | 'correct';
 
@@ -52,8 +56,17 @@ export async function submitAiReview(args: {
       return { kind: 'unprocessable', message: 'Corrected extraction is required.' };
     }
 
-    if (existingRun.workflow === 'policy_extract') {
-      const parsed = policyExtractSchema.safeParse(args.correctedExtraction);
+    const parser =
+      existingRun.workflow === 'policy_extract'
+        ? policyExtractSchema
+        : existingRun.workflow === 'claim_intake_extract'
+          ? claimIntakeExtractSchema
+          : existingRun.workflow === 'legal_doc_extract'
+            ? legalDocExtractSchema
+            : null;
+
+    if (parser) {
+      const parsed = parser.safeParse(args.correctedExtraction);
       if (!parsed.success) {
         return { kind: 'unprocessable', message: 'Invalid corrected extraction payload.' };
       }

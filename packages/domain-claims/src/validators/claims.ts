@@ -8,6 +8,7 @@ export const evidenceFileSchema = z.object({
   size: z.number().nonnegative(),
   bucket: z.string(),
   classification: z.string().default('pii'),
+  category: z.enum(['evidence', 'legal']).default('evidence'),
 });
 
 export const claimCategorySchema = z.object({

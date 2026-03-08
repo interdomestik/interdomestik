@@ -198,6 +198,7 @@ export function WizardStepDetails() {
                     size: blob.size,
                     bucket: 'claim-evidence',
                     classification: 'pii',
+                    category: 'evidence' as const,
                   };
 
                   form.setValue('files', [...currentFiles, newFile]);

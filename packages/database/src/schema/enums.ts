@@ -9,6 +9,7 @@ export const documentCategoryEnum = pgEnum('document_category', [
   'correspondence',
   'contract',
   'receipt',
+  'legal',
   'other',
 ]);
 

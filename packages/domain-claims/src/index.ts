@@ -4,6 +4,7 @@ export * from './claims/draft';
 export * from './claims/submit';
 export * from './claims/types';
 export * from './claims/constants';
+export * from './claims/ai-workflows';
 export type { ClaimStatus } from './staff-claims/types';
 export * from './validators/claims';
 

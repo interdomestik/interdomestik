@@ -12,6 +12,11 @@ import {
   DialogTrigger,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@interdomestik/ui';
 import { Loader2, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -26,6 +31,7 @@ interface ClaimEvidenceUploadDialogProps {
 export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUploadDialogProps) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [category, setCategory] = useState<'evidence' | 'legal'>('evidence');
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
 
@@ -89,7 +95,8 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
         file.type || 'application/octet-stream',
         file.size,
         genResult.id,
-        genResult.bucket
+        genResult.bucket,
+        category
       );
 
       if (!confirmRes.success) {
@@ -118,6 +125,22 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
           <DialogDescription>Attach photos or documents relevant to this claim.</DialogDescription>
         </DialogHeader>
         <div className="grid w-full items-center gap-4">
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="document-category">Document Type</Label>
+            <Select
+              value={category}
+              onValueChange={value => setCategory(value as 'evidence' | 'legal')}
+              disabled={uploading}
+            >
+              <SelectTrigger id="document-category">
+                <SelectValue placeholder="Select document type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="evidence">Evidence</SelectItem>
+                <SelectItem value="legal">Legal document</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex flex-col space-y-1.5">
             <Label htmlFor="file">File</Label>
             <Input

@@ -7,6 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
+    "./claims/intake-extract": "./src/claims/intake-extract.ts",
+    "./claims/summary": "./src/claims/summary.ts",
+    "./legal/extract": "./src/legal/extract.ts",
     "./models": "./src/models.ts",
     "./types": "./src/types.ts",
     "./schemas/policy-extract": "./src/schemas/policy-extract.ts",

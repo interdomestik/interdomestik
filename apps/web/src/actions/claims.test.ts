@@ -38,6 +38,10 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
+vi.mock('@interdomestik/database/claim-number', () => ({
+  generateClaimNumber: vi.fn().mockResolvedValue('CLM-MK-2026-000001'),
+}));
+
 vi.mock('@interdomestik/database', () => ({
   db: {
     insert: () => ({ values: mockDbInsert }),
@@ -99,6 +103,8 @@ vi.mock('@interdomestik/database', () => ({
   },
   claims: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   claimDocuments: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+  documents: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+  aiRuns: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   user: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   tenantSettings: {
     tenantId: { name: 'tenantId' },
@@ -301,6 +307,7 @@ describe('Claim Actions', () => {
           size: 1024,
           bucket: 'claim-evidence',
           classification: 'pii',
+          category: 'evidence',
         },
       ],
     };
@@ -536,6 +543,7 @@ describe('Claim Actions', () => {
             size: 1024,
             bucket: 'claim-evidence',
             classification: 'public',
+            category: 'evidence',
           },
         ],
       };

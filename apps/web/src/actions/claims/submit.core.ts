@@ -7,6 +7,10 @@ import {
 import type { CreateClaimValues } from '@interdomestik/domain-claims/validators/claims';
 
 import { logAuditEvent } from '@/lib/audit';
+import {
+  emitClaimAiRunRequestedService,
+  markClaimAiRunDispatchFailedService,
+} from '@/lib/ai/claim-workflows';
 import { notifyClaimSubmitted } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
@@ -47,7 +51,9 @@ export async function submitClaimCore(params: {
   }
   try {
     const result = await submitClaimCoreDomain(params, {
+      dispatchClaimAiRun: emitClaimAiRunRequestedService,
       logAuditEvent,
+      markClaimAiRunDispatchFailed: markClaimAiRunDispatchFailedService,
       notifyClaimSubmitted,
       revalidatePath,
     });

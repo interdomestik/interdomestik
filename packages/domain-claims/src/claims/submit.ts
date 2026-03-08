@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
+import { queueClaimDocumentAiWorkflows, type QueuedClaimAiRun } from './ai-workflows';
 import { buildClaimDocumentRows } from './documents';
 import type { ClaimsDeps, ClaimsSession } from './types';
 
@@ -82,12 +83,14 @@ export async function submitClaimCore(
     throw new ClaimValidationError('Validation failed', 'INVALID_PAYLOAD');
   }
 
-  const { title, description, category, companyName, claimAmount, currency, files } = result.data;
+  const { title, description, category, companyName, claimAmount, currency, incidentDate, files } =
+    result.data;
 
   // Security: Validate ALL files before creating ANY database records
   validateClaimFiles(files, session, tenantId);
 
   const claimId = nanoid();
+  let queuedRuns: QueuedClaimAiRun[] = [];
 
   try {
     await db.transaction(async tx => {
@@ -115,6 +118,31 @@ export async function submitClaimCore(
         });
 
         await tx.insert(claimDocuments).values(documentRows);
+
+        queuedRuns = await queueClaimDocumentAiWorkflows({
+          tx,
+          claimId,
+          tenantId,
+          userId: session.user.id,
+          files: documentRows.map(documentRow => ({
+            documentId: documentRow.id,
+            name: documentRow.name,
+            path: documentRow.filePath,
+            type: documentRow.fileType,
+            size: documentRow.fileSize,
+            bucket: documentRow.bucket,
+            category: documentRow.category,
+          })),
+          claimSnapshot: {
+            title,
+            description,
+            category,
+            companyName,
+            claimAmount,
+            currency,
+            incidentDate,
+          },
+        });
       }
     });
 
@@ -139,6 +167,22 @@ export async function submitClaimCore(
   } catch (error) {
     console.error('Failed to create claim:', error);
     throw new Error('Failed to create claim. Please try again.');
+  }
+
+  if (deps.dispatchClaimAiRun) {
+    for (const queuedRun of queuedRuns) {
+      try {
+        await deps.dispatchClaimAiRun(queuedRun);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to dispatch claim AI run.';
+        if (deps.markClaimAiRunDispatchFailed) {
+          await deps.markClaimAiRunDispatchFailed({
+            runId: queuedRun.runId,
+            message,
+          });
+        }
+      }
+    }
   }
 
   if (deps.notifyClaimSubmitted) {

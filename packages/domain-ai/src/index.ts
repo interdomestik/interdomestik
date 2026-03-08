@@ -1,4 +1,7 @@
 export * from './client';
+export * from './claims/intake-extract';
+export * from './claims/summary';
+export * from './legal/extract';
 export * from './models';
 export * from './read-models/get-run';
 export * from './types';

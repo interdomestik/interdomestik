@@ -17,9 +17,9 @@ status_command: pnpm plan:status
 
 `v0.1.0` production rebaseline is active.
 
-The release-convergence slice `V01` through `V05` is complete. The current program has now also completed four measured AI runway slices, `AI01` through `AI04`, without reopening routing, auth, tenancy, or request-path risk.
+The release-convergence slice `V01` through `V05` is complete. The current program has now also completed five measured AI runway slices, `AI01` through `AI05`, without reopening routing, auth, tenancy, or request-path risk.
 
-`AI05` and `AI06` remain supporting input only. No further AI runway slice is committed until it is explicitly copied into this document and `docs/plans/current-tracker.md`.
+`AI06` remains supporting input only until it is explicitly copied into this document and `docs/plans/current-tracker.md`.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -30,7 +30,8 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 3. Keep `AI02` complete as the canonical provenance persistence layer for durable AI runs.
 4. Keep `AI03` complete as the canonical queued policy extraction and background execution slice.
 5. Keep `AI04` complete as the canonical run-status and human-review surface on top of the existing provenance and workflow layers, with no routing, auth, or tenancy refactors.
-6. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI04` tranche.
+6. Keep `AI05` complete as the narrow claim-and-legal workflow slice on top of the existing provenance, background execution, and review surfaces, without reopening routing, auth, or tenancy boundaries.
+7. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI05` tranche.
 
 ## Status Command
 
@@ -59,9 +60,9 @@ pnpm plan:proof
 
 ## Next Committed Priority
 
-`None.` The committed AI runway tranche through `AI04` is complete.
+No additional AI slice is currently committed.
 
-`AI05` and `AI06` remain input only until they are explicitly promoted into this file and `docs/plans/current-tracker.md`.
+`AI06` remains input only until it is explicitly promoted into this file and `docs/plans/current-tracker.md`.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -90,7 +91,8 @@ These documents can recommend or constrain work, but they do not define the live
 - `AI02` was copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is now complete as the provenance slice.
 - `AI03` was copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is now complete as the workflow slice.
 - `AI04` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is complete as the status-and-review slice.
-- `AI05` and `AI06` remain supporting input until they are separately copied into `current-program.md` and `current-tracker.md`.
+- `AI05` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is complete as the claim-and-legal workflow slice.
+- `AI06` remains supporting input until it is separately copied into `current-program.md` and `current-tracker.md`.
 
 ## Historical Foundation, Not Current Sequencing
 

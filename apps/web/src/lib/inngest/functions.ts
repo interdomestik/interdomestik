@@ -3,6 +3,7 @@ import {
   processEmailSequences,
   processSeasonalCampaigns,
 } from '@interdomestik/domain-communications/cron-service';
+import { processClaimDocumentWorkflowRunService } from '@/lib/ai/claim-workflows';
 import { processPolicyAnalysisRunService } from '@/app/api/policies/analyze/_services';
 import { inngest } from './client';
 
@@ -61,7 +62,37 @@ export const policyExtractionRequested = inngest.createFunction(
   }
 );
 
+export const claimIntakeExtractionRequested = inngest.createFunction(
+  { id: 'claim-intake-extraction-requested' },
+  { event: 'claim/intake-extract.requested' },
+  async ({ event, step }) => {
+    return step.run('process-claim-intake-extraction', async () => {
+      return processClaimDocumentWorkflowRunService({
+        runId: event.data.runId,
+      });
+    });
+  }
+);
+
+export const legalDocumentExtractionRequested = inngest.createFunction(
+  { id: 'legal-document-extraction-requested' },
+  { event: 'legal/extract.requested' },
+  async ({ event, step }) => {
+    return step.run('process-legal-document-extraction', async () => {
+      return processClaimDocumentWorkflowRunService({
+        runId: event.data.runId,
+      });
+    });
+  }
+);
+
 /**
  * All Inngest functions to register with the handler
  */
-export const inngestFunctions = [dailyEmailSequences, seasonalCampaigns, policyExtractionRequested];
+export const inngestFunctions = [
+  dailyEmailSequences,
+  seasonalCampaigns,
+  policyExtractionRequested,
+  claimIntakeExtractionRequested,
+  legalDocumentExtractionRequested,
+];
