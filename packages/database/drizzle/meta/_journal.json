@@ -260,6 +260,20 @@
       "when": 1772622956000,
       "tag": "0036_supabase_advisor_security_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1772967255749,
+      "tag": "0037_add_ai_provenance",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1772967880178,
+      "tag": "0038_add_policy_document_entity",
+      "breakpoints": true
     }
   ]
 }

@@ -16,14 +16,7 @@ import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
 
 import { getPoliciesWithSignedUrlsCore } from '@/app/[locale]/(app)/member/policies/_core';
-
-type PolicyAnalysis = {
-  summary?: string;
-  coverageAmount?: number | string;
-  currency?: string;
-  deductible?: number | string;
-  hiddenPerks?: string[];
-};
+import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
 
 export async function MemberPoliciesV2Page() {
   const session = await auth.api.getSession({
@@ -73,8 +66,8 @@ export async function MemberPoliciesV2Page() {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {policiesWithUrls.map(({ policy, fileHref }) => {
-            const analysis = policy.analysisJson as PolicyAnalysis | null;
+          {policiesWithUrls.map(({ policy, fileHref, resolvedAnalysis }) => {
+            const analysis = resolvedAnalysis as PolicyAnalysis | null;
             return (
               <Card key={policy.id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <CardHeader className="bg-muted/30 pb-4">

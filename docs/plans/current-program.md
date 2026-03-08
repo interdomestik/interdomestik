@@ -19,7 +19,7 @@ status_command: pnpm plan:status
 
 The release-convergence slice `V01` through `V05` is complete. The current program has now also completed one measured AI runway slice, `AI01`, without reopening routing, auth, tenancy, or request-path risk.
 
-No additional AI slice is currently promoted into the live program.
+`AI02` is now promoted as the active background AI runway slice. Its scope is limited to provenance persistence for `ai_runs` and `document_extractions`, with no routing, auth, tenancy, or request-path AI changes.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -27,8 +27,9 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 
 1. Keep the completed `V01` through `V05` convergence work inspectable and stable.
 2. Keep the completed AI runway boundary slice reversible and off the request path.
-3. Keep routing, auth, tenancy, and customer-facing decision flows unchanged unless they are explicitly re-promoted.
-4. Preserve the broader GPT-5.4 runway as input without letting it widen the active `v0.1.0` scope.
+3. Land `AI02` only as tenant-scoped provenance infrastructure for durable background AI runs.
+4. Keep routing, auth, tenancy, and customer-facing decision flows unchanged unless they are explicitly re-promoted.
+5. Preserve the broader GPT-5.4 runway as input without letting it widen the active `v0.1.0` scope beyond `AI02`.
 
 ## Status Command
 
@@ -57,9 +58,9 @@ pnpm plan:proof
 
 ## Next Committed Priority
 
-No new priority is promoted as of 2026-03-08.
+`AI02` Add provenance-first AI persistence for `ai_runs` and `document_extractions`.
 
-`AI01` is complete. `AI02` through `AI06` remain supporting input until they are separately copied into `current-program.md` and `current-tracker.md`.
+Exit criteria: `packages/database` defines tenant-scoped provenance tables, migration coverage, and RLS for durable background AI runs, establishing `ai_runs` and `document_extractions` as the canonical persistence surface for later workflow wiring.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -85,7 +86,8 @@ These documents can recommend or constrain work, but they do not define the live
 ## Promotion Note
 
 - `AI01` was copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is now complete.
-- `AI02` through `AI06` remain supporting input until they are separately copied into `current-program.md` and `current-tracker.md`.
+- `AI02` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` as the active provenance slice.
+- `AI03` through `AI06` remain supporting input until they are separately copied into `current-program.md` and `current-tracker.md`.
 
 ## Historical Foundation, Not Current Sequencing
 

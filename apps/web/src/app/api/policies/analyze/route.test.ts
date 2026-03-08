@@ -8,6 +8,8 @@ const hoisted = vi.hoisted(() => ({
   analyzePolicyText: vi.fn(),
   upload: vi.fn(),
   returning: vi.fn(),
+  values: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -36,13 +38,8 @@ vi.mock('@interdomestik/database', () => ({
     },
   }),
   db: {
-    insert: () => ({
-      values: () => ({
-        returning: hoisted.returning,
-      }),
-    }),
+    transaction: hoisted.transaction,
   },
-  policies: { id: 'id' },
 }));
 
 describe('POST /api/policies/analyze', () => {
@@ -55,6 +52,16 @@ describe('POST /api/policies/analyze', () => {
     hoisted.analyzePolicyText.mockResolvedValue({ provider: 'Test' });
     hoisted.upload.mockResolvedValue({ error: null });
     hoisted.returning.mockResolvedValue([{ id: 'policy-1' }]);
+    hoisted.values.mockImplementation(() => ({
+      returning: hoisted.returning,
+    }));
+    hoisted.transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
+      callback({
+        insert: () => ({
+          values: hoisted.values,
+        }),
+      })
+    );
 
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://supabase.test';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';

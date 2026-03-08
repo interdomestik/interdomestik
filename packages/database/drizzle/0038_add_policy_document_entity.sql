@@ -1,0 +1,1 @@
+ALTER TYPE "public"."document_entity_type" ADD VALUE 'policy' BEFORE 'thread';

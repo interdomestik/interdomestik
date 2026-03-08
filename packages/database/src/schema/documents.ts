@@ -12,6 +12,7 @@ import { tenants } from './tenants';
 export const documentEntityTypeEnum = pgEnum('document_entity_type', [
   'claim',
   'member',
+  'policy',
   'thread',
   'share_pack',
   'payment_attempt',
