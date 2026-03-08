@@ -7,13 +7,12 @@ on:
     paths-ignore:
       - 'docs/**'
       - '.agent/**'
-      - '.github/workflows/**'
-      - '.github/actions/**'
       - 'scripts/plan*.mjs'
       - 'README*'
       - 'CHANGELOG*'
       - 'CONTRIBUTING*'
       - 'LICENSE*'
+  workflow_dispatch: {}
 
 permissions:
   contents: read

@@ -52,4 +52,4 @@ The required repository gates also passed on 2026-03-08:
 
 `AI01` is complete for code and verification evidence.
 
-The repository now has a typed AI boundary that remains off the request path. `AI02` through `AI06` remain non-committed input until they are explicitly promoted into the live program and tracker.
+The repository now has a typed AI boundary that remains off the request path. `AI02`, `AI03`, and `AI04` have since been promoted and completed in the live program and tracker; only `AI05` and `AI06` remain non-committed input.
