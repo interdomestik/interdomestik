@@ -56,6 +56,7 @@ const mocks = vi.hoisted(() => {
     extractLegalDocument: vi.fn(),
     inngestSend: vi.fn(),
     nanoid: vi.fn().mockReturnValueOnce('extraction-1').mockReturnValueOnce('extraction-2'),
+    resolveEvidenceBucketName: vi.fn().mockReturnValue('resolved-evidence-bucket'),
     selectWhere,
     txInsert,
     txInsertOnConflictDoNothing,
@@ -73,6 +74,10 @@ vi.mock('@/lib/inngest/client', () => ({
   inngest: {
     send: mocks.inngestSend,
   },
+}));
+
+vi.mock('@/lib/storage/evidence-bucket', () => ({
+  resolveEvidenceBucketName: mocks.resolveEvidenceBucketName,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -100,6 +105,11 @@ vi.mock('@interdomestik/domain-ai/claims/intake-extract', () => ({
 
 vi.mock('@interdomestik/domain-ai/legal/extract', () => ({
   extractLegalDocument: mocks.extractLegalDocument,
+}));
+
+vi.mock('@interdomestik/domain-ai', () => ({
+  CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION: 'claim_schema_version_test',
+  LEGAL_DOC_EXTRACT_SCHEMA_VERSION: 'legal_schema_version_test',
 }));
 
 import {
@@ -193,6 +203,7 @@ describe('processClaimDocumentWorkflowRunService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.nanoid.mockReturnValueOnce('extraction-1').mockReturnValueOnce('extraction-2');
+    mocks.resolveEvidenceBucketName.mockReturnValue('resolved-evidence-bucket');
     mocks.txInsertValues.mockImplementation(() => ({
       onConflictDoNothing: mocks.txInsertOnConflictDoNothing,
     }));
@@ -228,8 +239,18 @@ describe('processClaimDocumentWorkflowRunService', () => {
       }),
     });
     expect(mocks.extractClaimIntake).toHaveBeenCalled();
+    expect(mocks.extractClaimIntake).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimSnapshot: { incidentDate: '2026-02-15' },
+      })
+    );
     expect(mocks.txInsert).toHaveBeenCalledWith(
       expect.objectContaining({ __name: 'document_extractions' })
+    );
+    expect(mocks.txInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        schemaVersion: 'claim_schema_version_test',
+      })
     );
     expect(mocks.txUpdateSet).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -259,10 +280,11 @@ describe('processClaimDocumentWorkflowRunService', () => {
       confidence: 0.74,
       warnings: [],
     });
+    const deps = buildProcessingDeps('Demand letter issued by Contoso Legal');
 
     const result = await processClaimDocumentWorkflowRunService({
       runId: 'run-1',
-      deps: buildProcessingDeps('Demand letter issued by Contoso Legal'),
+      deps,
     });
 
     expect(result).toEqual({
@@ -275,5 +297,50 @@ describe('processClaimDocumentWorkflowRunService', () => {
       }),
     });
     expect(mocks.extractLegalDocument).toHaveBeenCalled();
+    expect(mocks.resolveEvidenceBucketName).toHaveBeenCalledTimes(1);
+    expect(deps.downloadFile).toHaveBeenCalledWith(
+      'resolved-evidence-bucket',
+      'pii/tenants/tenant-1/claims/claim-1/demand-letter.pdf'
+    );
+    expect(mocks.txInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        schemaVersion: 'legal_schema_version_test',
+      })
+    );
+  });
+
+  it('normalizes malformed claim snapshots before extraction', async () => {
+    mocks.selectWhere.mockResolvedValue([
+      buildQueuedRun({
+        requestJson: {
+          claimSnapshot: {
+            incidentDate: '15/02/2026',
+            other: 'ignored',
+          },
+        },
+      }),
+    ]);
+    mocks.extractClaimIntake.mockResolvedValue({
+      title: 'Flight delay claim',
+      summary: 'Extracted from claim context.',
+      category: 'travel',
+      incidentDate: '2026-03-08',
+      countryCode: 'ZZ',
+      estimatedAmount: 650,
+      currency: 'EUR',
+      confidence: 0.62,
+      warnings: [],
+    });
+
+    await processClaimDocumentWorkflowRunService({
+      runId: 'run-1',
+      deps: buildProcessingDeps('Country: IT'),
+    });
+
+    expect(mocks.extractClaimIntake).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimSnapshot: { incidentDate: null },
+      })
+    );
   });
 });

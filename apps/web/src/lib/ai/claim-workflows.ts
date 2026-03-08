@@ -1,7 +1,12 @@
+import {
+  CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION,
+  LEGAL_DOC_EXTRACT_SCHEMA_VERSION,
+} from '@interdomestik/domain-ai';
 import { extractClaimIntake } from '@interdomestik/domain-ai/claims/intake-extract';
 import { extractLegalDocument } from '@interdomestik/domain-ai/legal/extract';
 import { db } from '@/lib/db.server';
 import { inngest } from '@/lib/inngest/client';
+import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { createAdminClient } from '@interdomestik/database';
 import { aiRuns, claims, documentExtractions, documents } from '@interdomestik/database/schema';
 import { and, eq } from 'drizzle-orm';
@@ -20,6 +25,8 @@ type ProcessClaimDocumentWorkflowDeps = {
   downloadFile?: (bucket: string, filePath: string) => Promise<Buffer>;
   analyzePdf?: (buffer: Buffer, mimeType: string) => Promise<string>;
 };
+
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function getEventName(workflow: ClaimAiWorkflow) {
   return workflow === 'legal_doc_extract'
@@ -55,9 +62,28 @@ async function analyzeDocumentAsText(buffer: Buffer, mimeType: string): Promise<
 
 function getBucketFromRequestJson(requestJson: Record<string, unknown> | null | undefined) {
   const value = requestJson?.bucket;
-  return typeof value === 'string' && value.length > 0
-    ? value
-    : process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET || 'claim-evidence';
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim();
+  }
+
+  return resolveEvidenceBucketName();
+}
+
+function getClaimSnapshotFromRequestJson(
+  requestJson: Record<string, unknown>
+): { incidentDate: string | null } | null {
+  const value = requestJson.claimSnapshot;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const snapshot = value as { incidentDate?: unknown };
+  const incidentDateValue = snapshot.incidentDate;
+  const incidentDate = typeof incidentDateValue === 'string' ? incidentDateValue.trim() : '';
+
+  return {
+    incidentDate: ISO_DATE_PATTERN.test(incidentDate) ? incidentDate : null,
+  };
 }
 
 export async function emitClaimAiRunRequestedService(queuedRun: QueuedClaimAiRun) {
@@ -185,10 +211,7 @@ export async function processClaimDocumentWorkflowRunService(args: {
               claimAmount: queuedRun.claimAmount,
               currency: queuedRun.claimCurrency,
             },
-            claimSnapshot:
-              'claimSnapshot' in requestJson
-                ? ((requestJson.claimSnapshot as Record<string, unknown> | null) ?? null)
-                : null,
+            claimSnapshot: getClaimSnapshotFromRequestJson(requestJson),
             documentText,
             uploadedAt: queuedRun.uploadedAt,
           });
@@ -202,7 +225,9 @@ export async function processClaimDocumentWorkflowRunService(args: {
       entityId: queuedRun.claimId,
       workflow,
       schemaVersion:
-        workflow === 'legal_doc_extract' ? 'legal_doc_extract_v1' : 'claim_intake_extract_v1',
+        workflow === 'legal_doc_extract'
+          ? LEGAL_DOC_EXTRACT_SCHEMA_VERSION
+          : CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION,
       extractedJson: extraction,
       warnings: Array.isArray(extraction.warnings)
         ? extraction.warnings.filter((warning): warning is string => typeof warning === 'string')
