@@ -46,6 +46,34 @@ test('AI eval surface defaults to running when changed files are unavailable', (
   );
 });
 
+test('AI eval surface always runs for non-PR events', () => {
+  assert.deepEqual(
+    evaluateAiEvalSurface({
+      eventName: 'push',
+      changedFiles: ['packages/domain-ai/src/claims/summary.ts'],
+    }),
+    decision(true, 'event:push')
+  );
+});
+
+test('AI eval surface only reacts to AI package manifests, not root workspace files', () => {
+  assert.deepEqual(
+    evaluateAiEvalSurface({
+      eventName: 'pull_request',
+      changedFiles: ['package.json', 'pnpm-lock.yaml'],
+    }),
+    decision(false, 'no_ai_eval_surface_changes')
+  );
+
+  assert.deepEqual(
+    evaluateAiEvalSurface({
+      eventName: 'pull_request',
+      changedFiles: ['packages/domain-ai/package.json'],
+    }),
+    decision(true, 'ai_eval_surface_changed', ['packages/domain-ai/package.json'])
+  );
+});
+
 test('AI eval surface CLI prints GitHub output fields', () => {
   const root = createTempRoot('ai-eval-surface-cli-');
   const changedFilesPath = path.join(root, 'changed-files.txt');
@@ -63,4 +91,12 @@ test('AI eval surface CLI prints GitHub output fields', () => {
   assert.match(result.stdout, /^should_run=true$/m);
   assert.match(result.stdout, /^reason=ai_eval_surface_changed$/m);
   assert.match(result.stdout, /matched_paths=\["packages\/domain-ai\/src\/telemetry\.ts"\]/);
+});
+
+test('AI eval surface CLI requires an event name', () => {
+  const root = createTempRoot('ai-eval-surface-cli-missing-event-');
+  const result = runScript('scripts/ci/ai-eval-surface.mjs', root, []);
+
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /--event-name is required/);
 });

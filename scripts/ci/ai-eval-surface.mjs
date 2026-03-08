@@ -35,6 +35,11 @@ function parseArgs(argv) {
 }
 
 const { eventName, changedFilesPath } = parseArgs(process.argv.slice(2));
+
+if (!eventName) {
+  fail('--event-name is required');
+}
+
 const changedFiles =
   changedFilesPath && fs.existsSync(changedFilesPath)
     ? fs.readFileSync(changedFilesPath, 'utf8').split(/\r?\n/)

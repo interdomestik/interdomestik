@@ -3,12 +3,13 @@ const AI_EVAL_PATTERNS = [
   /^apps\/web\/src\/app\/api\/policies\/analyze\//,
   /^apps\/web\/src\/lib\/ai\//,
   /^apps\/web\/src\/lib\/inngest\//,
+  /^apps\/web\/package\.json$/,
   /^packages\/database\/src\/schema\/ai\.ts$/,
   /^packages\/domain-ai\//,
+  /^packages\/domain-ai\/package\.json$/,
   /^packages\/domain-claims\/src\/claims\//,
+  /^packages\/domain-claims\/package\.json$/,
   /^scripts\/ai\/eval\//,
-  /^package\.json$/,
-  /^pnpm-lock\.yaml$/,
 ];
 
 function normalizeChangedFiles(changedFiles) {
