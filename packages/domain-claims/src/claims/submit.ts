@@ -235,11 +235,8 @@ export async function submitClaimCore(
     throw new ClaimValidationError('Validation failed', 'INVALID_PAYLOAD');
   }
 
-  const { title, description, category, companyName, claimAmount, currency, incidentDate, files } =
-    result.data;
-
   // Security: Validate ALL files before creating ANY database records
-  validateClaimFiles(files, session, tenantId);
+  validateClaimFiles(result.data.files, session, tenantId);
 
   const claimId = nanoid();
   let queuedRuns: QueuedClaimAiRun[];
