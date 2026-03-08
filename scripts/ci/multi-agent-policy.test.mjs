@@ -80,8 +80,8 @@ test('manual dispatch still runs full multi-agent hardening for high-risk branch
       changedFiles: ['scripts/multi-agent/orchestrator.sh'],
     }),
     {
-      shouldRun: true,
-      reason: 'high_risk_paths',
+      shouldRun: false,
+      reason: 'label_required_for_high_risk_paths',
       matchedPaths: ['scripts/multi-agent/orchestrator.sh'],
     }
   );
@@ -113,9 +113,24 @@ test('high-risk multi-agent infrastructure changes trigger full multi-agent hard
       ],
     }),
     {
-      shouldRun: true,
-      reason: 'high_risk_paths',
+      shouldRun: false,
+      reason: 'label_required_for_high_risk_paths',
       matchedPaths: ['scripts/multi-agent/orchestrator.sh'],
+    }
+  );
+});
+
+test('validation-orchestration scripts require an explicit label before full multi-agent hardening', () => {
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'pull_request',
+      labels: [],
+      changedFiles: ['scripts/m4-gatekeeper.sh'],
+    }),
+    {
+      shouldRun: false,
+      reason: 'label_required_for_high_risk_paths',
+      matchedPaths: ['scripts/m4-gatekeeper.sh'],
     }
   );
 });
@@ -131,6 +146,21 @@ test('routing authority changes trigger full multi-agent hardening', () => {
       shouldRun: true,
       reason: 'high_risk_paths',
       matchedPaths: ['apps/web/src/proxy.ts'],
+    }
+  );
+});
+
+test('runtime-critical product changes still trigger full multi-agent hardening even when orchestration scripts also change', () => {
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'pull_request',
+      labels: [],
+      changedFiles: ['apps/web/src/proxy.ts', 'scripts/multi-agent/orchestrator.sh'],
+    }),
+    {
+      shouldRun: true,
+      reason: 'high_risk_paths',
+      matchedPaths: ['apps/web/src/proxy.ts', 'scripts/multi-agent/orchestrator.sh'],
     }
   );
 });
@@ -422,7 +452,7 @@ test('CLI prints GitHub output fields for risky PR changes', () => {
   ]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /^should_run=true$/m);
-  assert.match(result.stdout, /^reason=high_risk_paths$/m);
+  assert.match(result.stdout, /^should_run=false$/m);
+  assert.match(result.stdout, /^reason=label_required_for_high_risk_paths$/m);
   assert.match(result.stdout, /matched_paths=\["scripts\/multi-agent\/orchestrator\.sh"\]/);
 });

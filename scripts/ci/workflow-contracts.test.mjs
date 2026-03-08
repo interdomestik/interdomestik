@@ -38,8 +38,15 @@ test('CI PR path keeps only RLS coverage while PR E2E owns browser validation', 
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
 
+  const validationSurfaceJob = ciWorkflow.jobs['validation-surface'];
+  assert.ok(validationSurfaceJob);
+
   const ciE2eGateJob = ciWorkflow.jobs['e2e-gate'];
   const ciSteps = ciE2eGateJob.steps;
+  const ciE2eNeeds = normalizeNeeds(ciE2eGateJob.needs);
+
+  assert.ok(ciE2eNeeds.includes('validation-surface'));
+  assert.equal(ciE2eGateJob.if, "needs.validation-surface.outputs.should_run == 'true'");
 
   const setupStep = ciSteps.find(step => step?.uses === './.github/actions/setup');
   assert.equal(setupStep.with['install-playwright'], "${{ github.event_name != 'pull_request' }}");
@@ -55,6 +62,14 @@ test('CI PR path keeps only RLS coverage while PR E2E owns browser validation', 
 
   const e2eGateSuiteStep = findStep(ciSteps, 'E2E Gate Suite');
   assert.equal(e2eGateSuiteStep.if, "github.event_name != 'pull_request'");
+
+  const staticJob = ciWorkflow.jobs.static;
+  assert.ok(normalizeNeeds(staticJob.needs).includes('validation-surface'));
+  assert.equal(staticJob.if, "needs.validation-surface.outputs.should_run == 'true'");
+
+  const unitJob = ciWorkflow.jobs.unit;
+  assert.ok(normalizeNeeds(unitJob.needs).includes('validation-surface'));
+  assert.equal(unitJob.if, "needs.validation-surface.outputs.should_run == 'true'");
 
   const prE2eJob = prE2eWorkflow.jobs.e2e;
   const prE2eSetupStep = prE2eJob.steps.find(step => step?.uses === './.github/actions/setup');

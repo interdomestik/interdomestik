@@ -1,9 +1,6 @@
 const HIGH_RISK_LABELS = new Set(['ci:multi-agent', 'release-hardening', 'security-hardening']);
 
 const AUTO_RUN_HIGH_RISK_PATTERNS = [
-  /^scripts\/multi-agent\//,
-  /^scripts\/release-gate\//,
-  /^scripts\/(?:security-guard|pr-verify-hosts|m4-gatekeeper|docker-gate|sentry-seer-sweep|sonar-gate|sonar-scan(?:-lib)?)\.(?:mjs|sh)$/,
   /^apps\/web\/src\/proxy\.ts$/,
   /^packages\/database\/src\/(?:db|migrate|server|tenant|tenant-security)\.ts$/,
   /^packages\/database\/src\/schema\/(?:auth|policies|rbac|tenants)\.ts$/,
@@ -12,6 +9,9 @@ const AUTO_RUN_HIGH_RISK_PATTERNS = [
 ];
 
 const LABEL_GATED_HIGH_RISK_PATTERNS = [
+  /^scripts\/multi-agent\//,
+  /^scripts\/release-gate\//,
+  /^scripts\/(?:security-guard|pr-verify-hosts|m4-gatekeeper|docker-gate|sentry-seer-sweep|sonar-gate|sonar-scan(?:-lib)?)\.(?:mjs|sh)$/,
   /^pnpm-lock\.yaml$/,
   /^packages\/database\/drizzle\//,
   /^packages\/database\/src\//,
