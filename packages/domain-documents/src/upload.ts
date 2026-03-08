@@ -14,7 +14,7 @@ import { buildStoragePath, validateTenantOwnership } from './storage';
 
 export interface UploadParams {
   tenantId: string;
-  entityType: 'claim' | 'member' | 'thread' | 'share_pack';
+  entityType: 'claim' | 'member' | 'policy' | 'thread' | 'share_pack';
   entityId: string;
   fileName: string;
   mimeType: string;
@@ -136,7 +136,10 @@ export async function getDocumentsForEntity(params: {
     .where(
       and(
         eq(schema.documents.tenantId, tenantId),
-        eq(schema.documents.entityType, entityType as 'claim' | 'member' | 'thread' | 'share_pack'),
+        eq(
+          schema.documents.entityType,
+          entityType as 'claim' | 'member' | 'policy' | 'thread' | 'share_pack'
+        ),
         eq(schema.documents.entityId, entityId),
         isNull(schema.documents.deletedAt)
       )

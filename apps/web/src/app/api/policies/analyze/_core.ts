@@ -141,6 +141,9 @@ export async function analyzePolicyCore(params: AnalyzePolicyParams): Promise<Ap
       policyNumber: analysisResult.policyNumber ?? null,
       analysisJson: analysisResult,
       fileUrl: uploadResult.filePath,
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      fileSize: file.size,
     });
 
     return {

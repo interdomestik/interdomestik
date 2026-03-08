@@ -15,6 +15,7 @@ export const policies = pgTable(
       .references(() => user.id),
     provider: text('provider'),
     policyNumber: text('policy_number'),
+    // Temporary denormalized read field until AI extraction reads are fully sourced from document_extractions.
     analysisJson: jsonb('analysis_json').$type<Record<string, unknown>>().notNull().default({}), // NOSONAR
     fileUrl: text('file_url').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
