@@ -50,7 +50,7 @@
     "check:entrypoints:strict": "node scripts/check-entrypoints-no-db.mjs --strict",
     "test:release-gate": "tsx --test scripts/release-gate/run.test.ts",
     "test": "pnpm --filter @interdomestik/web test:unit --run",
-    "test:unit:domains": "pnpm --filter @interdomestik/domain-claims test:unit && pnpm --filter @interdomestik/domain-users test:unit && pnpm --filter @interdomestik/domain-communications test:unit",
+    "test:unit:domains": "pnpm --filter @interdomestik/domain-ai test:unit && pnpm --filter @interdomestik/domain-claims test:unit && pnpm --filter @interdomestik/domain-users test:unit && pnpm --filter @interdomestik/domain-communications test:unit",
     "test:coverage": "pnpm --filter @interdomestik/web test:unit --coverage && pnpm --filter @interdomestik/domain-* test:unit --coverage",
     "test:e2e": "pnpm --filter @interdomestik/web test:e2e",
     "check:e2e-contracts": "node scripts/check-e2e-contracts.mjs",
