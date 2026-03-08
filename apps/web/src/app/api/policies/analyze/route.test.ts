@@ -6,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   analyzePolicyImages: vi.fn(),
   analyzePolicyText: vi.fn(),
+  inngestSend: vi.fn(),
   upload: vi.fn(),
   returning: vi.fn(),
   values: vi.fn(),
@@ -29,6 +30,12 @@ vi.mock('@/lib/ai/policy-analyzer', () => ({
   analyzePolicyText: hoisted.analyzePolicyText,
 }));
 
+vi.mock('@/lib/inngest/client', () => ({
+  inngest: {
+    send: hoisted.inngestSend,
+  },
+}));
+
 vi.mock('@interdomestik/database', () => ({
   createAdminClient: () => ({
     storage: {
@@ -50,6 +57,7 @@ describe('POST /api/policies/analyze', () => {
     hoisted.enforceRateLimit.mockResolvedValue(null);
     hoisted.analyzePolicyImages.mockResolvedValue({ provider: 'Test' });
     hoisted.analyzePolicyText.mockResolvedValue({ provider: 'Test' });
+    hoisted.inngestSend.mockResolvedValue({ ids: ['event-1'] });
     hoisted.upload.mockResolvedValue({ error: null });
     hoisted.returning.mockResolvedValue([{ id: 'policy-1' }]);
     hoisted.values.mockImplementation(() => ({
@@ -83,7 +91,7 @@ describe('POST /api/policies/analyze', () => {
     expect(res!.status).toBe(503);
   });
 
-  it('treats missing content-type images as images', async () => {
+  it('queues a valid upload and returns 202 with a run id', async () => {
     const pngHeader = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00, 0x00, 0x00]);
     const file = {
       name: 'image.png',
@@ -103,39 +111,16 @@ describe('POST /api/policies/analyze', () => {
     const { POST } = await import('./route');
     const res = await POST(req as unknown as NextRequest);
     expect(res).toBeDefined();
-    expect(res!.status).toBe(200);
-    expect(hoisted.analyzePolicyImages).toHaveBeenCalledOnce();
-    expect(hoisted.analyzePolicyText).not.toHaveBeenCalled();
-  });
-
-  it('returns 504 when analysis times out', async () => {
-    process.env.POLICY_ANALYSIS_TIMEOUT_MS = '5';
-    hoisted.analyzePolicyImages.mockImplementation(
-      () => new Promise(resolve => setTimeout(() => resolve({ provider: 'Test' }), 50))
+    expect(res!.status).toBe(202);
+    await expect(res!.json()).resolves.toEqual(
+      expect.objectContaining({
+        success: true,
+        runId: expect.any(String),
+        status: 'queued',
+      })
     );
-
-    const pngHeader = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00, 0x00, 0x00]);
-    const file = {
-      name: 'image.png',
-      type: 'image/png',
-      size: pngHeader.length,
-      arrayBuffer: async () => pngHeader.buffer,
-    } as File;
-    const formData = {
-      get: (key: string) => (key === 'file' ? file : null),
-    } as FormData;
-
-    const req = {
-      headers: new Headers(),
-      formData: async () => formData,
-    };
-
-    const { POST } = await import('./route');
-    const res = await POST(req as unknown as NextRequest);
-    expect(res).toBeDefined();
-    const data = await res!.json();
-
-    expect(res!.status).toBe(504);
-    expect(data.error).toMatch(/timed out/i);
+    expect(hoisted.analyzePolicyImages).not.toHaveBeenCalled();
+    expect(hoisted.analyzePolicyText).not.toHaveBeenCalled();
+    expect(hoisted.inngestSend).toHaveBeenCalledOnce();
   });
 });
