@@ -186,12 +186,14 @@ export function evaluateMultiAgentPolicy({
   changedFiles = [],
   packageJsonRisk = null,
 }) {
-  if (eventName === 'workflow_dispatch') {
-    return createPolicyDecision(true, 'manual_dispatch');
+  const normalizedChangedFiles = normalizeChangedFiles(changedFiles);
+
+  if (eventName !== 'pull_request' && eventName !== 'workflow_dispatch') {
+    return createPolicyDecision(false, `unsupported_event:${eventName || 'unknown'}`);
   }
 
-  if (eventName !== 'pull_request') {
-    return createPolicyDecision(false, `unsupported_event:${eventName || 'unknown'}`);
+  if (eventName === 'workflow_dispatch' && normalizedChangedFiles.length === 0) {
+    return createPolicyDecision(true, 'manual_dispatch');
   }
 
   const labelOverrideDecision = findLabelOverrideDecision(labels);
@@ -199,8 +201,7 @@ export function evaluateMultiAgentPolicy({
     return labelOverrideDecision;
   }
 
-  const { normalizedChangedFiles, matchedPaths, labelGatedMatchedPaths } =
-    collectChangedFileRisk(changedFiles);
+  const { matchedPaths, labelGatedMatchedPaths } = collectChangedFileRisk(normalizedChangedFiles);
   appendPackageJsonRisk(normalizedChangedFiles, packageJsonRisk, matchedPaths);
 
   if (matchedPaths.length > 0) {

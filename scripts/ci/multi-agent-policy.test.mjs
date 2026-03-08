@@ -42,7 +42,7 @@ function runScriptAsync(scriptPath, root, args = [], options = {}) {
   });
 }
 
-test('manual dispatch always runs full multi-agent hardening', () => {
+test('manual dispatch defaults to full multi-agent hardening when changed files are unavailable', () => {
   assert.deepEqual(
     evaluateMultiAgentPolicy({
       eventName: 'workflow_dispatch',
@@ -53,6 +53,36 @@ test('manual dispatch always runs full multi-agent hardening', () => {
       shouldRun: true,
       reason: 'manual_dispatch',
       matchedPaths: [],
+    }
+  );
+});
+
+test('manual dispatch skips full multi-agent hardening for docs-only branches when changed files are available', () => {
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'workflow_dispatch',
+      labels: [],
+      changedFiles: ['docs/plans/current-program.md', 'README.md'],
+    }),
+    {
+      shouldRun: false,
+      reason: 'default_skip_non_risky_pr',
+      matchedPaths: [],
+    }
+  );
+});
+
+test('manual dispatch still runs full multi-agent hardening for high-risk branches when changed files are available', () => {
+  assert.deepEqual(
+    evaluateMultiAgentPolicy({
+      eventName: 'workflow_dispatch',
+      labels: [],
+      changedFiles: ['scripts/multi-agent/orchestrator.sh'],
+    }),
+    {
+      shouldRun: true,
+      reason: 'high_risk_paths',
+      matchedPaths: ['scripts/multi-agent/orchestrator.sh'],
     }
   );
 });
