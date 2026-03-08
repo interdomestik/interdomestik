@@ -1,14 +1,20 @@
 import type { AiModel, AiWorkflow } from './types';
 
-export type AiRunStatus = 'queued' | 'processing' | 'completed' | 'failed' | 'skipped' | string;
+type AnyString = string & {};
 
-export type AiReviewStatus = 'pending' | 'approved' | 'rejected' | 'corrected' | string;
+type KnownAiRunStatus = 'queued' | 'processing' | 'completed' | 'failed' | 'skipped';
+
+type KnownAiReviewStatus = 'pending' | 'approved' | 'rejected' | 'corrected';
+
+export type AiRunStatus = KnownAiRunStatus | AnyString;
+
+export type AiReviewStatus = KnownAiReviewStatus | AnyString;
 
 export interface AiTelemetryInput {
   workflow: AiWorkflow;
   tenantId: string;
   promptVersion: string;
-  model: AiModel | string;
+  model: AiModel | AnyString;
   latencyMs?: number | null;
   inputTokens?: number | null;
   outputTokens?: number | null;
@@ -47,7 +53,7 @@ export interface AiTelemetryAggregate extends Omit<AiTelemetrySummary, 'runs'> {
 
 function normalizeString(value: string | null | undefined, fallback: string) {
   const normalized = value?.trim();
-  return normalized ? normalized : fallback;
+  return normalized || fallback;
 }
 
 function normalizeCount(value: number | null | undefined) {
