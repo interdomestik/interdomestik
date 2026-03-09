@@ -19,7 +19,7 @@ status_command: pnpm plan:status
 
 The release-convergence slice `V01` through `V05` is complete. The current program has now also completed six measured AI runway slices, `AI01` through `AI06`, without reopening routing, auth, tenancy, or request-path risk.
 
-`P-1` Infrastructure Debt Closure is now the live post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, `D02` is complete as the cross-agent messaging isolation slice, `D03` is complete as the blocking repository coverage floor slice, `D04` is complete as the canonical blocking `gitleaks` coverage slice, and `D05` through `D08` are the remaining committed items in the tranche.
+`P-1` Infrastructure Debt Closure is now the live post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, `D02` is complete as the cross-agent messaging isolation slice, `D03` is complete as the blocking repository coverage floor slice, `D04` is complete as the canonical blocking `gitleaks` coverage slice, `D05` is complete as the staging Supabase plus preview-environment separation slice, and `D06` through `D08` are the remaining committed items in the tranche.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -36,7 +36,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 9. Keep `D02` complete as the deterministic cross-agent messaging isolation coverage slice without bypassing canonical routes or tenant boundaries.
 10. Keep `D03` complete as the canonical blocking 60% repository coverage floor in CI.
 11. Keep `D04` complete as the canonical blocking `gitleaks` scan across the live PR, push, and scheduled security surfaces.
-12. Land `D05` staging Supabase plus preview wiring without changing production auth, routing, or tenancy architecture.
+12. Keep `D05` complete as the canonical staging Supabase plus preview-environment separation slice without changing production auth, routing, or tenancy architecture.
 13. Land `D06` incident playbook and `D07` Sentry burn-rate alert wiring as operator-readiness slices.
 14. Land `D08` as a narrow RLS rollout on four critical tables without reopening a broad repo-wide RLS campaign.
 15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche and the active `P-1` tranche.
@@ -78,9 +78,10 @@ pnpm plan:proof
 
 `D04` is complete as the canonical blocking `gitleaks` scan in the dedicated `Secret Scan` workflow across pull requests and mainline security triggers.
 
+`D05` is complete as the canonical staging Supabase plus preview-environment separation slice, with build-time deployment validation and split staging versus production CD inputs.
+
 The remaining committed queue inside `P-1` is:
 
-- `D05` staging Supabase + preview wiring
 - `D06` incident playbook
 - `D07` Sentry burn-rate alerts
 - `D08` RLS on four critical tables
@@ -119,6 +120,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `D02` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the deterministic cross-agent messaging isolation slice.
 - `D03` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the blocking 60% repository coverage floor slice.
 - `D04` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the canonical blocking `gitleaks` coverage slice.
+- `D05` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the staging Supabase plus preview-environment separation slice.
 
 ## Historical Foundation, Not Current Sequencing
 

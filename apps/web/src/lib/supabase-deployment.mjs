@@ -81,6 +81,7 @@ export function validateSupabaseDeploymentSeparation(env = process.env) {
     (deploymentEnvironment === 'preview' || deploymentEnvironment === 'staging') &&
     currentProjectRef === productionProjectRef
   ) {
+    // Preview and staging must never reuse the production hosted Supabase project.
     throw new Error(
       `${environmentLabel} deployment cannot target the production Supabase project`
     );
