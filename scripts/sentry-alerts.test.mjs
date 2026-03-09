@@ -230,6 +230,9 @@ test('normalizeMetricAlertRule sorts projects, triggers, and actions determinist
 });
 
 test('normalizeSentryBaseUrl trims trailing slashes without changing the origin', () => {
+  assert.equal(normalizeSentryBaseUrl(), 'https://sentry.io');
+  assert.equal(normalizeSentryBaseUrl(null), 'https://sentry.io');
+  assert.equal(normalizeSentryBaseUrl(''), 'https://sentry.io');
   assert.equal(normalizeSentryBaseUrl('https://sentry.io////'), 'https://sentry.io');
   assert.equal(normalizeSentryBaseUrl('https://self-hosted.sentry.local/api/'), 'https://self-hosted.sentry.local/api');
   assert.equal(normalizeSentryBaseUrl('https://sentry.io'), 'https://sentry.io');

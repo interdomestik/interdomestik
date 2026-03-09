@@ -357,12 +357,20 @@ export function findMissingScopes(grantedScopes, requiredScopes) {
   return (requiredScopes ?? []).filter(scope => !granted.has(scope));
 }
 
-export function normalizeSentryBaseUrl(baseUrl) {
-  let normalized = baseUrl ?? 'https://sentry.io';
+function trimTrailingSlashes(value) {
+  let normalized = value;
 
   while (normalized.endsWith('/')) {
     normalized = normalized.slice(0, -1);
   }
 
-  return normalized || 'https://sentry.io';
+  return normalized;
+}
+
+export function normalizeSentryBaseUrl(baseUrl = 'https://sentry.io') {
+  if (baseUrl == null || baseUrl === '') {
+    return 'https://sentry.io';
+  }
+
+  return trimTrailingSlashes(baseUrl) || 'https://sentry.io';
 }
