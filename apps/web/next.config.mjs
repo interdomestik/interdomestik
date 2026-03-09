@@ -14,6 +14,7 @@ const nextConfig = {
   transpilePackages: [
     '@interdomestik/ui',
     '@interdomestik/database',
+    '@interdomestik/domain-ai',
     '@interdomestik/domain-claims',
     '@interdomestik/domain-communications',
   ],
