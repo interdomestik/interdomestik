@@ -1,4 +1,4 @@
-name: PR E2E (Strict Gate + Key Golden)
+name: PR E2E (Full Gate)
 
 on:
   pull_request:
@@ -88,10 +88,6 @@ jobs:
         with:
           install-playwright: true
 
-      - name: DB migrations
-        if: steps.validation_surface.outputs.should_run == 'true'
-        run: pnpm db:migrate
-
       - name: Strict Rule Guards (golden/gate)
         if: steps.validation_surface.outputs.should_run == 'true'
         shell: bash
@@ -109,25 +105,12 @@ jobs:
             exit 1
           fi
 
-      - name: Seed E2E DB
+      - name: Run Full E2E Gate
         if: steps.validation_surface.outputs.should_run == 'true'
-        run: pnpm seed:e2e
-
-      - name: Build Web (Standalone)
-        if: steps.validation_surface.outputs.should_run == 'true'
-        run: pnpm --filter @interdomestik/web run build:ci
-
-      - name: Generate Playwright Gate Auth State (KS+MK)
-        if: steps.validation_surface.outputs.should_run == 'true'
-        run: pnpm --filter @interdomestik/web exec playwright test --project=setup-ks --project=setup-mk
-
-      - name: E2E Subscription Lifecycle (KS+MK)
-        if: steps.validation_surface.outputs.should_run == 'true'
-        run: pnpm --filter @interdomestik/web exec playwright test apps/web/e2e/golden/subscription-lifecycle.spec.ts --project=ks-sq --project=mk-mk
-
-      - name: E2E Smoke Suite (KS+MK)
-        if: steps.validation_surface.outputs.should_run == 'true'
-        run: node scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web run e2e:smoke
+        env:
+          E2E_DATABASE_URL: ${{ env.DATABASE_URL }}
+          E2E_DATABASE_URL_RLS: ${{ env.DATABASE_URL }}
+        run: pnpm e2e:gate
 
       - name: Upload Playwright Artifacts
         if: always() && steps.validation_surface.outputs.should_run == 'true'

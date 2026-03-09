@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-03-08
+last_reviewed: 2026-03-09
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -19,6 +19,8 @@ status_command: pnpm plan:status
 
 The release-convergence slice `V01` through `V05` is complete. The current program has now also completed six measured AI runway slices, `AI01` through `AI06`, without reopening routing, auth, tenancy, or request-path risk.
 
+`P-1` Infrastructure Debt Closure is now the live post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, and `D02` through `D08` are the remaining committed items in the tranche.
+
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
 ## Program Goals
@@ -30,7 +32,14 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 5. Keep `AI04` complete as the canonical run-status and human-review surface on top of the existing provenance and workflow layers, with no routing, auth, or tenancy refactors.
 6. Keep `AI05` complete as the narrow claim-and-legal workflow slice on top of the existing provenance, background execution, and review surfaces, without reopening routing, auth, or tenancy boundaries.
 7. Keep `AI06` complete as the canonical fixture-eval, telemetry, and PR CI signaling slice on top of the existing typed AI boundary and workflow surfaces.
-8. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche.
+8. Keep `D01` complete as the canonical PR full-`e2e:gate` CI lane for product changes.
+9. Land `D02` cross-agent messaging isolation coverage without bypassing canonical routes or tenant boundaries.
+10. Land `D03` as a blocking 60% coverage floor in CI.
+11. Land `D04` as blocking `gitleaks` coverage across the live PR and mainline security surfaces.
+12. Land `D05` staging Supabase plus preview wiring without changing production auth, routing, or tenancy architecture.
+13. Land `D06` incident playbook and `D07` Sentry burn-rate alert wiring as operator-readiness slices.
+14. Land `D08` as a narrow RLS rollout on four critical tables without reopening a broad repo-wide RLS campaign.
+15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche and the active `P-1` tranche.
 
 ## Status Command
 
@@ -59,9 +68,19 @@ pnpm plan:proof
 
 ## Next Committed Priority
 
-No additional AI slice is currently committed.
+`P-1` Infrastructure Debt Closure is now the committed post-AI tranche.
 
-`AI01` through `AI06` are now the completed committed AI runway tranche.
+`D01` is complete as the full PR `e2e:gate` CI slice.
+
+The remaining committed queue inside `P-1` is:
+
+- `D02` cross-agent messaging E2E
+- `D03` 60% coverage gate
+- `D04` blocking `gitleaks`
+- `D05` staging Supabase + preview wiring
+- `D06` incident playbook
+- `D07` Sentry burn-rate alerts
+- `D08` RLS on four critical tables
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -92,6 +111,8 @@ These documents can recommend or constrain work, but they do not define the live
 - `AI04` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is complete as the status-and-review slice.
 - `AI05` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is complete as the claim-and-legal workflow slice.
 - `AI06` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is complete as the evals, telemetry, and CI wiring slice.
+- `P-1` Infrastructure Debt Closure has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md`.
+- `D01` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the full PR `e2e:gate` CI slice.
 
 ## Historical Foundation, Not Current Sequencing
 

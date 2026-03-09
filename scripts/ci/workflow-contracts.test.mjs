@@ -34,7 +34,7 @@ function normalizeNeeds(needs) {
   return [];
 }
 
-test('CI PR path keeps only RLS coverage while PR E2E owns browser validation', () => {
+test('CI PR path keeps only RLS coverage while PR E2E owns the full browser gate lane', () => {
   const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
 
@@ -74,9 +74,21 @@ test('CI PR path keeps only RLS coverage while PR E2E owns browser validation', 
   const prE2eJob = prE2eWorkflow.jobs.e2e;
   const prE2eSetupStep = prE2eJob.steps.find(step => step?.uses === './.github/actions/setup');
   assert.equal(prE2eSetupStep.with['install-playwright'], true);
-  assert.ok(findStep(prE2eJob.steps, 'Generate Playwright Gate Auth State (KS+MK)'));
-  assert.ok(findStep(prE2eJob.steps, 'E2E Subscription Lifecycle (KS+MK)'));
-  assert.ok(findStep(prE2eJob.steps, 'E2E Smoke Suite (KS+MK)'));
+
+  const prStrictGuardStep = findStep(prE2eJob.steps, 'Strict Rule Guards (golden/gate)');
+  assert.ok(prStrictGuardStep);
+
+  const fullGateStep = findStep(prE2eJob.steps, 'Run Full E2E Gate');
+  assert.ok(fullGateStep);
+  assert.equal(fullGateStep.run, 'pnpm e2e:gate');
+  assert.deepEqual(fullGateStep.env, {
+    E2E_DATABASE_URL: '${{ env.DATABASE_URL }}',
+    E2E_DATABASE_URL_RLS: '${{ env.DATABASE_URL }}',
+  });
+
+  assert.equal(findStep(prE2eJob.steps, 'Generate Playwright Gate Auth State (KS+MK)'), undefined);
+  assert.equal(findStep(prE2eJob.steps, 'E2E Subscription Lifecycle (KS+MK)'), undefined);
+  assert.equal(findStep(prE2eJob.steps, 'E2E Smoke Suite (KS+MK)'), undefined);
 });
 
 test('CI includes a PR-only non-blocking AI eval lane keyed off AI file changes', () => {
