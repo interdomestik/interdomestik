@@ -6,7 +6,7 @@ owner: platform
 last_reviewed: 2026-03-09
 ---
 
-# D05 Supabase Preview Wiring Evidence
+# D05 Staging Supabase and Preview Wiring Evidence
 
 > Status: Active supporting input. This document records the code and verification evidence for `D05` staging Supabase plus preview-environment separation inside `P-1` Infrastructure Debt Closure.
 
