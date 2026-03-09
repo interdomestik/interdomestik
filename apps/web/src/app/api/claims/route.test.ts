@@ -6,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
   getSession: vi.fn(),
   enforceRateLimit: vi.fn(),
   getClaimsListV2: vi.fn(),
+  setTag: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -22,6 +23,10 @@ vi.mock('@/lib/rate-limit', () => ({
 
 vi.mock('@/server/domains/claims', () => ({
   getClaimsListV2: hoisted.getClaimsListV2,
+}));
+
+vi.mock('@sentry/nextjs', () => ({
+  setTag: hoisted.setTag,
 }));
 
 describe('GET /api/claims', () => {
@@ -124,6 +129,7 @@ describe('GET /api/claims', () => {
       totalPages: 1,
       totals: { active: 1, draft: 0, closed: 0 },
     });
+    expect(hoisted.setTag).toHaveBeenCalledWith('slo_alert', 'd07.api.claims.latency');
   });
 
   it('returns 500 when domain throws', async () => {

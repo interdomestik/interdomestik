@@ -6,6 +6,8 @@ const hoisted = vi.hoisted(() => ({
   resolveBillingEntityFromPathSegment: vi.fn(),
   getPaddleAndConfigForEntity: vi.fn(),
   handlePaddleWebhookEntityCore: vi.fn(),
+  setTag: vi.fn(),
+  captureException: vi.fn(),
 }));
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -19,6 +21,11 @@ vi.mock('@interdomestik/domain-membership-billing/paddle-server', () => ({
 
 vi.mock('./_core', () => ({
   handlePaddleWebhookEntityCore: hoisted.handlePaddleWebhookEntityCore,
+}));
+
+vi.mock('@sentry/nextjs', () => ({
+  setTag: hoisted.setTag,
+  captureException: hoisted.captureException,
 }));
 
 import { POST } from './route';
@@ -107,5 +114,6 @@ describe('POST /api/webhooks/paddle/[entity]', () => {
         productionSensitive: true,
       })
     );
+    expect(hoisted.setTag).toHaveBeenCalledWith('slo_alert', 'd07.webhook.processing');
   });
 });

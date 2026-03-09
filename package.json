@@ -94,6 +94,8 @@
     "docker:reclaim:full": "bash scripts/docker-reclaim.sh full --yes",
     "sentry:seer:sweep:pre": "bash scripts/sentry-seer-sweep.sh pre",
     "sentry:seer:sweep:post": "bash scripts/sentry-seer-sweep.sh post",
+    "sentry:alerts:check": "node scripts/sentry-alerts.mjs check",
+    "sentry:alerts:apply": "node scripts/sentry-alerts.mjs apply",
     "security:guard": "node scripts/security-guard.mjs",
     "commitlint": "commitlint --from=HEAD~1",
     "release": "release-it",

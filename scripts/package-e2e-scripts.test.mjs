@@ -74,3 +74,8 @@ test('web package exposes full and PR gate lanes separately', () => {
 test('root package exposes the scripts/ci contract suite', () => {
   assert.equal(packageJson.scripts['test:ci:contracts'], 'node --test scripts/ci/*.test.mjs');
 });
+
+test('root package exposes the D07 Sentry alert management scripts', () => {
+  assert.equal(packageJson.scripts['sentry:alerts:check'], 'node scripts/sentry-alerts.mjs check');
+  assert.equal(packageJson.scripts['sentry:alerts:apply'], 'node scripts/sentry-alerts.mjs apply');
+});

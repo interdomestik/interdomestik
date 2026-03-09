@@ -177,6 +177,15 @@ Use [INCIDENT_PLAYBOOK.md](./INCIDENT_PLAYBOOK.md) as the canonical incident-res
 
 This repo includes SLO targets in [docs/SLOS.md](docs/SLOS.md). In Sentry, use these alert types:
 
+- Repo-owned alert surface:
+  - definitions: `scripts/sentry-alerts-lib.mjs`
+  - inspect drift: `pnpm sentry:alerts:check`
+  - apply or update remote rules: `pnpm sentry:alerts:apply`
+  - drift semantics: `check` compares owner and alert actions only when `SENTRY_ALERT_OWNER` or the action JSON env vars are explicitly set
+  - required env for apply: `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`, and one of `SENTRY_ALERT_ACTIONS_JSON` or the label-specific `SENTRY_ALERT_ACTIONS_WARNING_JSON` / `SENTRY_ALERT_ACTIONS_CRITICAL_JSON`
+  - required token scopes: `alerts:read` for check, `alerts:write` for apply
+  - production requirement: `SENTRY_TRACES_SAMPLE_RATE` must be non-zero for the D07 transaction and latency alerts to emit telemetry
+
 - **Burn-rate alerts (SLO-based)**: best for sustained availability/reliability degradation.
   - **SLO 1 (Paddle webhooks)**: burn-rate alert on webhook processing success rate.
   - **SLO 2 (Document downloads)**: burn-rate alert on download success rate.

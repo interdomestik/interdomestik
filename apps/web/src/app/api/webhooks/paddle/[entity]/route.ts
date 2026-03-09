@@ -30,6 +30,8 @@ export async function POST(req: NextRequest, { params }: WebhookRouteContext) {
     return NextResponse.json({ error: 'Unknown billing entity' }, { status: 404 });
   }
 
+  Sentry.setTag('slo_alert', 'd07.webhook.processing');
+
   try {
     const { paddle, config } = getPaddleAndConfigForEntity(entity, {
       allowLegacyFallback: false,

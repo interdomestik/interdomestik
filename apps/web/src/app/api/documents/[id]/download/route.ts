@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db.server';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { createAdminClient } from '@interdomestik/database';
+import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
 import { downloadStorageFileCore, getDocumentAccessCore, safeFilename } from '../../_core';
 
@@ -32,6 +33,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  Sentry.setTag('slo_alert', 'd07.document.download');
 
   // Audit logs are tenant-scoped. Session should carry tenantId (via shared-auth).
   const tenantId = (session.user as { tenantId?: string | null }).tenantId ?? null;
