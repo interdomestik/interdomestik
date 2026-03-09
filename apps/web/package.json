@@ -75,7 +75,7 @@
     "next-intl": "^4.6.0",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
-    "posthog-js": "^1.357.1",
+    "posthog-js": "^1.360.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
