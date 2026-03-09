@@ -19,7 +19,7 @@ status_command: pnpm plan:status
 
 The release-convergence slice `V01` through `V05` is complete. The current program has now also completed six measured AI runway slices, `AI01` through `AI06`, without reopening routing, auth, tenancy, or request-path risk.
 
-`P-1` Infrastructure Debt Closure is now the live post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, `D02` is complete as the cross-agent messaging isolation slice, `D03` is complete as the blocking repository coverage floor slice, `D04` is complete as the canonical blocking `gitleaks` coverage slice, `D05` is complete as the staging Supabase plus preview-environment separation slice, `D06` is complete as the canonical incident playbook slice, `D07` is complete as the Sentry burn-rate alert wiring slice, and `D08` is the remaining committed item in the tranche.
+`P-1` Infrastructure Debt Closure is the live post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, `D02` is complete as the cross-agent messaging isolation slice, `D03` is complete as the blocking repository coverage floor slice, `D04` is complete as the canonical blocking `gitleaks` coverage slice, `D05` is complete as the staging Supabase plus preview-environment separation slice, `D06` is complete as the canonical incident playbook slice, `D07` is complete as the Sentry burn-rate alert wiring slice, and `D08` is complete as the narrow critical-table RLS proof slice. The committed `P-1` tranche now has no remaining pending item.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -38,7 +38,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 11. Keep `D04` complete as the canonical blocking `gitleaks` scan across the live PR, push, and scheduled security surfaces.
 12. Keep `D05` complete as the canonical staging Supabase plus preview-environment separation slice without changing production auth, routing, or tenancy architecture.
 13. Keep `D06` complete as the canonical incident-response playbook and keep `D07` complete as the Sentry burn-rate alert wiring slice.
-14. Land `D08` as a narrow RLS rollout on four critical tables without reopening a broad repo-wide RLS campaign.
+14. Keep `D08` complete as the narrow RLS proof slice on four critical tables without reopening a broad repo-wide RLS campaign.
 15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche and the active `P-1` tranche.
 
 ## Status Command
@@ -68,7 +68,7 @@ pnpm plan:proof
 
 ## Next Committed Priority
 
-`P-1` Infrastructure Debt Closure is now the committed post-AI tranche.
+`P-1` Infrastructure Debt Closure is now complete as the committed post-AI tranche.
 
 `D01` is complete as the full PR `e2e:gate` CI slice.
 
@@ -82,9 +82,7 @@ pnpm plan:proof
 
 `D06` is complete as the canonical incident-response playbook slice, with severity levels, escalation flow, rollback guidance, communication templates, and RCA structure linked from the active operator runbook.
 
-The remaining committed queue inside `P-1` is:
-
-- `D08` RLS on four critical tables
+The committed queue inside `P-1` is now empty.
 
 ## Do Not Reopen The Convergence Boundary
 
