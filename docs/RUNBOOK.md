@@ -2,6 +2,8 @@
 
 This is the minimal operational runbook for Interdomestik.
 
+Canonical incident response procedure: [INCIDENT_PLAYBOOK.md](./INCIDENT_PLAYBOOK.md).
+
 ## Webhooks (Paddle)
 
 ### Symptoms
@@ -96,6 +98,8 @@ Idempotency is enforced via the `engagement_email_sends` table (unique `dedupe_k
 - Do `audit_log` / `webhook_events` show activity for the incident window?
 
 ## Incident response (first 30 minutes)
+
+Use [INCIDENT_PLAYBOOK.md](./INCIDENT_PLAYBOOK.md) as the canonical incident-response flow. The summary below stays as a quick reference.
 
 ### Severity
 
