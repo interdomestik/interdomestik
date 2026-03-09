@@ -16,8 +16,10 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-push:
+  build-staging:
     runs-on: [self-hosted, interdomestik-linux]
+    environment:
+      name: staging
     permissions:
       contents: read
       packages: write
@@ -45,10 +47,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha,format=long
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=staging-${{ github.sha }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -61,10 +60,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NEXT_PUBLIC_APP_URL=https://app.interdomestik.com
+            INTERDOMESTIK_DEPLOY_ENV=staging
+            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            SUPABASE_PRODUCTION_PROJECT_REF=${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
+            NEXT_PUBLIC_APP_URL=https://staging.interdomestik.com
 
   deploy-staging:
-    needs: build-push
+    needs: build-staging
     runs-on: [self-hosted, interdomestik-linux]
     environment:
       name: staging
@@ -72,7 +75,7 @@ jobs:
     steps:
       - name: Deploy to Staging
         run: |
-          echo "🚀 Deploying image ${{ needs.build-push.outputs.image_tag }} to Staging..."
+          echo "🚀 Deploying image ${{ needs.build-staging.outputs.image_tag }} to Staging..."
           # Example: ssh user@staging "docker pull ... && docker compose up -d"
           # or: kubectl set image deployment/web web=...
 
@@ -89,8 +92,62 @@ jobs:
           echo "🧪 Running smoke tests against $BASE_URL..."
           # pnpm test:e2e:smoke
 
-  deploy-production:
+  build-production:
     needs: e2e-staging
+    runs-on: [self-hosted, interdomestik-linux]
+    environment:
+      name: production
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=production-${{ github.sha }}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            INTERDOMESTIK_DEPLOY_ENV=production
+            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            SUPABASE_PRODUCTION_PROJECT_REF=${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
+            NEXT_PUBLIC_APP_URL=https://app.interdomestik.com
+
+  deploy-production:
+    needs: build-production
     runs-on: [self-hosted, interdomestik-linux]
     environment:
       name: production
@@ -98,7 +155,7 @@ jobs:
     steps:
       - name: Deploy to Production
         run: |
-          echo "🚀 Deploying image ${{ needs.build-push.outputs.image_tag }} to Production..."
+          echo "🚀 Deploying image ${{ needs.build-production.outputs.image_tag }} to Production..."
           # Actual deployment command here
 
   verify-production:

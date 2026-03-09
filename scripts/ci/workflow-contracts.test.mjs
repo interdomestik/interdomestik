@@ -266,3 +266,63 @@ test('CI audit job runs the scripts/ci contract suite', () => {
   assert.ok(auditRunStep);
   assert.match(auditRunStep.run, /\bpnpm test:ci:contracts\b/);
 });
+
+test('CD builds distinct staging and production artifacts with explicit Supabase environment separation', () => {
+  const cdWorkflow = readWorkflow('.github/workflows/cd.yml');
+  const buildStagingJob = cdWorkflow.jobs['build-staging'];
+  const buildProductionJob = cdWorkflow.jobs['build-production'];
+  const deployStagingJob = cdWorkflow.jobs['deploy-staging'];
+  const deployProductionJob = cdWorkflow.jobs['deploy-production'];
+
+  assert.equal(cdWorkflow.jobs['build-push'], undefined);
+
+  assert.ok(buildStagingJob);
+  assert.equal(buildStagingJob.environment.name, 'staging');
+  assert.equal(buildStagingJob.outputs.image_tag, '${{ steps.meta.outputs.version }}');
+  const buildStagingStep = findStep(buildStagingJob.steps, 'Build and push Docker image');
+  assert.ok(buildStagingStep);
+  assert.match(buildStagingStep.with['build-args'], /INTERDOMESTIK_DEPLOY_ENV=staging/);
+  assert.match(
+    buildStagingStep.with['build-args'],
+    /NEXT_PUBLIC_APP_URL=https:\/\/staging\.interdomestik\.com/
+  );
+  assert.match(
+    buildStagingStep.with['build-args'],
+    /NEXT_PUBLIC_SUPABASE_URL=\$\{\{\s*(vars|secrets)\.NEXT_PUBLIC_SUPABASE_URL/
+  );
+  assert.match(
+    buildStagingStep.with['build-args'],
+    /NEXT_PUBLIC_SUPABASE_ANON_KEY=\$\{\{\s*(vars|secrets)\.NEXT_PUBLIC_SUPABASE_ANON_KEY/
+  );
+  assert.match(
+    buildStagingStep.with['build-args'],
+    /SUPABASE_PRODUCTION_PROJECT_REF=\$\{\{\s*(vars|secrets)\.SUPABASE_PRODUCTION_PROJECT_REF/
+  );
+
+  assert.ok(buildProductionJob);
+  assert.deepEqual(normalizeNeeds(buildProductionJob.needs), ['e2e-staging']);
+  assert.equal(buildProductionJob.environment.name, 'production');
+  assert.equal(buildProductionJob.outputs.image_tag, '${{ steps.meta.outputs.version }}');
+  const buildProductionStep = findStep(buildProductionJob.steps, 'Build and push Docker image');
+  assert.ok(buildProductionStep);
+  assert.match(buildProductionStep.with['build-args'], /INTERDOMESTIK_DEPLOY_ENV=production/);
+  assert.match(
+    buildProductionStep.with['build-args'],
+    /NEXT_PUBLIC_APP_URL=https:\/\/app\.interdomestik\.com/
+  );
+  assert.match(
+    buildProductionStep.with['build-args'],
+    /NEXT_PUBLIC_SUPABASE_URL=\$\{\{\s*(vars|secrets)\.NEXT_PUBLIC_SUPABASE_URL/
+  );
+  assert.match(
+    buildProductionStep.with['build-args'],
+    /NEXT_PUBLIC_SUPABASE_ANON_KEY=\$\{\{\s*(vars|secrets)\.NEXT_PUBLIC_SUPABASE_ANON_KEY/
+  );
+  assert.match(
+    buildProductionStep.with['build-args'],
+    /SUPABASE_PRODUCTION_PROJECT_REF=\$\{\{\s*(vars|secrets)\.SUPABASE_PRODUCTION_PROJECT_REF/
+  );
+
+  assert.deepEqual(normalizeNeeds(deployStagingJob.needs), ['build-staging']);
+  assert.deepEqual(normalizeNeeds(deployProductionJob.needs), ['build-production']);
+});

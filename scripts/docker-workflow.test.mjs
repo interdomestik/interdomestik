@@ -79,6 +79,13 @@ test('web docker path injects public Supabase client env into the browser build 
 
   assert.match(dockerfile, /ARG NEXT_PUBLIC_SUPABASE_ANON_KEY/);
   assert.match(dockerfile, /ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=\$NEXT_PUBLIC_SUPABASE_ANON_KEY/);
+  assert.match(dockerfile, /ARG INTERDOMESTIK_DEPLOY_ENV/);
+  assert.match(dockerfile, /ENV INTERDOMESTIK_DEPLOY_ENV=\$INTERDOMESTIK_DEPLOY_ENV/);
+  assert.match(dockerfile, /ARG SUPABASE_PRODUCTION_PROJECT_REF/);
+  assert.match(
+    dockerfile,
+    /ENV SUPABASE_PRODUCTION_PROJECT_REF=\$SUPABASE_PRODUCTION_PROJECT_REF/
+  );
   assert.match(compose, /NEXT_PUBLIC_SUPABASE_URL: \$\{DOCKER_GATE_SUPABASE_URL:-http:\/\/localhost:54321\}/);
   assert.match(compose, /NEXT_PUBLIC_SUPABASE_ANON_KEY: \$\{NEXT_PUBLIC_SUPABASE_ANON_KEY\}/);
   assert.match(compose, /- NEXT_PUBLIC_SUPABASE_URL=\$\{DOCKER_GATE_SUPABASE_URL:-http:\/\/localhost:54321\}/);

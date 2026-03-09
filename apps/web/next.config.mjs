@@ -2,12 +2,15 @@ import withBundleAnalyzer from '@next/bundle-analyzer';
 import { withSentryConfig } from '@sentry/nextjs';
 import { withAxiom } from 'next-axiom';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { validateSupabaseDeploymentSeparation } from './src/lib/supabase-deployment.mjs';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const bundleAnalyzer = withBundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
+
+validateSupabaseDeploymentSeparation(process.env);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
