@@ -19,7 +19,7 @@ status_command: pnpm plan:status
 
 The release-convergence slice `V01` through `V05` is complete. The current program has now also completed six measured AI runway slices, `AI01` through `AI06`, without reopening routing, auth, tenancy, or request-path risk.
 
-`P-1` Infrastructure Debt Closure is now the live post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, and `D02` through `D08` are the remaining committed items in the tranche.
+`P-1` Infrastructure Debt Closure is now the live post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, `D02` is complete as the cross-agent messaging isolation slice, and `D03` through `D08` are the remaining committed items in the tranche.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -33,7 +33,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 6. Keep `AI05` complete as the narrow claim-and-legal workflow slice on top of the existing provenance, background execution, and review surfaces, without reopening routing, auth, or tenancy boundaries.
 7. Keep `AI06` complete as the canonical fixture-eval, telemetry, and PR CI signaling slice on top of the existing typed AI boundary and workflow surfaces.
 8. Keep `D01` complete as the canonical PR full-`e2e:gate` CI lane for product changes.
-9. Land `D02` cross-agent messaging isolation coverage without bypassing canonical routes or tenant boundaries.
+9. Keep `D02` complete as the deterministic cross-agent messaging isolation coverage slice without bypassing canonical routes or tenant boundaries.
 10. Land `D03` as a blocking 60% coverage floor in CI.
 11. Land `D04` as blocking `gitleaks` coverage across the live PR and mainline security surfaces.
 12. Land `D05` staging Supabase plus preview wiring without changing production auth, routing, or tenancy architecture.
@@ -72,9 +72,10 @@ pnpm plan:proof
 
 `D01` is complete as the full PR `e2e:gate` CI slice.
 
+`D02` is complete as the deterministic cross-agent messaging isolation coverage slice.
+
 The remaining committed queue inside `P-1` is:
 
-- `D02` cross-agent messaging E2E
 - `D03` 60% coverage gate
 - `D04` blocking `gitleaks`
 - `D05` staging Supabase + preview wiring
@@ -113,6 +114,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `AI06` has now been copied into the live program and tracker from `docs/plans/2026-03-07-gpt-5-4-phase-1-implementation-plan.md` and is complete as the evals, telemetry, and CI wiring slice.
 - `P-1` Infrastructure Debt Closure has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md`.
 - `D01` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the full PR `e2e:gate` CI slice.
+- `D02` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the deterministic cross-agent messaging isolation slice.
 
 ## Historical Foundation, Not Current Sequencing
 
