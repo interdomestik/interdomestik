@@ -81,6 +81,10 @@ test('CI PR path keeps only RLS coverage while PR E2E owns the full browser gate
   const fullGateStep = findStep(prE2eJob.steps, 'Run Full E2E Gate');
   assert.ok(fullGateStep);
   assert.equal(fullGateStep.run, 'pnpm e2e:gate');
+  assert.deepEqual(fullGateStep.env, {
+    E2E_DATABASE_URL: '${{ env.DATABASE_URL }}',
+    E2E_DATABASE_URL_RLS: '${{ env.DATABASE_URL }}',
+  });
 
   assert.equal(findStep(prE2eJob.steps, 'Generate Playwright Gate Auth State (KS+MK)'), undefined);
   assert.equal(findStep(prE2eJob.steps, 'E2E Subscription Lifecycle (KS+MK)'), undefined);
