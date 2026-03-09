@@ -1,4 +1,4 @@
-import { claimMessages, claims, user } from '@interdomestik/database/schema';
+import { agentClients, claimMessages, claims, user } from '@interdomestik/database/schema';
 import { and, count, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 
 export interface AgentProClaimDTO {
@@ -90,19 +90,25 @@ function dedupeClaimsById(claims: AgentProClaimDTO[]): AgentProClaimDTO[] {
  */
 export function buildAgentWorkspaceClaimsWhere(params: {
   tenantId: string;
+  assignedMemberIds: string[];
   branchId?: string | null;
 }) {
+  const assignedMembers = inArray(claims.userId, params.assignedMemberIds);
+
   if (params.branchId) {
     return and(
       eq(claims.tenantId, params.tenantId),
+      assignedMembers,
       or(eq(claims.branchId, params.branchId), isNull(claims.branchId))
     );
   }
-  return eq(claims.tenantId, params.tenantId);
+
+  return and(eq(claims.tenantId, params.tenantId), assignedMembers);
 }
 
 function buildAgentWorkspaceClaimByIdWhere(params: {
   tenantId: string;
+  assignedMemberIds: string[];
   branchId?: string | null;
   claimId: string;
 }) {
@@ -111,14 +117,15 @@ function buildAgentWorkspaceClaimByIdWhere(params: {
 
 async function getClaimByIdInWorkspaceScope(params: {
   tenantId: string;
+  assignedMemberIds: string[];
   branchId?: string | null;
   claimId: string;
   db: any;
 }): Promise<AgentProClaimDTO | null> {
-  const { tenantId, claimId, branchId, db } = params;
+  const { tenantId, claimId, assignedMemberIds, branchId, db } = params;
 
   const matched = await db.query.claims.findMany({
-    where: buildAgentWorkspaceClaimByIdWhere({ tenantId, branchId, claimId }),
+    where: buildAgentWorkspaceClaimByIdWhere({ tenantId, assignedMemberIds, branchId, claimId }),
     with: {
       user: {
         columns: {
@@ -169,10 +176,36 @@ export async function getAgentWorkspaceClaimsCore(params: {
     where: eq(user.id, userId),
     columns: { branchId: true },
   });
+  const activeAssignments = await db.query.agentClients.findMany({
+    where: and(
+      eq(agentClients.tenantId, tenantId),
+      eq(agentClients.agentId, userId),
+      eq(agentClients.status, 'active')
+    ),
+    columns: { memberId: true },
+  });
+  const assignedMemberIds: string[] = Array.from(
+    new Set(
+      activeAssignments
+        .map((assignment: { memberId: string | null }) => assignment.memberId)
+        .filter(
+          (memberId: string | null): memberId is string =>
+            typeof memberId === 'string' && memberId.length > 0
+        )
+    )
+  );
+
+  if (assignedMemberIds.length === 0) {
+    return { claims: [] };
+  }
 
   // 1. Fetch Claims for Agent's Scope
   const claimsData = await db.query.claims.findMany({
-    where: buildAgentWorkspaceClaimsWhere({ tenantId, branchId: agent?.branchId }),
+    where: buildAgentWorkspaceClaimsWhere({
+      tenantId,
+      assignedMemberIds,
+      branchId: agent?.branchId,
+    }),
     orderBy: [desc(claims.createdAt)],
     with: {
       user: {
@@ -199,6 +232,7 @@ export async function getAgentWorkspaceClaimsCore(params: {
       ? null
       : await getClaimByIdInWorkspaceScope({
           tenantId,
+          assignedMemberIds,
           claimId: requestedSelectedClaimId,
           branchId: agent?.branchId,
           db,

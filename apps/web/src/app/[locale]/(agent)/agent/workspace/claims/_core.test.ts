@@ -23,6 +23,9 @@ describe('Agent Workspace Claims Query Contracts', () => {
         claims: {
           findMany: vi.fn(),
         },
+        agentClients: {
+          findMany: vi.fn(),
+        },
         user: {
           findFirst: vi.fn(),
         },
@@ -37,6 +40,7 @@ describe('Agent Workspace Claims Query Contracts', () => {
 
     it('assembles claims applying basic isolation filters', async () => {
       mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+      mockDb.query.agentClients.findMany.mockResolvedValue([{ memberId: 'u1' }]);
       mockDb.query.claims.findMany.mockResolvedValue([
         { id: 'c1', claimNumber: 'CLM-001', user: { id: 'u1' }, branch: { name: 'B1' } },
       ]);
@@ -87,6 +91,10 @@ describe('Agent Workspace Claims Query Contracts', () => {
       };
       let findManyCalls = 0;
       mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+      mockDb.query.agentClients.findMany.mockResolvedValue([
+        { memberId: 'u1' },
+        { memberId: 'u2' },
+      ]);
       mockDb.query.claims.findMany.mockImplementation(async () => {
         findManyCalls += 1;
         return findManyCalls === 1 ? claimsPageRows : [selectedClaimRow];
@@ -143,6 +151,10 @@ describe('Agent Workspace Claims Query Contracts', () => {
 
       let findManyCalls = 0;
       mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+      mockDb.query.agentClients.findMany.mockResolvedValue([
+        ...claimsPageRows.map(row => ({ memberId: row.user.id })),
+        { memberId: 'u-target' },
+      ]);
       mockDb.query.claims.findMany.mockImplementation(async () => {
         findManyCalls += 1;
         return findManyCalls === 1 ? claimsPageRows : [selectedClaimRow];
@@ -160,6 +172,58 @@ describe('Agent Workspace Claims Query Contracts', () => {
       expect(result.claims).toHaveLength(100);
       expect(result.claims.map(c => c.id)).toContain('target-older');
       expect(findManyCalls).toBe(2);
+    });
+
+    it('does not inject selected claim when the member is outside the agent assignment scope', async () => {
+      const claimsPageRows = [
+        {
+          id: 'visible-1',
+          claimNumber: 'CLM-001',
+          user: { id: 'u1' },
+          branch: { name: 'B1' },
+          title: 'Visible Claim',
+          status: 'submitted',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          userId: 'u1',
+        },
+      ];
+
+      let findManyCalls = 0;
+      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+      mockDb.query.agentClients.findMany.mockResolvedValue([{ memberId: 'u1' }]);
+      mockDb.query.claims.findMany.mockImplementation(async () => {
+        findManyCalls += 1;
+        return findManyCalls === 1 ? claimsPageRows : [];
+      });
+      mockDb.groupBy.mockResolvedValueOnce([{ claimId: 'visible-1', count: 0 }]);
+      mockDb.orderBy.mockResolvedValueOnce([{ claimId: 'visible-1', content: 'hello' }]);
+
+      const result = await getAgentWorkspaceClaimsCore({
+        tenantId: 't1',
+        userId: 'a1',
+        db: mockDb,
+        selectedClaimId: 'target-2',
+      });
+
+      expect(result.claims).toHaveLength(1);
+      expect(result.claims.map(c => c.id)).not.toContain('target-2');
+      expect(findManyCalls).toBe(2);
+    });
+
+    it('returns no claims when the agent has no active member assignments', async () => {
+      mockDb.query.user.findFirst.mockResolvedValue({ branchId: 'branch-1' });
+      mockDb.query.agentClients.findMany.mockResolvedValue([]);
+      mockDb.query.claims.findMany.mockResolvedValue([]);
+
+      const result = await getAgentWorkspaceClaimsCore({
+        tenantId: 't1',
+        userId: 'a1',
+        db: mockDb,
+      });
+
+      expect(result.claims).toEqual([]);
+      expect(mockDb.query.claims.findMany).not.toHaveBeenCalled();
     });
   });
 });
