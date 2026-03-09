@@ -151,7 +151,20 @@ test('Secret Scan is the sole blocking gitleaks surface for PR and mainline whil
   assert.equal(gitleaksJob['runs-on'], 'ubuntu-latest');
   assert.equal(gitleaksJob.if, undefined);
   assert.ok(findStep(gitleaksJob.steps, 'Install gitleaks CLI'));
-  assert.ok(findStep(gitleaksJob.steps, 'Run gitleaks (blocking)'));
+  const runStep = findStep(gitleaksJob.steps, 'Run gitleaks (blocking)');
+  assert.ok(runStep);
+  assert.match(runStep.run, /log_opts="--all"/);
+  assert.match(
+    runStep.run,
+    /if \[\[ "\$\{GITHUB_EVENT_NAME\}" == "pull_request" && -n "\$\{GITHUB_BASE_SHA:-\}" && -n "\$\{GITHUB_HEAD_SHA:-\}" \]\]; then/
+  );
+  assert.match(runStep.run, /log_opts="\$\{GITHUB_BASE_SHA\}\.\.\$\{GITHUB_HEAD_SHA\}"/);
+  assert.match(
+    runStep.run,
+    /elif \[\[ "\$\{GITHUB_EVENT_NAME\}" == "push" && -n "\$\{GITHUB_BEFORE_SHA:-\}" && "\$\{GITHUB_BEFORE_SHA\}" != "0000000000000000000000000000000000000000" \]\]; then/
+  );
+  assert.match(runStep.run, /log_opts="\$\{GITHUB_BEFORE_SHA\}\.\.\$\{GITHUB_SHA\}"/);
+  assert.equal(runStep.run.includes('log_opts="-n 1"'), false);
   assert.ok(findStep(gitleaksJob.steps, 'Upload gitleaks report artifact'));
 
   const securityAuditJob = securityWorkflow.jobs['pnpm-audit'];
