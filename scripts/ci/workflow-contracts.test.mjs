@@ -120,6 +120,19 @@ test('CI includes a PR-only non-blocking AI eval lane keyed off AI file changes'
   assert.equal(runStep.run, 'pnpm ai:eval');
 });
 
+test('CI unit lane runs the blocking repository coverage gate', () => {
+  const ciWorkflow = readWorkflow('.github/workflows/ci.yml');
+  const unitJob = ciWorkflow.jobs.unit;
+
+  assert.ok(unitJob);
+  assert.ok(normalizeNeeds(unitJob.needs).includes('validation-surface'));
+  assert.equal(unitJob.if, "needs.validation-surface.outputs.should_run == 'true'");
+
+  const coverageStep = findStep(unitJob.steps, 'Coverage Gate');
+  assert.ok(coverageStep);
+  assert.equal(coverageStep.run, 'pnpm coverage:gate');
+});
+
 test('Heavy PR workflows skip runner startup for docs-only and planning-only changes', () => {
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
