@@ -18,9 +18,9 @@ last_reviewed: 2026-03-09
 
 ## Document Evidence
 
-- the canonical incident response procedure now lives in [INCIDENT_PLAYBOOK.md](../../docs/INCIDENT_PLAYBOOK.md)
-- the active operator runbook now links the canonical playbook from [RUNBOOK.md](../../docs/RUNBOOK.md)
-- the new playbook aligns with the current SLO and pilot operating surfaces referenced in [SLOS.md](../../docs/SLOS.md) and [pilot/PILOT_RUNBOOK.md](../../docs/pilot/PILOT_RUNBOOK.md)
+- the canonical incident response procedure now lives in [INCIDENT_PLAYBOOK.md](../INCIDENT_PLAYBOOK.md)
+- the active operator runbook now links the canonical playbook from [RUNBOOK.md](../RUNBOOK.md)
+- the new playbook aligns with the current SLO and pilot operating surfaces referenced in [SLOS.md](../SLOS.md) and [pilot/PILOT_RUNBOOK.md](../pilot/PILOT_RUNBOOK.md)
 
 ## Focused Verification Evidence
 
