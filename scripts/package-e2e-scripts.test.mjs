@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import packageJson from '../package.json' with { type: 'json' };
+import databasePackageJson from '../packages/database/package.json' with { type: 'json' };
 import webPackageJson from '../apps/web/package.json' with { type: 'json' };
 
 test('e2e gate scripts keep full and fast lanes distinct', () => {
@@ -78,4 +79,11 @@ test('root package exposes the scripts/ci contract suite', () => {
 test('root package exposes the D07 Sentry alert management scripts', () => {
   assert.equal(packageJson.scripts['sentry:alerts:check'], 'node scripts/sentry-alerts.mjs check');
   assert.equal(packageJson.scripts['sentry:alerts:apply'], 'node scripts/sentry-alerts.mjs apply');
+});
+
+test('database package keeps a dedicated critical-table RLS verification in the canonical RLS suite', () => {
+  const rlsSuite = databasePackageJson.scripts['test:rls'];
+
+  assert.equal(typeof rlsSuite, 'string');
+  assert.match(rlsSuite, /test\/critical-rls-tables\.test\.ts/);
 });
