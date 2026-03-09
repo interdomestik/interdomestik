@@ -9,12 +9,14 @@ const rootDir = path.resolve(scriptDir, '../..');
 
 function readTsconfig(relativePath) {
   const filePath = path.join(rootDir, relativePath);
-  const content = fs
-    .readFileSync(filePath, 'utf8')
-    .replace(/^\s*\/\/.*$/gm, '')
-    .replace(/,\s*([}\]])/g, '$1');
+  const content = fs.readFileSync(filePath, 'utf8');
+  const withoutLineComments = content
+    .split('\n')
+    .filter(line => !line.trimStart().startsWith('//'))
+    .join('\n');
+  const withoutTrailingCommas = withoutLineComments.replaceAll(/,\s*([}\]])/g, '$1');
 
-  return JSON.parse(content);
+  return JSON.parse(withoutTrailingCommas);
 }
 
 test('web Next.js config transpiles the domain-ai workspace package', async () => {
