@@ -29,3 +29,7 @@ This doc defines a small, practical set of Service Level Objectives. Targets can
 ## Notes
 
 - The project already uses Sentry; the recommended next step is to wire these SLOs into Sentry monitors/alerts (or your hosting provider’s metrics) once production telemetry is confirmed.
+- The checked-in D07 alert catalog keys these SLOs off stable `slo_alert` tags:
+  - `d07.webhook.processing`
+  - `d07.document.download`
+  - `d07.api.claims.latency`

@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { getClaimsListV2 } from '@/server/domains/claims';
+import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,8 @@ export async function GET(request: Request) {
   if (!session) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
+
+  Sentry.setTag('slo_alert', 'd07.api.claims.latency');
 
   const { searchParams } = new URL(request.url);
   const page = Number(searchParams.get('page')) || 1;

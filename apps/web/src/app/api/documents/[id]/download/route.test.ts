@@ -7,6 +7,7 @@ const hoisted = vi.hoisted(() => ({
   logAuditEvent: vi.fn(),
   storageDownload: vi.fn(),
   dbSelect: vi.fn(),
+  setTag: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -51,6 +52,10 @@ vi.mock('drizzle-orm', () => ({
   eq: vi.fn(),
   and: vi.fn(),
   relations: vi.fn(),
+}));
+
+vi.mock('@sentry/nextjs', () => ({
+  setTag: hoisted.setTag,
 }));
 
 describe('GET /api/documents/[id]/download', () => {
@@ -174,6 +179,7 @@ describe('GET /api/documents/[id]/download', () => {
         entityId: 'doc-1',
       })
     );
+    expect(hoisted.setTag).toHaveBeenCalledWith('slo_alert', 'd07.document.download');
   });
 
   it('uses inline disposition when requested', async () => {
