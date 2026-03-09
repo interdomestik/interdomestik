@@ -4,6 +4,12 @@ const D07_DOC_REFS = Object.freeze([
   'docs/plans/current-program.md',
   'docs/plans/current-tracker.md',
 ]);
+const REQUIRED_D07_ALERT_COUNT = 3;
+const SUPPORTED_DATASETS = new Set([
+  'transactions',
+  'generic_metrics',
+  'events_analytics_platform',
+]);
 
 export const D07_SENTRY_ALERTS = Object.freeze([
   Object.freeze({
@@ -57,70 +63,22 @@ export const D07_SENTRY_ALERTS = Object.freeze([
 ]);
 
 export function validateAlertCatalog(alerts) {
-  const problems = [];
-  const ids = new Set();
-  const names = new Set();
-
   if (!Array.isArray(alerts)) {
     return ['alert catalog must be an array'];
   }
 
-  if (alerts.length !== 3) {
+  const problems = [];
+  const seenIds = new Set();
+  const seenNames = new Set();
+
+  if (alerts.length !== REQUIRED_D07_ALERT_COUNT) {
     problems.push(`expected 3 D07 alerts, found ${alerts.length}`);
   }
 
   for (const alert of alerts) {
-    if (!alert?.id) {
-      problems.push('alert missing id');
-      continue;
-    }
-
-    if (ids.has(alert.id)) {
-      problems.push(`duplicate alert id: ${alert.id}`);
-    }
-    ids.add(alert.id);
-
-    if (!alert.name) {
-      problems.push(`alert ${alert.id} missing name`);
-    } else if (names.has(alert.name)) {
-      problems.push(`duplicate alert name: ${alert.name}`);
-    } else {
-      names.add(alert.name);
-    }
-
-    if (!Array.isArray(alert.docsRefs) || alert.docsRefs.length === 0) {
-      problems.push(`alert ${alert.id} missing docsRefs`);
-    }
-
-    if (!['transactions', 'generic_metrics', 'events_analytics_platform'].includes(alert.dataset)) {
-      problems.push(`alert ${alert.id} has unsupported dataset: ${alert.dataset}`);
-    }
-
-    if (typeof alert.queryType !== 'number') {
-      problems.push(`alert ${alert.id} missing numeric queryType`);
-    }
-
-    if (typeof alert.aggregate !== 'string' || alert.aggregate.length === 0) {
-      problems.push(`alert ${alert.id} missing aggregate`);
-    }
-
-    if (typeof alert.query !== 'string' || alert.query.length === 0) {
-      problems.push(`alert ${alert.id} missing query`);
-    }
-
-    if (typeof alert.timeWindow !== 'number') {
-      problems.push(`alert ${alert.id} missing timeWindow`);
-    }
-
-    if (typeof alert.thresholdType !== 'number') {
-      problems.push(`alert ${alert.id} missing thresholdType`);
-    }
-
-    if (
-      typeof alert.thresholds?.warning !== 'number' ||
-      typeof alert.thresholds?.critical !== 'number'
-    ) {
-      problems.push(`alert ${alert.id} missing numeric warning/critical thresholds`);
+    const alertId = validateAlertIdentity(alert, seenIds, seenNames, problems);
+    if (alertId) {
+      validateAlertShape(alert, alertId, problems);
     }
   }
 
@@ -135,12 +93,12 @@ export function parseAlertActionsJson(rawValue) {
 
   const parsed = JSON.parse(trimmed);
   if (!Array.isArray(parsed)) {
-    throw new Error('Alert actions JSON must decode to an array.');
+    throw new TypeError('Alert actions JSON must decode to an array.');
   }
 
   for (const action of parsed) {
     if (!action || typeof action !== 'object' || Array.isArray(action)) {
-      throw new Error('Each alert action must be an object.');
+      throw new TypeError('Each alert action must be an object.');
     }
   }
 
@@ -229,7 +187,7 @@ export function normalizeMetricAlertRule(rule, options = {}) {
     thresholdType: rule.thresholdType,
     resolveThreshold: rule.resolveThreshold ?? null,
     environment: rule.environment ?? null,
-    projects: [...(rule.projects ?? [])].sort(),
+    projects: [...(rule.projects ?? [])].sort(compareStrings),
     owner: compareOwner ? (rule.owner ?? null) : null,
     triggers: [...(rule.triggers ?? [])]
       .map(trigger => ({
@@ -294,6 +252,100 @@ function compareJson(left, right) {
   return JSON.stringify(left).localeCompare(JSON.stringify(right));
 }
 
+function compareStrings(left, right) {
+  return left.localeCompare(right);
+}
+
+function validateAlertIdentity(alert, seenIds, seenNames, problems) {
+  if (!alert?.id) {
+    problems.push('alert missing id');
+    return null;
+  }
+
+  if (seenIds.has(alert.id)) {
+    problems.push(`duplicate alert id: ${alert.id}`);
+  } else {
+    seenIds.add(alert.id);
+  }
+
+  validateAlertName(alert, seenNames, problems);
+  return alert.id;
+}
+
+function validateAlertName(alert, seenNames, problems) {
+  if (!alert.name) {
+    problems.push(`alert ${alert.id} missing name`);
+    return;
+  }
+
+  if (seenNames.has(alert.name)) {
+    problems.push(`duplicate alert name: ${alert.name}`);
+    return;
+  }
+
+  seenNames.add(alert.name);
+}
+
+function validateAlertShape(alert, alertId, problems) {
+  if (!Array.isArray(alert.docsRefs) || alert.docsRefs.length === 0) {
+    problems.push(`alert ${alertId} missing docsRefs`);
+  }
+
+  validateAlertField(problems, alertId, 'unsupported dataset', SUPPORTED_DATASETS.has(alert.dataset), {
+    value: alert.dataset,
+  });
+  validateAlertField(
+    problems,
+    alertId,
+    'missing numeric queryType',
+    typeof alert.queryType === 'number'
+  );
+  validateAlertField(
+    problems,
+    alertId,
+    'missing aggregate',
+    typeof alert.aggregate === 'string' && alert.aggregate.length > 0
+  );
+  validateAlertField(
+    problems,
+    alertId,
+    'missing query',
+    typeof alert.query === 'string' && alert.query.length > 0
+  );
+  validateAlertField(
+    problems,
+    alertId,
+    'missing timeWindow',
+    typeof alert.timeWindow === 'number'
+  );
+  validateAlertField(
+    problems,
+    alertId,
+    'missing thresholdType',
+    typeof alert.thresholdType === 'number'
+  );
+
+  if (
+    typeof alert.thresholds?.warning !== 'number' ||
+    typeof alert.thresholds?.critical !== 'number'
+  ) {
+    problems.push(`alert ${alertId} missing numeric warning/critical thresholds`);
+  }
+}
+
+function validateAlertField(problems, alertId, label, valid, options = {}) {
+  if (valid) {
+    return;
+  }
+
+  if (label === 'unsupported dataset') {
+    problems.push(`alert ${alertId} has unsupported dataset: ${options.value}`);
+    return;
+  }
+
+  problems.push(`alert ${alertId} ${label}`);
+}
+
 function validateSingleAlertDefinition(alert) {
   return validateAlertCatalog([alert]).filter(
     problem => !problem.startsWith('expected 3 D07 alerts')
@@ -303,4 +355,14 @@ function validateSingleAlertDefinition(alert) {
 export function findMissingScopes(grantedScopes, requiredScopes) {
   const granted = new Set(grantedScopes ?? []);
   return (requiredScopes ?? []).filter(scope => !granted.has(scope));
+}
+
+export function normalizeSentryBaseUrl(baseUrl) {
+  let normalized = baseUrl ?? 'https://sentry.io';
+
+  while (normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1);
+  }
+
+  return normalized || 'https://sentry.io';
 }

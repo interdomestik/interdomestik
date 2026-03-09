@@ -5,6 +5,7 @@ import {
   diffMetricAlertRules,
   D07_SENTRY_ALERTS,
   findMissingScopes,
+  normalizeSentryBaseUrl,
   resolveActionsByLabel,
   validateAlertCatalog,
 } from './sentry-alerts-lib.mjs';
@@ -23,7 +24,7 @@ if (validationProblems.length > 0) {
 }
 
 const config = {
-  baseUrl: (process.env.SENTRY_API_BASE_URL ?? 'https://sentry.io').replace(/\/+$/, ''),
+  baseUrl: normalizeSentryBaseUrl(process.env.SENTRY_API_BASE_URL),
   authToken: process.env.SENTRY_AUTH_TOKEN ?? '',
   org: process.env.SENTRY_ORG ?? '',
   project: process.env.SENTRY_PROJECT ?? '',

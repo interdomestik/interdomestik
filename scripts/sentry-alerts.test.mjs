@@ -6,6 +6,8 @@ import {
   diffMetricAlertRules,
   D07_SENTRY_ALERTS,
   findMissingScopes,
+  normalizeMetricAlertRule,
+  normalizeSentryBaseUrl,
   parseAlertActionsJson,
   validateAlertCatalog,
 } from './sentry-alerts-lib.mjs';
@@ -109,7 +111,14 @@ test('parseAlertActionsJson accepts arrays of action objects and rejects other s
     [{ type: 'email', targetType: 'specific', targetIdentifier: 'ops@interdomestik.dev' }]
   );
 
-  assert.throws(() => parseAlertActionsJson('{"type":"email"}'), /must decode to an array/i);
+  assert.throws(() => parseAlertActionsJson('{"type":"email"}'), {
+    name: 'TypeError',
+    message: /must decode to an array/i,
+  });
+  assert.throws(() => parseAlertActionsJson('[null]'), {
+    name: 'TypeError',
+    message: /must be an object/i,
+  });
 });
 
 test('diffMetricAlertRules can ignore owner and action drift for read-only checks', () => {
@@ -173,4 +182,55 @@ test('findMissingScopes reports missing Sentry auth scopes for live apply', () =
     findMissingScopes(['alerts:read', 'org:read'], ['alerts:read', 'alerts:write']),
     ['alerts:write']
   );
+});
+
+test('normalizeMetricAlertRule sorts projects, triggers, and actions deterministically', () => {
+  const normalized = normalizeMetricAlertRule({
+    name: '[D07] SLO1 Paddle webhook processing burn rate',
+    dataset: 'events_analytics_platform',
+    queryType: 1,
+    query: 'slo_alert:d07.webhook.processing',
+    aggregate: 'failure_rate()',
+    thresholdType: 0,
+    resolveThreshold: null,
+    timeWindow: 60,
+    environment: 'production',
+    projects: ['web', 'api'],
+    owner: 'team:123',
+    triggers: [
+      {
+        label: 'warning',
+        thresholdType: 0,
+        alertThreshold: 0.01,
+        resolveThreshold: null,
+        actions: [{ type: 'email', targetType: 'team', targetIdentifier: 'b' }],
+      },
+      {
+        label: 'critical',
+        thresholdType: 0,
+        alertThreshold: 0.025,
+        resolveThreshold: null,
+        actions: [{ type: 'email', targetType: 'team', targetIdentifier: 'a' }],
+      },
+    ],
+  });
+
+  assert.deepEqual(normalized.projects, ['api', 'web']);
+  assert.deepEqual(normalized.triggers.map(trigger => trigger.label), ['critical', 'warning']);
+  assert.deepEqual(normalized.triggers[0].actions, [
+    {
+      type: 'email',
+      targetType: 'team',
+      targetIdentifier: 'a',
+      inputChannelId: null,
+      integrationId: null,
+      sentryAppId: null,
+    },
+  ]);
+});
+
+test('normalizeSentryBaseUrl trims trailing slashes without changing the origin', () => {
+  assert.equal(normalizeSentryBaseUrl('https://sentry.io////'), 'https://sentry.io');
+  assert.equal(normalizeSentryBaseUrl('https://self-hosted.sentry.local/api/'), 'https://self-hosted.sentry.local/api');
+  assert.equal(normalizeSentryBaseUrl('https://sentry.io'), 'https://sentry.io');
 });

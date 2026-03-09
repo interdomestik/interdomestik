@@ -44,7 +44,7 @@ node scripts/run-with-dotenv.mjs pnpm sentry:alerts:check --json
 
 Observed result:
 
-- project: `interdmestik-nextjs`
+- project: `interdomestik-nextjs`
 - environment: `production`
 - remote D07 rules present: `0`
 - missing rules:
@@ -84,7 +84,7 @@ node scripts/run-with-dotenv.mjs pnpm sentry:alerts:check --json
 
 Observed result:
 
-- project: `interdmestik-nextjs`
+- project: `interdomestik-nextjs`
 - environment: `production`
 - missing rules: `0`
 - changed rules: `0`
