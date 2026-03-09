@@ -62,4 +62,21 @@ describe('supabase-deployment', () => {
       })
     ).not.toThrow();
   });
+
+  it('accepts SUPABASE_URL fallback and reports both env vars when missing', () => {
+    expect(() =>
+      validateSupabaseDeploymentSeparation({
+        INTERDOMESTIK_DEPLOY_ENV: 'staging',
+        SUPABASE_URL: 'https://staging-ref.supabase.co',
+        SUPABASE_PRODUCTION_PROJECT_REF: 'prod-ref',
+      })
+    ).not.toThrow();
+
+    expect(() =>
+      validateSupabaseDeploymentSeparation({
+        INTERDOMESTIK_DEPLOY_ENV: 'staging',
+        SUPABASE_PRODUCTION_PROJECT_REF: 'prod-ref',
+      })
+    ).toThrow(/NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL/i);
+  });
 });

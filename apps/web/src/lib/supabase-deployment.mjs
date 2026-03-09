@@ -67,7 +67,7 @@ export function validateSupabaseDeploymentSeparation(env = process.env) {
 
   if (!currentProjectRef) {
     throw new Error(
-      `${environmentLabel} deployment must use a hosted Supabase project URL via NEXT_PUBLIC_SUPABASE_URL`
+      `${environmentLabel} deployment must use a hosted Supabase project URL via NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL`
     );
   }
 
