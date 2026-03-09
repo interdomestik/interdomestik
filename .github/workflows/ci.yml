@@ -124,11 +124,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - name: Unit Tests
+      - name: Coverage Gate
         env:
           UPSTASH_REDIS_REST_URL: http://localhost:8080
           UPSTASH_REDIS_REST_TOKEN: dummy-token
-        run: pnpm test
+        run: pnpm coverage:gate
       - name: Release Gate Unit Tests
         run: pnpm test:release-gate
 
