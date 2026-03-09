@@ -20,23 +20,32 @@ test('critical tables keep row level security enabled', async t => {
 
   const client = postgres(process.env.DATABASE_URL);
   const db = drizzle(client);
+  const criticalTableNames = [...CRITICAL_TABLES];
+  const criticalTableList = sql.join(
+    criticalTableNames.map(tableName => sql`${tableName}`),
+    sql`, `
+  );
 
   try {
     const rows = await db.execute<CriticalRlsRow>(sql`
-      select relname, relrowsecurity
-      from pg_class
-      where relname in ('claim', 'claim_messages', 'documents', 'user')
-      order by relname
+      select c.relname, c.relrowsecurity
+      from pg_class c
+      join pg_namespace n
+        on n.oid = c.relnamespace
+      where n.nspname = 'public'
+        and c.relkind = 'r'
+        and c.relname in (${criticalTableList})
+      order by c.relname
     `);
 
     assert.deepEqual(
       rows.map(row => row.relname),
-      ['claim', 'claim_messages', 'documents', 'user'],
+      criticalTableNames,
       'expected the D08 critical-table set to exist in pg_class'
     );
     assert.deepEqual(
       rows.map(row => row.relrowsecurity),
-      [true, true, true, true],
+      criticalTableNames.map(() => true),
       'expected relrowsecurity = true for the D08 critical-table set'
     );
   } finally {
