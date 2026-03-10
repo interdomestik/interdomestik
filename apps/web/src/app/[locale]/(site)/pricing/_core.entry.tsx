@@ -1,3 +1,5 @@
+import { CoverageMatrix } from '@/components/commercial/coverage-matrix';
+import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matrix-content';
 import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
 import { generateLocaleStaticParams } from '@/app/_locale-static-params';
@@ -20,7 +22,10 @@ export async function generateMetadata({ params }: PricingPageProps): Promise<Me
 
 export default async function PricingPage({ params }: PricingPageProps) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'pricing' });
+  const [t, coverageMatrix] = await Promise.all([
+    getTranslations({ locale, namespace: 'pricing' }),
+    getTranslations({ locale, namespace: 'coverageMatrix' }),
+  ]);
 
   const billingTestMode = process.env.NEXT_PUBLIC_BILLING_TEST_MODE === '1';
 
@@ -41,6 +46,10 @@ export default async function PricingPage({ params }: PricingPageProps) {
       </div>
 
       <PricingPageRuntime billingTestMode={billingTestMode} />
+
+      <div className="mt-16">
+        <CoverageMatrix {...buildCoverageMatrixProps(coverageMatrix, 'pricing-coverage-matrix')} />
+      </div>
 
       <div className="mt-16">
         <ClaimScopeTree {...buildClaimScopeTreeProps(t, 'pricing-scope-tree')} />

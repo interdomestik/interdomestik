@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
 const hoisted = vi.hoisted(() => ({
   headersMock: vi.fn(async () => new Headers([['host', 'ks.localhost:3000']])),
@@ -10,7 +11,6 @@ const hoisted = vi.hoisted(() => ({
       email: 'member@example.com',
     },
   })),
-  getTranslationsMock: vi.fn(async () => (key: string) => key),
   pricingPageRuntimeMock: vi.fn((_: unknown) => null),
 }));
 
@@ -27,7 +27,9 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: hoisted.getTranslationsMock,
+  getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
+    getNamespacedTranslation(options)
+  ),
 }));
 
 vi.mock('./pricing-page-runtime', () => ({
@@ -49,10 +51,15 @@ describe('PricingPage server shell', () => {
     expect(tree).toBeTruthy();
     render(tree);
 
-    expect(screen.getByText('scope.title')).toBeInTheDocument();
-    expect(screen.getByText('scope.guidance.title')).toBeInTheDocument();
-    expect(screen.getByText('scope.outOfScope.title')).toBeInTheDocument();
-    expect(screen.getByText('scope.boundary.title')).toBeInTheDocument();
+    expectCoverageMatrix({
+      columnKey: 'coverageMatrix.columns.included',
+      rowKey: 'coverageMatrix.rows.vehicle.title',
+      sectionTestId: 'pricing-coverage-matrix',
+    });
+    expect(screen.getByText('pricing.scope.title')).toBeInTheDocument();
+    expect(screen.getByText('pricing.scope.guidance.title')).toBeInTheDocument();
+    expect(screen.getByText('pricing.scope.outOfScope.title')).toBeInTheDocument();
+    expect(screen.getByText('pricing.scope.boundary.title')).toBeInTheDocument();
     expect(hoisted.headersMock).not.toHaveBeenCalled();
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
   });

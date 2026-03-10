@@ -1,0 +1,54 @@
+{
+  "coverageMatrix": {
+    "eyebrow": "Matrica pokrivenosti",
+    "title": "Koji tipovi zahteva ostaju u planu, eskaliraju ili se upućuju dalje",
+    "subtitle": "Koristite ovu matricu da vidite gde sada pomažu Free Start i članstvo, kada može da počne eskalacija vođena timom i kada važi upućivanje ili posebna pravna saglasnost.",
+    "rowHeaderTitle": "Tip zahteva",
+    "columns": {
+      "included": "Uključeno",
+      "escalation": "Eskalacija",
+      "referral": "Upućivanje"
+    },
+    "rows": {
+      "vehicle": {
+        "title": "Šteta na vozilu",
+        "description": "Početni tip zahteva sa putanjom za novčanu naplatu.",
+        "included": "Free Start paket + članske smernice",
+        "escalation": "Dostupno nakon prihvatanja predmeta",
+        "referral": "Opt-in sa pravnim partnerom po potrebi"
+      },
+      "property": {
+        "title": "Šteta na imovini",
+        "description": "Početni tip zahteva sa putanjom za novčanu naplatu.",
+        "included": "Free Start paket + članske smernice",
+        "escalation": "Dostupno nakon prihvatanja predmeta",
+        "referral": "Opt-in sa pravnim partnerom po potrebi"
+      },
+      "injury": {
+        "title": "Lična povreda",
+        "description": "Početni tip zahteva kada postoji direktna novčana putanja naplate.",
+        "included": "Free Start paket + članske smernice",
+        "escalation": "Dostupno nakon prihvatanja predmeta",
+        "referral": "Opt-in sa pravnim partnerom po potrebi"
+      },
+      "guidance": {
+        "title": "Sporovi samo za smernice",
+        "description": "Stambeni, radni, popravni ili ugovorni sporovi bez direktne novčane naplate.",
+        "included": "Paket smernica + pregled dokumenata",
+        "escalation": "Nije uključeno",
+        "referral": "Upućivanje kada je prikladno"
+      },
+      "flight": {
+        "title": "Naknada za kašnjenje leta",
+        "description": "Prikazano radi jasnijeg opsega, ali i dalje odloženo iz početnog ugovora.",
+        "included": "Kasnija faza",
+        "escalation": "Kasnija faza",
+        "referral": "Kasnija faza"
+      }
+    },
+    "footer": {
+      "title": "Napomena o granici",
+      "body": "Eskalacija sa success-fee počinje tek kada tim prihvati predmet sa stvarnom novčanom putanjom naplate. Spoljna akcija pravnog partnera uvek zahteva posebnu pisanu saglasnost."
+    }
+  }
+}

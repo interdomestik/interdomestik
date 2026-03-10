@@ -1,7 +1,9 @@
+import { CoverageMatrix } from '@/components/commercial/coverage-matrix';
+import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matrix-content';
 import { RegisterForm } from '@/components/auth/register-form';
 import { TenantSelector, type TenantOption } from '@/components/auth/tenant-selector';
 import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -11,6 +13,7 @@ type Props = {
 export default async function RegisterPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const coverageMatrix = await getTranslations({ locale, namespace: 'coverageMatrix' });
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const resolvedTenantId = await resolveTenantIdFromRequest({
@@ -44,10 +47,16 @@ export default async function RegisterPage({ params, searchParams }: Props) {
   return (
     <div
       data-testid="registration-page-ready"
-      className="min-h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-[hsl(var(--background))] to-[hsl(var(--surface-strong))] p-4"
+      className="min-h-screen bg-gradient-to-br from-[hsl(var(--background))] to-[hsl(var(--surface-strong))] p-4"
     >
-      {resolvedTenantId ? null : <TenantSelector tenants={tenantOptions} />}
-      <RegisterForm tenantId={resolvedTenantId ?? undefined} />
+      <div className="mx-auto grid w-full max-w-6xl items-start gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+        <div className="flex flex-col items-center gap-6">
+          {resolvedTenantId ? null : <TenantSelector tenants={tenantOptions} />}
+          <RegisterForm tenantId={resolvedTenantId ?? undefined} />
+        </div>
+
+        <CoverageMatrix {...buildCoverageMatrixProps(coverageMatrix, 'register-coverage-matrix')} />
+      </div>
     </div>
   );
 }

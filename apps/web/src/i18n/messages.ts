@@ -20,6 +20,7 @@ export const MESSAGE_NAMESPACES = [
   'claims',
   'claims-tracking',
   'common',
+  'coverageMatrix',
   'consumerRights',
   'dashboard',
   'diaspora',
