@@ -98,8 +98,8 @@ export function CoverageMatrix({
                     <p className="mt-2 text-sm leading-6 text-slate-600">{row.description}</p>
                   </div>
                 </th>
-                {row.cells.map(cell => (
-                  <td key={`${row.title}-${cell.label}`} className="px-5 py-5">
+                {row.cells.map((cell, index) => (
+                  <td key={`${row.title}-${columns[index]}`} className="px-5 py-5">
                     <CoverageCellBadge {...cell} />
                   </td>
                 ))}
