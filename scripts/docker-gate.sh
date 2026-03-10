@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/docker-env-bootstrap.sh
@@ -11,11 +11,13 @@ prepare_docker_env
 DOCKER_GATE_REBUILD="${DOCKER_GATE_REBUILD:-0}"
 DOCKER_GATE_KEEP_RUNNING="${DOCKER_GATE_KEEP_RUNNING:-0}"
 DOCKER_GATE_RECLAIM="${DOCKER_GATE_RECLAIM:-1}"
-GATE_INFRA_SERVICES=(redis mailpit minio createbuckets)
+DOCKER_GATE_CACHE_MODE="${DOCKER_GATE_CACHE_MODE:-ephemeral}"
+DOCKER_WEB_PORT="${DOCKER_WEB_PORT:-3000}"
+GATE_INFRA_SERVICES=(redis mailpit minio)
 DOCKER_RUN_ARGS=(--raw)
 MAX_WEB_READY_ATTEMPTS="${MAX_WEB_READY_ATTEMPTS:-60}"
 WEB_READY_DELAY_SECONDS="${WEB_READY_DELAY_SECONDS:-2}"
-GATE_WEB_READY_URL="${GATE_WEB_READY_URL:-http://127.0.0.1:3000/robots.txt}"
+GATE_WEB_READY_URL="${GATE_WEB_READY_URL:-http://127.0.0.1:${DOCKER_WEB_PORT}/robots.txt}"
 
 cleanup_gate_stack() {
   if [[ "${DOCKER_GATE_KEEP_RUNNING}" == "1" ]]; then
@@ -63,7 +65,7 @@ wait_for_gate_web() {
 
   echo "❌ Timed out waiting for gate web service to become ready." >&2
   docker compose --profile gate ps || true
-  docker logs --tail 200 interdomestik-web || true
+  docker compose --profile gate logs --tail 200 web || true
   return 1
 }
 
@@ -76,10 +78,13 @@ echo "2. Building gate images..."
 build_gate_images
 
 echo "3. Booting gate infra services..."
+printf '   Gate cache mode: "%s"\n' "${DOCKER_GATE_CACHE_MODE}"
 docker compose --profile gate up -d "${GATE_INFRA_SERVICES[@]}"
+echo "4. Ensuring MinIO bucket exists..."
+docker compose --profile gate run --rm --no-deps createbuckets >/dev/null
 
-# 4. Prepare dependencies and deterministic test data in Linux container.
-echo "4. Preparing gate runner in Linux container..."
+# 5. Prepare dependencies and deterministic test data in Linux container.
+echo "5. Preparing gate runner in Linux container..."
 if [[ "${DOCKER_GATE_REBUILD}" == "1" ]]; then
   DOCKER_RUN_ARGS=(--build --raw)
 fi
@@ -93,13 +98,13 @@ pnpm db:migrate && \
 pnpm --filter @interdomestik/database seed:e2e -- --reset && \
 pnpm --filter @interdomestik/database seed:assert-e2e"
 
-echo "5. Booting gate web service..."
+echo "6. Booting gate web service..."
 docker compose --profile gate up -d web
 
-echo "6. Waiting for gate web service..."
+echo "7. Waiting for gate web service..."
 wait_for_gate_web
 
-echo "7. Running smoke tests in Linux container..."
+echo "8. Running smoke tests in Linux container..."
 ./scripts/docker-run.sh --raw "\
 set -euo pipefail && \
 cleanup() { pnpm store prune >/dev/null 2>&1 || true; } && \
