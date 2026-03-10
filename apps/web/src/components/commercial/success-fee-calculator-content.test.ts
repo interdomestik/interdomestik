@@ -38,6 +38,15 @@ describe('calculateSuccessFeeQuote', () => {
       ratePercentage: 25,
     });
   });
+
+  it('does not apply the minimum fee when calculating the legal-action cap ceiling', () => {
+    expect(calculateSuccessFeeQuote('standard', 50, { legalActionCap: true })).toMatchObject({
+      feeAmount: 12.5,
+      minimumApplied: false,
+      percentageFeeAmount: 12.5,
+      ratePercentage: 25,
+    });
+  });
 });
 
 describe('buildSuccessFeeCalculatorProps', () => {

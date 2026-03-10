@@ -143,11 +143,13 @@ export function calculateSuccessFeeQuote(
   }
 
   const percentageFeeAmount = (normalizedRecoveryAmount * ratePercentage) / 100;
-  const feeAmount = Math.max(percentageFeeAmount, plan.minimumFee);
+  const feeAmount = options.legalActionCap
+    ? percentageFeeAmount
+    : Math.max(percentageFeeAmount, plan.minimumFee);
 
   return {
     feeAmount,
-    minimumApplied: feeAmount === plan.minimumFee,
+    minimumApplied: !options.legalActionCap && feeAmount === plan.minimumFee,
     minimumFee: plan.minimumFee,
     percentageFeeAmount,
     ratePercentage,

@@ -74,6 +74,10 @@ export function SuccessFeeCalculator({
   );
   const [recoveryAmountInput, setRecoveryAmountInput] = useState('1000');
 
+  if (planOptions.length === 0) {
+    return null;
+  }
+
   const selectedPlan = planOptions.find(plan => plan.key === selectedPlanKey) ?? planOptions[0];
   const recoveryAmount = parseRecoveryAmount(recoveryAmountInput);
   const currentQuote = calculateSuccessFeeQuote(selectedPlan.key, recoveryAmount);

@@ -27,4 +27,10 @@ describe('SuccessFeeCalculator', () => {
     expect(screen.getByTestId('success-fee-current-fee')).toHaveTextContent('EUR 25');
     expect(screen.getByTestId('success-fee-minimum-applies')).toHaveTextContent('Yes');
   });
+
+  it('returns null when no plans are provided', () => {
+    const { container } = render(<SuccessFeeCalculator {...props} planOptions={[]} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });
