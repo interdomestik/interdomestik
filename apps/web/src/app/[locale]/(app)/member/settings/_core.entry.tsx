@@ -1,4 +1,6 @@
 import { ChangePasswordForm } from '@/components/auth/change-password-form';
+import { CommercialBillingTerms } from '@/components/commercial/billing-terms';
+import { buildCommercialTermsProps } from '@/components/commercial/billing-terms-content';
 import { ProfileForm } from '@/components/auth/profile-form';
 import { LanguageSettings } from '@/components/settings/language-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
@@ -32,7 +34,10 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     redirect({ href: '/login', locale });
   }
 
-  const t = await getTranslations('settings');
+  const [t, commercialTerms] = await Promise.all([
+    getTranslations('settings'),
+    getTranslations({ locale, namespace: 'commercialTerms' }),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -88,6 +93,10 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
           </section>
         </div>
       </div>
+
+      <CommercialBillingTerms
+        {...buildCommercialTermsProps(commercialTerms, 'settings-billing-terms')}
+      />
     </div>
   );
 }

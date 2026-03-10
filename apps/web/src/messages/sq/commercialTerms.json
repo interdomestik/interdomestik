@@ -1,0 +1,33 @@
+{
+  "commercialTerms": {
+    "eyebrow": "Kushtet vjetore të anëtarësisë",
+    "title": "Rregullat për faturimin vjetor, anulimin dhe rimbursimin",
+    "subtitle": "E njëjta kontratë vlen te çmimet, në checkout dhe te cilësimet e anëtarit.",
+    "sections": {
+      "annualBilling": {
+        "title": "Faturim vjetor në v1",
+        "body": "Anëtarësitë faturohen vjetore në nisje. Çmimet publike tregojnë tarifën vjetore dhe periudhën e paguar para se të nisë checkout-i."
+      },
+      "cancellation": {
+        "title": "Anulimi ndal rinovimin e radhës",
+        "body": "Mund ta ndalni rinovimin në çdo kohë. Qasja mbetet aktive deri në fund të periudhës së paguar dhe anulimi nuk rikthen përfitimet e skaduara."
+      },
+      "refundWindow": {
+        "title": "Afati 30-ditor i rimbursimit në nisje",
+        "body": "Tarifa e anëtarësisë rimbursohet nëse kërkesa bëhet brenda 30 ditëve nga blerja dhe ende nuk është pranuar asnjë rast rikuperimi i drejtuar nga stafi për atë anëtarësi."
+      },
+      "coolingOff": {
+        "title": "Të drejtat e cooling-off mbeten të ndara",
+        "body": "Çdo e drejtë ligjore për tërheqje ose cooling-off zbatohet veçmas nga premtimi ynë i rimbursimit në nisje. Kur ligji vendor jep afat tjetër statutor, ai rregull mbizotëron."
+      },
+      "acceptedMatters": {
+        "title": "Përshkallëzimet e pranuara mbeten në fuqi",
+        "body": "Nëse Interdomestik ka pranuar tashmë një rast rikuperimi, success-fee dhe kushtet e përshkallëzimit mbeten në fuqi për atë rast edhe nëse anëtarësia anulohet më vonë."
+      }
+    },
+    "footer": {
+      "title": "Çfarë mbulon rimbursimi",
+      "body": "Rimbursimi i nisjes mbulon vetëm tarifën e anëtarësisë. Ai nuk fshin tarifa ose kosto partnerësh të pranuara tashmë për një përshkallëzim të pranuar."
+    }
+  }
+}

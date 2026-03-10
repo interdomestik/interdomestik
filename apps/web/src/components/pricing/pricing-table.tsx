@@ -39,17 +39,16 @@ export function PricingTable({
   const locale = useLocale();
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
-  const [isYearly, setIsYearly] = useState(true);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const isPilotMode = process.env.NEXT_PUBLIC_PILOT_MODE === 'true';
 
   const PLANS = [
     {
       id: 'standard',
-      priceId: isYearly ? PADDLE_PRICES.standard.yearly : PADDLE_PRICES.standard.monthly,
+      priceId: PADDLE_PRICES.standard.yearly,
       name: t('standard.name'),
-      price: isYearly ? '€20' : '€3',
-      period: isYearly ? t('standard.period') : '/month',
+      price: '€20',
+      period: t('standard.period'),
       description: t('standard.description'),
       features: [
         t('standard.features.0'),
@@ -65,10 +64,10 @@ export function PricingTable({
     },
     {
       id: 'family',
-      priceId: isYearly ? PADDLE_PRICES.family.yearly : PADDLE_PRICES.family.monthly,
+      priceId: PADDLE_PRICES.family.yearly,
       name: t('family.name'),
-      price: isYearly ? '€35' : '€5',
-      period: isYearly ? t('family.period') : '/month',
+      price: '€35',
+      period: t('family.period'),
       description: t('family.description'),
       features: [
         t('family.features.0'),
@@ -82,10 +81,10 @@ export function PricingTable({
     },
     {
       id: 'business',
-      priceId: isYearly ? PADDLE_PRICES.business.yearly : PADDLE_PRICES.business.monthly,
+      priceId: PADDLE_PRICES.business.yearly,
       name: t('business.name'),
-      price: isYearly ? '€95' : '€10',
-      period: isYearly ? t('business.period') : '/month',
+      price: '€95',
+      period: t('business.period'),
       description: t('business.description'),
       features: [
         t('business.features.0'),
@@ -188,31 +187,12 @@ export function PricingTable({
 
   return (
     <div className="space-y-12">
-      {/* Yearly/Monthly Toggle */}
       <div className="flex flex-col items-center gap-4">
-        <div className="flex items-center p-1 bg-slate-100 rounded-full border border-slate-200 shadow-inner">
-          <button
-            onClick={() => setIsYearly(false)}
-            className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all ${
-              !isYearly ? 'bg-white shadow-md text-primary' : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            {t('monthly')}
-          </button>
-          <button
-            onClick={() => setIsYearly(true)}
-            className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all ${
-              isYearly ? 'bg-white shadow-md text-primary' : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            {t('yearly')}
-          </button>
-        </div>
         <Badge
           variant="secondary"
           className="bg-green-50 text-green-700 border-green-200 font-bold px-4 py-1"
         >
-          {t('switchLabel')}
+          {t('billedAnnually')}
         </Badge>
       </div>
 
@@ -252,11 +232,9 @@ export function PricingTable({
                   </span>
                   <span className="text-slate-400 font-bold text-lg">{plan.period}</span>
                 </div>
-                {isYearly && (
-                  <span className="text-[11px] font-black text-green-600 uppercase tracking-widest bg-green-50 px-3 py-1 rounded-md mt-2">
-                    Billed Annually
-                  </span>
-                )}
+                <span className="text-[11px] font-black text-green-600 uppercase tracking-widest bg-green-50 px-3 py-1 rounded-md mt-2">
+                  {t('billedAnnually')}
+                </span>
               </div>
               <p className="text-sm font-semibold text-slate-500 mt-6 px-4 leading-relaxed">
                 {plan.description}

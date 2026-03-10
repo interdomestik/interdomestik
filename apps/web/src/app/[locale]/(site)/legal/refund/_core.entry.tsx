@@ -1,3 +1,8 @@
+import { CommercialBillingTerms } from '@/components/commercial/billing-terms';
+import {
+  buildCommercialTermsProps,
+  type CommercialTermsSectionKey,
+} from '@/components/commercial/billing-terms-content';
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 
@@ -19,18 +24,26 @@ export async function generateMetadata({
 
 export default async function RefundPage({ params }: RefundPageProps) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'legal.refund' });
+  const [t, commercialTerms] = await Promise.all([
+    getTranslations({ locale, namespace: 'legal.refund' }),
+    getTranslations({ locale, namespace: 'commercialTerms' }),
+  ]);
+  const refundSectionKeys: readonly CommercialTermsSectionKey[] = [
+    'refundWindow',
+    'coolingOff',
+    'acceptedMatters',
+  ];
 
   return (
     <div className="container py-20 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">{t('title')}</h1>
-      <div className="prose dark:prose-invert">
-        <p>30-Day Money-Back Guarantee</p>
-        <p>
-          If you are not satisfied with your membership within the first 30 days, we will provide a
-          full refund. Please contact support@interdomestik.com
-        </p>
-      </div>
+      <CommercialBillingTerms
+        {...buildCommercialTermsProps(
+          commercialTerms,
+          'legal-refund-billing-terms',
+          refundSectionKeys
+        )}
+      />
     </div>
   );
 }

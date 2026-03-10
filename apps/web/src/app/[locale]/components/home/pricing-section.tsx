@@ -1,16 +1,16 @@
 'use client';
 
+import { CommercialBillingTerms } from '@/components/commercial/billing-terms';
+import { buildCommercialTermsProps } from '@/components/commercial/billing-terms-content';
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
 import { Building2, Check, ShieldCheck, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 
 type Plan = {
   id: string;
   name: string;
   price: string;
-  monthlyPrice: string;
   period: string;
   description: string;
   features: string[];
@@ -21,14 +21,13 @@ type Plan = {
 
 export function PricingSection() {
   const t = useTranslations('pricing');
-  const [isYearly, setIsYearly] = useState(true);
+  const commercialTerms = useTranslations('commercialTerms');
 
   const plans: Plan[] = [
     {
       id: 'standard',
       name: t('standard.name'),
       price: t('standard.price'),
-      monthlyPrice: t('standard.monthlyPrice'),
       period: t('standard.period'),
       description: t('standard.description'),
       features: [
@@ -47,7 +46,6 @@ export function PricingSection() {
       id: 'family',
       name: t('family.name'),
       price: t('family.price'),
-      monthlyPrice: t('family.monthlyPrice'),
       period: t('family.period'),
       description: t('family.description'),
       features: [
@@ -62,7 +60,6 @@ export function PricingSection() {
       id: 'business',
       name: t('business.name'),
       price: t('business.price'),
-      monthlyPrice: t('business.monthlyPrice'),
       period: t('business.period'),
       description: t('business.description'),
       features: [
@@ -100,38 +97,6 @@ export function PricingSection() {
           <p className="text-slate-800 max-w-2xl mx-auto text-base md:text-lg font-medium leading-relaxed">
             {t('subtitle')}
           </p>
-        </div>
-
-        {/* Billing Toggle - Prime Style */}
-        <div className="flex flex-col items-center gap-6 mb-20 animate-fade-in">
-          <div className="inline-flex items-center p-1.5 rounded-3xl bg-slate-50 border border-slate-100 shadow-inner">
-            <button
-              onClick={() => setIsYearly(false)}
-              className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
-                !isYearly
-                  ? 'bg-white text-slate-900 shadow-md border border-slate-100'
-                  : 'text-slate-800 hover:text-slate-900'
-              }`}
-            >
-              {t('monthly')}
-            </button>
-            <button
-              onClick={() => setIsYearly(true)}
-              className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
-                isYearly
-                  ? 'bg-white text-slate-900 shadow-md border border-slate-100'
-                  : 'text-slate-800 hover:text-slate-900'
-              }`}
-            >
-              {t('yearly')}
-            </button>
-          </div>
-          {isYearly && (
-            <div className="px-4 py-1 rounded-full bg-emerald-50 border border-emerald-400/30 text-emerald-950 text-[10px] font-black uppercase tracking-widest relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-200/50 to-transparent -translate-x-full animate-shimmer" />
-              <span className="relative z-10">{t('yearlySaving')}</span>
-            </div>
-          )}
         </div>
 
         {/* Pricing Cards - Prime Bento Style */}
@@ -175,14 +140,12 @@ export function PricingSection() {
                   </h3>
                   <div className="flex items-baseline gap-1.5 mb-2">
                     <span className="text-6xl font-display font-black text-slate-900 tracking-tighter leading-none">
-                      {isYearly ? plan.price : plan.monthlyPrice}
+                      {plan.price}
                     </span>
-                    <span className="text-slate-800 font-bold text-lg">
-                      /{isYearly ? t('perYear') : t('perMonth')}
-                    </span>
+                    <span className="text-slate-800 font-bold text-lg">{plan.period}</span>
                   </div>
                   <p className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-4">
-                    {isYearly ? t('billedAnnually') : t('billedMonthly')}
+                    {t('billedAnnually')}
                   </p>
                   <p className="text-slate-800 text-base font-medium leading-relaxed">
                     {plan.description}
@@ -228,6 +191,12 @@ export function PricingSection() {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-16">
+          <CommercialBillingTerms
+            {...buildCommercialTermsProps(commercialTerms, 'home-pricing-billing-terms')}
+          />
         </div>
       </div>
     </section>

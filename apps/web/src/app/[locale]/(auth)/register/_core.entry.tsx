@@ -1,3 +1,5 @@
+import { CommercialBillingTerms } from '@/components/commercial/billing-terms';
+import { buildCommercialTermsProps } from '@/components/commercial/billing-terms-content';
 import { CoverageMatrix } from '@/components/commercial/coverage-matrix';
 import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matrix-content';
 import { RegisterForm } from '@/components/auth/register-form';
@@ -13,7 +15,10 @@ type Props = {
 export default async function RegisterPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const coverageMatrix = await getTranslations({ locale, namespace: 'coverageMatrix' });
+  const [coverageMatrix, commercialTerms] = await Promise.all([
+    getTranslations({ locale, namespace: 'coverageMatrix' }),
+    getTranslations({ locale, namespace: 'commercialTerms' }),
+  ]);
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const resolvedTenantId = await resolveTenantIdFromRequest({
@@ -55,7 +60,14 @@ export default async function RegisterPage({ params, searchParams }: Props) {
           <RegisterForm tenantId={resolvedTenantId ?? undefined} />
         </div>
 
-        <CoverageMatrix {...buildCoverageMatrixProps(coverageMatrix, 'register-coverage-matrix')} />
+        <div className="space-y-6">
+          <CoverageMatrix
+            {...buildCoverageMatrixProps(coverageMatrix, 'register-coverage-matrix')}
+          />
+          <CommercialBillingTerms
+            {...buildCommercialTermsProps(commercialTerms, 'register-billing-terms')}
+          />
+        </div>
       </div>
     </div>
   );
