@@ -87,8 +87,9 @@ test('docker compose avoids fixed container names and allows worktree-safe port 
   const gateScript = readRepoFile('scripts/docker-gate.sh');
   const startSystemScript = readRepoFile('scripts/start-system.sh');
   const devUpScript = readRepoFile('scripts/docker-dev-up.sh');
+  const composeLines = compose.split('\n');
 
-  assert.doesNotMatch(compose, /^\s*container_name:/m);
+  assert.equal(composeLines.some(line => line.trimStart().startsWith('container_name:')), false);
   assert.match(compose, /- '\$\{DOCKER_WEB_PORT:-3000\}:3000'/);
   assert.match(compose, /- '\$\{DOCKER_REDIS_PORT:-6379\}:6379'/);
   assert.match(compose, /- '\$\{DOCKER_SMTP_PORT:-1025\}:1025'/);
