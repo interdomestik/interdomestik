@@ -4,11 +4,7 @@ import { expectCommercialTerms } from '@/test/commercial-terms-test-utils';
 import { getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
 const hoisted = vi.hoisted(() => ({
-  changePasswordFormMock: vi.fn(() => <div>change-password-form</div>),
   headersMock: vi.fn(async () => new Headers()),
-  languageSettingsMock: vi.fn(() => <div>language-settings</div>),
-  notificationSettingsMock: vi.fn(() => <div>notification-settings</div>),
-  profileFormMock: vi.fn(() => <div>profile-form</div>),
   redirectMock: vi.fn(),
   getSessionMock: vi.fn(async () => ({
     user: {
@@ -19,43 +15,67 @@ const hoisted = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock('next/headers', () => ({
-  headers: hoisted.headersMock,
-}));
+function renderNull() {
+  return null;
+}
 
-vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
-    getNamespacedTranslation(options)
-  ),
-}));
+function mockHeadersModule() {
+  return { headers: hoisted.headersMock };
+}
 
-vi.mock('@/i18n/routing', () => ({
-  redirect: hoisted.redirectMock,
-}));
+function mockTranslationsModule() {
+  return {
+    getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
+      getNamespacedTranslation(options)
+    ),
+  };
+}
 
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSessionMock,
+function mockRoutingModule() {
+  return { redirect: hoisted.redirectMock };
+}
+
+function mockAuthModule() {
+  return {
+    auth: {
+      api: {
+        getSession: hoisted.getSessionMock,
+      },
     },
-  },
-}));
+  };
+}
 
-vi.mock('@/components/auth/change-password-form', () => ({
-  ChangePasswordForm: () => hoisted.changePasswordFormMock(),
-}));
+function mockChangePasswordFormModule() {
+  return { ChangePasswordForm: renderNull };
+}
 
-vi.mock('@/components/auth/profile-form', () => ({
-  ProfileForm: () => hoisted.profileFormMock(),
-}));
+function mockProfileFormModule() {
+  return { ProfileForm: renderNull };
+}
 
-vi.mock('@/components/settings/language-settings', () => ({
-  LanguageSettings: () => hoisted.languageSettingsMock(),
-}));
+function mockLanguageSettingsModule() {
+  return { LanguageSettings: renderNull };
+}
 
-vi.mock('@/components/settings/notification-settings', () => ({
-  NotificationSettings: () => hoisted.notificationSettingsMock(),
-}));
+function mockNotificationSettingsModule() {
+  return { NotificationSettings: renderNull };
+}
+
+vi.mock('next/headers', mockHeadersModule);
+
+vi.mock('next-intl/server', mockTranslationsModule);
+
+vi.mock('@/i18n/routing', mockRoutingModule);
+
+vi.mock('@/lib/auth', mockAuthModule);
+
+vi.mock('@/components/auth/change-password-form', mockChangePasswordFormModule);
+
+vi.mock('@/components/auth/profile-form', mockProfileFormModule);
+
+vi.mock('@/components/settings/language-settings', mockLanguageSettingsModule);
+
+vi.mock('@/components/settings/notification-settings', mockNotificationSettingsModule);
 
 import SettingsPage from './_core.entry';
 
