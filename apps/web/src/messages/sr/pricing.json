@@ -124,6 +124,66 @@
         "body": "Linija služi za hitno usmeravanje, podršku i sledeći korak. Ne znači hitan pravni pregled, prihvatanje predmeta ili obradu koju vodi tim."
       }
     },
+    "successFeeCalculator": {
+      "eyebrow": "Success-fee matematika",
+      "title": "Pogledajte success-fee računicu pre eskalacije",
+      "subtitle": "Koristite javni kalkulator da procenite naknadu na novac koji Interdomestik zaista naplati za vas. Ako nema naplate, nema ni naknade, a limit za pravnu akciju prikazuje se odvojeno pre bilo kakve pisane saglasnosti.",
+      "calculator": {
+        "title": "Javni kalkulator naknade",
+        "description": "Podrazumevana success fee ostaje 15% za Asistencu i 12% za Asistenca+ Family, uz minimum od EUR 25 za oba plana. Pravna akcija traži posebnu pisanu saglasnost i viši limit.",
+        "planLabel": "Plan članstva",
+        "amountLabel": "Naplaćeni iznos (EUR)",
+        "breakdown": {
+          "recoveryAmount": "Naplaćeni iznos",
+          "feeRate": "Success-fee stopa",
+          "minimumFee": "Minimalna naknada",
+          "feeAmount": "Procenjena naknada ako se novac naplati",
+          "legalActionCap": "Limit pravne akcije nakon pisane saglasnosti",
+          "minimumApplied": "Da li važi minimum",
+          "minimumAppliedTrue": "Da",
+          "minimumAppliedFalse": "Ne",
+          "noRecovery": "Nema naplate, nema naknade"
+        }
+      },
+      "plans": {
+        "standard": {
+          "label": "Asistenca (Standard)",
+          "feeRate": "15% naknada za uspeh",
+          "minimumFee": "Minimum EUR 25",
+          "legalActionCap": "Limit od 25% samo ako posebno odobrite spoljnu pravnu akciju"
+        },
+        "family": {
+          "label": "Asistenca+ (Porodični)",
+          "feeRate": "12% naknada za uspeh",
+          "minimumFee": "Minimum EUR 25",
+          "legalActionCap": "Limit od 22% samo ako posebno odobrite spoljnu pravnu akciju"
+        }
+      },
+      "examplesTitle": "Konkretni primeri pre eskalacije",
+      "examplesSubtitle": "Ovi primeri čine javno pravilo naknade konkretnim za prihvaćene predmete naplate.",
+      "examples": {
+        "standard": {
+          "title": "Primer standardnog plana",
+          "description": "Naplata od EUR 1,000 na Asistenci proizvodi success fee od EUR 150."
+        },
+        "family": {
+          "title": "Primer porodičnog plana",
+          "description": "Naplata od EUR 1,000 na Asistenca+ Family proizvodi success fee od EUR 120."
+        },
+        "minimum": {
+          "title": "Primer minimalne naknade",
+          "description": "Mala naplata i dalje može aktivirati minimum od EUR 25 kada bi procenat bio niži."
+        },
+        "legalActionCap": {
+          "title": "Primer limita pravne akcije",
+          "description": "Ako kasnije potpišete posebnu saglasnost za pravnu akciju, limit na naplatu od EUR 4,000 za Asistencu iznosi EUR 1,000."
+        }
+      },
+      "footer": {
+        "title": "Šta limit zaista znači",
+        "body": "Viši limit od 25% ili 22% predstavlja gornju granicu za posebno odobrenu pravnu akciju, a ne podrazumevanu success fee. Interdomestik mora prikazati ovaj limit pre potpisivanja bilo kakvog sporazuma o pravnoj akciji."
+      }
+    },
     "meta": {
       "title": "Planovi članstva - Interdomestik",
       "description": "Članstvo za slučajeve vozila, imovine i povreda sa jasnim granicama za smernice i upućivanje."

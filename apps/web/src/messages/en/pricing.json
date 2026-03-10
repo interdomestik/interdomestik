@@ -124,6 +124,66 @@
         "body": "The hotline is for urgent routing, support, and next-step guidance. It does not mean immediate legal review, claim acceptance, or staff-led handling."
       }
     },
+    "successFeeCalculator": {
+      "eyebrow": "Success-fee math",
+      "title": "See the success-fee math before you escalate",
+      "subtitle": "Use the public calculator to estimate the fee on money Interdomestik actually recovers for you. No recovery means no fee, and the legal-action cap is shown separately before any written opt-in.",
+      "calculator": {
+        "title": "Public fee calculator",
+        "description": "The default success fee stays at 15% on Asistenca and 12% on Asistenca+ Family, both with a EUR 25 minimum. Legal-action work needs separate written opt-in and a higher cap.",
+        "planLabel": "Membership plan",
+        "amountLabel": "Recovered amount (EUR)",
+        "breakdown": {
+          "recoveryAmount": "Recovered amount",
+          "feeRate": "Success-fee rate",
+          "minimumFee": "Minimum fee",
+          "feeAmount": "Estimated fee if money is recovered",
+          "legalActionCap": "Legal-action cap after written opt-in",
+          "minimumApplied": "Minimum fee applies",
+          "minimumAppliedTrue": "Yes",
+          "minimumAppliedFalse": "No",
+          "noRecovery": "No recovery, no fee"
+        }
+      },
+      "plans": {
+        "standard": {
+          "label": "Asistenca",
+          "feeRate": "15% success fee",
+          "minimumFee": "EUR 25 minimum",
+          "legalActionCap": "25% cap only if you separately authorize external legal action"
+        },
+        "family": {
+          "label": "Asistenca+ Family",
+          "feeRate": "12% success fee",
+          "minimumFee": "EUR 25 minimum",
+          "legalActionCap": "22% cap only if you separately authorize external legal action"
+        }
+      },
+      "examplesTitle": "Worked examples before escalation",
+      "examplesSubtitle": "These examples make the public fee rule concrete for accepted recovery matters.",
+      "examples": {
+        "standard": {
+          "title": "Standard plan example",
+          "description": "A EUR 1,000 recovery on Asistenca produces a EUR 150 success fee."
+        },
+        "family": {
+          "title": "Family plan example",
+          "description": "A EUR 1,000 recovery on Asistenca+ Family produces a EUR 120 success fee."
+        },
+        "minimum": {
+          "title": "Minimum-fee example",
+          "description": "A small recovery can still trigger the EUR 25 minimum fee when the percentage would be lower."
+        },
+        "legalActionCap": {
+          "title": "Legal-action cap example",
+          "description": "If you later sign a separate legal-action opt-in, the cap on a EUR 4,000 Asistenca recovery is EUR 1,000."
+        }
+      },
+      "footer": {
+        "title": "What the cap actually means",
+        "body": "The higher 25% or 22% cap is a ceiling for separately authorized legal-action work, not the default success fee. Interdomestik must show this cap before any legal-action agreement is signed."
+      }
+    },
     "meta": {
       "title": "Membership Plans - Interdomestik",
       "description": "Membership for vehicle, property, and injury claims with explicit guidance-only and referral boundaries."

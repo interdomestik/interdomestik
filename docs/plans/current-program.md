@@ -21,7 +21,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P-1` Infrastructure Debt Closure is now complete as the post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, `D02` is complete as the cross-agent messaging isolation slice, `D03` is complete as the blocking repository coverage floor slice, `D04` is complete as the canonical blocking `gitleaks` coverage slice, `D05` is complete as the staging Supabase plus preview-environment separation slice, `D06` is complete as the canonical incident playbook slice, `D07` is complete as the Sentry burn-rate alert wiring slice, and `D08` is complete as the narrow critical-table RLS proof slice.
 
-`P1C` Commercial Contract Foundations is now the live post-infrastructure tranche. `C05` is complete as the canonical claims-first scope-tree and referral-boundary slice, `C01` is complete as the canonical coverage-matrix publication slice, and `C04` is complete as the canonical annual billing, cancellation, refund, and cooling-off publication slice. The remaining committed queue for publishing the commercial contract defined by the business-model blueprint is `C03`, `C02`, and `C06`: Free Start and hotline disclaimers, fee calculator, and commercial funnel instrumentation.
+`P1C` Commercial Contract Foundations is now the live post-infrastructure tranche. `C05` is complete as the canonical claims-first scope-tree and referral-boundary slice, `C01` is complete as the canonical coverage-matrix publication slice, `C04` is complete as the canonical annual billing, cancellation, refund, and cooling-off publication slice, and `C02` is complete as the canonical success-fee calculator and example-pricing slice. The remaining committed queue for publishing the commercial contract defined by the business-model blueprint is `C03` and `C06`: Free Start and hotline disclaimers, and commercial funnel instrumentation.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -79,12 +79,11 @@ pnpm plan:proof
 
 `P-1` Infrastructure Debt Closure is now complete as the committed post-AI tranche.
 
-`P1C` Commercial Contract Foundations is now the committed post-infrastructure tranche. `C05`, `C01`, and `C04` are complete.
+`P1C` Commercial Contract Foundations is now the committed post-infrastructure tranche. `C05`, `C01`, `C04`, and `C02` are complete.
 
 The remaining committed queue inside `P1C` is:
 
 - `C03` Add Free Start and hotline disclaimers.
-- `C02` Ship the public success-fee calculator and worked examples.
 - `C06` Add commercial funnel instrumentation.
 
 ## Do Not Reopen The Convergence Boundary

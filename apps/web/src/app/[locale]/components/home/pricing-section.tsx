@@ -2,10 +2,12 @@
 
 import { CommercialBillingTerms } from '@/components/commercial/billing-terms';
 import { buildCommercialTermsProps } from '@/components/commercial/billing-terms-content';
+import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calculator';
+import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
 import { Building2, Check, ShieldCheck, Users } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 type Plan = {
   id: string;
@@ -22,6 +24,7 @@ type Plan = {
 export function PricingSection() {
   const t = useTranslations('pricing');
   const commercialTerms = useTranslations('commercialTerms');
+  const locale = useLocale();
 
   const plans: Plan[] = [
     {
@@ -191,6 +194,12 @@ export function PricingSection() {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-16">
+          <SuccessFeeCalculator
+            {...buildSuccessFeeCalculatorProps(t, 'home-pricing-success-fee-calculator', locale)}
+          />
         </div>
 
         <div className="mt-16">
