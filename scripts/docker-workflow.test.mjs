@@ -51,9 +51,12 @@ test('docker gate scripts avoid redundant playwright startup and reuse the same 
   const runScript = readRepoFile('scripts/docker-run.sh');
   const reclaimScript = readRepoFile('scripts/docker-reclaim.sh');
 
+  assert.match(gateScript, /validate_gate_cache_mode\(\)/);
+  assert.match(gateScript, /ERROR: DOCKER_GATE_CACHE_MODE must be 'ephemeral' or 'warm'\./);
   assert.match(gateScript, /GATE_INFRA_SERVICES=\(redis mailpit minio\)/);
   assert.match(gateScript, /docker compose --profile gate up -d "\$\{GATE_INFRA_SERVICES\[@\]\}"/);
   assert.match(gateScript, /docker compose --profile gate run --rm --no-deps createbuckets/);
+  assert.doesNotMatch(gateScript, /docker compose --profile gate run --rm --no-deps createbuckets >\/dev\/null/);
   assert.match(gateScript, /docker compose --profile gate up -d web/);
   assert.match(gateScript, /GATE_WEB_READY_URL=/);
   assert.match(gateScript, /curl --fail --silent --output \/dev\/null "\$\{GATE_WEB_READY_URL\}"/);
@@ -101,6 +104,8 @@ test('docker compose avoids fixed container names and allows worktree-safe port 
   assert.match(gateScript, /DOCKER_WEB_PORT="\$\{DOCKER_WEB_PORT:-3000\}"/);
   assert.match(gateScript, /GATE_WEB_READY_URL="\$\{GATE_WEB_READY_URL:-http:\/\/127\.0\.0\.1:\$\{DOCKER_WEB_PORT\}\/robots\.txt\}"/);
   assert.match(startSystemScript, /http:\/\/localhost:\$\{DOCKER_WEB_PORT:-3000\}/);
+  assert.match(devUpScript, /⏳ Waiting for MinIO and provisioning buckets\.\.\./);
+  assert.doesNotMatch(devUpScript, /docker compose --profile infra run --rm --no-deps createbuckets >\/dev\/null/);
   assert.match(devUpScript, /http:\/\/localhost:\$\{DOCKER_MAILPIT_UI_PORT:-8025\}/);
 });
 
@@ -108,10 +113,28 @@ test('createbuckets waits for MinIO readiness before creating the claim-evidence
   const compose = readRepoFile('docker-compose.yml');
 
   assert.match(compose, /createbuckets:[\s\S]*profiles: \['infra', 'gate'\]/);
-  assert.match(compose, /until \/usr\/bin\/mc config host add myminio http:\/\/minio:9000 minioadmin minioadmin >/);
-  assert.match(compose, /echo 'Waiting for MinIO to accept connections\.\.\.'/);
+  assert.ok(compose.includes('MAX_ATTEMPTS=30;'));
+  assert.ok(compose.includes('ATTEMPT=1;'));
+  assert.ok(compose.includes('while [ \\"$$ATTEMPT\\" -le \\"$$MAX_ATTEMPTS\\" ]; do'));
+  assert.ok(compose.includes('Waiting for MinIO to accept connections... (attempt $$ATTEMPT/$$MAX_ATTEMPTS)'));
+  assert.ok(
+    compose.includes(
+      'ERROR: Timed out waiting for MinIO to accept connections after $$MAX_ATTEMPTS attempts (about $$((MAX_ATTEMPTS * SLEEP_INTERVAL)) seconds).'
+    )
+  );
   assert.match(compose, /\/usr\/bin\/mc mb -p myminio\/claim-evidence >\/dev\/null 2>&1 \|\| true;/);
   assert.match(compose, /\/usr\/bin\/mc anonymous set public myminio\/claim-evidence >/);
+});
+
+test('docker reclaim parses docker system df output safely across chunk boundaries', () => {
+  const reclaimScript = readRepoFile('scripts/docker-reclaim.sh');
+
+  assert.match(reclaimScript, /let buffer = "";/);
+  assert.match(reclaimScript, /process\.stdin\.setEncoding\("utf8"\);/);
+  assert.match(reclaimScript, /const lines = buffer\.split\(\/\\\\r\?\\\\n\/\);/);
+  assert.match(reclaimScript, /buffer = lines\.pop\(\) \?\? "";/);
+  assert.match(reclaimScript, /try \{/);
+  assert.match(reclaimScript, /process\.stdin\.on\("end", \(\) => \{/);
 });
 
 test('docker gate reuses the external web service instead of rebuilding inside Playwright', () => {

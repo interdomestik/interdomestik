@@ -59,13 +59,39 @@ docker_storage_bytes() {
     };
 
     let total = 0;
+    let buffer = "";
+
+    process.stdin.setEncoding("utf8");
     process.stdin.on("data", chunk => {
-      for (const line of chunk.toString().split(/\\r?\\n/)) {
-        if (!line.trim()) continue;
-        total += parseSize(JSON.parse(line).Size);
+      buffer += chunk;
+      const lines = buffer.split(/\\r?\\n/);
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        try {
+          const record = JSON.parse(trimmed);
+          total += parseSize(record.Size);
+        } catch {
+          // Ignore malformed JSON lines from partial or unexpected CLI output.
+        }
       }
     });
-    process.stdin.on("end", () => process.stdout.write(String(total)));
+    process.stdin.on("end", () => {
+      const trimmed = buffer.trim();
+      if (trimmed) {
+        try {
+          const record = JSON.parse(trimmed);
+          total += parseSize(record.Size);
+        } catch {
+          // Ignore a malformed trailing line rather than failing reclaim.
+        }
+      }
+
+      process.stdout.write(String(total));
+    });
   '
   return 0
 }

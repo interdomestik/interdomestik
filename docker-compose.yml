@@ -160,10 +160,21 @@ services:
       - minio
     entrypoint: >
       /bin/sh -ec "
-      until /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; do
-        echo 'Waiting for MinIO to accept connections...';
-        sleep 2;
+      MAX_ATTEMPTS=30;
+      SLEEP_INTERVAL=2;
+      ATTEMPT=1;
+      while [ \"$$ATTEMPT\" -le \"$$MAX_ATTEMPTS\" ]; do
+        if /usr/bin/mc config host add myminio http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then
+          break;
+        fi;
+        echo \"Waiting for MinIO to accept connections... (attempt $$ATTEMPT/$$MAX_ATTEMPTS)\";
+        ATTEMPT=$$((ATTEMPT + 1));
+        sleep \"$$SLEEP_INTERVAL\";
       done;
+      if [ \"$$ATTEMPT\" -gt \"$$MAX_ATTEMPTS\" ]; then
+        echo \"ERROR: Timed out waiting for MinIO to accept connections after $$MAX_ATTEMPTS attempts (about $$((MAX_ATTEMPTS * SLEEP_INTERVAL)) seconds).\" >&2;
+        exit 1;
+      fi;
       /usr/bin/mc mb -p myminio/claim-evidence >/dev/null 2>&1 || true;
       /usr/bin/mc anonymous set public myminio/claim-evidence >/dev/null 2>&1;
       exit 0;
