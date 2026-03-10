@@ -6,6 +6,8 @@ type TermsPageProps = Readonly<{
   params: Promise<{ locale: string }>;
 }>;
 
+const TERMS_SECTION_KEYS = ['membership', 'services', 'fees'] as const;
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'legal.terms' });
@@ -26,6 +28,11 @@ export default async function TermsPage({ params }: TermsPageProps) {
       <h1 className="text-3xl font-bold mb-8">{t('title')}</h1>
       <div className="prose dark:prose-invert mb-10">
         <p>{t('intro')}</p>
+        {TERMS_SECTION_KEYS.map(sectionKey => (
+          <section key={sectionKey}>
+            <p>{t(`sections.${sectionKey}`)}</p>
+          </section>
+        ))}
       </div>
       <CommercialBillingTerms
         {...buildCommercialTermsProps(commercialTerms, 'legal-terms-billing-terms')}
