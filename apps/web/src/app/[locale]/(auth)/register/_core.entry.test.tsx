@@ -1,33 +1,21 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
 const hoisted = vi.hoisted(() => ({
   ascMock: vi.fn(),
   eqMock: vi.fn(),
-  getTranslationsMock: vi.fn(async (options?: { namespace?: string } | string) => {
-    const namespace =
-      typeof options === 'string'
-        ? `${options}.`
-        : options?.namespace
-          ? `${options.namespace}.`
-          : '';
-    return (key: string) => `${namespace}${key}`;
-  }),
   registerFormMock: vi.fn((_: unknown) => <div>register-form</div>),
   resolveTenantIdFromRequestMock: vi.fn(async () => 'tenant_ks'),
-  selectMock: vi.fn(() => ({
-    from: () => ({
-      where: () => ({
-        orderBy: async () => [],
-      }),
-    }),
-  })),
+  selectMock: vi.fn(),
   setRequestLocaleMock: vi.fn(),
   tenantSelectorMock: vi.fn((_: unknown) => <div>tenant-selector</div>),
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: hoisted.getTranslationsMock,
+  getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
+    getNamespacedTranslation(options)
+  ),
   setRequestLocale: hoisted.setRequestLocaleMock,
 }));
 
@@ -74,11 +62,11 @@ describe('RegisterPage commercial coverage matrix', () => {
 
     render(tree);
 
-    const coverageMatrix = screen.getByTestId('register-coverage-matrix');
-
-    expect(within(coverageMatrix).getByText('coverageMatrix.title')).toBeInTheDocument();
-    expect(within(coverageMatrix).getAllByText('coverageMatrix.rows.vehicle.title').length).toBe(2);
-    expect(within(coverageMatrix).getAllByText('coverageMatrix.columns.escalation').length).toBe(6);
+    expectCoverageMatrix({
+      columnKey: 'coverageMatrix.columns.escalation',
+      rowKey: 'coverageMatrix.rows.vehicle.title',
+      sectionTestId: 'register-coverage-matrix',
+    });
     expect(screen.getByText('register-form')).toBeInTheDocument();
     expect(hoisted.resolveTenantIdFromRequestMock).toHaveBeenCalledWith({
       tenantIdFromQuery: 'tenant_ks',

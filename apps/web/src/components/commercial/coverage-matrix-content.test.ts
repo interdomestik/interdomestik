@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import { buildCoverageMatrixProps } from './coverage-matrix-content';
 
+const EXPECTED_ROW_KEYS = ['vehicle', 'property', 'injury', 'guidance', 'flight'] as const;
+const EXPECTED_ROW_TONES = [
+  ['included', 'escalation', 'referral'],
+  ['included', 'escalation', 'referral'],
+  ['included', 'escalation', 'referral'],
+  ['included', 'unavailable', 'referral'],
+  ['laterPhase', 'laterPhase', 'laterPhase'],
+] as const;
+
 describe('buildCoverageMatrixProps', () => {
   it('builds the shared coverage matrix content from translation keys', () => {
     const t = (key: string) => `translated:${key}`;
@@ -17,53 +26,22 @@ describe('buildCoverageMatrixProps', () => {
       'translated:columns.escalation',
       'translated:columns.referral',
     ]);
-    expect(props.rows).toEqual([
-      {
-        title: 'translated:rows.vehicle.title',
-        description: 'translated:rows.vehicle.description',
-        cells: [
-          { label: 'translated:rows.vehicle.included', tone: 'included' },
-          { label: 'translated:rows.vehicle.escalation', tone: 'escalation' },
-          { label: 'translated:rows.vehicle.referral', tone: 'referral' },
-        ],
-      },
-      {
-        title: 'translated:rows.property.title',
-        description: 'translated:rows.property.description',
-        cells: [
-          { label: 'translated:rows.property.included', tone: 'included' },
-          { label: 'translated:rows.property.escalation', tone: 'escalation' },
-          { label: 'translated:rows.property.referral', tone: 'referral' },
-        ],
-      },
-      {
-        title: 'translated:rows.injury.title',
-        description: 'translated:rows.injury.description',
-        cells: [
-          { label: 'translated:rows.injury.included', tone: 'included' },
-          { label: 'translated:rows.injury.escalation', tone: 'escalation' },
-          { label: 'translated:rows.injury.referral', tone: 'referral' },
-        ],
-      },
-      {
-        title: 'translated:rows.guidance.title',
-        description: 'translated:rows.guidance.description',
-        cells: [
-          { label: 'translated:rows.guidance.included', tone: 'included' },
-          { label: 'translated:rows.guidance.escalation', tone: 'unavailable' },
-          { label: 'translated:rows.guidance.referral', tone: 'referral' },
-        ],
-      },
-      {
-        title: 'translated:rows.flight.title',
-        description: 'translated:rows.flight.description',
-        cells: [
-          { label: 'translated:rows.flight.included', tone: 'laterPhase' },
-          { label: 'translated:rows.flight.escalation', tone: 'laterPhase' },
-          { label: 'translated:rows.flight.referral', tone: 'laterPhase' },
-        ],
-      },
-    ]);
+
+    expect(props.rows).toHaveLength(EXPECTED_ROW_KEYS.length);
+    expect(props.rows.map(row => row.title)).toEqual(
+      EXPECTED_ROW_KEYS.map(rowKey => `translated:rows.${rowKey}.title`)
+    );
+    expect(props.rows.map(row => row.description)).toEqual(
+      EXPECTED_ROW_KEYS.map(rowKey => `translated:rows.${rowKey}.description`)
+    );
+    expect(props.rows.map(row => row.cells.map(cell => cell.tone))).toEqual(EXPECTED_ROW_TONES);
+    expect(props.rows.map(row => row.cells.map(cell => cell.label))).toEqual(
+      EXPECTED_ROW_KEYS.map(rowKey =>
+        ['included', 'escalation', 'referral'].map(
+          columnKey => `translated:rows.${rowKey}.${columnKey}`
+        )
+      )
+    );
     expect(props.footerTitle).toBe('translated:footer.title');
     expect(props.footerBody).toBe('translated:footer.body');
   });

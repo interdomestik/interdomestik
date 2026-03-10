@@ -1,5 +1,6 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
 const hoisted = vi.hoisted(() => ({
   getDocumentsMock: vi.fn(async () => []),
@@ -10,15 +11,6 @@ const hoisted = vi.hoisted(() => ({
     },
   })),
   getSubscriptionsMock: vi.fn(async () => []),
-  getTranslationsMock: vi.fn(async (options?: { namespace?: string } | string) => {
-    const namespace =
-      typeof options === 'string'
-        ? `${options}.`
-        : options?.namespace
-          ? `${options.namespace}.`
-          : '';
-    return (key: string) => `${namespace}${key}`;
-  }),
   headersMock: vi.fn(async () => new Headers()),
   membershipOpsPageMock: vi.fn((_: unknown) => <div>membership-ops-page</div>),
   redirectMock: vi.fn(),
@@ -29,7 +21,9 @@ vi.mock('next/headers', () => ({
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: hoisted.getTranslationsMock,
+  getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
+    getNamespacedTranslation(options)
+  ),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -61,13 +55,11 @@ describe('MembershipPage commercial coverage matrix', () => {
 
     render(tree);
 
-    const coverageMatrix = screen.getByTestId('membership-coverage-matrix');
-
-    expect(within(coverageMatrix).getByText('coverageMatrix.title')).toBeInTheDocument();
-    expect(within(coverageMatrix).getAllByText('coverageMatrix.rows.guidance.title').length).toBe(
-      2
-    );
-    expect(within(coverageMatrix).getAllByText('coverageMatrix.columns.referral').length).toBe(6);
+    expectCoverageMatrix({
+      columnKey: 'coverageMatrix.columns.referral',
+      rowKey: 'coverageMatrix.rows.guidance.title',
+      sectionTestId: 'membership-coverage-matrix',
+    });
     expect(screen.getByText('membership-ops-page')).toBeInTheDocument();
   });
 });

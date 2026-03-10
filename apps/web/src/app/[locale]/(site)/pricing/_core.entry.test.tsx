@@ -1,6 +1,7 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 
 const hoisted = vi.hoisted(() => ({
   headersMock: vi.fn(async () => new Headers([['host', 'ks.localhost:3000']])),
@@ -10,10 +11,6 @@ const hoisted = vi.hoisted(() => ({
       email: 'member@example.com',
     },
   })),
-  getTranslationsMock: vi.fn(async (options?: { namespace?: string }) => {
-    const namespace = options?.namespace ? `${options.namespace}.` : '';
-    return (key: string) => `${namespace}${key}`;
-  }),
   pricingPageRuntimeMock: vi.fn((_: unknown) => null),
 }));
 
@@ -30,7 +27,9 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: hoisted.getTranslationsMock,
+  getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
+    getNamespacedTranslation(options)
+  ),
 }));
 
 vi.mock('./pricing-page-runtime', () => ({
@@ -52,11 +51,11 @@ describe('PricingPage server shell', () => {
     expect(tree).toBeTruthy();
     render(tree);
 
-    const coverageMatrix = screen.getByTestId('pricing-coverage-matrix');
-
-    expect(within(coverageMatrix).getByText('coverageMatrix.title')).toBeInTheDocument();
-    expect(within(coverageMatrix).getAllByText('coverageMatrix.rows.vehicle.title').length).toBe(2);
-    expect(within(coverageMatrix).getAllByText('coverageMatrix.columns.included').length).toBe(6);
+    expectCoverageMatrix({
+      columnKey: 'coverageMatrix.columns.included',
+      rowKey: 'coverageMatrix.rows.vehicle.title',
+      sectionTestId: 'pricing-coverage-matrix',
+    });
     expect(screen.getByText('pricing.scope.title')).toBeInTheDocument();
     expect(screen.getByText('pricing.scope.guidance.title')).toBeInTheDocument();
     expect(screen.getByText('pricing.scope.outOfScope.title')).toBeInTheDocument();
