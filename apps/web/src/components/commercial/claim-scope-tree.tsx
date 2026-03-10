@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { ArrowRightLeft, CircleOff, ShieldCheck } from 'lucide-react';
 
-type ScopeGroupTone = 'launch' | 'guidance' | 'outOfScope';
+export type ScopeGroupTone = 'launch' | 'guidance' | 'outOfScope';
 
-type ScopeGroup = Readonly<{
+export type ScopeGroup = Readonly<{
   description: string;
   items: readonly string[];
   note: string;
@@ -11,7 +11,7 @@ type ScopeGroup = Readonly<{
   tone: ScopeGroupTone;
 }>;
 
-type ClaimScopeTreeProps = Readonly<{
+export type ClaimScopeTreeProps = Readonly<{
   boundaryItems: readonly string[];
   boundaryTitle: string;
   boundaryBody: string;
