@@ -18,6 +18,8 @@ describe('ServicesPage', () => {
     // Hero
     expect(screen.getByText('hero.title')).toBeInTheDocument();
     expect(screen.getByText('hero.subtitle')).toBeInTheDocument();
+    expect(screen.getByText('disclaimers.freeStart.title')).toBeInTheDocument();
+    expect(screen.getByText('disclaimers.hotline.title')).toBeInTheDocument();
 
     // Consultation
     expect(screen.getByText('categories.consultation.title')).toBeInTheDocument();

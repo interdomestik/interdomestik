@@ -1,3 +1,4 @@
+import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
 import { Link } from '@/i18n/routing';
@@ -73,7 +74,21 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
         </div>
       </section>
 
-      <div className="container mx-auto -mt-6 px-4 pb-6">
+      <div className="container mx-auto -mt-6 px-4 pb-6 space-y-6">
+        <CommercialDisclaimerNotice
+          sectionTestId="services-commercial-disclaimers"
+          eyebrow={t('disclaimers.eyebrow')}
+          items={[
+            {
+              title: t('disclaimers.freeStart.title'),
+              body: t('disclaimers.freeStart.body'),
+            },
+            {
+              title: t('disclaimers.hotline.title'),
+              body: t('disclaimers.hotline.body'),
+            },
+          ]}
+        />
         <ClaimScopeTree {...buildClaimScopeTreeProps(t, 'services-scope-tree')} />
       </div>
 

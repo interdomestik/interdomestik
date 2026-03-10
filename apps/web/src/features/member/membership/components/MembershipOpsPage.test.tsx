@@ -62,6 +62,8 @@ describe('MembershipOpsPage', () => {
   it('shows scope and referral boundaries alongside membership operations', () => {
     render(<MembershipOpsPage subscriptions={[]} documents={[]} />);
 
+    expect(screen.getByText('disclaimers.freeStart.title')).toBeInTheDocument();
+    expect(screen.getByText('disclaimers.hotline.title')).toBeInTheDocument();
     expect(screen.getByText('scope.title')).toBeInTheDocument();
     expect(screen.getByText('scope.guidance.title')).toBeInTheDocument();
     expect(screen.getByText('scope.outOfScope.title')).toBeInTheDocument();
