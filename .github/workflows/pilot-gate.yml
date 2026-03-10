@@ -4,6 +4,8 @@ on:
   pull_request:
     branches:
       - main
+    # Workflow-file edits should still materialize the protected PR check, even when
+    # runtime-sensitive steps are skipped by the validation-surface guard below.
     paths-ignore:
       - 'docs/**'
       - '.agent/**'
