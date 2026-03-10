@@ -19,7 +19,9 @@ status_command: pnpm plan:status
 
 The release-convergence slice `V01` through `V05` is complete. The current program has now also completed six measured AI runway slices, `AI01` through `AI06`, without reopening routing, auth, tenancy, or request-path risk.
 
-`P-1` Infrastructure Debt Closure is the live post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, `D02` is complete as the cross-agent messaging isolation slice, `D03` is complete as the blocking repository coverage floor slice, `D04` is complete as the canonical blocking `gitleaks` coverage slice, `D05` is complete as the staging Supabase plus preview-environment separation slice, `D06` is complete as the canonical incident playbook slice, `D07` is complete as the Sentry burn-rate alert wiring slice, and `D08` is complete as the narrow critical-table RLS proof slice. The committed `P-1` tranche now has no remaining pending item.
+`P-1` Infrastructure Debt Closure is now complete as the post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, `D02` is complete as the cross-agent messaging isolation slice, `D03` is complete as the blocking repository coverage floor slice, `D04` is complete as the canonical blocking `gitleaks` coverage slice, `D05` is complete as the staging Supabase plus preview-environment separation slice, `D06` is complete as the canonical incident playbook slice, `D07` is complete as the Sentry burn-rate alert wiring slice, and `D08` is complete as the narrow critical-table RLS proof slice.
+
+`P1C` Commercial Contract Foundations is now the live post-infrastructure tranche. `C05` is complete as the canonical claims-first scope-tree and referral-boundary slice. The remaining committed queue for publishing the commercial contract defined by the business-model blueprint is `C01`, `C03`, `C04`, `C02`, and `C06`: coverage matrix, Free Start and hotline disclaimers, annual billing and refund terms, fee calculator, and commercial funnel instrumentation.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -39,7 +41,14 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 12. Keep `D05` complete as the canonical staging Supabase plus preview-environment separation slice without changing production auth, routing, or tenancy architecture.
 13. Keep `D06` complete as the canonical incident-response playbook and keep `D07` complete as the Sentry burn-rate alert wiring slice.
 14. Keep `D08` complete as the narrow RLS proof slice on four critical tables without reopening a broad repo-wide RLS campaign.
-15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche and the active `P-1` tranche.
+15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche, the completed `P-1` tranche, and the active `P1C` tranche.
+16. Land `P1C` as the canonical commercial-contract publication tranche without reopening routing, auth, tenancy, or request-path AI decisions.
+17. Keep `C01` as the canonical coverage-matrix publication slice across pricing, checkout, and member surfaces.
+18. Keep `C02` as the canonical success-fee calculator and example-pricing slice.
+19. Keep `C03` as the canonical Free Start and hotline disclaimer slice.
+20. Keep `C04` as the canonical annual billing, cancellation, refund, and cooling-off publication slice.
+21. Keep `C05` as the canonical claims-first scope-tree and referral-boundary slice.
+22. Keep `C06` as the canonical commercial-funnel instrumentation slice.
 
 ## Status Command
 
@@ -70,19 +79,15 @@ pnpm plan:proof
 
 `P-1` Infrastructure Debt Closure is now complete as the committed post-AI tranche.
 
-`D01` is complete as the full PR `e2e:gate` CI slice.
+`P1C` Commercial Contract Foundations is now the committed post-infrastructure tranche. `C05` is complete.
 
-`D02` is complete as the deterministic cross-agent messaging isolation coverage slice.
+The remaining committed queue inside `P1C` is:
 
-`D03` is complete as the blocking 60% repository coverage floor in the canonical CI and `pr:verify` surfaces.
-
-`D04` is complete as the canonical blocking `gitleaks` scan in the dedicated `Secret Scan` workflow across pull requests and mainline security triggers.
-
-`D05` is complete as the canonical staging Supabase plus preview-environment separation slice, with build-time deployment validation and split staging versus production CD inputs.
-
-`D06` is complete as the canonical incident-response playbook slice, with severity levels, escalation flow, rollback guidance, communication templates, and RCA structure linked from the active operator runbook.
-
-The committed queue inside `P-1` is now empty.
+- `C01` Publish the coverage matrix across pricing, checkout, and member surfaces.
+- `C03` Add Free Start and hotline disclaimers.
+- `C04` Publish annual billing, cancellation, refund, and cooling-off terms.
+- `C02` Ship the public success-fee calculator and worked examples.
+- `C06` Add commercial funnel instrumentation.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -104,6 +109,8 @@ These documents can recommend or constrain work, but they do not define the live
 - `docs/plans/2026-03-03-program-charter-canonical.md`
 - `docs/plans/2026-03-03-advisory-foundation-addendum.md`
 - `docs/plans/2026-03-05-pg3-advisory-evidence-refresh.md`
+- `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md`
+- `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md`
 
 ## Promotion Note
 
@@ -120,6 +127,11 @@ These documents can recommend or constrain work, but they do not define the live
 - `D04` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the canonical blocking `gitleaks` coverage slice.
 - `D05` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the staging Supabase plus preview-environment separation slice.
 - `D06` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the canonical incident-response playbook slice.
+- `D07` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the Sentry burn-rate alert wiring slice.
+- `D08` has now been copied into the live program and tracker from `docs/EXECUTIVE_MATURITY_ASSESSMENT.md` and `docs/MATURITY_ASSESSMENT_2026.md` and is complete as the narrow critical-table RLS proof slice.
+- `P1C` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the active post-infrastructure tranche.
+- `C01` through `C06` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the committed commercial-contract publication queue.
+- `C05` is complete as the claims-first scope-tree and referral-boundary slice.
 
 ## Historical Foundation, Not Current Sequencing
 

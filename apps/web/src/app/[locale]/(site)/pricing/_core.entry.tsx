@@ -1,3 +1,5 @@
+import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
+import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
 import { generateLocaleStaticParams } from '@/app/_locale-static-params';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
@@ -39,6 +41,10 @@ export default async function PricingPage({ params }: PricingPageProps) {
       </div>
 
       <PricingPageRuntime billingTestMode={billingTestMode} />
+
+      <div className="mt-16">
+        <ClaimScopeTree {...buildClaimScopeTreeProps(t, 'pricing-scope-tree')} />
+      </div>
 
       <div className="mt-20 text-center">
         <p className="text-sm text-muted-foreground">30-Day Money-Back Guarantee</p>

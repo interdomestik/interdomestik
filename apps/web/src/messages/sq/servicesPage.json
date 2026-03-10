@@ -1,13 +1,58 @@
 {
   "servicesPage": {
     "meta": {
-      "title": "Shërbimet - Asistenca",
-      "description": "10 shërbime profesionale për dëmshpërblim. Konsultime falas, ekspertizë mjekësore dhe ligjore, përfaqësim gjyqësor."
+      "title": "Fusha e Rasteve & Shërbimet - Asistenca",
+      "description": "Mbështetje e fokusuar te rastet e automjeteve, pronës dhe lëndimeve, me kufij të qartë për udhëzim dhe referim."
     },
     "hero": {
-      "badge": "10 Shërbime Profesionale",
-      "title": "Asistencë për Çdo Situatë",
-      "subtitle": "Nga konsultimi i parë falas deri te përfaqësimi gjyqësor — ekipi ynë i ekspertëve ju mbështet në çdo hap të procesit të dëmshpërblimit."
+      "badge": "Fusha e nisjes",
+      "title": "Së pari rastet e automjeteve, pronës dhe lëndimeve",
+      "subtitle": "Free Start dhe anëtarësia fillojnë me llojet e rasteve që mund t'i mbështesim tani. Rastet vetëm për udhëzim mbeten këshilluese, ndërsa rastet jashtë fushës drejtohen te hapi i duhur i radhës."
+    },
+    "scope": {
+      "eyebrow": "Kufijtë komercialë",
+      "title": "Fusha e nisjes është e qartë para se të fillojë çdo trajtim nga stafi",
+      "subtitle": "Këtu shihni cilat raste hyjnë në rrugën aktuale të rikuperimit, cilat mbeten vetëm për udhëzim dhe kur Interdomestik kalon te referimi ose te rruga ligjore me pëlqim të veçantë.",
+      "launch": {
+        "title": "Trajtohet tani",
+        "description": "Këto lloje rastesh hyjnë në rrugën e rikuperimit në nisje kur ekziston një rezultat i besueshëm monetar.",
+        "items": [
+          "Raste dëmi në automjet",
+          "Raste dëmi në pronë",
+          "Raste lëndimi personal me rrugë monetare rikuperimi"
+        ],
+        "note": "Free Start mund të përgatisë pakon. Anëtarësia shton triage njerëzor dhe kontroll dokumentesh para çdo përshkallëzimi të pranuar."
+      },
+      "guidance": {
+        "title": "Vetëm udhëzim",
+        "description": "Këto kategori mund të marrin udhëzim ose kontroll dokumentesh, por nuk hyjnë në rikuperim me success-fee në nisje.",
+        "items": [
+          "Mosmarrëveshje banesore pa rrugë direkte rikuperimi monetar",
+          "Mosmarrëveshje pune ose mbajtje page pa payout të qartë",
+          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa payout direkt",
+          "Ankesa më të gjera konsumatore jashtë llojeve të rasteve të nisjes"
+        ],
+        "note": "Këto raste mbeten këshilluese dhe referohen më tej kur një partner është më i përshtatshëm."
+      },
+      "outOfScope": {
+        "title": "Jashtë fushës",
+        "description": "Këto raste nuk janë pjesë e kontratës së nisjes dhe nuk pranohen për trajtim nga stafi.",
+        "items": [
+          "Mbrojtje penale",
+          "Shkurorëzim dhe e drejtë familjare",
+          "Imigracion",
+          "Mosmarrëveshje të përgjithshme biznesi jashtë paketave të përcaktuara për grupe"
+        ],
+        "note": "Nuk premtojmë mbulim këtu. Kur është e mundur, ju drejtojmë te një ofrues i jashtëm më i përshtatshëm."
+      },
+      "boundary": {
+        "title": "Kufijtë e referimit",
+        "body": "Rruga me partnerë ose veprimet ligjore fillojnë vetëm pas rishikimit të fushës. Përshkallëzimi i drejtuar nga stafi ofrohet vetëm për rastet e pranuara me rrugë rikuperimi; gjithçka tjetër mbetet udhëzim vetë-shërbyes, udhëzim në anëtarësi ose referim.",
+        "items": [
+          "Veprimi me partner ligjor të jashtëm kërkon pëlqim të veçantë me shkrim pas pranimit të rastit.",
+          "Kompensimi për vonesat e fluturimeve mbetet jashtë rrugës aktuale të nisjes dhe kthehet në një fazë të mëvonshme."
+        ]
+      }
     },
     "categories": {
       "consultation": {
@@ -99,7 +144,7 @@
     },
     "cta": {
       "title": "Gati për të filluar?",
-      "subtitle": "Kontaktoni për konsultim falas ose bëhuni anëtar për qasje të plotë në të gjitha shërbimet.",
+      "subtitle": "Filloni me llojet e rasteve që mbështesim tani, ose na kontaktoni për udhëzim dhe orientim kur rasti juaj bie jashtë fushës së nisjes.",
       "primary": "Bëhu Anëtar",
       "secondary": "Konsultim Falas"
     }

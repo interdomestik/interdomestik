@@ -89,13 +89,58 @@
     "contactTitle": "Prefer to talk?",
     "contactSubtitle": "Call or WhatsApp us, or start the claim online and we’ll follow up.",
     "meta": {
-      "title": "Usluge - Asistenca",
-      "description": "10 profesionalnih usluga za odštetne zahteve. Besplatne konsultacije, medicinska i pravna ekspertiza, sudsko zastupanje."
+      "title": "Opseg zahteva i usluge - Asistenca",
+      "description": "Podrška fokusirana na slučajeve vozila, imovine i povreda, sa jasnim granicama za smernice i upućivanje."
     },
     "hero": {
-      "badge": "10 profesionalnih usluga",
-      "title": "Podrška za svaku situaciju",
-      "subtitle": "Od prve besplatne konsultacije do sudskog zastupanja — naš tim stručnjaka vas podržava na svakom koraku procesa naknade štete."
+      "badge": "Opseg lansiranja",
+      "title": "Najpre zahtevi za vozila, imovinu i povrede",
+      "subtitle": "Free Start i članstvo počinju sa tipovima zahteva koje sada možemo da podržimo. Slučajevi samo za smernice ostaju savetodavni, a predmeti van opsega usmeravaju se ka pravom sledećem koraku."
+    },
+    "scope": {
+      "eyebrow": "Komercijalne granice",
+      "title": "Početni opseg je jasan pre nego što tim počne bilo kakav rad",
+      "subtitle": "Ovde vidite koji predmeti ulaze u trenutnu putanju naplate, koji ostaju samo za smernice i kada Interdomestik prelazi na upućivanje ili pravnu rutu sa posebnom saglasnošću.",
+      "launch": {
+        "title": "Obrađuje se sada",
+        "description": "Ove vrste predmeta ulaze u početnu putanju naplate kada postoji verodostojan novčani ishod.",
+        "items": [
+          "Zahtevi za štetu na vozilu",
+          "Zahtevi za štetu na imovini",
+          "Zahtevi za lične povrede sa novčanom putanjom naplate"
+        ],
+        "note": "Free Start može da pripremi paket. Članstvo dodaje ljudski trijaž i proveru dokumenata pre svake prihvaćene eskalacije."
+      },
+      "guidance": {
+        "title": "Samo smernice",
+        "description": "Ove kategorije mogu da dobiju smernice ili proveru dokumenata, ali ne ulaze u naplatu sa success-fee pri lansiranju.",
+        "items": [
+          "Stambeni sporovi bez direktne novčane putanje naplate",
+          "Sporovi oko plata ili zaposlenja bez jasnog novčanog ishoda",
+          "Sporovi oko popravke ili raskida ugovora bez direktne isplate",
+          "Šire potrošačke žalbe van početnih tipova zahteva"
+        ],
+        "note": "Ovi predmeti ostaju savetodavni i upućujemo ih dalje kada je partnerska ruta prikladnija."
+      },
+      "outOfScope": {
+        "title": "Van opsega",
+        "description": "Ovi predmeti nisu deo ugovora za lansiranje i ne prihvataju se za rad tima.",
+        "items": [
+          "Krivična odbrana",
+          "Razvod i porodično pravo",
+          "Imigracija",
+          "Opšti poslovni sporovi van definisanih grupnih paketa"
+        ],
+        "note": "Ovde ne podrazumevamo pokriće. Gde je moguće, usmeravamo vas ka pogodnijem spoljašnjem pružaocu usluge."
+      },
+      "boundary": {
+        "title": "Granice upućivanja",
+        "body": "Partnerske i pravne rute počinju tek nakon pregleda opsega. Eskalacija vođena timom dostupna je samo za prihvaćene predmete sa putanjom naplate; sve ostalo ostaje self-serve smernica, članska smernica ili upućivanje.",
+        "items": [
+          "Spoljna pravna partnerska akcija zahteva posebnu pisanu saglasnost nakon prihvatanja predmeta.",
+          "Naknada za kašnjenje letova ostaje van trenutne početne putanje i vraća se u kasnijoj fazi."
+        ]
+      }
     },
     "categories": {
       "consultation": {
@@ -187,7 +232,7 @@
     },
     "cta": {
       "title": "Spremni da počnete?",
-      "subtitle": "Kontaktirajte nas za besplatnu konsultaciju ili postanite član za pun pristup svim uslugama.",
+      "subtitle": "Počnite sa tipovima zahteva koje sada podržavamo, ili nas kontaktirajte za smernice i usmeravanje kada je vaš predmet van početnog opsega.",
       "primary": "Postanite član",
       "secondary": "Besplatna konsultacija"
     }

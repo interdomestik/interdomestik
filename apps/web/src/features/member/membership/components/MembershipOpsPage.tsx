@@ -1,5 +1,7 @@
 'use client';
 
+import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
+import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
 import {
   OpsActionBar,
   OpsDocumentsPanel,
@@ -28,7 +30,6 @@ import { toast } from 'sonner';
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
 // ...
 
-// Loose type for next-intl translator to avoid complex generic drilling
 // Loose type for next-intl translator to avoid complex generic drilling
 type TranslationFn = (key: string, values?: any, formats?: any) => string;
 
@@ -75,49 +76,53 @@ export function MembershipOpsPage({
   ];
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      {/* Left Panel: List */}
-      <div
-        className={`w-full md:w-1/3 border-r bg-muted/10 flex flex-col ${
-          selectedId && !isDesktop ? 'hidden' : 'flex'
-        }`}
-      >
-        <div className="p-4 border-b">
-          <h2 className="font-semibold text-lg">{t('ops.title')}</h2>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <OpsTable
-            rows={tableRows}
-            columns={tableColumns}
-            emptyLabel={t('ops.empty_list')}
-            rowTestId="subscription-item"
-          />
-        </div>
-      </div>
+    <div className="space-y-6">
+      <ClaimScopeTree {...buildClaimScopeTreeProps(t, 'membership-scope-tree')} />
 
-      {/* Right Panel: Detail */}
-      <div
-        className={`w-full md:w-2/3 flex flex-col bg-background ${
-          !selectedId && !isDesktop ? 'hidden' : 'flex'
-        }`}
-      >
-        {selectedSubscription ? (
-          <div className="flex-1 p-6 overflow-hidden">
-            {!isDesktop && (
-              <button
-                onClick={() => setSelectedId(null)}
-                className="mb-4 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-              >
-                ← {t('ops.back_to_list')}
-              </button>
-            )}
-            <DetailView subscription={selectedSubscription} documents={documents} t={t} />
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* Left Panel: List */}
+        <div
+          className={`w-full md:w-1/3 border-r bg-muted/10 flex flex-col ${
+            selectedId && !isDesktop ? 'hidden' : 'flex'
+          }`}
+        >
+          <div className="p-4 border-b">
+            <h2 className="font-semibold text-lg">{t('ops.title')}</h2>
           </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            {t('ops.select_subscription')}
+          <div className="flex-1 overflow-y-auto">
+            <OpsTable
+              rows={tableRows}
+              columns={tableColumns}
+              emptyLabel={t('ops.empty_list')}
+              rowTestId="subscription-item"
+            />
           </div>
-        )}
+        </div>
+
+        {/* Right Panel: Detail */}
+        <div
+          className={`w-full md:w-2/3 flex flex-col bg-background ${
+            !selectedId && !isDesktop ? 'hidden' : 'flex'
+          }`}
+        >
+          {selectedSubscription ? (
+            <div className="flex-1 p-6 overflow-hidden">
+              {!isDesktop && (
+                <button
+                  onClick={() => setSelectedId(null)}
+                  className="mb-4 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  ← {t('ops.back_to_list')}
+                </button>
+              )}
+              <DetailView subscription={selectedSubscription} documents={documents} t={t} />
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              {t('ops.select_subscription')}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

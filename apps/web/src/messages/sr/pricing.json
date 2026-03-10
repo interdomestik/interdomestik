@@ -1,7 +1,7 @@
 {
   "pricing": {
-    "title": "Pomoć za svaku situaciju",
-    "subtitle": "Izaberite plan koji odgovara vašim potrebama",
+    "title": "Članstvo fokusirano na zahteve",
+    "subtitle": "Počnite sa slučajevima vozila, imovine i povreda. Slučajevi samo za smernice ostaju savetodavni, a predmeti van opsega se upućuju dalje.",
     "monthly": "Mesečno",
     "yearly": "Godišnje",
     "switchLabel": "Uštedite 17% sa godišnjim planom",
@@ -68,9 +68,54 @@
     },
     "cta": "Pridružite se",
     "loginRequired": "Prijavite se za nadogradnju",
+    "scope": {
+      "eyebrow": "Opseg lansiranja",
+      "title": "Šta obrađujemo sada, šta ostaje smernica i šta upućujemo dalje",
+      "subtitle": "Interdomestik kreće sa ugovorom fokusiranim na zahteve. Ove granice pokazuju gde pomažu Free Start i članstvo, gde može da počne naplata vođena timom i gde dajemo samo sledeći korak.",
+      "launch": {
+        "title": "Obrađuje se sada",
+        "description": "Ove vrste predmeta ulaze u početnu putanju naplate kada postoji verodostojan novčani ishod.",
+        "items": [
+          "Zahtevi za štetu na vozilu",
+          "Zahtevi za štetu na imovini",
+          "Zahtevi za lične povrede sa novčanom putanjom naplate"
+        ],
+        "note": "Free Start može da pripremi paket. Članstvo dodaje ljudski trijaž i proveru dokumenata pre svake prihvaćene eskalacije."
+      },
+      "guidance": {
+        "title": "Samo smernice",
+        "description": "Ove kategorije mogu da dobiju smernice ili proveru dokumenata, ali ne ulaze u naplatu sa success-fee pri lansiranju.",
+        "items": [
+          "Stambeni sporovi bez direktne novčane putanje naplate",
+          "Sporovi oko plata ili zaposlenja bez jasnog novčanog ishoda",
+          "Sporovi oko popravke ili raskida ugovora bez direktne isplate",
+          "Šire potrošačke žalbe van početnih tipova zahteva"
+        ],
+        "note": "Ovi predmeti ostaju savetodavni i upućujemo ih dalje kada je partnerska ruta prikladnija."
+      },
+      "outOfScope": {
+        "title": "Van opsega",
+        "description": "Ovi predmeti nisu deo ugovora za lansiranje i ne prihvataju se za rad tima.",
+        "items": [
+          "Krivična odbrana",
+          "Razvod i porodično pravo",
+          "Imigracija",
+          "Opšti poslovni sporovi van definisanih grupnih paketa"
+        ],
+        "note": "Ovde ne podrazumevamo pokriće. Gde je moguće, usmeravamo vas ka pogodnijem spoljašnjem pružaocu usluge."
+      },
+      "boundary": {
+        "title": "Granice upućivanja",
+        "body": "Partnerske i pravne rute počinju tek nakon pregleda opsega. Eskalacija vođena timom dostupna je samo za prihvaćene predmete sa putanjom naplate; sve ostalo ostaje self-serve smernica, članska smernica ili upućivanje.",
+        "items": [
+          "Spoljna pravna partnerska akcija zahteva posebnu pisanu saglasnost nakon prihvatanja predmeta.",
+          "Naknada za kašnjenje letova ostaje van trenutne početne putanje i vraća se u kasnijoj fazi."
+        ]
+      }
+    },
     "meta": {
       "title": "Planovi članstva - Interdomestik",
-      "description": "Pridružite se klubu zaštite. Dostupni Standard i Porodični planovi."
+      "description": "Članstvo za slučajeve vozila, imovine i povreda sa jasnim granicama za smernice i upućivanje."
     },
     "mainHeading1": "Izaberite zaštitu",
     "mainHeading2": "koja vam odgovara.",

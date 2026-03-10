@@ -1,13 +1,58 @@
 {
   "servicesPage": {
     "meta": {
-      "title": "Services - Asistenca",
-      "description": "10 professional services for compensation claims. Free consultations, medical and legal expertise, court representation."
+      "title": "Claim Scope & Services - Asistenca",
+      "description": "Claims-first support for vehicle, property, and injury matters, with explicit guidance-only and referral boundaries."
     },
     "hero": {
-      "badge": "10 Professional Services",
-      "title": "Assistance for Every Situation",
-      "subtitle": "From the first free consultation to court representation — our team of experts supports you at every step of the compensation process."
+      "badge": "Launch claim scope",
+      "title": "Vehicle, property, and injury claims first",
+      "subtitle": "Free Start and membership begin with the claim types we can support now. Guidance-only matters stay advisory, and out-of-scope matters are routed to the right next step."
+    },
+    "scope": {
+      "eyebrow": "Commercial boundaries",
+      "title": "The launch scope is explicit before any staff handling starts",
+      "subtitle": "Use this view to see which matters fit the current launch recovery path, which ones stay guidance-only, and when Interdomestik switches to referral or opt-in legal routes.",
+      "launch": {
+        "title": "Handled now",
+        "description": "These claim types fit the launch recovery path when there is a plausible monetary outcome.",
+        "items": [
+          "Vehicle damage claims",
+          "Property damage claims",
+          "Personal injury claims with a monetary recovery path"
+        ],
+        "note": "Free Start can prepare the pack. Membership adds human triage and document review before any accepted escalation."
+      },
+      "guidance": {
+        "title": "Guidance only",
+        "description": "These categories can still receive guidance or document review, but they do not enter success-fee recovery at launch.",
+        "items": [
+          "Landlord disputes without a direct monetary recovery path",
+          "Wage withholding or employment disputes without a clear payout path",
+          "Repair enforcement or contract termination disputes without a direct payout",
+          "Broader consumer complaints outside the launch claim types"
+        ],
+        "note": "We keep these matters advisory and refer onward when a partner route makes more sense."
+      },
+      "outOfScope": {
+        "title": "Out of scope",
+        "description": "These matters are not part of the launch contract and are not accepted for staff handling.",
+        "items": [
+          "Criminal defense",
+          "Divorce and family law",
+          "Immigration",
+          "General business disputes outside defined group packages"
+        ],
+        "note": "We do not imply coverage here. Where possible, we route you to a more suitable external provider."
+      },
+      "boundary": {
+        "title": "Referral boundaries",
+        "body": "Partner referral and legal routes begin only after scope review. Staff-led escalation is available only for accepted recovery matters; everything else remains self-serve guidance, membership guidance, or a referral.",
+        "items": [
+          "External legal partner action requires a separate written opt-in after case acceptance.",
+          "Flight delay compensation stays outside the current launch path and returns in a later phase."
+        ]
+      }
     },
     "categories": {
       "consultation": {
@@ -99,7 +144,7 @@
     },
     "cta": {
       "title": "Ready to get started?",
-      "subtitle": "Contact us for a free consultation or become a member for full access to all services.",
+      "subtitle": "Start with the claim types we support now, or contact us for guidance and routing when your matter falls outside the launch scope.",
       "primary": "Become a Member",
       "secondary": "Free Consultation"
     }

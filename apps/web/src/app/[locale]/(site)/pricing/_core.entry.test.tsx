@@ -1,3 +1,4 @@
+import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -46,6 +47,12 @@ describe('PricingPage server shell', () => {
     });
 
     expect(tree).toBeTruthy();
+    render(tree);
+
+    expect(screen.getByText('scope.title')).toBeInTheDocument();
+    expect(screen.getByText('scope.guidance.title')).toBeInTheDocument();
+    expect(screen.getByText('scope.outOfScope.title')).toBeInTheDocument();
+    expect(screen.getByText('scope.boundary.title')).toBeInTheDocument();
     expect(hoisted.headersMock).not.toHaveBeenCalled();
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
   });

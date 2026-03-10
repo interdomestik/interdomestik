@@ -1,3 +1,5 @@
+import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
+import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
 import {
@@ -70,6 +72,10 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
           </div>
         </div>
       </section>
+
+      <div className="container mx-auto -mt-6 px-4 pb-6">
+        <ClaimScopeTree {...buildClaimScopeTreeProps(t, 'services-scope-tree')} />
+      </div>
 
       {/* Category 1: Free Consultations */}
       <section className="py-16 lg:py-24">
