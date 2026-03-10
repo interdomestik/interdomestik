@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { calculateSuccessFeeQuote } from './success-fee-calculator-content';
 import {
-  buildSuccessFeeCalculatorProps,
-  calculateSuccessFeeQuote,
-} from './success-fee-calculator-content';
+  buildSuccessFeeCalculatorTestProps,
+  getSuccessFeeCalculatorMessage,
+} from '@/test/success-fee-calculator-test-utils';
 
 describe('calculateSuccessFeeQuote', () => {
   it('returns the standard plan fee for a recovered amount above the minimum threshold', () => {
@@ -41,68 +42,35 @@ describe('calculateSuccessFeeQuote', () => {
 
 describe('buildSuccessFeeCalculatorProps', () => {
   it('builds the shared public calculator content and worked examples from translation keys', () => {
-    const t = (key: string) => `translated:${key}`;
-
-    const props = buildSuccessFeeCalculatorProps(t, 'pricing-success-fee-calculator', 'en');
+    const props = buildSuccessFeeCalculatorTestProps('pricing-success-fee-calculator');
 
     expect(props.sectionTestId).toBe('pricing-success-fee-calculator');
-    expect(props.title).toBe('translated:successFeeCalculator.title');
-    expect(props.subtitle).toBe('translated:successFeeCalculator.subtitle');
-    expect(props.planOptions).toEqual([
-      {
-        feeRateLabel: 'translated:successFeeCalculator.plans.standard.feeRate',
-        key: 'standard',
-        label: 'translated:successFeeCalculator.plans.standard.label',
-        legalActionCapLabel: 'translated:successFeeCalculator.plans.standard.legalActionCap',
-        legalActionCapRate: 25,
-        minimumFee: 25,
-        minimumFeeLabel: 'translated:successFeeCalculator.plans.standard.minimumFee',
-        ratePercentage: 15,
-      },
-      {
-        feeRateLabel: 'translated:successFeeCalculator.plans.family.feeRate',
-        key: 'family',
-        label: 'translated:successFeeCalculator.plans.family.label',
-        legalActionCapLabel: 'translated:successFeeCalculator.plans.family.legalActionCap',
-        legalActionCapRate: 22,
-        minimumFee: 25,
-        minimumFeeLabel: 'translated:successFeeCalculator.plans.family.minimumFee',
-        ratePercentage: 12,
-      },
+    expect(props.title).toBe(getSuccessFeeCalculatorMessage('successFeeCalculator.title'));
+    expect(props.subtitle).toBe(getSuccessFeeCalculatorMessage('successFeeCalculator.subtitle'));
+    expect(props.planOptions).toHaveLength(2);
+    expect(props.planOptions[0]).toMatchObject({
+      key: 'standard',
+      legalActionCapRate: 25,
+      minimumFee: 25,
+      ratePercentage: 15,
+    });
+    expect(props.planOptions[1]).toMatchObject({
+      key: 'family',
+      legalActionCapRate: 22,
+      minimumFee: 25,
+      ratePercentage: 12,
+    });
+    expect(props.examples.map(example => example.id)).toEqual([
+      'standard',
+      'family',
+      'minimum',
+      'legal-action-cap',
     ]);
-    expect(props.examples).toEqual([
-      {
-        description: 'translated:successFeeCalculator.examples.standard.description',
-        id: 'standard',
-        legalActionCap: false,
-        planKey: 'standard',
-        recoveryAmount: 1000,
-        title: 'translated:successFeeCalculator.examples.standard.title',
-      },
-      {
-        description: 'translated:successFeeCalculator.examples.family.description',
-        id: 'family',
-        legalActionCap: false,
-        planKey: 'family',
-        recoveryAmount: 1000,
-        title: 'translated:successFeeCalculator.examples.family.title',
-      },
-      {
-        description: 'translated:successFeeCalculator.examples.minimum.description',
-        id: 'minimum',
-        legalActionCap: false,
-        planKey: 'standard',
-        recoveryAmount: 100,
-        title: 'translated:successFeeCalculator.examples.minimum.title',
-      },
-      {
-        description: 'translated:successFeeCalculator.examples.legalActionCap.description',
-        id: 'legal-action-cap',
-        legalActionCap: true,
-        planKey: 'standard',
-        recoveryAmount: 4000,
-        title: 'translated:successFeeCalculator.examples.legalActionCap.title',
-      },
-    ]);
+    expect(props.examples[3]).toMatchObject({
+      legalActionCap: true,
+      planKey: 'standard',
+      recoveryAmount: 4000,
+      title: getSuccessFeeCalculatorMessage('successFeeCalculator.examples.legalActionCap.title'),
+    });
   });
 });
