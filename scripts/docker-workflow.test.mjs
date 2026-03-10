@@ -115,7 +115,9 @@ test('createbuckets waits for MinIO readiness before creating the claim-evidence
   assert.match(compose, /createbuckets:[\s\S]*profiles: \['infra', 'gate'\]/);
   assert.ok(compose.includes('MAX_ATTEMPTS=30;'));
   assert.ok(compose.includes('ATTEMPT=1;'));
-  assert.ok(compose.includes('while [ \\"$$ATTEMPT\\" -le \\"$$MAX_ATTEMPTS\\" ]; do'));
+  assert.ok(
+    compose.includes(String.raw`while [ \"$$ATTEMPT\" -le \"$$MAX_ATTEMPTS\" ]; do`)
+  );
   assert.ok(compose.includes('Waiting for MinIO to accept connections... (attempt $$ATTEMPT/$$MAX_ATTEMPTS)'));
   assert.ok(
     compose.includes(
