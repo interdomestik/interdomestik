@@ -92,6 +92,8 @@ describe('PricingTable', () => {
     render(<PricingTable userId="user-123" email="test@example.com" billingTestMode={false} />);
 
     expect(screen.queryByText('basic.name')).toBeNull();
+    expect(screen.queryByText('monthly')).toBeNull();
+    expect(screen.queryByText('yearly')).toBeNull();
     expect(screen.getByText('standard.name')).toBeDefined();
     expect(screen.getByText('family.name')).toBeDefined();
     expect(screen.getByText('business.name')).toBeDefined();

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
+import { expectCommercialTerms } from '@/test/commercial-terms-test-utils';
 
 const hoisted = vi.hoisted(() => ({
   ascMock: vi.fn(),
@@ -67,6 +68,7 @@ describe('RegisterPage commercial coverage matrix', () => {
       rowKey: 'coverageMatrix.rows.vehicle.title',
       sectionTestId: 'register-coverage-matrix',
     });
+    expectCommercialTerms({ sectionTestId: 'register-billing-terms' });
     expect(screen.getByText('register-form')).toBeInTheDocument();
     expect(hoisted.resolveTenantIdFromRequestMock).toHaveBeenCalledWith({
       tenantIdFromQuery: 'tenant_ks',

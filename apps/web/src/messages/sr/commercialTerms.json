@@ -1,0 +1,33 @@
+{
+  "commercialTerms": {
+    "eyebrow": "Godišnji uslovi članstva",
+    "title": "Pravila za godišnje naplaćivanje, otkazivanje i refundaciju",
+    "subtitle": "Isti ugovor važi na cenama, u checkout-u i u članskim podešavanjima.",
+    "sections": {
+      "annualBilling": {
+        "title": "Godišnje naplaćivanje u v1",
+        "body": "Članstva se na lansiranju naplaćuju godišnje. Javne cene prikazuju godišnju tarifu i plaćeni period pre početka checkout-a."
+      },
+      "cancellation": {
+        "title": "Otkazivanje zaustavlja sledeću obnovu",
+        "body": "Obnovu možete otkazati u bilo kom trenutku. Pristup ostaje aktivan do kraja tekućeg plaćenog perioda, a otkazivanje ne vraća istekle pogodnosti."
+      },
+      "refundWindow": {
+        "title": "Početni prozor refundacije od 30 dana",
+        "body": "Tarifu članstva vraćamo ako zahtev stigne u roku od 30 dana od kupovine i za to članstvo još nije prihvaćen nijedan predmet naplate koji vodi tim."
+      },
+      "coolingOff": {
+        "title": "Cooling-off prava ostaju odvojena",
+        "body": "Svako zakonsko pravo na odustanak ili cooling-off primenjuje se odvojeno od početnog obećanja refundacije. Kada lokalni zakon daje drugačiji rok za odustanak, važi taj zakonski rok."
+      },
+      "acceptedMatters": {
+        "title": "Prihvaćene eskalacije ostaju na snazi",
+        "body": "Ako je Interdomestik već prihvatio predmet naplate, dogovoreni success-fee i uslovi eskalacije ostaju na snazi za taj predmet čak i ako se članstvo kasnije otkaže."
+      }
+    },
+    "footer": {
+      "title": "Šta refundacija pokriva",
+      "body": "Početna refundacija pokriva samo članarinu. Ona ne briše naknade ili partnerske troškove koji su već dogovoreni za prihvaćenu eskalaciju."
+    }
+  }
+}

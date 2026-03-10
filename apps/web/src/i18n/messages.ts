@@ -19,6 +19,7 @@ export const MESSAGE_NAMESPACES = [
   'claimCategories',
   'claims',
   'claims-tracking',
+  'commercialTerms',
   'common',
   'coverageMatrix',
   'consumerRights',
@@ -68,6 +69,7 @@ export const HOME_NAMESPACES = [
   'voiceClaim',
   'testimonials',
   'pricing',
+  'commercialTerms',
   'faq',
   'footer',
 ] as const;

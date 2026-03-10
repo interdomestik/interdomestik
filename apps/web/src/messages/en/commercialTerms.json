@@ -1,0 +1,33 @@
+{
+  "commercialTerms": {
+    "eyebrow": "Annual membership terms",
+    "title": "Annual billing, cancellation, and refund rules",
+    "subtitle": "The same contract applies on pricing, at checkout, and in member settings.",
+    "sections": {
+      "annualBilling": {
+        "title": "Annual billing in v1",
+        "body": "Memberships are billed annually at launch. Public pricing shows the yearly fee and paid term before checkout starts."
+      },
+      "cancellation": {
+        "title": "Cancellation stops the next renewal",
+        "body": "You can cancel renewal at any time. Access stays active until the current paid term ends, and cancellation does not reopen expired benefits."
+      },
+      "refundWindow": {
+        "title": "30-day launch refund window",
+        "body": "We refund the membership fee if you ask within 30 days of purchase and no staff-led recovery matter has been accepted for that membership yet."
+      },
+      "coolingOff": {
+        "title": "Cooling-off rights stay separate",
+        "body": "Any statutory cooling-off or withdrawal right applies separately from the launch refund promise. Where local law gives a different withdrawal window, that statutory rule controls."
+      },
+      "acceptedMatters": {
+        "title": "Accepted escalations survive cancellation",
+        "body": "If Interdomestik has already accepted a recovery matter, the agreed success-fee and escalation terms stay in force for that accepted matter even if the membership later cancels."
+      }
+    },
+    "footer": {
+      "title": "What the refund covers",
+      "body": "The launch refund covers the membership fee only. It does not erase fees or partner costs already agreed for an accepted escalation."
+    }
+  }
+}
