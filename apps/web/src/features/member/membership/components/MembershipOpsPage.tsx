@@ -1,5 +1,6 @@
 'use client';
 
+import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
 import {
@@ -77,6 +78,21 @@ export function MembershipOpsPage({
 
   return (
     <div className="space-y-6">
+      <CommercialDisclaimerNotice
+        sectionTestId="membership-commercial-disclaimers"
+        eyebrow={t('disclaimers.eyebrow')}
+        items={[
+          {
+            title: t('disclaimers.freeStart.title'),
+            body: t('disclaimers.freeStart.body'),
+          },
+          {
+            title: t('disclaimers.hotline.title'),
+            body: t('disclaimers.hotline.body'),
+          },
+        ]}
+      />
+
       <ClaimScopeTree {...buildClaimScopeTreeProps(t, 'membership-scope-tree')} />
 
       <div className="flex h-[calc(100vh-4rem)]">

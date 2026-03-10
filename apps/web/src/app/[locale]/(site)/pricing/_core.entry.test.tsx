@@ -56,6 +56,8 @@ describe('PricingPage server shell', () => {
       rowKey: 'coverageMatrix.rows.vehicle.title',
       sectionTestId: 'pricing-coverage-matrix',
     });
+    expect(screen.getByText('pricing.disclaimers.freeStart.title')).toBeInTheDocument();
+    expect(screen.getByText('pricing.disclaimers.hotline.title')).toBeInTheDocument();
     expect(screen.getByText('pricing.scope.title')).toBeInTheDocument();
     expect(screen.getByText('pricing.scope.guidance.title')).toBeInTheDocument();
     expect(screen.getByText('pricing.scope.outOfScope.title')).toBeInTheDocument();

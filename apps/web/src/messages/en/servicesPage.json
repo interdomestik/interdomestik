@@ -54,6 +54,17 @@
         ]
       }
     },
+    "disclaimers": {
+      "eyebrow": "Commercial disclaimers",
+      "freeStart": {
+        "title": "Free Start is informational only",
+        "body": "Free Start gives you informational guidance, templates, and next-step tools. It does not start human review, legal advice, or staff-led recovery."
+      },
+      "hotline": {
+        "title": "Hotline means routing and support",
+        "body": "The hotline is for urgent routing, support, and next-step guidance. It does not mean immediate legal review, claim acceptance, or staff-led handling."
+      }
+    },
     "categories": {
       "consultation": {
         "title": "Free Consultations",

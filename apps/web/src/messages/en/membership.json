@@ -49,6 +49,17 @@
         ]
       }
     },
+    "disclaimers": {
+      "eyebrow": "Commercial disclaimers",
+      "freeStart": {
+        "title": "Free Start is informational only",
+        "body": "Free Start gives you informational guidance, templates, and next-step tools. It does not start human review, legal advice, or staff-led recovery."
+      },
+      "hotline": {
+        "title": "Hotline means routing and support",
+        "body": "The hotline is for urgent routing, support, and next-step guidance. It does not mean immediate legal review, claim acceptance, or staff-led handling."
+      }
+    },
     "plan": {
       "title": "Current Plan",
       "description": "Your protection tier",
@@ -95,6 +106,10 @@
       "title": "Welcome to Interdomestik!",
       "subtitle": "Your protection is now active. You are officially part of our club.",
       "hotline_label": "24/7 EMERGENCY HOTLINE",
+      "hotline_disclaimer": {
+        "title": "Routing and support only",
+        "body": "Use the hotline for urgent routing, support, and next-step guidance. It does not mean immediate legal review or automatic case acceptance."
+      },
       "hotline_number": "+383 49 123 456",
       "hotline_hint": "Save this number to your phone now",
       "card_label": "Your Digital Protection Card",
@@ -113,6 +128,10 @@
       "title": "Digital ID Card",
       "subtitle": "Your Membership Identity",
       "description": "Present this card for verification during emergencies or at our partner locations.",
+      "hotline_disclaimer": {
+        "title": "Routing and support only",
+        "body": "Use the hotline for urgent routing, support, and next-step guidance. It does not mean immediate legal review or automatic case acceptance."
+      },
       "member_since": "Member since",
       "valid_thru": "Valid thru",
       "emergency_hotline": "Emergency Hotline",

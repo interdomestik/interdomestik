@@ -54,6 +54,17 @@
         ]
       }
     },
+    "disclaimers": {
+      "eyebrow": "Sqarime komerciale",
+      "freeStart": {
+        "title": "Free Start është vetëm informues",
+        "body": "Free Start ju jep udhëzim informues, modele dhe mjete për hapat e radhës. Nuk nis shqyrtim njerëzor, këshillë ligjore ose rikuperim të drejtuar nga stafi."
+      },
+      "hotline": {
+        "title": "Linja është për orientim dhe mbështetje",
+        "body": "Linja shërben për orientim urgjent, mbështetje dhe hapin e radhës. Nuk do të thotë shqyrtim të menjëhershëm ligjor, pranim të rastit ose trajtim nga stafi."
+      }
+    },
     "categories": {
       "consultation": {
         "title": "Konsultime Falas",
