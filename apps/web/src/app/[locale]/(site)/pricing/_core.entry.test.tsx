@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
 import { expectCommercialTerms } from '@/test/commercial-terms-test-utils';
+import { expectSuccessFeeCalculator } from '@/test/success-fee-calculator-test-utils';
 
 const hoisted = vi.hoisted(() => ({
   headersMock: vi.fn(async () => new Headers([['host', 'ks.localhost:3000']])),
@@ -57,6 +58,7 @@ describe('PricingPage server shell', () => {
       rowKey: 'coverageMatrix.rows.vehicle.title',
       sectionTestId: 'pricing-coverage-matrix',
     });
+    expectSuccessFeeCalculator({ sectionTestId: 'pricing-success-fee-calculator' });
     expectCommercialTerms({ sectionTestId: 'pricing-billing-terms' });
     expect(screen.getByText('pricing.disclaimers.freeStart.title')).toBeInTheDocument();
     expect(screen.getByText('pricing.disclaimers.hotline.title')).toBeInTheDocument();

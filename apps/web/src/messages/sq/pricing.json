@@ -124,6 +124,66 @@
         "body": "Linja shërben për orientim urgjent, mbështetje dhe hapin e radhës. Nuk do të thotë shqyrtim të menjëhershëm ligjor, pranim të rastit ose trajtim nga stafi."
       }
     },
+    "successFeeCalculator": {
+      "eyebrow": "Matematika e success fee",
+      "title": "Shihni llogaritjen e success fee para përshkallëzimit",
+      "subtitle": "Përdorni kalkulatorin publik për të vlerësuar tarifën mbi shumën që Interdomestik e rikuperon realisht për ju. Pa rikuperim nuk ka tarifë, ndërsa tavani për veprim ligjor shfaqet veçmas para çdo pëlqimi me shkrim.",
+      "calculator": {
+        "title": "Kalkulator publik i tarifës",
+        "description": "Tarifa bazë mbetet 15% për Asistenca dhe 12% për Asistenca+ Family, të dyja me minimum EUR 25. Puna me veprim ligjor kërkon pëlqim të veçantë me shkrim dhe një tavan më të lartë.",
+        "planLabel": "Plani i anëtarësisë",
+        "amountLabel": "Shuma e rikuperuar (EUR)",
+        "breakdown": {
+          "recoveryAmount": "Shuma e rikuperuar",
+          "feeRate": "Norma e success fee",
+          "minimumFee": "Tarifa minimale",
+          "feeAmount": "Tarifa e vlerësuar nëse rikuperohen para",
+          "legalActionCap": "Tavani për veprim ligjor pas pëlqimit me shkrim",
+          "minimumApplied": "A zbatohet minimumi",
+          "minimumAppliedTrue": "Po",
+          "minimumAppliedFalse": "Jo",
+          "noRecovery": "Pa rikuperim, pa tarifë"
+        }
+      },
+      "plans": {
+        "standard": {
+          "label": "Asistenca (Standard)",
+          "feeRate": "15% tarifë suksesi",
+          "minimumFee": "Minimum EUR 25",
+          "legalActionCap": "Tavan 25% vetëm nëse autorizoni veprim ligjor të jashtëm"
+        },
+        "family": {
+          "label": "Asistenca+ (Familjar)",
+          "feeRate": "12% tarifë suksesi",
+          "minimumFee": "Minimum EUR 25",
+          "legalActionCap": "Tavan 22% vetëm nëse autorizoni veprim ligjor të jashtëm"
+        }
+      },
+      "examplesTitle": "Shembuj konkretë para përshkallëzimit",
+      "examplesSubtitle": "Këta shembuj e bëjnë të qartë rregullin publik të tarifës për rastet e pranuara për rikuperim.",
+      "examples": {
+        "standard": {
+          "title": "Shembull i planit standard",
+          "description": "Një rikuperim prej EUR 1,000 me Asistenca prodhon një success fee prej EUR 150."
+        },
+        "family": {
+          "title": "Shembull i planit familjar",
+          "description": "Një rikuperim prej EUR 1,000 me Asistenca+ Family prodhon një success fee prej EUR 120."
+        },
+        "minimum": {
+          "title": "Shembull i tarifës minimale",
+          "description": "Një rikuperim i vogël mund të aktivizojë minimumin prej EUR 25 kur përqindja do të ishte më e ulët."
+        },
+        "legalActionCap": {
+          "title": "Shembull i tavanit për veprim ligjor",
+          "description": "Nëse më vonë nënshkruani pëlqim të veçantë për veprim ligjor, tavani për një rikuperim Asistenca prej EUR 4,000 është EUR 1,000."
+        }
+      },
+      "footer": {
+        "title": "Çfarë do të thotë realisht tavani",
+        "body": "Tavani më i lartë 25% ose 22% është kufiri maksimal për punë ligjore të autorizuar veçmas, jo tarifa bazë. Interdomestik duhet ta tregojë këtë tavan para se të nënshkruhet çdo marrëveshje për veprim ligjor."
+      }
+    },
     "meta": {
       "title": "Planet e Anëtarësisë - Interdomestik",
       "description": "Anëtarësi për rastet e automjeteve, pronës dhe lëndimeve me kufij të qartë për udhëzim dhe referim."
