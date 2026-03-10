@@ -58,6 +58,9 @@ describe('PricingPage server shell', () => {
       sectionTestId: 'pricing-coverage-matrix',
     });
     expectCommercialTerms({ sectionTestId: 'pricing-billing-terms' });
+    expect(screen.getByText('pricing.disclaimers.freeStart.title')).toBeInTheDocument();
+    expect(screen.getByText('pricing.disclaimers.hotline.title')).toBeInTheDocument();
+    expectCommercialTerms({ sectionTestId: 'pricing-billing-terms' });
     expect(screen.getByText('pricing.scope.title')).toBeInTheDocument();
     expect(screen.getByText('pricing.scope.guidance.title')).toBeInTheDocument();
     expect(screen.getByText('pricing.scope.outOfScope.title')).toBeInTheDocument();

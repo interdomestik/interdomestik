@@ -1,3 +1,4 @@
+import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { auth } from '@/lib/auth';
 import { and, db, eq, subscriptions } from '@interdomestik/database';
 import { Badge, Button } from '@interdomestik/ui';
@@ -137,6 +138,15 @@ export default async function MemberCardPage({ params }: { params: Promise<{ loc
             <Phone className="mr-3 h-5 w-5" />
             {t('emergency_hotline')}
           </Button>
+          <CommercialDisclaimerNotice
+            sectionTestId="member-card-hotline-disclaimer"
+            items={[
+              {
+                title: t('hotline_disclaimer.title'),
+                body: t('hotline_disclaimer.body'),
+              },
+            ]}
+          />
         </div>
       </div>
     </div>

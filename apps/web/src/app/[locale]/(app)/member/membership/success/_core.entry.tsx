@@ -1,5 +1,6 @@
 import { PwaInstallButton } from '@/components/pwa/install-button';
 import { FunnelActivationTracker } from '@/components/analytics/funnel-trackers';
+import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { auth } from '@/lib/auth';
 import { isUiV2Enabled } from '@/lib/flags';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
@@ -78,7 +79,15 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
                   +389 70 337 140
                 </p>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">{t('hotline_desc')}</p>
+              <CommercialDisclaimerNotice
+                sectionTestId="success-hotline-disclaimer"
+                items={[
+                  {
+                    title: t('hotline_disclaimer.title'),
+                    body: t('hotline_disclaimer.body'),
+                  },
+                ]}
+              />
             </div>
           </CardContent>
         </Card>

@@ -1,5 +1,6 @@
 import { CommercialBillingTerms } from '@/components/commercial/billing-terms';
 import { buildCommercialTermsProps } from '@/components/commercial/billing-terms-content';
+import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { CoverageMatrix } from '@/components/commercial/coverage-matrix';
 import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matrix-content';
 import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
@@ -47,6 +48,21 @@ export default async function PricingPage({ params }: PricingPageProps) {
         <h1 className="text-4xl font-bold tracking-tight mb-4">{t('title')}</h1>
         <p className="text-xl text-muted-foreground">{t('subtitle')}</p>
       </div>
+
+      <CommercialDisclaimerNotice
+        sectionTestId="pricing-commercial-disclaimers"
+        eyebrow={t('disclaimers.eyebrow')}
+        items={[
+          {
+            title: t('disclaimers.freeStart.title'),
+            body: t('disclaimers.freeStart.body'),
+          },
+          {
+            title: t('disclaimers.hotline.title'),
+            body: t('disclaimers.hotline.body'),
+          },
+        ]}
+      />
 
       <PricingPageRuntime billingTestMode={billingTestMode} />
 

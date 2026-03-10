@@ -142,6 +142,17 @@
         ]
       }
     },
+    "disclaimers": {
+      "eyebrow": "Komercijalna pojašnjenja",
+      "freeStart": {
+        "title": "Free Start je samo informativan",
+        "body": "Free Start vam daje informativne smernice, obrasce i alate za sledeći korak. Ne pokreće ljudski pregled, pravni savet ili naplatu koju vodi tim."
+      },
+      "hotline": {
+        "title": "Linija služi za usmeravanje i podršku",
+        "body": "Linija služi za hitno usmeravanje, podršku i sledeći korak. Ne znači hitan pravni pregled, prihvatanje predmeta ili obradu koju vodi tim."
+      }
+    },
     "categories": {
       "consultation": {
         "title": "Besplatne konsultacije",

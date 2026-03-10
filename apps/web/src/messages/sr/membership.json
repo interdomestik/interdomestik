@@ -49,6 +49,17 @@
         ]
       }
     },
+    "disclaimers": {
+      "eyebrow": "Komercijalna pojašnjenja",
+      "freeStart": {
+        "title": "Free Start je samo informativan",
+        "body": "Free Start vam daje informativne smernice, obrasce i alate za sledeći korak. Ne pokreće ljudski pregled, pravni savet ili naplatu koju vodi tim."
+      },
+      "hotline": {
+        "title": "Linija služi za usmeravanje i podršku",
+        "body": "Linija služi za hitno usmeravanje, podršku i sledeći korak. Ne znači hitan pravni pregled, prihvatanje predmeta ili obradu koju vodi tim."
+      }
+    },
     "plan": {
       "title": "Trenutni plan",
       "description": "Vaš nivo zaštite",
@@ -95,6 +106,10 @@
       "title": "Dobrodošli u Interdomestik!",
       "subtitle": "Vaša zaštita je sada aktivna. Zvanično ste deo našeg kluba.",
       "hotline_label": "24/7 HITNA LINIJA",
+      "hotline_disclaimer": {
+        "title": "Samo usmeravanje i podrška",
+        "body": "Koristite liniju za hitno usmeravanje, podršku i sledeći korak. Ne znači hitan pravni pregled ili automatsko prihvatanje predmeta."
+      },
       "hotline_number": "+383 49 123 456",
       "hotline_hint": "Sačuvajte ovaj broj u telefonu sada",
       "card_label": "Vaša digitalna kartica zaštite",
@@ -113,6 +128,10 @@
       "title": "Digitalna ID kartica",
       "subtitle": "Vaš članski identitet",
       "description": "Pokažite ovu karticu za verifikaciju tokom hitnih slučajeva ili na partnerskim lokacijama.",
+      "hotline_disclaimer": {
+        "title": "Samo usmeravanje i podrška",
+        "body": "Koristite liniju za hitno usmeravanje, podršku i sledeći korak. Ne znači hitan pravni pregled ili automatsko prihvatanje predmeta."
+      },
       "member_since": "Član od",
       "valid_thru": "Važi do",
       "emergency_hotline": "Hitna linija",
