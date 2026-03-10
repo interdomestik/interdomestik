@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
-set -Eeuo pipefail
+set -euo pipefail
 
 MODE="${1:-light}"
 FLAG="${2:-}"
 FORCE="${DOCKER_RECLAIM_FORCE:-0}"
-DOCKER_GATE_CACHE_MODE="${DOCKER_GATE_CACHE_MODE:-ephemeral}"
-DOCKER_RECLAIM_SOFT_LIMIT_GB="${DOCKER_RECLAIM_SOFT_LIMIT_GB:-20}"
 
 if [[ "$MODE" != "light" && "$MODE" != "gate" && "$MODE" != "sonar" && "$MODE" != "full" ]]; then
   echo "Usage: $0 [light|gate|sonar|full] [--yes]"
@@ -20,80 +18,6 @@ print_df() {
   echo ""
   docker system df || true
   echo ""
-
-  return 0
-}
-
-validate_gate_cache_mode() {
-  case "${DOCKER_GATE_CACHE_MODE}" in
-    ephemeral|warm)
-      return 0
-      ;;
-    *)
-      echo "ERROR: DOCKER_GATE_CACHE_MODE must be 'ephemeral' or 'warm'." >&2
-      return 1
-      ;;
-  esac
-}
-
-docker_storage_bytes() {
-  docker system df --format '{{json .}}' | node -e '
-    const unitMap = new Map([
-      ["B", 1],
-      ["kB", 1024],
-      ["MB", 1024 ** 2],
-      ["GB", 1024 ** 3],
-      ["TB", 1024 ** 4],
-      ["PB", 1024 ** 5],
-    ]);
-
-    const parseSize = input => {
-      const match = String(input ?? "").trim().match(/^([0-9]+(?:\\.[0-9]+)?)\\s*([A-Za-z]+)$/);
-      if (!match) {
-        return 0;
-      }
-
-      const value = Number(match[1]);
-      const unit = match[2];
-      return Math.round(value * (unitMap.get(unit) ?? 0));
-    };
-
-    let total = 0;
-    process.stdin.on("data", chunk => {
-      for (const line of chunk.toString().split(/\\r?\\n/)) {
-        if (!line.trim()) continue;
-        total += parseSize(JSON.parse(line).Size);
-      }
-    });
-    process.stdin.on("end", () => process.stdout.write(String(total)));
-  '
-  return 0
-}
-
-warn_if_over_budget() {
-  local budget_gb="${DOCKER_RECLAIM_SOFT_LIMIT_GB}"
-
-  if [[ "${budget_gb}" == "0" ]]; then
-    return 0
-  fi
-
-  if [[ ! "${budget_gb}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-    echo "ERROR: DOCKER_RECLAIM_SOFT_LIMIT_GB must be numeric." >&2
-    return 1
-  fi
-
-  local total_bytes
-  total_bytes="$(docker_storage_bytes)"
-
-  local budget_bytes
-  budget_bytes="$(node -e 'process.stdout.write(String(Math.round(Number(process.argv[1]) * 1024 ** 3)))' "${budget_gb}")"
-
-  if (( total_bytes > budget_bytes )); then
-    local total_gb
-    total_gb="$(node -e 'process.stdout.write((Number(process.argv[1]) / 1024 ** 3).toFixed(2))' "${total_bytes}")"
-    echo "⚠️  Docker storage remains above the soft budget (${total_gb}GB > ${budget_gb}GB)."
-    echo "    Run 'pnpm docker:reclaim:full' if you want an aggressive cleanup."
-  fi
 
   return 0
 }
@@ -148,17 +72,11 @@ remove_sonar_volumes() {
 
 remove_gate_cache_volumes() {
   local had_any=0
-
-  validate_gate_cache_mode
-
   while IFS= read -r volume; do
     [[ -z "$volume" ]] && continue
     case "$volume" in
-      *playwright_pnpm_store|*playwright_root_node_modules|*playwright_web_node_modules)
+      *playwright_root_node_modules|*playwright_web_node_modules)
         had_any=1
-        if [[ "${DOCKER_GATE_CACHE_MODE}" == "warm" && "$volume" == *playwright_pnpm_store ]]; then
-          continue
-        fi
         if docker ps -aq --filter "volume=${volume}" | grep -q .; then
           continue
         fi
@@ -244,4 +162,3 @@ esac
 
 echo "📦 Docker disk usage AFTER (${MODE})"
 print_df
-warn_if_over_budget

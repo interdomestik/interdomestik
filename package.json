@@ -85,7 +85,6 @@
     "docker:infra:up": "docker compose --profile infra up -d",
     "docker:infra:down": "docker compose --profile infra down --remove-orphans",
     "docker:gate": "DOCKER_GATE_RECLAIM=1 bash scripts/docker-gate.sh",
-    "docker:gate:warm": "DOCKER_GATE_CACHE_MODE=warm DOCKER_GATE_RECLAIM=1 bash scripts/docker-gate.sh",
     "docker:gate:keep": "DOCKER_GATE_KEEP_RUNNING=1 DOCKER_GATE_RECLAIM=0 bash scripts/docker-gate.sh",
     "docker:gate:rebuild": "DOCKER_GATE_REBUILD=1 DOCKER_GATE_RECLAIM=1 bash scripts/docker-gate.sh",
     "docker:df": "docker system df",
