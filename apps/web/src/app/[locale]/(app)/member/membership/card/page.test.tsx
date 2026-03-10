@@ -59,7 +59,9 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children }: { children: ReactNode }) => <a>{children}</a>,
+  default: ({ children, href = '#' }: { children: ReactNode; href?: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 
 vi.mock('@interdomestik/ui', () => ({
