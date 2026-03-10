@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -10,7 +10,10 @@ const hoisted = vi.hoisted(() => ({
       email: 'member@example.com',
     },
   })),
-  getTranslationsMock: vi.fn(async () => (key: string) => key),
+  getTranslationsMock: vi.fn(async (options?: { namespace?: string }) => {
+    const namespace = options?.namespace ? `${options.namespace}.` : '';
+    return (key: string) => `${namespace}${key}`;
+  }),
   pricingPageRuntimeMock: vi.fn((_: unknown) => null),
 }));
 
@@ -49,10 +52,15 @@ describe('PricingPage server shell', () => {
     expect(tree).toBeTruthy();
     render(tree);
 
-    expect(screen.getByText('scope.title')).toBeInTheDocument();
-    expect(screen.getByText('scope.guidance.title')).toBeInTheDocument();
-    expect(screen.getByText('scope.outOfScope.title')).toBeInTheDocument();
-    expect(screen.getByText('scope.boundary.title')).toBeInTheDocument();
+    const coverageMatrix = screen.getByTestId('pricing-coverage-matrix');
+
+    expect(within(coverageMatrix).getByText('coverageMatrix.title')).toBeInTheDocument();
+    expect(within(coverageMatrix).getAllByText('coverageMatrix.rows.vehicle.title').length).toBe(2);
+    expect(within(coverageMatrix).getAllByText('coverageMatrix.columns.included').length).toBe(6);
+    expect(screen.getByText('pricing.scope.title')).toBeInTheDocument();
+    expect(screen.getByText('pricing.scope.guidance.title')).toBeInTheDocument();
+    expect(screen.getByText('pricing.scope.outOfScope.title')).toBeInTheDocument();
+    expect(screen.getByText('pricing.scope.boundary.title')).toBeInTheDocument();
     expect(hoisted.headersMock).not.toHaveBeenCalled();
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
   });

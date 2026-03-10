@@ -1,0 +1,54 @@
+{
+  "coverageMatrix": {
+    "eyebrow": "Coverage matrix",
+    "title": "Which claim types stay in-plan, escalate, or route out",
+    "subtitle": "Use this matrix to see where Free Start and membership help now, when staff-led escalation can begin, and when a referral or separate legal opt-in applies.",
+    "rowHeaderTitle": "Claim type",
+    "columns": {
+      "included": "Included",
+      "escalation": "Escalation",
+      "referral": "Referral"
+    },
+    "rows": {
+      "vehicle": {
+        "title": "Vehicle damage",
+        "description": "Launch claim type with a monetary recovery path.",
+        "included": "Free Start pack + membership guidance",
+        "escalation": "Available after case acceptance",
+        "referral": "Legal partner opt-in if needed"
+      },
+      "property": {
+        "title": "Property damage",
+        "description": "Launch claim type with a monetary recovery path.",
+        "included": "Free Start pack + membership guidance",
+        "escalation": "Available after case acceptance",
+        "referral": "Legal partner opt-in if needed"
+      },
+      "injury": {
+        "title": "Personal injury",
+        "description": "Launch claim type when a direct monetary recovery path exists.",
+        "included": "Free Start pack + membership guidance",
+        "escalation": "Available after case acceptance",
+        "referral": "Legal partner opt-in if needed"
+      },
+      "guidance": {
+        "title": "Guidance-only disputes",
+        "description": "Landlord, employment, repair, or contract disputes without direct monetary recovery.",
+        "included": "Guidance pack + document review",
+        "escalation": "Not included",
+        "referral": "Referral when appropriate"
+      },
+      "flight": {
+        "title": "Flight delay compensation",
+        "description": "Visible for scope clarity but still deferred from the launch contract.",
+        "included": "Later phase",
+        "escalation": "Later phase",
+        "referral": "Later phase"
+      }
+    },
+    "footer": {
+      "title": "Boundary note",
+      "body": "Success-fee escalation starts only after staff accepts a case with a real monetary recovery path. External legal partner action always needs separate written opt-in."
+    }
+  }
+}

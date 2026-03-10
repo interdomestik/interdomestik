@@ -1,0 +1,54 @@
+{
+  "coverageMatrix": {
+    "eyebrow": "Matrica e mbulimit",
+    "title": "Cilat lloje rastesh mbeten në plan, përshkallëzohen ose referohen",
+    "subtitle": "Përdorni këtë matricë për të parë ku ndihmojnë tani Free Start dhe anëtarësia, kur mund të fillojë përshkallëzimi i drejtuar nga stafi dhe kur zbatohet referimi ose pëlqimi i veçantë ligjor.",
+    "rowHeaderTitle": "Lloji i rastit",
+    "columns": {
+      "included": "Përfshihet",
+      "escalation": "Përshkallëzim",
+      "referral": "Referim"
+    },
+    "rows": {
+      "vehicle": {
+        "title": "Dëmtim automjeti",
+        "description": "Lloj rasti i nisjes me rrugë monetare rikuperimi.",
+        "included": "Pako Free Start + udhëzim në anëtarësi",
+        "escalation": "I disponueshëm pas pranimit të rastit",
+        "referral": "Opt-in te partneri ligjor nëse nevojitet"
+      },
+      "property": {
+        "title": "Dëmtim prone",
+        "description": "Lloj rasti i nisjes me rrugë monetare rikuperimi.",
+        "included": "Pako Free Start + udhëzim në anëtarësi",
+        "escalation": "I disponueshëm pas pranimit të rastit",
+        "referral": "Opt-in te partneri ligjor nëse nevojitet"
+      },
+      "injury": {
+        "title": "Lëndim personal",
+        "description": "Lloj rasti i nisjes kur ekziston një rrugë e drejtpërdrejtë monetare rikuperimi.",
+        "included": "Pako Free Start + udhëzim në anëtarësi",
+        "escalation": "I disponueshëm pas pranimit të rastit",
+        "referral": "Opt-in te partneri ligjor nëse nevojitet"
+      },
+      "guidance": {
+        "title": "Mosmarrëveshje vetëm për udhëzim",
+        "description": "Mosmarrëveshje banesore, pune, riparimi ose kontrate pa rikuperim të drejtpërdrejtë monetar.",
+        "included": "Pako udhëzimi + kontroll dokumentesh",
+        "escalation": "Nuk përfshihet",
+        "referral": "Referim kur është i përshtatshëm"
+      },
+      "flight": {
+        "title": "Kompensim për vonesë fluturimi",
+        "description": "Shfaqet për qartësi të fushës, por mbetet jashtë kontratës së nisjes.",
+        "included": "Fazë e mëvonshme",
+        "escalation": "Fazë e mëvonshme",
+        "referral": "Fazë e mëvonshme"
+      }
+    },
+    "footer": {
+      "title": "Shënim mbi kufirin",
+      "body": "Përshkallëzimi me success-fee fillon vetëm pasi stafi pranon një rast me rrugë reale monetare rikuperimi. Veprimi me partner ligjor të jashtëm kërkon gjithmonë pëlqim të veçantë me shkrim."
+    }
+  }
+}
