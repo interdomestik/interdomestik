@@ -14,7 +14,7 @@ parent_tracker: docs/plans/current-tracker.md
 
 ## Recommendation
 
-Rebase the execution roadmap in place. Do not append the blueprint as extra scope on top of the current `v1_execution_roadmap.md.resolved`.
+Rebase the live planning artifacts in place. Do not append the blueprint as extra scope on top of the current `docs/plans/current-program.md` and `docs/plans/current-tracker.md`.
 
 Reason:
 
@@ -34,7 +34,6 @@ Reason:
 
 The blueprint should affect:
 
-- `v1_execution_roadmap.md.resolved`
 - `docs/plans/current-program.md`
 - `docs/plans/current-tracker.md`
 
@@ -60,7 +59,7 @@ Replace the current forward-looking phase table with this shape after `D08` clos
 
 ### Remove Or Reclassify Existing Roadmap Phases
 
-Apply these phase-level changes to `v1_execution_roadmap.md.resolved`:
+Apply these phase-level changes to `docs/plans/current-program.md` and `docs/plans/current-tracker.md`:
 
 1. Remove `P1 AI Layer (AI02-AI06)` from the forward schedule.
    Reason: `current-program.md` already records `AI02` through `AI06` as complete canonical work.

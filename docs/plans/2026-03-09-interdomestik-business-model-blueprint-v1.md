@@ -53,7 +53,7 @@ This model keeps the current product direction intact while making the offer cle
 | Offer               | Price             | Who it serves                                          | Included                                                                                                                                                                               | Human work limit        | Escalation fee                              |
 | ------------------- | ----------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------- |
 | `Free Start`        | `EUR 0`           | Any consumer with a vehicle, property, or injury issue | eligibility check, confidence score, evidence checklist, first complaint or notice letter, timeline, next-step recommendation, email delivery of claim pack                            | none                    | not available                               |
-| `Asistenca`         | `EUR 20/year`     | One adult member                                       | everything in Free Start, 24 business hour human triage SLA, dashboard tracking, hotline routing and support, document check, complaint letters, member pricing for staff-led recovery | `2 new matters/year`    | `15%` of recovered amount, minimum `EUR 25` |
+| `Asistenca`         | `EUR 20/year`     | One adult member                                       | everything in Free Start, 24-business-hour human triage SLA, dashboard tracking, hotline routing and support, document check, complaint letters, member pricing for staff-led recovery | `2 new matters/year`    | `15%` of recovered amount, minimum `EUR 25` |
 | `Asistenca+ Family` | `EUR 35/year`     | Household with up to 5 covered people                  | everything in Asistenca, family coverage, shared dashboard, household document history                                                                                                 | `5 new matters/year`    | `12%` of recovered amount, minimum `EUR 25` |
 | `Group Access`      | quoted per roster | employers, unions, associations, diaspora groups       | sponsored or discounted access to the same consumer offers; no custom claim workflow in v1                                                                                             | same as underlying plan | same as underlying plan                     |
 
@@ -164,7 +164,7 @@ The member must see this cap before signing the escalation agreement.
 
 ### What Does Not Count As Recovery
 
-- a letter sent without payment result
+- sending a letter that does not result in any payment
 - advisory work only
 - a non-monetary outcome such as contract cancellation, repair promise, or policy correction
 
