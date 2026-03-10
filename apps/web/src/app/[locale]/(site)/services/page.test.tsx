@@ -33,5 +33,11 @@ describe('ServicesPage', () => {
 
     // Experts
     expect(screen.getByText('experts.title')).toBeInTheDocument();
+
+    // Scope tree
+    expect(screen.getByText('scope.title')).toBeInTheDocument();
+    expect(screen.getByText('scope.guidance.title')).toBeInTheDocument();
+    expect(screen.getByText('scope.outOfScope.title')).toBeInTheDocument();
+    expect(screen.getByText('scope.boundary.title')).toBeInTheDocument();
   });
 });

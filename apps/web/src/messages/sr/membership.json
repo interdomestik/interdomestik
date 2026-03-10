@@ -4,6 +4,51 @@
       "title": "Članstvo",
       "description": "Upravljajte pretplatom i detaljima plana."
     },
+    "scope": {
+      "eyebrow": "Opseg plana",
+      "title": "Opseg vašeg plana i granice upućivanja",
+      "subtitle": "Članstvo najpre podržava početne tipove zahteva. Kategorije samo za smernice ostaju savetodavne, a predmeti van opsega usmeravaju se van plana.",
+      "launch": {
+        "title": "Obrađuje se sada",
+        "description": "Ove vrste predmeta ulaze u početnu putanju naplate kada postoji verodostojan novčani ishod.",
+        "items": [
+          "Zahtevi za štetu na vozilu",
+          "Zahtevi za štetu na imovini",
+          "Zahtevi za lične povrede sa novčanom putanjom naplate"
+        ],
+        "note": "Vaš plan ovde pokriva trijaž i proveru dokumenata. Naplata vođena timom počinje tek nakon prihvatanja predmeta."
+      },
+      "guidance": {
+        "title": "Samo smernice",
+        "description": "Ove kategorije mogu da ostanu u članskim smernicama i proveri dokumenata, ali ne i u eskalaciji sa success-fee.",
+        "items": [
+          "Stambeni sporovi bez direktne novčane putanje naplate",
+          "Sporovi oko plata ili zaposlenja bez jasnog novčanog ishoda",
+          "Sporovi oko popravke ili raskida ugovora bez direktne isplate",
+          "Šire potrošačke žalbe van početnih tipova zahteva"
+        ],
+        "note": "Ovi predmeti ostaju savetodavni unutar plana i mogu biti upućeni dalje kada je potrebno."
+      },
+      "outOfScope": {
+        "title": "Van opsega",
+        "description": "Ovi predmeti nisu deo ugovora za lansiranje i ne prihvataju se za rad tima.",
+        "items": [
+          "Krivična odbrana",
+          "Razvod i porodično pravo",
+          "Imigracija",
+          "Opšti poslovni sporovi van definisanih grupnih paketa"
+        ],
+        "note": "Ovi predmeti ostaju samo za upućivanje ili se odbijaju, umesto da uđu u obradu u okviru plana."
+      },
+      "boundary": {
+        "title": "Granice upućivanja",
+        "body": "Članstvo ne pretvara svaki predmet u rad tima. Prvo pregledamo opseg, prihvatamo samo slučajeve sa stvarnom putanjom naplate i tražimo posebnu saglasnost pre bilo kakve akcije sa spoljnim pravnim partnerom.",
+        "items": [
+          "Spoljna pravna partnerska akcija zahteva posebnu pisanu saglasnost nakon prihvatanja predmeta.",
+          "Naknada za kašnjenje letova nije deo trenutne početne putanje obrade."
+        ]
+      }
+    },
     "plan": {
       "title": "Trenutni plan",
       "description": "Vaš nivo zaštite",

@@ -1,7 +1,7 @@
 {
   "pricing": {
-    "title": "Asistencë për Çdo Situatë",
-    "subtitle": "Zgjidhni planin që ju përshtatet",
+    "title": "Anëtarësi e fokusuar te rastet",
+    "subtitle": "Filloni me rastet e automjeteve, pronës dhe lëndimeve. Rastet vetëm për udhëzim mbeten këshilluese, ndërsa rastet jashtë fushës referohen.",
     "monthly": "Mujore",
     "yearly": "Vjetore",
     "switchLabel": "Kurse 17% me pagesë vjetore",
@@ -68,9 +68,54 @@
     },
     "cta": "Bëhu Anëtar",
     "loginRequired": "Kyçuni për të bërë upgrade",
+    "scope": {
+      "eyebrow": "Fusha e nisjes",
+      "title": "Çfarë trajtojmë tani, çfarë mbetet udhëzim dhe çfarë e referojmë",
+      "subtitle": "Interdomestik nis me një kontratë të fokusuar te rastet. Këta kufij tregojnë ku ndihmojnë Free Start dhe anëtarësia, ku mund të fillojë rikuperimi i drejtuar nga stafi dhe ku japim vetëm hapin e radhës.",
+      "launch": {
+        "title": "Trajtohet tani",
+        "description": "Këto lloje rastesh hyjnë në rrugën e rikuperimit në nisje kur ekziston një rezultat i besueshëm monetar.",
+        "items": [
+          "Raste dëmi në automjet",
+          "Raste dëmi në pronë",
+          "Raste lëndimi personal me rrugë monetare rikuperimi"
+        ],
+        "note": "Free Start mund të përgatisë pakon. Anëtarësia shton triage njerëzor dhe kontroll dokumentesh para çdo përshkallëzimi të pranuar."
+      },
+      "guidance": {
+        "title": "Vetëm udhëzim",
+        "description": "Këto kategori mund të marrin udhëzim ose kontroll dokumentesh, por nuk hyjnë në rikuperim me success-fee në nisje.",
+        "items": [
+          "Mosmarrëveshje banesore pa rrugë direkte rikuperimi monetar",
+          "Mosmarrëveshje pune ose mbajtje page pa payout të qartë",
+          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa payout direkt",
+          "Ankesa më të gjera konsumatore jashtë llojeve të rasteve të nisjes"
+        ],
+        "note": "Këto raste mbeten këshilluese dhe referohen më tej kur një partner është më i përshtatshëm."
+      },
+      "outOfScope": {
+        "title": "Jashtë fushës",
+        "description": "Këto raste nuk janë pjesë e kontratës së nisjes dhe nuk pranohen për trajtim nga stafi.",
+        "items": [
+          "Mbrojtje penale",
+          "Shkurorëzim dhe e drejtë familjare",
+          "Imigracion",
+          "Mosmarrëveshje të përgjithshme biznesi jashtë paketave të përcaktuara për grupe"
+        ],
+        "note": "Nuk premtojmë mbulim këtu. Kur është e mundur, ju drejtojmë te një ofrues i jashtëm më i përshtatshëm."
+      },
+      "boundary": {
+        "title": "Kufijtë e referimit",
+        "body": "Rruga me partnerë ose veprimet ligjore fillojnë vetëm pas rishikimit të fushës. Përshkallëzimi i drejtuar nga stafi ofrohet vetëm për rastet e pranuara me rrugë rikuperimi; gjithçka tjetër mbetet udhëzim vetë-shërbyes, udhëzim në anëtarësi ose referim.",
+        "items": [
+          "Veprimi me partner ligjor të jashtëm kërkon pëlqim të veçantë me shkrim pas pranimit të rastit.",
+          "Kompensimi për vonesat e fluturimeve mbetet jashtë rrugës aktuale të nisjes dhe kthehet në një fazë të mëvonshme."
+        ]
+      }
+    },
     "meta": {
       "title": "Planet e Anëtarësisë - Interdomestik",
-      "description": "Bëhuni pjesë e klubit të mbrojtjes. Planet Standard dhe Familja në dispozicion."
+      "description": "Anëtarësi për rastet e automjeteve, pronës dhe lëndimeve me kufij të qartë për udhëzim dhe referim."
     },
     "mainHeading1": "Zgjidhni mbrojtjen",
     "mainHeading2": "që ju përshtatet.",

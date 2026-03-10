@@ -4,6 +4,51 @@
       "title": "Anëtarësia",
       "description": "Menaxho abonimin dhe detajet e planit."
     },
+    "scope": {
+      "eyebrow": "Fusha e planit",
+      "title": "Fusha e planit tuaj dhe kufijtë e referimit",
+      "subtitle": "Anëtarësia mbështet së pari llojet e rasteve të nisjes. Kategoritë vetëm për udhëzim mbeten këshilluese, ndërsa rastet jashtë fushës drejtohen jashtë planit.",
+      "launch": {
+        "title": "Trajtohet tani",
+        "description": "Këto lloje rastesh hyjnë në rrugën e rikuperimit në nisje kur ekziston një rezultat i besueshëm monetar.",
+        "items": [
+          "Raste dëmi në automjet",
+          "Raste dëmi në pronë",
+          "Raste lëndimi personal me rrugë monetare rikuperimi"
+        ],
+        "note": "Plani juaj mbulon triage dhe kontroll dokumentesh këtu. Rikuperimi i drejtuar nga stafi fillon vetëm pas pranimit të rastit."
+      },
+      "guidance": {
+        "title": "Vetëm udhëzim",
+        "description": "Këto kategori mund të qëndrojnë brenda udhëzimit dhe kontrollit të dokumenteve në plan, por jo në përshkallëzim me success-fee.",
+        "items": [
+          "Mosmarrëveshje banesore pa rrugë direkte rikuperimi monetar",
+          "Mosmarrëveshje pune ose mbajtje page pa payout të qartë",
+          "Mosmarrëveshje për riparim ose ndërprerje kontrate pa payout direkt",
+          "Ankesa më të gjera konsumatore jashtë llojeve të rasteve të nisjes"
+        ],
+        "note": "Këto raste mbeten këshilluese brenda planit dhe mund të referohen më tej kur është e nevojshme."
+      },
+      "outOfScope": {
+        "title": "Jashtë fushës",
+        "description": "Këto raste nuk janë pjesë e kontratës së nisjes dhe nuk pranohen për trajtim nga stafi.",
+        "items": [
+          "Mbrojtje penale",
+          "Shkurorëzim dhe e drejtë familjare",
+          "Imigracion",
+          "Mosmarrëveshje të përgjithshme biznesi jashtë paketave të përcaktuara për grupe"
+        ],
+        "note": "Këto raste mbeten vetëm për referim ose refuzohen, në vend që të kalojnë në trajtim brenda planit."
+      },
+      "boundary": {
+        "title": "Kufijtë e referimit",
+        "body": "Anëtarësia nuk e kthen çdo rast në trajtim nga stafi. Ne rishikojmë fushën fillimisht, pranojmë vetëm rastet me rrugë reale rikuperimi dhe kërkojmë pëlqim të veçantë para çdo veprimi me partner ligjor të jashtëm.",
+        "items": [
+          "Veprimi me partner ligjor të jashtëm kërkon pëlqim të veçantë me shkrim pas pranimit të rastit.",
+          "Kompensimi për vonesat e fluturimeve nuk është pjesë e rrugës aktuale të trajtimit në nisje."
+        ]
+      }
+    },
     "plan": {
       "title": "Plani Aktual",
       "description": "Niveli i mbrojtjes",

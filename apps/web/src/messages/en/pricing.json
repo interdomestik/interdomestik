@@ -1,7 +1,7 @@
 {
   "pricing": {
-    "title": "Assistance for Every Situation",
-    "subtitle": "Choose the plan that fits your needs",
+    "title": "Claims-first membership",
+    "subtitle": "Start with vehicle, property, and injury matters. Guidance-only cases stay advisory, and out-of-scope matters are referred out.",
     "monthly": "Monthly",
     "yearly": "Yearly",
     "switchLabel": "Save 17% with Yearly",
@@ -68,9 +68,54 @@
     },
     "cta": "Join Now",
     "loginRequired": "Log in to upgrade",
+    "scope": {
+      "eyebrow": "Launch scope",
+      "title": "What we handle now, what stays guidance, and what we refer out",
+      "subtitle": "Interdomestik launches with a claims-first contract. These boundaries show where Free Start and membership can help, where staff-led recovery can begin, and where we only route you to the right next step.",
+      "launch": {
+        "title": "Handled now",
+        "description": "These claim types fit the launch recovery path when there is a plausible monetary outcome.",
+        "items": [
+          "Vehicle damage claims",
+          "Property damage claims",
+          "Personal injury claims with a monetary recovery path"
+        ],
+        "note": "Free Start can prepare the pack. Membership adds human triage and document review before any accepted escalation."
+      },
+      "guidance": {
+        "title": "Guidance only",
+        "description": "These categories can still receive guidance or document review, but they do not enter success-fee recovery at launch.",
+        "items": [
+          "Landlord disputes without a direct monetary recovery path",
+          "Wage withholding or employment disputes without a clear payout path",
+          "Repair enforcement or contract termination disputes without a direct payout",
+          "Broader consumer complaints outside the launch claim types"
+        ],
+        "note": "We keep these matters advisory and refer onward when a partner route makes more sense."
+      },
+      "outOfScope": {
+        "title": "Out of scope",
+        "description": "These matters are not part of the launch contract and are not accepted for staff handling.",
+        "items": [
+          "Criminal defense",
+          "Divorce and family law",
+          "Immigration",
+          "General business disputes outside defined group packages"
+        ],
+        "note": "We do not imply coverage here. Where possible, we route you to a more suitable external provider."
+      },
+      "boundary": {
+        "title": "Referral boundaries",
+        "body": "Partner referral and legal routes begin only after scope review. Staff-led escalation is available only for accepted recovery matters; everything else remains self-serve guidance, membership guidance, or a referral.",
+        "items": [
+          "External legal partner action requires a separate written opt-in after case acceptance.",
+          "Flight delay compensation stays outside the current launch path and returns in a later phase."
+        ]
+      }
+    },
     "meta": {
       "title": "Membership Plans - Interdomestik",
-      "description": "Join the protection club. Standard and Family plans available."
+      "description": "Membership for vehicle, property, and injury claims with explicit guidance-only and referral boundaries."
     },
     "mainHeading1": "Choose the protection",
     "mainHeading2": "that suits you.",

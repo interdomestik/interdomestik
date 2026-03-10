@@ -1,5 +1,6 @@
 'use client';
 
+import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import {
   OpsActionBar,
   OpsDocumentsPanel,
@@ -75,49 +76,98 @@ export function MembershipOpsPage({
   ];
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      {/* Left Panel: List */}
-      <div
-        className={`w-full md:w-1/3 border-r bg-muted/10 flex flex-col ${
-          selectedId && !isDesktop ? 'hidden' : 'flex'
-        }`}
-      >
-        <div className="p-4 border-b">
-          <h2 className="font-semibold text-lg">{t('ops.title')}</h2>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <OpsTable
-            rows={tableRows}
-            columns={tableColumns}
-            emptyLabel={t('ops.empty_list')}
-            rowTestId="subscription-item"
-          />
-        </div>
-      </div>
+    <div className="space-y-6">
+      <ClaimScopeTree
+        boundaryBody={t('scope.boundary.body')}
+        boundaryItems={[t('scope.boundary.items.0'), t('scope.boundary.items.1')]}
+        boundaryTitle={t('scope.boundary.title')}
+        eyebrow={t('scope.eyebrow')}
+        groups={[
+          {
+            description: t('scope.launch.description'),
+            items: [
+              t('scope.launch.items.0'),
+              t('scope.launch.items.1'),
+              t('scope.launch.items.2'),
+            ],
+            note: t('scope.launch.note'),
+            title: t('scope.launch.title'),
+            tone: 'launch',
+          },
+          {
+            description: t('scope.guidance.description'),
+            items: [
+              t('scope.guidance.items.0'),
+              t('scope.guidance.items.1'),
+              t('scope.guidance.items.2'),
+              t('scope.guidance.items.3'),
+            ],
+            note: t('scope.guidance.note'),
+            title: t('scope.guidance.title'),
+            tone: 'guidance',
+          },
+          {
+            description: t('scope.outOfScope.description'),
+            items: [
+              t('scope.outOfScope.items.0'),
+              t('scope.outOfScope.items.1'),
+              t('scope.outOfScope.items.2'),
+              t('scope.outOfScope.items.3'),
+            ],
+            note: t('scope.outOfScope.note'),
+            title: t('scope.outOfScope.title'),
+            tone: 'outOfScope',
+          },
+        ]}
+        sectionTestId="membership-scope-tree"
+        subtitle={t('scope.subtitle')}
+        title={t('scope.title')}
+      />
 
-      {/* Right Panel: Detail */}
-      <div
-        className={`w-full md:w-2/3 flex flex-col bg-background ${
-          !selectedId && !isDesktop ? 'hidden' : 'flex'
-        }`}
-      >
-        {selectedSubscription ? (
-          <div className="flex-1 p-6 overflow-hidden">
-            {!isDesktop && (
-              <button
-                onClick={() => setSelectedId(null)}
-                className="mb-4 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-              >
-                ← {t('ops.back_to_list')}
-              </button>
-            )}
-            <DetailView subscription={selectedSubscription} documents={documents} t={t} />
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* Left Panel: List */}
+        <div
+          className={`w-full md:w-1/3 border-r bg-muted/10 flex flex-col ${
+            selectedId && !isDesktop ? 'hidden' : 'flex'
+          }`}
+        >
+          <div className="p-4 border-b">
+            <h2 className="font-semibold text-lg">{t('ops.title')}</h2>
           </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            {t('ops.select_subscription')}
+          <div className="flex-1 overflow-y-auto">
+            <OpsTable
+              rows={tableRows}
+              columns={tableColumns}
+              emptyLabel={t('ops.empty_list')}
+              rowTestId="subscription-item"
+            />
           </div>
-        )}
+        </div>
+
+        {/* Right Panel: Detail */}
+        <div
+          className={`w-full md:w-2/3 flex flex-col bg-background ${
+            !selectedId && !isDesktop ? 'hidden' : 'flex'
+          }`}
+        >
+          {selectedSubscription ? (
+            <div className="flex-1 p-6 overflow-hidden">
+              {!isDesktop && (
+                <button
+                  onClick={() => setSelectedId(null)}
+                  className="mb-4 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  ← {t('ops.back_to_list')}
+                </button>
+              )}
+              <DetailView subscription={selectedSubscription} documents={documents} t={t} />
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              {t('ops.select_subscription')}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

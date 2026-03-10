@@ -4,6 +4,51 @@
       "title": "Membership",
       "description": "Manage your subscription and plan details."
     },
+    "scope": {
+      "eyebrow": "Plan scope",
+      "title": "Your plan scope and referral boundaries",
+      "subtitle": "Membership supports the launch claim types first. Guidance-only categories stay advisory, and out-of-scope matters are routed outside the plan.",
+      "launch": {
+        "title": "Handled now",
+        "description": "These claim types fit the launch recovery path when there is a plausible monetary outcome.",
+        "items": [
+          "Vehicle damage claims",
+          "Property damage claims",
+          "Personal injury claims with a monetary recovery path"
+        ],
+        "note": "Your plan covers triage and document review here. Staff-led recovery starts only after case acceptance."
+      },
+      "guidance": {
+        "title": "Guidance only",
+        "description": "These categories can stay inside membership guidance and document review, but not success-fee escalation.",
+        "items": [
+          "Landlord disputes without a direct monetary recovery path",
+          "Wage withholding or employment disputes without a clear payout path",
+          "Repair enforcement or contract termination disputes without a direct payout",
+          "Broader consumer complaints outside the launch claim types"
+        ],
+        "note": "These matters remain advisory inside the plan and may be referred onward when needed."
+      },
+      "outOfScope": {
+        "title": "Out of scope",
+        "description": "These matters are not part of the launch contract and are not accepted for staff handling.",
+        "items": [
+          "Criminal defense",
+          "Divorce and family law",
+          "Immigration",
+          "General business disputes outside defined group packages"
+        ],
+        "note": "These matters stay referral-only or declined rather than moving into plan handling."
+      },
+      "boundary": {
+        "title": "Referral boundaries",
+        "body": "Membership does not convert every matter into staff handling. We review scope first, accept only cases with a real recovery path, and ask for separate opt-in before any external legal partner action.",
+        "items": [
+          "External legal partner action requires a separate written opt-in after case acceptance.",
+          "Flight delay compensation is not part of the current launch handling path."
+        ]
+      }
+    },
     "plan": {
       "title": "Current Plan",
       "description": "Your protection tier",
