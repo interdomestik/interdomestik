@@ -67,6 +67,7 @@ docker_storage_bytes() {
     });
     process.stdin.on("end", () => process.stdout.write(String(total)));
   '
+  return 0
 }
 
 warn_if_over_budget() {
