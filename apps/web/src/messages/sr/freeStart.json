@@ -94,6 +94,49 @@
       "badge": "Free Start je završen",
       "heading": "Tvoj intake je završen.",
       "body": "Sada imaš strukturiran kostur paketa zahteva zasnovan na unetim činjenicama. Nastavi kada želiš formalan follow-up ili obradu kroz članstvo.",
+      "confidence": {
+        "eyebrow": "Pouzdanost podobnosti",
+        "levels": {
+          "high": {
+            "label": "Visoka",
+            "body": "Tvoj intake pokazuje jasan put naplate sa definisanom drugom stranom i konkretnim ishodom."
+          },
+          "medium": {
+            "label": "Srednja",
+            "body": "Tvoj intake je upotrebljiv, ali činjenice ukazuju da je potreban pregled dokumenata pre eskalacije."
+          },
+          "low": {
+            "label": "Niska",
+            "body": "Tvoj intake deluje bliže usmeravanju ili početnoj podršci nego jasnom putu naplate."
+          }
+        }
+      },
+      "nextStep": {
+        "heading": "Preporučeni sledeći korak",
+        "levels": {
+          "high": "Pridruži se Asistenca za ljudski trijaž u roku od 24 radna sata.",
+          "medium": "Nadogradi za pregled dokumenata pre nego što pošalješ prvi prigovor ili obaveštenje.",
+          "low": "Koristi hotline za usmeravanje i najjasniji sledeći korak pre nego što eskaliraš."
+        }
+      },
+      "cta": {
+        "membership": {
+          "high": "Pridruži se Asistenca za ljudski trijaž",
+          "medium": "Nadogradi za pregled dokumenata"
+        },
+        "member": {
+          "high": "Nastavi u članskim zahtevima za pregled",
+          "medium": "Nastavi u članskim zahtevima i zatraži pregled"
+        },
+        "portal": {
+          "high": "Nastavi u portal za pregled",
+          "medium": "Nastavi u portal i zatraži pregled"
+        },
+        "hotline": {
+          "low": "Pozovi hotline za sledeći korak",
+          "secondary": "Pozovi hotline"
+        }
+      },
       "continueMembership": "Nastavi ka članstvu",
       "continueMember": "Nastavi u članskim zahtevima",
       "continuePortal": "Nastavi u portal",

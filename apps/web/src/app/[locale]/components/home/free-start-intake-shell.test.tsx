@@ -49,18 +49,39 @@ vi.mock('@/lib/analytics', async () => {
 
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 
-async function completeFreeStartIntake(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByTestId('free-start-category-property'));
+type TestIssueId = 'water_damage' | 'landlord_dispute';
+type TestOutcomeId = 'repair' | 'written_response';
+
+type CompleteIntakeOptions = {
+  category?: 'vehicle' | 'property' | 'injury';
+  counterparty?: string;
+  incidentDate?: string;
+  issueType?: TestIssueId;
+  desiredOutcome?: TestOutcomeId;
+  summary?: string;
+};
+
+async function completeFreeStartIntake(
+  user: ReturnType<typeof userEvent.setup>,
+  options: CompleteIntakeOptions = {}
+) {
+  const {
+    category = 'property',
+    counterparty = 'Building insurer',
+    incidentDate = '2026-03-01',
+    issueType = 'water_damage',
+    desiredOutcome = 'repair',
+    summary = 'Water entered through the roof after a storm and damaged two rooms.',
+  } = options;
+
+  await user.click(screen.getByTestId(`free-start-category-${category}`));
   await user.click(screen.getByRole('button', { name: 'Continue to guided intake' }));
 
-  await user.selectOptions(screen.getByLabelText('What happened?'), 'water_damage');
-  await user.type(screen.getByLabelText('When did it happen?'), '2026-03-01');
-  await user.type(screen.getByLabelText('Who are you dealing with?'), 'Building insurer');
-  await user.selectOptions(screen.getByLabelText('What do you want to recover?'), 'repair');
-  await user.type(
-    screen.getByLabelText('Brief summary'),
-    'Water entered through the roof after a storm and damaged two rooms.'
-  );
+  await user.selectOptions(screen.getByLabelText('What happened?'), issueType);
+  await user.type(screen.getByLabelText('When did it happen?'), incidentDate);
+  await user.type(screen.getByLabelText('Who are you dealing with?'), counterparty);
+  await user.selectOptions(screen.getByLabelText('What do you want to recover?'), desiredOutcome);
+  await user.type(screen.getByLabelText('Brief summary'), summary);
   await user.click(screen.getByRole('button', { name: 'Preview your Free Start pack' }));
   await user.click(screen.getByRole('button', { name: 'Finish Free Start' }));
 }
@@ -82,9 +103,13 @@ describe('FreeStartIntakeShell', () => {
     await completeFreeStartIntake(user);
 
     expect(screen.getByTestId('free-start-complete')).toBeInTheDocument();
+    expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent('High');
+    expect(screen.getByTestId('free-start-next-step')).toHaveTextContent(
+      'Join Asistenca for human triage within 24 business hours.'
+    );
     expect(screen.getByText('Property damage')).toBeInTheDocument();
     expect(screen.getByText('Water damage')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Continue to membership' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Join Asistenca for human triage' })).toHaveAttribute(
       'href',
       '/register'
     );
@@ -108,9 +133,50 @@ describe('FreeStartIntakeShell', () => {
 
     await completeFreeStartIntake(user);
 
-    expect(screen.getByRole('link', { name: 'Continue to portal' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Continue in the portal for review' })).toHaveAttribute(
       'href',
       '/agent'
     );
+  });
+
+  it('returns a medium-confidence result when the intake needs document review before escalation', async () => {
+    const user = userEvent.setup();
+
+    render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
+
+    await completeFreeStartIntake(user, {
+      counterparty: 'Insurer',
+      summary: 'Storm damage to the roof.',
+    });
+
+    expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent('Medium');
+    expect(screen.getByTestId('free-start-next-step')).toHaveTextContent(
+      'Upgrade for document review before you send the first complaint or notice.'
+    );
+    expect(screen.getByRole('link', { name: 'Upgrade for document review' })).toHaveAttribute(
+      'href',
+      '/register'
+    );
+  });
+
+  it('returns a low-confidence result and routes the user to the hotline when the matter looks guidance-only', async () => {
+    const user = userEvent.setup();
+
+    render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
+
+    await completeFreeStartIntake(user, {
+      counterparty: 'Landlord',
+      issueType: 'landlord_dispute',
+      desiredOutcome: 'written_response',
+      summary: 'Dispute about repairs.',
+    });
+
+    expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent('Low');
+    expect(screen.getByTestId('free-start-next-step')).toHaveTextContent(
+      'Use the hotline for routing support and the clearest next step before you escalate.'
+    );
+    expect(
+      screen.getByRole('link', { name: 'Call the hotline for next-step guidance' })
+    ).toHaveAttribute('href', 'tel:+38349900600');
   });
 });
