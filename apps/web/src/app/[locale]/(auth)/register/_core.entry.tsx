@@ -2,6 +2,8 @@ import { CommercialBillingTerms } from '@/components/commercial/billing-terms';
 import { buildCommercialTermsProps } from '@/components/commercial/billing-terms-content';
 import { CoverageMatrix } from '@/components/commercial/coverage-matrix';
 import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matrix-content';
+import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calculator';
+import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
 import { RegisterForm } from '@/components/auth/register-form';
 import { TenantSelector, type TenantOption } from '@/components/auth/tenant-selector';
 import { resolveTenantIdFromRequest } from '@/lib/tenant/tenant-request';
@@ -15,7 +17,8 @@ type Props = {
 export default async function RegisterPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const [coverageMatrix, commercialTerms] = await Promise.all([
+  const [pricing, coverageMatrix, commercialTerms] = await Promise.all([
+    getTranslations({ locale, namespace: 'pricing' }),
     getTranslations({ locale, namespace: 'coverageMatrix' }),
     getTranslations({ locale, namespace: 'commercialTerms' }),
   ]);
@@ -61,6 +64,9 @@ export default async function RegisterPage({ params, searchParams }: Props) {
         </div>
 
         <div className="space-y-6">
+          <SuccessFeeCalculator
+            {...buildSuccessFeeCalculatorProps(pricing, 'register-success-fee-calculator', locale)}
+          />
           <CoverageMatrix
             {...buildCoverageMatrixProps(coverageMatrix, 'register-coverage-matrix')}
           />

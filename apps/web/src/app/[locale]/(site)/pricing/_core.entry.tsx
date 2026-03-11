@@ -5,6 +5,8 @@ import { CoverageMatrix } from '@/components/commercial/coverage-matrix';
 import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matrix-content';
 import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
+import { SuccessFeeCalculator } from '@/components/commercial/success-fee-calculator';
+import { buildSuccessFeeCalculatorProps } from '@/components/commercial/success-fee-calculator-content';
 import { generateLocaleStaticParams } from '@/app/_locale-static-params';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
@@ -65,6 +67,12 @@ export default async function PricingPage({ params }: PricingPageProps) {
       />
 
       <PricingPageRuntime billingTestMode={billingTestMode} />
+
+      <div className="mt-16">
+        <SuccessFeeCalculator
+          {...buildSuccessFeeCalculatorProps(t, 'pricing-success-fee-calculator', locale)}
+        />
+      </div>
 
       <div className="mt-16">
         <CommercialBillingTerms

@@ -2,11 +2,13 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { expectCommercialTerms } from '@/test/commercial-terms-test-utils';
+import { expectSuccessFeeCalculator } from '@/test/success-fee-calculator-test-utils';
 import { PricingSection } from './pricing-section';
 
 vi.mock('next-intl', () => ({
   useTranslations: (namespace?: string) => (key: string) =>
     namespace ? `${namespace}.${key}` : key,
+  useLocale: () => 'en',
 }));
 
 vi.mock('@/i18n/routing', () => ({
@@ -35,6 +37,7 @@ describe('PricingSection', () => {
     expect(hrefs).toContain('/register?plan=business');
     expect(screen.queryByText('pricing.monthly')).toBeNull();
     expect(screen.queryByText('pricing.yearly')).toBeNull();
+    expectSuccessFeeCalculator({ sectionTestId: 'home-pricing-success-fee-calculator' });
     expectCommercialTerms({ sectionTestId: 'home-pricing-billing-terms' });
   });
 });
