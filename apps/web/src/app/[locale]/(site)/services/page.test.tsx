@@ -20,7 +20,7 @@ function getTranslationValue(source: unknown, key: string): string {
 
 vi.mock('next-intl/server', () => ({
   getTranslations: async (options?: { locale?: 'en' | 'sq'; namespace?: string } | string) => {
-    const locale = typeof options === 'string' ? 'en' : ((options?.locale ?? 'en') as 'en' | 'sq');
+    const locale = typeof options === 'string' ? 'en' : (options?.locale ?? 'en');
     const namespace = typeof options === 'string' ? options : options?.namespace;
     const servicesPageMessages =
       locale === 'sq' ? sqServicesPage.servicesPage : enServicesPage.servicesPage;
