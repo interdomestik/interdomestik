@@ -1,5 +1,7 @@
 ---
-applyTo: 'apps/web/src/proxy.ts,apps/web/src/lib/proxy-logic.ts'
+applyTo:
+  - apps/web/src/proxy.ts
+  - apps/web/src/lib/proxy-logic.ts
 ---
 
 # Routing boundary instructions
