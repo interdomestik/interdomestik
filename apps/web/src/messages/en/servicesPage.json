@@ -32,7 +32,7 @@
           "Repair enforcement or contract termination disputes without a direct payout",
           "Broader consumer complaints outside the launch claim types"
         ],
-        "note": "We keep these matters advisory and refer onward when a partner route makes more sense."
+        "note": "These matters stay advisory. We can help with the pack and one document review, then refer onward when a partner route makes more sense."
       },
       "outOfScope": {
         "title": "Out of scope",
@@ -43,11 +43,11 @@
           "Immigration",
           "General business disputes outside defined group packages"
         ],
-        "note": "We do not imply coverage here. Where possible, we route you to a more suitable external provider."
+        "note": "We do not accept these matters for staff handling. Where possible, we route you to a more suitable external provider."
       },
       "boundary": {
         "title": "Referral boundaries",
-        "body": "Partner referral and legal routes begin only after scope review. Staff-led escalation is available only for accepted recovery matters; everything else remains self-serve guidance, membership guidance, or a referral.",
+        "body": "Guidance-only and out-of-scope matters do not move into success-fee handling. They stay advisory, self-serve, membership guidance, or referral-only depending on the case.",
         "items": [
           "External legal partner action requires a separate written opt-in after case acceptance.",
           "Flight delay compensation stays outside the current launch path and returns in a later phase."
@@ -67,89 +67,89 @@
     },
     "categories": {
       "consultation": {
-        "title": "Free Consultations",
-        "subtitle": "6 no-cost services to help you understand your rights",
+        "title": "Included help before staff-led recovery",
+        "subtitle": "What Free Start and membership include on the launch path",
         "services": [
           {
-            "title": "Legal Basis for Compensation",
-            "description": "Free consultation to determine the legal basis for compensation of all types of damages.",
-            "badge": "FREE"
+            "title": "Free Start claim pack",
+            "description": "Free Start gives you the eligibility check, confidence score, evidence checklist, first complaint letter, timeline, and pack delivery without starting human review.",
+            "badge": "FREE START"
           },
           {
-            "title": "Compensation Procedures",
-            "description": "Consultation on the required procedures to obtain compensation from insurance companies.",
-            "badge": "FREE"
+            "title": "Membership triage",
+            "description": "Human triage response within 24 business hours after a completed claim pack, plus dashboard tracking.",
+            "badge": "MEMBERSHIP"
           },
           {
-            "title": "Injury Categorization",
-            "description": "Categorization of injuries sustained in any type of accident by a specialized medical censor.",
-            "badge": "FREE"
+            "title": "Document review per matter",
+            "description": "Membership includes one document review per matter so staff can confirm missing evidence and next-step guidance before any accepted escalation.",
+            "badge": "MEMBERSHIP"
           },
           {
-            "title": "Material Damage Calculation",
-            "description": "Alternative calculation for material damages compared to those made by insurance companies.",
-            "badge": "FREE"
+            "title": "First complaint or insurer letter",
+            "description": "The launch path includes the first complaint, insurer, or counterparty letter before negotiation work begins.",
+            "badge": "INCLUDED"
           },
           {
-            "title": "Disability Coefficient",
-            "description": "Determination of the limited ability coefficient in case of accident - disability coefficient.",
-            "badge": "FREE"
+            "title": "Hotline routing and support",
+            "description": "Urgent routing and support stay available on the public and member surfaces, but hotline contact does not start legal review or case acceptance.",
+            "badge": "ROUTING ONLY"
           },
           {
-            "title": "On-Scene Assistance",
-            "description": "How to act at the accident scene? Free consultations from 08:00-20:00.",
-            "badge": "FREE"
+            "title": "Guidance-only document help",
+            "description": "Guidance-only disputes can still receive guidance packs and document review, but they stay outside success-fee recovery.",
+            "badge": "GUIDANCE"
           }
         ]
       },
       "expertise": {
-        "title": "Expertise & Assessment",
-        "subtitle": "Specialized team of experts to achieve maximum compensation",
+        "title": "How staff-led escalation starts",
+        "subtitle": "Staff-led handling begins only after review, acceptance, and agreement",
         "services": [
           {
-            "title": "Pre-Court Expertise",
-            "description": "We advance all costs for preparing expert reports for damages in pre-court processes.",
-            "badge": "WE ADVANCE"
+            "title": "Case acceptance comes first",
+            "description": "Staff-led handling begins only after scope review confirms a launch claim, a plausible monetary recovery path, an identifiable counterparty or insurer, and enough evidence for review.",
+            "badge": "CASE REVIEW"
           },
           {
-            "title": "Compensation Mediation",
-            "description": "Complete service in the damage compensation procedure with exclusive member discounts.",
-            "badge": "50% OFF"
+            "title": "Recovery work starts after agreement",
+            "description": "Insurer negotiation, counterparty negotiation, formal mediation, and active recovery follow-up start only after case acceptance and an escalation agreement.",
+            "badge": "AFTER ACCEPTANCE"
           }
         ]
       },
       "legal": {
-        "title": "Legal Representation",
-        "subtitle": "We organize the judicial route to achieve maximum compensation",
+        "title": "Separate opt-in and referral routes",
+        "subtitle": "What needs written opt-in, and what stays guidance-only or referral-only",
         "services": [
           {
-            "title": "Court Expertise",
-            "description": "We advance costs for legal representation, lawyer fees, and court expertise.",
-            "badge": "WE ADVANCE"
+            "title": "Legal partner and hard-cost route",
+            "description": "External legal partner action, court filing, expert reports, translations, medical opinions, and other hard costs require separate written opt-in after case acceptance.",
+            "badge": "WRITTEN OPT-IN"
           },
           {
-            "title": "Full Court Organization",
-            "description": "We organize damage payment through court procedure in case of incorrect compensation offer.",
-            "badge": "WE COVER COSTS"
+            "title": "Guidance-only and out-of-scope boundary",
+            "description": "Guidance-only and out-of-scope matters do not move into success-fee handling. They stay advisory, self-serve, membership guidance, or referral-only depending on the case.",
+            "badge": "REFERRAL ONLY"
           }
         ]
       }
     },
     "experts": {
-      "title": "Our Expert Team",
-      "subtitle": "Professionals specialized in their fields",
+      "title": "Who supports this path",
+      "subtitle": "Claims triage, document review, and partner coordination on the existing launch surface",
       "list": [
         {
-          "title": "Traffic Experts",
-          "description": "Detailed analysis of road accidents"
+          "title": "Claims triage",
+          "description": "Scope review and next-step guidance once a completed pack reaches membership triage."
         },
         {
-          "title": "Medical Censors",
-          "description": "Professional injury assessment"
+          "title": "Document review",
+          "description": "Evidence and document checks before any accepted escalation or separate legal opt-in."
         },
         {
-          "title": "Legal Office",
-          "description": "Complete legal representation"
+          "title": "Partner coordination",
+          "description": "Referral and legal-partner handoff only when the matter fits the contract and the member opts in."
         }
       ]
     },

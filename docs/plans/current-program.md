@@ -23,7 +23,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P1C` Commercial Contract Foundations is now complete as the post-infrastructure commercial-contract tranche. `C05` is complete as the canonical claims-first scope-tree and referral-boundary slice, `C01` is complete as the canonical coverage-matrix publication slice, `C04` is complete as the canonical annual billing, cancellation, refund, and cooling-off publication slice, `C02` is complete as the canonical success-fee calculator and example-pricing slice, `C03` is complete as the canonical Free Start and hotline disclaimer slice, and `C06` is complete as the canonical commercial-funnel instrumentation slice. The committed commercial contract defined by the business-model blueprint is now fully published.
 
-`P1T` Free Start And Trust UX is now the live post-`P1C` tranche. `T01` is complete as the canonical hero, trust-strip, and footer-safety-net slice, `T02` is complete as the canonical Free Start claim-pack generator shell slice, `T03` is complete as the canonical confidence-score and recommended-next-step slice, and `T04` is complete as the canonical evidence prompts, privacy badge, and SLA microcopy slice. The remaining committed queue is `T05` and `T06`: `/services` alignment, and i18n plus component-test coverage for the new trust surfaces.
+`P1T` Free Start And Trust UX is now the live post-`P1C` tranche. `T01` is complete as the canonical hero, trust-strip, and footer-safety-net slice, `T02` is complete as the canonical Free Start claim-pack generator shell slice, `T03` is complete as the canonical confidence-score and recommended-next-step slice, `T04` is complete as the canonical evidence prompts, privacy badge, and SLA microcopy slice, and `T05` is complete as the canonical `/services` alignment slice for the coverage matrix and referral boundaries. The remaining committed queue is `T06`: i18n plus component-test coverage for the new trust surfaces.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -89,11 +89,10 @@ pnpm plan:proof
 
 `P1C` Commercial Contract Foundations is now complete as the committed post-infrastructure tranche. `C05`, `C01`, `C04`, `C02`, `C03`, and `C06` are complete.
 
-`P1T` Free Start And Trust UX is now the committed post-`P1C` tranche. `T01`, `T02`, `T03`, and `T04` are complete.
+`P1T` Free Start And Trust UX is now the committed post-`P1C` tranche. `T01`, `T02`, `T03`, `T04`, and `T05` are complete.
 
 The remaining committed queue inside `P1T` is:
 
-- `T05` Add `/services` content aligned to the coverage matrix.
 - `T06` Add i18n coverage and component tests for the new trust surfaces.
 
 ## Do Not Reopen The Convergence Boundary
@@ -148,6 +147,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `T02` is complete as the Free Start claim-pack generator shell slice.
 - `T03` is complete as the confidence-score and recommended-next-step slice.
 - `T04` is complete as the evidence prompts, privacy badge, and SLA microcopy slice.
+- `T05` is complete as the `/services` alignment slice for the coverage matrix and referral boundaries.
 
 ## Historical Foundation, Not Current Sequencing
 
