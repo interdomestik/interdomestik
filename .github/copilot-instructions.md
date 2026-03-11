@@ -39,6 +39,14 @@
 - Reuse existing product language, route helpers, auth helpers, and translation patterns instead of inventing parallel ones.
 - When behavior changes, update the nearest relevant unit, integration, or E2E coverage in the same change.
 
+## Review expectations
+
+- Lead with concrete findings that can change behavior, compliance, copy meaning, or test coverage. Keep descriptive recap secondary.
+- Ignore merge-sync noise such as rebase conflict resolution, `.github` instruction churn, or workflow-only updates unless they alter protected behavior or required checks.
+- For message catalog diffs, compare changed strings against the rest of the same locale before commenting. Flag glossary drift, orthography regressions, missing disclaimers, and over-promising language.
+- Call out broad locale-file rewrites when the change could have been surgical, because they hide small regressions and reduce review signal.
+- If no actionable findings remain, say so briefly instead of expanding the file-by-file summary.
+
 ## Verification
 
 - Before claiming work is complete, run the commands that prove the claim.
