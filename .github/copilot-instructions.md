@@ -3,7 +3,7 @@
 ## Stack and layout
 
 - Use `pnpm` workspaces with Turborepo. Do not switch to `npm` or `yarn`.
-- The main app is `apps/web` (Next.js 15 App Router, React 19, strict TypeScript).
+- The main app is `apps/web` (Next.js 16 App Router, React 19, strict TypeScript).
 - Shared code lives in `packages/domain-*`, `packages/database`, `packages/shared-auth`, `packages/ui`, and `packages/qa`.
 - Treat `apps/web/.next`, `coverage`, `playwright-report`, `tmp`, and `node_modules` as generated artifacts. Do not edit them directly.
 
