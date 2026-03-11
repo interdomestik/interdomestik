@@ -1,53 +1,29 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import enCommonMessages from '@/messages/en/common.json';
+import enFooterMessages from '@/messages/en/footer.json';
+import sqCommonMessages from '@/messages/sq/common.json';
+import sqFooterMessages from '@/messages/sq/footer.json';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
 
 const hoisted = vi.hoisted(() => ({
-  messages: {
-    common: {
-      appName: 'Interdomestik',
-      tagline: 'Claim-first support',
-    },
-    footer: {
-      description: 'Consumer help for claims and next-step routing.',
-      noWinNoFee: 'No Win, No Fee',
-      legal: 'Legal',
-      privacy: 'Privacy',
-      terms: 'Terms',
-      cookies: 'Cookies',
-      support: 'Support',
-      help: 'Help Center',
-      faq: 'FAQ',
-      hours: 'Hours: {hours}',
-      copyright: 'Copyright {year} {appName}',
-      disclaimer: 'Claims assistance service.',
-      hotlineLabel: '24/7 Hotline',
-      chatWithUs: 'Chat with us',
-      emailUs: 'Email Us',
-      membership: 'Membership',
-      plansPricing: 'Plans & Pricing',
-      joinClub: 'Join the Club',
-      memberLogin: 'Member Login',
-      about: 'About',
-      safetyNet: {
-        eyebrow: 'Urgent claim support',
-        title: 'Call or WhatsApp for the next safe step',
-        body: 'Use the hotline for rapid routing, support, and next-step guidance.',
-        call: 'Call hotline',
-        whatsapp: 'Open WhatsApp',
-        chips: [
-          'Shqip / English support',
-          'Claim-first launch scope',
-          'Routing in under 60 seconds',
-        ],
-      },
-    },
-  },
+  currentLocale: 'en' as 'en' | 'sq',
 }));
 
+const localeMessages = {
+  en: {
+    common: enCommonMessages.common,
+    footer: enFooterMessages.footer,
+  },
+  sq: {
+    common: sqCommonMessages.common,
+    footer: sqFooterMessages.footer,
+  },
+} as const;
+
 vi.mock('next-intl', () => ({
-  useTranslations: createUseTranslationsMock(() => hoisted.messages),
+  useTranslations: createUseTranslationsMock(() => localeMessages[hoisted.currentLocale]),
 }));
 
 vi.mock('@/i18n/routing', () => ({
@@ -69,21 +45,43 @@ vi.mock('@/lib/contact', () => ({
 
 import { Footer } from './footer';
 
-describe('Footer', () => {
-  it('renders the claim-first safety net with urgent contact CTAs and multilingual cues', () => {
-    render(<Footer />);
+function renderFooter(locale: 'en' | 'sq') {
+  hoisted.currentLocale = locale;
+  return render(<Footer />);
+}
 
-    expect(screen.getByTestId('footer-safety-net')).toBeInTheDocument();
-    expect(screen.getByText('Call or WhatsApp for the next safe step')).toBeInTheDocument();
-    expect(screen.getByTestId('footer-safety-net-call')).toHaveAttribute(
-      'href',
-      'tel:+38349900600'
-    );
-    expect(screen.getByTestId('footer-safety-net-whatsapp')).toHaveAttribute(
-      'href',
-      'https://wa.me/38349900600'
-    );
-    expect(screen.getAllByTestId('footer-safety-net-chip')).toHaveLength(3);
-    expect(screen.getByText('Shqip / English support')).toBeInTheDocument();
-  });
+describe('Footer', () => {
+  it.each([
+    {
+      locale: 'en' as const,
+      messages: enFooterMessages.footer,
+    },
+    {
+      locale: 'sq' as const,
+      messages: sqFooterMessages.footer,
+    },
+  ])(
+    'renders the claim-first safety net with urgent contact CTAs and trust cues from the $locale locale bundle',
+    ({ locale, messages }) => {
+      renderFooter(locale);
+
+      expect(screen.getByTestId('footer-safety-net')).toBeInTheDocument();
+      expect(screen.getByText(messages.safetyNet.title)).toBeInTheDocument();
+      expect(screen.getByText(messages.safetyNet.body)).toBeInTheDocument();
+      expect(screen.getByText(messages.hotlineLabel)).toBeInTheDocument();
+      expect(screen.getByTestId('footer-safety-net-call')).toHaveAttribute(
+        'href',
+        'tel:+38349900600'
+      );
+      expect(screen.getByTestId('footer-safety-net-whatsapp')).toHaveAttribute(
+        'href',
+        'https://wa.me/38349900600'
+      );
+      expect(screen.getAllByTestId('footer-safety-net-chip')).toHaveLength(
+        messages.safetyNet.chips.length
+      );
+      expect(screen.getByText(messages.safetyNet.chips[0])).toBeInTheDocument();
+      expect(screen.getByText(messages.safetyNet.chips[2])).toBeInTheDocument();
+    }
+  );
 });
