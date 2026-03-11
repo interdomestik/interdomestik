@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createTempRoot, runScript, writeFile } from './plan-test-helpers.mjs';
-import { collectI18nFailures } from './check-i18n-lib.mjs';
+import { collectI18nFailures, parseArgs } from './check-i18n-lib.mjs';
 
 function writeMessagesFixture(root, { srDescription }) {
   writeFile(root, 'apps/web/src/messages/en/servicesPage.json', JSON.stringify({
@@ -67,4 +67,19 @@ test('check-i18n CLI fails for Serbian ASCII fallback spellings', () => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /\[sr\] orthography regression in servicesPage/);
   assert.match(result.stderr, /upucivanje -> upućivanje/);
+});
+
+test('parseArgs accepts space-separated CLI options used elsewhere in the repo', () => {
+  const parsed = parseArgs([
+    '--locales',
+    'sq,mk,sr',
+    '--base',
+    'sq',
+    '--root',
+    'apps/web',
+  ]);
+
+  assert.deepEqual(parsed.locales, ['sq', 'mk', 'sr']);
+  assert.equal(parsed.baseLocale, 'sq');
+  assert.match(parsed.root, /apps\/web$/);
 });

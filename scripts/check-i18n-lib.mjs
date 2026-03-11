@@ -54,21 +54,61 @@ const SERBIAN_GLOSSARY_REGEX = new RegExp(
 export function parseArgs(argv) {
   const out = { locales: DEFAULT_LOCALES, baseLocale: 'en', root: process.cwd() };
 
-  for (const arg of argv) {
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+
     if (arg.startsWith('--locales=')) {
       out.locales = arg
         .replace('--locales=', '')
         .split(',')
         .map(segment => segment.trim())
         .filter(Boolean);
+      continue;
+    }
+
+    if (arg === '--locales') {
+      const value = argv[index + 1]?.trim();
+      if (value) {
+        out.locales = value
+          .split(',')
+          .map(segment => segment.trim())
+          .filter(Boolean);
+        index += 1;
+      }
+      continue;
     }
 
     if (arg.startsWith('--base=')) {
-      out.baseLocale = arg.replace('--base=', '').trim();
+      const value = arg.replace('--base=', '').trim();
+      if (value) {
+        out.baseLocale = value;
+      }
+      continue;
+    }
+
+    if (arg === '--base') {
+      const value = argv[index + 1]?.trim();
+      if (value) {
+        out.baseLocale = value;
+        index += 1;
+      }
+      continue;
     }
 
     if (arg.startsWith('--root=')) {
-      out.root = path.resolve(arg.replace('--root=', '').trim());
+      const value = arg.replace('--root=', '').trim();
+      if (value) {
+        out.root = path.resolve(value);
+      }
+      continue;
+    }
+
+    if (arg === '--root') {
+      const value = argv[index + 1]?.trim();
+      if (value) {
+        out.root = path.resolve(value);
+        index += 1;
+      }
     }
   }
 
