@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-03-10
+last_reviewed: 2026-03-11
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -21,7 +21,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P-1` Infrastructure Debt Closure is now complete as the post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, `D02` is complete as the cross-agent messaging isolation slice, `D03` is complete as the blocking repository coverage floor slice, `D04` is complete as the canonical blocking `gitleaks` coverage slice, `D05` is complete as the staging Supabase plus preview-environment separation slice, `D06` is complete as the canonical incident playbook slice, `D07` is complete as the Sentry burn-rate alert wiring slice, and `D08` is complete as the narrow critical-table RLS proof slice.
 
-`P1C` Commercial Contract Foundations is now the live post-infrastructure tranche. `C05` is complete as the canonical claims-first scope-tree and referral-boundary slice, `C01` is complete as the canonical coverage-matrix publication slice, `C04` is complete as the canonical annual billing, cancellation, refund, and cooling-off publication slice, and `C02` is complete as the canonical success-fee calculator and example-pricing slice. The remaining committed queue for publishing the commercial contract defined by the business-model blueprint is `C03` and `C06`: Free Start and hotline disclaimers, and commercial funnel instrumentation.
+`P1C` Commercial Contract Foundations is now the live post-infrastructure tranche. `C05` is complete as the canonical claims-first scope-tree and referral-boundary slice, `C01` is complete as the canonical coverage-matrix publication slice, `C04` is complete as the canonical annual billing, cancellation, refund, and cooling-off publication slice, `C02` is complete as the canonical success-fee calculator and example-pricing slice, `C03` is complete as the canonical Free Start and hotline disclaimer slice, and `C06` is complete as the canonical commercial-funnel instrumentation slice. The committed commercial contract defined by the business-model blueprint is now fully published.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -79,12 +79,9 @@ pnpm plan:proof
 
 `P-1` Infrastructure Debt Closure is now complete as the committed post-AI tranche.
 
-`P1C` Commercial Contract Foundations is now the committed post-infrastructure tranche. `C05`, `C01`, `C04`, and `C02` are complete.
+`P1C` Commercial Contract Foundations is now the committed post-infrastructure tranche. `C05`, `C01`, `C04`, `C02`, `C03`, and `C06` are complete.
 
-The remaining committed queue inside `P1C` is:
-
-- `C03` Add Free Start and hotline disclaimers.
-- `C06` Add commercial funnel instrumentation.
+There is no remaining committed queue inside `P1C`.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -129,7 +126,9 @@ These documents can recommend or constrain work, but they do not define the live
 - `P1C` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the active post-infrastructure tranche.
 - `C01` through `C06` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the committed commercial-contract publication queue.
 - `C01` is complete as the coverage-matrix publication slice.
+- `C03` is complete as the Free Start and hotline disclaimer slice.
 - `C05` is complete as the claims-first scope-tree and referral-boundary slice.
+- `C06` is complete as the commercial-funnel instrumentation slice.
 
 ## Historical Foundation, Not Current Sequencing
 

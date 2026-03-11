@@ -1,3 +1,4 @@
+import { COMMERCIAL_MAIN_CLAIM_CATEGORY_IDS } from '@/lib/commercial-claim-categories';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WizardStepCategory } from './wizard-step-category';
@@ -148,9 +149,8 @@ describe('WizardStepCategory', () => {
   it('has data-testid for category cards', () => {
     render(<WizardStepCategory />);
 
-    expect(screen.getByTestId('category-vehicle')).toBeInTheDocument();
-    expect(screen.getByTestId('category-property')).toBeInTheDocument();
-    expect(screen.getByTestId('category-injury')).toBeInTheDocument();
-    expect(screen.getByTestId('category-travel')).toBeInTheDocument();
+    for (const categoryId of COMMERCIAL_MAIN_CLAIM_CATEGORY_IDS) {
+      expect(screen.getByTestId(`category-${categoryId}`)).toBeInTheDocument();
+    }
   });
 });

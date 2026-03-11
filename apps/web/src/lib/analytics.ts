@@ -72,6 +72,29 @@ export const FunnelEvents = {
     trackEvent('retention_pulse', withFunnelContext(context, properties)),
 };
 
+function trackCommercialFunnelEvent(
+  eventName:
+    | 'free_start_completed'
+    | 'membership_started'
+    | 'escalation_requested'
+    | 'escalation_declined',
+  context: FunnelContext,
+  properties?: FunnelProperties
+) {
+  trackEvent(eventName, withFunnelContext(context, properties));
+}
+
+export const CommercialFunnelEvents = {
+  freeStartCompleted: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackCommercialFunnelEvent('free_start_completed', context, properties),
+  membershipStarted: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackCommercialFunnelEvent('membership_started', context, properties),
+  escalationRequested: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackCommercialFunnelEvent('escalation_requested', context, properties),
+  escalationDeclined: (context: FunnelContext, properties?: FunnelProperties) =>
+    trackCommercialFunnelEvent('escalation_declined', context, properties),
+};
+
 /** User identification (link PostHog to your user ID) */
 export function identifyUser(userId: string, traits?: Record<string, unknown>) {
   if (typeof globalThis !== 'undefined' && posthog.__loaded) {

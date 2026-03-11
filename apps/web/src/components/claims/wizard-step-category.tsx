@@ -1,6 +1,10 @@
 'use client';
 
 import { analytics } from '@/lib/analytics';
+import {
+  COMMERCIAL_MAIN_CLAIM_CATEGORY_IDS,
+  type CommercialMainClaimCategoryId,
+} from '@/lib/commercial-claim-categories';
 import { flags } from '@/lib/flags';
 import type { CreateClaimValues } from '@/lib/validators/claims';
 import { Badge } from '@interdomestik/ui/components/badge';
@@ -13,29 +17,25 @@ import {
   TooltipTrigger,
 } from '@interdomestik/ui/components/tooltip';
 import { cn } from '@interdomestik/ui/lib/utils';
-import { Car, Home, Info, Plane, Stethoscope } from 'lucide-react';
+import { Car, Home, Info, Plane, Stethoscope, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 
-const mainCategories = [
-  {
-    id: 'vehicle',
-    icon: Car,
-  },
-  {
-    id: 'property',
-    icon: Home,
-  },
-  {
-    id: 'injury',
-    icon: Stethoscope,
-  },
-  {
-    id: 'travel',
-    icon: Plane,
-  },
-] as const;
+const CATEGORY_ICONS: Record<CommercialMainClaimCategoryId, LucideIcon> = {
+  vehicle: Car,
+  property: Home,
+  injury: Stethoscope,
+  travel: Plane,
+};
+
+const mainCategories: ReadonlyArray<{
+  id: CommercialMainClaimCategoryId;
+  icon: LucideIcon;
+}> = COMMERCIAL_MAIN_CLAIM_CATEGORY_IDS.map(id => ({
+  id,
+  icon: CATEGORY_ICONS[id],
+}));
 
 // Quick-select tags for common specific claims
 const quickSelectTags = [
@@ -57,7 +57,7 @@ export function WizardStepCategory() {
   const t = useTranslations('claimCategories');
   const tTags = useTranslations('wizard.quickTags');
 
-  const handleCategorySelect = (id: (typeof mainCategories)[number]['id']) => {
+  const handleCategorySelect = (id: CommercialMainClaimCategoryId) => {
     analytics.track('claim_category_selected', { category: id });
     form.setValue('category', id, { shouldValidate: true });
   };

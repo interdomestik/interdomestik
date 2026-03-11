@@ -4,9 +4,13 @@ import { FunnelActivationTracker, FunnelLandingTracker } from './funnel-trackers
 
 const mockLandingViewed = vi.fn();
 const mockActivationCompleted = vi.fn();
+const mockMembershipStarted = vi.fn();
 const mockResolveFunnelVariant = vi.fn((enabled: boolean) => (enabled ? 'hero_v2' : 'hero_v1'));
 
 vi.mock('@/lib/analytics', () => ({
+  CommercialFunnelEvents: {
+    membershipStarted: (...args: [unknown, unknown?]) => mockMembershipStarted(...args),
+  },
   FunnelEvents: {
     landingViewed: (...args: [unknown, unknown?]) => mockLandingViewed(...args),
     activationCompleted: (...args: [unknown, unknown?]) => mockActivationCompleted(...args),
@@ -42,6 +46,16 @@ describe('Funnel trackers', () => {
 
     expect(mockResolveFunnelVariant).toHaveBeenCalledWith(true);
     expect(mockActivationCompleted).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant_mk',
+        variant: 'hero_v2',
+        locale: 'en',
+      },
+      {
+        plan_id: 'standard',
+      }
+    );
+    expect(mockMembershipStarted).toHaveBeenCalledWith(
       {
         tenantId: 'tenant_mk',
         variant: 'hero_v2',
