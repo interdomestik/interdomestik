@@ -94,6 +94,49 @@
       "badge": "Free Start complete",
       "heading": "Your intake is complete.",
       "body": "You now have a structured claim-pack shell based on the facts you entered. Continue when you want formal follow-up or membership handling.",
+      "confidence": {
+        "eyebrow": "Eligibility confidence",
+        "levels": {
+          "high": {
+            "label": "High",
+            "body": "Your intake shows a clear recovery path with a defined counterparty and a concrete outcome."
+          },
+          "medium": {
+            "label": "Medium",
+            "body": "Your intake is usable, but the facts suggest document review before you escalate."
+          },
+          "low": {
+            "label": "Low",
+            "body": "Your intake looks closer to guidance-only follow-up or early routing support than a clear recovery path."
+          }
+        }
+      },
+      "nextStep": {
+        "heading": "Recommended next step",
+        "levels": {
+          "high": "Join Asistenca for human triage within 24 business hours.",
+          "medium": "Upgrade for document review before you send the first complaint or notice.",
+          "low": "Use the hotline for routing support and the clearest next step before you escalate."
+        }
+      },
+      "cta": {
+        "membership": {
+          "high": "Join Asistenca for human triage",
+          "medium": "Upgrade for document review"
+        },
+        "member": {
+          "high": "Continue in member claims for review",
+          "medium": "Continue in member claims and request review"
+        },
+        "portal": {
+          "high": "Continue in the portal for review",
+          "medium": "Continue in the portal and request review"
+        },
+        "hotline": {
+          "low": "Call the hotline for next-step guidance",
+          "secondary": "Call the hotline"
+        }
+      },
       "continueMembership": "Continue to membership",
       "continueMember": "Continue in member claims",
       "continuePortal": "Continue to portal",

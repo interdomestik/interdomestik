@@ -32,6 +32,7 @@ type InjuryIssueId =
   | 'public_liability';
 type IssueId = VehicleIssueId | PropertyIssueId | InjuryIssueId;
 type StepId = 'category' | 'details' | 'preview' | 'complete';
+type ConfidenceLevel = 'high' | 'medium' | 'low';
 
 type DraftState = {
   issueType: IssueId | '';
@@ -167,6 +168,88 @@ function getContinueLabel(t: FreeStartCopy, continueHref: string): string {
   }
 
   return t('completion.continuePortal');
+}
+
+function getContinueRouteKey(continueHref: string): 'membership' | 'member' | 'portal' {
+  if (continueHref === '/register') {
+    return 'membership';
+  }
+
+  if (continueHref.startsWith('/member')) {
+    return 'member';
+  }
+
+  return 'portal';
+}
+
+function getRecommendedContinueLabel(
+  t: FreeStartCopy,
+  continueHref: string,
+  level: Extract<ConfidenceLevel, 'high' | 'medium'>
+): string {
+  return t(`completion.cta.${getContinueRouteKey(continueHref)}.${level}`);
+}
+
+function getConfidenceLevel(
+  selectedCategory: CategoryId | null,
+  draft: DraftState
+): ConfidenceLevel {
+  if (selectedCategory === null) {
+    return 'low';
+  }
+
+  const hasMonetaryOutcome =
+    draft.desiredOutcome !== '' && draft.desiredOutcome !== 'written_response';
+  const hasDetailedCounterparty = draft.counterparty.trim().length >= 10;
+  const hasDetailedSummary = draft.summary.trim().length >= 40;
+  const isGuidanceOnlyIssue = draft.issueType === 'landlord_dispute';
+
+  if (!hasMonetaryOutcome && isGuidanceOnlyIssue) {
+    return 'low';
+  }
+
+  let score = 1;
+
+  if (hasMonetaryOutcome) {
+    score += 2;
+  }
+
+  if (hasDetailedCounterparty) {
+    score += 1;
+  }
+
+  if (hasDetailedSummary) {
+    score += 1;
+  }
+
+  if (!isGuidanceOnlyIssue) {
+    score += 1;
+  }
+
+  if (score >= 5 && hasMonetaryOutcome) {
+    return 'high';
+  }
+
+  if (score >= 3) {
+    return 'medium';
+  }
+
+  return 'low';
+}
+
+function getConfidenceClassName(level: ConfidenceLevel): string {
+  const baseClassName =
+    'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]';
+
+  if (level === 'high') {
+    return `${baseClassName} border-emerald-300/40 bg-emerald-300/10 text-emerald-100`;
+  }
+
+  if (level === 'medium') {
+    return `${baseClassName} border-amber-300/40 bg-amber-300/10 text-amber-100`;
+  }
+
+  return `${baseClassName} border-rose-300/40 bg-rose-300/10 text-rose-100`;
 }
 
 function getSelectedCategoryLabel(t: FreeStartCopy, selectedCategory: CategoryId | null): string {
@@ -457,6 +540,7 @@ function FreeStartMainPanel({
 }
 
 type FreeStartSidebarProps = Readonly<{
+  confidenceLevel: ConfidenceLevel;
   contacts: SupportContacts;
   continueHref: string;
   continueLabel: string;
@@ -465,6 +549,7 @@ type FreeStartSidebarProps = Readonly<{
 }>;
 
 function FreeStartSidebar({
+  confidenceLevel,
   contacts,
   continueHref,
   continueLabel,
@@ -472,6 +557,12 @@ function FreeStartSidebar({
   t,
 }: FreeStartSidebarProps) {
   if (step === 'complete') {
+    const showHotlinePrimary = confidenceLevel === 'low' && Boolean(contacts.telHref);
+    const primaryContinueLabel =
+      confidenceLevel === 'high' || confidenceLevel === 'medium'
+        ? getRecommendedContinueLabel(t, continueHref, confidenceLevel)
+        : continueLabel;
+
     return (
       <div data-testid="free-start-complete" className="space-y-4">
         <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/40 bg-emerald-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
@@ -482,21 +573,66 @@ function FreeStartSidebar({
           <h3 className="text-2xl font-semibold text-white">{t('completion.heading')}</h3>
           <p className="text-sm leading-6 text-slate-300">{t('completion.body')}</p>
         </div>
+        <div className="rounded-3xl border border-slate-800 bg-slate-950/70 p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            {t('completion.confidence.eyebrow')}
+          </p>
+          <div className="mt-3 space-y-3">
+            <span
+              data-testid="free-start-confidence-level"
+              className={getConfidenceClassName(confidenceLevel)}
+            >
+              {t(`completion.confidence.levels.${confidenceLevel}.label`)}
+            </span>
+            <p className="text-sm leading-6 text-slate-200">
+              {t(`completion.confidence.levels.${confidenceLevel}.body`)}
+            </p>
+          </div>
+        </div>
+        <div
+          data-testid="free-start-next-step"
+          className="rounded-3xl border border-cyan-300/20 bg-cyan-300/8 p-5"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100">
+            {t('completion.nextStep.heading')}
+          </p>
+          <p className="mt-3 text-sm leading-6 text-slate-100">
+            {t(`completion.nextStep.levels.${confidenceLevel}`)}
+          </p>
+        </div>
         <div className="flex flex-wrap gap-3">
-          <Link
-            href={continueHref}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
-          >
-            {continueLabel}
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-          {contacts.telHref ? (
+          {showHotlinePrimary ? (
+            <a
+              href={contacts.telHref}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+            >
+              <PhoneCall className="h-4 w-4" />
+              {t('completion.cta.hotline.low')}
+            </a>
+          ) : (
+            <Link
+              href={continueHref}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+            >
+              {primaryContinueLabel}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
+          {showHotlinePrimary ? (
+            <Link
+              href={continueHref}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-950"
+            >
+              {continueLabel}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : contacts.telHref ? (
             <a
               href={contacts.telHref}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-950"
             >
               <PhoneCall className="h-4 w-4" />
-              {t('completion.hotline')}
+              {t('completion.cta.hotline.secondary')}
             </a>
           ) : null}
         </div>
@@ -539,6 +675,7 @@ export function FreeStartIntakeShell({
 
   const issueIds = getIssueIds(selectedCategory);
   const continueLabel = getContinueLabel(t, continueHref);
+  const confidenceLevel = getConfidenceLevel(selectedCategory, draft);
   const activeStepIndex = getActiveStepIndex(step);
   const progressSteps = ['choose', 'details', 'preview'] as const;
   const selectedIssueLabel = getSelectedIssueLabel(t, selectedCategory, draft.issueType);
@@ -681,6 +818,7 @@ export function FreeStartIntakeShell({
 
           <aside className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
             <FreeStartSidebar
+              confidenceLevel={confidenceLevel}
               contacts={contacts}
               continueHref={continueHref}
               continueLabel={continueLabel}
