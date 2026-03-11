@@ -23,7 +23,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P1C` Commercial Contract Foundations is now complete as the post-infrastructure commercial-contract tranche. `C05` is complete as the canonical claims-first scope-tree and referral-boundary slice, `C01` is complete as the canonical coverage-matrix publication slice, `C04` is complete as the canonical annual billing, cancellation, refund, and cooling-off publication slice, `C02` is complete as the canonical success-fee calculator and example-pricing slice, `C03` is complete as the canonical Free Start and hotline disclaimer slice, and `C06` is complete as the canonical commercial-funnel instrumentation slice. The committed commercial contract defined by the business-model blueprint is now fully published.
 
-`P1T` Free Start And Trust UX is now the live post-`P1C` tranche. `T01` is complete as the canonical hero, trust-strip, and footer-safety-net slice. The remaining committed queue is `T02` through `T06`: the Free Start claim-pack generator shell, confidence and next-step guidance, claim-type evidence and privacy microcopy, `/services` alignment, and i18n plus component-test coverage for the new trust surfaces.
+`P1T` Free Start And Trust UX is now the live post-`P1C` tranche. `T01` is complete as the canonical hero, trust-strip, and footer-safety-net slice, and `T02` is complete as the canonical Free Start claim-pack generator shell slice. The remaining committed queue is `T03` through `T06`: confidence and next-step guidance, claim-type evidence and privacy microcopy, `/services` alignment, and i18n plus component-test coverage for the new trust surfaces.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -89,11 +89,10 @@ pnpm plan:proof
 
 `P1C` Commercial Contract Foundations is now complete as the committed post-infrastructure tranche. `C05`, `C01`, `C04`, `C02`, `C03`, and `C06` are complete.
 
-`P1T` Free Start And Trust UX is now the committed post-`P1C` tranche. `T01` is complete.
+`P1T` Free Start And Trust UX is now the committed post-`P1C` tranche. `T01` and `T02` are complete.
 
 The remaining committed queue inside `P1T` is:
 
-- `T02` Ship the Free Start claim-pack generator shell.
 - `T03` Add confidence score and recommended next step.
 - `T04` Add claim-type evidence prompts, privacy badge, and SLA microcopy.
 - `T05` Add `/services` content aligned to the coverage matrix.
@@ -148,6 +147,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `P1T` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the active post-`P1C` tranche.
 - `T01` through `T06` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the committed Free Start and Trust UX queue.
 - `T01` is complete as the hero, trust-strip, and footer-safety-net slice.
+- `T02` is complete as the Free Start claim-pack generator shell slice.
 
 ## Historical Foundation, Not Current Sequencing
 

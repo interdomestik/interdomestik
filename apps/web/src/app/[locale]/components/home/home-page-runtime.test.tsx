@@ -6,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
   replaceMock: vi.fn(),
   resolveTenantFromHostMock: vi.fn(() => 'tenant_mk'),
   heroV2Mock: vi.fn((_: unknown) => null),
+  freeStartIntakeShellMock: vi.fn((_: unknown) => null),
   funnelLandingTrackerMock: vi.fn((_: unknown) => null),
 }));
 
@@ -31,6 +32,10 @@ vi.mock('@/components/analytics/funnel-trackers', () => ({
 
 vi.mock('./hero-v2', () => ({
   HeroV2: (props: unknown) => hoisted.heroV2Mock(props),
+}));
+
+vi.mock('./free-start-intake-shell', () => ({
+  FreeStartIntakeShell: (props: unknown) => hoisted.freeStartIntakeShellMock(props),
 }));
 
 import { HomePageRuntime } from './home-page-runtime';
@@ -71,7 +76,12 @@ describe('HomePageRuntime', () => {
       });
       expect(hoisted.heroV2Mock).toHaveBeenCalledWith({
         locale: 'sq',
-        startClaimHref: '/register',
+        startClaimHref: '#free-start-intake',
+        tenantId: 'tenant_mk',
+      });
+      expect(hoisted.freeStartIntakeShellMock).toHaveBeenCalledWith({
+        continueHref: '/register',
+        locale: 'sq',
         tenantId: 'tenant_mk',
       });
     });
@@ -95,6 +105,11 @@ describe('HomePageRuntime', () => {
       expect(hoisted.heroV2Mock).toHaveBeenCalledWith({
         locale: 'sq',
         startClaimHref: '/member/claims/new',
+        tenantId: 'tenant_ks',
+      });
+      expect(hoisted.freeStartIntakeShellMock).toHaveBeenCalledWith({
+        continueHref: '/member/claims/new',
+        locale: 'sq',
         tenantId: 'tenant_ks',
       });
     });

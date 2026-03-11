@@ -1,0 +1,117 @@
+{
+  "freeStart": {
+    "eyebrow": "Paketa Free Start",
+    "title": "Ndërto paketën e parë të kërkesës para përshkallëzimit.",
+    "subtitle": "Zgjidh kategorinë, plotëso një intake të shkurtër të udhëzuar dhe dil me një paketë fillestare që mund ta çosh në anëtarësim ose në mbështetje pasuese.",
+    "steps": {
+      "choose": "Zgjidh llojin e rastit",
+      "details": "Intake i udhëzuar",
+      "preview": "Paraqitja e paketës"
+    },
+    "choose": {
+      "heading": "Nise me problemin që duhet zgjidhur.",
+      "body": "Ky intake publik mbulon vetëm rastet në kufirin e nisjes. Zgjidh së pari kategorinë që përputhet me situatën tënde.",
+      "continue": "Vazhdo te intake i udhëzuar"
+    },
+    "categories": {
+      "vehicle": {
+        "title": "Dëmtim i automjetit",
+        "description": "Aksidente trafiku, vjedhje, vandalizëm dhe vonesa të siguruesit për riparim ose pagesë.",
+        "examples": "Përplasje, dëmtim në parking, vonesë e siguruesit"
+      },
+      "property": {
+        "title": "Dëmtim i pronës",
+        "description": "Dëme në shtëpi, banesë ose objekt me rrugë të qartë rikuperimi.",
+        "examples": "Dëmtim nga uji, stuhi, vjedhje"
+      },
+      "injury": {
+        "title": "Lëndim personal",
+        "description": "Raste lëndimi me rrugë monetare rikuperimi dhe palë përgjegjëse të qartë.",
+        "examples": "Lëndim në punë, lëndim në trafik, neglizhencë"
+      }
+    },
+    "details": {
+      "heading": "Përgjigju intake-ut të udhëzuar.",
+      "body": "Na duhen vetëm faktet bazë për skeletin e paketës: çfarë ndodhi, kur ndodhi, kush është i përfshirë dhe çfarë dëshiron të rikuperosh.",
+      "issueType": "Çfarë ndodhi?",
+      "incidentDate": "Kur ndodhi?",
+      "counterparty": "Me kë po merresh?",
+      "counterpartyPlaceholder": "Sigurues, qiradhënës, punëdhënës, spital, shofer ose palë tjetër",
+      "desiredOutcome": "Çfarë dëshiron të rikuperosh?",
+      "summary": "Përmbledhje e shkurtër",
+      "summaryPlaceholder": "Shto faktet kryesore që duhet të përsëriten njësoj në ankesë, njoftim ose telefonatë pasuese.",
+      "selectPlaceholder": "Zgjidh një opsion",
+      "back": "Kthehu te lloji i rastit",
+      "continue": "Shiko paketën Free Start"
+    },
+    "issues": {
+      "vehicle": {
+        "collision": "Dëmtim nga përplasja",
+        "theft": "Vjedhje ose vandalizëm",
+        "parking_damage": "Dëmtim në parking ose goditje pa autor",
+        "insurer_delay": "Vonesë e siguruesit në riparim ose pagesë"
+      },
+      "property": {
+        "water_damage": "Dëmtim nga uji",
+        "storm_fire": "Dëmtim nga stuhi ose zjarr",
+        "burglary": "Vjedhje ose hyrje me forcë",
+        "landlord_dispute": "Mosmarrëveshje me qiradhënësin ose objektin"
+      },
+      "injury": {
+        "workplace_injury": "Lëndim në vendin e punës",
+        "traffic_injury": "Lëndim në trafik",
+        "medical_negligence": "Neglizhencë mjekësore",
+        "public_liability": "Lëndim nga përgjegjësia publike"
+      }
+    },
+    "outcomes": {
+      "repair": "Kosto riparimi ose zëvendësimi",
+      "reimbursement": "Rimbursim shpenzimesh",
+      "compensation": "Kompensim për lëndim ose humbje",
+      "written_response": "Përgjigje formale me shkrim"
+    },
+    "preview": {
+      "heading": "Rishiko skeletin e paketës Free Start.",
+      "body": "Ky skelet i mban bashkë faktet e intake-ut para udhëzimit më të thellë, kërkesave për prova ose përshkallëzimit te stafi.",
+      "packBadge": "Skeleti i paketës u krijua",
+      "categoryLabel": "Lloji i rastit",
+      "issueLabel": "Problemi",
+      "dateLabel": "Data e incidentit",
+      "counterpartyLabel": "Pala tjetër",
+      "outcomeLabel": "Rezultati i kërkuar",
+      "summaryLabel": "Përmbledhja",
+      "includesHeading": "Ky skelet tashmë të jep",
+      "includes": {
+        "summary": "Një përmbledhje të strukturuar të intake-ut që mund ta ripërdorësh pa rishkruar faktet.",
+        "timeline": "Një bazë të qartë kohe me datën, llojin e problemit dhe palën përgjegjëse.",
+        "handoff": "Një pikë të qëndrueshme dorëzimi për anëtarësim, telefonatë ose përshkallëzim të mëvonshëm."
+      },
+      "notProvided": "Nuk është dhënë",
+      "back": "Kthehu te intake-u",
+      "finish": "Përfundo Free Start"
+    },
+    "completion": {
+      "badge": "Free Start u përfundua",
+      "heading": "Intake-u yt u përfundua.",
+      "body": "Tani ke një skelet të strukturuar të paketës së kërkesës bazuar në faktet që dhe. Vazhdo kur të duash trajtim formal ose anëtarësim.",
+      "continueMembership": "Vazhdo te anëtarësimi",
+      "continueMember": "Vazhdo te kërkesat e anëtarit",
+      "continuePortal": "Vazhdo në portal",
+      "hotline": "Telefono linjën"
+    },
+    "support": {
+      "badge": "Pse ndihmon",
+      "heading": "Mbaje hapin e parë të pastër dhe të qëndrueshëm.",
+      "body": "Ky skelet e mban intake-un e parë publik të shkurtër, të përsëritshëm dhe gati për hapat e ardhshëm pa rihapur faktet.",
+      "points": {
+        "lane": "Së pari zgjedh kategorinë e duhur komerciale: automjet, pronë ose lëndim.",
+        "facts": "Intake-u kap vetëm faktet thelbësore për të ecur përpara qartë.",
+        "handoff": "Të njëjtat fakte mund të kalojnë në anëtarësim ose follow-up pa ndryshim rruge."
+      }
+    },
+    "validation": {
+      "chooseCategory": "Zgjidh automjet, pronë ose lëndim para se të vazhdosh.",
+      "completeIntake": "Plotëso çdo fushë të intake-ut të udhëzuar para se të shohësh paketën Free Start."
+    }
+  }
+}

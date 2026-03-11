@@ -1,0 +1,117 @@
+{
+  "freeStart": {
+    "eyebrow": "Free Start claim pack",
+    "title": "Build your first claim pack before you escalate.",
+    "subtitle": "Choose your lane, answer a short guided intake, and leave with a structured Free Start pack shell you can carry into membership or follow-up support.",
+    "steps": {
+      "choose": "Choose claim type",
+      "details": "Guided intake",
+      "preview": "Pack preview"
+    },
+    "choose": {
+      "heading": "Start with the issue you need to solve.",
+      "body": "This public intake stays on the claims already in launch scope. Pick the lane that matches your situation first.",
+      "continue": "Continue to guided intake"
+    },
+    "categories": {
+      "vehicle": {
+        "title": "Vehicle damage",
+        "description": "Traffic accidents, theft, vandalism, and insurer delay on repairs or payout.",
+        "examples": "Collision, parking damage, insurer delay"
+      },
+      "property": {
+        "title": "Property damage",
+        "description": "Home, apartment, or building damage with a clear recovery path.",
+        "examples": "Water damage, storm, burglary"
+      },
+      "injury": {
+        "title": "Personal injury",
+        "description": "Injury matters with a monetary recovery path and a clear responsible party.",
+        "examples": "Workplace injury, traffic injury, negligence"
+      }
+    },
+    "details": {
+      "heading": "Answer the guided intake.",
+      "body": "We only need the core facts for the first pack shell: what happened, when it happened, who is involved, and what you want to recover.",
+      "issueType": "What happened?",
+      "incidentDate": "When did it happen?",
+      "counterparty": "Who are you dealing with?",
+      "counterpartyPlaceholder": "Insurer, landlord, employer, hospital, driver, or other party",
+      "desiredOutcome": "What do you want to recover?",
+      "summary": "Brief summary",
+      "summaryPlaceholder": "Add the core facts you would want repeated consistently in a complaint, notice, or follow-up call.",
+      "selectPlaceholder": "Select one option",
+      "back": "Back to claim type",
+      "continue": "Preview your Free Start pack"
+    },
+    "issues": {
+      "vehicle": {
+        "collision": "Collision damage",
+        "theft": "Theft or vandalism",
+        "parking_damage": "Parking or hit-and-run damage",
+        "insurer_delay": "Insurer repair or payout delay"
+      },
+      "property": {
+        "water_damage": "Water damage",
+        "storm_fire": "Storm or fire damage",
+        "burglary": "Burglary or forced entry",
+        "landlord_dispute": "Landlord or building responsibility dispute"
+      },
+      "injury": {
+        "workplace_injury": "Workplace injury",
+        "traffic_injury": "Traffic injury",
+        "medical_negligence": "Medical negligence",
+        "public_liability": "Public liability injury"
+      }
+    },
+    "outcomes": {
+      "repair": "Repair or replacement costs",
+      "reimbursement": "Expense reimbursement",
+      "compensation": "Compensation for injury or loss",
+      "written_response": "A formal written response"
+    },
+    "preview": {
+      "heading": "Review your Free Start pack shell.",
+      "body": "This shell keeps the intake facts together before deeper guidance, evidence prompts, or staff escalation.",
+      "packBadge": "Pack shell generated",
+      "categoryLabel": "Claim type",
+      "issueLabel": "Issue",
+      "dateLabel": "Incident date",
+      "counterpartyLabel": "Counterparty",
+      "outcomeLabel": "Requested outcome",
+      "summaryLabel": "Summary",
+      "includesHeading": "This shell already gives you",
+      "includes": {
+        "summary": "A structured intake summary you can reuse without rewriting the facts.",
+        "timeline": "A clean timeline anchor with the date, issue type, and responsible party.",
+        "handoff": "A consistent handoff point for membership, hotline follow-up, or later escalation."
+      },
+      "notProvided": "Not provided",
+      "back": "Back to intake",
+      "finish": "Finish Free Start"
+    },
+    "completion": {
+      "badge": "Free Start complete",
+      "heading": "Your intake is complete.",
+      "body": "You now have a structured claim-pack shell based on the facts you entered. Continue when you want formal follow-up or membership handling.",
+      "continueMembership": "Continue to membership",
+      "continueMember": "Continue in member claims",
+      "continuePortal": "Continue to portal",
+      "hotline": "Call the hotline"
+    },
+    "support": {
+      "badge": "Why this helps",
+      "heading": "Keep the first step clean and consistent.",
+      "body": "The shell is designed to keep your first public intake short, repeatable, and ready for the next trust surfaces without reopening the facts.",
+      "points": {
+        "lane": "You choose the right commercial lane first: vehicle, property, or injury.",
+        "facts": "The intake captures only the core facts needed to move forward clearly.",
+        "handoff": "The same facts can flow into membership or follow-up without a routing change."
+      }
+    },
+    "validation": {
+      "chooseCategory": "Choose vehicle, property, or injury before continuing.",
+      "completeIntake": "Complete each guided intake field before previewing your Free Start pack."
+    }
+  }
+}
