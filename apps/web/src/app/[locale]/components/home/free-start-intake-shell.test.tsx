@@ -2,15 +2,26 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import enFreeStartMessages from '@/messages/en/freeStart.json';
+import sqFreeStartMessages from '@/messages/sq/freeStart.json';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
 
 const hoisted = vi.hoisted(() => ({
   freeStartCompletedMock: vi.fn(),
+  currentLocale: 'en' as 'en' | 'sq',
 }));
+
+const localeMessages = {
+  en: {
+    freeStart: enFreeStartMessages.freeStart,
+  },
+  sq: {
+    freeStart: sqFreeStartMessages.freeStart,
+  },
+} as const;
 
 vi.mock('next-intl', () => ({
   useTranslations: createUseTranslationsMock(() => ({
-    freeStart: enFreeStartMessages.freeStart,
+    freeStart: localeMessages[hoisted.currentLocale].freeStart,
   })),
 }));
 
@@ -49,6 +60,7 @@ vi.mock('@/lib/analytics', async () => {
 
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 
+type LocaleId = keyof typeof localeMessages;
 type TestIssueId = 'water_damage' | 'landlord_dispute';
 type TestOutcomeId = 'repair' | 'written_response';
 
@@ -61,8 +73,25 @@ type CompleteIntakeOptions = {
   summary?: string;
 };
 
+function getTranslationValue(source: unknown, key: string): string {
+  const value = key.split('.').reduce<unknown>((current, segment) => {
+    if (current && typeof current === 'object' && segment in current) {
+      return (current as Record<string, unknown>)[segment];
+    }
+
+    return undefined;
+  }, source);
+
+  return typeof value === 'string' ? value : key;
+}
+
+function getFreeStartMessage(locale: LocaleId, key: string): string {
+  return getTranslationValue(localeMessages[locale].freeStart, key);
+}
+
 async function completeFreeStartIntake(
   user: ReturnType<typeof userEvent.setup>,
+  locale: LocaleId,
   options: CompleteIntakeOptions = {}
 ) {
   const {
@@ -75,35 +104,60 @@ async function completeFreeStartIntake(
   } = options;
 
   await user.click(screen.getByTestId(`free-start-category-${category}`));
-  await user.click(screen.getByRole('button', { name: 'Continue to guided intake' }));
+  await user.click(
+    screen.getByRole('button', { name: getFreeStartMessage(locale, 'choose.continue') })
+  );
 
-  await user.selectOptions(screen.getByLabelText('What happened?'), issueType);
-  await user.type(screen.getByLabelText('When did it happen?'), incidentDate);
-  await user.type(screen.getByLabelText('Who are you dealing with?'), counterparty);
-  await user.selectOptions(screen.getByLabelText('What do you want to recover?'), desiredOutcome);
-  await user.type(screen.getByLabelText('Brief summary'), summary);
-  await user.click(screen.getByRole('button', { name: 'Preview your Free Start pack' }));
-  await user.click(screen.getByRole('button', { name: 'Finish Free Start' }));
+  await user.selectOptions(
+    screen.getByLabelText(getFreeStartMessage(locale, 'details.issueType')),
+    issueType
+  );
+  await user.type(
+    screen.getByLabelText(getFreeStartMessage(locale, 'details.incidentDate')),
+    incidentDate
+  );
+  await user.type(
+    screen.getByLabelText(getFreeStartMessage(locale, 'details.counterparty')),
+    counterparty
+  );
+  await user.selectOptions(
+    screen.getByLabelText(getFreeStartMessage(locale, 'details.desiredOutcome')),
+    desiredOutcome
+  );
+  await user.type(screen.getByLabelText(getFreeStartMessage(locale, 'details.summary')), summary);
+  await user.click(
+    screen.getByRole('button', { name: getFreeStartMessage(locale, 'details.continue') })
+  );
+  await user.click(
+    screen.getByRole('button', { name: getFreeStartMessage(locale, 'preview.finish') })
+  );
 }
 
 const CATEGORY_EVIDENCE_EXPECTATIONS = [
   {
     category: 'vehicle',
-    evidencePrompt: 'Photos of the vehicle damage and the wider scene.',
+    evidencePrompt: enFreeStartMessages.freeStart.trust.evidence.vehicle.items.first,
   },
   {
     category: 'property',
-    evidencePrompt: 'Photos or video of every damaged room before cleanup.',
+    evidencePrompt: enFreeStartMessages.freeStart.trust.evidence.property.items.first,
   },
   {
     category: 'injury',
-    evidencePrompt: 'Medical notes, discharge papers, or treatment summaries.',
+    evidencePrompt: enFreeStartMessages.freeStart.trust.evidence.injury.items.first,
   },
 ] as const;
 
+function renderFreeStart(locale: LocaleId, continueHref = '/register') {
+  hoisted.currentLocale = locale;
+  return render(
+    <FreeStartIntakeShell continueHref={continueHref} locale={locale} tenantId="tenant_public" />
+  );
+}
+
 describe('FreeStartIntakeShell', () => {
   it('shows the three launch categories before the guided intake starts', () => {
-    render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
+    renderFreeStart('en');
 
     expect(screen.getByTestId('free-start-category-vehicle')).toBeInTheDocument();
     expect(screen.getByTestId('free-start-category-property')).toBeInTheDocument();
@@ -113,21 +167,28 @@ describe('FreeStartIntakeShell', () => {
   it('lets a public user complete the intake path and generates a pack shell summary', async () => {
     const user = userEvent.setup();
 
-    render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
+    renderFreeStart('en');
 
-    await completeFreeStartIntake(user);
+    await completeFreeStartIntake(user, 'en');
 
     expect(screen.getByTestId('free-start-complete')).toBeInTheDocument();
-    expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent('High');
+    expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent(
+      enFreeStartMessages.freeStart.completion.confidence.levels.high.label
+    );
     expect(screen.getByTestId('free-start-next-step')).toHaveTextContent(
-      'Join Asistenca for human triage within 24 business hours.'
+      enFreeStartMessages.freeStart.completion.nextStep.levels.high
     );
-    expect(screen.getByText('Property damage')).toBeInTheDocument();
-    expect(screen.getByText('Water damage')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Join Asistenca for human triage' })).toHaveAttribute(
-      'href',
-      '/register'
-    );
+    expect(
+      screen.getByText(enFreeStartMessages.freeStart.categories.property.title)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(enFreeStartMessages.freeStart.issues.property.water_damage)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: enFreeStartMessages.freeStart.completion.cta.membership.high,
+      })
+    ).toHaveAttribute('href', '/register');
     expect(hoisted.freeStartCompletedMock).toHaveBeenCalledWith(
       {
         locale: 'en',
@@ -146,9 +207,7 @@ describe('FreeStartIntakeShell', () => {
     async ({ category, evidencePrompt }) => {
       const user = userEvent.setup();
 
-      render(
-        <FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />
-      );
+      renderFreeStart('en');
 
       await user.click(screen.getByTestId(`free-start-category-${category}`));
 
@@ -159,76 +218,125 @@ describe('FreeStartIntakeShell', () => {
   it('uses the portal continuation label for authenticated non-member routes', async () => {
     const user = userEvent.setup();
 
-    render(<FreeStartIntakeShell continueHref="/agent" locale="en" tenantId="tenant_public" />);
+    renderFreeStart('en', '/agent');
 
-    await completeFreeStartIntake(user);
+    await completeFreeStartIntake(user, 'en');
 
-    expect(screen.getByRole('link', { name: 'Continue in the portal for review' })).toHaveAttribute(
-      'href',
-      '/agent'
+    expect(
+      screen.getByRole('link', {
+        name: enFreeStartMessages.freeStart.completion.cta.portal.high,
+      })
+    ).toHaveAttribute('href', '/agent');
+  });
+
+  it('renders the Albanian trust copy for evidence, privacy, triage, and next-step guidance', async () => {
+    const user = userEvent.setup();
+
+    renderFreeStart('sq');
+
+    await completeFreeStartIntake(user, 'sq');
+
+    expect(screen.getByTestId('free-start-evidence-guidance')).toHaveTextContent(
+      sqFreeStartMessages.freeStart.trust.evidence.property.items.first
     );
+    expect(screen.getByTestId('free-start-privacy-note')).toHaveTextContent(
+      sqFreeStartMessages.freeStart.trust.privacy.badge
+    );
+    expect(screen.getByTestId('free-start-privacy-note')).toHaveTextContent(
+      sqFreeStartMessages.freeStart.trust.privacy.body
+    );
+    expect(screen.getByTestId('free-start-triage-note')).toHaveTextContent(
+      sqFreeStartMessages.freeStart.trust.triage.badge
+    );
+    expect(screen.getByTestId('free-start-triage-note')).toHaveTextContent(
+      sqFreeStartMessages.freeStart.trust.triage.body
+    );
+    expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent(
+      sqFreeStartMessages.freeStart.completion.confidence.levels.high.label
+    );
+    expect(screen.getByTestId('free-start-next-step')).toHaveTextContent(
+      sqFreeStartMessages.freeStart.completion.nextStep.levels.high
+    );
+    expect(
+      screen.getByRole('link', {
+        name: sqFreeStartMessages.freeStart.completion.cta.membership.high,
+      })
+    ).toHaveAttribute('href', '/register');
   });
 
   it('returns a medium-confidence result when the intake needs document review before escalation', async () => {
     const user = userEvent.setup();
 
-    render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
+    renderFreeStart('en');
 
-    await completeFreeStartIntake(user, {
+    await completeFreeStartIntake(user, 'en', {
       counterparty: 'Insurer',
       summary: 'Storm damage to the roof.',
     });
 
-    expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent('Medium');
+    expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent(
+      enFreeStartMessages.freeStart.completion.confidence.levels.medium.label
+    );
     expect(screen.getByTestId('free-start-next-step')).toHaveTextContent(
-      'Upgrade for document review before you send the first complaint or notice.'
+      enFreeStartMessages.freeStart.completion.nextStep.levels.medium
     );
-    expect(screen.getByRole('link', { name: 'Upgrade for document review' })).toHaveAttribute(
-      'href',
-      '/register'
-    );
+    expect(
+      screen.getByRole('link', {
+        name: enFreeStartMessages.freeStart.completion.cta.membership.medium,
+      })
+    ).toHaveAttribute('href', '/register');
   });
 
   it('returns a low-confidence result and routes the user to the hotline when the matter looks guidance-only', async () => {
     const user = userEvent.setup();
 
-    render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
+    renderFreeStart('en');
 
-    await completeFreeStartIntake(user, {
+    await completeFreeStartIntake(user, 'en', {
       counterparty: 'Landlord',
       issueType: 'landlord_dispute',
       desiredOutcome: 'written_response',
       summary: 'Dispute about repairs.',
     });
 
-    expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent('Low');
+    expect(screen.getByTestId('free-start-confidence-level')).toHaveTextContent(
+      enFreeStartMessages.freeStart.completion.confidence.levels.low.label
+    );
     expect(screen.getByTestId('free-start-next-step')).toHaveTextContent(
-      'Use the hotline for routing support and the clearest next step before you escalate.'
+      enFreeStartMessages.freeStart.completion.nextStep.levels.low
     );
     expect(
-      screen.getByRole('link', { name: 'Call the hotline for next-step guidance' })
+      screen.getByRole('link', {
+        name: enFreeStartMessages.freeStart.completion.cta.hotline.low,
+      })
     ).toHaveAttribute('href', 'tel:+38349900600');
   });
 
   it('shows privacy notice and triage timing in the completed flow without changing the T03 outcome guidance', async () => {
     const user = userEvent.setup();
 
-    render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
+    renderFreeStart('en');
 
-    await completeFreeStartIntake(user);
+    await completeFreeStartIntake(user, 'en');
 
     expect(screen.getByTestId('free-start-evidence-guidance')).toHaveTextContent(
-      'Photos or video of every damaged room before cleanup.'
+      enFreeStartMessages.freeStart.trust.evidence.property.items.first
     );
-    expect(screen.getByTestId('free-start-privacy-note')).toHaveTextContent('Private by default');
     expect(screen.getByTestId('free-start-privacy-note')).toHaveTextContent(
-      'You do not need to upload documents in Free Start.'
+      enFreeStartMessages.freeStart.trust.privacy.badge
     );
-    expect(screen.getByTestId('free-start-triage-note')).toHaveTextContent('Human triage timing');
+    expect(screen.getByTestId('free-start-privacy-note')).toHaveTextContent(
+      enFreeStartMessages.freeStart.trust.privacy.body
+    );
+    expect(screen.getByTestId('free-start-triage-note')).toHaveTextContent(
+      enFreeStartMessages.freeStart.trust.triage.badge
+    );
     expect(screen.getByTestId('free-start-triage-note')).toHaveTextContent('24 business hours');
-    expect(screen.getByTestId('free-start-triage-note')).toHaveTextContent('complete claim pack');
+    expect(screen.getByTestId('free-start-triage-note')).toHaveTextContent(
+      enFreeStartMessages.freeStart.trust.triage.body
+    );
     expect(screen.getByTestId('free-start-next-step')).toHaveTextContent(
-      'Join Asistenca for human triage within 24 business hours.'
+      enFreeStartMessages.freeStart.completion.nextStep.levels.high
     );
   });
 });
