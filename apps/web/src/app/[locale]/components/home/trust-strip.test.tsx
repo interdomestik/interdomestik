@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { createUseTranslationsMock } from '@/test/next-intl-mock';
 
 const hoisted = vi.hoisted(() => ({
   messages: {
@@ -23,26 +24,7 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: (namespace?: string) => {
-    const resolve = (key?: string) => {
-      const path = [namespace, key].filter(Boolean).join('.').split('.');
-      return path.reduce<unknown>((value, segment) => {
-        if (value && typeof value === 'object' && segment in value) {
-          return (value as Record<string, unknown>)[segment];
-        }
-        return undefined;
-      }, hoisted.messages);
-    };
-
-    const translate = (key: string) => {
-      const value = resolve(key);
-      return typeof value === 'string' ? value : key;
-    };
-
-    translate.raw = (key: string) => resolve(key);
-
-    return translate;
-  },
+  useTranslations: createUseTranslationsMock(() => hoisted.messages),
 }));
 
 vi.mock('@/lib/flags', () => ({
