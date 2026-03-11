@@ -31,6 +31,14 @@
 - Prefer explicit types on public TypeScript APIs and use discriminated unions for result types when they improve clarity.
 - Prefer `rg` for repository searches when gathering context.
 
+## Quality bar
+
+- Prefer small, surgical diffs over broad rewrites.
+- Match existing local patterns before adding new abstractions, helpers, or dependencies.
+- Do not leave TODOs, placeholders, dead code, or speculative utilities in final output.
+- Reuse existing product language, route helpers, auth helpers, and translation patterns instead of inventing parallel ones.
+- When behavior changes, update the nearest relevant unit, integration, or E2E coverage in the same change.
+
 ## Verification
 
 - Before claiming work is complete, run the commands that prove the claim.
