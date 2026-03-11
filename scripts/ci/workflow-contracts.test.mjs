@@ -174,22 +174,18 @@ test('Secret Scan is the sole blocking gitleaks surface for PR and mainline whil
   assert.equal(findStep(securityAuditJob.steps, 'Upload gitleaks report artifact'), undefined);
 });
 
-test('Heavy PR workflows skip runner startup for docs-only and planning-only changes', () => {
+test('Heavy PR workflows always materialize on PRs and delegate docs-only skipping to validation surface checks', () => {
   const prE2eWorkflow = readWorkflow('.github/workflows/e2e-pr.yml');
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
+  const prE2eJob = prE2eWorkflow.jobs.e2e;
+  const pilotGatePreflightJob = pilotGateWorkflow.jobs['pilot-gate-preflight'];
 
-  const expectedIgnoredPaths = [
-    'docs/**',
-    '.agent/**',
-    'scripts/plan*.mjs',
-    'README*',
-    'CHANGELOG*',
-    'CONTRIBUTING*',
-    'LICENSE*',
-  ];
-
-  assert.deepEqual(prE2eWorkflow.on.pull_request['paths-ignore'], expectedIgnoredPaths);
-  assert.deepEqual(pilotGateWorkflow.on.pull_request['paths-ignore'], expectedIgnoredPaths);
+  assert.equal(prE2eWorkflow.on.pull_request['paths-ignore'], undefined);
+  assert.equal(pilotGateWorkflow.on.pull_request['paths-ignore'], undefined);
+  assert.ok(findStep(prE2eJob.steps, 'Evaluate validation surface'));
+  assert.ok(findStep(prE2eJob.steps, 'Skip strict PR E2E for non-product-only changes'));
+  assert.ok(findStep(pilotGatePreflightJob.steps, 'Evaluate validation surface'));
+  assert.ok(findStep(pilotGatePreflightJob.steps, 'Skip pilot gate for non-product-only changes'));
 });
 
 test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a lightweight preflight job', () => {

@@ -4,16 +4,8 @@ on:
   pull_request:
     branches:
       - '**'
-    # Workflow-file edits should still materialize the protected PR check, even when
-    # runtime-sensitive steps are skipped by the validation-surface guard below.
-    paths-ignore:
-      - 'docs/**'
-      - '.agent/**'
-      - 'scripts/plan*.mjs'
-      - 'README*'
-      - 'CHANGELOG*'
-      - 'CONTRIBUTING*'
-      - 'LICENSE*'
+    # Protected checks must always materialize on PRs; the validation-surface
+    # policy below skips heavy work for docs-only and other non-product changes.
   workflow_dispatch: {}
 
 permissions:
