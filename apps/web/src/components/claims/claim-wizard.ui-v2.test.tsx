@@ -6,7 +6,20 @@ const mockPush = vi.fn();
 const mockTrigger = vi.fn();
 const mockSubmitClaim = vi.fn();
 const mockFunnelFirstClaimSubmitted = vi.fn();
+const mockFreeStartCompleted = vi.fn();
+const mockEscalationRequested = vi.fn();
+const mockEscalationDeclined = vi.fn();
 const mockResolveFunnelVariant = vi.fn((_enabled: boolean) => 'hero_v2');
+const defaultFormValues = {
+  category: 'vehicle',
+  title: 'Test claim title',
+  companyName: 'Test Company',
+  description: 'A valid description for claim submission.',
+  incidentDate: '2026-02-10',
+  currency: 'EUR',
+  files: [],
+};
+const mockFormValues = { ...defaultFormValues };
 
 vi.mock('react-hook-form', () => {
   const actual = vi.importActual('react-hook-form');
@@ -24,15 +37,7 @@ vi.mock('react-hook-form', () => {
       handleSubmit:
         (fn: (data: Record<string, unknown>) => Promise<void>) => async (e: React.FormEvent) => {
           e?.preventDefault?.();
-          await fn({
-            category: 'vehicle',
-            title: 'Test claim title',
-            companyName: 'Test Company',
-            description: 'A valid description for claim submission.',
-            incidentDate: '2026-02-10',
-            currency: 'EUR',
-            files: [],
-          });
+          await fn({ ...mockFormValues });
         },
       trigger: mockTrigger,
       watch: mockWatch,
@@ -119,6 +124,11 @@ vi.mock('@/lib/analytics', () => ({
     submitted: vi.fn(),
     failed: vi.fn(),
   },
+  CommercialFunnelEvents: {
+    freeStartCompleted: (...args: [unknown, unknown?]) => mockFreeStartCompleted(...args),
+    escalationRequested: (...args: [unknown, unknown?]) => mockEscalationRequested(...args),
+    escalationDeclined: (...args: [unknown, unknown?]) => mockEscalationDeclined(...args),
+  },
   FunnelEvents: {
     firstClaimSubmitted: (...args: [unknown, unknown?]) => mockFunnelFirstClaimSubmitted(...args),
   },
@@ -162,6 +172,7 @@ describe('ClaimWizard UI V2', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_UI_V2 = 'true';
+    Object.assign(mockFormValues, defaultFormValues);
   });
 
   it('shows a visible inline error when next-step validation fails', async () => {
@@ -225,6 +236,73 @@ describe('ClaimWizard UI V2', () => {
       },
       {
         claim_id: 'CLM-TEST-123',
+      }
+    );
+    expect(mockFreeStartCompleted).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant_mk',
+        variant: 'hero_v2',
+        locale: 'sq',
+      },
+      {
+        claim_id: 'CLM-TEST-123',
+        claim_category: 'vehicle',
+      }
+    );
+    expect(mockEscalationRequested).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant_mk',
+        variant: 'hero_v2',
+        locale: 'sq',
+      },
+      {
+        claim_id: 'CLM-TEST-123',
+        claim_category: 'vehicle',
+        decision_reason: 'launch_scope_supported',
+      }
+    );
+    expect(mockEscalationDeclined).not.toHaveBeenCalled();
+  });
+
+  it('tracks escalation decline for categories outside the launch scope', async () => {
+    mockTrigger.mockResolvedValue(true);
+    mockSubmitClaim.mockResolvedValue({ success: true, claimId: 'CLM-TRAVEL-123' });
+    mockFormValues.category = 'travel';
+
+    render(<ClaimWizard tenantId="tenant_mk" />);
+
+    fireEvent.click(screen.getByTestId('wizard-next'));
+    await waitFor(() => expect(screen.getByText(/Step 2 of 4/)).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('wizard-next'));
+    await waitFor(() => expect(screen.getByText(/Step 3 of 4/)).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('wizard-next'));
+    await waitFor(() => expect(screen.getByText(/Step 4 of 4/)).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('wizard-submit'));
+
+    await screen.findByTestId('claim-created-success');
+
+    expect(mockFreeStartCompleted).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant_mk',
+        variant: 'hero_v2',
+        locale: 'sq',
+      },
+      {
+        claim_id: 'CLM-TRAVEL-123',
+        claim_category: 'travel',
+      }
+    );
+    expect(mockEscalationRequested).not.toHaveBeenCalled();
+    expect(mockEscalationDeclined).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant_mk',
+        variant: 'hero_v2',
+        locale: 'sq',
+      },
+      {
+        claim_id: 'CLM-TRAVEL-123',
+        claim_category: 'travel',
+        decision_reason: 'outside_launch_scope',
       }
     );
   });

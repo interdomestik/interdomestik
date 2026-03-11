@@ -3,7 +3,12 @@
 import { submitClaim } from '@/actions/claims';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useRouter } from '@/i18n/routing';
-import { ClaimsEvents, FunnelEvents, resolveFunnelVariant } from '@/lib/analytics';
+import {
+  ClaimsEvents,
+  CommercialFunnelEvents,
+  FunnelEvents,
+  resolveFunnelVariant,
+} from '@/lib/analytics';
 import { isUiV2Enabled } from '@/lib/flags';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { createClaimSchema, type CreateClaimValues } from '@/lib/validators/claims';
@@ -28,6 +33,7 @@ type ClaimWizardProps = {
 };
 
 const STEP_NAMES = ['category', 'details', 'evidence', 'review'];
+const COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES = new Set(['vehicle', 'property', 'injury']);
 
 const STEP_VALIDATION: Record<
   number,
@@ -149,16 +155,37 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
               : null
             : null;
         const normalizedClaimId = claimId ?? 'unknown-claim-id';
-        FunnelEvents.firstClaimSubmitted(
-          {
-            tenantId: tenantId ?? null,
-            variant: resolveFunnelVariant(uiV2Enabled),
-            locale,
-          },
-          {
+        const normalizedCategory =
+          typeof data.category === 'string' && data.category.trim().length > 0
+            ? data.category.trim().toLowerCase()
+            : 'unknown';
+        const funnelContext = {
+          tenantId: tenantId ?? null,
+          variant: resolveFunnelVariant(uiV2Enabled),
+          locale,
+        };
+
+        FunnelEvents.firstClaimSubmitted(funnelContext, {
+          claim_id: normalizedClaimId,
+        });
+        CommercialFunnelEvents.freeStartCompleted(funnelContext, {
+          claim_id: normalizedClaimId,
+          claim_category: normalizedCategory,
+        });
+
+        if (COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES.has(normalizedCategory)) {
+          CommercialFunnelEvents.escalationRequested(funnelContext, {
             claim_id: normalizedClaimId,
-          }
-        );
+            claim_category: normalizedCategory,
+            decision_reason: 'launch_scope_supported',
+          });
+        } else {
+          CommercialFunnelEvents.escalationDeclined(funnelContext, {
+            claim_id: normalizedClaimId,
+            claim_category: normalizedCategory,
+            decision_reason: 'outside_launch_scope',
+          });
+        }
         toast.success(t('submit_success'));
         setDraft(null);
         if (uiV2Enabled) {

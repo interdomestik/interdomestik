@@ -2,6 +2,7 @@ import posthog from 'posthog-js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ClaimsEvents,
+  CommercialFunnelEvents,
   FunnelEvents,
   RegistrationEvents,
   analytics,
@@ -194,6 +195,94 @@ describe('analytics', () => {
         variant: 'hero_v2',
         locale: 'sq',
         source: 'test',
+      });
+    });
+  });
+
+  describe('CommercialFunnelEvents', () => {
+    it('tracks free start completion with funnel context', () => {
+      CommercialFunnelEvents.freeStartCompleted(
+        {
+          tenantId: 'tenant_mk',
+          variant: 'hero_v2',
+          locale: 'sq',
+        },
+        {
+          claim_id: 'clm_123',
+          claim_category: 'vehicle',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('free_start_completed', {
+        tenant_id: 'tenant_mk',
+        variant: 'hero_v2',
+        locale: 'sq',
+        claim_id: 'clm_123',
+        claim_category: 'vehicle',
+      });
+    });
+
+    it('tracks membership start with plan metadata', () => {
+      CommercialFunnelEvents.membershipStarted(
+        {
+          tenantId: 'tenant_ks',
+          variant: 'hero_v1',
+          locale: 'en',
+        },
+        {
+          plan_id: 'standard',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('membership_started', {
+        tenant_id: 'tenant_ks',
+        variant: 'hero_v1',
+        locale: 'en',
+        plan_id: 'standard',
+      });
+    });
+
+    it('tracks escalation requested for launch-scope matters', () => {
+      CommercialFunnelEvents.escalationRequested(
+        {
+          tenantId: 'tenant_ks',
+          variant: 'hero_v2',
+        },
+        {
+          claim_id: 'clm_456',
+          claim_category: 'injury',
+          decision_reason: 'launch_scope_supported',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('escalation_requested', {
+        tenant_id: 'tenant_ks',
+        variant: 'hero_v2',
+        claim_id: 'clm_456',
+        claim_category: 'injury',
+        decision_reason: 'launch_scope_supported',
+      });
+    });
+
+    it('tracks escalation declined for out-of-scope matters', () => {
+      CommercialFunnelEvents.escalationDeclined(
+        {
+          tenantId: null,
+          variant: 'hero_v2',
+        },
+        {
+          claim_id: 'clm_789',
+          claim_category: 'travel',
+          decision_reason: 'outside_launch_scope',
+        }
+      );
+
+      expect(posthog.capture).toHaveBeenCalledWith('escalation_declined', {
+        tenant_id: 'tenant_unknown',
+        variant: 'hero_v2',
+        claim_id: 'clm_789',
+        claim_category: 'travel',
+        decision_reason: 'outside_launch_scope',
       });
     });
   });

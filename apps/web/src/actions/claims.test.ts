@@ -146,6 +146,11 @@ vi.mock('@/lib/notifications', () => ({
   notifyStatusChanged: vi.fn().mockResolvedValue({ success: true }),
 }));
 
+vi.mock('@/lib/ai/claim-workflows', () => ({
+  emitClaimAiRunRequestedService: vi.fn().mockResolvedValue(undefined),
+  markClaimAiRunDispatchFailedService: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));

@@ -1,6 +1,6 @@
 'use client';
 
-import { FunnelEvents, resolveFunnelVariant } from '@/lib/analytics';
+import { CommercialFunnelEvents, FunnelEvents, resolveFunnelVariant } from '@/lib/analytics';
 import { useEffect } from 'react';
 
 type FunnelTrackerBaseProps = {
@@ -32,16 +32,17 @@ export function FunnelActivationTracker({
   planId,
 }: FunnelActivationTrackerProps) {
   useEffect(() => {
-    FunnelEvents.activationCompleted(
-      {
-        tenantId: tenantId ?? null,
-        variant: resolveFunnelVariant(uiV2Enabled),
-        locale,
-      },
-      {
-        ...(planId ? { plan_id: planId } : {}),
-      }
-    );
+    const context = {
+      tenantId: tenantId ?? null,
+      variant: resolveFunnelVariant(uiV2Enabled),
+      locale,
+    };
+    const properties = {
+      ...(planId ? { plan_id: planId } : {}),
+    };
+
+    FunnelEvents.activationCompleted(context, properties);
+    CommercialFunnelEvents.membershipStarted(context, properties);
   }, [locale, planId, tenantId, uiV2Enabled]);
 
   return null;
