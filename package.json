@@ -166,14 +166,14 @@
     "check:golden": "pnpm --filter @interdomestik/web test:e2e:phase5"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1",
+    "@commitlint/cli": "^20.4.3",
+    "@commitlint/config-conventional": "^20.4.3",
     "@playwright/mcp": "^0.0.54",
     "@release-it/conventional-changelog": "^10.0.5",
     "@supabase/supabase-js": "^2.87.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.19.3",
-    "@upstash/context7-mcp": "^2.1.1",
+    "@upstash/context7-mcp": "^2.1.4",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "glob": "^13.0.0",
@@ -207,21 +207,25 @@
     ],
     "overrides": {
       "axios": "^1.13.5",
-      "fast-xml-parser": ">=5.3.6",
+      "fast-xml-parser": ">=5.3.8",
+      "qs": "^6.14.2",
+      "bn.js": "^4.12.3",
+      "ajv@^6.12.4": "6.14.0",
       "lodash": "^4.17.23",
       "undici": "^7.20.0",
       "seroval": ">=1.4.1",
-      "tar": "7.5.8",
+      "tar": "7.5.11",
       "@isaacs/brace-expansion": "^5.0.1",
       "cross-spawn": "^7.0.6",
       "minimatch": ">=10.2.3",
       "esbuild": ">=0.25.0",
-      "@modelcontextprotocol/sdk": ">=1.26.0",
+      "@modelcontextprotocol/sdk": ">=1.27.1",
       "got": ">=11.8.5",
       "electron": ">=35.7.5",
       "rollup": "4.59.0",
       "express-rate-limit": "8.3.0",
-      "serialize-javascript": ">=7.0.3"
+      "serialize-javascript": ">=7.0.3",
+      "hono": "^4.12.7"
     }
   },
   "dependencies": {
