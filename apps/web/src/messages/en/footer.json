@@ -24,6 +24,18 @@
     "membership": "Membership",
     "plansPricing": "Plans & Pricing",
     "joinClub": "Join the Club",
-    "memberLogin": "Member Login"
+    "memberLogin": "Member Login",
+    "safetyNet": {
+      "eyebrow": "Urgent claim support",
+      "title": "Call or WhatsApp for the next safe step",
+      "body": "Use the hotline for rapid routing, support, and next-step guidance.",
+      "call": "Call hotline",
+      "whatsapp": "Open WhatsApp",
+      "chips": [
+        "Shqip / English support",
+        "Claim-first launch scope",
+        "Routing in under 60 seconds"
+      ]
+    }
   }
 }

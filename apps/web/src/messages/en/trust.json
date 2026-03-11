@@ -7,6 +7,12 @@
     "successRate": "Success Rate",
     "successRateValue": "94%",
     "hotlineResponse": "Hotline Response",
-    "hotlineResponseValue": "<60s"
+    "hotlineResponseValue": "<60s",
+    "trustCuesLabel": "Claim-first trust cues",
+    "trustCues": [
+      "Vehicle • Property • Injury",
+      "Phone + WhatsApp support",
+      "Shqip / English support"
+    ]
   }
 }

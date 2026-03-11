@@ -27,6 +27,26 @@
     "trustBadgeSecurity": "CERTIFIED SECURITY",
     "trustBadgeSupport": "TOP RATED SUPPORT",
     "trustBadgeService": "GUARANTEED SERVICE",
-    "digitalCardSticky": "Get your digital ID today"
+    "digitalCardSticky": "Get your digital ID today",
+    "v2": {
+      "title": "File your claim quickly, with transparent follow-up.",
+      "subtitle": "Start in minutes, upload evidence once, and track every next step clearly.",
+      "helpNow": "Get help now (60 sec)",
+      "helpMeta": "24/7 • fast response",
+      "start": "Start a claim",
+      "invite": "Invite & Earn",
+      "idTitle": "Your Digital Membership Card",
+      "idMeta": "Member ID",
+      "idLink": "View card",
+      "idPreview": "Preview",
+      "journeyLabel": "Journey",
+      "journeySteps": ["Member", "Upload", "Staff review"],
+      "proofChips": [
+        "Vehicle • Property • Injury",
+        "Free Start pack first",
+        "Published annual terms"
+      ],
+      "trustCues": ["Shqip / English support", "Hotline + WhatsApp", "Claim-first scope published"]
+    }
   }
 }

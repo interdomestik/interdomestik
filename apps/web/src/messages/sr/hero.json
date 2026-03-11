@@ -27,6 +27,30 @@
     "trustBadgeSecurity": "SERTIFIKOVANA BEZBEDNOST",
     "trustBadgeSupport": "NAJBOLJE OCENJENA PODRŠKA",
     "trustBadgeService": "GARANTOVANA USLUGA",
-    "digitalCardSticky": "Preuzmite digitalnu karticu danas"
+    "digitalCardSticky": "Preuzmite digitalnu karticu danas",
+    "v2": {
+      "title": "Podnesite zahtev brzo, uz jasno praćenje.",
+      "subtitle": "Pokrenite sve za nekoliko minuta, pošaljite dokaze jednom i pratite svaki sledeći korak bez nejasnoća.",
+      "helpNow": "Zatražite pomoć sada (60 s)",
+      "helpMeta": "24/7 • brz odgovor",
+      "start": "Pokreni zahtev",
+      "invite": "Pozovi i zaradi",
+      "idTitle": "Vaša digitalna članska kartica",
+      "idMeta": "ID člana",
+      "idLink": "Pogledaj karticu",
+      "idPreview": "Pregled",
+      "journeyLabel": "Putanja",
+      "journeySteps": ["Član", "Otpremi", "Pregled tima"],
+      "proofChips": [
+        "Vozilo • Imovina • Povreda",
+        "Free Start paket prvo",
+        "Objavljeni godišnji uslovi"
+      ],
+      "trustCues": [
+        "Podrška na srpskom / English",
+        "Hotline + WhatsApp",
+        "Objavljen claim-first opseg"
+      ]
+    }
   }
 }

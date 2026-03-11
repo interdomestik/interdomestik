@@ -7,6 +7,9 @@ export function Footer() {
   const t = useTranslations('footer');
   const common = useTranslations('common');
   const { phone, whatsapp, address, hours } = contactInfo;
+  const safetyNetChips = Array.isArray(t.raw('safetyNet.chips'))
+    ? (t.raw('safetyNet.chips') as string[])
+    : [];
 
   return (
     <footer className="bg-slate-900 text-white">
@@ -32,6 +35,54 @@ export function Footer() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm font-bold mb-8">
               <ShieldCheck className="h-4 w-4" />
               {t('noWinNoFee')}
+            </div>
+
+            <div
+              data-testid="footer-safety-net"
+              className="mb-8 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-[0_18px_48px_-36px_rgba(15,23,42,0.9)]"
+            >
+              <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-emerald-300">
+                {t('safetyNet.eyebrow')}
+              </p>
+              <h3 className="mt-3 text-xl font-semibold text-white">{t('safetyNet.title')}</h3>
+              <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">
+                {t('safetyNet.body')}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {phone ? (
+                  <a
+                    data-testid="footer-safety-net-call"
+                    href={`tel:${phone.replaceAll(' ', '')}`}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+                  >
+                    <Phone className="h-4 w-4" aria-hidden="true" />
+                    {t('safetyNet.call')}
+                  </a>
+                ) : null}
+                {whatsapp ? (
+                  <a
+                    data-testid="footer-safety-net-whatsapp"
+                    href={whatsapp}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:border-green-400/40 hover:text-green-300"
+                  >
+                    <MessageCircle className="h-4 w-4 text-green-400" aria-hidden="true" />
+                    {t('safetyNet.whatsapp')}
+                  </a>
+                ) : null}
+              </div>
+              {safetyNetChips.length > 0 ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {safetyNetChips.map(chip => (
+                    <span
+                      key={chip}
+                      data-testid="footer-safety-net-chip"
+                      className="inline-flex items-center rounded-full border border-white/10 bg-slate-800/80 px-3 py-1 text-xs font-semibold text-slate-200"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             {/* Contact Info */}
