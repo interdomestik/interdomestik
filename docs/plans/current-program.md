@@ -21,7 +21,9 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P-1` Infrastructure Debt Closure is now complete as the post-AI tranche. `D01` is complete as the full PR `e2e:gate` CI slice, `D02` is complete as the cross-agent messaging isolation slice, `D03` is complete as the blocking repository coverage floor slice, `D04` is complete as the canonical blocking `gitleaks` coverage slice, `D05` is complete as the staging Supabase plus preview-environment separation slice, `D06` is complete as the canonical incident playbook slice, `D07` is complete as the Sentry burn-rate alert wiring slice, and `D08` is complete as the narrow critical-table RLS proof slice.
 
-`P1C` Commercial Contract Foundations is now the live post-infrastructure tranche. `C05` is complete as the canonical claims-first scope-tree and referral-boundary slice, `C01` is complete as the canonical coverage-matrix publication slice, `C04` is complete as the canonical annual billing, cancellation, refund, and cooling-off publication slice, `C02` is complete as the canonical success-fee calculator and example-pricing slice, `C03` is complete as the canonical Free Start and hotline disclaimer slice, and `C06` is complete as the canonical commercial-funnel instrumentation slice. The committed commercial contract defined by the business-model blueprint is now fully published.
+`P1C` Commercial Contract Foundations is now complete as the post-infrastructure commercial-contract tranche. `C05` is complete as the canonical claims-first scope-tree and referral-boundary slice, `C01` is complete as the canonical coverage-matrix publication slice, `C04` is complete as the canonical annual billing, cancellation, refund, and cooling-off publication slice, `C02` is complete as the canonical success-fee calculator and example-pricing slice, `C03` is complete as the canonical Free Start and hotline disclaimer slice, and `C06` is complete as the canonical commercial-funnel instrumentation slice. The committed commercial contract defined by the business-model blueprint is now fully published.
+
+`P1T` Free Start And Trust UX is now the live post-`P1C` tranche. `T01` is complete as the canonical hero, trust-strip, and footer-safety-net slice. The remaining committed queue is `T02` through `T06`: the Free Start claim-pack generator shell, confidence and next-step guidance, claim-type evidence and privacy microcopy, `/services` alignment, and i18n plus component-test coverage for the new trust surfaces.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -41,14 +43,20 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 12. Keep `D05` complete as the canonical staging Supabase plus preview-environment separation slice without changing production auth, routing, or tenancy architecture.
 13. Keep `D06` complete as the canonical incident-response playbook and keep `D07` complete as the Sentry burn-rate alert wiring slice.
 14. Keep `D08` complete as the narrow RLS proof slice on four critical tables without reopening a broad repo-wide RLS campaign.
-15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche, the completed `P-1` tranche, and the active `P1C` tranche.
-16. Land `P1C` as the canonical commercial-contract publication tranche without reopening routing, auth, tenancy, or request-path AI decisions.
+15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche, the completed `P-1` tranche, the completed `P1C` tranche, and the active `P1T` tranche.
+16. Land `P1T` as the canonical Free Start and Trust UX tranche without reopening routing, auth, tenancy, or request-path AI decisions.
 17. Keep `C01` complete as the canonical coverage-matrix publication slice across pricing, checkout, and member surfaces.
 18. Keep `C02` as the canonical success-fee calculator and example-pricing slice.
 19. Keep `C03` as the canonical Free Start and hotline disclaimer slice.
 20. Keep `C04` as the canonical annual billing, cancellation, refund, and cooling-off publication slice.
 21. Keep `C05` as the canonical claims-first scope-tree and referral-boundary slice.
 22. Keep `C06` as the canonical commercial-funnel instrumentation slice.
+23. Keep `T01` as the canonical hero, trust-strip, and footer-safety-net update slice.
+24. Keep `T02` as the canonical Free Start claim-pack generator shell slice.
+25. Keep `T03` as the canonical confidence-score and recommended-next-step slice.
+26. Keep `T04` as the canonical evidence prompts, privacy badge, and SLA microcopy slice.
+27. Keep `T05` as the canonical `/services` alignment slice for the coverage matrix and referral boundaries.
+28. Keep `T06` as the canonical i18n and component-test coverage slice for the new trust surfaces.
 
 ## Status Command
 
@@ -79,9 +87,17 @@ pnpm plan:proof
 
 `P-1` Infrastructure Debt Closure is now complete as the committed post-AI tranche.
 
-`P1C` Commercial Contract Foundations is now the committed post-infrastructure tranche. `C05`, `C01`, `C04`, `C02`, `C03`, and `C06` are complete.
+`P1C` Commercial Contract Foundations is now complete as the committed post-infrastructure tranche. `C05`, `C01`, `C04`, `C02`, `C03`, and `C06` are complete.
 
-There is no remaining committed queue inside `P1C`.
+`P1T` Free Start And Trust UX is now the committed post-`P1C` tranche. `T01` is complete.
+
+The remaining committed queue inside `P1T` is:
+
+- `T02` Ship the Free Start claim-pack generator shell.
+- `T03` Add confidence score and recommended next step.
+- `T04` Add claim-type evidence prompts, privacy badge, and SLA microcopy.
+- `T05` Add `/services` content aligned to the coverage matrix.
+- `T06` Add i18n coverage and component tests for the new trust surfaces.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -129,6 +145,9 @@ These documents can recommend or constrain work, but they do not define the live
 - `C03` is complete as the Free Start and hotline disclaimer slice.
 - `C05` is complete as the claims-first scope-tree and referral-boundary slice.
 - `C06` is complete as the commercial-funnel instrumentation slice.
+- `P1T` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the active post-`P1C` tranche.
+- `T01` through `T06` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the committed Free Start and Trust UX queue.
+- `T01` is complete as the hero, trust-strip, and footer-safety-net slice.
 
 ## Historical Foundation, Not Current Sequencing
 

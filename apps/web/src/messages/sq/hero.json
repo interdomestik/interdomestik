@@ -27,6 +27,30 @@
     "trustBadgeSecurity": "SIGURI E CERTIFIKUAR",
     "trustBadgeSupport": "MBËSHTETJE E NIVELIT LARTË",
     "trustBadgeService": "SHËRBIM I GARANTUAR",
-    "digitalCardSticky": "Merr Kartën Digjitale Sot"
+    "digitalCardSticky": "Merr Kartën Digjitale Sot",
+    "v2": {
+      "title": "Raporto rastin shpejt, me ndjekje të qartë.",
+      "subtitle": "Nis në pak minuta, ngarko dëshmitë një herë dhe ndiq çdo hap pa paqartësi.",
+      "helpNow": "Ndihmë tani (60 sek)",
+      "helpMeta": "24/7 • përgjigje e shpejtë",
+      "start": "Nis raportimin",
+      "invite": "Fto & Fito",
+      "idTitle": "Karta juaj Digjitale e Anëtarësisë",
+      "idMeta": "ID e anëtarit",
+      "idLink": "Shiko kartën",
+      "idPreview": "Paraqitje",
+      "journeyLabel": "Hapi",
+      "journeySteps": ["Anëtar", "Ngarko", "Shqyrtim"],
+      "proofChips": [
+        "Automjet • Pronë • Lëndim",
+        "Free Start paketa e parë",
+        "Kushte të publikuara vjetore"
+      ],
+      "trustCues": [
+        "Mbështetje Shqip / English",
+        "Hotline + WhatsApp",
+        "Fusha claim-first e publikuar"
+      ]
+    }
   }
 }

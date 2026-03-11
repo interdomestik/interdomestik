@@ -24,6 +24,18 @@
     "membership": "Članstvo",
     "plansPricing": "Planovi i cene",
     "joinClub": "Pridružite se klubu",
-    "memberLogin": "Prijava članova"
+    "memberLogin": "Prijava članova",
+    "safetyNet": {
+      "eyebrow": "Hitna podrška za zahtev",
+      "title": "Pozovite ili pišite na WhatsApp za sledeći bezbedan korak",
+      "body": "Koristite liniju za brzo usmeravanje, podršku i sledeće korake.",
+      "call": "Pozovi liniju",
+      "whatsapp": "Otvori WhatsApp",
+      "chips": [
+        "Podrška na srpskom / English",
+        "Claim-first opseg pri lansiranju",
+        "Usmeravanje za manje od 60 sekundi"
+      ]
+    }
   }
 }

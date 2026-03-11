@@ -24,6 +24,18 @@
     "membership": "Anëtarësimi",
     "plansPricing": "Planet & Çmimet",
     "joinClub": "Bashkohu me ne",
-    "memberLogin": "Kyçja e Anëtarëve"
+    "memberLogin": "Kyçja e Anëtarëve",
+    "safetyNet": {
+      "eyebrow": "Mbështetje urgjente për rastin",
+      "title": "Telefono ose shkruaj në WhatsApp për hapin e sigurt të radhës",
+      "body": "Përdor linjën për orientim të shpejtë, mbështetje dhe hapat e radhës.",
+      "call": "Telefono linjën",
+      "whatsapp": "Hap WhatsApp",
+      "chips": [
+        "Mbështetje Shqip / English",
+        "Fusha claim-first në nisje",
+        "Orientim brenda 60 sekondave"
+      ]
+    }
   }
 }

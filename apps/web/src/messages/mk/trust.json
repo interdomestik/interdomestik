@@ -10,6 +10,12 @@
     "memberSavingsValue": "150.000 €+",
     "successRateValue": "94 %",
     "hotlineResponse": "Одговор на итна линија",
-    "hotlineResponseValue": "<60с"
+    "hotlineResponseValue": "<60с",
+    "trustCuesLabel": "Claim-first сигнали на доверба",
+    "trustCues": [
+      "Возило • Имот • Повреда",
+      "Телефон + WhatsApp поддршка",
+      "Поддршка на македонски / English"
+    ]
   }
 }

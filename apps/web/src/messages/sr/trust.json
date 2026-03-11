@@ -10,6 +10,12 @@
     "memberSavingsValue": "150.000 €+",
     "successRateValue": "94 %",
     "hotlineResponse": "Odgovor hitne linije",
-    "hotlineResponseValue": "<60 s"
+    "hotlineResponseValue": "<60 s",
+    "trustCuesLabel": "Claim-first signali poverenja",
+    "trustCues": [
+      "Vozilo • Imovina • Povreda",
+      "Telefon + WhatsApp podrška",
+      "Podrška na srpskom / English"
+    ]
   }
 }

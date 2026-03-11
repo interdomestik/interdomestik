@@ -7,6 +7,8 @@
     "successRate": "Shkalla e Suksesit",
     "successRateValue": "94 %",
     "hotlineResponse": "Përgjigja në Linjë",
-    "hotlineResponseValue": "<60 s"
+    "hotlineResponseValue": "<60 s",
+    "trustCuesLabel": "Sinjale besimi claim-first",
+    "trustCues": ["Automjet • Pronë • Lëndim", "Telefon + WhatsApp", "Mbështetje Shqip / English"]
   }
 }
