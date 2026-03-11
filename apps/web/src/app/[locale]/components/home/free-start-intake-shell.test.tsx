@@ -86,6 +86,21 @@ async function completeFreeStartIntake(
   await user.click(screen.getByRole('button', { name: 'Finish Free Start' }));
 }
 
+const CATEGORY_EVIDENCE_EXPECTATIONS = [
+  {
+    category: 'vehicle',
+    evidencePrompt: 'Photos of the vehicle damage and the wider scene.',
+  },
+  {
+    category: 'property',
+    evidencePrompt: 'Photos or video of every damaged room before cleanup.',
+  },
+  {
+    category: 'injury',
+    evidencePrompt: 'Medical notes, discharge papers, or treatment summaries.',
+  },
+] as const;
+
 describe('FreeStartIntakeShell', () => {
   it('shows the three launch categories before the guided intake starts', () => {
     render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
@@ -125,6 +140,21 @@ describe('FreeStartIntakeShell', () => {
       })
     );
   });
+
+  it.each(CATEGORY_EVIDENCE_EXPECTATIONS)(
+    'shows category-specific evidence guidance for $category claims in the wizard',
+    async ({ category, evidencePrompt }) => {
+      const user = userEvent.setup();
+
+      render(
+        <FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />
+      );
+
+      await user.click(screen.getByTestId(`free-start-category-${category}`));
+
+      expect(screen.getByTestId('free-start-evidence-guidance')).toHaveTextContent(evidencePrompt);
+    }
+  );
 
   it('uses the portal continuation label for authenticated non-member routes', async () => {
     const user = userEvent.setup();
@@ -178,5 +208,27 @@ describe('FreeStartIntakeShell', () => {
     expect(
       screen.getByRole('link', { name: 'Call the hotline for next-step guidance' })
     ).toHaveAttribute('href', 'tel:+38349900600');
+  });
+
+  it('shows privacy notice and triage timing in the completed flow without changing the T03 outcome guidance', async () => {
+    const user = userEvent.setup();
+
+    render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
+
+    await completeFreeStartIntake(user);
+
+    expect(screen.getByTestId('free-start-evidence-guidance')).toHaveTextContent(
+      'Photos or video of every damaged room before cleanup.'
+    );
+    expect(screen.getByTestId('free-start-privacy-note')).toHaveTextContent('Private by default');
+    expect(screen.getByTestId('free-start-privacy-note')).toHaveTextContent(
+      'You do not need to upload documents in Free Start.'
+    );
+    expect(screen.getByTestId('free-start-triage-note')).toHaveTextContent('Human triage timing');
+    expect(screen.getByTestId('free-start-triage-note')).toHaveTextContent('24 business hours');
+    expect(screen.getByTestId('free-start-triage-note')).toHaveTextContent('complete claim pack');
+    expect(screen.getByTestId('free-start-next-step')).toHaveTextContent(
+      'Join Asistenca for human triage within 24 business hours.'
+    );
   });
 });

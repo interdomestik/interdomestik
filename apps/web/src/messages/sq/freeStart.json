@@ -152,6 +152,52 @@
         "handoff": "Të njëjtat fakte mund të kalojnë në anëtarësim ose follow-up pa ndryshim rruge."
       }
     },
+    "trust": {
+      "evidence": {
+        "badge": "Dëshmitë që duhen mbledhur",
+        "placeholder": {
+          "heading": "Zgjidh llojin e rastit për të parë dëshmitë më të forta për paketën e parë.",
+          "body": "Free Start mbetet i lehtë, por fotot, raportet dhe provat e kostos e bëjnë triage-un e mëvonshëm më të shpejtë."
+        },
+        "vehicle": {
+          "heading": "Rastet e automjetit ecin më shpejt me prova nga vendi, siguruesi dhe riparimi.",
+          "body": "Mblidhi bazat para se të kërkosh rishikim që paketa të tregojë çfarë ndodhi, kush është i përfshirë dhe si duket humbja.",
+          "items": {
+            "first": "Foto të dëmtimit të automjetit dhe të skenës më të gjerë.",
+            "second": "Shënim policie, numër kërkese te siguruesi ose raport incidenti nëse ekziston.",
+            "third": "Preventiv riparimi, faturë tërheqjeje ose mesazh pagese që tregon shumën në diskutim."
+          }
+        },
+        "property": {
+          "heading": "Rastet e pronës kërkojnë regjistrim dëmi, kontekst pronësie dhe kosto riparimi.",
+          "body": "Fikso gjendjen para pastrimit dhe ruaj dokumentet që tregojnë kush mban përgjegjësi për objektin ose policën.",
+          "items": {
+            "first": "Foto ose video të çdo hapësire të dëmtuar para pastrimit.",
+            "second": "Detaje të qirasë, pronësisë, siguruesit ose menaxherit të objektit për adresën e dëmtuar.",
+            "third": "Preventiv riparimi, shënim kontraktori ose fatura për kostot urgjente të ndërhyrjes."
+          }
+        },
+        "injury": {
+          "heading": "Rastet e lëndimit kërkojnë dokumente trajtimi, fakte incidenti dhe prova të humbjes.",
+          "body": "Mbaje vijën kohore mjekësore dhe faktet e incidentit të përputhura që rishikimi i mëvonshëm të shohë si dëmin ashtu edhe rrugën e rikuperimit.",
+          "items": {
+            "first": "Shënime mjekësore, fletëdalje ose përmbledhje trajtimi.",
+            "second": "Raport incidenti, të dhëna dëshmitarësh ose foto që tregojnë si ndodhi lëndimi.",
+            "third": "Fatura, prova për humbje page ose dokumente të tjera që tregojnë ndikimin financiar."
+          }
+        }
+      },
+      "privacy": {
+        "badge": "Privatësi si parazgjedhje",
+        "heading": "Mblidh së pari, ndaj më vonë.",
+        "body": "Nuk ke nevojë të ngarkosh dokumente në Free Start. Nise me faktet minimale dhe ndaj dëshmitë më vonë vetëm nëse do triage nga anëtarësimi ose follow-up nga linja telefonike."
+      },
+      "triage": {
+        "badge": "Koha e triage-it njerëzor",
+        "heading": "Anëtarësimi e nis orën e rishikimit.",
+        "body": "Anëtarët e Asistenca marrin përgjigje triage nga njeriu brenda 24 orëve të punës pasi të mbërrijë një paketë e plotë kërkese. Nëse mungon diçka, ta kërkojmë brenda të njëjtit afat. Free Start mbetet informues dhe linja telefonike mbetet vetëm për drejtim."
+      }
+    },
     "validation": {
       "chooseCategory": "Zgjidh automjet, pronë ose lëndim para se të vazhdosh.",
       "completeIntake": "Plotëso çdo fushë të intake-ut të udhëzuar para se të shohësh paketën Free Start."

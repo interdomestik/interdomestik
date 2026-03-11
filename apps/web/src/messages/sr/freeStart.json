@@ -152,6 +152,52 @@
         "handoff": "Iste činjenice mogu preći u članstvo ili follow-up bez promene rutiranja."
       }
     },
+    "trust": {
+      "evidence": {
+        "badge": "Dokazi koje treba prikupiti",
+        "placeholder": {
+          "heading": "Izaberi tip zahteva da vidiš najjače dokaze za prvi paket.",
+          "body": "Free Start ostaje lagan, ali prave fotografije, izveštaji i dokaz o trošku ubrzavaju kasniju trijažu."
+        },
+        "vehicle": {
+          "heading": "Slučajevi vozila idu brže uz dokaz sa mesta, od osiguravača i iz popravke.",
+          "body": "Prikupi osnove pre nego što zatražiš pregled kako bi paket pokazao šta se dogodilo, ko je uključen i kako izgleda gubitak.",
+          "items": {
+            "first": "Fotografije štete na vozilu i šire scene.",
+            "second": "Policijska beleška, broj prijave kod osiguravača ili izveštaj o incidentu ako postoji.",
+            "third": "Procena popravke, račun za šlep ili poruka o isplati koja pokazuje sporni iznos."
+          }
+        },
+        "property": {
+          "heading": "Slučajevi imovine traže zapis štete, kontekst vlasništva i troškove popravke.",
+          "body": "Zabeleži stanje pre čišćenja i sačuvaj papire koji pokazuju ko je odgovoran za objekat ili polisu.",
+          "items": {
+            "first": "Fotografije ili video svake oštećene prostorije pre čišćenja.",
+            "second": "Detalji zakupa, vlasništva, osiguravača ili upravnika vezani za oštećenu adresu.",
+            "third": "Procena popravke, beleška izvođača ili računi za hitne troškove sanacije."
+          }
+        },
+        "injury": {
+          "heading": "Slučajevi povrede traže medicinsku dokumentaciju, činjenice o incidentu i dokaz o gubitku.",
+          "body": "Drži medicinsku vremensku liniju i činjenice o incidentu usklađenim kako bi kasniji pregled video i povredu i put naplate.",
+          "items": {
+            "first": "Medicinske beleške, otpusne liste ili sažeci lečenja.",
+            "second": "Izveštaj o incidentu, podaci o svedocima ili fotografije koje pokazuju kako je povreda nastala.",
+            "third": "Računi, dokaz o izgubljenoj zaradi ili druga dokumenta koja pokazuju finansijski uticaj."
+          }
+        }
+      },
+      "privacy": {
+        "badge": "Privatno po difoltu",
+        "heading": "Prikupi prvo, podeli kasnije.",
+        "body": "Ne moraš da otpremaš dokumenta u Free Start. Počni sa minimalnim činjenicama, a dokaze podeli kasnije samo ako želiš člansku trijažu ili hotline follow-up."
+      },
+      "triage": {
+        "badge": "Vreme za ljudsku trijažu",
+        "heading": "Članstvo pokreće sat za pregled.",
+        "body": "Članovi Asistenca dobijaju odgovor ljudske trijaže u roku od 24 radna sata nakon što stigne kompletan paket zahteva. Ako nešto nedostaje, tražimo to u istom roku. Free Start ostaje informativan, a hotline ostaje samo za usmeravanje."
+      }
+    },
     "validation": {
       "chooseCategory": "Izaberi vozilo, imovinu ili povredu pre nego što nastaviš.",
       "completeIntake": "Popuni svako polje vođenog intake-a pre pregleda Free Start paketa."
