@@ -1,93 +1,5 @@
 {
   "servicesPage": {
-    "badge": "Prime Claims Experience",
-    "title": "See exactly what we solve and how we work",
-    "subtitle": "Vehicle accidents, property damage, service issues, employment/consumer disputes — local experts in Albanian/English, fast response, and secure evidence handling.",
-    "startClaim": "Start your claim",
-    "whatsapp": "Chat on WhatsApp",
-    "whatWeSolve": "What we solve",
-    "casesTitle": "Top cases we handle",
-    "casesSubtitle": "Pick your category; we’ll guide you with the right evidence and next steps.",
-    "cases": [
-      {
-        "title": "Automjete & Trafik",
-        "description": "Përplasje, dëme nga palë të treta, goditje-dhe-ikje, mosmarrëveshje me qira."
-      },
-      {
-        "title": "Prona & Banesa",
-        "description": "Zjarri/përmbytje/vjedhje, mosmarrëveshje me qiradhënësit, garancia e depozitës."
-      },
-      {
-        "title": "Shërbime & Komunale",
-        "description": "Fatura ISP/telekom, ndërprerje, cilësia e shërbimit apo kontraktorëve."
-      },
-      {
-        "title": "Punësim & Konsumator",
-        "description": "Pagat e papaguara, çështje kontrate, mallra me defekt, rimbursime/kthime."
-      }
-    ],
-    "flightDelay": {
-      "title": "Flight Delay (EU261)",
-      "description": "Eligible for up to €600 compensation on delays/cancellations.",
-      "cta": "Start flight delay claim"
-    },
-    "howItWorks": "How it works",
-    "stepsTitle": "Speed & safety in four steps",
-    "steps": [
-      {
-        "title": "Tregona bazat",
-        "description": "Zgjidh kategorinë dhe shto detajet e shpejta."
-      },
-      {
-        "title": "Shto prova",
-        "description": "Ngarko foto/fatura; ne kontrollojmë mime/masë dhe i etikojmë si PII."
-      },
-      {
-        "title": "Rishikim nën 24h",
-        "description": "Sheh statusin + badge SLA në timeline."
-      },
-      {
-        "title": "Ne negociojmë për ty",
-        "description": "Merr përditësime dhe rezultate në aplikacion."
-      }
-    ],
-    "benefits": "Why trust us",
-    "benefitsTitle": "Speed, safety, support",
-    "benefit": {
-      "speed": {
-        "title": "Fast response",
-        "description": "Under-24h review on new submissions; SLA visible in your timeline."
-      },
-      "safety": {
-        "title": "PII-safe uploads",
-        "description": "Signed URLs, allowed mime/size, PII-tagged storage, privacy badge in review."
-      },
-      "people": {
-        "title": "Local experts",
-        "description": "Balkan claim adjusters with Albanian/English support and clear contact options."
-      }
-    },
-    "faqTitle": "FAQs",
-    "faq": [
-      {
-        "question": "A duhet patjetër provë për të nisur?",
-        "answer": "Mund të dërgoni pa prova, por rezultati është më i shpejtë me fatura/foto. Shtoji tani ose më vonë."
-      },
-      {
-        "question": "Sa shpejt përgjigjeni?",
-        "answer": "Synojmë nën 24h për Kërkesat e reja për Dëmshpërblim. SLA shfaqet në timeline."
-      },
-      {
-        "question": "A janë të sigurta të dhënat e mia?",
-        "answer": "Po. URL të nënshkruara, kontrolle mime/masash, ruajtje me shenjë PII dhe njoftim privatësie në rishikim."
-      },
-      {
-        "question": "A ofroni pa fitim, pa pagesë?",
-        "answer": "Kur është e zbatueshme dhe në përputhje. Shih hero/footer dhe çmimet për ofertat aktuale."
-      }
-    ],
-    "contactTitle": "Prefer to talk?",
-    "contactSubtitle": "Call or WhatsApp us, or start the claim online and we’ll follow up.",
     "meta": {
       "title": "Опсег на барања и услуги - Asistenca",
       "description": "Поддршка фокусирана на случаи со возила, имот и повреди, со јасни граници за насока и упатување."
@@ -120,7 +32,7 @@
           "Спорови за поправка или раскин на договор без директна исплата",
           "Пошироки потрошувачки поплаки надвор од стартните типови барања"
         ],
-        "note": "Овие предмети остануваат советодавни и ги упатуваме понатаму кога партнерска рута е посоодветна."
+        "note": "Овие предмети остануваат советодавни. Можеме да помогнеме со пакетот и со една проверка на документи, а потоа да упатиме понатаму кога партнерска рута е посоодветна."
       },
       "outOfScope": {
         "title": "Надвор од опсег",
@@ -131,11 +43,11 @@
           "Имиграција",
           "Општи деловни спорови надвор од дефинираните групни пакети"
         ],
-        "note": "Тука не подразбираме покриеност. Каде што е можно, ве насочуваме кон посоодветен надворешен провајдер."
+        "note": "Овие предмети не ги прифаќаме за работа од тимот. Каде што е можно, ве насочуваме кон посоодветен надворешен провајдер."
       },
       "boundary": {
         "title": "Граници на упатување",
-        "body": "Партнерските и правните рути почнуваат дури по преглед на опсегот. Ескалација водена од тимот е достапна само за прифатени предмети со патека за наплата; сè друго останува self-serve насока, членска насока или упатување.",
+        "body": "Предметите само за насока и оние надвор од опсег не преминуваат во наплата со success-fee. Тие остануваат советодавни, self-serve, членска насока или само упатување, зависно од случајот.",
         "items": [
           "Надворешна правна партнерска акција бара посебна писмена согласност по прифаќање на предметот.",
           "Надомест за доцнење на летови останува надвор од тековната стартна патека и се враќа во подоцнежна фаза."
@@ -155,89 +67,89 @@
     },
     "categories": {
       "consultation": {
-        "title": "Бесплатни консултации",
-        "subtitle": "6 бесплатни услуги за да ги разберете вашите права",
+        "title": "Вклучена помош пред наплата водена од тимот",
+        "subtitle": "Што вклучуваат Free Start и членството на стартната патека",
         "services": [
           {
-            "title": "Правна основа за надомест",
-            "description": "Бесплатна консултација за утврдување на правната основа за надомест на сите видови штети.",
-            "badge": "БЕСПЛАТНО"
+            "title": "Free Start пакет",
+            "description": "Free Start ви дава проверка на подобност, резултат за сигурност, листа на докази, прво писмо за жалба, временска линија и испорака на пакетот без да започне човечки преглед.",
+            "badge": "FREE START"
           },
           {
-            "title": "Постапки за надомест",
-            "description": "Консултација за потребните постапки за добивање надомест од осигурителни компании.",
-            "badge": "БЕСПЛАТНО"
+            "title": "Членски тријаж",
+            "description": "Човечки одговор за тријаж во рок од 24 работни часа по комплетиран пакет, плус следење во таблата.",
+            "badge": "ЧЛЕНСТВО"
           },
           {
-            "title": "Категоризација на повреди",
-            "description": "Категоризација на повреди настанати при кој било вид несреќа од специјализиран медицински цензор.",
-            "badge": "БЕСПЛАТНО"
+            "title": "Проверка на документи по предмет",
+            "description": "Членството вклучува една проверка на документи по предмет за тимот да ги потврди недостасувачките докази и следниот чекор пред секоја прифатена ескалација.",
+            "badge": "ЧЛЕНСТВО"
           },
           {
-            "title": "Пресметка на материјална штета",
-            "description": "Алтернативна пресметка на материјалните штети во споредба со оние на осигурителните компании.",
-            "badge": "БЕСПЛАТНО"
+            "title": "Прво писмо за жалба или осигурител",
+            "description": "Стартната патека го вклучува првото писмо за жалба, за осигурителот или за другата страна пред да почне преговарачка работа.",
+            "badge": "ВКЛУЧЕНО"
           },
           {
-            "title": "Коефициент на инвалидитет",
-            "description": "Определување на коефициентот на ограничена способност во случај на несреќа - коефициент на инвалидитет.",
-            "badge": "БЕСПЛАТНО"
+            "title": "Линија за насочување и поддршка",
+            "description": "Итното насочување и поддршката остануваат достапни на јавните и членските површини, но контактот со линијата не започнува правен преглед или прифаќање на предмет.",
+            "badge": "САМО НАСОЧУВАЊЕ"
           },
           {
-            "title": "Помош на лице место",
-            "description": "Како да постапите на местото на несреќата? Бесплатни консултации од 08:00-20:00.",
-            "badge": "БЕСПЛАТНО"
+            "title": "Документска помош за предмети само за насока",
+            "description": "Споровите само за насока и понатаму можат да добијат пакет со насоки и проверка на документи, но остануваат надвор од наплата со success-fee.",
+            "badge": "НАСОКА"
           }
         ]
       },
       "expertise": {
-        "title": "Експертиза и проценка",
-        "subtitle": "Специјализиран тим експерти за постигнување максимален надомест",
+        "title": "Како започнува ескалација водена од тимот",
+        "subtitle": "Обработката од тимот започнува само по преглед, прифаќање и договор",
         "services": [
           {
-            "title": "Предсудска експертиза",
-            "description": "Ги авансираме сите трошоци за подготовка на експертски извештаи за штети во предсудски постапки.",
-            "badge": "НИЕ АВАНСИРАМЕ"
+            "title": "Прифаќањето на предметот е прво",
+            "description": "Обработката водена од тимот започнува само откако прегледот на опсегот ќе потврди стартно барање, веродостојна парична патека за наплата, препознатлива друга страна или осигурител и доволно докази за преглед.",
+            "badge": "ПРЕГЛЕД НА ПРЕДМЕТ"
           },
           {
-            "title": "Медијација за надомест",
-            "description": "Комплетна услуга во постапката за надомест на штета со ексклузивни попусти за членови.",
-            "badge": "50% ПОПУСТ"
+            "title": "Работата на наплата почнува по договор",
+            "description": "Преговори со осигурител, со другата страна, формална медијација и активно следење на наплата почнуваат само по прифаќање на предметот и договор за ескалација.",
+            "badge": "ПО ПРИФАЌАЊЕ"
           }
         ]
       },
       "legal": {
-        "title": "Правно застапување",
-        "subtitle": "Ја организираме судската постапка за да се постигне максимален надомест",
+        "title": "Одвоени рути за писмена согласност и упатување",
+        "subtitle": "Што бара писмена согласност, а што останува само насока или упатување",
         "services": [
           {
-            "title": "Судска експертиза",
-            "description": "Авансираме трошоци за правно застапување, адвокатски хонорари и судска експертиза.",
-            "badge": "НИЕ АВАНСИРАМЕ"
+            "title": "Правен партнер и рута со дополнителни трошоци",
+            "description": "Надворешна правна партнерска акција, судска тужба, експертски извештаи, преводи, медицински мислења и други тврди трошоци бараат посебна писмена согласност по прифаќање на предметот.",
+            "badge": "ПИСМЕНА СОГЛАСНОСТ"
           },
           {
-            "title": "Целосна судска организација",
-            "description": "Организираме исплата на штета преку судска постапка во случај на неправилна понуда за надомест.",
-            "badge": "НИЕ ГИ ПОКРИВАМЕ ТРОШОЦИТЕ"
+            "title": "Граница за насока и надвор од опсег",
+            "description": "Предметите само за насока и оние надвор од опсег не преминуваат во наплата со success-fee. Тие остануваат советодавни, self-serve, членска насока или само упатување, зависно од случајот.",
+            "badge": "САМО УПАТУВАЊЕ"
           }
         ]
       }
     },
     "experts": {
-      "title": "Наш експертски тим",
-      "subtitle": "Професионалци специјализирани во своите области",
+      "title": "Кој ја поддржува оваа патека",
+      "subtitle": "Тријаж на предмети, проверка на документи и координација со партнери на постојната стартна површина",
       "list": [
         {
-          "title": "Сообраќајни експерти",
-          "description": "Детална анализа на сообраќајни несреќи"
+          "title": "Тријаж на предмети",
+          "description": "Преглед на опсегот и насока за следниот чекор откако комплетиран пакет ќе стигне до членски тријаж."
         },
         {
-          "title": "Медицински цензори",
-          "description": "Професионална проценка на повреди"
+          "title": "Проверка на документи",
+          "description": "Проверки на докази и документи пред секоја прифатена ескалација или посебна правна согласност."
         },
         {
-          "title": "Правна канцеларија",
-          "description": "Целосно правно застапување"
+          "title": "Координација со партнери",
+          "description": "Упатување и предавање кон правен партнер само кога предметот одговара на договорот и членот се согласува."
         }
       ]
     },

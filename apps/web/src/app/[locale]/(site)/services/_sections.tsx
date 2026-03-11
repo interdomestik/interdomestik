@@ -1,6 +1,7 @@
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { ClaimScopeTree } from '@/components/commercial/claim-scope-tree';
 import { buildClaimScopeTreeProps } from '@/components/commercial/claim-scope-tree-content';
+import { CoverageMatrix, type CoverageMatrixProps } from '@/components/commercial/coverage-matrix';
 import { Link } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
 import {
@@ -28,10 +29,11 @@ type TFn = (key: string) => string;
 type ServicesPageSectionsProps = {
   t: TFn;
   contact: ServicesPageContactModel;
+  coverageMatrix: CoverageMatrixProps;
 };
 
 export function ServicesPageSections(props: ServicesPageSectionsProps) {
-  const { t, contact } = props;
+  const { t, contact, coverageMatrix } = props;
 
   // Service icons mapping
   const consultationIcons = [Scale, ScrollText, HeartPulse, Calculator, BadgeCheck, MapPin];
@@ -89,6 +91,7 @@ export function ServicesPageSections(props: ServicesPageSectionsProps) {
             },
           ]}
         />
+        <CoverageMatrix {...coverageMatrix} />
         <ClaimScopeTree {...buildClaimScopeTreeProps(t, 'services-scope-tree')} />
       </div>
 

@@ -32,7 +32,7 @@
           "Mosmarrëveshje për riparim ose ndërprerje kontrate pa payout direkt",
           "Ankesa më të gjera konsumatore jashtë llojeve të rasteve të nisjes"
         ],
-        "note": "Këto raste mbeten këshilluese dhe referohen më tej kur një partner është më i përshtatshëm."
+        "note": "Këto raste mbeten këshilluese. Mund të ndihmojmë me pakon dhe me një kontroll dokumentesh, pastaj të referojmë më tej kur rruga me partner është më e përshtatshme."
       },
       "outOfScope": {
         "title": "Jashtë fushës",
@@ -43,11 +43,11 @@
           "Imigracion",
           "Mosmarrëveshje të përgjithshme biznesi jashtë paketave të përcaktuara për grupe"
         ],
-        "note": "Nuk premtojmë mbulim këtu. Kur është e mundur, ju drejtojmë te një ofrues i jashtëm më i përshtatshëm."
+        "note": "Këto raste nuk i pranojmë për trajtim nga stafi. Kur është e mundur, ju drejtojmë te një ofrues i jashtëm më i përshtatshëm."
       },
       "boundary": {
         "title": "Kufijtë e referimit",
-        "body": "Rruga me partnerë ose veprimet ligjore fillojnë vetëm pas rishikimit të fushës. Përshkallëzimi i drejtuar nga stafi ofrohet vetëm për rastet e pranuara me rrugë rikuperimi; gjithçka tjetër mbetet udhëzim vetë-shërbyes, udhëzim në anëtarësi ose referim.",
+        "body": "Rastet vetëm për udhëzim dhe ato jashtë fushës nuk kalojnë në trajtim me success-fee. Ato mbeten këshilluese, vetë-shërbyese, udhëzim në anëtarësi ose vetëm referim, varësisht nga rasti.",
         "items": [
           "Veprimi me partner ligjor të jashtëm kërkon pëlqim të veçantë me shkrim pas pranimit të rastit.",
           "Kompensimi për vonesat e fluturimeve mbetet jashtë rrugës aktuale të nisjes dhe kthehet në një fazë të mëvonshme."
@@ -67,89 +67,89 @@
     },
     "categories": {
       "consultation": {
-        "title": "Konsultime Falas",
-        "subtitle": "6 shërbime pa kosto që ju ndihmojnë të kuptoni të drejtat tuaja",
+        "title": "Ndihma e përfshirë para rikuperimit të drejtuar nga stafi",
+        "subtitle": "Çfarë përfshijnë Free Start dhe anëtarësia në rrugën e nisjes",
         "services": [
           {
-            "title": "Baza Ligjore për Kompensim",
-            "description": "Konsultime falas për përcaktimin e bazës ligjore për kompensimin e të gjitha llojeve të dëmeve.",
-            "badge": "FALAS"
+            "title": "Pakoja Free Start",
+            "description": "Free Start ju jep kontrollin e pranueshmërisë, rezultatin e besueshmërisë, listën e provave, letrën e parë të ankesës, afatin kohor dhe dërgimin e pakos pa nisur shqyrtim njerëzor.",
+            "badge": "FREE START"
           },
           {
-            "title": "Procedurat për Kompensim",
-            "description": "Konsultime mbi procedurat e kërkuara për të marrë kompensim nga kompanitë e sigurimeve.",
-            "badge": "FALAS"
+            "title": "Triage në anëtarësi",
+            "description": "Përgjigje njerëzore për triage brenda 24 orëve të punës pas një pakete të plotësuar, plus ndjekje në panel.",
+            "badge": "ANËTARËSI"
           },
           {
-            "title": "Kategorizimi i Lëndimeve",
-            "description": "Kategorizim i lëndimeve të marra në çfarëdo lloji aksidenti nga mjeku censor i specializuar.",
-            "badge": "FALAS"
+            "title": "Kontroll dokumentesh për çdo rast",
+            "description": "Anëtarësia përfshin një kontroll dokumentesh për çdo rast që stafi të konfirmojë provat që mungojnë dhe hapin e radhës para çdo përshkallëzimi të pranuar.",
+            "badge": "ANËTARËSI"
           },
           {
-            "title": "Përllogaritja e Dëmit Material",
-            "description": "Përllogaritje alternative për dëmet materiale në raport me ato të realizuara nga kompanitë e sigurimeve.",
-            "badge": "FALAS"
+            "title": "Letra e parë e ankesës ose për siguruesin",
+            "description": "Rruga e nisjes përfshin letrën e parë për ankesë, për siguruesin ose për palën tjetër para se të fillojë puna negociuese.",
+            "badge": "E PËRFSHIRË"
           },
           {
-            "title": "Koeficienti i Invaliditetit",
-            "description": "Përcaktimi i koeficientit të aftësisë së kufizuar në rast aksidenti - koeficienti i invaliditetit.",
-            "badge": "FALAS"
+            "title": "Orientim dhe mbështetje në linjë",
+            "description": "Orientimi urgjent dhe mbështetja mbeten të disponueshme në sipërfaqet publike dhe të anëtarëve, por kontakti me linjën nuk nis shqyrtim ligjor ose pranim rasti.",
+            "badge": "VETËM ORIENTIM"
           },
           {
-            "title": "Asistencë në Vend-Ngjarje",
-            "description": "Si të veproni në vend-ngjarje të aksidentit? Konsultime falas nga ora 08:00-20:00.",
-            "badge": "FALAS"
+            "title": "Ndihmë dokumentesh për rastet vetëm udhëzuese",
+            "description": "Mosmarrëveshjet vetëm për udhëzim mund të marrin ende pako udhëzuese dhe kontroll dokumentesh, por mbeten jashtë rikuperimit me success-fee.",
+            "badge": "UDHËZIM"
           }
         ]
       },
       "expertise": {
-        "title": "Ekspertizë & Vlerësim",
-        "subtitle": "Ekip i specializuar ekspertësh për të realizuar dëmshpërblimin maksimal",
+        "title": "Si fillon përshkallëzimi i drejtuar nga stafi",
+        "subtitle": "Trajtimi nga stafi fillon vetëm pas rishikimit, pranimit dhe marrëveshjes",
         "services": [
           {
-            "title": "Ekspertizë Paragjyqësore",
-            "description": "Avancojmë kostot e të gjitha shpenzimeve për përgatitjen e ekspertizave për dëmet në procese paragjyqësore.",
-            "badge": "NE AVANCOJMË"
+            "title": "Pranimi i rastit vjen i pari",
+            "description": "Trajtimi i drejtuar nga stafi fillon vetëm pasi rishikimi i fushës konfirmon një rast të nisjes, një rrugë të besueshme rikuperimi monetar, një palë tjetër ose sigurues të identifikueshëm dhe prova të mjaftueshme për rishikim.",
+            "badge": "RISHIKIM RASTI"
           },
           {
-            "title": "Ndërmjetësim në Dëmshpërblim",
-            "description": "Shërbim i plotë në procedurën e kompensimit të dëmeve me zbritje ekskluzive për anëtarët.",
-            "badge": "50% ZBRITJE"
+            "title": "Puna e rikuperimit fillon pas marrëveshjes",
+            "description": "Negociimi me siguruesin, me palën tjetër, ndërmjetësimi formal dhe ndjekja aktive e rikuperimit fillojnë vetëm pas pranimit të rastit dhe një marrëveshjeje për përshkallëzim.",
+            "badge": "PAS PRANIMIT"
           }
         ]
       },
       "legal": {
-        "title": "Përfaqësim Ligjor",
-        "subtitle": "Organizojmë rrugën gjyqësore për të realizuar dëmshpërblimin maksimal",
+        "title": "Rrugë të ndara me pëlqim dhe me referim",
+        "subtitle": "Çfarë kërkon pëlqim me shkrim dhe çfarë mbetet vetëm udhëzim ose referim",
         "services": [
           {
-            "title": "Ekspertizë Gjyqësore",
-            "description": "Avancojmë kostot për përfaqësim ligjor, për avokat dhe për ekspertizë gjyqësore.",
-            "badge": "NE AVANCOJMË"
+            "title": "Rruga me partner ligjor dhe kostot shtesë",
+            "description": "Veprimi me partner ligjor të jashtëm, padia gjyqësore, ekspertizat, përkthimet, opinionet mjekësore dhe kostot e tjera kërkojnë pëlqim të veçantë me shkrim pas pranimit të rastit.",
+            "badge": "PËLQIM ME SHKRIM"
           },
           {
-            "title": "Organizim Gjyqësor i Plotë",
-            "description": "Organizojmë pagesën e dëmit në procedurë gjyqësore, në rast të ofertës jo-korekte për dëmshpërblim.",
-            "badge": "MBULIM KOSTOT"
+            "title": "Kufiri për udhëzim dhe jashtë fushës",
+            "description": "Rastet vetëm për udhëzim dhe ato jashtë fushës nuk kalojnë në trajtim me success-fee. Ato mbeten këshilluese, vetë-shërbyese, udhëzim në anëtarësi ose vetëm referim, varësisht nga rasti.",
+            "badge": "VETËM REFERIM"
           }
         ]
       }
     },
     "experts": {
-      "title": "Ekipi Ynë i Ekspertëve",
-      "subtitle": "Profesionistë të specializuar në fushat e tyre",
+      "title": "Kush e mbështet këtë rrugë",
+      "subtitle": "Triage i rasteve, kontroll dokumentesh dhe koordinim me partnerë në sipërfaqen ekzistuese të nisjes",
       "list": [
         {
-          "title": "Ekspertë të Komunikacionit",
-          "description": "Analiza e detajuar e aksidenteve rrugore"
+          "title": "Triage i rasteve",
+          "description": "Rishikim i fushës dhe udhëzim për hapin e radhës pasi një pako e plotësuar arrin në triage të anëtarësisë."
         },
         {
-          "title": "Mjekë Censorë",
-          "description": "Vlerësim profesional i lëndimeve"
+          "title": "Kontroll dokumentesh",
+          "description": "Kontrolle të provave dhe dokumenteve para çdo përshkallëzimi të pranuar ose pëlqimi të veçantë ligjor."
         },
         {
-          "title": "Zyrë Juridike",
-          "description": "Përfaqësim ligjor i plotë"
+          "title": "Koordinim me partnerë",
+          "description": "Dorëzim te partneri ose te rruga ligjore vetëm kur rasti i përshtatet kontratës dhe anëtari jep pëlqimin."
         }
       ]
     },

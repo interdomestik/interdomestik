@@ -68,6 +68,11 @@ describe('commercial disclaimer copy', () => {
     expect(enPricing.pricing.disclaimers.freeStart.body.toLowerCase()).toContain('informational');
     expect(enPricing.pricing.disclaimers.hotline.body.toLowerCase()).toContain('routing');
     expect(enPricing.pricing.disclaimers.hotline.body.toLowerCase()).toContain('support');
+    expect(enServicesPage.servicesPage.disclaimers.freeStart.body.toLowerCase()).toContain(
+      'informational'
+    );
+    expect(enServicesPage.servicesPage.disclaimers.hotline.body.toLowerCase()).toContain('routing');
+    expect(enServicesPage.servicesPage.disclaimers.hotline.body.toLowerCase()).toContain('support');
     expect(enMembership.membership.success.hotline_disclaimer.body.toLowerCase()).toContain(
       'routing'
     );
