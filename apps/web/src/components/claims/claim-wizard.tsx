@@ -9,6 +9,7 @@ import {
   FunnelEvents,
   resolveFunnelVariant,
 } from '@/lib/analytics';
+import { COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES } from '@/lib/commercial-claim-categories';
 import { isUiV2Enabled } from '@/lib/flags';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { createClaimSchema, type CreateClaimValues } from '@/lib/validators/claims';
@@ -33,7 +34,6 @@ type ClaimWizardProps = {
 };
 
 const STEP_NAMES = ['category', 'details', 'evidence', 'review'];
-const COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES = new Set(['vehicle', 'property', 'injury']);
 
 const STEP_VALIDATION: Record<
   number,

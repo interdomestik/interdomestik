@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import { COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORY_IDS } from '@/lib/commercial-claim-categories';
 import { buildCoverageMatrixProps } from './coverage-matrix-content';
 
-const EXPECTED_ROW_KEYS = ['vehicle', 'property', 'injury', 'guidance', 'flight'] as const;
+const EXPECTED_ROW_KEYS = [
+  ...COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORY_IDS,
+  'guidance',
+  'flight',
+] as const;
 const EXPECTED_ROW_TONES = [
   ['included', 'escalation', 'referral'],
   ['included', 'escalation', 'referral'],

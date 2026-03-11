@@ -1,8 +1,10 @@
+import { COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORY_IDS } from '@/lib/commercial-claim-categories';
 import type { CoverageCellTone, CoverageMatrixProps } from './coverage-matrix';
 
 type CoverageMatrixTranslator = (key: string) => string;
 type CoverageMatrixColumnKey = 'included' | 'escalation' | 'referral';
-type CoverageMatrixRowKey = 'vehicle' | 'property' | 'injury' | 'guidance' | 'flight';
+type CoverageMatrixLaunchScopeRowKey = (typeof COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORY_IDS)[number];
+type CoverageMatrixRowKey = CoverageMatrixLaunchScopeRowKey | 'guidance' | 'flight';
 
 const COLUMN_KEYS: readonly CoverageMatrixColumnKey[] = ['included', 'escalation', 'referral'];
 
@@ -12,9 +14,10 @@ const ROW_CONFIGS: ReadonlyArray<
     tones: readonly [CoverageCellTone, CoverageCellTone, CoverageCellTone];
   }>
 > = [
-  { key: 'vehicle', tones: ['included', 'escalation', 'referral'] },
-  { key: 'property', tones: ['included', 'escalation', 'referral'] },
-  { key: 'injury', tones: ['included', 'escalation', 'referral'] },
+  ...COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORY_IDS.map(key => ({
+    key,
+    tones: ['included', 'escalation', 'referral'] as const,
+  })),
   { key: 'guidance', tones: ['included', 'unavailable', 'referral'] },
   { key: 'flight', tones: ['laterPhase', 'laterPhase', 'laterPhase'] },
 ];
