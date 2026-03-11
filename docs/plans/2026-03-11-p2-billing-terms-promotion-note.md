@@ -11,7 +11,7 @@ program: docs/plans/current-program.md
 
 ## Decision
 
-`P1T` is complete in `docs/plans/current-program.md`, and no post-`P1T` tranche was yet committed in the live source-of-truth pair. The next committed tranche is now `P2` Billing And Terms Hardening with the full queue `B01` through `B10`.
+`P1T` is complete in `docs/plans/current-program.md`, and no post-`P1T` tranche had yet been committed in the live source-of-truth pair. The next committed tranche is now `P2` Billing And Terms Hardening with the full queue `B01` through `B10`.
 
 ## Inputs Considered
 
