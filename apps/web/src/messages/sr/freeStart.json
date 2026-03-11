@@ -1,0 +1,116 @@
+{
+  "freeStart": {
+    "eyebrow": "Free Start paket",
+    "title": "Napravi prvi paket zahteva pre eskalacije.",
+    "subtitle": "Izaberi kategoriju, popuni kratak vođeni intake i dobiješ početni paket koji možeš preneti u članstvo ili dalju podršku.",
+    "steps": {
+      "choose": "Izaberi tip zahteva",
+      "details": "Vođeni intake",
+      "preview": "Pregled paketa"
+    },
+    "choose": {
+      "heading": "Počni od problema koji treba rešiti.",
+      "body": "Ovaj javni intake pokriva samo slučajeve u početnom opsegu. Prvo izaberi kategoriju koja odgovara tvojoj situaciji.",
+      "continue": "Nastavi na vođeni intake"
+    },
+    "categories": {
+      "vehicle": {
+        "title": "Šteta na vozilu",
+        "description": "Saobraćajne nezgode, krađa, vandalizam i kašnjenje osiguravača za popravku ili isplatu.",
+        "examples": "Sudar, šteta na parkingu, kašnjenje osiguravača"
+      },
+      "property": {
+        "title": "Šteta na imovini",
+        "description": "Šteta na kući, stanu ili objektu sa jasnim putem naplate.",
+        "examples": "Šteta od vode, oluja, provala"
+      },
+      "injury": {
+        "title": "Lična povreda",
+        "description": "Slučajevi povrede sa novčanom putanjom naplate i jasnom odgovornom stranom.",
+        "examples": "Povreda na radu, saobraćajna povreda, nemar"
+      }
+    },
+    "details": {
+      "heading": "Odgovori na vođeni intake.",
+      "body": "Potrebne su samo osnovne činjenice za kostur paketa: šta se dogodilo, kada se dogodilo, ko je uključen i šta želiš da naplatiš.",
+      "issueType": "Šta se dogodilo?",
+      "incidentDate": "Kada se dogodilo?",
+      "counterparty": "Sa kim postupaš?",
+      "counterpartyPlaceholder": "Osiguravač, stanodavac, poslodavac, bolnica, vozač ili druga strana",
+      "desiredOutcome": "Šta želiš da naplatiš?",
+      "summary": "Kratak sažetak",
+      "summaryPlaceholder": "Dodaj ključne činjenice koje treba dosledno ponavljati u prigovoru, obaveštenju ili narednom pozivu.",
+      "selectPlaceholder": "Izaberi jednu opciju",
+      "back": "Nazad na tip zahteva",
+      "continue": "Pregledaj Free Start paket"
+    },
+    "issues": {
+      "vehicle": {
+        "collision": "Šteta od sudara",
+        "theft": "Krađa ili vandalizam",
+        "parking_damage": "Šteta na parkingu ili udar bez poznatog vozača",
+        "insurer_delay": "Kašnjenje osiguravača za popravku ili isplatu"
+      },
+      "property": {
+        "water_damage": "Šteta od vode",
+        "storm_fire": "Šteta od oluje ili požara",
+        "burglary": "Provala ili nasilni ulaz",
+        "landlord_dispute": "Spor sa stanodavcem ili upravnikom"
+      },
+      "injury": {
+        "workplace_injury": "Povreda na radu",
+        "traffic_injury": "Saobraćajna povreda",
+        "medical_negligence": "Medicinski nemar",
+        "public_liability": "Povreda iz javne odgovornosti"
+      }
+    },
+    "outcomes": {
+      "repair": "Troškovi popravke ili zamene",
+      "reimbursement": "Nadoknada troškova",
+      "compensation": "Kompenzacija za povredu ili gubitak",
+      "written_response": "Formalan pisani odgovor"
+    },
+    "preview": {
+      "heading": "Pregledaj kostur Free Start paketa.",
+      "body": "Ovaj kostur drži činjenice intake-a na jednom mestu pre dubljih smernica, zahteva za dokazima ili eskalacije ka timu.",
+      "packBadge": "Kostur paketa je napravljen",
+      "categoryLabel": "Tip zahteva",
+      "issueLabel": "Problem",
+      "dateLabel": "Datum događaja",
+      "counterpartyLabel": "Druga strana",
+      "outcomeLabel": "Traženi ishod",
+      "summaryLabel": "Sažetak",
+      "includesHeading": "Ovaj kostur ti već daje",
+      "includes": {
+        "summary": "Strukturiran sažetak intake-a koji možeš ponovo koristiti bez prepisivanja činjenica.",
+        "timeline": "Jasan vremenski oslonac sa datumom, tipom problema i odgovornom stranom.",
+        "handoff": "Doslednu tačku predaje za članstvo, hotline ili kasniju eskalaciju."
+      },
+      "notProvided": "Nije uneto",
+      "back": "Nazad na intake",
+      "finish": "Završi Free Start"
+    },
+    "completion": {
+      "badge": "Free Start je završen",
+      "heading": "Tvoj intake je završen.",
+      "body": "Sada imaš strukturiran kostur paketa zahteva zasnovan na unetim činjenicama. Nastavi kada želiš formalan follow-up ili obradu kroz članstvo.",
+      "continueMembership": "Nastavi ka članstvu",
+      "continueMember": "Nastavi u članskim zahtevima",
+      "hotline": "Pozovi hotline"
+    },
+    "support": {
+      "badge": "Zašto pomaže",
+      "heading": "Drži prvi korak čistim i doslednim.",
+      "body": "Kostur održava prvi javni intake kratkim, ponovljivim i spremnim za sledeće trust površine bez ponovnog otvaranja činjenica.",
+      "points": {
+        "lane": "Prvo biraš pravu komercijalnu kategoriju: vozilo, imovina ili povreda.",
+        "facts": "Intake hvata samo osnovne činjenice potrebne za jasno kretanje dalje.",
+        "handoff": "Iste činjenice mogu preći u članstvo ili follow-up bez promene rutiranja."
+      }
+    },
+    "validation": {
+      "chooseCategory": "Izaberi vozilo, imovinu ili povredu pre nego što nastaviš.",
+      "completeIntake": "Popuni svako polje vođenog intake-a pre pregleda Free Start paketa."
+    }
+  }
+}

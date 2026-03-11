@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { getLocaleLandingCore } from '../../_core';
 import { getStartClaimHrefForSession } from '../../home-v2.core';
+import { FreeStartIntakeShell } from './free-start-intake-shell';
 import { HeroV2 } from './hero-v2';
 
 type HomePageRuntimeProps = Readonly<{
@@ -62,10 +63,11 @@ export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
 
   const tenantId = sessionTenantId ?? hostTenantId ?? null;
   const shouldTrackLanding = sessionTenantId !== null || hostTenantId !== undefined;
-  const startClaimHref = getStartClaimHrefForSession({
+  const continueHref = getStartClaimHrefForSession({
     locale,
     session: landingSession,
   });
+  const startClaimHref = landingSession === null ? '#free-start-intake' : continueHref;
 
   return (
     <>
@@ -73,6 +75,7 @@ export function HomePageRuntime({ locale, uiV2Enabled }: HomePageRuntimeProps) {
         <FunnelLandingTracker tenantId={tenantId} locale={locale} uiV2Enabled={uiV2Enabled} />
       ) : null}
       <HeroV2 locale={locale} startClaimHref={startClaimHref} tenantId={tenantId} />
+      <FreeStartIntakeShell continueHref={continueHref} locale={locale} tenantId={tenantId} />
     </>
   );
 }
