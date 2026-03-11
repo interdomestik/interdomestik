@@ -2,161 +2,161 @@
   "servicesPage": {
     "meta": {
       "title": "Opseg zahteva i usluge - Asistenca",
-      "description": "Podrska fokusirana na slucajeve vozila, imovine i povreda, sa jasnim granicama za smernice i upucivanje."
+      "description": "Podrška fokusirana na slučajeve vozila, imovine i povreda, sa jasnim granicama za smernice i upućivanje."
     },
     "hero": {
       "badge": "Opseg lansiranja",
       "title": "Najpre zahtevi za vozila, imovinu i povrede",
-      "subtitle": "Free Start i clanstvo pocinju sa tipovima zahteva koje sada mozemo da podrzimo. Slucajevi samo za smernice ostaju savetodavni, a predmeti van opsega usmeravaju se ka pravom sledecem koraku."
+      "subtitle": "Free Start i članstvo počinju sa tipovima zahteva koje sada možemo da podržimo. Slučajevi samo za smernice ostaju savetodavni, a predmeti van opsega usmeravaju se ka pravom sledećem koraku."
     },
     "scope": {
       "eyebrow": "Komercijalne granice",
-      "title": "Pocetni opseg je jasan pre nego sto tim pocne bilo kakav rad",
-      "subtitle": "Ovde vidite koji predmeti ulaze u trenutnu putanju naplate, koji ostaju samo za smernice i kada Interdomestik prelazi na upucivanje ili pravnu rutu sa posebnom saglasnoscu.",
+      "title": "Početni opseg je jasan pre nego što tim počne bilo kakav rad",
+      "subtitle": "Ovde vidite koji predmeti ulaze u trenutnu putanju naplate, koji ostaju samo za smernice i kada Interdomestik prelazi na upućivanje ili pravnu rutu sa posebnom saglasnošću.",
       "launch": {
-        "title": "Obradjuje se sada",
-        "description": "Ove vrste predmeta ulaze u pocetnu putanju naplate kada postoji verodostojan novcani ishod.",
+        "title": "Obrađuje se sada",
+        "description": "Ove vrste predmeta ulaze u početnu putanju naplate kada postoji verodostojan novčani ishod.",
         "items": [
-          "Zahtevi za stetu na vozilu",
-          "Zahtevi za stetu na imovini",
-          "Zahtevi za licne povrede sa novcanom putanjom naplate"
+          "Zahtevi za štetu na vozilu",
+          "Zahtevi za štetu na imovini",
+          "Zahtevi za lične povrede sa novčanom putanjom naplate"
         ],
-        "note": "Free Start moze da pripremi paket. Clanstvo dodaje ljudski trijaz i proveru dokumenata pre svake prihvacene eskalacije."
+        "note": "Free Start može da pripremi paket. Članstvo dodaje ljudski trijaž i proveru dokumenata pre svake prihvaćene eskalacije."
       },
       "guidance": {
         "title": "Samo smernice",
         "description": "Ove kategorije mogu da dobiju smernice ili proveru dokumenata, ali ne ulaze u naplatu sa success-fee pri lansiranju.",
         "items": [
-          "Stambeni sporovi bez direktne novcane putanje naplate",
-          "Sporovi oko plata ili zaposlenja bez jasnog novcanog ishoda",
+          "Stambeni sporovi bez direktne novčane putanje naplate",
+          "Sporovi oko plata ili zaposlenja bez jasnog novčanog ishoda",
           "Sporovi oko popravke ili raskida ugovora bez direktne isplate",
-          "Sire potrosacke zalbe van pocetnih tipova zahteva"
+          "Šire potrošačke žalbe van početnih tipova zahteva"
         ],
-        "note": "Ovi predmeti ostaju savetodavni. Mozemo da pomognemo sa paketom i jednom proverom dokumenata, a zatim da uputimo dalje kada je partnerska ruta prikladnija."
+        "note": "Ovi predmeti ostaju savetodavni. Možemo da pomognemo sa paketom i jednom proverom dokumenata, a zatim da uputimo dalje kada je partnerska ruta prikladnija."
       },
       "outOfScope": {
         "title": "Van opsega",
         "description": "Ovi predmeti nisu deo ugovora za lansiranje i ne prihvataju se za rad tima.",
         "items": [
-          "Krivicna odbrana",
-          "Razvod i porodicno pravo",
+          "Krivična odbrana",
+          "Razvod i porodično pravo",
           "Imigracija",
-          "Opsti poslovni sporovi van definisanih grupnih paketa"
+          "Opšti poslovni sporovi van definisanih grupnih paketa"
         ],
-        "note": "Ove predmete ne prihvatamo za rad tima. Gde je moguce, usmeravamo vas ka pogodnijem spoljasnjem pruzaocu usluge."
+        "note": "Ove predmete ne prihvatamo za rad tima. Gde je moguće, usmeravamo vas ka pogodnijem spoljašnjem pružaocu usluge."
       },
       "boundary": {
-        "title": "Granice upucivanja",
-        "body": "Predmeti samo za smernice i oni van opsega ne prelaze u naplatu sa success-fee. Oni ostaju savetodavni, self-serve, clanske smernice ili samo upucivanje, zavisno od slucaja.",
+        "title": "Granice upućivanja",
+        "body": "Predmeti samo za smernice i oni van opsega ne prelaze u naplatu sa success-fee. Oni ostaju savetodavni, self-serve, članske smernice ili samo upućivanje, zavisno od slučaja.",
         "items": [
           "Spoljna pravna partnerska akcija zahteva posebnu pisanu saglasnost nakon prihvatanja predmeta.",
-          "Naknada za kasnjenje letova ostaje van trenutne pocetne putanje i vraca se u kasnijoj fazi."
+          "Naknada za kašnjenje letova ostaje van trenutne početne putanje i vraća se u kasnijoj fazi."
         ]
       }
     },
     "disclaimers": {
-      "eyebrow": "Komercijalna pojasnjenja",
+      "eyebrow": "Komercijalna pojašnjenja",
       "freeStart": {
         "title": "Free Start je samo informativan",
-        "body": "Free Start vam daje informativne smernice, obrasce i alate za sledeci korak. Ne pokrece ljudski pregled, pravni savet ili naplatu koju vodi tim."
+        "body": "Free Start vam daje informativne smernice, obrasce i alate za sledeći korak. Ne pokreće ljudski pregled, pravni savet ili naplatu koju vodi tim."
       },
       "hotline": {
-        "title": "Linija sluzi za usmeravanje i podrsku",
-        "body": "Linija sluzi za hitno usmeravanje, podrsku i sledeci korak. Ne znaci hitan pravni pregled, prihvatanje predmeta ili obradu koju vodi tim."
+        "title": "Linija služi za usmeravanje i podršku",
+        "body": "Linija služi za hitno usmeravanje, podršku i sledeći korak. Ne znači hitan pravni pregled, prihvatanje predmeta ili obradu koju vodi tim."
       }
     },
     "categories": {
       "consultation": {
-        "title": "Ukljucena pomoc pre naplate koju vodi tim",
-        "subtitle": "Sta Free Start i clanstvo ukljucuju na pocetnoj putanji",
+        "title": "Uključena pomoć pre naplate koju vodi tim",
+        "subtitle": "Šta Free Start i članstvo uključuju na početnoj putanji",
         "services": [
           {
             "title": "Free Start paket",
-            "description": "Free Start vam daje proveru podobnosti, rezultat sigurnosti, listu dokaza, prvo pismo zalbe, vremensku liniju i isporuku paketa bez pokretanja ljudskog pregleda.",
+            "description": "Free Start vam daje proveru podobnosti, rezultat sigurnosti, listu dokaza, prvo pismo žalbe, vremensku liniju i isporuku paketa bez pokretanja ljudskog pregleda.",
             "badge": "FREE START"
           },
           {
-            "title": "Clanski trijaz",
-            "description": "Ljudski odgovor za trijaz u roku od 24 radna sata nakon kompletiranog paketa, plus pracenje na tabli.",
-            "badge": "CLANSTVO"
+            "title": "Članski trijaž",
+            "description": "Ljudski odgovor za trijaž u roku od 24 radna sata nakon kompletiranog paketa, plus praćenje na tabli.",
+            "badge": "ČLANSTVO"
           },
           {
             "title": "Provera dokumenata po predmetu",
-            "description": "Clanstvo ukljucuje jednu proveru dokumenata po predmetu kako bi tim potvrdio nedostajuce dokaze i sledeci korak pre svake prihvacene eskalacije.",
-            "badge": "CLANSTVO"
+            "description": "Članstvo uključuje jednu proveru dokumenata po predmetu kako bi tim potvrdio nedostajuće dokaze i sledeći korak pre svake prihvaćene eskalacije.",
+            "badge": "ČLANSTVO"
           },
           {
-            "title": "Prvo pismo zalbe ili osiguravacu",
-            "description": "Pocetna putanja ukljucuje prvo pismo zalbe, osiguravacu ili drugoj strani pre nego sto pregovaracki rad pocne.",
-            "badge": "UKLJUCENO"
+            "title": "Prvo pismo žalbe ili osiguravaču",
+            "description": "Početna putanja uključuje prvo pismo žalbe, osiguravaču ili drugoj strani pre nego što pregovarački rad počne.",
+            "badge": "UKLJUČENO"
           },
           {
-            "title": "Linija za usmeravanje i podrsku",
-            "description": "Hitno usmeravanje i podrska ostaju dostupni na javnim i clanskim povrsinama, ali kontakt sa linijom ne pokrece pravni pregled ili prihvatanje predmeta.",
+            "title": "Linija za usmeravanje i podršku",
+            "description": "Hitno usmeravanje i podrška ostaju dostupni na javnim i članskim površinama, ali kontakt sa linijom ne pokreće pravni pregled ili prihvatanje predmeta.",
             "badge": "SAMO USMERAVANJE"
           },
           {
-            "title": "Dokumentska pomoc za predmete samo za smernice",
+            "title": "Dokumentska pomoć za predmete samo za smernice",
             "description": "Sporovi samo za smernice i dalje mogu da dobiju paket sa smernicama i proveru dokumenata, ali ostaju van naplate sa success-fee.",
             "badge": "SMERNICE"
           }
         ]
       },
       "expertise": {
-        "title": "Kako pocinje eskalacija koju vodi tim",
-        "subtitle": "Obrada od tima pocinje tek posle pregleda, prihvatanja i dogovora",
+        "title": "Kako počinje eskalacija koju vodi tim",
+        "subtitle": "Obrada od tima počinje tek posle pregleda, prihvatanja i dogovora",
         "services": [
           {
             "title": "Prihvatanje predmeta je prvo",
-            "description": "Obrada koju vodi tim pocinje tek nakon sto pregled opsega potvrdi pocetni zahtev, verodostojnu novcanu putanju naplate, prepoznatljivu drugu stranu ili osiguravaca i dovoljno dokaza za pregled.",
+            "description": "Obrada koju vodi tim počinje tek nakon što pregled opsega potvrdi početni zahtev, verodostojnu novčanu putanju naplate, prepoznatljivu drugu stranu ili osiguravača i dovoljno dokaza za pregled.",
             "badge": "PREGLED PREDMETA"
           },
           {
-            "title": "Rad na naplati pocinje nakon dogovora",
-            "description": "Pregovori sa osiguravacem, drugom stranom, formalna medijacija i aktivno pracenje naplate pocinju tek nakon prihvatanja predmeta i sporazuma o eskalaciji.",
+            "title": "Rad na naplati počinje nakon dogovora",
+            "description": "Pregovori sa osiguravačem, drugom stranom, formalna medijacija i aktivno praćenje naplate počinju tek nakon prihvatanja predmeta i sporazuma o eskalaciji.",
             "badge": "POSLE PRIHVATANJA"
           }
         ]
       },
       "legal": {
-        "title": "Odvojene rute za pisanu saglasnost i upucivanje",
-        "subtitle": "Sta zahteva pisanu saglasnost, a sta ostaje samo smernica ili upucivanje",
+        "title": "Odvojene rute za pisanu saglasnost i upućivanje",
+        "subtitle": "Šta zahteva pisanu saglasnost, a šta ostaje samo smernica ili upućivanje",
         "services": [
           {
-            "title": "Pravni partner i ruta sa dodatnim troskovima",
-            "description": "Spoljna pravna partnerska akcija, sudska tuzba, ekspertski izvestaji, prevodi, medicinska misljenja i drugi tvrdi troskovi zahtevaju posebnu pisanu saglasnost nakon prihvatanja predmeta.",
+            "title": "Pravni partner i ruta sa dodatnim troškovima",
+            "description": "Spoljna pravna partnerska akcija, sudska tužba, ekspertski izveštaji, prevodi, medicinska mišljenja i drugi tvrdi troškovi zahtevaju posebnu pisanu saglasnost nakon prihvatanja predmeta.",
             "badge": "PISANA SAGLASNOST"
           },
           {
             "title": "Granica za smernice i van opsega",
-            "description": "Predmeti samo za smernice i oni van opsega ne prelaze u naplatu sa success-fee. Oni ostaju savetodavni, self-serve, clanske smernice ili samo upucivanje, zavisno od slucaja.",
-            "badge": "SAMO UPUCIVANJE"
+            "description": "Predmeti samo za smernice i oni van opsega ne prelaze u naplatu sa success-fee. Oni ostaju savetodavni, self-serve, članske smernice ili samo upućivanje, zavisno od slučaja.",
+            "badge": "SAMO UPUĆIVANJE"
           }
         ]
       }
     },
     "experts": {
-      "title": "Ko podrzava ovu putanju",
-      "subtitle": "Trijaz predmeta, provera dokumenata i koordinacija sa partnerima na postojecoj pocetnoj povrsini",
+      "title": "Ko podržava ovu putanju",
+      "subtitle": "Trijaž predmeta, provera dokumenata i koordinacija sa partnerima na postojećoj početnoj površini",
       "list": [
         {
-          "title": "Trijaz predmeta",
-          "description": "Pregled opsega i smernice za sledeci korak kada kompletiran paket stigne do clanskog trijaza."
+          "title": "Trijaž predmeta",
+          "description": "Pregled opsega i smernice za sledeći korak kada kompletiran paket stigne do članskog trijaža."
         },
         {
           "title": "Provera dokumenata",
-          "description": "Provere dokaza i dokumenata pre svake prihvacene eskalacije ili posebne pravne saglasnosti."
+          "description": "Provere dokaza i dokumenata pre svake prihvaćene eskalacije ili posebne pravne saglasnosti."
         },
         {
           "title": "Koordinacija sa partnerima",
-          "description": "Upucivanje i predaja pravnom partneru samo kada predmet odgovara ugovoru i clan pristane."
+          "description": "Upućivanje i predaja pravnom partneru samo kada predmet odgovara ugovoru i član pristane."
         }
       ]
     },
     "cta": {
-      "title": "Spremni da pocnete?",
-      "subtitle": "Pocnite sa tipovima zahteva koje sada podrzavamo, ili nas kontaktirajte za smernice i usmeravanje kada je vas predmet van pocetnog opsega.",
-      "primary": "Postanite clan",
+      "title": "Spremni da počnete?",
+      "subtitle": "Počnite sa tipovima zahteva koje sada podržavamo, ili nas kontaktirajte za smernice i usmeravanje kada je vaš predmet van početnog opsega.",
+      "primary": "Postanite član",
       "secondary": "Besplatna konsultacija"
     }
   }
