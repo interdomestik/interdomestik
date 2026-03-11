@@ -33,6 +33,7 @@ type InjuryIssueId =
 type IssueId = VehicleIssueId | PropertyIssueId | InjuryIssueId;
 type StepId = 'category' | 'details' | 'preview' | 'complete';
 type ConfidenceLevel = 'high' | 'medium' | 'low';
+type ContinueRouteKey = 'membership' | 'member' | 'portal';
 
 type DraftState = {
   issueType: IssueId | '';
@@ -75,6 +76,12 @@ const OUTCOME_IDS: ReadonlyArray<OutcomeId> = [
   'compensation',
   'written_response',
 ];
+
+const COUNTERPARTY_DETAIL_MIN_LENGTH = 10;
+const SUMMARY_DETAIL_MIN_LENGTH = 40;
+const BASE_CONFIDENCE_SCORE = 1;
+const HIGH_CONFIDENCE_MIN_SCORE = 5;
+const MEDIUM_CONFIDENCE_MIN_SCORE = 3;
 
 const EMPTY_DRAFT: DraftState = {
   issueType: '',
@@ -159,18 +166,20 @@ function getSelectedOutcomeLabel(
 }
 
 function getContinueLabel(t: FreeStartCopy, continueHref: string): string {
-  if (continueHref === '/register') {
+  const routeKey = getContinueRouteKey(continueHref);
+
+  if (routeKey === 'membership') {
     return t('completion.continueMembership');
   }
 
-  if (continueHref.startsWith('/member')) {
+  if (routeKey === 'member') {
     return t('completion.continueMember');
   }
 
   return t('completion.continuePortal');
 }
 
-function getContinueRouteKey(continueHref: string): 'membership' | 'member' | 'portal' {
+function getContinueRouteKey(continueHref: string): ContinueRouteKey {
   if (continueHref === '/register') {
     return 'membership';
   }
@@ -200,15 +209,16 @@ function getConfidenceLevel(
 
   const hasMonetaryOutcome =
     draft.desiredOutcome !== '' && draft.desiredOutcome !== 'written_response';
-  const hasDetailedCounterparty = draft.counterparty.trim().length >= 10;
-  const hasDetailedSummary = draft.summary.trim().length >= 40;
+  const hasDetailedCounterparty =
+    draft.counterparty.trim().length >= COUNTERPARTY_DETAIL_MIN_LENGTH;
+  const hasDetailedSummary = draft.summary.trim().length >= SUMMARY_DETAIL_MIN_LENGTH;
   const isGuidanceOnlyIssue = draft.issueType === 'landlord_dispute';
 
   if (!hasMonetaryOutcome && isGuidanceOnlyIssue) {
     return 'low';
   }
 
-  let score = 1;
+  let score = BASE_CONFIDENCE_SCORE;
 
   if (hasMonetaryOutcome) {
     score += 2;
@@ -226,11 +236,11 @@ function getConfidenceLevel(
     score += 1;
   }
 
-  if (score >= 5 && hasMonetaryOutcome) {
+  if (score >= HIGH_CONFIDENCE_MIN_SCORE && hasMonetaryOutcome) {
     return 'high';
   }
 
-  if (score >= 3) {
+  if (score >= MEDIUM_CONFIDENCE_MIN_SCORE) {
     return 'medium';
   }
 
@@ -557,7 +567,7 @@ function FreeStartSidebar({
   t,
 }: FreeStartSidebarProps) {
   if (step === 'complete') {
-    const showHotlinePrimary = confidenceLevel === 'low' && Boolean(contacts.telHref);
+    const showHotlinePrimary = confidenceLevel === 'low';
     const primaryContinueLabel =
       confidenceLevel === 'high' || confidenceLevel === 'medium'
         ? getRecommendedContinueLabel(t, continueHref, confidenceLevel)
@@ -626,7 +636,7 @@ function FreeStartSidebar({
               {continueLabel}
               <ArrowRight className="h-4 w-4" />
             </Link>
-          ) : contacts.telHref ? (
+          ) : (
             <a
               href={contacts.telHref}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-950"
@@ -634,7 +644,7 @@ function FreeStartSidebar({
               <PhoneCall className="h-4 w-4" />
               {t('completion.cta.hotline.secondary')}
             </a>
-          ) : null}
+          )}
         </div>
       </div>
     );

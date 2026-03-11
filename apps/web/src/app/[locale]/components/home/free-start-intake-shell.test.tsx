@@ -49,12 +49,15 @@ vi.mock('@/lib/analytics', async () => {
 
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 
+type TestIssueId = 'water_damage' | 'landlord_dispute';
+type TestOutcomeId = 'repair' | 'written_response';
+
 type CompleteIntakeOptions = {
   category?: 'vehicle' | 'property' | 'injury';
   counterparty?: string;
   incidentDate?: string;
-  issueType?: string;
-  desiredOutcome?: string;
+  issueType?: TestIssueId;
+  desiredOutcome?: TestOutcomeId;
   summary?: string;
 };
 
