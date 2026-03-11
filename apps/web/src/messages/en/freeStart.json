@@ -152,6 +152,52 @@
         "handoff": "The same facts can flow into membership or follow-up without a routing change."
       }
     },
+    "trust": {
+      "evidence": {
+        "badge": "Evidence to gather next",
+        "placeholder": {
+          "heading": "Choose a claim type to see the strongest evidence for the first pack.",
+          "body": "Free Start stays lightweight, but the right photos, reports, and cost proof make later triage faster."
+        },
+        "vehicle": {
+          "heading": "Vehicle claims move faster with scene, insurer, and repair proof.",
+          "body": "Gather the basics before you ask for review so the pack can show what happened, who is involved, and what the loss looks like.",
+          "items": {
+            "first": "Photos of the vehicle damage and the wider scene.",
+            "second": "Police note, insurer claim number, or incident report if one exists.",
+            "third": "Repair estimate, tow invoice, or payout message that shows the amount in dispute."
+          }
+        },
+        "property": {
+          "heading": "Property claims need damage records, ownership context, and repair costs.",
+          "body": "Capture the condition before cleanup and keep the papers that show who is responsible for the building or policy.",
+          "items": {
+            "first": "Photos or video of every damaged room before cleanup.",
+            "second": "Lease, ownership, insurer, or building-manager details tied to the damaged address.",
+            "third": "Repair estimate, contractor note, or receipts for urgent mitigation costs."
+          }
+        },
+        "injury": {
+          "heading": "Injury claims need treatment records, incident facts, and loss evidence.",
+          "body": "Keep the medical timeline and the incident facts aligned so later review can see both the harm and the recovery path.",
+          "items": {
+            "first": "Medical notes, discharge papers, or treatment summaries.",
+            "second": "Incident report, witness details, or photos that show how the injury happened.",
+            "third": "Receipts, wage-loss proof, or other documents that show the financial impact."
+          }
+        }
+      },
+      "privacy": {
+        "badge": "Private by default",
+        "heading": "Gather first, share later.",
+        "body": "You do not need to upload documents in Free Start. Start with the minimum facts, and share evidence later only if you want membership triage or hotline follow-up."
+      },
+      "triage": {
+        "badge": "Human triage timing",
+        "heading": "Membership starts the review clock.",
+        "body": "Asistenca members receive a human triage response within 24 business hours after a complete claim pack arrives. If something is missing, we ask for it within the same window. Free Start stays informational, and the hotline stays routing-only."
+      }
+    },
     "validation": {
       "chooseCategory": "Choose vehicle, property, or injury before continuing.",
       "completeIntake": "Complete each guided intake field before previewing your Free Start pack."
