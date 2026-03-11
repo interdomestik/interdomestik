@@ -34,10 +34,10 @@ type IssueId = VehicleIssueId | PropertyIssueId | InjuryIssueId;
 type StepId = 'category' | 'details' | 'preview' | 'complete';
 
 type DraftState = {
-  issueType: string;
+  issueType: IssueId | '';
   incidentDate: string;
   counterparty: string;
-  desiredOutcome: string;
+  desiredOutcome: OutcomeId | '';
   summary: string;
 };
 
@@ -137,7 +137,7 @@ function getCategoryIconClassName(isSelected: boolean): string {
 function getSelectedIssueLabel(
   t: FreeStartCopy,
   selectedCategory: CategoryId | null,
-  issueType: string
+  issueType: DraftState['issueType']
 ): string {
   if (selectedCategory && issueType) {
     return t(`issues.${selectedCategory}.${issueType}`);
@@ -146,12 +146,27 @@ function getSelectedIssueLabel(
   return t('preview.notProvided');
 }
 
-function getSelectedOutcomeLabel(t: FreeStartCopy, desiredOutcome: string): string {
+function getSelectedOutcomeLabel(
+  t: FreeStartCopy,
+  desiredOutcome: DraftState['desiredOutcome']
+): string {
   if (desiredOutcome) {
     return t(`outcomes.${desiredOutcome}`);
   }
 
   return t('preview.notProvided');
+}
+
+function getContinueLabel(t: FreeStartCopy, continueHref: string): string {
+  if (continueHref === '/register') {
+    return t('completion.continueMembership');
+  }
+
+  if (continueHref.startsWith('/member')) {
+    return t('completion.continueMember');
+  }
+
+  return t('completion.continuePortal');
 }
 
 function getSelectedCategoryLabel(t: FreeStartCopy, selectedCategory: CategoryId | null): string {
@@ -259,7 +274,9 @@ function FreeStartMainPanel({
             <select
               aria-label={t('details.issueType')}
               value={draft.issueType}
-              onChange={event => setDraftField('issueType', event.target.value)}
+              onChange={event =>
+                setDraftField('issueType', event.target.value as DraftState['issueType'])
+              }
               className="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-300"
             >
               <option value="">{t('details.selectPlaceholder')}</option>
@@ -296,7 +313,9 @@ function FreeStartMainPanel({
             <select
               aria-label={t('details.desiredOutcome')}
               value={draft.desiredOutcome}
-              onChange={event => setDraftField('desiredOutcome', event.target.value)}
+              onChange={event =>
+                setDraftField('desiredOutcome', event.target.value as DraftState['desiredOutcome'])
+              }
               className="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-300"
             >
               <option value="">{t('details.selectPlaceholder')}</option>
@@ -519,10 +538,7 @@ export function FreeStartIntakeShell({
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const issueIds = getIssueIds(selectedCategory);
-  const isMemberContinue = continueHref.startsWith('/member');
-  const continueLabel = isMemberContinue
-    ? t('completion.continueMember')
-    : t('completion.continueMembership');
+  const continueLabel = getContinueLabel(t, continueHref);
   const activeStepIndex = getActiveStepIndex(step);
   const progressSteps = ['choose', 'details', 'preview'] as const;
   const selectedIssueLabel = getSelectedIssueLabel(t, selectedCategory, draft.issueType);

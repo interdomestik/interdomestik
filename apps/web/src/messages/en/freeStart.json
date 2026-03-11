@@ -96,6 +96,7 @@
       "body": "You now have a structured claim-pack shell based on the facts you entered. Continue when you want formal follow-up or membership handling.",
       "continueMembership": "Continue to membership",
       "continueMember": "Continue in member claims",
+      "continuePortal": "Continue to portal",
       "hotline": "Call the hotline"
     },
     "support": {

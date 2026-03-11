@@ -49,6 +49,22 @@ vi.mock('@/lib/analytics', async () => {
 
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 
+async function completeFreeStartIntake(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByTestId('free-start-category-property'));
+  await user.click(screen.getByRole('button', { name: 'Continue to guided intake' }));
+
+  await user.selectOptions(screen.getByLabelText('What happened?'), 'water_damage');
+  await user.type(screen.getByLabelText('When did it happen?'), '2026-03-01');
+  await user.type(screen.getByLabelText('Who are you dealing with?'), 'Building insurer');
+  await user.selectOptions(screen.getByLabelText('What do you want to recover?'), 'repair');
+  await user.type(
+    screen.getByLabelText('Brief summary'),
+    'Water entered through the roof after a storm and damaged two rooms.'
+  );
+  await user.click(screen.getByRole('button', { name: 'Preview your Free Start pack' }));
+  await user.click(screen.getByRole('button', { name: 'Finish Free Start' }));
+}
+
 describe('FreeStartIntakeShell', () => {
   it('shows the three launch categories before the guided intake starts', () => {
     render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
@@ -63,19 +79,7 @@ describe('FreeStartIntakeShell', () => {
 
     render(<FreeStartIntakeShell continueHref="/register" locale="en" tenantId="tenant_public" />);
 
-    await user.click(screen.getByTestId('free-start-category-property'));
-    await user.click(screen.getByRole('button', { name: 'Continue to guided intake' }));
-
-    await user.selectOptions(screen.getByLabelText('What happened?'), 'water_damage');
-    await user.type(screen.getByLabelText('When did it happen?'), '2026-03-01');
-    await user.type(screen.getByLabelText('Who are you dealing with?'), 'Building insurer');
-    await user.selectOptions(screen.getByLabelText('What do you want to recover?'), 'repair');
-    await user.type(
-      screen.getByLabelText('Brief summary'),
-      'Water entered through the roof after a storm and damaged two rooms.'
-    );
-    await user.click(screen.getByRole('button', { name: 'Preview your Free Start pack' }));
-    await user.click(screen.getByRole('button', { name: 'Finish Free Start' }));
+    await completeFreeStartIntake(user);
 
     expect(screen.getByTestId('free-start-complete')).toBeInTheDocument();
     expect(screen.getByText('Property damage')).toBeInTheDocument();
@@ -94,6 +98,19 @@ describe('FreeStartIntakeShell', () => {
         claim_category: 'property',
         intake_issue: 'water_damage',
       })
+    );
+  });
+
+  it('uses the portal continuation label for authenticated non-member routes', async () => {
+    const user = userEvent.setup();
+
+    render(<FreeStartIntakeShell continueHref="/agent" locale="en" tenantId="tenant_public" />);
+
+    await completeFreeStartIntake(user);
+
+    expect(screen.getByRole('link', { name: 'Continue to portal' })).toHaveAttribute(
+      'href',
+      '/agent'
     );
   });
 });
