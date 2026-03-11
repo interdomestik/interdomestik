@@ -568,10 +568,59 @@ function FreeStartSidebar({
 }: FreeStartSidebarProps) {
   if (step === 'complete') {
     const showHotlinePrimary = confidenceLevel === 'low';
-    const primaryContinueLabel =
-      confidenceLevel === 'high' || confidenceLevel === 'medium'
-        ? getRecommendedContinueLabel(t, continueHref, confidenceLevel)
-        : continueLabel;
+    let primaryContinueLabel = continueLabel;
+
+    if (confidenceLevel === 'high' || confidenceLevel === 'medium') {
+      primaryContinueLabel = getRecommendedContinueLabel(t, continueHref, confidenceLevel);
+    }
+
+    const renderPrimaryAction = () => {
+      if (showHotlinePrimary) {
+        return (
+          <a
+            href={contacts.telHref}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+          >
+            <PhoneCall className="h-4 w-4" />
+            {t('completion.cta.hotline.low')}
+          </a>
+        );
+      }
+
+      return (
+        <Link
+          href={continueHref}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+        >
+          {primaryContinueLabel}
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      );
+    };
+
+    const renderSecondaryAction = () => {
+      if (showHotlinePrimary) {
+        return (
+          <Link
+            href={continueHref}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-950"
+          >
+            {continueLabel}
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        );
+      }
+
+      return (
+        <a
+          href={contacts.telHref}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-950"
+        >
+          <PhoneCall className="h-4 w-4" />
+          {t('completion.cta.hotline.secondary')}
+        </a>
+      );
+    };
 
     return (
       <div data-testid="free-start-complete" className="space-y-4">
@@ -611,40 +660,8 @@ function FreeStartSidebar({
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          {showHotlinePrimary ? (
-            <a
-              href={contacts.telHref}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
-            >
-              <PhoneCall className="h-4 w-4" />
-              {t('completion.cta.hotline.low')}
-            </a>
-          ) : (
-            <Link
-              href={continueHref}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
-            >
-              {primaryContinueLabel}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
-          {showHotlinePrimary ? (
-            <Link
-              href={continueHref}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-950"
-            >
-              {continueLabel}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          ) : (
-            <a
-              href={contacts.telHref}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-950"
-            >
-              <PhoneCall className="h-4 w-4" />
-              {t('completion.cta.hotline.secondary')}
-            </a>
-          )}
+          {renderPrimaryAction()}
+          {renderSecondaryAction()}
         </div>
       </div>
     );
