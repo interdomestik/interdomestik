@@ -47,11 +47,7 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
               {t('v2.subtitle')}
             </p>
             {proofChips.length > 0 ? (
-              <div
-                data-testid="hero-v2-proof-chips"
-                className="flex flex-wrap items-center gap-2"
-                aria-label="proof chips"
-              >
+              <div data-testid="hero-v2-proof-chips" className="flex flex-wrap items-center gap-2">
                 {proofChips.map(chip => (
                   <span
                     key={chip}
@@ -156,7 +152,6 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
               <div
                 data-testid="hero-v2-trust-row"
                 className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-600"
-                aria-label="trust row"
               >
                 {trustCues.map(item => (
                   <span

@@ -8,9 +8,11 @@ const hoisted = vi.hoisted(() => ({
   currentLocale: 'en' as 'sq' | 'en',
   messages: {
     en: {
+      common: {
+        appName: 'Interdomestik',
+      },
       hero: {
         v2: {
-          badge: 'Interdomestik',
           title: 'File your claim quickly, with transparent follow-up.',
           subtitle: 'Start in minutes, upload evidence once, and track every next step clearly.',
           helpNow: 'Get help now (60 sec)',
@@ -38,9 +40,11 @@ const hoisted = vi.hoisted(() => ({
       },
     },
     sq: {
+      common: {
+        appName: 'Interdomestik',
+      },
       hero: {
         v2: {
-          badge: 'Interdomestik',
           title: 'Raporto rastin shpejt, me ndjekje të qartë.',
           subtitle: 'Nis në pak minuta, ngarko dëshmitë një herë dhe ndiq çdo hap pa paqartësi.',
           helpNow: 'Ndihmë tani (60 sek)',
