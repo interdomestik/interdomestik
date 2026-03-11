@@ -1,81 +1,30 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import enCommonMessages from '@/messages/en/common.json';
+import enHeroMessages from '@/messages/en/hero.json';
+import sqCommonMessages from '@/messages/sq/common.json';
+import sqHeroMessages from '@/messages/sq/hero.json';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
 import { HeroV2 } from './hero-v2';
 import { getStartClaimHrefForSession } from '../../home-v2.core';
 
+const localeMessages = {
+  en: {
+    common: enCommonMessages.common,
+    hero: enHeroMessages.hero,
+  },
+  sq: {
+    common: sqCommonMessages.common,
+    hero: sqHeroMessages.hero,
+  },
+} as const;
+
 const hoisted = vi.hoisted(() => ({
   currentLocale: 'en' as 'sq' | 'en',
-  messages: {
-    en: {
-      common: {
-        appName: 'Interdomestik',
-      },
-      hero: {
-        v2: {
-          title: 'File your claim quickly, with transparent follow-up.',
-          subtitle: 'Start in minutes, upload evidence once, and track every next step clearly.',
-          helpNow: 'Get help now (60 sec)',
-          helpMeta: '24/7 • fast response',
-          start: 'Start a claim',
-          whatsapp: 'WhatsApp',
-          invite: 'Invite & Earn',
-          idTitle: 'Your Digital Membership Card',
-          idMeta: 'Member ID',
-          idLink: 'View card',
-          idPreview: 'Preview',
-          journeyLabel: 'Journey',
-          journeySteps: ['Member', 'Upload', 'Staff review'],
-          proofChips: [
-            'Vehicle • Property • Injury',
-            'Free Start pack first',
-            'Published annual terms',
-          ],
-          trustCues: [
-            'Shqip / English support',
-            'Hotline + WhatsApp',
-            'Claim-first scope published',
-          ],
-        },
-      },
-    },
-    sq: {
-      common: {
-        appName: 'Interdomestik',
-      },
-      hero: {
-        v2: {
-          title: 'Raporto rastin shpejt, me ndjekje të qartë.',
-          subtitle: 'Nis në pak minuta, ngarko dëshmitë një herë dhe ndiq çdo hap pa paqartësi.',
-          helpNow: 'Ndihmë tani (60 sek)',
-          helpMeta: '24/7 • përgjigje e shpejtë',
-          start: 'Nis raportimin',
-          whatsapp: 'WhatsApp',
-          invite: 'Fto & Fito',
-          idTitle: 'Karta juaj Digjitale e Anëtarësisë',
-          idMeta: 'ID e anëtarit',
-          idLink: 'Shiko kartën',
-          idPreview: 'Paraqitje',
-          journeyLabel: 'Hapi',
-          journeySteps: ['Anëtar', 'Ngarko', 'Shqyrtim'],
-          proofChips: [
-            'Automjet • Pronë • Lëndim',
-            'Free Start paketa e parë',
-            'Kushte të publikuara vjetore',
-          ],
-          trustCues: [
-            'Shqip / English support',
-            'Hotline + WhatsApp',
-            'Claim-first scope published',
-          ],
-        },
-      },
-    },
-  },
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: createUseTranslationsMock(() => hoisted.messages[hoisted.currentLocale]),
+  useTranslations: createUseTranslationsMock(() => localeMessages[hoisted.currentLocale]),
 }));
 
 vi.mock('@/i18n/routing', () => ({
