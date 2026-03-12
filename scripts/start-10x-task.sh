@@ -767,11 +767,11 @@ detect_related_files() {
 - e2e/auth.spec.ts"
     fi
     
-    if [[ "$TASK_LOWER" == *"stripe"* ]] || [[ "$TASK_LOWER" == *"payment"* ]] || [[ "$TASK_LOWER" == *"subscription"* ]] || [[ "$TASK_LOWER" == *"billing"* ]]; then
+    if [[ "$TASK_LOWER" == *"paddle"* ]] || [[ "$TASK_LOWER" == *"payment"* ]] || [[ "$TASK_LOWER" == *"subscription"* ]] || [[ "$TASK_LOWER" == *"billing"* ]]; then
         RELATED_FILES="$RELATED_FILES
-- apps/web/src/app/api/webhooks/stripe/
+- apps/web/src/app/api/webhooks/paddle/
 - packages/database/src/schema.ts (subscription fields)
-- .env (STRIPE_* variables)"
+- .env (PADDLE_* and NEXT_PUBLIC_PADDLE_* variables)"
     fi
     
     if [[ "$TASK_LOWER" == *"i18n"* ]] || [[ "$TASK_LOWER" == *"translation"* ]] || [[ "$TASK_LOWER" == *"locale"* ]] || [[ "$TASK_LOWER" == *"language"* ]]; then

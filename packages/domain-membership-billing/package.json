@@ -6,7 +6,6 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./stripe": "./src/stripe.ts",
     "./paddle": "./src/paddle.ts",
     "./paddle-server": "./src/paddle-server.ts",
     "./subscription": "./src/subscription.ts",

@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-03-11
+last_reviewed: 2026-03-12
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -25,7 +25,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P1T` Free Start And Trust UX is now complete as the live post-`P1C` tranche. `T01` is complete as the canonical hero, trust-strip, and footer-safety-net slice, `T02` is complete as the canonical Free Start claim-pack generator shell slice, `T03` is complete as the canonical confidence-score and recommended-next-step slice, `T04` is complete as the canonical evidence prompts, privacy badge, and SLA microcopy slice, `T05` is complete as the canonical `/services` alignment slice for the coverage matrix and referral boundaries, and `T06` is complete as the canonical i18n plus component-test coverage slice for the new trust surfaces.
 
-`P2` Billing And Terms Hardening is now the committed post-`P1T` tranche. The committed queue keeps the existing in-place Paddle and billing hardening work `B01` through `B06` and adds the commercial terms enforcement queue `B07` through `B10`. Later blueprint tranches remain supporting input until `P2` closes.
+`P2` Billing And Terms Hardening is now complete as the post-`P1T` tranche. `B01` is complete as the Stripe residue cleanup and billing-surface contract reconciliation slice, `B02` through `B06` are complete as the in-place Paddle safety and billing auditability queue, and `B07` through `B10` are complete as the commercial terms enforcement queue. No later blueprint tranche is committed yet; `P3` remains supporting input until a separate promotion decision is recorded.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -59,12 +59,12 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 26. Keep `T04` as the canonical evidence prompts, privacy badge, and SLA microcopy slice.
 27. Keep `T05` as the canonical `/services` alignment slice for the coverage matrix and referral boundaries.
 28. Keep `T06` complete as the canonical i18n and component-test coverage slice for the new trust surfaces.
-29. Land `P2` as the canonical Billing And Terms Hardening tranche without reopening routing, auth, tenancy, or request-path AI decisions.
-30. Keep `B01` through `B06` as the canonical in-place billing hardening queue for Stripe reference removal, Paddle webhook safety, dunning enforcement, and billing auditability.
-31. Keep `B07` as the canonical escalation agreement and signed commercial terms persistence slice so accepted staff-led recovery work cannot start without inspectable fee, cap, and payment-authorization state.
-32. Keep `B08` as the canonical annual membership cancellation, refund, and cooling-off enforcement slice so live product behavior matches the published commercial contract.
-33. Keep `B09` as the canonical success-fee collection fallback slice so accepted recovery matters have a clear deduction, charge, and invoice order.
-34. Keep `B10` as the canonical commercial audit trail slice so recovery acceptance, cancellation, and collection actions stay inspectable.
+29. Keep `P2` complete as the canonical Billing And Terms Hardening tranche without reopening routing, auth, tenancy, or request-path AI decisions.
+30. Keep `B01` through `B06` complete as the canonical in-place billing hardening queue for Stripe reference removal, Paddle webhook safety, dunning enforcement, and billing auditability.
+31. Keep `B07` complete as the canonical escalation agreement and signed commercial terms persistence slice so accepted staff-led recovery work cannot start without inspectable fee, cap, and payment-authorization state.
+32. Keep `B08` complete as the canonical annual membership cancellation, refund, and cooling-off enforcement slice so live product behavior matches the published commercial contract.
+33. Keep `B09` complete as the canonical success-fee collection fallback slice so accepted recovery matters have a clear deduction, charge, and invoice order.
+34. Keep `B10` complete as the canonical commercial audit trail slice so recovery acceptance, cancellation, and collection actions stay inspectable.
 
 ## Status Command
 
@@ -99,7 +99,7 @@ pnpm plan:proof
 
 `P1T` Free Start And Trust UX is now complete as the committed post-`P1C` tranche. `T01`, `T02`, `T03`, `T04`, `T05`, and `T06` are complete.
 
-`P2` Billing And Terms Hardening is now the committed post-`P1T` tranche. The committed queue is `B01` through `B10`. Later blueprint tranches remain input until `P2` closes.
+`P2` Billing And Terms Hardening is now complete as the post-`P1T` tranche. No post-`P2` tranche is committed yet. `P3` remains blueprint input until a separate promotion decision is recorded.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -158,6 +158,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `P2` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the committed post-`P1T` tranche.
 - `B01` through `B06` have now been restored into the live program and tracker as the existing in-place Phase 2 billing hardening queue that the March 9 blueprint diff explicitly preserved.
 - `B07` through `B10` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the commercial terms enforcement extension of `P2`.
+- `P2` is now complete as of 2026-03-12. `B01` is complete as the Stripe residue cleanup and billing-surface contract reconciliation slice, and `B02` through `B10` are complete as the verified billing hardening queue.
 
 ## Historical Foundation, Not Current Sequencing
 

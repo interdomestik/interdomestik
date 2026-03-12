@@ -70,11 +70,10 @@ DATABASE_URL=                     # Direct database connection
 #### 💳 Payment Processing
 
 ```bash
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=  # Frontend Stripe key
-STRIPE_SECRET_KEY=                    # Backend Stripe secret
-STRIPE_WEBHOOK_SECRET=               # Stripe webhook verification
-NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=       # Paddle frontend token
-PADDLE_API_KEY=                      # Paddle backend key
+NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=    # Paddle frontend token
+PADDLE_API_KEY=                     # Paddle backend key
+PADDLE_WEBHOOK_SECRET_KEY=          # Paddle webhook verification
+NEXT_PUBLIC_PADDLE_ENV=             # Paddle environment: sandbox or production
 ```
 
 #### 🤖 External Services
@@ -138,7 +137,8 @@ NEXT_PUBLIC_APP_NAME
 # External services (development keys)
 OPENAI_API_KEY
 RESEND_API_KEY
-STRIPE_SECRET_KEY
+PADDLE_API_KEY
+PADDLE_WEBHOOK_SECRET_KEY
 GITHUB_CLIENT_ID
 GITHUB_CLIENT_SECRET
 ```
