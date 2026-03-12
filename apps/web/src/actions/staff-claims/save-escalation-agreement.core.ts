@@ -9,6 +9,14 @@ import type {
   SaveClaimEscalationAgreementInput,
 } from './types';
 
+const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+
+function revalidatePathForAllLocales(path: string) {
+  for (const locale of LOCALES) {
+    revalidatePath(`/${locale}${path}`);
+  }
+}
+
 export async function saveClaimEscalationAgreementCore(
   params: SaveClaimEscalationAgreementInput & {
     session: NonNullable<Session> | null;
@@ -17,8 +25,8 @@ export async function saveClaimEscalationAgreementCore(
   const result = await saveClaimEscalationAgreementCoreDomain(params);
 
   if (result.success) {
-    revalidatePath(`/staff/claims/${params.claimId}`);
-    revalidatePath('/staff/claims');
+    revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
+    revalidatePathForAllLocales('/staff/claims');
   }
 
   return result;
