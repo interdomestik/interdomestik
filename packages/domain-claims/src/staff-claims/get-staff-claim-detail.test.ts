@@ -29,6 +29,16 @@ const mocks = vi.hoisted(() => {
       userId: 'claims.user_id',
       agentId: 'claims.agent_id',
     },
+    claimEscalationAgreements: {
+      claimId: 'claim_escalation_agreements.claim_id',
+      feePercentage: 'claim_escalation_agreements.fee_percentage',
+      minimumFee: 'claim_escalation_agreements.minimum_fee',
+      legalActionCapPercentage: 'claim_escalation_agreements.legal_action_cap_percentage',
+      paymentAuthorizationState: 'claim_escalation_agreements.payment_authorization_state',
+      termsVersion: 'claim_escalation_agreements.terms_version',
+      signedAt: 'claim_escalation_agreements.signed_at',
+      acceptedAt: 'claim_escalation_agreements.accepted_at',
+    },
     user: {
       id: 'user.id',
       name: 'user.name',
@@ -42,6 +52,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
+  claimEscalationAgreements: mocks.claimEscalationAgreements,
   claims: mocks.claims,
   user: mocks.user,
   eq: mocks.eq,
@@ -78,6 +89,13 @@ describe('getStaffClaimDetail', () => {
         memberNumber: 'MEM-001',
         agentId: 'agent-1',
         agentName: 'Agent One',
+        agreementFeePercentage: 15,
+        agreementMinimumFee: '25.00',
+        agreementLegalActionCapPercentage: 25,
+        agreementPaymentAuthorizationState: 'authorized',
+        agreementTermsVersion: '2026-03-v1',
+        agreementSignedAt: new Date('2026-03-11T09:00:00Z'),
+        agreementAcceptedAt: new Date('2026-03-11T09:00:00Z'),
       },
     ]);
     mocks.agentChain.limit.mockResolvedValue([{ id: 'agent-1', name: 'Agent One' }]);
@@ -96,6 +114,13 @@ describe('getStaffClaimDetail', () => {
     expect(result?.claim.claimNumber).toBe('KS-0001');
     expect(result?.member.membershipNumber).toBe('MEM-001');
     expect(result?.agent?.name).toBe('Agent One');
+    expect(result?.commercialAgreement).toMatchObject({
+      feePercentage: 15,
+      minimumFee: '25.00',
+      legalActionCapPercentage: 25,
+      paymentAuthorizationState: 'authorized',
+      termsVersion: '2026-03-v1',
+    });
   });
 
   it('returns null when claim is outside tenant scope', async () => {

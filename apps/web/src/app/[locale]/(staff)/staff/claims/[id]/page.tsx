@@ -131,6 +131,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
         >
           <ClaimActionPanel
             claimId={detail.claim.id}
+            commercialAgreement={detail.commercialAgreement}
             currentStatus={detail.claim.status || 'draft'}
             staffId={session.user.id}
             assigneeId={detail.claim.staffId}

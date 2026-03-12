@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as nextCache from 'next/cache';
 
 const mocks = vi.hoisted(() => ({
   dbSelect: vi.fn(),
@@ -29,6 +30,8 @@ vi.mock('next/cache', () => ({
 import { updateClaimStatusCore } from './update-status';
 
 describe('updateClaimStatusCore', () => {
+  const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -47,5 +50,10 @@ describe('updateClaimStatusCore', () => {
 
     expect(result).toEqual({ success: true });
     expect(mocks.dbTransaction).not.toHaveBeenCalled();
+    for (const locale of LOCALES) {
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims/claim-1`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims`);
+    }
+    expect(nextCache.revalidatePath).toHaveBeenCalledTimes(LOCALES.length * 2);
   });
 });

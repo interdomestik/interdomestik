@@ -8,6 +8,14 @@ import type { ActionResult, ClaimStatus } from './types';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 // ...
 
+const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+
+function revalidatePathForAllLocales(path: string) {
+  for (const locale of LOCALES) {
+    revalidatePath(`/${locale}${path}`);
+  }
+}
+
 export async function updateClaimStatusCore(params: {
   claimId: string;
   newStatus: ClaimStatus;
@@ -33,8 +41,8 @@ export async function updateClaimStatusCore(params: {
   const result = await updateClaimStatusCoreDomain(params);
 
   if (result.success) {
-    revalidatePath(`/staff/claims/${params.claimId}`);
-    revalidatePath('/staff/claims');
+    revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
+    revalidatePathForAllLocales('/staff/claims');
   }
 
   return result;

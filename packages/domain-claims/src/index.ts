@@ -16,4 +16,5 @@ export { updateClaimStatusCore } from './claims/status';
 export { assignClaimCore as assignStaffClaimCore } from './staff-claims/assign';
 export { getStaffClaimsList } from './staff-claims/get-staff-claims-list';
 export { getStaffClaimDetail } from './staff-claims/get-staff-claim-detail';
+export { saveClaimEscalationAgreementCore as saveStaffClaimEscalationAgreementCore } from './staff-claims/save-escalation-agreement';
 export { updateClaimStatusCore as updateStaffClaimStatusCore } from './staff-claims/update-status';

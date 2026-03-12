@@ -1,10 +1,18 @@
-import { claimStageHistory, claims, db, eq } from '@interdomestik/database';
+import {
+  claimEscalationAgreements,
+  claimStageHistory,
+  claims,
+  db,
+  eq,
+} from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type { ActionResult, ClaimStatus } from './types';
 
 import { claimStatusSchema } from '../validators/claims';
+
+const STAFF_LED_RECOVERY_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
 
 /** Update claim status and optionally add a history note */
 export async function updateClaimStatusCore(
@@ -46,6 +54,31 @@ export async function updateClaimStatusCore(
 
     if (currentClaim.status === status && !note) {
       return { success: true }; // No change needed
+    }
+
+    if (currentClaim.status !== status && STAFF_LED_RECOVERY_STATUSES.has(status)) {
+      const [agreement] = await db
+        .select({
+          paymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
+          signedAt: claimEscalationAgreements.signedAt,
+        })
+        .from(claimEscalationAgreements)
+        .where(
+          withTenant(
+            tenantId,
+            claimEscalationAgreements.tenantId,
+            eq(claimEscalationAgreements.claimId, claimId)
+          )
+        )
+        .limit(1);
+
+      if (!agreement?.signedAt || agreement.paymentAuthorizationState !== 'authorized') {
+        return {
+          success: false,
+          error:
+            'Signed escalation agreement and authorized payment collection are required before staff-led recovery can begin',
+        };
+      }
     }
 
     const oldStatus = currentClaim.status;

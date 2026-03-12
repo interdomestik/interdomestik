@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { assignClaim, updateClaimStatus } from './staff-claims';
+import { assignClaim, saveClaimEscalationAgreement, updateClaimStatus } from './staff-claims';
 
 vi.mock('./staff-claims/context', () => ({
   getActionContext: vi.fn(async () => ({
@@ -14,6 +14,10 @@ vi.mock('./staff-claims/assign', () => ({
 
 vi.mock('./staff-claims/update-status', () => ({
   updateClaimStatusCore: vi.fn(async () => ({ success: true })),
+}));
+
+vi.mock('./staff-claims/save-escalation-agreement.core', () => ({
+  saveClaimEscalationAgreementCore: vi.fn(async () => ({ success: true })),
 }));
 
 describe('staff-claims action wrapper', () => {
@@ -49,6 +53,33 @@ describe('staff-claims action wrapper', () => {
       note: undefined,
       isPublicChange: false,
       session: { user: { id: 'staff-1', role: 'staff' } },
+    });
+    expect(result).toEqual({ success: true });
+  });
+
+  it('delegates saveClaimEscalationAgreement to core', async () => {
+    const { getActionContext } = await import('./staff-claims/context');
+    const { saveClaimEscalationAgreementCore } =
+      await import('./staff-claims/save-escalation-agreement.core');
+
+    const result = await saveClaimEscalationAgreement({
+      claimId: 'claim-1',
+      feePercentage: 15,
+      legalActionCapPercentage: 25,
+      minimumFee: 25,
+      paymentAuthorizationState: 'authorized',
+      termsVersion: '2026-03-v1',
+    });
+
+    expect(getActionContext).toHaveBeenCalledTimes(1);
+    expect(saveClaimEscalationAgreementCore).toHaveBeenCalledWith({
+      claimId: 'claim-1',
+      feePercentage: 15,
+      legalActionCapPercentage: 25,
+      minimumFee: 25,
+      paymentAuthorizationState: 'authorized',
+      session: { user: { id: 'staff-1', role: 'staff' } },
+      termsVersion: '2026-03-v1',
     });
     expect(result).toEqual({ success: true });
   });

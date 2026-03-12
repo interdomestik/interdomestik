@@ -1,5 +1,6 @@
-import { and, claims, db, eq, user } from '@interdomestik/database';
+import { and, claimEscalationAgreements, claims, db, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import type { ClaimEscalationAgreementSnapshot } from './types';
 
 export type StaffClaimDetail = {
   claim: {
@@ -20,6 +21,7 @@ export type StaffClaimDetail = {
     id: string;
     name: string;
   };
+  commercialAgreement: ClaimEscalationAgreementSnapshot | null;
 };
 
 function formatStageLabel(status: string | null | undefined) {
@@ -52,9 +54,17 @@ export async function getStaffClaimDetail(params: {
       memberId: user.id,
       memberName: user.name,
       memberNumber: user.memberNumber,
+      agreementFeePercentage: claimEscalationAgreements.feePercentage,
+      agreementMinimumFee: claimEscalationAgreements.minimumFee,
+      agreementLegalActionCapPercentage: claimEscalationAgreements.legalActionCapPercentage,
+      agreementPaymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
+      agreementTermsVersion: claimEscalationAgreements.termsVersion,
+      agreementSignedAt: claimEscalationAgreements.signedAt,
+      agreementAcceptedAt: claimEscalationAgreements.acceptedAt,
     })
     .from(claims)
     .leftJoin(user, eq(claims.userId, user.id))
+    .leftJoin(claimEscalationAgreements, eq(claims.id, claimEscalationAgreements.claimId))
     .where(withTenant(tenantId, claims.tenantId, and(eq(claims.id, claimId))))
     .limit(1);
 
@@ -90,5 +100,22 @@ export async function getStaffClaimDetail(params: {
       membershipNumber: row.memberNumber ?? null,
     },
     agent,
+    commercialAgreement:
+      row.agreementFeePercentage != null &&
+      row.agreementMinimumFee != null &&
+      row.agreementLegalActionCapPercentage != null &&
+      row.agreementPaymentAuthorizationState != null &&
+      row.agreementTermsVersion != null
+        ? {
+            claimId: row.claimId,
+            feePercentage: row.agreementFeePercentage,
+            minimumFee: row.agreementMinimumFee,
+            legalActionCapPercentage: row.agreementLegalActionCapPercentage,
+            paymentAuthorizationState: row.agreementPaymentAuthorizationState,
+            signedAt: normalizeDate(row.agreementSignedAt),
+            acceptedAt: normalizeDate(row.agreementAcceptedAt),
+            termsVersion: row.agreementTermsVersion,
+          }
+        : null,
   };
 }

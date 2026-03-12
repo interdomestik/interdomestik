@@ -281,6 +281,13 @@
       "when": 1773002400000,
       "tag": "0039_add_legal_claim_document_category",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1773267279991,
+      "tag": "0040_add_claim_escalation_agreements",
+      "breakpoints": true
     }
   ]
 }
