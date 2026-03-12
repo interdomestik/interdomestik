@@ -151,11 +151,18 @@ export function ClaimActionPanel({
   };
 
   const handleSuccessFeeCollectionSave = () => {
+    if (!hasValidRecoveredAmount) {
+      toast.error('Error', {
+        description: 'Recovered amount must be a positive number.',
+      });
+      return;
+    }
+
     startTransition(async () => {
       const result = await saveSuccessFeeCollection({
         claimId,
         deductionAllowed: deductionPath === 'allowed',
-        recoveredAmount: Number(recoveredAmount),
+        recoveredAmount: parsedRecoveredAmount,
       });
 
       if (result.success) {
@@ -170,13 +177,16 @@ export function ClaimActionPanel({
 
   const isAssignedToMe = assigneeId === staffId;
   const hasStatusChanged = status !== currentStatus;
-  const hasCommercialAgreement = commercialAgreement !== null;
+  const hasCommercialAgreement = (savedAgreement ?? commercialAgreement) !== null;
+  const parsedRecoveredAmount = Number(recoveredAmount.trim());
+  const hasValidRecoveredAmount =
+    Number.isFinite(parsedRecoveredAmount) && parsedRecoveredAmount > 0;
   const canSaveAgreement =
     feePercentage.trim().length > 0 &&
     minimumFee.trim().length > 0 &&
     legalActionCapPercentage.trim().length > 0 &&
     termsVersion.trim().length > 0;
-  const canSaveSuccessFeeCollection = hasCommercialAgreement && recoveredAmount.trim().length > 0;
+  const canSaveSuccessFeeCollection = hasCommercialAgreement && hasValidRecoveredAmount;
 
   let assignmentLabel = 'Unassigned';
   if (assigneeId) {
