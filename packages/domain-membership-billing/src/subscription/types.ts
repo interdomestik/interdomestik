@@ -26,6 +26,15 @@ export type SubscriptionDeps = {
   logAuditEvent?: AuditLogger;
 };
 
+export type CancellationTermsSummary = {
+  coolingOffAppliesSeparately: true;
+  currentPeriodEndsAt: string | null;
+  effectiveFrom: 'next_billing_period';
+  hasAcceptedEscalation: boolean;
+  refundStatus: 'eligible' | 'outside_window' | 'blocked_by_accepted_escalation';
+  refundWindowEndsAt: string | null;
+};
+
 export type CancelSubscriptionResult =
-  | { success: true; error: undefined }
+  | { success: true; error: undefined; cancellationTerms: CancellationTermsSummary }
   | { error: string; success: undefined };

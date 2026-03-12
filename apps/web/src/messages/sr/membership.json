@@ -91,6 +91,18 @@
       "select_subscription": "Izaberite pretplatu",
       "back_to_list": "Nazad na listu"
     },
+    "actions": {
+      "confirm_cancel": "Da li ste sigurni da želite da otkažete? Otkazivanje menja samo buduće obnavljanje, a vaš trenutni pristup ostaje aktivan do kraja tekućeg obračunskog perioda.",
+      "cancel_requested": "Otkazivanje je zakazano.",
+      "cancel_keeps_access_until": "Vaš pristup članstvu ostaje aktivan do {date}.",
+      "refund_eligible": "Vaš zahtev je i dalje u godišnjem roku za razmatranje povraćaja i biće proveren prema objavljenim uslovima.",
+      "refund_window_closed": "Godišnji rok za razmatranje povraćaja je istekao, pa otkazivanje utiče samo na buduće obnavljanje.",
+      "accepted_escalation_survives": "Prihvaćeni predmeti naplate zadržavaju važeće eskalacione uslove i nakon otkazivanja članstva.",
+      "cooling_off_applies_separately": "Sva zakonska prava na odustanak razmatraju se odvojeno prema objavljenim uslovima."
+    },
+    "errors": {
+      "action_failed": "Nismo mogli da završimo tu člansku radnju. Pokušajte ponovo."
+    },
     "dunning": {
       "payment_failed_title": "Plaćanje neuspešno - {daysRemaining} dana preostalo",
       "payment_failed_message": "Vaše poslednje plaćanje nije uspelo. Ažurirajte način plaćanja da biste izbegli gubitak pogodnosti članstva.",

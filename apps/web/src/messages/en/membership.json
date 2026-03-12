@@ -91,6 +91,18 @@
       "select_subscription": "Select a subscription",
       "back_to_list": "Back to list"
     },
+    "actions": {
+      "confirm_cancel": "Are you sure you want to cancel? Cancellation only changes future renewal and your current access remains active until the current billing period ends.",
+      "cancel_requested": "Cancellation scheduled.",
+      "cancel_keeps_access_until": "Your membership access stays active until {date}.",
+      "refund_eligible": "Your request is still within the annual refund review window and will be checked against the published terms.",
+      "refund_window_closed": "The annual refund review window has closed, so cancellation only affects future renewal.",
+      "accepted_escalation_survives": "Accepted recovery matters keep their surviving escalation terms after membership cancellation.",
+      "cooling_off_applies_separately": "Any statutory cooling-off rights are reviewed separately under the published terms."
+    },
+    "errors": {
+      "action_failed": "We could not complete that membership action. Please try again."
+    },
     "dunning": {
       "payment_failed_title": "Payment Failed - {daysRemaining} days remaining",
       "payment_failed_message": "Your last payment was unsuccessful. Please update your payment method to avoid losing access to your membership benefits.",
