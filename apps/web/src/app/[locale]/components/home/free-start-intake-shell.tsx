@@ -1,7 +1,15 @@
 'use client';
 
+import { submitFreeStartIntake } from '@/actions/free-start';
 import { Link } from '@/i18n/routing';
 import { CommercialFunnelEvents, resolveFunnelVariant } from '@/lib/analytics';
+import {
+  FREE_START_ISSUES_BY_CATEGORY,
+  FREE_START_OUTCOME_IDS,
+  type FreeStartCategoryId as CategoryId,
+  type FreeStartIssueId as IssueId,
+  type FreeStartOutcomeId as OutcomeId,
+} from '@/lib/free-start-contract';
 import { getSupportContacts } from '@/lib/support-contacts';
 import {
   ArrowLeft,
@@ -21,16 +29,6 @@ type FreeStartIntakeShellProps = Readonly<{
   tenantId?: string | null;
 }>;
 
-type CategoryId = 'vehicle' | 'property' | 'injury';
-type OutcomeId = 'repair' | 'reimbursement' | 'compensation' | 'written_response';
-type VehicleIssueId = 'collision' | 'theft' | 'parking_damage' | 'insurer_delay';
-type PropertyIssueId = 'water_damage' | 'storm_fire' | 'burglary' | 'landlord_dispute';
-type InjuryIssueId =
-  | 'workplace_injury'
-  | 'traffic_injury'
-  | 'medical_negligence'
-  | 'public_liability';
-type IssueId = VehicleIssueId | PropertyIssueId | InjuryIssueId;
 type StepId = 'category' | 'details' | 'preview' | 'complete';
 type ConfidenceLevel = 'high' | 'medium' | 'low';
 type ContinueRouteKey = 'membership' | 'member' | 'portal';
@@ -57,26 +55,21 @@ const CATEGORY_CONFIG: ReadonlyArray<{
   {
     icon: Car,
     id: 'vehicle',
-    issueIds: ['collision', 'theft', 'parking_damage', 'insurer_delay'],
+    issueIds: FREE_START_ISSUES_BY_CATEGORY.vehicle,
   },
   {
     icon: Home,
     id: 'property',
-    issueIds: ['water_damage', 'storm_fire', 'burglary', 'landlord_dispute'],
+    issueIds: FREE_START_ISSUES_BY_CATEGORY.property,
   },
   {
     icon: Stethoscope,
     id: 'injury',
-    issueIds: ['workplace_injury', 'traffic_injury', 'medical_negligence', 'public_liability'],
+    issueIds: FREE_START_ISSUES_BY_CATEGORY.injury,
   },
 ];
 
-const OUTCOME_IDS: ReadonlyArray<OutcomeId> = [
-  'repair',
-  'reimbursement',
-  'compensation',
-  'written_response',
-];
+const OUTCOME_IDS: ReadonlyArray<OutcomeId> = FREE_START_OUTCOME_IDS;
 const EVIDENCE_ITEM_IDS: ReadonlyArray<EvidenceItemId> = ['first', 'second', 'third'];
 
 const COUNTERPARTY_DETAIL_MIN_LENGTH = 10;
@@ -772,6 +765,7 @@ export function FreeStartIntakeShell({
   tenantId,
 }: FreeStartIntakeShellProps) {
   const t = useTranslations('freeStart');
+  const tCommon = useTranslations('common');
   const contacts = getSupportContacts({ locale, tenantId });
   const [step, setStep] = useState<StepId>('category');
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
@@ -819,10 +813,44 @@ export function FreeStartIntakeShell({
     setStep('preview');
   };
 
-  const finishIntake = () => {
+  const finishIntake = async () => {
     if (selectedCategory === null) {
       setValidationError(t('validation.chooseCategory'));
       setStep('category');
+      return;
+    }
+
+    if (
+      draft.issueType.trim().length === 0 ||
+      draft.incidentDate.trim().length === 0 ||
+      draft.counterparty.trim().length === 0 ||
+      draft.desiredOutcome.trim().length === 0 ||
+      draft.summary.trim().length === 0
+    ) {
+      setValidationError(t('validation.completeIntake'));
+      return;
+    }
+
+    let result: Awaited<ReturnType<typeof submitFreeStartIntake>>;
+    try {
+      result = await submitFreeStartIntake({
+        category: selectedCategory,
+        counterparty: draft.counterparty,
+        desiredOutcome: draft.desiredOutcome as OutcomeId,
+        incidentDate: draft.incidentDate,
+        issueType: draft.issueType as IssueId,
+        summary: draft.summary,
+      });
+    } catch (error) {
+      console.error('[FreeStart] Failed to submit intake', error);
+      setValidationError(tCommon('errors.retry'));
+      return;
+    }
+
+    if (!result.success) {
+      setValidationError(
+        result.code === 'INVALID_PAYLOAD' ? t('validation.completeIntake') : tCommon('errors.retry')
+      );
       return;
     }
 
@@ -833,9 +861,9 @@ export function FreeStartIntakeShell({
         locale,
       },
       {
-        claim_category: selectedCategory,
-        intake_issue: draft.issueType,
-        desired_outcome: draft.desiredOutcome,
+        claim_category: result.data?.claimCategory ?? selectedCategory,
+        intake_issue: result.data?.intakeIssue ?? draft.issueType,
+        desired_outcome: result.data?.desiredOutcome ?? draft.desiredOutcome,
       }
     );
     setValidationError(null);

@@ -1,12 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import enFreeStartMessages from '@/messages/en/freeStart.json';
 import sqFreeStartMessages from '@/messages/sq/freeStart.json';
 import { createUseTranslationsMock } from '@/test/next-intl-mock';
 
 const hoisted = vi.hoisted(() => ({
   freeStartCompletedMock: vi.fn(),
+  submitFreeStartIntakeMock: vi.fn(),
   currentLocale: 'en' as 'en' | 'sq',
 }));
 
@@ -21,6 +22,11 @@ const localeMessages = {
 
 vi.mock('next-intl', () => ({
   useTranslations: createUseTranslationsMock(() => ({
+    common: {
+      errors: {
+        retry: 'Please try again. If the problem persists, contact support.',
+      },
+    },
     freeStart: localeMessages[hoisted.currentLocale].freeStart,
   })),
 }));
@@ -57,6 +63,10 @@ vi.mock('@/lib/analytics', async () => {
     },
   };
 });
+
+vi.mock('@/actions/free-start', () => ({
+  submitFreeStartIntake: (...args: [unknown]) => hoisted.submitFreeStartIntakeMock(...args),
+}));
 
 import { FreeStartIntakeShell } from './free-start-intake-shell';
 
@@ -156,6 +166,10 @@ function renderFreeStart(locale: LocaleId, continueHref = '/register') {
 }
 
 describe('FreeStartIntakeShell', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('shows the three launch categories before the guided intake starts', () => {
     renderFreeStart('en');
 
@@ -166,6 +180,14 @@ describe('FreeStartIntakeShell', () => {
 
   it('lets a public user complete the intake path and generates a pack shell summary', async () => {
     const user = userEvent.setup();
+    hoisted.submitFreeStartIntakeMock.mockResolvedValue({
+      success: true,
+      data: {
+        claimCategory: 'property',
+        desiredOutcome: 'repair',
+        intakeIssue: 'water_damage',
+      },
+    });
 
     renderFreeStart('en');
 
@@ -189,6 +211,14 @@ describe('FreeStartIntakeShell', () => {
         name: enFreeStartMessages.freeStart.completion.cta.membership.high,
       })
     ).toHaveAttribute('href', '/register');
+    expect(hoisted.submitFreeStartIntakeMock).toHaveBeenCalledWith({
+      category: 'property',
+      counterparty: 'Building insurer',
+      desiredOutcome: 'repair',
+      incidentDate: '2026-03-01',
+      issueType: 'water_damage',
+      summary: 'Water entered through the roof after a storm and damaged two rooms.',
+    });
     expect(hoisted.freeStartCompletedMock).toHaveBeenCalledWith(
       {
         locale: 'en',
@@ -338,5 +368,19 @@ describe('FreeStartIntakeShell', () => {
     expect(screen.getByTestId('free-start-next-step')).toHaveTextContent(
       enFreeStartMessages.freeStart.completion.nextStep.levels.high
     );
+  });
+
+  it('shows the retry error when the free start server action throws unexpectedly', async () => {
+    const user = userEvent.setup();
+    hoisted.submitFreeStartIntakeMock.mockRejectedValue(new Error('network down'));
+
+    renderFreeStart('en');
+
+    await completeFreeStartIntake(user, 'en');
+
+    expect(await screen.findByTestId('free-start-validation-error')).toHaveTextContent(
+      'Please try again. If the problem persists, contact support.'
+    );
+    expect(screen.queryByTestId('free-start-complete')).not.toBeInTheDocument();
   });
 });

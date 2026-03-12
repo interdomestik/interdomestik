@@ -295,6 +295,13 @@ async function waitForPersistedMessage(claimId: string, content: string): Promis
     .toBe(true);
 }
 
+async function waitForMessagingPanelReady(
+  panel: import('@playwright/test').Locator
+): Promise<void> {
+  await expect(panel).toBeVisible({ timeout: 15000 });
+  await expect(panel.locator('svg.animate-spin')).toHaveCount(0, { timeout: 15000 });
+}
+
 test.describe('Agent Workspace Claims claimId selection', () => {
   test('claimId selects accessible claim and flags inaccessible claimId', async ({
     agentPage: page,
@@ -363,7 +370,7 @@ test.describe('Agent Workspace Claims claimId selection', () => {
       // Open messaging panel for deterministic claim context.
       await actionMessage.evaluate(el => (el as HTMLElement).click());
       const messagingPanel = page.locator('[data-testid="messaging-panel"]:visible');
-      await expect(messagingPanel).toBeVisible({ timeout: 15000 });
+      await waitForMessagingPanelReady(messagingPanel);
 
       const messageInput = messagingPanel.getByTestId('message-input');
       await messageInput.fill(uniqueText);
@@ -390,7 +397,7 @@ test.describe('Agent Workspace Claims claimId selection', () => {
       await actionMessageAfterReload.evaluate(el => (el as HTMLElement).click());
 
       const refreshedMessagingPanel = page.locator('[data-testid="messaging-panel"]:visible');
-      await expect(refreshedMessagingPanel).toBeVisible({ timeout: 15000 });
+      await waitForMessagingPanelReady(refreshedMessagingPanel);
       await expect(
         refreshedMessagingPanel.locator('p.whitespace-pre-wrap').filter({ hasText: uniqueText })
       ).toBeVisible({ timeout: 10000 });

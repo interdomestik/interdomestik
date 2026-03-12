@@ -56,8 +56,53 @@ describe('actions/claims/submit', () => {
       data: validData as any,
     });
 
-    expect(result).toEqual({ success: true, claimId: 'claim-1' });
+    expect(result).toEqual({
+      success: true,
+      claimId: 'claim-1',
+      commercialFlow: {
+        escalationRequest: {
+          claimCategory: 'transport',
+          decision: 'declined',
+          decisionReason: 'outside_launch_scope',
+        },
+        freeStartCompletion: {
+          claimCategory: 'transport',
+        },
+      },
+    });
     expect(mockRateLimit).toHaveBeenCalled();
+  });
+
+  it('returns validated commercial escalation metadata for launch-scope claims', async () => {
+    mockRateLimit.mockResolvedValueOnce({ limited: false });
+    (submitClaimCoreDomain as any).mockResolvedValueOnce({
+      success: true,
+      claimId: 'claim-1',
+    });
+
+    const result = await submitClaimCore({
+      session: validSession as any,
+      requestHeaders: new Headers(),
+      data: {
+        ...validData,
+        category: 'vehicle',
+      } as any,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      claimId: 'claim-1',
+      commercialFlow: {
+        escalationRequest: {
+          claimCategory: 'vehicle',
+          decision: 'requested',
+          decisionReason: 'launch_scope_supported',
+        },
+        freeStartCompletion: {
+          claimCategory: 'vehicle',
+        },
+      },
+    });
   });
 
   it('fails when rate limited', async () => {

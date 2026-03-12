@@ -168,6 +168,57 @@ vi.mock('@interdomestik/ui/components/form', () => ({
   Form: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
+const HERO_V2_CONTEXT = {
+  tenantId: 'tenant_mk',
+  variant: 'hero_v2',
+  locale: 'sq',
+} as const;
+
+async function submitClaimAndWaitForSuccess() {
+  render(<ClaimWizard tenantId="tenant_mk" />);
+
+  for (const step of [/Step 2 of 4/, /Step 3 of 4/, /Step 4 of 4/]) {
+    fireEvent.click(screen.getByTestId('wizard-next'));
+    await waitFor(() => expect(screen.getByText(step)).toBeInTheDocument());
+  }
+
+  fireEvent.click(screen.getByTestId('wizard-submit'));
+
+  return screen.findByTestId('claim-created-success');
+}
+
+function expectCommercialFlowAnalytics({
+  claimCategory,
+  claimId,
+  decisionReason,
+  escalationDecision,
+}: {
+  claimCategory: string;
+  claimId: string;
+  decisionReason: string;
+  escalationDecision: 'requested' | 'declined';
+}) {
+  const freeStartPayload = {
+    claim_id: claimId,
+    claim_category: claimCategory,
+  };
+  const escalationPayload = {
+    ...freeStartPayload,
+    decision_reason: decisionReason,
+  };
+
+  expect(mockFreeStartCompleted).toHaveBeenCalledWith(HERO_V2_CONTEXT, freeStartPayload);
+
+  if (escalationDecision === 'requested') {
+    expect(mockEscalationRequested).toHaveBeenCalledWith(HERO_V2_CONTEXT, escalationPayload);
+    expect(mockEscalationDeclined).not.toHaveBeenCalled();
+    return;
+  }
+
+  expect(mockEscalationRequested).not.toHaveBeenCalled();
+  expect(mockEscalationDeclined).toHaveBeenCalledWith(HERO_V2_CONTEXT, escalationPayload);
+}
+
 describe('ClaimWizard UI V2', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -198,17 +249,7 @@ describe('ClaimWizard UI V2', () => {
     mockTrigger.mockResolvedValue(true);
     mockSubmitClaim.mockResolvedValue({ success: true, claimId: 'CLM-TEST-123' });
 
-    render(<ClaimWizard tenantId="tenant_mk" />);
-
-    fireEvent.click(screen.getByTestId('wizard-next'));
-    await waitFor(() => expect(screen.getByText(/Step 2 of 4/)).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('wizard-next'));
-    await waitFor(() => expect(screen.getByText(/Step 3 of 4/)).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('wizard-next'));
-    await waitFor(() => expect(screen.getByText(/Step 4 of 4/)).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('wizard-submit'));
-
-    const success = await screen.findByTestId('claim-created-success');
+    const success = await submitClaimAndWaitForSuccess();
     expect(success).toBeVisible();
     expect(success).toHaveTextContent('Case created');
     expect(success).toHaveTextContent('CLM-TEST-123');
@@ -228,40 +269,15 @@ describe('ClaimWizard UI V2', () => {
     );
     expect(mockPush).not.toHaveBeenCalled();
     expect(mockResolveFunnelVariant).toHaveBeenCalledWith(true);
-    expect(mockFunnelFirstClaimSubmitted).toHaveBeenCalledWith(
-      {
-        tenantId: 'tenant_mk',
-        variant: 'hero_v2',
-        locale: 'sq',
-      },
-      {
-        claim_id: 'CLM-TEST-123',
-      }
-    );
-    expect(mockFreeStartCompleted).toHaveBeenCalledWith(
-      {
-        tenantId: 'tenant_mk',
-        variant: 'hero_v2',
-        locale: 'sq',
-      },
-      {
-        claim_id: 'CLM-TEST-123',
-        claim_category: 'vehicle',
-      }
-    );
-    expect(mockEscalationRequested).toHaveBeenCalledWith(
-      {
-        tenantId: 'tenant_mk',
-        variant: 'hero_v2',
-        locale: 'sq',
-      },
-      {
-        claim_id: 'CLM-TEST-123',
-        claim_category: 'vehicle',
-        decision_reason: 'launch_scope_supported',
-      }
-    );
-    expect(mockEscalationDeclined).not.toHaveBeenCalled();
+    expect(mockFunnelFirstClaimSubmitted).toHaveBeenCalledWith(HERO_V2_CONTEXT, {
+      claim_id: 'CLM-TEST-123',
+    });
+    expectCommercialFlowAnalytics({
+      claimCategory: 'vehicle',
+      claimId: 'CLM-TEST-123',
+      decisionReason: 'launch_scope_supported',
+      escalationDecision: 'requested',
+    });
   });
 
   it('tracks escalation decline for categories outside the launch scope', async () => {
@@ -269,41 +285,69 @@ describe('ClaimWizard UI V2', () => {
     mockSubmitClaim.mockResolvedValue({ success: true, claimId: 'CLM-TRAVEL-123' });
     mockFormValues.category = 'travel';
 
-    render(<ClaimWizard tenantId="tenant_mk" />);
+    await submitClaimAndWaitForSuccess();
 
-    fireEvent.click(screen.getByTestId('wizard-next'));
-    await waitFor(() => expect(screen.getByText(/Step 2 of 4/)).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('wizard-next'));
-    await waitFor(() => expect(screen.getByText(/Step 3 of 4/)).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('wizard-next'));
-    await waitFor(() => expect(screen.getByText(/Step 4 of 4/)).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('wizard-submit'));
+    expectCommercialFlowAnalytics({
+      claimCategory: 'travel',
+      claimId: 'CLM-TRAVEL-123',
+      decisionReason: 'outside_launch_scope',
+      escalationDecision: 'declined',
+    });
+  });
 
-    await screen.findByTestId('claim-created-success');
-
-    expect(mockFreeStartCompleted).toHaveBeenCalledWith(
-      {
-        tenantId: 'tenant_mk',
-        variant: 'hero_v2',
-        locale: 'sq',
+  it('uses server-validated commercial metadata instead of local category heuristics', async () => {
+    mockTrigger.mockResolvedValue(true);
+    mockSubmitClaim.mockResolvedValue({
+      success: true,
+      claimId: 'CLM-SERVER-123',
+      commercialFlow: {
+        escalationRequest: {
+          claimCategory: 'travel',
+          decision: 'declined',
+          decisionReason: 'outside_launch_scope',
+        },
+        freeStartCompletion: {
+          claimCategory: 'travel',
+        },
       },
-      {
-        claim_id: 'CLM-TRAVEL-123',
-        claim_category: 'travel',
-      }
-    );
-    expect(mockEscalationRequested).not.toHaveBeenCalled();
-    expect(mockEscalationDeclined).toHaveBeenCalledWith(
-      {
-        tenantId: 'tenant_mk',
-        variant: 'hero_v2',
-        locale: 'sq',
+    });
+    mockFormValues.category = 'vehicle';
+
+    await submitClaimAndWaitForSuccess();
+
+    expectCommercialFlowAnalytics({
+      claimCategory: 'travel',
+      claimId: 'CLM-SERVER-123',
+      decisionReason: 'outside_launch_scope',
+      escalationDecision: 'declined',
+    });
+  });
+
+  it('falls back to local category heuristics when commercial metadata is malformed', async () => {
+    mockTrigger.mockResolvedValue(true);
+    mockSubmitClaim.mockResolvedValue({
+      success: true,
+      claimId: 'CLM-MALFORMED-123',
+      commercialFlow: {
+        escalationRequest: {
+          claimCategory: { value: 'travel' },
+          decision: 'requested',
+          decisionReason: 42,
+        },
+        freeStartCompletion: {
+          claimCategory: { value: 'travel' },
+        },
       },
-      {
-        claim_id: 'CLM-TRAVEL-123',
-        claim_category: 'travel',
-        decision_reason: 'outside_launch_scope',
-      }
-    );
+    });
+    mockFormValues.category = 'vehicle';
+
+    await submitClaimAndWaitForSuccess();
+
+    expectCommercialFlowAnalytics({
+      claimCategory: 'vehicle',
+      claimId: 'CLM-MALFORMED-123',
+      decisionReason: 'launch_scope_supported',
+      escalationDecision: 'requested',
+    });
   });
 });

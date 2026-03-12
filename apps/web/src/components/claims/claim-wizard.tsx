@@ -28,6 +28,17 @@ import { WizardStepCategory } from './wizard-step-category';
 import { WizardStepDetails } from './wizard-step-details';
 import { WizardStepEvidence } from './wizard-step-evidence';
 
+type CommercialFlowPayload = {
+  escalationRequest?: {
+    claimCategory?: string;
+    decision?: 'requested' | 'declined';
+    decisionReason?: string;
+  };
+  freeStartCompletion?: {
+    claimCategory?: string;
+  };
+};
+
 type ClaimWizardProps = {
   initialCategory?: string;
   tenantId?: string | null;
@@ -43,6 +54,51 @@ const STEP_VALIDATION: Record<
   1: form => form.trigger(['title', 'companyName', 'description', 'incidentDate']),
   2: async () => true,
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
+}
+
+function getOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function getOptionalEscalationDecision(value: unknown): 'requested' | 'declined' | undefined {
+  return value === 'requested' || value === 'declined' ? value : undefined;
+}
+
+function getCommercialFlowFromResult(payload: unknown): CommercialFlowPayload | null {
+  if (!isRecord(payload) || !('commercialFlow' in payload)) {
+    return null;
+  }
+
+  const commercialFlow = payload.commercialFlow;
+  if (!isRecord(commercialFlow)) {
+    return null;
+  }
+
+  const escalationRequest = isRecord(commercialFlow.escalationRequest)
+    ? {
+        claimCategory: getOptionalString(commercialFlow.escalationRequest.claimCategory),
+        decision: getOptionalEscalationDecision(commercialFlow.escalationRequest.decision),
+        decisionReason: getOptionalString(commercialFlow.escalationRequest.decisionReason),
+      }
+    : undefined;
+  const freeStartCompletion = isRecord(commercialFlow.freeStartCompletion)
+    ? {
+        claimCategory: getOptionalString(commercialFlow.freeStartCompletion.claimCategory),
+      }
+    : undefined;
+
+  if (!escalationRequest && !freeStartCompletion) {
+    return null;
+  }
+
+  return {
+    escalationRequest,
+    freeStartCompletion,
+  };
+}
 
 export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
   const router = useRouter();
@@ -154,11 +210,13 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
               ? (payload as { claimId: string }).claimId
               : null
             : null;
+        const commercialFlow = getCommercialFlowFromResult(payload);
         const normalizedClaimId = claimId ?? 'unknown-claim-id';
         const normalizedCategory =
-          typeof data.category === 'string' && data.category.trim().length > 0
+          commercialFlow?.freeStartCompletion?.claimCategory?.trim().toLowerCase() ||
+          (typeof data.category === 'string' && data.category.trim().length > 0
             ? data.category.trim().toLowerCase()
-            : 'unknown';
+            : 'unknown');
         const funnelContext = {
           tenantId: tenantId ?? null,
           variant: resolveFunnelVariant(uiV2Enabled),
@@ -173,7 +231,21 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
           claim_category: normalizedCategory,
         });
 
-        if (COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES.has(normalizedCategory)) {
+        if (commercialFlow?.escalationRequest?.decision === 'requested') {
+          CommercialFunnelEvents.escalationRequested(funnelContext, {
+            claim_id: normalizedClaimId,
+            claim_category: normalizedCategory,
+            decision_reason:
+              commercialFlow.escalationRequest.decisionReason ?? 'launch_scope_supported',
+          });
+        } else if (commercialFlow?.escalationRequest?.decision === 'declined') {
+          CommercialFunnelEvents.escalationDeclined(funnelContext, {
+            claim_id: normalizedClaimId,
+            claim_category: normalizedCategory,
+            decision_reason:
+              commercialFlow.escalationRequest.decisionReason ?? 'outside_launch_scope',
+          });
+        } else if (COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES.has(normalizedCategory)) {
           CommercialFunnelEvents.escalationRequested(funnelContext, {
             claim_id: normalizedClaimId,
             claim_category: normalizedCategory,

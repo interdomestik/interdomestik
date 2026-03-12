@@ -347,6 +347,16 @@ describe('Claim Actions', () => {
       expect(result).toEqual({
         success: true,
         claimId: 'test-id',
+        commercialFlow: {
+          escalationRequest: {
+            claimCategory: 'consumer',
+            decision: 'declined',
+            decisionReason: 'outside_launch_scope',
+          },
+          freeStartCompletion: {
+            claimCategory: 'consumer',
+          },
+        },
       });
 
       expect(mockDbInsert).toHaveBeenNthCalledWith(
