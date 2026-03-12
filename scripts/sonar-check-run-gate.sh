@@ -9,6 +9,7 @@ EVIDENCE_DIR="${EVIDENCE_DIR:-tmp/pilot-evidence/${RUN_ID}}"
 LOG_DIR="${EVIDENCE_DIR}/logs"
 NOTES_DIR="${EVIDENCE_DIR}/notes"
 QG_JSON="${LOG_DIR}/sonar-qualitygate.json"
+PRS_JSON="${LOG_DIR}/sonar-pull-requests.json"
 SUMMARY_MD="${NOTES_DIR}/sonar-summary.md"
 SCAN_LOG="${LOG_DIR}/sonar-scan.log"
 
@@ -76,19 +77,19 @@ build_summary() {
   } >"${SUMMARY_MD}"
 }
 
-fetch_quality_gate_api() {
-  local qg_url="$1"
+fetch_sonar_api_json() {
+  local api_url="$1"
   local out_path="$2"
 
-  node - "$qg_url" "$out_path" <<'NODE'
+  node - "$api_url" "$out_path" <<'NODE'
 const fs = require('node:fs');
 const http = require('node:http');
 const https = require('node:https');
 const { URL } = require('node:url');
 
-const [, , qgUrl, outPath] = process.argv;
+const [, , apiUrl, outPath] = process.argv;
 const token = process.env.SONAR_TOKEN || '';
-const url = new URL(qgUrl);
+const url = new URL(apiUrl);
 const client = url.protocol === 'https:' ? https : http;
 const authorization = `Basic ${Buffer.from(`${token}:`).toString('base64')}`;
 
@@ -138,10 +139,25 @@ try_quality_gate_api_fallback() {
     return 2
   fi
 
+  local prs_url="${SONAR_HOST_URL%/}/api/project_pull_requests/list?project=${SONAR_PROJECT_KEY}"
   local qg_url="${SONAR_HOST_URL%/}/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}&pullRequest=${pr_number}"
   local dashboard_url="${SONAR_HOST_URL%/}/dashboard?id=${SONAR_PROJECT_KEY}&pullRequest=${pr_number}"
 
-  if ! fetch_quality_gate_api "${qg_url}" "${QG_JSON}"; then
+  if ! fetch_sonar_api_json "${prs_url}" "${PRS_JSON}"; then
+    return 2
+  fi
+
+  local analyzed_sha
+  analyzed_sha="$(
+    node -e "const fs=require('node:fs');const prNumber=process.argv[1];const d=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));const pr=(d?.pullRequests||[]).find(entry => String(entry?.key ?? '') === String(prNumber));process.stdout.write(pr?.commit?.sha || '');" "${pr_number}" "${PRS_JSON}"
+  )"
+
+  if [[ -z "${analyzed_sha}" || "${analyzed_sha}" != "${check_sha}" ]]; then
+    echo "[sonar-check-run-gate] Sonar PR analysis still points at ${analyzed_sha:-unknown}; waiting for ${check_sha}" | tee -a "${SCAN_LOG}"
+    return 2
+  fi
+
+  if ! fetch_sonar_api_json "${qg_url}" "${QG_JSON}"; then
     return 2
   fi
 
