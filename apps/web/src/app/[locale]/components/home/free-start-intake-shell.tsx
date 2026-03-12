@@ -1,5 +1,6 @@
 'use client';
 
+import { submitFreeStartIntake } from '@/actions/free-start';
 import { Link } from '@/i18n/routing';
 import { CommercialFunnelEvents, resolveFunnelVariant } from '@/lib/analytics';
 import { getSupportContacts } from '@/lib/support-contacts';
@@ -772,6 +773,7 @@ export function FreeStartIntakeShell({
   tenantId,
 }: FreeStartIntakeShellProps) {
   const t = useTranslations('freeStart');
+  const tCommon = useTranslations('common');
   const contacts = getSupportContacts({ locale, tenantId });
   const [step, setStep] = useState<StepId>('category');
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
@@ -819,10 +821,37 @@ export function FreeStartIntakeShell({
     setStep('preview');
   };
 
-  const finishIntake = () => {
+  const finishIntake = async () => {
     if (selectedCategory === null) {
       setValidationError(t('validation.chooseCategory'));
       setStep('category');
+      return;
+    }
+
+    if (
+      draft.issueType.trim().length === 0 ||
+      draft.incidentDate.trim().length === 0 ||
+      draft.counterparty.trim().length === 0 ||
+      draft.desiredOutcome.trim().length === 0 ||
+      draft.summary.trim().length === 0
+    ) {
+      setValidationError(t('validation.completeIntake'));
+      return;
+    }
+
+    const result = await submitFreeStartIntake({
+      category: selectedCategory,
+      counterparty: draft.counterparty,
+      desiredOutcome: draft.desiredOutcome as OutcomeId,
+      incidentDate: draft.incidentDate,
+      issueType: draft.issueType as IssueId,
+      summary: draft.summary,
+    });
+
+    if (!result.success) {
+      setValidationError(
+        result.code === 'INVALID_PAYLOAD' ? t('validation.completeIntake') : tCommon('errors.retry')
+      );
       return;
     }
 
@@ -833,9 +862,9 @@ export function FreeStartIntakeShell({
         locale,
       },
       {
-        claim_category: selectedCategory,
-        intake_issue: draft.issueType,
-        desired_outcome: draft.desiredOutcome,
+        claim_category: result.data?.claimCategory ?? selectedCategory,
+        intake_issue: result.data?.intakeIssue ?? draft.issueType,
+        desired_outcome: result.data?.desiredOutcome ?? draft.desiredOutcome,
       }
     );
     setValidationError(null);

@@ -11,15 +11,50 @@ import {
   emitClaimAiRunRequestedService,
   markClaimAiRunDispatchFailedService,
 } from '@/lib/ai/claim-workflows';
+import { COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES } from '@/lib/commercial-claim-categories';
 import { notifyClaimSubmitted } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { Session } from './context';
 
+type CommercialEscalationDecision = 'requested' | 'declined';
+type CommercialEscalationReason = 'launch_scope_supported' | 'outside_launch_scope';
+
+export type SubmitClaimCommercialFlow = {
+  escalationRequest: {
+    claimCategory: string;
+    decision: CommercialEscalationDecision;
+    decisionReason: CommercialEscalationReason;
+  };
+  freeStartCompletion: {
+    claimCategory: string;
+  };
+};
+
 export type SubmitClaimResult =
-  | { success: true; claimId: string }
+  | {
+      success: true;
+      claimId: string;
+      commercialFlow: SubmitClaimCommercialFlow;
+    }
   | { success: false; error: string; code?: string };
+
+function resolveCommercialFlow(rawCategory: string): SubmitClaimCommercialFlow {
+  const claimCategory = rawCategory.trim().toLowerCase();
+  const escalationRequested = COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES.has(claimCategory);
+
+  return {
+    escalationRequest: {
+      claimCategory,
+      decision: escalationRequested ? 'requested' : 'declined',
+      decisionReason: escalationRequested ? 'launch_scope_supported' : 'outside_launch_scope',
+    },
+    freeStartCompletion: {
+      claimCategory,
+    },
+  };
+}
 
 export async function submitClaimCore(params: {
   session: NonNullable<Session> | null;
@@ -58,7 +93,11 @@ export async function submitClaimCore(params: {
       revalidatePath,
     });
     if (result.success && typeof result.claimId === 'string') {
-      return { success: true, claimId: result.claimId };
+      return {
+        success: true,
+        claimId: result.claimId,
+        commercialFlow: resolveCommercialFlow(params.data.category),
+      };
     }
     return { success: false, error: 'Failed to submit, please try again.' };
   } catch (error) {
