@@ -9,6 +9,7 @@ EVIDENCE_DIR="${EVIDENCE_DIR:-tmp/pilot-evidence/${RUN_ID}}"
 LOG_DIR="${EVIDENCE_DIR}/logs"
 NOTES_DIR="${EVIDENCE_DIR}/notes"
 QG_JSON="${LOG_DIR}/sonar-qualitygate.json"
+PRS_JSON="${LOG_DIR}/sonar-pull-requests.json"
 SUMMARY_MD="${NOTES_DIR}/sonar-summary.md"
 SCAN_LOG="${LOG_DIR}/sonar-scan.log"
 
@@ -31,7 +32,13 @@ if (( ${#missing[@]} > 0 )); then
   exit 2
 fi
 
-if ! command -v gh >/dev/null 2>&1; then
+gh_bin="${GH_BIN_PATH:-gh}"
+if [[ "${gh_bin}" == */* ]]; then
+  if [[ ! -x "${gh_bin}" ]]; then
+    echo "Configured GitHub CLI binary is not executable: ${gh_bin}" | tee "$SUMMARY_MD"
+    exit 2
+  fi
+elif ! command -v "${gh_bin}" >/dev/null 2>&1; then
   echo "GitHub CLI (gh) is required for Sonar check-run gating" | tee "$SUMMARY_MD"
   exit 2
 fi
@@ -48,6 +55,13 @@ check_sha="${SONAR_CHECK_SHA}"
 repo="${GITHUB_REPOSITORY}"
 max_retries="${SONAR_CHECK_MAX_RETRIES:-60}"
 retry_delay_seconds="${SONAR_CHECK_RETRY_DELAY_SECONDS:-10}"
+pr_number="${SONAR_PR_NUMBER:-}"
+
+if [[ -z "${pr_number}" && -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
+  pr_number="$(
+    node -e "const fs=require('node:fs');const event=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const value=event?.pull_request?.number ?? '';process.stdout.write(value === '' ? '' : String(value));" "${GITHUB_EVENT_PATH}" 2>/dev/null || true
+  )"
+fi
 
 build_summary() {
   local source="$1"
@@ -69,13 +83,120 @@ build_summary() {
   } >"${SUMMARY_MD}"
 }
 
+fetch_sonar_api_json() {
+  local api_url="$1"
+  local out_path="$2"
+
+  node - "$api_url" "$out_path" <<'NODE'
+const fs = require('node:fs');
+const http = require('node:http');
+const https = require('node:https');
+const { URL } = require('node:url');
+
+const [, , apiUrl, outPath] = process.argv;
+const token = process.env.SONAR_TOKEN || '';
+const url = new URL(apiUrl);
+const client = url.protocol === 'https:' ? https : http;
+const authorization = `Basic ${Buffer.from(`${token}:`).toString('base64')}`;
+
+const req = client.request(
+  url,
+  {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: authorization,
+    },
+  },
+  res => {
+    let body = '';
+    res.setEncoding('utf8');
+    res.on('data', chunk => {
+      body += chunk;
+    });
+    res.on('end', () => {
+      if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+        fs.writeFileSync(outPath, body);
+        process.exit(0);
+        return;
+      }
+
+      process.stderr.write(`Sonar quality gate HTTP ${res.statusCode ?? 'unknown'}\n`);
+      process.exit(1);
+    });
+  }
+);
+
+req.on('error', error => {
+  process.stderr.write(`${error.message}\n`);
+  process.exit(1);
+});
+
+req.end();
+NODE
+  local fetch_status=$?
+  return "${fetch_status}"
+}
+
+try_quality_gate_api_fallback() {
+  local reason="$1"
+
+  if [[ -z "${SONAR_TOKEN:-}" || -z "${SONAR_HOST_URL:-}" || -z "${SONAR_PROJECT_KEY:-}" || -z "${pr_number}" ]]; then
+    return 2
+  fi
+
+  local prs_url="${SONAR_HOST_URL%/}/api/project_pull_requests/list?project=${SONAR_PROJECT_KEY}"
+  local qg_url="${SONAR_HOST_URL%/}/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}&pullRequest=${pr_number}"
+  local dashboard_url="${SONAR_HOST_URL%/}/dashboard?id=${SONAR_PROJECT_KEY}&pullRequest=${pr_number}"
+
+  if ! fetch_sonar_api_json "${prs_url}" "${PRS_JSON}"; then
+    return 2
+  fi
+
+  local analyzed_sha
+  analyzed_sha="$(
+    node -e "const fs=require('node:fs');const prNumber=process.argv[1];const d=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));const pr=(d?.pullRequests||[]).find(entry => String(entry?.key ?? '') === String(prNumber));process.stdout.write(pr?.commit?.sha || '');" "${pr_number}" "${PRS_JSON}"
+  )"
+
+  if [[ -z "${analyzed_sha}" || "${analyzed_sha}" != "${check_sha}" ]]; then
+    echo "[sonar-check-run-gate] Sonar PR analysis still points at ${analyzed_sha:-unknown}; waiting for ${check_sha}" | tee -a "${SCAN_LOG}"
+    return 2
+  fi
+
+  if ! fetch_sonar_api_json "${qg_url}" "${QG_JSON}"; then
+    return 2
+  fi
+
+  local qg_status
+  qg_status="$(
+    node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write((d?.projectStatus?.status)||'UNKNOWN');" "${QG_JSON}"
+  )"
+
+  case "${qg_status}" in
+    OK)
+      build_summary "Sonar quality gate API" "completed" "${qg_status}" "${dashboard_url}"
+      echo "[sonar-check-run-gate] '${check_name}' passed for ${check_sha} via Sonar quality gate API (${reason})" | tee -a "${SCAN_LOG}"
+      return 0
+      ;;
+    ERROR|WARN)
+      build_summary "Sonar quality gate API" "completed" "${qg_status}" "${dashboard_url}"
+      echo "[sonar-check-run-gate] '${check_name}' completed with conclusion '${qg_status}' via Sonar quality gate API (${reason})" | tee -a "${SCAN_LOG}"
+      return 1
+      ;;
+    *)
+      build_summary "Sonar quality gate API" "in_progress" "${qg_status}" "${dashboard_url}"
+      return 2
+      ;;
+  esac
+}
+
 for attempt in $(seq 1 "${max_retries}"); do
-  checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/check-runs?filter=latest&per_page=100")"
+  checks_json="$("${gh_bin}" api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/check-runs?filter=latest&per_page=100")"
   matching_checks="$(echo "${checks_json}" | jq --arg NAME "${check_name}" '[.check_runs[] | select((.name // .workflow_name // "") == $NAME)]')"
   check_count="$(echo "${matching_checks}" | jq 'length')"
 
   if [[ "${check_count}" -eq 0 ]]; then
-    check_suites_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/check-suites?filter=latest&per_page=100")"
+    check_suites_json="$("${gh_bin}" api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/check-suites?filter=latest&per_page=100")"
     matching_check_suites="$(echo "${check_suites_json}" | jq --arg APP_SLUG "${check_suite_app_slug}" --arg APP_NAME "${check_suite_app_name}" '[.check_suites[] | select((.app.slug // "") == $APP_SLUG or (.app.name // "") == $APP_NAME)]')"
     check_suite_count="$(echo "${matching_check_suites}" | jq 'length')"
 
@@ -85,10 +206,22 @@ for attempt in $(seq 1 "${max_retries}"); do
 
       status="$(echo "${selected_check_suite}" | jq -r '.status // "unknown"')"
       conclusion="$(echo "${selected_check_suite}" | jq -r '.conclusion // ""')"
+      latest_check_runs_count="$(echo "${selected_check_suite}" | jq -r '(.latest_check_runs_count // 0)')"
 
       build_summary "GitHub check suite" "${status}" "${conclusion}" ""
 
       if [[ "${status}" != "completed" ]]; then
+        if [[ "${status}" == "queued" && "${latest_check_runs_count}" -eq 0 ]]; then
+          if try_quality_gate_api_fallback "queued check suite with zero runs"; then
+            exit 0
+          else
+            fallback_status=$?
+            if [[ "${fallback_status}" -eq 1 ]]; then
+              exit 1
+            fi
+          fi
+        fi
+
         if [[ "${attempt}" -ge "${max_retries}" ]]; then
           exit 1
         fi
@@ -107,7 +240,7 @@ for attempt in $(seq 1 "${max_retries}"); do
       exit 1
     fi
 
-    status_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/status")"
+    status_json="$("${gh_bin}" api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/status")"
     matching_statuses="$(echo "${status_json}" | jq --arg NAME "${check_name}" '[.statuses[] | select((.context // "") == $NAME)]')"
     status_count="$(echo "${matching_statuses}" | jq 'length')"
 

@@ -151,6 +151,7 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
           <ClaimActionPanel
             claimId={claim.id}
             commercialAgreement={null}
+            successFeeCollection={null}
             currentStatus={claim.status || 'draft'}
             staffId={session.user.id}
             assigneeId={claim.staffId || null}

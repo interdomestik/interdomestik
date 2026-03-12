@@ -6,6 +6,8 @@ import {
   ClaimStatus,
   PaymentAuthorizationState,
   saveClaimEscalationAgreement,
+  saveSuccessFeeCollection,
+  SuccessFeeCollectionSnapshot,
   updateClaimStatus,
 } from '@/actions/staff-claims';
 import { getStaffClaimStatusLabel } from '@/lib/claim-ui';
@@ -28,6 +30,7 @@ import { toast } from 'sonner';
 interface ClaimActionPanelProps {
   readonly claimId: string;
   readonly commercialAgreement: ClaimEscalationAgreementSnapshot | null;
+  readonly successFeeCollection: SuccessFeeCollectionSnapshot | null;
   readonly currentStatus: string;
   readonly staffId: string;
   readonly assigneeId: string | null;
@@ -40,9 +43,23 @@ const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = CANONICAL_
   })
 );
 
+function formatCollectionMethodLabel(method: SuccessFeeCollectionSnapshot['collectionMethod']) {
+  switch (method) {
+    case 'deduction':
+      return 'Deduct from payout';
+    case 'payment_method_charge':
+      return 'Charge stored payment method';
+    case 'invoice':
+      return 'Invoice fallback';
+    default:
+      return method;
+  }
+}
+
 export function ClaimActionPanel({
   claimId,
   commercialAgreement,
+  successFeeCollection,
   currentStatus,
   staffId,
   assigneeId,
@@ -53,6 +70,8 @@ export function ClaimActionPanel({
   const [savedAgreement, setSavedAgreement] = useState<ClaimEscalationAgreementSnapshot | null>(
     commercialAgreement
   );
+  const [savedSuccessFeeCollection, setSavedSuccessFeeCollection] =
+    useState<SuccessFeeCollectionSnapshot | null>(successFeeCollection);
   const [feePercentage, setFeePercentage] = useState(
     commercialAgreement?.feePercentage.toString() ?? ''
   );
@@ -65,16 +84,25 @@ export function ClaimActionPanel({
       commercialAgreement?.paymentAuthorizationState ?? 'pending'
     );
   const [termsVersion, setTermsVersion] = useState(commercialAgreement?.termsVersion ?? '');
+  const [recoveredAmount, setRecoveredAmount] = useState(
+    successFeeCollection?.recoveredAmount ?? ''
+  );
+  const [deductionPath, setDeductionPath] = useState(
+    successFeeCollection?.deductionAllowed ? 'allowed' : 'fallback'
+  );
   const router = useRouter();
 
   useEffect(() => {
     setSavedAgreement(commercialAgreement);
+    setSavedSuccessFeeCollection(successFeeCollection);
     setFeePercentage(commercialAgreement?.feePercentage.toString() ?? '');
     setMinimumFee(commercialAgreement?.minimumFee ?? '25.00');
     setLegalActionCapPercentage(commercialAgreement?.legalActionCapPercentage.toString() ?? '');
     setPaymentAuthorizationState(commercialAgreement?.paymentAuthorizationState ?? 'pending');
     setTermsVersion(commercialAgreement?.termsVersion ?? '');
-  }, [commercialAgreement]);
+    setRecoveredAmount(successFeeCollection?.recoveredAmount ?? '');
+    setDeductionPath(successFeeCollection?.deductionAllowed ? 'allowed' : 'fallback');
+  }, [commercialAgreement, successFeeCollection]);
 
   const handleAssign = () => {
     startTransition(async () => {
@@ -122,13 +150,43 @@ export function ClaimActionPanel({
     });
   };
 
+  const handleSuccessFeeCollectionSave = () => {
+    if (!hasValidRecoveredAmount) {
+      toast.error('Error', {
+        description: 'Recovered amount must be a positive number.',
+      });
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await saveSuccessFeeCollection({
+        claimId,
+        deductionAllowed: deductionPath === 'allowed',
+        recoveredAmount: parsedRecoveredAmount,
+      });
+
+      if (result.success) {
+        toast.success('Success', { description: 'Success-fee collection saved' });
+        setSavedSuccessFeeCollection(result.data ?? null);
+        router.refresh();
+      } else {
+        toast.error('Error', { description: result.error });
+      }
+    });
+  };
+
   const isAssignedToMe = assigneeId === staffId;
   const hasStatusChanged = status !== currentStatus;
+  const hasCommercialAgreement = (savedAgreement ?? commercialAgreement) !== null;
+  const parsedRecoveredAmount = Number(recoveredAmount.trim());
+  const hasValidRecoveredAmount =
+    Number.isFinite(parsedRecoveredAmount) && parsedRecoveredAmount > 0;
   const canSaveAgreement =
     feePercentage.trim().length > 0 &&
     minimumFee.trim().length > 0 &&
     legalActionCapPercentage.trim().length > 0 &&
     termsVersion.trim().length > 0;
+  const canSaveSuccessFeeCollection = hasCommercialAgreement && hasValidRecoveredAmount;
 
   let assignmentLabel = 'Unassigned';
   if (assigneeId) {
@@ -307,6 +365,120 @@ export function ClaimActionPanel({
         </Button>
       </div>
 
+      <div className="space-y-4 border-t pt-6">
+        <div className="space-y-1">
+          <h4 className="text-sm font-medium">Success-Fee Collection</h4>
+          <p className="text-xs text-muted-foreground">
+            Record the recovered amount and let the commercial rules resolve deduction first where
+            allowed, then stored payment method, then invoice due within 7 days.
+          </p>
+        </div>
+
+        <div
+          className="rounded-lg border bg-muted/30 p-4 text-sm"
+          data-testid="staff-success-fee-collection-summary"
+        >
+          {savedSuccessFeeCollection ? (
+            <div className="grid gap-2 md:grid-cols-2">
+              <div>
+                <span className="text-muted-foreground">Recovered amount</span>
+                <div className="font-medium text-slate-900">
+                  {savedSuccessFeeCollection.currencyCode}{' '}
+                  {savedSuccessFeeCollection.recoveredAmount}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Success fee</span>
+                <div className="font-medium text-slate-900">
+                  {savedSuccessFeeCollection.currencyCode} {savedSuccessFeeCollection.feeAmount}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Collection method</span>
+                <div className="font-medium text-slate-900">
+                  {formatCollectionMethodLabel(savedSuccessFeeCollection.collectionMethod)}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Stored payment method</span>
+                <div className="font-medium text-slate-900">
+                  {savedSuccessFeeCollection.hasStoredPaymentMethod ? 'Yes' : 'No'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Invoice due</span>
+                <div className="font-medium text-slate-900">
+                  {savedSuccessFeeCollection.invoiceDueAt
+                    ? new Date(savedSuccessFeeCollection.invoiceDueAt).toLocaleString()
+                    : '-'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Resolved</span>
+                <div className="font-medium text-slate-900">
+                  {savedSuccessFeeCollection.resolvedAt
+                    ? new Date(savedSuccessFeeCollection.resolvedAt).toLocaleString()
+                    : 'Pending'}
+                </div>
+              </div>
+            </div>
+          ) : hasCommercialAgreement ? (
+            <p className="text-muted-foreground">
+              No success-fee collection order has been recorded for this claim.
+            </p>
+          ) : (
+            <p className="text-muted-foreground">
+              Save the escalation agreement first to unlock success-fee collection.
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label htmlFor="success-fee-recovered-amount" className="text-sm font-medium">
+              Recovered amount
+            </label>
+            <Input
+              id="success-fee-recovered-amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={recoveredAmount}
+              onChange={event => setRecoveredAmount(event.target.value)}
+              disabled={isPending || !hasCommercialAgreement}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="success-fee-deduction-path" className="text-sm font-medium">
+              Deduct from payout?
+            </label>
+            <Select
+              value={deductionPath}
+              onValueChange={value => setDeductionPath(value)}
+              disabled={isPending || !hasCommercialAgreement}
+            >
+              <SelectTrigger id="success-fee-deduction-path">
+                <SelectValue placeholder="Select collection path" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="allowed">Yes, deduction is legally allowed</SelectItem>
+                <SelectItem value="fallback">No, use fallback order</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Button
+          className="w-full"
+          onClick={handleSuccessFeeCollectionSave}
+          disabled={isPending || !canSaveSuccessFeeCollection}
+          data-testid="staff-save-success-fee-collection-button"
+        >
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Save Success-Fee Collection
+        </Button>
+      </div>
+
       {/* Status Update Section */}
       <div className="space-y-4 border-t pt-6">
         <div className="space-y-2">
@@ -339,7 +511,7 @@ export function ClaimActionPanel({
             id="claim-status-note"
             placeholder="Reason for status change..."
             value={note}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNote(e.target.value)}
+            onChange={event => setNote(event.target.value)}
             disabled={isPending}
             className="min-h-[80px]"
           />
