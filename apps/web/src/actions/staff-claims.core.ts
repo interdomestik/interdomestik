@@ -28,8 +28,8 @@ export type {
  * Assign a claim to a staff member (usually self)
  */
 export async function assignClaim(claimId: string): Promise<ActionResult> {
-  const { session } = await getActionContext();
-  return assignClaimCore({ claimId, session });
+  const { session, requestHeaders } = await getActionContext();
+  return assignClaimCore({ claimId, session, requestHeaders });
 }
 
 /**
@@ -41,16 +41,24 @@ export async function updateClaimStatus(
   note?: string,
   isPublicChange: boolean = true
 ): Promise<ActionResult> {
-  const { session } = await getActionContext();
-  return updateClaimStatusCore({ claimId, newStatus, note, isPublicChange, session });
+  const { session, requestHeaders } = await getActionContext();
+  return updateClaimStatusCore({
+    claimId,
+    newStatus,
+    note,
+    isPublicChange,
+    session,
+    requestHeaders,
+  });
 }
 
 export async function saveClaimEscalationAgreement(
   input: SaveClaimEscalationAgreementInput
 ): Promise<ActionResult<ClaimEscalationAgreementSnapshot>> {
-  const { session } = await getActionContext();
+  const { session, requestHeaders } = await getActionContext();
   return saveClaimEscalationAgreementCore({
     ...input,
+    requestHeaders,
     session,
   });
 }
@@ -58,9 +66,10 @@ export async function saveClaimEscalationAgreement(
 export async function saveSuccessFeeCollection(
   input: SaveSuccessFeeCollectionInput
 ): Promise<ActionResult<SuccessFeeCollectionSnapshot>> {
-  const { session } = await getActionContext();
+  const { session, requestHeaders } = await getActionContext();
   return saveSuccessFeeCollectionCore({
     ...input,
+    requestHeaders,
     session,
   });
 }

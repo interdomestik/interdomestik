@@ -1,25 +1,28 @@
 import * as domainSave from '@interdomestik/domain-claims/staff-claims/save-escalation-agreement';
 import * as nextCache from 'next/cache';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { logAuditEvent } from '@/lib/audit';
 import { saveClaimEscalationAgreementCore } from './save-escalation-agreement.core';
 
 vi.mock('@interdomestik/domain-claims/staff-claims/save-escalation-agreement', () => ({
   saveClaimEscalationAgreementCore: vi.fn(),
 }));
 
-vi.mock('next/cache', () => ({
-  revalidatePath: vi.fn(),
-}));
+const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+const REVALIDATED_LOCALE_PATHS = [
+  ...LOCALES.map(locale => `/${locale}/staff/claims/claim-1`),
+  ...LOCALES.map(locale => `/${locale}/staff/claims`),
+];
 
 describe('saveClaimEscalationAgreementCore', () => {
-  const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('revalidates locale-scoped staff claim paths after a successful save', async () => {
+    vi.clearAllMocks();
+    const requestHeaders = new Headers({ 'user-agent': 'Vitest escalation agreement' });
+    const revalidatePathSpy = vi
+      .spyOn(nextCache, 'revalidatePath')
+      .mockImplementation(() => undefined);
+
     vi.spyOn(domainSave, 'saveClaimEscalationAgreementCore').mockResolvedValueOnce({
       success: true,
       data: {
@@ -40,6 +43,7 @@ describe('saveClaimEscalationAgreementCore', () => {
       legalActionCapPercentage: 25,
       minimumFee: 25,
       paymentAuthorizationState: 'authorized',
+      requestHeaders,
       session: {
         user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
         session: { id: 'session-1' },
@@ -48,10 +52,14 @@ describe('saveClaimEscalationAgreementCore', () => {
     });
 
     expect(result.success).toBe(true);
-    for (const locale of LOCALES) {
-      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims/claim-1`);
-      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims`);
-    }
-    expect(nextCache.revalidatePath).toHaveBeenCalledTimes(LOCALES.length * 2);
+    const [[domainParams, domainDeps]] = vi.mocked(domainSave.saveClaimEscalationAgreementCore).mock
+      .calls;
+    expect(domainParams).toMatchObject({
+      claimId: 'claim-1',
+      requestHeaders,
+    });
+    expect(domainDeps).toEqual({ logAuditEvent });
+    expect(revalidatePathSpy.mock.calls.map(([path]) => path)).toEqual(REVALIDATED_LOCALE_PATHS);
+    expect(revalidatePathSpy).toHaveBeenCalledTimes(REVALIDATED_LOCALE_PATHS.length);
   });
 });

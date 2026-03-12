@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => {
     db: {
       transaction,
     },
+    logAuditEvent: vi.fn(),
     claims: {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
@@ -285,5 +286,58 @@ describe('saveSuccessFeeCollectionCore', () => {
         subscriptionId: null,
       },
     });
+  });
+
+  it('records a commercial audit event when success-fee collection details are saved', async () => {
+    const now = new Date('2026-03-12T09:00:00Z');
+    const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
+
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain)
+      .mockReturnValueOnce(mocks.subscriptionSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { currency: 'EUR', id: 'claim-1', userId: 'member-1' },
+    ]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([
+      {
+        feePercentage: 15,
+        minimumFee: '25.00',
+        paymentAuthorizationState: 'authorized',
+      },
+    ]);
+    mocks.subscriptionSelectChain.limit.mockResolvedValue([]);
+
+    const result = await saveSuccessFeeCollectionCore(
+      {
+        claimId: 'claim-1',
+        deductionAllowed: true,
+        now,
+        recoveredAmount: 100,
+        requestHeaders,
+        session: createSession({ userId: 'staff-1' }),
+      },
+      { logAuditEvent: mocks.logAuditEvent }
+    );
+
+    expect(result.success).toBe(true);
+    expect(mocks.logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'claim.success_fee_collection_saved',
+        actorId: 'staff-1',
+        actorRole: 'staff',
+        entityId: 'claim-1',
+        entityType: 'claim',
+        headers: requestHeaders,
+        tenantId: 'tenant-1',
+        metadata: expect.objectContaining({
+          collectionMethod: 'deduction',
+          currencyCode: 'EUR',
+          deductionAllowed: true,
+          feeAmount: '25.00',
+          recoveredAmount: '100.00',
+        }),
+      })
+    );
   });
 });

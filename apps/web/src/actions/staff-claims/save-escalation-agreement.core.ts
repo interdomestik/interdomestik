@@ -1,5 +1,6 @@
 import { saveClaimEscalationAgreementCore as saveClaimEscalationAgreementCoreDomain } from '@interdomestik/domain-claims/staff-claims/save-escalation-agreement';
 
+import { logAuditEvent } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
@@ -19,10 +20,11 @@ function revalidatePathForAllLocales(path: string) {
 
 export async function saveClaimEscalationAgreementCore(
   params: SaveClaimEscalationAgreementInput & {
+    requestHeaders?: Headers;
     session: NonNullable<Session> | null;
   }
 ): Promise<ActionResult<ClaimEscalationAgreementSnapshot>> {
-  const result = await saveClaimEscalationAgreementCoreDomain(params);
+  const result = await saveClaimEscalationAgreementCoreDomain(params, { logAuditEvent });
 
   if (result.success) {
     revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);

@@ -9,6 +9,7 @@ import {
 
 vi.mock('./staff-claims/context', () => ({
   getActionContext: vi.fn(async () => ({
+    requestHeaders: new Headers(),
     session: { user: { id: 'staff-1', role: 'staff' } },
   })),
 }));
@@ -39,6 +40,7 @@ describe('staff-claims action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(assignClaimCore).toHaveBeenCalledWith({
       claimId: 'claim-1',
+      requestHeaders: expect.any(Headers),
       session: { user: { id: 'staff-1', role: 'staff' } },
     });
     expect(result).toEqual({ success: true });
@@ -61,6 +63,7 @@ describe('staff-claims action wrapper', () => {
       newStatus: 'submitted',
       note: undefined,
       isPublicChange: false,
+      requestHeaders: expect.any(Headers),
       session: { user: { id: 'staff-1', role: 'staff' } },
     });
     expect(result).toEqual({ success: true });
@@ -87,6 +90,7 @@ describe('staff-claims action wrapper', () => {
       legalActionCapPercentage: 25,
       minimumFee: 25,
       paymentAuthorizationState: 'authorized',
+      requestHeaders: expect.any(Headers),
       session: { user: { id: 'staff-1', role: 'staff' } },
       termsVersion: '2026-03-v1',
     });
@@ -109,6 +113,7 @@ describe('staff-claims action wrapper', () => {
       claimId: 'claim-1',
       deductionAllowed: false,
       recoveredAmount: 1000,
+      requestHeaders: expect.any(Headers),
       session: { user: { id: 'staff-1', role: 'staff' } },
     });
     expect(result).toEqual({ success: true });

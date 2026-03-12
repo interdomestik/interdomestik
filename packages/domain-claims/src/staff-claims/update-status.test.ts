@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => {
       select: vi.fn(),
       transaction,
     },
+    logAuditEvent: vi.fn(),
     claims: {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
@@ -207,6 +208,42 @@ describe('staff updateClaimStatusCore', () => {
         claimId: 'claim-1',
         fromStatus: 'evaluation',
         toStatus: 'negotiation',
+      })
+    );
+  });
+
+  it('records an audit event when staff decline a recovery matter', async () => {
+    const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
+
+    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'negotiation' }]);
+
+    const result = await updateClaimStatusCore(
+      {
+        claimId: 'claim-1',
+        newStatus: 'rejected',
+        note: 'Declined after review',
+        requestHeaders,
+        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      },
+      { logAuditEvent: mocks.logAuditEvent }
+    );
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'claim.status_changed',
+        actorId: 'staff-1',
+        actorRole: 'staff',
+        entityId: 'claim-1',
+        entityType: 'claim',
+        headers: requestHeaders,
+        tenantId: 'tenant-1',
+        metadata: expect.objectContaining({
+          oldStatus: 'negotiation',
+          newStatus: 'rejected',
+          note: 'Declined after review',
+        }),
       })
     );
   });

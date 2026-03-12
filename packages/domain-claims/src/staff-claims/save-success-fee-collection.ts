@@ -14,7 +14,7 @@ import {
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { z } from 'zod';
 
-import type { ClaimsSession } from '../claims/types';
+import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type {
   ActionResult,
   PaymentAuthorizationState,
@@ -71,9 +71,11 @@ function buildSnapshot(params: {
 
 export async function saveSuccessFeeCollectionCore(
   params: SaveSuccessFeeCollectionInput & {
+    requestHeaders?: Headers;
     session: ClaimsSession | null;
     now?: Date;
-  }
+  },
+  deps: ClaimsDeps = {}
 ): Promise<ActionResult<SuccessFeeCollectionSnapshot>> {
   const { session } = params;
 
@@ -93,7 +95,7 @@ export async function saveSuccessFeeCollectionCore(
   const now = params.now ?? new Date();
 
   try {
-    return await db.transaction(async tx => {
+    const result = await db.transaction(async tx => {
       const [claim] = await tx
         .select({
           currency: claims.currency,
@@ -200,6 +202,32 @@ export async function saveSuccessFeeCollectionCore(
         }),
       };
     });
+
+    if (result.success && result.data && deps.logAuditEvent) {
+      await deps.logAuditEvent({
+        actorId: session.user.id,
+        actorRole: session.user.role,
+        tenantId,
+        action: 'claim.success_fee_collection_saved',
+        entityType: 'claim',
+        entityId: parsed.data.claimId,
+        metadata: {
+          collectionMethod: result.data.collectionMethod,
+          currencyCode: result.data.currencyCode,
+          deductionAllowed: result.data.deductionAllowed,
+          feeAmount: result.data.feeAmount,
+          hasStoredPaymentMethod: result.data.hasStoredPaymentMethod,
+          invoiceDueAt: result.data.invoiceDueAt,
+          paymentAuthorizationState: result.data.paymentAuthorizationState,
+          recoveredAmount: result.data.recoveredAmount,
+          resolvedAt: result.data.resolvedAt,
+          subscriptionId: result.data.subscriptionId,
+        },
+        headers: params.requestHeaders,
+      });
+    }
+
+    return result;
   } catch (error) {
     console.error('Failed to save success-fee collection:', error);
     return { success: false, error: 'Failed to save success-fee collection' };

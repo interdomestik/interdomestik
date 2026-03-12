@@ -1,5 +1,6 @@
 import { saveSuccessFeeCollectionCore as saveSuccessFeeCollectionCoreDomain } from '@interdomestik/domain-claims/staff-claims/save-success-fee-collection';
 
+import { logAuditEvent } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
@@ -19,10 +20,11 @@ function revalidatePathForAllLocales(path: string) {
 
 export async function saveSuccessFeeCollectionCore(
   params: SaveSuccessFeeCollectionInput & {
+    requestHeaders?: Headers;
     session: NonNullable<Session> | null;
   }
 ): Promise<ActionResult<SuccessFeeCollectionSnapshot>> {
-  const result = await saveSuccessFeeCollectionCoreDomain(params);
+  const result = await saveSuccessFeeCollectionCoreDomain(params, { logAuditEvent });
 
   if (result.success) {
     revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
