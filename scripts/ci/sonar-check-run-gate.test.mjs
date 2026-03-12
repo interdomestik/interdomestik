@@ -12,7 +12,7 @@ const rootDir = path.resolve(scriptDir, '../..');
 const gateScriptPath = path.join(rootDir, 'scripts/sonar-check-run-gate.sh');
 
 function sanitizeEndpoint(endpoint) {
-  return endpoint.replace(/[^A-Za-z0-9._-]+/g, '_');
+  return endpoint.replaceAll(/[^A-Za-z0-9._-]+/g, '_');
 }
 
 function writeGhResponse(responsesDir, endpoint, payload) {
@@ -20,36 +20,43 @@ function writeGhResponse(responsesDir, endpoint, payload) {
   fs.writeFileSync(responsePath, JSON.stringify(payload));
 }
 
-function startQualityGateServer(responseBody) {
-  return new Promise(resolve => {
-    const server = http.createServer((request, response) => {
-      if (
-        request.url ===
-        '/api/qualitygates/project_status?projectKey=interdomestik_interdomestik&pullRequest=307'
-      ) {
-        response.writeHead(200, { 'content-type': 'application/json' });
-        response.end(JSON.stringify(responseBody));
+function closeServer(server) {
+  return new Promise((resolve, reject) => {
+    server.close(error => {
+      if (error) {
+        reject(error);
         return;
       }
 
-      response.writeHead(404, { 'content-type': 'application/json' });
-      response.end(JSON.stringify({ error: 'not found' }));
+      resolve();
     });
+  });
+}
+
+function createQualityGateHandler(responseBody) {
+  const successPath =
+    '/api/qualitygates/project_status?projectKey=interdomestik_interdomestik&pullRequest=307';
+
+  return (request, response) => {
+    if (request.url === successPath) {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify(responseBody));
+      return;
+    }
+
+    response.writeHead(404, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({ error: 'not found' }));
+  };
+}
+
+function startQualityGateServer(responseBody) {
+  return new Promise(resolve => {
+    const server = http.createServer(createQualityGateHandler(responseBody));
 
     server.listen(0, '127.0.0.1', () => {
       const address = server.address();
       resolve({
-        close: () =>
-          new Promise((resolveClose, rejectClose) => {
-            server.close(error => {
-              if (error) {
-                rejectClose(error);
-                return;
-              }
-
-              resolveClose();
-            });
-          }),
+        close: () => closeServer(server),
         origin: `http://127.0.0.1:${address.port}`,
       });
     });

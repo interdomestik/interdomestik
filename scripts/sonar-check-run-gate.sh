@@ -127,6 +127,8 @@ req.on('error', error => {
 
 req.end();
 NODE
+  local fetch_status=$?
+  return "${fetch_status}"
 }
 
 try_quality_gate_api_fallback() {
