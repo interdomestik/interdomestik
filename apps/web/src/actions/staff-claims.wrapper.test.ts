@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { assignClaim, saveClaimEscalationAgreement, updateClaimStatus } from './staff-claims';
+import {
+  assignClaim,
+  saveClaimEscalationAgreement,
+  saveSuccessFeeCollection,
+  updateClaimStatus,
+} from './staff-claims';
 
 vi.mock('./staff-claims/context', () => ({
   getActionContext: vi.fn(async () => ({
@@ -18,6 +23,10 @@ vi.mock('./staff-claims/update-status', () => ({
 
 vi.mock('./staff-claims/save-escalation-agreement.core', () => ({
   saveClaimEscalationAgreementCore: vi.fn(async () => ({ success: true })),
+}));
+
+vi.mock('./staff-claims/save-success-fee-collection.core', () => ({
+  saveSuccessFeeCollectionCore: vi.fn(async () => ({ success: true })),
 }));
 
 describe('staff-claims action wrapper', () => {
@@ -80,6 +89,27 @@ describe('staff-claims action wrapper', () => {
       paymentAuthorizationState: 'authorized',
       session: { user: { id: 'staff-1', role: 'staff' } },
       termsVersion: '2026-03-v1',
+    });
+    expect(result).toEqual({ success: true });
+  });
+
+  it('delegates saveSuccessFeeCollection to core', async () => {
+    const { getActionContext } = await import('./staff-claims/context');
+    const { saveSuccessFeeCollectionCore } =
+      await import('./staff-claims/save-success-fee-collection.core');
+
+    const result = await saveSuccessFeeCollection({
+      claimId: 'claim-1',
+      deductionAllowed: false,
+      recoveredAmount: 1000,
+    });
+
+    expect(getActionContext).toHaveBeenCalledTimes(1);
+    expect(saveSuccessFeeCollectionCore).toHaveBeenCalledWith({
+      claimId: 'claim-1',
+      deductionAllowed: false,
+      recoveredAmount: 1000,
+      session: { user: { id: 'staff-1', role: 'staff' } },
     });
     expect(result).toEqual({ success: true });
   });

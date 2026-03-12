@@ -22,6 +22,7 @@ export type StaffClaimDetail = {
     name: string;
   };
   commercialAgreement: ClaimEscalationAgreementSnapshot | null;
+  successFeeCollection: import('./types').SuccessFeeCollectionSnapshot | null;
 };
 
 function formatStageLabel(status: string | null | undefined) {
@@ -58,6 +59,16 @@ export async function getStaffClaimDetail(params: {
       agreementMinimumFee: claimEscalationAgreements.minimumFee,
       agreementLegalActionCapPercentage: claimEscalationAgreements.legalActionCapPercentage,
       agreementPaymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
+      agreementSuccessFeeRecoveredAmount: claimEscalationAgreements.successFeeRecoveredAmount,
+      agreementSuccessFeeCurrencyCode: claimEscalationAgreements.successFeeCurrencyCode,
+      agreementSuccessFeeAmount: claimEscalationAgreements.successFeeAmount,
+      agreementSuccessFeeCollectionMethod: claimEscalationAgreements.successFeeCollectionMethod,
+      agreementSuccessFeeDeductionAllowed: claimEscalationAgreements.successFeeDeductionAllowed,
+      agreementSuccessFeeHasStoredPaymentMethod:
+        claimEscalationAgreements.successFeeHasStoredPaymentMethod,
+      agreementSuccessFeeInvoiceDueAt: claimEscalationAgreements.successFeeInvoiceDueAt,
+      agreementSuccessFeeResolvedAt: claimEscalationAgreements.successFeeResolvedAt,
+      agreementSuccessFeeSubscriptionId: claimEscalationAgreements.successFeeSubscriptionId,
       agreementTermsVersion: claimEscalationAgreements.termsVersion,
       agreementSignedAt: claimEscalationAgreements.signedAt,
       agreementAcceptedAt: claimEscalationAgreements.acceptedAt,
@@ -115,6 +126,28 @@ export async function getStaffClaimDetail(params: {
             signedAt: normalizeDate(row.agreementSignedAt),
             acceptedAt: normalizeDate(row.agreementAcceptedAt),
             termsVersion: row.agreementTermsVersion,
+          }
+        : null,
+    successFeeCollection:
+      row.agreementSuccessFeeRecoveredAmount != null &&
+      row.agreementSuccessFeeCurrencyCode != null &&
+      row.agreementSuccessFeeAmount != null &&
+      row.agreementSuccessFeeCollectionMethod != null &&
+      row.agreementSuccessFeeDeductionAllowed != null &&
+      row.agreementSuccessFeeHasStoredPaymentMethod != null &&
+      row.agreementPaymentAuthorizationState != null
+        ? {
+            claimId: row.claimId,
+            recoveredAmount: row.agreementSuccessFeeRecoveredAmount,
+            currencyCode: row.agreementSuccessFeeCurrencyCode,
+            feeAmount: row.agreementSuccessFeeAmount,
+            collectionMethod: row.agreementSuccessFeeCollectionMethod,
+            deductionAllowed: row.agreementSuccessFeeDeductionAllowed,
+            hasStoredPaymentMethod: row.agreementSuccessFeeHasStoredPaymentMethod,
+            invoiceDueAt: normalizeDate(row.agreementSuccessFeeInvoiceDueAt),
+            paymentAuthorizationState: row.agreementPaymentAuthorizationState,
+            resolvedAt: normalizeDate(row.agreementSuccessFeeResolvedAt),
+            subscriptionId: row.agreementSuccessFeeSubscriptionId ?? null,
           }
         : null,
   };

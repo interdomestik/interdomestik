@@ -3,11 +3,14 @@
 import { assignClaimCore } from './staff-claims/assign';
 import { getActionContext } from './staff-claims/context';
 import { saveClaimEscalationAgreementCore } from './staff-claims/save-escalation-agreement.core';
+import { saveSuccessFeeCollectionCore } from './staff-claims/save-success-fee-collection.core';
 import type {
   ActionResult,
   ClaimEscalationAgreementSnapshot,
   ClaimStatus,
   SaveClaimEscalationAgreementInput,
+  SaveSuccessFeeCollectionInput,
+  SuccessFeeCollectionSnapshot,
 } from './staff-claims/types';
 import { updateClaimStatusCore } from './staff-claims/update-status';
 
@@ -17,6 +20,8 @@ export type {
   ClaimStatus,
   PaymentAuthorizationState,
   SaveClaimEscalationAgreementInput,
+  SaveSuccessFeeCollectionInput,
+  SuccessFeeCollectionSnapshot,
 } from './staff-claims/types';
 
 /**
@@ -45,6 +50,16 @@ export async function saveClaimEscalationAgreement(
 ): Promise<ActionResult<ClaimEscalationAgreementSnapshot>> {
   const { session } = await getActionContext();
   return saveClaimEscalationAgreementCore({
+    ...input,
+    session,
+  });
+}
+
+export async function saveSuccessFeeCollection(
+  input: SaveSuccessFeeCollectionInput
+): Promise<ActionResult<SuccessFeeCollectionSnapshot>> {
+  const { session } = await getActionContext();
+  return saveSuccessFeeCollectionCore({
     ...input,
     session,
   });

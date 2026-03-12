@@ -17,6 +17,7 @@ export * from './paddle-webhooks/persist';
 export * from './paddle-webhooks/subscription-status';
 export * from './paddle-webhooks/types';
 export * from './paddle-webhooks/verify';
+export * from './success-fees/policy';
 export * from './subscription';
 export * from './subscription/cancel';
 export * from './subscription/get-payment-update-url';

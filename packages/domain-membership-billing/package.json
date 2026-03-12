@@ -24,6 +24,7 @@
     "./paddle-webhooks/handlers/subscriptions": "./src/paddle-webhooks/handlers/subscriptions.ts",
     "./paddle-webhooks/handlers/dunning": "./src/paddle-webhooks/handlers/dunning.ts",
     "./paddle-webhooks/handlers/transaction": "./src/paddle-webhooks/handlers/transaction.ts",
+    "./success-fees/policy": "./src/success-fees/policy.ts",
     "./commissions/types": "./src/commissions/types.ts",
     "./commissions/create": "./src/commissions/create.ts",
     "./commissions/get-my": "./src/commissions/get-my.ts",

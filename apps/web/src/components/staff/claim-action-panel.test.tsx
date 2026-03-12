@@ -12,6 +12,7 @@ vi.mock('sonner', () => ({
 vi.mock('@/actions/staff-claims', () => ({
   assignClaim: vi.fn().mockResolvedValue({ success: true }),
   saveClaimEscalationAgreement: vi.fn().mockResolvedValue({ success: true }),
+  saveSuccessFeeCollection: vi.fn().mockResolvedValue({ success: true }),
   updateClaimStatus: vi.fn().mockResolvedValue({ success: true }),
 }));
 
@@ -66,6 +67,7 @@ describe('ClaimActionPanel', () => {
       <ClaimActionPanel
         claimId="claim-1"
         commercialAgreement={null}
+        successFeeCollection={null}
         currentStatus="submitted"
         staffId="staff-me"
         assigneeId="staff-other"
@@ -75,5 +77,6 @@ describe('ClaimActionPanel', () => {
     const button = screen.getByRole('button', { name: 'Reassign to Me' });
     expect(button).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Save Escalation Agreement' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save Success-Fee Collection' })).toBeDisabled();
   });
 });
