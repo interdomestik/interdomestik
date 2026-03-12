@@ -91,13 +91,18 @@ function createSession(options: {
   role?: string;
   tenantId?: string;
 }): ClaimsSession {
+  const user = {
+    id: options.userId,
+    role: options.role ?? 'staff',
+    tenantId: options.tenantId ?? 'tenant-1',
+  };
+
+  if (options.branchId === undefined) {
+    return { user } as unknown as ClaimsSession;
+  }
+
   return {
-    user: {
-      id: options.userId,
-      role: options.role ?? 'staff',
-      tenantId: options.tenantId ?? 'tenant-1',
-      ...(options.branchId !== undefined ? { branchId: options.branchId } : {}),
-    },
+    user: { ...user, branchId: options.branchId },
   } as unknown as ClaimsSession;
 }
 

@@ -25,20 +25,22 @@ const saveClaimEscalationAgreementSchema = z
     'Legal-action cap must be greater than or equal to the agreed fee percentage'
   );
 
-function normalizeDate(value: Date | string | null | undefined) {
+type DateLike = Date | string | null | undefined;
+
+function normalizeDate(value: DateLike) {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
 function buildSnapshot(params: {
-  acceptedAt: Date | string | null | undefined;
+  acceptedAt: DateLike;
   claimId: string;
   feePercentage: number;
   legalActionCapPercentage: number;
   minimumFee: string;
   paymentAuthorizationState: ClaimEscalationAgreementSnapshot['paymentAuthorizationState'];
-  signedAt: Date | string | null | undefined;
+  signedAt: DateLike;
   termsVersion: string;
 }): ClaimEscalationAgreementSnapshot {
   return {
