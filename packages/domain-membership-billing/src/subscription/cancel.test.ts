@@ -44,6 +44,27 @@ vi.mock('../paddle-server', () => ({
 describe('cancelSubscriptionCore', () => {
   const logAuditEvent = vi.fn();
 
+  function mockCancellationContext(params?: {
+    acceptedEscalationRows?: Array<{ claimId: string }>;
+  }) {
+    hoisted.ensureTenantId.mockReturnValue('tenant_abc');
+    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
+      id: 'sub_123',
+      userId: 'user_123',
+      tenantId: 'tenant_abc',
+      createdAt: new Date('2026-03-01T00:00:00.000Z'),
+      currentPeriodEnd: new Date('2027-03-01T00:00:00.000Z'),
+      cancelAtPeriodEnd: false,
+    });
+
+    const mockLimit = vi.fn().mockResolvedValue(params?.acceptedEscalationRows ?? []);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockInnerJoin = vi.fn().mockReturnValue({ where: mockWhere });
+    const mockFrom = vi.fn().mockReturnValue({ innerJoin: mockInnerJoin });
+    hoisted.db.select.mockReturnValue({ from: mockFrom });
+    hoisted.paddle.subscriptions.cancel.mockResolvedValue({});
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     const mockWhere = vi.fn().mockResolvedValue(undefined);
@@ -56,21 +77,7 @@ describe('cancelSubscriptionCore', () => {
       user: { id: 'user_123' },
     };
 
-    hoisted.ensureTenantId.mockReturnValue('tenant_abc');
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
-      id: 'sub_123',
-      userId: 'user_123',
-      tenantId: 'tenant_abc',
-      createdAt: new Date('2026-03-01T00:00:00.000Z'),
-      currentPeriodEnd: new Date('2027-03-01T00:00:00.000Z'),
-      cancelAtPeriodEnd: false,
-    });
-    const mockLimit = vi.fn().mockResolvedValue([]);
-    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
-    const mockInnerJoin = vi.fn().mockReturnValue({ where: mockWhere });
-    const mockFrom = vi.fn().mockReturnValue({ innerJoin: mockInnerJoin });
-    hoisted.db.select.mockReturnValue({ from: mockFrom });
-    hoisted.paddle.subscriptions.cancel.mockResolvedValue({});
+    mockCancellationContext();
 
     const result = await cancelSubscriptionCore(
       {
@@ -112,21 +119,9 @@ describe('cancelSubscriptionCore', () => {
       user: { id: 'user_123' },
     };
 
-    hoisted.ensureTenantId.mockReturnValue('tenant_abc');
-    hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
-      id: 'sub_123',
-      userId: 'user_123',
-      tenantId: 'tenant_abc',
-      createdAt: new Date('2026-03-01T00:00:00.000Z'),
-      currentPeriodEnd: new Date('2027-03-01T00:00:00.000Z'),
-      cancelAtPeriodEnd: false,
+    mockCancellationContext({
+      acceptedEscalationRows: [{ claimId: 'claim_1' }],
     });
-    const mockLimit = vi.fn().mockResolvedValue([{ claimId: 'claim_1' }]);
-    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
-    const mockInnerJoin = vi.fn().mockReturnValue({ where: mockWhere });
-    const mockFrom = vi.fn().mockReturnValue({ innerJoin: mockInnerJoin });
-    hoisted.db.select.mockReturnValue({ from: mockFrom });
-    hoisted.paddle.subscriptions.cancel.mockResolvedValue({});
 
     const result = await cancelSubscriptionCore(
       {
