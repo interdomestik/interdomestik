@@ -13,6 +13,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+ENV_FILE='.env.local'
+ENV_FILE_BACKUP="${ENV_FILE}.backup"
+
 # Helper functions
 log_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
@@ -110,14 +113,14 @@ check_supabase_binding() {
 
 # Generate new .env.local file
 generate_env_file() {
-    local env_file=".env.local"
+    local env_file="$ENV_FILE"
     
     log_info "Generating new secure development environment file..."
     
     # Backup existing file if it exists
     if [[ -f "$env_file" ]]; then
-        log_warning "Backing up existing .env.local to .env.local.backup"
-        cp "$env_file" "$env_file.backup"
+        log_warning "Backing up existing ${ENV_FILE} to ${ENV_FILE_BACKUP}"
+        cp "$env_file" "$ENV_FILE_BACKUP"
     fi
     
     # Generate secrets
@@ -210,10 +213,10 @@ run_security_checks() {
     log_info "Running comprehensive security validation..."
     
     # Check environment file
-    if [[ -f ".env.local" ]]; then
-        validate_secrets ".env.local"
+    if [[ -f "$ENV_FILE" ]]; then
+        validate_secrets "$ENV_FILE"
     else
-        log_error ".env.local file not found. Run: $0 generate"
+        log_error "${ENV_FILE} file not found. Run: $0 generate"
         return 1
     fi
     
@@ -222,10 +225,10 @@ run_security_checks() {
     
     # Check gitignore rules
     if grep -q "^\.env\.local$" .gitignore; then
-        log_success ".env.local is properly ignored in .gitignore"
+        log_success "${ENV_FILE} is properly ignored in .gitignore"
     else
-        log_warning ".env.local is not in .gitignore - adding it"
-        echo ".env.local" >> .gitignore
+        log_warning "${ENV_FILE} is not in .gitignore - adding it"
+        echo "$ENV_FILE" >> .gitignore
     fi
     
     # Check for exposed secrets in git (excluding binary files)
