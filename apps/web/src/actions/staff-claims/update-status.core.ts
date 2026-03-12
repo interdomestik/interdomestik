@@ -1,5 +1,6 @@
 import { updateClaimStatusCore as updateClaimStatusCoreDomain } from '@interdomestik/domain-claims/staff-claims/update-status';
 
+import { logAuditEvent } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
@@ -38,7 +39,7 @@ export async function updateClaimStatusCore(params: {
     }
   }
 
-  const result = await updateClaimStatusCoreDomain(params);
+  const result = await updateClaimStatusCoreDomain(params, { logAuditEvent });
 
   if (result.success) {
     revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);

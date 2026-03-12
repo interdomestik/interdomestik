@@ -3,7 +3,7 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { z } from 'zod';
 
-import type { ClaimsSession } from '../claims/types';
+import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type {
   ActionResult,
   ClaimEscalationAgreementSnapshot,
@@ -57,8 +57,10 @@ function buildSnapshot(params: {
 
 export async function saveClaimEscalationAgreementCore(
   params: SaveClaimEscalationAgreementInput & {
+    requestHeaders?: Headers;
     session: ClaimsSession | null;
-  }
+  },
+  deps: ClaimsDeps = {}
 ): Promise<ActionResult<ClaimEscalationAgreementSnapshot>> {
   const { session } = params;
 
@@ -79,7 +81,7 @@ export async function saveClaimEscalationAgreementCore(
   const minimumFee = parsed.data.minimumFee.toFixed(2);
 
   try {
-    return await db.transaction(async tx => {
+    const result = await db.transaction(async tx => {
       const [claim] = await tx
         .select({
           id: claims.id,
@@ -180,6 +182,29 @@ export async function saveClaimEscalationAgreementCore(
         }),
       };
     });
+
+    if (result.success && result.data && deps.logAuditEvent) {
+      await deps.logAuditEvent({
+        actorId: session.user.id,
+        actorRole: session.user.role,
+        tenantId,
+        action: 'claim.commercial_terms_saved',
+        entityType: 'claim',
+        entityId: parsed.data.claimId,
+        metadata: {
+          acceptedAt: result.data.acceptedAt,
+          feePercentage: result.data.feePercentage,
+          legalActionCapPercentage: result.data.legalActionCapPercentage,
+          minimumFee: result.data.minimumFee,
+          paymentAuthorizationState: result.data.paymentAuthorizationState,
+          signedAt: result.data.signedAt,
+          termsVersion: result.data.termsVersion,
+        },
+        headers: params.requestHeaders,
+      });
+    }
+
+    return result;
   } catch (error) {
     console.error('Failed to save claim escalation agreement:', error);
     return { success: false, error: 'Failed to save claim escalation agreement' };

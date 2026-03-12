@@ -11,7 +11,7 @@ test.describe('Diaspora Feature', () => {
     const ribbonCta = diasporaRibbon.getByTestId('diaspora-ribbon-cta').first();
 
     // 1. Go to Member Home
-    await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'dashboard-page-ready' });
+    await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
 
     // Assert we are on the dashboard
     await expect(memberDashboard).toBeVisible();

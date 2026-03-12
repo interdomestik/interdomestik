@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => {
     db: {
       transaction,
     },
+    logAuditEvent: vi.fn(),
     claims: {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
@@ -190,5 +191,49 @@ describe('saveClaimEscalationAgreementCore', () => {
       paymentAuthorizationState: 'authorized',
       termsVersion: '2026-03-v1',
     });
+  });
+
+  it('records a commercial audit event when staff save recovery terms', async () => {
+    const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
+
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', userId: 'member-1' }]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([]);
+
+    const result = await saveClaimEscalationAgreementCore(
+      {
+        claimId: 'claim-1',
+        feePercentage: 15,
+        legalActionCapPercentage: 25,
+        minimumFee: 25,
+        paymentAuthorizationState: 'authorized',
+        requestHeaders,
+        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+        termsVersion: '2026-03-v1',
+      },
+      { logAuditEvent: mocks.logAuditEvent }
+    );
+
+    expect(result.success).toBe(true);
+    expect(mocks.logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'claim.commercial_terms_saved',
+        actorId: 'staff-1',
+        actorRole: 'staff',
+        entityId: 'claim-1',
+        entityType: 'claim',
+        headers: requestHeaders,
+        tenantId: 'tenant-1',
+        metadata: expect.objectContaining({
+          feePercentage: 15,
+          legalActionCapPercentage: 25,
+          minimumFee: '25.00',
+          paymentAuthorizationState: 'authorized',
+          termsVersion: '2026-03-v1',
+        }),
+      })
+    );
   });
 });
