@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
 const gateScriptPath = path.join(rootDir, 'scripts/sonar-check-run-gate.sh');
+const bashBinaryPath = '/bin/bash';
 
 function sanitizeEndpoint(endpoint) {
   return endpoint.replaceAll(/[^A-Za-z0-9._-]+/g, '_');
@@ -63,7 +64,7 @@ function startSonarApiServer(responseByPath) {
 
 function runGateScript(env) {
   return new Promise((resolve, reject) => {
-    const child = spawn('bash', [gateScriptPath], {
+    const child = spawn(bashBinaryPath, [gateScriptPath], {
       cwd: rootDir,
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
