@@ -91,6 +91,18 @@
       "select_subscription": "Zgjidhni një abonim",
       "back_to_list": "Kthehu te lista"
     },
+    "actions": {
+      "confirm_cancel": "A jeni i sigurt që dëshironi ta anuloni? Anulimi ndryshon vetëm rinovimin e ardhshëm dhe qasja juaj aktuale mbetet aktive deri në fund të periudhës së tanishme të faturimit.",
+      "cancel_requested": "Anulimi u planifikua.",
+      "cancel_keeps_access_until": "Qasja e anëtarësisë suaj mbetet aktive deri më {date}.",
+      "refund_eligible": "Kërkesa juaj është ende brenda afatit 30-ditor të shqyrtimit për rimbursim dhe do të verifikohet sipas kushteve të publikuara.",
+      "refund_window_closed": "Afati 30-ditor i shqyrtimit për rimbursim ka mbaruar, prandaj anulimi prek vetëm rinovimin e ardhshëm.",
+      "accepted_escalation_survives": "Rastet e pranuara për rikuperim ruajnë kushtet mbijetuese të përshkallëzimit edhe pas anulimit të anëtarësisë.",
+      "cooling_off_applies_separately": "Çdo e drejtë ligjore për tërheqje shqyrtohet veçmas sipas kushteve të publikuara."
+    },
+    "errors": {
+      "action_failed": "Nuk mundëm ta përfundojmë atë veprim të anëtarësisë. Ju lutem provoni përsëri."
+    },
     "dunning": {
       "payment_failed_title": "Pagesa Dështoi - {daysRemaining} ditë të mbetura",
       "payment_failed_message": "Pagesa juaj e fundit nuk u krye me sukses. Ju lutem përditësoni metodën e pagesës për të shmangur humbjen e qasjes në përfitimet e anëtarësisë.",

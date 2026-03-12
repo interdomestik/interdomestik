@@ -25,6 +25,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
 import { getCustomerPortalUrl, requestCancellation } from '@/actions/memberships';
+import { buildCancellationFeedbackMessage } from '@/features/member/membership/cancellation-feedback';
 import { toast } from 'sonner';
 
 // ... imports
@@ -160,7 +161,13 @@ function DetailView({
   const handleAction = async (id: string) => {
     try {
       if (id === 'renew' || id === 'update_payment') {
-        const { url } = await getCustomerPortalUrl(subscription.id);
+        const result = await getCustomerPortalUrl(subscription.id);
+        if (result.error || !result.url) {
+          toast.error(t('errors.action_failed'));
+          return;
+        }
+
+        const { url } = result;
         window.location.href = url;
         return;
       }
@@ -169,8 +176,13 @@ function DetailView({
         // Simple confirm for now
         if (!confirm(t('actions.confirm_cancel'))) return;
 
-        await requestCancellation(subscription.id);
-        toast.success(t('actions.cancel_requested'));
+        const result = await requestCancellation(subscription.id);
+        if (result.error || !result.success) {
+          toast.error(t('errors.action_failed'));
+          return;
+        }
+
+        toast.success(buildCancellationFeedbackMessage(t, result.cancellationTerms));
         return;
       }
 
