@@ -33,6 +33,23 @@ trim_value() {
     echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
+is_placeholder_api_key() {
+    local api_key
+    api_key=$(trim_value "$1")
+
+    if [[ -z "$api_key" ]]; then
+        return 0
+    fi
+
+    case "$api_key" in
+        sk-YOUR_OPENAI_KEY|re_YOUR_RESEND_KEY|YOUR_PADDLE_KEY|YOUR_GITHUB_CLIENT_SECRET|set-locally|changeme|CHANGE_ME|YOUR_*|*_YOUR_*|*PLACEHOLDER*|*placeholder*)
+            return 0
+            ;;
+    esac
+
+    return 1
+}
+
 # API key structure
 declare -A API_KEYS=(
     ["openai"]="https://api.openai.com/v1"
@@ -104,6 +121,14 @@ check_resend_usage() {
     fi
 }
 
+check_paddle_usage() {
+    log_warning "Usage check not implemented for paddle"
+}
+
+check_github_usage() {
+    log_warning "Usage check not implemented for github"
+}
+
 # Generate API key alert
 create_alert() {
     local service="$1"
@@ -165,8 +190,9 @@ monitor_all() {
         esac
         
         local api_key=$(grep "^${api_key_var}=" "$env_file" 2>/dev/null | cut -d'=' -f2 || echo "")
+        api_key=$(trim_value "$api_key")
         
-        if [[ -n "$api_key" && "$api_key" != "sk-YOUR_OPENAI_KEY" && "$api_key" != "YOUR_PADDLE_KEY" ]]; then
+        if ! is_placeholder_api_key "$api_key"; then
             check_usage "$service" "$api_key"
         else
             log_info "Skipping $service (not configured or using placeholder)"

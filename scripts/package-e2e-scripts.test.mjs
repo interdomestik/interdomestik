@@ -114,3 +114,14 @@ test('billing surfaces no longer expose Stripe configuration contracts', () => {
     /NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET/
   );
 });
+
+test('api key monitoring script keeps placeholder skips and paddle/github paths defined', () => {
+  const apiKeysScript = readFileSync(new URL('../scripts/api-keys.sh', import.meta.url), 'utf8');
+
+  assert.match(apiKeysScript, /is_placeholder_api_key\(\)/);
+  assert.match(apiKeysScript, /re_YOUR_RESEND_KEY/);
+  assert.match(apiKeysScript, /YOUR_GITHUB_CLIENT_SECRET/);
+  assert.match(apiKeysScript, /set-locally/);
+  assert.match(apiKeysScript, /check_paddle_usage\(\)/);
+  assert.match(apiKeysScript, /check_github_usage\(\)/);
+});
