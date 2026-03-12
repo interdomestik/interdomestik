@@ -95,8 +95,8 @@
       "confirm_cancel": "A jeni i sigurt që dëshironi ta anuloni? Anulimi ndryshon vetëm rinovimin e ardhshëm dhe qasja juaj aktuale mbetet aktive deri në fund të periudhës së tanishme të faturimit.",
       "cancel_requested": "Anulimi u planifikua.",
       "cancel_keeps_access_until": "Qasja e anëtarësisë suaj mbetet aktive deri më {date}.",
-      "refund_eligible": "Kërkesa juaj është ende brenda afatit vjetor të shqyrtimit për rimbursim dhe do të verifikohet sipas kushteve të publikuara.",
-      "refund_window_closed": "Afati vjetor i shqyrtimit për rimbursim ka mbaruar, prandaj anulimi prek vetëm rinovimin e ardhshëm.",
+      "refund_eligible": "Kërkesa juaj është ende brenda afatit 30-ditor të shqyrtimit për rimbursim dhe do të verifikohet sipas kushteve të publikuara.",
+      "refund_window_closed": "Afati 30-ditor i shqyrtimit për rimbursim ka mbaruar, prandaj anulimi prek vetëm rinovimin e ardhshëm.",
       "accepted_escalation_survives": "Rastet e pranuara për rikuperim ruajnë kushtet mbijetuese të përshkallëzimit edhe pas anulimit të anëtarësisë.",
       "cooling_off_applies_separately": "Çdo e drejtë ligjore për tërheqje shqyrtohet veçmas sipas kushteve të publikuara."
     },

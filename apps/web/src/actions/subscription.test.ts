@@ -17,6 +17,7 @@ vi.mock('@interdomestik/database', () => ({
     update: vi.fn(),
   },
   and: vi.fn(),
+  desc: vi.fn(),
   eq: vi.fn(),
   subscriptions: {
     id: { name: 'id' },
@@ -27,6 +28,7 @@ vi.mock('@interdomestik/database', () => ({
   claims: { id: { name: 'id' }, userId: { name: 'userId' }, tenantId: { name: 'tenantId' } },
   claimEscalationAgreements: {
     claimId: { name: 'claimId' },
+    acceptedAt: { name: 'acceptedAt' },
     tenantId: { name: 'tenantId' },
   },
   auditLog: {},
@@ -52,6 +54,10 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));
 
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
+
 vi.mock('next/headers', () => ({
   headers: vi.fn().mockResolvedValue({}),
 }));
@@ -75,7 +81,8 @@ describe('cancelSubscription', () => {
     });
 
     const mockSelectLimit = vi.fn().mockResolvedValue([]);
-    const mockSelectWhere = vi.fn().mockReturnValue({ limit: mockSelectLimit });
+    const mockSelectOrderBy = vi.fn().mockReturnValue({ limit: mockSelectLimit });
+    const mockSelectWhere = vi.fn().mockReturnValue({ orderBy: mockSelectOrderBy });
     const mockSelectInnerJoin = vi.fn().mockReturnValue({ where: mockSelectWhere });
     const mockSelectFrom = vi.fn().mockReturnValue({ innerJoin: mockSelectInnerJoin });
     (db.select as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ from: mockSelectFrom });
@@ -110,6 +117,9 @@ describe('cancelSubscription', () => {
     expect(mockPaddle.subscriptions.cancel).toHaveBeenCalledWith('sub1', {
       effectiveFrom: 'next_billing_period',
     });
+
+    const { revalidatePath } = await import('next/cache');
+    expect(revalidatePath).toHaveBeenCalledWith('/[locale]/(app)/member/membership');
   });
 
   it('should fail if unauthorized', async () => {

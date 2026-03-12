@@ -14,6 +14,10 @@ vi.mock('./subscription/cancel', () => ({
   cancelSubscriptionCore: vi.fn(),
 }));
 
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+}));
+
 describe('actions/subscription wrapper', () => {
   it('delegates to core modules with session from context', async () => {
     const { getActionContext } = await import('./subscription/context');
@@ -30,6 +34,14 @@ describe('actions/subscription wrapper', () => {
     });
 
     (cancelSubscriptionCore as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      cancellationTerms: {
+        coolingOffAppliesSeparately: true,
+        currentPeriodEndsAt: '2027-03-01T00:00:00.000Z',
+        effectiveFrom: 'next_billing_period',
+        hasAcceptedEscalation: false,
+        refundStatus: 'eligible',
+        refundWindowEndsAt: '2026-03-31T00:00:00.000Z',
+      },
       success: true,
       error: undefined,
     });
@@ -53,6 +65,17 @@ describe('actions/subscription wrapper', () => {
     );
 
     expect(paymentResult).toEqual({ url: 'https://example.com/update', error: undefined });
-    expect(cancelResult).toEqual({ success: true, error: undefined });
+    expect(cancelResult).toEqual({
+      cancellationTerms: {
+        coolingOffAppliesSeparately: true,
+        currentPeriodEndsAt: '2027-03-01T00:00:00.000Z',
+        effectiveFrom: 'next_billing_period',
+        hasAcceptedEscalation: false,
+        refundStatus: 'eligible',
+        refundWindowEndsAt: '2026-03-31T00:00:00.000Z',
+      },
+      success: true,
+      error: undefined,
+    });
   });
 });

@@ -15,6 +15,7 @@ const hoisted = vi.hoisted(() => ({
   claims: { id: 'claim_id', userId: 'claim_user_id', tenantId: 'claim_tenant_id' },
   claimEscalationAgreements: {
     claimId: 'agreement_claim_id',
+    acceptedAt: 'agreement_accepted_at',
     tenantId: 'agreement_tenant_id',
   },
   ensureTenantId: vi.fn(),
@@ -45,20 +46,22 @@ describe('cancelSubscriptionCore', () => {
   const logAuditEvent = vi.fn();
 
   function mockCancellationContext(params?: {
-    acceptedEscalationRows?: Array<{ claimId: string }>;
+    acceptedEscalationRows?: Array<{ acceptedAt: Date }>;
+    subscriptionCreatedAt?: Date;
   }) {
     hoisted.ensureTenantId.mockReturnValue('tenant_abc');
     hoisted.db.query.subscriptions.findFirst.mockResolvedValue({
       id: 'sub_123',
       userId: 'user_123',
       tenantId: 'tenant_abc',
-      createdAt: new Date('2026-03-01T00:00:00.000Z'),
+      createdAt: params?.subscriptionCreatedAt ?? new Date('2026-03-01T00:00:00.000Z'),
       currentPeriodEnd: new Date('2027-03-01T00:00:00.000Z'),
       cancelAtPeriodEnd: false,
     });
 
     const mockLimit = vi.fn().mockResolvedValue(params?.acceptedEscalationRows ?? []);
-    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockOrderBy = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockWhere = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
     const mockInnerJoin = vi.fn().mockReturnValue({ where: mockWhere });
     const mockFrom = vi.fn().mockReturnValue({ innerJoin: mockInnerJoin });
     hoisted.db.select.mockReturnValue({ from: mockFrom });
@@ -120,7 +123,7 @@ describe('cancelSubscriptionCore', () => {
     };
 
     mockCancellationContext({
-      acceptedEscalationRows: [{ claimId: 'claim_1' }],
+      acceptedEscalationRows: [{ acceptedAt: new Date('2026-03-05T00:00:00.000Z') }],
     });
 
     const result = await cancelSubscriptionCore(
@@ -136,6 +139,70 @@ describe('cancelSubscriptionCore', () => {
     if (result.success) {
       expect(result.cancellationTerms.refundStatus).toBe('blocked_by_accepted_escalation');
       expect(result.cancellationTerms.hasAcceptedEscalation).toBe(true);
+    }
+  });
+
+  it('does not treat accepted escalations from an earlier membership term as blocking', async () => {
+    const session: SubscriptionSession = {
+      user: { id: 'user_123' },
+    };
+
+    mockCancellationContext({
+      acceptedEscalationRows: [{ acceptedAt: new Date('2026-02-15T00:00:00.000Z') }],
+      subscriptionCreatedAt: new Date('2026-03-01T00:00:00.000Z'),
+    });
+
+    const result = await cancelSubscriptionCore(
+      {
+        session,
+        subscriptionId: 'sub_123',
+        now: new Date('2026-03-12T00:00:00.000Z'),
+      },
+      { logAuditEvent }
+    );
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.cancellationTerms.refundStatus).toBe('eligible');
+      expect(result.cancellationTerms.hasAcceptedEscalation).toBe(false);
+    }
+  });
+
+  it('returns success after provider cancellation even if local persistence fails', async () => {
+    const session: SubscriptionSession = {
+      user: { id: 'user_123' },
+    };
+
+    mockCancellationContext();
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const mockWhere = vi.fn().mockRejectedValue(new Error('write failed'));
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+    hoisted.db.update.mockReturnValue({ set: mockSet });
+
+    try {
+      const result = await cancelSubscriptionCore(
+        {
+          session,
+          subscriptionId: 'sub_123',
+          now: new Date('2026-03-12T00:00:00.000Z'),
+        },
+        { logAuditEvent }
+      );
+
+      expect(result.success).toBe(true);
+      expect(hoisted.paddle.subscriptions.cancel).toHaveBeenCalledWith(
+        'sub_123',
+        expect.anything()
+      );
+      expect(logAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            localPersistenceFailed: true,
+          }),
+        })
+      );
+    } finally {
+      consoleError.mockRestore();
     }
   });
 

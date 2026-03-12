@@ -3,6 +3,7 @@ import {
   claimEscalationAgreements,
   claims,
   db,
+  desc,
   eq,
   subscriptions,
 } from '@interdomestik/database';
@@ -37,7 +38,7 @@ export async function cancelSubscriptionCore(
 
   try {
     const acceptedEscalationRows = await db
-      .select({ claimId: claimEscalationAgreements.claimId })
+      .select({ acceptedAt: claimEscalationAgreements.acceptedAt })
       .from(claimEscalationAgreements)
       .innerJoin(claims, eq(claimEscalationAgreements.claimId, claims.id))
       .where(
@@ -47,12 +48,17 @@ export async function cancelSubscriptionCore(
           eq(claims.userId, session.user.id)
         )
       )
+      .orderBy(desc(claimEscalationAgreements.acceptedAt))
       .limit(1);
+
+    const hasAcceptedEscalation =
+      acceptedEscalationRows.length > 0 &&
+      (!sub.createdAt || acceptedEscalationRows[0].acceptedAt.getTime() >= sub.createdAt.getTime());
 
     const cancellationTerms = buildCancellationTermsSummary({
       purchasedAt: sub.createdAt ?? null,
       currentPeriodEnd: sub.currentPeriodEnd ?? null,
-      hasAcceptedEscalation: acceptedEscalationRows.length > 0,
+      hasAcceptedEscalation,
       now: params.now,
     });
 
@@ -61,28 +67,39 @@ export async function cancelSubscriptionCore(
       effectiveFrom: 'next_billing_period',
     });
 
-    await db
-      .update(subscriptions)
-      .set({
-        cancelAtPeriodEnd: true,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)));
+    let localPersistenceFailed = false;
+    try {
+      await db
+        .update(subscriptions)
+        .set({
+          cancelAtPeriodEnd: true,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(subscriptions.id, subscriptionId), eq(subscriptions.tenantId, tenantId)));
+    } catch (error) {
+      localPersistenceFailed = true;
+      console.error('Failed to persist scheduled subscription cancellation:', error);
+    }
 
     if (deps.logAuditEvent) {
-      await deps.logAuditEvent({
-        actorId: session.user.id,
-        actorRole: 'member',
-        action: 'subscription.canceled_scheduled',
-        entityType: 'subscription',
-        entityId: subscriptionId,
-        tenantId,
-        metadata: {
-          effectiveFrom: 'next_billing_period',
-          refundStatus: cancellationTerms.refundStatus,
-          hasAcceptedEscalation: cancellationTerms.hasAcceptedEscalation,
-        },
-      });
+      try {
+        await deps.logAuditEvent({
+          actorId: session.user.id,
+          actorRole: 'member',
+          action: 'subscription.canceled_scheduled',
+          entityType: 'subscription',
+          entityId: subscriptionId,
+          tenantId,
+          metadata: {
+            effectiveFrom: 'next_billing_period',
+            refundStatus: cancellationTerms.refundStatus,
+            hasAcceptedEscalation: cancellationTerms.hasAcceptedEscalation,
+            localPersistenceFailed,
+          },
+        });
+      } catch (error) {
+        console.error('Failed to log scheduled subscription cancellation audit event:', error);
+      }
     }
 
     return { success: true, error: undefined, cancellationTerms };
