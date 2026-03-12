@@ -20,6 +20,7 @@ export default defineConfig({
     'account',
     'verification',
     'claim',
+    'claim_escalation_agreements',
     'claim_documents',
     'claim_messages',
     'claim_stage_history',

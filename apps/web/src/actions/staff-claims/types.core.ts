@@ -1,1 +1,7 @@
-export type { ActionResult, ClaimStatus } from '@interdomestik/domain-claims/staff-claims/types';
+export type {
+  ActionResult,
+  ClaimEscalationAgreementSnapshot,
+  ClaimStatus,
+  PaymentAuthorizationState,
+  SaveClaimEscalationAgreementInput,
+} from '@interdomestik/domain-claims/staff-claims/types';
