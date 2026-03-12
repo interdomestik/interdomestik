@@ -32,7 +32,13 @@ if (( ${#missing[@]} > 0 )); then
   exit 2
 fi
 
-if ! command -v gh >/dev/null 2>&1; then
+gh_bin="${GH_BIN_PATH:-gh}"
+if [[ "${gh_bin}" == */* ]]; then
+  if [[ ! -x "${gh_bin}" ]]; then
+    echo "Configured GitHub CLI binary is not executable: ${gh_bin}" | tee "$SUMMARY_MD"
+    exit 2
+  fi
+elif ! command -v "${gh_bin}" >/dev/null 2>&1; then
   echo "GitHub CLI (gh) is required for Sonar check-run gating" | tee "$SUMMARY_MD"
   exit 2
 fi
@@ -185,12 +191,12 @@ try_quality_gate_api_fallback() {
 }
 
 for attempt in $(seq 1 "${max_retries}"); do
-  checks_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/check-runs?filter=latest&per_page=100")"
+  checks_json="$("${gh_bin}" api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/check-runs?filter=latest&per_page=100")"
   matching_checks="$(echo "${checks_json}" | jq --arg NAME "${check_name}" '[.check_runs[] | select((.name // .workflow_name // "") == $NAME)]')"
   check_count="$(echo "${matching_checks}" | jq 'length')"
 
   if [[ "${check_count}" -eq 0 ]]; then
-    check_suites_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/check-suites?filter=latest&per_page=100")"
+    check_suites_json="$("${gh_bin}" api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/check-suites?filter=latest&per_page=100")"
     matching_check_suites="$(echo "${check_suites_json}" | jq --arg APP_SLUG "${check_suite_app_slug}" --arg APP_NAME "${check_suite_app_name}" '[.check_suites[] | select((.app.slug // "") == $APP_SLUG or (.app.name // "") == $APP_NAME)]')"
     check_suite_count="$(echo "${matching_check_suites}" | jq 'length')"
 
@@ -234,7 +240,7 @@ for attempt in $(seq 1 "${max_retries}"); do
       exit 1
     fi
 
-    status_json="$(gh api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/status")"
+    status_json="$("${gh_bin}" api -H "Accept: application/vnd.github+json" "repos/${repo}/commits/${check_sha}/status")"
     matching_statuses="$(echo "${status_json}" | jq --arg NAME "${check_name}" '[.statuses[] | select((.context // "") == $NAME)]')"
     status_count="$(echo "${matching_statuses}" | jq 'length')"
 

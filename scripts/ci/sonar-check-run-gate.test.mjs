@@ -128,9 +128,9 @@ if (!fs.existsSync(responsePath)) {
 }
 
 process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
-`
+`,
+    { mode: 0o700 }
   );
-  fs.chmodSync(mockGhPath, 0o755);
 
   const checkRunsEndpoint =
     'repos/interdomestik/interdomestik/commits/test-sha/check-runs?filter=latest&per_page=100';
@@ -178,11 +178,11 @@ process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
     const result = await runGateScript({
       ...process.env,
       EVIDENCE_DIR: evidenceDir,
+      GH_BIN_PATH: mockGhPath,
       GH_TOKEN: 'test-gh-token',
       GITHUB_EVENT_PATH: eventPath,
       GITHUB_REPOSITORY: 'interdomestik/interdomestik',
       MOCK_GH_RESPONSES_DIR: responsesDir,
-      PATH: `${binDir}:${process.env.PATH}`,
       SONAR_CHECK_MAX_RETRIES: '1',
       SONAR_CHECK_RETRY_DELAY_SECONDS: '0',
       SONAR_CHECK_SHA: 'test-sha',
@@ -238,9 +238,9 @@ if (!fs.existsSync(responsePath)) {
 }
 
 process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
-`
+`,
+    { mode: 0o700 }
   );
-  fs.chmodSync(mockGhPath, 0o755);
 
   const checkRunsEndpoint =
     'repos/interdomestik/interdomestik/commits/test-sha/check-runs?filter=latest&per_page=100';
@@ -288,11 +288,11 @@ process.stdout.write(fs.readFileSync(responsePath, 'utf8'));
     const result = await runGateScript({
       ...process.env,
       EVIDENCE_DIR: evidenceDir,
+      GH_BIN_PATH: mockGhPath,
       GH_TOKEN: 'test-gh-token',
       GITHUB_EVENT_PATH: eventPath,
       GITHUB_REPOSITORY: 'interdomestik/interdomestik',
       MOCK_GH_RESPONSES_DIR: responsesDir,
-      PATH: `${binDir}:${process.env.PATH}`,
       SONAR_CHECK_MAX_RETRIES: '2',
       SONAR_CHECK_RETRY_DELAY_SECONDS: '0',
       SONAR_CHECK_SHA: 'test-sha',
