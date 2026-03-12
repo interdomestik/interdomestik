@@ -1,37 +1,12 @@
+import {
+  FREE_START_CATEGORY_IDS,
+  FREE_START_ISSUE_IDS,
+  FREE_START_ISSUES_BY_CATEGORY,
+  FREE_START_OUTCOME_IDS,
+  type FreeStartIssueId,
+} from '@/lib/free-start-contract';
+
 import { z } from 'zod';
-
-export const FREE_START_CATEGORY_IDS = ['vehicle', 'property', 'injury'] as const;
-export const FREE_START_OUTCOME_IDS = [
-  'repair',
-  'reimbursement',
-  'compensation',
-  'written_response',
-] as const;
-
-const VEHICLE_ISSUE_IDS = ['collision', 'theft', 'parking_damage', 'insurer_delay'] as const;
-const PROPERTY_ISSUE_IDS = ['water_damage', 'storm_fire', 'burglary', 'landlord_dispute'] as const;
-const INJURY_ISSUE_IDS = [
-  'workplace_injury',
-  'traffic_injury',
-  'medical_negligence',
-  'public_liability',
-] as const;
-
-type FreeStartCategoryId = (typeof FREE_START_CATEGORY_IDS)[number];
-
-export const FREE_START_ISSUE_IDS = [
-  ...VEHICLE_ISSUE_IDS,
-  ...PROPERTY_ISSUE_IDS,
-  ...INJURY_ISSUE_IDS,
-] as const;
-
-type FreeStartIssueId = (typeof FREE_START_ISSUE_IDS)[number];
-
-const FREE_START_ISSUES_BY_CATEGORY = {
-  injury: INJURY_ISSUE_IDS,
-  property: PROPERTY_ISSUE_IDS,
-  vehicle: VEHICLE_ISSUE_IDS,
-} satisfies Record<FreeStartCategoryId, readonly FreeStartIssueId[]>;
 
 export const freeStartCategorySchema = z.enum(FREE_START_CATEGORY_IDS);
 export const freeStartOutcomeSchema = z.enum(FREE_START_OUTCOME_IDS);

@@ -362,4 +362,60 @@ describe('ClaimWizard UI V2', () => {
       }
     );
   });
+
+  it('falls back to local category heuristics when commercial metadata is malformed', async () => {
+    mockTrigger.mockResolvedValue(true);
+    mockSubmitClaim.mockResolvedValue({
+      success: true,
+      claimId: 'CLM-MALFORMED-123',
+      commercialFlow: {
+        escalationRequest: {
+          claimCategory: { value: 'travel' },
+          decision: 'requested',
+          decisionReason: 42,
+        },
+        freeStartCompletion: {
+          claimCategory: { value: 'travel' },
+        },
+      },
+    });
+    mockFormValues.category = 'vehicle';
+
+    render(<ClaimWizard tenantId="tenant_mk" />);
+
+    fireEvent.click(screen.getByTestId('wizard-next'));
+    await waitFor(() => expect(screen.getByText(/Step 2 of 4/)).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('wizard-next'));
+    await waitFor(() => expect(screen.getByText(/Step 3 of 4/)).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('wizard-next'));
+    await waitFor(() => expect(screen.getByText(/Step 4 of 4/)).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('wizard-submit'));
+
+    await screen.findByTestId('claim-created-success');
+
+    expect(mockFreeStartCompleted).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant_mk',
+        variant: 'hero_v2',
+        locale: 'sq',
+      },
+      {
+        claim_id: 'CLM-MALFORMED-123',
+        claim_category: 'vehicle',
+      }
+    );
+    expect(mockEscalationRequested).toHaveBeenCalledWith(
+      {
+        tenantId: 'tenant_mk',
+        variant: 'hero_v2',
+        locale: 'sq',
+      },
+      {
+        claim_id: 'CLM-MALFORMED-123',
+        claim_category: 'vehicle',
+        decision_reason: 'launch_scope_supported',
+      }
+    );
+    expect(mockEscalationDeclined).not.toHaveBeenCalled();
+  });
 });

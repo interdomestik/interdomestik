@@ -137,13 +137,11 @@ export async function gotoApp(
         // Body attached but still reported hidden - ignoring as non-fatal
       });
   } else {
-    try {
-      // Some pages can render duplicated readiness wrappers in transitional layouts.
-      // Accept first visible marker instance instead of failing strict locator resolution.
-      await expect(page.getByTestId(marker).first()).toBeVisible({ timeout: markerTimeoutMs });
-    } catch (e) {
-      throw e;
-    }
+    // Some pages can render duplicated readiness wrappers in transitional layouts.
+    // Wait for the first visible marker instance instead of selecting a hidden duplicate.
+    await expect(page.locator(`[data-testid="${marker}"]:visible`).first()).toBeVisible({
+      timeout: markerTimeoutMs,
+    });
   }
 
   return response;

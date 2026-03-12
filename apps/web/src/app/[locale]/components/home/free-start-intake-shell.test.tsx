@@ -369,4 +369,18 @@ describe('FreeStartIntakeShell', () => {
       enFreeStartMessages.freeStart.completion.nextStep.levels.high
     );
   });
+
+  it('shows the retry error when the free start server action throws unexpectedly', async () => {
+    const user = userEvent.setup();
+    hoisted.submitFreeStartIntakeMock.mockRejectedValue(new Error('network down'));
+
+    renderFreeStart('en');
+
+    await completeFreeStartIntake(user, 'en');
+
+    expect(await screen.findByTestId('free-start-validation-error')).toHaveTextContent(
+      'Please try again. If the problem persists, contact support.'
+    );
+    expect(screen.queryByTestId('free-start-complete')).not.toBeInTheDocument();
+  });
 });

@@ -55,15 +55,49 @@ const STEP_VALIDATION: Record<
   2: async () => true,
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
+}
+
+function getOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function getOptionalEscalationDecision(value: unknown): 'requested' | 'declined' | undefined {
+  return value === 'requested' || value === 'declined' ? value : undefined;
+}
+
 function getCommercialFlowFromResult(payload: unknown): CommercialFlowPayload | null {
-  if (!payload || typeof payload !== 'object' || !('commercialFlow' in payload)) {
+  if (!isRecord(payload) || !('commercialFlow' in payload)) {
     return null;
   }
 
-  const commercialFlow = (payload as { commercialFlow?: unknown }).commercialFlow;
-  return commercialFlow && typeof commercialFlow === 'object'
-    ? (commercialFlow as CommercialFlowPayload)
-    : null;
+  const commercialFlow = payload.commercialFlow;
+  if (!isRecord(commercialFlow)) {
+    return null;
+  }
+
+  const escalationRequest = isRecord(commercialFlow.escalationRequest)
+    ? {
+        claimCategory: getOptionalString(commercialFlow.escalationRequest.claimCategory),
+        decision: getOptionalEscalationDecision(commercialFlow.escalationRequest.decision),
+        decisionReason: getOptionalString(commercialFlow.escalationRequest.decisionReason),
+      }
+    : undefined;
+  const freeStartCompletion = isRecord(commercialFlow.freeStartCompletion)
+    ? {
+        claimCategory: getOptionalString(commercialFlow.freeStartCompletion.claimCategory),
+      }
+    : undefined;
+
+  if (!escalationRequest && !freeStartCompletion) {
+    return null;
+  }
+
+  return {
+    escalationRequest,
+    freeStartCompletion,
+  };
 }
 
 export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
