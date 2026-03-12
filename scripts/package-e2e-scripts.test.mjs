@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import packageJson from '../package.json' with { type: 'json' };
 import databasePackageJson from '../packages/database/package.json' with { type: 'json' };
+import billingPackageJson from '../packages/domain-membership-billing/package.json' with { type: 'json' };
 import webPackageJson from '../apps/web/package.json' with { type: 'json' };
 
 test('e2e gate scripts keep full and fast lanes distinct', () => {
@@ -86,4 +88,40 @@ test('database package keeps a dedicated critical-table RLS verification in the 
 
   assert.equal(typeof rlsSuite, 'string');
   assert.match(rlsSuite, /test\/critical-rls-tables\.test\.ts/);
+});
+
+test('billing surfaces no longer expose Stripe configuration contracts', () => {
+  const apiKeysScript = readFileSync(new URL('../scripts/api-keys.sh', import.meta.url), 'utf8');
+  const startTaskScript = readFileSync(new URL('../scripts/start-10x-task.sh', import.meta.url), 'utf8');
+  const securitySetupScript = readFileSync(
+    new URL('../scripts/security-setup.sh', import.meta.url),
+    'utf8'
+  );
+  const environmentDoc = readFileSync(new URL('../ENVIRONMENT.md', import.meta.url), 'utf8');
+
+  assert.equal(Object.hasOwn(billingPackageJson.exports, './stripe'), false);
+  assert.doesNotMatch(
+    apiKeysScript,
+    /\["stripe"\]|check_stripe_usage|STRIPE_SECRET_KEY|NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY/
+  );
+  assert.doesNotMatch(startTaskScript, /webhooks\/stripe|STRIPE_\* variables|\*"stripe"\*/);
+  assert.doesNotMatch(
+    securitySetupScript,
+    /NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET/
+  );
+  assert.doesNotMatch(
+    environmentDoc,
+    /NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET/
+  );
+});
+
+test('api key monitoring script keeps placeholder skips and paddle/github paths defined', () => {
+  const apiKeysScript = readFileSync(new URL('../scripts/api-keys.sh', import.meta.url), 'utf8');
+
+  assert.match(apiKeysScript, /is_placeholder_api_key\(\)/);
+  assert.match(apiKeysScript, /re_YOUR_RESEND_KEY/);
+  assert.match(apiKeysScript, /YOUR_GITHUB_CLIENT_SECRET/);
+  assert.match(apiKeysScript, /set-locally/);
+  assert.match(apiKeysScript, /check_paddle_usage\(\)/);
+  assert.match(apiKeysScript, /check_github_usage\(\)/);
 });

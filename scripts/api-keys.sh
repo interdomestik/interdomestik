@@ -33,9 +33,25 @@ trim_value() {
     echo "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
+is_placeholder_api_key() {
+    local api_key
+    api_key=$(trim_value "$1")
+
+    if [[ -z "$api_key" ]]; then
+        return 0
+    fi
+
+    case "$api_key" in
+        sk-YOUR_OPENAI_KEY|re_YOUR_RESEND_KEY|YOUR_PADDLE_KEY|YOUR_GITHUB_CLIENT_SECRET|set-locally|changeme|CHANGE_ME|YOUR_*|*_YOUR_*|*PLACEHOLDER*|*placeholder*)
+            return 0
+            ;;
+    esac
+
+    return 1
+}
+
 # API key structure
 declare -A API_KEYS=(
-    ["stripe"]="https://api.stripe.com/v1"
     ["openai"]="https://api.openai.com/v1"
     ["resend"]="https://api.resend.com"
     ["paddle"]="https://vendors.paddle.com/api/2.0"
@@ -51,9 +67,6 @@ check_usage() {
     log_info "Checking $service API key usage..."
     
     case "$service" in
-        "stripe")
-            check_stripe_usage "$api_key"
-            ;;
         "openai")
             check_openai_usage "$api_key"
             ;;
@@ -70,24 +83,6 @@ check_usage() {
             log_warning "Usage check not implemented for $service"
             ;;
     esac
-}
-
-# Stripe usage check
-check_stripe_usage() {
-    local api_key="$1"
-    
-    if command -v curl &> /dev/null; then
-        local response=$(curl -s -u "$api_key:" "https://api.stripe.com/v1/balance" 2>/dev/null || echo "")
-        
-        if [[ -n "$response" ]] && echo "$response" | grep -q "available"; then
-            local balance=$(echo "$response" | grep -o '"amount":[0-9]*' | cut -d':' -f2)
-            log_success "Stripe API key is valid. Balance: $balance cents"
-        else
-            log_error "Stripe API key is invalid or expired"
-        fi
-    else
-        log_warning "curl is required to check Stripe usage"
-    fi
 }
 
 # OpenAI usage check
@@ -126,6 +121,14 @@ check_resend_usage() {
     fi
 }
 
+check_paddle_usage() {
+    log_warning "Usage check not implemented for paddle"
+}
+
+check_github_usage() {
+    log_warning "Usage check not implemented for github"
+}
+
 # Generate API key alert
 create_alert() {
     local service="$1"
@@ -141,7 +144,6 @@ create_alert() {
   "api_key_prefix": "${api_key:0:8}...",
   "current_usage": "$usage",
   "alert_thresholds": {
-    "stripe": 5000,  # $50 USD
     "openai": 100000,  # 100k tokens
     "resend": 3000,   # 3000 emails/month
     "paddle": 100     # 100 transactions
@@ -170,9 +172,6 @@ monitor_all() {
         local api_key_var=""
         
         case "$service" in
-            "stripe")
-                api_key_var="STRIPE_SECRET_KEY"
-                ;;
             "openai")
                 api_key_var="OPENAI_API_KEY"
                 ;;
@@ -191,8 +190,9 @@ monitor_all() {
         esac
         
         local api_key=$(grep "^${api_key_var}=" "$env_file" 2>/dev/null | cut -d'=' -f2 || echo "")
+        api_key=$(trim_value "$api_key")
         
-        if [[ -n "$api_key" && "$api_key" != "sk_test_YOUR_STRIPE_KEY" && "$api_key" != "sk-YOUR_OPENAI_KEY" ]]; then
+        if ! is_placeholder_api_key "$api_key"; then
             check_usage "$service" "$api_key"
         else
             log_info "Skipping $service (not configured or using placeholder)"
@@ -212,14 +212,6 @@ rotate_key() {
     mkdir -p backups
     
     case "$service" in
-        "stripe")
-            local current_key=$(grep "STRIPE_SECRET_KEY=" "$env_file" 2>/dev/null | cut -d'=' -f2 || echo "")
-            if [[ -n "$current_key" ]]; then
-                echo "Current Stripe key: $current_key" > "$backup_file"
-                log_success "Current Stripe key backed up to $backup_file"
-            fi
-            log_info "Generate new key at: https://dashboard.stripe.com/test/apikeys"
-            ;;
         "openai")
             local current_key=$(grep "OPENAI_API_KEY=" "$env_file" 2>/dev/null | cut -d'=' -f2 || echo "")
             if [[ -n "$current_key" ]]; then
@@ -244,13 +236,6 @@ validate_keys() {
     log_info "Validating API key formats..."
     
     local validation_failed=0
-    
-    # Stripe key format (sk_test_ or sk_live_)
-    local stripe_key=$(grep "STRIPE_SECRET_KEY=" "$env_file" 2>/dev/null | cut -d'=' -f2 || echo "")
-    if [[ -n "$stripe_key" && ! "$stripe_key" =~ ^sk_(test|live)_[a-zA-Z0-9]+$ ]]; then
-        log_error "Invalid Stripe key format"
-        validation_failed=1
-    fi
     
     # OpenAI key format (sk-)
     local openai_key=$(grep "OPENAI_API_KEY=" "$env_file" 2>/dev/null | cut -d'=' -f2 || echo "")
@@ -286,20 +271,6 @@ validate_dev_keys() {
     fi
 
     local validation_failed=0
-
-    local stripe_key=$(grep "^STRIPE_SECRET_KEY=" "$env_file" 2>/dev/null | cut -d'=' -f2- || echo "")
-    stripe_key=$(trim_value "$stripe_key")
-    if [[ -n "$stripe_key" && "$stripe_key" =~ ^sk_live_ ]]; then
-        log_error "Stripe secret key is live (sk_live_)"
-        validation_failed=1
-    fi
-
-    local stripe_publishable=$(grep "^NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=" "$env_file" 2>/dev/null | cut -d'=' -f2- || echo "")
-    stripe_publishable=$(trim_value "$stripe_publishable")
-    if [[ -n "$stripe_publishable" && "$stripe_publishable" =~ ^pk_live_ ]]; then
-        log_error "Stripe publishable key is live (pk_live_)"
-        validation_failed=1
-    fi
 
     local paddle_env=$(grep "^NEXT_PUBLIC_PADDLE_ENV=" "$env_file" 2>/dev/null | cut -d'=' -f2- || echo "")
     paddle_env=$(trim_value "$paddle_env")
@@ -375,12 +346,12 @@ Commands:
   setup               Set up monitoring tools
   help                Show this help
 
-Services: stripe, openai, resend, paddle, github, supabase
+Services: openai, resend, paddle, github, supabase
 
 Examples:
   $0 monitor                  # Check all API key usage
   $0 monitor .env.production  # Check production keys
-  $0 rotate stripe            # Generate Stripe rotation plan
+  $0 rotate openai            # Generate OpenAI rotation plan
   $0 validate                # Validate key formats
   $0 validate-dev            # Validate dev env keys are non-production
   $0 setup                  # Set up monitoring
@@ -395,7 +366,7 @@ main() {
             monitor_all "${2:-.env.local}"
             ;;
         "rotate")
-            rotate_key "${2:-stripe}" "${3:-.env.local}"
+            rotate_key "${2:-openai}" "${3:-.env.local}"
             ;;
         "validate")
             validate_keys "${2:-.env.local}"
