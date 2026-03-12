@@ -25,7 +25,9 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P1T` Free Start And Trust UX is now complete as the live post-`P1C` tranche. `T01` is complete as the canonical hero, trust-strip, and footer-safety-net slice, `T02` is complete as the canonical Free Start claim-pack generator shell slice, `T03` is complete as the canonical confidence-score and recommended-next-step slice, `T04` is complete as the canonical evidence prompts, privacy badge, and SLA microcopy slice, `T05` is complete as the canonical `/services` alignment slice for the coverage matrix and referral boundaries, and `T06` is complete as the canonical i18n plus component-test coverage slice for the new trust surfaces.
 
-`P2` Billing And Terms Hardening is now complete as the post-`P1T` tranche. `B01` is complete as the Stripe residue cleanup and billing-surface contract reconciliation slice, `B02` through `B06` are complete as the in-place Paddle safety and billing auditability queue, and `B07` through `B10` are complete as the commercial terms enforcement queue. No later blueprint tranche is committed yet; `P3` remains supporting input until a separate promotion decision is recorded.
+`P2` Billing And Terms Hardening is now complete as the post-`P1T` tranche. `B01` is complete as the Stripe residue cleanup and billing-surface contract reconciliation slice, `B02` through `B06` are complete as the in-place Paddle safety and billing auditability queue, and `B07` through `B10` are complete as the commercial terms enforcement queue.
+
+`P3` Commercial Actions And Contract Enforcement is now active as the post-`P2` tranche. `M01` is complete as the commercial mutation-path audit slice. `M02` is now the next committed `P3` queue item as the typed Server Action migration slice for the top commercial mutations. The `M01` audit shows that agreement acceptance and cancellation already run through canonical typed server actions, while Free Start submission and escalation request are still telemetry-led, matter consumption still lacks a dedicated allowance mutation, and roster import remains a client-only placeholder. No later `P3` queue item is committed yet; `M03` through `M06` remain supporting input until a separate promotion decision is recorded.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -45,7 +47,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 12. Keep `D05` complete as the canonical staging Supabase plus preview-environment separation slice without changing production auth, routing, or tenancy architecture.
 13. Keep `D06` complete as the canonical incident-response playbook and keep `D07` complete as the Sentry burn-rate alert wiring slice.
 14. Keep `D08` complete as the narrow RLS proof slice on four critical tables without reopening a broad repo-wide RLS campaign.
-15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche, the completed `P-1` tranche, the completed `P1C` tranche, the completed `P1T` tranche, and the committed `P2` queue.
+15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche, the completed `P-1` tranche, the completed `P1C` tranche, the completed `P1T` tranche, the completed `P2` tranche, and the committed `P3` mutation-migration entry slice.
 16. Land `P1T` as the canonical Free Start and Trust UX tranche without reopening routing, auth, tenancy, or request-path AI decisions.
 17. Keep `C01` complete as the canonical coverage-matrix publication slice across pricing, checkout, and member surfaces.
 18. Keep `C02` as the canonical success-fee calculator and example-pricing slice.
@@ -65,6 +67,9 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 32. Keep `B08` complete as the canonical annual membership cancellation, refund, and cooling-off enforcement slice so live product behavior matches the published commercial contract.
 33. Keep `B09` complete as the canonical success-fee collection fallback slice so accepted recovery matters have a clear deduction, charge, and invoice order.
 34. Keep `B10` complete as the canonical commercial audit trail slice so recovery acceptance, cancellation, and collection actions stay inspectable.
+35. Land `P3` as the canonical Commercial Actions And Contract Enforcement tranche without reopening routing, auth, tenancy, or request-path AI decisions.
+36. Keep `M01` complete as the canonical commercial mutation-path audit slice so Free Start submission, escalation request, agreement acceptance, matter consumption, cancellation, and roster import stay classified before typed Server Action migration, idempotency rollout, or route retirement work begins.
+37. Keep `M02` as the canonical typed Server Action migration slice so Free Start, escalation request, escalation acceptance, and cancellation converge on `_core.ts` validation paths before broader idempotency or route-retirement work begins.
 
 ## Status Command
 
@@ -99,7 +104,9 @@ pnpm plan:proof
 
 `P1T` Free Start And Trust UX is now complete as the committed post-`P1C` tranche. `T01`, `T02`, `T03`, `T04`, `T05`, and `T06` are complete.
 
-`P2` Billing And Terms Hardening is now complete as the post-`P1T` tranche. No post-`P2` tranche is committed yet. `P3` remains blueprint input until a separate promotion decision is recorded.
+`P2` Billing And Terms Hardening is now complete as the post-`P1T` tranche.
+
+`P3` Commercial Actions And Contract Enforcement is now active as the post-`P2` tranche. `M01` is complete as the commercial mutation-path audit slice. `M02` is now the next committed `P3` queue item. No later `P3` queue item is committed yet; `M03` through `M06` remain input until a separate promotion decision is recorded.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -159,6 +166,10 @@ These documents can recommend or constrain work, but they do not define the live
 - `B01` through `B06` have now been restored into the live program and tracker as the existing in-place Phase 2 billing hardening queue that the March 9 blueprint diff explicitly preserved.
 - `B07` through `B10` have now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the commercial terms enforcement extension of `P2`.
 - `P2` is now complete as of 2026-03-12. `B01` is complete as the Stripe residue cleanup and billing-surface contract reconciliation slice, and `B02` through `B10` are complete as the verified billing hardening queue.
+- `P3` has now been copied into the live program and tracker from `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md` and `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` and is now the committed post-`P2` tranche.
+- `M01` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the first committed `P3` queue item.
+- `M01` is now complete as of 2026-03-12. The audit confirms that agreement acceptance and cancellation already have canonical typed server actions, while Free Start submission and escalation request are still telemetry-led, matter consumption lacks a dedicated allowance mutation, and roster import remains a client-only placeholder.
+- `M02` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the next committed `P3` queue item after `M01`.
 
 ## Historical Foundation, Not Current Sequencing
 
