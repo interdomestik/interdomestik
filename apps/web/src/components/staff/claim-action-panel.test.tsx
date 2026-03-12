@@ -150,8 +150,13 @@ describe('ClaimActionPanel', () => {
     const recoveredAmountInput = screen.getByLabelText('Recovered amount');
     const saveButton = screen.getByRole('button', { name: 'Save Success-Fee Collection' });
 
-    expect(recoveredAmountInput).toBeEnabled();
+    await waitFor(() => {
+      expect(recoveredAmountInput).toBeEnabled();
+    });
+
     fireEvent.change(recoveredAmountInput, { target: { value: '75.00' } });
-    expect(saveButton).toBeEnabled();
+    await waitFor(() => {
+      expect(saveButton).toBeEnabled();
+    });
   });
 });
