@@ -3,27 +3,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClaimsSession } from '../claims/types';
 import { updateClaimStatusCore } from './update-status';
 
+function createSelectChain() {
+  return {
+    from: vi.fn(),
+    where: vi.fn(),
+    limit: vi.fn(),
+  };
+}
+
+const AUTHORIZED_AGREEMENT = {
+  claimId: 'claim-1',
+  paymentAuthorizationState: 'authorized',
+  signedAt: new Date('2026-03-11T09:00:00Z'),
+};
+
+const STANDARD_SUBSCRIPTION = {
+  id: 'sub-1',
+  planId: 'standard',
+  planKey: null,
+  currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
+  currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
+};
+
 const mocks = vi.hoisted(() => {
-  const claimSelectChain = {
-    from: vi.fn(),
-    where: vi.fn(),
-    limit: vi.fn(),
-  };
-  const agreementSelectChain = {
-    from: vi.fn(),
-    where: vi.fn(),
-    limit: vi.fn(),
-  };
-  const subscriptionSelectChain = {
-    from: vi.fn(),
-    where: vi.fn(),
-    limit: vi.fn(),
-  };
-  const serviceUsageSelectChain = {
-    from: vi.fn(),
-    where: vi.fn(),
-    limit: vi.fn(),
-  };
+  const claimSelectChain = createSelectChain();
+  const agreementSelectChain = createSelectChain();
+  const subscriptionSelectChain = createSelectChain();
+  const serviceUsageSelectChain = createSelectChain();
   const txInsertValues = vi.fn();
   const txInsert = vi.fn(() => ({ values: txInsertValues }));
   const txUpdateWhere = vi.fn();
@@ -147,6 +153,35 @@ function createSession(options: {
   } as unknown as ClaimsSession;
 }
 
+function createRecoveryUsage(claimId: string, usedAt: string, id = `usage-${claimId}`) {
+  return {
+    id,
+    serviceCode: `staff_recovery_matter:${claimId}`,
+    usedAt: new Date(usedAt),
+  };
+}
+
+function mockRecoverySelects(options?: {
+  agreement?: Array<typeof AUTHORIZED_AGREEMENT>;
+  claim?: Array<{ id: string; status: string; userId: string }>;
+  serviceUsage?: Array<ReturnType<typeof createRecoveryUsage>>;
+  subscription?: Array<typeof STANDARD_SUBSCRIPTION>;
+}) {
+  mocks.db.select
+    .mockReturnValueOnce(mocks.claimSelectChain)
+    .mockReturnValueOnce(mocks.agreementSelectChain)
+    .mockReturnValueOnce(mocks.subscriptionSelectChain)
+    .mockReturnValueOnce(mocks.serviceUsageSelectChain);
+  mocks.claimSelectChain.limit.mockResolvedValue(
+    options?.claim ?? [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }]
+  );
+  mocks.agreementSelectChain.limit.mockResolvedValue(options?.agreement ?? [AUTHORIZED_AGREEMENT]);
+  mocks.subscriptionSelectChain.limit.mockResolvedValue(
+    options?.subscription ?? [STANDARD_SUBSCRIPTION]
+  );
+  mocks.serviceUsageSelectChain.limit.mockResolvedValue(options?.serviceUsage ?? []);
+}
+
 describe('staff updateClaimStatusCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -162,11 +197,10 @@ describe('staff updateClaimStatusCore', () => {
   });
 
   it('blocks negotiation until a signed, authorized escalation agreement exists', async () => {
-    mocks.db.select
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'evaluation' }]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([]);
+    mockRecoverySelects({
+      agreement: [],
+      claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }],
+    });
 
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
@@ -183,17 +217,15 @@ describe('staff updateClaimStatusCore', () => {
   });
 
   it('blocks negotiation when payment authorization is still pending', async () => {
-    mocks.db.select
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'evaluation' }]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        claimId: 'claim-1',
-        paymentAuthorizationState: 'pending',
-        signedAt: new Date('2026-03-11T09:00:00Z'),
-      },
-    ]);
+    mockRecoverySelects({
+      agreement: [
+        {
+          ...AUTHORIZED_AGREEMENT,
+          paymentAuthorizationState: 'pending',
+        },
+      ],
+      claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }],
+    });
 
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
@@ -210,31 +242,7 @@ describe('staff updateClaimStatusCore', () => {
   });
 
   it('allows recovery status transition when an authorized agreement is present', async () => {
-    mocks.db.select
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain)
-      .mockReturnValueOnce(mocks.subscriptionSelectChain)
-      .mockReturnValueOnce(mocks.serviceUsageSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', status: 'evaluation', userId: 'member-1' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        claimId: 'claim-1',
-        paymentAuthorizationState: 'authorized',
-        signedAt: new Date('2026-03-11T09:00:00Z'),
-      },
-    ]);
-    mocks.subscriptionSelectChain.limit.mockResolvedValue([
-      {
-        id: 'sub-1',
-        planId: 'standard',
-        planKey: null,
-        currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
-        currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
-      },
-    ]);
-    mocks.serviceUsageSelectChain.limit.mockResolvedValue([]);
+    mockRecoverySelects();
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
       newStatus: 'negotiation',
@@ -259,42 +267,12 @@ describe('staff updateClaimStatusCore', () => {
   });
 
   it('blocks staff-led recovery when annual matter allowance is exhausted without an override', async () => {
-    mocks.db.select
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain)
-      .mockReturnValueOnce(mocks.subscriptionSelectChain)
-      .mockReturnValueOnce(mocks.serviceUsageSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', status: 'evaluation', userId: 'member-1' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        claimId: 'claim-1',
-        paymentAuthorizationState: 'authorized',
-        signedAt: new Date('2026-03-11T09:00:00Z'),
-      },
-    ]);
-    mocks.subscriptionSelectChain.limit.mockResolvedValue([
-      {
-        id: 'sub-1',
-        planId: 'standard',
-        planKey: null,
-        currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
-        currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
-      },
-    ]);
-    mocks.serviceUsageSelectChain.limit.mockResolvedValue([
-      {
-        id: 'usage-1',
-        serviceCode: 'staff_recovery_matter:claim-old-1',
-        usedAt: new Date('2026-03-10T10:00:00Z'),
-      },
-      {
-        id: 'usage-2',
-        serviceCode: 'staff_recovery_matter:claim-old-2',
-        usedAt: new Date('2026-03-11T10:00:00Z'),
-      },
-    ]);
+    mockRecoverySelects({
+      serviceUsage: [
+        createRecoveryUsage('claim-old-1', '2026-03-10T10:00:00Z', 'usage-1'),
+        createRecoveryUsage('claim-old-2', '2026-03-11T10:00:00Z', 'usage-2'),
+      ],
+    });
 
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
@@ -312,37 +290,9 @@ describe('staff updateClaimStatusCore', () => {
   });
 
   it('records matter consumption once when staff-led recovery starts within allowance', async () => {
-    mocks.db.select
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain)
-      .mockReturnValueOnce(mocks.subscriptionSelectChain)
-      .mockReturnValueOnce(mocks.serviceUsageSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', status: 'evaluation', userId: 'member-1' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        claimId: 'claim-1',
-        paymentAuthorizationState: 'authorized',
-        signedAt: new Date('2026-03-11T09:00:00Z'),
-      },
-    ]);
-    mocks.subscriptionSelectChain.limit.mockResolvedValue([
-      {
-        id: 'sub-1',
-        planId: 'standard',
-        planKey: null,
-        currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
-        currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
-      },
-    ]);
-    mocks.serviceUsageSelectChain.limit.mockResolvedValue([
-      {
-        id: 'usage-1',
-        serviceCode: 'staff_recovery_matter:claim-old-1',
-        usedAt: new Date('2026-03-10T10:00:00Z'),
-      },
-    ]);
+    mockRecoverySelects({
+      serviceUsage: [createRecoveryUsage('claim-old-1', '2026-03-10T10:00:00Z', 'usage-1')],
+    });
 
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
@@ -364,42 +314,12 @@ describe('staff updateClaimStatusCore', () => {
   });
 
   it('allows exhausted allowance when an explicit override reason is recorded', async () => {
-    mocks.db.select
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain)
-      .mockReturnValueOnce(mocks.subscriptionSelectChain)
-      .mockReturnValueOnce(mocks.serviceUsageSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', status: 'evaluation', userId: 'member-1' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        claimId: 'claim-1',
-        paymentAuthorizationState: 'authorized',
-        signedAt: new Date('2026-03-11T09:00:00Z'),
-      },
-    ]);
-    mocks.subscriptionSelectChain.limit.mockResolvedValue([
-      {
-        id: 'sub-1',
-        planId: 'standard',
-        planKey: null,
-        currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
-        currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
-      },
-    ]);
-    mocks.serviceUsageSelectChain.limit.mockResolvedValue([
-      {
-        id: 'usage-1',
-        serviceCode: 'staff_recovery_matter:claim-old-1',
-        usedAt: new Date('2026-03-10T10:00:00Z'),
-      },
-      {
-        id: 'usage-2',
-        serviceCode: 'staff_recovery_matter:claim-old-2',
-        usedAt: new Date('2026-03-11T10:00:00Z'),
-      },
-    ]);
+    mockRecoverySelects({
+      serviceUsage: [
+        createRecoveryUsage('claim-old-1', '2026-03-10T10:00:00Z', 'usage-1'),
+        createRecoveryUsage('claim-old-2', '2026-03-11T10:00:00Z', 'usage-2'),
+      ],
+    });
 
     const result = await updateClaimStatusCore(
       {

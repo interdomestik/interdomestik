@@ -65,15 +65,15 @@ function buildMatterAllowanceWindow(params: {
   }
 
   const fallbackEnd = currentPeriodEnd ?? params.now;
-  const fallbackStart = currentPeriodStart
-    ? currentPeriodStart
-    : new Date(
-        Date.UTC(
-          fallbackEnd.getUTCFullYear() - 1,
-          fallbackEnd.getUTCMonth(),
-          fallbackEnd.getUTCDate()
-        )
-      );
+  const fallbackStart =
+    currentPeriodStart ??
+    new Date(
+      Date.UTC(
+        fallbackEnd.getUTCFullYear() - 1,
+        fallbackEnd.getUTCMonth(),
+        fallbackEnd.getUTCDate()
+      )
+    );
 
   return { end: fallbackEnd, start: fallbackStart };
 }
@@ -89,6 +89,128 @@ function isUsageWithinWindow(params: {
   }
 
   return usedAt >= params.start && usedAt <= params.end;
+}
+
+type ClaimsTransaction = {
+  insert: typeof db.insert;
+  update: typeof db.update;
+};
+
+async function persistClaimStatusChange(params: {
+  claimId: string;
+  currentStatus: ClaimStatus | null;
+  isPublicChange: boolean;
+  note?: string;
+  session: ClaimsSession;
+  status: ClaimStatus;
+  tenantId: string;
+  tx: ClaimsTransaction;
+}) {
+  const { claimId, currentStatus, isPublicChange, note, session, status, tenantId, tx } = params;
+
+  if (currentStatus !== status) {
+    await tx
+      .update(claims)
+      .set({ status, updatedAt: new Date() })
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+  }
+
+  await tx.insert(claimStageHistory).values({
+    id: crypto.randomUUID(),
+    tenantId,
+    claimId,
+    fromStatus: currentStatus,
+    toStatus: status,
+    changedById: session.user.id,
+    changedByRole: 'staff',
+    note: note || null,
+    isPublic: isPublicChange,
+    createdAt: new Date(),
+  });
+}
+
+async function logClaimStatusAudit(params: {
+  auditMetadata?: Record<string, boolean | string | undefined>;
+  claimId: string;
+  currentStatus: ClaimStatus | null;
+  deps: ClaimsDeps;
+  isPublicChange: boolean;
+  note?: string;
+  requestHeaders?: Headers;
+  session: ClaimsSession;
+  status: ClaimStatus;
+  tenantId: string;
+}) {
+  const {
+    auditMetadata,
+    claimId,
+    currentStatus,
+    deps,
+    isPublicChange,
+    note,
+    requestHeaders,
+    session,
+    status,
+    tenantId,
+  } = params;
+
+  if (!deps.logAuditEvent) {
+    return;
+  }
+
+  await deps.logAuditEvent({
+    actorId: session.user.id,
+    actorRole: session.user.role,
+    tenantId,
+    action: 'claim.status_changed',
+    entityType: 'claim',
+    entityId: claimId,
+    metadata: {
+      oldStatus: currentStatus,
+      newStatus: status,
+      note: note || undefined,
+      isPublic: isPublicChange,
+      ...auditMetadata,
+    },
+    headers: requestHeaders,
+  });
+}
+
+async function finalizeClaimStatusChange(params: {
+  auditMetadata?: Record<string, boolean | string | undefined>;
+  beforePersist?: (tx: ClaimsTransaction) => Promise<void>;
+  claimId: string;
+  currentStatus: ClaimStatus | null;
+  deps: ClaimsDeps;
+  isPublicChange: boolean;
+  note?: string;
+  requestHeaders?: Headers;
+  session: ClaimsSession;
+  status: ClaimStatus;
+  tenantId: string;
+}): Promise<ActionResult> {
+  const { beforePersist, ...rest } = params;
+
+  await db.transaction(async tx => {
+    if (beforePersist) {
+      await beforePersist(tx);
+    }
+
+    await persistClaimStatusChange({
+      claimId: rest.claimId,
+      currentStatus: rest.currentStatus,
+      isPublicChange: rest.isPublicChange,
+      note: rest.note,
+      session: rest.session,
+      status: rest.status,
+      tenantId: rest.tenantId,
+      tx,
+    });
+  });
+
+  await logClaimStatusAudit(rest);
+
+  return { success: true };
 }
 
 /** Update claim status and optionally add a history note */
@@ -233,10 +355,16 @@ export async function updateClaimStatusCore(
         }
       }
 
-      const oldStatus = currentClaim.status;
+      return finalizeClaimStatusChange({
+        auditMetadata: {
+          allowanceOverrideReason: trimmedAllowanceOverrideReason,
+          matterConsumptionServiceCode: matterServiceCode,
+        },
+        beforePersist: async tx => {
+          if (alreadyConsumedForClaim) {
+            return;
+          }
 
-      await db.transaction(async tx => {
-        if (!alreadyConsumedForClaim) {
           await tx.insert(serviceUsage).values({
             id: crypto.randomUUID(),
             tenantId,
@@ -245,101 +373,30 @@ export async function updateClaimStatusCore(
             serviceCode: matterServiceCode,
             usedAt: new Date(),
           });
-        }
-
-        // 1. Update claim status
-        if (currentClaim.status !== status) {
-          await tx
-            .update(claims)
-            .set({ status: status, updatedAt: new Date() })
-            .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
-        }
-
-        // 2. Add history entry
-        await tx.insert(claimStageHistory).values({
-          id: crypto.randomUUID(),
-          tenantId,
-          claimId,
-          fromStatus: currentClaim.status,
-          toStatus: status,
-          changedById: session.user.id,
-          changedByRole: 'staff',
-          note: note || null,
-          isPublic: isPublicChange,
-          createdAt: new Date(),
-        });
-      });
-
-      // SECURITY audit log
-      if (deps.logAuditEvent) {
-        await deps.logAuditEvent({
-          actorId: session.user.id,
-          actorRole: session.user.role,
-          tenantId,
-          action: 'claim.status_changed',
-          entityType: 'claim',
-          entityId: claimId,
-          metadata: {
-            oldStatus,
-            newStatus: status,
-            note: note || undefined,
-            isPublic: isPublicChange,
-            allowanceOverrideReason: trimmedAllowanceOverrideReason,
-            matterConsumptionServiceCode: matterServiceCode,
-          },
-          headers: params.requestHeaders,
-        });
-      }
-
-      return { success: true };
-    }
-
-    const oldStatus = currentClaim.status;
-
-    await db.transaction(async tx => {
-      // 1. Update claim status
-      if (currentClaim.status !== status) {
-        await tx
-          .update(claims)
-          .set({ status: status, updatedAt: new Date() })
-          .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
-      }
-
-      // 2. Add history entry
-      await tx.insert(claimStageHistory).values({
-        id: crypto.randomUUID(),
-        tenantId,
-        claimId,
-        fromStatus: currentClaim.status,
-        toStatus: status,
-        changedById: session.user.id,
-        changedByRole: 'staff',
-        note: note || null,
-        isPublic: isPublicChange,
-        createdAt: new Date(),
-      });
-    });
-
-    // 🔒 SECURITY Audit Log
-    if (deps.logAuditEvent) {
-      await deps.logAuditEvent({
-        actorId: session.user.id,
-        actorRole: session.user.role,
-        tenantId,
-        action: 'claim.status_changed', // Same action as admin for consistency
-        entityType: 'claim',
-        entityId: claimId,
-        metadata: {
-          oldStatus,
-          newStatus: status,
-          note: note || undefined,
-          isPublic: isPublicChange,
         },
-        headers: params.requestHeaders,
+        claimId,
+        currentStatus: currentClaim.status,
+        deps,
+        isPublicChange,
+        note,
+        requestHeaders: params.requestHeaders,
+        session,
+        status,
+        tenantId,
       });
     }
 
-    return { success: true };
+    return finalizeClaimStatusChange({
+      claimId,
+      currentStatus: currentClaim.status,
+      deps,
+      isPublicChange,
+      note,
+      requestHeaders: params.requestHeaders,
+      session,
+      status,
+      tenantId,
+    });
   } catch (error) {
     console.error('Failed to update claim status:', error);
     return { success: false, error: 'Failed to update claim status' };
