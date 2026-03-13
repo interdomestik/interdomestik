@@ -35,11 +35,11 @@ jobs:
       SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || secrets.SONAR_ORGANIZATION }}
       PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login || '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
 
@@ -203,7 +203,7 @@ jobs:
       SONAR_SCANNER_SKIP_JRE_PROVISIONING: 'true'
       EVIDENCE_DIR: tmp/pilot-evidence/${{ github.run_id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Generate BETTER_AUTH_SECRET fallback for Dependabot
         if: needs.pilot-gate-preflight.outputs.needs_dependabot_better_auth_fallback == 'true'
@@ -228,7 +228,7 @@ jobs:
       - name: Upload Sonar gate artifacts
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sonarqube-gate-${{ github.run_id }}
           path: |
@@ -283,7 +283,7 @@ jobs:
       - name: Upload release gate reports
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pilot-gate-reports
           path: docs/release-gates/*.md
@@ -334,11 +334,11 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
 
@@ -407,7 +407,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -453,7 +453,7 @@ jobs:
       - name: Upload multi-agent hardening artifacts
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: multi-agent-hardening-${{ github.run_id }}
           path: |
