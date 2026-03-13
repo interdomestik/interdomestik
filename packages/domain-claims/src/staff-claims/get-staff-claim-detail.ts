@@ -1,6 +1,6 @@
 import { and, claimEscalationAgreements, claims, db, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import type { ClaimEscalationAgreementSnapshot } from './types';
+import { ESCALATION_DECISION_NEXT_STATUSES, type ClaimEscalationAgreementSnapshot } from './types';
 
 export type StaffClaimDetail = {
   claim: {
@@ -36,6 +36,18 @@ function normalizeDate(value: Date | string | null | undefined) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function normalizeDecisionNextStatus(
+  value: string | null | undefined
+): ClaimEscalationAgreementSnapshot['decisionNextStatus'] {
+  if (!value) return null;
+
+  return ESCALATION_DECISION_NEXT_STATUSES.includes(
+    value as (typeof ESCALATION_DECISION_NEXT_STATUSES)[number]
+  )
+    ? (value as ClaimEscalationAgreementSnapshot['decisionNextStatus'])
+    : null;
+}
+
 export async function getStaffClaimDetail(params: {
   staffId: string;
   tenantId: string;
@@ -55,6 +67,8 @@ export async function getStaffClaimDetail(params: {
       memberId: user.id,
       memberName: user.name,
       memberNumber: user.memberNumber,
+      agreementDecisionNextStatus: claimEscalationAgreements.decisionNextStatus,
+      agreementDecisionReason: claimEscalationAgreements.decisionReason,
       agreementFeePercentage: claimEscalationAgreements.feePercentage,
       agreementMinimumFee: claimEscalationAgreements.minimumFee,
       agreementLegalActionCapPercentage: claimEscalationAgreements.legalActionCapPercentage,
@@ -119,6 +133,8 @@ export async function getStaffClaimDetail(params: {
       row.agreementTermsVersion != null
         ? {
             claimId: row.claimId,
+            decisionNextStatus: normalizeDecisionNextStatus(row.agreementDecisionNextStatus),
+            decisionReason: row.agreementDecisionReason,
             feePercentage: row.agreementFeePercentage,
             minimumFee: row.agreementMinimumFee,
             legalActionCapPercentage: row.agreementLegalActionCapPercentage,

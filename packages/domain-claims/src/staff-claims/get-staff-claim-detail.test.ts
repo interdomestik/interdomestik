@@ -31,6 +31,8 @@ const mocks = vi.hoisted(() => {
     },
     claimEscalationAgreements: {
       claimId: 'claim_escalation_agreements.claim_id',
+      decisionNextStatus: 'claim_escalation_agreements.decision_next_status',
+      decisionReason: 'claim_escalation_agreements.decision_reason',
       feePercentage: 'claim_escalation_agreements.fee_percentage',
       minimumFee: 'claim_escalation_agreements.minimum_fee',
       legalActionCapPercentage: 'claim_escalation_agreements.legal_action_cap_percentage',
@@ -102,6 +104,8 @@ describe('getStaffClaimDetail', () => {
         agreementFeePercentage: 15,
         agreementMinimumFee: '25.00',
         agreementLegalActionCapPercentage: 25,
+        agreementDecisionNextStatus: 'negotiation',
+        agreementDecisionReason: 'Member accepted negotiation as the next recovery path.',
         agreementPaymentAuthorizationState: 'authorized',
         agreementSuccessFeeRecoveredAmount: '1000.00',
         agreementSuccessFeeCurrencyCode: 'EUR',
@@ -134,6 +138,8 @@ describe('getStaffClaimDetail', () => {
     expect(result?.member.membershipNumber).toBe('MEM-001');
     expect(result?.agent?.name).toBe('Agent One');
     expect(result?.commercialAgreement).toMatchObject({
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member accepted negotiation as the next recovery path.',
       feePercentage: 15,
       minimumFee: '25.00',
       legalActionCapPercentage: 25,
@@ -149,6 +155,57 @@ describe('getStaffClaimDetail', () => {
       hasStoredPaymentMethod: true,
       invoiceDueAt: null,
       subscriptionId: 'sub-1',
+    });
+  });
+
+  it('normalizes unknown agreement next-status values to null', async () => {
+    mocks.claimChain.limit.mockResolvedValue([
+      {
+        claimId: 'claim-2',
+        claimNumber: 'KS-0002',
+        status: 'submitted',
+        updatedAt: new Date('2026-01-02T00:00:00Z'),
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+        memberId: 'member-2',
+        memberName: 'Member Two',
+        memberNumber: 'MEM-002',
+        agentId: null,
+        agreementFeePercentage: 20,
+        agreementMinimumFee: '50.00',
+        agreementLegalActionCapPercentage: 30,
+        agreementDecisionNextStatus: 'unexpected-status',
+        agreementDecisionReason: 'Persist the reason even when the status is unknown.',
+        agreementPaymentAuthorizationState: 'authorized',
+        agreementSuccessFeeRecoveredAmount: null,
+        agreementSuccessFeeCurrencyCode: null,
+        agreementSuccessFeeAmount: null,
+        agreementSuccessFeeCollectionMethod: null,
+        agreementSuccessFeeDeductionAllowed: null,
+        agreementSuccessFeeHasStoredPaymentMethod: null,
+        agreementSuccessFeeInvoiceDueAt: null,
+        agreementSuccessFeeResolvedAt: null,
+        agreementSuccessFeeSubscriptionId: null,
+        agreementTermsVersion: '2026-03-v1',
+        agreementSignedAt: new Date('2026-03-11T09:00:00Z'),
+        agreementAcceptedAt: new Date('2026-03-11T09:00:00Z'),
+      },
+    ]);
+
+    const result = await getStaffClaimDetail({
+      staffId: 'staff-2',
+      tenantId: 'tenant-ks',
+      claimId: 'claim-2',
+    });
+
+    expect(result?.commercialAgreement).toMatchObject({
+      claimId: 'claim-2',
+      decisionNextStatus: null,
+      decisionReason: 'Persist the reason even when the status is unknown.',
+      feePercentage: 20,
+      minimumFee: '50.00',
+      legalActionCapPercentage: 30,
+      paymentAuthorizationState: 'authorized',
+      termsVersion: '2026-03-v1',
     });
   });
 
