@@ -152,7 +152,7 @@ export function ClaimActionPanel({
       const trimmedAllowanceOverrideReason = allowanceOverrideReason.trim();
       const result = await updateClaimStatus(
         claimId,
-        status as ClaimStatus,
+        status,
         note,
         true,
         trimmedAllowanceOverrideReason || undefined

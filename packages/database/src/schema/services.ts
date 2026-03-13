@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { boolean, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
 import { subscriptions } from './memberships';
@@ -23,20 +23,30 @@ export const referrals = pgTable('referrals', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const serviceUsage = pgTable('service_usage', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id),
-  subscriptionId: text('subscription_id')
-    .notNull()
-    .references(() => subscriptions.id),
-  serviceCode: text('service_code').notNull(),
-  usedAt: timestamp('used_at').defaultNow(),
-});
+export const serviceUsage = pgTable(
+  'service_usage',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id),
+    subscriptionId: text('subscription_id')
+      .notNull()
+      .references(() => subscriptions.id),
+    serviceCode: text('service_code').notNull(),
+    usedAt: timestamp('used_at').defaultNow(),
+  },
+  table => [
+    uniqueIndex('service_usage_tenant_subscription_code_uq').on(
+      table.tenantId,
+      table.subscriptionId,
+      table.serviceCode
+    ),
+  ]
+);
 
 export const serviceRequests = pgTable('service_requests', {
   id: text('id').primaryKey(),
