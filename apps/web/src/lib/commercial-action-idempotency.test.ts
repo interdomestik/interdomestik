@@ -164,4 +164,26 @@ describe('runCommercialActionWithIdempotency', () => {
 
     expect(hoisted.deleteWhere).toHaveBeenCalledTimes(1);
   });
+
+  it('releases the reservation when execution returns an explicit failure result', async () => {
+    const execute = vi
+      .fn()
+      .mockResolvedValue({ success: false, error: 'Too many requests. Please wait a moment.' });
+
+    const result = await runCommercialActionWithIdempotency({
+      action: 'claims.submit',
+      actorUserId: 'user-1',
+      idempotencyKey: 'claim-submit-1',
+      requestFingerprint: { category: 'vehicle', title: 'Damaged bumper' },
+      tenantId: 'tenant-1',
+      execute,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Too many requests. Please wait a moment.',
+    });
+    expect(hoisted.deleteWhere).toHaveBeenCalledTimes(1);
+    expect(hoisted.updateSet).not.toHaveBeenCalled();
+  });
 });

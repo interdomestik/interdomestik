@@ -150,14 +150,12 @@ function DetailView({
   documents,
   t,
 }: {
-  subscription: SubscriptionRecord | null;
+  subscription: SubscriptionRecord;
   documents: DbDocument[];
   t: TranslationFn;
 }) {
-  if (!subscription) return null;
-
-  const { primary, secondary } = getMembershipActions(subscription, t);
   const cancellationKeyRef = useRef<string | null>(null);
+  const { primary, secondary } = getMembershipActions(subscription, t);
 
   const handleAction = async (id: string) => {
     try {

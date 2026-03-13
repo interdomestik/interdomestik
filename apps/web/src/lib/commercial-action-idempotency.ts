@@ -13,6 +13,12 @@ type ExistingReservation = {
   status: string;
 };
 
+function isExplicitFailureResult(result: StoredActionResult): result is StoredActionResult & {
+  success: false;
+} {
+  return 'success' in result && result.success === false;
+}
+
 function stableSerialize(value: unknown): string {
   if (value === null || typeof value !== 'object') {
     return JSON.stringify(value);
@@ -126,6 +132,13 @@ export async function runCommercialActionWithIdempotency<
 
   try {
     const result = await params.execute();
+
+    if (isExplicitFailureResult(result)) {
+      await db
+        .delete(commercialActionIdempotency)
+        .where(eq(commercialActionIdempotency.id, inserted.id));
+      return result;
+    }
 
     await db
       .update(commercialActionIdempotency)
