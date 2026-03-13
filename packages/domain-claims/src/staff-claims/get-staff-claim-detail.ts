@@ -1,13 +1,6 @@
 import { and, claimEscalationAgreements, claims, db, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import type { ClaimEscalationAgreementSnapshot } from './types';
-
-const ESCALATION_DECISION_NEXT_STATUSES = ['negotiation', 'court'] as const;
-type EscalationDecisionNextStatus = (typeof ESCALATION_DECISION_NEXT_STATUSES)[number];
-type StaffClaimEscalationAgreementSnapshot = ClaimEscalationAgreementSnapshot & {
-  decisionNextStatus: EscalationDecisionNextStatus | null;
-  decisionReason: string | null;
-};
+import { ESCALATION_DECISION_NEXT_STATUSES, type ClaimEscalationAgreementSnapshot } from './types';
 
 export type StaffClaimDetail = {
   claim: {
@@ -28,7 +21,7 @@ export type StaffClaimDetail = {
     id: string;
     name: string;
   };
-  commercialAgreement: StaffClaimEscalationAgreementSnapshot | null;
+  commercialAgreement: ClaimEscalationAgreementSnapshot | null;
   successFeeCollection: import('./types').SuccessFeeCollectionSnapshot | null;
 };
 
@@ -45,13 +38,13 @@ function normalizeDate(value: Date | string | null | undefined) {
 
 function normalizeDecisionNextStatus(
   value: string | null | undefined
-): StaffClaimEscalationAgreementSnapshot['decisionNextStatus'] {
+): ClaimEscalationAgreementSnapshot['decisionNextStatus'] {
   if (!value) return null;
 
   return ESCALATION_DECISION_NEXT_STATUSES.includes(
     value as (typeof ESCALATION_DECISION_NEXT_STATUSES)[number]
   )
-    ? (value as StaffClaimEscalationAgreementSnapshot['decisionNextStatus'])
+    ? (value as ClaimEscalationAgreementSnapshot['decisionNextStatus'])
     : null;
 }
 
