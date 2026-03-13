@@ -51,6 +51,6 @@ describe('actions/memberships', () => {
       success: true,
     });
 
-    expect(cancelSubscription).toHaveBeenCalledWith('sub_123');
+    expect(cancelSubscription).toHaveBeenCalledWith('sub_123', undefined);
   });
 });

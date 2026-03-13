@@ -13,9 +13,12 @@ export async function getPaymentUpdateUrl(subscriptionId: string) {
   return getPaymentUpdateUrlCore({ session, subscriptionId });
 }
 
-export async function cancelSubscription(subscriptionId: string) {
+export async function cancelSubscription(subscriptionId: string, idempotencyKey?: string) {
   const { session } = await getActionContext();
-  const result = await cancelSubscriptionCore({ session, subscriptionId }, { logAuditEvent });
+  const result = await cancelSubscriptionCore(
+    { session, subscriptionId, idempotencyKey },
+    { logAuditEvent }
+  );
 
   if (result.success) {
     revalidatePath(MEMBER_MEMBERSHIP_PATH);

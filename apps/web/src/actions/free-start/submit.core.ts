@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 
+import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { ActionError, ActionSuccess } from '@/lib/safe-action';
 import {
@@ -24,44 +25,52 @@ function formatFieldErrors(fieldErrors: Record<string, string[] | undefined>) {
 }
 
 export async function submitFreeStartIntakeCore(params: {
+  idempotencyKey?: string;
   requestHeaders: Headers;
   data: SubmitFreeStartIntakeInput;
 }): Promise<SubmitFreeStartIntakeResult> {
   try {
-    const limit = await enforceRateLimitForAction({
-      name: 'action:submit-free-start-intake',
-      limit: 10,
-      windowSeconds: 600,
-      headers: params.requestHeaders,
-    });
+    return await runCommercialActionWithIdempotency({
+      action: 'free-start.submit',
+      idempotencyKey: params.idempotencyKey,
+      requestFingerprint: params.data,
+      execute: async () => {
+        const limit = await enforceRateLimitForAction({
+          name: 'action:submit-free-start-intake',
+          limit: 10,
+          windowSeconds: 600,
+          headers: params.requestHeaders,
+        });
 
-    if (limit.limited) {
-      return {
-        success: false,
-        error: 'Too many requests. Please try again later.',
-        code: 'RATE_LIMITED',
-      };
-    }
+        if (limit.limited) {
+          return {
+            success: false,
+            error: 'Too many requests. Please try again later.',
+            code: 'RATE_LIMITED',
+          };
+        }
 
-    const parsed = submitFreeStartIntakeSchema.safeParse(params.data);
+        const parsed = submitFreeStartIntakeSchema.safeParse(params.data);
 
-    if (!parsed.success) {
-      return {
-        success: false,
-        error: 'Validation failed',
-        code: 'INVALID_PAYLOAD',
-        issues: formatFieldErrors(parsed.error.flatten().fieldErrors),
-      };
-    }
+        if (!parsed.success) {
+          return {
+            success: false,
+            error: 'Validation failed',
+            code: 'INVALID_PAYLOAD',
+            issues: formatFieldErrors(parsed.error.flatten().fieldErrors),
+          };
+        }
 
-    return {
-      success: true,
-      data: {
-        claimCategory: parsed.data.category,
-        desiredOutcome: parsed.data.desiredOutcome,
-        intakeIssue: parsed.data.issueType,
+        return {
+          success: true,
+          data: {
+            claimCategory: parsed.data.category,
+            desiredOutcome: parsed.data.desiredOutcome,
+            intakeIssue: parsed.data.issueType,
+          },
+        };
       },
-    };
+    });
   } catch (error) {
     Sentry.captureException(error, {
       tags: {

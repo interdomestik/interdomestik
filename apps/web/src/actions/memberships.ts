@@ -6,6 +6,6 @@ export async function getCustomerPortalUrl(subscriptionId: string) {
   return getPaymentUpdateUrl(subscriptionId);
 }
 
-export async function requestCancellation(subscriptionId: string) {
-  return cancelSubscription(subscriptionId);
+export async function requestCancellation(subscriptionId: string, idempotencyKey?: string) {
+  return cancelSubscription(subscriptionId, idempotencyKey);
 }

@@ -24,7 +24,7 @@ import {
 } from '@interdomestik/ui';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 interface ClaimActionPanelProps {
@@ -66,6 +66,7 @@ export function ClaimActionPanel({
 }: ClaimActionPanelProps) {
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState('');
+  const agreementSaveKeyRef = useRef<string | null>(null);
   const [status, setStatus] = useState<ClaimStatus>(currentStatus as ClaimStatus);
   const [savedAgreement, setSavedAgreement] = useState<ClaimEscalationAgreementSnapshot | null>(
     commercialAgreement
@@ -118,21 +119,28 @@ export function ClaimActionPanel({
 
   const handleAgreementSave = () => {
     startTransition(async () => {
-      const result = await saveClaimEscalationAgreement({
-        claimId,
-        feePercentage: Number(feePercentage),
-        legalActionCapPercentage: Number(legalActionCapPercentage),
-        minimumFee,
-        paymentAuthorizationState,
-        termsVersion: termsVersion.trim(),
-      });
+      const idempotencyKey = agreementSaveKeyRef.current ?? crypto.randomUUID();
+      agreementSaveKeyRef.current = idempotencyKey;
+      try {
+        const result = await saveClaimEscalationAgreement({
+          claimId,
+          feePercentage: Number(feePercentage),
+          idempotencyKey,
+          legalActionCapPercentage: Number(legalActionCapPercentage),
+          minimumFee,
+          paymentAuthorizationState,
+          termsVersion: termsVersion.trim(),
+        });
 
-      if (result.success) {
-        toast.success('Success', { description: 'Escalation agreement saved' });
-        setSavedAgreement(result.data ?? null);
-        router.refresh();
-      } else {
-        toast.error('Error', { description: result.error });
+        if (result.success) {
+          toast.success('Success', { description: 'Escalation agreement saved' });
+          setSavedAgreement(result.data ?? null);
+          router.refresh();
+        } else {
+          toast.error('Error', { description: result.error });
+        }
+      } finally {
+        agreementSaveKeyRef.current = null;
       }
     });
   };

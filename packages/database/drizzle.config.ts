@@ -25,6 +25,7 @@ export default defineConfig({
     'claim_messages',
     'claim_stage_history',
     'audit_log',
+    'commercial_action_idempotency',
     'leads',
     'membership_plans',
     'user_notification_preferences',

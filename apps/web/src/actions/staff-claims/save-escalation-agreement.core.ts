@@ -1,6 +1,7 @@
 import { saveClaimEscalationAgreementCore as saveClaimEscalationAgreementCoreDomain } from '@interdomestik/domain-claims/staff-claims/save-escalation-agreement';
 
 import { logAuditEvent } from '@/lib/audit';
+import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
@@ -20,11 +21,26 @@ function revalidatePathForAllLocales(path: string) {
 
 export async function saveClaimEscalationAgreementCore(
   params: SaveClaimEscalationAgreementInput & {
+    idempotencyKey?: string;
     requestHeaders?: Headers;
     session: NonNullable<Session> | null;
   }
 ): Promise<ActionResult<ClaimEscalationAgreementSnapshot>> {
-  const result = await saveClaimEscalationAgreementCoreDomain(params, { logAuditEvent });
+  const result = await runCommercialActionWithIdempotency({
+    action: 'staff-claims.save-escalation-agreement',
+    actorUserId: params.session?.user?.id ?? null,
+    tenantId: params.session?.user?.tenantId ?? null,
+    idempotencyKey: params.idempotencyKey,
+    requestFingerprint: {
+      claimId: params.claimId,
+      feePercentage: params.feePercentage,
+      legalActionCapPercentage: params.legalActionCapPercentage,
+      minimumFee: params.minimumFee,
+      paymentAuthorizationState: params.paymentAuthorizationState,
+      termsVersion: params.termsVersion,
+    },
+    execute: () => saveClaimEscalationAgreementCoreDomain(params, { logAuditEvent }),
+  });
 
   if (result.success) {
     revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);

@@ -22,7 +22,7 @@ import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { getCustomerPortalUrl, requestCancellation } from '@/actions/memberships';
 import { buildCancellationFeedbackMessage } from '@/features/member/membership/cancellation-feedback';
@@ -150,12 +150,11 @@ function DetailView({
   documents,
   t,
 }: {
-  subscription: SubscriptionRecord | null;
+  subscription: SubscriptionRecord;
   documents: DbDocument[];
   t: TranslationFn;
 }) {
-  if (!subscription) return null;
-
+  const cancellationKeyRef = useRef<string | null>(null);
   const { primary, secondary } = getMembershipActions(subscription, t);
 
   const handleAction = async (id: string) => {
@@ -176,18 +175,23 @@ function DetailView({
         // Simple confirm for now
         if (!confirm(t('actions.confirm_cancel'))) return;
 
-        const result = await requestCancellation(subscription.id);
+        const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
+        cancellationKeyRef.current = idempotencyKey;
+        const result = await requestCancellation(subscription.id, idempotencyKey);
         if (result.error || !result.success) {
+          cancellationKeyRef.current = null;
           toast.error(t('errors.action_failed'));
           return;
         }
 
+        cancellationKeyRef.current = null;
         toast.success(buildCancellationFeedbackMessage(t, result.cancellationTerms));
         return;
       }
 
       console.log('[Membership Action] Unhandled:', id);
     } catch (err) {
+      cancellationKeyRef.current = null;
       console.error(err);
       toast.error(t('errors.action_failed'));
     }

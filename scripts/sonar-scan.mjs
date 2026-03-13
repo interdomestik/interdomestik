@@ -1,7 +1,12 @@
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import process from 'node:process';
 
-import { appendScannerProperties, buildNativeScannerArgs } from './sonar-scan-lib.mjs';
+import {
+  appendPullRequestScannerProperties,
+  appendScannerProperties,
+  buildNativeScannerArgs,
+} from './sonar-scan-lib.mjs';
 
 async function waitForSonarUp({ statusUrl, timeoutMs }) {
   const start = Date.now();
@@ -50,6 +55,32 @@ function run(cmd, args, opts = {}) {
   }
 
   return result.status ?? 0;
+}
+
+function readPullRequestContextFromEventPath() {
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (!eventPath) {
+    return {
+      pullRequestBase: '',
+      pullRequestBranch: '',
+      pullRequestKey: '',
+    };
+  }
+
+  try {
+    const event = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
+    return {
+      pullRequestBase: String(event?.pull_request?.base?.ref || '').trim(),
+      pullRequestBranch: String(event?.pull_request?.head?.ref || '').trim(),
+      pullRequestKey: String(event?.pull_request?.number || '').trim(),
+    };
+  } catch {
+    return {
+      pullRequestBase: '',
+      pullRequestBranch: '',
+      pullRequestKey: '',
+    };
+  }
 }
 
 const sonarToken = process.env.SONAR_TOKEN;
@@ -103,6 +134,39 @@ if (isSonarCloud) {
   scannerProperties.push(`-Dsonar.organization=${sonarOrganization}`);
 }
 
+const eventPullRequestContext = readPullRequestContextFromEventPath();
+const pullRequestKey = String(
+  process.env.SONAR_PULLREQUEST_KEY || eventPullRequestContext.pullRequestKey
+).trim();
+const pullRequestBranch = String(
+  process.env.SONAR_PULLREQUEST_BRANCH ||
+    process.env.GITHUB_HEAD_REF ||
+    eventPullRequestContext.pullRequestBranch
+).trim();
+const pullRequestBase = String(
+  process.env.SONAR_PULLREQUEST_BASE ||
+    process.env.GITHUB_BASE_REF ||
+    eventPullRequestContext.pullRequestBase
+).trim();
+
+if (pullRequestKey && (!pullRequestBranch || !pullRequestBase)) {
+  console.error(
+    [
+      'Missing pull request branch context for Sonar PR analysis.',
+      `SONAR_PULLREQUEST_KEY=${pullRequestKey || '<empty>'}`,
+      `SONAR_PULLREQUEST_BRANCH=${pullRequestBranch || '<empty>'}`,
+      `SONAR_PULLREQUEST_BASE=${pullRequestBase || '<empty>'}`,
+    ].join('\n')
+  );
+  process.exit(2);
+}
+
+const scannerPropertiesWithAnalysisContext = appendPullRequestScannerProperties(scannerProperties, {
+  pullRequestBase,
+  pullRequestBranch,
+  pullRequestKey,
+});
+
 // If we are targeting the default local SonarQube, wait briefly for it to be ready.
 // This avoids the common “Failed to query server version” error when SonarQube is still booting.
 if (sonarHostUrl.includes('host.docker.internal:9000')) {
@@ -118,7 +182,7 @@ const shouldUseNativeArmScanner =
 
 if (shouldUseNativeArmScanner) {
   try {
-    const nativeArgs = buildNativeScannerArgs(scannerProperties);
+    const nativeArgs = buildNativeScannerArgs(scannerPropertiesWithAnalysisContext);
     const nativeStatus = run('pnpm', nativeArgs, { allowFailure: true });
     if (nativeStatus === 0) {
       process.exit(0);
@@ -156,7 +220,7 @@ dockerArgs.push(
   '/usr/src',
   scannerImage,
   'sonar-scanner',
-  ...scannerProperties
+  ...scannerPropertiesWithAnalysisContext
 );
 
 try {

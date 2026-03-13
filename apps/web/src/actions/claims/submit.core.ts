@@ -11,6 +11,7 @@ import {
   emitClaimAiRunRequestedService,
   markClaimAiRunDispatchFailedService,
 } from '@/lib/ai/claim-workflows';
+import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
 import { COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES } from '@/lib/commercial-claim-categories';
 import { notifyClaimSubmitted } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
@@ -57,6 +58,7 @@ function resolveCommercialFlow(rawCategory: string): SubmitClaimCommercialFlow {
 }
 
 export async function submitClaimCore(params: {
+  idempotencyKey?: string;
   session: NonNullable<Session> | null;
   requestHeaders: Headers;
   data: CreateClaimValues;
@@ -72,48 +74,55 @@ export async function submitClaimCore(params: {
   if (session?.user?.id) {
     sentryContext.userId = session.user.id;
     sentryContext.tenantId = session.user.tenantId ?? 'unknown';
-
-    const limit = await enforceRateLimitForAction({
-      name: `action:submit-claim:${session.user.id}`,
-      limit: 1,
-      windowSeconds: 10,
-      headers: requestHeaders,
-    });
-    if (limit.limited) {
-      // Expected rate limit - do NOT send to Sentry
-      return { success: false, error: 'Too many requests. Please wait a moment.' };
-    }
   }
-  try {
-    const result = await submitClaimCoreDomain(params, {
-      dispatchClaimAiRun: emitClaimAiRunRequestedService,
-      logAuditEvent,
-      markClaimAiRunDispatchFailed: markClaimAiRunDispatchFailedService,
-      notifyClaimSubmitted,
-      revalidatePath,
-    });
-    if (result.success && typeof result.claimId === 'string') {
-      return {
-        success: true,
-        claimId: result.claimId,
-        commercialFlow: resolveCommercialFlow(params.data.category),
-      };
-    }
-    return { success: false, error: 'Failed to submit, please try again.' };
-  } catch (error) {
-    // Map ClaimValidationError to proper 400/403 response
-    // Expected validation - do NOT send to Sentry
-    if (error instanceof ClaimValidationError) {
-      return { success: false, error: error.message, code: error.code };
-    }
 
-    // Capture unexpected errors with full context
-    Sentry.captureException(error, {
-      tags: sentryContext,
-      extra: { claimData: { category: params.data.category } },
-    });
+  return runCommercialActionWithIdempotency({
+    action: 'claims.submit',
+    actorUserId: session?.user?.id ?? null,
+    tenantId: session?.user?.tenantId ?? null,
+    idempotencyKey: params.idempotencyKey,
+    requestFingerprint: params.data,
+    execute: async () => {
+      if (session?.user?.id) {
+        const limit = await enforceRateLimitForAction({
+          name: `action:submit-claim:${session.user.id}`,
+          limit: 1,
+          windowSeconds: 10,
+          headers: requestHeaders,
+        });
+        if (limit.limited) {
+          return { success: false, error: 'Too many requests. Please wait a moment.' };
+        }
+      }
 
-    // Re-throw unexpected errors
-    throw error;
-  }
+      try {
+        const result = await submitClaimCoreDomain(params, {
+          dispatchClaimAiRun: emitClaimAiRunRequestedService,
+          logAuditEvent,
+          markClaimAiRunDispatchFailed: markClaimAiRunDispatchFailedService,
+          notifyClaimSubmitted,
+          revalidatePath,
+        });
+        if (result.success && typeof result.claimId === 'string') {
+          return {
+            success: true,
+            claimId: result.claimId,
+            commercialFlow: resolveCommercialFlow(params.data.category),
+          };
+        }
+        return { success: false, error: 'Failed to submit, please try again.' };
+      } catch (error) {
+        if (error instanceof ClaimValidationError) {
+          return { success: false, error: error.message, code: error.code };
+        }
+
+        Sentry.captureException(error, {
+          tags: sentryContext,
+          extra: { claimData: { category: params.data.category } },
+        });
+
+        throw error;
+      }
+    },
+  });
 }

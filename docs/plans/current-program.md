@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-03-12
+last_reviewed: 2026-03-13
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -27,7 +27,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P2` Billing And Terms Hardening is now complete as the post-`P1T` tranche. `B01` is complete as the Stripe residue cleanup and billing-surface contract reconciliation slice, `B02` through `B06` are complete as the in-place Paddle safety and billing auditability queue, and `B07` through `B10` are complete as the commercial terms enforcement queue.
 
-`P3` Commercial Actions And Contract Enforcement is now active as the post-`P2` tranche. `M01` is complete as the commercial mutation-path audit slice, and `M02` is now complete as the typed Server Action migration slice for the top commercial mutations. Free Start completion now routes through a typed server action, escalation request metadata now comes from `submitClaimCore`, and agreement acceptance plus cancellation remain on canonical typed server actions. Matter consumption still lacks a dedicated allowance mutation, and roster import remains a client-only placeholder. No later `P3` queue item is committed yet; `M03` through `M06` remain supporting input until a separate promotion decision is recorded.
+`P3` Commercial Actions And Contract Enforcement is now active as the post-`P2` tranche. `M01` is complete as the commercial mutation-path audit slice, `M02` is complete as the typed Server Action migration slice for the top commercial mutations, and `M03` is now complete as the commercial idempotency slice for those canonical mutations. Free Start completion now routes through a typed server action, escalation request metadata now comes from `submitClaimCore`, agreement acceptance plus cancellation remain on canonical typed server actions, and duplicate Free Start, escalation, and billing submissions now reuse explicit idempotency keys instead of double-creating work or double-applying commercial state. Matter consumption still lacks a dedicated allowance mutation, and roster import remains a client-only placeholder. `M04` through `M06` remain supporting input until a separate promotion decision is recorded.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -70,6 +70,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 35. Land `P3` as the canonical Commercial Actions And Contract Enforcement tranche without reopening routing, auth, tenancy, or request-path AI decisions.
 36. Keep `M01` complete as the canonical commercial mutation-path audit slice so Free Start submission, escalation request, agreement acceptance, matter consumption, cancellation, and roster import stay classified before typed Server Action migration, idempotency rollout, or route retirement work begins.
 37. Keep `M02` complete as the canonical typed Server Action migration slice so Free Start, escalation request, escalation acceptance, and cancellation converge on `_core.ts` validation paths before broader idempotency or route-retirement work begins.
+38. Keep `M03` complete as the canonical commercial idempotency slice so duplicate Free Start, escalation, and billing submissions on the typed commercial action paths do not double-create work or double-apply commercial state before matter guards or route retirement begin.
 
 ## Status Command
 
@@ -106,7 +107,7 @@ pnpm plan:proof
 
 `P2` Billing And Terms Hardening is now complete as the post-`P1T` tranche.
 
-`P3` Commercial Actions And Contract Enforcement is now active as the post-`P2` tranche. `M01` and `M02` are complete as the commercial mutation-path audit and typed Server Action migration slices. No later `P3` queue item is committed yet; `M03` through `M06` remain input until a separate promotion decision is recorded.
+`P3` Commercial Actions And Contract Enforcement is now active as the post-`P2` tranche. `M01`, `M02`, and `M03` are complete as the commercial mutation-path audit, typed Server Action migration, and commercial idempotency slices. No later `P3` item is committed yet; `M04` through `M06` remain input until a separate promotion decision is recorded.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -171,6 +172,8 @@ These documents can recommend or constrain work, but they do not define the live
 - `M01` is now complete as of 2026-03-12. The audit confirms that agreement acceptance and cancellation already have canonical typed server actions, while Free Start submission and escalation request are still telemetry-led, matter consumption lacks a dedicated allowance mutation, and roster import remains a client-only placeholder.
 - `M02` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the next committed `P3` queue item after `M01`.
 - `M02` is now complete as of 2026-03-12. Free Start completion now routes through a typed server action, claim submission now returns server-validated escalation-request metadata, and agreement acceptance plus cancellation remain on canonical `_core.ts` action paths.
+- `M03` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the next committed `P3` queue item after `M02`.
+- `M03` is now complete as of 2026-03-13. Explicit idempotency keys now guard Free Start, claim escalation, agreement acceptance, and cancellation mutations on the canonical typed action paths, and deterministic reseed cleanup now accounts for persisted commercial idempotency records.
 
 ## Historical Foundation, Not Current Sequencing
 

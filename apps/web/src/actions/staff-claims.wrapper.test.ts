@@ -77,6 +77,7 @@ describe('staff-claims action wrapper', () => {
     const result = await saveClaimEscalationAgreement({
       claimId: 'claim-1',
       feePercentage: 15,
+      idempotencyKey: 'agreement-1',
       legalActionCapPercentage: 25,
       minimumFee: 25,
       paymentAuthorizationState: 'authorized',
@@ -87,6 +88,7 @@ describe('staff-claims action wrapper', () => {
     expect(saveClaimEscalationAgreementCore).toHaveBeenCalledWith({
       claimId: 'claim-1',
       feePercentage: 15,
+      idempotencyKey: 'agreement-1',
       legalActionCapPercentage: 25,
       minimumFee: 25,
       paymentAuthorizationState: 'authorized',

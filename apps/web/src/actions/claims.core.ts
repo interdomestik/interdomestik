@@ -38,7 +38,7 @@ import { runAuthenticatedAction } from '@/lib/safe-action';
 
 // ...
 
-export async function submitClaim(data: CreateClaimValues) {
+export async function submitClaim(data: CreateClaimValues, idempotencyKey?: string) {
   return runAuthenticatedAction(async ({ session, requestHeaders }) => {
     const limit = await enforceRateLimitForAction({
       name: 'action:submit-claim',
@@ -54,7 +54,7 @@ export async function submitClaim(data: CreateClaimValues) {
     }
 
     // submitClaimCore handles validation internally
-    return submitClaimCore({ session, requestHeaders, data });
+    return submitClaimCore({ session, requestHeaders, data, idempotencyKey });
   });
 }
 
