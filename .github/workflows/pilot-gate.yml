@@ -25,6 +25,7 @@ jobs:
       reason: ${{ steps.validation_surface.outputs.reason }}
       non_product_only_paths: ${{ steps.validation_surface.outputs.non_product_only_paths }}
       sonar_gate_enabled: ${{ steps.validate_secrets.outputs.sonar_gate_enabled }}
+      needs_manual_sonar_fallback: ${{ steps.sonar_strategy.outputs.needs_manual_sonar_fallback }}
       needs_dependabot_better_auth_fallback: ${{ steps.validate_secrets.outputs.needs_dependabot_better_auth_fallback }}
     env:
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
@@ -111,11 +112,32 @@ jobs:
           fi
 
       - name: Await SonarCloud Code Analysis check
+        id: await_sonar_check
         if: github.event_name == 'pull_request' && steps.validation_surface.outputs.should_run == 'true' && steps.validate_secrets.outputs.sonar_gate_enabled == 'true'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           SONAR_CHECK_SHA: ${{ github.event.pull_request.head.sha }}
+          SONAR_CHECK_MAX_RETRIES: '6'
+          SONAR_CHECK_RETRY_DELAY_SECONDS: '10'
         run: bash scripts/sonar-check-run-gate.sh
+
+      - name: Decide Sonar gate strategy
+        id: sonar_strategy
+        shell: bash
+        run: |
+          set -euo pipefail
+          needs_manual_sonar_fallback=false
+
+          if [[ "${{ steps.validation_surface.outputs.should_run }}" == "true" && \
+                "${{ steps.validate_secrets.outputs.sonar_gate_enabled }}" == "true" && \
+                "${{ github.event_name }}" == "pull_request" && \
+                "${{ steps.await_sonar_check.outcome }}" != "success" ]]; then
+            needs_manual_sonar_fallback=true
+            echo "::warning::External SonarCloud PR check did not complete. Falling back to in-repo Sonar analysis."
+          fi
+
+          echo "needs_manual_sonar_fallback=${needs_manual_sonar_fallback}" >> "$GITHUB_OUTPUT"
 
   pilot-gate-runner:
     name: Pilot Gate Runner
@@ -175,6 +197,9 @@ jobs:
       SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
       SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || secrets.SONAR_PROJECT_KEY }}
       SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || secrets.SONAR_ORGANIZATION }}
+      SONAR_PULLREQUEST_KEY: ${{ github.event.pull_request.number || '' }}
+      SONAR_PULLREQUEST_BRANCH: ${{ github.event.pull_request.head.ref || '' }}
+      SONAR_PULLREQUEST_BASE: ${{ github.event.pull_request.base.ref || '' }}
       SONAR_SCANNER_SKIP_JRE_PROVISIONING: 'true'
       EVIDENCE_DIR: tmp/pilot-evidence/${{ github.run_id }}
     steps:
@@ -194,7 +219,7 @@ jobs:
           install-playwright: true
 
       - name: Run Sonar quality gate (manual fallback)
-        if: github.event_name != 'pull_request' && env.SONAR_GATE_ENABLED == 'true'
+        if: env.SONAR_GATE_ENABLED == 'true' && (github.event_name != 'pull_request' || needs.pilot-gate-preflight.outputs.needs_manual_sonar_fallback == 'true')
         env:
           SONAR_ENFORCEMENT: enforce
           SONAR_RUN_COVERAGE: true

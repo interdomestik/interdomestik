@@ -29,6 +29,13 @@ fi
 
 SONAR_ENFORCEMENT="${SONAR_ENFORCEMENT:-enforce}"
 SONAR_RUN_COVERAGE="${SONAR_RUN_COVERAGE:-true}"
+SONAR_PULLREQUEST_KEY="${SONAR_PULLREQUEST_KEY:-}"
+
+if [[ -z "${SONAR_PULLREQUEST_KEY}" && -n "${GITHUB_EVENT_PATH:-}" && -f "${GITHUB_EVENT_PATH}" ]]; then
+  SONAR_PULLREQUEST_KEY="$(
+    node -e "const fs=require('node:fs');const event=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String(event?.pull_request?.number || '').trim());" "${GITHUB_EVENT_PATH}" 2>/dev/null || true
+  )"
+fi
 
 if [[ "$SONAR_RUN_COVERAGE" == "true" ]]; then
   echo "Running coverage before Sonar scan..."
@@ -61,6 +68,13 @@ if (( scan_status != 0 )); then
 fi
 
 QG_URL="${SONAR_HOST_URL%/}/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}"
+DASHBOARD_URL="${SONAR_HOST_URL%/}/dashboard?id=${SONAR_PROJECT_KEY}"
+
+if [[ -n "${SONAR_PULLREQUEST_KEY}" ]]; then
+  QG_URL="${QG_URL}&pullRequest=${SONAR_PULLREQUEST_KEY}"
+  DASHBOARD_URL="${DASHBOARD_URL}&pullRequest=${SONAR_PULLREQUEST_KEY}"
+fi
+
 set +e
 node - "$QG_URL" "$QG_JSON" <<'NODE'
 const fs = require('node:fs');
@@ -142,7 +156,10 @@ qg_status="$(node -e "const fs=require('node:fs');const d=JSON.parse(fs.readFile
   echo "- enforcement: ${SONAR_ENFORCEMENT}"
   echo "- host: ${SONAR_HOST_URL}"
   echo "- project: ${SONAR_PROJECT_KEY}"
-  echo "- dashboard: ${SONAR_HOST_URL%/}/dashboard?id=${SONAR_PROJECT_KEY}"
+  if [[ -n "${SONAR_PULLREQUEST_KEY}" ]]; then
+    echo "- pull_request: ${SONAR_PULLREQUEST_KEY}"
+  fi
+  echo "- dashboard: ${DASHBOARD_URL}"
 } >"$SUMMARY_MD"
 
 if [[ "$qg_status" != "OK" ]]; then

@@ -30,7 +30,7 @@ export async function submitFreeStartIntakeCore(params: {
   data: SubmitFreeStartIntakeInput;
 }): Promise<SubmitFreeStartIntakeResult> {
   try {
-    return runCommercialActionWithIdempotency({
+    return await runCommercialActionWithIdempotency({
       action: 'free-start.submit',
       idempotencyKey: params.idempotencyKey,
       requestFingerprint: params.data,

@@ -191,6 +191,11 @@ test('Heavy PR workflows always materialize on PRs and delegate docs-only skippi
 test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a lightweight preflight job', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGatePreflightJob = pilotGateWorkflow.jobs['pilot-gate-preflight'];
+  const awaitSonarStep = findStep(
+    pilotGatePreflightJob.steps,
+    'Await SonarCloud Code Analysis check'
+  );
+  const sonarStrategyStep = findStep(pilotGatePreflightJob.steps, 'Decide Sonar gate strategy');
 
   assert.ok(pilotGatePreflightJob);
   const preflightSteps = pilotGatePreflightJob.steps;
@@ -204,9 +209,17 @@ test('Pilot gate moves validation-surface, secrets, and PR Sonar checks into a l
     pilotGatePreflightJob.outputs.sonar_gate_enabled,
     '${{ steps.validate_secrets.outputs.sonar_gate_enabled }}'
   );
+  assert.equal(
+    pilotGatePreflightJob.outputs.needs_manual_sonar_fallback,
+    '${{ steps.sonar_strategy.outputs.needs_manual_sonar_fallback }}'
+  );
   assert.ok(findStep(preflightSteps, 'Evaluate validation surface'));
   assert.ok(findStep(preflightSteps, 'Validate required gate secrets'));
-  assert.ok(findStep(preflightSteps, 'Await SonarCloud Code Analysis check'));
+  assert.ok(awaitSonarStep);
+  assert.equal(awaitSonarStep['continue-on-error'], true);
+  assert.equal(awaitSonarStep.env.SONAR_CHECK_MAX_RETRIES, '6');
+  assert.equal(awaitSonarStep.env.SONAR_CHECK_RETRY_DELAY_SECONDS, '10');
+  assert.ok(sonarStrategyStep);
   assert.equal(
     preflightSteps.some(step => step?.uses === './.github/actions/setup'),
     false
@@ -231,6 +244,10 @@ test('Pilot gate heavy runner depends on preflight before Postgres, setup, build
   assert.ok(manualSonarIndex >= 0);
   assert.ok(prepareDbIndex >= 0);
   assert.ok(buildIndex >= 0);
+  assert.equal(
+    findStep(steps, 'Run Sonar quality gate (manual fallback)').if,
+    "env.SONAR_GATE_ENABLED == 'true' && (github.event_name != 'pull_request' || needs.pilot-gate-preflight.outputs.needs_manual_sonar_fallback == 'true')"
+  );
   assert.ok(setupIndex < prepareDbIndex);
   assert.ok(manualSonarIndex < prepareDbIndex);
   assert.ok(manualSonarIndex < buildIndex);

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { submitFreeStartIntakeCore } from './submit.core';
 
+const mockCaptureException = vi.fn();
 const mockRateLimit = vi.fn();
 const mockRunCommercialActionWithIdempotency = vi.fn();
 
@@ -15,7 +16,7 @@ vi.mock('@/lib/commercial-action-idempotency', () => ({
 }));
 
 vi.mock('@sentry/nextjs', () => ({
-  captureException: vi.fn(),
+  captureException: (...args: unknown[]) => mockCaptureException(...args),
 }));
 
 describe('actions/free-start submitFreeStartIntakeCore', () => {
@@ -93,5 +94,30 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
       error: 'Too many requests. Please try again later.',
       code: 'RATE_LIMITED',
     });
+  });
+
+  it('captures idempotency execution failures and returns an internal error', async () => {
+    const failure = new Error('idempotency exploded');
+    mockRunCommercialActionWithIdempotency.mockRejectedValueOnce(failure);
+
+    const result = await submitFreeStartIntakeCore({
+      requestHeaders: new Headers(),
+      data: validInput,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Internal Server Error',
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+    expect(mockCaptureException).toHaveBeenCalledWith(
+      failure,
+      expect.objectContaining({
+        tags: {
+          action: 'submitFreeStartIntake',
+          feature: 'free-start',
+        },
+      })
+    );
   });
 });
