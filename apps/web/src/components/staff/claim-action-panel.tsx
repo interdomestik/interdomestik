@@ -42,6 +42,7 @@ const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = CANONICAL_
     label: getStaffClaimStatusLabel(status),
   })
 );
+const RECOVERY_START_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
 
 function formatCollectionMethodLabel(method: SuccessFeeCollectionSnapshot['collectionMethod']) {
   switch (method) {
@@ -66,6 +67,7 @@ export function ClaimActionPanel({
 }: ClaimActionPanelProps) {
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState('');
+  const [allowanceOverrideReason, setAllowanceOverrideReason] = useState('');
   const agreementSaveKeyRef = useRef<string | null>(null);
   const [status, setStatus] = useState<ClaimStatus>(currentStatus as ClaimStatus);
   const [savedAgreement, setSavedAgreement] = useState<ClaimEscalationAgreementSnapshot | null>(
@@ -147,10 +149,18 @@ export function ClaimActionPanel({
 
   const handleStatusUpdate = () => {
     startTransition(async () => {
-      const result = await updateClaimStatus(claimId, status as ClaimStatus, note);
+      const trimmedAllowanceOverrideReason = allowanceOverrideReason.trim();
+      const result = await updateClaimStatus(
+        claimId,
+        status,
+        note,
+        true,
+        trimmedAllowanceOverrideReason || undefined
+      );
       if (result.success) {
         toast.success('Success', { description: 'Claim status updated' });
         setNote('');
+        setAllowanceOverrideReason('');
         router.refresh();
       } else {
         toast.error('Error', { description: result.error });
@@ -195,6 +205,7 @@ export function ClaimActionPanel({
     legalActionCapPercentage.trim().length > 0 &&
     termsVersion.trim().length > 0;
   const canSaveSuccessFeeCollection = hasCommercialAgreement && hasValidRecoveredAmount;
+  const requiresMatterAllowanceGuard = RECOVERY_START_STATUSES.has(status);
 
   let assignmentLabel = 'Unassigned';
   if (assigneeId) {
@@ -524,6 +535,27 @@ export function ClaimActionPanel({
             className="min-h-[80px]"
           />
         </div>
+
+        {requiresMatterAllowanceGuard ? (
+          <div className="space-y-2">
+            <label htmlFor="claim-status-allowance-override" className="text-sm font-medium">
+              Allowance override reason{' '}
+              <span className="text-xs text-muted-foreground">(Staff only)</span>
+            </label>
+            <p className="text-xs text-muted-foreground">
+              If the member has exhausted annual matter allowance, record the internal override
+              reason here or upgrade coverage before staff-led recovery begins.
+            </p>
+            <Textarea
+              id="claim-status-allowance-override"
+              placeholder="Explain why recovery should begin despite exhausted allowance..."
+              value={allowanceOverrideReason}
+              onChange={event => setAllowanceOverrideReason(event.target.value)}
+              disabled={isPending}
+              className="min-h-[80px]"
+            />
+          </div>
+        ) : null}
 
         <Button
           className="w-full"
