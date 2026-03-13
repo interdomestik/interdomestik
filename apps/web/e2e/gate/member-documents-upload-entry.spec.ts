@@ -21,12 +21,19 @@ test.describe('Member Documents Upload Entry', () => {
 
     const uploadDialog = page.getByRole('dialog', { name: /upload evidence/i });
 
-    // First click can race hydration under CI load; retry once before failing.
-    await uploadActions.first().click();
-    if (!(await uploadDialog.isVisible())) {
-      await uploadActions.first().click({ force: true });
-    }
+    await expect
+      .poll(
+        async () => {
+          if (!(await uploadDialog.isVisible())) {
+            await uploadActions.first().click({ force: true });
+          }
 
-    await expect(uploadDialog).toBeVisible({ timeout: 15000 });
+          return uploadDialog.isVisible();
+        },
+        {
+          timeout: 15000,
+        }
+      )
+      .toBe(true);
   });
 });

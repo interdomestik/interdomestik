@@ -54,11 +54,13 @@ describe('staff-claims action wrapper', () => {
       'claim-1',
       'submitted' as unknown as import('./staff-claims/types').ClaimStatus,
       undefined,
-      false
+      false,
+      'Coverage upgrade is pending'
     );
 
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(updateClaimStatusCore).toHaveBeenCalledWith({
+      allowanceOverrideReason: 'Coverage upgrade is pending',
       claimId: 'claim-1',
       newStatus: 'submitted',
       note: undefined,

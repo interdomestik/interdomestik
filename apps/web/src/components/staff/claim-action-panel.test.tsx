@@ -159,4 +159,35 @@ describe('ClaimActionPanel', () => {
       expect(saveButton).toBeEnabled();
     });
   });
+
+  it('passes an internal allowance override reason when updating a recovery claim', async () => {
+    render(
+      <ClaimActionPanel
+        claimId="claim-1"
+        commercialAgreement={savedAgreement}
+        successFeeCollection={null}
+        currentStatus="negotiation"
+        staffId="staff-me"
+        assigneeId="staff-me"
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText(/Status Note/i), {
+      target: { value: 'Member asked for a recovery update.' },
+    });
+    fireEvent.change(screen.getByLabelText(/Allowance override reason/i), {
+      target: { value: 'Family upgrade is pending but staff work must start now.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Update Claim' }));
+
+    await waitFor(() => {
+      expect(actionMocks.updateClaimStatus).toHaveBeenCalledWith(
+        'claim-1',
+        'negotiation',
+        'Member asked for a recovery update.',
+        true,
+        'Family upgrade is pending but staff work must start now.'
+      );
+    });
+  });
 });

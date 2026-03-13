@@ -39,10 +39,12 @@ export async function updateClaimStatus(
   claimId: string,
   newStatus: ClaimStatus,
   note?: string,
-  isPublicChange: boolean = true
+  isPublicChange: boolean = true,
+  allowanceOverrideReason?: string
 ): Promise<ActionResult> {
   const { session, requestHeaders } = await getActionContext();
   return updateClaimStatusCore({
+    allowanceOverrideReason,
     claimId,
     newStatus,
     note,

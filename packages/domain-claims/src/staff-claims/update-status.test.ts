@@ -14,6 +14,16 @@ const mocks = vi.hoisted(() => {
     where: vi.fn(),
     limit: vi.fn(),
   };
+  const subscriptionSelectChain = {
+    from: vi.fn(),
+    where: vi.fn(),
+    limit: vi.fn(),
+  };
+  const serviceUsageSelectChain = {
+    from: vi.fn(),
+    where: vi.fn(),
+    limit: vi.fn(),
+  };
   const txInsertValues = vi.fn();
   const txInsert = vi.fn(() => ({ values: txInsertValues }));
   const txUpdateWhere = vi.fn();
@@ -45,6 +55,23 @@ const mocks = vi.hoisted(() => {
       paymentAuthorizationState: 'claim_escalation_agreements.payment_authorization_state',
       signedAt: 'claim_escalation_agreements.signed_at',
     },
+    subscriptions: {
+      id: 'subscriptions.id',
+      tenantId: 'subscriptions.tenant_id',
+      userId: 'subscriptions.user_id',
+      planId: 'subscriptions.plan_id',
+      planKey: 'subscriptions.plan_key',
+      currentPeriodStart: 'subscriptions.current_period_start',
+      currentPeriodEnd: 'subscriptions.current_period_end',
+    },
+    serviceUsage: {
+      id: 'service_usage.id',
+      tenantId: 'service_usage.tenant_id',
+      userId: 'service_usage.user_id',
+      subscriptionId: 'service_usage.subscription_id',
+      serviceCode: 'service_usage.service_code',
+      usedAt: 'service_usage.used_at',
+    },
     claimStageHistory: {
       id: 'claim_stage_history.id',
       tenantId: 'claim_stage_history.tenant_id',
@@ -64,12 +91,13 @@ const mocks = vi.hoisted(() => {
       })),
     },
     eq: vi.fn((left, right) => ({ op: 'eq', left, right })),
-    isNull: vi.fn(column => ({ op: 'isNull', column })),
-    and: vi.fn((...conditions) => ({ op: 'and', conditions })),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
     ensureTenantId: vi.fn(() => 'tenant-1'),
     claimSelectChain,
     agreementSelectChain,
+    subscriptionSelectChain,
+    serviceUsageSelectChain,
+    txInsert,
     txInsertValues,
     txUpdate,
     txUpdateSet,
@@ -77,13 +105,13 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock('@interdomestik/database', () => ({
-  and: mocks.and,
   claimEscalationAgreements: mocks.claimEscalationAgreements,
   claimStageHistory: mocks.claimStageHistory,
   claims: mocks.claims,
   db: mocks.db,
   eq: mocks.eq,
-  isNull: mocks.isNull,
+  serviceUsage: mocks.serviceUsage,
+  subscriptions: mocks.subscriptions,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -127,6 +155,10 @@ describe('staff updateClaimStatusCore', () => {
     mocks.claimSelectChain.where.mockReturnValue(mocks.claimSelectChain);
     mocks.agreementSelectChain.from.mockReturnValue(mocks.agreementSelectChain);
     mocks.agreementSelectChain.where.mockReturnValue(mocks.agreementSelectChain);
+    mocks.subscriptionSelectChain.from.mockReturnValue(mocks.subscriptionSelectChain);
+    mocks.subscriptionSelectChain.where.mockReturnValue(mocks.subscriptionSelectChain);
+    mocks.serviceUsageSelectChain.from.mockReturnValue(mocks.serviceUsageSelectChain);
+    mocks.serviceUsageSelectChain.where.mockReturnValue(mocks.serviceUsageSelectChain);
   });
 
   it('blocks negotiation until a signed, authorized escalation agreement exists', async () => {
@@ -180,8 +212,12 @@ describe('staff updateClaimStatusCore', () => {
   it('allows recovery status transition when an authorized agreement is present', async () => {
     mocks.db.select
       .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'evaluation' }]);
+      .mockReturnValueOnce(mocks.agreementSelectChain)
+      .mockReturnValueOnce(mocks.subscriptionSelectChain)
+      .mockReturnValueOnce(mocks.serviceUsageSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', status: 'evaluation', userId: 'member-1' },
+    ]);
     mocks.agreementSelectChain.limit.mockResolvedValue([
       {
         claimId: 'claim-1',
@@ -189,6 +225,16 @@ describe('staff updateClaimStatusCore', () => {
         signedAt: new Date('2026-03-11T09:00:00Z'),
       },
     ]);
+    mocks.subscriptionSelectChain.limit.mockResolvedValue([
+      {
+        id: 'sub-1',
+        planId: 'standard',
+        planKey: null,
+        currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
+        currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
+      },
+    ]);
+    mocks.serviceUsageSelectChain.limit.mockResolvedValue([]);
     const result = await updateClaimStatusCore({
       claimId: 'claim-1',
       newStatus: 'negotiation',
@@ -208,6 +254,170 @@ describe('staff updateClaimStatusCore', () => {
         claimId: 'claim-1',
         fromStatus: 'evaluation',
         toStatus: 'negotiation',
+      })
+    );
+  });
+
+  it('blocks staff-led recovery when annual matter allowance is exhausted without an override', async () => {
+    mocks.db.select
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain)
+      .mockReturnValueOnce(mocks.subscriptionSelectChain)
+      .mockReturnValueOnce(mocks.serviceUsageSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', status: 'evaluation', userId: 'member-1' },
+    ]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        paymentAuthorizationState: 'authorized',
+        signedAt: new Date('2026-03-11T09:00:00Z'),
+      },
+    ]);
+    mocks.subscriptionSelectChain.limit.mockResolvedValue([
+      {
+        id: 'sub-1',
+        planId: 'standard',
+        planKey: null,
+        currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
+        currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
+      },
+    ]);
+    mocks.serviceUsageSelectChain.limit.mockResolvedValue([
+      {
+        id: 'usage-1',
+        serviceCode: 'staff_recovery_matter:claim-old-1',
+        usedAt: new Date('2026-03-10T10:00:00Z'),
+      },
+      {
+        id: 'usage-2',
+        serviceCode: 'staff_recovery_matter:claim-old-2',
+        usedAt: new Date('2026-03-11T10:00:00Z'),
+      },
+    ]);
+
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'negotiation',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        'Matter allowance is exhausted. Record an override reason or upgrade the membership before staff-led recovery can begin.',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expect(mocks.txInsert).not.toHaveBeenCalledWith(mocks.serviceUsage);
+  });
+
+  it('records matter consumption once when staff-led recovery starts within allowance', async () => {
+    mocks.db.select
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain)
+      .mockReturnValueOnce(mocks.subscriptionSelectChain)
+      .mockReturnValueOnce(mocks.serviceUsageSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', status: 'evaluation', userId: 'member-1' },
+    ]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        paymentAuthorizationState: 'authorized',
+        signedAt: new Date('2026-03-11T09:00:00Z'),
+      },
+    ]);
+    mocks.subscriptionSelectChain.limit.mockResolvedValue([
+      {
+        id: 'sub-1',
+        planId: 'standard',
+        planKey: null,
+        currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
+        currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
+      },
+    ]);
+    mocks.serviceUsageSelectChain.limit.mockResolvedValue([
+      {
+        id: 'usage-1',
+        serviceCode: 'staff_recovery_matter:claim-old-1',
+        usedAt: new Date('2026-03-10T10:00:00Z'),
+      },
+    ]);
+
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'negotiation',
+      note: 'Recovery accepted',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.txInsert).toHaveBeenCalledWith(mocks.serviceUsage);
+    expect(mocks.txInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        serviceCode: 'staff_recovery_matter:claim-1',
+        subscriptionId: 'sub-1',
+        tenantId: 'tenant-1',
+        userId: 'member-1',
+      })
+    );
+  });
+
+  it('allows exhausted allowance when an explicit override reason is recorded', async () => {
+    mocks.db.select
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain)
+      .mockReturnValueOnce(mocks.subscriptionSelectChain)
+      .mockReturnValueOnce(mocks.serviceUsageSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', status: 'evaluation', userId: 'member-1' },
+    ]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        paymentAuthorizationState: 'authorized',
+        signedAt: new Date('2026-03-11T09:00:00Z'),
+      },
+    ]);
+    mocks.subscriptionSelectChain.limit.mockResolvedValue([
+      {
+        id: 'sub-1',
+        planId: 'standard',
+        planKey: null,
+        currentPeriodStart: new Date('2026-01-01T00:00:00Z'),
+        currentPeriodEnd: new Date('2026-12-31T23:59:59Z'),
+      },
+    ]);
+    mocks.serviceUsageSelectChain.limit.mockResolvedValue([
+      {
+        id: 'usage-1',
+        serviceCode: 'staff_recovery_matter:claim-old-1',
+        usedAt: new Date('2026-03-10T10:00:00Z'),
+      },
+      {
+        id: 'usage-2',
+        serviceCode: 'staff_recovery_matter:claim-old-2',
+        usedAt: new Date('2026-03-11T10:00:00Z'),
+      },
+    ]);
+
+    const result = await updateClaimStatusCore(
+      {
+        claimId: 'claim-1',
+        newStatus: 'negotiation',
+        allowanceOverrideReason: 'Family upgrade is pending but recovery must start now',
+        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      },
+      { logAuditEvent: mocks.logAuditEvent }
+    );
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.txInsert).toHaveBeenCalledWith(mocks.serviceUsage);
+    expect(mocks.logAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          allowanceOverrideReason: 'Family upgrade is pending but recovery must start now',
+        }),
       })
     );
   });

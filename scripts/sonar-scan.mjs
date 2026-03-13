@@ -153,7 +153,7 @@ if (pullRequestKey && (!pullRequestBranch || !pullRequestBase)) {
   console.error(
     [
       'Missing pull request branch context for Sonar PR analysis.',
-      `SONAR_PULLREQUEST_KEY=${pullRequestKey || '<empty>'}`,
+      `SONAR_PULLREQUEST_KEY=${pullRequestKey}`,
       `SONAR_PULLREQUEST_BRANCH=${pullRequestBranch || '<empty>'}`,
       `SONAR_PULLREQUEST_BASE=${pullRequestBase || '<empty>'}`,
     ].join('\n')

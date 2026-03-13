@@ -18,6 +18,7 @@ function revalidatePathForAllLocales(path: string) {
 }
 
 export async function updateClaimStatusCore(params: {
+  allowanceOverrideReason?: string;
   claimId: string;
   newStatus: ClaimStatus;
   note?: string;
