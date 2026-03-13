@@ -123,6 +123,7 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [inlineError, setInlineError] = React.useState<string | null>(null);
   const [createdClaimId, setCreatedClaimId] = React.useState<string | null>(null);
+  const submitKeyRef = React.useRef<string | null>(null);
 
   const form = useForm({
     resolver: zodResolver(createClaimSchema),
@@ -197,7 +198,9 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
   async function onSubmit(data: any) {
     setIsSubmitting(true);
     try {
-      const result = await submitClaim(data);
+      const submitKey = submitKeyRef.current ?? crypto.randomUUID();
+      submitKeyRef.current = submitKey;
+      const result = await submitClaim(data, submitKey);
       if (result.success) {
         ClaimsEvents.submitted('success');
         const payload =
@@ -281,6 +284,7 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
       toast.error(t('submit_unexpected'));
       console.error(error);
     } finally {
+      submitKeyRef.current = null;
       setIsSubmitting(false);
     }
   }

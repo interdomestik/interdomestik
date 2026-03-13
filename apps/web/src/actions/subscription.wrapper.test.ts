@@ -48,7 +48,7 @@ describe('actions/subscription wrapper', () => {
 
     const subId = 'sub_123';
     const paymentResult = await getPaymentUpdateUrl(subId);
-    const cancelResult = await cancelSubscription(subId);
+    const cancelResult = await cancelSubscription(subId, 'cancel-1');
 
     expect(getPaymentUpdateUrlCore).toHaveBeenCalledWith({
       session: { user: { id: 'u1' } },
@@ -58,6 +58,7 @@ describe('actions/subscription wrapper', () => {
     expect(cancelSubscriptionCore).toHaveBeenCalledTimes(1);
     expect(cancelSubscriptionCore).toHaveBeenCalledWith(
       {
+        idempotencyKey: 'cancel-1',
         session: { user: { id: 'u1' } },
         subscriptionId: subId,
       },

@@ -25,7 +25,7 @@ import {
   Loader2,
   ShoppingBag,
 } from 'lucide-react';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -64,6 +64,7 @@ export function ClaimWizard() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isPending, startTransition] = useTransition();
+  const submitKeyRef = useRef<string | null>(null);
 
   const form = useForm<ClaimFormValues>({
     resolver: zodResolver(claimSchema),
@@ -89,12 +90,22 @@ export function ClaimWizard() {
 
   const onSubmit = form.handleSubmit((data: ClaimFormValues) => {
     startTransition(async () => {
-      await submitClaim({
-        ...data,
-        claimAmount: data.claimAmount || undefined,
-        files: [],
-      });
-      router.push('/member/claims');
+      const submitKey = submitKeyRef.current ?? crypto.randomUUID();
+      submitKeyRef.current = submitKey;
+
+      try {
+        await submitClaim(
+          {
+            ...data,
+            claimAmount: data.claimAmount || undefined,
+            files: [],
+          },
+          submitKey
+        );
+        router.push('/member/claims');
+      } finally {
+        submitKeyRef.current = null;
+      }
     });
   });
 

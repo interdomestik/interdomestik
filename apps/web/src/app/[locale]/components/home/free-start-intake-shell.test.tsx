@@ -211,14 +211,17 @@ describe('FreeStartIntakeShell', () => {
         name: enFreeStartMessages.freeStart.completion.cta.membership.high,
       })
     ).toHaveAttribute('href', '/register');
-    expect(hoisted.submitFreeStartIntakeMock).toHaveBeenCalledWith({
-      category: 'property',
-      counterparty: 'Building insurer',
-      desiredOutcome: 'repair',
-      incidentDate: '2026-03-01',
-      issueType: 'water_damage',
-      summary: 'Water entered through the roof after a storm and damaged two rooms.',
-    });
+    expect(hoisted.submitFreeStartIntakeMock).toHaveBeenCalledWith(
+      {
+        category: 'property',
+        counterparty: 'Building insurer',
+        desiredOutcome: 'repair',
+        incidentDate: '2026-03-01',
+        issueType: 'water_damage',
+        summary: 'Water entered through the roof after a storm and damaged two rooms.',
+      },
+      expect.any(String)
+    );
     expect(hoisted.freeStartCompletedMock).toHaveBeenCalledWith(
       {
         locale: 'en',

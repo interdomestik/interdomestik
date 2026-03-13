@@ -21,7 +21,7 @@ import {
   Stethoscope,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 type FreeStartIntakeShellProps = Readonly<{
   continueHref: string;
@@ -771,6 +771,7 @@ export function FreeStartIntakeShell({
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | null>(null);
   const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const submissionKeyRef = useRef<string | null>(null);
 
   const issueIds = getIssueIds(selectedCategory);
   const continueLabel = getContinueLabel(t, continueHref);
@@ -832,22 +833,29 @@ export function FreeStartIntakeShell({
     }
 
     let result: Awaited<ReturnType<typeof submitFreeStartIntake>>;
+    const submissionKey = submissionKeyRef.current ?? crypto.randomUUID();
+    submissionKeyRef.current = submissionKey;
     try {
-      result = await submitFreeStartIntake({
-        category: selectedCategory,
-        counterparty: draft.counterparty,
-        desiredOutcome: draft.desiredOutcome as OutcomeId,
-        incidentDate: draft.incidentDate,
-        issueType: draft.issueType as IssueId,
-        summary: draft.summary,
-      });
+      result = await submitFreeStartIntake(
+        {
+          category: selectedCategory,
+          counterparty: draft.counterparty,
+          desiredOutcome: draft.desiredOutcome as OutcomeId,
+          incidentDate: draft.incidentDate,
+          issueType: draft.issueType as IssueId,
+          summary: draft.summary,
+        },
+        submissionKey
+      );
     } catch (error) {
+      submissionKeyRef.current = null;
       console.error('[FreeStart] Failed to submit intake', error);
       setValidationError(tCommon('errors.retry'));
       return;
     }
 
     if (!result.success) {
+      submissionKeyRef.current = null;
       setValidationError(
         result.code === 'INVALID_PAYLOAD' ? t('validation.completeIntake') : tCommon('errors.retry')
       );
@@ -866,6 +874,7 @@ export function FreeStartIntakeShell({
         desired_outcome: result.data?.desiredOutcome ?? draft.desiredOutcome,
       }
     );
+    submissionKeyRef.current = null;
     setValidationError(null);
     setStep('complete');
   };

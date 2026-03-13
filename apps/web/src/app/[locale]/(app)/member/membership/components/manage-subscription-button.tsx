@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@interdomestik/ui/components/dropdown-menu';
 import { Ban, CreditCard, Loader2, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface ManageSubscriptionButtonProps {
@@ -29,6 +29,7 @@ export function ManageSubscriptionButton({
   labels,
 }: ManageSubscriptionButtonProps) {
   const [loading, setLoading] = useState<string | null>(null);
+  const cancellationKeyRef = useRef<string | null>(null);
 
   const handleUpdatePayment = async () => {
     setLoading('payment');
@@ -51,16 +52,21 @@ export function ManageSubscriptionButton({
     if (!confirm(labels.cancelConfirm)) return;
     setLoading('cancel');
     try {
-      const result = await cancelSubscription(subscriptionId);
+      const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
+      cancellationKeyRef.current = idempotencyKey;
+      const result = await cancelSubscription(subscriptionId, idempotencyKey);
       if (result.error) {
         toast.error(result.error);
+        cancellationKeyRef.current = null;
         setLoading(null);
       } else {
+        cancellationKeyRef.current = null;
         toast.success('Subscription scheduled for cancellation');
         // Refresh to show updated status if optimistic update isn't enough
         window.location.reload();
       }
     } catch {
+      cancellationKeyRef.current = null;
       toast.error('Failed to cancel subscription');
       setLoading(null);
     }

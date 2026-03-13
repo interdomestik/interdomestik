@@ -307,6 +307,13 @@ export async function cleanupByPrefixes(
         .where(inArray(dbSchema.sharePacks.createdByUserId, allUserIds));
     }
 
+    // 7g. Delete commercial idempotency rows recorded for these users
+    if (dbSchema.commercialActionIdempotency) {
+      await db
+        .delete(dbSchema.commercialActionIdempotency)
+        .where(inArray(dbSchema.commercialActionIdempotency.actorUserId, allUserIds));
+    }
+
     // Finally delete the users
     await db.delete(dbSchema.user).where(inArray(dbSchema.user.id, allUserIds));
   }

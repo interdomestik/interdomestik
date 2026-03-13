@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { submitClaimCore } from './submit.core';
 import { submitClaimCore as submitClaimCoreDomain } from '@interdomestik/domain-claims/claims/submit';
+
+const mockRunCommercialActionWithIdempotency = vi.fn();
 
 // Mock domain logic
 vi.mock('@interdomestik/domain-claims/claims/submit', () => ({
@@ -19,6 +21,11 @@ vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimitForAction: (...args: any[]) => mockRateLimit(...args),
 }));
 
+vi.mock('@/lib/commercial-action-idempotency', () => ({
+  runCommercialActionWithIdempotency: (...args: unknown[]) =>
+    mockRunCommercialActionWithIdempotency(...args),
+}));
+
 // Mock notifications (though imported by core, we mock import)
 vi.mock('@/lib/notifications', () => ({
   notifyClaimSubmitted: vi.fn(),
@@ -30,6 +37,11 @@ vi.mock('@/lib/audit', () => ({
 }));
 
 describe('actions/claims/submit', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRunCommercialActionWithIdempotency.mockImplementation(async ({ execute }) => execute());
+  });
+
   const validData = {
     category: 'transport',
     title: 'Damaged Goods',
@@ -51,6 +63,7 @@ describe('actions/claims/submit', () => {
     });
 
     const result = await submitClaimCore({
+      idempotencyKey: 'claim-submit-1',
       session: validSession as any,
       requestHeaders: new Headers(),
       data: validData as any,
@@ -70,6 +83,15 @@ describe('actions/claims/submit', () => {
         },
       },
     });
+    expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'claims.submit',
+        actorUserId: 'user-1',
+        tenantId: 'tenant-1',
+        idempotencyKey: 'claim-submit-1',
+        requestFingerprint: validData,
+      })
+    );
     expect(mockRateLimit).toHaveBeenCalled();
   });
 

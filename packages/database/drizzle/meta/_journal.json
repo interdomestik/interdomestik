@@ -295,6 +295,20 @@
       "when": 1773325145000,
       "tag": "0041_add_success_fee_collection_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1773389346421,
+      "tag": "0042_add_commercial_action_idempotency",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1773390180000,
+      "tag": "0043_enable_commercial_action_idempotency_rls",
+      "breakpoints": true
     }
   ]
 }

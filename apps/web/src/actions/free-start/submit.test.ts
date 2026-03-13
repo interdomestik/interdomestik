@@ -1,11 +1,17 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { submitFreeStartIntakeCore } from './submit.core';
 
 const mockRateLimit = vi.fn();
+const mockRunCommercialActionWithIdempotency = vi.fn();
 
 vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimitForAction: (...args: unknown[]) => mockRateLimit(...args),
+}));
+
+vi.mock('@/lib/commercial-action-idempotency', () => ({
+  runCommercialActionWithIdempotency: (...args: unknown[]) =>
+    mockRunCommercialActionWithIdempotency(...args),
 }));
 
 vi.mock('@sentry/nextjs', () => ({
@@ -13,6 +19,11 @@ vi.mock('@sentry/nextjs', () => ({
 }));
 
 describe('actions/free-start submitFreeStartIntakeCore', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRunCommercialActionWithIdempotency.mockImplementation(async ({ execute }) => execute());
+  });
+
   const validInput = {
     category: 'property',
     counterparty: 'Building insurer',
@@ -26,6 +37,7 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
     mockRateLimit.mockResolvedValueOnce({ limited: false });
 
     const result = await submitFreeStartIntakeCore({
+      idempotencyKey: 'free-start-1',
       requestHeaders: new Headers(),
       data: validInput,
     });
@@ -38,6 +50,13 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
         intakeIssue: 'water_damage',
       },
     });
+    expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'free-start.submit',
+        idempotencyKey: 'free-start-1',
+        requestFingerprint: validInput,
+      })
+    );
   });
 
   it('rejects issue types that do not match the selected category', async () => {

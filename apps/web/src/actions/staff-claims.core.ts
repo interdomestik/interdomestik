@@ -53,7 +53,7 @@ export async function updateClaimStatus(
 }
 
 export async function saveClaimEscalationAgreement(
-  input: SaveClaimEscalationAgreementInput
+  input: SaveClaimEscalationAgreementInput & { idempotencyKey?: string }
 ): Promise<ActionResult<ClaimEscalationAgreementSnapshot>> {
   const { session, requestHeaders } = await getActionContext();
   return saveClaimEscalationAgreementCore({
