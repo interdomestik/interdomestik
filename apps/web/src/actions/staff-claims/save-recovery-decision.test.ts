@@ -47,7 +47,6 @@ describe('saveRecoveryDecisionCore', () => {
     vi.spyOn(domainSave, 'saveStaffRecoveryDecisionCore').mockResolvedValueOnce({
       success: true,
       data: {
-        claimId: 'claim-1',
         decidedAt: '2026-03-12T00:00:00.000Z',
         declineReasonCode: 'insufficient_evidence',
         explanation: 'Not enough evidence for staff-led recovery.',

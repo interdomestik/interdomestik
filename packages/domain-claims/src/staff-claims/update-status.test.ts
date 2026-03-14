@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ClaimsSession } from '../claims/types';
+import type {
+  PaymentAuthorizationState,
+  RecoveryDeclineReasonCode,
+  RecoveryDecisionType,
+} from './types';
 import { updateClaimStatusCore } from './update-status';
 
 function createSelectChain() {
@@ -11,7 +16,15 @@ function createSelectChain() {
   };
 }
 
-const AUTHORIZED_AGREEMENT = {
+type MockRecoveryAgreement = {
+  claimId: string;
+  decisionType: RecoveryDecisionType | null;
+  declineReasonCode: RecoveryDeclineReasonCode | null;
+  paymentAuthorizationState: PaymentAuthorizationState;
+  signedAt: Date | null;
+};
+
+const AUTHORIZED_AGREEMENT: MockRecoveryAgreement = {
   claimId: 'claim-1',
   decisionType: 'accepted',
   declineReasonCode: null,
@@ -192,7 +205,7 @@ function createSession(options: {
 }
 
 function mockRecoverySelects(options?: {
-  agreement?: Array<typeof AUTHORIZED_AGREEMENT>;
+  agreement?: Array<MockRecoveryAgreement>;
   claim?: Array<{ id: string; status: string; userId: string }>;
   existingClaimUsage?: Array<{ id: string }>;
   matterCount?: Array<{ count: number }>;
