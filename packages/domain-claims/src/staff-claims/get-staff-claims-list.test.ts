@@ -18,7 +18,9 @@ const mocks = vi.hoisted(() => {
       branchId: 'claims.branch_id',
       staffId: 'claims.staff_id',
       claimNumber: 'claims.claim_number',
+      companyName: 'claims.company_name',
       status: 'claims.status',
+      title: 'claims.title',
       updatedAt: 'claims.updated_at',
       userId: 'claims.user_id',
     },
@@ -30,6 +32,7 @@ const mocks = vi.hoisted(() => {
     eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
     and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
     desc: vi.fn(value => ({ value, op: 'desc' })),
+    ilike: vi.fn((column, value) => ({ column, value, op: 'ilike' })),
     inArray: vi.fn((column, values) => ({ column, values, op: 'inArray' })),
     or: vi.fn((...conditions) => ({ conditions, op: 'or' })),
     isNull: vi.fn(column => ({ column, op: 'isNull' })),
@@ -44,6 +47,7 @@ vi.mock('@interdomestik/database', () => ({
   eq: mocks.eq,
   and: mocks.and,
   desc: mocks.desc,
+  ilike: mocks.ilike,
   inArray: mocks.inArray,
 }));
 
@@ -60,8 +64,16 @@ import { getStaffClaimsList } from './get-staff-claims-list';
 
 describe('getStaffClaimsList', () => {
   beforeEach(() => {
+    mocks.and.mockClear();
     mocks.db.select.mockReset();
     mocks.db.select.mockReturnValueOnce(mocks.claimChain);
+    mocks.desc.mockClear();
+    mocks.eq.mockClear();
+    mocks.ilike.mockClear();
+    mocks.inArray.mockClear();
+    mocks.isNull.mockClear();
+    mocks.or.mockClear();
+    mocks.withTenant.mockClear();
     mocks.claimChain.from.mockReturnValue(mocks.claimChain);
     mocks.claimChain.leftJoin.mockReturnValue(mocks.claimChain);
     mocks.claimChain.where.mockReturnValue(mocks.claimChain);
@@ -139,6 +151,55 @@ describe('getStaffClaimsList', () => {
             conditions: expect.arrayContaining([
               expect.objectContaining({ op: 'eq', left: 'claims.staff_id', right: 'staff-3' }),
               expect.objectContaining({ op: 'isNull', column: 'claims.staff_id' }),
+            ]),
+          }),
+        ]),
+      })
+    );
+  });
+
+  it('applies assignment, status, and search filters within the actionable queue scope', async () => {
+    mocks.claimChain.limit.mockResolvedValue([]);
+
+    await getStaffClaimsList({
+      staffId: 'staff-3',
+      tenantId: 'tenant-ks',
+      branchId: null,
+      limit: 10,
+      assignment: 'unassigned',
+      search: 'Acme',
+      status: 'verification',
+    });
+
+    expect(mocks.withTenant).toHaveBeenCalledWith(
+      'tenant-ks',
+      mocks.claims.tenantId,
+      expect.objectContaining({
+        op: 'and',
+        conditions: expect.arrayContaining([
+          expect.objectContaining({ op: 'inArray' }),
+          expect.objectContaining({ op: 'eq', left: 'claims.status', right: 'verification' }),
+          expect.objectContaining({ op: 'isNull', column: 'claims.staff_id' }),
+          expect.objectContaining({
+            op: 'or',
+            conditions: expect.arrayContaining([
+              expect.objectContaining({ op: 'ilike', column: 'claims.title', value: '%Acme%' }),
+              expect.objectContaining({
+                op: 'ilike',
+                column: 'claims.company_name',
+                value: '%Acme%',
+              }),
+              expect.objectContaining({
+                op: 'ilike',
+                column: 'claims.claim_number',
+                value: '%Acme%',
+              }),
+              expect.objectContaining({ op: 'ilike', column: 'user.name', value: '%Acme%' }),
+              expect.objectContaining({
+                op: 'ilike',
+                column: 'user.member_number',
+                value: '%Acme%',
+              }),
             ]),
           }),
         ]),
