@@ -73,10 +73,10 @@ test.describe('Internal Notes Isolation', () => {
 
     try {
       await gotoApp(memberPage, routes.memberClaimDetail(claimId, testInfo), testInfo, {
-        marker: 'body',
+        marker: 'ops-timeline',
       });
 
-      await expect(memberPage.getByRole('button', { name: 'Send Message' })).toBeVisible({
+      await expect(memberPage.getByTestId('ops-timeline')).toBeVisible({
         timeout: 10_000,
       });
       await expect(memberPage.getByText(internalHistoryNote)).toHaveCount(0);

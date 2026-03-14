@@ -9,7 +9,7 @@ import type { MessageWithSender, SelectedMessageRow } from './types';
 /**
  * Get messages for a claim.
  * - Members can only see non-internal messages.
- * - Staff/Admins can see all messages including internal notes.
+ * - Staff, tenant admins, and super admins can see all messages including internal notes.
  */
 export async function getMessagesForClaimCore(params: {
   session: NonNullable<Session> | null;
