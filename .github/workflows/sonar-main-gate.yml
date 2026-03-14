@@ -24,7 +24,7 @@ jobs:
       SONAR_SCANNER_SKIP_JRE_PROVISIONING: 'true'
       EVIDENCE_DIR: tmp/sonar-evidence/${{ github.run_id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: ./.github/actions/setup
 
@@ -77,7 +77,7 @@ jobs:
       - name: Upload Sonar gate artifacts
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sonarqube-main-gate-${{ github.run_id }}
           path: |

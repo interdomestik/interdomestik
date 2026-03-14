@@ -38,12 +38,13 @@ jobs:
       ai_eval_reason: ${{ steps.ai_eval_surface.outputs.reason }}
       ai_eval_matched_paths: ${{ steps.ai_eval_surface.outputs.matched_paths }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: '.nvmrc'
+          package-manager-cache: false
       - name: Evaluate validation surface
         id: validation_surface
         env:
@@ -77,7 +78,7 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - name: Run Audits
         run: |
@@ -97,7 +98,7 @@ jobs:
     if: needs.validation-surface.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - name: Static Checks
         run: |
@@ -109,7 +110,7 @@ jobs:
       - name: Upload i18n purity report
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: i18n-purity-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: tmp/i18n-purity/
@@ -122,7 +123,7 @@ jobs:
     if: needs.validation-surface.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - name: Coverage Gate
         env:
@@ -139,7 +140,7 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - name: Explain AI eval surface
         run: |
@@ -152,7 +153,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - uses: ./.github/actions/setup
@@ -178,7 +179,7 @@ jobs:
       - name: Upload PR hardening dry-run artifacts
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: multi-agent-dry-run-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -213,7 +214,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
       E2E_API_SECRET: test-secret-placeholder
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
         with:
           install-playwright: ${{ github.event_name != 'pull_request' }}
