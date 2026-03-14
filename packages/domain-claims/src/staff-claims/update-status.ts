@@ -1,5 +1,4 @@
 import {
-  and,
   claimEscalationAgreements,
   claimStageHistory,
   claims,
@@ -14,7 +13,8 @@ import type { ActionResult, ClaimStatus } from './types';
 
 import { claimStatusSchema } from '../validators/claims';
 import {
-  getMatterAllowanceContextForUser,
+  getMatterAllowanceContextForSubscription,
+  getMatterAllowanceSubscriptionContextForUser,
   getRecoveryMatterServiceCode,
   hasRecoveryMatterUsageForClaim,
 } from './matter-allowance';
@@ -86,12 +86,12 @@ async function handleStaffLedRecoveryStatusChange(
     };
   }
 
-  const matterAllowanceContext = await getMatterAllowanceContextForUser({
+  const matterAllowanceSubscription = await getMatterAllowanceSubscriptionContextForUser({
     tenantId,
     userId: currentClaim.userId,
   });
 
-  if (!matterAllowanceContext) {
+  if (!matterAllowanceSubscription) {
     return {
       success: false,
       error: 'Membership subscription context is required before staff-led recovery can begin.',
@@ -101,11 +101,16 @@ async function handleStaffLedRecoveryStatusChange(
   const matterServiceCode = getRecoveryMatterServiceCode(claimId);
   const alreadyConsumedForClaim = await hasRecoveryMatterUsageForClaim({
     claimId,
-    subscriptionId: matterAllowanceContext.subscriptionId,
+    subscriptionId: matterAllowanceSubscription.subscriptionId,
     tenantId,
   });
 
   if (!alreadyConsumedForClaim) {
+    const matterAllowanceContext = await getMatterAllowanceContextForSubscription({
+      subscription: matterAllowanceSubscription,
+      tenantId,
+    });
+
     if (
       matterAllowanceContext.consumedCount >= matterAllowanceContext.allowanceTotal &&
       !trimmedAllowanceOverrideReason
@@ -132,7 +137,7 @@ async function handleStaffLedRecoveryStatusChange(
         .values({
           id: crypto.randomUUID(),
           tenantId,
-          subscriptionId: matterAllowanceContext.subscriptionId,
+          subscriptionId: matterAllowanceSubscription.subscriptionId,
           userId: currentClaim.userId,
           serviceCode: matterServiceCode,
           usedAt: new Date(),

@@ -194,9 +194,12 @@ function mockRecoverySelects(options?: {
     .mockReturnValueOnce(mocks.claimSelectChain)
     .mockReturnValueOnce(mocks.agreementSelectChain)
     .mockReturnValueOnce(mocks.subscriptionSelectChain)
-    .mockReturnValueOnce(mocks.membershipPlanSelectChain)
-    .mockReturnValueOnce(mocks.serviceUsageCountSelectChain)
     .mockReturnValueOnce(mocks.serviceUsageExistsSelectChain);
+  if ((options?.existingClaimUsage?.length ?? 0) === 0) {
+    mocks.db.select
+      .mockReturnValueOnce(mocks.membershipPlanSelectChain)
+      .mockReturnValueOnce(mocks.serviceUsageCountSelectChain);
+  }
   mocks.claimSelectChain.limit.mockResolvedValue(
     options?.claim ?? [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }]
   );
@@ -204,10 +207,12 @@ function mockRecoverySelects(options?: {
   mocks.subscriptionSelectChain.limit.mockResolvedValue(
     options?.subscription ?? [STANDARD_SUBSCRIPTION]
   );
-  mocks.membershipPlanSelectChain.limit.mockResolvedValue(options?.plan ?? [STANDARD_PLAN]);
-  mocks.serviceUsageCountSelectChain.limit.mockResolvedValue(
-    options?.matterCount ?? [{ count: 0 }]
-  );
+  if ((options?.existingClaimUsage?.length ?? 0) === 0) {
+    mocks.membershipPlanSelectChain.limit.mockResolvedValue(options?.plan ?? [STANDARD_PLAN]);
+    mocks.serviceUsageCountSelectChain.limit.mockResolvedValue(
+      options?.matterCount ?? [{ count: 0 }]
+    );
+  }
   mocks.serviceUsageExistsSelectChain.limit.mockResolvedValue(options?.existingClaimUsage ?? []);
 }
 
@@ -298,6 +303,23 @@ describe('staff updateClaimStatusCore', () => {
         toStatus: 'negotiation',
       })
     );
+  });
+
+  it('skips allowance total and usage window queries when the claim already consumed a recovery matter', async () => {
+    mockRecoverySelects({
+      existingClaimUsage: [{ id: 'usage-claim-1' }],
+    });
+
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'negotiation',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.membershipPlanSelectChain.limit).not.toHaveBeenCalled();
+    expect(mocks.serviceUsageCountSelectChain.limit).not.toHaveBeenCalled();
+    expect(mocks.txInsertOnConflictDoNothing).not.toHaveBeenCalled();
   });
 
   it('blocks staff-led recovery when annual matter allowance is exhausted without an override', async () => {

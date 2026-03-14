@@ -13,6 +13,7 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 export const FAMILY_MATTER_ALLOWANCE = 5;
 export const STANDARD_MATTER_ALLOWANCE = 2;
 export const RECOVERY_MATTER_SERVICE_CODE_PREFIX = 'staff_recovery_matter:';
+const RECOVERY_MATTER_SERVICE_CODE_PATTERN = `${RECOVERY_MATTER_SERVICE_CODE_PREFIX}%`;
 
 type NormalizableDate = Date | string | null | undefined;
 
@@ -25,6 +26,14 @@ export type MatterAllowanceVisibility = {
 };
 
 export type MatterAllowanceContext = MatterAllowanceVisibility & {
+  subscriptionId: string;
+};
+
+export type MatterAllowanceSubscriptionContext = {
+  currentPeriodEnd: NormalizableDate;
+  currentPeriodStart: NormalizableDate;
+  planId: string | null | undefined;
+  planKey: string | null | undefined;
   subscriptionId: string;
 };
 
@@ -125,6 +134,8 @@ export async function countRecoveryMatterUsageInWindow(params: {
   subscriptionId: string;
   tenantId: string;
 }) {
+  const endBoundary = params.end.toISOString();
+  const startBoundary = params.start.toISOString();
   const [usageCount] = await db
     .select({ count: sql<number>`count(*)` })
     .from(serviceUsage)
@@ -134,9 +145,9 @@ export async function countRecoveryMatterUsageInWindow(params: {
         serviceUsage.tenantId,
         and(
           eq(serviceUsage.subscriptionId, params.subscriptionId),
-          sql`${serviceUsage.serviceCode} like ${`${RECOVERY_MATTER_SERVICE_CODE_PREFIX}%`}`,
-          sql`${serviceUsage.usedAt} >= ${params.start.toISOString()}`,
-          sql`${serviceUsage.usedAt} <= ${params.end.toISOString()}`
+          sql`${serviceUsage.serviceCode} like ${RECOVERY_MATTER_SERVICE_CODE_PATTERN}`,
+          sql`${serviceUsage.usedAt} >= CAST(${startBoundary} AS timestamp)`,
+          sql`${serviceUsage.usedAt} <= CAST(${endBoundary} AS timestamp)`
         )
       )
     )
@@ -145,11 +156,10 @@ export async function countRecoveryMatterUsageInWindow(params: {
   return Number(usageCount?.count ?? 0);
 }
 
-export async function getMatterAllowanceContextForUser(params: {
+export async function getMatterAllowanceSubscriptionContextForUser(params: {
   tenantId: string;
   userId: string;
-  now?: Date;
-}): Promise<MatterAllowanceContext | null> {
+}): Promise<MatterAllowanceSubscriptionContext | null> {
   const [subscription] = await db
     .select({
       id: subscriptions.id,
@@ -168,6 +178,22 @@ export async function getMatterAllowanceContextForUser(params: {
     return null;
   }
 
+  return {
+    subscriptionId: subscription.id,
+    currentPeriodEnd: subscription.currentPeriodEnd,
+    currentPeriodStart: subscription.currentPeriodStart,
+    planId: subscription.planId,
+    planKey: subscription.planKey,
+  };
+}
+
+export async function getMatterAllowanceContextForSubscription(params: {
+  now?: Date;
+  subscription: MatterAllowanceSubscriptionContext;
+  tenantId: string;
+}): Promise<MatterAllowanceContext> {
+  const { subscription } = params;
+
   const allowanceWindow = buildMatterAllowanceWindow({
     currentPeriodEnd: subscription.currentPeriodEnd,
     currentPeriodStart: subscription.currentPeriodStart,
@@ -181,18 +207,36 @@ export async function getMatterAllowanceContextForUser(params: {
   const consumedCount = await countRecoveryMatterUsageInWindow({
     end: allowanceWindow.end,
     start: allowanceWindow.start,
-    subscriptionId: subscription.id,
+    subscriptionId: subscription.subscriptionId,
     tenantId: params.tenantId,
   });
 
   return {
-    subscriptionId: subscription.id,
+    subscriptionId: subscription.subscriptionId,
     allowanceTotal,
     consumedCount,
     remainingCount: Math.max(allowanceTotal - consumedCount, 0),
     windowStart: allowanceWindow.start,
     windowEnd: allowanceWindow.end,
   };
+}
+
+export async function getMatterAllowanceContextForUser(params: {
+  tenantId: string;
+  userId: string;
+  now?: Date;
+}): Promise<MatterAllowanceContext | null> {
+  const subscription = await getMatterAllowanceSubscriptionContextForUser(params);
+
+  if (!subscription) {
+    return null;
+  }
+
+  return getMatterAllowanceContextForSubscription({
+    now: params.now,
+    subscription,
+    tenantId: params.tenantId,
+  });
 }
 
 export async function getMatterAllowanceVisibilityForUser(params: {
