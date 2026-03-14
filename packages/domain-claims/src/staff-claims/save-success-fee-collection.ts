@@ -134,16 +134,8 @@ export async function saveSuccessFeeCollectionCore(
         .limit(1);
 
       const commercialAgreement = buildCommercialAgreementSnapshot({
-        acceptedAt: agreement?.acceptedAt,
         claimId: parsed.data.claimId,
-        decisionNextStatus: agreement?.decisionNextStatus,
-        decisionReason: agreement?.decisionReason,
-        feePercentage: agreement?.feePercentage,
-        legalActionCapPercentage: agreement?.legalActionCapPercentage,
-        minimumFee: agreement?.minimumFee,
-        paymentAuthorizationState: agreement?.paymentAuthorizationState,
-        signedAt: agreement?.signedAt,
-        termsVersion: agreement?.termsVersion,
+        ...(agreement ?? {}),
       });
 
       if (!commercialAgreement) {
