@@ -17,6 +17,7 @@ Add audit-safe escalation acceptance and decline handling to the canonical staff
 
 - Extended the escalation-agreement domain model, database schema, and migration set so acceptance now stores the resulting next state plus the staff decision reason in the durable agreement record alongside the actor and acceptance timestamp.
 - Updated the canonical agreement save path to validate and persist the decision fields, refresh acceptance actor and time on resave, and emit acceptance audit metadata with `decisionType`, `decisionNextStatus`, and `decisionReason`.
+- Extended the canonical staff claim-detail read model so the persisted escalation decision fields are returned on the same typed commercial agreement snapshot consumed by the staff UI.
 - Extended the typed web action surface so staff tooling can submit the new decision fields end to end.
 - Tightened the canonical reject path so staff decline decisions now require a reason and record `decisionType`, `decisionNextStatus`, and `decisionReason` in claim audit metadata.
 - Added the staff-panel controls and summaries required to capture and display the accepted next state and decision reason on the same canonical claim action surface.

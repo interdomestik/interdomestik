@@ -31,6 +31,8 @@ const mocks = vi.hoisted(() => {
     },
     claimEscalationAgreements: {
       claimId: 'claim_escalation_agreements.claim_id',
+      decisionNextStatus: 'claim_escalation_agreements.decision_next_status',
+      decisionReason: 'claim_escalation_agreements.decision_reason',
       feePercentage: 'claim_escalation_agreements.fee_percentage',
       minimumFee: 'claim_escalation_agreements.minimum_fee',
       legalActionCapPercentage: 'claim_escalation_agreements.legal_action_cap_percentage',
@@ -102,6 +104,8 @@ describe('getStaffClaimDetail', () => {
         agreementFeePercentage: 15,
         agreementMinimumFee: '25.00',
         agreementLegalActionCapPercentage: 25,
+        agreementDecisionNextStatus: 'court',
+        agreementDecisionReason: 'Strong liability record and member approval captured.',
         agreementPaymentAuthorizationState: 'authorized',
         agreementSuccessFeeRecoveredAmount: '1000.00',
         agreementSuccessFeeCurrencyCode: 'EUR',
@@ -134,6 +138,8 @@ describe('getStaffClaimDetail', () => {
     expect(result?.member.membershipNumber).toBe('MEM-001');
     expect(result?.agent?.name).toBe('Agent One');
     expect(result?.commercialAgreement).toMatchObject({
+      decisionNextStatus: 'court',
+      decisionReason: 'Strong liability record and member approval captured.',
       feePercentage: 15,
       minimumFee: '25.00',
       legalActionCapPercentage: 25,

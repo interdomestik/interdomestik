@@ -55,6 +55,8 @@ export async function getStaffClaimDetail(params: {
       memberId: user.id,
       memberName: user.name,
       memberNumber: user.memberNumber,
+      agreementDecisionNextStatus: claimEscalationAgreements.decisionNextStatus,
+      agreementDecisionReason: claimEscalationAgreements.decisionReason,
       agreementFeePercentage: claimEscalationAgreements.feePercentage,
       agreementMinimumFee: claimEscalationAgreements.minimumFee,
       agreementLegalActionCapPercentage: claimEscalationAgreements.legalActionCapPercentage,
@@ -119,6 +121,8 @@ export async function getStaffClaimDetail(params: {
       row.agreementTermsVersion != null
         ? {
             claimId: row.claimId,
+            decisionNextStatus: row.agreementDecisionNextStatus ?? null,
+            decisionReason: row.agreementDecisionReason ?? null,
             feePercentage: row.agreementFeePercentage,
             minimumFee: row.agreementMinimumFee,
             legalActionCapPercentage: row.agreementLegalActionCapPercentage,
