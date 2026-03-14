@@ -4,6 +4,7 @@ import {
   assignClaim,
   ClaimEscalationAgreementSnapshot,
   ClaimStatus,
+  EscalationDecisionNextStatus,
   PaymentAuthorizationState,
   saveClaimEscalationAgreement,
   saveSuccessFeeCollection,
@@ -43,6 +44,17 @@ const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = CANONICAL_
   })
 );
 const RECOVERY_START_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
+const ESCALATION_DECISION_STATUS_OPTIONS: {
+  value: EscalationDecisionNextStatus;
+  label: string;
+}[] = [
+  { value: 'negotiation', label: getStaffClaimStatusLabel('negotiation') },
+  { value: 'court', label: getStaffClaimStatusLabel('court') },
+];
+
+function getDefaultDecisionNextStatus(currentStatus: string): EscalationDecisionNextStatus {
+  return currentStatus === 'court' ? 'court' : 'negotiation';
+}
 
 function formatCollectionMethodLabel(method: SuccessFeeCollectionSnapshot['collectionMethod']) {
   switch (method) {
@@ -75,6 +87,10 @@ export function ClaimActionPanel({
   );
   const [savedSuccessFeeCollection, setSavedSuccessFeeCollection] =
     useState<SuccessFeeCollectionSnapshot | null>(successFeeCollection);
+  const [decisionNextStatus, setDecisionNextStatus] = useState<EscalationDecisionNextStatus>(
+    commercialAgreement?.decisionNextStatus ?? getDefaultDecisionNextStatus(currentStatus)
+  );
+  const [decisionReason, setDecisionReason] = useState(commercialAgreement?.decisionReason ?? '');
   const [feePercentage, setFeePercentage] = useState(
     commercialAgreement?.feePercentage.toString() ?? ''
   );
@@ -98,6 +114,10 @@ export function ClaimActionPanel({
   useEffect(() => {
     setSavedAgreement(commercialAgreement);
     setSavedSuccessFeeCollection(successFeeCollection);
+    setDecisionNextStatus(
+      commercialAgreement?.decisionNextStatus ?? getDefaultDecisionNextStatus(currentStatus)
+    );
+    setDecisionReason(commercialAgreement?.decisionReason ?? '');
     setFeePercentage(commercialAgreement?.feePercentage.toString() ?? '');
     setMinimumFee(commercialAgreement?.minimumFee ?? '25.00');
     setLegalActionCapPercentage(commercialAgreement?.legalActionCapPercentage.toString() ?? '');
@@ -105,7 +125,7 @@ export function ClaimActionPanel({
     setTermsVersion(commercialAgreement?.termsVersion ?? '');
     setRecoveredAmount(successFeeCollection?.recoveredAmount ?? '');
     setDeductionPath(successFeeCollection?.deductionAllowed ? 'allowed' : 'fallback');
-  }, [commercialAgreement, successFeeCollection]);
+  }, [commercialAgreement, currentStatus, successFeeCollection]);
 
   const handleAssign = () => {
     startTransition(async () => {
@@ -126,6 +146,8 @@ export function ClaimActionPanel({
       try {
         const result = await saveClaimEscalationAgreement({
           claimId,
+          decisionNextStatus,
+          decisionReason: decisionReason.trim(),
           feePercentage: Number(feePercentage),
           idempotencyKey,
           legalActionCapPercentage: Number(legalActionCapPercentage),
@@ -149,11 +171,12 @@ export function ClaimActionPanel({
 
   const handleStatusUpdate = () => {
     startTransition(async () => {
+      const trimmedNote = note.trim();
       const trimmedAllowanceOverrideReason = allowanceOverrideReason.trim();
       const result = await updateClaimStatus(
         claimId,
         status,
-        note,
+        trimmedNote || undefined,
         true,
         trimmedAllowanceOverrideReason || undefined
       );
@@ -200,12 +223,14 @@ export function ClaimActionPanel({
   const hasValidRecoveredAmount =
     Number.isFinite(parsedRecoveredAmount) && parsedRecoveredAmount > 0;
   const canSaveAgreement =
+    decisionReason.trim().length > 0 &&
     feePercentage.trim().length > 0 &&
     minimumFee.trim().length > 0 &&
     legalActionCapPercentage.trim().length > 0 &&
     termsVersion.trim().length > 0;
   const canSaveSuccessFeeCollection = hasCommercialAgreement && hasValidRecoveredAmount;
   const requiresMatterAllowanceGuard = RECOVERY_START_STATUSES.has(status);
+  const requiresDeclineReason = status === 'rejected' && currentStatus !== 'rejected';
 
   let assignmentLabel = 'Unassigned';
   if (assigneeId) {
@@ -258,6 +283,20 @@ export function ClaimActionPanel({
         >
           {savedAgreement ? (
             <div className="grid gap-2 md:grid-cols-2">
+              <div>
+                <span className="text-muted-foreground">Accepted next state</span>
+                <div className="font-medium text-slate-900">
+                  {savedAgreement.decisionNextStatus
+                    ? getStaffClaimStatusLabel(savedAgreement.decisionNextStatus)
+                    : 'Not recorded'}
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Decision reason</span>
+                <div className="font-medium text-slate-900">
+                  {savedAgreement.decisionReason ?? 'Not recorded'}
+                </div>
+              </div>
               <div>
                 <span className="text-muted-foreground">Fee</span>
                 <div className="font-medium text-slate-900">{savedAgreement.feePercentage}%</div>
@@ -350,7 +389,28 @@ export function ClaimActionPanel({
               disabled={isPending}
             />
           </div>
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
+            <label htmlFor="agreement-decision-next-status" className="text-sm font-medium">
+              Accepted next state
+            </label>
+            <Select
+              value={decisionNextStatus}
+              onValueChange={value => setDecisionNextStatus(value as EscalationDecisionNextStatus)}
+              disabled={isPending}
+            >
+              <SelectTrigger id="agreement-decision-next-status">
+                <SelectValue placeholder="Select accepted next state" />
+              </SelectTrigger>
+              <SelectContent>
+                {ESCALATION_DECISION_STATUS_OPTIONS.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <label htmlFor="agreement-payment-auth" className="text-sm font-medium">
               Payment authorization
             </label>
@@ -370,6 +430,19 @@ export function ClaimActionPanel({
                 <SelectItem value="revoked">Revoked</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label htmlFor="agreement-decision-reason" className="text-sm font-medium">
+              Decision reason
+            </label>
+            <Textarea
+              id="agreement-decision-reason"
+              placeholder="Record why staff accepted this escalation path..."
+              value={decisionReason}
+              onChange={event => setDecisionReason(event.target.value)}
+              disabled={isPending}
+              className="min-h-[80px]"
+            />
           </div>
         </div>
 
@@ -524,11 +597,16 @@ export function ClaimActionPanel({
 
         <div className="space-y-2">
           <label htmlFor="claim-status-note" className="text-sm font-medium">
-            Status Note <span className="text-xs text-muted-foreground">(Visible to member)</span>
+            {requiresDeclineReason ? 'Decline reason' : 'Status Note'}{' '}
+            <span className="text-xs text-muted-foreground">(Visible to member)</span>
           </label>
           <Textarea
             id="claim-status-note"
-            placeholder="Reason for status change..."
+            placeholder={
+              requiresDeclineReason
+                ? 'Explain why staff declined this recovery matter...'
+                : 'Reason for status change...'
+            }
             value={note}
             onChange={event => setNote(event.target.value)}
             disabled={isPending}
@@ -560,7 +638,11 @@ export function ClaimActionPanel({
         <Button
           className="w-full"
           onClick={handleStatusUpdate}
-          disabled={isPending || (!hasStatusChanged && !note)}
+          disabled={
+            isPending ||
+            (!hasStatusChanged && !note.trim()) ||
+            (requiresDeclineReason && !note.trim())
+          }
           data-testid="staff-update-claim-button"
         >
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -9,11 +9,13 @@ import type {
   ClaimEscalationAgreementSnapshot,
   SaveClaimEscalationAgreementInput,
 } from './types';
-import { PAYMENT_AUTHORIZATION_STATES } from './types';
+import { ESCALATION_DECISION_NEXT_STATUSES, PAYMENT_AUTHORIZATION_STATES } from './types';
 
 const saveClaimEscalationAgreementSchema = z
   .object({
     claimId: z.string().trim().min(1, 'Claim ID is required'),
+    decisionNextStatus: z.enum(ESCALATION_DECISION_NEXT_STATUSES),
+    decisionReason: z.string().trim().min(1, 'Decision reason is required'),
     feePercentage: z.coerce.number().int().min(1, 'Fee percentage must be at least 1'),
     minimumFee: z.coerce.number().positive('Minimum fee must be greater than zero'),
     legalActionCapPercentage: z.coerce.number().int().min(1, 'Legal-action cap must be at least 1'),
@@ -36,6 +38,8 @@ function normalizeDate(value: DateLike) {
 function buildSnapshot(params: {
   acceptedAt: DateLike;
   claimId: string;
+  decisionNextStatus: ClaimEscalationAgreementSnapshot['decisionNextStatus'];
+  decisionReason: string | null;
   feePercentage: number;
   legalActionCapPercentage: number;
   minimumFee: string;
@@ -46,6 +50,8 @@ function buildSnapshot(params: {
   return {
     acceptedAt: normalizeDate(params.acceptedAt),
     claimId: params.claimId,
+    decisionNextStatus: params.decisionNextStatus,
+    decisionReason: params.decisionReason,
     feePercentage: params.feePercentage,
     legalActionCapPercentage: params.legalActionCapPercentage,
     minimumFee: params.minimumFee,
@@ -78,6 +84,7 @@ export async function saveClaimEscalationAgreementCore(
 
   const tenantId = ensureTenantId(session);
   const now = new Date();
+  const decisionReason = parsed.data.decisionReason.trim();
   const minimumFee = parsed.data.minimumFee.toFixed(2);
 
   try {
@@ -99,6 +106,8 @@ export async function saveClaimEscalationAgreementCore(
         .select({
           acceptedAt: claimEscalationAgreements.acceptedAt,
           claimId: claimEscalationAgreements.claimId,
+          decisionNextStatus: claimEscalationAgreements.decisionNextStatus,
+          decisionReason: claimEscalationAgreements.decisionReason,
           feePercentage: claimEscalationAgreements.feePercentage,
           id: claimEscalationAgreements.id,
           legalActionCapPercentage: claimEscalationAgreements.legalActionCapPercentage,
@@ -121,6 +130,10 @@ export async function saveClaimEscalationAgreementCore(
         await tx
           .update(claimEscalationAgreements)
           .set({
+            acceptedAt: now,
+            acceptedById: session.user.id,
+            decisionNextStatus: parsed.data.decisionNextStatus,
+            decisionReason,
             feePercentage: parsed.data.feePercentage,
             legalActionCapPercentage: parsed.data.legalActionCapPercentage,
             minimumFee,
@@ -139,8 +152,10 @@ export async function saveClaimEscalationAgreementCore(
         return {
           success: true,
           data: buildSnapshot({
-            acceptedAt: existingAgreement.acceptedAt,
+            acceptedAt: now,
             claimId: parsed.data.claimId,
+            decisionNextStatus: parsed.data.decisionNextStatus,
+            decisionReason,
             feePercentage: parsed.data.feePercentage,
             legalActionCapPercentage: parsed.data.legalActionCapPercentage,
             minimumFee,
@@ -155,6 +170,8 @@ export async function saveClaimEscalationAgreementCore(
         id: crypto.randomUUID(),
         tenantId,
         claimId: parsed.data.claimId,
+        decisionNextStatus: parsed.data.decisionNextStatus,
+        decisionReason,
         signedByUserId: claim.userId,
         acceptedById: session.user.id,
         feePercentage: parsed.data.feePercentage,
@@ -173,6 +190,8 @@ export async function saveClaimEscalationAgreementCore(
         data: buildSnapshot({
           acceptedAt: now,
           claimId: parsed.data.claimId,
+          decisionNextStatus: parsed.data.decisionNextStatus,
+          decisionReason,
           feePercentage: parsed.data.feePercentage,
           legalActionCapPercentage: parsed.data.legalActionCapPercentage,
           minimumFee,
@@ -193,6 +212,9 @@ export async function saveClaimEscalationAgreementCore(
         entityId: parsed.data.claimId,
         metadata: {
           acceptedAt: result.data.acceptedAt,
+          decisionNextStatus: result.data.decisionNextStatus,
+          decisionReason: result.data.decisionReason,
+          decisionType: 'accepted',
           feePercentage: result.data.feePercentage,
           legalActionCapPercentage: result.data.legalActionCapPercentage,
           minimumFee: result.data.minimumFee,

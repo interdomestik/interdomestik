@@ -437,6 +437,7 @@ export async function updateClaimStatusCore(
   const status = parsed.data.status as ClaimStatus; // NOSONAR
 
   const tenantId = ensureTenantId(session);
+  const trimmedNote = note?.trim() || undefined;
   const trimmedAllowanceOverrideReason = params.allowanceOverrideReason?.trim() || undefined;
 
   try {
@@ -450,8 +451,15 @@ export async function updateClaimStatusCore(
       return { success: false, error: 'Claim not found' };
     }
 
-    if (currentClaim.status === status && !note) {
+    if (currentClaim.status === status && !trimmedNote) {
       return { success: true }; // No change needed
+    }
+
+    if (currentClaim.status !== status && status === 'rejected' && !trimmedNote) {
+      return {
+        success: false,
+        error: 'Decline reason is required when staff reject a recovery matter.',
+      };
     }
 
     if (currentClaim.status !== status && STAFF_LED_RECOVERY_STATUSES.has(status)) {
@@ -460,7 +468,7 @@ export async function updateClaimStatusCore(
         currentClaim,
         deps,
         isPublicChange,
-        note,
+        note: trimmedNote,
         requestHeaders: params.requestHeaders,
         session,
         status,
@@ -470,11 +478,19 @@ export async function updateClaimStatusCore(
     }
 
     return finalizeClaimStatusChange({
+      auditMetadata:
+        currentClaim.status !== status && status === 'rejected'
+          ? {
+              decisionNextStatus: 'rejected',
+              decisionReason: trimmedNote,
+              decisionType: 'declined',
+            }
+          : undefined,
       claimId,
       currentStatus: currentClaim.status,
       deps,
       isPublicChange,
-      note,
+      note: trimmedNote,
       requestHeaders: params.requestHeaders,
       session,
       status,

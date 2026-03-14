@@ -33,6 +33,8 @@ export async function saveClaimEscalationAgreementCore(
     idempotencyKey: params.idempotencyKey,
     requestFingerprint: {
       claimId: params.claimId,
+      decisionNextStatus: params.decisionNextStatus,
+      decisionReason: params.decisionReason,
       feePercentage: params.feePercentage,
       legalActionCapPercentage: params.legalActionCapPercentage,
       minimumFee: params.minimumFee,
