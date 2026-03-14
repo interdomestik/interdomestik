@@ -11,6 +11,7 @@ import {
 } from '@/components/ops/adapters/claims';
 import type {
   ClaimMatterAllowanceDto,
+  ClaimRecoveryDecisionDto,
   ClaimTrackingDetailDto,
   ClaimTrackingDocument,
   ClaimTimelineEvent,
@@ -33,15 +34,18 @@ type SerializedClaimMatterAllowance = Omit<ClaimMatterAllowanceDto, 'windowStart
   windowEnd: ClaimMatterAllowanceDto['windowEnd'] | string;
 };
 
+type SerializedClaimRecoveryDecision = ClaimRecoveryDecisionDto;
+
 type MemberClaimDetailOpsClaim = Omit<
   ClaimTrackingDetailDto,
-  'createdAt' | 'updatedAt' | 'documents' | 'timeline' | 'matterAllowance'
+  'createdAt' | 'updatedAt' | 'documents' | 'timeline' | 'matterAllowance' | 'recoveryDecision'
 > & {
   createdAt: ClaimTrackingDetailDto['createdAt'] | string;
   updatedAt: ClaimTrackingDetailDto['updatedAt'] | string | null;
   documents: SerializedClaimTrackingDocument[];
   timeline: SerializedClaimTimelineEvent[];
   matterAllowance?: SerializedClaimMatterAllowance | null;
+  recoveryDecision?: SerializedClaimRecoveryDecision | null;
 };
 
 interface MemberClaimDetailOpsPageProps {
@@ -114,6 +118,19 @@ export function MemberClaimDetailOpsPage({
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">{tSla(claim.slaPhase)}</p>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {claim.recoveryDecision ? (
+            <Card data-testid="member-claim-recovery-decision">
+              <CardHeader>
+                <CardTitle>{claim.recoveryDecision.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {claim.recoveryDecision.description}
+                </p>
               </CardContent>
             </Card>
           ) : null}

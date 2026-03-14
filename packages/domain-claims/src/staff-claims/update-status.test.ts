@@ -13,6 +13,8 @@ function createSelectChain() {
 
 const AUTHORIZED_AGREEMENT = {
   claimId: 'claim-1',
+  decisionType: 'accepted',
+  declineReasonCode: null,
   paymentAuthorizationState: 'authorized',
   signedAt: new Date('2026-03-11T09:00:00Z'),
 };
@@ -34,18 +36,21 @@ const mocks = vi.hoisted(() => {
   const membershipPlanSelectChain = createSelectChain();
   const serviceUsageExistsSelectChain = createSelectChain();
   const serviceUsageCountSelectChain = createSelectChain();
+  const txSelectChain = createSelectChain();
   const txInsertReturning = vi.fn();
   const txInsertOnConflictDoNothing = vi.fn(() => ({ returning: txInsertReturning }));
   const txInsertValues = vi.fn(() => ({
     onConflictDoNothing: txInsertOnConflictDoNothing,
   }));
   const txInsert = vi.fn(() => ({ values: txInsertValues }));
+  const txSelect = vi.fn(() => txSelectChain);
   const txUpdateWhere = vi.fn();
   const txUpdateSet = vi.fn(() => ({ where: txUpdateWhere }));
   const txUpdate = vi.fn(() => ({ set: txUpdateSet }));
   const transaction = vi.fn(async cb =>
     cb({
       insert: txInsert,
+      select: txSelect,
       update: txUpdate,
     })
   );
@@ -67,6 +72,8 @@ const mocks = vi.hoisted(() => {
     },
     claimEscalationAgreements: {
       claimId: 'claim_escalation_agreements.claim_id',
+      decisionType: 'claim_escalation_agreements.decision_type',
+      declineReasonCode: 'claim_escalation_agreements.decline_reason_code',
       paymentAuthorizationState: 'claim_escalation_agreements.payment_authorization_state',
       signedAt: 'claim_escalation_agreements.signed_at',
     },
@@ -127,6 +134,8 @@ const mocks = vi.hoisted(() => {
     serviceUsageExistsSelectChain,
     serviceUsageCountSelectChain,
     txInsert,
+    txSelect,
+    txSelectChain,
     txInsertOnConflictDoNothing,
     txInsertReturning,
     txInsertValues,
@@ -232,10 +241,12 @@ describe('staff updateClaimStatusCore', () => {
     mocks.serviceUsageExistsSelectChain.where.mockReturnValue(mocks.serviceUsageExistsSelectChain);
     mocks.serviceUsageCountSelectChain.from.mockReturnValue(mocks.serviceUsageCountSelectChain);
     mocks.serviceUsageCountSelectChain.where.mockReturnValue(mocks.serviceUsageCountSelectChain);
+    mocks.txSelectChain.from.mockReturnValue(mocks.txSelectChain);
+    mocks.txSelectChain.where.mockReturnValue(mocks.txSelectChain);
     mocks.txInsertReturning.mockResolvedValue([{ id: 'usage-claim-1' }]);
   });
 
-  it('blocks negotiation until a signed, authorized escalation agreement exists', async () => {
+  it('blocks negotiation until a recovery decision is recorded', async () => {
     mockRecoverySelects({
       agreement: [],
       claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }],
@@ -249,13 +260,36 @@ describe('staff updateClaimStatusCore', () => {
 
     expect(result).toEqual({
       success: false,
-      error:
-        'Signed escalation agreement and authorized payment collection are required before staff-led recovery can begin',
+      error: 'Staff must accept the recovery decision before staff-led recovery can begin.',
     });
     expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
 
-  it('blocks negotiation when payment authorization is still pending', async () => {
+  it('blocks negotiation until staff explicitly accept the recovery decision', async () => {
+    mockRecoverySelects({
+      agreement: [
+        {
+          ...AUTHORIZED_AGREEMENT,
+          decisionType: null,
+        },
+      ],
+      claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }],
+    });
+
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'negotiation',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Staff must accept the recovery decision before staff-led recovery can begin.',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+  });
+
+  it('does not block negotiation when payment authorization is still pending after acceptance', async () => {
     mockRecoverySelects({
       agreement: [
         {
@@ -272,12 +306,13 @@ describe('staff updateClaimStatusCore', () => {
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
     });
 
-    expect(result).toEqual({
-      success: false,
-      error:
-        'Signed escalation agreement and authorized payment collection are required before staff-led recovery can begin',
-    });
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'negotiation',
+        updatedAt: expect.any(Date),
+      })
+    );
   });
 
   it('allows recovery status transition when an authorized agreement is present', async () => {
@@ -301,6 +336,33 @@ describe('staff updateClaimStatusCore', () => {
         claimId: 'claim-1',
         fromStatus: 'evaluation',
         toStatus: 'negotiation',
+      })
+    );
+  });
+
+  it('allows recovery status transition after staff accept the recovery decision even before agreement signature and payment authorization are captured', async () => {
+    mockRecoverySelects({
+      agreement: [
+        {
+          ...AUTHORIZED_AGREEMENT,
+          paymentAuthorizationState: 'pending',
+          signedAt: null,
+        },
+      ],
+    });
+
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'negotiation',
+      note: 'Staff accepted the recovery decision and can now start work.',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({ success: true, error: undefined });
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'negotiation',
+        updatedAt: expect.any(Date),
       })
     );
   });
@@ -458,7 +520,7 @@ describe('staff updateClaimStatusCore', () => {
 
     expect(result).toEqual({
       success: false,
-      error: 'Decline reason is required when staff reject a recovery matter.',
+      error: 'Decline reason category is required when staff reject a recovery matter.',
     });
     expect(mocks.txUpdate).not.toHaveBeenCalled();
     expect(mocks.txInsert).not.toHaveBeenCalled();
@@ -469,12 +531,14 @@ describe('staff updateClaimStatusCore', () => {
 
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
     mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'negotiation' }]);
+    mocks.txSelectChain.limit.mockResolvedValue([]);
 
     const result = await updateClaimStatusCore(
       {
         claimId: 'claim-1',
         newStatus: 'rejected',
-        note: 'Declined after review',
+        declineReasonCode: 'no_monetary_recovery_path',
+        decisionExplanation: 'Declined after review',
         requestHeaders,
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
       },
@@ -493,11 +557,12 @@ describe('staff updateClaimStatusCore', () => {
         tenantId: 'tenant-1',
         metadata: expect.objectContaining({
           decisionNextStatus: 'rejected',
+          declineReasonCode: 'no_monetary_recovery_path',
           decisionReason: 'Declined after review',
           decisionType: 'declined',
           oldStatus: 'negotiation',
           newStatus: 'rejected',
-          note: 'Declined after review',
+          note: 'This matter does not currently show a clear monetary recovery path for staff-led recovery.',
         }),
       })
     );

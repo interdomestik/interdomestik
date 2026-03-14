@@ -4,7 +4,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
-import type { ActionResult, ClaimStatus } from './types';
+import type { ActionResult, ClaimStatus, RecoveryDeclineReasonCode } from './types';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 // ...
@@ -20,6 +20,8 @@ function revalidatePathForAllLocales(path: string) {
 export async function updateClaimStatusCore(params: {
   allowanceOverrideReason?: string;
   claimId: string;
+  declineReasonCode?: RecoveryDeclineReasonCode;
+  decisionExplanation?: string;
   newStatus: ClaimStatus;
   note?: string;
   isPublicChange?: boolean;

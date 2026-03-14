@@ -9,7 +9,7 @@ import {
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
-import type { ActionResult, ClaimStatus } from './types';
+import type { ActionResult, ClaimStatus, RecoveryDeclineReasonCode } from './types';
 
 import { claimStatusSchema } from '../validators/claims';
 import {
@@ -18,12 +18,18 @@ import {
   getRecoveryMatterServiceCode,
   hasRecoveryMatterUsageForClaim,
 } from './matter-allowance';
+import { getRecoveryDeclineMemberDescription } from './recovery-decision';
+import { upsertRecoveryDecisionRecord } from './save-recovery-decision';
 
 const STAFF_LED_RECOVERY_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
+const RECOVERY_DECISION_REQUIRED_ERROR =
+  'Staff must accept the recovery decision before staff-led recovery can begin.';
 const RECOVERY_ALLOWANCE_EXHAUSTED_ERROR =
   'Matter allowance is exhausted. Record an override reason or upgrade the membership before staff-led recovery can begin.';
 type UpdateClaimStatusParams = {
   claimId: string;
+  declineReasonCode?: RecoveryDeclineReasonCode;
+  decisionExplanation?: string;
   newStatus: string;
   note?: string;
   allowanceOverrideReason?: string;
@@ -65,6 +71,7 @@ async function handleStaffLedRecoveryStatusChange(
   } = params;
   const [agreement] = await db
     .select({
+      decisionType: claimEscalationAgreements.decisionType,
       paymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
       signedAt: claimEscalationAgreements.signedAt,
     })
@@ -78,11 +85,10 @@ async function handleStaffLedRecoveryStatusChange(
     )
     .limit(1);
 
-  if (!agreement?.signedAt || agreement.paymentAuthorizationState !== 'authorized') {
+  if (agreement?.decisionType !== 'accepted') {
     return {
       success: false,
-      error:
-        'Signed escalation agreement and authorized payment collection are required before staff-led recovery can begin',
+      error: RECOVERY_DECISION_REQUIRED_ERROR,
     };
   }
 
@@ -161,6 +167,7 @@ async function handleStaffLedRecoveryStatusChange(
 
 type ClaimsTransaction = {
   insert: typeof db.insert;
+  select: typeof db.select;
   update: typeof db.update;
 };
 
@@ -302,6 +309,7 @@ export async function updateClaimStatusCore(
   const tenantId = ensureTenantId(session);
   const trimmedNote = note?.trim() || undefined;
   const trimmedAllowanceOverrideReason = params.allowanceOverrideReason?.trim() || undefined;
+  const trimmedDecisionExplanation = params.decisionExplanation?.trim() || undefined;
 
   try {
     const [currentClaim] = await db
@@ -318,10 +326,10 @@ export async function updateClaimStatusCore(
       return { success: true }; // No change needed
     }
 
-    if (currentClaim.status !== status && status === 'rejected' && !trimmedNote) {
+    if (currentClaim.status !== status && status === 'rejected' && !params.declineReasonCode) {
       return {
         success: false,
-        error: 'Decline reason is required when staff reject a recovery matter.',
+        error: 'Decline reason category is required when staff reject a recovery matter.',
       };
     }
 
@@ -340,15 +348,41 @@ export async function updateClaimStatusCore(
       });
     }
 
+    if (currentClaim.status !== status && status === 'rejected' && params.declineReasonCode) {
+      const publicDeclineNote =
+        trimmedNote || getRecoveryDeclineMemberDescription(params.declineReasonCode);
+
+      return finalizeClaimStatusChange({
+        auditMetadata: {
+          decisionNextStatus: 'rejected',
+          declineReasonCode: params.declineReasonCode,
+          decisionReason: trimmedDecisionExplanation,
+          decisionType: 'declined',
+        },
+        beforePersist: async tx => {
+          await upsertRecoveryDecisionRecord({
+            claimId,
+            decisionType: 'declined',
+            declineReasonCode: params.declineReasonCode,
+            explanation: trimmedDecisionExplanation,
+            session,
+            tenantId,
+            tx,
+          });
+        },
+        claimId,
+        currentStatus: currentClaim.status,
+        deps,
+        isPublicChange,
+        note: publicDeclineNote,
+        requestHeaders: params.requestHeaders,
+        session,
+        status,
+        tenantId,
+      });
+    }
+
     return finalizeClaimStatusChange({
-      auditMetadata:
-        currentClaim.status !== status && status === 'rejected'
-          ? {
-              decisionNextStatus: 'rejected',
-              decisionReason: trimmedNote,
-              decisionType: 'declined',
-            }
-          : undefined,
       claimId,
       currentStatus: currentClaim.status,
       deps,

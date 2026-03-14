@@ -6,6 +6,9 @@ import {
   ClaimStatus,
   EscalationDecisionNextStatus,
   PaymentAuthorizationState,
+  RecoveryDeclineReasonCode,
+  RecoveryDecisionSnapshot,
+  saveRecoveryDecision,
   saveClaimEscalationAgreement,
   saveSuccessFeeCollection,
   SuccessFeeCollectionSnapshot,
@@ -30,6 +33,7 @@ import { toast } from 'sonner';
 
 interface ClaimActionPanelProps {
   readonly claimId: string;
+  readonly recoveryDecision: RecoveryDecisionSnapshot;
   readonly commercialAgreement: ClaimEscalationAgreementSnapshot | null;
   readonly successFeeCollection: SuccessFeeCollectionSnapshot | null;
   readonly currentStatus: string;
@@ -58,6 +62,20 @@ const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = CANONICAL_
   })
 );
 const RECOVERY_START_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
+const RECOVERY_DECLINE_REASON_OPTIONS: Array<{
+  value: RecoveryDeclineReasonCode;
+  label: string;
+}> = [
+  { value: 'guidance_only_scope', label: 'Guidance-only or referral-only under current scope' },
+  { value: 'insufficient_evidence', label: 'Insufficient evidence for staff-led recovery' },
+  { value: 'no_monetary_recovery_path', label: 'No clear monetary recovery path' },
+  {
+    value: 'counterparty_unidentified',
+    label: 'Counterparty or insurer cannot be identified',
+  },
+  { value: 'time_limit_risk', label: 'Time-limit risk blocks staff-led recovery' },
+  { value: 'conflict_or_integrity_concern', label: 'Conflict of interest or integrity concern' },
+];
 const ESCALATION_DECISION_STATUS_OPTIONS: {
   value: EscalationDecisionNextStatus;
   label: string;
@@ -160,6 +178,7 @@ function getAssignmentLabel(args: {
 
 export function ClaimActionPanel({
   claimId,
+  recoveryDecision,
   commercialAgreement,
   successFeeCollection,
   currentStatus,
@@ -170,9 +189,18 @@ export function ClaimActionPanel({
 }: ClaimActionPanelProps) {
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState('');
+  const [decisionExplanation, setDecisionExplanation] = useState(
+    recoveryDecision.explanation ?? ''
+  );
+  const [declineReasonCode, setDeclineReasonCode] = useState<RecoveryDeclineReasonCode | ''>(
+    recoveryDecision.status === 'declined' ? (recoveryDecision.declineReasonCode ?? '') : ''
+  );
   const [allowanceOverrideReason, setAllowanceOverrideReason] = useState('');
+  const decisionSaveKeyRef = useRef<string | null>(null);
   const agreementSaveKeyRef = useRef<string | null>(null);
   const [status, setStatus] = useState<ClaimStatus>(currentStatus as ClaimStatus);
+  const [savedRecoveryDecision, setSavedRecoveryDecision] =
+    useState<RecoveryDecisionSnapshot>(recoveryDecision);
   const [savedAgreement, setSavedAgreement] = useState<ClaimEscalationAgreementSnapshot | null>(
     commercialAgreement
   );
@@ -206,6 +234,11 @@ export function ClaimActionPanel({
   const router = useRouter();
 
   useEffect(() => {
+    setSavedRecoveryDecision(recoveryDecision);
+    setDecisionExplanation(recoveryDecision.explanation ?? '');
+    setDeclineReasonCode(
+      recoveryDecision.status === 'declined' ? (recoveryDecision.declineReasonCode ?? '') : ''
+    );
     setSavedAgreement(commercialAgreement);
     setSavedSuccessFeeCollection(successFeeCollection);
     setDecisionNextStatus(
@@ -219,7 +252,7 @@ export function ClaimActionPanel({
     setTermsVersion(commercialAgreement?.termsVersion ?? '');
     setRecoveredAmount(successFeeCollection?.recoveredAmount ?? '');
     setDeductionPath(successFeeCollection?.deductionAllowed ? 'allowed' : 'fallback');
-  }, [commercialAgreement, currentStatus, successFeeCollection]);
+  }, [commercialAgreement, currentStatus, recoveryDecision, successFeeCollection]);
 
   useEffect(() => {
     setSelectedAssigneeId(getSelectedAssigneeId({ assignmentOptions, assigneeId, staffId }));
@@ -278,6 +311,58 @@ export function ClaimActionPanel({
     });
   };
 
+  const handleAcceptRecoveryDecision = () => {
+    startTransition(async () => {
+      const idempotencyKey = decisionSaveKeyRef.current ?? crypto.randomUUID();
+      decisionSaveKeyRef.current = idempotencyKey;
+      try {
+        const result = await saveRecoveryDecision({
+          claimId,
+          decisionType: 'accepted',
+          explanation: decisionExplanation.trim() || undefined,
+          idempotencyKey,
+        });
+
+        if (result.success) {
+          toast.success('Success', { description: 'Recovery matter accepted' });
+          setSavedRecoveryDecision(result.data ?? recoveryDecision);
+          setDeclineReasonCode('');
+          router.refresh();
+        } else {
+          toast.error('Error', { description: result.error });
+        }
+      } finally {
+        decisionSaveKeyRef.current = null;
+      }
+    });
+  };
+
+  const handleDeclineRecoveryDecision = () => {
+    if (!declineReasonCode) {
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await updateClaimStatus(
+        claimId,
+        'rejected',
+        undefined,
+        true,
+        undefined,
+        declineReasonCode,
+        decisionExplanation.trim() || undefined
+      );
+
+      if (result.success) {
+        toast.success('Success', { description: 'Recovery matter declined' });
+        setStatus('rejected');
+        router.refresh();
+      } else {
+        toast.error('Error', { description: result.error });
+      }
+    });
+  };
+
   const handleStatusUpdate = () => {
     startTransition(async () => {
       const trimmedNote = note.trim();
@@ -329,6 +414,7 @@ export function ClaimActionPanel({
   const hasAssignmentChanged =
     selectedAssigneeId.length > 0 && selectedAssigneeId !== (assigneeId ?? '');
   const hasStatusChanged = status !== currentStatus;
+  const resolvedRecoveryDecision = savedRecoveryDecision;
   const hasCommercialAgreement = (savedAgreement ?? commercialAgreement) !== null;
   const parsedRecoveredAmount = Number(recoveredAmount.trim());
   const hasValidRecoveredAmount =
@@ -341,7 +427,8 @@ export function ClaimActionPanel({
     termsVersion.trim().length > 0;
   const canSaveSuccessFeeCollection = hasCommercialAgreement && hasValidRecoveredAmount;
   const requiresMatterAllowanceGuard = RECOVERY_START_STATUSES.has(status);
-  const requiresDeclineReason = status === 'rejected' && currentStatus !== 'rejected';
+  const requiresAcceptedRecoveryDecision =
+    RECOVERY_START_STATUSES.has(status) && resolvedRecoveryDecision.status !== 'accepted';
   const assignmentLabel = getAssignmentLabel({
     assigneeId,
     currentAssigneeLabel,
@@ -354,6 +441,9 @@ export function ClaimActionPanel({
   });
   const renderedAssignmentOptions: ReadonlyArray<RenderedAssignmentOption> =
     outOfScopeAssigneeOption ? [outOfScopeAssigneeOption, ...assignmentOptions] : assignmentOptions;
+  const renderedStatusOptions = CLAIM_STATUS_OPTIONS.filter(
+    option => option.value !== 'rejected' || currentStatus === 'rejected'
+  );
 
   return (
     <div
@@ -406,10 +496,110 @@ export function ClaimActionPanel({
 
       <div className="space-y-4 border-t pt-6">
         <div className="space-y-1">
+          <h4 className="text-sm font-medium">Recovery Decision</h4>
+          <p className="text-xs text-muted-foreground">
+            Staff must explicitly accept or decline the recovery matter before negotiation or court
+            work can start.
+          </p>
+        </div>
+
+        <div
+          className="rounded-lg border bg-muted/30 p-4 text-sm"
+          data-testid="staff-recovery-decision-summary"
+        >
+          <div className="grid gap-2 md:grid-cols-2">
+            <div>
+              <span className="text-muted-foreground">Decision status</span>
+              <div className="font-medium text-slate-900">
+                {resolvedRecoveryDecision.staffLabel}
+              </div>
+            </div>
+            {resolvedRecoveryDecision.status === 'declined' && declineReasonCode ? (
+              <div>
+                <span className="text-muted-foreground">Decline category</span>
+                <div className="font-medium text-slate-900">
+                  {RECOVERY_DECLINE_REASON_OPTIONS.find(
+                    option => option.value === declineReasonCode
+                  )?.label ?? declineReasonCode}
+                </div>
+              </div>
+            ) : null}
+            {resolvedRecoveryDecision.explanation ? (
+              <div className="md:col-span-2">
+                <span className="text-muted-foreground">Decision explanation</span>
+                <div className="font-medium text-slate-900">
+                  {resolvedRecoveryDecision.explanation}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="recovery-decision-explanation" className="text-sm font-medium">
+            Decision explanation <span className="text-xs text-muted-foreground">(Staff only)</span>
+          </label>
+          <Textarea
+            id="recovery-decision-explanation"
+            placeholder="Record the staff-only reasoning behind the acceptance or decline decision..."
+            value={decisionExplanation}
+            onChange={event => setDecisionExplanation(event.target.value)}
+            disabled={isPending}
+            className="min-h-[80px]"
+          />
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <Button
+            onClick={handleAcceptRecoveryDecision}
+            disabled={isPending}
+            data-testid="staff-accept-recovery-decision-button"
+          >
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Accept Recovery Matter
+          </Button>
+
+          <div className="space-y-2">
+            <label htmlFor="recovery-decline-reason" className="text-sm font-medium">
+              Decline category
+            </label>
+            <select
+              id="recovery-decline-reason"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={declineReasonCode}
+              onChange={event =>
+                setDeclineReasonCode(event.target.value as RecoveryDeclineReasonCode)
+              }
+              disabled={isPending}
+            >
+              <option value="">Select decline category</option>
+              {RECOVERY_DECLINE_REASON_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <Button
+          className="w-full"
+          variant="outline"
+          onClick={handleDeclineRecoveryDecision}
+          disabled={isPending || !declineReasonCode}
+          data-testid="staff-decline-recovery-decision-button"
+        >
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Decline Recovery Matter
+        </Button>
+      </div>
+
+      <div className="space-y-4 border-t pt-6">
+        <div className="space-y-1">
           <h4 className="text-sm font-medium">Escalation Agreement</h4>
           <p className="text-xs text-muted-foreground">
-            Staff-led recovery stays blocked until signed commercial terms and authorized payment
-            collection are captured here.
+            Record commercial terms here after the recovery decision is accepted. This agreement
+            detail does not replace the explicit recovery decision above.
           </p>
         </div>
 
@@ -722,7 +912,7 @@ export function ClaimActionPanel({
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
             <SelectContent>
-              {CLAIM_STATUS_OPTIONS.map(s => (
+              {renderedStatusOptions.map(s => (
                 <SelectItem key={s.value} value={s.value}>
                   {s.label}
                 </SelectItem>
@@ -733,22 +923,23 @@ export function ClaimActionPanel({
 
         <div className="space-y-2">
           <label htmlFor="claim-status-note" className="text-sm font-medium">
-            {requiresDeclineReason ? 'Decline reason' : 'Status Note'}{' '}
-            <span className="text-xs text-muted-foreground">(Visible to member)</span>
+            Status Note <span className="text-xs text-muted-foreground">(Visible to member)</span>
           </label>
           <Textarea
             id="claim-status-note"
-            placeholder={
-              requiresDeclineReason
-                ? 'Explain why staff declined this recovery matter...'
-                : 'Reason for status change...'
-            }
+            placeholder="Reason for status change..."
             value={note}
             onChange={event => setNote(event.target.value)}
             disabled={isPending}
             className="min-h-[80px]"
           />
         </div>
+
+        {requiresAcceptedRecoveryDecision ? (
+          <p className="text-xs text-muted-foreground">
+            Accept the recovery matter above before moving the case into negotiation or court.
+          </p>
+        ) : null}
 
         {requiresMatterAllowanceGuard ? (
           <div className="space-y-2">
@@ -775,9 +966,7 @@ export function ClaimActionPanel({
           className="w-full"
           onClick={handleStatusUpdate}
           disabled={
-            isPending ||
-            (!hasStatusChanged && !note.trim()) ||
-            (requiresDeclineReason && !note.trim())
+            isPending || (!hasStatusChanged && !note.trim()) || requiresAcceptedRecoveryDecision
           }
           data-testid="staff-update-claim-button"
         >

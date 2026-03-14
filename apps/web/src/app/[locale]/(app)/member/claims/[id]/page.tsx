@@ -42,6 +42,7 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
           windowEnd: claim.matterAllowance.windowEnd.toISOString(),
         }
       : null,
+    recoveryDecision: claim.recoveryDecision ?? null,
     documents: claim.documents.map(d => ({
       ...d,
       createdAt: d.createdAt.toISOString(),

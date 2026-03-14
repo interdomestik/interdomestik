@@ -32,6 +32,8 @@ const mocks = vi.hoisted(() => {
     },
     claimEscalationAgreements: {
       claimId: 'claim_escalation_agreements.claim_id',
+      decisionType: 'claim_escalation_agreements.decision_type',
+      declineReasonCode: 'claim_escalation_agreements.decline_reason_code',
       decisionNextStatus: 'claim_escalation_agreements.decision_next_status',
       decisionReason: 'claim_escalation_agreements.decision_reason',
       feePercentage: 'claim_escalation_agreements.fee_percentage',
@@ -180,6 +182,59 @@ describe('getStaffClaimDetail', () => {
       invoiceDueAt: null,
       subscriptionId: 'sub-1',
     });
+  });
+
+  it('returns a standalone accepted recovery decision even when commercial terms are still incomplete', async () => {
+    mocks.claimChain.limit.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        claimNumber: 'KS-0001',
+        status: 'evaluation',
+        updatedAt: new Date('2026-03-14T00:00:00Z'),
+        createdAt: new Date('2026-03-10T00:00:00Z'),
+        memberId: 'member-1',
+        memberName: 'Member One',
+        memberNumber: 'MEM-001',
+        agentId: null,
+        agreementDecisionType: 'accepted',
+        agreementDeclineReasonCode: null,
+        agreementDecisionNextStatus: null,
+        agreementDecisionReason: 'Clear insurer path and viable monetary recovery.',
+        agreementFeePercentage: null,
+        agreementMinimumFee: null,
+        agreementLegalActionCapPercentage: null,
+        agreementPaymentAuthorizationState: 'pending',
+        agreementSuccessFeeRecoveredAmount: null,
+        agreementSuccessFeeCurrencyCode: null,
+        agreementSuccessFeeAmount: null,
+        agreementSuccessFeeCollectionMethod: null,
+        agreementSuccessFeeDeductionAllowed: null,
+        agreementSuccessFeeHasStoredPaymentMethod: null,
+        agreementSuccessFeeInvoiceDueAt: null,
+        agreementSuccessFeeResolvedAt: null,
+        agreementSuccessFeeSubscriptionId: null,
+        agreementTermsVersion: null,
+        agreementSignedAt: null,
+        agreementAcceptedAt: new Date('2026-03-14T09:00:00Z'),
+      },
+    ]);
+    mocks.agentChain.limit.mockResolvedValue([]);
+
+    const result = await getStaffClaimDetail({
+      staffId: 'staff-1',
+      tenantId: 'tenant-ks',
+      claimId: 'claim-1',
+    });
+
+    expect(result?.commercialAgreement).toBeNull();
+    expect((result as { recoveryDecision?: unknown } | null)?.recoveryDecision).toEqual(
+      expect.objectContaining({
+        status: 'accepted',
+        explanation: 'Clear insurer path and viable monetary recovery.',
+        declineReasonCode: null,
+        staffLabel: 'Accepted for staff-led recovery',
+      })
+    );
   });
 
   it('returns null when claim is outside tenant scope', async () => {

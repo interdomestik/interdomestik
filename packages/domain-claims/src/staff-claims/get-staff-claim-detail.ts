@@ -1,7 +1,8 @@
 import { and, claimEscalationAgreements, claims, db, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { getMatterAllowanceVisibilityForUser } from './matter-allowance';
-import type { ClaimEscalationAgreementSnapshot } from './types';
+import { buildRecoveryDecisionSnapshot } from './recovery-decision';
+import type { ClaimEscalationAgreementSnapshot, RecoveryDecisionSnapshot } from './types';
 
 export type StaffClaimDetail = {
   claim: {
@@ -29,6 +30,7 @@ export type StaffClaimDetail = {
     id: string;
     name: string;
   };
+  recoveryDecision: RecoveryDecisionSnapshot;
   commercialAgreement: ClaimEscalationAgreementSnapshot | null;
   successFeeCollection: import('./types').SuccessFeeCollectionSnapshot | null;
 };
@@ -63,6 +65,8 @@ export async function getStaffClaimDetail(params: {
       memberId: user.id,
       memberName: user.name,
       memberNumber: user.memberNumber,
+      agreementDecisionType: claimEscalationAgreements.decisionType,
+      agreementDeclineReasonCode: claimEscalationAgreements.declineReasonCode,
       agreementDecisionNextStatus: claimEscalationAgreements.decisionNextStatus,
       agreementDecisionReason: claimEscalationAgreements.decisionReason,
       agreementFeePercentage: claimEscalationAgreements.feePercentage,
@@ -135,6 +139,12 @@ export async function getStaffClaimDetail(params: {
         }
       : null,
     agent,
+    recoveryDecision: buildRecoveryDecisionSnapshot({
+      decidedAt: row.agreementAcceptedAt,
+      declineReasonCode: row.agreementDeclineReasonCode ?? null,
+      decisionType: row.agreementDecisionType ?? null,
+      explanation: row.agreementDecisionReason ?? null,
+    }),
     commercialAgreement:
       row.agreementFeePercentage != null &&
       row.agreementMinimumFee != null &&

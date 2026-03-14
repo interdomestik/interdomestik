@@ -8,6 +8,7 @@ const routerMocks = vi.hoisted(() => ({
 
 const actionMocks = vi.hoisted(() => ({
   assignClaim: vi.fn().mockResolvedValue({ success: true }),
+  saveRecoveryDecision: vi.fn().mockResolvedValue({ success: true }),
   saveClaimEscalationAgreement: vi.fn().mockResolvedValue({ success: true }),
   saveSuccessFeeCollection: vi.fn().mockResolvedValue({ success: true }),
   updateClaimStatus: vi.fn().mockResolvedValue({ success: true }),
@@ -28,6 +29,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/actions/staff-claims.core', () => ({
   assignClaim: actionMocks.assignClaim,
+  saveRecoveryDecision: actionMocks.saveRecoveryDecision,
   saveClaimEscalationAgreement: actionMocks.saveClaimEscalationAgreement,
   saveSuccessFeeCollection: actionMocks.saveSuccessFeeCollection,
   updateClaimStatus: actionMocks.updateClaimStatus,
@@ -55,6 +57,7 @@ vi.mock('@interdomestik/ui', () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   actionMocks.assignClaim.mockResolvedValue({ success: true });
+  actionMocks.saveRecoveryDecision.mockResolvedValue({ success: true });
   actionMocks.saveClaimEscalationAgreement.mockResolvedValue({ success: true });
   actionMocks.saveSuccessFeeCollection.mockResolvedValue({ success: true });
   actionMocks.updateClaimStatus.mockResolvedValue({ success: true });
@@ -77,6 +80,23 @@ describe('ClaimActionPanel', () => {
     signedAt: '2026-03-12T00:00:00.000Z',
     termsVersion: 'v1',
   };
+  const pendingRecoveryDecision = {
+    status: 'pending' as const,
+    decidedAt: null,
+    explanation: null,
+    declineReasonCode: null,
+    staffLabel: 'Pending staff decision',
+    memberLabel: null,
+    memberDescription: null,
+  };
+  const acceptedRecoveryDecision = {
+    ...pendingRecoveryDecision,
+    status: 'accepted' as const,
+    explanation: 'Clear insurer path and viable monetary recovery.',
+    staffLabel: 'Accepted for staff-led recovery',
+    memberLabel: 'Accepted for staff-led recovery',
+    memberDescription: 'We accepted this matter for staff-led recovery.',
+  };
 
   it('submits a selected staff assignment manually', async () => {
     render(
@@ -86,6 +106,7 @@ describe('ClaimActionPanel', () => {
         claimId="claim-1"
         commercialAgreement={null}
         currentStatus="submitted"
+        recoveryDecision={pendingRecoveryDecision}
         staffId="staff-me"
         successFeeCollection={null}
       />
@@ -109,6 +130,7 @@ describe('ClaimActionPanel', () => {
         claimId="claim-1"
         commercialAgreement={null}
         currentStatus="submitted"
+        recoveryDecision={pendingRecoveryDecision}
         staffId="staff-me"
         successFeeCollection={null}
       />
@@ -127,6 +149,7 @@ describe('ClaimActionPanel', () => {
         commercialAgreement={null}
         currentAssigneeLabel="Outside Staff"
         currentStatus="submitted"
+        recoveryDecision={pendingRecoveryDecision}
         staffId="staff-me"
         successFeeCollection={null}
       />
@@ -151,6 +174,7 @@ describe('ClaimActionPanel', () => {
         claimId="claim-1"
         commercialAgreement={savedAgreement}
         currentStatus="submitted"
+        recoveryDecision={acceptedRecoveryDecision}
         staffId="staff-me"
         successFeeCollection={null}
       />
@@ -182,6 +206,7 @@ describe('ClaimActionPanel', () => {
         claimId="claim-1"
         commercialAgreement={null}
         currentStatus="submitted"
+        recoveryDecision={pendingRecoveryDecision}
         staffId="staff-me"
         successFeeCollection={null}
       />
@@ -236,6 +261,7 @@ describe('ClaimActionPanel', () => {
         claimId="claim-1"
         commercialAgreement={savedAgreement}
         currentStatus="negotiation"
+        recoveryDecision={acceptedRecoveryDecision}
         staffId="staff-me"
         successFeeCollection={null}
       />
@@ -258,5 +284,23 @@ describe('ClaimActionPanel', () => {
         'Family upgrade is pending but staff work must start now.'
       );
     });
+  });
+
+  it('shows the staff recovery decision gate before staff-led recovery starts', () => {
+    render(
+      <ClaimActionPanel
+        assigneeId="staff-me"
+        assignmentOptions={assignmentOptions}
+        claimId="claim-1"
+        commercialAgreement={null}
+        currentStatus="evaluation"
+        recoveryDecision={pendingRecoveryDecision}
+        staffId="staff-me"
+        successFeeCollection={null}
+      />
+    );
+
+    expect(screen.getByText('Pending staff decision')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Accept Recovery Matter' })).toBeInTheDocument();
   });
 });

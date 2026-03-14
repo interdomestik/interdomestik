@@ -3,10 +3,58 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({
   claimFindFirst: vi.fn(),
   timelineRows: vi.fn(),
+  recoveryDecisionRows: vi.fn(),
   select: vi.fn(),
   ensureClaimsAccess: vi.fn(),
   buildClaimVisibilityWhere: vi.fn(),
   getMatterAllowanceVisibility: vi.fn(),
+  buildRecoveryDecisionSnapshot: vi.fn((record: Record<string, unknown> | null | undefined) => {
+    if (!record?.decisionType) {
+      return {
+        status: 'pending',
+        decidedAt: null,
+        explanation: null,
+        declineReasonCode: null,
+        staffLabel: 'Pending staff decision',
+        memberLabel: null,
+        memberDescription: null,
+      };
+    }
+
+    if (record.decisionType === 'accepted') {
+      return {
+        status: 'accepted',
+        decidedAt: record.decidedAt ?? null,
+        explanation: record.explanation ?? null,
+        declineReasonCode: null,
+        staffLabel: 'Accepted for staff-led recovery',
+        memberLabel: 'Accepted for staff-led recovery',
+        memberDescription: 'We accepted this matter for staff-led recovery.',
+      };
+    }
+
+    return {
+      status: 'declined',
+      decidedAt: record.decidedAt ?? null,
+      explanation: record.explanation ?? null,
+      declineReasonCode: record.declineReasonCode ?? null,
+      staffLabel: 'Guidance-only or referral-only under current scope',
+      memberLabel: 'Guidance-only or referral-only matter',
+      memberDescription:
+        'This matter stays guidance-only or referral-only under the current launch scope.',
+    };
+  }),
+  toMemberSafeRecoveryDecision: vi.fn((snapshot: Record<string, unknown> | null | undefined) => {
+    if (!snapshot || snapshot.status === 'pending') {
+      return null;
+    }
+
+    return {
+      status: snapshot.status,
+      title: snapshot.memberLabel,
+      description: snapshot.memberDescription ?? null,
+    };
+  }),
   captureException: vi.fn(),
   setTag: vi.fn(),
   withServerActionInstrumentation: vi.fn(
@@ -20,6 +68,8 @@ vi.mock('@/server/domains/claims/guards', () => ({
 
 vi.mock('@interdomestik/domain-claims', () => ({
   getMatterAllowanceVisibilityForUser: hoisted.getMatterAllowanceVisibility,
+  buildRecoveryDecisionSnapshot: hoisted.buildRecoveryDecisionSnapshot,
+  toMemberSafeRecoveryDecision: hoisted.toMemberSafeRecoveryDecision,
 }));
 
 vi.mock('../utils', () => ({
@@ -40,6 +90,14 @@ vi.mock('@interdomestik/database', () => ({
 vi.mock('@interdomestik/database/schema', () => ({
   claimDocuments: {
     createdAt: 'claimDocuments.createdAt',
+  },
+  claimEscalationAgreements: {
+    claimId: 'claimEscalationAgreements.claimId',
+    tenantId: 'claimEscalationAgreements.tenantId',
+    acceptedAt: 'claimEscalationAgreements.acceptedAt',
+    decisionReason: 'claimEscalationAgreements.decisionReason',
+    decisionType: 'claimEscalationAgreements.decisionType',
+    declineReasonCode: 'claimEscalationAgreements.declineReasonCode',
   },
   claims: {
     id: 'claims.id',
@@ -70,6 +128,24 @@ vi.mock('@sentry/nextjs', () => ({
 
 import { getMemberClaimDetail } from './getMemberClaimDetail';
 
+function configureSelectMocks() {
+  hoisted.select
+    .mockReturnValueOnce({
+      from: () => ({
+        where: () => ({
+          orderBy: () => hoisted.timelineRows(),
+        }),
+      }),
+    })
+    .mockReturnValueOnce({
+      from: () => ({
+        where: () => ({
+          limit: () => hoisted.recoveryDecisionRows(),
+        }),
+      }),
+    });
+}
+
 describe('getMemberClaimDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -81,13 +157,8 @@ describe('getMemberClaimDetail', () => {
     });
     hoisted.buildClaimVisibilityWhere.mockReturnValue({ visibility: 'member' });
     hoisted.getMatterAllowanceVisibility.mockResolvedValue(null);
-    hoisted.select.mockReturnValue({
-      from: () => ({
-        where: () => ({
-          orderBy: () => hoisted.timelineRows(),
-        }),
-      }),
-    });
+    configureSelectMocks();
+    hoisted.recoveryDecisionRows.mockResolvedValue([]);
   });
 
   it('returns a fallback public timeline event when no stage history rows exist yet', async () => {
@@ -243,7 +314,13 @@ describe('getMemberClaimDetail', () => {
       where: vi.fn().mockReturnThis(),
       orderBy: vi.fn().mockResolvedValue([]),
     };
-    hoisted.select.mockReturnValueOnce(selectChain);
+    const recoveryDecisionChain = {
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue([]),
+    };
+    hoisted.select.mockReset();
+    hoisted.select.mockReturnValueOnce(selectChain).mockReturnValueOnce(recoveryDecisionChain);
 
     await getMemberClaimDetail({ user: { id: 'member_1' } }, 'claim_1');
 
@@ -254,6 +331,46 @@ describe('getMemberClaimDetail', () => {
         { op: 'eq', left: 'claimStageHistory.tenantId', right: 'tenant_mk' },
         { op: 'eq', left: 'claimStageHistory.isPublic', right: true },
       ],
+    });
+  });
+
+  it('maps an accepted recovery decision into a member-safe claim detail summary', async () => {
+    hoisted.claimFindFirst.mockResolvedValueOnce({
+      id: 'claim_accepted',
+      title: 'Vehicle recovery',
+      status: 'evaluation',
+      createdAt: new Date('2026-03-10T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-14T00:00:00.000Z'),
+      description: 'Waiting for recovery work to start',
+      claimAmount: '550.00',
+      currency: 'EUR',
+      documents: [],
+    });
+    hoisted.timelineRows.mockResolvedValueOnce([]);
+    hoisted.recoveryDecisionRows.mockResolvedValueOnce([
+      {
+        acceptedAt: new Date('2026-03-14T09:00:00.000Z'),
+        decisionReason: 'Clear insurer path and viable monetary recovery.',
+        decisionType: 'accepted',
+        declineReasonCode: null,
+      },
+    ]);
+
+    const result = await getMemberClaimDetail(
+      {
+        user: {
+          id: 'member-1',
+          role: 'member',
+          tenantId: 'tenant-1',
+        },
+      },
+      'claim_accepted'
+    );
+
+    expect((result as { recoveryDecision?: unknown } | null)?.recoveryDecision).toEqual({
+      status: 'accepted',
+      title: 'Accepted for staff-led recovery',
+      description: 'We accepted this matter for staff-led recovery.',
     });
   });
 });

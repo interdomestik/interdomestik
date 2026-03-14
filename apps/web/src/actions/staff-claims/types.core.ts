@@ -3,8 +3,12 @@ export type {
   ClaimEscalationAgreementSnapshot,
   ClaimStatus,
   EscalationDecisionNextStatus,
+  MemberSafeRecoveryDecisionSnapshot,
   PaymentAuthorizationState,
+  RecoveryDeclineReasonCode,
+  RecoveryDecisionSnapshot,
   SaveClaimEscalationAgreementInput,
+  SaveRecoveryDecisionInput,
   SaveSuccessFeeCollectionInput,
   SuccessFeeCollectionSnapshot,
 } from '@interdomestik/domain-claims/staff-claims/types';
