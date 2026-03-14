@@ -8,7 +8,6 @@ import type {
   ActionResult,
   ClaimEscalationAgreementSnapshot,
   ClaimStatus,
-  EscalationDecisionNextStatus,
   SaveClaimEscalationAgreementInput,
   SaveSuccessFeeCollectionInput,
   SuccessFeeCollectionSnapshot,
