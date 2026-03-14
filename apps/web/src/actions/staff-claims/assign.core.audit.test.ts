@@ -36,6 +36,7 @@ describe('staff assign.core audit wiring', () => {
         user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
         session: { id: 'session-1' },
       } as never,
+      staffId: 'staff-2',
     });
 
     expect(result).toEqual({ success: true });
@@ -43,6 +44,7 @@ describe('staff assign.core audit wiring', () => {
       expect.objectContaining({
         claimId: 'claim-1',
         requestHeaders,
+        staffId: 'staff-2',
       }),
       { logAuditEvent: hoisted.logAuditEvent }
     );

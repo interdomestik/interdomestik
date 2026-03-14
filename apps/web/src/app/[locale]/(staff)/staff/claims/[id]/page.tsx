@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 
 import { auth } from '@/lib/auth';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
+import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { getLatestPublicStatusNoteCore } from './_core';
 
 interface PageProps {
@@ -25,18 +26,28 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     return notFound();
   }
 
-  const detail = await getStaffClaimDetail({
-    staffId: session.user.id,
-    tenantId: session.user.tenantId,
-    claimId: id,
-  });
+  const [detail, latestStatusNote, assignmentOptions] = await Promise.all([
+    getStaffClaimDetail({
+      claimId: id,
+      staffId: session.user.id,
+      tenantId: session.user.tenantId,
+    }),
+    getLatestPublicStatusNoteCore({
+      claimId: id,
+      tenantId: session.user.tenantId,
+    }),
+    session.user.role === 'staff'
+      ? getStaffAssignmentOptions({
+          branchId: session.user.branchId ?? null,
+          tenantId: session.user.tenantId,
+        })
+      : Promise.resolve([]),
+  ]);
 
   if (!detail) return notFound();
 
-  const latestStatusNote = await getLatestPublicStatusNoteCore({
-    claimId: id,
-    tenantId: session.user.tenantId,
-  });
+  const currentAssigneeLabel =
+    assignmentOptions.find(option => option.id === detail.claim.staffId)?.label ?? null;
 
   return (
     <div className="space-y-6" data-testid="staff-claim-detail-ready">
@@ -136,6 +147,8 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
             currentStatus={detail.claim.status || 'draft'}
             staffId={session.user.id}
             assigneeId={detail.claim.staffId}
+            assignmentOptions={assignmentOptions}
+            currentAssigneeLabel={currentAssigneeLabel}
           />
         </section>
       )}

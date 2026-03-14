@@ -4,6 +4,7 @@ import { ClaimInfoPane } from '@/components/agent/claim-info-pane';
 import { ClaimMessenger } from '@/components/shared/claim-messenger';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { ClaimTriageNotes } from '@/components/staff/claim-triage-notes';
+import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { auth } from '@/lib/auth';
 import {
   Card,
@@ -36,10 +37,18 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
     return notFound();
   }
 
-  const result = await getStaffClaimDetailsCore({ claimId: id, tenantId: session.user.tenantId });
+  const [result, assignmentOptions] = await Promise.all([
+    getStaffClaimDetailsCore({ claimId: id, tenantId: session.user.tenantId }),
+    getStaffAssignmentOptions({
+      branchId: session.user.branchId ?? null,
+      tenantId: session.user.tenantId,
+    }),
+  ]);
   if (result.kind !== 'ok') return notFound();
 
   const { claim, documents, stageHistory } = result;
+  const currentAssigneeLabel =
+    assignmentOptions.find(option => option.id === claim.staffId)?.label ?? null;
 
   const t = await getTranslations('agent-claims.claims');
 
@@ -150,11 +159,13 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
         <div className="lg:col-span-4 space-y-6">
           <ClaimActionPanel
             claimId={claim.id}
+            currentAssigneeLabel={currentAssigneeLabel}
             commercialAgreement={null}
             successFeeCollection={null}
             currentStatus={claim.status || 'draft'}
             staffId={session.user.id}
             assigneeId={claim.staffId || null}
+            assignmentOptions={assignmentOptions}
           />
           <ClaimInfoPane claim={claim} />
         </div>

@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => {
     updateWhereChain,
     select: vi.fn(),
     update: vi.fn(),
+    userFindFirst: vi.fn(),
     withTenant: vi.fn((_tenantId, _column, condition) => ({ scoped: true, condition })),
     eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
     and: vi.fn((...conditions) => ({ op: 'and', conditions })),
@@ -45,17 +46,29 @@ const mocks = vi.hoisted(() => {
       assignedById: 'claims.assigned_by_id',
       updatedAt: 'claims.updated_at',
     },
+    user: {
+      branchId: 'user.branch_id',
+      id: 'user.id',
+      role: 'user.role',
+      tenantId: 'user.tenant_id',
+    },
   };
 });
 
 vi.mock('@interdomestik/database', () => ({
   db: {
+    query: {
+      user: {
+        findFirst: mocks.userFindFirst,
+      },
+    },
     select: mocks.select,
     update: mocks.update,
   },
   claims: mocks.claims,
   eq: mocks.eq,
   and: mocks.and,
+  user: mocks.user,
 }));
 
 vi.mock('@interdomestik/database/tenant-security', () => ({
@@ -97,6 +110,11 @@ describe('staff assignClaimCore', () => {
     mocks.update.mockReturnValue(mocks.updateChain);
     mocks.updateChain.set.mockReturnValue(mocks.updateSetChain);
     mocks.updateSetChain.where.mockReturnValue(mocks.updateWhereChain);
+    mocks.userFindFirst.mockResolvedValue({
+      email: 'staff-two@example.com',
+      id: 'staff-2',
+      name: 'Staff Two',
+    });
   });
 
   it('denies cross-tenant assignment with a generic error and no mutation', async () => {
@@ -124,21 +142,54 @@ describe('staff assignClaimCore', () => {
     expect(mocks.update).not.toHaveBeenCalled();
   });
 
-  it('denies takeover when claim is assigned to another staff member', async () => {
-    mocks.selectChain.limit.mockResolvedValue([
-      { id: 'claim-1', staffId: 'staff-2', branchId: 'branch-1' },
-    ]);
-
+  it('rejects invalid assignee input fail-closed with no mutation', async () => {
     const result = await assignClaimCore({
       claimId: 'claim-1',
+      staffId: { bad: true } as never,
       session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
     });
 
     expect(result).toEqual({
       success: false,
-      error: 'Claim is already assigned to another staff member',
+      error: 'Invalid staff assignment',
+      data: undefined,
     });
+    expect(mocks.select).not.toHaveBeenCalled();
+    expect(mocks.userFindFirst).not.toHaveBeenCalled();
     expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it('allows manual reassignment within branch scope when the target staff is eligible', async () => {
+    mocks.selectChain.limit.mockResolvedValue([
+      { id: 'claim-1', staffId: 'staff-2', branchId: 'branch-1' },
+    ]);
+    mocks.userFindFirst.mockResolvedValueOnce({
+      email: 'staff-three@example.com',
+      id: 'staff-3',
+      name: 'Staff Three',
+    });
+    mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
+
+    const result = await assignClaimCore(
+      {
+        claimId: 'claim-1',
+        requestHeaders: new Headers(),
+        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+        staffId: 'staff-3',
+      },
+      { logAuditEvent: mocks.logAuditEvent }
+    );
+
+    expect(result).toEqual({ success: true });
+    expect(mocks.userFindFirst).toHaveBeenCalledTimes(1);
+    expect(mocks.update).toHaveBeenCalledTimes(1);
+    expect(mocks.updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assignedById: 'staff-1',
+        staffId: 'staff-3',
+      })
+    );
+    expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
   });
 
   it('allows first self-assign in scope for branch staff', async () => {
@@ -150,15 +201,35 @@ describe('staff assignClaimCore', () => {
     const result = await assignClaimCore(
       {
         claimId: 'claim-1',
-        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
         requestHeaders: new Headers(),
+        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
       },
       { logAuditEvent: mocks.logAuditEvent }
     );
 
     expect(result).toEqual({ success: true });
+    expect(mocks.userFindFirst).not.toHaveBeenCalled();
     expect(mocks.update).toHaveBeenCalledTimes(1);
     expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('denies manual assignment when the selected staff member is out of scope', async () => {
+    mocks.selectChain.limit.mockResolvedValue([
+      { id: 'claim-1', staffId: null, branchId: 'branch-1' },
+    ]);
+    mocks.userFindFirst.mockResolvedValueOnce(null);
+
+    const result = await assignClaimCore({
+      claimId: 'claim-1',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      staffId: 'staff-9',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Staff member not found or out of scope',
+    });
+    expect(mocks.update).not.toHaveBeenCalled();
   });
 
   it('returns idempotent success without mutation when already assigned to same staff', async () => {
@@ -169,8 +240,8 @@ describe('staff assignClaimCore', () => {
     const result = await assignClaimCore(
       {
         claimId: 'claim-1',
-        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
         requestHeaders: new Headers(),
+        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
       },
       { logAuditEvent: mocks.logAuditEvent }
     );
@@ -178,6 +249,22 @@ describe('staff assignClaimCore', () => {
     expect(result).toEqual({ success: true });
     expect(mocks.update).not.toHaveBeenCalled();
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+  });
+
+  it('returns idempotent success when claim is already assigned to the selected staff', async () => {
+    mocks.selectChain.limit.mockResolvedValue([
+      { id: 'claim-1', staffId: 'staff-9', branchId: 'branch-1' },
+    ]);
+
+    const result = await assignClaimCore({
+      claimId: 'claim-1',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      staffId: 'staff-9',
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(mocks.userFindFirst).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalled();
   });
 
   it('denies branchless staff when claim is not in scope', async () => {
@@ -196,15 +283,21 @@ describe('staff assignClaimCore', () => {
     expect(mocks.update).not.toHaveBeenCalled();
   });
 
-  it('allows branchless staff to self-assign unassigned claim in tenant scope', async () => {
+  it('allows branchless staff to assign a tenant staff member manually', async () => {
     mocks.selectChain.limit.mockResolvedValue([{ id: 'claim-1', staffId: null, branchId: null }]);
+    mocks.userFindFirst.mockResolvedValueOnce({
+      email: 'staff-nine@example.com',
+      id: 'staff-9',
+      name: 'Staff Nine',
+    });
     mocks.updateWhereChain.returning.mockResolvedValue([{ id: 'claim-1' }]);
 
     const result = await assignClaimCore(
       {
         claimId: 'claim-1',
-        session: createSession({ userId: 'staff-1', branchId: null }),
         requestHeaders: new Headers(),
+        session: createSession({ userId: 'staff-1', branchId: null }),
+        staffId: 'staff-9',
       },
       { logAuditEvent: mocks.logAuditEvent }
     );
@@ -214,30 +307,22 @@ describe('staff assignClaimCore', () => {
     expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
   });
 
-  it('allows branchless staff idempotent reaffirm only for own assigned claims', async () => {
-    mocks.selectChain.limit.mockResolvedValue([
-      { id: 'claim-1', staffId: 'staff-1', branchId: 'branch-9' },
-    ]);
-
-    const result = await assignClaimCore({
-      claimId: 'claim-1',
-      session: createSession({ userId: 'staff-1', branchId: null }),
-    });
-
-    expect(result).toEqual({ success: true });
-    expect(mocks.update).not.toHaveBeenCalled();
-  });
-
-  it('returns generic denial when atomic assignment guard loses race', async () => {
+  it('returns generic denial when manual assignment update loses race', async () => {
     mocks.selectChain.limit.mockResolvedValue([
       { id: 'claim-1', staffId: null, branchId: 'branch-1' },
     ]);
+    mocks.userFindFirst.mockResolvedValueOnce({
+      email: 'staff-nine@example.com',
+      id: 'staff-9',
+      name: 'Staff Nine',
+    });
     mocks.updateWhereChain.returning.mockResolvedValue([]);
 
     const result = await assignClaimCore(
       {
         claimId: 'claim-1',
         session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+        staffId: 'staff-9',
       },
       { logAuditEvent: mocks.logAuditEvent }
     );

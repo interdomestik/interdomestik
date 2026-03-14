@@ -133,7 +133,7 @@ jobs:
           if [[ "${{ steps.validation_surface.outputs.should_run }}" == "true" && \
                 "${{ steps.validate_secrets.outputs.sonar_gate_enabled }}" == "true" && \
                 "${{ github.event_name }}" == "pull_request" && \
-                "${{ steps.await_sonar_check.outcome }}" != "success" ]]; then
+                "${{ steps.await_sonar_check.conclusion }}" != "success" ]]; then
             needs_manual_sonar_fallback=true
             echo "::warning::External SonarCloud PR check did not complete. Falling back to in-repo Sonar analysis."
           fi

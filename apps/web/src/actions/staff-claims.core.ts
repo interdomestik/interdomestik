@@ -26,11 +26,11 @@ export type {
 } from './staff-claims/types';
 
 /**
- * Assign a claim to a staff member (usually self)
+ * Assign a claim to a staff member on the staff surface.
  */
-export async function assignClaim(claimId: string): Promise<ActionResult> {
+export async function assignClaim(claimId: string, staffId?: string | null): Promise<ActionResult> {
   const { session, requestHeaders } = await getActionContext();
-  return assignClaimCore({ claimId, session, requestHeaders });
+  return assignClaimCore({ claimId, session, requestHeaders, staffId });
 }
 
 /**
