@@ -8,6 +8,22 @@ import 'server-only';
 import type { ClaimTimelineEvent, ClaimTrackingDetailDto, ClaimTrackingDocument } from '../types';
 import { buildClaimVisibilityWhere } from '../utils';
 
+function buildFallbackTimelineEvent(args: {
+  claimId: string;
+  date: Date;
+  status: ClaimStatus;
+}): ClaimTimelineEvent {
+  return {
+    id: `fallback-${args.claimId}-${args.status}`,
+    date: args.date,
+    statusFrom: null,
+    statusTo: args.status,
+    labelKey: `claims-tracking.status.${args.status}`,
+    note: null,
+    isPublic: true,
+  };
+}
+
 export async function getMemberClaimDetail(
   session: any,
   claimId: string
@@ -66,7 +82,8 @@ export async function getMemberClaimDetail(
       }
 
       // 4. Map to DTO
-      const timeline: ClaimTimelineEvent[] = timelineRows.map(row => ({
+      const claimStatus = (claim.status || 'draft') as ClaimStatus;
+      let timeline: ClaimTimelineEvent[] = timelineRows.map(row => ({
         id: row.id,
         date: row.createdAt ?? new Date(),
         statusFrom: row.fromStatus || null,
@@ -76,12 +93,27 @@ export async function getMemberClaimDetail(
         isPublic: row.isPublic,
       }));
 
-      // Add "Created" event if missing from history (often implicit)
-      if (
+      if (timeline.length === 0) {
+        const fallbackDate = claim.updatedAt ?? claim.createdAt ?? new Date();
+        timeline = [
+          buildFallbackTimelineEvent({
+            claimId: claim.id,
+            date: fallbackDate,
+            status: claimStatus,
+          }),
+        ];
+      } else if (
         claim.createdAt &&
-        !timeline.find(e => e.statusTo === 'draft' || e.statusTo === 'submitted')
+        !timeline.find(event => event.statusTo === 'draft' || event.statusTo === 'submitted')
       ) {
-        // Optionally inject creation event
+        timeline = [
+          ...timeline,
+          buildFallbackTimelineEvent({
+            claimId: claim.id,
+            date: claim.createdAt,
+            status: claimStatus === 'draft' ? 'draft' : 'submitted',
+          }),
+        ];
       }
 
       const documents: ClaimTrackingDocument[] = claim.documents.map(doc => ({
@@ -96,7 +128,7 @@ export async function getMemberClaimDetail(
       const dto: ClaimTrackingDetailDto = {
         id: claim.id,
         title: claim.title,
-        status: (claim.status || 'draft') as ClaimStatus,
+        status: claimStatus,
         statusLabelKey: `claims-tracking.status.${claim.status}`,
         createdAt: claim.createdAt ?? new Date(),
         updatedAt: claim.updatedAt,

@@ -1,4 +1,10 @@
-import { claimDocuments, claims, db, tenantSettings } from '@interdomestik/database';
+import {
+  claimDocuments,
+  claimStageHistory,
+  claims,
+  db,
+  tenantSettings,
+} from '@interdomestik/database';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
@@ -70,6 +76,7 @@ async function persistSubmittedClaim(args: {
   claimId: string;
   tenantId: string;
   userId: string;
+  changedByRole: string;
   branchId: string | null;
   agentId: string | null;
   data: CreateClaimValues;
@@ -92,6 +99,18 @@ async function persistSubmittedClaim(args: {
       claimAmount: claimAmount || undefined,
       currency: currency || 'EUR',
       status: 'submitted',
+    });
+
+    await tx.insert(claimStageHistory).values({
+      id: crypto.randomUUID(),
+      tenantId: args.tenantId,
+      claimId: args.claimId,
+      fromStatus: null,
+      toStatus: 'submitted',
+      changedById: args.userId,
+      changedByRole: args.changedByRole,
+      note: null,
+      isPublic: true,
     });
 
     if (!files?.length) {
@@ -246,6 +265,7 @@ export async function submitClaimCore(
       claimId,
       tenantId,
       userId: session.user.id,
+      changedByRole: session.user.role ?? 'member',
       branchId: assignment.branchId,
       agentId: assignment.agentId,
       data: result.data,
