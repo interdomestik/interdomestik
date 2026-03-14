@@ -4,7 +4,7 @@ import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-serve
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { cancelSubscription } from './subscription';
+import { cancelSubscription } from './subscription.core';
 
 vi.mock('@interdomestik/database', () => ({
   db: {

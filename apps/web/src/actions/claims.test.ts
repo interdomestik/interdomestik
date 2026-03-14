@@ -2,7 +2,8 @@ import type { CreateClaimValues } from '@/lib/validators/claims';
 import { db } from '@interdomestik/database';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createClaim, submitClaim, updateClaimStatus } from './claims';
+import { submitClaim } from './claims.core';
+import { createClaim, updateClaimStatus } from './claims';
 
 // Mocks
 const mockGetSession = vi.fn();

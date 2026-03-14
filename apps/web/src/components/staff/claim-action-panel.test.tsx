@@ -26,7 +26,7 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@/actions/staff-claims', () => ({
+vi.mock('@/actions/staff-claims.core', () => ({
   assignClaim: actionMocks.assignClaim,
   saveClaimEscalationAgreement: actionMocks.saveClaimEscalationAgreement,
   saveSuccessFeeCollection: actionMocks.saveSuccessFeeCollection,

@@ -113,7 +113,7 @@ vi.mock('sonner', () => ({
   },
 }));
 
-vi.mock('@/actions/claims', () => ({
+vi.mock('@/actions/claims.core', () => ({
   submitClaim: (...args: [unknown]) => mockSubmitClaim(...args),
 }));
 

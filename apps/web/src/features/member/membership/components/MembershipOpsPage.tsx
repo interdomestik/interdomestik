@@ -24,7 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
-import { getCustomerPortalUrl, requestCancellation } from '@/actions/memberships';
+import { cancelSubscription, getPaymentUpdateUrl } from '@/actions/subscription.core';
 import { buildCancellationFeedbackMessage } from '@/features/member/membership/cancellation-feedback';
 import { toast } from 'sonner';
 
@@ -160,7 +160,7 @@ function DetailView({
   const handleAction = async (id: string) => {
     try {
       if (id === 'renew' || id === 'update_payment') {
-        const result = await getCustomerPortalUrl(subscription.id);
+        const result = await getPaymentUpdateUrl(subscription.id);
         if (result.error || !result.url) {
           toast.error(t('errors.action_failed'));
           return;
@@ -177,7 +177,7 @@ function DetailView({
 
         const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
         cancellationKeyRef.current = idempotencyKey;
-        const result = await requestCancellation(subscription.id, idempotencyKey);
+        const result = await cancelSubscription(subscription.id, idempotencyKey);
         if (result.error || !result.success) {
           cancellationKeyRef.current = null;
           toast.error(t('errors.action_failed'));

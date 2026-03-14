@@ -1,6 +1,6 @@
 'use client';
 
-import { ClaimStatus, updateClaimStatus } from '@/actions/staff-claims';
+import { ClaimStatus, updateClaimStatus } from '@/actions/staff-claims.core';
 import { Button, Textarea } from '@interdomestik/ui';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';

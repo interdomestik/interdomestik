@@ -1,6 +1,6 @@
 'use client';
 
-import { submitFreeStartIntake } from '@/actions/free-start';
+import { submitFreeStartIntake } from '@/actions/free-start.core';
 import { Link } from '@/i18n/routing';
 import { CommercialFunnelEvents, resolveFunnelVariant } from '@/lib/analytics';
 import {

@@ -1,6 +1,6 @@
 'use client';
 
-import { cancelSubscription, getPaymentUpdateUrl } from '@/actions/subscription';
+import { cancelSubscription, getPaymentUpdateUrl } from '@/actions/subscription.core';
 import { Button } from '@interdomestik/ui/components/button';
 import {
   DropdownMenu,

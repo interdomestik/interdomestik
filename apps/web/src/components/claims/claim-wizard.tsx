@@ -1,6 +1,6 @@
 'use client';
 
-import { submitClaim } from '@/actions/claims';
+import { submitClaim } from '@/actions/claims.core';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useRouter } from '@/i18n/routing';
 import {
