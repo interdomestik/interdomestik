@@ -37,7 +37,7 @@ vi.mock('@hookform/resolvers/zod', () => ({
 }));
 
 // Mock submit action
-vi.mock('@/actions/claims', () => ({
+vi.mock('@/actions/claims.core', () => ({
   submitClaim: vi.fn().mockResolvedValue({ success: true }),
 }));
 

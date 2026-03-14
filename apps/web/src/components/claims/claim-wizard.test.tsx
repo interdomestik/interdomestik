@@ -88,7 +88,7 @@ vi.mock('sonner', () => ({
 }));
 
 // Mock submitClaim action
-vi.mock('@/actions/claims', () => ({
+vi.mock('@/actions/claims.core', () => ({
   submitClaim: vi.fn().mockResolvedValue({ success: true }),
 }));
 

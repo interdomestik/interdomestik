@@ -1,6 +1,6 @@
 'use client';
 
-import { getPaymentUpdateUrl } from '@/actions/subscription';
+import { getPaymentUpdateUrl } from '@/actions/subscription.core';
 import { Button } from '@interdomestik/ui';
 import { CreditCard, Loader2 } from 'lucide-react';
 import { useState } from 'react';

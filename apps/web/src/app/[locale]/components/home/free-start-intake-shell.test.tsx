@@ -64,7 +64,7 @@ vi.mock('@/lib/analytics', async () => {
   };
 });
 
-vi.mock('@/actions/free-start', () => ({
+vi.mock('@/actions/free-start.core', () => ({
   submitFreeStartIntake: (...args: [unknown]) => hoisted.submitFreeStartIntakeMock(...args),
 }));
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { submitClaim } from '@/actions/claims';
+import { submitClaim } from '@/actions/claims.core';
 import { useRouter } from '@/i18n/routing';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {

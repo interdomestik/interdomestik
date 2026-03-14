@@ -10,7 +10,7 @@ import {
   saveSuccessFeeCollection,
   SuccessFeeCollectionSnapshot,
   updateClaimStatus,
-} from '@/actions/staff-claims';
+} from '@/actions/staff-claims.core';
 import { getStaffClaimStatusLabel } from '@/lib/claim-ui';
 import { CLAIM_STATUSES as CANONICAL_CLAIM_STATUSES } from '@interdomestik/database/constants';
 import {
