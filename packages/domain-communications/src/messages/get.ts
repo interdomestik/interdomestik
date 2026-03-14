@@ -1,7 +1,7 @@
 import { claimMessages, db, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Session } from '../types';
 import { normalizeSelectedMessages } from './normalize';
 import type { MessageWithSender, SelectedMessageRow } from './types';
@@ -35,7 +35,11 @@ export async function getMessagesForClaimCore(params: {
       return { success: false, error: 'Claim not found' };
     }
 
-    const isStaff = userRole === 'staff' || userRole === 'admin';
+    const isStaff =
+      userRole === 'staff' ||
+      userRole === 'admin' ||
+      userRole === 'tenant_admin' ||
+      userRole === 'super_admin';
     const isAgent = userRole === 'agent';
 
     if (!isStaff && !isAgent && claim.userId !== userId) {
@@ -58,9 +62,7 @@ export async function getMessagesForClaimCore(params: {
       }
     }
 
-    const visibilityCondition = isStaff
-      ? undefined
-      : or(eq(claimMessages.isInternal, false), eq(claimMessages.senderId, userId));
+    const visibilityCondition = isStaff ? undefined : eq(claimMessages.isInternal, false);
     const messageCondition = visibilityCondition
       ? and(eq(claimMessages.claimId, claimId), visibilityCondition)
       : eq(claimMessages.claimId, claimId);

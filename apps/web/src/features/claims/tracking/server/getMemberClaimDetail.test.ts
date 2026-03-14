@@ -41,6 +41,7 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
   claimStageHistory: {
     claimId: 'claimStageHistory.claimId',
+    tenantId: 'claimStageHistory.tenantId',
     isPublic: 'claimStageHistory.isPublic',
     createdAt: 'claimStageHistory.createdAt',
   },
@@ -163,5 +164,45 @@ describe('getMemberClaimDetail', () => {
         slaPhase: 'incomplete',
       })
     );
+  });
+
+  it('scopes timeline reads to tenant-owned public history only', async () => {
+    hoisted.ensureClaimsAccess.mockReturnValue({
+      tenantId: 'tenant_mk',
+      userId: 'member_1',
+      role: 'member',
+      branchId: null,
+    });
+    hoisted.buildClaimVisibilityWhere.mockReturnValue({ visible: true });
+
+    hoisted.claimFindFirst.mockResolvedValueOnce({
+      id: 'claim_1',
+      title: 'Missing baggage',
+      status: 'verification',
+      createdAt: new Date('2025-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2025-01-03T00:00:00.000Z'),
+      description: 'Need boarding pass',
+      claimAmount: 120,
+      currency: 'EUR',
+      documents: [],
+    });
+
+    const selectChain = {
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockResolvedValue([]),
+    };
+    hoisted.select.mockReturnValueOnce(selectChain);
+
+    await getMemberClaimDetail({ user: { id: 'member_1' } }, 'claim_1');
+
+    expect(selectChain.where).toHaveBeenCalledWith({
+      op: 'and',
+      args: [
+        { op: 'eq', left: 'claimStageHistory.claimId', right: 'claim_1' },
+        { op: 'eq', left: 'claimStageHistory.tenantId', right: 'tenant_mk' },
+        { op: 'eq', left: 'claimStageHistory.isPublic', right: true },
+      ],
+    });
   });
 });
