@@ -42,6 +42,24 @@ const hoisted = vi.hoisted(() => ({
   })),
   getLatestPublicStatusNoteCoreMock: vi.fn(async () => null),
   getStaffAssignmentOptionsMock: vi.fn(async () => []),
+  messagingPanelMock: vi.fn(
+    ({
+      allowInternal,
+      claimId,
+      currentUser,
+    }: {
+      allowInternal?: boolean;
+      claimId: string;
+      currentUser: { role: string };
+    }) => (
+      <div
+        data-testid="staff-claim-messaging-panel"
+        data-allow-internal={String(Boolean(allowInternal))}
+        data-claim-id={claimId}
+        data-role={currentUser.role}
+      />
+    )
+  ),
 }));
 
 vi.mock('next/headers', () => ({
@@ -82,6 +100,10 @@ vi.mock('@/components/staff/claim-action-panel', () => ({
   ClaimActionPanel: () => <div data-testid="staff-claim-action-panel" />,
 }));
 
+vi.mock('@/components/messaging/messaging-panel', () => ({
+  MessagingPanel: (props: unknown) => hoisted.messagingPanelMock(props as never),
+}));
+
 import StaffClaimDetailsPage from './page';
 
 describe('StaffClaimDetailsPage', () => {
@@ -102,5 +124,27 @@ describe('StaffClaimDetailsPage', () => {
     expect(screen.getByText('Plan allowance')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.getAllByText('2')).toHaveLength(2);
+  });
+
+  it('renders claim messaging with internal-note controls on the canonical staff claim detail page', async () => {
+    const tree = await StaffClaimDetailsPage({
+      params: Promise.resolve({
+        locale: 'en',
+        id: 'claim-1',
+      }),
+    });
+
+    render(tree);
+
+    expect(screen.getByTestId('staff-claim-messaging-panel')).toBeInTheDocument();
+    expect(hoisted.messagingPanelMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimId: 'claim-1',
+        allowInternal: true,
+        currentUser: expect.objectContaining({
+          role: 'staff',
+        }),
+      })
+    );
   });
 });

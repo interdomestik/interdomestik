@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 
 import { auth } from '@/lib/auth';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
+import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { getLatestPublicStatusNoteCore } from './_core';
 
@@ -174,6 +175,29 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           )}
         </div>
       </section>
+
+      {session.user.role === 'staff' ? (
+        <section
+          className="rounded-lg border bg-white p-4"
+          data-testid="staff-claim-detail-messaging"
+        >
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Messages
+          </h2>
+          <div className="mt-3">
+            <MessagingPanel
+              claimId={detail.claim.id}
+              currentUser={{
+                id: session.user.id,
+                name: session.user.name ?? 'Staff',
+                image: session.user.image ?? null,
+                role: session.user.role || 'staff',
+              }}
+              allowInternal={true}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {session.user.role === 'staff' && (
         <section
