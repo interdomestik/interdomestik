@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => {
     claimChain,
     agentChain,
     db: { select: vi.fn() },
+    getMatterAllowanceVisibility: vi.fn(),
     claims: {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
@@ -75,12 +76,17 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
 
+vi.mock('./matter-allowance', () => ({
+  getMatterAllowanceVisibilityForUser: mocks.getMatterAllowanceVisibility,
+}));
+
 import { getStaffClaimDetail } from './get-staff-claim-detail';
 
 describe('getStaffClaimDetail', () => {
   beforeEach(() => {
     mocks.db.select.mockReset();
     mocks.db.select.mockReturnValueOnce(mocks.claimChain).mockReturnValueOnce(mocks.agentChain);
+    mocks.getMatterAllowanceVisibility.mockResolvedValue(null);
     mocks.claimChain.from.mockReturnValue(mocks.claimChain);
     mocks.claimChain.leftJoin.mockReturnValue(mocks.claimChain);
     mocks.claimChain.where.mockReturnValue(mocks.claimChain);
@@ -122,6 +128,13 @@ describe('getStaffClaimDetail', () => {
       },
     ]);
     mocks.agentChain.limit.mockResolvedValue([{ id: 'agent-1', name: 'Agent One' }]);
+    mocks.getMatterAllowanceVisibility.mockResolvedValueOnce({
+      allowanceTotal: 2,
+      consumedCount: 1,
+      remainingCount: 1,
+      windowStart: new Date('2026-01-01T00:00:00Z'),
+      windowEnd: new Date('2026-12-31T23:59:59Z'),
+    });
 
     const result = await getStaffClaimDetail({
       staffId: 'staff-1',
@@ -137,6 +150,17 @@ describe('getStaffClaimDetail', () => {
     expect(result?.claim.claimNumber).toBe('KS-0001');
     expect(result?.member.membershipNumber).toBe('MEM-001');
     expect(result?.agent?.name).toBe('Agent One');
+    expect(mocks.getMatterAllowanceVisibility).toHaveBeenCalledWith({
+      tenantId: 'tenant-ks',
+      userId: 'member-1',
+    });
+    expect((result as { matterAllowance?: unknown } | null)?.matterAllowance).toEqual({
+      allowanceTotal: 2,
+      consumedCount: 1,
+      remainingCount: 1,
+      windowStart: '2026-01-01T00:00:00.000Z',
+      windowEnd: '2026-12-31T23:59:59.000Z',
+    });
     expect(result?.commercialAgreement).toMatchObject({
       decisionNextStatus: 'court',
       decisionReason: 'Strong liability record and member approval captured.',

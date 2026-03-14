@@ -35,6 +35,13 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
     ...claim,
     createdAt: claim.createdAt.toISOString(),
     updatedAt: claim.updatedAt?.toISOString() ?? null,
+    matterAllowance: claim.matterAllowance
+      ? {
+          ...claim.matterAllowance,
+          windowStart: claim.matterAllowance.windowStart.toISOString(),
+          windowEnd: claim.matterAllowance.windowEnd.toISOString(),
+        }
+      : null,
     documents: claim.documents.map(d => ({
       ...d,
       createdAt: d.createdAt.toISOString(),

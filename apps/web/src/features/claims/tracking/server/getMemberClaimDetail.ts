@@ -1,5 +1,6 @@
 import { ensureClaimsAccess } from '@/server/domains/claims/guards';
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
+import { getMatterAllowanceVisibilityForUser } from '@interdomestik/domain-claims';
 import { db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { claimDocuments, claims, claimStageHistory } from '@interdomestik/database/schema';
@@ -83,6 +84,11 @@ export async function getMemberClaimDetail(
         return null;
       }
 
+      const matterAllowance = await getMatterAllowanceVisibilityForUser({
+        tenantId,
+        userId: claim.userId ?? userId,
+      });
+
       // 4. Map to DTO
       const claimStatus = (claim.status || 'draft') as ClaimStatus;
       let timeline: ClaimTimelineEvent[] = timelineRows.map(row => ({
@@ -141,6 +147,7 @@ export async function getMemberClaimDetail(
         documents,
         timeline,
         canShare: true, // TODO: Logic for enabling share button
+        matterAllowance,
       };
 
       return dto;

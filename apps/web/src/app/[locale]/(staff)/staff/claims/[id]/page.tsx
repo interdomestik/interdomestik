@@ -102,6 +102,46 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
         </div>
       </section>
 
+      {detail.matterAllowance ? (
+        <section
+          className="rounded-lg border bg-white p-4"
+          data-testid="staff-claim-detail-matter-allowance"
+        >
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Matter allowance
+          </h2>
+          <div className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-3">
+            <div>
+              <span className="text-muted-foreground">Used this year</span>
+              <div
+                className="font-medium text-slate-900"
+                data-testid="staff-claim-detail-matter-allowance-used"
+              >
+                {detail.matterAllowance.consumedCount}
+              </div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Remaining this year</span>
+              <div
+                className="font-medium text-slate-900"
+                data-testid="staff-claim-detail-matter-allowance-remaining"
+              >
+                {detail.matterAllowance.remainingCount}
+              </div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Plan allowance</span>
+              <div
+                className="font-medium text-slate-900"
+                data-testid="staff-claim-detail-matter-allowance-total"
+              >
+                {detail.matterAllowance.allowanceTotal}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-agent">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Agent
