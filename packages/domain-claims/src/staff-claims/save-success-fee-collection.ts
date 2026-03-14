@@ -21,6 +21,7 @@ import type {
   SaveSuccessFeeCollectionInput,
   SuccessFeeCollectionSnapshot,
 } from './types';
+import { buildCommercialAgreementSnapshot } from './accepted-recovery-prerequisites';
 
 const saveSuccessFeeCollectionSchema = z.object({
   claimId: z.string().trim().min(1, 'Claim ID is required'),
@@ -112,9 +113,15 @@ export async function saveSuccessFeeCollectionCore(
 
       const [agreement] = await tx
         .select({
+          acceptedAt: claimEscalationAgreements.acceptedAt,
+          decisionNextStatus: claimEscalationAgreements.decisionNextStatus,
+          decisionReason: claimEscalationAgreements.decisionReason,
           feePercentage: claimEscalationAgreements.feePercentage,
+          legalActionCapPercentage: claimEscalationAgreements.legalActionCapPercentage,
           minimumFee: claimEscalationAgreements.minimumFee,
           paymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
+          signedAt: claimEscalationAgreements.signedAt,
+          termsVersion: claimEscalationAgreements.termsVersion,
         })
         .from(claimEscalationAgreements)
         .where(
@@ -126,12 +133,24 @@ export async function saveSuccessFeeCollectionCore(
         )
         .limit(1);
 
-      const feePercentage = agreement?.feePercentage;
-      const minimumFee = agreement?.minimumFee;
-      const paymentAuthorizationState = agreement?.paymentAuthorizationState;
+      const commercialAgreement = buildCommercialAgreementSnapshot({
+        acceptedAt: agreement?.acceptedAt,
+        claimId: parsed.data.claimId,
+        decisionNextStatus: agreement?.decisionNextStatus,
+        decisionReason: agreement?.decisionReason,
+        feePercentage: agreement?.feePercentage,
+        legalActionCapPercentage: agreement?.legalActionCapPercentage,
+        minimumFee: agreement?.minimumFee,
+        paymentAuthorizationState: agreement?.paymentAuthorizationState,
+        signedAt: agreement?.signedAt,
+        termsVersion: agreement?.termsVersion,
+      });
 
-      if (!paymentAuthorizationState || minimumFee == null || feePercentage == null) {
-        return { success: false, error: 'Escalation agreement not found' };
+      if (!commercialAgreement) {
+        return {
+          success: false,
+          error: 'Save the accepted escalation agreement before recording success-fee collection.',
+        };
       }
 
       const [subscription] = await tx
@@ -146,8 +165,8 @@ export async function saveSuccessFeeCollectionCore(
         .limit(1);
 
       const feeQuote = calculateSuccessFeeAmount({
-        minimumFee: Number(minimumFee),
-        ratePercentage: feePercentage,
+        minimumFee: Number(commercialAgreement.minimumFee),
+        ratePercentage: commercialAgreement.feePercentage,
         recoveryAmount: parsed.data.recoveredAmount,
       });
       const hasStoredPaymentMethod = Boolean(subscription?.providerCustomerId?.trim());
@@ -155,7 +174,7 @@ export async function saveSuccessFeeCollectionCore(
         deductionAllowed: parsed.data.deductionAllowed,
         hasStoredPaymentMethod,
         now,
-        paymentAuthorizationState,
+        paymentAuthorizationState: commercialAgreement.paymentAuthorizationState,
       });
       const recoveredAmount = feeQuote.recoveryAmount.toFixed(2);
       const feeAmount = feeQuote.feeAmount.toFixed(2);
@@ -198,7 +217,7 @@ export async function saveSuccessFeeCollectionCore(
           feeAmount,
           hasStoredPaymentMethod,
           invoiceDueAt,
-          paymentAuthorizationState: paymentAuthorizationState,
+          paymentAuthorizationState: commercialAgreement.paymentAuthorizationState,
           recoveredAmount,
           resolvedAt: now,
           subscriptionId,

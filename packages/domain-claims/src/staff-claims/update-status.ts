@@ -11,6 +11,11 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type { ActionResult, ClaimStatus, RecoveryDeclineReasonCode } from './types';
 
+import {
+  buildAcceptedRecoveryPrerequisitesSnapshot,
+  buildCommercialAgreementSnapshot,
+  buildSuccessFeeCollectionSnapshot,
+} from './accepted-recovery-prerequisites';
 import { claimStatusSchema } from '../validators/claims';
 import {
   getMatterAllowanceContextForSubscription,
@@ -18,12 +23,19 @@ import {
   getRecoveryMatterServiceCode,
   hasRecoveryMatterUsageForClaim,
 } from './matter-allowance';
-import { getRecoveryDeclineMemberDescription } from './recovery-decision';
+import {
+  buildRecoveryDecisionSnapshot,
+  getRecoveryDeclineMemberDescription,
+} from './recovery-decision';
 import { upsertRecoveryDecisionRecord } from './save-recovery-decision';
 
 const STAFF_LED_RECOVERY_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
 const RECOVERY_DECISION_REQUIRED_ERROR =
   'Staff must accept the recovery decision before staff-led recovery can begin.';
+const RECOVERY_COMMERCIAL_AGREEMENT_REQUIRED_ERROR =
+  'Save the accepted escalation agreement before staff-led recovery can begin.';
+const RECOVERY_COLLECTION_PATH_REQUIRED_ERROR =
+  'Save the success-fee collection path before staff-led recovery can begin.';
 const RECOVERY_ALLOWANCE_EXHAUSTED_ERROR =
   'Matter allowance is exhausted. Record an override reason or upgrade the membership before staff-led recovery can begin.';
 type UpdateClaimStatusParams = {
@@ -71,7 +83,25 @@ async function handleStaffLedRecoveryStatusChange(
   } = params;
   const [agreement] = await db
     .select({
+      acceptedAt: claimEscalationAgreements.acceptedAt,
+      decisionNextStatus: claimEscalationAgreements.decisionNextStatus,
+      decisionReason: claimEscalationAgreements.decisionReason,
       decisionType: claimEscalationAgreements.decisionType,
+      feePercentage: claimEscalationAgreements.feePercentage,
+      legalActionCapPercentage: claimEscalationAgreements.legalActionCapPercentage,
+      minimumFee: claimEscalationAgreements.minimumFee,
+      paymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
+      signedAt: claimEscalationAgreements.signedAt,
+      successFeeAmount: claimEscalationAgreements.successFeeAmount,
+      successFeeCollectionMethod: claimEscalationAgreements.successFeeCollectionMethod,
+      successFeeCurrencyCode: claimEscalationAgreements.successFeeCurrencyCode,
+      successFeeDeductionAllowed: claimEscalationAgreements.successFeeDeductionAllowed,
+      successFeeHasStoredPaymentMethod: claimEscalationAgreements.successFeeHasStoredPaymentMethod,
+      successFeeInvoiceDueAt: claimEscalationAgreements.successFeeInvoiceDueAt,
+      successFeeRecoveredAmount: claimEscalationAgreements.successFeeRecoveredAmount,
+      successFeeResolvedAt: claimEscalationAgreements.successFeeResolvedAt,
+      successFeeSubscriptionId: claimEscalationAgreements.successFeeSubscriptionId,
+      termsVersion: claimEscalationAgreements.termsVersion,
     })
     .from(claimEscalationAgreements)
     .where(
@@ -83,10 +113,62 @@ async function handleStaffLedRecoveryStatusChange(
     )
     .limit(1);
 
-  if (agreement?.decisionType !== 'accepted') {
+  const recoveryDecision = buildRecoveryDecisionSnapshot({
+    decidedAt: agreement?.acceptedAt,
+    decisionType: agreement?.decisionType ?? null,
+    explanation: agreement?.decisionReason ?? null,
+  });
+
+  if (recoveryDecision.status !== 'accepted') {
     return {
       success: false,
       error: RECOVERY_DECISION_REQUIRED_ERROR,
+    };
+  }
+
+  const commercialAgreement = buildCommercialAgreementSnapshot({
+    acceptedAt: agreement?.acceptedAt,
+    claimId,
+    decisionNextStatus: agreement?.decisionNextStatus ?? null,
+    decisionReason: agreement?.decisionReason ?? null,
+    feePercentage: agreement?.feePercentage,
+    legalActionCapPercentage: agreement?.legalActionCapPercentage,
+    minimumFee: agreement?.minimumFee,
+    paymentAuthorizationState: agreement?.paymentAuthorizationState,
+    signedAt: agreement?.signedAt,
+    termsVersion: agreement?.termsVersion,
+  });
+
+  if (!commercialAgreement) {
+    return {
+      success: false,
+      error: RECOVERY_COMMERCIAL_AGREEMENT_REQUIRED_ERROR,
+    };
+  }
+
+  const successFeeCollection = buildSuccessFeeCollectionSnapshot({
+    claimId,
+    collectionMethod: agreement?.successFeeCollectionMethod,
+    currencyCode: agreement?.successFeeCurrencyCode,
+    deductionAllowed: agreement?.successFeeDeductionAllowed,
+    feeAmount: agreement?.successFeeAmount,
+    hasStoredPaymentMethod: agreement?.successFeeHasStoredPaymentMethod,
+    invoiceDueAt: agreement?.successFeeInvoiceDueAt,
+    paymentAuthorizationState: agreement?.paymentAuthorizationState,
+    recoveredAmount: agreement?.successFeeRecoveredAmount,
+    resolvedAt: agreement?.successFeeResolvedAt,
+    subscriptionId: agreement?.successFeeSubscriptionId ?? null,
+  });
+  const acceptedRecoveryPrerequisites = buildAcceptedRecoveryPrerequisitesSnapshot({
+    commercialAgreement,
+    recoveryDecisionStatus: recoveryDecision.status,
+    successFeeCollection,
+  });
+
+  if (!acceptedRecoveryPrerequisites.collectionPathReady) {
+    return {
+      success: false,
+      error: RECOVERY_COLLECTION_PATH_REQUIRED_ERROR,
     };
   }
 

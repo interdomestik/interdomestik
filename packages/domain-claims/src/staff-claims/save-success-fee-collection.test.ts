@@ -44,7 +44,10 @@ const mocks = vi.hoisted(() => {
     claimEscalationAgreements: {
       tenantId: 'claim_escalation_agreements.tenant_id',
       claimId: 'claim_escalation_agreements.claim_id',
+      decisionNextStatus: 'claim_escalation_agreements.decision_next_status',
+      decisionReason: 'claim_escalation_agreements.decision_reason',
       feePercentage: 'claim_escalation_agreements.fee_percentage',
+      legalActionCapPercentage: 'claim_escalation_agreements.legal_action_cap_percentage',
       minimumFee: 'claim_escalation_agreements.minimum_fee',
       paymentAuthorizationState: 'claim_escalation_agreements.payment_authorization_state',
       successFeeRecoveredAmount: 'claim_escalation_agreements.success_fee_recovered_amount',
@@ -58,6 +61,9 @@ const mocks = vi.hoisted(() => {
       successFeeResolvedAt: 'claim_escalation_agreements.success_fee_resolved_at',
       successFeeResolvedById: 'claim_escalation_agreements.success_fee_resolved_by_id',
       successFeeSubscriptionId: 'claim_escalation_agreements.success_fee_subscription_id',
+      termsVersion: 'claim_escalation_agreements.terms_version',
+      signedAt: 'claim_escalation_agreements.signed_at',
+      acceptedAt: 'claim_escalation_agreements.accepted_at',
       updatedAt: 'claim_escalation_agreements.updated_at',
     },
     subscriptions: {
@@ -161,7 +167,42 @@ describe('saveSuccessFeeCollectionCore', () => {
 
     expect(result).toEqual({
       success: false,
-      error: 'Escalation agreement not found',
+      error: 'Save the accepted escalation agreement before recording success-fee collection.',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+  });
+
+  it('rejects accepted cases whose agreement snapshot is still incomplete', async () => {
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { currency: 'EUR', id: 'claim-1', userId: 'member-1' },
+    ]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([
+      {
+        decisionNextStatus: 'negotiation',
+        decisionReason: 'Recovery decision accepted before commercial terms were fully saved.',
+        feePercentage: 15,
+        legalActionCapPercentage: 25,
+        minimumFee: '25.00',
+        paymentAuthorizationState: 'authorized',
+        termsVersion: '2026-03-v1',
+        signedAt: null,
+        acceptedAt: new Date('2026-03-14T09:00:00.000Z'),
+      },
+    ]);
+
+    const result = await saveSuccessFeeCollectionCore({
+      claimId: 'claim-1',
+      deductionAllowed: false,
+      recoveredAmount: 1000,
+      session: createSession({ userId: 'staff-1' }),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Save the accepted escalation agreement before recording success-fee collection.',
     });
     expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
@@ -177,9 +218,15 @@ describe('saveSuccessFeeCollectionCore', () => {
     ]);
     mocks.agreementSelectChain.limit.mockResolvedValue([
       {
+        acceptedAt: new Date('2026-03-12T09:00:00Z'),
+        decisionNextStatus: 'negotiation',
+        decisionReason: 'Member approved the accepted negotiation path.',
         feePercentage: 15,
+        legalActionCapPercentage: 25,
         minimumFee: '25.00',
         paymentAuthorizationState: 'authorized',
+        signedAt: new Date('2026-03-12T09:00:00Z'),
+        termsVersion: '2026-03-v1',
       },
     ]);
     mocks.subscriptionSelectChain.limit.mockResolvedValue([]);
@@ -236,9 +283,15 @@ describe('saveSuccessFeeCollectionCore', () => {
     ]);
     mocks.agreementSelectChain.limit.mockResolvedValue([
       {
+        acceptedAt: new Date('2026-03-12T09:00:00Z'),
+        decisionNextStatus: 'negotiation',
+        decisionReason: 'Member approved the accepted negotiation path.',
         feePercentage: 15,
+        legalActionCapPercentage: 25,
         minimumFee: '25.00',
         paymentAuthorizationState: 'authorized',
+        signedAt: new Date('2026-03-12T09:00:00Z'),
+        termsVersion: '2026-03-v1',
       },
     ]);
     mocks.subscriptionSelectChain.limit.mockResolvedValue([
@@ -282,9 +335,15 @@ describe('saveSuccessFeeCollectionCore', () => {
     ]);
     mocks.agreementSelectChain.limit.mockResolvedValue([
       {
+        acceptedAt: new Date('2026-03-12T09:00:00Z'),
+        decisionNextStatus: 'negotiation',
+        decisionReason: 'Member approved the accepted negotiation path.',
         feePercentage: 15,
+        legalActionCapPercentage: 25,
         minimumFee: '25.00',
         paymentAuthorizationState: 'revoked',
+        signedAt: new Date('2026-03-12T09:00:00Z'),
+        termsVersion: '2026-03-v1',
       },
     ]);
     mocks.subscriptionSelectChain.limit.mockResolvedValue([
@@ -330,9 +389,15 @@ describe('saveSuccessFeeCollectionCore', () => {
     ]);
     mocks.agreementSelectChain.limit.mockResolvedValue([
       {
+        acceptedAt: new Date('2026-03-12T09:00:00Z'),
+        decisionNextStatus: 'negotiation',
+        decisionReason: 'Member approved the accepted negotiation path.',
         feePercentage: 15,
+        legalActionCapPercentage: 25,
         minimumFee: '25.00',
         paymentAuthorizationState: 'authorized',
+        signedAt: new Date('2026-03-12T09:00:00Z'),
+        termsVersion: '2026-03-v1',
       },
     ]);
     mocks.subscriptionSelectChain.limit.mockResolvedValue([]);

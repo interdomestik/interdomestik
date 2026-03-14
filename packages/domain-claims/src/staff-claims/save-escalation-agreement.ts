@@ -127,6 +127,8 @@ export async function saveClaimEscalationAgreementCore(
         .limit(1);
 
       if (existingAgreement) {
+        const signedAt = existingAgreement.signedAt ?? now;
+
         await tx
           .update(claimEscalationAgreements)
           .set({
@@ -138,6 +140,8 @@ export async function saveClaimEscalationAgreementCore(
             legalActionCapPercentage: parsed.data.legalActionCapPercentage,
             minimumFee,
             paymentAuthorizationState: parsed.data.paymentAuthorizationState,
+            signedAt,
+            signedByUserId: claim.userId,
             termsVersion: parsed.data.termsVersion,
             updatedAt: now,
           })
@@ -160,7 +164,7 @@ export async function saveClaimEscalationAgreementCore(
             legalActionCapPercentage: parsed.data.legalActionCapPercentage,
             minimumFee,
             paymentAuthorizationState: parsed.data.paymentAuthorizationState,
-            signedAt: existingAgreement.signedAt,
+            signedAt,
             termsVersion: parsed.data.termsVersion,
           }),
         };

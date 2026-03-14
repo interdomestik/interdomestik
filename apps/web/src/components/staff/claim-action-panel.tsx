@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  AcceptedRecoveryPrerequisitesSnapshot,
   assignClaim,
   ClaimEscalationAgreementSnapshot,
   ClaimStatus,
@@ -32,6 +33,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 interface ClaimActionPanelProps {
+  readonly acceptedRecoveryPrerequisites: AcceptedRecoveryPrerequisitesSnapshot;
   readonly claimId: string;
   readonly recoveryDecision: RecoveryDecisionSnapshot;
   readonly commercialAgreement: ClaimEscalationAgreementSnapshot | null;
@@ -177,6 +179,7 @@ function getAssignmentLabel(args: {
 }
 
 export function ClaimActionPanel({
+  acceptedRecoveryPrerequisites,
   claimId,
   recoveryDecision,
   commercialAgreement,
@@ -415,7 +418,20 @@ export function ClaimActionPanel({
     selectedAssigneeId.length > 0 && selectedAssigneeId !== (assigneeId ?? '');
   const hasStatusChanged = status !== currentStatus;
   const resolvedRecoveryDecision = savedRecoveryDecision;
-  const hasCommercialAgreement = (savedAgreement ?? commercialAgreement) !== null;
+  const resolvedAgreement = savedAgreement ?? commercialAgreement;
+  const resolvedSuccessFeeCollection = savedSuccessFeeCollection ?? successFeeCollection;
+  const resolvedAcceptedRecoveryPrerequisites: AcceptedRecoveryPrerequisitesSnapshot = {
+    agreementReady: resolvedAgreement !== null,
+    canMoveForward:
+      resolvedRecoveryDecision.status === 'accepted' &&
+      resolvedAgreement !== null &&
+      resolvedSuccessFeeCollection !== null,
+    collectionPathReady: resolvedSuccessFeeCollection !== null,
+    isAcceptedRecoveryDecision:
+      acceptedRecoveryPrerequisites.isAcceptedRecoveryDecision ||
+      resolvedRecoveryDecision.status === 'accepted',
+  };
+  const hasCommercialAgreement = resolvedAgreement !== null;
   const parsedRecoveredAmount = Number(recoveredAmount.trim());
   const hasValidRecoveredAmount =
     Number.isFinite(parsedRecoveredAmount) && parsedRecoveredAmount > 0;
@@ -428,7 +444,19 @@ export function ClaimActionPanel({
   const canSaveSuccessFeeCollection = hasCommercialAgreement && hasValidRecoveredAmount;
   const requiresMatterAllowanceGuard = RECOVERY_START_STATUSES.has(status);
   const requiresAcceptedRecoveryDecision =
-    RECOVERY_START_STATUSES.has(status) && resolvedRecoveryDecision.status !== 'accepted';
+    hasStatusChanged &&
+    RECOVERY_START_STATUSES.has(status) &&
+    resolvedRecoveryDecision.status !== 'accepted';
+  const requiresAcceptedRecoveryAgreement =
+    hasStatusChanged &&
+    RECOVERY_START_STATUSES.has(status) &&
+    resolvedAcceptedRecoveryPrerequisites.isAcceptedRecoveryDecision &&
+    !resolvedAcceptedRecoveryPrerequisites.agreementReady;
+  const requiresAcceptedRecoveryCollectionPath =
+    hasStatusChanged &&
+    RECOVERY_START_STATUSES.has(status) &&
+    resolvedAcceptedRecoveryPrerequisites.isAcceptedRecoveryDecision &&
+    !resolvedAcceptedRecoveryPrerequisites.collectionPathReady;
   const assignmentLabel = getAssignmentLabel({
     assigneeId,
     currentAssigneeLabel,
@@ -599,6 +627,35 @@ export function ClaimActionPanel({
         </Button>
       </div>
 
+      {resolvedAcceptedRecoveryPrerequisites.isAcceptedRecoveryDecision ? (
+        <div
+          className="rounded-lg border bg-muted/30 p-4 text-sm"
+          data-testid="staff-accepted-recovery-prerequisites"
+        >
+          <div className="space-y-1">
+            <h4 className="text-sm font-medium">Accepted recovery prerequisites</h4>
+            <p className="text-xs text-muted-foreground">
+              Accepted recovery cannot move into negotiation or court until both prerequisites are
+              ready.
+            </p>
+          </div>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            <div>
+              <span className="text-muted-foreground">Agreement</span>
+              <div className="font-medium text-slate-900">
+                {resolvedAcceptedRecoveryPrerequisites.agreementReady ? 'Ready' : 'Missing'}
+              </div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Collection path</span>
+              <div className="font-medium text-slate-900">
+                {resolvedAcceptedRecoveryPrerequisites.collectionPathReady ? 'Ready' : 'Missing'}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="space-y-4 border-t pt-6">
         <div className="space-y-1">
           <h4 className="text-sm font-medium">Escalation Agreement</h4>
@@ -612,57 +669,61 @@ export function ClaimActionPanel({
           className="rounded-lg border bg-muted/30 p-4 text-sm"
           data-testid="staff-escalation-agreement-summary"
         >
-          {savedAgreement ? (
+          {resolvedAgreement ? (
             <div className="grid gap-2 md:grid-cols-2">
               <div>
                 <span className="text-muted-foreground">Accepted next state</span>
                 <div className="font-medium text-slate-900">
-                  {savedAgreement.decisionNextStatus
-                    ? getStaffClaimStatusLabel(savedAgreement.decisionNextStatus)
+                  {resolvedAgreement.decisionNextStatus
+                    ? getStaffClaimStatusLabel(resolvedAgreement.decisionNextStatus)
                     : 'Not recorded'}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Decision reason</span>
                 <div className="font-medium text-slate-900">
-                  {savedAgreement.decisionReason ?? 'Not recorded'}
+                  {resolvedAgreement.decisionReason ?? 'Not recorded'}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Fee</span>
-                <div className="font-medium text-slate-900">{savedAgreement.feePercentage}%</div>
+                <div className="font-medium text-slate-900">{resolvedAgreement.feePercentage}%</div>
               </div>
               <div>
                 <span className="text-muted-foreground">Minimum fee</span>
-                <div className="font-medium text-slate-900">EUR {savedAgreement.minimumFee}</div>
+                <div className="font-medium text-slate-900">EUR {resolvedAgreement.minimumFee}</div>
               </div>
               <div>
                 <span className="text-muted-foreground">Legal-action cap</span>
                 <div className="font-medium text-slate-900">
-                  {savedAgreement.legalActionCapPercentage}%
+                  {resolvedAgreement.legalActionCapPercentage}%
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Payment authorization</span>
                 <div className="font-medium text-slate-900">
-                  {savedAgreement.paymentAuthorizationState}
+                  {resolvedAgreement.paymentAuthorizationState}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Terms version</span>
-                <div className="font-medium text-slate-900">{savedAgreement.termsVersion}</div>
+                <div className="font-medium text-slate-900">{resolvedAgreement.termsVersion}</div>
               </div>
               <div>
                 <span className="text-muted-foreground">Signed</span>
                 <div className="font-medium text-slate-900">
-                  {savedAgreement.signedAt
-                    ? new Date(savedAgreement.signedAt).toLocaleString()
+                  {resolvedAgreement.signedAt
+                    ? new Date(resolvedAgreement.signedAt).toLocaleString()
                     : 'Pending'}
                 </div>
               </div>
             </div>
           ) : (
-            <p className="text-muted-foreground">No escalation agreement saved for this claim.</p>
+            <p className="text-muted-foreground">
+              {resolvedAcceptedRecoveryPrerequisites.isAcceptedRecoveryDecision
+                ? 'Save the accepted escalation agreement before moving this case into negotiation or court.'
+                : 'No escalation agreement saved for this claim.'}
+            </p>
           )}
         </div>
 
@@ -801,53 +862,56 @@ export function ClaimActionPanel({
           className="rounded-lg border bg-muted/30 p-4 text-sm"
           data-testid="staff-success-fee-collection-summary"
         >
-          {savedSuccessFeeCollection ? (
+          {resolvedSuccessFeeCollection ? (
             <div className="grid gap-2 md:grid-cols-2">
               <div>
                 <span className="text-muted-foreground">Recovered amount</span>
                 <div className="font-medium text-slate-900">
-                  {savedSuccessFeeCollection.currencyCode}{' '}
-                  {savedSuccessFeeCollection.recoveredAmount}
+                  {resolvedSuccessFeeCollection.currencyCode}{' '}
+                  {resolvedSuccessFeeCollection.recoveredAmount}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Success fee</span>
                 <div className="font-medium text-slate-900">
-                  {savedSuccessFeeCollection.currencyCode} {savedSuccessFeeCollection.feeAmount}
+                  {resolvedSuccessFeeCollection.currencyCode}{' '}
+                  {resolvedSuccessFeeCollection.feeAmount}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Collection method</span>
                 <div className="font-medium text-slate-900">
-                  {formatCollectionMethodLabel(savedSuccessFeeCollection.collectionMethod)}
+                  {formatCollectionMethodLabel(resolvedSuccessFeeCollection.collectionMethod)}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Stored payment method</span>
                 <div className="font-medium text-slate-900">
-                  {savedSuccessFeeCollection.hasStoredPaymentMethod ? 'Yes' : 'No'}
+                  {resolvedSuccessFeeCollection.hasStoredPaymentMethod ? 'Yes' : 'No'}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Invoice due</span>
                 <div className="font-medium text-slate-900">
-                  {savedSuccessFeeCollection.invoiceDueAt
-                    ? new Date(savedSuccessFeeCollection.invoiceDueAt).toLocaleString()
+                  {resolvedSuccessFeeCollection.invoiceDueAt
+                    ? new Date(resolvedSuccessFeeCollection.invoiceDueAt).toLocaleString()
                     : '-'}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Resolved</span>
                 <div className="font-medium text-slate-900">
-                  {savedSuccessFeeCollection.resolvedAt
-                    ? new Date(savedSuccessFeeCollection.resolvedAt).toLocaleString()
+                  {resolvedSuccessFeeCollection.resolvedAt
+                    ? new Date(resolvedSuccessFeeCollection.resolvedAt).toLocaleString()
                     : 'Pending'}
                 </div>
               </div>
             </div>
           ) : hasCommercialAgreement ? (
             <p className="text-muted-foreground">
-              No success-fee collection order has been recorded for this claim.
+              {resolvedAcceptedRecoveryPrerequisites.isAcceptedRecoveryDecision
+                ? 'No success-fee collection path is recorded yet. Save one before moving this accepted case into negotiation or court.'
+                : 'No success-fee collection order has been recorded for this claim.'}
             </p>
           ) : (
             <p className="text-muted-foreground">
@@ -946,6 +1010,20 @@ export function ClaimActionPanel({
           </p>
         ) : null}
 
+        {requiresAcceptedRecoveryAgreement ? (
+          <p className="text-xs text-muted-foreground">
+            Save the accepted escalation agreement before moving this case into negotiation or
+            court.
+          </p>
+        ) : null}
+
+        {requiresAcceptedRecoveryCollectionPath ? (
+          <p className="text-xs text-muted-foreground">
+            Save the success-fee collection path before moving this accepted case into negotiation
+            or court.
+          </p>
+        ) : null}
+
         {requiresMatterAllowanceGuard ? (
           <div className="space-y-2">
             <label htmlFor="claim-status-allowance-override" className="text-sm font-medium">
@@ -971,7 +1049,11 @@ export function ClaimActionPanel({
           className="w-full"
           onClick={handleStatusUpdate}
           disabled={
-            isPending || (!hasStatusChanged && !note.trim()) || requiresAcceptedRecoveryDecision
+            isPending ||
+            (!hasStatusChanged && !note.trim()) ||
+            requiresAcceptedRecoveryDecision ||
+            requiresAcceptedRecoveryAgreement ||
+            requiresAcceptedRecoveryCollectionPath
           }
           data-testid="staff-update-claim-button"
         >

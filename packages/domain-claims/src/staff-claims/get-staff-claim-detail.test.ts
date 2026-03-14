@@ -109,6 +109,8 @@ describe('getStaffClaimDetail', () => {
         memberNumber: 'MEM-001',
         agentId: 'agent-1',
         agentName: 'Agent One',
+        agreementDecisionType: 'accepted',
+        agreementDeclineReasonCode: null,
         agreementFeePercentage: 15,
         agreementMinimumFee: '25.00',
         agreementLegalActionCapPercentage: 25,
@@ -163,6 +165,14 @@ describe('getStaffClaimDetail', () => {
       windowStart: '2026-01-01T00:00:00.000Z',
       windowEnd: '2026-12-31T23:59:59.000Z',
     });
+    expect(
+      (result as { acceptedRecoveryPrerequisites?: unknown } | null)?.acceptedRecoveryPrerequisites
+    ).toEqual({
+      agreementReady: true,
+      canMoveForward: true,
+      collectionPathReady: true,
+      isAcceptedRecoveryDecision: true,
+    });
     expect(result?.commercialAgreement).toMatchObject({
       decisionNextStatus: 'court',
       decisionReason: 'Strong liability record and member approval captured.',
@@ -184,7 +194,7 @@ describe('getStaffClaimDetail', () => {
     });
   });
 
-  it('returns a standalone accepted recovery decision even when commercial terms are still incomplete', async () => {
+  it('keeps accepted recovery prerequisites incomplete when the agreement is missing a signature timestamp', async () => {
     mocks.claimChain.limit.mockResolvedValue([
       {
         claimId: 'claim-1',
@@ -198,12 +208,12 @@ describe('getStaffClaimDetail', () => {
         agentId: null,
         agreementDecisionType: 'accepted',
         agreementDeclineReasonCode: null,
-        agreementDecisionNextStatus: null,
+        agreementDecisionNextStatus: 'negotiation',
         agreementDecisionReason: 'Clear insurer path and viable monetary recovery.',
-        agreementFeePercentage: null,
-        agreementMinimumFee: null,
-        agreementLegalActionCapPercentage: null,
-        agreementPaymentAuthorizationState: 'pending',
+        agreementFeePercentage: 20,
+        agreementMinimumFee: '25.00',
+        agreementLegalActionCapPercentage: 35,
+        agreementPaymentAuthorizationState: 'authorized',
         agreementSuccessFeeRecoveredAmount: null,
         agreementSuccessFeeCurrencyCode: null,
         agreementSuccessFeeAmount: null,
@@ -213,7 +223,7 @@ describe('getStaffClaimDetail', () => {
         agreementSuccessFeeInvoiceDueAt: null,
         agreementSuccessFeeResolvedAt: null,
         agreementSuccessFeeSubscriptionId: null,
-        agreementTermsVersion: null,
+        agreementTermsVersion: '2026-03-v1',
         agreementSignedAt: null,
         agreementAcceptedAt: new Date('2026-03-14T09:00:00Z'),
       },
@@ -227,6 +237,14 @@ describe('getStaffClaimDetail', () => {
     });
 
     expect(result?.commercialAgreement).toBeNull();
+    expect(
+      (result as { acceptedRecoveryPrerequisites?: unknown } | null)?.acceptedRecoveryPrerequisites
+    ).toEqual({
+      agreementReady: false,
+      canMoveForward: false,
+      collectionPathReady: false,
+      isAcceptedRecoveryDecision: true,
+    });
     expect((result as { recoveryDecision?: unknown } | null)?.recoveryDecision).toEqual(
       expect.objectContaining({
         status: 'accepted',
