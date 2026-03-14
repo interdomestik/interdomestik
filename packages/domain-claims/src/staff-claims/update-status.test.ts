@@ -289,6 +289,32 @@ function mockRecoverySelects(options?: {
   mocks.serviceUsageExistsSelectChain.limit.mockResolvedValue(options?.existingClaimUsage ?? []);
 }
 
+async function runNegotiationUpdate(
+  overrides: Partial<Parameters<typeof updateClaimStatusCore>[0]> = {},
+  deps?: Parameters<typeof updateClaimStatusCore>[1]
+) {
+  return updateClaimStatusCore(
+    {
+      claimId: 'claim-1',
+      newStatus: 'negotiation',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      ...overrides,
+    },
+    deps
+  );
+}
+
+function expectBlockedStatusChange(
+  result: Awaited<ReturnType<typeof updateClaimStatusCore>>,
+  error: string
+) {
+  expect(result).toEqual({
+    success: false,
+    error,
+  });
+  expect(mocks.txUpdate).not.toHaveBeenCalled();
+}
+
 describe('staff updateClaimStatusCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -310,47 +336,29 @@ describe('staff updateClaimStatusCore', () => {
     mocks.txInsertReturning.mockResolvedValue([{ id: 'usage-claim-1' }]);
   });
 
-  it('blocks negotiation until a recovery decision is recorded', async () => {
-    mockRecoverySelects({
-      agreement: [],
-      claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }],
-    });
-
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
-
-    expect(result).toEqual({
-      success: false,
-      error: 'Staff must accept the recovery decision before staff-led recovery can begin.',
-    });
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
-  });
-
-  it('blocks negotiation until staff explicitly accept the recovery decision', async () => {
-    mockRecoverySelects({
+  it.each([
+    {
+      agreement: [] as Array<MockRecoveryAgreement>,
+      title: 'blocks negotiation until a recovery decision is recorded',
+    },
+    {
       agreement: [
         {
           ...READY_ACCEPTED_RECOVERY_RECORD,
           decisionType: null,
         },
       ],
-      claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }],
-    });
+      title: 'blocks negotiation until staff explicitly accept the recovery decision',
+    },
+  ])('$title', async ({ agreement }) => {
+    mockRecoverySelects({ agreement });
 
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
+    const result = await runNegotiationUpdate();
 
-    expect(result).toEqual({
-      success: false,
-      error: 'Staff must accept the recovery decision before staff-led recovery can begin.',
-    });
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expectBlockedStatusChange(
+      result,
+      'Staff must accept the recovery decision before staff-led recovery can begin.'
+    );
   });
 
   it('blocks negotiation until the accepted escalation agreement is complete', async () => {
@@ -365,17 +373,12 @@ describe('staff updateClaimStatusCore', () => {
       claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }],
     });
 
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
+    const result = await runNegotiationUpdate();
 
-    expect(result).toEqual({
-      success: false,
-      error: 'Save the accepted escalation agreement before staff-led recovery can begin.',
-    });
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expectBlockedStatusChange(
+      result,
+      'Save the accepted escalation agreement before staff-led recovery can begin.'
+    );
   });
 
   it('blocks negotiation until the accepted case has a saved collection path', async () => {
@@ -396,17 +399,12 @@ describe('staff updateClaimStatusCore', () => {
       ],
     });
 
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
+    const result = await runNegotiationUpdate();
 
-    expect(result).toEqual({
-      success: false,
-      error: 'Save the success-fee collection path before staff-led recovery can begin.',
-    });
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expectBlockedStatusChange(
+      result,
+      'Save the success-fee collection path before staff-led recovery can begin.'
+    );
   });
 
   it('allows recovery status transition when an accepted case has a valid invoice fallback path', async () => {
@@ -422,11 +420,8 @@ describe('staff updateClaimStatusCore', () => {
         },
       ],
     });
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
+    const result = await runNegotiationUpdate({
       note: 'member signed the agreement',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
     });
 
     expect(result).toEqual({ success: true, error: undefined });
@@ -460,18 +455,14 @@ describe('staff updateClaimStatusCore', () => {
       ],
     });
 
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
+    const result = await runNegotiationUpdate({
       note: 'Staff accepted the recovery decision and can now start work.',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
     });
 
-    expect(result).toEqual({
-      success: false,
-      error: 'Save the accepted escalation agreement before staff-led recovery can begin.',
-    });
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expectBlockedStatusChange(
+      result,
+      'Save the accepted escalation agreement before staff-led recovery can begin.'
+    );
   });
 
   it('skips allowance total and usage window queries when the claim already consumed a recovery matter', async () => {
@@ -479,11 +470,7 @@ describe('staff updateClaimStatusCore', () => {
       existingClaimUsage: [{ id: 'usage-claim-1' }],
     });
 
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
+    const result = await runNegotiationUpdate();
 
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.membershipPlanSelectChain.limit).not.toHaveBeenCalled();
@@ -496,18 +483,12 @@ describe('staff updateClaimStatusCore', () => {
       matterCount: [{ count: 2 }],
     });
 
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
+    const result = await runNegotiationUpdate();
 
-    expect(result).toEqual({
-      success: false,
-      error:
-        'Matter allowance is exhausted. Record an override reason or upgrade the membership before staff-led recovery can begin.',
-    });
-    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expectBlockedStatusChange(
+      result,
+      'Matter allowance is exhausted. Record an override reason or upgrade the membership before staff-led recovery can begin.'
+    );
     expect(mocks.txInsert).not.toHaveBeenCalledWith(mocks.serviceUsage);
   });
 
@@ -516,11 +497,8 @@ describe('staff updateClaimStatusCore', () => {
       matterCount: [{ count: 1 }],
     });
 
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
+    const result = await runNegotiationUpdate({
       note: 'Recovery accepted',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
     });
 
     expect(result).toEqual({ success: true, error: undefined });
@@ -547,12 +525,9 @@ describe('staff updateClaimStatusCore', () => {
       matterCount: [{ count: 2 }],
     });
 
-    const result = await updateClaimStatusCore(
+    const result = await runNegotiationUpdate(
       {
-        claimId: 'claim-1',
-        newStatus: 'negotiation',
         allowanceOverrideReason: 'Family upgrade is pending but recovery must start now',
-        session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
       },
       { logAuditEvent: mocks.logAuditEvent }
     );
@@ -581,11 +556,7 @@ describe('staff updateClaimStatusCore', () => {
       ],
     });
 
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
+    const result = await runNegotiationUpdate();
 
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.txInsert).toHaveBeenCalledWith(mocks.serviceUsage);
@@ -597,11 +568,7 @@ describe('staff updateClaimStatusCore', () => {
     });
     mocks.txInsertReturning.mockResolvedValueOnce([]);
 
-    const result = await updateClaimStatusCore({
-      claimId: 'claim-1',
-      newStatus: 'negotiation',
-      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
-    });
+    const result = await runNegotiationUpdate();
 
     expect(result).toEqual({ success: true, error: undefined });
     expect(mocks.txInsertOnConflictDoNothing).toHaveBeenCalledWith({
