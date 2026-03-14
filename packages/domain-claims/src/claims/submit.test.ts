@@ -33,11 +33,13 @@ const hoisted = vi.hoisted(() => {
       },
     ]),
     txInsert,
+    txInsertValues,
   };
 });
 
 vi.mock('@interdomestik/database', () => ({
   claimDocuments: { __name: 'claim_documents' },
+  claimStageHistory: { __name: 'claim_stage_history' },
   claims: { __name: 'claim' },
   db: hoisted.db,
   tenantSettings: {
@@ -127,7 +129,20 @@ describe('submitClaimCore', () => {
 
     expect(result).toEqual({ success: true, claimId: 'claim-1' });
     expect(hoisted.txInsert).toHaveBeenNthCalledWith(1, { __name: 'claim' });
-    expect(hoisted.txInsert).toHaveBeenNthCalledWith(2, { __name: 'claim_documents' });
+    expect(hoisted.txInsert).toHaveBeenNthCalledWith(2, { __name: 'claim_stage_history' });
+    expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        claimId: 'claim-1',
+        tenantId: 'tenant-1',
+        fromStatus: null,
+        toStatus: 'submitted',
+        changedById: 'member-1',
+        changedByRole: 'member',
+        isPublic: true,
+      })
+    );
+    expect(hoisted.txInsert).toHaveBeenNthCalledWith(3, { __name: 'claim_documents' });
     expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledWith(
       expect.objectContaining({
         claimId: 'claim-1',

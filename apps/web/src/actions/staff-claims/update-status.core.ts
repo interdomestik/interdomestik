@@ -45,6 +45,8 @@ export async function updateClaimStatusCore(params: {
   if (result.success) {
     revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
     revalidatePathForAllLocales('/staff/claims');
+    revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
+    revalidatePathForAllLocales('/member/claims');
   }
 
   return result;

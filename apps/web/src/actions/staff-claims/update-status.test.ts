@@ -53,7 +53,9 @@ describe('updateClaimStatusCore', () => {
     for (const locale of LOCALES) {
       expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims/claim-1`);
       expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/claims/claim-1`);
+      expect(nextCache.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/claims`);
     }
-    expect(nextCache.revalidatePath).toHaveBeenCalledTimes(LOCALES.length * 2);
+    expect(nextCache.revalidatePath).toHaveBeenCalledTimes(LOCALES.length * 4);
   });
 });

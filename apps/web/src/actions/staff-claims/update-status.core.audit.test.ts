@@ -26,6 +26,8 @@ vi.mock('next/cache', () => ({
 import { updateClaimStatusCore } from './update-status.core';
 
 describe('staff update-status.core audit wiring', () => {
+  const LOCALES = ['sq', 'en', 'sr', 'mk'] as const;
+
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimitForAction.mockResolvedValue({ limited: false });
@@ -54,5 +56,23 @@ describe('staff update-status.core audit wiring', () => {
       }),
       { logAuditEvent: hoisted.logAuditEvent }
     );
+  });
+
+  it('revalidates member and staff tracker paths after a successful status update', async () => {
+    await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'evaluation' as never,
+      session: {
+        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
+        session: { id: 'session-1' },
+      } as never,
+    });
+
+    for (const locale of LOCALES) {
+      expect(hoisted.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims/claim-1`);
+      expect(hoisted.revalidatePath).toHaveBeenCalledWith(`/${locale}/staff/claims`);
+      expect(hoisted.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/claims/claim-1`);
+      expect(hoisted.revalidatePath).toHaveBeenCalledWith(`/${locale}/member/claims`);
+    }
   });
 });

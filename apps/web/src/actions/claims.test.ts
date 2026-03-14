@@ -103,6 +103,7 @@ vi.mock('@interdomestik/database', () => ({
     agentId: { name: 'agentId' },
   },
   claims: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
+  claimStageHistory: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   claimDocuments: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   documents: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
   aiRuns: { id: { name: 'id' }, tenantId: { name: 'tenantId' } },
@@ -371,6 +372,17 @@ describe('Claim Actions', () => {
 
       expect(mockDbInsert).toHaveBeenNthCalledWith(
         2,
+        expect.objectContaining({
+          claimId: 'test-id',
+          changedById: 'user-123',
+          changedByRole: 'member',
+          toStatus: 'submitted',
+          isPublic: true,
+        })
+      );
+
+      expect(mockDbInsert).toHaveBeenNthCalledWith(
+        3,
         expect.arrayContaining([
           expect.objectContaining({
             filePath: validPayload.files[0].path,
@@ -395,8 +407,17 @@ describe('Claim Actions', () => {
           status: 'submitted',
         })
       );
-      // No second insert call for documents
-      expect(mockDbInsert).toHaveBeenCalledTimes(1);
+      expect(mockDbInsert).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          claimId: 'test-id',
+          changedById: 'user-123',
+          changedByRole: 'member',
+          toStatus: 'submitted',
+          isPublic: true,
+        })
+      );
+      expect(mockDbInsert).toHaveBeenCalledTimes(2);
     });
 
     it('returns error on validation failure', async () => {
@@ -567,7 +588,7 @@ describe('Claim Actions', () => {
       await submitClaim(payload);
 
       expect(mockDbInsert).toHaveBeenNthCalledWith(
-        2,
+        3,
         expect.arrayContaining([
           expect.objectContaining({
             classification: 'public',
