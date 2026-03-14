@@ -2,6 +2,31 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MemberClaimDetailOpsPage } from './MemberClaimDetailOpsPage';
 
+const hoisted = vi.hoisted(() => ({
+  messagingPanelMock: vi.fn(
+    ({
+      allowInternal,
+      claimId,
+      currentUser,
+    }: {
+      allowInternal?: boolean;
+      claimId: string;
+      currentUser: { role: string };
+    }) => (
+      <div
+        data-testid="member-claim-messaging"
+        data-allow-internal={String(Boolean(allowInternal))}
+        data-claim-id={claimId}
+        data-role={currentUser.role}
+      />
+    )
+  ),
+}));
+
+vi.mock('@/components/messaging/messaging-panel', () => ({
+  MessagingPanel: (props: unknown) => hoisted.messagingPanelMock(props as never),
+}));
+
 vi.mock('next-intl', () => ({
   useTranslations: (namespace?: string) => {
     if (namespace === 'claims-tracking.status') {
@@ -41,6 +66,7 @@ describe('MemberClaimDetailOpsPage', () => {
     const now = new Date();
     render(
       <MemberClaimDetailOpsPage
+        currentUser={{ id: 'member-1', name: 'Member One', image: null, role: 'member' }}
         claim={{
           id: 'claim-1',
           title: 'Test Claim',
@@ -77,6 +103,7 @@ describe('MemberClaimDetailOpsPage', () => {
     const now = new Date();
     render(
       <MemberClaimDetailOpsPage
+        currentUser={{ id: 'member-1', name: 'Member One', image: null, role: 'member' }}
         claim={{
           id: 'claim-2',
           title: 'Verification Claim',
@@ -105,6 +132,7 @@ describe('MemberClaimDetailOpsPage', () => {
     const now = new Date();
     render(
       <MemberClaimDetailOpsPage
+        currentUser={{ id: 'member-1', name: 'Member One', image: null, role: 'member' }}
         claim={{
           id: 'claim-3',
           title: 'Negotiation Claim',
@@ -136,5 +164,40 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(screen.getByText('Plan allowance')).toBeInTheDocument();
     expect(screen.getAllByText('1')).toHaveLength(2);
     expect(screen.getByText('2')).toBeInTheDocument();
+  });
+
+  it('renders claim messaging on the canonical member detail surface without internal-note controls', () => {
+    const now = new Date();
+    render(
+      <MemberClaimDetailOpsPage
+        currentUser={{ id: 'member-1', name: 'Member One', image: null, role: 'member' }}
+        claim={{
+          id: 'claim-4',
+          title: 'Messaging Claim',
+          status: 'evaluation',
+          slaPhase: 'running',
+          statusLabelKey: 'claims-tracking.status.evaluation',
+          createdAt: now,
+          updatedAt: null,
+          description: 'Claim details',
+          amount: '120',
+          currency: 'EUR',
+          canShare: false,
+          documents: [],
+          timeline: [],
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('member-claim-messaging')).toBeInTheDocument();
+    expect(hoisted.messagingPanelMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claimId: 'claim-4',
+        allowInternal: false,
+        currentUser: expect.objectContaining({
+          role: 'member',
+        }),
+      })
+    );
   });
 });

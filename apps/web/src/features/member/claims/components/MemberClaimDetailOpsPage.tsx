@@ -1,5 +1,6 @@
 'use client';
 
+import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { OpsActionBar, OpsDocumentsPanel, OpsStatusBadge, OpsTimeline } from '@/components/ops';
 import {
   getClaimActions,
@@ -8,17 +9,52 @@ import {
   toOpsStatus,
   toOpsTimelineEvents,
 } from '@/components/ops/adapters/claims';
-import type { ClaimTrackingDetailDto } from '@/features/claims/tracking/types';
+import type {
+  ClaimMatterAllowanceDto,
+  ClaimTrackingDetailDto,
+  ClaimTrackingDocument,
+  ClaimTimelineEvent,
+} from '@/features/claims/tracking/types';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 
+type SerializedClaimTrackingDocument = Omit<ClaimTrackingDocument, 'createdAt'> & {
+  createdAt: ClaimTrackingDocument['createdAt'] | string;
+};
+
+type SerializedClaimTimelineEvent = Omit<ClaimTimelineEvent, 'date'> & {
+  date: ClaimTimelineEvent['date'] | string;
+};
+
+type SerializedClaimMatterAllowance = Omit<ClaimMatterAllowanceDto, 'windowStart' | 'windowEnd'> & {
+  windowStart: ClaimMatterAllowanceDto['windowStart'] | string;
+  windowEnd: ClaimMatterAllowanceDto['windowEnd'] | string;
+};
+
+type MemberClaimDetailOpsClaim = Omit<
+  ClaimTrackingDetailDto,
+  'createdAt' | 'updatedAt' | 'documents' | 'timeline' | 'matterAllowance'
+> & {
+  createdAt: ClaimTrackingDetailDto['createdAt'] | string;
+  updatedAt: ClaimTrackingDetailDto['updatedAt'] | string | null;
+  documents: SerializedClaimTrackingDocument[];
+  timeline: SerializedClaimTimelineEvent[];
+  matterAllowance?: SerializedClaimMatterAllowance | null;
+};
+
 interface MemberClaimDetailOpsPageProps {
-  claim: ClaimTrackingDetailDto;
+  claim: MemberClaimDetailOpsClaim;
+  currentUser: {
+    id: string;
+    name: string;
+    image: string | null;
+    role: string;
+  };
 }
 
-export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProps) {
+export function MemberClaimDetailOpsPage({ claim, currentUser }: MemberClaimDetailOpsPageProps) {
   const t = useTranslations('claims');
   const tTrackingStatus = useTranslations('claims-tracking.status');
   const tSla = useTranslations('claims-tracking.tracking.sla');
@@ -159,6 +195,10 @@ export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProp
               />
             }
           />
+
+          <section data-testid="member-claim-detail-messaging">
+            <MessagingPanel claimId={claim.id} currentUser={currentUser} allowInternal={false} />
+          </section>
         </div>
 
         {/* Sidebar */}

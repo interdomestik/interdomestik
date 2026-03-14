@@ -135,6 +135,17 @@ describe('MessageThread', () => {
     expect(screen.getByText('This is an internal note')).toBeInTheDocument();
   });
 
+  it('shows internal note indicator for staff viewers without agent quick-reply mode', () => {
+    render(
+      <MessageThread
+        messages={mockMessages}
+        currentUser={{ id: 'staff-1', name: 'Staff User', image: null, role: 'staff' }}
+      />
+    );
+
+    expect(screen.getByText('Internal Note')).toBeInTheDocument();
+  });
+
   it('shows user initials in avatar fallback', () => {
     render(
       <MessageThread

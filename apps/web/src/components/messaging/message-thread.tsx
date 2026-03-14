@@ -35,6 +35,7 @@ export function MessageThread({
 }: MessageThreadProps) {
   const t = useTranslations('messaging');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const canSeeInternalIndicators = isAgent || isStaffOrAdmin(currentUser.role);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -160,7 +161,7 @@ export function MessageThread({
                             'border-2 border-destructive bg-destructive/10 text-destructive'
                         )}
                       >
-                        {message.isInternal && isAgent && (
+                        {message.isInternal && canSeeInternalIndicators && (
                           <div
                             className={cn(
                               'flex items-center gap-1 text-xs mb-1',

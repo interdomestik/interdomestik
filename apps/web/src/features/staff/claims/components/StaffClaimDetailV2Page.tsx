@@ -1,7 +1,7 @@
 import { ClaimDetailHeader } from '@/components/agent/claim-detail-header';
 import { ClaimDocumentsPane } from '@/components/agent/claim-documents-pane';
 import { ClaimInfoPane } from '@/components/agent/claim-info-pane';
-import { ClaimMessenger } from '@/components/shared/claim-messenger';
+import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { ClaimTriageNotes } from '@/components/staff/claim-triage-notes';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
@@ -76,7 +76,16 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
 
             <div className="mt-4">
               <TabsContent value="messages">
-                <ClaimMessenger claimId={id} currentUserId={session.user.id} userRole="staff" />
+                <MessagingPanel
+                  claimId={id}
+                  currentUser={{
+                    id: session.user.id,
+                    name: session.user.name ?? 'Staff',
+                    image: session.user.image ?? null,
+                    role: session.user.role || 'staff',
+                  }}
+                  allowInternal={true}
+                />
               </TabsContent>
 
               <TabsContent value="documents">

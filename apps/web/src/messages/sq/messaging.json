@@ -7,12 +7,12 @@
     "shortcut": "Shtypni Ctrl+Enter për të dërguar",
     "agentBadge": "Agjent",
     "internalNote": "Shënim i Brendshëm",
-    "internalNoteLabel": "Dërgo si shënim të brendshëm (vetëm agjentët)",
+    "internalNoteLabel": "Dërgo si shënim të brendshëm (i dukshëm vetëm për stafin)",
     "today": "Sot",
     "yesterday": "Dje",
     "empty": {
       "title": "Nuk ka mesazhe ende",
-      "description": "Filloni një bisedë me agjentin tuaj të caktuar. Ai do të përgjigjet brenda 24 orëve."
+      "description": "Niseni bisedën këtu për ta mbajtur komunikimin e kërkesës në një vend."
     },
     "quickReplies": {
       "greeting": "Përshendetje, si mund t'ju ndihmoj?",

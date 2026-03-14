@@ -7,12 +7,12 @@
     "shortcut": "Pritisnite Ctrl+Enter za slanje",
     "agentBadge": "Zastupnik",
     "internalNote": "Interna beleška",
-    "internalNoteLabel": "Pošalji kao internu belešku (samo agenti)",
+    "internalNoteLabel": "Pošalji kao internu belešku (vidljivu samo osoblju)",
     "today": "Danas",
     "yesterday": "Juče",
     "empty": {
       "title": "Još nema poruka",
-      "description": "Započnite razgovor sa svojim dodeljenim agentom. Odgovoriće u roku od 24 sata."
+      "description": "Započnite razgovor ovde da bi komunikacija o zahtevu ostala na jednom mestu."
     },
     "quickReplies": {
       "greeting": "Zdravo, kako mogu da vam pomognem?",
