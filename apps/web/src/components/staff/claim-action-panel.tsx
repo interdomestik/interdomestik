@@ -35,6 +35,11 @@ interface ClaimActionPanelProps {
   readonly currentStatus: string;
   readonly staffId: string;
   readonly assigneeId: string | null;
+  readonly assignmentOptions: ReadonlyArray<{
+    id: string;
+    label: string;
+  }>;
+  readonly currentAssigneeLabel?: string | null;
 }
 
 const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = CANONICAL_CLAIM_STATUSES.map(
@@ -69,6 +74,22 @@ function formatCollectionMethodLabel(method: SuccessFeeCollectionSnapshot['colle
   }
 }
 
+function getSelectedAssigneeId(args: {
+  assignmentOptions: ReadonlyArray<{ id: string }>;
+  assigneeId: string | null;
+  staffId: string;
+}) {
+  if (args.assigneeId && args.assignmentOptions.some(option => option.id === args.assigneeId)) {
+    return args.assigneeId;
+  }
+
+  if (args.assignmentOptions.some(option => option.id === args.staffId)) {
+    return args.staffId;
+  }
+
+  return args.assignmentOptions[0]?.id ?? '';
+}
+
 export function ClaimActionPanel({
   claimId,
   commercialAgreement,
@@ -76,6 +97,8 @@ export function ClaimActionPanel({
   currentStatus,
   staffId,
   assigneeId,
+  assignmentOptions,
+  currentAssigneeLabel,
 }: ClaimActionPanelProps) {
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState('');
@@ -109,6 +132,9 @@ export function ClaimActionPanel({
   const [deductionPath, setDeductionPath] = useState(
     successFeeCollection?.deductionAllowed ? 'allowed' : 'fallback'
   );
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState(() =>
+    getSelectedAssigneeId({ assignmentOptions, assigneeId, staffId })
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -127,11 +153,26 @@ export function ClaimActionPanel({
     setDeductionPath(successFeeCollection?.deductionAllowed ? 'allowed' : 'fallback');
   }, [commercialAgreement, currentStatus, successFeeCollection]);
 
+  useEffect(() => {
+    setSelectedAssigneeId(getSelectedAssigneeId({ assignmentOptions, assigneeId, staffId }));
+  }, [assignmentOptions, assigneeId, staffId]);
+
   const handleAssign = () => {
+    const nextAssigneeId = selectedAssigneeId || null;
+    const selectedAssignmentLabel =
+      assignmentOptions.find(option => option.id === nextAssigneeId)?.label ?? nextAssigneeId;
+
     startTransition(async () => {
-      const result = await assignClaim(claimId);
+      const result = await assignClaim(claimId, nextAssigneeId);
       if (result.success) {
-        toast.success('Success', { description: 'Claim assigned to you' });
+        toast.success('Success', {
+          description:
+            nextAssigneeId === staffId
+              ? 'Claim assigned to you'
+              : selectedAssignmentLabel
+                ? `Claim assigned to ${selectedAssignmentLabel}`
+                : 'Claim assignment updated',
+        });
         router.refresh();
       } else {
         toast.error('Error', { description: result.error });
@@ -217,6 +258,8 @@ export function ClaimActionPanel({
   };
 
   const isAssignedToMe = assigneeId === staffId;
+  const hasAssignmentChanged =
+    selectedAssigneeId.length > 0 && selectedAssigneeId !== (assigneeId ?? '');
   const hasStatusChanged = status !== currentStatus;
   const hasCommercialAgreement = (savedAgreement ?? commercialAgreement) !== null;
   const parsedRecoveredAmount = Number(recoveredAmount.trim());
@@ -234,7 +277,11 @@ export function ClaimActionPanel({
 
   let assignmentLabel = 'Unassigned';
   if (assigneeId) {
-    assignmentLabel = isAssignedToMe ? 'Assigned to you' : 'Assigned to colleague';
+    assignmentLabel = isAssignedToMe
+      ? 'Assigned to you'
+      : currentAssigneeLabel
+        ? `Assigned to ${currentAssigneeLabel}`
+        : 'Assigned to colleague';
   }
 
   return (
@@ -245,27 +292,45 @@ export function ClaimActionPanel({
       <h3 className="font-semibold text-lg">Staff Actions</h3>
 
       {/* Assignment Section */}
-      <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-        <div>
-          <p className="text-sm font-medium">Assignment</p>
-          <p className="text-xs text-muted-foreground">{assignmentLabel}</p>
+      <div className="rounded-lg bg-muted/30 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-medium">Assignment</p>
+            <p className="text-xs text-muted-foreground" data-testid="staff-assignment-current">
+              {assignmentLabel}
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[16rem]">
+            <label htmlFor="staff-assignment-select" className="text-xs font-medium text-slate-700">
+              Assign claim
+            </label>
+            <select
+              id="staff-assignment-select"
+              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              data-testid="staff-assignment-select"
+              disabled={isPending || assignmentOptions.length === 0}
+              onChange={event => setSelectedAssigneeId(event.target.value)}
+              value={selectedAssigneeId}
+            >
+              {assignmentOptions.map(option => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        {!isAssignedToMe && (
+        <div className="mt-3 flex justify-end">
           <Button
             size="sm"
             onClick={handleAssign}
-            disabled={isPending}
+            disabled={isPending || !hasAssignmentChanged}
             data-testid="staff-assign-claim-button"
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {assigneeId ? 'Reassign to Me' : 'Assign to Me'}
+            Save Assignment
           </Button>
-        )}
-        {isAssignedToMe && (
-          <Button size="sm" variant="outline" disabled>
-            Assigned
-          </Button>
-        )}
+        </div>
       </div>
 
       <div className="space-y-4 border-t pt-6">

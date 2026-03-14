@@ -5,6 +5,8 @@ import { ClaimMessenger } from '@/components/shared/claim-messenger';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { ClaimTriageNotes } from '@/components/staff/claim-triage-notes';
 import { auth } from '@/lib/auth';
+import { and, db, eq, user } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   Card,
   CardContent,
@@ -22,6 +24,28 @@ import { notFound } from 'next/navigation';
 
 import { getStaffClaimDetailsCore } from '@/app/[locale]/(staff)/staff/claims/[id]/_core';
 
+async function getStaffAssignmentOptions(args: { branchId?: string | null; tenantId: string }) {
+  const scope =
+    args.branchId != null
+      ? and(eq(user.role, 'staff'), eq(user.branchId, args.branchId))
+      : eq(user.role, 'staff');
+
+  const staff = await db.query.user.findMany({
+    columns: {
+      email: true,
+      id: true,
+      name: true,
+    },
+    orderBy: (users, { asc }) => [asc(users.name), asc(users.email)],
+    where: withTenant(args.tenantId, user.tenantId, scope),
+  });
+
+  return staff.map(member => ({
+    id: member.id,
+    label: member.name || member.email || member.id,
+  }));
+}
+
 export async function StaffClaimDetailV2Page({ id, locale }: { id: string; locale: string }) {
   setRequestLocale(locale);
 
@@ -36,10 +60,18 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
     return notFound();
   }
 
-  const result = await getStaffClaimDetailsCore({ claimId: id, tenantId: session.user.tenantId });
+  const [result, assignmentOptions] = await Promise.all([
+    getStaffClaimDetailsCore({ claimId: id, tenantId: session.user.tenantId }),
+    getStaffAssignmentOptions({
+      branchId: session.user.branchId ?? null,
+      tenantId: session.user.tenantId,
+    }),
+  ]);
   if (result.kind !== 'ok') return notFound();
 
   const { claim, documents, stageHistory } = result;
+  const currentAssigneeLabel =
+    assignmentOptions.find(option => option.id === claim.staffId)?.label ?? null;
 
   const t = await getTranslations('agent-claims.claims');
 
@@ -150,11 +182,13 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
         <div className="lg:col-span-4 space-y-6">
           <ClaimActionPanel
             claimId={claim.id}
+            currentAssigneeLabel={currentAssigneeLabel}
             commercialAgreement={null}
             successFeeCollection={null}
             currentStatus={claim.status || 'draft'}
             staffId={session.user.id}
             assigneeId={claim.staffId || null}
+            assignmentOptions={assignmentOptions}
           />
           <ClaimInfoPane claim={claim} />
         </div>

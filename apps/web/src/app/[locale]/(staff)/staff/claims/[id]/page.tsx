@@ -1,4 +1,6 @@
 import { getStaffClaimDetail } from '@interdomestik/domain-claims';
+import { and, db, eq, user } from '@interdomestik/database';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -14,6 +16,28 @@ interface PageProps {
   }>;
 }
 
+async function getStaffAssignmentOptions(args: { branchId?: string | null; tenantId: string }) {
+  const scope =
+    args.branchId != null
+      ? and(eq(user.role, 'staff'), eq(user.branchId, args.branchId))
+      : eq(user.role, 'staff');
+
+  const staff = await db.query.user.findMany({
+    columns: {
+      email: true,
+      id: true,
+      name: true,
+    },
+    orderBy: (users, { asc }) => [asc(users.name), asc(users.email)],
+    where: withTenant(args.tenantId, user.tenantId, scope),
+  });
+
+  return staff.map(member => ({
+    id: member.id,
+    label: member.name || member.email || member.id,
+  }));
+}
+
 export default async function StaffClaimDetailsPage({ params }: PageProps) {
   const { id, locale } = await params;
   setRequestLocale(locale);
@@ -25,18 +49,28 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
     return notFound();
   }
 
-  const detail = await getStaffClaimDetail({
-    staffId: session.user.id,
-    tenantId: session.user.tenantId,
-    claimId: id,
-  });
+  const [detail, latestStatusNote, assignmentOptions] = await Promise.all([
+    getStaffClaimDetail({
+      claimId: id,
+      staffId: session.user.id,
+      tenantId: session.user.tenantId,
+    }),
+    getLatestPublicStatusNoteCore({
+      claimId: id,
+      tenantId: session.user.tenantId,
+    }),
+    session.user.role === 'staff'
+      ? getStaffAssignmentOptions({
+          branchId: session.user.branchId ?? null,
+          tenantId: session.user.tenantId,
+        })
+      : Promise.resolve([]),
+  ]);
 
   if (!detail) return notFound();
 
-  const latestStatusNote = await getLatestPublicStatusNoteCore({
-    claimId: id,
-    tenantId: session.user.tenantId,
-  });
+  const currentAssigneeLabel =
+    assignmentOptions.find(option => option.id === detail.claim.staffId)?.label ?? null;
 
   return (
     <div className="space-y-6" data-testid="staff-claim-detail-ready">
@@ -136,6 +170,8 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
             currentStatus={detail.claim.status || 'draft'}
             staffId={session.user.id}
             assigneeId={detail.claim.staffId}
+            assignmentOptions={assignmentOptions}
+            currentAssigneeLabel={currentAssigneeLabel}
           />
         </section>
       )}

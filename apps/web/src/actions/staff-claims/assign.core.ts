@@ -17,6 +17,7 @@ export async function assignClaimCore(params: {
   claimId: string;
   session: NonNullable<Session> | null;
   requestHeaders?: Headers;
+  staffId?: string | null;
 }) {
   const result = await assignClaimCoreDomain(params, { logAuditEvent });
 

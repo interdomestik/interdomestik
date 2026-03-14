@@ -15,8 +15,8 @@ const actionMocks = vi.hoisted(() => ({
 
 vi.mock('sonner', () => ({
   toast: {
-    success: vi.fn(),
     error: vi.fn(),
+    success: vi.fn(),
   },
 }));
 
@@ -61,46 +61,73 @@ beforeEach(() => {
 });
 
 describe('ClaimActionPanel', () => {
+  const assignmentOptions = [
+    { id: 'staff-me', label: 'Drita Gashi' },
+    { id: 'staff-other', label: 'Agim Ramadani' },
+  ] as const;
   const savedAgreement = {
+    acceptedAt: '2026-03-12T00:00:00.000Z',
     claimId: 'claim-1',
     decisionNextStatus: 'negotiation' as const,
     decisionReason: 'Member accepted negotiation as the next recovery path.',
     feePercentage: 25,
-    minimumFee: '25.00',
     legalActionCapPercentage: 40,
+    minimumFee: '25.00',
     paymentAuthorizationState: 'authorized' as const,
-    termsVersion: 'v1',
     signedAt: '2026-03-12T00:00:00.000Z',
-    acceptedAt: '2026-03-12T00:00:00.000Z',
+    termsVersion: 'v1',
   };
 
-  it('enables "Reassign to Me" when assigned to colleague', () => {
+  it('submits a selected staff assignment manually', async () => {
     render(
       <ClaimActionPanel
+        assigneeId={null}
+        assignmentOptions={assignmentOptions}
         claimId="claim-1"
         commercialAgreement={null}
-        successFeeCollection={null}
         currentStatus="submitted"
         staffId="staff-me"
-        assigneeId="staff-other"
+        successFeeCollection={null}
       />
     );
 
-    const button = screen.getByRole('button', { name: 'Reassign to Me' });
-    expect(button).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Save Escalation Agreement' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Save Success-Fee Collection' })).toBeDisabled();
+    fireEvent.change(screen.getByTestId('staff-assignment-select'), {
+      target: { value: 'staff-other' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Assignment' }));
+
+    await waitFor(() => {
+      expect(actionMocks.assignClaim).toHaveBeenCalledWith('claim-1', 'staff-other');
+    });
+  });
+
+  it('keeps manual assignment save disabled when selection matches the current assignee', () => {
+    render(
+      <ClaimActionPanel
+        assigneeId="staff-other"
+        assignmentOptions={assignmentOptions}
+        claimId="claim-1"
+        commercialAgreement={null}
+        currentStatus="submitted"
+        staffId="staff-me"
+        successFeeCollection={null}
+      />
+    );
+
+    expect(screen.getByTestId('staff-assignment-select')).toHaveValue('staff-other');
+    expect(screen.getByRole('button', { name: 'Save Assignment' })).toBeDisabled();
   });
 
   it('keeps success-fee save disabled for non-finite or non-positive recovered amounts', () => {
     render(
       <ClaimActionPanel
+        assigneeId="staff-other"
+        assignmentOptions={assignmentOptions}
         claimId="claim-1"
         commercialAgreement={savedAgreement}
-        successFeeCollection={null}
         currentStatus="submitted"
         staffId="staff-me"
-        assigneeId="staff-other"
+        successFeeCollection={null}
       />
     );
 
@@ -119,18 +146,19 @@ describe('ClaimActionPanel', () => {
 
   it('unlocks success-fee capture immediately after saving a new agreement', async () => {
     actionMocks.saveClaimEscalationAgreement.mockResolvedValueOnce({
-      success: true,
       data: savedAgreement,
+      success: true,
     });
 
     render(
       <ClaimActionPanel
+        assigneeId={null}
+        assignmentOptions={assignmentOptions}
         claimId="claim-1"
         commercialAgreement={null}
-        successFeeCollection={null}
         currentStatus="submitted"
         staffId="staff-me"
-        assigneeId={null}
+        successFeeCollection={null}
       />
     );
 
@@ -178,12 +206,13 @@ describe('ClaimActionPanel', () => {
   it('passes an internal allowance override reason when updating a recovery claim', async () => {
     render(
       <ClaimActionPanel
+        assigneeId="staff-me"
+        assignmentOptions={assignmentOptions}
         claimId="claim-1"
         commercialAgreement={savedAgreement}
-        successFeeCollection={null}
         currentStatus="negotiation"
         staffId="staff-me"
-        assigneeId="staff-me"
+        successFeeCollection={null}
       />
     );
 
