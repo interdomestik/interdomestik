@@ -45,7 +45,7 @@ function normalizeDate(value: DateLike) {
 
 function normalizeTrimmedString(value: string | null | undefined) {
   const normalized = value?.trim();
-  return normalized ? normalized : null;
+  return normalized || null;
 }
 
 function hasRequiredAgreementFields(
@@ -61,8 +61,7 @@ function hasRequiredAgreementFields(
   termsVersion: string;
 } {
   return Boolean(
-    source &&
-    source.acceptedAt &&
+    source?.acceptedAt &&
     source.decisionNextStatus &&
     source.feePercentage != null &&
     source.legalActionCapPercentage != null &&
@@ -116,8 +115,7 @@ function hasRequiredCollectionFields(
   resolvedAt: DateLike;
 } {
   return Boolean(
-    source &&
-    source.collectionMethod &&
+    source?.collectionMethod &&
     source.currencyCode != null &&
     source.deductionAllowed != null &&
     source.feeAmount != null &&
