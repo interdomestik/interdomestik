@@ -20,50 +20,11 @@
         "last_updated": "Poslednje ažuriranje: {date}",
         "next_step_title": "Šta sledi?",
         "no_pii_notice": "Ovo je bezbedan, ograničen prikaz. Za pune detalje, prijavite se."
-      }
-    },
-    "status": {
-      "draft": "Nacrt",
-      "submitted": "Podneto",
-      "verification": "Verifikacija",
-      "evaluation": "Procena",
-      "negotiation": "Pregovori",
-      "court": "Sud",
-      "resolved": "Rešeno",
-      "rejected": "Odbijeno",
-      "next_step": {
-        "draft": "Molimo podnesite svoj zahtev na pregled.",
-        "submitted": "Primili smo vaš zahtev i uskoro ćemo ga dodeliti menadžeru slučaja.",
-        "verification": "Proveravamo dostavljene dokumente i dokaze.",
-        "evaluation": "Naši stručnjaci procenjuju štetu i odgovornost.",
-        "negotiation": "Pregovaramo sa osiguravajućom kompanijom radi pravične nagodbe.",
-        "court": "Pokrenut je sudski postupak.",
-        "resolved": "Zahtev je finalizovan.",
-        "rejected": "Zahtev nije mogao biti obrađen."
-      }
-    }
-  },
-  "claims-tracking": {
-    "tracking": {
-      "header": {
-        "share_link": "Podeli link za praćenje",
-        "link_copied": "Link je kopiran u privremenu memoriju",
-        "error_generating_link": "Nije uspelo generisanje linka",
-        "share_dialog_title": "Podeli status zahteva",
-        "share_dialog_desc": "Svako ko ima ovaj link može da vidi trenutni status ovog zahteva. Link ističe za 7 dana."
       },
-      "timeline": {
-        "empty": "Nema dostupnih događaja na vremenskoj liniji."
-      },
-      "documents": {
-        "title": "Dokumenti",
-        "empty": "Još nema otpremljenih dokumenata."
-      },
-      "public": {
-        "title": "Status zahteva",
-        "last_updated": "Poslednje ažuriranje: {date}",
-        "next_step_title": "Šta sledi?",
-        "no_pii_notice": "Ovo je bezbedan, ograničen prikaz. Za pune detalje, prijavite se."
+      "sla": {
+        "title": "SLA status",
+        "running": "Rok za odgovor je aktivan.",
+        "incomplete": "Čekamo vaše informacije pre nego što SLA počne."
       }
     },
     "status": {

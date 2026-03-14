@@ -9,6 +9,7 @@ import {
   FunnelEvents,
   resolveFunnelVariant,
 } from '@/lib/analytics';
+import { createClientRequestId } from '@/lib/client-request-id';
 import { COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES } from '@/lib/commercial-claim-categories';
 import { isUiV2Enabled } from '@/lib/flags';
 import { getSupportContacts } from '@/lib/support-contacts';
@@ -198,7 +199,7 @@ export function ClaimWizard({ initialCategory, tenantId }: ClaimWizardProps) {
   async function onSubmit(data: any) {
     setIsSubmitting(true);
     try {
-      const submitKey = submitKeyRef.current ?? crypto.randomUUID();
+      const submitKey = submitKeyRef.current ?? createClientRequestId();
       submitKeyRef.current = submitKey;
       const result = await submitClaim(data, submitKey);
       if (result.success) {

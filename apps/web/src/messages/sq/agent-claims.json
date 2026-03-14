@@ -34,6 +34,12 @@
         "title_label": "Titulli",
         "category_label": "Kategoria",
         "status_label": "Statusi",
+        "sla_status_label": "Statusi i SLA-së",
+        "sla_phase": {
+          "running": "Në rrjedhë",
+          "incomplete": "Në pritje të informacionit nga anëtari",
+          "not_applicable": "Jo aktiv"
+        },
         "evidence": "Dosjet e Dëshmive",
         "noEvidence": "Nuk ka dokumente të ngarkuara.",
         "notes": "Shënime të Brendshme",

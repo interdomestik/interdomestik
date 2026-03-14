@@ -1,4 +1,5 @@
 import { ensureClaimsAccess } from '@/server/domains/claims/guards';
+import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { claimDocuments, claims, claimStageHistory } from '@interdomestik/database/schema';
@@ -129,7 +130,8 @@ export async function getMemberClaimDetail(
         id: claim.id,
         title: claim.title,
         status: claimStatus,
-        statusLabelKey: `claims-tracking.status.${claim.status}`,
+        slaPhase: deriveClaimSlaPhase(claimStatus),
+        statusLabelKey: `claims-tracking.status.${claimStatus}`,
         createdAt: claim.createdAt ?? new Date(),
         updatedAt: claim.updatedAt,
         description: claim.description,

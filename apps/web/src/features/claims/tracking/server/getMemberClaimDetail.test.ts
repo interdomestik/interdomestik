@@ -121,4 +121,47 @@ describe('getMemberClaimDetail', () => {
     });
     expect(result?.timeline[0]?.date).toEqual(createdAt);
   });
+
+  it('maps the derived SLA phase onto the member claim detail dto', async () => {
+    hoisted.claimFindFirst.mockResolvedValueOnce({
+      id: 'claim_1',
+      title: 'Missing baggage',
+      status: 'verification',
+      createdAt: new Date('2025-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2025-01-03T00:00:00.000Z'),
+      description: 'Need boarding pass',
+      claimAmount: 120,
+      currency: 'EUR',
+      documents: [
+        {
+          id: 'doc_1',
+          name: 'boarding-pass.pdf',
+          category: 'evidence',
+          createdAt: new Date('2025-01-02T00:00:00.000Z'),
+          fileType: 'application/pdf',
+          fileSize: 2048,
+        },
+      ],
+    });
+    hoisted.timelineRows.mockResolvedValueOnce([
+      {
+        id: 'history_1',
+        createdAt: new Date('2025-01-04T00:00:00.000Z'),
+        fromStatus: 'submitted',
+        toStatus: 'verification',
+        note: 'Please upload your boarding pass.',
+        isPublic: true,
+      },
+    ]);
+
+    const result = await getMemberClaimDetail({ user: { id: 'member_1' } }, 'claim_1');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'claim_1',
+        status: 'verification',
+        slaPhase: 'incomplete',
+      })
+    );
+  });
 });

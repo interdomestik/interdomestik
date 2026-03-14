@@ -21,6 +21,7 @@ interface MemberClaimDetailOpsPageProps {
 export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProps) {
   const t = useTranslations('claims');
   const tTrackingStatus = useTranslations('claims-tracking.status');
+  const tSla = useTranslations('claims-tracking.tracking.sla');
 
   // Transform events and translate titles
   const opsEvents = toOpsTimelineEvents(claim.timeline).map(e => ({
@@ -48,6 +49,7 @@ export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProp
   });
 
   const secondaryActions = secondary.map(mapAction);
+  const showSlaCard = claim.slaPhase === 'incomplete' || claim.slaPhase === 'running';
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-8">
@@ -66,6 +68,17 @@ export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProp
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
+          {showSlaCard ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{tSla('title')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">{tSla(claim.slaPhase)}</p>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <CardTitle>{t('detail.caseDetails')}</CardTitle>

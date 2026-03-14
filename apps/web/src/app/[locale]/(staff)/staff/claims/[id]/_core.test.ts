@@ -73,7 +73,7 @@ describe('getStaffClaimDetailsCore', () => {
   it('returns claim, documents (with fileName), and stage history', async () => {
     hoisted.claimsFindFirst.mockResolvedValue({
       id: 'c1',
-      status: 'draft',
+      status: 'submitted',
       user: { id: 'u1', tenantId: 'tenant_mk' },
     });
 
@@ -110,6 +110,7 @@ describe('getStaffClaimDetailsCore', () => {
     if (result.kind !== 'ok') return;
 
     expect(result.claim.id).toBe('c1');
+    expect(result.slaPhase).toBe('running');
     expect(result.documents).toEqual([
       {
         id: 'd1',

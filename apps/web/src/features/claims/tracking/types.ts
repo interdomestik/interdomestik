@@ -1,10 +1,12 @@
 import type { ClaimStatus } from '@interdomestik/database/constants';
+import type { ClaimSlaPhase } from '../policy';
 
 export interface ClaimTrackingDetailDto {
   id: string;
   publicId?: string; // For public link if exists
   title: string;
   status: ClaimStatus;
+  slaPhase: ClaimSlaPhase;
   statusLabelKey: string;
   createdAt: Date;
   updatedAt: Date | null;

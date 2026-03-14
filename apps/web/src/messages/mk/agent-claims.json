@@ -33,6 +33,12 @@
         "title_label": "Наслов",
         "category_label": "Категорија",
         "status_label": "Статус",
+        "sla_status_label": "SLA статус",
+        "sla_phase": {
+          "running": "Во тек",
+          "incomplete": "Се чекаат информации од членот",
+          "not_applicable": "Не е активно"
+        },
         "evidence": "Доказни фајлови",
         "noEvidence": "Нема прикачени документи.",
         "notes": "Интерни белешки",
