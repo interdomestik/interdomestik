@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const originalConfirm = globalThis.confirm;
 
 const actionMocks = vi.hoisted(() => ({
   cancelSubscription: vi.fn(),
@@ -97,6 +99,10 @@ describe('MembershipOpsPage', () => {
     selectionMocks.selectedId = null;
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('shows scope and referral boundaries alongside membership operations', () => {
     render(<MembershipOpsPage subscriptions={[]} documents={[]} />);
 
@@ -149,5 +155,9 @@ describe('MembershipOpsPage', () => {
     await waitFor(() => {
       expect(actionMocks.cancelSubscription).toHaveBeenCalledWith('sub-1', expect.any(String));
     });
+  });
+
+  it('does not leak confirm stubs between tests', () => {
+    expect(globalThis.confirm).toBe(originalConfirm);
   });
 });
