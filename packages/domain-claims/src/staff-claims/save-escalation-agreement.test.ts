@@ -44,6 +44,8 @@ const mocks = vi.hoisted(() => {
       id: 'claim_escalation_agreements.id',
       tenantId: 'claim_escalation_agreements.tenant_id',
       claimId: 'claim_escalation_agreements.claim_id',
+      decisionNextStatus: 'claim_escalation_agreements.decision_next_status',
+      decisionReason: 'claim_escalation_agreements.decision_reason',
       feePercentage: 'claim_escalation_agreements.fee_percentage',
       minimumFee: 'claim_escalation_agreements.minimum_fee',
       legalActionCapPercentage: 'claim_escalation_agreements.legal_action_cap_percentage',
@@ -120,6 +122,8 @@ describe('saveClaimEscalationAgreementCore', () => {
   it('rejects unauthorized callers', async () => {
     const result = await saveClaimEscalationAgreementCore({
       claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member reviewed and accepted the negotiation path.',
       feePercentage: 15,
       legalActionCapPercentage: 25,
       minimumFee: 25,
@@ -137,6 +141,8 @@ describe('saveClaimEscalationAgreementCore', () => {
   it('validates the commercial cap against the agreed fee percentage', async () => {
     const result = await saveClaimEscalationAgreementCore({
       claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member approved the recovery path.',
       feePercentage: 25,
       legalActionCapPercentage: 15,
       minimumFee: 25,
@@ -160,6 +166,8 @@ describe('saveClaimEscalationAgreementCore', () => {
 
     const result = await saveClaimEscalationAgreementCore({
       claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member accepted commercial terms for negotiation.',
       feePercentage: 15,
       legalActionCapPercentage: 25,
       minimumFee: 25,
@@ -175,6 +183,8 @@ describe('saveClaimEscalationAgreementCore', () => {
         claimId: 'claim-1',
         tenantId: 'tenant-1',
         acceptedById: 'staff-1',
+        decisionNextStatus: 'negotiation',
+        decisionReason: 'Member accepted commercial terms for negotiation.',
         feePercentage: 15,
         legalActionCapPercentage: 25,
         minimumFee: '25.00',
@@ -185,6 +195,8 @@ describe('saveClaimEscalationAgreementCore', () => {
     );
     expect(result.data).toMatchObject({
       claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member accepted commercial terms for negotiation.',
       feePercentage: 15,
       legalActionCapPercentage: 25,
       minimumFee: '25.00',
@@ -205,6 +217,8 @@ describe('saveClaimEscalationAgreementCore', () => {
     const result = await saveClaimEscalationAgreementCore(
       {
         claimId: 'claim-1',
+        decisionNextStatus: 'negotiation',
+        decisionReason: 'Member accepted commercial terms for negotiation.',
         feePercentage: 15,
         legalActionCapPercentage: 25,
         minimumFee: 25,
@@ -227,6 +241,9 @@ describe('saveClaimEscalationAgreementCore', () => {
         headers: requestHeaders,
         tenantId: 'tenant-1',
         metadata: expect.objectContaining({
+          decisionNextStatus: 'negotiation',
+          decisionReason: 'Member accepted commercial terms for negotiation.',
+          decisionType: 'accepted',
           feePercentage: 15,
           legalActionCapPercentage: 25,
           minimumFee: '25.00',
@@ -235,5 +252,67 @@ describe('saveClaimEscalationAgreementCore', () => {
         }),
       })
     );
+  });
+
+  it('refreshes acceptance audit fields when staff resave an agreement', async () => {
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', userId: 'member-1' }]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([
+      {
+        acceptedAt: new Date('2026-03-11T09:00:00.000Z'),
+        claimId: 'claim-1',
+        decisionNextStatus: 'negotiation',
+        decisionReason: 'Initial negotiation path was accepted.',
+        feePercentage: 15,
+        id: 'agreement-1',
+        legalActionCapPercentage: 25,
+        minimumFee: '25.00',
+        paymentAuthorizationState: 'authorized',
+        signedAt: new Date('2026-03-11T09:00:00.000Z'),
+        termsVersion: '2026-03-v1',
+      },
+    ]);
+
+    const result = await saveClaimEscalationAgreementCore({
+      claimId: 'claim-1',
+      decisionNextStatus: 'court',
+      decisionReason: 'Member requested escalation directly into the court path.',
+      feePercentage: 20,
+      legalActionCapPercentage: 30,
+      minimumFee: 40,
+      paymentAuthorizationState: 'authorized',
+      session: createSession({ userId: 'staff-2', branchId: 'branch-1' }),
+      termsVersion: '2026-03-v2',
+    });
+
+    expect(result.success).toBe(true);
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        acceptedAt: expect.any(Date),
+        acceptedById: 'staff-2',
+        decisionNextStatus: 'court',
+        decisionReason: 'Member requested escalation directly into the court path.',
+        feePercentage: 20,
+        legalActionCapPercentage: 30,
+        minimumFee: '40.00',
+        paymentAuthorizationState: 'authorized',
+        termsVersion: '2026-03-v2',
+        updatedAt: expect.any(Date),
+      })
+    );
+    expect(result.data).toMatchObject({
+      claimId: 'claim-1',
+      decisionNextStatus: 'court',
+      decisionReason: 'Member requested escalation directly into the court path.',
+      feePercentage: 20,
+      legalActionCapPercentage: 30,
+      minimumFee: '40.00',
+      paymentAuthorizationState: 'authorized',
+      signedAt: '2026-03-11T09:00:00.000Z',
+      termsVersion: '2026-03-v2',
+    });
+    expect(result.data?.acceptedAt).not.toBe('2026-03-11T09:00:00.000Z');
   });
 });

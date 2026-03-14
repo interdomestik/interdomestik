@@ -2,6 +2,7 @@ export type {
   ActionResult,
   ClaimEscalationAgreementSnapshot,
   ClaimStatus,
+  EscalationDecisionNextStatus,
   PaymentAuthorizationState,
   SaveClaimEscalationAgreementInput,
   SaveSuccessFeeCollectionInput,

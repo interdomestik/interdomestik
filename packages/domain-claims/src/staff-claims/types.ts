@@ -3,6 +3,8 @@ import { statusEnum } from '@interdomestik/database/schema';
 export type ClaimStatus = (typeof statusEnum.enumValues)[number];
 export const PAYMENT_AUTHORIZATION_STATES = ['pending', 'authorized', 'revoked'] as const;
 export type PaymentAuthorizationState = (typeof PAYMENT_AUTHORIZATION_STATES)[number];
+export const ESCALATION_DECISION_NEXT_STATUSES = ['negotiation', 'court'] as const;
+export type EscalationDecisionNextStatus = (typeof ESCALATION_DECISION_NEXT_STATUSES)[number];
 export const SUCCESS_FEE_COLLECTION_METHODS = [
   'deduction',
   'payment_method_charge',
@@ -12,6 +14,8 @@ export type SuccessFeeCollectionMethod = (typeof SUCCESS_FEE_COLLECTION_METHODS)
 
 export type ClaimEscalationAgreementSnapshot = {
   claimId: string;
+  decisionNextStatus: EscalationDecisionNextStatus | null;
+  decisionReason: string | null;
   feePercentage: number;
   minimumFee: string;
   legalActionCapPercentage: number;
@@ -37,6 +41,8 @@ export type SuccessFeeCollectionSnapshot = {
 
 export type SaveClaimEscalationAgreementInput = {
   claimId: string;
+  decisionNextStatus: EscalationDecisionNextStatus;
+  decisionReason: string;
   feePercentage: number;
   minimumFee: number | string;
   legalActionCapPercentage: number;

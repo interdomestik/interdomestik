@@ -422,6 +422,26 @@ describe('staff updateClaimStatusCore', () => {
     });
   });
 
+  it('requires an explicit reason when staff reject a recovery matter', async () => {
+    mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', status: 'negotiation', userId: 'member-1' },
+    ]);
+
+    const result = await updateClaimStatusCore({
+      claimId: 'claim-1',
+      newStatus: 'rejected',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Decline reason is required when staff reject a recovery matter.',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+    expect(mocks.txInsert).not.toHaveBeenCalled();
+  });
+
   it('records an audit event when staff decline a recovery matter', async () => {
     const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
@@ -450,6 +470,9 @@ describe('staff updateClaimStatusCore', () => {
         headers: requestHeaders,
         tenantId: 'tenant-1',
         metadata: expect.objectContaining({
+          decisionNextStatus: 'rejected',
+          decisionReason: 'Declined after review',
+          decisionType: 'declined',
           oldStatus: 'negotiation',
           newStatus: 'rejected',
           note: 'Declined after review',

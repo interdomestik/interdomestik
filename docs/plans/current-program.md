@@ -27,7 +27,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P2` Billing And Terms Hardening is now complete as the post-`P1T` tranche. `B01` is complete as the Stripe residue cleanup and billing-surface contract reconciliation slice, `B02` through `B06` are complete as the in-place Paddle safety and billing auditability queue, and `B07` through `B10` are complete as the commercial terms enforcement queue.
 
-`P3` Commercial Actions And Contract Enforcement is now active as the post-`P2` tranche. `M01` is complete as the commercial mutation-path audit slice, `M02` is complete as the typed Server Action migration slice for the top commercial mutations, `M03` is complete as the commercial idempotency slice for those canonical mutations, and `M04` is now complete as the matter-consumption guard slice for canonical staff-led recovery. Free Start completion now routes through a typed server action, escalation request metadata now comes from `submitClaimCore`, agreement acceptance plus cancellation remain on canonical typed server actions, duplicate Free Start, escalation, and billing submissions now reuse explicit idempotency keys instead of double-creating work or double-applying commercial state, and staff transitions into `negotiation` or `court` now consume annual matter allowance once per claim, block exhausted allowance by default, and accept a staff-only explicit override reason when recovery must begin without available allowance. Roster import remains a client-only placeholder. `M05` is now the next committed `P3` queue item as the audit-safe escalation decision slice, and `M06` remains supporting input until a separate promotion decision is recorded.
+`P3` Commercial Actions And Contract Enforcement is now active as the post-`P2` tranche. `M01` is complete as the commercial mutation-path audit slice, `M02` is complete as the typed Server Action migration slice for the top commercial mutations, `M03` is complete as the commercial idempotency slice for those canonical mutations, `M04` is complete as the matter-consumption guard slice for canonical staff-led recovery, and `M05` is now complete as the audit-safe escalation decision slice. Free Start completion now routes through a typed server action, escalation request metadata now comes from `submitClaimCore`, agreement acceptance plus cancellation remain on canonical typed server actions, duplicate Free Start, escalation, and billing submissions now reuse explicit idempotency keys instead of double-creating work or double-applying commercial state, staff transitions into `negotiation` or `court` now consume annual matter allowance once per claim, block exhausted allowance by default, and accept a staff-only explicit override reason when recovery must begin without available allowance, and escalation acceptance plus decline now persist actor, decision time, reason, and resulting next state on the canonical staff action path. Roster import remains a client-only placeholder. No later `P3` item is committed yet, and `M06` remains supporting input until a separate promotion decision is recorded.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -47,7 +47,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 12. Keep `D05` complete as the canonical staging Supabase plus preview-environment separation slice without changing production auth, routing, or tenancy architecture.
 13. Keep `D06` complete as the canonical incident-response playbook and keep `D07` complete as the Sentry burn-rate alert wiring slice.
 14. Keep `D08` complete as the narrow RLS proof slice on four critical tables without reopening a broad repo-wide RLS campaign.
-15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche, the completed `P-1` tranche, the completed `P1C` tranche, the completed `P1T` tranche, the completed `P2` tranche, and the committed `P3` tranche through `M04`.
+15. Preserve the broader GPT-5.4 runway as input without widening committed `v0.1.0` scope beyond the completed `AI01` through `AI06` tranche, the completed `P-1` tranche, the completed `P1C` tranche, the completed `P1T` tranche, the completed `P2` tranche, and the committed `P3` tranche through `M05`.
 16. Land `P1T` as the canonical Free Start and Trust UX tranche without reopening routing, auth, tenancy, or request-path AI decisions.
 17. Keep `C01` complete as the canonical coverage-matrix publication slice across pricing, checkout, and member surfaces.
 18. Keep `C02` as the canonical success-fee calculator and example-pricing slice.
@@ -72,7 +72,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 37. Keep `M02` complete as the canonical typed Server Action migration slice so Free Start, escalation request, escalation acceptance, and cancellation converge on `_core.ts` validation paths before broader idempotency or route-retirement work begins.
 38. Keep `M03` complete as the canonical commercial idempotency slice so duplicate Free Start, escalation, and billing submissions on the typed commercial action paths do not double-create work or double-apply commercial state before matter guards or route retirement begin.
 39. Keep `M04` complete as the canonical matter-consumption guard slice so staff-led recovery on the canonical typed action path consumes and enforces allowance, blocks exhausted allowance by default, and records an explicit staff override reason before recovery can begin without available allowance.
-40. Keep `M05` as the canonical escalation decision audit slice so each acceptance or decline on the canonical staff action path records actor, decision time, reason, and resulting next state before route retirement work begins.
+40. Keep `M05` complete as the canonical escalation decision audit slice so each acceptance or decline on the canonical staff action path records actor, decision time, reason, and resulting next state before route retirement work begins.
 
 ## Status Command
 
@@ -109,7 +109,7 @@ pnpm plan:proof
 
 `P2` Billing And Terms Hardening is now complete as the post-`P1T` tranche.
 
-`P3` Commercial Actions And Contract Enforcement is now active as the post-`P2` tranche. `M01`, `M02`, `M03`, and `M04` are complete as the commercial mutation-path audit, typed Server Action migration, commercial idempotency, and matter-consumption guard slices. `M05` is now the next committed `P3` queue item as the audit-safe escalation acceptance and decline slice. `M06` remains input until a separate promotion decision is recorded.
+`P3` Commercial Actions And Contract Enforcement is now active as the post-`P2` tranche. `M01`, `M02`, `M03`, `M04`, and `M05` are complete as the commercial mutation-path audit, typed Server Action migration, commercial idempotency, matter-consumption guard, and audit-safe escalation decision slices. No later `P3` item is committed yet. `M06` remains input until a separate promotion decision is recorded.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -179,6 +179,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `M04` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the next committed `P3` queue item after `M03`.
 - `M04` is now complete as of 2026-03-13. Canonical staff-led recovery transitions now consume annual matter allowance once per claim, block exhausted allowance by default, and record a staff-only explicit override reason when recovery begins without available allowance.
 - `M05` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the next committed `P3` queue item after `M04`.
+- `M05` is now complete as of 2026-03-13. Escalation acceptance now persists decision actor, decision time, reason, and resulting next state in the durable agreement record, while decline decisions on the canonical staff action path now require a reason and record the same decision metadata in audit history.
 
 ## Historical Foundation, Not Current Sequencing
 

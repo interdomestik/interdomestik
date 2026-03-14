@@ -28,6 +28,8 @@ describe('saveClaimEscalationAgreementCore', () => {
       data: {
         acceptedAt: '2026-03-12T00:00:00.000Z',
         claimId: 'claim-1',
+        decisionNextStatus: 'negotiation',
+        decisionReason: 'Member accepted negotiation as the next recovery path.',
         feePercentage: 15,
         legalActionCapPercentage: 25,
         minimumFee: '25.00',
@@ -39,6 +41,8 @@ describe('saveClaimEscalationAgreementCore', () => {
 
     const result = await saveClaimEscalationAgreementCore({
       claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member accepted negotiation as the next recovery path.',
       feePercentage: 15,
       legalActionCapPercentage: 25,
       minimumFee: 25,
@@ -56,6 +60,8 @@ describe('saveClaimEscalationAgreementCore', () => {
       .calls;
     expect(domainParams).toMatchObject({
       claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member accepted negotiation as the next recovery path.',
       requestHeaders,
     });
     expect(domainDeps).toEqual({ logAuditEvent });

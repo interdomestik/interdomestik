@@ -5,7 +5,7 @@ import {
   saveSuccessFeeCollection,
   updateClaimStatus,
 } from './staff-claims.core';
-export type { ActionResult, ClaimStatus } from './staff-claims.core';
+export type { ActionResult, ClaimStatus, EscalationDecisionNextStatus } from './staff-claims.core';
 export type {
   ClaimEscalationAgreementSnapshot,
   PaymentAuthorizationState,

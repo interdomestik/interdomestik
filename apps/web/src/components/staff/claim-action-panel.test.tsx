@@ -63,6 +63,8 @@ beforeEach(() => {
 describe('ClaimActionPanel', () => {
   const savedAgreement = {
     claimId: 'claim-1',
+    decisionNextStatus: 'negotiation' as const,
+    decisionReason: 'Member accepted negotiation as the next recovery path.',
     feePercentage: 25,
     minimumFee: '25.00',
     legalActionCapPercentage: 40,
@@ -139,7 +141,20 @@ describe('ClaimActionPanel', () => {
     fireEvent.change(screen.getByLabelText('Fee percentage'), { target: { value: '25' } });
     fireEvent.change(screen.getByLabelText('Legal-action cap'), { target: { value: '40' } });
     fireEvent.change(screen.getByLabelText('Terms version'), { target: { value: 'v1' } });
+    fireEvent.change(screen.getByLabelText('Decision reason'), {
+      target: { value: 'Member accepted negotiation as the next recovery path.' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save Escalation Agreement' }));
+
+    await waitFor(() => {
+      expect(actionMocks.saveClaimEscalationAgreement).toHaveBeenCalledWith(
+        expect.objectContaining({
+          claimId: 'claim-1',
+          decisionNextStatus: 'negotiation',
+          decisionReason: 'Member accepted negotiation as the next recovery path.',
+        })
+      );
+    });
 
     await waitFor(() => {
       expect(

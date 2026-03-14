@@ -78,6 +78,8 @@ describe('staff-claims action wrapper', () => {
 
     const result = await saveClaimEscalationAgreement({
       claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member accepted negotiation as the next recovery path.',
       feePercentage: 15,
       idempotencyKey: 'agreement-1',
       legalActionCapPercentage: 25,
@@ -89,6 +91,8 @@ describe('staff-claims action wrapper', () => {
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(saveClaimEscalationAgreementCore).toHaveBeenCalledWith({
       claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member accepted negotiation as the next recovery path.',
       feePercentage: 15,
       idempotencyKey: 'agreement-1',
       legalActionCapPercentage: 25,

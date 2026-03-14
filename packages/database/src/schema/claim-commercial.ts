@@ -15,6 +15,7 @@ import { subscriptions } from './memberships';
 import { tenants } from './tenants';
 
 const paymentAuthorizationStates = ['pending', 'authorized', 'revoked'] as const;
+const escalationDecisionNextStatuses = ['negotiation', 'court'] as const;
 const successFeeCollectionMethods = ['deduction', 'payment_method_charge', 'invoice'] as const;
 
 export const claimEscalationAgreements = pgTable(
@@ -27,6 +28,10 @@ export const claimEscalationAgreements = pgTable(
     claimId: text('claim_id')
       .notNull()
       .references(() => claims.id),
+    decisionNextStatus: text('decision_next_status', {
+      enum: escalationDecisionNextStatuses,
+    }),
+    decisionReason: text('decision_reason'),
     signedByUserId: text('signed_by_user_id')
       .notNull()
       .references(() => user.id),
