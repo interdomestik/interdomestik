@@ -1,4 +1,4 @@
-import { saveRecoveryDecisionCore as saveRecoveryDecisionCoreDomain } from '@interdomestik/domain-claims/staff-claims/save-recovery-decision';
+import { saveStaffRecoveryDecisionCore as saveRecoveryDecisionCoreDomain } from '@interdomestik/domain-claims';
 
 import { logAuditEvent } from '@/lib/audit';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
@@ -22,12 +22,26 @@ export async function saveRecoveryDecisionCore(
     session: NonNullable<Session> | null;
   }
 ): Promise<ActionResult<RecoveryDecisionSnapshot>> {
+  const requestFingerprint =
+    params.decisionType === 'declined'
+      ? {
+          claimId: params.claimId,
+          decisionType: params.decisionType,
+          declineReasonCode: params.declineReasonCode,
+          explanation: params.explanation,
+        }
+      : {
+          claimId: params.claimId,
+          decisionType: params.decisionType,
+          explanation: params.explanation,
+        };
+
   const result = await runCommercialActionWithIdempotency({
     action: 'staff-claims.save-recovery-decision',
     actorUserId: params.session?.user?.id ?? null,
     tenantId: params.session?.user?.tenantId ?? null,
     idempotencyKey: params.idempotencyKey,
-    requestFingerprint: params,
+    requestFingerprint,
     execute: () => saveRecoveryDecisionCoreDomain(params, { logAuditEvent }),
   });
 

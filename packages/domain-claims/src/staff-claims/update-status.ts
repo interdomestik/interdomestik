@@ -72,8 +72,6 @@ async function handleStaffLedRecoveryStatusChange(
   const [agreement] = await db
     .select({
       decisionType: claimEscalationAgreements.decisionType,
-      paymentAuthorizationState: claimEscalationAgreements.paymentAuthorizationState,
-      signedAt: claimEscalationAgreements.signedAt,
     })
     .from(claimEscalationAgreements)
     .where(

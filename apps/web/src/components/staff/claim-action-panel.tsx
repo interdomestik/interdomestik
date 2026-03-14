@@ -567,9 +567,14 @@ export function ClaimActionPanel({
               id="recovery-decline-reason"
               className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={declineReasonCode}
-              onChange={event =>
-                setDeclineReasonCode(event.target.value as RecoveryDeclineReasonCode)
-              }
+              onChange={event => {
+                const nextDeclineReasonCode = event.target.value;
+                setDeclineReasonCode(
+                  nextDeclineReasonCode === ''
+                    ? ''
+                    : (nextDeclineReasonCode as RecoveryDeclineReasonCode)
+                );
+              }}
               disabled={isPending}
             >
               <option value="">Select decline category</option>
