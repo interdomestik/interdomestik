@@ -115,7 +115,7 @@ export async function assignClaimCore(
       return { success: true };
     }
 
-    if (nextStaffId !== null) {
+    if (nextStaffId !== null && nextStaffId !== user.id) {
       const assignee = await findScopedAssignee({
         branchId,
         staffId: nextStaffId,

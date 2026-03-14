@@ -23,17 +23,16 @@ test.describe('Staff Claim Assignment MVP', () => {
 
     const assignmentSelect = page.getByTestId('staff-assignment-select');
     await expect(assignmentSelect).toBeVisible();
-    const assignableStaffCount = await assignmentSelect.locator('option').count();
+    const assignableStaffCount = await assignmentSelect.locator('option:not([disabled])').count();
 
-    test.skip(
-      assignableStaffCount < 2,
-      'The seeded tenant only exposes one assignable staff option, so reassignment cannot be proven.'
-    );
+    expect(assignableStaffCount).toBeGreaterThanOrEqual(2);
 
     const targetAssignment = await assignmentSelect.evaluate(element => {
       const select = element as HTMLSelectElement;
       const currentValue = select.value;
-      const nextOption = Array.from(select.options).find(option => option.value !== currentValue);
+      const nextOption = Array.from(select.options).find(
+        option => !option.disabled && option.value !== currentValue
+      );
 
       if (!nextOption) {
         throw new Error('Expected at least two assignable staff options in the seeded tenant.');
@@ -48,6 +47,9 @@ test.describe('Staff Claim Assignment MVP', () => {
     await expect(page.getByTestId('staff-assign-claim-button')).toBeEnabled();
     await page.getByTestId('staff-assign-claim-button').click();
 
+    await page.waitForLoadState('networkidle');
+    await page.reload();
+    await expect(page.getByTestId('staff-claim-detail-ready')).toBeVisible();
     await expect(page.getByTestId('staff-assignment-select')).toHaveValue(targetAssignment.value);
     await expect(page.getByTestId('staff-assign-claim-button')).toBeDisabled();
   });

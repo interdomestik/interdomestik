@@ -101,6 +101,14 @@ export async function seedGolden(config: SeedConfig) {
       role: E2E_USERS.MK_STAFF.dbRole,
       tenantId: TENANTS.MK,
     },
+    {
+      id: goldenId('mk_staff_2'),
+      name: 'Aneta Nikolovska',
+      email: 'staff.mk.2@interdomestik.com',
+      role: 'staff',
+      tenantId: TENANTS.MK,
+      branchId: 'mk_branch_a',
+    },
     // Pilot Admin
     {
       id: goldenId('pilot_mk_admin'),

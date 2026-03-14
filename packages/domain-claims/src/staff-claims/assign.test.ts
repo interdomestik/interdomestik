@@ -208,6 +208,7 @@ describe('staff assignClaimCore', () => {
     );
 
     expect(result).toEqual({ success: true });
+    expect(mocks.userFindFirst).not.toHaveBeenCalled();
     expect(mocks.update).toHaveBeenCalledTimes(1);
     expect(mocks.logAuditEvent).toHaveBeenCalledTimes(1);
   });

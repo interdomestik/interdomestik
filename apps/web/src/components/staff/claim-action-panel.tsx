@@ -42,6 +42,15 @@ interface ClaimActionPanelProps {
   readonly currentAssigneeLabel?: string | null;
 }
 
+type AssignmentOption = {
+  id: string;
+  label: string;
+};
+
+type RenderedAssignmentOption = AssignmentOption & {
+  disabled?: boolean;
+};
+
 const CLAIM_STATUS_OPTIONS: { value: ClaimStatus; label: string }[] = CANONICAL_CLAIM_STATUSES.map(
   status => ({
     value: status as ClaimStatus,
@@ -74,20 +83,43 @@ function formatCollectionMethodLabel(method: SuccessFeeCollectionSnapshot['colle
   }
 }
 
+function hasAssignmentOption(
+  assignmentOptions: ReadonlyArray<AssignmentOption>,
+  assigneeId: string
+) {
+  return assignmentOptions.some(option => option.id === assigneeId);
+}
+
 function getSelectedAssigneeId(args: {
-  assignmentOptions: ReadonlyArray<{ id: string }>;
+  assignmentOptions: ReadonlyArray<AssignmentOption>;
   assigneeId: string | null;
   staffId: string;
 }) {
-  if (args.assigneeId && args.assignmentOptions.some(option => option.id === args.assigneeId)) {
+  if (args.assigneeId !== null) {
     return args.assigneeId;
   }
 
-  if (args.assignmentOptions.some(option => option.id === args.staffId)) {
+  if (hasAssignmentOption(args.assignmentOptions, args.staffId)) {
     return args.staffId;
   }
 
   return args.assignmentOptions[0]?.id ?? '';
+}
+
+function getOutOfScopeAssigneeOption(args: {
+  assignmentOptions: ReadonlyArray<AssignmentOption>;
+  assigneeId: string | null;
+  currentAssigneeLabel?: string | null;
+}): RenderedAssignmentOption | null {
+  if (args.assigneeId === null || hasAssignmentOption(args.assignmentOptions, args.assigneeId)) {
+    return null;
+  }
+
+  return {
+    id: args.assigneeId,
+    label: `${args.currentAssigneeLabel ?? 'Current assignee'} (out of scope)`,
+    disabled: true,
+  };
 }
 
 function getAssignmentSuccessDescription(args: {
@@ -315,6 +347,13 @@ export function ClaimActionPanel({
     currentAssigneeLabel,
     isAssignedToMe,
   });
+  const outOfScopeAssigneeOption = getOutOfScopeAssigneeOption({
+    assignmentOptions,
+    assigneeId,
+    currentAssigneeLabel,
+  });
+  const renderedAssignmentOptions: ReadonlyArray<RenderedAssignmentOption> =
+    outOfScopeAssigneeOption ? [outOfScopeAssigneeOption, ...assignmentOptions] : assignmentOptions;
 
   return (
     <div
@@ -344,8 +383,8 @@ export function ClaimActionPanel({
               onChange={event => setSelectedAssigneeId(event.target.value)}
               value={selectedAssigneeId}
             >
-              {assignmentOptions.map(option => (
-                <option key={option.id} value={option.id}>
+              {renderedAssignmentOptions.map(option => (
+                <option key={option.id} value={option.id} disabled={option.disabled}>
                   {option.label}
                 </option>
               ))}

@@ -118,6 +118,31 @@ describe('ClaimActionPanel', () => {
     expect(screen.getByRole('button', { name: 'Save Assignment' })).toBeDisabled();
   });
 
+  it('preserves an out-of-scope current assignee until staff pick a new in-scope option', () => {
+    render(
+      <ClaimActionPanel
+        assigneeId="staff-out"
+        assignmentOptions={assignmentOptions}
+        claimId="claim-1"
+        commercialAgreement={null}
+        currentAssigneeLabel="Outside Staff"
+        currentStatus="submitted"
+        staffId="staff-me"
+        successFeeCollection={null}
+      />
+    );
+
+    expect(screen.getByTestId('staff-assignment-select')).toHaveValue('staff-out');
+    expect(screen.getByRole('option', { name: 'Outside Staff (out of scope)' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save Assignment' })).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('staff-assignment-select'), {
+      target: { value: 'staff-other' },
+    });
+
+    expect(screen.getByRole('button', { name: 'Save Assignment' })).toBeEnabled();
+  });
+
   it('keeps success-fee save disabled for non-finite or non-positive recovered amounts', () => {
     render(
       <ClaimActionPanel
