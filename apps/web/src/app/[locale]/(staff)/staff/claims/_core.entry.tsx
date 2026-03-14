@@ -160,6 +160,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                     locale,
                     status: currentStatus,
                   })}
+                  prefetch={false}
                 >
                   Clear
                 </Link>
@@ -185,6 +186,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                     search: currentSearch,
                     status: currentStatus,
                   })}
+                  prefetch={false}
                   data-testid={`staff-claims-assigned-filter-${option.value}`}
                 >
                   {option.label}
@@ -202,6 +204,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                 locale,
                 search: currentSearch,
               })}
+              prefetch={false}
               data-testid="staff-claims-status-filter-all"
             >
               All actionable
@@ -218,6 +221,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                     search: currentSearch,
                     status,
                   })}
+                  prefetch={false}
                   data-testid={`staff-claims-status-filter-${status}`}
                 >
                   {toLabel(status)}
@@ -269,7 +273,11 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
               </div>
               <div className="text-right">
                 <Button asChild variant="outline" size="sm">
-                  <Link href={`/staff/claims/${claim.id}`} data-testid="staff-claims-view">
+                  <Link
+                    href={`/staff/claims/${claim.id}`}
+                    prefetch={false}
+                    data-testid="staff-claims-view"
+                  >
                     Open
                   </Link>
                 </Button>

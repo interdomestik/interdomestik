@@ -15,7 +15,16 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href, ...props }: { children: ReactNode; href: string }) => (
+  Link: ({
+    children,
+    href,
+    prefetch: _prefetch,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+    prefetch?: boolean;
+  }) => (
     <a href={href} {...props}>
       {children}
     </a>
