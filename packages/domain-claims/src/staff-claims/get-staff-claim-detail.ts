@@ -1,5 +1,6 @@
 import { and, claimEscalationAgreements, claims, db, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { getMatterAllowanceVisibilityForUser } from './matter-allowance';
 import type { ClaimEscalationAgreementSnapshot } from './types';
 
 export type StaffClaimDetail = {
@@ -17,6 +18,13 @@ export type StaffClaimDetail = {
     fullName: string;
     membershipNumber: string | null;
   };
+  matterAllowance: {
+    allowanceTotal: number;
+    consumedCount: number;
+    remainingCount: number;
+    windowStart: string;
+    windowEnd: string;
+  } | null;
   agent?: {
     id: string;
     name: string;
@@ -97,6 +105,11 @@ export async function getStaffClaimDetail(params: {
     }
   }
 
+  const matterAllowance = await getMatterAllowanceVisibilityForUser({
+    tenantId,
+    userId: row.memberId,
+  });
+
   return {
     claim: {
       id: row.claimId,
@@ -112,6 +125,15 @@ export async function getStaffClaimDetail(params: {
       fullName: row.memberName,
       membershipNumber: row.memberNumber ?? null,
     },
+    matterAllowance: matterAllowance
+      ? {
+          allowanceTotal: matterAllowance.allowanceTotal,
+          consumedCount: matterAllowance.consumedCount,
+          remainingCount: matterAllowance.remainingCount,
+          windowStart: matterAllowance.windowStart.toISOString(),
+          windowEnd: matterAllowance.windowEnd.toISOString(),
+        }
+      : null,
     agent,
     commercialAgreement:
       row.agreementFeePercentage != null &&

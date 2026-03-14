@@ -79,6 +79,51 @@ export function MemberClaimDetailOpsPage({ claim }: MemberClaimDetailOpsPageProp
             </Card>
           ) : null}
 
+          {claim.matterAllowance ? (
+            <Card data-testid="member-claim-matter-allowance">
+              <CardHeader>
+                <CardTitle>{t('detail.matterAllowance.title')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-xs uppercase text-muted-foreground">
+                      {t('detail.matterAllowance.used')}
+                    </span>
+                    <p
+                      className="mt-1 text-lg font-semibold"
+                      data-testid="member-claim-matter-allowance-used"
+                    >
+                      {claim.matterAllowance.consumedCount}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs uppercase text-muted-foreground">
+                      {t('detail.matterAllowance.remaining')}
+                    </span>
+                    <p
+                      className="mt-1 text-lg font-semibold"
+                      data-testid="member-claim-matter-allowance-remaining"
+                    >
+                      {claim.matterAllowance.remainingCount}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs uppercase text-muted-foreground">
+                      {t('detail.matterAllowance.total')}
+                    </span>
+                    <p
+                      className="mt-1 text-lg font-semibold"
+                      data-testid="member-claim-matter-allowance-total"
+                    >
+                      {claim.matterAllowance.allowanceTotal}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <CardTitle>{t('detail.caseDetails')}</CardTitle>

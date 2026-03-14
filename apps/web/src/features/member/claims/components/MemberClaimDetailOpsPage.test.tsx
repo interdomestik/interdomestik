@@ -20,7 +20,18 @@ vi.mock('next-intl', () => ({
         return translations[key] || `claims-tracking.tracking.sla.${key}`;
       };
     }
-    // Default: echo for stability.
+    if (namespace === 'claims') {
+      return (key: string) => {
+        const translations: Record<string, string> = {
+          'detail.matterAllowance.title': 'Matter allowance',
+          'detail.matterAllowance.used': 'Used this year',
+          'detail.matterAllowance.remaining': 'Remaining this year',
+          'detail.matterAllowance.total': 'Plan allowance',
+        };
+
+        return translations[key] || `claims.${key}`;
+      };
+    }
     return (key: string) => (namespace ? `${namespace}.${key}` : key);
   },
 }));
@@ -88,5 +99,42 @@ describe('MemberClaimDetailOpsPage', () => {
     expect(
       screen.getByText('Waiting for your information before the SLA starts.')
     ).toBeInTheDocument();
+  });
+
+  it('shows annual matter usage and remaining allowance when the snapshot is available', () => {
+    const now = new Date();
+    render(
+      <MemberClaimDetailOpsPage
+        claim={{
+          id: 'claim-3',
+          title: 'Negotiation Claim',
+          status: 'negotiation',
+          slaPhase: 'not_applicable',
+          statusLabelKey: 'claims-tracking.status.negotiation',
+          createdAt: now,
+          updatedAt: null,
+          description: 'Recovery in progress',
+          amount: '550',
+          currency: 'EUR',
+          canShare: false,
+          documents: [],
+          timeline: [],
+          matterAllowance: {
+            allowanceTotal: 2,
+            consumedCount: 1,
+            remainingCount: 1,
+            windowStart: now,
+            windowEnd: now,
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('Matter allowance')).toBeInTheDocument();
+    expect(screen.getByText('Used this year')).toBeInTheDocument();
+    expect(screen.getByText('Remaining this year')).toBeInTheDocument();
+    expect(screen.getByText('Plan allowance')).toBeInTheDocument();
+    expect(screen.getAllByText('1')).toHaveLength(2);
+    expect(screen.getByText('2')).toBeInTheDocument();
   });
 });

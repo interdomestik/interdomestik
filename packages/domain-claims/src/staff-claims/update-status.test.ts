@@ -194,9 +194,9 @@ function mockRecoverySelects(options?: {
     .mockReturnValueOnce(mocks.claimSelectChain)
     .mockReturnValueOnce(mocks.agreementSelectChain)
     .mockReturnValueOnce(mocks.subscriptionSelectChain)
-    .mockReturnValueOnce(mocks.serviceUsageExistsSelectChain)
     .mockReturnValueOnce(mocks.membershipPlanSelectChain)
-    .mockReturnValueOnce(mocks.serviceUsageCountSelectChain);
+    .mockReturnValueOnce(mocks.serviceUsageCountSelectChain)
+    .mockReturnValueOnce(mocks.serviceUsageExistsSelectChain);
   mocks.claimSelectChain.limit.mockResolvedValue(
     options?.claim ?? [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }]
   );
@@ -205,10 +205,10 @@ function mockRecoverySelects(options?: {
     options?.subscription ?? [STANDARD_SUBSCRIPTION]
   );
   mocks.membershipPlanSelectChain.limit.mockResolvedValue(options?.plan ?? [STANDARD_PLAN]);
-  mocks.serviceUsageExistsSelectChain.limit.mockResolvedValue(options?.existingClaimUsage ?? []);
   mocks.serviceUsageCountSelectChain.limit.mockResolvedValue(
     options?.matterCount ?? [{ count: 0 }]
   );
+  mocks.serviceUsageExistsSelectChain.limit.mockResolvedValue(options?.existingClaimUsage ?? []);
 }
 
 describe('staff updateClaimStatusCore', () => {

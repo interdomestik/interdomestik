@@ -6,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
   select: vi.fn(),
   ensureClaimsAccess: vi.fn(),
   buildClaimVisibilityWhere: vi.fn(),
+  getMatterAllowanceVisibility: vi.fn(),
   captureException: vi.fn(),
   setTag: vi.fn(),
   withServerActionInstrumentation: vi.fn(
@@ -15,6 +16,10 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock('@/server/domains/claims/guards', () => ({
   ensureClaimsAccess: hoisted.ensureClaimsAccess,
+}));
+
+vi.mock('@interdomestik/domain-claims', () => ({
+  getMatterAllowanceVisibilityForUser: hoisted.getMatterAllowanceVisibility,
 }));
 
 vi.mock('../utils', () => ({
@@ -75,6 +80,7 @@ describe('getMemberClaimDetail', () => {
       branchId: null,
     });
     hoisted.buildClaimVisibilityWhere.mockReturnValue({ visibility: 'member' });
+    hoisted.getMatterAllowanceVisibility.mockResolvedValue(null);
     hoisted.select.mockReturnValue({
       from: () => ({
         where: () => ({
@@ -164,6 +170,51 @@ describe('getMemberClaimDetail', () => {
         slaPhase: 'incomplete',
       })
     );
+  });
+
+  it('maps annual matter allowance visibility onto the member claim detail dto', async () => {
+    hoisted.claimFindFirst.mockResolvedValueOnce({
+      id: 'claim_2',
+      title: 'Vehicle recovery',
+      status: 'negotiation',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-01T00:00:00.000Z'),
+      description: 'Negotiation started',
+      claimAmount: '550.00',
+      currency: 'EUR',
+      documents: [],
+    });
+    hoisted.timelineRows.mockResolvedValueOnce([]);
+    hoisted.getMatterAllowanceVisibility.mockResolvedValueOnce({
+      allowanceTotal: 2,
+      consumedCount: 1,
+      remainingCount: 1,
+      windowStart: new Date('2026-01-01T00:00:00.000Z'),
+      windowEnd: new Date('2026-12-31T23:59:59.000Z'),
+    });
+
+    const result = await getMemberClaimDetail(
+      {
+        user: {
+          id: 'member-1',
+          role: 'member',
+          tenantId: 'tenant-1',
+        },
+      },
+      'claim_2'
+    );
+
+    expect(hoisted.getMatterAllowanceVisibility).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      userId: 'member-1',
+    });
+    expect((result as { matterAllowance?: unknown } | null)?.matterAllowance).toEqual({
+      allowanceTotal: 2,
+      consumedCount: 1,
+      remainingCount: 1,
+      windowStart: new Date('2026-01-01T00:00:00.000Z'),
+      windowEnd: new Date('2026-12-31T23:59:59.000Z'),
+    });
   });
 
   it('scopes timeline reads to tenant-owned public history only', async () => {

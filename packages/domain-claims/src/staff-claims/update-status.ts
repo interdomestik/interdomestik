@@ -5,11 +5,7 @@ import {
   claims,
   db,
   eq,
-  membershipPlans,
-  or,
   serviceUsage,
-  sql,
-  subscriptions,
 } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -17,14 +13,15 @@ import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import type { ActionResult, ClaimStatus } from './types';
 
 import { claimStatusSchema } from '../validators/claims';
+import {
+  getMatterAllowanceContextForUser,
+  getRecoveryMatterServiceCode,
+  hasRecoveryMatterUsageForClaim,
+} from './matter-allowance';
 
 const STAFF_LED_RECOVERY_STATUSES: ReadonlySet<ClaimStatus> = new Set(['negotiation', 'court']);
-const FAMILY_MATTER_ALLOWANCE = 5;
-const STANDARD_MATTER_ALLOWANCE = 2;
-const RECOVERY_MATTER_SERVICE_CODE_PREFIX = 'staff_recovery_matter:';
 const RECOVERY_ALLOWANCE_EXHAUSTED_ERROR =
   'Matter allowance is exhausted. Record an override reason or upgrade the membership before staff-led recovery can begin.';
-type NormalizableDate = Date | string | null | undefined;
 type UpdateClaimStatusParams = {
   claimId: string;
   newStatus: string;
@@ -50,122 +47,6 @@ type RecoveryStatusChangeParams = {
   tenantId: string;
   trimmedAllowanceOverrideReason?: string;
 };
-
-async function resolveMatterAllowance(params: {
-  tenantId: string;
-  planId: string | null | undefined;
-  planKey: string | null | undefined;
-}) {
-  const planKeyCondition = params.planKey ? eq(membershipPlans.id, params.planKey) : undefined;
-  const planIdCondition = params.planId
-    ? or(eq(membershipPlans.id, params.planId), eq(membershipPlans.paddlePriceId, params.planId))
-    : undefined;
-  const lookupCondition =
-    planKeyCondition && planIdCondition
-      ? or(planKeyCondition, planIdCondition)
-      : (planKeyCondition ?? planIdCondition);
-
-  if (!lookupCondition) {
-    return STANDARD_MATTER_ALLOWANCE;
-  }
-
-  const [plan] = await db
-    .select({ tier: membershipPlans.tier })
-    .from(membershipPlans)
-    .where(withTenant(params.tenantId, membershipPlans.tenantId, lookupCondition))
-    .limit(1);
-
-  if (plan?.tier === 'family' || plan?.tier === 'business') {
-    return FAMILY_MATTER_ALLOWANCE;
-  }
-
-  return STANDARD_MATTER_ALLOWANCE;
-}
-
-function getRecoveryMatterServiceCode(claimId: string) {
-  return `${RECOVERY_MATTER_SERVICE_CODE_PREFIX}${claimId}`;
-}
-
-function normalizeDate(value: NormalizableDate) {
-  if (!value) return null;
-  const normalized = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(normalized.getTime()) ? null : normalized;
-}
-
-function buildMatterAllowanceWindow(params: {
-  currentPeriodEnd: NormalizableDate;
-  currentPeriodStart: NormalizableDate;
-  now: Date;
-}) {
-  const currentPeriodStart = normalizeDate(params.currentPeriodStart);
-  const currentPeriodEnd = normalizeDate(params.currentPeriodEnd);
-
-  if (currentPeriodStart && currentPeriodEnd) {
-    return { end: currentPeriodEnd, start: currentPeriodStart };
-  }
-
-  const fallbackEnd = currentPeriodEnd ?? params.now;
-  const fallbackStart =
-    currentPeriodStart ??
-    new Date(
-      Date.UTC(
-        fallbackEnd.getUTCFullYear() - 1,
-        fallbackEnd.getUTCMonth(),
-        fallbackEnd.getUTCDate()
-      )
-    );
-
-  return { end: fallbackEnd, start: fallbackStart };
-}
-
-async function hasRecoveryMatterUsageForClaim(params: {
-  claimId: string;
-  subscriptionId: string;
-  tenantId: string;
-}) {
-  const [existingUsage] = await db
-    .select({ id: serviceUsage.id })
-    .from(serviceUsage)
-    .where(
-      withTenant(
-        params.tenantId,
-        serviceUsage.tenantId,
-        and(
-          eq(serviceUsage.subscriptionId, params.subscriptionId),
-          eq(serviceUsage.serviceCode, getRecoveryMatterServiceCode(params.claimId))
-        )
-      )
-    )
-    .limit(1);
-
-  return Boolean(existingUsage);
-}
-
-async function countRecoveryMatterUsageInWindow(params: {
-  end: Date;
-  start: Date;
-  subscriptionId: string;
-  tenantId: string;
-}) {
-  const [usageCount] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(serviceUsage)
-    .where(
-      withTenant(
-        params.tenantId,
-        serviceUsage.tenantId,
-        and(
-          eq(serviceUsage.subscriptionId, params.subscriptionId),
-          sql`${serviceUsage.serviceCode} like ${`${RECOVERY_MATTER_SERVICE_CODE_PREFIX}%`}`,
-          sql`${serviceUsage.usedAt} >= ${params.start}`,
-          sql`${serviceUsage.usedAt} <= ${params.end}`
-        )
-      )
-    )
-    .limit(1);
-
-  return Number(usageCount?.count ?? 0);
-}
 
 async function handleStaffLedRecoveryStatusChange(
   params: RecoveryStatusChangeParams
@@ -205,53 +86,30 @@ async function handleStaffLedRecoveryStatusChange(
     };
   }
 
-  const [subscription] = await db
-    .select({
-      id: subscriptions.id,
-      currentPeriodEnd: subscriptions.currentPeriodEnd,
-      currentPeriodStart: subscriptions.currentPeriodStart,
-      planId: subscriptions.planId,
-      planKey: subscriptions.planKey,
-    })
-    .from(subscriptions)
-    .where(
-      withTenant(tenantId, subscriptions.tenantId, eq(subscriptions.userId, currentClaim.userId))
-    )
-    .limit(1);
+  const matterAllowanceContext = await getMatterAllowanceContextForUser({
+    tenantId,
+    userId: currentClaim.userId,
+  });
 
-  if (!subscription) {
+  if (!matterAllowanceContext) {
     return {
       success: false,
       error: 'Membership subscription context is required before staff-led recovery can begin.',
     };
   }
 
-  const allowanceWindow = buildMatterAllowanceWindow({
-    currentPeriodEnd: subscription.currentPeriodEnd,
-    currentPeriodStart: subscription.currentPeriodStart,
-    now: new Date(),
-  });
   const matterServiceCode = getRecoveryMatterServiceCode(claimId);
   const alreadyConsumedForClaim = await hasRecoveryMatterUsageForClaim({
     claimId,
-    subscriptionId: subscription.id,
+    subscriptionId: matterAllowanceContext.subscriptionId,
     tenantId,
   });
 
   if (!alreadyConsumedForClaim) {
-    const matterAllowance = await resolveMatterAllowance({
-      tenantId,
-      planId: subscription.planId,
-      planKey: subscription.planKey,
-    });
-    const consumedMatterCount = await countRecoveryMatterUsageInWindow({
-      end: allowanceWindow.end,
-      start: allowanceWindow.start,
-      subscriptionId: subscription.id,
-      tenantId,
-    });
-
-    if (consumedMatterCount >= matterAllowance && !trimmedAllowanceOverrideReason) {
+    if (
+      matterAllowanceContext.consumedCount >= matterAllowanceContext.allowanceTotal &&
+      !trimmedAllowanceOverrideReason
+    ) {
       return {
         success: false,
         error: RECOVERY_ALLOWANCE_EXHAUSTED_ERROR,
@@ -274,7 +132,7 @@ async function handleStaffLedRecoveryStatusChange(
         .values({
           id: crypto.randomUUID(),
           tenantId,
-          subscriptionId: subscription.id,
+          subscriptionId: matterAllowanceContext.subscriptionId,
           userId: currentClaim.userId,
           serviceCode: matterServiceCode,
           usedAt: new Date(),

@@ -1,6 +1,14 @@
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { ClaimSlaPhase } from '../policy';
 
+export interface ClaimMatterAllowanceDto {
+  allowanceTotal: number;
+  consumedCount: number;
+  remainingCount: number;
+  windowStart: Date;
+  windowEnd: Date;
+}
+
 export interface ClaimTrackingDetailDto {
   id: string;
   publicId?: string; // For public link if exists
@@ -20,6 +28,7 @@ export interface ClaimTrackingDetailDto {
 
   // Context
   canShare: boolean; // If allowed to generate public link
+  matterAllowance?: ClaimMatterAllowanceDto | null;
 }
 
 export interface ClaimTrackingDocument {

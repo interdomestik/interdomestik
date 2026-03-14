@@ -148,7 +148,13 @@
       "description": "Description",
       "claimAmount": "Claim Amount",
       "category": "Category",
-      "evidence": "Attached Evidence"
+      "evidence": "Attached Evidence",
+      "matterAllowance": {
+        "title": "Matter allowance",
+        "used": "Used this year",
+        "remaining": "Remaining this year",
+        "total": "Plan allowance"
+      }
     },
     "timeline": {
       "title": "Timeline",

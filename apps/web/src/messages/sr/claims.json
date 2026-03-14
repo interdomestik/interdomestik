@@ -148,7 +148,13 @@
       "description": "Opis",
       "claimAmount": "Traženi Iznos",
       "category": "Kategorija",
-      "evidence": "Priloženi Dokazi"
+      "evidence": "Priloženi Dokazi",
+      "matterAllowance": {
+        "title": "Kvota predmeta",
+        "used": "Iskorišćeno ove godine",
+        "remaining": "Preostalo ove godine",
+        "total": "Kvota plana"
+      }
     },
     "timeline": {
       "title": "Hronologija",
