@@ -173,6 +173,7 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
 
         <div className="lg:col-span-4 space-y-6">
           <ClaimActionPanel
+            acceptedRecoveryPrerequisites={commercialDetail.acceptedRecoveryPrerequisites}
             claimId={claim.id}
             recoveryDecision={commercialDetail.recoveryDecision}
             currentAssigneeLabel={currentAssigneeLabel}

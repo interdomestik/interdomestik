@@ -205,6 +205,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
           data-testid="staff-claim-detail-actions"
         >
           <ClaimActionPanel
+            acceptedRecoveryPrerequisites={detail.acceptedRecoveryPrerequisites}
             claimId={detail.claim.id}
             recoveryDecision={detail.recoveryDecision}
             commercialAgreement={detail.commercialAgreement}

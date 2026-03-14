@@ -97,10 +97,29 @@ describe('ClaimActionPanel', () => {
     memberLabel: 'Accepted for staff-led recovery',
     memberDescription: 'We accepted this matter for staff-led recovery.',
   };
+  const pendingAcceptedRecoveryPrerequisites = {
+    agreementReady: false,
+    canMoveForward: false,
+    collectionPathReady: false,
+    isAcceptedRecoveryDecision: false,
+  };
+  const readyAcceptedRecoveryPrerequisites = {
+    agreementReady: true,
+    canMoveForward: true,
+    collectionPathReady: true,
+    isAcceptedRecoveryDecision: true,
+  };
+  const missingCollectionAcceptedRecoveryPrerequisites = {
+    agreementReady: true,
+    canMoveForward: false,
+    collectionPathReady: false,
+    isAcceptedRecoveryDecision: true,
+  };
 
   it('submits a selected staff assignment manually', async () => {
     render(
       <ClaimActionPanel
+        acceptedRecoveryPrerequisites={pendingAcceptedRecoveryPrerequisites}
         assigneeId={null}
         assignmentOptions={assignmentOptions}
         claimId="claim-1"
@@ -125,6 +144,7 @@ describe('ClaimActionPanel', () => {
   it('keeps manual assignment save disabled when selection matches the current assignee', () => {
     render(
       <ClaimActionPanel
+        acceptedRecoveryPrerequisites={pendingAcceptedRecoveryPrerequisites}
         assigneeId="staff-other"
         assignmentOptions={assignmentOptions}
         claimId="claim-1"
@@ -143,6 +163,7 @@ describe('ClaimActionPanel', () => {
   it('preserves an out-of-scope current assignee until staff pick a new in-scope option', () => {
     render(
       <ClaimActionPanel
+        acceptedRecoveryPrerequisites={pendingAcceptedRecoveryPrerequisites}
         assigneeId="staff-out"
         assignmentOptions={assignmentOptions}
         claimId="claim-1"
@@ -169,6 +190,7 @@ describe('ClaimActionPanel', () => {
   it('keeps success-fee save disabled for non-finite or non-positive recovered amounts', () => {
     render(
       <ClaimActionPanel
+        acceptedRecoveryPrerequisites={readyAcceptedRecoveryPrerequisites}
         assigneeId="staff-other"
         assignmentOptions={assignmentOptions}
         claimId="claim-1"
@@ -201,6 +223,7 @@ describe('ClaimActionPanel', () => {
 
     render(
       <ClaimActionPanel
+        acceptedRecoveryPrerequisites={pendingAcceptedRecoveryPrerequisites}
         assigneeId={null}
         assignmentOptions={assignmentOptions}
         claimId="claim-1"
@@ -253,9 +276,37 @@ describe('ClaimActionPanel', () => {
     });
   });
 
+  it('shows accepted recovery prerequisite completeness when the collection path is still missing', () => {
+    render(
+      <ClaimActionPanel
+        acceptedRecoveryPrerequisites={missingCollectionAcceptedRecoveryPrerequisites}
+        assigneeId="staff-me"
+        assignmentOptions={assignmentOptions}
+        claimId="claim-1"
+        commercialAgreement={savedAgreement}
+        currentStatus="evaluation"
+        recoveryDecision={acceptedRecoveryDecision}
+        staffId="staff-me"
+        successFeeCollection={null}
+      />
+    );
+
+    expect(screen.getByText('Accepted recovery prerequisites')).toBeInTheDocument();
+    expect(screen.getByText('Agreement')).toBeInTheDocument();
+    expect(screen.getByText('Ready')).toBeInTheDocument();
+    expect(screen.getByText('Collection path')).toBeInTheDocument();
+    expect(screen.getByText('Missing')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Accepted recovery cannot move into negotiation or court until both prerequisites are ready.'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('passes an internal allowance override reason when updating a recovery claim', async () => {
     render(
       <ClaimActionPanel
+        acceptedRecoveryPrerequisites={readyAcceptedRecoveryPrerequisites}
         assigneeId="staff-me"
         assignmentOptions={assignmentOptions}
         claimId="claim-1"
@@ -289,6 +340,7 @@ describe('ClaimActionPanel', () => {
   it('shows the staff recovery decision gate before staff-led recovery starts', () => {
     render(
       <ClaimActionPanel
+        acceptedRecoveryPrerequisites={pendingAcceptedRecoveryPrerequisites}
         assigneeId="staff-me"
         assignmentOptions={assignmentOptions}
         claimId="claim-1"

@@ -315,4 +315,50 @@ describe('saveClaimEscalationAgreementCore', () => {
     });
     expect(result.data?.acceptedAt).not.toBe('2026-03-11T09:00:00.000Z');
   });
+
+  it('hydrates the member signature timestamp when staff save terms onto an accepted recovery decision row', async () => {
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', userId: 'member-1' }]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([
+      {
+        acceptedAt: new Date('2026-03-14T09:00:00.000Z'),
+        claimId: 'claim-1',
+        decisionNextStatus: null,
+        decisionReason: 'Recovery decision accepted before commercial terms were saved.',
+        feePercentage: null,
+        id: 'agreement-1',
+        legalActionCapPercentage: null,
+        minimumFee: null,
+        paymentAuthorizationState: 'pending',
+        signedAt: null,
+        termsVersion: null,
+      },
+    ]);
+
+    const result = await saveClaimEscalationAgreementCore({
+      claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Member approved the accepted negotiation path.',
+      feePercentage: 20,
+      legalActionCapPercentage: 30,
+      minimumFee: 25,
+      paymentAuthorizationState: 'revoked',
+      session: createSession({ userId: 'staff-2', branchId: 'branch-1' }),
+      termsVersion: '2026-03-v1',
+    });
+
+    expect(result.success).toBe(true);
+    expect(mocks.txUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        acceptedById: 'staff-2',
+        decisionNextStatus: 'negotiation',
+        paymentAuthorizationState: 'revoked',
+        signedAt: expect.any(Date),
+        signedByUserId: 'member-1',
+      })
+    );
+    expect(result.data?.signedAt).toBeTruthy();
+  });
 });

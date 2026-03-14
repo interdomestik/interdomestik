@@ -1,5 +1,6 @@
 export type {
   ActionResult,
+  AcceptedRecoveryPrerequisitesSnapshot,
   ClaimEscalationAgreementSnapshot,
   ClaimStatus,
   EscalationDecisionNextStatus,

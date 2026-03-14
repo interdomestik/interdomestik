@@ -1,8 +1,17 @@
 import { and, claimEscalationAgreements, claims, db, eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import {
+  buildAcceptedRecoveryPrerequisitesSnapshot,
+  buildCommercialAgreementSnapshot,
+  buildSuccessFeeCollectionSnapshot,
+} from './accepted-recovery-prerequisites';
 import { getMatterAllowanceVisibilityForUser } from './matter-allowance';
 import { buildRecoveryDecisionSnapshot } from './recovery-decision';
-import type { ClaimEscalationAgreementSnapshot, RecoveryDecisionSnapshot } from './types';
+import type {
+  AcceptedRecoveryPrerequisitesSnapshot,
+  ClaimEscalationAgreementSnapshot,
+  RecoveryDecisionSnapshot,
+} from './types';
 
 export type StaffClaimDetail = {
   claim: {
@@ -30,6 +39,7 @@ export type StaffClaimDetail = {
     id: string;
     name: string;
   };
+  acceptedRecoveryPrerequisites: AcceptedRecoveryPrerequisitesSnapshot;
   recoveryDecision: RecoveryDecisionSnapshot;
   commercialAgreement: ClaimEscalationAgreementSnapshot | null;
   successFeeCollection: import('./types').SuccessFeeCollectionSnapshot | null;
@@ -113,6 +123,42 @@ export async function getStaffClaimDetail(params: {
     tenantId,
     userId: row.memberId,
   });
+  const recoveryDecision = buildRecoveryDecisionSnapshot({
+    decidedAt: row.agreementAcceptedAt,
+    declineReasonCode: row.agreementDeclineReasonCode ?? null,
+    decisionType: row.agreementDecisionType ?? null,
+    explanation: row.agreementDecisionReason ?? null,
+  });
+  const commercialAgreement = buildCommercialAgreementSnapshot({
+    acceptedAt: row.agreementAcceptedAt,
+    claimId: row.claimId,
+    decisionNextStatus: row.agreementDecisionNextStatus ?? null,
+    decisionReason: row.agreementDecisionReason ?? null,
+    feePercentage: row.agreementFeePercentage,
+    legalActionCapPercentage: row.agreementLegalActionCapPercentage,
+    minimumFee: row.agreementMinimumFee,
+    paymentAuthorizationState: row.agreementPaymentAuthorizationState,
+    signedAt: row.agreementSignedAt,
+    termsVersion: row.agreementTermsVersion,
+  });
+  const successFeeCollection = buildSuccessFeeCollectionSnapshot({
+    claimId: row.claimId,
+    collectionMethod: row.agreementSuccessFeeCollectionMethod,
+    currencyCode: row.agreementSuccessFeeCurrencyCode,
+    deductionAllowed: row.agreementSuccessFeeDeductionAllowed,
+    feeAmount: row.agreementSuccessFeeAmount,
+    hasStoredPaymentMethod: row.agreementSuccessFeeHasStoredPaymentMethod,
+    invoiceDueAt: row.agreementSuccessFeeInvoiceDueAt,
+    paymentAuthorizationState: row.agreementPaymentAuthorizationState,
+    recoveredAmount: row.agreementSuccessFeeRecoveredAmount,
+    resolvedAt: row.agreementSuccessFeeResolvedAt,
+    subscriptionId: row.agreementSuccessFeeSubscriptionId ?? null,
+  });
+  const acceptedRecoveryPrerequisites = buildAcceptedRecoveryPrerequisitesSnapshot({
+    commercialAgreement,
+    recoveryDecisionStatus: recoveryDecision.status,
+    successFeeCollection,
+  });
 
   return {
     claim: {
@@ -139,52 +185,9 @@ export async function getStaffClaimDetail(params: {
         }
       : null,
     agent,
-    recoveryDecision: buildRecoveryDecisionSnapshot({
-      decidedAt: row.agreementAcceptedAt,
-      declineReasonCode: row.agreementDeclineReasonCode ?? null,
-      decisionType: row.agreementDecisionType ?? null,
-      explanation: row.agreementDecisionReason ?? null,
-    }),
-    commercialAgreement:
-      row.agreementFeePercentage != null &&
-      row.agreementMinimumFee != null &&
-      row.agreementLegalActionCapPercentage != null &&
-      row.agreementPaymentAuthorizationState != null &&
-      row.agreementTermsVersion != null
-        ? {
-            claimId: row.claimId,
-            decisionNextStatus: row.agreementDecisionNextStatus ?? null,
-            decisionReason: row.agreementDecisionReason ?? null,
-            feePercentage: row.agreementFeePercentage,
-            minimumFee: row.agreementMinimumFee,
-            legalActionCapPercentage: row.agreementLegalActionCapPercentage,
-            paymentAuthorizationState: row.agreementPaymentAuthorizationState,
-            signedAt: normalizeDate(row.agreementSignedAt),
-            acceptedAt: normalizeDate(row.agreementAcceptedAt),
-            termsVersion: row.agreementTermsVersion,
-          }
-        : null,
-    successFeeCollection:
-      row.agreementSuccessFeeRecoveredAmount != null &&
-      row.agreementSuccessFeeCurrencyCode != null &&
-      row.agreementSuccessFeeAmount != null &&
-      row.agreementSuccessFeeCollectionMethod != null &&
-      row.agreementSuccessFeeDeductionAllowed != null &&
-      row.agreementSuccessFeeHasStoredPaymentMethod != null &&
-      row.agreementPaymentAuthorizationState != null
-        ? {
-            claimId: row.claimId,
-            recoveredAmount: row.agreementSuccessFeeRecoveredAmount,
-            currencyCode: row.agreementSuccessFeeCurrencyCode,
-            feeAmount: row.agreementSuccessFeeAmount,
-            collectionMethod: row.agreementSuccessFeeCollectionMethod,
-            deductionAllowed: row.agreementSuccessFeeDeductionAllowed,
-            hasStoredPaymentMethod: row.agreementSuccessFeeHasStoredPaymentMethod,
-            invoiceDueAt: normalizeDate(row.agreementSuccessFeeInvoiceDueAt),
-            paymentAuthorizationState: row.agreementPaymentAuthorizationState,
-            resolvedAt: normalizeDate(row.agreementSuccessFeeResolvedAt),
-            subscriptionId: row.agreementSuccessFeeSubscriptionId ?? null,
-          }
-        : null,
+    acceptedRecoveryPrerequisites,
+    recoveryDecision,
+    commercialAgreement,
+    successFeeCollection,
   };
 }

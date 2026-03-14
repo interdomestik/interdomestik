@@ -46,6 +46,12 @@ const hoisted = vi.hoisted(() => ({
       memberLabel: null,
       memberDescription: null,
     },
+    acceptedRecoveryPrerequisites: {
+      agreementReady: false,
+      canMoveForward: false,
+      collectionPathReady: false,
+      isAcceptedRecoveryDecision: false,
+    },
     commercialAgreement: null,
     successFeeCollection: null,
   })),

@@ -67,6 +67,13 @@ export type SuccessFeeCollectionSnapshot = {
   subscriptionId: string | null;
 };
 
+export type AcceptedRecoveryPrerequisitesSnapshot = {
+  agreementReady: boolean;
+  canMoveForward: boolean;
+  collectionPathReady: boolean;
+  isAcceptedRecoveryDecision: boolean;
+};
+
 export type SaveClaimEscalationAgreementInput = {
   claimId: string;
   decisionNextStatus: EscalationDecisionNextStatus;

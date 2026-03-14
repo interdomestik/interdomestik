@@ -20,6 +20,7 @@ import { updateClaimStatusCore } from './staff-claims/update-status';
 
 export type {
   ActionResult,
+  AcceptedRecoveryPrerequisitesSnapshot,
   ClaimEscalationAgreementSnapshot,
   ClaimStatus,
   EscalationDecisionNextStatus,

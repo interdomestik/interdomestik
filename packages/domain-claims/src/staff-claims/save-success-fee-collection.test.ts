@@ -3,6 +3,41 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClaimsSession } from '../claims/types';
 import { saveSuccessFeeCollectionCore } from './save-success-fee-collection';
 
+type MockClaimRecord = {
+  currency: string;
+  id: string;
+  userId: string;
+};
+
+type MockAgreementRecord = {
+  acceptedAt: Date | null;
+  decisionNextStatus: 'negotiation' | 'court' | null;
+  decisionReason: string | null;
+  feePercentage: number | null;
+  legalActionCapPercentage: number | null;
+  minimumFee: string | null;
+  paymentAuthorizationState: string | null;
+  signedAt: Date | null;
+  termsVersion: string | null;
+};
+
+type MockSubscriptionRecord = {
+  id: string;
+  providerCustomerId: string | null;
+};
+
+const READY_ACCEPTED_AGREEMENT: MockAgreementRecord = {
+  acceptedAt: new Date('2026-03-12T09:00:00Z'),
+  decisionNextStatus: 'negotiation',
+  decisionReason: 'Member approved the accepted negotiation path.',
+  feePercentage: 15,
+  legalActionCapPercentage: 25,
+  minimumFee: '25.00',
+  paymentAuthorizationState: 'authorized',
+  signedAt: new Date('2026-03-12T09:00:00Z'),
+  termsVersion: '2026-03-v1',
+};
+
 const mocks = vi.hoisted(() => {
   const claimSelectChain = {
     from: vi.fn(),
@@ -44,7 +79,10 @@ const mocks = vi.hoisted(() => {
     claimEscalationAgreements: {
       tenantId: 'claim_escalation_agreements.tenant_id',
       claimId: 'claim_escalation_agreements.claim_id',
+      decisionNextStatus: 'claim_escalation_agreements.decision_next_status',
+      decisionReason: 'claim_escalation_agreements.decision_reason',
       feePercentage: 'claim_escalation_agreements.fee_percentage',
+      legalActionCapPercentage: 'claim_escalation_agreements.legal_action_cap_percentage',
       minimumFee: 'claim_escalation_agreements.minimum_fee',
       paymentAuthorizationState: 'claim_escalation_agreements.payment_authorization_state',
       successFeeRecoveredAmount: 'claim_escalation_agreements.success_fee_recovered_amount',
@@ -58,6 +96,9 @@ const mocks = vi.hoisted(() => {
       successFeeResolvedAt: 'claim_escalation_agreements.success_fee_resolved_at',
       successFeeResolvedById: 'claim_escalation_agreements.success_fee_resolved_by_id',
       successFeeSubscriptionId: 'claim_escalation_agreements.success_fee_subscription_id',
+      termsVersion: 'claim_escalation_agreements.terms_version',
+      signedAt: 'claim_escalation_agreements.signed_at',
+      acceptedAt: 'claim_escalation_agreements.accepted_at',
       updatedAt: 'claim_escalation_agreements.updated_at',
     },
     subscriptions: {
@@ -111,6 +152,63 @@ function createSession(options: {
   } as unknown as ClaimsSession;
 }
 
+function createAcceptedAgreement(
+  overrides: Partial<MockAgreementRecord> = {}
+): MockAgreementRecord {
+  return {
+    ...READY_ACCEPTED_AGREEMENT,
+    ...overrides,
+  };
+}
+
+function mockSaveSelects(options?: {
+  agreement?: Array<MockAgreementRecord>;
+  claim?: Array<MockClaimRecord>;
+  subscription?: Array<MockSubscriptionRecord>;
+}) {
+  mocks.txSelect
+    .mockReturnValueOnce(mocks.claimSelectChain)
+    .mockReturnValueOnce(mocks.agreementSelectChain)
+    .mockReturnValueOnce(mocks.subscriptionSelectChain);
+  mocks.claimSelectChain.limit.mockResolvedValue(
+    options?.claim ?? [{ currency: 'EUR', id: 'claim-1', userId: 'member-1' }]
+  );
+  mocks.agreementSelectChain.limit.mockResolvedValue(
+    options?.agreement ?? [createAcceptedAgreement()]
+  );
+  mocks.subscriptionSelectChain.limit.mockResolvedValue(options?.subscription ?? []);
+}
+
+async function runSaveSuccessFeeCollection(
+  overrides: Partial<Parameters<typeof saveSuccessFeeCollectionCore>[0]> = {},
+  deps?: Parameters<typeof saveSuccessFeeCollectionCore>[1]
+) {
+  return saveSuccessFeeCollectionCore(
+    {
+      claimId: 'claim-1',
+      deductionAllowed: false,
+      recoveredAmount: 1000,
+      session: createSession({ userId: 'staff-1' }),
+      ...overrides,
+    },
+    deps
+  );
+}
+
+function expectSavedCollectionResult(
+  result: Awaited<ReturnType<typeof saveSuccessFeeCollectionCore>>,
+  expectedData: Record<string, unknown>
+) {
+  expect(result).toEqual({
+    success: true,
+    data: {
+      claimId: 'claim-1',
+      currencyCode: 'EUR',
+      ...expectedData,
+    },
+  });
+}
+
 describe('saveSuccessFeeCollectionCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -138,58 +236,50 @@ describe('saveSuccessFeeCollectionCore', () => {
   });
 
   it('requires stored agreement terms before saving success-fee collection details', async () => {
-    mocks.txSelect
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { currency: 'EUR', id: 'claim-1', userId: 'member-1' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        feePercentage: null,
-        minimumFee: '25.00',
-        paymentAuthorizationState: 'authorized',
-      },
-    ]);
+    mockSaveSelects({
+      agreement: [createAcceptedAgreement({ feePercentage: null })],
+    });
 
-    const result = await saveSuccessFeeCollectionCore({
-      claimId: 'claim-1',
+    const result = await runSaveSuccessFeeCollection({
       deductionAllowed: true,
       recoveredAmount: 100,
-      session: createSession({ userId: 'staff-1' }),
     });
 
     expect(result).toEqual({
       success: false,
-      error: 'Escalation agreement not found',
+      error: 'Save the accepted escalation agreement before recording success-fee collection.',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+  });
+
+  it('rejects accepted cases whose agreement snapshot is still incomplete', async () => {
+    mockSaveSelects({
+      agreement: [
+        createAcceptedAgreement({
+          acceptedAt: new Date('2026-03-14T09:00:00.000Z'),
+          decisionReason: 'Recovery decision accepted before commercial terms were fully saved.',
+          signedAt: null,
+        }),
+      ],
+    });
+
+    const result = await runSaveSuccessFeeCollection();
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Save the accepted escalation agreement before recording success-fee collection.',
     });
     expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
 
   it('stores a deduction plan when payout deduction is legally allowed', async () => {
     const now = new Date('2026-03-12T09:00:00Z');
-    mocks.txSelect
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain)
-      .mockReturnValueOnce(mocks.subscriptionSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { currency: 'EUR', id: 'claim-1', userId: 'member-1' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        feePercentage: 15,
-        minimumFee: '25.00',
-        paymentAuthorizationState: 'authorized',
-      },
-    ]);
-    mocks.subscriptionSelectChain.limit.mockResolvedValue([]);
+    mockSaveSelects();
 
-    const result = await saveSuccessFeeCollectionCore({
-      claimId: 'claim-1',
+    const result = await runSaveSuccessFeeCollection({
       deductionAllowed: true,
       now,
       recoveredAmount: 100,
-      session: createSession({ userId: 'staff-1' }),
     });
 
     expect(mocks.txUpdate).toHaveBeenCalledWith(mocks.claimEscalationAgreements);
@@ -207,113 +297,59 @@ describe('saveSuccessFeeCollectionCore', () => {
         successFeeSubscriptionId: null,
       })
     );
-    expect(result).toEqual({
-      success: true,
-      data: {
-        claimId: 'claim-1',
-        collectionMethod: 'deduction',
-        currencyCode: 'EUR',
-        deductionAllowed: true,
-        feeAmount: '25.00',
-        hasStoredPaymentMethod: false,
-        invoiceDueAt: null,
-        paymentAuthorizationState: 'authorized',
-        recoveredAmount: '100.00',
-        resolvedAt: '2026-03-12T09:00:00.000Z',
-        subscriptionId: null,
-      },
+    expectSavedCollectionResult(result, {
+      collectionMethod: 'deduction',
+      deductionAllowed: true,
+      feeAmount: '25.00',
+      hasStoredPaymentMethod: false,
+      invoiceDueAt: null,
+      paymentAuthorizationState: 'authorized',
+      recoveredAmount: '100.00',
+      resolvedAt: '2026-03-12T09:00:00.000Z',
+      subscriptionId: null,
     });
   });
 
   it('uses the stored payment-method charge path when deduction is unavailable and a saved method exists', async () => {
     const now = new Date('2026-03-12T09:00:00Z');
-    mocks.txSelect
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain)
-      .mockReturnValueOnce(mocks.subscriptionSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { currency: 'EUR', id: 'claim-1', userId: 'member-1' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        feePercentage: 15,
-        minimumFee: '25.00',
-        paymentAuthorizationState: 'authorized',
-      },
-    ]);
-    mocks.subscriptionSelectChain.limit.mockResolvedValue([
-      { id: 'sub-1', providerCustomerId: 'cus_123' },
-    ]);
-
-    const result = await saveSuccessFeeCollectionCore({
-      claimId: 'claim-1',
-      deductionAllowed: false,
-      now,
-      recoveredAmount: 1000,
-      session: createSession({ userId: 'staff-1' }),
+    mockSaveSelects({
+      subscription: [{ id: 'sub-1', providerCustomerId: 'cus_123' }],
     });
 
-    expect(result).toEqual({
-      success: true,
-      data: {
-        claimId: 'claim-1',
-        collectionMethod: 'payment_method_charge',
-        currencyCode: 'EUR',
-        deductionAllowed: false,
-        feeAmount: '150.00',
-        hasStoredPaymentMethod: true,
-        invoiceDueAt: null,
-        paymentAuthorizationState: 'authorized',
-        recoveredAmount: '1000.00',
-        resolvedAt: '2026-03-12T09:00:00.000Z',
-        subscriptionId: 'sub-1',
-      },
+    const result = await runSaveSuccessFeeCollection({ now });
+
+    expectSavedCollectionResult(result, {
+      collectionMethod: 'payment_method_charge',
+      deductionAllowed: false,
+      feeAmount: '150.00',
+      hasStoredPaymentMethod: true,
+      invoiceDueAt: null,
+      paymentAuthorizationState: 'authorized',
+      recoveredAmount: '1000.00',
+      resolvedAt: '2026-03-12T09:00:00.000Z',
+      subscriptionId: 'sub-1',
     });
   });
 
   it('falls back to a seven-day invoice when the saved payment-method path is unavailable', async () => {
     const now = new Date('2026-03-12T09:00:00Z');
-    mocks.txSelect
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain)
-      .mockReturnValueOnce(mocks.subscriptionSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { currency: 'EUR', id: 'claim-1', userId: 'member-1' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        feePercentage: 15,
-        minimumFee: '25.00',
-        paymentAuthorizationState: 'revoked',
-      },
-    ]);
-    mocks.subscriptionSelectChain.limit.mockResolvedValue([
-      { id: 'sub-1', providerCustomerId: null },
-    ]);
-
-    const result = await saveSuccessFeeCollectionCore({
-      claimId: 'claim-1',
-      deductionAllowed: false,
-      now,
-      recoveredAmount: 1000,
-      session: createSession({ userId: 'staff-1' }),
+    mockSaveSelects({
+      agreement: [createAcceptedAgreement({ paymentAuthorizationState: 'revoked' })],
+      subscription: [{ id: 'sub-1', providerCustomerId: null }],
     });
 
-    expect(result).toEqual({
-      success: true,
-      data: {
-        claimId: 'claim-1',
-        collectionMethod: 'invoice',
-        currencyCode: 'EUR',
-        deductionAllowed: false,
-        feeAmount: '150.00',
-        hasStoredPaymentMethod: false,
-        invoiceDueAt: '2026-03-19T09:00:00.000Z',
-        paymentAuthorizationState: 'revoked',
-        recoveredAmount: '1000.00',
-        resolvedAt: '2026-03-12T09:00:00.000Z',
-        subscriptionId: null,
-      },
+    const result = await runSaveSuccessFeeCollection({ now });
+
+    expectSavedCollectionResult(result, {
+      collectionMethod: 'invoice',
+      deductionAllowed: false,
+      feeAmount: '150.00',
+      hasStoredPaymentMethod: false,
+      invoiceDueAt: '2026-03-19T09:00:00.000Z',
+      paymentAuthorizationState: 'revoked',
+      recoveredAmount: '1000.00',
+      resolvedAt: '2026-03-12T09:00:00.000Z',
+      subscriptionId: null,
     });
   });
 
@@ -321,30 +357,14 @@ describe('saveSuccessFeeCollectionCore', () => {
     const now = new Date('2026-03-12T09:00:00Z');
     const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
-    mocks.txSelect
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain)
-      .mockReturnValueOnce(mocks.subscriptionSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { currency: 'EUR', id: 'claim-1', userId: 'member-1' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        feePercentage: 15,
-        minimumFee: '25.00',
-        paymentAuthorizationState: 'authorized',
-      },
-    ]);
-    mocks.subscriptionSelectChain.limit.mockResolvedValue([]);
+    mockSaveSelects();
 
-    const result = await saveSuccessFeeCollectionCore(
+    const result = await runSaveSuccessFeeCollection(
       {
-        claimId: 'claim-1',
         deductionAllowed: true,
         now,
         recoveredAmount: 100,
         requestHeaders,
-        session: createSession({ userId: 'staff-1' }),
       },
       { logAuditEvent: mocks.logAuditEvent }
     );
