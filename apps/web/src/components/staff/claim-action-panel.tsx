@@ -90,6 +90,42 @@ function getSelectedAssigneeId(args: {
   return args.assignmentOptions[0]?.id ?? '';
 }
 
+function getAssignmentSuccessDescription(args: {
+  nextAssigneeId: string | null;
+  selectedAssignmentLabel: string | null;
+  staffId: string;
+}) {
+  if (args.nextAssigneeId === args.staffId) {
+    return 'Claim assigned to you';
+  }
+
+  if (args.selectedAssignmentLabel) {
+    return `Claim assigned to ${args.selectedAssignmentLabel}`;
+  }
+
+  return 'Claim assignment updated';
+}
+
+function getAssignmentLabel(args: {
+  assigneeId: string | null;
+  currentAssigneeLabel?: string | null;
+  isAssignedToMe: boolean;
+}) {
+  if (args.assigneeId === null) {
+    return 'Unassigned';
+  }
+
+  if (args.isAssignedToMe) {
+    return 'Assigned to you';
+  }
+
+  if (args.currentAssigneeLabel) {
+    return `Assigned to ${args.currentAssigneeLabel}`;
+  }
+
+  return 'Assigned to colleague';
+}
+
 export function ClaimActionPanel({
   claimId,
   commercialAgreement,
@@ -161,17 +197,17 @@ export function ClaimActionPanel({
     const nextAssigneeId = selectedAssigneeId || null;
     const selectedAssignmentLabel =
       assignmentOptions.find(option => option.id === nextAssigneeId)?.label ?? nextAssigneeId;
+    const successDescription = getAssignmentSuccessDescription({
+      nextAssigneeId,
+      selectedAssignmentLabel,
+      staffId,
+    });
 
     startTransition(async () => {
       const result = await assignClaim(claimId, nextAssigneeId);
       if (result.success) {
         toast.success('Success', {
-          description:
-            nextAssigneeId === staffId
-              ? 'Claim assigned to you'
-              : selectedAssignmentLabel
-                ? `Claim assigned to ${selectedAssignmentLabel}`
-                : 'Claim assignment updated',
+          description: successDescription,
         });
         router.refresh();
       } else {
@@ -274,15 +310,11 @@ export function ClaimActionPanel({
   const canSaveSuccessFeeCollection = hasCommercialAgreement && hasValidRecoveredAmount;
   const requiresMatterAllowanceGuard = RECOVERY_START_STATUSES.has(status);
   const requiresDeclineReason = status === 'rejected' && currentStatus !== 'rejected';
-
-  let assignmentLabel = 'Unassigned';
-  if (assigneeId) {
-    assignmentLabel = isAssignedToMe
-      ? 'Assigned to you'
-      : currentAssigneeLabel
-        ? `Assigned to ${currentAssigneeLabel}`
-        : 'Assigned to colleague';
-  }
+  const assignmentLabel = getAssignmentLabel({
+    assigneeId,
+    currentAssigneeLabel,
+    isAssignedToMe,
+  });
 
   return (
     <div

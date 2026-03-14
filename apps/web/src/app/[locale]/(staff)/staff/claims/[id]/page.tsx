@@ -1,12 +1,11 @@
 import { getStaffClaimDetail } from '@interdomestik/domain-claims';
-import { and, db, eq, user } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 import { auth } from '@/lib/auth';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
+import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { getLatestPublicStatusNoteCore } from './_core';
 
 interface PageProps {
@@ -14,28 +13,6 @@ interface PageProps {
     locale: string;
     id: string;
   }>;
-}
-
-async function getStaffAssignmentOptions(args: { branchId?: string | null; tenantId: string }) {
-  const scope =
-    args.branchId != null
-      ? and(eq(user.role, 'staff'), eq(user.branchId, args.branchId))
-      : eq(user.role, 'staff');
-
-  const staff = await db.query.user.findMany({
-    columns: {
-      email: true,
-      id: true,
-      name: true,
-    },
-    orderBy: (users, { asc }) => [asc(users.name), asc(users.email)],
-    where: withTenant(args.tenantId, user.tenantId, scope),
-  });
-
-  return staff.map(member => ({
-    id: member.id,
-    label: member.name || member.email || member.id,
-  }));
 }
 
 export default async function StaffClaimDetailsPage({ params }: PageProps) {

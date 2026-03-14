@@ -7,12 +7,68 @@ import type { ClaimsDeps, ClaimsSession } from '../claims/types';
 import { assignClaimSchema } from '../validators/claims';
 import type { ActionResult } from './types';
 
+type StaffUser = ClaimsSession['user'] & { branchId?: string | null };
+type StaffClaimRecord = { id: string; staffId: string | null; branchId: string | null };
+
 function resolveNextStaffId(params: { requestedStaffId?: string | null; userId: string }) {
   return params.requestedStaffId === undefined ? params.userId : params.requestedStaffId;
 }
 
 function buildAssignmentGuard(previousStaffId: string | null) {
   return previousStaffId ? eq(claims.staffId, previousStaffId) : isNull(claims.staffId);
+}
+
+function buildReadScope(args: { branchId: string | null; claimId: string; userId: string }) {
+  if (args.branchId == null) {
+    return and(
+      eq(claims.id, args.claimId),
+      or(eq(claims.staffId, args.userId), isNull(claims.staffId))
+    );
+  }
+
+  return and(eq(claims.id, args.claimId), eq(claims.branchId, args.branchId));
+}
+
+async function getScopedClaim(args: {
+  branchId: string | null;
+  claimId: string;
+  tenantId: string;
+  userId: string;
+}): Promise<StaffClaimRecord | undefined> {
+  const [existingClaim] = await db
+    .select({ id: claims.id, staffId: claims.staffId, branchId: claims.branchId })
+    .from(claims)
+    .where(withTenant(args.tenantId, claims.tenantId, buildReadScope(args)))
+    .limit(1);
+
+  return existingClaim;
+}
+
+function buildAssigneeScope(args: { branchId: string | null; staffId: string; tenantId: string }) {
+  const baseScope = and(eq(userTable.id, args.staffId), eq(userTable.role, 'staff'));
+
+  if (args.branchId == null) {
+    return withTenant(args.tenantId, userTable.tenantId, baseScope);
+  }
+
+  return withTenant(
+    args.tenantId,
+    userTable.tenantId,
+    and(baseScope, eq(userTable.branchId, args.branchId))
+  );
+}
+
+async function findScopedAssignee(args: {
+  branchId: string | null;
+  staffId: string;
+  tenantId: string;
+}) {
+  return db.query.user.findFirst({
+    where: buildAssigneeScope(args),
+    columns: {
+      id: true,
+    },
+  });
 }
 
 /** Assign a claim to an in-scope staff member, defaulting to self-assignment */
@@ -26,7 +82,6 @@ export async function assignClaimCore(
   deps: ClaimsDeps = {}
 ): Promise<ActionResult> {
   const { claimId, session, requestHeaders } = params;
-  type StaffUser = ClaimsSession['user'] & { branchId?: string | null };
 
   if (session?.user?.role !== 'staff') {
     return { success: false, error: 'Unauthorized' };
@@ -43,20 +98,16 @@ export async function assignClaimCore(
   if (!parsedAssignment.success) {
     return { success: false, error: 'Invalid staff assignment', data: undefined };
   }
-  const readScope =
-    branchId != null
-      ? and(eq(claims.id, claimId), eq(claims.branchId, branchId))
-      : and(eq(claims.id, claimId), or(eq(claims.staffId, user.id), isNull(claims.staffId)));
-  const scopedWhere = withTenant(tenantId, claims.tenantId, readScope);
 
   try {
-    const [existingClaim] = await db
-      .select({ id: claims.id, staffId: claims.staffId, branchId: claims.branchId })
-      .from(claims)
-      .where(scopedWhere)
-      .limit(1);
+    const existingClaim = await getScopedClaim({
+      branchId,
+      claimId,
+      tenantId,
+      userId: user.id,
+    });
 
-    if (!existingClaim) {
+    if (existingClaim === undefined) {
       return { success: false, error: 'Claim not found or access denied' };
     }
 
@@ -64,36 +115,25 @@ export async function assignClaimCore(
       return { success: true };
     }
 
-    if (nextStaffId) {
-      const assignee = await db.query.user.findFirst({
-        where:
-          branchId != null
-            ? withTenant(
-                tenantId,
-                userTable.tenantId,
-                and(
-                  eq(userTable.id, nextStaffId),
-                  eq(userTable.role, 'staff'),
-                  eq(userTable.branchId, branchId)
-                )
-              )
-            : withTenant(
-                tenantId,
-                userTable.tenantId,
-                and(eq(userTable.id, nextStaffId), eq(userTable.role, 'staff'))
-              ),
-        columns: {
-          id: true,
-        },
+    if (nextStaffId !== null) {
+      const assignee = await findScopedAssignee({
+        branchId,
+        staffId: nextStaffId,
+        tenantId,
       });
 
-      if (!assignee) {
+      if (assignee == null) {
         return { success: false, error: 'Staff member not found or out of scope' };
       }
     }
 
     const previousStaffId = existingClaim.staffId;
     const now = new Date();
+    const scopedWhere = withTenant(
+      tenantId,
+      claims.tenantId,
+      buildReadScope({ branchId, claimId, userId: user.id })
+    );
     const updatedClaims = await db
       .update(claims)
       .set({

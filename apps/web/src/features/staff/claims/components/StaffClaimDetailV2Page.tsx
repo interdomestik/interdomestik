@@ -4,9 +4,8 @@ import { ClaimInfoPane } from '@/components/agent/claim-info-pane';
 import { ClaimMessenger } from '@/components/shared/claim-messenger';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { ClaimTriageNotes } from '@/components/staff/claim-triage-notes';
+import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { auth } from '@/lib/auth';
-import { and, db, eq, user } from '@interdomestik/database';
-import { withTenant } from '@interdomestik/database/tenant-security';
 import {
   Card,
   CardContent,
@@ -23,28 +22,6 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 import { getStaffClaimDetailsCore } from '@/app/[locale]/(staff)/staff/claims/[id]/_core';
-
-async function getStaffAssignmentOptions(args: { branchId?: string | null; tenantId: string }) {
-  const scope =
-    args.branchId != null
-      ? and(eq(user.role, 'staff'), eq(user.branchId, args.branchId))
-      : eq(user.role, 'staff');
-
-  const staff = await db.query.user.findMany({
-    columns: {
-      email: true,
-      id: true,
-      name: true,
-    },
-    orderBy: (users, { asc }) => [asc(users.name), asc(users.email)],
-    where: withTenant(args.tenantId, user.tenantId, scope),
-  });
-
-  return staff.map(member => ({
-    id: member.id,
-    label: member.name || member.email || member.id,
-  }));
-}
 
 export async function StaffClaimDetailV2Page({ id, locale }: { id: string; locale: string }) {
   setRequestLocale(locale);
