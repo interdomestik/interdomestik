@@ -17,15 +17,18 @@ test.describe('Staff Claims Queue MVP', () => {
 
     const firstTitle = (await page.getByTestId('staff-claim-title').first().textContent())?.trim();
     expect(firstTitle).toBeTruthy();
+    if (!firstTitle) {
+      throw new Error('Expected the seeded staff queue to expose a claim title.');
+    }
 
-    await page.getByTestId('staff-claims-search-input').fill(firstTitle!);
+    await page.getByTestId('staff-claims-search-input').fill(firstTitle);
     await page.getByTestId('staff-claims-search-submit').click();
 
     await expect(page).toHaveURL(/\/staff\/claims\?search=/);
-    expect(new URL(page.url()).searchParams.get('search')).toBe(firstTitle!);
-    await expect(page.getByTestId('staff-claims-search-input')).toHaveValue(firstTitle!);
+    expect(new URL(page.url()).searchParams.get('search')).toBe(firstTitle);
+    await expect(page.getByTestId('staff-claims-search-input')).toHaveValue(firstTitle);
     await expect(page.getByTestId('staff-claims-row')).toHaveCount(1);
-    await expect(page.getByTestId('staff-claim-title')).toHaveText([firstTitle!]);
+    await expect(page.getByTestId('staff-claim-title')).toHaveText([firstTitle]);
 
     await page.getByTestId('staff-claims-view').first().click();
     await expect(page).toHaveURL(/\/staff\/claims\/[^/]+$/);

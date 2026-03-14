@@ -30,7 +30,7 @@ function normalizeDate(value: Date | string | null | undefined) {
 
 function normalizeSearch(value: string | null | undefined) {
   const normalized = value?.trim();
-  return normalized ? normalized : undefined;
+  return normalized || undefined;
 }
 
 function isActionableStatus(

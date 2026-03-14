@@ -12,10 +12,12 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+type SearchParamValue = string | string[] | undefined;
+
 const STAFF_ASSIGNMENT_FILTERS = ['all', 'mine', 'unassigned'] as const;
 type StaffAssignmentFilter = (typeof STAFF_ASSIGNMENT_FILTERS)[number];
 
-function getSingleParam(value: string | string[] | undefined) {
+function getSingleParam(value: SearchParamValue) {
   return Array.isArray(value) ? value[0] : value;
 }
 
@@ -24,7 +26,7 @@ function toLabel(value: string) {
 }
 
 function parseStaffAssignmentFilter(
-  value: string | string[] | undefined,
+  value: SearchParamValue,
   role: string | null | undefined
 ): StaffAssignmentFilter {
   const filter = getSingleParam(value);
@@ -40,16 +42,16 @@ function parseStaffAssignmentFilter(
   return 'all';
 }
 
-function parseStaffStatusFilter(value: string | string[] | undefined) {
+function parseStaffStatusFilter(value: SearchParamValue) {
   const filter = getSingleParam(value);
   return (ACTIONABLE_CLAIM_STATUSES as readonly string[]).includes(filter ?? '')
     ? (filter as (typeof ACTIONABLE_CLAIM_STATUSES)[number])
     : undefined;
 }
 
-function parseSearchTerm(value: string | string[] | undefined) {
+function parseSearchTerm(value: SearchParamValue) {
   const normalized = getSingleParam(value)?.trim();
-  return normalized ? normalized : undefined;
+  return normalized || undefined;
 }
 
 function buildStaffClaimsHref(args: {
@@ -193,7 +195,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button asChild size="sm" variant={!currentStatus ? 'default' : 'outline'}>
+          <Button asChild size="sm" variant={currentStatus ? 'outline' : 'default'}>
             <Link
               href={buildStaffClaimsHref({
                 assigned: currentAssignment,
