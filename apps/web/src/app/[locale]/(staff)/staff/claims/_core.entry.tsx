@@ -1,7 +1,8 @@
+import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
 import { auth } from '@/lib/auth';
-import { getStaffClaimsList } from '@interdomestik/domain-claims';
-import { Button } from '@interdomestik/ui';
+import { ACTIONABLE_CLAIM_STATUSES, getStaffClaimsList } from '@interdomestik/domain-claims';
+import { Button, Input } from '@interdomestik/ui';
 import { setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -11,9 +12,72 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+const STAFF_ASSIGNMENT_FILTERS = ['all', 'mine', 'unassigned'] as const;
+type StaffAssignmentFilter = (typeof STAFF_ASSIGNMENT_FILTERS)[number];
+
+function getSingleParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function toLabel(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function parseStaffAssignmentFilter(
+  value: string | string[] | undefined,
+  role: string | null | undefined
+): StaffAssignmentFilter {
+  const filter = getSingleParam(value);
+
+  if (filter === 'unassigned') {
+    return 'unassigned';
+  }
+
+  if (filter === 'mine' && role === 'staff') {
+    return 'mine';
+  }
+
+  return 'all';
+}
+
+function parseStaffStatusFilter(value: string | string[] | undefined) {
+  const filter = getSingleParam(value);
+  return (ACTIONABLE_CLAIM_STATUSES as readonly string[]).includes(filter ?? '')
+    ? (filter as (typeof ACTIONABLE_CLAIM_STATUSES)[number])
+    : undefined;
+}
+
+function parseSearchTerm(value: string | string[] | undefined) {
+  const normalized = getSingleParam(value)?.trim();
+  return normalized ? normalized : undefined;
+}
+
+function buildStaffClaimsHref(args: {
+  assigned: StaffAssignmentFilter;
+  locale: string;
+  search?: string;
+  status?: (typeof ACTIONABLE_CLAIM_STATUSES)[number];
+}) {
+  const params = new URLSearchParams();
+
+  if (args.assigned !== 'all') {
+    params.set('assigned', args.assigned);
+  }
+
+  if (args.status) {
+    params.set('status', args.status);
+  }
+
+  if (args.search) {
+    params.set('search', args.search);
+  }
+
+  const query = params.toString();
+  return query ? `/${args.locale}/staff/claims?${query}` : `/${args.locale}/staff/claims`;
+}
+
 export default async function StaffClaimsPage({ params, searchParams }: Props) {
   const { locale } = await params;
-  await searchParams;
   setRequestLocale(locale);
 
   const session = await auth.api.getSession({ headers: await headers() });
@@ -23,11 +87,36 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
     return notFound();
   }
 
+  const resolvedSearchParams = await searchParams;
+  const currentStatus = parseStaffStatusFilter(resolvedSearchParams.status);
+  const currentSearch = parseSearchTerm(resolvedSearchParams.search);
+  const currentAssignment = parseStaffAssignmentFilter(
+    resolvedSearchParams.assigned,
+    session.user.role
+  );
+
   const claims = await getStaffClaimsList({
+    assignment: currentAssignment,
+    branchId: session.user.branchId ?? null,
     staffId: session.user.id,
-    tenantId: session.user.tenantId,
     limit: 20,
+    search: currentSearch,
+    status: currentStatus,
+    tenantId: session.user.tenantId,
   });
+
+  const assignmentOptions =
+    session.user.role === 'staff'
+      ? [
+          { value: 'all' as const, label: 'My queue + unassigned' },
+          { value: 'mine' as const, label: 'Assigned to me' },
+          { value: 'unassigned' as const, label: 'Unassigned' },
+        ]
+      : [
+          { value: 'all' as const, label: 'All branch claims' },
+          { value: 'unassigned' as const, label: 'Unassigned' },
+        ];
+  const hasActiveFilters = !!currentSearch || !!currentStatus || currentAssignment !== 'all';
 
   return (
     <div className="space-y-6" data-testid="staff-page-ready">
@@ -39,9 +128,107 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
         <p className="text-muted-foreground">What needs action today.</p>
       </div>
 
+      <section
+        className="rounded-lg border bg-white p-4 shadow-sm"
+        data-testid="staff-claims-filters"
+      >
+        <form
+          action={`/${locale}/staff/claims`}
+          className="flex flex-col gap-3 md:flex-row md:items-center"
+        >
+          {currentAssignment !== 'all' && (
+            <input type="hidden" name="assigned" value={currentAssignment} />
+          )}
+          {currentStatus && <input type="hidden" name="status" value={currentStatus} />}
+          <Input
+            name="search"
+            defaultValue={currentSearch}
+            placeholder="Search claim, member, company, or number"
+            data-testid="staff-claims-search-input"
+          />
+          <div className="flex items-center gap-2">
+            <Button type="submit" data-testid="staff-claims-search-submit">
+              Search
+            </Button>
+            {currentSearch && (
+              <Button asChild type="button" variant="ghost">
+                <Link
+                  href={buildStaffClaimsHref({
+                    assigned: currentAssignment,
+                    locale,
+                    status: currentStatus,
+                  })}
+                >
+                  Clear
+                </Link>
+              </Button>
+            )}
+          </div>
+        </form>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {assignmentOptions.map(option => {
+            const isActive = currentAssignment === option.value;
+            return (
+              <Button
+                asChild
+                key={option.value}
+                size="sm"
+                variant={isActive ? 'default' : 'outline'}
+              >
+                <Link
+                  href={buildStaffClaimsHref({
+                    assigned: option.value,
+                    locale,
+                    search: currentSearch,
+                    status: currentStatus,
+                  })}
+                  data-testid={`staff-claims-assigned-filter-${option.value}`}
+                >
+                  {option.label}
+                </Link>
+              </Button>
+            );
+          })}
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button asChild size="sm" variant={!currentStatus ? 'default' : 'outline'}>
+            <Link
+              href={buildStaffClaimsHref({
+                assigned: currentAssignment,
+                locale,
+                search: currentSearch,
+              })}
+              data-testid="staff-claims-status-filter-all"
+            >
+              All actionable
+            </Link>
+          </Button>
+          {ACTIONABLE_CLAIM_STATUSES.map(status => {
+            const isActive = currentStatus === status;
+            return (
+              <Button asChild key={status} size="sm" variant={isActive ? 'default' : 'outline'}>
+                <Link
+                  href={buildStaffClaimsHref({
+                    assigned: currentAssignment,
+                    locale,
+                    search: currentSearch,
+                    status,
+                  })}
+                  data-testid={`staff-claims-status-filter-${status}`}
+                >
+                  {toLabel(status)}
+                </Link>
+              </Button>
+            );
+          })}
+        </div>
+      </section>
+
       <div className="rounded-lg border bg-white shadow-sm" data-testid="staff-claims-queue">
         <div className="grid grid-cols-1 gap-4 border-b px-4 py-3 text-sm font-medium text-muted-foreground md:grid-cols-5">
-          <span>Claim #</span>
+          <span>Claim</span>
           <span>Member</span>
           <span>Status + stage</span>
           <span>Updated</span>
@@ -54,7 +241,17 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
               className="grid grid-cols-1 items-center gap-4 px-4 py-3 text-sm md:grid-cols-5"
               data-testid="staff-claims-row"
             >
-              <div className="font-medium text-slate-900">{claim.claimNumber || claim.id}</div>
+              <div>
+                <div className="font-medium text-slate-900" data-testid="staff-claim-title">
+                  {claim.title || claim.claimNumber || claim.id}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {claim.claimNumber || 'No claim number'}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {claim.companyName || 'No company provided'}
+                </div>
+              </div>
               <div>
                 <div className="font-medium text-slate-900">{claim.memberName || '-'}</div>
                 <div className="text-xs text-muted-foreground">
@@ -62,7 +259,8 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
                 </div>
               </div>
               <div>
-                {claim.status || 'unknown'} / {claim.stageLabel}
+                <ClaimStatusBadge status={claim.status} />
+                <div className="mt-1 text-xs text-muted-foreground">{claim.stageLabel}</div>
               </div>
               <div>
                 {claim.updatedAt ? new Date(claim.updatedAt).toLocaleDateString(locale) : '-'}
@@ -81,7 +279,7 @@ export default async function StaffClaimsPage({ params, searchParams }: Props) {
               className="px-4 py-10 text-center text-muted-foreground"
               data-testid="staff-claims-empty"
             >
-              No claims in queue
+              {hasActiveFilters ? 'No claims match the current filters' : 'No claims in queue'}
             </div>
           )}
         </div>
