@@ -20,6 +20,11 @@
         "last_updated": "Përditësuar më {date}",
         "next_step_title": "Çfarë ndodh më pas?",
         "no_pii_notice": "Kjo është një pamje e kufizuar. Për detaje të plota, ju lutemi kyçuni."
+      },
+      "sla": {
+        "title": "Statusi i SLA-së",
+        "running": "Afati i përgjigjes po ecën.",
+        "incomplete": "Po presim informacionin tuaj para se të nisë SLA-ja."
       }
     },
     "status": {

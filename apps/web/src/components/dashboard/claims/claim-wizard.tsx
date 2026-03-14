@@ -2,6 +2,7 @@
 
 import { submitClaim } from '@/actions/claims.core';
 import { useRouter } from '@/i18n/routing';
+import { createClientRequestId } from '@/lib/client-request-id';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Badge,
@@ -90,7 +91,7 @@ export function ClaimWizard() {
 
   const onSubmit = form.handleSubmit((data: ClaimFormValues) => {
     startTransition(async () => {
-      const submitKey = submitKeyRef.current ?? crypto.randomUUID();
+      const submitKey = submitKeyRef.current ?? createClientRequestId();
       submitKeyRef.current = submitKey;
 
       try {

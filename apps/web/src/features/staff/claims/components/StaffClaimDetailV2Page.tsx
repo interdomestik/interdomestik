@@ -46,7 +46,7 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
   ]);
   if (result.kind !== 'ok') return notFound();
 
-  const { claim, documents, stageHistory } = result;
+  const { claim, documents, stageHistory, slaPhase } = result;
   const currentAssigneeLabel =
     assignmentOptions.find(option => option.id === claim.staffId)?.label ?? null;
 
@@ -167,7 +167,7 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
             assigneeId={claim.staffId || null}
             assignmentOptions={assignmentOptions}
           />
-          <ClaimInfoPane claim={claim} />
+          <ClaimInfoPane claim={claim} slaPhase={slaPhase} />
         </div>
       </div>
     </div>

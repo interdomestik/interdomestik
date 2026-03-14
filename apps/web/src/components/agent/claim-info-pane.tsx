@@ -1,6 +1,7 @@
 'use client';
 
 import { AgentStatusSelect } from '@/components/agent/agent-status-select';
+import type { ClaimSlaPhase } from '@/features/claims/policy';
 import {
   Avatar,
   AvatarFallback,
@@ -32,9 +33,10 @@ interface ClaimInfoPaneProps {
     } | null;
   };
   readOnly?: boolean;
+  slaPhase?: ClaimSlaPhase;
 }
 
-export function ClaimInfoPane({ claim, readOnly }: ClaimInfoPaneProps) {
+export function ClaimInfoPane({ claim, readOnly, slaPhase }: Readonly<ClaimInfoPaneProps>) {
   const t = useTranslations('agent-claims.claims');
 
   return (
@@ -99,6 +101,13 @@ export function ClaimInfoPane({ claim, readOnly }: ClaimInfoPaneProps) {
             disabled={readOnly}
           />
         </div>
+
+        {slaPhase && slaPhase !== 'not_applicable' ? (
+          <div>
+            <p className="text-sm font-medium mb-2">{t('details.sla_status_label')}</p>
+            <p className="text-sm text-muted-foreground">{t(`details.sla_phase.${slaPhase}`)}</p>
+          </div>
+        ) : null}
 
         {/* Description */}
         <div>

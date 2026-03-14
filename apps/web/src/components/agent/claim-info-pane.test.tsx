@@ -33,6 +33,10 @@ vi.mock('next-intl', () => ({
       'details.amount': 'Amount',
       'details.incident_date': 'Incident Date',
       'details.status_label': 'Status',
+      'details.sla_status_label': 'SLA Status',
+      'details.sla_phase.running': 'Running',
+      'details.sla_phase.incomplete': 'Waiting for member information',
+      'details.sla_phase.not_applicable': 'Not active',
       'details.description': 'Description',
     };
     return translations[key] || key;
@@ -132,5 +136,11 @@ describe('ClaimInfoPane', () => {
     const claimWithoutUser = { ...mockClaim, user: null };
     render(<ClaimInfoPane claim={claimWithoutUser} />);
     expect(screen.getByText('Unknown')).toBeInTheDocument();
+  });
+
+  it('displays the staff-facing SLA phase when provided', () => {
+    render(<ClaimInfoPane claim={mockClaim} slaPhase="incomplete" />);
+    expect(screen.getByText('SLA Status')).toBeInTheDocument();
+    expect(screen.getByText('Waiting for member information')).toBeInTheDocument();
   });
 });

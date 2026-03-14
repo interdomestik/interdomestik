@@ -33,6 +33,12 @@
         "title_label": "Naslov",
         "category_label": "Kategorija",
         "status_label": "Stanje",
+        "sla_status_label": "SLA status",
+        "sla_phase": {
+          "running": "U toku",
+          "incomplete": "Čeka se informacija od člana",
+          "not_applicable": "Nije aktivno"
+        },
         "evidence": "Dokazni fajlovi",
         "noEvidence": "Nema otpremljenih dokumenata.",
         "notes": "Interne beleške",

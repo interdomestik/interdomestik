@@ -34,6 +34,12 @@
         "title_label": "Title",
         "category_label": "Category",
         "status_label": "Status",
+        "sla_status_label": "SLA Status",
+        "sla_phase": {
+          "running": "Running",
+          "incomplete": "Waiting for member information",
+          "not_applicable": "Not active"
+        },
         "evidence": "Evidence Files",
         "noEvidence": "No documents uploaded.",
         "notes": "Internal Notes",

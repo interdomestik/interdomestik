@@ -20,6 +20,11 @@
         "last_updated": "Last updated on {date}",
         "next_step_title": "What happens next?",
         "no_pii_notice": "This is a secure, limited view. For full details, please log in."
+      },
+      "sla": {
+        "title": "SLA Status",
+        "running": "Response timer is running.",
+        "incomplete": "Waiting for your information before the SLA starts."
       }
     },
     "status": {

@@ -162,7 +162,7 @@ test.describe.serial('@smoke Production Smoke Test Plan', () => {
       }
 
       // 5. Verify Redirect/Success
-      await expect(page).toHaveURL(/\/member\/claims/, { timeout: 30000 });
+      await expect(page).toHaveURL(/\/member\/claims(?:\?.*)?$/, { timeout: 30000 });
       await expect(page.getByText(CLAIM_TITLE)).toBeVisible({ timeout: 10000 });
     });
   });

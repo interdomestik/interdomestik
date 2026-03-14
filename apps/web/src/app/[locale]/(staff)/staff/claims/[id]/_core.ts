@@ -1,4 +1,6 @@
+import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { claimDocuments, claimStageHistory, claims, db, eq, user } from '@interdomestik/database';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 import { and, desc, isNotNull } from 'drizzle-orm';
 
 export type StaffClaimDocument = {
@@ -23,6 +25,7 @@ export type StaffClaimStageHistoryEntry = {
 export type StaffClaimDetailsOk = {
   kind: 'ok';
   claim: ClaimWithUser;
+  slaPhase: ReturnType<typeof deriveClaimSlaPhase>;
   documents: StaffClaimDocument[];
   stageHistory: StaffClaimStageHistoryEntry[];
 };
@@ -46,6 +49,8 @@ export async function getStaffClaimDetailsCore(args: {
   });
 
   if (!claim) return { kind: 'not_found' };
+
+  const status = (claim.status || 'draft') as ClaimStatus;
 
   const [documents, stageHistory] = await Promise.all([
     db
@@ -85,6 +90,7 @@ export async function getStaffClaimDetailsCore(args: {
   return {
     kind: 'ok',
     claim,
+    slaPhase: deriveClaimSlaPhase(status),
     documents: documents.map(doc => ({
       id: doc.id,
       fileName: doc.name,

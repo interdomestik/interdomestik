@@ -10,6 +10,16 @@ vi.mock('next-intl', () => ({
         return `claims-tracking.status.${key}`;
       };
     }
+    if (namespace === 'claims-tracking.tracking.sla') {
+      return (key: string) => {
+        const translations: Record<string, string> = {
+          title: 'SLA Status',
+          running: 'Response timer is running.',
+          incomplete: 'Waiting for your information before the SLA starts.',
+        };
+        return translations[key] || `claims-tracking.tracking.sla.${key}`;
+      };
+    }
     // Default: echo for stability.
     return (key: string) => (namespace ? `${namespace}.${key}` : key);
   },
@@ -24,6 +34,7 @@ describe('MemberClaimDetailOpsPage', () => {
           id: 'claim-1',
           title: 'Test Claim',
           status: 'evaluation',
+          slaPhase: 'running',
           statusLabelKey: 'claims-tracking.status.evaluation',
           createdAt: now,
           updatedAt: null,
@@ -49,5 +60,33 @@ describe('MemberClaimDetailOpsPage', () => {
 
     // If the old bug regresses, we'd render "claims.claims-tracking.status.evaluation".
     expect(screen.getByText('Evaluation')).toBeInTheDocument();
+  });
+
+  it('shows the member-facing SLA phase when the claim is waiting on member information', () => {
+    const now = new Date();
+    render(
+      <MemberClaimDetailOpsPage
+        claim={{
+          id: 'claim-2',
+          title: 'Verification Claim',
+          status: 'verification',
+          slaPhase: 'incomplete',
+          statusLabelKey: 'claims-tracking.status.verification',
+          createdAt: now,
+          updatedAt: null,
+          description: 'Need more documents',
+          amount: '0',
+          currency: 'EUR',
+          canShare: false,
+          documents: [],
+          timeline: [],
+        }}
+      />
+    );
+
+    expect(screen.getByText('SLA Status')).toBeInTheDocument();
+    expect(
+      screen.getByText('Waiting for your information before the SLA starts.')
+    ).toBeInTheDocument();
   });
 });

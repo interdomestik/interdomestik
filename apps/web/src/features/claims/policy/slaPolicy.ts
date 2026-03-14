@@ -13,6 +13,7 @@ import type { ClaimStatus } from '@interdomestik/database/constants';
 // ============================================================================
 
 export type WaitingOn = 'member' | 'staff' | 'system' | null;
+export type ClaimSlaPhase = 'not_applicable' | 'incomplete' | 'running';
 
 export interface RiskFlags {
   isStuck: boolean;
@@ -99,6 +100,18 @@ export const STATUS_TO_WAITING_ON: Record<ClaimStatus, WaitingOn> = {
   resolved: null,
   rejected: null,
 };
+
+/**
+ * Derive the presentation SLA phase from existing status policy.
+ * This intentionally does not change claim workflow state.
+ */
+export function deriveClaimSlaPhase(status: ClaimStatus): ClaimSlaPhase {
+  if (STAGE_THRESHOLDS[status].slaThreshold <= 0) {
+    return 'not_applicable';
+  }
+
+  return STATUS_TO_WAITING_ON[status] === 'member' ? 'incomplete' : 'running';
+}
 
 // ============================================================================
 // RISK COMPUTATION
