@@ -71,6 +71,7 @@ export async function getMemberClaimDetail(
         .where(
           and(
             eq(claimStageHistory.claimId, claimId),
+            eq(claimStageHistory.tenantId, tenantId),
             eq(claimStageHistory.isPublic, true) // Only public events for member tracking
           )
         )

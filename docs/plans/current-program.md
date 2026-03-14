@@ -201,6 +201,8 @@ These documents can recommend or constrain work, but they do not define the live
 - `S03` is now complete as of 2026-03-14. Claim submission now persists the initial public `submitted` stage-history event, member claim detail keeps a public tracker even when legacy public history rows are absent, and staff-published claim status changes revalidate the canonical member tracker routes.
 - `S04` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the next committed `P4` queue item after `S03`.
 - `S04` is now complete as of 2026-03-14. Staff and member claim detail surfaces now distinguish SLA states that are waiting on missing member information from SLA states that are actively running on the canonical claim-detail paths.
+- `S05` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as a security-coupled isolation slice ahead of the remaining `P4` queue.
+- `S05` implementation landed on 2026-03-14. Non-staff claim-message reads now hard-filter internal notes, member claim-tracking timeline reads stay tenant-scoped and public-only, and a dedicated gate-path negative E2E spec now inserts a staff-only history note and proves that the canonical member claim detail never renders it. That deterministic browser proof now passes in both `gate-ks-sq` and `gate-mk-mk`.
 
 ## Historical Foundation, Not Current Sequencing
 
