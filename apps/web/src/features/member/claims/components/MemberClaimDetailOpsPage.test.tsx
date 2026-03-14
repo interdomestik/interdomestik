@@ -181,4 +181,24 @@ describe('MemberClaimDetailOpsPage', () => {
       })
     );
   });
+
+  it('shows a member-safe recovery decision summary when staff accept the matter', () => {
+    renderPage({
+      id: 'claim-5',
+      title: 'Accepted Claim',
+      status: 'evaluation',
+      description: 'Waiting for staff-led recovery to start',
+      amount: '550',
+      ...({
+        recoveryDecision: {
+          status: 'accepted',
+          title: 'Accepted for staff-led recovery',
+          description: 'We accepted this matter for staff-led recovery.',
+        },
+      } as unknown as Partial<TestClaim>),
+    });
+
+    expect(screen.getByText('Accepted for staff-led recovery')).toBeInTheDocument();
+    expect(screen.getByText('We accepted this matter for staff-led recovery.')).toBeInTheDocument();
+  });
 });

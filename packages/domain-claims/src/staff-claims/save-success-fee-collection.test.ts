@@ -137,6 +137,35 @@ describe('saveSuccessFeeCollectionCore', () => {
     });
   });
 
+  it('requires stored agreement terms before saving success-fee collection details', async () => {
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { currency: 'EUR', id: 'claim-1', userId: 'member-1' },
+    ]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([
+      {
+        feePercentage: null,
+        minimumFee: '25.00',
+        paymentAuthorizationState: 'authorized',
+      },
+    ]);
+
+    const result = await saveSuccessFeeCollectionCore({
+      claimId: 'claim-1',
+      deductionAllowed: true,
+      recoveredAmount: 100,
+      session: createSession({ userId: 'staff-1' }),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Escalation agreement not found',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
+  });
+
   it('stores a deduction plan when payout deduction is legally allowed', async () => {
     const now = new Date('2026-03-12T09:00:00Z');
     mocks.txSelect

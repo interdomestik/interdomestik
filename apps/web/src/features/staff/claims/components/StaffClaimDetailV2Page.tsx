@@ -6,6 +6,7 @@ import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { ClaimTriageNotes } from '@/components/staff/claim-triage-notes';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { auth } from '@/lib/auth';
+import { getStaffClaimDetail } from '@interdomestik/domain-claims';
 import {
   Card,
   CardContent,
@@ -37,14 +38,19 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
     return notFound();
   }
 
-  const [result, assignmentOptions] = await Promise.all([
+  const [result, commercialDetail, assignmentOptions] = await Promise.all([
     getStaffClaimDetailsCore({ claimId: id, tenantId: session.user.tenantId }),
+    getStaffClaimDetail({
+      claimId: id,
+      staffId: session.user.id,
+      tenantId: session.user.tenantId,
+    }),
     getStaffAssignmentOptions({
       branchId: session.user.branchId ?? null,
       tenantId: session.user.tenantId,
     }),
   ]);
-  if (result.kind !== 'ok') return notFound();
+  if (result.kind !== 'ok' || !commercialDetail) return notFound();
 
   const { claim, documents, stageHistory, slaPhase } = result;
   const currentAssigneeLabel =
@@ -168,9 +174,10 @@ export async function StaffClaimDetailV2Page({ id, locale }: { id: string; local
         <div className="lg:col-span-4 space-y-6">
           <ClaimActionPanel
             claimId={claim.id}
+            recoveryDecision={commercialDetail.recoveryDecision}
             currentAssigneeLabel={currentAssigneeLabel}
-            commercialAgreement={null}
-            successFeeCollection={null}
+            successFeeCollection={commercialDetail.successFeeCollection}
+            commercialAgreement={commercialDetail.commercialAgreement}
             currentStatus={claim.status || 'draft'}
             staffId={session.user.id}
             assigneeId={claim.staffId || null}

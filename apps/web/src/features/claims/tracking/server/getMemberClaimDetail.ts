@@ -1,9 +1,18 @@
 import { ensureClaimsAccess } from '@/server/domains/claims/guards';
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
-import { getMatterAllowanceVisibilityForUser } from '@interdomestik/domain-claims';
+import {
+  getMatterAllowanceVisibilityForUser,
+  buildRecoveryDecisionSnapshot,
+  toMemberSafeRecoveryDecision,
+} from '@interdomestik/domain-claims';
 import { db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
-import { claimDocuments, claims, claimStageHistory } from '@interdomestik/database/schema';
+import {
+  claimDocuments,
+  claimEscalationAgreements,
+  claims,
+  claimStageHistory,
+} from '@interdomestik/database/schema';
 import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq } from 'drizzle-orm';
 import 'server-only';
@@ -78,7 +87,27 @@ export async function getMemberClaimDetail(
         )
         .orderBy(desc(claimStageHistory.createdAt));
 
-      const [claim, timelineRows] = await Promise.all([claimQuery, timelineQuery]);
+      const recoveryDecisionQuery = db
+        .select({
+          acceptedAt: claimEscalationAgreements.acceptedAt,
+          decisionReason: claimEscalationAgreements.decisionReason,
+          decisionType: claimEscalationAgreements.decisionType,
+          declineReasonCode: claimEscalationAgreements.declineReasonCode,
+        })
+        .from(claimEscalationAgreements)
+        .where(
+          and(
+            eq(claimEscalationAgreements.claimId, claimId),
+            eq(claimEscalationAgreements.tenantId, tenantId)
+          )
+        )
+        .limit(1);
+
+      const [claim, timelineRows, recoveryDecisionRows] = await Promise.all([
+        claimQuery,
+        timelineQuery,
+        recoveryDecisionQuery,
+      ]);
 
       if (!claim) {
         return null;
@@ -133,6 +162,15 @@ export async function getMemberClaimDetail(
         fileSize: doc.fileSize,
       }));
 
+      const recoveryDecision = toMemberSafeRecoveryDecision(
+        buildRecoveryDecisionSnapshot({
+          decidedAt: recoveryDecisionRows[0]?.acceptedAt,
+          declineReasonCode: recoveryDecisionRows[0]?.declineReasonCode ?? null,
+          decisionType: recoveryDecisionRows[0]?.decisionType ?? null,
+          explanation: recoveryDecisionRows[0]?.decisionReason ?? null,
+        })
+      );
+
       const dto: ClaimTrackingDetailDto = {
         id: claim.id,
         title: claim.title,
@@ -148,6 +186,7 @@ export async function getMemberClaimDetail(
         timeline,
         canShare: true, // TODO: Logic for enabling share button
         matterAllowance,
+        recoveryDecision,
       };
 
       return dto;

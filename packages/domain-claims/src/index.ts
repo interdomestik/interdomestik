@@ -17,8 +17,15 @@ export { assignClaimCore as assignStaffClaimCore } from './staff-claims/assign';
 export { getStaffClaimsList } from './staff-claims/get-staff-claims-list';
 export { getStaffClaimDetail } from './staff-claims/get-staff-claim-detail';
 export {
+  buildRecoveryDecisionSnapshot,
+  getRecoveryDeclineMemberDescription,
+  getRecoveryDeclineReasonDetails,
+  toMemberSafeRecoveryDecision,
+} from './staff-claims/recovery-decision';
+export {
   getMatterAllowanceVisibilityForUser,
   type MatterAllowanceVisibility,
 } from './staff-claims/matter-allowance';
+export { saveRecoveryDecisionCore as saveStaffRecoveryDecisionCore } from './staff-claims/save-recovery-decision';
 export { saveClaimEscalationAgreementCore as saveStaffClaimEscalationAgreementCore } from './staff-claims/save-escalation-agreement';
 export { updateClaimStatusCore as updateStaffClaimStatusCore } from './staff-claims/update-status';

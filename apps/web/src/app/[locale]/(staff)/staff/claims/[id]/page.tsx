@@ -206,6 +206,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
         >
           <ClaimActionPanel
             claimId={detail.claim.id}
+            recoveryDecision={detail.recoveryDecision}
             commercialAgreement={detail.commercialAgreement}
             successFeeCollection={detail.successFeeCollection}
             currentStatus={detail.claim.status || 'draft'}

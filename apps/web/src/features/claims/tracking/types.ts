@@ -9,6 +9,12 @@ export interface ClaimMatterAllowanceDto {
   windowEnd: Date;
 }
 
+export interface ClaimRecoveryDecisionDto {
+  status: 'accepted' | 'declined';
+  title: string;
+  description: string | null;
+}
+
 export interface ClaimTrackingDetailDto {
   id: string;
   publicId?: string; // For public link if exists
@@ -29,6 +35,7 @@ export interface ClaimTrackingDetailDto {
   // Context
   canShare: boolean; // If allowed to generate public link
   matterAllowance?: ClaimMatterAllowanceDto | null;
+  recoveryDecision?: ClaimRecoveryDecisionDto | null;
 }
 
 export interface ClaimTrackingDocument {

@@ -126,7 +126,11 @@ export async function saveSuccessFeeCollectionCore(
         )
         .limit(1);
 
-      if (!agreement?.paymentAuthorizationState || !agreement.minimumFee) {
+      const feePercentage = agreement?.feePercentage;
+      const minimumFee = agreement?.minimumFee;
+      const paymentAuthorizationState = agreement?.paymentAuthorizationState;
+
+      if (!paymentAuthorizationState || minimumFee == null || feePercentage == null) {
         return { success: false, error: 'Escalation agreement not found' };
       }
 
@@ -142,8 +146,8 @@ export async function saveSuccessFeeCollectionCore(
         .limit(1);
 
       const feeQuote = calculateSuccessFeeAmount({
-        minimumFee: Number(agreement.minimumFee),
-        ratePercentage: agreement.feePercentage,
+        minimumFee: Number(minimumFee),
+        ratePercentage: feePercentage,
         recoveryAmount: parsed.data.recoveredAmount,
       });
       const hasStoredPaymentMethod = Boolean(subscription?.providerCustomerId?.trim());
@@ -151,7 +155,7 @@ export async function saveSuccessFeeCollectionCore(
         deductionAllowed: parsed.data.deductionAllowed,
         hasStoredPaymentMethod,
         now,
-        paymentAuthorizationState: agreement.paymentAuthorizationState as PaymentAuthorizationState,
+        paymentAuthorizationState,
       });
       const recoveredAmount = feeQuote.recoveryAmount.toFixed(2);
       const feeAmount = feeQuote.feeAmount.toFixed(2);
@@ -194,8 +198,7 @@ export async function saveSuccessFeeCollectionCore(
           feeAmount,
           hasStoredPaymentMethod,
           invoiceDueAt,
-          paymentAuthorizationState:
-            agreement.paymentAuthorizationState as PaymentAuthorizationState,
+          paymentAuthorizationState: paymentAuthorizationState,
           recoveredAmount,
           resolvedAt: now,
           subscriptionId,
