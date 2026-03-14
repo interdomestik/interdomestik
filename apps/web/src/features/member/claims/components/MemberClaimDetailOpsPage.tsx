@@ -54,7 +54,10 @@ interface MemberClaimDetailOpsPageProps {
   };
 }
 
-export function MemberClaimDetailOpsPage({ claim, currentUser }: MemberClaimDetailOpsPageProps) {
+export function MemberClaimDetailOpsPage({
+  claim,
+  currentUser,
+}: Readonly<MemberClaimDetailOpsPageProps>) {
   const t = useTranslations('claims');
   const tTrackingStatus = useTranslations('claims-tracking.status');
   const tSla = useTranslations('claims-tracking.tracking.sla');
