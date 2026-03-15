@@ -1,3 +1,5 @@
+import { MAX_MEMBER_IMPORT_ROWS } from '@/lib/actions/agent/schemas';
+
 export type ParsedMemberImportRow = {
   fullName: string;
   email: string;
@@ -20,7 +22,36 @@ function normalizeHeader(header: string) {
 }
 
 function splitCsvLine(line: string) {
-  return line.split(',').map(value => value.trim());
+  const values: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+
+    if (char === '"') {
+      const nextChar = line[index + 1];
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        index += 1;
+        continue;
+      }
+
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      values.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current.trim());
+  return values;
 }
 
 export function parseMemberImportCsv(csv: string): ParsedMemberImportCsv {
@@ -35,6 +66,13 @@ export function parseMemberImportCsv(csv: string): ParsedMemberImportCsv {
   if (missingHeaders.length > 0) {
     return {
       headerErrors: [`Missing required columns: ${missingHeaders.join(', ')}`],
+      rows: [],
+    };
+  }
+
+  if (rowLines.length > MAX_MEMBER_IMPORT_ROWS) {
+    return {
+      headerErrors: [`Too many rows: maximum ${MAX_MEMBER_IMPORT_ROWS} rows per import`],
       rows: [],
     };
   }

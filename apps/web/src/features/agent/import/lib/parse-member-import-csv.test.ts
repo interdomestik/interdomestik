@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MAX_MEMBER_IMPORT_ROWS } from '@/lib/actions/agent/schemas';
 import { parseMemberImportCsv } from './parse-member-import-csv';
 
 describe('parseMemberImportCsv', () => {
@@ -48,6 +49,41 @@ describe('parseMemberImportCsv', () => {
 
     expect(parseMemberImportCsv(csv)).toEqual({
       headerErrors: ['Missing required columns: email, password'],
+      rows: [],
+    });
+  });
+
+  it('keeps commas inside quoted CSV fields', () => {
+    const csv = [
+      'fullName,email,phone,password,planId',
+      '"Doe, Jane",jane@example.com,+38344111222,Secret123!,family',
+    ].join('\n');
+
+    expect(parseMemberImportCsv(csv)).toEqual({
+      headerErrors: [],
+      rows: [
+        {
+          fullName: 'Doe, Jane',
+          email: 'jane@example.com',
+          phone: '+38344111222',
+          password: 'Secret123!',
+          planId: 'family',
+          isValid: true,
+          error: undefined,
+        },
+      ],
+    });
+  });
+
+  it('rejects CSV files that exceed the maximum batch size', () => {
+    const row = 'Jane Doe,jane@example.com,+38344111222,Secret123!,standard';
+    const csv = [
+      'fullName,email,phone,password,planId',
+      ...Array(MAX_MEMBER_IMPORT_ROWS + 1).fill(row),
+    ].join('\n');
+
+    expect(parseMemberImportCsv(csv)).toEqual({
+      headerErrors: [`Too many rows: maximum ${MAX_MEMBER_IMPORT_ROWS} rows per import`],
       rows: [],
     });
   });

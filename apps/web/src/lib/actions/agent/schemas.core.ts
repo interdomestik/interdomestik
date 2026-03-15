@@ -1,6 +1,8 @@
 import { LEAD_STAGES, type LeadStage } from '@interdomestik/database/constants';
 import { z } from 'zod';
 
+export const MAX_MEMBER_IMPORT_ROWS = 200;
+
 export function isLeadStage(value: unknown): value is LeadStage {
   return LEAD_STAGES.includes(value as LeadStage);
 }
@@ -34,7 +36,7 @@ export const importMemberRowSchema = z.object({
 });
 
 export const importMembersSchema = z.object({
-  rows: z.array(importMemberRowSchema),
+  rows: z.array(importMemberRowSchema).max(MAX_MEMBER_IMPORT_ROWS),
 });
 
 export type ImportMemberRowInput = z.infer<typeof importMemberRowSchema>;

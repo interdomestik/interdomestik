@@ -233,5 +233,36 @@ describe('agent actions', () => {
         results: [{ index: 0, email: 'bulk@example.test', fullName: 'Bulk User', ok: true }],
       });
     });
+
+    it('rejects oversized batches before the import core is called', async () => {
+      const actions = await import('./agent');
+      const { importMembersCore } = await import('./agent/import-members.core');
+      const importMembers = (actions as Record<string, unknown>).importMembers as (
+        prevState: unknown,
+        formData: FormData
+      ) => Promise<unknown>;
+
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', name: 'Agent', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
+      });
+
+      const rows = Array.from({ length: 201 }, (_, index) => ({
+        fullName: `Bulk User ${index}`,
+        email: `bulk-${index}@example.test`,
+        phone: `+38344111${String(index).padStart(3, '0')}`,
+        password: 'Secret123!',
+        planId: 'standard',
+      }));
+
+      const formData = new FormData();
+      formData.set('rowsJson', JSON.stringify(rows));
+
+      await expect(importMembers(null, formData)).resolves.toEqual({
+        error: 'Validation failed',
+        summary: undefined,
+        results: undefined,
+      });
+      expect(importMembersCore).not.toHaveBeenCalled();
+    });
   });
 });
