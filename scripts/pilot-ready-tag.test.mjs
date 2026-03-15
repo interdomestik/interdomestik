@@ -46,11 +46,15 @@ function commitAll(rootDir, message) {
   return execFileSync(GIT_EXECUTABLE, ['rev-parse', 'HEAD'], { cwd: rootDir, encoding: 'utf8' }).trim();
 }
 
+function escapeForRegex(value) {
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
 function createPilotEntryFixture(rootDir, generatedAt = '2026-03-16T08:00:00.000Z', releaseVerdict = 'GO') {
   const evidenceDate = generatedAt.slice(0, 10);
   const reportPath = `docs/release-gates/${evidenceDate}_production_pilot.md`;
   const evidenceIndexPath = `docs/pilot/PILOT_EVIDENCE_INDEX_${PILOT_ID}.md`;
-  const runId = `pilot-entry-${generatedAt.replace(/[-:]/g, '').replace('.000Z', 'Z')}-${PILOT_ID}`;
+  const runId = `pilot-entry-${generatedAt.replaceAll(/[-:]/g, '').replaceAll('.000Z', 'Z')}-${PILOT_ID}`;
 
   writeRepoFile(rootDir, reportPath, '# Release Gate\n');
   writeRepoFile(rootDir, evidenceIndexPath, '# Pilot Evidence Index\n');
@@ -102,10 +106,10 @@ test('createPilotReadyTag creates an annotated canonical tag bound to pilot-entr
       }
     );
     assert.match(tagMessage, /pilot_id=pilot-ks-week-1/);
-    assert.match(tagMessage, new RegExp(`report_path=${reportPath.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`));
+    assert.match(tagMessage, new RegExp(`report_path=${escapeForRegex(reportPath)}`));
     assert.match(
       tagMessage,
-      new RegExp(`evidence_index_path=${evidenceIndexPath.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`)
+      new RegExp(`evidence_index_path=${escapeForRegex(evidenceIndexPath)}`)
     );
     assert.match(tagMessage, /generated_at=2026-03-16T08:00:00\.000Z/);
     assert.match(tagMessage, /release_verdict=GO/);

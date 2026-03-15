@@ -348,7 +348,7 @@ function parseTagMessage(content) {
 
 function readExistingTag(rootDir, tagName) {
   try {
-    execFileSync('git', ['show-ref', '--verify', '--quiet', `refs/tags/${tagName}`], {
+    execFileSync(GIT_EXECUTABLE, ['show-ref', '--verify', '--quiet', `refs/tags/${tagName}`], {
       cwd: rootDir,
       stdio: 'ignore',
     });
