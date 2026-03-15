@@ -23,7 +23,7 @@ const {
 } = require('./run.ts');
 const { writeReleaseGateReport } = require('./report.ts');
 const { checkPortalMarkers } = require('./shared.ts');
-const { SELECTORS } = require('./config.ts');
+const { REQUIRED_ENV_BY_SUITE, SELECTORS } = require('./config.ts');
 
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
 const ORIGINAL_REQUIRE_ROLE_PANEL = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
@@ -175,6 +175,13 @@ test('isLoginDependentCheck maps suites to auth-dependent checks', () => {
   assert.equal(isLoginDependentCheck('P1.3'), true);
   assert.equal(isLoginDependentCheck('G07'), true);
   assert.equal(isLoginDependentCheck('P1.5.1'), false);
+});
+
+test('p6 suite requires only member credentials for G07', () => {
+  assert.deepEqual(REQUIRED_ENV_BY_SUITE.p6, [
+    'RELEASE_GATE_MEMBER_EMAIL',
+    'RELEASE_GATE_MEMBER_PASSWORD',
+  ]);
 });
 
 test('buildCommercialPromiseScenarios covers the published commercial surfaces for G07', () => {

@@ -136,6 +136,7 @@ const REQUIRED_ENV_BY_SUITE = {
     ACCOUNTS.staff.emailVar,
     ACCOUNTS.staff.passwordVar,
   ],
+  p6: [ACCOUNTS.member.emailVar, ACCOUNTS.member.passwordVar],
   all: [
     ACCOUNTS.member.emailVar,
     ACCOUNTS.member.passwordVar,
