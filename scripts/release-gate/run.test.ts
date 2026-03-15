@@ -990,7 +990,7 @@ test('createPilotEntryArtifacts rejects pointer rows outside the canonical pilot
           releaseGateTemplatePath: fixture.templatePath,
           pilotEvidenceIndexCsvPath: nonCanonicalPointerPath,
         }),
-      /pilot-entry pointer rows must be written to docs\/pilot-evidence\/index\.csv/
+      /pilot-entry pointer rows must be written to docs\/pilot-evidence\/index\.csv; received docs\/pilot-evidence\/pilot-entry\.csv/
     );
   });
 });

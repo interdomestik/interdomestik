@@ -72,7 +72,9 @@ function assertCanonicalPilotEntryArgs(args) {
 function assertCanonicalRepoPath(rootDir, targetPath, expectedRepoRelativePath, label) {
   const repoRelativePath = toRepoRelative(rootDir, targetPath);
   if (repoRelativePath !== expectedRepoRelativePath) {
-    throw new Error(`${label} must be written to ${expectedRepoRelativePath}`);
+    throw new Error(
+      `${label} must be written to ${expectedRepoRelativePath}; received ${repoRelativePath}`
+    );
   }
   return repoRelativePath;
 }
