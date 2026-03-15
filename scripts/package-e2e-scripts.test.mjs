@@ -78,6 +78,47 @@ test('root package exposes the scripts/ci contract suite', () => {
   assert.equal(packageJson.scripts['test:ci:contracts'], 'node --test scripts/ci/*.test.mjs');
 });
 
+test('pilot readiness commands keep local verification and production proof distinct', () => {
+  const pilotCheck = packageJson.scripts['pilot:check'];
+  const releaseGateProd = packageJson.scripts['release:gate:prod'];
+  const releaseGateProdRaw = packageJson.scripts['release:gate:prod:raw'];
+  const pilotVerifyScript = readFileSync(new URL('../scripts/pilot-verify.sh', import.meta.url), 'utf8');
+  const pilotRunbook = readFileSync(new URL('../docs/pilot/PILOT_RUNBOOK.md', import.meta.url), 'utf8');
+  const pilotGoNoGo = readFileSync(new URL('../docs/pilot/PILOT_GO_NO_GO.md', import.meta.url), 'utf8');
+
+  assert.equal(pilotCheck, 'node scripts/run-with-dotenv.mjs bash scripts/pilot-verify.sh');
+  assert.equal(
+    releaseGateProd,
+    'node scripts/run-with-dotenv.mjs pnpm -s release:gate:prod:raw'
+  );
+  assert.equal(releaseGateProdRaw, 'tsx scripts/release-gate/run.ts --envName production --suite all');
+  assert.notEqual(pilotCheck, releaseGateProd);
+
+  assert.match(
+    pilotVerifyScript,
+    /This command is local pre-launch verification only; it does not create release reports or pilot-entry artifacts\./
+  );
+  assert.match(pilotVerifyScript, /For production release proof use: pnpm release:gate:prod/);
+  assert.match(
+    pilotVerifyScript,
+    /For pilot entry artifact generation use: pnpm release:gate:prod -- --pilotId <pilot-id>/
+  );
+
+  assert.match(pilotRunbook, /## Readiness Command Authority/);
+  assert.match(pilotRunbook, /`pnpm pilot:check`/);
+  assert.match(pilotRunbook, /`pnpm release:gate:prod -- --pilotId <pilot-id>`/);
+  assert.match(
+    pilotRunbook,
+    /`\.\/scripts\/pilot-verify\.sh`\s+-\s+Shell-native implementation of `pnpm pilot:check`\./s
+  );
+
+  assert.match(pilotGoNoGo, /Local pre-launch readiness is green: `pnpm pilot:check` exits `0`\./);
+  assert.match(
+    pilotGoNoGo,
+    /Release gate green on production: `pnpm release:gate:prod -- --pilotId <pilot-id>` exits `0`\./
+  );
+});
+
 test('root package exposes the D07 Sentry alert management scripts', () => {
   assert.equal(packageJson.scripts['sentry:alerts:check'], 'node scripts/sentry-alerts.mjs check');
   assert.equal(packageJson.scripts['sentry:alerts:apply'], 'node scripts/sentry-alerts.mjs apply');

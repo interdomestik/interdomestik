@@ -11,8 +11,10 @@ fail_with_next_steps() {
   local step="$1"
   local code="$2"
   printf '\n[FAIL] Step failed: %s (exit code: %s)\n' "$step" "$code" >&2
-  printf '[NEXT] Fix the failing step, then re-run: ./scripts/pilot-verify.sh\n' >&2
-  printf '[NEXT] Required checks: env vars, Node 20.x, pr:verify, security:guard, gatekeeper + e2e:gate\n' >&2
+  printf '[NEXT] Fix the failing step, then re-run: pnpm pilot:check\n' >&2
+  printf '[NEXT] This command is local pre-launch verification only; it does not create release reports or pilot-entry artifacts.\n' >&2
+  printf '[NEXT] For production release proof use: pnpm release:gate:prod\n' >&2
+  printf '[NEXT] For pilot entry artifact generation use: pnpm release:gate:prod -- --pilotId <pilot-id>\n' >&2
   exit "$code"
 }
 
@@ -32,6 +34,8 @@ run_step() {
 
 print_header "Pilot Verification (Fail-Fast)"
 printf 'This script does not mutate git state (it may generate build/test artifacts).\n'
+printf 'Canonical authority: `pnpm pilot:check` is the operator command for this local pre-launch verification pack.\n'
+printf 'This script is the shell-native implementation path and does not replace `pnpm release:gate:prod` for production proof.\n'
 
 run_step "1/5 Check required environment variables" bash -c '
   : "${DATABASE_URL:?DATABASE_URL is required}"

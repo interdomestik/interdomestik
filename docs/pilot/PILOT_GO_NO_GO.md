@@ -1,6 +1,11 @@
 ## Pilot Entry Criteria v1.0
 
-- Release gate green on production: `pnpm release:gate:prod` exits `0`, and a new `docs/release-gates/YYYY-MM-DD_production_<dpl>.md` report is generated and committed.
+- Local pre-launch readiness is green: `pnpm pilot:check` exits `0`.
+- Release gate green on production: `pnpm release:gate:prod -- --pilotId <pilot-id>` exits `0`.
+- The canonical pilot-entry artifact set defined in `docs/pilot/PILOT_RUNBOOK.md` exists and is committed:
+  - a new `docs/release-gates/YYYY-MM-DD_production_<dpl>.md` report
+  - the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md`
+  - the canonical pointer row in `docs/pilot-evidence/index.csv`
 - Operational control-plane works: admin role assignment/removal succeeds in KS tenant and reflects in UI; cross-tenant admin access remains blocked (MK -> KS).
 - Member evidence is reliable: upload persists after refresh and relogin; uploaded file download/open works.
 - Staff workflow persistence is reliable: status update persists and note persists after refresh at `data-testid="staff-claim-detail-note"`.
@@ -20,7 +25,8 @@
 
 ## Launch-Day Checks
 
-- Execute full `./scripts/pilot-verify.sh` successfully.
+- Execute `pnpm pilot:check` successfully.
+- Execute `pnpm release:gate:prod -- --pilotId <pilot-id>` successfully.
 - Perform one end-to-end closed-loop claim walkthrough.
 - Confirm `agent-members-ready` visible in Agent My Members.
 - Confirm Staff queue policy behavior (`branch_manager` read-only).
@@ -39,7 +45,8 @@
 ## Go/No-Go Thresholds
 
 - Go:
-  - All 5 canonical readiness commands pass.
+  - `pnpm pilot:check` passes.
+  - `pnpm release:gate:prod -- --pilotId <pilot-id>` passes and produces the canonical artifact set.
   - No Sev1 incidents.
   - SLA compliance meets thresholds for week 1.
   - Closed-loop path operational end-to-end.
@@ -64,4 +71,4 @@
 
 - Trigger rollback immediately on stop criteria.
 - Rollback target: latest `pilot-ready-YYYYMMDD` git tag.
-- Resume only after full re-validation with `./scripts/pilot-verify.sh`.
+- Resume only after fresh `pnpm pilot:check` re-validation and a new `pnpm release:gate:prod -- --pilotId <pilot-id>` artifact row.
