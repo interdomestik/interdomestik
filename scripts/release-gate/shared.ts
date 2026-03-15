@@ -32,6 +32,11 @@ function getMissingEnv(requiredVars) {
   );
 }
 
+function resolveForwardedForIp(account) {
+  const roleMarker = ACCOUNTS[account]?.roleMarker;
+  return ROLE_IPS[roleMarker] || ROLE_IPS[account] || ROLE_IPS.member;
+}
+
 function checkResult(id, status, evidence, signatures) {
   return {
     id,
@@ -236,7 +241,7 @@ async function loginAs(page, params) {
           headers: {
             Origin: origin,
             Referer: `${origin}/${locale}/login`,
-            'x-forwarded-for': ROLE_IPS[account] || ROLE_IPS.member,
+            'x-forwarded-for': resolveForwardedForIp(account),
             ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
           },
         });
@@ -431,6 +436,7 @@ module.exports = {
   markersToString,
   normalizeBaseUrl,
   parseRetryAfterSeconds,
+  resolveForwardedForIp,
   resolvePlaywright,
   sessionCacheKeyForAccount,
   sleep,

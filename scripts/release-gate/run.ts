@@ -261,8 +261,8 @@ function resolveAccountPasswordVar(accountKey) {
     return null;
   }
 
-  if (account.passwordSource) {
-    return ACCOUNTS[account.passwordSource]?.passwordVar ?? null;
+  if (account.credentialSource) {
+    return ACCOUNTS[account.credentialSource]?.passwordVar ?? null;
   }
 
   return account.passwordVar ?? null;
@@ -306,6 +306,46 @@ function findPresentBoundaryLeaks(forbiddenPhrases, observedText) {
   return forbiddenPhrases.filter(phrase =>
     normalizedObserved.includes(normalizeBoundaryText(phrase))
   );
+}
+
+async function visitReleaseGateScenario(browser, runCtx, scenario, callback) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
+
+    if (scenario.account) {
+      await loginAs(page, {
+        account: scenario.account,
+        credentials: runCtx.credentials[scenario.account],
+        baseUrl: runCtx.baseUrl,
+        locale: runCtx.locale,
+        authState: runCtx.authState,
+      });
+    }
+
+    await page.goto(scenario.url, {
+      waitUntil: 'domcontentloaded',
+      timeout: TIMEOUTS.nav,
+    });
+
+    return await callback(page);
+  } finally {
+    await context.close();
+  }
+}
+
+async function collectVisibleTestIds(page, requiredTestIds) {
+  const observedByTestId = {};
+  for (const testId of requiredTestIds) {
+    observedByTestId[testId] = await page
+      .getByTestId(testId)
+      .isVisible({ timeout: TIMEOUTS.marker })
+      .catch(() => false);
+  }
+
+  return observedByTestId;
 }
 
 function resolveTenantOverrideProbeUrl(runCtx) {
@@ -1834,43 +1874,24 @@ async function runG07(browser, runCtx) {
   const scenarios = buildCommercialPromiseScenarios(runCtx);
 
   for (const scenario of scenarios) {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-
     try {
-      await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
-
-      if (scenario.account) {
-        await loginAs(page, {
-          account: scenario.account,
-          credentials: runCtx.credentials[scenario.account],
-          baseUrl: runCtx.baseUrl,
-          locale: runCtx.locale,
-          authState: runCtx.authState,
-        });
-      }
-
-      await page.goto(scenario.url, {
-        waitUntil: 'domcontentloaded',
-        timeout: TIMEOUTS.nav,
-      });
-
-      const observedByTestId = {};
-      for (const testId of scenario.requiredTestIds) {
-        const visible = await page
-          .getByTestId(testId)
-          .isVisible({ timeout: TIMEOUTS.marker })
-          .catch(() => false);
-        observedByTestId[testId] = visible;
-      }
-
-      const missing = findMissingCommercialPromiseSections(
-        scenario.requiredTestIds,
-        observedByTestId
+      const { missing, observedSummary } = await visitReleaseGateScenario(
+        browser,
+        runCtx,
+        scenario,
+        async page => {
+          const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
+          return {
+            missing: findMissingCommercialPromiseSections(
+              scenario.requiredTestIds,
+              observedByTestId
+            ),
+            observedSummary: scenario.requiredTestIds
+              .map(testId => `${testId}=${observedByTestId[testId] === true}`)
+              .join(','),
+          };
+        }
       );
-      const observedSummary = scenario.requiredTestIds
-        .map(testId => `${testId}=${observedByTestId[testId] === true}`)
-        .join(',');
 
       evidence.push(
         `scenario=${scenario.id} account=${scenario.account || 'public'} missing=${
@@ -1887,8 +1908,6 @@ async function runG07(browser, runCtx) {
       signatures.push(
         `G07_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
       );
-    } finally {
-      await context.close();
     }
   }
 
@@ -1901,50 +1920,29 @@ async function runG08(browser, runCtx) {
   const scenarios = buildFreeStartGroupPrivacyScenarios(runCtx);
 
   for (const scenario of scenarios) {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-
     try {
-      await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
+      const { missingPhrases, missingTestIds, observedSummary, presentLeaks } =
+        await visitReleaseGateScenario(browser, runCtx, scenario, async page => {
+          const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
+          const observedText = normalizeBoundaryText(
+            await page
+              .locator('body')
+              .innerText()
+              .catch(() => '')
+          );
 
-      if (scenario.account) {
-        await loginAs(page, {
-          account: scenario.account,
-          credentials: runCtx.credentials[scenario.account],
-          baseUrl: runCtx.baseUrl,
-          locale: runCtx.locale,
-          authState: runCtx.authState,
+          return {
+            missingPhrases: findMissingBoundaryPhrases(scenario.requiredPhrases, observedText),
+            missingTestIds: findMissingCommercialPromiseSections(
+              scenario.requiredTestIds,
+              observedByTestId
+            ),
+            observedSummary: scenario.requiredTestIds
+              .map(testId => `${testId}=${observedByTestId[testId] === true}`)
+              .join(','),
+            presentLeaks: findPresentBoundaryLeaks(scenario.forbiddenPhrases, observedText),
+          };
         });
-      }
-
-      await page.goto(scenario.url, {
-        waitUntil: 'domcontentloaded',
-        timeout: TIMEOUTS.nav,
-      });
-
-      const observedByTestId = {};
-      for (const testId of scenario.requiredTestIds) {
-        observedByTestId[testId] = await page
-          .getByTestId(testId)
-          .isVisible({ timeout: TIMEOUTS.marker })
-          .catch(() => false);
-      }
-
-      const observedText = normalizeBoundaryText(
-        await page
-          .locator('body')
-          .innerText()
-          .catch(() => '')
-      );
-      const missingTestIds = findMissingCommercialPromiseSections(
-        scenario.requiredTestIds,
-        observedByTestId
-      );
-      const missingPhrases = findMissingBoundaryPhrases(scenario.requiredPhrases, observedText);
-      const presentLeaks = findPresentBoundaryLeaks(scenario.forbiddenPhrases, observedText);
-      const observedSummary = scenario.requiredTestIds
-        .map(testId => `${testId}=${observedByTestId[testId] === true}`)
-        .join(',');
 
       evidence.push(
         `scenario=${scenario.id} account=${scenario.account || 'public'} missing_testids=${
@@ -1973,8 +1971,6 @@ async function runG08(browser, runCtx) {
       signatures.push(
         `G08_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
       );
-    } finally {
-      await context.close();
     }
   }
 

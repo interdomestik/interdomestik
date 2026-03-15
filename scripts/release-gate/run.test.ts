@@ -26,7 +26,7 @@ const {
   shouldDisallowSkippedChecks,
 } = require('./run.ts');
 const { writeReleaseGateReport } = require('./report.ts');
-const { checkPortalMarkers } = require('./shared.ts');
+const { checkPortalMarkers, resolveForwardedForIp } = require('./shared.ts');
 const { REQUIRED_ENV_BY_SUITE, ROLE_IPS, SELECTORS } = require('./config.ts');
 
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
@@ -187,8 +187,8 @@ test('resolveAccountPasswordVar reuses the agent password for office agents', ()
   assert.equal(resolveAccountPasswordVar('member'), 'RELEASE_GATE_MEMBER_PASSWORD');
 });
 
-test('office-agent release-gate traffic uses the agent source IP', () => {
-  assert.equal(ROLE_IPS.office_agent, ROLE_IPS.agent);
+test('office-agent release-gate traffic resolves to the agent source IP', () => {
+  assert.equal(resolveForwardedForIp('office_agent'), ROLE_IPS.agent);
 });
 
 test('p6 suite requires member credentials plus office-agent email and shared agent password', () => {

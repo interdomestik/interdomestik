@@ -69,7 +69,6 @@ const TIMEOUTS = {
 const ROLE_IPS = {
   member: '10.0.0.11',
   agent: '10.0.0.13',
-  office_agent: '10.0.0.13',
   staff: '10.0.0.14',
   admin: '10.0.0.12',
   admin_mk: '10.0.0.16',
@@ -97,7 +96,7 @@ const ACCOUNTS = {
     roleMarker: 'agent',
     tenantId: 'tenant_ks',
     emailVar: 'RELEASE_GATE_OFFICE_AGENT_EMAIL',
-    passwordSource: 'agent',
+    credentialSource: 'agent',
     label: 'Office agent',
   },
   staff: {
