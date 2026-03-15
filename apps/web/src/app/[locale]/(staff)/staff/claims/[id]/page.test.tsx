@@ -86,6 +86,16 @@ vi.mock('next/headers', () => ({
 }));
 
 vi.mock('next-intl/server', () => ({
+  getTranslations: vi.fn(async () => (key: string) => {
+    const translations: Record<string, string> = {
+      'details.sla_status_label': 'SLA Status',
+      'details.sla_phase.running': 'Running',
+      'details.sla_phase.incomplete': 'Waiting for member information',
+      'details.sla_phase.not_applicable': 'Not active',
+    };
+
+    return translations[key] || key;
+  }),
   setRequestLocale: vi.fn(),
 }));
 
@@ -138,6 +148,8 @@ describe('StaffClaimDetailsPage', () => {
 
     expect(screen.getByTestId('staff-claim-detail-ready')).toBeInTheDocument();
     expect(screen.getByText('Matter allowance')).toBeInTheDocument();
+    expect(screen.getByText('SLA Status')).toBeInTheDocument();
+    expect(screen.getByText('Running')).toBeInTheDocument();
     expect(screen.getByText('Used this year')).toBeInTheDocument();
     expect(screen.getByText('Remaining this year')).toBeInTheDocument();
     expect(screen.getByText('Plan allowance')).toBeInTheDocument();

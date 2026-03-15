@@ -57,6 +57,7 @@ const LOGIN_DEPENDENT_CHECKS = new Set([
   'P1.3',
   'G07',
   'G08',
+  'G09',
 ]);
 const INFRA_NETWORK_ERROR_PATTERNS = [
   /ECONNREFUSED/i,
@@ -70,6 +71,53 @@ const INFRA_NETWORK_ERROR_PATTERNS = [
 ];
 const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
 const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
+const MATTER_ALLOWANCE_TEST_ID_SUFFIXES = [
+  'matter-allowance',
+  'matter-allowance-used',
+  'matter-allowance-remaining',
+  'matter-allowance-total',
+];
+const DEFAULT_MATTER_ALLOWANCE_VALUES = {
+  used: '0',
+  remaining: '2',
+  total: '2',
+};
+const MATTER_AND_SLA_SCENARIO_DEFINITIONS = [
+  {
+    id: 'member_running',
+    account: 'member',
+    title: 'Member submitted claim shows running SLA and allowance',
+    routePath: '/member/claims/golden_ks_a_claim_05',
+    testIdPrefix: 'member-claim',
+    slaCopy: 'Response timer is running.',
+  },
+  {
+    id: 'member_incomplete',
+    account: 'member',
+    title: 'Member verification claim shows waiting SLA and allowance',
+    routePath: '/member/claims/golden_ks_a_claim_13',
+    testIdPrefix: 'member-claim',
+    slaCopy: 'Waiting for your information before the SLA starts.',
+  },
+  {
+    id: 'staff_running',
+    account: 'staff',
+    title: 'Staff submitted claim shows running SLA and allowance',
+    routePath: '/staff/claims/golden_ks_a_claim_05',
+    testIdPrefix: 'staff-claim-detail',
+    slaCopy: 'Running',
+    requiresReadyMarker: true,
+  },
+  {
+    id: 'staff_incomplete',
+    account: 'staff',
+    title: 'Staff verification claim shows member-waiting SLA and allowance',
+    routePath: '/staff/claims/golden_ks_a_claim_13',
+    testIdPrefix: 'staff-claim-detail',
+    slaCopy: 'Waiting for member information',
+    requiresReadyMarker: true,
+  },
+];
 
 function isLegacyVercelLogsArgsUnsupported(output) {
   return /unknown or unexpected option:\s*--environment/i.test(String(output || ''));
@@ -294,6 +342,25 @@ function buildFreeStartGroupPrivacyScenarios(runCtx) {
   ];
 }
 
+function buildMatterAndSlaEnforcementScenarios(runCtx) {
+  return MATTER_AND_SLA_SCENARIO_DEFINITIONS.map(definition => ({
+    id: definition.id,
+    account: definition.account,
+    title: definition.title,
+    url: buildRoute(runCtx.baseUrl, runCtx.locale, definition.routePath),
+    requiredTestIds: buildMatterAllowanceTestIds(definition),
+    requiredPhrases: ['SLA Status', definition.slaCopy],
+    expectedMatterAllowance: DEFAULT_MATTER_ALLOWANCE_VALUES,
+  }));
+}
+
+function buildMatterAllowanceTestIds(definition) {
+  const readyMarker = definition.requiresReadyMarker ? [`${definition.testIdPrefix}-ready`] : [];
+  return readyMarker.concat(
+    MATTER_ALLOWANCE_TEST_ID_SUFFIXES.map(suffix => `${definition.testIdPrefix}-${suffix}`)
+  );
+}
+
 function findMissingBoundaryPhrases(requiredPhrases, observedText) {
   const normalizedObserved = normalizeBoundaryText(observedText);
   return requiredPhrases.filter(
@@ -306,6 +373,13 @@ function findPresentBoundaryLeaks(forbiddenPhrases, observedText) {
   return forbiddenPhrases.filter(phrase =>
     normalizedObserved.includes(normalizeBoundaryText(phrase))
   );
+}
+
+function findMismatchedMatterAllowanceValues(expectedValues, observedValues) {
+  return Object.entries(expectedValues).flatMap(([key, expected]) => {
+    const actual = observedValues[key];
+    return actual === expected ? [] : [`${key} expected=${expected} actual=${actual || 'missing'}`];
+  });
 }
 
 async function visitReleaseGateScenario(browser, runCtx, scenario, callback) {
@@ -346,6 +420,29 @@ async function collectVisibleTestIds(page, requiredTestIds) {
   }
 
   return observedByTestId;
+}
+
+async function collectMatterAllowanceValues(page, requiredTestIds) {
+  const suffixByKey = {
+    used: 'matter-allowance-used',
+    remaining: 'matter-allowance-remaining',
+    total: 'matter-allowance-total',
+  };
+  const values = {};
+
+  for (const [key, suffix] of Object.entries(suffixByKey)) {
+    const testId = requiredTestIds.find(candidate => candidate.endsWith(suffix));
+    values[key] = testId
+      ? (
+          await page
+            .getByTestId(testId)
+            .innerText({ timeout: TIMEOUTS.marker })
+            .catch(() => '')
+        ).trim()
+      : '';
+  }
+
+  return values;
 }
 
 function resolveTenantOverrideProbeUrl(runCtx) {
@@ -1977,6 +2074,79 @@ async function runG08(browser, runCtx) {
   return checkResult('G08', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
 }
 
+async function runG09(browser, runCtx) {
+  const evidence = [];
+  const signatures = [];
+  const scenarios = buildMatterAndSlaEnforcementScenarios(runCtx);
+
+  for (const scenario of scenarios) {
+    try {
+      const {
+        matterAllowanceMismatches,
+        missingPhrases,
+        missingTestIds,
+        observedSummary,
+        observedValues,
+      } = await visitReleaseGateScenario(browser, runCtx, scenario, async page => {
+        const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
+        const observedText = normalizeBoundaryText(
+          await page
+            .locator('body')
+            .innerText()
+            .catch(() => '')
+        );
+        const observedValues = await collectMatterAllowanceValues(page, scenario.requiredTestIds);
+
+        return {
+          matterAllowanceMismatches: findMismatchedMatterAllowanceValues(
+            scenario.expectedMatterAllowance,
+            observedValues
+          ),
+          missingPhrases: findMissingBoundaryPhrases(scenario.requiredPhrases, observedText),
+          missingTestIds: findMissingCommercialPromiseSections(
+            scenario.requiredTestIds,
+            observedByTestId
+          ),
+          observedSummary: scenario.requiredTestIds
+            .map(testId => `${testId}=${observedByTestId[testId] === true}`)
+            .join(','),
+          observedValues,
+        };
+      });
+
+      evidence.push(
+        `scenario=${scenario.id} account=${scenario.account} missing_testids=${
+          missingTestIds.join(',') || 'none'
+        } missing_phrases=${missingPhrases.join(',') || 'none'} mismatches=${
+          matterAllowanceMismatches.join(',') || 'none'
+        } values=used:${observedValues.used || 'missing'}|remaining:${observedValues.remaining || 'missing'}|total:${observedValues.total || 'missing'} observed=${observedSummary}`
+      );
+
+      if (missingTestIds.length > 0) {
+        signatures.push(
+          `G09_SURFACE_MISSING scenario=${scenario.id} missing=${missingTestIds.join(',')}`
+        );
+      }
+      if (missingPhrases.length > 0) {
+        signatures.push(
+          `G09_SLA_COPY_MISSING scenario=${scenario.id} missing=${missingPhrases.join(',')}`
+        );
+      }
+      if (matterAllowanceMismatches.length > 0) {
+        signatures.push(
+          `G09_MATTER_ALLOWANCE_MISMATCH scenario=${scenario.id} ${matterAllowanceMismatches.join(' ')}`
+        );
+      }
+    } catch (error) {
+      signatures.push(
+        `G09_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
+      );
+    }
+  }
+
+  return checkResult('G09', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
+}
+
 function runVercelLogsSweep(runCtx) {
   const evidence = [];
   const signatures = [];
@@ -2296,6 +2466,7 @@ async function main() {
       if (selected.includes('P1.3')) checks.push(await runP13(browser, runCtx));
       if (selected.includes('G07')) checks.push(await runG07(browser, runCtx));
       if (selected.includes('G08')) checks.push(await runG08(browser, runCtx));
+      if (selected.includes('G09')) checks.push(await runG09(browser, runCtx));
       if (selected.includes('P1.5.1')) checks.push(runVercelLogsSweep(runCtx));
     } else if (selected.includes('P1.5.1')) {
       checks.push(runVercelLogsSweep(runCtx));
@@ -2350,6 +2521,7 @@ async function main() {
 module.exports = {
   buildCommercialPromiseScenarios,
   buildFreeStartGroupPrivacyScenarios,
+  buildMatterAndSlaEnforcementScenarios,
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
   computeRetryDelayMs,
@@ -2357,6 +2529,7 @@ module.exports = {
   enforceNoSkipOnSelectedChecks,
   findMissingBoundaryPhrases,
   findMissingCommercialPromiseSections,
+  findMismatchedMatterAllowanceValues,
   findPresentBoundaryLeaks,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,

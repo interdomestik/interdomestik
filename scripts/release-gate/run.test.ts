@@ -7,6 +7,7 @@ import test from 'node:test';
 const {
   buildCommercialPromiseScenarios,
   buildFreeStartGroupPrivacyScenarios,
+  buildMatterAndSlaEnforcementScenarios,
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
   computeRetryDelayMs,
@@ -14,6 +15,7 @@ const {
   enforceNoSkipOnSelectedChecks,
   findMissingBoundaryPhrases,
   findMissingCommercialPromiseSections,
+  findMismatchedMatterAllowanceValues,
   findPresentBoundaryLeaks,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
@@ -28,6 +30,10 @@ const {
 const { writeReleaseGateReport } = require('./report.ts');
 const { checkPortalMarkers, resolveForwardedForIp } = require('./shared.ts');
 const { REQUIRED_ENV_BY_SUITE, ROLE_IPS, SELECTORS } = require('./config.ts');
+
+const RELEASE_GATE_BASE_URL = 'https://interdomestik-web.vercel.app';
+const RELEASE_GATE_LOCALE = 'en';
+const DEFAULT_MATTER_ALLOWANCE = { used: '0', remaining: '2', total: '2' };
 
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
 const ORIGINAL_REQUIRE_ROLE_PANEL = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
@@ -179,6 +185,7 @@ test('isLoginDependentCheck maps suites to auth-dependent checks', () => {
   assert.equal(isLoginDependentCheck('P1.3'), true);
   assert.equal(isLoginDependentCheck('G07'), true);
   assert.equal(isLoginDependentCheck('G08'), true);
+  assert.equal(isLoginDependentCheck('G09'), true);
   assert.equal(isLoginDependentCheck('P1.5.1'), false);
 });
 
@@ -191,19 +198,21 @@ test('office-agent release-gate traffic resolves to the agent source IP', () => 
   assert.equal(resolveForwardedForIp('office_agent'), ROLE_IPS.agent);
 });
 
-test('p6 suite requires member credentials plus office-agent email and shared agent password', () => {
+test('p6 suite requires member, office-agent, and staff credentials for G07 to G09', () => {
   assert.deepEqual(REQUIRED_ENV_BY_SUITE.p6, [
     'RELEASE_GATE_MEMBER_EMAIL',
     'RELEASE_GATE_MEMBER_PASSWORD',
     'RELEASE_GATE_OFFICE_AGENT_EMAIL',
     'RELEASE_GATE_AGENT_PASSWORD',
+    'RELEASE_GATE_STAFF_EMAIL',
+    'RELEASE_GATE_STAFF_PASSWORD',
   ]);
 });
 
 test('buildCommercialPromiseScenarios covers the published commercial surfaces for G07', () => {
   const scenarios = buildCommercialPromiseScenarios({
-    baseUrl: 'https://interdomestik-web.vercel.app',
-    locale: 'en',
+    baseUrl: RELEASE_GATE_BASE_URL,
+    locale: RELEASE_GATE_LOCALE,
   });
 
   assert.deepEqual(
@@ -217,7 +226,7 @@ test('buildCommercialPromiseScenarios covers the published commercial surfaces f
       {
         id: 'pricing',
         account: null,
-        url: 'https://interdomestik-web.vercel.app/en/pricing',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/pricing`,
         requiredTestIds: [
           'pricing-commercial-disclaimers',
           'pricing-success-fee-calculator',
@@ -228,7 +237,7 @@ test('buildCommercialPromiseScenarios covers the published commercial surfaces f
       {
         id: 'register',
         account: null,
-        url: 'https://interdomestik-web.vercel.app/en/register',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/register`,
         requiredTestIds: [
           'register-success-fee-calculator',
           'register-billing-terms',
@@ -238,13 +247,13 @@ test('buildCommercialPromiseScenarios covers the published commercial surfaces f
       {
         id: 'services',
         account: null,
-        url: 'https://interdomestik-web.vercel.app/en/services',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/services`,
         requiredTestIds: ['services-commercial-disclaimers', 'services-coverage-matrix'],
       },
       {
         id: 'membership',
         account: 'member',
-        url: 'https://interdomestik-web.vercel.app/en/member/membership',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/member/membership`,
         requiredTestIds: ['membership-commercial-disclaimers', 'membership-coverage-matrix'],
       },
     ]
@@ -266,8 +275,8 @@ test('findMissingCommercialPromiseSections reports only the absent required sect
 
 test('buildFreeStartGroupPrivacyScenarios covers the public and office-boundary surfaces for G08', () => {
   const scenarios = buildFreeStartGroupPrivacyScenarios({
-    baseUrl: 'https://interdomestik-web.vercel.app',
-    locale: 'en',
+    baseUrl: RELEASE_GATE_BASE_URL,
+    locale: RELEASE_GATE_LOCALE,
   });
 
   assert.deepEqual(
@@ -281,13 +290,13 @@ test('buildFreeStartGroupPrivacyScenarios covers the public and office-boundary 
       {
         id: 'free_start',
         account: null,
-        url: 'https://interdomestik-web.vercel.app/en/',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/`,
         requiredTestIds: ['free-start-triage-note'],
       },
       {
         id: 'group_dashboard',
         account: 'office_agent',
-        url: 'https://interdomestik-web.vercel.app/en/agent/import',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/agent/import`,
         requiredTestIds: ['group-dashboard-summary'],
       },
     ]
@@ -314,6 +323,72 @@ test('findPresentBoundaryLeaks reports member-identifying text that should stay 
   );
 
   assert.deepEqual(leaks, ['KS A-Member 1']);
+});
+
+test('buildMatterAndSlaEnforcementScenarios covers the deterministic member and staff claim surfaces for G09', () => {
+  const scenarios = buildMatterAndSlaEnforcementScenarios({
+    baseUrl: RELEASE_GATE_BASE_URL,
+    locale: RELEASE_GATE_LOCALE,
+  });
+
+  assert.deepEqual(
+    scenarios.map(({ id, account, url, requiredPhrases }) => ({
+      id,
+      account,
+      url,
+      requiredPhrases,
+    })),
+    [
+      {
+        id: 'member_running',
+        account: 'member',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/member/claims/golden_ks_a_claim_05`,
+        requiredPhrases: ['SLA Status', 'Response timer is running.'],
+      },
+      {
+        id: 'member_incomplete',
+        account: 'member',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/member/claims/golden_ks_a_claim_13`,
+        requiredPhrases: ['SLA Status', 'Waiting for your information before the SLA starts.'],
+      },
+      {
+        id: 'staff_running',
+        account: 'staff',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_05`,
+        requiredPhrases: ['SLA Status', 'Running'],
+      },
+      {
+        id: 'staff_incomplete',
+        account: 'staff',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_13`,
+        requiredPhrases: ['SLA Status', 'Waiting for member information'],
+      },
+    ]
+  );
+
+  for (const scenario of scenarios) {
+    const isStaffSurface = scenario.account === 'staff';
+    const prefix = isStaffSurface ? 'staff-claim-detail' : 'member-claim';
+    const expectedTestIds = [
+      ...(isStaffSurface ? [`${prefix}-ready`] : []),
+      `${prefix}-matter-allowance`,
+      `${prefix}-matter-allowance-used`,
+      `${prefix}-matter-allowance-remaining`,
+      `${prefix}-matter-allowance-total`,
+    ];
+
+    assert.deepEqual(scenario.requiredTestIds, expectedTestIds);
+    assert.deepEqual(scenario.expectedMatterAllowance, DEFAULT_MATTER_ALLOWANCE);
+  }
+});
+
+test('findMismatchedMatterAllowanceValues reports only the mismatched counters', () => {
+  const mismatches = findMismatchedMatterAllowanceValues(
+    { used: '0', remaining: '2', total: '2' },
+    { used: '0', remaining: '1', total: '2' }
+  );
+
+  assert.deepEqual(mismatches, ['remaining expected=2 actual=1']);
 });
 
 test('shouldDisallowSkippedChecks defaults to true for production and false otherwise', () => {
@@ -428,7 +503,7 @@ test('resolveTenantOverrideProbeUrl uses configured RELEASE_GATE_MK_USER_URL whe
   }
 });
 
-test('writeReleaseGateReport includes the G07 and G08 RC sections', () => {
+test('writeReleaseGateReport includes the G07 to G09 RC sections', () => {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'release-gate-report-'));
 
   try {
@@ -441,7 +516,7 @@ test('writeReleaseGateReport includes the G07 and G08 RC sections', () => {
       deploymentUrl: 'https://interdomestik-web-g07.vercel.app',
       deploymentSource: 'unit-test',
       generatedAt: new Date('2026-03-15T12:00:00.000Z'),
-      executedChecks: ['P0.1', 'G07', 'G08'],
+      executedChecks: ['P0.1', 'G07', 'G08', 'G09'],
       checks: [
         { id: 'P0.1', status: 'PASS', evidence: ['rbac ok'], signatures: [] },
         {
@@ -457,6 +532,14 @@ test('writeReleaseGateReport includes the G07 and G08 RC sections', () => {
           status: 'FAIL',
           evidence: ['group dashboard leaked member name'],
           signatures: ['G08_PRIVACY_LEAK_DETECTED scenario=group_dashboard leaks=KS A-Member 1'],
+        },
+        {
+          id: 'G09',
+          status: 'FAIL',
+          evidence: ['staff running allowance mismatch'],
+          signatures: [
+            'G09_MATTER_ALLOWANCE_MISMATCH scenario=staff_running remaining expected=2 actual=1',
+          ],
         },
       ],
       accounts: {
@@ -478,11 +561,14 @@ test('writeReleaseGateReport includes the G07 and G08 RC sections', () => {
     assert.match(report, /Office agent: \[REDACTED_EMAIL\]/);
     assert.match(report, /## G07 Commercial Promise Surfaces/);
     assert.match(report, /## G08 Free Start And Group Privacy Boundaries/);
+    assert.match(report, /## G09 Matter And SLA Enforcement/);
     assert.match(report, /\*\*Result:\*\* FAIL/);
     assert.match(report, /pricing missing=pricing-billing-terms/);
     assert.match(report, /G07_COMMERCIAL_PROMISE_SURFACE_MISSING/);
     assert.match(report, /group dashboard leaked member name/);
     assert.match(report, /G08_PRIVACY_LEAK_DETECTED/);
+    assert.match(report, /staff running allowance mismatch/);
+    assert.match(report, /G09_MATTER_ALLOWANCE_MISMATCH/);
   } finally {
     fs.rmSync(outDir, { recursive: true, force: true });
   }
