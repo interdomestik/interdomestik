@@ -15,6 +15,7 @@ const CANONICAL_PILOT_EVIDENCE_INDEX_COLUMNS = [
 
 const CANONICAL_PILOT_EVIDENCE_TEMPLATE_PATH = 'docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md';
 const CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH = 'docs/pilot-evidence/index.csv';
+const CANONICAL_PILOT_EVIDENCE_INDEX_PREFIX = 'docs/pilot/';
 const CANONICAL_DAILY_EVIDENCE_HEADERS = [
   'Day',
   'Date (YYYY-MM-DD)',
@@ -24,7 +25,7 @@ const CANONICAL_DAILY_EVIDENCE_HEADERS = [
   'Evidence Bundle Path',
   'Incidents (count)',
   'Highest Sev (`none`/`sev3`/`sev2`/`sev1`)',
-  'Decision (`continue`/`defer`/`hotfix`/`stop`)',
+  'Decision (`continue`/`pause`/`hotfix`/`stop`)',
 ];
 const CANONICAL_DAILY_EVIDENCE_SEPARATOR = [
   '---',
@@ -39,7 +40,30 @@ const CANONICAL_DAILY_EVIDENCE_SEPARATOR = [
 ];
 const CANONICAL_DAILY_EVIDENCE_STATUS = new Set(['green', 'amber', 'red']);
 const CANONICAL_DAILY_EVIDENCE_SEVERITY = new Set(['none', 'sev3', 'sev2', 'sev1']);
-const CANONICAL_DAILY_EVIDENCE_DECISIONS = new Set(['continue', 'defer', 'hotfix', 'stop']);
+const CANONICAL_DAILY_EVIDENCE_DECISIONS = new Set(['continue', 'pause', 'hotfix', 'stop']);
+const CANONICAL_DECISION_PROOF_HEADERS = [
+  'Review Type (`daily`/`weekly`)',
+  'Reference',
+  'Date (YYYY-MM-DD)',
+  'Owner',
+  'Decision (`continue`/`pause`/`hotfix`/`stop`)',
+  'Rollback Target (`pilot-ready-YYYYMMDD`/`n/a`)',
+  'Resume Requires `pnpm pilot:check`',
+  'Resume Requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>`',
+];
+const CANONICAL_DECISION_PROOF_SEPARATOR = [
+  '-------------------------------',
+  '---------',
+  '-----------------',
+  '-----',
+  '----------------------------------------------',
+  '-----------------------------------------------',
+  '------------------------------------',
+  '---------------------------------------------------------------',
+];
+const CANONICAL_DECISION_PROOF_REVIEW_TYPES = new Set(['daily', 'weekly']);
+const CANONICAL_DECISION_PROOF_DECISIONS = new Set(['continue', 'pause', 'hotfix', 'stop']);
+const CANONICAL_DECISION_PROOF_REQUIREMENT_VALUES = new Set(['yes', 'no']);
 
 function sanitizePilotId(value) {
   const safe = String(value || '')
@@ -217,6 +241,40 @@ function parseMarkdownTableRow(line) {
     .map(value => value.trim());
 }
 
+function parseMarkdownTable(content, firstHeaderCell) {
+  const lines = String(content || '').split(/\r?\n/);
+  let headerIndex = -1;
+
+  for (let index = 0; index < lines.length - 1; index += 1) {
+    const cells = parseMarkdownTableRow(lines[index]);
+    if (cells?.[0] !== firstHeaderCell) {
+      continue;
+    }
+    const separator = parseMarkdownTableRow(lines[index + 1]);
+    if (!separator) {
+      continue;
+    }
+    headerIndex = index;
+    break;
+  }
+
+  if (headerIndex === -1) {
+    throw new Error(`copied pilot evidence index must contain a ${firstHeaderCell} markdown table`);
+  }
+
+  const headerCells = parseMarkdownTableRow(lines[headerIndex]);
+  let rowEndIndex = headerIndex + 2;
+  while (rowEndIndex < lines.length) {
+    const cells = parseMarkdownTableRow(lines[rowEndIndex]);
+    if (!cells?.length || !cells[0]) {
+      break;
+    }
+    rowEndIndex += 1;
+  }
+
+  return { headerCells, headerIndex, rowEndIndex, lines };
+}
+
 function stripParentheticalSegments(value) {
   let depth = 0;
   let result = '';
@@ -261,47 +319,61 @@ function mapDailyHeaderToField(header) {
 }
 
 function parseDailyEvidenceTable(content) {
-  const lines = String(content || '').split(/\r?\n/);
-  let headerIndex = -1;
-
-  for (let index = 0; index < lines.length - 1; index += 1) {
-    const cells = parseMarkdownTableRow(lines[index]);
-    if (cells?.[0] !== 'Day') {
-      continue;
-    }
-    const separator = parseMarkdownTableRow(lines[index + 1]);
-    if (!separator) {
-      continue;
-    }
-    headerIndex = index;
-    break;
-  }
-
-  if (headerIndex === -1) {
-    throw new Error('copied pilot evidence index must contain a daily evidence markdown table');
-  }
-
-  const headerCells = parseMarkdownTableRow(lines[headerIndex]);
+  const { headerCells, headerIndex, rowEndIndex, lines } = parseMarkdownTable(content, 'Day');
   const fieldByIndex = headerCells.map(mapDailyHeaderToField);
   const rows = [];
-  let rowStartIndex = headerIndex + 2;
-  let rowEndIndex = rowStartIndex;
-
-  while (rowEndIndex < lines.length) {
-    const cells = parseMarkdownTableRow(lines[rowEndIndex]);
-    if (!cells?.length || !/^\d+$/.test(cells[0] || '')) {
-      break;
-    }
+  for (let index = headerIndex + 2; index < rowEndIndex; index += 1) {
+    const cells = parseMarkdownTableRow(lines[index]);
+    if (!cells?.length || !/^\d+$/.test(cells[0] || '')) continue;
 
     const row = {};
-    for (let index = 0; index < cells.length; index += 1) {
-      const field = fieldByIndex[index];
+    for (let cellIndex = 0; cellIndex < cells.length; cellIndex += 1) {
+      const field = fieldByIndex[cellIndex];
       if (field) {
-        row[field] = cells[index];
+        row[field] = cells[cellIndex];
       }
     }
     rows.push(row);
-    rowEndIndex += 1;
+  }
+
+  return { headerIndex, rowEndIndex, rows, lines };
+}
+
+function mapDecisionProofHeaderToField(header) {
+  const normalized = normalizeDailyHeader(header);
+  if (normalized === 'review type') return 'reviewType';
+  if (normalized === 'reference') return 'reference';
+  if (normalized === 'date') return 'date';
+  if (normalized === 'owner') return 'owner';
+  if (normalized === 'decision') return 'decision';
+  if (normalized === 'rollback target') return 'rollbackTarget';
+  if (normalized === 'resume requires pnpm pilot check') return 'requiresPilotCheck';
+  if (normalized === 'resume requires fresh pnpm release gate prod pilotid pilot id') {
+    return 'requiresReleaseGate';
+  }
+  return null;
+}
+
+function parseDecisionProofTable(content) {
+  const { headerCells, headerIndex, rowEndIndex, lines } = parseMarkdownTable(
+    content,
+    'Review Type (`daily`/`weekly`)'
+  );
+  const fieldByIndex = headerCells.map(mapDecisionProofHeaderToField);
+  const rows = [];
+
+  for (let index = headerIndex + 2; index < rowEndIndex; index += 1) {
+    const cells = parseMarkdownTableRow(lines[index]);
+    if (!cells?.length) continue;
+
+    const row = {};
+    for (let cellIndex = 0; cellIndex < cells.length; cellIndex += 1) {
+      const field = fieldByIndex[cellIndex];
+      if (field) {
+        row[field] = cells[cellIndex];
+      }
+    }
+    rows.push(row);
   }
 
   return { headerIndex, rowEndIndex, rows, lines };
@@ -378,6 +450,60 @@ function buildCanonicalDailyEvidenceTable(existingRows, totalDays) {
   return tableLines;
 }
 
+function serializeDecisionProofRow(row) {
+  return [
+    '|',
+    ` ${row.reviewType} `,
+    '|',
+    ` ${row.reference} `,
+    '|',
+    ` ${row.date || ''} `,
+    '|',
+    ` ${row.owner || ''} `,
+    '|',
+    ` ${row.decision || ''} `,
+    '|',
+    ` ${row.rollbackTarget || 'n/a'} `,
+    '|',
+    ` ${row.requiresPilotCheck || 'no'} `,
+    '|',
+    ` ${row.requiresReleaseGate || 'no'} `,
+    '|',
+  ].join('');
+}
+
+function buildCanonicalDecisionProofTable(existingRows) {
+  const sortedRows = [...existingRows].sort((left, right) => {
+    const leftKey = `${left.date || ''}:${left.reviewType || ''}:${left.reference || ''}`;
+    const rightKey = `${right.date || ''}:${right.reviewType || ''}:${right.reference || ''}`;
+    return leftKey.localeCompare(rightKey);
+  });
+
+  return [
+    `| ${CANONICAL_DECISION_PROOF_HEADERS.join(' | ')} |`,
+    `| ${CANONICAL_DECISION_PROOF_SEPARATOR.join(' | ')} |`,
+    ...sortedRows.map(serializeDecisionProofRow),
+  ];
+}
+
+function ensureDecisionProofTable(content) {
+  try {
+    return parseDecisionProofTable(content);
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes('Review Type')) {
+      throw error;
+    }
+
+    const lines = String(content || '').split(/\r?\n/);
+    const nextLines = [...lines];
+    while (nextLines.length && !nextLines.at(-1)) {
+      nextLines.pop();
+    }
+    nextLines.push('', '## Decision Proof Log', '', ...buildCanonicalDecisionProofTable([]));
+    return parseDecisionProofTable(`${nextLines.join('\n')}\n`);
+  }
+}
+
 function resolvePilotPointerRow(args) {
   const safePilotId = sanitizePilotId(args.pilotId);
   const existingRows = fs.existsSync(args.pilotEvidenceIndexCsvPath)
@@ -402,11 +528,60 @@ function resolvePilotPointerRow(args) {
   })[0];
 }
 
+function resolvePilotEvidenceIndexPath(rootDir, evidenceIndexPath) {
+  const repoRelativePath = toRepoRelative(rootDir, path.resolve(rootDir, evidenceIndexPath));
+  if (!repoRelativePath.startsWith(CANONICAL_PILOT_EVIDENCE_INDEX_PREFIX)) {
+    throw new Error('pilot evidence index path must stay under docs/pilot/');
+  }
+  return path.resolve(rootDir, repoRelativePath);
+}
+
+function resolvePilotEvidenceArtifact(args, actionDescription) {
+  const rootDir = path.resolve(
+    args.rootDir || findRepoRootFromDocsPath(args.pilotEvidenceIndexCsvPath || process.cwd())
+  );
+  const pilotEvidenceIndexCsvPath = path.resolve(
+    args.pilotEvidenceIndexCsvPath || path.join(rootDir, 'docs', 'pilot-evidence', 'index.csv')
+  );
+  assertCanonicalRepoPath(
+    rootDir,
+    pilotEvidenceIndexCsvPath,
+    CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
+    'pilot-entry pointer rows'
+  );
+
+  const pointerRow = resolvePilotPointerRow({
+    pilotId: args.pilotId,
+    pilotEvidenceIndexCsvPath,
+  });
+  const evidenceIndexPath = resolvePilotEvidenceIndexPath(rootDir, pointerRow.evidence_index_path);
+  if (!fs.existsSync(evidenceIndexPath)) {
+    throw new Error(`pilot-entry artifact set must exist before ${actionDescription}`);
+  }
+
+  return {
+    evidenceIndexPath,
+    pilotEvidenceIndexCsvPath,
+    pointerRow,
+    rootDir,
+  };
+}
+
 function validateDailyDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) {
     throw new Error('date must use YYYY-MM-DD format');
   }
   return String(value);
+}
+
+function normalizePilotDecision(value) {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (normalized === 'defer') {
+    return 'pause';
+  }
+  return normalized;
 }
 
 function validateMarkdownCellText(fieldName, value) {
@@ -435,6 +610,59 @@ function validateReportPath(value) {
 
 function validateBundlePath(value) {
   return validateMarkdownCellText('bundlePath', value);
+}
+
+function validateDecisionProofReviewType(value) {
+  const reviewType = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (!CANONICAL_DECISION_PROOF_REVIEW_TYPES.has(reviewType)) {
+    throw new Error('reviewType must be one of daily or weekly');
+  }
+  return reviewType;
+}
+
+function validateDecisionProofReference(reviewType, value) {
+  const normalized = validateMarkdownCellText('reference', value).toLowerCase();
+  const pattern = reviewType === 'daily' ? /^day-\d+$/ : /^week-\d+$/;
+  if (!pattern.test(normalized)) {
+    throw new Error(
+      reviewType === 'daily'
+        ? 'daily decision references must use day-<n>'
+        : 'weekly decision references must use week-<n>'
+    );
+  }
+  return normalized;
+}
+
+function validateRollbackTarget(value, decision) {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (!normalized || normalized === 'n/a') {
+    if (decision === 'hotfix' || decision === 'stop') {
+      throw new Error('rollbackTarget must use pilot-ready-YYYYMMDD for hotfix or stop');
+    }
+    return 'n/a';
+  }
+  if (!/^pilot-ready-\d{8}$/.test(normalized)) {
+    throw new Error('rollbackTarget must use pilot-ready-YYYYMMDD or n/a');
+  }
+  return normalized;
+}
+
+function deriveDecisionProofRequirements(decision) {
+  switch (decision) {
+    case 'continue':
+      return { requiresPilotCheck: 'no', requiresReleaseGate: 'no' };
+    case 'pause':
+      return { requiresPilotCheck: 'yes', requiresReleaseGate: 'no' };
+    case 'hotfix':
+    case 'stop':
+      return { requiresPilotCheck: 'yes', requiresReleaseGate: 'yes' };
+    default:
+      throw new Error(`unsupported decision: ${decision}`);
+  }
 }
 
 function ensureCopiedPilotEvidenceIndex(args) {
@@ -578,27 +806,10 @@ function createPilotEntryArtifacts(args) {
 }
 
 function recordPilotDailyEvidence(args) {
-  const rootDir = path.resolve(
-    args.rootDir || findRepoRootFromDocsPath(args.pilotEvidenceIndexCsvPath || process.cwd())
+  const { evidenceIndexPath, pointerRow, rootDir } = resolvePilotEvidenceArtifact(
+    args,
+    'daily evidence can be recorded'
   );
-  const pilotEvidenceIndexCsvPath = path.resolve(
-    args.pilotEvidenceIndexCsvPath || path.join(rootDir, 'docs', 'pilot-evidence', 'index.csv')
-  );
-  assertCanonicalRepoPath(
-    rootDir,
-    pilotEvidenceIndexCsvPath,
-    CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
-    'pilot-entry pointer rows'
-  );
-
-  const pointerRow = resolvePilotPointerRow({
-    pilotId: args.pilotId,
-    pilotEvidenceIndexCsvPath,
-  });
-  const evidenceIndexPath = path.resolve(rootDir, pointerRow.evidence_index_path);
-  if (!fs.existsSync(evidenceIndexPath)) {
-    throw new Error('pilot-entry artifact set must exist before daily evidence can be recorded');
-  }
 
   const day = Number.parseInt(String(args.day || ''), 10);
   if (!Number.isInteger(day) || day < 1) {
@@ -619,11 +830,9 @@ function recordPilotDailyEvidence(args) {
     throw new Error('highestSeverity must be one of none, sev3, sev2, or sev1');
   }
 
-  const decision = String(args.decision || '')
-    .trim()
-    .toLowerCase();
+  const decision = normalizePilotDecision(args.decision);
   if (!CANONICAL_DAILY_EVIDENCE_DECISIONS.has(decision)) {
-    throw new Error('decision must be one of continue, defer, hotfix, or stop');
+    throw new Error('decision must be one of continue, pause, hotfix, or stop');
   }
 
   const incidentCount = Number.parseInt(String(args.incidentCount ?? ''), 10);
@@ -672,17 +881,84 @@ function recordPilotDailyEvidence(args) {
   };
 }
 
+function recordPilotDecisionProof(args) {
+  const { evidenceIndexPath, pointerRow } = resolvePilotEvidenceArtifact(
+    args,
+    'decision proof can be recorded'
+  );
+
+  const reviewType = validateDecisionProofReviewType(args.reviewType);
+  const decision = normalizePilotDecision(args.decision);
+  if (!CANONICAL_DECISION_PROOF_DECISIONS.has(decision)) {
+    throw new Error('decision must be one of continue, pause, hotfix, or stop');
+  }
+
+  const date = validateDailyDate(args.date);
+  const owner = validateMarkdownCellText('owner', args.owner);
+  const reference = validateDecisionProofReference(reviewType, args.reference);
+  const rollbackTarget = validateRollbackTarget(args.rollbackTarget, decision);
+  const requirements = deriveDecisionProofRequirements(decision);
+  if (!CANONICAL_DECISION_PROOF_REQUIREMENT_VALUES.has(requirements.requiresPilotCheck)) {
+    throw new Error('requiresPilotCheck must be yes or no');
+  }
+  if (!CANONICAL_DECISION_PROOF_REQUIREMENT_VALUES.has(requirements.requiresReleaseGate)) {
+    throw new Error('requiresReleaseGate must be yes or no');
+  }
+
+  const parsedTable = ensureDecisionProofTable(fs.readFileSync(evidenceIndexPath, 'utf8'));
+  const nextRows = parsedTable.rows.map(row => ({ ...row }));
+  const nextRow = {
+    reviewType,
+    reference,
+    date,
+    owner,
+    decision,
+    rollbackTarget,
+    requiresPilotCheck: requirements.requiresPilotCheck,
+    requiresReleaseGate: requirements.requiresReleaseGate,
+  };
+  const existingIndex = nextRows.findIndex(
+    row => row.reviewType === reviewType && row.reference === reference
+  );
+
+  if (existingIndex === -1) {
+    nextRows.push(nextRow);
+  } else {
+    nextRows[existingIndex] = nextRow;
+  }
+
+  const nextTableLines = buildCanonicalDecisionProofTable(nextRows);
+  const nextLines = [...parsedTable.lines];
+  nextLines.splice(
+    parsedTable.headerIndex,
+    parsedTable.rowEndIndex - parsedTable.headerIndex,
+    ...nextTableLines
+  );
+  fs.writeFileSync(evidenceIndexPath, `${nextLines.join('\n').trimEnd()}\n`, 'utf8');
+
+  return {
+    decision,
+    evidenceIndexPath,
+    pointerRow,
+    requirements,
+    rollbackTarget,
+  };
+}
+
 module.exports = {
   CANONICAL_DAILY_EVIDENCE_DECISIONS,
   CANONICAL_DAILY_EVIDENCE_HEADERS,
   CANONICAL_DAILY_EVIDENCE_SEVERITY,
   CANONICAL_DAILY_EVIDENCE_STATUS,
+  CANONICAL_DECISION_PROOF_DECISIONS,
+  CANONICAL_DECISION_PROOF_HEADERS,
   CANONICAL_PILOT_EVIDENCE_INDEX_COLUMNS,
   CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
   CANONICAL_PILOT_EVIDENCE_TEMPLATE_PATH,
   createPilotEntryArtifacts,
   parsePilotEvidenceIndex,
   recordPilotDailyEvidence,
+  recordPilotDecisionProof,
   serializePilotEvidenceIndex,
   upgradeLegacyPilotEvidenceRows,
 };

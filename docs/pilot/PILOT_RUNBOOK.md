@@ -75,6 +75,12 @@ Use exactly these command roles:
    - Updates the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file in place.
    - Reuses `docs/pilot-evidence/index.csv` only to resolve the canonical copied evidence index and latest pilot-entry release report.
    - Does not create a new pilot-entry artifact set and does not replace `pnpm release:gate:prod -- --pilotId <pilot-id>`.
+6. `pnpm pilot:decision:record -- --pilotId <pilot-id> ...`
+   - Canonical pilot decision-proof command.
+   - Base form: `pnpm pilot:decision:record -- --pilotId <pilot-id>`.
+   - Updates the decision-proof log inside the same copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file.
+   - Records explicit daily and weekly `continue`, `pause`, `hotfix`, and `stop` decisions with rollback target and resume re-validation proof.
+   - Does not create a new pilot-entry artifact set and does not replace `pnpm release:gate:prod -- --pilotId <pilot-id>`.
 
 ## Canonical Pilot-Entry Artifact Contract
 
@@ -122,12 +128,30 @@ Daily pilot operations must use the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pil
 - Preferred command:
 
 ```bash
-pnpm pilot:evidence:record -- --pilotId <pilot-id> --day <n> --date <YYYY-MM-DD> --owner "<owner>" --status <green|amber|red> --incidentCount <n> --highestSeverity <none|sev3|sev2|sev1> --decision <continue|defer|hotfix|stop> --bundlePath <path|n/a>
+pnpm pilot:evidence:record -- --pilotId <pilot-id> --day <n> --date <YYYY-MM-DD> --owner "<owner>" --status <green|amber|red> --incidentCount <n> --highestSeverity <none|sev3|sev2|sev1> --decision <continue|pause|hotfix|stop> --bundlePath <path|n/a>
 ```
 
 - `--reportPath` is optional. When omitted, the command records the latest canonical pilot-entry `docs/release-gates/...` path already linked to that pilot id in `docs/pilot-evidence/index.csv`.
 - Use `n/a` for bundle path when no full gate bundle was generated that day.
 - Use the same copied evidence index file for the full 14-day pilot window.
+
+## Decision Proof Capture
+
+Daily end-of-day reviews and weekly reviews must record an explicit repo-backed decision row in that same copied evidence index file.
+
+- Do not leave continue/pause/hotfix/stop decisions in chat, memory, or meeting notes only.
+- Use `reviewType=daily` with `reference=day-<n>` for daily decisions.
+- Use `reviewType=weekly` with `reference=week-<n>` for weekly decisions.
+- Preferred command:
+
+```bash
+pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType <daily|weekly> --reference <day-<n>|week-<n>> --date <YYYY-MM-DD> --owner "<owner>" --decision <continue|pause|hotfix|stop> [--rollbackTag <pilot-ready-YYYYMMDD|n/a>]
+```
+
+- `continue`: records no extra resume gate requirements.
+- `pause`: records resume requirement `pnpm pilot:check`.
+- `hotfix`: requires `--rollbackTag pilot-ready-YYYYMMDD` and records resume requirements for both `pnpm pilot:check` and `pnpm release:gate:prod -- --pilotId <pilot-id>`.
+- `stop`: requires `--rollbackTag pilot-ready-YYYYMMDD` and records the same two resume requirements before any resume decision.
 
 ## Weekend Operating Mode (Light-Touch)
 
@@ -138,7 +162,7 @@ pnpm pilot:evidence:record -- --pilotId <pilot-id> --day <n> --date <YYYY-MM-DD>
   - Apply hotfixes only for Sev1 issues that materially impact operating-hours SLAs.
 - Weekend escalation:
   - Sev1 (privacy/tenant isolation/data integrity): immediate escalation and hotfix allowed.
-  - Sev2/Sev3: log and defer to next weekday ops huddle unless a stop criterion is met or risk escalates to Sev1.
+  - Sev2/Sev3: log and pause until next weekday ops huddle unless a stop criterion is met or risk escalates to Sev1.
 
 ## Weekend Ceremony Checklist (Saturday/Sunday)
 
@@ -164,12 +188,12 @@ pnpm security:guard
 
 ## Weekend Escalation Decision Table
 
-| Condition                                                                 | Weekend Action                                      | Decision |
-| ------------------------------------------------------------------------- | --------------------------------------------------- | -------- |
-| Sev1 (privacy, tenant isolation, data integrity, or stop-criteria threat) | Immediate escalation + hotfix allowed               | `hotfix` |
-| Sev2 (closed-loop break, major SLA breach) without Sev1 promotion         | Log, assign owner, defer to next weekday ops huddle | `defer`  |
-| Sev3 (non-critical with workaround)                                       | Log, assign owner, defer to next weekday ops huddle | `defer`  |
-| Any stop criterion reached                                                | Trigger rollback policy immediately                 | `stop`   |
+| Condition                                                                 | Weekend Action                                 | Decision |
+| ------------------------------------------------------------------------- | ---------------------------------------------- | -------- |
+| Sev1 (privacy, tenant isolation, data integrity, or stop-criteria threat) | Immediate escalation + hotfix allowed          | `hotfix` |
+| Sev2 (closed-loop break, major SLA breach) without Sev1 promotion         | Log, assign owner, pause until next ops review | `pause`  |
+| Sev3 (non-critical with workaround)                                       | Log, assign owner, pause until next ops review | `pause`  |
+| Any stop criterion reached                                                | Trigger rollback policy immediately            | `stop`   |
 
 ## Incident Escalation
 
@@ -201,3 +225,4 @@ Stop pilot immediately if any applies:
 - On stop criteria:
   - Roll back deployment to latest pilot-ready tag.
   - Re-run readiness checks from `docs/pilot/COMMANDS_5.md` before resume decision.
+  - Record the stop decision itself with `pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType <daily|weekly> --reference <day-<n>|week-<n>> --decision stop --rollbackTag pilot-ready-YYYYMMDD ...`.

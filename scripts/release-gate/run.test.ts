@@ -29,14 +29,20 @@ const {
   shouldDisallowSkippedChecks,
 } = require('./run.ts');
 const {
+  CANONICAL_DECISION_PROOF_HEADERS,
   createPilotEntryArtifacts,
   parsePilotEvidenceIndex,
   recordPilotDailyEvidence,
+  recordPilotDecisionProof,
 } = require('./pilot-artifacts.ts');
 const {
   createEmptyArgs: createPilotDailyEvidenceArgs,
   parseArgs: parsePilotDailyEvidenceArgs,
 } = require('../pilot-daily-evidence.ts');
+const {
+  createEmptyArgs: createPilotDecisionArgs,
+  parseArgs: parsePilotDecisionArgs,
+} = require('../pilot-decision-proof.ts');
 const { writeReleaseGateReport } = require('./report.ts');
 const { checkPortalMarkers, resolveForwardedForIp } = require('./shared.ts');
 const { REQUIRED_ENV_BY_SUITE, ROLE_IPS, SELECTORS } = require('./config.ts');
@@ -50,9 +56,11 @@ const DEFAULT_PILOT_REPORT_PATH = 'docs/release-gates/2026-03-15_production_dpl_
 const DAILY_EVIDENCE_TEMPLATE_LINES = [
   '# Pilot Evidence Index Template',
   '',
-  '| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`defer`/`hotfix`/`stop`) |',
+  '| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`pause`/`hotfix`/`stop`) |',
   '| --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |',
 ];
+const DECISION_PROOF_SEPARATOR_LINE =
+  '| ------------------------------- | --------- | ----------------- | ----- | ---------------------------------------------- | ----------------------------------------------- | ------------------------------------ | --------------------------------------------------------------- |';
 
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
 const ORIGINAL_REQUIRE_ROLE_PANEL = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
@@ -132,19 +140,32 @@ function setupPilotArtifactFixture(tempDir, options = {}) {
 }
 
 function buildDailyEvidenceTemplate(dayCount = 1) {
-  return [
-    ...DAILY_EVIDENCE_TEMPLATE_LINES,
-    ...Array.from({ length: dayCount }, (_, index) => `| ${index + 1} | | | | | | | | |`),
-    '',
-  ].join('\n');
+  return buildEvidenceIndexMarkdown({
+    headingLines: DAILY_EVIDENCE_TEMPLATE_LINES,
+    dayCount,
+  });
 }
 
 function buildCopiedDailyEvidenceIndex(dayCount = 1) {
+  return buildEvidenceIndexMarkdown({
+    headingLines: [
+      '# Pilot Evidence Index — pilot-ks-week-1',
+      '',
+      ...DAILY_EVIDENCE_TEMPLATE_LINES,
+    ],
+    dayCount,
+  });
+}
+
+function buildEvidenceIndexMarkdown({ headingLines, dayCount }) {
   return [
-    '# Pilot Evidence Index — pilot-ks-week-1',
-    '',
-    ...DAILY_EVIDENCE_TEMPLATE_LINES,
+    ...headingLines,
     ...Array.from({ length: dayCount }, (_, index) => `| ${index + 1} | | | | | | | | |`),
+    '',
+    '## Decision Proof Log',
+    '',
+    `| ${CANONICAL_DECISION_PROOF_HEADERS.join(' | ')} |`,
+    DECISION_PROOF_SEPARATOR_LINE,
     '',
   ].join('\n');
 }
@@ -181,6 +202,21 @@ function buildDailyEvidenceArgs(overrides = {}) {
     highestSeverity: 'none',
     decision: 'continue',
     bundlePath: 'n/a',
+    ...overrides,
+  };
+}
+
+function buildDecisionProofArgs(overrides = {}) {
+  return {
+    rootDir: '',
+    pilotId: PILOT_ID,
+    reviewType: 'daily',
+    reference: 'day-1',
+    date: '2026-03-15',
+    owner: 'Admin KS',
+    decision: 'continue',
+    rollbackTarget: 'n/a',
+    pilotEvidenceIndexCsvPath: '',
     ...overrides,
   };
 }
@@ -1169,6 +1205,13 @@ test('pilot daily evidence cli treats --help as a standalone flag regardless of 
   });
 });
 
+test('pilot decision proof cli treats --help as a standalone flag regardless of position', () => {
+  assert.deepEqual(parsePilotDecisionArgs(['--help', '--pilotId', 'pilot-ks-week-1']), {
+    ...createPilotDecisionArgs(),
+    help: true,
+  });
+});
+
 test('recordPilotDailyEvidence rejects report paths that escape docs/release-gates', () => {
   withTempDir('pilot-daily-evidence-traversal-', tempDir => {
     const fixture = createPilotEntryFixture(tempDir);
@@ -1215,6 +1258,145 @@ test('recordPilotDailyEvidence rejects markdown-breaking cell content', () => {
           pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
         }),
       /bundlePath must not contain "\|", carriage returns, or newlines/
+    );
+  });
+});
+
+test('recordPilotDecisionProof records repo-backed daily and weekly decisions in the copied evidence index', () => {
+  withTempDir('pilot-decision-proof-', tempDir => {
+    const fixture = createPilotEntryFixture(tempDir, { dayCount: 2 });
+
+    const dailyResult = recordPilotDecisionProof({
+      ...buildDecisionProofArgs({
+        rootDir: tempDir,
+        decision: 'pause',
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
+    });
+    const weeklyResult = recordPilotDecisionProof({
+      ...buildDecisionProofArgs({
+        rootDir: tempDir,
+        reviewType: 'weekly',
+        reference: 'week-1',
+        date: '2026-03-21',
+        decision: 'stop',
+        rollbackTarget: 'pilot-ready-20260315',
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
+    });
+
+    assert.equal(dailyResult.requirements.requiresPilotCheck, 'yes');
+    assert.equal(dailyResult.requirements.requiresReleaseGate, 'no');
+    assert.equal(weeklyResult.requirements.requiresPilotCheck, 'yes');
+    assert.equal(weeklyResult.requirements.requiresReleaseGate, 'yes');
+
+    const copiedIndex = fs.readFileSync(fixture.copiedIndexPath, 'utf8');
+    assert.match(copiedIndex, /## Decision Proof Log/);
+    assert.match(
+      copiedIndex,
+      /\| daily \| day-1 \| 2026-03-15 \| Admin KS \| pause \| n\/a \| yes \| no \|/
+    );
+    assert.match(
+      copiedIndex,
+      /\| weekly \| week-1 \| 2026-03-21 \| Admin KS \| stop \| pilot-ready-20260315 \| yes \| yes \|/
+    );
+  });
+});
+
+test('recordPilotDecisionProof requires rollback tags for hotfix and stop decisions', () => {
+  withTempDir('pilot-decision-proof-rollback-', tempDir => {
+    const fixture = createPilotEntryFixture(tempDir);
+
+    assert.throws(
+      () =>
+        recordPilotDecisionProof({
+          ...buildDecisionProofArgs({
+            rootDir: tempDir,
+            reviewType: 'weekly',
+            reference: 'week-1',
+            date: '2026-03-21',
+            decision: 'stop',
+            pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          }),
+          rollbackTarget: 'n/a',
+        }),
+      /rollbackTarget must use pilot-ready-YYYYMMDD for hotfix or stop/
+    );
+  });
+});
+
+test('recordPilotDecisionProof rejects malformed review references', () => {
+  withTempDir('pilot-decision-proof-reference-', tempDir => {
+    const fixture = createPilotEntryFixture(tempDir);
+
+    assert.throws(
+      () =>
+        recordPilotDecisionProof({
+          ...buildDecisionProofArgs({
+            rootDir: tempDir,
+            reference: 'week-1',
+            pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          }),
+        }),
+      /daily decision references must use day-<n>/
+    );
+  });
+});
+
+test('recordPilotDecisionProof upgrades copied evidence indexes that predate the decision log section', () => {
+  withTempDir('pilot-decision-proof-upgrade-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: buildDailyEvidenceTemplate(1),
+      pointerIndexContent: [
+        'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path,legacy_log_path',
+        'pilot-entry-20260315T101112Z-pilot-ks-week-1,pilot-ks-week-1,production,all,2026-03-15T10:11:12.000Z,GO,docs/release-gates/2026-03-15_production_dpl_demo.md,docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md,',
+        '',
+      ].join('\n'),
+      copiedIndexContent: [
+        '# Pilot Evidence Index — pilot-ks-week-1',
+        '',
+        ...DAILY_EVIDENCE_TEMPLATE_LINES,
+        '| 1 | 2026-03-15 | Admin KS | green | docs/release-gates/2026-03-15_production_dpl_demo.md | n/a | 0 | none | continue |',
+        '',
+      ].join('\n'),
+    });
+
+    recordPilotDecisionProof({
+      ...buildDecisionProofArgs({
+        rootDir: tempDir,
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
+    });
+
+    const copiedIndex = fs.readFileSync(fixture.copiedIndexPath, 'utf8');
+    assert.match(copiedIndex, /## Decision Proof Log/);
+    assert.match(
+      copiedIndex,
+      /\| daily \| day-1 \| 2026-03-15 \| Admin KS \| continue \| n\/a \| no \| no \|/
+    );
+  });
+});
+
+test('recordPilotDecisionProof rejects pointer rows whose evidence index escapes docs/pilot', () => {
+  withTempDir('pilot-decision-proof-contract-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: buildDailyEvidenceTemplate(),
+      pointerIndexContent: [
+        'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path,legacy_log_path',
+        'pilot-entry-20260315T101112Z-pilot-ks-week-1,pilot-ks-week-1,production,all,2026-03-15T10:11:12.000Z,GO,docs/release-gates/2026-03-15_production_dpl_demo.md,docs/release-gates/2026-03-15_production_dpl_demo.md,',
+        '',
+      ].join('\n'),
+    });
+
+    assert.throws(
+      () =>
+        recordPilotDecisionProof({
+          ...buildDecisionProofArgs({
+            rootDir: tempDir,
+            pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          }),
+        }),
+      /pilot evidence index path must stay under docs\/pilot\//
     );
   });
 });

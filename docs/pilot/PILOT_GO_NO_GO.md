@@ -8,6 +8,7 @@
   - the canonical pointer row in `docs/pilot-evidence/index.csv`
 - Daily pilot evidence is recorded in the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file via `pnpm pilot:evidence:record -- --pilotId <pilot-id>`.
 - Add the remaining required flags (`--day`, `--date`, `--owner`, `--status`, `--incidentCount`, `--highestSeverity`, `--decision`, and `--bundlePath`) when recording the row.
+- Daily and weekly continue/pause/hotfix/stop decisions are recorded in that same copied evidence index via `pnpm pilot:decision:record -- --pilotId <pilot-id>`.
 - Operational control-plane works: admin role assignment/removal succeeds in KS tenant and reflects in UI; cross-tenant admin access remains blocked (MK -> KS).
 - Member evidence is reliable: upload persists after refresh and relogin; uploaded file download/open works.
 - Staff workflow persistence is reliable: status update persists and note persists after refresh at `data-testid="staff-claim-detail-note"`.
@@ -30,6 +31,7 @@
 - Execute `pnpm pilot:check` successfully.
 - Execute `pnpm release:gate:prod -- --pilotId <pilot-id>` successfully.
 - Start the copied pilot evidence index and record day 1 through `pnpm pilot:evidence:record -- --pilotId <pilot-id> ...`.
+- Record the launch-day decision row in that same copied evidence index through `pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType daily --reference day-1 ...`.
 - Perform one end-to-end closed-loop claim walkthrough.
 - Confirm `agent-members-ready` visible in Agent My Members.
 - Confirm Staff queue policy behavior (`branch_manager` read-only).
@@ -44,6 +46,7 @@
 - `pnpm e2e:gate` pass rate `100%` (or immediate corrective action).
 - `pnpm security:guard` pass rate `100%`.
 - Weekly review records clear continue/pause decision with owners.
+- Weekly review records a repo-backed decision-proof row with rollback target when applicable.
 
 ## Go/No-Go Thresholds
 
@@ -55,7 +58,7 @@
   - Closed-loop path operational end-to-end.
 - No-Go:
   - Any Sev1 incident unresolved.
-  - When stop criteria are met, they trigger an immediate stop/rollback decision; weekend defer policy cannot override or delay this.
+  - When stop criteria are met, they trigger an immediate stop/rollback decision; weekend pause policy cannot override or delay this.
   - Repeated guardrail failures (`security:guard`, `m4-gatekeeper.sh`, or `e2e:gate`) without fix.
   - Repeated authentication/login failures for pilot users that block operations.
   - Closed-loop path broken for more than 1 operating day.
@@ -75,3 +78,4 @@
 - Trigger rollback immediately on stop criteria.
 - Rollback target: latest `pilot-ready-YYYYMMDD` git tag.
 - Resume only after fresh `pnpm pilot:check` re-validation and a new `pnpm release:gate:prod -- --pilotId <pilot-id>` artifact row.
+- Record stop or hotfix decisions in the copied evidence index with `pnpm pilot:decision:record -- --rollbackTag pilot-ready-YYYYMMDD`.
