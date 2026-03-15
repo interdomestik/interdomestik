@@ -4,8 +4,11 @@ Pilot may begin when all conditions below are satisfied:
 
 1. Production Release Gate is GREEN
 
-- `pnpm pilot:check` returns exit code 0
-- A new release-gate record exists in `docs/release-gates/`
+- `pnpm release:gate:prod -- --pilotId <pilot-id>` returns exit code 0
+- The canonical pilot-entry artifact set defined in `docs/pilot/PILOT_RUNBOOK.md` exists:
+  - a new release-gate record in `docs/release-gates/`
+  - a copied per-pilot evidence index in `docs/pilot/`
+  - a canonical pointer row in `docs/pilot-evidence/index.csv`
 - Deployment ID documented
 
 2. RBAC & Tenant Isolation Verified

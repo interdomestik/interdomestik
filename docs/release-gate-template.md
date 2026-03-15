@@ -2,7 +2,7 @@
 
 Run with `pnpm release:gate -- --baseUrl https://interdomestik-web.vercel.app --envName production --suite all`; report is written to `docs/release-gates/YYYY-MM-DD_<envName>_<deploymentIdOrUnknown>.md`.
 
-For pilot entry, add `--pilotId <pilot-id>` so the same run also creates the canonical pilot evidence copy and pointer row described in `docs/pilot/PILOT_RUNBOOK.md`.
+For pilot entry, add `--pilotId <pilot-id>` to the canonical production full-suite run so the same command also creates the artifact set defined in `docs/pilot/PILOT_RUNBOOK.md`.
 
 ## Deployment
 

@@ -13,6 +13,9 @@ const CANONICAL_PILOT_EVIDENCE_INDEX_COLUMNS = [
   'legacy_log_path',
 ];
 
+const CANONICAL_PILOT_EVIDENCE_TEMPLATE_PATH = 'docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md';
+const CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH = 'docs/pilot-evidence/index.csv';
+
 function sanitizePilotId(value) {
   const safe = String(value || '')
     .trim()
@@ -53,6 +56,23 @@ function toRepoRelative(rootDir, targetPath) {
     !repoRelativePath.startsWith('docs/')
   ) {
     throw new Error(`pilot artifact path must stay under docs/: ${repoRelativePath}`);
+  }
+  return repoRelativePath;
+}
+
+function assertCanonicalPilotEntryArgs(args) {
+  if (args.envName !== 'production') {
+    throw new Error('pilot-entry artifacts require envName "production"');
+  }
+  if (args.suite !== 'all') {
+    throw new Error('pilot-entry artifacts require suite "all"');
+  }
+}
+
+function assertCanonicalRepoPath(rootDir, targetPath, expectedRepoRelativePath, label) {
+  const repoRelativePath = toRepoRelative(rootDir, targetPath);
+  if (repoRelativePath !== expectedRepoRelativePath) {
+    throw new Error(`${label} must be written to ${expectedRepoRelativePath}`);
   }
   return repoRelativePath;
 }
@@ -243,12 +263,25 @@ function appendPilotEvidencePointerRow(args) {
 function createPilotEntryArtifacts(args) {
   const reportPath = path.resolve(args.reportPath);
   const rootDir = path.resolve(args.rootDir || findRepoRootFromDocsPath(reportPath));
+  assertCanonicalPilotEntryArgs(args);
   const releaseGateTemplatePath = path.resolve(
     args.releaseGateTemplatePath ||
       path.join(rootDir, 'docs', 'pilot', 'PILOT_EVIDENCE_INDEX_TEMPLATE.md')
   );
   const pilotEvidenceIndexCsvPath = path.resolve(
     args.pilotEvidenceIndexCsvPath || path.join(rootDir, 'docs', 'pilot-evidence', 'index.csv')
+  );
+  assertCanonicalRepoPath(
+    rootDir,
+    releaseGateTemplatePath,
+    CANONICAL_PILOT_EVIDENCE_TEMPLATE_PATH,
+    'pilot-entry evidence template'
+  );
+  assertCanonicalRepoPath(
+    rootDir,
+    pilotEvidenceIndexCsvPath,
+    CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
+    'pilot-entry pointer rows'
   );
   const generatedAt = new Date(args.generatedAt || new Date());
   const runId = formatRunId(generatedAt, args.pilotId);
@@ -286,6 +319,8 @@ function createPilotEntryArtifacts(args) {
 
 module.exports = {
   CANONICAL_PILOT_EVIDENCE_INDEX_COLUMNS,
+  CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
+  CANONICAL_PILOT_EVIDENCE_TEMPLATE_PATH,
   createPilotEntryArtifacts,
   parsePilotEvidenceIndex,
   serializePilotEvidenceIndex,

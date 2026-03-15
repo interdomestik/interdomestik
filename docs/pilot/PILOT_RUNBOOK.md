@@ -48,13 +48,37 @@ Validate one closed-loop workflow in real branch operations in Kosovo:
 - Weekly review (45 min): Trend review, threshold check, go/no-go decision.
 - Mon–Sun operations are active for the full 14-day pilot window.
 
+## Readiness Command Authority
+
+Use exactly these command roles:
+
+1. `pnpm pilot:check`
+   - Canonical local pre-launch verification command.
+   - Runs the fail-fast preflight pack from `scripts/pilot-verify.sh`.
+   - Verifies operator prerequisites such as env presence, Node 20.x, `pr:verify`, `security:guard`, and `e2e:gate`.
+   - Does not create a production release report.
+   - Does not create pilot-entry artifacts.
+2. `pnpm release:gate:prod`
+   - Canonical production full-suite release proof command.
+   - Writes the production release report in `docs/release-gates/`.
+   - Without `--pilotId`, this is release proof only.
+3. `pnpm release:gate:prod -- --pilotId <pilot-id>`
+   - Canonical pilot-entry command.
+   - Uses the same production full-suite release proof run and also creates the full pilot-entry artifact set defined below.
+4. `./scripts/pilot-verify.sh`
+   - Shell-native implementation of `pnpm pilot:check`.
+   - Use only when a direct shell entrypoint is required.
+   - Not a separate pilot-entry or production-proof authority.
+
 ## Canonical Pilot-Entry Artifact Contract
 
-The canonical pilot-entry artifact contract is owned here. A pilot-entry run is a production release-gate run invoked with a pilot id:
+This is the only canonical definition of the pilot-entry artifact contract. A pilot-entry run is a production full-suite release-gate run invoked with a pilot id:
 
 ```bash
 pnpm release:gate:prod -- --pilotId <pilot-id>
 ```
+
+Non-production runs, partial-suite runs, and non-canonical artifact destinations do not satisfy pilot-entry custody and must not be treated as pilot-entry evidence.
 
 Each pilot-entry run must create exactly these repo-backed artifacts:
 
@@ -97,7 +121,7 @@ git status --porcelain
 pnpm security:guard
 ```
 
-- Record results in a per-pilot evidence index copied from `docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md` (for example, `docs/pilot/PILOT_EVIDENCE_INDEX_<PILOT_ID>.md`).
+- Record results in the copied per-pilot evidence index referenced by the canonical pilot-entry artifact set.
 - For pilot entry, create or refresh the artifact set by running `pnpm release:gate:prod -- --pilotId <pilot-id>` before daily updates begin.
 - If Sev1 requires hotfix workflow evidence, run:
   - after hotfix merge to clean, synced `main`: `./phase-5-1.sh`

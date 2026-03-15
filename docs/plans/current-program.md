@@ -33,7 +33,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P6` v1.0.0 RC Gate is now complete as the next committed tranche after the completed `P4` and `P4G` queue. `G07` is now complete as the first explicit release-gate slice, `G08` is now complete as the Free Start and aggregate-only privacy-boundary proof slice, `G09` is now complete as the matter-count and SLA-state enforcement slice, and `G10` is now complete as the escalation-agreement and collection-fallback enforcement slice.
 
-`P7` Pilot Readiness And Release Evidence remains the next committed tranche after completed `P6`. `R01` is now complete as the canonical pilot-entry artifact-set slice, and `R02` through `R08` remain queued as the readiness command authority, deterministic daily evidence capture, continue-or-rollback proof, pilot-ready tag discipline, modern readiness cadence, observability evidence, and ranked operator flow required before live pilot operation is treated as governable.
+`P7` Pilot Readiness And Release Evidence remains the next committed tranche after completed `P6`. `R01` is now complete as the canonical pilot-entry artifact-set slice, `R02` is now complete as the canonical readiness-command authority slice, and `R03` through `R08` remain queued as the deterministic daily evidence capture, continue-or-rollback proof, pilot-ready tag discipline, modern readiness cadence, observability evidence, and ranked operator flow required before live pilot operation is treated as governable.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -150,7 +150,7 @@ pnpm plan:proof
 
 `P6` v1.0.0 RC Gate is now complete after completed `P4` and `P4G`. `G07` Validate commercial promise surfaces is now complete, `G08` Validate Free Start and group privacy boundaries is now complete, `G09` Validate matter and SLA enforcement is now complete, and `G10` Validate escalation agreement and collection fallback in staging is now complete, proving release-candidate validation now covers the published commercial contract surfaces, Free Start and aggregate-only privacy boundaries, matter-and-SLA enforcement, and accepted-case commercial enforcement.
 
-`P7` Pilot Readiness And Release Evidence remains the next committed tranche after completed `P6`. `R01` Canonicalize the pilot-ready artifact set is now complete, and `R02` through `R08` remain queued behind it so readiness command authority, daily evidence capture, rollback discipline, and operator decision custody become canonical before any broader UX redesign is promoted.
+`P7` Pilot Readiness And Release Evidence remains the next committed tranche after completed `P6`. `R01` Canonicalize the pilot-ready artifact set and `R02` Unify readiness commands and outputs are now complete, and `R03` through `R08` remain queued behind them so daily evidence capture, rollback discipline, and operator decision custody become canonical before any broader UX redesign is promoted.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -265,6 +265,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `P7` has now been copied into the live program and tracker from `docs/plans/2026-03-15-pilot-readiness-blueprint-v1.md` and `docs/plans/2026-03-15-pilot-readiness-roadmap-diff-proposal.md` as the next committed tranche after completed `P6`.
 - `R01` through `R08` have now been copied into the live program and tracker from `docs/plans/2026-03-15-pilot-readiness-blueprint-v1.md` and `docs/plans/2026-03-15-pilot-readiness-roadmap-diff-proposal.md` as the committed pilot-readiness and release-evidence queue.
 - `R01` is now complete as of 2026-03-15. The canonical release-gate runner accepts `--pilotId`, writes the release report plus copied per-pilot evidence index and canonical `docs/pilot-evidence/index.csv` pointer row together, preserves stable `docs/...` references for the pilot artifact set, and documents that contract in the pilot runbook.
+- `R02` is now complete as of 2026-03-15. `pnpm pilot:check` now resolves to the shell-backed local pre-launch verification pack, `pnpm release:gate:prod` remains the canonical production full-suite release proof command, `pnpm release:gate:prod -- --pilotId <pilot-id>` remains the canonical pilot-entry artifact command, and the pilot runbook plus go/no-go docs now rank those authorities without overlap.
 
 ## Historical Foundation, Not Current Sequencing
 

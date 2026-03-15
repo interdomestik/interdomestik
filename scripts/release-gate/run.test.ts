@@ -921,3 +921,76 @@ test('createPilotEntryArtifacts rejects artifact paths that escape the canonical
     );
   });
 });
+
+test('createPilotEntryArtifacts rejects non-production pilot-entry artifact runs', () => {
+  withTempDir('pilot-entry-artifacts-env-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: '# Template\n',
+    });
+
+    assert.throws(
+      () =>
+        createPilotEntryArtifacts({
+          rootDir: tempDir,
+          pilotId: 'pilot-ks-week-1',
+          envName: 'staging',
+          suite: 'all',
+          generatedAt: new Date('2026-03-15T10:11:12.000Z'),
+          reportPath: fixture.reportPath,
+          releaseVerdict: 'GO',
+          releaseGateTemplatePath: fixture.templatePath,
+          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+        }),
+      /pilot-entry artifacts require envName "production"/
+    );
+  });
+});
+
+test('createPilotEntryArtifacts rejects partial gate suites for pilot-entry artifact runs', () => {
+  withTempDir('pilot-entry-artifacts-suite-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: '# Template\n',
+    });
+
+    assert.throws(
+      () =>
+        createPilotEntryArtifacts({
+          rootDir: tempDir,
+          pilotId: 'pilot-ks-week-1',
+          envName: 'production',
+          suite: 'p1',
+          generatedAt: new Date('2026-03-15T10:11:12.000Z'),
+          reportPath: fixture.reportPath,
+          releaseVerdict: 'GO',
+          releaseGateTemplatePath: fixture.templatePath,
+          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+        }),
+      /pilot-entry artifacts require suite "all"/
+    );
+  });
+});
+
+test('createPilotEntryArtifacts rejects pointer rows outside the canonical pilot evidence index csv', () => {
+  withTempDir('pilot-entry-artifacts-pointer-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: '# Template\n',
+    });
+    const nonCanonicalPointerPath = path.join(tempDir, 'docs', 'pilot-evidence', 'pilot-entry.csv');
+
+    assert.throws(
+      () =>
+        createPilotEntryArtifacts({
+          rootDir: tempDir,
+          pilotId: 'pilot-ks-week-1',
+          envName: 'production',
+          suite: 'all',
+          generatedAt: new Date('2026-03-15T10:11:12.000Z'),
+          reportPath: fixture.reportPath,
+          releaseVerdict: 'GO',
+          releaseGateTemplatePath: fixture.templatePath,
+          pilotEvidenceIndexCsvPath: nonCanonicalPointerPath,
+        }),
+      /pilot-entry pointer rows must be written to docs\/pilot-evidence\/index\.csv/
+    );
+  });
+});
