@@ -22,6 +22,7 @@ import {
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
@@ -38,7 +39,7 @@ import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core
 // ...
 
 // Loose type for next-intl translator to avoid complex generic drilling
-type TranslationFn = (key: string, values?: any, formats?: any) => string;
+type TranslationFn = (key: string, values?: Record<string, string | number>) => string;
 
 export function MembershipOpsPage({
   subscriptions,
@@ -265,12 +266,12 @@ function DetailView({
                 {t('sponsored.upgrade.title')}
               </h4>
               <p className="mt-1 text-sm text-slate-600">{t('sponsored.upgrade.body')}</p>
-              <a
+              <Link
                 href="/pricing?plan=family"
                 className="mt-3 inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900"
               >
                 {t('sponsored.upgrade.cta')}
-              </a>
+              </Link>
             </div>
           ) : null}
         </CardContent>
