@@ -75,19 +75,25 @@ Use exactly these command roles:
    - Updates the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file in place.
    - Reuses `docs/pilot-evidence/index.csv` only to resolve the canonical copied evidence index and latest pilot-entry release report.
    - Does not create a new pilot-entry artifact set and does not replace `pnpm release:gate:prod -- --pilotId <pilot-id>`.
-6. `pnpm pilot:decision:record -- --pilotId <pilot-id> ...`
+6. `pnpm pilot:observability:record -- --pilotId <pilot-id> ...`
+   - Canonical pilot observability evidence command.
+   - Base form: `pnpm pilot:observability:record -- --pilotId <pilot-id>`.
+   - Updates the observability evidence log inside the same copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file.
+   - Records structured log-sweep result, KPI condition, incident count, and highest severity for the referenced review window.
+   - Does not create a new pilot-entry artifact set and does not replace `pnpm release:gate:prod -- --pilotId <pilot-id>`.
+7. `pnpm pilot:decision:record -- --pilotId <pilot-id> ...`
    - Canonical pilot decision-proof command.
    - Base form: `pnpm pilot:decision:record -- --pilotId <pilot-id>`.
    - Updates the decision-proof log inside the same copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file.
-   - Records explicit daily and weekly `continue`, `pause`, `hotfix`, and `stop` decisions with rollback target and resume re-validation proof.
+   - Records explicit daily and weekly `continue`, `pause`, `hotfix`, and `stop` decisions with rollback target, linked observability reference, and resume re-validation proof.
    - Does not create a new pilot-entry artifact set and does not replace `pnpm release:gate:prod -- --pilotId <pilot-id>`.
-7. `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`
+8. `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`
    - Canonical pilot-ready tag-discipline command.
    - Reuses the latest canonical pilot-entry row for that pilot id from `docs/pilot-evidence/index.csv`.
    - Creates `pilot-ready-YYYYMMDD` when missing, or verifies the existing tag against the same release report and copied evidence index when it already exists.
    - Requires the referenced `docs/release-gates/...` report and `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file to exist in `HEAD`.
    - Does not replace `pnpm pilot:check` or `pnpm release:gate:prod -- --pilotId <pilot-id>`; it binds rollback tags to that evidence.
-8. `pnpm pilot:cadence:check -- --pilotId <pilot-id>`
+9. `pnpm pilot:cadence:check -- --pilotId <pilot-id>`
    - Canonical readiness-cadence command.
    - Reads the latest canonical pilot-entry row for that pilot id from `docs/pilot-evidence/index.csv`.
    - Evaluates the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file for consecutive qualifying green operating days.
@@ -146,6 +152,32 @@ pnpm pilot:evidence:record -- --pilotId <pilot-id> --day <n> --date <YYYY-MM-DD>
 - Use `n/a` for bundle path when no full gate bundle was generated that day.
 - Use the same copied evidence index file for the full 14-day pilot window.
 
+## Observability Evidence Capture
+
+Daily end-of-day reviews and weekly reviews must record one structured observability row in that same copied evidence index file before a decision row is written.
+
+- Do not leave log-sweep results, KPI condition, or incident severity in chat, memory, or meeting notes only.
+- Record one row per review window with:
+  - reference
+  - date
+  - owner
+  - log-sweep result
+  - functional error count
+  - expected authorization-deny noise count
+  - KPI condition
+  - incident count
+  - highest severity
+  - notes or repo-backed artifact path
+- Preferred command:
+
+```bash
+pnpm pilot:observability:record -- --pilotId <pilot-id> --reference <day-<n>|week-<n>> --date <YYYY-MM-DD> --owner "<owner>" --logSweepResult <clear|expected-noise|action-required> --functionalErrorCount <n> --expectedAuthDenyCount <n> --kpiCondition <within-threshold|watch|breach> --incidentCount <n> --highestSeverity <none|sev3|sev2|sev1> --notes <text|n/a>
+```
+
+- `expected-noise` is the normal result when the sweep contains only known authorization-deny entries from negative tests.
+- `action-required` means the log sweep itself should influence the next `continue`/`pause`/`hotfix`/`stop` decision.
+- `kpiCondition` must reflect the active threshold state from `docs/pilot/PILOT_KPIS.md`.
+
 ## Readiness Cadence
 
 Readiness cadence is satisfied only after 3 consecutive qualifying green operating days for the pilot id.
@@ -174,14 +206,16 @@ Historical `A22` streak notes remain background only and must not be used as liv
 Daily end-of-day reviews and weekly reviews must record an explicit repo-backed decision row in that same copied evidence index file.
 
 - Do not leave continue/pause/hotfix/stop decisions in chat, memory, or meeting notes only.
+- Record the matching observability evidence row first.
 - Use `reviewType=daily` with `reference=day-<n>` for daily decisions.
 - Use `reviewType=weekly` with `reference=week-<n>` for weekly decisions.
 - Preferred command:
 
 ```bash
-pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType <daily|weekly> --reference <day-<n>|week-<n>> --date <YYYY-MM-DD> --owner "<owner>" --decision <continue|pause|hotfix|stop> [--rollbackTag <pilot-ready-YYYYMMDD|n/a>]
+pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType <daily|weekly> --reference <day-<n>|week-<n>> --date <YYYY-MM-DD> --owner "<owner>" --decision <continue|pause|hotfix|stop> [--rollbackTag <pilot-ready-YYYYMMDD|n/a>] [--observabilityRef <day-<n>|week-<n>>]
 ```
 
+- `--observabilityRef` defaults to the same review reference and must already exist in the observability log.
 - `continue`: records no extra resume gate requirements.
 - `pause`: records resume requirement `pnpm pilot:check`.
 - `hotfix`: requires `--rollbackTag pilot-ready-YYYYMMDD` and records resume requirements for both `pnpm pilot:check` and `pnpm release:gate:prod -- --pilotId <pilot-id>`.

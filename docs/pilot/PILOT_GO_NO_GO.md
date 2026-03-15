@@ -10,7 +10,10 @@
   - the canonical pointer row in `docs/pilot-evidence/index.csv`
 - Daily pilot evidence is recorded in the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file via `pnpm pilot:evidence:record -- --pilotId <pilot-id>`.
 - Add the remaining required flags (`--day`, `--date`, `--owner`, `--status`, `--incidentCount`, `--highestSeverity`, `--decision`, and `--bundlePath`) when recording the row.
+- Observability evidence is recorded in that same copied evidence index via `pnpm pilot:observability:record -- --pilotId <pilot-id>`.
+- Observability rows must capture log-sweep result, KPI condition, incident count, and highest severity before the corresponding decision row is written.
 - Daily and weekly continue/pause/hotfix/stop decisions are recorded in that same copied evidence index via `pnpm pilot:decision:record -- --pilotId <pilot-id>`.
+- Decision rows must reference the matching observability window through `Observability Ref`.
 - Operational control-plane works: admin role assignment/removal succeeds in KS tenant and reflects in UI; cross-tenant admin access remains blocked (MK -> KS).
 - Member evidence is reliable: upload persists after refresh and relogin; uploaded file download/open works.
 - Staff workflow persistence is reliable: status update persists and note persists after refresh at `data-testid="staff-claim-detail-note"`.
@@ -34,6 +37,7 @@
 - Execute `pnpm pilot:cadence:check -- --pilotId <pilot-id>` successfully.
 - Execute `pnpm release:gate:prod -- --pilotId <pilot-id>` successfully.
 - Start the copied pilot evidence index and record day 1 through `pnpm pilot:evidence:record -- --pilotId <pilot-id> ...`.
+- Record the day-1 observability row in that same copied evidence index through `pnpm pilot:observability:record -- --pilotId <pilot-id> --reference day-1 ...`.
 - Record the launch-day decision row in that same copied evidence index through `pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType daily --reference day-1 ...`.
 - Perform one end-to-end closed-loop claim walkthrough.
 - Confirm `agent-members-ready` visible in Agent My Members.
@@ -49,17 +53,21 @@
 - `pnpm e2e:gate` pass rate `100%` (or immediate corrective action).
 - `pnpm security:guard` pass rate `100%`.
 - Weekly review records clear continue/pause decision with owners.
-- Weekly review records a repo-backed decision-proof row with rollback target when applicable.
+- Weekly review records a repo-backed observability row that captures log-sweep result, KPI condition, and highest incident severity.
+- Weekly review records a repo-backed decision-proof row with the matching observability reference and rollback target when applicable.
 
 ## Go/No-Go Thresholds
 
 - Go:
   - `pnpm pilot:check` passes.
   - `pnpm release:gate:prod -- --pilotId <pilot-id>` passes and produces the canonical artifact set.
+  - Latest observability evidence is `clear` or `expected-noise`, KPI condition is `within-threshold`, and no Sev1 incidents are present.
   - No Sev1 incidents.
   - SLA compliance meets thresholds for week 1.
   - Closed-loop path operational end-to-end.
 - No-Go:
+  - Latest observability evidence is `action-required`.
+  - KPI condition is `breach` without an accepted stop-or-hotfix decision.
   - Any Sev1 incident unresolved.
   - When stop criteria are met, they trigger an immediate stop/rollback decision; weekend pause policy cannot override or delay this.
   - Repeated guardrail failures (`security:guard`, `m4-gatekeeper.sh`, or `e2e:gate`) without fix.
