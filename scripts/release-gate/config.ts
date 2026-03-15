@@ -69,6 +69,7 @@ const TIMEOUTS = {
 const ROLE_IPS = {
   member: '10.0.0.11',
   agent: '10.0.0.13',
+  office_agent: '10.0.0.13',
   staff: '10.0.0.14',
   admin: '10.0.0.12',
   admin_mk: '10.0.0.16',

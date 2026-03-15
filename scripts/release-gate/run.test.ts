@@ -27,7 +27,7 @@ const {
 } = require('./run.ts');
 const { writeReleaseGateReport } = require('./report.ts');
 const { checkPortalMarkers } = require('./shared.ts');
-const { REQUIRED_ENV_BY_SUITE, SELECTORS } = require('./config.ts');
+const { REQUIRED_ENV_BY_SUITE, ROLE_IPS, SELECTORS } = require('./config.ts');
 
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
 const ORIGINAL_REQUIRE_ROLE_PANEL = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
@@ -185,6 +185,10 @@ test('isLoginDependentCheck maps suites to auth-dependent checks', () => {
 test('resolveAccountPasswordVar reuses the agent password for office agents', () => {
   assert.equal(resolveAccountPasswordVar('office_agent'), 'RELEASE_GATE_AGENT_PASSWORD');
   assert.equal(resolveAccountPasswordVar('member'), 'RELEASE_GATE_MEMBER_PASSWORD');
+});
+
+test('office-agent release-gate traffic uses the agent source IP', () => {
+  assert.equal(ROLE_IPS.office_agent, ROLE_IPS.agent);
 });
 
 test('p6 suite requires member credentials plus office-agent email and shared agent password', () => {
