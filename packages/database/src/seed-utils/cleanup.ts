@@ -35,6 +35,11 @@ export async function cleanupByPrefixes(
   const allClaimIds = claimIdsToDelete.map(c => c.id);
 
   if (allClaimIds.length > 0) {
+    if (dbSchema.claimEscalationAgreements) {
+      await db
+        .delete(dbSchema.claimEscalationAgreements)
+        .where(inArray(dbSchema.claimEscalationAgreements.claimId, allClaimIds));
+    }
     if (dbSchema.claimTrackingTokens) {
       await db
         .delete(dbSchema.claimTrackingTokens)
@@ -159,6 +164,11 @@ export async function cleanupByPrefixes(
 
     const cIds = userClaimIds.map(c => c.id);
     if (cIds.length > 0) {
+      if (dbSchema.claimEscalationAgreements) {
+        await db
+          .delete(dbSchema.claimEscalationAgreements)
+          .where(inArray(dbSchema.claimEscalationAgreements.claimId, cIds));
+      }
       if (dbSchema.claimTrackingTokens) {
         await db
           .delete(dbSchema.claimTrackingTokens)

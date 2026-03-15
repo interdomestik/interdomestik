@@ -27,6 +27,7 @@ This release gate covers:
 - Evidence upload signing + persistence
 - Staff claim update persistence
 - Commercial promise surfaces
+- Accepted-case escalation agreement + collection fallback enforcement
 - Production error log sweep
 
 ## Test Accounts Used
@@ -152,6 +153,17 @@ Observed:
 - /member/claims/golden_ks_a_claim_13: matter allowance card stays visible with used `0`, remaining `2`, total `2`, and member-facing SLA text stays `Waiting for your information before the SLA starts.` <present/missing>
 - /staff/claims/golden_ks_a_claim_05: staff detail stays ready with matter allowance values `0 / 2 / 2` and staff-facing SLA text stays `Running` <present/missing>
 - /staff/claims/golden_ks_a_claim_13: staff detail stays ready with matter allowance values `0 / 2 / 2` and staff-facing SLA text stays `Waiting for member information` <present/missing>
+
+## G10 Escalation Agreement And Collection Fallback
+
+**Result:** <PASS/FAIL>
+
+Observed:
+
+- /staff/claims/golden_ks_a_claim_14: accepted-recovery prerequisites stay blocked with agreement `Missing` and collection path `Missing` until the escalation agreement is signed <present/missing>
+- /staff/claims/golden_ks_a_claim_15: accepted-case agreement summary stays present and success-fee collection summary stays `Deduct from payout` <present/missing>
+- /staff/claims/golden_ks_a_claim_17: accepted-case agreement summary stays present and success-fee collection summary stays `Charge stored payment method` <present/missing>
+- /staff/claims/golden_ks_a_claim_16: accepted-case agreement summary stays present and success-fee collection summary stays `Invoice fallback` with the seeded invoice due date <present/missing>
 
 ---
 

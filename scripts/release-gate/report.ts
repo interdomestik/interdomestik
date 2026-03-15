@@ -80,6 +80,7 @@ function writeReleaseGateReport(input) {
   const g07 = getCheck(input.checks, 'G07');
   const g08 = getCheck(input.checks, 'G08');
   const g09 = getCheck(input.checks, 'G09');
+  const g10 = getCheck(input.checks, 'G10');
 
   const failingSignatures = input.checks.flatMap(check => check.signatures || []);
   const verdict = failingSignatures.length > 0 ? 'NO-GO' : 'GO';
@@ -124,6 +125,7 @@ function writeReleaseGateReport(input) {
     '- Commercial promise surfaces (coverage, fees, disclaimers, refund terms)',
     '- Free Start informational-only and aggregate-only privacy boundaries',
     '- Member and staff matter allowance plus SLA enforcement surfaces',
+    '- Accepted-case escalation agreement and success-fee collection fallback surfaces',
     '- Production error log sweep',
     '',
     '## Test Accounts Used',
@@ -222,6 +224,13 @@ function writeReleaseGateReport(input) {
     '',
     'Observed:',
     ...asList(g09.evidence),
+    '',
+    '## G10 Escalation Agreement And Collection Fallback',
+    '',
+    `**Result:** ${renderCheckResult(g10)}`,
+    '',
+    'Observed:',
+    ...asList(g10.evidence),
     '',
     '---',
     '',

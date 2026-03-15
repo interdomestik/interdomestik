@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
 import { ClaimActionPanel } from './claim-action-panel';
@@ -130,6 +130,19 @@ describe('ClaimActionPanel', () => {
       claimCategory: 'travel',
     }),
     isAcceptedRecoveryDecision: true,
+  };
+  const invoiceFallbackSuccessFeeCollection = {
+    claimId: 'claim-1',
+    collectionMethod: 'invoice' as const,
+    currencyCode: 'EUR',
+    deductionAllowed: false,
+    feeAmount: '50.00',
+    hasStoredPaymentMethod: false,
+    invoiceDueAt: '2026-03-20T00:00:00.000Z',
+    paymentAuthorizationState: 'authorized' as const,
+    recoveredAmount: '200.00',
+    resolvedAt: null,
+    subscriptionId: null,
   };
 
   function renderPanel(overrides: Partial<React.ComponentProps<typeof ClaimActionPanel>> = {}) {
@@ -334,6 +347,30 @@ describe('ClaimActionPanel', () => {
         'Accepted recovery cannot move into negotiation or court until both prerequisites are ready.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('shows the saved collection fallback summary for accepted recovery claims', () => {
+    render(
+      <ClaimActionPanel
+        acceptedRecoveryPrerequisites={readyAcceptedRecoveryPrerequisites}
+        assigneeId="staff-me"
+        assignmentOptions={assignmentOptions}
+        claimId="claim-1"
+        commercialAgreement={savedAgreement}
+        currentStatus="evaluation"
+        recoveryDecision={acceptedRecoveryDecision}
+        staffId="staff-me"
+        successFeeCollection={invoiceFallbackSuccessFeeCollection}
+      />
+    );
+
+    const summary = screen.getByTestId('staff-success-fee-collection-summary');
+
+    expect(summary).toBeInTheDocument();
+    expect(within(summary).getByText('EUR 200.00')).toBeInTheDocument();
+    expect(within(summary).getByText('Invoice fallback')).toBeInTheDocument();
+    expect(within(summary).getByText('No')).toBeInTheDocument();
+    expect(within(summary).getByText('2026', { exact: false })).toBeInTheDocument();
   });
 
   it('shows the launch-scope restriction and keeps commercial actions locked for guidance-only matters', () => {
