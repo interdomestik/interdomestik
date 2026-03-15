@@ -241,7 +241,7 @@ function stripParentheticalSegments(value) {
 function normalizeDailyHeader(header) {
   return stripParentheticalSegments(String(header || ''))
     .toLowerCase()
-    .replaceAll(/`/g, '')
+    .replaceAll('`', '')
     .replaceAll(/[^a-z0-9]+/g, ' ')
     .trim();
 }
@@ -266,7 +266,7 @@ function parseDailyEvidenceTable(content) {
 
   for (let index = 0; index < lines.length - 1; index += 1) {
     const cells = parseMarkdownTableRow(lines[index]);
-    if (!cells || cells[0] !== 'Day') {
+    if (cells?.[0] !== 'Day') {
       continue;
     }
     const separator = parseMarkdownTableRow(lines[index + 1]);
@@ -289,7 +289,7 @@ function parseDailyEvidenceTable(content) {
 
   while (rowEndIndex < lines.length) {
     const cells = parseMarkdownTableRow(lines[rowEndIndex]);
-    if (!cells || !cells.length || !/^\d+$/.test(cells[0] || '')) {
+    if (!cells?.length || !/^\d+$/.test(cells[0] || '')) {
       break;
     }
 

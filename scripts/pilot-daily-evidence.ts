@@ -4,8 +4,21 @@ const path = require('node:path');
 
 const { recordPilotDailyEvidence } = require('./release-gate/pilot-artifacts.ts');
 
-function parseArgs(argv) {
-  const parsed = {
+const ARG_KEYS = {
+  '--pilotId': 'pilotId',
+  '--day': 'day',
+  '--date': 'date',
+  '--owner': 'owner',
+  '--status': 'status',
+  '--reportPath': 'reportPath',
+  '--bundlePath': 'bundlePath',
+  '--incidentCount': 'incidentCount',
+  '--highestSeverity': 'highestSeverity',
+  '--decision': 'decision',
+};
+
+function createEmptyArgs() {
+  return {
     pilotId: '',
     day: '',
     date: '',
@@ -17,6 +30,10 @@ function parseArgs(argv) {
     highestSeverity: '',
     decision: '',
   };
+}
+
+function parseArgs(argv) {
+  const parsed = createEmptyArgs();
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
@@ -26,53 +43,9 @@ function parseArgs(argv) {
       parsed.help = true;
       break;
     }
-    if (token === '--pilotId' && next) {
-      parsed.pilotId = next;
-      index += 1;
-      continue;
-    }
-    if (token === '--day' && next) {
-      parsed.day = next;
-      index += 1;
-      continue;
-    }
-    if (token === '--date' && next) {
-      parsed.date = next;
-      index += 1;
-      continue;
-    }
-    if (token === '--owner' && next) {
-      parsed.owner = next;
-      index += 1;
-      continue;
-    }
-    if (token === '--status' && next) {
-      parsed.status = next;
-      index += 1;
-      continue;
-    }
-    if (token === '--reportPath' && next) {
-      parsed.reportPath = next;
-      index += 1;
-      continue;
-    }
-    if (token === '--bundlePath' && next) {
-      parsed.bundlePath = next;
-      index += 1;
-      continue;
-    }
-    if (token === '--incidentCount' && next) {
-      parsed.incidentCount = next;
-      index += 1;
-      continue;
-    }
-    if (token === '--highestSeverity' && next) {
-      parsed.highestSeverity = next;
-      index += 1;
-      continue;
-    }
-    if (token === '--decision' && next) {
-      parsed.decision = next;
+    const key = ARG_KEYS[token];
+    if (key && next) {
+      parsed[key] = next;
       index += 1;
     }
   }
@@ -129,5 +102,6 @@ try {
 }
 
 module.exports = {
+  createEmptyArgs,
   parseArgs,
 };
