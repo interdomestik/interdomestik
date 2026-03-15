@@ -15,6 +15,7 @@ const CANONICAL_PILOT_EVIDENCE_INDEX_COLUMNS = [
 
 const CANONICAL_PILOT_EVIDENCE_TEMPLATE_PATH = 'docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md';
 const CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH = 'docs/pilot-evidence/index.csv';
+const CANONICAL_PILOT_EVIDENCE_INDEX_PREFIX = 'docs/pilot/';
 const CANONICAL_DAILY_EVIDENCE_HEADERS = [
   'Day',
   'Date (YYYY-MM-DD)',
@@ -527,6 +528,14 @@ function resolvePilotPointerRow(args) {
   })[0];
 }
 
+function resolvePilotEvidenceIndexPath(rootDir, evidenceIndexPath) {
+  const repoRelativePath = toRepoRelative(rootDir, path.resolve(rootDir, evidenceIndexPath));
+  if (!repoRelativePath.startsWith(CANONICAL_PILOT_EVIDENCE_INDEX_PREFIX)) {
+    throw new Error('pilot evidence index path must stay under docs/pilot/');
+  }
+  return path.resolve(rootDir, repoRelativePath);
+}
+
 function validateDailyDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) {
     throw new Error('date must use YYYY-MM-DD format');
@@ -783,7 +792,7 @@ function recordPilotDailyEvidence(args) {
     pilotId: args.pilotId,
     pilotEvidenceIndexCsvPath,
   });
-  const evidenceIndexPath = path.resolve(rootDir, pointerRow.evidence_index_path);
+  const evidenceIndexPath = resolvePilotEvidenceIndexPath(rootDir, pointerRow.evidence_index_path);
   if (!fs.existsSync(evidenceIndexPath)) {
     throw new Error('pilot-entry artifact set must exist before daily evidence can be recorded');
   }
@@ -876,7 +885,7 @@ function recordPilotDecisionProof(args) {
     pilotId: args.pilotId,
     pilotEvidenceIndexCsvPath,
   });
-  const evidenceIndexPath = path.resolve(rootDir, pointerRow.evidence_index_path);
+  const evidenceIndexPath = resolvePilotEvidenceIndexPath(rootDir, pointerRow.evidence_index_path);
   if (!fs.existsSync(evidenceIndexPath)) {
     throw new Error('pilot-entry artifact set must exist before decision proof can be recorded');
   }

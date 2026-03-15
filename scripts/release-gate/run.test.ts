@@ -59,6 +59,8 @@ const DAILY_EVIDENCE_TEMPLATE_LINES = [
   '| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`pause`/`hotfix`/`stop`) |',
   '| --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |',
 ];
+const DECISION_PROOF_SEPARATOR_LINE =
+  '| ------------------------------- | --------- | ----------------- | ----- | ---------------------------------------------- | ----------------------------------------------- | ------------------------------------ | --------------------------------------------------------------- |';
 
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
 const ORIGINAL_REQUIRE_ROLE_PANEL = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
@@ -145,7 +147,7 @@ function buildDailyEvidenceTemplate(dayCount = 1) {
     '## Decision Proof Log',
     '',
     `| ${CANONICAL_DECISION_PROOF_HEADERS.join(' | ')} |`,
-    '| ------------------------------- | --------- | ----------------- | ----- | ---------------------------------------------- | ----------------------------------------------- | ------------------------------------ | --------------------------------------------------------------- |',
+    DECISION_PROOF_SEPARATOR_LINE,
     '',
   ].join('\n');
 }
@@ -160,7 +162,7 @@ function buildCopiedDailyEvidenceIndex(dayCount = 1) {
     '## Decision Proof Log',
     '',
     `| ${CANONICAL_DECISION_PROOF_HEADERS.join(' | ')} |`,
-    '| ------------------------------- | --------- | ----------------- | ----- | ---------------------------------------------- | ----------------------------------------------- | ------------------------------------ | --------------------------------------------------------------- |',
+    DECISION_PROOF_SEPARATOR_LINE,
     '',
   ].join('\n');
 }
@@ -1366,6 +1368,35 @@ test('recordPilotDecisionProof upgrades copied evidence indexes that predate the
     assert.match(
       copiedIndex,
       /\| daily \| day-1 \| 2026-03-15 \| Admin KS \| continue \| n\/a \| no \| no \|/
+    );
+  });
+});
+
+test('recordPilotDecisionProof rejects pointer rows whose evidence index escapes docs/pilot', () => {
+  withTempDir('pilot-decision-proof-contract-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: buildDailyEvidenceTemplate(),
+      pointerIndexContent: [
+        'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path,legacy_log_path',
+        'pilot-entry-20260315T101112Z-pilot-ks-week-1,pilot-ks-week-1,production,all,2026-03-15T10:11:12.000Z,GO,docs/release-gates/2026-03-15_production_dpl_demo.md,docs/release-gates/2026-03-15_production_dpl_demo.md,',
+        '',
+      ].join('\n'),
+    });
+
+    assert.throws(
+      () =>
+        recordPilotDecisionProof({
+          rootDir: tempDir,
+          pilotId: PILOT_ID,
+          reviewType: 'daily',
+          reference: 'day-1',
+          date: '2026-03-15',
+          owner: 'Admin KS',
+          decision: 'continue',
+          rollbackTarget: 'n/a',
+          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+        }),
+      /pilot evidence index path must stay under docs\/pilot\//
     );
   });
 });
