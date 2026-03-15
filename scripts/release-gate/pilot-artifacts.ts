@@ -495,7 +495,7 @@ function ensureDecisionProofTable(content) {
 
     const lines = String(content || '').split(/\r?\n/);
     const nextLines = [...lines];
-    while (nextLines.length && !nextLines[nextLines.length - 1]) {
+    while (nextLines.length && !nextLines.at(-1)) {
       nextLines.pop();
     }
     nextLines.push('', '## Decision Proof Log', '', ...buildCanonicalDecisionProofTable([]));

@@ -2,6 +2,7 @@
 
 const path = require('node:path');
 
+const { createArgParser, runCli } = require('./pilot-artifact-cli.ts');
 const { recordPilotDecisionProof } = require('./release-gate/pilot-artifacts.ts');
 
 const ARG_KEYS = {
@@ -26,27 +27,7 @@ function createEmptyArgs() {
   };
 }
 
-function parseArgs(argv) {
-  const parsed = createEmptyArgs();
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    const next = argv[index + 1];
-
-    if (token === '--help' || token === '-h') {
-      parsed.help = true;
-      break;
-    }
-
-    const key = ARG_KEYS[token];
-    if (key && next) {
-      parsed[key] = next;
-      index += 1;
-    }
-  }
-
-  return parsed;
-}
+const parseArgs = createArgParser(ARG_KEYS, createEmptyArgs);
 
 function printHelp() {
   console.log(
@@ -88,14 +69,7 @@ function main() {
   );
 }
 
-try {
-  if (require.main === module) {
-    main();
-  }
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-}
+runCli(main);
 
 module.exports = {
   createEmptyArgs,
