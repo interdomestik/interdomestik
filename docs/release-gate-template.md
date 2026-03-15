@@ -32,8 +32,9 @@ This release gate covers:
 ## Test Accounts Used
 
 - Member-only: <email>
-- Member+Agent: <email>
-- Member+Staff: <email>
+- Agent: <email>
+- Office agent: <email>
+- Staff: <email>
 - Admin (KS): <email>
 - Admin (MK): <email> (for cross-tenant check)
 
@@ -130,6 +131,16 @@ Observed:
 - /register: success-fee calculator, billing terms, coverage matrix <present/missing>
 - /services: disclaimers, coverage matrix <present/missing>
 - /member/membership: disclaimers, coverage matrix <present/missing>
+
+## G08 Free Start And Group Privacy Boundaries
+
+**Result:** <PASS/FAIL>
+
+Observed:
+
+- /: `free-start-triage-note` and boundary copy confirm Free Start stays informational-only and hotline stays routing-only <present/missing>
+- /agent/import: `group-dashboard-summary` and aggregate-only privacy copy are present for office-tier agent access <present/missing>
+- /agent/import: seeded member-identifying text (for example `KS A-Member 1`) stays absent from the aggregate dashboard <hidden/leaked>
 
 ---
 

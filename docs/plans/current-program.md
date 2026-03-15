@@ -31,7 +31,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P4` Staff Operations And Acceptance Control remains active as the post-`P3` tranche. `S01` is now complete as the canonical staff claim queue and filter work slice, `S02` is now complete as the canonical manual claim assignment slice, `S03` is now complete as the canonical claim stage history and member-visible tracker slice, `S04` is now complete as the canonical SLA-state visibility slice, `S05` is now complete as the canonical internal-notes isolation slice, `S07` is now complete as the canonical matter-ledger and allowance-visibility slice, intentionally promoted ahead of `S06`, `S06` is now complete as the next promoted `P4` slice after `S07`, `S08` is now complete as the explicit recovery-decision gate slice after `S06`, `S09` is now complete as the accepted-case agreement and collection prerequisite slice after `S08`, and `S10` is now complete as the guidance-only and referral-only commercial-enforcement slice after `S09`. The live tracker now preserves the actionable staff queue surface, public claim-history continuity, explicit incomplete-vs-running SLA visibility, internal-note isolation, annual matter-allowance visibility, secure member-staff messaging, the explicit accepted-or-declined recovery gate, accepted-case agreement-plus-collection-path enforcement, and the launch-scope block that keeps guidance-only and referral-only matters out of staff-led recovery and success-fee handling on the canonical staff claim-detail surfaces before load-based auto-assignment is promoted. `GA01` is now complete as the canonical group roster import slice, `GA02` is now complete as the canonical aggregate-only group dashboard slice, `GA03` is now complete as the canonical sponsored-seat activation and self-upgrade slice, and `GA04` is now complete as the canonical privacy and consent negative-test slice.
 
-`P6` v1.0.0 RC Gate remains the next committed tranche after the completed `P4` and `P4G` queue. `G07` is now complete as the first explicit release-gate slice, and `G08` is now the next committed `P6` item so release-candidate validation can widen from published commercial promise surfaces into Free Start and aggregate-only privacy-boundary proof.
+`P6` v1.0.0 RC Gate remains the next committed tranche after the completed `P4` and `P4G` queue. `G07` is now complete as the first explicit release-gate slice, `G08` is now complete as the Free Start and aggregate-only privacy-boundary proof slice, and `G09` is now the next committed `P6` item so release-candidate validation can move into matter-count and SLA-state enforcement.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -93,7 +93,8 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 54. Keep `GA03` complete as the canonical sponsored-seat activation and self-upgrade slice so sponsored members can activate coverage and move from individual to family coverage without reopening portal or tenancy architecture.
 55. Keep `GA04` complete as the canonical privacy and consent negative-test slice so group admins cannot see claim facts, notes, or documents without explicit member consent.
 56. Keep `G07` complete as the first explicit `P6` release-gate slice so release-candidate builds keep proving the published commercial contract surfaces still expose the coverage matrix, fee calculator, disclaimers, and refund terms before broader staging-only validation is widened.
-57. Land `G08` as the next explicit `P6` release-gate slice so Free Start still states informational-only status and group dashboards still expose only aggregate data before later staging-only enforcement checks are widened.
+57. Keep `G08` complete as the explicit `P6` release-gate slice so Free Start still states informational-only status and group dashboards still expose only aggregate data before later staging-only enforcement checks are widened.
+58. Land `G09` as the next explicit `P6` release-gate slice so members and staff still see correct matter counts and correct SLA states before later accepted-case enforcement checks are widened.
 
 ## Status Command
 
@@ -136,7 +137,7 @@ pnpm plan:proof
 
 `GA03` Add sponsored-seat activation and self-upgrade path is now complete after completed `GA02`, and `GA04` privacy and consent negative tests are now complete after completed `GA03` so group admins still cannot see claim facts, notes, or documents without explicit member consent.
 
-`P6` v1.0.0 RC Gate remains the next committed tranche after completed `P4` and `P4G`. `G07` Validate commercial promise surfaces is now complete, and `G08` Validate Free Start and group privacy boundaries is now the next committed item, proving release-candidate validation can widen from the published commercial contract surfaces into Free Start and aggregate-only privacy-boundary proof before broader `P6` checks are promoted.
+`P6` v1.0.0 RC Gate remains the next committed tranche after completed `P4` and `P4G`. `G07` Validate commercial promise surfaces is now complete, `G08` Validate Free Start and group privacy boundaries is now complete, and `G09` Validate matter and SLA enforcement is now the next committed item, proving release-candidate validation can widen from the published commercial contract surfaces into Free Start, aggregate-only privacy-boundary proof, and then matter-and-SLA enforcement before broader `P6` checks are promoted.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -241,6 +242,8 @@ These documents can recommend or constrain work, but they do not define the live
 - `P6` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the next committed tranche after completed `P4` and `P4G`.
 - `G07` is now complete as of 2026-03-15. The scripted release-gate runner now checks `/pricing`, `/register`, `/services`, and `/member/membership` for the published commercial contract sections, records that proof in the canonical RC report, and fails GO or NO-GO status if the coverage matrix, success-fee calculator, disclaimers, or billing terms disappear.
 - `G08` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the next committed `P6` queue item after completed `G07`.
+- `G08` is now complete as of 2026-03-15. The scripted release-gate runner now checks the public Free Start surface for the informational-only and routing-only boundary copy, checks office-tier `/agent/import` for the aggregate-only privacy boundary, and fails GO or NO-GO status if seeded member-identifying text appears on the group dashboard.
+- `G09` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the next committed `P6` queue item after completed `G08`.
 
 ## Historical Foundation, Not Current Sequencing
 

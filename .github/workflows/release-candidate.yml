@@ -51,6 +51,7 @@ jobs:
       RELEASE_GATE_MEMBER_PASSWORD: GoldenPass123!
       RELEASE_GATE_AGENT_EMAIL: agent.ks.a1@interdomestik.com
       RELEASE_GATE_AGENT_PASSWORD: GoldenPass123!
+      RELEASE_GATE_OFFICE_AGENT_EMAIL: agent.ks.b1@interdomestik.com
       RELEASE_GATE_STAFF_EMAIL: staff.ks@interdomestik.com
       RELEASE_GATE_STAFF_PASSWORD: GoldenPass123!
       RELEASE_GATE_ADMIN_KS_EMAIL: admin.ks@interdomestik.com

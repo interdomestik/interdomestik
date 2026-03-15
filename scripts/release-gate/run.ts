@@ -56,6 +56,7 @@ const LOGIN_DEPENDENT_CHECKS = new Set([
   'P1.2',
   'P1.3',
   'G07',
+  'G08',
 ]);
 const INFRA_NETWORK_ERROR_PATTERNS = [
   /ECONNREFUSED/i,
@@ -245,6 +246,106 @@ function buildCommercialPromiseScenarios(runCtx) {
 
 function findMissingCommercialPromiseSections(requiredTestIds, observedByTestId) {
   return requiredTestIds.filter(testId => observedByTestId[testId] !== true);
+}
+
+function normalizeBoundaryText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replaceAll(/\s+/g, ' ')
+    .trim();
+}
+
+function resolveAccountPasswordVar(accountKey) {
+  const account = ACCOUNTS[accountKey];
+  if (!account) {
+    return null;
+  }
+
+  if (account.credentialSource) {
+    return ACCOUNTS[account.credentialSource]?.passwordVar ?? null;
+  }
+
+  return account.passwordVar ?? null;
+}
+
+function buildFreeStartGroupPrivacyScenarios(runCtx) {
+  return [
+    {
+      id: 'free_start',
+      account: null,
+      title: 'Free Start informational-only boundary',
+      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/'),
+      requiredTestIds: ['free-start-triage-note'],
+      requiredPhrases: ['Free Start stays informational', 'hotline stays routing-only'],
+      forbiddenPhrases: [],
+    },
+    {
+      id: 'group_dashboard',
+      account: 'office_agent',
+      title: 'Group dashboard aggregate-only privacy boundary',
+      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/agent/import'),
+      requiredTestIds: ['group-dashboard-summary'],
+      requiredPhrases: [
+        'Aggregate group access dashboard',
+        'This view stays aggregate-only. No claim facts, notes, or documents are visible here without explicit member consent.',
+      ],
+      forbiddenPhrases: ['KS A-Member 1', 'member.ks.a1@interdomestik.com'],
+    },
+  ];
+}
+
+function findMissingBoundaryPhrases(requiredPhrases, observedText) {
+  const normalizedObserved = normalizeBoundaryText(observedText);
+  return requiredPhrases.filter(
+    phrase => !normalizedObserved.includes(normalizeBoundaryText(phrase))
+  );
+}
+
+function findPresentBoundaryLeaks(forbiddenPhrases, observedText) {
+  const normalizedObserved = normalizeBoundaryText(observedText);
+  return forbiddenPhrases.filter(phrase =>
+    normalizedObserved.includes(normalizeBoundaryText(phrase))
+  );
+}
+
+async function visitReleaseGateScenario(browser, runCtx, scenario, callback) {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
+
+    if (scenario.account) {
+      await loginAs(page, {
+        account: scenario.account,
+        credentials: runCtx.credentials[scenario.account],
+        baseUrl: runCtx.baseUrl,
+        locale: runCtx.locale,
+        authState: runCtx.authState,
+      });
+    }
+
+    await page.goto(scenario.url, {
+      waitUntil: 'domcontentloaded',
+      timeout: TIMEOUTS.nav,
+    });
+
+    return await callback(page);
+  } finally {
+    await context.close();
+  }
+}
+
+async function collectVisibleTestIds(page, requiredTestIds) {
+  const observedByTestId = {};
+  for (const testId of requiredTestIds) {
+    observedByTestId[testId] = await page
+      .getByTestId(testId)
+      .isVisible({ timeout: TIMEOUTS.marker })
+      .catch(() => false);
+  }
+
+  return observedByTestId;
 }
 
 function resolveTenantOverrideProbeUrl(runCtx) {
@@ -1773,43 +1874,24 @@ async function runG07(browser, runCtx) {
   const scenarios = buildCommercialPromiseScenarios(runCtx);
 
   for (const scenario of scenarios) {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-
     try {
-      await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
-
-      if (scenario.account) {
-        await loginAs(page, {
-          account: scenario.account,
-          credentials: runCtx.credentials[scenario.account],
-          baseUrl: runCtx.baseUrl,
-          locale: runCtx.locale,
-          authState: runCtx.authState,
-        });
-      }
-
-      await page.goto(scenario.url, {
-        waitUntil: 'domcontentloaded',
-        timeout: TIMEOUTS.nav,
-      });
-
-      const observedByTestId = {};
-      for (const testId of scenario.requiredTestIds) {
-        const visible = await page
-          .getByTestId(testId)
-          .isVisible({ timeout: TIMEOUTS.marker })
-          .catch(() => false);
-        observedByTestId[testId] = visible;
-      }
-
-      const missing = findMissingCommercialPromiseSections(
-        scenario.requiredTestIds,
-        observedByTestId
+      const { missing, observedSummary } = await visitReleaseGateScenario(
+        browser,
+        runCtx,
+        scenario,
+        async page => {
+          const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
+          return {
+            missing: findMissingCommercialPromiseSections(
+              scenario.requiredTestIds,
+              observedByTestId
+            ),
+            observedSummary: scenario.requiredTestIds
+              .map(testId => `${testId}=${observedByTestId[testId] === true}`)
+              .join(','),
+          };
+        }
       );
-      const observedSummary = scenario.requiredTestIds
-        .map(testId => `${testId}=${observedByTestId[testId] === true}`)
-        .join(',');
 
       evidence.push(
         `scenario=${scenario.id} account=${scenario.account || 'public'} missing=${
@@ -1826,12 +1908,73 @@ async function runG07(browser, runCtx) {
       signatures.push(
         `G07_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
       );
-    } finally {
-      await context.close();
     }
   }
 
   return checkResult('G07', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
+}
+
+async function runG08(browser, runCtx) {
+  const evidence = [];
+  const signatures = [];
+  const scenarios = buildFreeStartGroupPrivacyScenarios(runCtx);
+
+  for (const scenario of scenarios) {
+    try {
+      const { missingPhrases, missingTestIds, observedSummary, presentLeaks } =
+        await visitReleaseGateScenario(browser, runCtx, scenario, async page => {
+          const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
+          const observedText = normalizeBoundaryText(
+            await page
+              .locator('body')
+              .innerText()
+              .catch(() => '')
+          );
+
+          return {
+            missingPhrases: findMissingBoundaryPhrases(scenario.requiredPhrases, observedText),
+            missingTestIds: findMissingCommercialPromiseSections(
+              scenario.requiredTestIds,
+              observedByTestId
+            ),
+            observedSummary: scenario.requiredTestIds
+              .map(testId => `${testId}=${observedByTestId[testId] === true}`)
+              .join(','),
+            presentLeaks: findPresentBoundaryLeaks(scenario.forbiddenPhrases, observedText),
+          };
+        });
+
+      evidence.push(
+        `scenario=${scenario.id} account=${scenario.account || 'public'} missing_testids=${
+          missingTestIds.join(',') || 'none'
+        } missing_phrases=${missingPhrases.join(',') || 'none'} present_leaks=${
+          presentLeaks.join(',') || 'none'
+        } observed=${observedSummary}`
+      );
+
+      if (missingTestIds.length > 0) {
+        signatures.push(
+          `G08_BOUNDARY_SURFACE_MISSING scenario=${scenario.id} missing=${missingTestIds.join(',')}`
+        );
+      }
+      if (missingPhrases.length > 0) {
+        signatures.push(
+          `G08_BOUNDARY_COPY_MISSING scenario=${scenario.id} missing=${missingPhrases.join(',')}`
+        );
+      }
+      if (presentLeaks.length > 0) {
+        signatures.push(
+          `G08_PRIVACY_LEAK_DETECTED scenario=${scenario.id} leaks=${presentLeaks.join(',')}`
+        );
+      }
+    } catch (error) {
+      signatures.push(
+        `G08_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
+      );
+    }
+  }
+
+  return checkResult('G08', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
 }
 
 function runVercelLogsSweep(runCtx) {
@@ -2060,9 +2203,10 @@ async function main() {
   const credentials = {};
   for (const accountKey of Object.keys(ACCOUNTS)) {
     const account = ACCOUNTS[accountKey];
+    const passwordVar = resolveAccountPasswordVar(accountKey);
     credentials[accountKey] = {
       email: process.env[account.emailVar] || '',
-      password: process.env[account.passwordVar] || '',
+      password: passwordVar ? process.env[passwordVar] || '' : '',
     };
   }
 
@@ -2151,6 +2295,7 @@ async function main() {
       }
       if (selected.includes('P1.3')) checks.push(await runP13(browser, runCtx));
       if (selected.includes('G07')) checks.push(await runG07(browser, runCtx));
+      if (selected.includes('G08')) checks.push(await runG08(browser, runCtx));
       if (selected.includes('P1.5.1')) checks.push(runVercelLogsSweep(runCtx));
     } else if (selected.includes('P1.5.1')) {
       checks.push(runVercelLogsSweep(runCtx));
@@ -2172,6 +2317,7 @@ async function main() {
       accounts: {
         member: credentials.member.email,
         agent: credentials.agent.email,
+        officeAgent: credentials.office_agent.email,
         staff: credentials.staff.email,
         adminKs: credentials.admin_ks.email,
         adminMk: credentials.admin_mk.email,
@@ -2203,16 +2349,20 @@ async function main() {
 
 module.exports = {
   buildCommercialPromiseScenarios,
+  buildFreeStartGroupPrivacyScenarios,
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
   computeRetryDelayMs,
   evaluateCredentialPreflightResults,
   enforceNoSkipOnSelectedChecks,
+  findMissingBoundaryPhrases,
   findMissingCommercialPromiseSections,
+  findPresentBoundaryLeaks,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
+  resolveAccountPasswordVar,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   sessionCacheKeyForAccount,
