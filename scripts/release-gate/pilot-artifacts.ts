@@ -16,9 +16,9 @@ const CANONICAL_PILOT_EVIDENCE_INDEX_COLUMNS = [
 function sanitizePilotId(value) {
   const safe = String(value || '')
     .trim()
-    .replace(/[^A-Za-z0-9._-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replaceAll(/[^A-Za-z0-9._-]+/g, '-')
+    .replaceAll(/-+/g, '-')
+    .replaceAll(/^-|-$/g, '');
   if (!safe) {
     throw new Error('pilotId is required for pilot-entry artifacts');
   }
@@ -26,7 +26,10 @@ function sanitizePilotId(value) {
 }
 
 function formatRunId(generatedAt, pilotId) {
-  const timestamp = new Date(generatedAt).toISOString().replace(/[-:]/g, '').replace('.000Z', 'Z');
+  const timestamp = new Date(generatedAt)
+    .toISOString()
+    .replaceAll(/[-:]/g, '')
+    .replaceAll('.000Z', 'Z');
   return `pilot-entry-${timestamp}-${sanitizePilotId(pilotId)}`;
 }
 
@@ -78,7 +81,7 @@ function csvEscape(value) {
   if (!/[",\n]/.test(stringValue)) {
     return stringValue;
   }
-  return `"${stringValue.replace(/"/g, '""')}"`;
+  return `"${stringValue.replaceAll('"', '""')}"`;
 }
 
 function parsePilotEvidenceIndex(content) {
