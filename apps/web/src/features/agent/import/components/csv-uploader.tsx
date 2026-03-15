@@ -165,7 +165,7 @@ export function CSVUploader() {
             className="bg-blue-600 hover:bg-blue-700"
           >
             {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Confirm Bulk Registration ({validRows.length} members)
+            Confirm Sponsored Seat Import ({validRows.length} members)
           </Button>
         </div>
       </form>
@@ -190,7 +190,8 @@ export function CSVUploader() {
       <div className="text-center space-y-2">
         <h3 className="text-xl font-bold">Upload Sponsored Member Roster</h3>
         <p className="text-muted-foreground max-w-xs">
-          Upload a CSV with fullName, email, phone, password, and optional planId.
+          Upload a CSV with fullName, email, phone, password, and optional planId to reserve
+          sponsored seats for activation.
         </p>
       </div>
     </div>

@@ -12,11 +12,16 @@ import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
 import { registerMemberSchema } from './schemas';
 
+type RegisterMemberCoreOptions = {
+  membershipMode?: 'direct' | 'sponsored';
+};
+
 export async function registerMemberCore(
   agent: { id: string; name?: string | null },
   tenantId: string,
   agentBranchId: string | null,
-  formData: FormData
+  formData: FormData,
+  options: RegisterMemberCoreOptions = {}
 ) {
   const rawData = {
     fullName: formData.get('fullName'),
@@ -39,6 +44,7 @@ export async function registerMemberCore(
 
   const data = validated.data;
   const userId = nanoid();
+  const membershipMode = options.membershipMode ?? 'direct';
 
   try {
     await withTransactionRetry(async tx => {
@@ -86,8 +92,25 @@ export async function registerMemberCore(
         createdAt: now,
       });
 
-      const expiry = new Date();
-      expiry.setFullYear(expiry.getFullYear() + 1);
+      const subscriptionValues =
+        membershipMode === 'sponsored'
+          ? {
+              status: 'paused' as const,
+              provider: 'group_sponsor',
+              acquisitionSource: 'group_roster_import',
+              currentPeriodStart: null,
+              currentPeriodEnd: null,
+            }
+          : (() => {
+              const expiry = new Date();
+              expiry.setFullYear(expiry.getFullYear() + 1);
+
+              return {
+                status: 'active' as const,
+                currentPeriodStart: now,
+                currentPeriodEnd: expiry,
+              };
+            })();
 
       await tx.insert(subscriptions).values({
         id: nanoid(),
@@ -96,8 +119,7 @@ export async function registerMemberCore(
         agentId: agent.id,
         userId,
         planId: data.planId,
-        status: 'active',
-        currentPeriodEnd: expiry,
+        ...subscriptionValues,
         createdAt: now,
         updatedAt: now,
       });

@@ -102,4 +102,23 @@ describe('importMembersCore', () => {
     });
     expect(mocks.registerMemberCore).not.toHaveBeenCalled();
   });
+
+  it('creates sponsored seats through the sponsored registration mode', async () => {
+    mocks.registerMemberCore.mockResolvedValue({ ok: true });
+
+    await importMembersCore({
+      agent,
+      tenantId,
+      branchId,
+      rows: [buildImportRow()],
+    });
+
+    expect(mocks.registerMemberCore).toHaveBeenCalledWith(
+      agent,
+      tenantId,
+      branchId,
+      expect.any(FormData),
+      { membershipMode: 'sponsored' }
+    );
+  });
 });

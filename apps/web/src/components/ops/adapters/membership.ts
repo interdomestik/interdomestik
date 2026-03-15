@@ -11,6 +11,9 @@ export type DbDocument = {
 type SubscriptionLike = {
   id: string;
   status: string | null;
+  planId?: string | null;
+  provider?: string | null;
+  acquisitionSource?: string | null;
   createdAt: Date | null;
   currentPeriodEnd: Date | null;
   canceledAt?: Date | null;
@@ -18,6 +21,33 @@ type SubscriptionLike = {
 };
 
 export type OpsActionConfig = Omit<OpsAction, 'onClick'> & { id: string };
+export type SponsoredMembershipState =
+  | 'activation_required'
+  | 'eligible_for_family_upgrade'
+  | 'none';
+
+export function isSponsoredSubscription(sub: SubscriptionLike | undefined) {
+  if (!sub) return false;
+  return sub.provider === 'group_sponsor' || sub.acquisitionSource === 'group_roster_import';
+}
+
+export function getSponsoredMembershipState(
+  sub: SubscriptionLike | undefined
+): SponsoredMembershipState {
+  if (!isSponsoredSubscription(sub)) {
+    return 'none';
+  }
+
+  if (sub?.status === 'paused') {
+    return 'activation_required';
+  }
+
+  if (sub?.status === 'active' && sub.planId === 'standard') {
+    return 'eligible_for_family_upgrade';
+  }
+
+  return 'none';
+}
 
 export function toOpsStatus(status: string | null | undefined) {
   const safeStatus = status || 'none';

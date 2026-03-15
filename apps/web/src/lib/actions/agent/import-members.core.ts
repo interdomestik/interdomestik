@@ -58,7 +58,9 @@ export async function importMembersCore({
     formData.set('password', validated.data.password);
     formData.set('planId', validated.data.planId);
 
-    const result = await registerMemberCore(agent, tenantId, branchId, formData);
+    const result = await registerMemberCore(agent, tenantId, branchId, formData, {
+      membershipMode: 'sponsored',
+    });
 
     if (result.ok) {
       results.push({

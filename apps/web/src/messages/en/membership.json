@@ -103,6 +103,19 @@
     "errors": {
       "action_failed": "We could not complete that membership action. Please try again."
     },
+    "sponsored": {
+      "activation": {
+        "title": "Sponsored seat pending activation",
+        "body": "Your sponsor has reserved this plan for you. Activate it to begin your covered membership period.",
+        "cta": "Activate sponsored coverage",
+        "success": "Sponsored coverage activated."
+      },
+      "upgrade": {
+        "title": "Family upgrade available",
+        "body": "Your sponsor covers the individual tier. Upgrade to family coverage if you want household access on your own plan.",
+        "cta": "Upgrade to family"
+      }
+    },
     "dunning": {
       "payment_failed_title": "Payment Failed - {daysRemaining} days remaining",
       "payment_failed_message": "Your last payment was unsuccessful. Please update your payment method to avoid losing access to your membership benefits.",
