@@ -2,6 +2,10 @@ import { claims, serviceUsage, subscriptions } from '@interdomestik/database/sch
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getGroupDashboardSummaryCore } from './get-group-dashboard-summary';
 
+function sortStrings(values: string[]): string[] {
+  return [...values].sort((left, right) => left.localeCompare(right));
+}
+
 describe('getGroupDashboardSummaryCore', () => {
   const mockDb = {
     groupBy: vi.fn().mockReturnThis(),
@@ -53,6 +57,23 @@ describe('getGroupDashboardSummaryCore', () => {
         runningCount: 2,
       },
     });
+    expect(sortStrings(Object.keys(summary))).toEqual([
+      'activatedMembersCount',
+      'membersUsingBenefitsCount',
+      'openClaimsCount',
+      'sla',
+      'usageRatePercent',
+    ]);
+    expect(sortStrings(Object.keys(summary.sla))).toEqual([
+      'breachCount',
+      'incompleteCount',
+      'notApplicableCount',
+      'runningCount',
+    ]);
+    expect(summary).not.toHaveProperty('claims');
+    expect(summary).not.toHaveProperty('documents');
+    expect(summary).not.toHaveProperty('memberIds');
+    expect(summary).not.toHaveProperty('notes');
 
     expect(mockDb.from).toHaveBeenCalledWith(subscriptions);
     expect(mockDb.from).toHaveBeenCalledWith(serviceUsage);
@@ -80,6 +101,13 @@ describe('getGroupDashboardSummaryCore', () => {
         runningCount: 0,
       },
     });
+    expect(sortStrings(Object.keys(summary))).toEqual([
+      'activatedMembersCount',
+      'membersUsingBenefitsCount',
+      'openClaimsCount',
+      'sla',
+      'usageRatePercent',
+    ]);
     expect(mockDb.where).toHaveBeenCalledTimes(1);
   });
 });

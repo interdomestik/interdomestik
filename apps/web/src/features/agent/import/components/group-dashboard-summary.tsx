@@ -32,7 +32,8 @@ export function GroupDashboardSummary({ summary }: GroupDashboardSummaryProps) {
           <p className="text-sm font-medium text-primary">Aggregate group access dashboard</p>
           <h2 className="text-2xl font-bold tracking-tight">Office portfolio overview</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            This view stays aggregate-only. No claim facts, notes, or documents are visible here.
+            This view stays aggregate-only. No claim facts, notes, or documents are visible here
+            without explicit member consent.
           </p>
         </div>
         <div className="rounded-full border bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground">

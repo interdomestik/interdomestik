@@ -97,6 +97,7 @@ export const routes = {
   adminLeads: (l?: Locale | string | TestInfo) => withLocale('/admin/leads', l || 'en'),
   agent: (l?: Locale | string | TestInfo) => withLocale('/agent/members', l || 'en'),
   agentMembers: (l?: Locale | string | TestInfo) => withLocale('/agent/members', l || 'en'),
+  agentImport: (l?: Locale | string | TestInfo) => withLocale('/agent/import', l || 'en'),
   agentMemberDetail: (memberId: string, l?: Locale | string | TestInfo) =>
     withLocale(`/agent/members/${encodeURIComponent(memberId)}`, l || 'en'),
   agentLeads: (l?: Locale | string | TestInfo) => withLocale('/agent/leads', l || 'en'),
