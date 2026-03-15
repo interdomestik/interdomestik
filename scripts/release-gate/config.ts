@@ -96,7 +96,7 @@ const ACCOUNTS = {
     roleMarker: 'agent',
     tenantId: 'tenant_ks',
     emailVar: 'RELEASE_GATE_OFFICE_AGENT_EMAIL',
-    passwordVar: 'RELEASE_GATE_OFFICE_AGENT_PASSWORD',
+    passwordSource: 'agent',
     label: 'Office agent',
   },
   staff: {
@@ -148,7 +148,7 @@ const REQUIRED_ENV_BY_SUITE = {
     ACCOUNTS.member.emailVar,
     ACCOUNTS.member.passwordVar,
     ACCOUNTS.office_agent.emailVar,
-    ACCOUNTS.office_agent.passwordVar,
+    ACCOUNTS.agent.passwordVar,
   ],
   all: [
     ACCOUNTS.member.emailVar,
@@ -156,7 +156,6 @@ const REQUIRED_ENV_BY_SUITE = {
     ACCOUNTS.agent.emailVar,
     ACCOUNTS.agent.passwordVar,
     ACCOUNTS.office_agent.emailVar,
-    ACCOUNTS.office_agent.passwordVar,
     ACCOUNTS.staff.emailVar,
     ACCOUNTS.staff.passwordVar,
     ACCOUNTS.admin_ks.emailVar,

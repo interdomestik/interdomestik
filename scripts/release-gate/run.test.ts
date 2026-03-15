@@ -19,6 +19,7 @@ const {
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
+  resolveAccountPasswordVar,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   sessionCacheKeyForAccount,
@@ -181,12 +182,17 @@ test('isLoginDependentCheck maps suites to auth-dependent checks', () => {
   assert.equal(isLoginDependentCheck('P1.5.1'), false);
 });
 
-test('p6 suite requires member and office-agent credentials for G07 and G08', () => {
+test('resolveAccountPasswordVar reuses the agent password for office agents', () => {
+  assert.equal(resolveAccountPasswordVar('office_agent'), 'RELEASE_GATE_AGENT_PASSWORD');
+  assert.equal(resolveAccountPasswordVar('member'), 'RELEASE_GATE_MEMBER_PASSWORD');
+});
+
+test('p6 suite requires member credentials plus office-agent email and shared agent password', () => {
   assert.deepEqual(REQUIRED_ENV_BY_SUITE.p6, [
     'RELEASE_GATE_MEMBER_EMAIL',
     'RELEASE_GATE_MEMBER_PASSWORD',
     'RELEASE_GATE_OFFICE_AGENT_EMAIL',
-    'RELEASE_GATE_OFFICE_AGENT_PASSWORD',
+    'RELEASE_GATE_AGENT_PASSWORD',
   ]);
 });
 

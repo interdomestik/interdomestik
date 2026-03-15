@@ -251,8 +251,21 @@ function findMissingCommercialPromiseSections(requiredTestIds, observedByTestId)
 function normalizeBoundaryText(value) {
   return String(value || '')
     .toLowerCase()
-    .replace(/\s+/g, ' ')
+    .replaceAll(/\s+/g, ' ')
     .trim();
+}
+
+function resolveAccountPasswordVar(accountKey) {
+  const account = ACCOUNTS[accountKey];
+  if (!account) {
+    return null;
+  }
+
+  if (account.passwordSource) {
+    return ACCOUNTS[account.passwordSource]?.passwordVar ?? null;
+  }
+
+  return account.passwordVar ?? null;
 }
 
 function buildFreeStartGroupPrivacyScenarios(runCtx) {
@@ -2194,9 +2207,10 @@ async function main() {
   const credentials = {};
   for (const accountKey of Object.keys(ACCOUNTS)) {
     const account = ACCOUNTS[accountKey];
+    const passwordVar = resolveAccountPasswordVar(accountKey);
     credentials[accountKey] = {
       email: process.env[account.emailVar] || '',
-      password: process.env[account.passwordVar] || '',
+      password: passwordVar ? process.env[passwordVar] || '' : '',
     };
   }
 
@@ -2352,6 +2366,7 @@ module.exports = {
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
+  resolveAccountPasswordVar,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   sessionCacheKeyForAccount,
