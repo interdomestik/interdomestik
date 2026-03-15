@@ -1,4 +1,5 @@
 import {
+  E2E_PASSWORD,
   E2E_USERS,
   agentSettings,
   claimDocuments,
@@ -14,22 +15,63 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
 
+type OfficeSeededAgent = {
+  email: string;
+};
+
 function isMkProject(testInfo: import('@playwright/test').TestInfo): boolean {
   return testInfo.project.name.includes('mk');
 }
 
+function getOfficeSeededAgent(testInfo: import('@playwright/test').TestInfo): OfficeSeededAgent {
+  if (isMkProject(testInfo)) {
+    return {
+      email: 'agent.balkan.1@interdomestik.com',
+    };
+  }
+
+  return {
+    email: 'agent.ks.b1@interdomestik.com',
+  };
+}
+
+async function loginAsOfficeSeededAgent(
+  page: import('@playwright/test').Page,
+  testInfo: import('@playwright/test').TestInfo,
+  officeAgent: OfficeSeededAgent
+) {
+  const baseUrl = testInfo.project.use.baseURL?.toString() ?? '';
+  const origin = new URL(baseUrl).origin;
+  const loginURL = `${origin}/api/auth/sign-in/email`;
+
+  const response = await page.request.post(loginURL, {
+    data: { email: officeAgent.email, password: E2E_PASSWORD },
+    headers: {
+      Origin: origin,
+      Referer: `${origin}/login`,
+      'x-forwarded-for': '10.0.0.13',
+      ...(testInfo.project.use.extraHTTPHeaders ?? {}),
+    },
+  });
+
+  if (!response.ok()) {
+    const text = await response.text();
+    throw new Error(`API login failed for ${officeAgent.email}: ${response.status()} ${text}`);
+  }
+}
+
 test.describe('Group access privacy', () => {
   test('office group access stays aggregate-only without explicit member consent', async ({
-    agentPage,
+    page,
   }, testInfo) => {
     test.setTimeout(90_000);
 
-    const seededAgent = isMkProject(testInfo) ? E2E_USERS.MK_AGENT : E2E_USERS.KS_AGENT;
+    const officeAgent = getOfficeSeededAgent(testInfo);
     const seededMember = isMkProject(testInfo) ? E2E_USERS.MK_MEMBER : E2E_USERS.KS_MEMBER;
     const { claimId, currentStatus, staffId, tenantId } = await resolveSeededClaimContext(testInfo);
 
     const agentRecord = await db.query.user.findFirst({
-      where: eq(user.email, seededAgent.email),
+      where: eq(user.email, officeAgent.email),
       columns: { id: true },
     });
     const claimRecord = await db.query.claims.findFirst({
@@ -43,8 +85,8 @@ test.describe('Group access privacy', () => {
         })
       : null;
 
-    if (!agentRecord?.id || !existingSettings?.id) {
-      throw new Error(`Expected seeded agent settings for ${seededAgent.email}`);
+    if (!agentRecord?.id) {
+      throw new Error(`Expected seeded office-capable agent for ${officeAgent.email}`);
     }
 
     if (!claimRecord?.title || !claimRecord.companyName) {
@@ -56,66 +98,90 @@ test.describe('Group access privacy', () => {
     const internalHistoryNote = `GA04 internal note ${Date.now()}`;
     const claimDocumentId = `e2e-ga04-doc-${suffix}`;
     const claimDocumentName = `GA04-sensitive-${suffix}.pdf`;
-
-    await db
-      .update(agentSettings)
-      .set({ tier: 'office', updatedAt: new Date() })
-      .where(eq(agentSettings.id, existingSettings.id));
-
-    await db.insert(claimStageHistory).values({
-      id: internalHistoryId,
-      tenantId,
-      claimId,
-      fromStatus: currentStatus,
-      toStatus: currentStatus,
-      changedById: staffId,
-      changedByRole: 'staff',
-      note: internalHistoryNote,
-      isPublic: false,
-      createdAt: new Date(),
-    });
-
-    await db.insert(claimDocuments).values({
-      id: claimDocumentId,
-      tenantId,
-      claimId,
-      name: claimDocumentName,
-      filePath: `e2e/${claimDocumentId}.pdf`,
-      fileType: 'application/pdf',
-      fileSize: 1024,
-      bucket: 'claim-evidence',
-      classification: 'pii',
-      category: 'evidence',
-      uploadedBy: staffId,
-      createdAt: new Date(),
-    });
+    const settingsId = existingSettings?.id ?? `e2e-ga04-settings-${suffix}`;
+    const previousTier = existingSettings?.tier ?? 'standard';
+    const createdSettings = !existingSettings?.id;
+    let tierElevated = false;
 
     try {
-      await gotoApp(agentPage, routes.agentImport(testInfo), testInfo, {
+      if (createdSettings) {
+        await db.insert(agentSettings).values({
+          id: settingsId,
+          tenantId,
+          agentId: agentRecord.id,
+          commissionRates: { standard: 15 },
+          tier: 'office',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      } else {
+        await db
+          .update(agentSettings)
+          .set({ tier: 'office', updatedAt: new Date() })
+          .where(eq(agentSettings.id, settingsId));
+      }
+      tierElevated = true;
+
+      await db.insert(claimStageHistory).values({
+        id: internalHistoryId,
+        tenantId,
+        claimId,
+        fromStatus: currentStatus,
+        toStatus: currentStatus,
+        changedById: staffId,
+        changedByRole: 'staff',
+        note: internalHistoryNote,
+        isPublic: false,
+        createdAt: new Date(),
+      });
+
+      await db.insert(claimDocuments).values({
+        id: claimDocumentId,
+        tenantId,
+        claimId,
+        name: claimDocumentName,
+        filePath: `e2e/${claimDocumentId}.pdf`,
+        fileType: 'application/pdf',
+        fileSize: 1024,
+        bucket: 'claim-evidence',
+        classification: 'pii',
+        category: 'evidence',
+        uploadedBy: staffId,
+        createdAt: new Date(),
+      });
+
+      await loginAsOfficeSeededAgent(page, testInfo, officeAgent);
+      await gotoApp(page, routes.agentImport(testInfo), testInfo, {
         marker: 'group-dashboard-summary',
       });
 
-      await expect(agentPage.getByTestId('group-dashboard-summary')).toBeVisible();
-      await expect(agentPage.getByText('Aggregate group access dashboard')).toBeVisible();
+      await expect(page.getByTestId('group-dashboard-summary')).toBeVisible();
+      await expect(page.getByText('Aggregate group access dashboard')).toBeVisible();
       await expect(
-        agentPage.getByText(
+        page.getByText(
           'This view stays aggregate-only. No claim facts, notes, or documents are visible here without explicit member consent.'
         )
       ).toBeVisible();
-      await expect(agentPage.getByRole('heading', { name: 'Open cases' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Open cases' })).toBeVisible();
 
-      await expect(agentPage.getByText(seededMember.name)).toHaveCount(0);
-      await expect(agentPage.getByText(claimRecord.title)).toHaveCount(0);
-      await expect(agentPage.getByText(claimRecord.companyName)).toHaveCount(0);
-      await expect(agentPage.getByText(internalHistoryNote)).toHaveCount(0);
-      await expect(agentPage.getByText(claimDocumentName)).toHaveCount(0);
+      await expect(page.getByText(seededMember.name)).toHaveCount(0);
+      await expect(page.getByText(claimRecord.title)).toHaveCount(0);
+      await expect(page.getByText(claimRecord.companyName)).toHaveCount(0);
+      await expect(page.getByText(internalHistoryNote)).toHaveCount(0);
+      await expect(page.getByText(claimDocumentName)).toHaveCount(0);
     } finally {
       await db.delete(claimDocuments).where(eq(claimDocuments.id, claimDocumentId));
       await db.delete(claimStageHistory).where(eq(claimStageHistory.id, internalHistoryId));
-      await db
-        .update(agentSettings)
-        .set({ tier: existingSettings.tier, updatedAt: new Date() })
-        .where(eq(agentSettings.id, existingSettings.id));
+      if (tierElevated) {
+        if (createdSettings) {
+          await db.delete(agentSettings).where(eq(agentSettings.id, settingsId));
+        } else {
+          await db
+            .update(agentSettings)
+            .set({ tier: previousTier, updatedAt: new Date() })
+            .where(eq(agentSettings.id, settingsId));
+        }
+      }
     }
   });
 });
