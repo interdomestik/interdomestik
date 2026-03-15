@@ -80,6 +80,7 @@ test('root package exposes the scripts/ci contract suite', () => {
 
 test('pilot readiness commands keep local verification and production proof distinct', () => {
   const pilotCheck = packageJson.scripts['pilot:check'];
+  const pilotEvidenceRecord = packageJson.scripts['pilot:evidence:record'];
   const releaseGateProd = packageJson.scripts['release:gate:prod'];
   const releaseGateProdRaw = packageJson.scripts['release:gate:prod:raw'];
   const pilotVerifyScript = readFileSync(new URL('../scripts/pilot-verify.sh', import.meta.url), 'utf8');
@@ -92,6 +93,7 @@ test('pilot readiness commands keep local verification and production proof dist
     'node scripts/run-with-dotenv.mjs pnpm -s release:gate:prod:raw'
   );
   assert.equal(releaseGateProdRaw, 'tsx scripts/release-gate/run.ts --envName production --suite all');
+  assert.equal(pilotEvidenceRecord, 'tsx scripts/pilot-daily-evidence.ts');
   assert.notEqual(pilotCheck, releaseGateProd);
 
   assert.match(
@@ -107,6 +109,7 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.match(pilotRunbook, /## Readiness Command Authority/);
   assert.match(pilotRunbook, /`pnpm pilot:check`/);
   assert.match(pilotRunbook, /`pnpm release:gate:prod -- --pilotId <pilot-id>`/);
+  assert.match(pilotRunbook, /`pnpm pilot:evidence:record -- --pilotId <pilot-id>`/);
   assert.match(
     pilotRunbook,
     /`\.\/scripts\/pilot-verify\.sh`\s+-\s+Shell-native implementation of `pnpm pilot:check`\./s
@@ -116,6 +119,10 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.match(
     pilotGoNoGo,
     /Release gate green on production: `pnpm release:gate:prod -- --pilotId <pilot-id>` exits `0`\./
+  );
+  assert.match(
+    pilotGoNoGo,
+    /Daily pilot evidence is recorded in the copied `docs\/pilot\/PILOT_EVIDENCE_INDEX_<pilot-id>\.md` file via `pnpm pilot:evidence:record -- --pilotId <pilot-id>`\./
   );
 });
 

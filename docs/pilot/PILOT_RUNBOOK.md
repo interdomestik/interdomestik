@@ -69,6 +69,12 @@ Use exactly these command roles:
    - Shell-native implementation of `pnpm pilot:check`.
    - Use only when a direct shell entrypoint is required.
    - Not a separate pilot-entry or production-proof authority.
+5. `pnpm pilot:evidence:record -- --pilotId <pilot-id> ...`
+   - Canonical daily pilot-operations evidence command.
+   - Base form: `pnpm pilot:evidence:record -- --pilotId <pilot-id>`.
+   - Updates the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file in place.
+   - Reuses `docs/pilot-evidence/index.csv` only to resolve the canonical copied evidence index and latest pilot-entry release report.
+   - Does not create a new pilot-entry artifact set and does not replace `pnpm release:gate:prod -- --pilotId <pilot-id>`.
 
 ## Canonical Pilot-Entry Artifact Contract
 
@@ -98,6 +104,31 @@ Field rules:
 - `legacy_log_path` is only for pre-R01 historical continuity and stays blank for canonical pilot-entry rows.
 - The copied evidence index file path is stable per pilot id; daily operations update that file instead of creating a new one each day.
 
+## Daily Evidence Capture
+
+Daily pilot operations must use the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file as the single source of truth for day-by-day evidence.
+
+- Do not create a second day log, spreadsheet, or free-form note stream for operational status.
+- Keep `docs/pilot-evidence/index.csv` as the machine-readable pointer layer for pilot-entry artifacts only.
+- Record one row per operating day with:
+  - day/date
+  - owner
+  - status
+  - release report path
+  - evidence bundle path or `n/a`
+  - incident count
+  - highest severity
+  - decision
+- Preferred command:
+
+```bash
+pnpm pilot:evidence:record -- --pilotId <pilot-id> --day <n> --date <YYYY-MM-DD> --owner "<owner>" --status <green|amber|red> --incidentCount <n> --highestSeverity <none|sev3|sev2|sev1> --decision <continue|defer|hotfix|stop> --bundlePath <path|n/a>
+```
+
+- `--reportPath` is optional. When omitted, the command records the latest canonical pilot-entry `docs/release-gates/...` path already linked to that pilot id in `docs/pilot-evidence/index.csv`.
+- Use `n/a` for bundle path when no full gate bundle was generated that day.
+- Use the same copied evidence index file for the full 14-day pilot window.
+
 ## Weekend Operating Mode (Light-Touch)
 
 - Coverage objective: During weekend operating hours (`08:00–17:00 Europe/Pristina`), monitor and log actively while avoiding non-critical change churn.
@@ -123,6 +154,7 @@ pnpm security:guard
 
 - Record results in the copied per-pilot evidence index referenced by the canonical pilot-entry artifact set.
 - For pilot entry, create or refresh the artifact set by running `pnpm release:gate:prod -- --pilotId <pilot-id>` before daily updates begin.
+- For daily updates, record the operating result in that same copied evidence index file with `pnpm pilot:evidence:record -- --pilotId <pilot-id> ...`.
 - If Sev1 requires hotfix workflow evidence, run:
   - after hotfix merge to clean, synced `main`: `./phase-5-1.sh`
   - fallback on clean, synced `main`: `bash ./phase-5-1.sh`
