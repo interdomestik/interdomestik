@@ -217,11 +217,31 @@ function parseMarkdownTableRow(line) {
     .map(value => value.trim());
 }
 
+function stripParentheticalSegments(value) {
+  let depth = 0;
+  let result = '';
+
+  for (const char of String(value || '')) {
+    if (char === '(') {
+      depth += 1;
+      continue;
+    }
+    if (char === ')') {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (depth === 0) {
+      result += char;
+    }
+  }
+
+  return result;
+}
+
 function normalizeDailyHeader(header) {
-  return String(header || '')
+  return stripParentheticalSegments(String(header || ''))
     .toLowerCase()
     .replaceAll(/`/g, '')
-    .replaceAll(/\([^)]*\)/g, '')
     .replaceAll(/[^a-z0-9]+/g, ' ')
     .trim();
 }
@@ -636,7 +656,7 @@ function recordPilotDailyEvidence(args) {
     parsedTable.rowEndIndex - parsedTable.headerIndex,
     ...nextTableLines
   );
-  fs.writeFileSync(evidenceIndexPath, `${nextLines.join('\n').replace(/\n*$/, '\n')}`, 'utf8');
+  fs.writeFileSync(evidenceIndexPath, `${nextLines.join('\n').trimEnd()}\n`, 'utf8');
 
   return {
     evidenceIndexPath,
