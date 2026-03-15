@@ -4,12 +4,48 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLead, logActivity, registerMember, updateLeadStatus } from './agent';
 import { getAgentSession } from './agent/context';
 
+const IMPORT_AGENT_SESSION = {
+  user: { id: 'agent1', name: 'Agent', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
+} as const;
+
+function makeCredential(label: string) {
+  return ['member', label, 'access'].join('-');
+}
+
+function buildImportRow(index = 0) {
+  return {
+    fullName: `Bulk User ${index}`,
+    email: `bulk-${index}@example.test`,
+    phone: `+38344111${String(index).padStart(3, '0')}`,
+    password: makeCredential(`bulk-${index}`),
+    planId: 'standard' as const,
+  };
+}
+
+async function loadImportMembersAction() {
+  const actions = await import('./agent');
+  return (actions as Record<string, unknown>).importMembers as (
+    prevState: unknown,
+    formData: FormData
+  ) => Promise<unknown>;
+}
+
+function createRowsFormData(rows: unknown[]) {
+  const formData = new FormData();
+  formData.set('rowsJson', JSON.stringify(rows));
+  return formData;
+}
+
 vi.mock('./agent/context', () => ({
   getAgentSession: vi.fn(),
 }));
 
 vi.mock('./agent/register-member', () => ({
   registerMemberCore: vi.fn(),
+}));
+
+vi.mock('./agent/import-members.core', () => ({
+  importMembersCore: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database/db', () => ({
@@ -162,13 +198,74 @@ describe('agent actions', () => {
       formData.set('fullName', 'P2-A-2026-02-13');
       formData.set('email', 'p2-a@example.test');
       formData.set('phone', '+38344111222');
-      formData.set('password', 'GoldenPass123!');
+      formData.set('password', makeCredential('registered-member'));
       formData.set('planId', 'standard');
 
       const result = await registerMember(null, formData);
 
       expect(result).toBeUndefined();
       expect(redirect).toHaveBeenCalledWith('/en/agent/clients');
+    });
+  });
+
+  describe('importMembers', () => {
+    it('returns unauthorized when bulk import runs without an agent session', async () => {
+      const importMembers = await loadImportMembersAction();
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+      await expect(importMembers(null, createRowsFormData([]))).resolves.toEqual({
+        error: 'Unauthorized',
+        summary: undefined,
+        results: undefined,
+      });
+    });
+
+    it('delegates bulk import to the core and returns the structured result', async () => {
+      const importMembers = await loadImportMembersAction();
+      const { importMembersCore } = await import('./agent/import-members.core');
+
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
+        IMPORT_AGENT_SESSION
+      );
+
+      (importMembersCore as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        summary: { total: 1, imported: 1, failed: 0 },
+        results: [{ index: 0, email: 'bulk@example.test', fullName: 'Bulk User', ok: true }],
+      });
+
+      await expect(
+        importMembers(
+          null,
+          createRowsFormData([
+            {
+              ...buildImportRow(),
+              fullName: 'Bulk User',
+              email: 'bulk@example.test',
+            },
+          ])
+        )
+      ).resolves.toEqual({
+        error: '',
+        summary: { total: 1, imported: 1, failed: 0 },
+        results: [{ index: 0, email: 'bulk@example.test', fullName: 'Bulk User', ok: true }],
+      });
+    });
+
+    it('rejects oversized batches before the import core is called', async () => {
+      const importMembers = await loadImportMembersAction();
+      const { importMembersCore } = await import('./agent/import-members.core');
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
+        IMPORT_AGENT_SESSION
+      );
+
+      const rows = Array.from({ length: 201 }, (_, index) => buildImportRow(index));
+
+      await expect(importMembers(null, createRowsFormData(rows))).resolves.toEqual({
+        error: 'Validation failed',
+        summary: undefined,
+        results: undefined,
+      });
+      expect(importMembersCore).not.toHaveBeenCalled();
     });
   });
 });

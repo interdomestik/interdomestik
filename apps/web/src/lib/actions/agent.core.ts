@@ -6,9 +6,11 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
 import { getAgentSession } from './agent/context';
 import { createLeadCore } from './agent/create-lead';
+import { importMembersCore } from './agent/import-members.core';
 import { logActivityCore } from './agent/log-activity';
 import { registerMemberCore } from './agent/register-member';
 import { updateLeadStatusCore } from './agent/update-lead-status';
+import { importMembersSchema } from './agent/schemas';
 
 function resolveLocaleFromReferer(referer: string | null): string {
   // Keep in sync with apps/web/src/i18n/routing.ts (localePrefix: 'always').
@@ -115,4 +117,54 @@ export async function registerMember(prevState: unknown, formData: FormData) {
   const locale = resolveLocaleFromReferer((await headers()).get('referer'));
   revalidatePath(`/${locale}/agent/clients`);
   redirect(`/${locale}/agent/clients`);
+}
+
+export async function importMembers(prevState: unknown, formData: FormData) {
+  const session = await getAgentSession();
+  if (!session) {
+    return { error: 'Unauthorized', summary: undefined, results: undefined };
+  }
+
+  let tenantId: string;
+  try {
+    tenantId = ensureTenantId(session);
+  } catch {
+    return { error: 'Missing tenantId', summary: undefined, results: undefined };
+  }
+
+  const rowsJson = formData.get('rowsJson');
+  if (typeof rowsJson !== 'string') {
+    return { error: 'Invalid import payload', summary: undefined, results: undefined };
+  }
+
+  let parsedRows: unknown;
+  try {
+    parsedRows = JSON.parse(rowsJson);
+  } catch {
+    return { error: 'Invalid import payload', summary: undefined, results: undefined };
+  }
+
+  const validated = importMembersSchema.safeParse({
+    rows: parsedRows,
+  });
+
+  if (!validated.success) {
+    return { error: 'Validation failed', summary: undefined, results: undefined };
+  }
+
+  const result = await importMembersCore({
+    agent: { id: session.user.id, name: session.user.name },
+    tenantId,
+    branchId: session.user.branchId ?? null,
+    rows: validated.data.rows,
+  });
+
+  const locale = resolveLocaleFromReferer((await headers()).get('referer'));
+  revalidatePath(`/${locale}/agent/clients`);
+
+  return {
+    error: result.error ?? '',
+    summary: result.summary,
+    results: result.results,
+  };
 }
