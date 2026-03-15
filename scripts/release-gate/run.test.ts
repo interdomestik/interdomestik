@@ -30,6 +30,8 @@ const {
 } = require('./run.ts');
 const {
   CANONICAL_DECISION_PROOF_HEADERS,
+  CANONICAL_OBSERVABILITY_EVIDENCE_HEADERS,
+  CANONICAL_OBSERVABILITY_EVIDENCE_SEPARATOR,
   createPilotEntryArtifacts,
   evaluatePilotReadinessCadence,
   parsePilotEvidenceIndex,
@@ -69,20 +71,8 @@ const DAILY_EVIDENCE_TEMPLATE_LINES = [
   '| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`pause`/`hotfix`/`stop`) |',
   '| --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |',
 ];
-const OBSERVABILITY_HEADERS = [
-  'Reference (`day-<n>`/`week-<n>`)',
-  'Date (YYYY-MM-DD)',
-  'Owner',
-  'Log Sweep (`clear`/`expected-noise`/`action-required`)',
-  'Functional Errors (count)',
-  'Expected Auth Deny Noise (count)',
-  'KPI Condition (`within-threshold`/`watch`/`breach`)',
-  'Incident Count',
-  'Highest Severity (`none`/`sev3`/`sev2`/`sev1`)',
-  'Notes / Artifact Path',
-];
-const OBSERVABILITY_SEPARATOR_LINE =
-  '| ----------------------------- | ----------------- | ----- | ----------------------------------------------------- | ------------------------- | --------------------------------- | --------------------------------------------------- | -------------- | ----------------------------------------- | --------------------- |';
+const OBSERVABILITY_HEADERS = CANONICAL_OBSERVABILITY_EVIDENCE_HEADERS;
+const OBSERVABILITY_SEPARATOR_LINE = `| ${CANONICAL_OBSERVABILITY_EVIDENCE_SEPARATOR.join(' | ')} |`;
 const DECISION_PROOF_SEPARATOR_LINE =
   '| ------------------------------- | --------- | ----------------- | ----- | ---------------------------------------------- | ----------------------------------------------- | ----------------- | ------------------------------------ | --------------------------------------------------------------- |';
 
@@ -1432,6 +1422,77 @@ test('recordPilotObservabilityEvidence writes structured log sweep and KPI evide
     assert.match(
       copiedIndex,
       /\| day-1 \| 2026-03-15 \| Admin KS \| expected-noise \| 0 \| 2 \| within-threshold \| 0 \| none \| n\/a \|/
+    );
+  });
+});
+
+test('recordPilotObservabilityEvidence normalizes existing reference casing instead of creating duplicates', () => {
+  withTempDir('pilot-observability-normalize-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: buildDailyEvidenceTemplate(1),
+      pointerIndexContent: buildCadencePointerIndexContent(),
+      copiedIndexContent: [
+        '# Pilot Evidence Index — pilot-ks-week-1',
+        '',
+        ...DAILY_EVIDENCE_TEMPLATE_LINES,
+        '| 1 | 2026-03-15 | Admin KS | green | docs/release-gates/2026-03-15_production_dpl_demo.md | n/a | 0 | none | continue |',
+        '',
+        '## Observability Evidence Log',
+        '',
+        `| ${OBSERVABILITY_HEADERS.join(' | ')} |`,
+        OBSERVABILITY_SEPARATOR_LINE,
+        '| Day-1 | 2026-03-14 | Admin KS | clear | 0 | 0 | within-threshold | 0 | none | stale |',
+        '',
+        '## Decision Proof Log',
+        '',
+        `| ${CANONICAL_DECISION_PROOF_HEADERS.join(' | ')} |`,
+        DECISION_PROOF_SEPARATOR_LINE,
+        '',
+      ].join('\n'),
+    });
+
+    recordPilotObservabilityEvidence({
+      ...buildObservabilityEvidenceArgs({
+        rootDir: tempDir,
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
+    });
+
+    const copiedIndex = fs.readFileSync(fixture.copiedIndexPath, 'utf8');
+    assert.equal(copiedIndex.match(/\| day-1 \|/g)?.length, 1);
+    assert.match(
+      copiedIndex,
+      /\| day-1 \| 2026-03-15 \| Admin KS \| expected-noise \| 0 \| 2 \| within-threshold \| 0 \| none \| n\/a \|/
+    );
+  });
+});
+
+test('recordPilotObservabilityEvidence rejects partial numeric evidence counts', () => {
+  withTempDir('pilot-observability-counts-', tempDir => {
+    const fixture = createPilotEntryFixture(tempDir);
+
+    assert.throws(
+      () =>
+        recordPilotObservabilityEvidence({
+          ...buildObservabilityEvidenceArgs({
+            rootDir: tempDir,
+            functionalErrorCount: '1.5',
+            pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          }),
+        }),
+      /functionalErrorCount must be a non-negative integer/
+    );
+
+    assert.throws(
+      () =>
+        recordPilotObservabilityEvidence({
+          ...buildObservabilityEvidenceArgs({
+            rootDir: tempDir,
+            expectedAuthDenyCount: '12abc',
+            pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          }),
+        }),
+      /expectedAuthDenyCount must be a non-negative integer/
     );
   });
 });

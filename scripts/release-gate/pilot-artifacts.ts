@@ -412,6 +412,9 @@ function parseObservabilityEvidenceTable(content) {
         row[field] = cells[cellIndex];
       }
     }
+    if (row.reference) {
+      row.reference = normalizeParsedObservabilityReference(row.reference);
+    }
     rows.push(row);
   }
 
@@ -880,8 +883,19 @@ function validateObservabilityReference(value) {
   return normalized;
 }
 
+function normalizeParsedObservabilityReference(value) {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  return /^(day|week)-\d+$/.test(normalized) ? normalized : String(value || '').trim();
+}
+
 function validateNonNegativeInteger(fieldName, value) {
-  const parsedValue = Number.parseInt(String(value ?? ''), 10);
+  const normalized = String(value ?? '').trim();
+  if (!/^\d+$/.test(normalized)) {
+    throw new Error(`${fieldName} must be a non-negative integer`);
+  }
+  const parsedValue = Number.parseInt(normalized, 10);
   if (!Number.isInteger(parsedValue) || parsedValue < 0) {
     throw new Error(`${fieldName} must be a non-negative integer`);
   }
@@ -1328,6 +1342,7 @@ module.exports = {
   CANONICAL_DECISION_PROOF_DECISIONS,
   CANONICAL_DECISION_PROOF_HEADERS,
   CANONICAL_OBSERVABILITY_EVIDENCE_HEADERS,
+  CANONICAL_OBSERVABILITY_EVIDENCE_SEPARATOR,
   CANONICAL_PILOT_EVIDENCE_INDEX_COLUMNS,
   CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
   CANONICAL_PILOT_EVIDENCE_TEMPLATE_PATH,
