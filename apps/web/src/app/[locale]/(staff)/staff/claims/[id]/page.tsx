@@ -1,5 +1,7 @@
 import { getStaffClaimDetail } from '@interdomestik/domain-claims';
-import { setRequestLocale } from 'next-intl/server';
+import { deriveClaimSlaPhase } from '@/features/claims/policy';
+import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
@@ -16,9 +18,14 @@ interface PageProps {
   }>;
 }
 
+function toClaimStatus(value: unknown): ClaimStatus {
+  return CLAIM_STATUSES.includes(value as ClaimStatus) ? (value as ClaimStatus) : 'draft';
+}
+
 export default async function StaffClaimDetailsPage({ params }: PageProps) {
   const { id, locale } = await params;
   setRequestLocale(locale);
+  const tClaims = await getTranslations('agent-claims.claims');
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return notFound();
@@ -49,6 +56,8 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
 
   const currentAssigneeLabel =
     assignmentOptions.find(option => option.id === detail.claim.staffId)?.label ?? null;
+  const claimStatus = toClaimStatus(detail.claim.status);
+  const slaPhase = deriveClaimSlaPhase(claimStatus);
 
   return (
     <div className="space-y-6" data-testid="staff-claim-detail-ready">
@@ -143,6 +152,20 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
         </section>
       ) : null}
 
+      {slaPhase !== 'not_applicable' ? (
+        <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-sla">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            {tClaims('details.sla_status_label')}
+          </h2>
+          <p
+            className="mt-3 text-sm font-medium text-slate-900"
+            data-testid="staff-claim-detail-sla-phase"
+          >
+            {tClaims(`details.sla_phase.${slaPhase}`)}
+          </p>
+        </section>
+      ) : null}
+
       <section className="rounded-lg border bg-white p-4" data-testid="staff-claim-detail-agent">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Agent
@@ -210,7 +233,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
             recoveryDecision={detail.recoveryDecision}
             commercialAgreement={detail.commercialAgreement}
             successFeeCollection={detail.successFeeCollection}
-            currentStatus={detail.claim.status || 'draft'}
+            currentStatus={claimStatus}
             staffId={session.user.id}
             assigneeId={detail.claim.staffId}
             assignmentOptions={assignmentOptions}

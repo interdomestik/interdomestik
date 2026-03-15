@@ -142,6 +142,17 @@ Observed:
 - /agent/import: `group-dashboard-summary` and aggregate-only privacy copy are present for office-tier agent access <present/missing>
 - /agent/import: seeded member-identifying text (for example `KS A-Member 1`) stays absent from the aggregate dashboard <hidden/leaked>
 
+## G09 Matter And SLA Enforcement
+
+**Result:** <PASS/FAIL>
+
+Observed:
+
+- /member/claims/golden_ks_a_claim_05: matter allowance card stays visible with used `0`, remaining `2`, total `2`, and member-facing SLA text stays `Response timer is running.` <present/missing>
+- /member/claims/golden_ks_a_claim_13: matter allowance card stays visible with used `0`, remaining `2`, total `2`, and member-facing SLA text stays `Waiting for your information before the SLA starts.` <present/missing>
+- /staff/claims/golden_ks_a_claim_05: staff detail stays ready with matter allowance values `0 / 2 / 2` and staff-facing SLA text stays `Running` <present/missing>
+- /staff/claims/golden_ks_a_claim_13: staff detail stays ready with matter allowance values `0 / 2 / 2` and staff-facing SLA text stays `Waiting for member information` <present/missing>
+
 ---
 
 # P1.5 — Observability
