@@ -15,10 +15,10 @@ export default async function AgentImportPage() {
   return (
     <div className="max-w-4xl mx-auto py-8 space-y-8 px-4">
       <div className="space-y-2">
-        <h1 className="text-3xl font-display font-bold tracking-tight">Enterprise Bulk Import</h1>
+        <h1 className="text-3xl font-display font-bold tracking-tight">Sponsored Member Import</h1>
         <p className="text-muted-foreground">
-          Upload a CSV file to register members in bulk. Optimized for brokers with large client
-          bases.
+          Upload a CSV roster to create individual member accounts in bulk through the agent write
+          path.
         </p>
       </div>
 
@@ -30,17 +30,17 @@ export default async function AgentImportPage() {
         <div className="p-6 rounded-2xl bg-muted/30 border space-y-2">
           <h3 className="font-bold">Template Guidelines</h3>
           <p className="text-sm text-muted-foreground">
-            Use columns: <strong>fullName, phone, email, plateNumber</strong>.
+            Use columns: <strong>fullName, email, phone, password</strong>. Optional:{' '}
+            <strong>planId</strong> (`standard` or `family`).
           </p>
           <p className="text-xs text-blue-600 font-medium cursor-pointer hover:underline">
             Download CSV Template
           </p>
         </div>
         <div className="p-6 rounded-2xl bg-muted/30 border space-y-2">
-          <h3 className="font-bold">Billing Model</h3>
+          <h3 className="font-bold">Account Model</h3>
           <p className="text-sm text-muted-foreground">
-            Enterprise imports are billed via monthly invoice. Net total = 50% of plan price per
-            active member.
+            Each imported row creates an individual member account with its own active membership.
           </p>
         </div>
       </div>

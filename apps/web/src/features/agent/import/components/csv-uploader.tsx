@@ -1,5 +1,10 @@
 'use client';
 
+import { importMembers } from '@/lib/actions/agent';
+import {
+  parseMemberImportCsv,
+  type ParsedMemberImportRow,
+} from '@/features/agent/import/lib/parse-member-import-csv';
 import { Button } from '@interdomestik/ui/components/button';
 import { Input } from '@interdomestik/ui/components/input';
 import {
@@ -11,22 +16,43 @@ import {
   TableRow,
 } from '@interdomestik/ui/components/table';
 import { CloudUpload, FileText, Loader2, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useActionState, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-interface MemberRow {
-  fullName: string;
-  phone: string;
-  email: string;
-  plateNumber: string;
-  isValid: boolean;
-  error?: string;
-}
+const initialState = {
+  error: '',
+  summary: undefined as
+    | {
+        total: number;
+        imported: number;
+        failed: number;
+      }
+    | undefined,
+  results: undefined as
+    | Array<{
+        index: number;
+        email: string;
+        fullName: string;
+        ok: boolean;
+        error?: string;
+      }>
+    | undefined,
+};
 
 export function CSVUploader() {
-  const [rows, setRows] = useState<MemberRow[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [serverState, action, pending] = useActionState(importMembers, initialState);
+  const [rows, setRows] = useState<ParsedMemberImportRow[]>([]);
+  const [headerErrors, setHeaderErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const validRows = rows
+    .filter(row => row.isValid)
+    .map(({ fullName, email, phone, password, planId }) => ({
+      fullName,
+      email,
+      phone,
+      password,
+      planId,
+    }));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,57 +66,53 @@ export function CSVUploader() {
     const reader = new FileReader();
     reader.onload = event => {
       const text = event.target?.result as string;
-      const lines = text.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const parsed = parseMemberImportCsv(text);
 
-      const parsedRows: MemberRow[] = lines
-        .slice(1)
-        .filter(line => line.trim())
-        .map(line => {
-          const values = line.split(',').map(v => v.trim());
-          const rowData: any = {};
-          headers.forEach((header, i) => {
-            rowData[header] = values[i];
-          });
+      setHeaderErrors(parsed.headerErrors);
+      setRows(parsed.rows);
 
-          const isValid = !!(rowData.fullname && rowData.phone && rowData.platenumber);
+      if (parsed.headerErrors.length > 0) {
+        toast.error(parsed.headerErrors[0]);
+        return;
+      }
 
-          return {
-            fullName: rowData.fullname || '',
-            phone: rowData.phone || '',
-            email: rowData.email || '',
-            plateNumber: rowData.platenumber || '',
-            isValid,
-            error: !isValid ? 'Missing required fields' : undefined,
-          };
-        });
-
-      setRows(parsedRows);
-      toast.success(`Parsed ${parsedRows.length} rows`);
+      toast.success(`Parsed ${parsed.rows.length} rows`);
     };
     reader.readAsText(file);
   };
 
   const clearData = () => {
     setRows([]);
+    setHeaderErrors([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleImport = async () => {
-    setIsProcessing(true);
-    // Mock processing delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // In real app: call server action bulkRegisterMembers(rows.filter(r => r.isValid))
-
-    toast.success(`Successfully imported ${rows.filter(r => r.isValid).length} members`);
-    setIsProcessing(false);
-    setRows([]);
   };
 
   if (rows.length > 0) {
     return (
-      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+      <form action={action} className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+        <input type="hidden" name="rowsJson" value={JSON.stringify(validRows)} />
+
+        {serverState.error && (
+          <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            {serverState.error}
+          </div>
+        )}
+
+        {serverState.summary && (
+          <div className="rounded-md bg-emerald-500/10 p-3 text-sm text-emerald-700 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            Imported {serverState.summary.imported} of {serverState.summary.total} members
+            {serverState.summary.failed > 0 ? ` (${serverState.summary.failed} failed)` : ''}
+          </div>
+        )}
+
+        {headerErrors.length > 0 && (
+          <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+            {headerErrors[0]}
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-500" />
@@ -109,8 +131,8 @@ export function CSVUploader() {
                 <TableHead>Status</TableHead>
                 <TableHead>Full Name</TableHead>
                 <TableHead>Phone</TableHead>
-                <TableHead>Plate</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Plan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -125,8 +147,8 @@ export function CSVUploader() {
                   </TableCell>
                   <TableCell className="font-medium">{row.fullName}</TableCell>
                   <TableCell>{row.phone}</TableCell>
-                  <TableCell>{row.plateNumber}</TableCell>
                   <TableCell className="text-muted-foreground">{row.email || '-'}</TableCell>
+                  <TableCell className="capitalize">{row.planId}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -138,15 +160,15 @@ export function CSVUploader() {
             Cancel
           </Button>
           <Button
-            disabled={isProcessing || rows.every(r => !r.isValid)}
-            onClick={handleImport}
+            type="submit"
+            disabled={pending || validRows.length === 0 || headerErrors.length > 0}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Confirm Bulk Registration ({rows.filter(r => r.isValid).length} members)
+            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Confirm Bulk Registration ({validRows.length} members)
           </Button>
         </div>
-      </div>
+      </form>
     );
   }
 
@@ -166,9 +188,9 @@ export function CSVUploader() {
         <CloudUpload className="h-8 w-8" />
       </div>
       <div className="text-center space-y-2">
-        <h3 className="text-xl font-bold">Upload Client List</h3>
+        <h3 className="text-xl font-bold">Upload Sponsored Member Roster</h3>
         <p className="text-muted-foreground max-w-xs">
-          Drag and drop your CSV file here, or click to browse your computer.
+          Upload a CSV with fullName, email, phone, password, and optional planId.
         </p>
       </div>
     </div>

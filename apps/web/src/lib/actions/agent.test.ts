@@ -12,6 +12,10 @@ vi.mock('./agent/register-member', () => ({
   registerMemberCore: vi.fn(),
 }));
 
+vi.mock('./agent/import-members.core', () => ({
+  importMembersCore: vi.fn(),
+}));
+
 vi.mock('@interdomestik/database/db', () => ({
   db: {
     insert: vi.fn().mockReturnThis(),
@@ -169,6 +173,65 @@ describe('agent actions', () => {
 
       expect(result).toBeUndefined();
       expect(redirect).toHaveBeenCalledWith('/en/agent/clients');
+    });
+  });
+
+  describe('importMembers', () => {
+    it('returns unauthorized when bulk import runs without an agent session', async () => {
+      const actions = await import('./agent');
+      const importMembers = (actions as Record<string, unknown>).importMembers as (
+        prevState: unknown,
+        formData: FormData
+      ) => Promise<unknown>;
+
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+      const formData = new FormData();
+      formData.set('rowsJson', '[]');
+
+      await expect(importMembers(null, formData)).resolves.toEqual({
+        error: 'Unauthorized',
+        summary: undefined,
+        results: undefined,
+      });
+    });
+
+    it('delegates bulk import to the core and returns the structured result', async () => {
+      const actions = await import('./agent');
+      const { importMembersCore } = await import('./agent/import-members.core');
+      const importMembers = (actions as Record<string, unknown>).importMembers as (
+        prevState: unknown,
+        formData: FormData
+      ) => Promise<unknown>;
+
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        user: { id: 'agent1', name: 'Agent', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
+      });
+
+      (importMembersCore as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        summary: { total: 1, imported: 1, failed: 0 },
+        results: [{ index: 0, email: 'bulk@example.test', fullName: 'Bulk User', ok: true }],
+      });
+
+      const formData = new FormData();
+      formData.set(
+        'rowsJson',
+        JSON.stringify([
+          {
+            fullName: 'Bulk User',
+            email: 'bulk@example.test',
+            phone: '+38344111222',
+            password: 'Secret123!',
+            planId: 'standard',
+          },
+        ])
+      );
+
+      await expect(importMembers(null, formData)).resolves.toEqual({
+        error: '',
+        summary: { total: 1, imported: 1, failed: 0 },
+        results: [{ index: 0, email: 'bulk@example.test', fullName: 'Bulk User', ok: true }],
+      });
     });
   });
 });

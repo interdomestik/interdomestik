@@ -24,3 +24,17 @@ export const registerMemberSchema = z.object({
   planId: z.enum(['standard', 'family']),
   notes: z.string().optional(),
 });
+
+export const importMemberRowSchema = z.object({
+  fullName: z.string().min(2, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().min(5, 'Phone is required'),
+  password: z.string().min(6, 'Password is required'),
+  planId: z.enum(['standard', 'family']).default('standard'),
+});
+
+export const importMembersSchema = z.object({
+  rows: z.array(importMemberRowSchema),
+});
+
+export type ImportMemberRowInput = z.infer<typeof importMemberRowSchema>;
