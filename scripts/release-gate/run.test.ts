@@ -6,12 +6,15 @@ import test from 'node:test';
 
 const {
   buildCommercialPromiseScenarios,
+  buildFreeStartGroupPrivacyScenarios,
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
   computeRetryDelayMs,
   evaluateCredentialPreflightResults,
   enforceNoSkipOnSelectedChecks,
+  findMissingBoundaryPhrases,
   findMissingCommercialPromiseSections,
+  findPresentBoundaryLeaks,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
@@ -174,13 +177,16 @@ test('isLoginDependentCheck maps suites to auth-dependent checks', () => {
   assert.equal(isLoginDependentCheck('P1.1'), true);
   assert.equal(isLoginDependentCheck('P1.3'), true);
   assert.equal(isLoginDependentCheck('G07'), true);
+  assert.equal(isLoginDependentCheck('G08'), true);
   assert.equal(isLoginDependentCheck('P1.5.1'), false);
 });
 
-test('p6 suite requires only member credentials for G07', () => {
+test('p6 suite requires member and office-agent credentials for G07 and G08', () => {
   assert.deepEqual(REQUIRED_ENV_BY_SUITE.p6, [
     'RELEASE_GATE_MEMBER_EMAIL',
     'RELEASE_GATE_MEMBER_PASSWORD',
+    'RELEASE_GATE_OFFICE_AGENT_EMAIL',
+    'RELEASE_GATE_OFFICE_AGENT_PASSWORD',
   ]);
 });
 
@@ -246,6 +252,58 @@ test('findMissingCommercialPromiseSections reports only the absent required sect
   );
 
   assert.deepEqual(missing, ['pricing-success-fee-calculator']);
+});
+
+test('buildFreeStartGroupPrivacyScenarios covers the public and office-boundary surfaces for G08', () => {
+  const scenarios = buildFreeStartGroupPrivacyScenarios({
+    baseUrl: 'https://interdomestik-web.vercel.app',
+    locale: 'en',
+  });
+
+  assert.deepEqual(
+    scenarios.map(scenario => ({
+      id: scenario.id,
+      account: scenario.account,
+      url: scenario.url,
+      requiredTestIds: scenario.requiredTestIds,
+    })),
+    [
+      {
+        id: 'free_start',
+        account: null,
+        url: 'https://interdomestik-web.vercel.app/en/',
+        requiredTestIds: ['free-start-triage-note'],
+      },
+      {
+        id: 'group_dashboard',
+        account: 'office_agent',
+        url: 'https://interdomestik-web.vercel.app/en/agent/import',
+        requiredTestIds: ['group-dashboard-summary'],
+      },
+    ]
+  );
+});
+
+test('findMissingBoundaryPhrases reports only the absent required privacy phrases', () => {
+  const missing = findMissingBoundaryPhrases(
+    [
+      'Free Start stays informational',
+      'hotline stays routing-only',
+      'Aggregate group access dashboard',
+    ],
+    'Free Start stays informational and the hotline stays routing-only.'
+  );
+
+  assert.deepEqual(missing, ['Aggregate group access dashboard']);
+});
+
+test('findPresentBoundaryLeaks reports member-identifying text that should stay hidden', () => {
+  const leaks = findPresentBoundaryLeaks(
+    ['KS A-Member 1', 'member.ks.a1@interdomestik.com'],
+    'Aggregate group access dashboard KS A-Member 1 remains visible here.'
+  );
+
+  assert.deepEqual(leaks, ['KS A-Member 1']);
 });
 
 test('shouldDisallowSkippedChecks defaults to true for production and false otherwise', () => {
@@ -360,7 +418,7 @@ test('resolveTenantOverrideProbeUrl uses configured RELEASE_GATE_MK_USER_URL whe
   }
 });
 
-test('writeReleaseGateReport includes the G07 commercial promise section', () => {
+test('writeReleaseGateReport includes the G07 and G08 RC sections', () => {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'release-gate-report-'));
 
   try {
@@ -373,7 +431,7 @@ test('writeReleaseGateReport includes the G07 commercial promise section', () =>
       deploymentUrl: 'https://interdomestik-web-g07.vercel.app',
       deploymentSource: 'unit-test',
       generatedAt: new Date('2026-03-15T12:00:00.000Z'),
-      executedChecks: ['P0.1', 'G07'],
+      executedChecks: ['P0.1', 'G07', 'G08'],
       checks: [
         { id: 'P0.1', status: 'PASS', evidence: ['rbac ok'], signatures: [] },
         {
@@ -384,10 +442,17 @@ test('writeReleaseGateReport includes the G07 commercial promise section', () =>
             'G07_COMMERCIAL_PROMISE_SURFACE_MISSING scenario=pricing missing=pricing-billing-terms',
           ],
         },
+        {
+          id: 'G08',
+          status: 'FAIL',
+          evidence: ['group dashboard leaked member name'],
+          signatures: ['G08_PRIVACY_LEAK_DETECTED scenario=group_dashboard leaks=KS A-Member 1'],
+        },
       ],
       accounts: {
         member: 'member@example.com',
         agent: 'agent@example.com',
+        officeAgent: 'office.agent@example.com',
         staff: 'staff@example.com',
         adminKs: 'admin.ks@example.com',
         adminMk: 'admin.mk@example.com',
@@ -400,10 +465,14 @@ test('writeReleaseGateReport includes the G07 commercial promise section', () =>
     });
 
     const report = fs.readFileSync(result.reportPath, 'utf8');
+    assert.match(report, /Office agent: \[REDACTED_EMAIL\]/);
     assert.match(report, /## G07 Commercial Promise Surfaces/);
+    assert.match(report, /## G08 Free Start And Group Privacy Boundaries/);
     assert.match(report, /\*\*Result:\*\* FAIL/);
     assert.match(report, /pricing missing=pricing-billing-terms/);
     assert.match(report, /G07_COMMERCIAL_PROMISE_SURFACE_MISSING/);
+    assert.match(report, /group dashboard leaked member name/);
+    assert.match(report, /G08_PRIVACY_LEAK_DETECTED/);
   } finally {
     fs.rmSync(outDir, { recursive: true, force: true });
   }

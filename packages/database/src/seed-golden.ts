@@ -617,15 +617,16 @@ export async function seedGolden(config: SeedConfig) {
   // 7. Claims Pack (KS-A Urgent, KS-B Attention, KS-C Healthy)
   console.log('📝 Seeding Claims Pack (Ops Verification)...');
 
-  // 6b. Agent Settings (Pro Tier for E2E Agents)
-  // CRITICAL: Required for /agent/leads access in E2E tests
+  // 6b. Agent Settings (Deterministic tiers for E2E agents)
+  // CRITICAL: /agent/leads requires pro-or-office and /agent/import requires office.
   // We use explicit DELETE-THEN-INSERT for strict determinism and to handle potential schema defaults.
   console.log('⚙️ Seeding Agent Settings...');
   const agentSettingsTargets = [
-    { agentId: 'ks_agent_a1', tenantId: TENANTS.KS },
-    { agentId: 'mk_agent_a1', tenantId: TENANTS.MK },
-    { agentId: 'ks_b_agent_1', tenantId: TENANTS.KS },
-    { agentId: 'ks_c_agent_1', tenantId: TENANTS.KS },
+    { agentId: 'ks_agent_a1', tenantId: TENANTS.KS, tier: 'pro' },
+    { agentId: 'mk_agent_a1', tenantId: TENANTS.MK, tier: 'pro' },
+    { agentId: 'ks_b_agent_1', tenantId: TENANTS.KS, tier: 'office' },
+    { agentId: 'ks_c_agent_1', tenantId: TENANTS.KS, tier: 'pro' },
+    { agentId: 'agent_balkan_1', tenantId: TENANTS.MK, tier: 'office' },
   ];
 
   // 1. Delete existing settings for these agents
@@ -638,13 +639,13 @@ export async function seedGolden(config: SeedConfig) {
     )
   );
 
-  // 2. Insert Pro Tier settings
+  // 2. Insert deterministic tier settings
   await db.insert(schema.agentSettings).values(
     agentSettingsTargets.map(t => ({
       id: goldenId(`${t.agentId}_settings`),
       tenantId: t.tenantId,
       agentId: goldenId(t.agentId),
-      tier: 'pro', // Force PRO tier for E2E
+      tier: t.tier,
       commissionRates: { standard: 15.0 },
       status: 'active',
       createdAt: at(),

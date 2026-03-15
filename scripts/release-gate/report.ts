@@ -78,6 +78,7 @@ function writeReleaseGateReport(input) {
   const p13 = getCheck(input.checks, 'P1.3');
   const p151 = getCheck(input.checks, 'P1.5.1');
   const g07 = getCheck(input.checks, 'G07');
+  const g08 = getCheck(input.checks, 'G08');
 
   const failingSignatures = input.checks.flatMap(check => check.signatures || []);
   const verdict = failingSignatures.length > 0 ? 'NO-GO' : 'GO';
@@ -120,12 +121,14 @@ function writeReleaseGateReport(input) {
     '- Evidence upload/download + persistence',
     '- Staff claim update persistence',
     '- Commercial promise surfaces (coverage, fees, disclaimers, refund terms)',
+    '- Free Start informational-only and aggregate-only privacy boundaries',
     '- Production error log sweep',
     '',
     '## Test Accounts Used',
     '',
     `- Member-only: ${sanitizeReportText(input.accounts.member)}`,
     `- Agent: ${sanitizeReportText(input.accounts.agent)}`,
+    `- Office agent: ${sanitizeReportText(input.accounts.officeAgent || 'N/A')}`,
     `- Staff: ${sanitizeReportText(input.accounts.staff)}`,
     `- Admin (KS): ${sanitizeReportText(input.accounts.adminKs)}`,
     `- Admin (MK): ${sanitizeReportText(input.accounts.adminMk)}`,
@@ -203,6 +206,13 @@ function writeReleaseGateReport(input) {
     '',
     'Observed:',
     ...asList(g07.evidence),
+    '',
+    '## G08 Free Start And Group Privacy Boundaries',
+    '',
+    `**Result:** ${renderCheckResult(g08)}`,
+    '',
+    'Observed:',
+    ...asList(g08.evidence),
     '',
     '---',
     '',

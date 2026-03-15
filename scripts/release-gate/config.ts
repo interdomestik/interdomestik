@@ -11,8 +11,8 @@ const DEFAULTS = {
 const SUITES = {
   p0: ['P0.1', 'P0.2', 'P0.3', 'P0.4', 'P0.6'],
   p1: ['P1.1', 'P1.2', 'P1.3', 'P1.5.1'],
-  p6: ['G07'],
-  all: ['P0.1', 'P0.2', 'P0.3', 'P0.4', 'P0.6', 'P1.1', 'P1.2', 'P1.3', 'P1.5.1', 'G07'],
+  p6: ['G07', 'G08'],
+  all: ['P0.1', 'P0.2', 'P0.3', 'P0.4', 'P0.6', 'P1.1', 'P1.2', 'P1.3', 'P1.5.1', 'G07', 'G08'],
 };
 
 const ROUTES = {
@@ -91,6 +91,14 @@ const ACCOUNTS = {
     passwordVar: 'RELEASE_GATE_AGENT_PASSWORD',
     label: 'Agent',
   },
+  office_agent: {
+    key: 'office_agent',
+    roleMarker: 'agent',
+    tenantId: 'tenant_ks',
+    emailVar: 'RELEASE_GATE_OFFICE_AGENT_EMAIL',
+    passwordVar: 'RELEASE_GATE_OFFICE_AGENT_PASSWORD',
+    label: 'Office agent',
+  },
   staff: {
     key: 'staff',
     roleMarker: 'staff',
@@ -136,12 +144,19 @@ const REQUIRED_ENV_BY_SUITE = {
     ACCOUNTS.staff.emailVar,
     ACCOUNTS.staff.passwordVar,
   ],
-  p6: [ACCOUNTS.member.emailVar, ACCOUNTS.member.passwordVar],
+  p6: [
+    ACCOUNTS.member.emailVar,
+    ACCOUNTS.member.passwordVar,
+    ACCOUNTS.office_agent.emailVar,
+    ACCOUNTS.office_agent.passwordVar,
+  ],
   all: [
     ACCOUNTS.member.emailVar,
     ACCOUNTS.member.passwordVar,
     ACCOUNTS.agent.emailVar,
     ACCOUNTS.agent.passwordVar,
+    ACCOUNTS.office_agent.emailVar,
+    ACCOUNTS.office_agent.passwordVar,
     ACCOUNTS.staff.emailVar,
     ACCOUNTS.staff.passwordVar,
     ACCOUNTS.admin_ks.emailVar,

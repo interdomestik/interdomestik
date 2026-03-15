@@ -123,9 +123,11 @@ function computeRetryDelayMs({ attempt, retryAfterSeconds, randomFn = Math.rando
 }
 
 function defaultPathForAccount(account) {
-  return account === 'agent'
-    ? ROUTES.rbacTargets[1]
-    : account.replace('_ks', '').replace('_mk', '');
+  const roleMarker = ACCOUNTS[account]?.roleMarker;
+  if (roleMarker && ROUTES.rbacTargets.includes(roleMarker)) {
+    return roleMarker;
+  }
+  return account.replace('_ks', '').replace('_mk', '');
 }
 
 function logLoginAttempt({ account, attempt, status, retryAfterSeconds }) {
