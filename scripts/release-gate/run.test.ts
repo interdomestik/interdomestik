@@ -28,6 +28,7 @@ const {
   sessionCacheKeyForAccount,
   shouldDisallowSkippedChecks,
 } = require('./run.ts');
+const { createPilotEntryArtifacts, parsePilotEvidenceIndex } = require('./pilot-artifacts.ts');
 const { writeReleaseGateReport } = require('./report.ts');
 const { checkPortalMarkers, resolveForwardedForIp } = require('./shared.ts');
 const { REQUIRED_ENV_BY_SUITE, ROLE_IPS, SELECTORS } = require('./config.ts');
@@ -735,4 +736,119 @@ test('evaluateCredentialPreflightResults does not flag misconfiguration when any
 
   assert.equal(evaluation.hasSuccess, true);
   assert.equal(evaluation.allAuthDenied, false);
+});
+
+test('createPilotEntryArtifacts copies the template, appends a canonical pointer row, and keeps stable doc references', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pilot-entry-artifacts-'));
+  const reportDir = path.join(tempDir, 'docs', 'release-gates');
+  const pilotDir = path.join(tempDir, 'docs', 'pilot');
+  const indexDir = path.join(tempDir, 'docs', 'pilot-evidence');
+
+  fs.mkdirSync(reportDir, { recursive: true });
+  fs.mkdirSync(pilotDir, { recursive: true });
+  fs.mkdirSync(indexDir, { recursive: true });
+
+  const templatePath = path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_TEMPLATE.md');
+  const reportPath = path.join(reportDir, '2026-03-15_production_dpl_demo.md');
+  const pointerIndexPath = path.join(indexDir, 'index.csv');
+
+  fs.writeFileSync(
+    templatePath,
+    '# Pilot Evidence Index Template\n\n| Day | Date |\n| --- | --- |\n| 1 | |\n',
+    'utf8'
+  );
+  fs.writeFileSync(reportPath, '# Release Gate\n', 'utf8');
+  fs.writeFileSync(
+    pointerIndexPath,
+    'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path\n',
+    'utf8'
+  );
+
+  const artifacts = createPilotEntryArtifacts({
+    pilotId: 'pilot-ks-week-1',
+    envName: 'production',
+    suite: 'all',
+    generatedAt: new Date('2026-03-15T10:11:12.000Z'),
+    reportPath,
+    releaseVerdict: 'GO',
+    releaseGateTemplatePath: templatePath,
+    pilotEvidenceIndexCsvPath: pointerIndexPath,
+  });
+
+  assert.equal(
+    path.relative(tempDir, artifacts.evidenceIndexPath),
+    path.join('docs', 'pilot', 'PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md')
+  );
+  assert.ok(fs.existsSync(artifacts.evidenceIndexPath));
+
+  const copiedIndex = fs.readFileSync(artifacts.evidenceIndexPath, 'utf8');
+  assert.match(copiedIndex, /Copied from `docs\/pilot\/PILOT_EVIDENCE_INDEX_TEMPLATE\.md`/);
+  assert.match(copiedIndex, /Pilot ID: `pilot-ks-week-1`/);
+  assert.match(
+    copiedIndex,
+    /Release gate report: `docs\/release-gates\/2026-03-15_production_dpl_demo\.md`/
+  );
+
+  const parsed = parsePilotEvidenceIndex(fs.readFileSync(pointerIndexPath, 'utf8'));
+  assert.equal(parsed.length, 1);
+  assert.deepEqual(parsed[0], {
+    run_id: 'pilot-entry-20260315T101112Z-pilot-ks-week-1',
+    pilot_id: 'pilot-ks-week-1',
+    env_name: 'production',
+    gate_suite: 'all',
+    generated_at: '2026-03-15T10:11:12.000Z',
+    release_verdict: 'GO',
+    report_path: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
+    evidence_index_path: 'docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md',
+    legacy_log_path: '',
+  });
+});
+
+test('createPilotEntryArtifacts preserves existing copied evidence index content on later pilot-entry runs', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pilot-entry-artifacts-reuse-'));
+  const reportDir = path.join(tempDir, 'docs', 'release-gates');
+  const pilotDir = path.join(tempDir, 'docs', 'pilot');
+  const indexDir = path.join(tempDir, 'docs', 'pilot-evidence');
+
+  fs.mkdirSync(reportDir, { recursive: true });
+  fs.mkdirSync(pilotDir, { recursive: true });
+  fs.mkdirSync(indexDir, { recursive: true });
+
+  const templatePath = path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_TEMPLATE.md');
+  const reportPath = path.join(reportDir, '2026-03-15_production_dpl_demo.md');
+  const pointerIndexPath = path.join(indexDir, 'index.csv');
+  const copiedIndexPath = path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md');
+
+  fs.writeFileSync(templatePath, '# Template\n', 'utf8');
+  fs.writeFileSync(reportPath, '# Release Gate\n', 'utf8');
+  fs.writeFileSync(
+    copiedIndexPath,
+    '# Existing Index\n\n| Day | Date |\n| --- | --- |\n| 1 | 2026-03-15 |\n',
+    'utf8'
+  );
+  fs.writeFileSync(
+    pointerIndexPath,
+    'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path\n',
+    'utf8'
+  );
+
+  createPilotEntryArtifacts({
+    pilotId: 'pilot-ks-week-1',
+    envName: 'production',
+    suite: 'all',
+    generatedAt: new Date('2026-03-16T08:00:00.000Z'),
+    reportPath,
+    releaseVerdict: 'NO-GO',
+    releaseGateTemplatePath: templatePath,
+    pilotEvidenceIndexCsvPath: pointerIndexPath,
+  });
+
+  assert.equal(
+    fs.readFileSync(copiedIndexPath, 'utf8'),
+    '# Existing Index\n\n| Day | Date |\n| --- | --- |\n| 1 | 2026-03-15 |\n'
+  );
+  const parsed = parsePilotEvidenceIndex(fs.readFileSync(pointerIndexPath, 'utf8'));
+  assert.equal(parsed.length, 1);
+  assert.equal(parsed[0].release_verdict, 'NO-GO');
+  assert.equal(parsed[0].evidence_index_path, 'docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md');
 });

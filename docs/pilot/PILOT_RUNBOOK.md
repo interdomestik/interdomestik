@@ -48,6 +48,32 @@ Validate one closed-loop workflow in real branch operations in Kosovo:
 - Weekly review (45 min): Trend review, threshold check, go/no-go decision.
 - Mon–Sun operations are active for the full 14-day pilot window.
 
+## Canonical Pilot-Entry Artifact Contract
+
+The canonical pilot-entry artifact contract is owned here. A pilot-entry run is a production release-gate run invoked with a pilot id:
+
+```bash
+pnpm release:gate:prod -- --pilotId <pilot-id>
+```
+
+Each pilot-entry run must create exactly these repo-backed artifacts:
+
+1. A release report in `docs/release-gates/YYYY-MM-DD_production_<deployment>.md`.
+2. A copied per-pilot evidence index in `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md`, created from `docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md` on first use and then reused for the same pilot id.
+3. A canonical pointer row in `docs/pilot-evidence/index.csv` with stable repo references to the release report and copied evidence index.
+
+`docs/pilot-evidence/index.csv` uses this canonical schema:
+
+```csv
+run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path,legacy_log_path
+```
+
+Field rules:
+
+- `report_path` and `evidence_index_path` must be stable repo-relative `docs/...` references.
+- `legacy_log_path` is only for pre-R01 historical continuity and stays blank for canonical pilot-entry rows.
+- The copied evidence index file path is stable per pilot id; daily operations update that file instead of creating a new one each day.
+
 ## Weekend Operating Mode (Light-Touch)
 
 - Coverage objective: During weekend operating hours (`08:00–17:00 Europe/Pristina`), monitor and log actively while avoiding non-critical change churn.
@@ -72,6 +98,7 @@ pnpm security:guard
 ```
 
 - Record results in a per-pilot evidence index copied from `docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md` (for example, `docs/pilot/PILOT_EVIDENCE_INDEX_<PILOT_ID>.md`).
+- For pilot entry, create or refresh the artifact set by running `pnpm release:gate:prod -- --pilotId <pilot-id>` before daily updates begin.
 - If Sev1 requires hotfix workflow evidence, run:
   - after hotfix merge to clean, synced `main`: `./phase-5-1.sh`
   - fallback on clean, synced `main`: `bash ./phase-5-1.sh`

@@ -31,7 +31,9 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P4` Staff Operations And Acceptance Control remains active as the post-`P3` tranche. `S01` is now complete as the canonical staff claim queue and filter work slice, `S02` is now complete as the canonical manual claim assignment slice, `S03` is now complete as the canonical claim stage history and member-visible tracker slice, `S04` is now complete as the canonical SLA-state visibility slice, `S05` is now complete as the canonical internal-notes isolation slice, `S07` is now complete as the canonical matter-ledger and allowance-visibility slice, intentionally promoted ahead of `S06`, `S06` is now complete as the next promoted `P4` slice after `S07`, `S08` is now complete as the explicit recovery-decision gate slice after `S06`, `S09` is now complete as the accepted-case agreement and collection prerequisite slice after `S08`, and `S10` is now complete as the guidance-only and referral-only commercial-enforcement slice after `S09`. The live tracker now preserves the actionable staff queue surface, public claim-history continuity, explicit incomplete-vs-running SLA visibility, internal-note isolation, annual matter-allowance visibility, secure member-staff messaging, the explicit accepted-or-declined recovery gate, accepted-case agreement-plus-collection-path enforcement, and the launch-scope block that keeps guidance-only and referral-only matters out of staff-led recovery and success-fee handling on the canonical staff claim-detail surfaces before load-based auto-assignment is promoted. `GA01` is now complete as the canonical group roster import slice, `GA02` is now complete as the canonical aggregate-only group dashboard slice, `GA03` is now complete as the canonical sponsored-seat activation and self-upgrade slice, and `GA04` is now complete as the canonical privacy and consent negative-test slice.
 
-`P6` v1.0.0 RC Gate remains the next committed tranche after the completed `P4` and `P4G` queue. `G07` is now complete as the first explicit release-gate slice, `G08` is now complete as the Free Start and aggregate-only privacy-boundary proof slice, `G09` is now complete as the matter-count and SLA-state enforcement slice, and `G10` is now complete as the escalation-agreement and collection-fallback enforcement slice. No further `G` item is currently committed after `G10`.
+`P6` v1.0.0 RC Gate is now complete as the next committed tranche after the completed `P4` and `P4G` queue. `G07` is now complete as the first explicit release-gate slice, `G08` is now complete as the Free Start and aggregate-only privacy-boundary proof slice, `G09` is now complete as the matter-count and SLA-state enforcement slice, and `G10` is now complete as the escalation-agreement and collection-fallback enforcement slice.
+
+`P7` Pilot Readiness And Release Evidence remains the next committed tranche after completed `P6`. `R01` is now complete as the canonical pilot-entry artifact-set slice, and `R02` through `R08` remain queued as the readiness command authority, deterministic daily evidence capture, continue-or-rollback proof, pilot-ready tag discipline, modern readiness cadence, observability evidence, and ranked operator flow required before live pilot operation is treated as governable.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -96,6 +98,14 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 57. Keep `G08` complete as the explicit `P6` release-gate slice so Free Start still states informational-only status and group dashboards still expose only aggregate data before later staging-only enforcement checks are widened.
 58. Keep `G09` complete as the explicit `P6` release-gate slice so members and staff still see correct matter counts and correct SLA states on canonical claim-detail surfaces before later accepted-case enforcement checks are widened.
 59. Keep `G10` complete as the explicit `P6` release-gate slice so escalation-agreement acceptance, signature, and collection-fallback enforcement stay validated in release-candidate runs after matter-and-SLA proof is locked in.
+60. Land `P7` as the canonical Pilot Readiness And Release Evidence tranche so the completed release-gate and pilot machinery becomes one governable pilot-entry operating system rather than a split set of scripts, reports, and local-only evidence conventions.
+61. Land `R01` as the canonical pilot-ready artifact-contract slice so every pilot-entry run creates a release report, a copied pilot evidence index, and a machine-readable evidence pointer row with stable references.
+62. Land `R02` as the canonical readiness-command authority slice so `pilot:check`, `release:gate:prod`, and `scripts/pilot-verify.sh` have documented, non-overlapping roles before live pilot entry begins.
+63. Land `R03` as the canonical deterministic pilot-evidence slice so daily pilot operation records status, severity, bundle path, and decision in one copied per-pilot evidence index instead of relying on memory or ad hoc notes.
+64. Land `R04` as the canonical continue-pause-hotfix-stop decision-proof slice so daily and weekly pilot decisions become repo-backed artifacts that can reference rollback targets and re-validation requirements.
+65. Land `R05` as the canonical pilot-ready tag-discipline slice so rollback targets and resume rules point to a real `pilot-ready-YYYYMMDD` tag with fresh re-validation evidence before pilot operations resume.
+66. Land `R06` as the canonical readiness-cadence slice so a source-backed green-run or green-day cadence replaces any need for historical A22-style inference in live governance.
+67. Land `R07` and `R08` as the canonical pilot observability-and-operator-flow slices so incident evidence, log sweeps, KPI conditions, and the ranked pilot-entry command path are inspectable and repeatable before a live pilot is declared governable.
 
 ## Status Command
 
@@ -138,7 +148,9 @@ pnpm plan:proof
 
 `GA03` Add sponsored-seat activation and self-upgrade path is now complete after completed `GA02`, and `GA04` privacy and consent negative tests are now complete after completed `GA03` so group admins still cannot see claim facts, notes, or documents without explicit member consent.
 
-`P6` v1.0.0 RC Gate remains the next committed tranche after completed `P4` and `P4G`. `G07` Validate commercial promise surfaces is now complete, `G08` Validate Free Start and group privacy boundaries is now complete, `G09` Validate matter and SLA enforcement is now complete, and `G10` Validate escalation agreement and collection fallback in staging is now complete, proving release-candidate validation now covers the published commercial contract surfaces, Free Start and aggregate-only privacy boundaries, matter-and-SLA enforcement, and accepted-case commercial enforcement. No further `G` item is currently committed after `G10`.
+`P6` v1.0.0 RC Gate is now complete after completed `P4` and `P4G`. `G07` Validate commercial promise surfaces is now complete, `G08` Validate Free Start and group privacy boundaries is now complete, `G09` Validate matter and SLA enforcement is now complete, and `G10` Validate escalation agreement and collection fallback in staging is now complete, proving release-candidate validation now covers the published commercial contract surfaces, Free Start and aggregate-only privacy boundaries, matter-and-SLA enforcement, and accepted-case commercial enforcement.
+
+`P7` Pilot Readiness And Release Evidence remains the next committed tranche after completed `P6`. `R01` Canonicalize the pilot-ready artifact set is now complete, and `R02` through `R08` remain queued behind it so readiness command authority, daily evidence capture, rollback discipline, and operator decision custody become canonical before any broader UX redesign is promoted.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -162,6 +174,8 @@ These documents can recommend or constrain work, but they do not define the live
 - `docs/plans/2026-03-05-pg3-advisory-evidence-refresh.md`
 - `docs/plans/2026-03-09-interdomestik-business-model-blueprint-v1.md`
 - `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md`
+- `docs/plans/2026-03-15-pilot-readiness-blueprint-v1.md`
+- `docs/plans/2026-03-15-pilot-readiness-roadmap-diff-proposal.md`
 
 ## Promotion Note
 
@@ -248,6 +262,9 @@ These documents can recommend or constrain work, but they do not define the live
 - `G09` is now complete as of 2026-03-15. The scripted release-gate runner now checks deterministic member and staff claim-detail routes for seeded annual matter allowance counts plus seeded SLA states in both running and waiting-on-member claim statuses, and fails GO or NO-GO status if those enforcement surfaces drift from the canonical claim policy.
 - `G10` has now been copied into the live program and tracker from `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md` as the next committed `P6` queue item after completed `G09`.
 - `G10` is now complete as of 2026-03-15. The scripted release-gate runner now checks deterministic accepted-case staff claim-detail routes for unsigned-agreement blocking, deduction readiness, stored-payment-method fallback, and invoice fallback, and fails GO or NO-GO status if agreement or collection enforcement drifts from the canonical accepted-recovery policy.
+- `P7` has now been copied into the live program and tracker from `docs/plans/2026-03-15-pilot-readiness-blueprint-v1.md` and `docs/plans/2026-03-15-pilot-readiness-roadmap-diff-proposal.md` as the next committed tranche after completed `P6`.
+- `R01` through `R08` have now been copied into the live program and tracker from `docs/plans/2026-03-15-pilot-readiness-blueprint-v1.md` and `docs/plans/2026-03-15-pilot-readiness-roadmap-diff-proposal.md` as the committed pilot-readiness and release-evidence queue.
+- `R01` is now complete as of 2026-03-15. The canonical release-gate runner accepts `--pilotId`, writes the release report plus copied per-pilot evidence index and canonical `docs/pilot-evidence/index.csv` pointer row together, preserves stable `docs/...` references for the pilot artifact set, and documents that contract in the pilot runbook.
 
 ## Historical Foundation, Not Current Sequencing
 
