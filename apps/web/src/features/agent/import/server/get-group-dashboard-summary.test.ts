@@ -2,6 +2,10 @@ import { claims, serviceUsage, subscriptions } from '@interdomestik/database/sch
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getGroupDashboardSummaryCore } from './get-group-dashboard-summary';
 
+function sortStrings(values: string[]): string[] {
+  return [...values].sort((left, right) => left.localeCompare(right));
+}
+
 describe('getGroupDashboardSummaryCore', () => {
   const mockDb = {
     groupBy: vi.fn().mockReturnThis(),
@@ -53,14 +57,14 @@ describe('getGroupDashboardSummaryCore', () => {
         runningCount: 2,
       },
     });
-    expect(Object.keys(summary).sort()).toEqual([
+    expect(sortStrings(Object.keys(summary))).toEqual([
       'activatedMembersCount',
       'membersUsingBenefitsCount',
       'openClaimsCount',
       'sla',
       'usageRatePercent',
     ]);
-    expect(Object.keys(summary.sla).sort()).toEqual([
+    expect(sortStrings(Object.keys(summary.sla))).toEqual([
       'breachCount',
       'incompleteCount',
       'notApplicableCount',
@@ -97,7 +101,7 @@ describe('getGroupDashboardSummaryCore', () => {
         runningCount: 0,
       },
     });
-    expect(Object.keys(summary).sort()).toEqual([
+    expect(sortStrings(Object.keys(summary))).toEqual([
       'activatedMembersCount',
       'membersUsingBenefitsCount',
       'openClaimsCount',
