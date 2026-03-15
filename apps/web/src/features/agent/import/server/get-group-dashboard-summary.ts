@@ -20,9 +20,15 @@ export type GroupDashboardSummary = {
 
 export interface GroupDashboardSummaryServices {
   db: {
+    groupBy?: any;
     select: any;
   };
 }
+
+type OpenClaimStatusCountRow = {
+  count: number | string;
+  status: ClaimStatus;
+};
 
 function emptySummary(): GroupDashboardSummary {
   return {
@@ -73,10 +79,11 @@ export async function getGroupDashboardSummaryCore(
       )
     );
 
-  const openClaims: Array<{ status: ClaimStatus }> = await db
-    .select({ status: claims.status })
+  const openClaimStatusCounts: OpenClaimStatusCountRow[] = await db
+    .select({ count: count(), status: claims.status })
     .from(claims)
-    .where(and(eq(claims.tenantId, tenantId), eq(claims.agentId, agentId), getOpenClaimsFilter()));
+    .where(and(eq(claims.tenantId, tenantId), eq(claims.agentId, agentId), getOpenClaimsFilter()))
+    .groupBy(claims.status);
 
   const [slaBreaches] = await db
     .select({ count: count() })
@@ -89,13 +96,14 @@ export async function getGroupDashboardSummaryCore(
       .filter((subscriptionId): subscriptionId is string => typeof subscriptionId === 'string')
   );
 
-  const sla = openClaims.reduce(
-    (totals, claim) => {
-      const phase = deriveClaimSlaPhase(claim.status);
+  const sla = openClaimStatusCounts.reduce(
+    (totals, claimGroup) => {
+      const claimCount = Number(claimGroup.count);
+      const phase = deriveClaimSlaPhase(claimGroup.status);
 
-      if (phase === 'running') totals.runningCount += 1;
-      if (phase === 'incomplete') totals.incompleteCount += 1;
-      if (phase === 'not_applicable') totals.notApplicableCount += 1;
+      if (phase === 'running') totals.runningCount += claimCount;
+      if (phase === 'incomplete') totals.incompleteCount += claimCount;
+      if (phase === 'not_applicable') totals.notApplicableCount += claimCount;
 
       return totals;
     },
@@ -109,12 +117,16 @@ export async function getGroupDashboardSummaryCore(
 
   const activatedMembersCount = activeSubscriptions.length;
   const membersUsingBenefitsCount = usedSubscriptionIds.size;
+  const openClaimsCount = openClaimStatusCounts.reduce(
+    (total, claimGroup) => total + Number(claimGroup.count),
+    0
+  );
 
   return {
     activatedMembersCount,
     membersUsingBenefitsCount,
     usageRatePercent: Math.round((membersUsingBenefitsCount / activatedMembersCount) * 100),
-    openClaimsCount: openClaims.length,
+    openClaimsCount,
     sla,
   };
 }

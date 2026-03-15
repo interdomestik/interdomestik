@@ -1,10 +1,10 @@
 import type { GroupDashboardSummary as GroupDashboardSummaryData } from '@/features/agent/import/server/get-group-dashboard-summary';
 
 type SummaryCardProps = {
-  eyebrow: string;
-  title: string;
-  value: number | string;
-  detail: string;
+  readonly detail: string;
+  readonly eyebrow: string;
+  readonly title: string;
+  readonly value: number | string;
 };
 
 function SummaryCard({ eyebrow, title, value, detail }: SummaryCardProps) {
@@ -20,7 +20,11 @@ function SummaryCard({ eyebrow, title, value, detail }: SummaryCardProps) {
   );
 }
 
-export function GroupDashboardSummary({ summary }: { summary: GroupDashboardSummaryData }) {
+type GroupDashboardSummaryProps = {
+  readonly summary: GroupDashboardSummaryData;
+};
+
+export function GroupDashboardSummary({ summary }: GroupDashboardSummaryProps) {
   return (
     <section className="space-y-4" data-testid="group-dashboard-summary">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -45,9 +49,9 @@ export function GroupDashboardSummary({ summary }: { summary: GroupDashboardSumm
         />
         <SummaryCard
           eyebrow="Usage"
-          title="Annual usage rate"
+          title="Portfolio usage rate"
           value={`${summary.usageRatePercent}%`}
-          detail={`${summary.membersUsingBenefitsCount} of ${summary.activatedMembersCount} activated members have used member services.`}
+          detail={`${summary.membersUsingBenefitsCount} of ${summary.activatedMembersCount} activated members have used member services on active sponsored memberships.`}
         />
         <SummaryCard
           eyebrow="Cases"

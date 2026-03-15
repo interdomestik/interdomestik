@@ -23,10 +23,12 @@ describe('GroupDashboardSummary', () => {
 
     expect(screen.getByText('Activated members')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
-    expect(screen.getByText('Annual usage rate')).toBeInTheDocument();
+    expect(screen.getByText('Portfolio usage rate')).toBeInTheDocument();
     expect(screen.getByText('42%')).toBeInTheDocument();
     expect(
-      screen.getByText('5 of 12 activated members have used member services.')
+      screen.getByText(
+        '5 of 12 activated members have used member services on active sponsored memberships.'
+      )
     ).toBeInTheDocument();
     expect(screen.getByText('Open cases')).toBeInTheDocument();
     expect(screen.getByText('SLA running')).toBeInTheDocument();
