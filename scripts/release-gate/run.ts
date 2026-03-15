@@ -125,11 +125,9 @@ const ESCALATION_AGREEMENT_COLLECTION_FALLBACK_SCENARIO_DEFINITIONS = [
     account: 'staff',
     title: 'Staff accepted case without a signed agreement stays blocked',
     routePath: '/staff/claims/golden_ks_a_claim_14',
+    requiredPrerequisitePhrases: ['Agreement Missing', 'Collection path Missing'],
     requiredPhrases: [
       'Accepted recovery prerequisites',
-      'Agreement',
-      'Collection path',
-      'Missing',
       'Save the accepted escalation agreement before moving this case into negotiation or court.',
     ],
   },
@@ -138,9 +136,8 @@ const ESCALATION_AGREEMENT_COLLECTION_FALLBACK_SCENARIO_DEFINITIONS = [
     account: 'staff',
     title: 'Staff accepted case with a signed deduction path stays ready',
     routePath: '/staff/claims/golden_ks_a_claim_15',
+    requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
     requiredPhrases: [
-      'Accepted recovery prerequisites',
-      'Ready',
       'Payment authorization',
       'authorized',
       'Terms version',
@@ -153,6 +150,7 @@ const ESCALATION_AGREEMENT_COLLECTION_FALLBACK_SCENARIO_DEFINITIONS = [
     account: 'staff',
     title: 'Staff accepted case resolves fallback to stored payment method charge',
     routePath: '/staff/claims/golden_ks_a_claim_17',
+    requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
     requiredPhrases: ['Charge stored payment method', 'Stored payment method', 'Yes'],
   },
   {
@@ -160,6 +158,7 @@ const ESCALATION_AGREEMENT_COLLECTION_FALLBACK_SCENARIO_DEFINITIONS = [
     account: 'staff',
     title: 'Staff accepted case resolves fallback to invoice when no stored payment method exists',
     routePath: '/staff/claims/golden_ks_a_claim_16',
+    requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
     requiredPhrases: ['Invoice fallback', 'Stored payment method', 'No', 'Invoice due'],
   },
 ];
@@ -418,6 +417,7 @@ function buildEscalationAgreementCollectionFallbackScenarios(runCtx) {
       'staff-escalation-agreement-summary',
       'staff-success-fee-collection-summary',
     ],
+    requiredPrerequisitePhrases: definition.requiredPrerequisitePhrases,
     requiredPhrases: definition.requiredPhrases,
   }));
 }
@@ -2215,36 +2215,50 @@ async function runG10(browser, runCtx) {
 
   for (const scenario of scenarios) {
     try {
-      const { missingPhrases, missingTestIds, observedSummary } = await visitReleaseGateScenario(
-        browser,
-        runCtx,
-        scenario,
-        async page => {
-          const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
-          const observedText = normalizeBoundaryText(
-            await page
-              .locator('body')
-              .innerText()
-              .catch(() => '')
-          );
+      const {
+        missingPhrases,
+        missingPrerequisitePhrases,
+        missingTestIds,
+        observedPrerequisites,
+        observedSummary,
+      } = await visitReleaseGateScenario(browser, runCtx, scenario, async page => {
+        const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
+        const observedPrerequisites = normalizeBoundaryText(
+          await page
+            .getByTestId('staff-accepted-recovery-prerequisites')
+            .innerText({ timeout: TIMEOUTS.marker })
+            .catch(() => '')
+        );
+        const observedText = normalizeBoundaryText(
+          await page
+            .locator('body')
+            .innerText()
+            .catch(() => '')
+        );
 
-          return {
-            missingPhrases: findMissingBoundaryPhrases(scenario.requiredPhrases, observedText),
-            missingTestIds: findMissingCommercialPromiseSections(
-              scenario.requiredTestIds,
-              observedByTestId
-            ),
-            observedSummary: scenario.requiredTestIds
-              .map(testId => `${testId}=${observedByTestId[testId] === true}`)
-              .join(','),
-          };
-        }
-      );
+        return {
+          missingPrerequisitePhrases: findMissingBoundaryPhrases(
+            scenario.requiredPrerequisitePhrases,
+            observedPrerequisites
+          ),
+          missingPhrases: findMissingBoundaryPhrases(scenario.requiredPhrases, observedText),
+          missingTestIds: findMissingCommercialPromiseSections(
+            scenario.requiredTestIds,
+            observedByTestId
+          ),
+          observedPrerequisites,
+          observedSummary: scenario.requiredTestIds
+            .map(testId => `${testId}=${observedByTestId[testId] === true}`)
+            .join(','),
+        };
+      });
 
       evidence.push(
         `scenario=${scenario.id} account=${scenario.account} missing_testids=${
           missingTestIds.join(',') || 'none'
-        } missing_phrases=${missingPhrases.join(',') || 'none'} observed=${observedSummary}`
+        } missing_prerequisites=${missingPrerequisitePhrases.join(',') || 'none'} missing_phrases=${
+          missingPhrases.join(',') || 'none'
+        } observed=${observedSummary} prerequisites="${observedPrerequisites || 'missing'}"`
       );
 
       if (missingTestIds.length > 0) {
@@ -2252,9 +2266,12 @@ async function runG10(browser, runCtx) {
           `G10_SURFACE_MISSING scenario=${scenario.id} missing=${missingTestIds.join(',')}`
         );
       }
-      if (missingPhrases.length > 0) {
+      if (missingPrerequisitePhrases.length > 0 || missingPhrases.length > 0) {
         signatures.push(
-          `G10_COLLECTION_FALLBACK_COPY_MISSING scenario=${scenario.id} missing=${missingPhrases.join(',')}`
+          `G10_COLLECTION_FALLBACK_COPY_MISSING scenario=${scenario.id} missing=${[
+            ...missingPrerequisitePhrases,
+            ...missingPhrases,
+          ].join(',')}`
         );
       }
     } catch (error) {

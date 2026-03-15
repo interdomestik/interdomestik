@@ -391,10 +391,11 @@ test('buildEscalationAgreementCollectionFallbackScenarios covers deterministic a
   });
 
   assert.deepEqual(
-    scenarios.map(({ id, account, url, requiredPhrases }) => ({
+    scenarios.map(({ id, account, url, requiredPhrases, requiredPrerequisitePhrases }) => ({
       id,
       account,
       url,
+      requiredPrerequisitePhrases,
       requiredPhrases,
     })),
     [
@@ -402,11 +403,9 @@ test('buildEscalationAgreementCollectionFallbackScenarios covers deterministic a
         id: 'staff_unsigned_agreement',
         account: 'staff',
         url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_14`,
+        requiredPrerequisitePhrases: ['Agreement Missing', 'Collection path Missing'],
         requiredPhrases: [
           'Accepted recovery prerequisites',
-          'Agreement',
-          'Collection path',
-          'Missing',
           'Save the accepted escalation agreement before moving this case into negotiation or court.',
         ],
       },
@@ -414,9 +413,8 @@ test('buildEscalationAgreementCollectionFallbackScenarios covers deterministic a
         id: 'staff_signed_deduction',
         account: 'staff',
         url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_15`,
+        requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
         requiredPhrases: [
-          'Accepted recovery prerequisites',
-          'Ready',
           'Payment authorization',
           'authorized',
           'Terms version',
@@ -428,12 +426,14 @@ test('buildEscalationAgreementCollectionFallbackScenarios covers deterministic a
         id: 'staff_payment_method_fallback',
         account: 'staff',
         url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_17`,
+        requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
         requiredPhrases: ['Charge stored payment method', 'Stored payment method', 'Yes'],
       },
       {
         id: 'staff_invoice_fallback',
         account: 'staff',
         url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_16`,
+        requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
         requiredPhrases: ['Invoice fallback', 'Stored payment method', 'No', 'Invoice due'],
       },
     ]
