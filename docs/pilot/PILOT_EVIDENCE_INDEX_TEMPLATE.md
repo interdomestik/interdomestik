@@ -2,6 +2,12 @@
 
 For each pilot, copy this template to a per-pilot evidence index file (for example, `PILOT_EVIDENCE_INDEX.md`) and use that copied file as the single source of truth for daily pilot ops evidence.
 
+Preferred flow:
+
+- run `pnpm release:gate:prod -- --pilotId <pilot-id>` for the pilot-entry artifact set
+- let the runner create `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` from this template on first use
+- keep updating that copied file for the same pilot id across the pilot window
+
 - Keep one row per operating day.
 - Use absolute or repo-relative bundle paths exactly as generated.
 - If no gate bundle was generated that day, set bundle path to `n/a`.

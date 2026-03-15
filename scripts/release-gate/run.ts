@@ -18,6 +18,7 @@ const {
   FUNCTIONAL_LOG_ERROR_HINTS,
 } = require('./config.ts');
 const { writeReleaseGateReport } = require('./report.ts');
+const { createPilotEntryArtifacts } = require('./pilot-artifacts.ts');
 const {
   assertUrlMarkers,
   buildRoute,
@@ -770,6 +771,7 @@ function parseArgs(argv) {
     locale: DEFAULTS.locale,
     suite: DEFAULTS.suite,
     outDir: DEFAULTS.outDir,
+    pilotId: '',
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -800,6 +802,11 @@ function parseArgs(argv) {
       i += 1;
       continue;
     }
+    if (token === '--pilotId' && next) {
+      parsed.pilotId = next;
+      i += 1;
+      continue;
+    }
     if (token === '--help') {
       printHelp();
       process.exit(0);
@@ -826,6 +833,7 @@ function printHelp() {
     `  --locale   (default: ${DEFAULTS.locale})`,
     `  --suite    (default: ${DEFAULTS.suite}; options: ${Object.keys(SUITES).join('|')})`,
     `  --outDir   (default: ${DEFAULTS.outDir})`,
+    '  --pilotId  (optional: create pilot-entry artifacts tied to this pilot id)',
   ];
   console.log(lines.join('\n'));
 }
@@ -2612,6 +2620,7 @@ async function main() {
 
     const normalizedChecks = enforceNoSkipOnSelectedChecks(checks, selected, runCtx.envName);
 
+    const generatedAt = new Date();
     const report = writeReleaseGateReport({
       outDir: args.outDir,
       envName: args.envName,
@@ -2620,7 +2629,7 @@ async function main() {
       deploymentId: runCtx.deployment.deploymentId,
       deploymentUrl: runCtx.deployment.deploymentUrl,
       deploymentSource: runCtx.deployment.source,
-      generatedAt: new Date(),
+      generatedAt,
       executedChecks: selected,
       checks: normalizedChecks,
       accounts: {
@@ -2639,6 +2648,21 @@ async function main() {
     });
 
     console.log(`[release-gate] report=${report.reportPath}`);
+    if (args.pilotId) {
+      const pilotArtifacts = createPilotEntryArtifacts({
+        rootDir: process.cwd(),
+        pilotId: args.pilotId,
+        envName: args.envName,
+        suite: args.suite,
+        generatedAt,
+        reportPath: report.reportPath,
+        releaseVerdict: report.verdict,
+      });
+      console.log(`[release-gate] pilot_evidence_index=${pilotArtifacts.evidenceIndexPath}`);
+      console.log(
+        `[release-gate] pilot_evidence_pointer=${pilotArtifacts.pointerRow.evidence_index_path}`
+      );
+    }
     for (const check of normalizedChecks) {
       console.log(`[release-gate] ${check.id}=${check.status}`);
       for (const signature of check.signatures || []) {
