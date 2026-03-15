@@ -2,6 +2,7 @@
 
 - Local pre-launch readiness is green: `pnpm pilot:check` exits `0`.
 - Release gate green on production: `pnpm release:gate:prod -- --pilotId <pilot-id>` exits `0`.
+- Rollback target and resume rules use a real `pilot-ready-YYYYMMDD` tag created or verified through `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`.
 - The canonical pilot-entry artifact set defined in `docs/pilot/PILOT_RUNBOOK.md` exists and is committed:
   - a new `docs/release-gates/YYYY-MM-DD_production_<dpl>.md` report
   - the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md`
@@ -77,5 +78,6 @@
 
 - Trigger rollback immediately on stop criteria.
 - Rollback target: latest `pilot-ready-YYYYMMDD` git tag.
-- Resume only after fresh `pnpm pilot:check` re-validation and a new `pnpm release:gate:prod -- --pilotId <pilot-id>` artifact row.
+- Create or verify that rollback target through `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` so it stays bound to the canonical pilot-entry report and copied evidence index.
+- Resume only after fresh `pnpm pilot:check` re-validation and a new `pnpm release:gate:prod -- --pilotId <pilot-id>` artifact row, followed by `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` for the resumed date.
 - Record stop or hotfix decisions in the copied evidence index with `pnpm pilot:decision:record -- --rollbackTag pilot-ready-YYYYMMDD`.

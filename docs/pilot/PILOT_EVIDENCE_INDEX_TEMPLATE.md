@@ -8,6 +8,7 @@ Preferred flow:
 - let the runner create `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` from this template on first use
 - record each operating day in that copied file with `pnpm pilot:evidence:record -- --pilotId <pilot-id> ...`
 - record each daily or weekly continue/pause/hotfix/stop decision in that same copied file with `pnpm pilot:decision:record -- --pilotId <pilot-id> ...`
+- create or verify rollback tags with `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` before referencing `pilot-ready-YYYYMMDD` in a decision row
 - keep updating that copied file for the same pilot id across the pilot window
 
 - Keep one row per operating day.
@@ -48,6 +49,7 @@ Record one explicit decision row for each daily end-of-day review and each weekl
 - `pause`: resume requires fresh `pnpm pilot:check`.
 - `hotfix`: requires fallback rollback tag plus fresh `pnpm pilot:check` and `pnpm release:gate:prod -- --pilotId <pilot-id>` before resume.
 - `stop`: requires rollback tag plus fresh `pnpm pilot:check` and `pnpm release:gate:prod -- --pilotId <pilot-id>` before any resume decision.
+- `pilot-ready-YYYYMMDD` rollback tags must be created or verified with `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` so the tag metadata matches the canonical pilot-entry report and copied evidence index for that date.
 
 | Review Type (`daily`/`weekly`) | Reference | Date (YYYY-MM-DD) | Owner | Decision (`continue`/`pause`/`hotfix`/`stop`) | Rollback Target (`pilot-ready-YYYYMMDD`/`n/a`) | Resume Requires `pnpm pilot:check` | Resume Requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>` |
 | ------------------------------ | --------- | ----------------- | ----- | --------------------------------------------- | ---------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------- |

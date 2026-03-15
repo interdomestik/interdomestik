@@ -12,6 +12,7 @@ Pilot may begin when all conditions below are satisfied:
   - a canonical pointer row in `docs/pilot-evidence/index.csv`
 - Daily pilot operation records are written into that copied per-pilot evidence index, not a separate note stream.
 - Daily and weekly continue/pause/hotfix/stop decisions are recorded in that same copied evidence index via `pnpm pilot:decision:record -- --pilotId <pilot-id>`.
+- Any rollback target used in a decision row is created or verified through `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`.
 - Deployment ID documented
 
 2. RBAC & Tenant Isolation Verified

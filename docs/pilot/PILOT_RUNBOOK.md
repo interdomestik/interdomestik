@@ -81,6 +81,12 @@ Use exactly these command roles:
    - Updates the decision-proof log inside the same copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file.
    - Records explicit daily and weekly `continue`, `pause`, `hotfix`, and `stop` decisions with rollback target and resume re-validation proof.
    - Does not create a new pilot-entry artifact set and does not replace `pnpm release:gate:prod -- --pilotId <pilot-id>`.
+7. `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`
+   - Canonical pilot-ready tag-discipline command.
+   - Reuses the latest canonical pilot-entry row for that pilot id from `docs/pilot-evidence/index.csv`.
+   - Creates `pilot-ready-YYYYMMDD` when missing, or verifies the existing tag against the same release report and copied evidence index when it already exists.
+   - Requires the referenced `docs/release-gates/...` report and `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file to exist in `HEAD`.
+   - Does not replace `pnpm pilot:check` or `pnpm release:gate:prod -- --pilotId <pilot-id>`; it binds rollback tags to that evidence.
 
 ## Canonical Pilot-Entry Artifact Contract
 
@@ -152,6 +158,7 @@ pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType <daily|weekly> -
 - `pause`: records resume requirement `pnpm pilot:check`.
 - `hotfix`: requires `--rollbackTag pilot-ready-YYYYMMDD` and records resume requirements for both `pnpm pilot:check` and `pnpm release:gate:prod -- --pilotId <pilot-id>`.
 - `stop`: requires `--rollbackTag pilot-ready-YYYYMMDD` and records the same two resume requirements before any resume decision.
+- Before using a rollback tag in a decision row, create or verify it with `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`.
 
 ## Weekend Operating Mode (Light-Touch)
 
@@ -222,7 +229,9 @@ Stop pilot immediately if any applies:
 ## Rollback Policy
 
 - Maintain and verify a known-good pilot tag: `pilot-ready-YYYYMMDD`.
+- Create or verify that tag with `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` so the rollback target is bound to the canonical pilot-entry report and copied evidence index already recorded in `docs/pilot-evidence/index.csv`.
 - On stop criteria:
   - Roll back deployment to latest pilot-ready tag.
   - Re-run readiness checks from `docs/pilot/COMMANDS_5.md` before resume decision.
+  - Resume only after fresh `pnpm pilot:check` re-validation and a new `pnpm release:gate:prod -- --pilotId <pilot-id>` row for the resumed date, then create or verify the next `pilot-ready-YYYYMMDD` tag with `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`.
   - Record the stop decision itself with `pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType <daily|weekly> --reference <day-<n>|week-<n>> --decision stop --rollbackTag pilot-ready-YYYYMMDD ...`.

@@ -82,6 +82,7 @@ test('pilot readiness commands keep local verification and production proof dist
   const pilotCheck = packageJson.scripts['pilot:check'];
   const pilotDecisionRecord = packageJson.scripts['pilot:decision:record'];
   const pilotEvidenceRecord = packageJson.scripts['pilot:evidence:record'];
+  const pilotTagReady = packageJson.scripts['pilot:tag:ready'];
   const releaseGateProd = packageJson.scripts['release:gate:prod'];
   const releaseGateProdRaw = packageJson.scripts['release:gate:prod:raw'];
   const pilotVerifyScript = readFileSync(new URL('../scripts/pilot-verify.sh', import.meta.url), 'utf8');
@@ -96,6 +97,7 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.equal(releaseGateProdRaw, 'tsx scripts/release-gate/run.ts --envName production --suite all');
   assert.equal(pilotDecisionRecord, 'tsx scripts/pilot-decision-proof.ts');
   assert.equal(pilotEvidenceRecord, 'tsx scripts/pilot-daily-evidence.ts');
+  assert.equal(pilotTagReady, 'tsx scripts/pilot-ready-tag.js');
   assert.notEqual(pilotCheck, releaseGateProd);
 
   assert.match(
@@ -113,6 +115,7 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.match(pilotRunbook, /`pnpm release:gate:prod -- --pilotId <pilot-id>`/);
   assert.match(pilotRunbook, /`pnpm pilot:evidence:record -- --pilotId <pilot-id>`/);
   assert.match(pilotRunbook, /`pnpm pilot:decision:record -- --pilotId <pilot-id>`/);
+  assert.match(pilotRunbook, /`pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`/);
   assert.match(
     pilotRunbook,
     /`\.\/scripts\/pilot-verify\.sh`\s+-\s+Shell-native implementation of `pnpm pilot:check`\./s
@@ -130,6 +133,10 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.match(
     pilotGoNoGo,
     /Daily and weekly continue\/pause\/hotfix\/stop decisions are recorded in that same copied evidence index via `pnpm pilot:decision:record -- --pilotId <pilot-id>`\./
+  );
+  assert.match(
+    pilotGoNoGo,
+    /Rollback target and resume rules use a real `pilot-ready-YYYYMMDD` tag created or verified through `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`\./
   );
 });
 
