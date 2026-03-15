@@ -97,7 +97,7 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.equal(releaseGateProdRaw, 'tsx scripts/release-gate/run.ts --envName production --suite all');
   assert.equal(pilotDecisionRecord, 'tsx scripts/pilot-decision-proof.ts');
   assert.equal(pilotEvidenceRecord, 'tsx scripts/pilot-daily-evidence.ts');
-  assert.equal(pilotTagReady, 'node scripts/pilot-ready-tag.js');
+  assert.equal(pilotTagReady, 'tsx scripts/pilot-ready-tag.js');
   assert.notEqual(pilotCheck, releaseGateProd);
 
   assert.match(
