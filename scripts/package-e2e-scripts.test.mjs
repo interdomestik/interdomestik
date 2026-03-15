@@ -83,10 +83,12 @@ test('pilot readiness commands keep local verification and production proof dist
   const pilotCheck = packageJson.scripts['pilot:check'];
   const pilotDecisionRecord = packageJson.scripts['pilot:decision:record'];
   const pilotEvidenceRecord = packageJson.scripts['pilot:evidence:record'];
+  const pilotFlow = packageJson.scripts['pilot:flow'];
   const pilotObservabilityRecord = packageJson.scripts['pilot:observability:record'];
   const pilotTagReady = packageJson.scripts['pilot:tag:ready'];
   const releaseGateProd = packageJson.scripts['release:gate:prod'];
   const releaseGateProdRaw = packageJson.scripts['release:gate:prod:raw'];
+  const commands5 = readFileSync(new URL('../docs/pilot/COMMANDS_5.md', import.meta.url), 'utf8');
   const pilotVerifyScript = readFileSync(new URL('../scripts/pilot-verify.sh', import.meta.url), 'utf8');
   const pilotEntryCriteria = readFileSync(
     new URL('../docs/pilot-entry-criteria.md', import.meta.url),
@@ -102,6 +104,10 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.equal(pilotCadenceCheck, 'tsx scripts/pilot-readiness-cadence.ts');
   assert.equal(pilotCheck, 'node scripts/run-with-dotenv.mjs bash scripts/pilot-verify.sh');
   assert.equal(
+    pilotFlow,
+    'node scripts/run-with-dotenv.mjs bash scripts/pilot-verify.sh --print-ranked-flow'
+  );
+  assert.equal(
     releaseGateProd,
     'node scripts/run-with-dotenv.mjs pnpm -s release:gate:prod:raw'
   );
@@ -113,6 +119,8 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.notEqual(pilotCadenceCheck, pilotCheck);
   assert.notEqual(pilotCheck, releaseGateProd);
 
+  assert.match(pilotVerifyScript, /Canonical ranked pilot-entry flow/);
+  assert.match(pilotVerifyScript, /For the ranked operator path use: pnpm pilot:flow/);
   assert.match(
     pilotVerifyScript,
     /This command is local pre-launch verification only; it does not create release reports or pilot-entry artifacts\./
@@ -123,6 +131,14 @@ test('pilot readiness commands keep local verification and production proof dist
     /For pilot entry artifact generation use: pnpm release:gate:prod -- --pilotId <pilot-id>/
   );
 
+  assert.match(
+    pilotRunbook,
+    /The repo now has one canonical ranked operator flow for pilot entry and daily pilot operation\./
+  );
+  assert.match(
+    pilotRunbook,
+    /Start with `pnpm pilot:flow` or `docs\/pilot\/COMMANDS_5\.md`\./
+  );
   assert.match(pilotRunbook, /## Readiness Command Authority/);
   assert.match(pilotRunbook, /`pnpm pilot:check`/);
   assert.match(pilotRunbook, /`pnpm release:gate:prod -- --pilotId <pilot-id>`/);
@@ -146,6 +162,16 @@ test('pilot readiness commands keep local verification and production proof dist
     pilotRunbook,
     /`\.\/scripts\/pilot-verify\.sh`\s+-\s+Shell-native implementation of `pnpm pilot:check`\./s
   );
+  assert.match(commands5, /## Ranked Pilot-Entry Flow/);
+  assert.match(commands5, /Use `pnpm pilot:flow` to print this ranked operator path from the repo\./);
+  assert.match(commands5, /## 1\. Pre-Launch Readiness/);
+  assert.match(commands5, /## 2\. Production Gate Proof And Pilot-Entry Artifacts/);
+  assert.match(commands5, /## 3\. Launch-Day And Daily Operating Row/);
+  assert.match(commands5, /## 4\. Launch-Day And Daily Observability Row/);
+  assert.match(commands5, /## 5\. Launch-Day And Daily Decision Row/);
+  assert.match(commands5, /## Conditional Commands/);
+  assert.match(commands5, /pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>/);
+  assert.match(commands5, /pnpm pilot:cadence:check -- --pilotId <pilot-id>/);
 
   assert.match(pilotGoNoGo, /Local pre-launch readiness is green: `pnpm pilot:check` exits `0`\./);
   assert.match(
