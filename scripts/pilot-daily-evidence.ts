@@ -22,9 +22,9 @@ function parseArgs(argv) {
     const token = argv[index];
     const next = argv[index + 1];
 
-    if ((token === '--help' || token === '-h') && !next) {
+    if (token === '--help' || token === '-h') {
       parsed.help = true;
-      continue;
+      break;
     }
     if (token === '--pilotId' && next) {
       parsed.pilotId = next;
@@ -120,8 +120,14 @@ function main() {
 }
 
 try {
-  main();
+  if (require.main === module) {
+    main();
+  }
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
 }
+
+module.exports = {
+  parseArgs,
+};

@@ -33,6 +33,7 @@ const {
   parsePilotEvidenceIndex,
   recordPilotDailyEvidence,
 } = require('./pilot-artifacts.ts');
+const { parseArgs: parsePilotDailyEvidenceArgs } = require('../pilot-daily-evidence.ts');
 const { writeReleaseGateReport } = require('./report.ts');
 const { checkPortalMarkers, resolveForwardedForIp } = require('./shared.ts');
 const { REQUIRED_ENV_BY_SUITE, ROLE_IPS, SELECTORS } = require('./config.ts');
@@ -1135,6 +1136,133 @@ test('recordPilotDailyEvidence rejects updates when the canonical pilot-entry ar
           pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
         }),
       /pilot-entry artifact set must exist before daily evidence can be recorded/
+    );
+  });
+});
+
+test('pilot daily evidence cli treats --help as a standalone flag regardless of position', () => {
+  assert.deepEqual(parsePilotDailyEvidenceArgs(['--help', '--pilotId', 'pilot-ks-week-1']), {
+    pilotId: '',
+    day: '',
+    date: '',
+    owner: '',
+    status: '',
+    reportPath: '',
+    bundlePath: '',
+    incidentCount: '',
+    highestSeverity: '',
+    decision: '',
+    help: true,
+  });
+});
+
+test('recordPilotDailyEvidence rejects report paths that escape docs/release-gates', () => {
+  withTempDir('pilot-daily-evidence-traversal-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: [
+        '# Pilot Evidence Index Template',
+        '',
+        '| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`defer`/`hotfix`/`stop`) |',
+        '| --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |',
+        '| 1 | | | | | | | | |',
+        '',
+      ].join('\n'),
+    });
+
+    createPilotEntryArtifacts({
+      rootDir: tempDir,
+      pilotId: 'pilot-ks-week-1',
+      envName: 'production',
+      suite: 'all',
+      generatedAt: new Date('2026-03-15T10:11:12.000Z'),
+      reportPath: fixture.reportPath,
+      releaseVerdict: 'GO',
+      releaseGateTemplatePath: fixture.templatePath,
+      pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+    });
+
+    assert.throws(
+      () =>
+        recordPilotDailyEvidence({
+          rootDir: tempDir,
+          pilotId: 'pilot-ks-week-1',
+          day: 1,
+          date: '2026-03-15',
+          owner: 'Admin KS',
+          status: 'green',
+          incidentCount: 0,
+          highestSeverity: 'none',
+          decision: 'continue',
+          reportPath: 'docs/release-gates/../pilot/escape.md',
+          bundlePath: 'n/a',
+          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+        }),
+      /reportPath must stay under docs\/release-gates\/ without "\.\." segments/
+    );
+  });
+});
+
+test('recordPilotDailyEvidence rejects markdown-breaking cell content', () => {
+  withTempDir('pilot-daily-evidence-markdown-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: [
+        '# Pilot Evidence Index Template',
+        '',
+        '| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`defer`/`hotfix`/`stop`) |',
+        '| --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |',
+        '| 1 | | | | | | | | |',
+        '',
+      ].join('\n'),
+    });
+
+    createPilotEntryArtifacts({
+      rootDir: tempDir,
+      pilotId: 'pilot-ks-week-1',
+      envName: 'production',
+      suite: 'all',
+      generatedAt: new Date('2026-03-15T10:11:12.000Z'),
+      reportPath: fixture.reportPath,
+      releaseVerdict: 'GO',
+      releaseGateTemplatePath: fixture.templatePath,
+      pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+    });
+
+    assert.throws(
+      () =>
+        recordPilotDailyEvidence({
+          rootDir: tempDir,
+          pilotId: 'pilot-ks-week-1',
+          day: 1,
+          date: '2026-03-15',
+          owner: 'Admin | KS',
+          status: 'green',
+          incidentCount: 0,
+          highestSeverity: 'none',
+          decision: 'continue',
+          reportPath: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
+          bundlePath: 'n/a',
+          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+        }),
+      /owner must not contain "\|", carriage returns, or newlines/
+    );
+
+    assert.throws(
+      () =>
+        recordPilotDailyEvidence({
+          rootDir: tempDir,
+          pilotId: 'pilot-ks-week-1',
+          day: 1,
+          date: '2026-03-15',
+          owner: 'Admin KS',
+          status: 'green',
+          incidentCount: 0,
+          highestSeverity: 'none',
+          decision: 'continue',
+          reportPath: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
+          bundlePath: 'tmp/pilot-evidence|\n',
+          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+        }),
+      /bundlePath must not contain "\|", carriage returns, or newlines/
     );
   });
 });

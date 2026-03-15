@@ -409,22 +409,32 @@ function validateDailyDate(value) {
   return String(value);
 }
 
-function validateReportPath(value) {
+function validateMarkdownCellText(fieldName, value) {
   const normalized = String(value || '')
     .trim()
     .replaceAll(path.sep, '/');
+  if (!normalized) {
+    throw new Error(`${fieldName} is required`);
+  }
+  if (/[|\r\n]/.test(normalized)) {
+    throw new Error(`${fieldName} must not contain "|", carriage returns, or newlines`);
+  }
+  return normalized;
+}
+
+function validateReportPath(value) {
+  const normalized = validateMarkdownCellText('reportPath', value);
   if (!normalized.startsWith('docs/release-gates/')) {
     throw new Error('reportPath must stay under docs/release-gates/');
+  }
+  if (normalized.split('/').includes('..')) {
+    throw new Error('reportPath must stay under docs/release-gates/ without ".." segments');
   }
   return normalized;
 }
 
 function validateBundlePath(value) {
-  const normalized = String(value || '').trim();
-  if (!normalized) {
-    throw new Error('bundlePath is required');
-  }
-  return normalized;
+  return validateMarkdownCellText('bundlePath', value);
 }
 
 function ensureCopiedPilotEvidenceIndex(args) {
@@ -621,10 +631,7 @@ function recordPilotDailyEvidence(args) {
     throw new Error('incidentCount must be a non-negative integer');
   }
 
-  const owner = String(args.owner || '').trim();
-  if (!owner) {
-    throw new Error('owner is required');
-  }
+  const owner = validateMarkdownCellText('owner', args.owner);
 
   const parsedTable = parseDailyEvidenceTable(fs.readFileSync(evidenceIndexPath, 'utf8'));
   const reportPath = validateReportPath(args.reportPath || pointerRow.report_path);
