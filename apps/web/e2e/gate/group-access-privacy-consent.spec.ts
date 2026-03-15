@@ -11,6 +11,7 @@ import {
 } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
+import { ipForRole } from '../fixtures/auth.project';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
@@ -43,14 +44,15 @@ async function loginAsOfficeSeededAgent(
   const baseUrl = testInfo.project.use.baseURL?.toString() ?? '';
   const origin = new URL(baseUrl).origin;
   const loginURL = `${origin}/api/auth/sign-in/email`;
+  const projectHeaders = testInfo.project.use.extraHTTPHeaders;
 
   const response = await page.request.post(loginURL, {
     data: { email: officeAgent.email, password: E2E_PASSWORD },
     headers: {
       Origin: origin,
       Referer: `${origin}/login`,
-      'x-forwarded-for': '10.0.0.13',
-      ...(testInfo.project.use.extraHTTPHeaders ?? {}),
+      'x-forwarded-for': ipForRole('agent'),
+      ...projectHeaders,
     },
   });
 
