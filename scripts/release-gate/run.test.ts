@@ -852,3 +852,62 @@ test('createPilotEntryArtifacts preserves existing copied evidence index content
   assert.equal(parsed[0].release_verdict, 'NO-GO');
   assert.equal(parsed[0].evidence_index_path, 'docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md');
 });
+
+test('createPilotEntryArtifacts normalizes run ids to whole-second timestamps', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pilot-entry-artifacts-seconds-'));
+  const reportDir = path.join(tempDir, 'docs', 'release-gates');
+  const pilotDir = path.join(tempDir, 'docs', 'pilot');
+  const indexDir = path.join(tempDir, 'docs', 'pilot-evidence');
+
+  fs.mkdirSync(reportDir, { recursive: true });
+  fs.mkdirSync(pilotDir, { recursive: true });
+  fs.mkdirSync(indexDir, { recursive: true });
+
+  fs.writeFileSync(path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_TEMPLATE.md'), '# Template\n', 'utf8');
+  fs.writeFileSync(
+    path.join(reportDir, '2026-03-15_production_dpl_demo.md'),
+    '# Release Gate\n',
+    'utf8'
+  );
+
+  const artifacts = createPilotEntryArtifacts({
+    rootDir: tempDir,
+    pilotId: 'pilot-ks-week-1',
+    envName: 'production',
+    suite: 'all',
+    generatedAt: new Date('2026-03-15T10:11:12.123Z'),
+    reportPath: path.join(reportDir, '2026-03-15_production_dpl_demo.md'),
+    releaseVerdict: 'GO',
+  });
+
+  assert.equal(artifacts.runId, 'pilot-entry-20260315T101112Z-pilot-ks-week-1');
+});
+
+test('createPilotEntryArtifacts rejects artifact paths that escape the canonical docs contract', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pilot-entry-artifacts-contract-'));
+  const reportDir = path.join(tempDir, 'tmp', 'release-gates');
+  const pilotDir = path.join(tempDir, 'docs', 'pilot');
+
+  fs.mkdirSync(reportDir, { recursive: true });
+  fs.mkdirSync(pilotDir, { recursive: true });
+  fs.writeFileSync(path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_TEMPLATE.md'), '# Template\n', 'utf8');
+  fs.writeFileSync(
+    path.join(reportDir, '2026-03-15_production_dpl_demo.md'),
+    '# Release Gate\n',
+    'utf8'
+  );
+
+  assert.throws(
+    () =>
+      createPilotEntryArtifacts({
+        rootDir: tempDir,
+        pilotId: 'pilot-ks-week-1',
+        envName: 'production',
+        suite: 'all',
+        generatedAt: new Date('2026-03-15T10:11:12.000Z'),
+        reportPath: path.join(reportDir, '2026-03-15_production_dpl_demo.md'),
+        releaseVerdict: 'GO',
+      }),
+    /must stay under docs\//
+  );
+});

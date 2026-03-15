@@ -28,8 +28,8 @@ function sanitizePilotId(value) {
 function formatRunId(generatedAt, pilotId) {
   const timestamp = new Date(generatedAt)
     .toISOString()
-    .replaceAll(/[-:]/g, '')
-    .replaceAll('.000Z', 'Z');
+    .replace(/\.\d{3}Z$/, 'Z')
+    .replaceAll(/[-:]/g, '');
   return `pilot-entry-${timestamp}-${sanitizePilotId(pilotId)}`;
 }
 
@@ -44,7 +44,17 @@ function findRepoRootFromDocsPath(candidatePath) {
 }
 
 function toRepoRelative(rootDir, targetPath) {
-  return path.relative(rootDir, path.resolve(targetPath)).replaceAll(path.sep, '/');
+  const repoRelativePath = path
+    .relative(rootDir, path.resolve(targetPath))
+    .replaceAll(path.sep, '/');
+  if (
+    repoRelativePath.startsWith('../') ||
+    repoRelativePath === '..' ||
+    !repoRelativePath.startsWith('docs/')
+  ) {
+    throw new Error(`pilot artifact path must stay under docs/: ${repoRelativePath}`);
+  }
+  return repoRelativePath;
 }
 
 function parseCsvLine(line) {
