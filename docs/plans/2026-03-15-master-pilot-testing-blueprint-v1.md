@@ -85,6 +85,10 @@ The master pilot should show exactly which completed promises and tranches each 
 | `PD13`   | incident stop and rollback       | stop, hotfix, rollback, and resume decisions stay evidence-backed                       | `P6`, `P7/R04-R07`                                        |
 | `PD14`   | executive review                 | final expand, repeat, pause, or stop decision is grounded in repo-backed proof          | `P6`, `P7/R01-R08`                                        |
 
+Detailed scenario sheets may live under `docs/pilot/scenarios/`. The first clean execution artifact is:
+
+- [`PD01-release-gate-green-baseline.md`](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/scenarios/PD01-release-gate-green-baseline.md)
+
 ## Pilot Model Type
 
 There are two valid modes.
