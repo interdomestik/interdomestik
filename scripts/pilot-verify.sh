@@ -24,6 +24,7 @@ Conditional commands
 - Rollback tag discipline: pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>
 - Resume / re-entry cadence: pnpm pilot:cadence:check -- --pilotId <pilot-id>
 EOF
+  return 0
 }
 
 if [[ "${1:-}" == "--print-ranked-flow" ]]; then
