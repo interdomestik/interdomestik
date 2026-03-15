@@ -11,6 +11,7 @@ import { hashPassword } from './seed-utils/hash-password';
 import { goldenId } from './seed-utils/seed-ids';
 
 type SeedGoldenSchema = typeof import('./schema');
+type SeedGoldenDb = (typeof import('./db'))['db'];
 type ClaimEscalationAgreementInsert = SeedGoldenSchema['claimEscalationAgreements']['$inferInsert'];
 
 function buildCommercialAgreementsToSeed(args: {
@@ -147,7 +148,7 @@ function buildCommercialAgreementsToSeed(args: {
 
 async function upsertCommercialAgreements(args: {
   agreements: ClaimEscalationAgreementInsert[];
-  db: Awaited<ReturnType<typeof import('./db')>>['db'];
+  db: SeedGoldenDb;
   schema: SeedGoldenSchema;
 }) {
   const { agreements, db, schema } = args;
