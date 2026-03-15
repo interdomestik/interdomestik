@@ -87,6 +87,42 @@ vi.mock('./matter-allowance', () => ({
 
 import { getStaffClaimDetail } from './get-staff-claim-detail';
 
+function createClaimRow(overrides: Record<string, unknown> = {}) {
+  return {
+    claimId: 'claim-1',
+    claimCategory: 'vehicle',
+    claimNumber: 'KS-0001',
+    status: 'evaluation',
+    updatedAt: new Date('2026-03-14T00:00:00Z'),
+    createdAt: new Date('2026-03-10T00:00:00Z'),
+    memberId: 'member-1',
+    memberName: 'Member One',
+    memberNumber: 'MEM-001',
+    agentId: null,
+    agreementDecisionType: 'accepted',
+    agreementDeclineReasonCode: null,
+    agreementDecisionNextStatus: 'negotiation',
+    agreementDecisionReason: 'Clear insurer path and viable monetary recovery.',
+    agreementFeePercentage: 20,
+    agreementMinimumFee: '25.00',
+    agreementLegalActionCapPercentage: 35,
+    agreementPaymentAuthorizationState: 'authorized',
+    agreementSuccessFeeRecoveredAmount: null,
+    agreementSuccessFeeCurrencyCode: null,
+    agreementSuccessFeeAmount: null,
+    agreementSuccessFeeCollectionMethod: null,
+    agreementSuccessFeeDeductionAllowed: null,
+    agreementSuccessFeeHasStoredPaymentMethod: null,
+    agreementSuccessFeeInvoiceDueAt: null,
+    agreementSuccessFeeResolvedAt: null,
+    agreementSuccessFeeSubscriptionId: null,
+    agreementTermsVersion: '2026-03-v1',
+    agreementSignedAt: null,
+    agreementAcceptedAt: new Date('2026-03-14T09:00:00Z'),
+    ...overrides,
+  };
+}
+
 describe('getStaffClaimDetail', () => {
   beforeEach(() => {
     mocks.db.select.mockReset();
@@ -101,39 +137,27 @@ describe('getStaffClaimDetail', () => {
 
   it('returns member and claim details for tenant', async () => {
     mocks.claimChain.limit.mockResolvedValue([
-      {
-        claimId: 'claim-1',
-        claimCategory: 'vehicle',
-        claimNumber: 'KS-0001',
+      createClaimRow({
         status: 'submitted',
         updatedAt: new Date('2026-01-02T00:00:00Z'),
         createdAt: new Date('2026-01-01T00:00:00Z'),
-        memberId: 'member-1',
-        memberName: 'Member One',
-        memberNumber: 'MEM-001',
         agentId: 'agent-1',
         agentName: 'Agent One',
-        agreementDecisionType: 'accepted',
-        agreementDeclineReasonCode: null,
-        agreementFeePercentage: 15,
-        agreementMinimumFee: '25.00',
-        agreementLegalActionCapPercentage: 25,
         agreementDecisionNextStatus: 'court',
         agreementDecisionReason: 'Strong liability record and member approval captured.',
-        agreementPaymentAuthorizationState: 'authorized',
+        agreementFeePercentage: 15,
+        agreementLegalActionCapPercentage: 25,
         agreementSuccessFeeRecoveredAmount: '1000.00',
         agreementSuccessFeeCurrencyCode: 'EUR',
         agreementSuccessFeeAmount: '150.00',
         agreementSuccessFeeCollectionMethod: 'payment_method_charge',
         agreementSuccessFeeDeductionAllowed: false,
         agreementSuccessFeeHasStoredPaymentMethod: true,
-        agreementSuccessFeeInvoiceDueAt: null,
         agreementSuccessFeeResolvedAt: new Date('2026-03-12T09:30:00Z'),
         agreementSuccessFeeSubscriptionId: 'sub-1',
-        agreementTermsVersion: '2026-03-v1',
         agreementSignedAt: new Date('2026-03-11T09:00:00Z'),
         agreementAcceptedAt: new Date('2026-03-11T09:00:00Z'),
-      },
+      }),
     ]);
     mocks.agentChain.limit.mockResolvedValue([{ id: 'agent-1', name: 'Agent One' }]);
     mocks.getMatterAllowanceVisibility.mockResolvedValueOnce({
@@ -202,40 +226,7 @@ describe('getStaffClaimDetail', () => {
   });
 
   it('keeps accepted recovery prerequisites incomplete when the agreement is missing a signature timestamp', async () => {
-    mocks.claimChain.limit.mockResolvedValue([
-      {
-        claimId: 'claim-1',
-        claimCategory: 'vehicle',
-        claimNumber: 'KS-0001',
-        status: 'evaluation',
-        updatedAt: new Date('2026-03-14T00:00:00Z'),
-        createdAt: new Date('2026-03-10T00:00:00Z'),
-        memberId: 'member-1',
-        memberName: 'Member One',
-        memberNumber: 'MEM-001',
-        agentId: null,
-        agreementDecisionType: 'accepted',
-        agreementDeclineReasonCode: null,
-        agreementDecisionNextStatus: 'negotiation',
-        agreementDecisionReason: 'Clear insurer path and viable monetary recovery.',
-        agreementFeePercentage: 20,
-        agreementMinimumFee: '25.00',
-        agreementLegalActionCapPercentage: 35,
-        agreementPaymentAuthorizationState: 'authorized',
-        agreementSuccessFeeRecoveredAmount: null,
-        agreementSuccessFeeCurrencyCode: null,
-        agreementSuccessFeeAmount: null,
-        agreementSuccessFeeCollectionMethod: null,
-        agreementSuccessFeeDeductionAllowed: null,
-        agreementSuccessFeeHasStoredPaymentMethod: null,
-        agreementSuccessFeeInvoiceDueAt: null,
-        agreementSuccessFeeResolvedAt: null,
-        agreementSuccessFeeSubscriptionId: null,
-        agreementTermsVersion: '2026-03-v1',
-        agreementSignedAt: null,
-        agreementAcceptedAt: new Date('2026-03-14T09:00:00Z'),
-      },
-    ]);
+    mocks.claimChain.limit.mockResolvedValue([createClaimRow()]);
     mocks.agentChain.limit.mockResolvedValue([]);
 
     const result = await getStaffClaimDetail({
@@ -268,38 +259,19 @@ describe('getStaffClaimDetail', () => {
 
   it('surfaces the launch-scope restriction for guidance-only matters on staff detail reads', async () => {
     mocks.claimChain.limit.mockResolvedValue([
-      {
-        claimId: 'claim-1',
+      createClaimRow({
         claimCategory: 'travel',
-        claimNumber: 'KS-0001',
-        status: 'evaluation',
-        updatedAt: new Date('2026-03-14T00:00:00Z'),
-        createdAt: new Date('2026-03-10T00:00:00Z'),
-        memberId: 'member-1',
-        memberName: 'Member One',
-        memberNumber: 'MEM-001',
-        agentId: null,
-        agreementDecisionType: 'accepted',
-        agreementDeclineReasonCode: null,
-        agreementDecisionNextStatus: 'negotiation',
         agreementDecisionReason: 'Legacy staff acceptance recorded before scope enforcement.',
-        agreementFeePercentage: 20,
-        agreementMinimumFee: '25.00',
-        agreementLegalActionCapPercentage: 35,
-        agreementPaymentAuthorizationState: 'authorized',
         agreementSuccessFeeRecoveredAmount: '1000.00',
         agreementSuccessFeeCurrencyCode: 'EUR',
         agreementSuccessFeeAmount: '150.00',
         agreementSuccessFeeCollectionMethod: 'payment_method_charge',
         agreementSuccessFeeDeductionAllowed: false,
         agreementSuccessFeeHasStoredPaymentMethod: true,
-        agreementSuccessFeeInvoiceDueAt: null,
         agreementSuccessFeeResolvedAt: new Date('2026-03-14T12:00:00Z'),
         agreementSuccessFeeSubscriptionId: 'sub-1',
-        agreementTermsVersion: '2026-03-v1',
         agreementSignedAt: new Date('2026-03-14T09:00:00Z'),
-        agreementAcceptedAt: new Date('2026-03-14T09:00:00Z'),
-      },
+      }),
     ]);
     mocks.agentChain.limit.mockResolvedValue([]);
 

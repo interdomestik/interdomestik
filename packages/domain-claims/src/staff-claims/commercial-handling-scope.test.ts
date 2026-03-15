@@ -40,4 +40,17 @@ describe('commercial handling scope', () => {
       staffLabel: 'Launch scope not confirmed',
     });
   });
+
+  it('uses an outside-scope error for stored categories that are unsupported but present', () => {
+    expect(buildCommercialHandlingScopeSnapshot({ claimCategory: 'employment' })).toEqual({
+      claimCategory: 'employment',
+      decisionReason: 'outside_launch_scope',
+      enforcementError:
+        'Stored claim category "employment" is outside the current launch recovery scope and cannot move into staff-led recovery or success-fee handling.',
+      isEligible: false,
+      staffDescription:
+        'Stored claim category "employment" does not match the launch recovery categories, so this matter stays outside staff-led recovery and success-fee handling.',
+      staffLabel: 'Outside current launch recovery scope',
+    });
+  });
 });

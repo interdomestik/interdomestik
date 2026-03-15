@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClaimsSession } from '../claims/types';
 import { saveClaimEscalationAgreementCore } from './save-escalation-agreement';
 
+type MockClaimRecord = {
+  category: string;
+  id: string;
+  userId: string;
+};
+
 const mocks = vi.hoisted(() => {
   const claimSelectChain = {
     from: vi.fn(),
@@ -110,6 +116,24 @@ function createSession(options: {
   } as unknown as ClaimsSession;
 }
 
+function mockAgreementSaveSelects(options?: {
+  agreements?: Array<Record<string, unknown>>;
+  claim?: Partial<MockClaimRecord>;
+}) {
+  mocks.txSelect
+    .mockReturnValueOnce(mocks.claimSelectChain)
+    .mockReturnValueOnce(mocks.agreementSelectChain);
+  mocks.claimSelectChain.limit.mockResolvedValue([
+    {
+      category: 'vehicle',
+      id: 'claim-1',
+      userId: 'member-1',
+      ...options?.claim,
+    },
+  ]);
+  mocks.agreementSelectChain.limit.mockResolvedValue(options?.agreements ?? []);
+}
+
 describe('saveClaimEscalationAgreementCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -159,13 +183,7 @@ describe('saveClaimEscalationAgreementCore', () => {
   });
 
   it('creates a new escalation agreement snapshot for an in-scope claim', async () => {
-    mocks.txSelect
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', userId: 'member-1', category: 'vehicle' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([]);
+    mockAgreementSaveSelects();
 
     const result = await saveClaimEscalationAgreementCore({
       claimId: 'claim-1',
@@ -211,13 +229,7 @@ describe('saveClaimEscalationAgreementCore', () => {
   it('records a commercial audit event when staff save recovery terms', async () => {
     const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
-    mocks.txSelect
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', userId: 'member-1', category: 'vehicle' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([]);
+    mockAgreementSaveSelects();
 
     const result = await saveClaimEscalationAgreementCore(
       {
@@ -260,27 +272,23 @@ describe('saveClaimEscalationAgreementCore', () => {
   });
 
   it('refreshes acceptance audit fields when staff resave an agreement', async () => {
-    mocks.txSelect
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', userId: 'member-1', category: 'vehicle' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        acceptedAt: new Date('2026-03-11T09:00:00.000Z'),
-        claimId: 'claim-1',
-        decisionNextStatus: 'negotiation',
-        decisionReason: 'Initial negotiation path was accepted.',
-        feePercentage: 15,
-        id: 'agreement-1',
-        legalActionCapPercentage: 25,
-        minimumFee: '25.00',
-        paymentAuthorizationState: 'authorized',
-        signedAt: new Date('2026-03-11T09:00:00.000Z'),
-        termsVersion: '2026-03-v1',
-      },
-    ]);
+    mockAgreementSaveSelects({
+      agreements: [
+        {
+          acceptedAt: new Date('2026-03-11T09:00:00.000Z'),
+          claimId: 'claim-1',
+          decisionNextStatus: 'negotiation',
+          decisionReason: 'Initial negotiation path was accepted.',
+          feePercentage: 15,
+          id: 'agreement-1',
+          legalActionCapPercentage: 25,
+          minimumFee: '25.00',
+          paymentAuthorizationState: 'authorized',
+          signedAt: new Date('2026-03-11T09:00:00.000Z'),
+          termsVersion: '2026-03-v1',
+        },
+      ],
+    });
 
     const result = await saveClaimEscalationAgreementCore({
       claimId: 'claim-1',
@@ -324,27 +332,23 @@ describe('saveClaimEscalationAgreementCore', () => {
   });
 
   it('hydrates the member signature timestamp when staff save terms onto an accepted recovery decision row', async () => {
-    mocks.txSelect
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', userId: 'member-1', category: 'vehicle' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([
-      {
-        acceptedAt: new Date('2026-03-14T09:00:00.000Z'),
-        claimId: 'claim-1',
-        decisionNextStatus: null,
-        decisionReason: 'Recovery decision accepted before commercial terms were saved.',
-        feePercentage: null,
-        id: 'agreement-1',
-        legalActionCapPercentage: null,
-        minimumFee: null,
-        paymentAuthorizationState: 'pending',
-        signedAt: null,
-        termsVersion: null,
-      },
-    ]);
+    mockAgreementSaveSelects({
+      agreements: [
+        {
+          acceptedAt: new Date('2026-03-14T09:00:00.000Z'),
+          claimId: 'claim-1',
+          decisionNextStatus: null,
+          decisionReason: 'Recovery decision accepted before commercial terms were saved.',
+          feePercentage: null,
+          id: 'agreement-1',
+          legalActionCapPercentage: null,
+          minimumFee: null,
+          paymentAuthorizationState: 'pending',
+          signedAt: null,
+          termsVersion: null,
+        },
+      ],
+    });
 
     const result = await saveClaimEscalationAgreementCore({
       claimId: 'claim-1',
@@ -372,13 +376,9 @@ describe('saveClaimEscalationAgreementCore', () => {
   });
 
   it('blocks escalation agreement saves for guidance-only matters', async () => {
-    mocks.txSelect
-      .mockReturnValueOnce(mocks.claimSelectChain)
-      .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', userId: 'member-1', category: 'travel' },
-    ]);
-    mocks.agreementSelectChain.limit.mockResolvedValue([]);
+    mockAgreementSaveSelects({
+      claim: { category: 'travel' },
+    });
 
     const result = await saveClaimEscalationAgreementCore({
       claimId: 'claim-1',
