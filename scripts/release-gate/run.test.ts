@@ -197,6 +197,37 @@ function buildCopiedDailyEvidenceIndexWithRows(rows, dayCount = rows.length) {
   return lines.join('\n');
 }
 
+function buildCadenceDailyRow(day, overrides = {}) {
+  return {
+    day,
+    date: `2026-03-${String(14 + day).padStart(2, '0')}`,
+    owner: 'Admin KS',
+    status: 'green',
+    reportPath: DEFAULT_PILOT_REPORT_PATH,
+    bundlePath: 'n/a',
+    incidentCount: '0',
+    highestSeverity: 'none',
+    decision: 'continue',
+    ...overrides,
+  };
+}
+
+function buildCadencePointerIndexContent(pilotId = PILOT_ID) {
+  return [
+    'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path,legacy_log_path',
+    `pilot-entry-20260315T101112Z-${pilotId},${pilotId},production,all,2026-03-15T10:11:12.000Z,GO,${DEFAULT_PILOT_REPORT_PATH},docs/pilot/PILOT_EVIDENCE_INDEX_${pilotId}.md,`,
+    '',
+  ].join('\n');
+}
+
+function setupCadenceFixture(tempDir, rows, dayCount = Math.max(rows.length, 1)) {
+  return setupPilotArtifactFixture(tempDir, {
+    templateContent: buildDailyEvidenceTemplate(dayCount),
+    pointerIndexContent: buildCadencePointerIndexContent(),
+    copiedIndexContent: buildCopiedDailyEvidenceIndexWithRows(rows, dayCount),
+  });
+}
+
 function buildEvidenceIndexMarkdown({ headingLines, dayCount }) {
   return [
     ...headingLines,
@@ -1167,6 +1198,26 @@ test('recordPilotDailyEvidence updates the copied per-pilot evidence index with 
   });
 });
 
+test('recordPilotDailyEvidence trims valid dates before writing the copied evidence row', () => {
+  withTempDir('pilot-daily-evidence-trim-date-', tempDir => {
+    const fixture = createPilotEntryFixture(tempDir);
+
+    recordPilotDailyEvidence({
+      rootDir: tempDir,
+      ...buildDailyEvidenceArgs({
+        date: '2026-03-15 ',
+      }),
+      pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+    });
+
+    const copiedIndex = fs.readFileSync(fixture.copiedIndexPath, 'utf8');
+    assert.match(
+      copiedIndex,
+      /\| 1 \| 2026-03-15 \| Admin KS \| green \| docs\/release-gates\/2026-03-15_production_dpl_demo\.md \| n\/a \| 0 \| none \| continue \|/
+    );
+  });
+});
+
 test('recordPilotDailyEvidence can override report and bundle paths while preserving the pointer index as a separate layer', () => {
   withTempDir('pilot-daily-evidence-override-', tempDir => {
     const fixture = setupPilotArtifactFixture(tempDir, {
@@ -1450,52 +1501,11 @@ test('recordPilotDecisionProof rejects pointer rows whose evidence index escapes
 
 test('evaluatePilotReadinessCadence passes when the latest pilot evidence index has three consecutive qualifying green days', () => {
   withTempDir('pilot-readiness-cadence-pass-', tempDir => {
-    const fixture = setupPilotArtifactFixture(tempDir, {
-      templateContent: buildDailyEvidenceTemplate(4),
-      pointerIndexContent: [
-        'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path,legacy_log_path',
-        'pilot-entry-20260315T101112Z-pilot-ks-week-1,pilot-ks-week-1,production,all,2026-03-15T10:11:12.000Z,GO,docs/release-gates/2026-03-15_production_dpl_demo.md,docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md,',
-        '',
-      ].join('\n'),
-      copiedIndexContent: buildCopiedDailyEvidenceIndexWithRows(
-        [
-          {
-            day: 1,
-            date: '2026-03-15',
-            owner: 'Admin KS',
-            status: 'green',
-            reportPath: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
-            bundlePath: 'n/a',
-            incidentCount: '0',
-            highestSeverity: 'none',
-            decision: 'continue',
-          },
-          {
-            day: 2,
-            date: '2026-03-16',
-            owner: 'Admin KS',
-            status: 'green',
-            reportPath: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
-            bundlePath: 'n/a',
-            incidentCount: '0',
-            highestSeverity: 'none',
-            decision: 'continue',
-          },
-          {
-            day: 3,
-            date: '2026-03-17',
-            owner: 'Admin KS',
-            status: 'green',
-            reportPath: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
-            bundlePath: 'n/a',
-            incidentCount: '0',
-            highestSeverity: 'none',
-            decision: 'continue',
-          },
-        ],
-        4
-      ),
-    });
+    const fixture = setupCadenceFixture(
+      tempDir,
+      [buildCadenceDailyRow(1), buildCadenceDailyRow(2), buildCadenceDailyRow(3)],
+      4
+    );
 
     const result = evaluatePilotReadinessCadence({
       rootDir: tempDir,
@@ -1512,63 +1522,21 @@ test('evaluatePilotReadinessCadence passes when the latest pilot evidence index 
 
 test('evaluatePilotReadinessCadence fails when the green days are not consecutive qualifying days', () => {
   withTempDir('pilot-readiness-cadence-fail-', tempDir => {
-    const fixture = setupPilotArtifactFixture(tempDir, {
-      templateContent: buildDailyEvidenceTemplate(4),
-      pointerIndexContent: [
-        'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path,legacy_log_path',
-        'pilot-entry-20260315T101112Z-pilot-ks-week-1,pilot-ks-week-1,production,all,2026-03-15T10:11:12.000Z,GO,docs/release-gates/2026-03-15_production_dpl_demo.md,docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md,',
-        '',
-      ].join('\n'),
-      copiedIndexContent: buildCopiedDailyEvidenceIndexWithRows(
-        [
-          {
-            day: 1,
-            date: '2026-03-15',
-            owner: 'Admin KS',
-            status: 'green',
-            reportPath: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
-            bundlePath: 'n/a',
-            incidentCount: '0',
-            highestSeverity: 'none',
-            decision: 'continue',
-          },
-          {
-            day: 2,
-            date: '2026-03-16',
-            owner: 'Admin KS',
-            status: 'amber',
-            reportPath: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
-            bundlePath: 'n/a',
-            incidentCount: '1',
-            highestSeverity: 'sev3',
-            decision: 'pause',
-          },
-          {
-            day: 3,
-            date: '2026-03-17',
-            owner: 'Admin KS',
-            status: 'green',
-            reportPath: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
-            bundlePath: 'n/a',
-            incidentCount: '0',
-            highestSeverity: 'none',
-            decision: 'continue',
-          },
-          {
-            day: 4,
-            date: '2026-03-18',
-            owner: 'Admin KS',
-            status: 'green',
-            reportPath: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
-            bundlePath: 'n/a',
-            incidentCount: '0',
-            highestSeverity: 'none',
-            decision: 'continue',
-          },
-        ],
-        4
-      ),
-    });
+    const fixture = setupCadenceFixture(
+      tempDir,
+      [
+        buildCadenceDailyRow(1),
+        buildCadenceDailyRow(2, {
+          status: 'amber',
+          incidentCount: '1',
+          highestSeverity: 'sev3',
+          decision: 'pause',
+        }),
+        buildCadenceDailyRow(3),
+        buildCadenceDailyRow(4),
+      ],
+      4
+    );
 
     const result = evaluatePilotReadinessCadence({
       rootDir: tempDir,
@@ -1580,5 +1548,22 @@ test('evaluatePilotReadinessCadence fails when the green days are not consecutiv
     assert.equal(result.satisfied, false);
     assert.equal(result.longestStreak, 2);
     assert.deepEqual(result.qualifyingDates, ['2026-03-17', '2026-03-18']);
+  });
+});
+
+test('evaluatePilotReadinessCadence rejects partially numeric required streak values', () => {
+  withTempDir('pilot-readiness-cadence-required-streak-', tempDir => {
+    const fixture = setupCadenceFixture(tempDir, [buildCadenceDailyRow(1)], 1);
+
+    assert.throws(
+      () =>
+        evaluatePilotReadinessCadence({
+          rootDir: tempDir,
+          pilotId: PILOT_ID,
+          requiredStreak: '3days',
+          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+        }),
+      /requiredStreak must be a positive integer/
+    );
   });
 });

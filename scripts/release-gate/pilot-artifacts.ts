@@ -614,7 +614,12 @@ function normalizeRequiredStreak(value) {
     return 3;
   }
 
-  const requiredStreak = Number.parseInt(String(value), 10);
+  const normalizedValue = String(value).trim();
+  if (!/^\d+$/.test(normalizedValue)) {
+    throw new Error('requiredStreak must be a positive integer');
+  }
+
+  const requiredStreak = Number.parseInt(normalizedValue, 10);
   if (!Number.isInteger(requiredStreak) || requiredStreak < 1) {
     throw new Error('requiredStreak must be a positive integer');
   }
@@ -670,7 +675,7 @@ function validateDailyDate(value) {
   if (!isValidDailyDateValue(value)) {
     throw new Error('date must use YYYY-MM-DD format');
   }
-  return String(value);
+  return String(value).trim();
 }
 
 function normalizePilotDecision(value) {
