@@ -35,6 +35,7 @@ const {
   parsePilotEvidenceIndex,
   recordPilotDailyEvidence,
   recordPilotDecisionProof,
+  recordPilotObservabilityEvidence,
 } = require('./pilot-artifacts.ts');
 const {
   createEmptyArgs: createPilotDailyEvidenceArgs,
@@ -44,6 +45,10 @@ const {
   createEmptyArgs: createPilotDecisionArgs,
   parseArgs: parsePilotDecisionArgs,
 } = require('../pilot-decision-proof.ts');
+const {
+  createEmptyArgs: createPilotObservabilityArgs,
+  parseArgs: parsePilotObservabilityArgs,
+} = require('../pilot-observability-evidence.ts');
 const {
   createEmptyArgs: createPilotCadenceArgs,
   parseArgs: parsePilotCadenceArgs,
@@ -64,8 +69,22 @@ const DAILY_EVIDENCE_TEMPLATE_LINES = [
   '| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`pause`/`hotfix`/`stop`) |',
   '| --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |',
 ];
+const OBSERVABILITY_HEADERS = [
+  'Reference (`day-<n>`/`week-<n>`)',
+  'Date (YYYY-MM-DD)',
+  'Owner',
+  'Log Sweep (`clear`/`expected-noise`/`action-required`)',
+  'Functional Errors (count)',
+  'Expected Auth Deny Noise (count)',
+  'KPI Condition (`within-threshold`/`watch`/`breach`)',
+  'Incident Count',
+  'Highest Severity (`none`/`sev3`/`sev2`/`sev1`)',
+  'Notes / Artifact Path',
+];
+const OBSERVABILITY_SEPARATOR_LINE =
+  '| ----------------------------- | ----------------- | ----- | ----------------------------------------------------- | ------------------------- | --------------------------------- | --------------------------------------------------- | -------------- | ----------------------------------------- | --------------------- |';
 const DECISION_PROOF_SEPARATOR_LINE =
-  '| ------------------------------- | --------- | ----------------- | ----- | ---------------------------------------------- | ----------------------------------------------- | ------------------------------------ | --------------------------------------------------------------- |';
+  '| ------------------------------- | --------- | ----------------- | ----- | ---------------------------------------------- | ----------------------------------------------- | ----------------- | ------------------------------------ | --------------------------------------------------------------- |';
 
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
 const ORIGINAL_REQUIRE_ROLE_PANEL = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
@@ -233,6 +252,11 @@ function buildEvidenceIndexMarkdown({ headingLines, dayCount }) {
     ...headingLines,
     ...Array.from({ length: dayCount }, (_, index) => `| ${index + 1} | | | | | | | | |`),
     '',
+    '## Observability Evidence Log',
+    '',
+    `| ${OBSERVABILITY_HEADERS.join(' | ')} |`,
+    OBSERVABILITY_SEPARATOR_LINE,
+    '',
     '## Decision Proof Log',
     '',
     `| ${CANONICAL_DECISION_PROOF_HEADERS.join(' | ')} |`,
@@ -287,6 +311,26 @@ function buildDecisionProofArgs(overrides = {}) {
     owner: 'Admin KS',
     decision: 'continue',
     rollbackTarget: 'n/a',
+    observabilityReference: '',
+    pilotEvidenceIndexCsvPath: '',
+    ...overrides,
+  };
+}
+
+function buildObservabilityEvidenceArgs(overrides = {}) {
+  return {
+    rootDir: '',
+    pilotId: PILOT_ID,
+    reference: 'day-1',
+    date: '2026-03-15',
+    owner: 'Admin KS',
+    logSweepResult: 'expected-noise',
+    functionalErrorCount: 0,
+    expectedAuthDenyCount: 2,
+    kpiCondition: 'within-threshold',
+    incidentCount: 0,
+    highestSeverity: 'none',
+    notes: 'n/a',
     pilotEvidenceIndexCsvPath: '',
     ...overrides,
   };
@@ -1303,6 +1347,13 @@ test('pilot decision proof cli treats --help as a standalone flag regardless of 
   });
 });
 
+test('pilot observability evidence cli treats --help as a standalone flag regardless of position', () => {
+  assert.deepEqual(parsePilotObservabilityArgs(['--help', '--pilotId', 'pilot-ks-week-1']), {
+    ...createPilotObservabilityArgs(),
+    help: true,
+  });
+});
+
 test('pilot readiness cadence cli treats --help as a standalone flag regardless of position', () => {
   assert.deepEqual(parsePilotCadenceArgs(['--help', '--pilotId', 'pilot-ks-week-1']), {
     ...createPilotCadenceArgs(),
@@ -1360,9 +1411,52 @@ test('recordPilotDailyEvidence rejects markdown-breaking cell content', () => {
   });
 });
 
+test('recordPilotObservabilityEvidence writes structured log sweep and KPI evidence into the copied index', () => {
+  withTempDir('pilot-observability-evidence-', tempDir => {
+    const fixture = createPilotEntryFixture(tempDir, { dayCount: 2 });
+
+    const result = recordPilotObservabilityEvidence({
+      ...buildObservabilityEvidenceArgs({
+        rootDir: tempDir,
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
+    });
+
+    assert.equal(
+      path.relative(tempDir, result.evidenceIndexPath),
+      path.join('docs', 'pilot', 'PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md')
+    );
+
+    const copiedIndex = fs.readFileSync(fixture.copiedIndexPath, 'utf8');
+    assert.match(copiedIndex, /## Observability Evidence Log/);
+    assert.match(
+      copiedIndex,
+      /\| day-1 \| 2026-03-15 \| Admin KS \| expected-noise \| 0 \| 2 \| within-threshold \| 0 \| none \| n\/a \|/
+    );
+  });
+});
+
 test('recordPilotDecisionProof records repo-backed daily and weekly decisions in the copied evidence index', () => {
   withTempDir('pilot-decision-proof-', tempDir => {
     const fixture = createPilotEntryFixture(tempDir, { dayCount: 2 });
+
+    recordPilotObservabilityEvidence({
+      ...buildObservabilityEvidenceArgs({
+        rootDir: tempDir,
+        reference: 'day-1',
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
+    });
+    recordPilotObservabilityEvidence({
+      ...buildObservabilityEvidenceArgs({
+        rootDir: tempDir,
+        reference: 'week-1',
+        date: '2026-03-21',
+        logSweepResult: 'clear',
+        expectedAuthDenyCount: 0,
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
+    });
 
     const dailyResult = recordPilotDecisionProof({
       ...buildDecisionProofArgs({
@@ -1392,11 +1486,28 @@ test('recordPilotDecisionProof records repo-backed daily and weekly decisions in
     assert.match(copiedIndex, /## Decision Proof Log/);
     assert.match(
       copiedIndex,
-      /\| daily \| day-1 \| 2026-03-15 \| Admin KS \| pause \| n\/a \| yes \| no \|/
+      /\| daily \| day-1 \| 2026-03-15 \| Admin KS \| pause \| n\/a \| day-1 \| yes \| no \|/
     );
     assert.match(
       copiedIndex,
-      /\| weekly \| week-1 \| 2026-03-21 \| Admin KS \| stop \| pilot-ready-20260315 \| yes \| yes \|/
+      /\| weekly \| week-1 \| 2026-03-21 \| Admin KS \| stop \| pilot-ready-20260315 \| week-1 \| yes \| yes \|/
+    );
+  });
+});
+
+test('recordPilotDecisionProof requires linked observability evidence for the referenced review window', () => {
+  withTempDir('pilot-decision-proof-observability-', tempDir => {
+    const fixture = createPilotEntryFixture(tempDir);
+
+    assert.throws(
+      () =>
+        recordPilotDecisionProof({
+          ...buildDecisionProofArgs({
+            rootDir: tempDir,
+            pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          }),
+        }),
+      /observability evidence must exist for reference day-1 before decision proof can be recorded/
     );
   });
 });
@@ -1459,6 +1570,13 @@ test('recordPilotDecisionProof upgrades copied evidence indexes that predate the
       ].join('\n'),
     });
 
+    recordPilotObservabilityEvidence({
+      ...buildObservabilityEvidenceArgs({
+        rootDir: tempDir,
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
+    });
+
     recordPilotDecisionProof({
       ...buildDecisionProofArgs({
         rootDir: tempDir,
@@ -1470,7 +1588,42 @@ test('recordPilotDecisionProof upgrades copied evidence indexes that predate the
     assert.match(copiedIndex, /## Decision Proof Log/);
     assert.match(
       copiedIndex,
-      /\| daily \| day-1 \| 2026-03-15 \| Admin KS \| continue \| n\/a \| no \| no \|/
+      /\| daily \| day-1 \| 2026-03-15 \| Admin KS \| continue \| n\/a \| day-1 \| no \| no \|/
+    );
+  });
+});
+
+test('recordPilotObservabilityEvidence upgrades copied evidence indexes that predate the observability section', () => {
+  withTempDir('pilot-observability-upgrade-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: buildDailyEvidenceTemplate(1),
+      pointerIndexContent: buildCadencePointerIndexContent(),
+      copiedIndexContent: [
+        '# Pilot Evidence Index — pilot-ks-week-1',
+        '',
+        ...DAILY_EVIDENCE_TEMPLATE_LINES,
+        '| 1 | 2026-03-15 | Admin KS | green | docs/release-gates/2026-03-15_production_dpl_demo.md | n/a | 0 | none | continue |',
+        '',
+        '## Decision Proof Log',
+        '',
+        `| ${CANONICAL_DECISION_PROOF_HEADERS.join(' | ')} |`,
+        DECISION_PROOF_SEPARATOR_LINE,
+        '',
+      ].join('\n'),
+    });
+
+    recordPilotObservabilityEvidence({
+      ...buildObservabilityEvidenceArgs({
+        rootDir: tempDir,
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
+    });
+
+    const copiedIndex = fs.readFileSync(fixture.copiedIndexPath, 'utf8');
+    assert.match(copiedIndex, /## Observability Evidence Log/);
+    assert.match(
+      copiedIndex,
+      /\| day-1 \| 2026-03-15 \| Admin KS \| expected-noise \| 0 \| 2 \| within-threshold \| 0 \| none \| n\/a \|/
     );
   });
 });

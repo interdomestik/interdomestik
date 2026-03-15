@@ -110,6 +110,7 @@
     "pilot:cadence:check": "tsx scripts/pilot-readiness-cadence.ts",
     "pilot:decision:record": "tsx scripts/pilot-decision-proof.ts",
     "pilot:evidence:record": "tsx scripts/pilot-daily-evidence.ts",
+    "pilot:observability:record": "tsx scripts/pilot-observability-evidence.ts",
     "pilot:tag:ready": "tsx scripts/pilot-ready-tag.js",
     "release:gate:raw": "tsx scripts/release-gate/run.ts",
     "release:gate:check-no-skip": "node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json",

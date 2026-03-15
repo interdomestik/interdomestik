@@ -83,6 +83,7 @@ test('pilot readiness commands keep local verification and production proof dist
   const pilotCheck = packageJson.scripts['pilot:check'];
   const pilotDecisionRecord = packageJson.scripts['pilot:decision:record'];
   const pilotEvidenceRecord = packageJson.scripts['pilot:evidence:record'];
+  const pilotObservabilityRecord = packageJson.scripts['pilot:observability:record'];
   const pilotTagReady = packageJson.scripts['pilot:tag:ready'];
   const releaseGateProd = packageJson.scripts['release:gate:prod'];
   const releaseGateProdRaw = packageJson.scripts['release:gate:prod:raw'];
@@ -107,6 +108,7 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.equal(releaseGateProdRaw, 'tsx scripts/release-gate/run.ts --envName production --suite all');
   assert.equal(pilotDecisionRecord, 'tsx scripts/pilot-decision-proof.ts');
   assert.equal(pilotEvidenceRecord, 'tsx scripts/pilot-daily-evidence.ts');
+  assert.equal(pilotObservabilityRecord, 'tsx scripts/pilot-observability-evidence.ts');
   assert.equal(pilotTagReady, 'tsx scripts/pilot-ready-tag.js');
   assert.notEqual(pilotCadenceCheck, pilotCheck);
   assert.notEqual(pilotCheck, releaseGateProd);
@@ -125,6 +127,10 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.match(pilotRunbook, /`pnpm pilot:check`/);
   assert.match(pilotRunbook, /`pnpm release:gate:prod -- --pilotId <pilot-id>`/);
   assert.match(pilotRunbook, /`pnpm pilot:evidence:record -- --pilotId <pilot-id>`/);
+  assert.match(
+    pilotRunbook,
+    /`pnpm pilot:observability:record -- --pilotId <pilot-id>`/
+  );
   assert.match(pilotRunbook, /`pnpm pilot:decision:record -- --pilotId <pilot-id>`/);
   assert.match(pilotRunbook, /`pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`/);
   assert.match(pilotRunbook, /`pnpm pilot:cadence:check -- --pilotId <pilot-id>`/);
@@ -152,6 +158,10 @@ test('pilot readiness commands keep local verification and production proof dist
   );
   assert.match(
     pilotGoNoGo,
+    /Observability evidence is recorded in that same copied evidence index via `pnpm pilot:observability:record -- --pilotId <pilot-id>`\./
+  );
+  assert.match(
+    pilotGoNoGo,
     /Daily and weekly continue\/pause\/hotfix\/stop decisions are recorded in that same copied evidence index via `pnpm pilot:decision:record -- --pilotId <pilot-id>`\./
   );
   assert.match(
@@ -164,12 +174,18 @@ test('pilot readiness commands keep local verification and production proof dist
   );
   assert.match(
     pilotEntryCriteria,
+    /Observability evidence records log-sweep result, KPI condition, incident count, and highest severity in that same copied evidence index via `pnpm pilot:observability:record -- --pilotId <pilot-id>`\./
+  );
+  assert.match(
+    pilotEntryCriteria,
     /Run `pnpm pilot:cadence:check -- --pilotId <pilot-id>` and require a 3-day qualifying green streak before pilot entry or resume\./
   );
   assert.match(
     pilotEvidenceTemplate,
     /A qualifying readiness-cadence day requires `green`, `0` incidents, `none` highest severity, `continue`, and a valid `docs\/release-gates\/\.\.\.` report path\./
   );
+  assert.match(pilotEvidenceTemplate, /## Observability Evidence Log/);
+  assert.match(pilotEvidenceTemplate, /Observability Ref/);
 });
 
 test('root package exposes the D07 Sentry alert management scripts', () => {

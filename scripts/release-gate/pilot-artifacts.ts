@@ -41,6 +41,40 @@ const CANONICAL_DAILY_EVIDENCE_SEPARATOR = [
 const CANONICAL_DAILY_EVIDENCE_STATUS = new Set(['green', 'amber', 'red']);
 const CANONICAL_DAILY_EVIDENCE_SEVERITY = new Set(['none', 'sev3', 'sev2', 'sev1']);
 const CANONICAL_DAILY_EVIDENCE_DECISIONS = new Set(['continue', 'pause', 'hotfix', 'stop']);
+const CANONICAL_OBSERVABILITY_EVIDENCE_HEADERS = [
+  'Reference',
+  'Date (YYYY-MM-DD)',
+  'Owner',
+  'Log Sweep (`clear`/`expected-noise`/`action-required`)',
+  'Functional Errors (count)',
+  'Expected Auth Denies (count)',
+  'KPI Condition (`within-threshold`/`watch`/`breach`)',
+  'Incident Count',
+  'Highest Sev (`none`/`sev3`/`sev2`/`sev1`)',
+  'Notes',
+];
+const CANONICAL_OBSERVABILITY_EVIDENCE_SEPARATOR = [
+  '---------',
+  '-----------------',
+  '-----',
+  '----------------------------------------------------',
+  '-------------------------',
+  '------------------------------',
+  '-------------------------------------------------',
+  '--------------',
+  '-----------------------------------------',
+  '-----',
+];
+const CANONICAL_OBSERVABILITY_LOG_SWEEP_RESULTS = new Set([
+  'clear',
+  'expected-noise',
+  'action-required',
+]);
+const CANONICAL_OBSERVABILITY_KPI_CONDITIONS = new Set([
+  'within-threshold',
+  'watch',
+  'breach',
+]);
 const CANONICAL_DECISION_PROOF_HEADERS = [
   'Review Type (`daily`/`weekly`)',
   'Reference',
@@ -48,6 +82,7 @@ const CANONICAL_DECISION_PROOF_HEADERS = [
   'Owner',
   'Decision (`continue`/`pause`/`hotfix`/`stop`)',
   'Rollback Target (`pilot-ready-YYYYMMDD`/`n/a`)',
+  'Observability Ref',
   'Resume Requires `pnpm pilot:check`',
   'Resume Requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>`',
 ];
@@ -58,6 +93,7 @@ const CANONICAL_DECISION_PROOF_SEPARATOR = [
   '-----',
   '----------------------------------------------',
   '-----------------------------------------------',
+  '-----------------',
   '------------------------------------',
   '---------------------------------------------------------------',
 ];
@@ -339,6 +375,49 @@ function parseDailyEvidenceTable(content) {
   return { headerIndex, rowEndIndex, rows, lines };
 }
 
+function mapObservabilityHeaderToField(header) {
+  const normalized = normalizeDailyHeader(header);
+  if (normalized === 'reference') return 'reference';
+  if (normalized === 'date') return 'date';
+  if (normalized === 'owner') return 'owner';
+  if (normalized === 'log sweep') return 'logSweepResult';
+  if (normalized === 'functional errors' || normalized === 'functional error count') {
+    return 'functionalErrorCount';
+  }
+  if (normalized === 'expected auth denies' || normalized === 'expected auth deny count') {
+    return 'expectedAuthDenyCount';
+  }
+  if (normalized === 'kpi condition') return 'kpiCondition';
+  if (normalized === 'incident count' || normalized === 'incidents' || normalized === 'incidents count') {
+    return 'incidentCount';
+  }
+  if (normalized === 'highest sev' || normalized === 'highest severity') return 'highestSeverity';
+  if (normalized === 'notes') return 'notes';
+  return null;
+}
+
+function parseObservabilityEvidenceTable(content) {
+  const { headerCells, headerIndex, rowEndIndex, lines } = parseMarkdownTable(content, 'Reference');
+  const fieldByIndex = headerCells.map(mapObservabilityHeaderToField);
+  const rows = [];
+
+  for (let index = headerIndex + 2; index < rowEndIndex; index += 1) {
+    const cells = parseMarkdownTableRow(lines[index]);
+    if (!cells?.length || !cells[0]) continue;
+
+    const row = {};
+    for (let cellIndex = 0; cellIndex < cells.length; cellIndex += 1) {
+      const field = fieldByIndex[cellIndex];
+      if (field) {
+        row[field] = cells[cellIndex];
+      }
+    }
+    rows.push(row);
+  }
+
+  return { headerIndex, rowEndIndex, rows, lines };
+}
+
 function mapDecisionProofHeaderToField(header) {
   const normalized = normalizeDailyHeader(header);
   if (normalized === 'review type') return 'reviewType';
@@ -347,6 +426,7 @@ function mapDecisionProofHeaderToField(header) {
   if (normalized === 'owner') return 'owner';
   if (normalized === 'decision') return 'decision';
   if (normalized === 'rollback target') return 'rollbackTarget';
+  if (normalized === 'observability ref') return 'observabilityReference';
   if (normalized === 'resume requires pnpm pilot check') return 'requiresPilotCheck';
   if (normalized === 'resume requires fresh pnpm release gate prod pilotid pilot id') {
     return 'requiresReleaseGate';
@@ -450,6 +530,32 @@ function buildCanonicalDailyEvidenceTable(existingRows, totalDays) {
   return tableLines;
 }
 
+function serializeObservabilityEvidenceRow(row) {
+  return [
+    '|',
+    ` ${row.reference || ''} `,
+    '|',
+    ` ${row.date || ''} `,
+    '|',
+    ` ${row.owner || ''} `,
+    '|',
+    ` ${row.logSweepResult || ''} `,
+    '|',
+    ` ${row.functionalErrorCount || ''} `,
+    '|',
+    ` ${row.expectedAuthDenyCount || ''} `,
+    '|',
+    ` ${row.kpiCondition || ''} `,
+    '|',
+    ` ${row.incidentCount || ''} `,
+    '|',
+    ` ${row.highestSeverity || ''} `,
+    '|',
+    ` ${row.notes || ''} `,
+    '|',
+  ].join('');
+}
+
 function serializeDecisionProofRow(row) {
   return [
     '|',
@@ -465,11 +571,27 @@ function serializeDecisionProofRow(row) {
     '|',
     ` ${row.rollbackTarget || 'n/a'} `,
     '|',
+    ` ${row.observabilityReference || ''} `,
+    '|',
     ` ${row.requiresPilotCheck || 'no'} `,
     '|',
     ` ${row.requiresReleaseGate || 'no'} `,
     '|',
   ].join('');
+}
+
+function buildCanonicalObservabilityEvidenceTable(existingRows) {
+  const sortedRows = [...existingRows].sort((left, right) => {
+    const leftKey = `${left.date || ''}:${left.reference || ''}`;
+    const rightKey = `${right.date || ''}:${right.reference || ''}`;
+    return leftKey.localeCompare(rightKey);
+  });
+
+  return [
+    `| ${CANONICAL_OBSERVABILITY_EVIDENCE_HEADERS.join(' | ')} |`,
+    `| ${CANONICAL_OBSERVABILITY_EVIDENCE_SEPARATOR.join(' | ')} |`,
+    ...sortedRows.map(serializeObservabilityEvidenceRow),
+  ];
 }
 
 function buildCanonicalDecisionProofTable(existingRows) {
@@ -501,6 +623,40 @@ function ensureDecisionProofTable(content) {
     }
     nextLines.push('', '## Decision Proof Log', '', ...buildCanonicalDecisionProofTable([]));
     return parseDecisionProofTable(`${nextLines.join('\n')}\n`);
+  }
+}
+
+function ensureObservabilityTable(content) {
+  try {
+    return parseObservabilityEvidenceTable(content);
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes('Reference')) {
+      throw error;
+    }
+
+    const lines = String(content || '').split(/\r?\n/);
+    const nextLines = [...lines];
+    while (nextLines.length && !nextLines.at(-1)) {
+      nextLines.pop();
+    }
+
+    const decisionProofIndex = nextLines.findIndex(
+      line => String(line || '').trim() === '## Decision Proof Log'
+    );
+    const observabilitySection = [
+      '',
+      '## Observability Evidence Log',
+      '',
+      ...buildCanonicalObservabilityEvidenceTable([]),
+    ];
+
+    if (decisionProofIndex === -1) {
+      nextLines.push(...observabilitySection);
+    } else {
+      nextLines.splice(decisionProofIndex, 0, ...observabilitySection);
+    }
+
+    return parseObservabilityEvidenceTable(`${nextLines.join('\n')}\n`);
   }
 }
 
@@ -716,6 +872,22 @@ function validateBundlePath(value) {
   return validateMarkdownCellText('bundlePath', value);
 }
 
+function validateObservabilityReference(value) {
+  const normalized = validateMarkdownCellText('reference', value).toLowerCase();
+  if (!/^(day|week)-\d+$/.test(normalized)) {
+    throw new Error('reference must use day-<n> or week-<n>');
+  }
+  return normalized;
+}
+
+function validateNonNegativeInteger(fieldName, value) {
+  const parsedValue = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isInteger(parsedValue) || parsedValue < 0) {
+    throw new Error(`${fieldName} must be a non-negative integer`);
+  }
+  return parsedValue;
+}
+
 function validateDecisionProofReviewType(value) {
   const reviewType = String(value || '')
     .trim()
@@ -751,6 +923,26 @@ function validateRollbackTarget(value, decision) {
   }
   if (!/^pilot-ready-\d{8}$/.test(normalized)) {
     throw new Error('rollbackTarget must use pilot-ready-YYYYMMDD or n/a');
+  }
+  return normalized;
+}
+
+function validateLogSweepResult(value) {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (!CANONICAL_OBSERVABILITY_LOG_SWEEP_RESULTS.has(normalized)) {
+    throw new Error('logSweepResult must be one of clear, expected-noise, or action-required');
+  }
+  return normalized;
+}
+
+function validateKpiCondition(value) {
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (!CANONICAL_OBSERVABILITY_KPI_CONDITIONS.has(normalized)) {
+    throw new Error('kpiCondition must be one of within-threshold, watch, or breach');
   }
   return normalized;
 }
@@ -909,6 +1101,72 @@ function createPilotEntryArtifacts(args) {
   };
 }
 
+function recordPilotObservabilityEvidence(args) {
+  const { evidenceIndexPath, pointerRow } = resolvePilotEvidenceArtifact(
+    args,
+    'observability evidence can be recorded'
+  );
+
+  const reference = validateObservabilityReference(args.reference);
+  const date = validateDailyDate(args.date);
+  const owner = validateMarkdownCellText('owner', args.owner);
+  const logSweepResult = validateLogSweepResult(args.logSweepResult);
+  const functionalErrorCount = validateNonNegativeInteger(
+    'functionalErrorCount',
+    args.functionalErrorCount
+  );
+  const expectedAuthDenyCount = validateNonNegativeInteger(
+    'expectedAuthDenyCount',
+    args.expectedAuthDenyCount
+  );
+  const kpiCondition = validateKpiCondition(args.kpiCondition);
+  const incidentCount = validateNonNegativeInteger('incidentCount', args.incidentCount);
+  const highestSeverity = String(args.highestSeverity || '')
+    .trim()
+    .toLowerCase();
+  if (!CANONICAL_DAILY_EVIDENCE_SEVERITY.has(highestSeverity)) {
+    throw new Error('highestSeverity must be one of none, sev3, sev2, or sev1');
+  }
+  const notes = validateMarkdownCellText('notes', args.notes);
+
+  const parsedTable = ensureObservabilityTable(fs.readFileSync(evidenceIndexPath, 'utf8'));
+  const nextRows = parsedTable.rows.map(row => ({ ...row }));
+  const nextRow = {
+    reference,
+    date,
+    owner,
+    logSweepResult,
+    functionalErrorCount: String(functionalErrorCount),
+    expectedAuthDenyCount: String(expectedAuthDenyCount),
+    kpiCondition,
+    incidentCount: String(incidentCount),
+    highestSeverity,
+    notes,
+  };
+  const existingIndex = nextRows.findIndex(row => row.reference === reference);
+
+  if (existingIndex === -1) {
+    nextRows.push(nextRow);
+  } else {
+    nextRows[existingIndex] = nextRow;
+  }
+
+  const nextTableLines = buildCanonicalObservabilityEvidenceTable(nextRows);
+  const nextLines = [...parsedTable.lines];
+  nextLines.splice(
+    parsedTable.headerIndex,
+    parsedTable.rowEndIndex - parsedTable.headerIndex,
+    ...nextTableLines
+  );
+  fs.writeFileSync(evidenceIndexPath, `${nextLines.join('\n').trimEnd()}\n`, 'utf8');
+
+  return {
+    evidenceIndexPath,
+    pointerRow,
+    reference,
+  };
+}
+
 function recordPilotDailyEvidence(args) {
   const { evidenceIndexPath, pointerRow, rootDir } = resolvePilotEvidenceArtifact(
     args,
@@ -1001,6 +1259,9 @@ function recordPilotDecisionProof(args) {
   const owner = validateMarkdownCellText('owner', args.owner);
   const reference = validateDecisionProofReference(reviewType, args.reference);
   const rollbackTarget = validateRollbackTarget(args.rollbackTarget, decision);
+  const observabilityReference = validateObservabilityReference(
+    args.observabilityReference || args.observabilityRef || reference
+  );
   const requirements = deriveDecisionProofRequirements(decision);
   if (!CANONICAL_DECISION_PROOF_REQUIREMENT_VALUES.has(requirements.requiresPilotCheck)) {
     throw new Error('requiresPilotCheck must be yes or no');
@@ -1009,7 +1270,15 @@ function recordPilotDecisionProof(args) {
     throw new Error('requiresReleaseGate must be yes or no');
   }
 
-  const parsedTable = ensureDecisionProofTable(fs.readFileSync(evidenceIndexPath, 'utf8'));
+  const evidenceIndexContent = fs.readFileSync(evidenceIndexPath, 'utf8');
+  const observabilityTable = ensureObservabilityTable(evidenceIndexContent);
+  if (!observabilityTable.rows.some(row => row.reference === observabilityReference)) {
+    throw new Error(
+      `observability evidence must exist for reference ${observabilityReference} before decision proof can be recorded`
+    );
+  }
+
+  const parsedTable = ensureDecisionProofTable(evidenceIndexContent);
   const nextRows = parsedTable.rows.map(row => ({ ...row }));
   const nextRow = {
     reviewType,
@@ -1018,6 +1287,7 @@ function recordPilotDecisionProof(args) {
     owner,
     decision,
     rollbackTarget,
+    observabilityReference,
     requiresPilotCheck: requirements.requiresPilotCheck,
     requiresReleaseGate: requirements.requiresReleaseGate,
   };
@@ -1043,6 +1313,7 @@ function recordPilotDecisionProof(args) {
   return {
     decision,
     evidenceIndexPath,
+    observabilityReference,
     pointerRow,
     requirements,
     rollbackTarget,
@@ -1056,6 +1327,7 @@ module.exports = {
   CANONICAL_DAILY_EVIDENCE_STATUS,
   CANONICAL_DECISION_PROOF_DECISIONS,
   CANONICAL_DECISION_PROOF_HEADERS,
+  CANONICAL_OBSERVABILITY_EVIDENCE_HEADERS,
   CANONICAL_PILOT_EVIDENCE_INDEX_COLUMNS,
   CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
   CANONICAL_PILOT_EVIDENCE_TEMPLATE_PATH,
@@ -1064,6 +1336,7 @@ module.exports = {
   parsePilotEvidenceIndex,
   recordPilotDailyEvidence,
   recordPilotDecisionProof,
+  recordPilotObservabilityEvidence,
   serializePilotEvidenceIndex,
   upgradeLegacyPilotEvidenceRows,
 };
