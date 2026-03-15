@@ -15,6 +15,7 @@ Preferred flow:
 - Capture the release report path in every row. If the day uses the same pilot-entry report, reuse that `docs/release-gates/...` path.
 - Use absolute or repo-relative bundle paths exactly as generated.
 - If no gate bundle was generated that day, set bundle path to `n/a`.
+- A qualifying readiness-cadence day requires `green`, `0` incidents, `none` highest severity, `continue`, and a valid `docs/release-gates/...` report path.
 - Do not edit this template directly; always work in your copied per-pilot evidence index file.
 
 | Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`pause`/`hotfix`/`stop`) |

@@ -107,6 +107,7 @@
     "release:gate:prod": "node scripts/run-with-dotenv.mjs pnpm -s release:gate:prod:raw",
     "release:gate:staging": "node scripts/run-with-dotenv.mjs pnpm -s release:gate:staging:raw",
     "pilot:check": "node scripts/run-with-dotenv.mjs bash scripts/pilot-verify.sh",
+    "pilot:cadence:check": "tsx scripts/pilot-readiness-cadence.ts",
     "pilot:decision:record": "tsx scripts/pilot-decision-proof.ts",
     "pilot:evidence:record": "tsx scripts/pilot-daily-evidence.ts",
     "pilot:tag:ready": "tsx scripts/pilot-ready-tag.js",

@@ -79,6 +79,7 @@ test('root package exposes the scripts/ci contract suite', () => {
 });
 
 test('pilot readiness commands keep local verification and production proof distinct', () => {
+  const pilotCadenceCheck = packageJson.scripts['pilot:cadence:check'];
   const pilotCheck = packageJson.scripts['pilot:check'];
   const pilotDecisionRecord = packageJson.scripts['pilot:decision:record'];
   const pilotEvidenceRecord = packageJson.scripts['pilot:evidence:record'];
@@ -86,9 +87,18 @@ test('pilot readiness commands keep local verification and production proof dist
   const releaseGateProd = packageJson.scripts['release:gate:prod'];
   const releaseGateProdRaw = packageJson.scripts['release:gate:prod:raw'];
   const pilotVerifyScript = readFileSync(new URL('../scripts/pilot-verify.sh', import.meta.url), 'utf8');
+  const pilotEntryCriteria = readFileSync(
+    new URL('../docs/pilot-entry-criteria.md', import.meta.url),
+    'utf8'
+  );
   const pilotRunbook = readFileSync(new URL('../docs/pilot/PILOT_RUNBOOK.md', import.meta.url), 'utf8');
   const pilotGoNoGo = readFileSync(new URL('../docs/pilot/PILOT_GO_NO_GO.md', import.meta.url), 'utf8');
+  const pilotEvidenceTemplate = readFileSync(
+    new URL('../docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md', import.meta.url),
+    'utf8'
+  );
 
+  assert.equal(pilotCadenceCheck, 'tsx scripts/pilot-readiness-cadence.ts');
   assert.equal(pilotCheck, 'node scripts/run-with-dotenv.mjs bash scripts/pilot-verify.sh');
   assert.equal(
     releaseGateProd,
@@ -98,6 +108,7 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.equal(pilotDecisionRecord, 'tsx scripts/pilot-decision-proof.ts');
   assert.equal(pilotEvidenceRecord, 'tsx scripts/pilot-daily-evidence.ts');
   assert.equal(pilotTagReady, 'tsx scripts/pilot-ready-tag.js');
+  assert.notEqual(pilotCadenceCheck, pilotCheck);
   assert.notEqual(pilotCheck, releaseGateProd);
 
   assert.match(
@@ -116,6 +127,15 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.match(pilotRunbook, /`pnpm pilot:evidence:record -- --pilotId <pilot-id>`/);
   assert.match(pilotRunbook, /`pnpm pilot:decision:record -- --pilotId <pilot-id>`/);
   assert.match(pilotRunbook, /`pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`/);
+  assert.match(pilotRunbook, /`pnpm pilot:cadence:check -- --pilotId <pilot-id>`/);
+  assert.match(
+    pilotRunbook,
+    /Readiness cadence is satisfied only after 3 consecutive qualifying green operating days for the pilot id\./
+  );
+  assert.match(
+    pilotRunbook,
+    /Historical `A22` streak notes remain background only and must not be used as live pilot governance proof\./
+  );
   assert.match(
     pilotRunbook,
     /`\.\/scripts\/pilot-verify\.sh`\s+-\s+Shell-native implementation of `pnpm pilot:check`\./s
@@ -137,6 +157,18 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.match(
     pilotGoNoGo,
     /Rollback target and resume rules use a real `pilot-ready-YYYYMMDD` tag created or verified through `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`\./
+  );
+  assert.match(
+    pilotGoNoGo,
+    /Readiness cadence proof is green: `pnpm pilot:cadence:check -- --pilotId <pilot-id>` exits `0`\./
+  );
+  assert.match(
+    pilotEntryCriteria,
+    /Run `pnpm pilot:cadence:check -- --pilotId <pilot-id>` and require a 3-day qualifying green streak before pilot entry or resume\./
+  );
+  assert.match(
+    pilotEvidenceTemplate,
+    /A qualifying readiness-cadence day requires `green`, `0` incidents, `none` highest severity, `continue`, and a valid `docs\/release-gates\/\.\.\.` report path\./
   );
 });
 

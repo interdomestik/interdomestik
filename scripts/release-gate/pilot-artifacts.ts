@@ -567,11 +567,115 @@ function resolvePilotEvidenceArtifact(args, actionDescription) {
   };
 }
 
+function isValidDailyDateValue(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || '').trim());
+}
+
+function resolveExistingCadenceReportPath(rootDir, reportPath) {
+  try {
+    const validatedReportPath = validateReportPath(reportPath);
+    const absoluteReportPath = path.resolve(rootDir, validatedReportPath);
+    return fs.existsSync(absoluteReportPath) ? validatedReportPath : '';
+  } catch {
+    return '';
+  }
+}
+
+function isQualifyingCadenceRow(rootDir, row) {
+  const day = Number.parseInt(String(row.day || ''), 10);
+  const incidentCount = Number.parseInt(String(row.incidentCount || ''), 10);
+  const owner = String(row.owner || '').trim();
+  const bundlePath = String(row.bundlePath || '').trim();
+  const status = String(row.status || '')
+    .trim()
+    .toLowerCase();
+  const highestSeverity = String(row.highestSeverity || '')
+    .trim()
+    .toLowerCase();
+  const decision = normalizePilotDecision(row.decision);
+  const reportPath = resolveExistingCadenceReportPath(rootDir, row.reportPath);
+
+  return (
+    Number.isInteger(day) &&
+    day > 0 &&
+    isValidDailyDateValue(row.date) &&
+    owner.length > 0 &&
+    bundlePath.length > 0 &&
+    reportPath.length > 0 &&
+    status === 'green' &&
+    incidentCount === 0 &&
+    highestSeverity === 'none' &&
+    decision === 'continue'
+  );
+}
+
+function normalizeRequiredStreak(value) {
+  if (value === undefined || value === null || value === '') {
+    return 3;
+  }
+
+  const normalizedValue = String(value).trim();
+  if (!/^\d+$/.test(normalizedValue)) {
+    throw new Error('requiredStreak must be a positive integer');
+  }
+
+  const requiredStreak = Number.parseInt(normalizedValue, 10);
+  if (!Number.isInteger(requiredStreak) || requiredStreak < 1) {
+    throw new Error('requiredStreak must be a positive integer');
+  }
+  return requiredStreak;
+}
+
+function evaluatePilotReadinessCadence(args) {
+  const { evidenceIndexPath, pointerRow, rootDir } = resolvePilotEvidenceArtifact(
+    args,
+    'readiness cadence can be evaluated'
+  );
+  const requiredStreak = normalizeRequiredStreak(args.requiredStreak);
+  const parsedTable = parseDailyEvidenceTable(fs.readFileSync(evidenceIndexPath, 'utf8'));
+  const candidateRows = parsedTable.rows
+    .map(row => ({
+      ...row,
+      day: Number.parseInt(String(row.day || ''), 10),
+    }))
+    .filter(row => Number.isInteger(row.day) && row.day > 0)
+    .sort((left, right) => left.day - right.day);
+
+  let currentStreak = [];
+  let longestStreakRows = [];
+
+  for (const row of candidateRows) {
+    if (!isQualifyingCadenceRow(rootDir, row)) {
+      currentStreak = [];
+      continue;
+    }
+
+    const previousRow = currentStreak.at(-1);
+    if (previousRow && row.day !== previousRow.day + 1) {
+      currentStreak = [];
+    }
+
+    currentStreak.push(row);
+    if (currentStreak.length > longestStreakRows.length) {
+      longestStreakRows = [...currentStreak];
+    }
+  }
+
+  return {
+    evidenceIndexPath,
+    pointerRow,
+    qualifyingDates: longestStreakRows.map(row => row.date),
+    requiredStreak,
+    satisfied: longestStreakRows.length >= requiredStreak,
+    longestStreak: longestStreakRows.length,
+  };
+}
+
 function validateDailyDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) {
+  if (!isValidDailyDateValue(value)) {
     throw new Error('date must use YYYY-MM-DD format');
   }
-  return String(value);
+  return String(value).trim();
 }
 
 function normalizePilotDecision(value) {
@@ -956,6 +1060,7 @@ module.exports = {
   CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
   CANONICAL_PILOT_EVIDENCE_TEMPLATE_PATH,
   createPilotEntryArtifacts,
+  evaluatePilotReadinessCadence,
   parsePilotEvidenceIndex,
   recordPilotDailyEvidence,
   recordPilotDecisionProof,
