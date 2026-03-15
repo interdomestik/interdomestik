@@ -48,6 +48,20 @@ Validate one closed-loop workflow in real branch operations in Kosovo:
 - Weekly review (45 min): Trend review, threshold check, go/no-go decision.
 - Mon–Sun operations are active for the full 14-day pilot window.
 
+## Ranked Pilot-Entry Flow
+
+The repo now has one canonical ranked operator flow for pilot entry and daily pilot operation.
+
+- Start with `pnpm pilot:flow` or `docs/pilot/COMMANDS_5.md`.
+- Follow the ranked path in this exact order:
+  - `pnpm pilot:check`
+  - `pnpm release:gate:prod -- --pilotId <pilot-id>`
+  - `pnpm pilot:evidence:record -- --pilotId <pilot-id> ...`
+  - `pnpm pilot:observability:record -- --pilotId <pilot-id> ...`
+  - `pnpm pilot:decision:record -- --pilotId <pilot-id> ...`
+- Use `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` only when a rollback target must be created or verified.
+- Use `pnpm pilot:cadence:check -- --pilotId <pilot-id>` for entry or resume cadence proof, not as a replacement for the ranked flow above.
+
 ## Readiness Command Authority
 
 Use exactly these command roles:
@@ -55,6 +69,7 @@ Use exactly these command roles:
 1. `pnpm pilot:check`
    - Canonical local pre-launch verification command.
    - Runs the fail-fast preflight pack from `scripts/pilot-verify.sh`.
+   - Also acts as ranked flow step `1/5`.
    - Verifies operator prerequisites such as env presence, Node 20.x, `pr:verify`, `security:guard`, and `e2e:gate`.
    - Does not create a production release report.
    - Does not create pilot-entry artifacts.
@@ -64,6 +79,7 @@ Use exactly these command roles:
    - Without `--pilotId`, this is release proof only.
 3. `pnpm release:gate:prod -- --pilotId <pilot-id>`
    - Canonical pilot-entry command.
+   - Also acts as ranked flow step `2/5`.
    - Uses the same production full-suite release proof run and also creates the full pilot-entry artifact set defined below.
 4. `./scripts/pilot-verify.sh`
    - Shell-native implementation of `pnpm pilot:check`.
@@ -71,18 +87,21 @@ Use exactly these command roles:
    - Not a separate pilot-entry or production-proof authority.
 5. `pnpm pilot:evidence:record -- --pilotId <pilot-id> ...`
    - Canonical daily pilot-operations evidence command.
+   - Also acts as ranked flow step `3/5`.
    - Base form: `pnpm pilot:evidence:record -- --pilotId <pilot-id>`.
    - Updates the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file in place.
    - Reuses `docs/pilot-evidence/index.csv` only to resolve the canonical copied evidence index and latest pilot-entry release report.
    - Does not create a new pilot-entry artifact set and does not replace `pnpm release:gate:prod -- --pilotId <pilot-id>`.
 6. `pnpm pilot:observability:record -- --pilotId <pilot-id> ...`
    - Canonical pilot observability evidence command.
+   - Also acts as ranked flow step `4/5`.
    - Base form: `pnpm pilot:observability:record -- --pilotId <pilot-id>`.
    - Updates the observability evidence log inside the same copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file.
    - Records structured log-sweep result, KPI condition, incident count, and highest severity for the referenced review window.
    - Does not create a new pilot-entry artifact set and does not replace `pnpm release:gate:prod -- --pilotId <pilot-id>`.
 7. `pnpm pilot:decision:record -- --pilotId <pilot-id> ...`
    - Canonical pilot decision-proof command.
+   - Also acts as ranked flow step `5/5`.
    - Base form: `pnpm pilot:decision:record -- --pilotId <pilot-id>`.
    - Updates the decision-proof log inside the same copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file.
    - Records explicit daily and weekly `continue`, `pause`, `hotfix`, and `stop` decisions with rollback target, linked observability reference, and resume re-validation proof.

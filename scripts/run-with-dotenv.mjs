@@ -1,9 +1,29 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import process from 'node:process';
 
-import { config as dotenvConfig } from 'dotenv';
-
-dotenvConfig({ path: '.env.local' });
+try {
+  const { config: dotenvConfig } = await import('dotenv');
+  dotenvConfig({ path: '.env.local' });
+} catch (error) {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'code' in error &&
+    error.code === 'ERR_MODULE_NOT_FOUND' &&
+    'message' in error &&
+    typeof error.message === 'string' &&
+    error.message.includes("'dotenv'")
+  ) {
+    if (existsSync('.env.local')) {
+      console.error(
+        '[WARN] dotenv is not installed; .env.local was not loaded by scripts/run-with-dotenv.mjs.'
+      );
+    }
+  } else {
+    throw error;
+  }
+}
 
 // Guard against empty host entries in .env.local (e.g. KS_HOST=)
 // which can poison Playwright base URLs (http:///sq, http:///mk).
