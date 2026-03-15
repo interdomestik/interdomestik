@@ -151,6 +151,8 @@ Field rules:
 Daily pilot operations must use the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file as the single source of truth for day-by-day evidence.
 
 - Do not create a second day log, spreadsheet, or free-form note stream for operational status.
+- If operators need a structured working sheet before recording the canonical rows, copy `docs/pilot/PILOT_DAILY_SHEET_TEMPLATE.md` for that day and use it as a note-taking companion only.
+- The daily sheet is a draft aid for scoring, notes, and role-specific observations. It must feed the copied pilot evidence index and must not replace it.
 - Keep `docs/pilot-evidence/index.csv` as the machine-readable pointer layer for pilot-entry artifacts only.
 - Record one row per operating day with:
   - day/date
