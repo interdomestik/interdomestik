@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 const {
+  buildCommercialPromiseScenarios,
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
   computeRetryDelayMs,
   evaluateCredentialPreflightResults,
   enforceNoSkipOnSelectedChecks,
+  findMissingCommercialPromiseSections,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
@@ -16,6 +21,7 @@ const {
   sessionCacheKeyForAccount,
   shouldDisallowSkippedChecks,
 } = require('./run.ts');
+const { writeReleaseGateReport } = require('./report.ts');
 const { checkPortalMarkers } = require('./shared.ts');
 const { SELECTORS } = require('./config.ts');
 
@@ -167,7 +173,72 @@ test('classifyInfraNetworkFailure identifies transport-level outages', () => {
 test('isLoginDependentCheck maps suites to auth-dependent checks', () => {
   assert.equal(isLoginDependentCheck('P1.1'), true);
   assert.equal(isLoginDependentCheck('P1.3'), true);
+  assert.equal(isLoginDependentCheck('G07'), true);
   assert.equal(isLoginDependentCheck('P1.5.1'), false);
+});
+
+test('buildCommercialPromiseScenarios covers the published commercial surfaces for G07', () => {
+  const scenarios = buildCommercialPromiseScenarios({
+    baseUrl: 'https://interdomestik-web.vercel.app',
+    locale: 'en',
+  });
+
+  assert.deepEqual(
+    scenarios.map(scenario => ({
+      id: scenario.id,
+      account: scenario.account,
+      url: scenario.url,
+      requiredTestIds: scenario.requiredTestIds,
+    })),
+    [
+      {
+        id: 'pricing',
+        account: null,
+        url: 'https://interdomestik-web.vercel.app/en/pricing',
+        requiredTestIds: [
+          'pricing-commercial-disclaimers',
+          'pricing-success-fee-calculator',
+          'pricing-billing-terms',
+          'pricing-coverage-matrix',
+        ],
+      },
+      {
+        id: 'register',
+        account: null,
+        url: 'https://interdomestik-web.vercel.app/en/register',
+        requiredTestIds: [
+          'register-success-fee-calculator',
+          'register-billing-terms',
+          'register-coverage-matrix',
+        ],
+      },
+      {
+        id: 'services',
+        account: null,
+        url: 'https://interdomestik-web.vercel.app/en/services',
+        requiredTestIds: ['services-commercial-disclaimers', 'services-coverage-matrix'],
+      },
+      {
+        id: 'membership',
+        account: 'member',
+        url: 'https://interdomestik-web.vercel.app/en/member/membership',
+        requiredTestIds: ['membership-commercial-disclaimers', 'membership-coverage-matrix'],
+      },
+    ]
+  );
+});
+
+test('findMissingCommercialPromiseSections reports only the absent required sections', () => {
+  const missing = findMissingCommercialPromiseSections(
+    ['pricing-commercial-disclaimers', 'pricing-success-fee-calculator', 'pricing-coverage-matrix'],
+    {
+      'pricing-commercial-disclaimers': true,
+      'pricing-success-fee-calculator': false,
+      'pricing-coverage-matrix': true,
+    }
+  );
+
+  assert.deepEqual(missing, ['pricing-success-fee-calculator']);
 });
 
 test('shouldDisallowSkippedChecks defaults to true for production and false otherwise', () => {
@@ -279,6 +350,55 @@ test('resolveTenantOverrideProbeUrl uses configured RELEASE_GATE_MK_USER_URL whe
     } else {
       process.env.RELEASE_GATE_MK_USER_URL = original;
     }
+  }
+});
+
+test('writeReleaseGateReport includes the G07 commercial promise section', () => {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'release-gate-report-'));
+
+  try {
+    const result = writeReleaseGateReport({
+      outDir,
+      envName: 'production',
+      baseUrl: 'https://interdomestik-web.vercel.app',
+      suite: 'all',
+      deploymentId: 'dpl_test123',
+      deploymentUrl: 'https://interdomestik-web-g07.vercel.app',
+      deploymentSource: 'unit-test',
+      generatedAt: new Date('2026-03-15T12:00:00.000Z'),
+      executedChecks: ['P0.1', 'G07'],
+      checks: [
+        { id: 'P0.1', status: 'PASS', evidence: ['rbac ok'], signatures: [] },
+        {
+          id: 'G07',
+          status: 'FAIL',
+          evidence: ['pricing missing=pricing-billing-terms'],
+          signatures: [
+            'G07_COMMERCIAL_PROMISE_SURFACE_MISSING scenario=pricing missing=pricing-billing-terms',
+          ],
+        },
+      ],
+      accounts: {
+        member: 'member@example.com',
+        agent: 'agent@example.com',
+        staff: 'staff@example.com',
+        adminKs: 'admin.ks@example.com',
+        adminMk: 'admin.mk@example.com',
+      },
+      preconditions: {
+        migrations: 'not evaluated',
+        env: 'vars present',
+        flags: 'none',
+      },
+    });
+
+    const report = fs.readFileSync(result.reportPath, 'utf8');
+    assert.match(report, /## G07 Commercial Promise Surfaces/);
+    assert.match(report, /\*\*Result:\*\* FAIL/);
+    assert.match(report, /pricing missing=pricing-billing-terms/);
+    assert.match(report, /G07_COMMERCIAL_PROMISE_SURFACE_MISSING/);
+  } finally {
+    fs.rmSync(outDir, { recursive: true, force: true });
   }
 });
 

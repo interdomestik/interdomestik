@@ -141,6 +141,7 @@ describe('MembershipOpsPage', () => {
   it('shows scope and referral boundaries alongside membership operations', () => {
     render(<MembershipOpsPage subscriptions={[]} documents={[]} />);
 
+    expect(screen.getByTestId('membership-commercial-disclaimers')).toBeInTheDocument();
     expect(screen.getByText('disclaimers.freeStart.title')).toBeInTheDocument();
     expect(screen.getByText('disclaimers.hotline.title')).toBeInTheDocument();
     expect(screen.getByText('scope.title')).toBeInTheDocument();

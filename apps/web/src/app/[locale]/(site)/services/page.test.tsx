@@ -53,6 +53,8 @@ describe('ServicesPage', () => {
   it('renders included help aligned to the published coverage matrix', async () => {
     await renderServicesPage('en');
 
+    expect(screen.getByTestId('services-commercial-disclaimers')).toBeInTheDocument();
+    expect(screen.getByTestId('services-coverage-matrix')).toBeInTheDocument();
     expect(screen.getByText(enCoverageMatrix.coverageMatrix.title)).toBeInTheDocument();
     expect(
       screen.getAllByText(enCoverageMatrix.coverageMatrix.rows.vehicle.included)
