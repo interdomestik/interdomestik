@@ -1,6 +1,7 @@
 ## Pilot Entry Criteria v1.0
 
 - Local pre-launch readiness is green: `pnpm pilot:check` exits `0`.
+- Readiness cadence proof is green: `pnpm pilot:cadence:check -- --pilotId <pilot-id>` exits `0`.
 - Release gate green on production: `pnpm release:gate:prod -- --pilotId <pilot-id>` exits `0`.
 - Rollback target and resume rules use a real `pilot-ready-YYYYMMDD` tag created or verified through `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`.
 - The canonical pilot-entry artifact set defined in `docs/pilot/PILOT_RUNBOOK.md` exists and is committed:
@@ -30,6 +31,7 @@
 ## Launch-Day Checks
 
 - Execute `pnpm pilot:check` successfully.
+- Execute `pnpm pilot:cadence:check -- --pilotId <pilot-id>` successfully.
 - Execute `pnpm release:gate:prod -- --pilotId <pilot-id>` successfully.
 - Start the copied pilot evidence index and record day 1 through `pnpm pilot:evidence:record -- --pilotId <pilot-id> ...`.
 - Record the launch-day decision row in that same copied evidence index through `pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType daily --reference day-1 ...`.

@@ -87,6 +87,11 @@ Use exactly these command roles:
    - Creates `pilot-ready-YYYYMMDD` when missing, or verifies the existing tag against the same release report and copied evidence index when it already exists.
    - Requires the referenced `docs/release-gates/...` report and `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file to exist in `HEAD`.
    - Does not replace `pnpm pilot:check` or `pnpm release:gate:prod -- --pilotId <pilot-id>`; it binds rollback tags to that evidence.
+8. `pnpm pilot:cadence:check -- --pilotId <pilot-id>`
+   - Canonical readiness-cadence command.
+   - Reads the latest canonical pilot-entry row for that pilot id from `docs/pilot-evidence/index.csv`.
+   - Evaluates the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file for consecutive qualifying green operating days.
+   - Defaults to a required streak of `3` qualifying green days unless `--requiredStreak` overrides it.
 
 ## Canonical Pilot-Entry Artifact Contract
 
@@ -140,6 +145,29 @@ pnpm pilot:evidence:record -- --pilotId <pilot-id> --day <n> --date <YYYY-MM-DD>
 - `--reportPath` is optional. When omitted, the command records the latest canonical pilot-entry `docs/release-gates/...` path already linked to that pilot id in `docs/pilot-evidence/index.csv`.
 - Use `n/a` for bundle path when no full gate bundle was generated that day.
 - Use the same copied evidence index file for the full 14-day pilot window.
+
+## Readiness Cadence
+
+Readiness cadence is satisfied only after 3 consecutive qualifying green operating days for the pilot id.
+
+A qualifying green day must be recorded in the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file and must include:
+
+- valid `YYYY-MM-DD` date
+- non-empty owner
+- `green` status
+- valid `docs/release-gates/...` report path already present in the repo
+- non-empty bundle path or `n/a`
+- `0` incidents
+- `none` highest severity
+- `continue` decision
+
+Check the cadence with:
+
+```bash
+pnpm pilot:cadence:check -- --pilotId <pilot-id>
+```
+
+Historical `A22` streak notes remain background only and must not be used as live pilot governance proof.
 
 ## Decision Proof Capture
 

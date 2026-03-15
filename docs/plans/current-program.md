@@ -33,7 +33,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P6` v1.0.0 RC Gate is now complete as the next committed tranche after the completed `P4` and `P4G` queue. `G07` is now complete as the first explicit release-gate slice, `G08` is now complete as the Free Start and aggregate-only privacy-boundary proof slice, `G09` is now complete as the matter-count and SLA-state enforcement slice, and `G10` is now complete as the escalation-agreement and collection-fallback enforcement slice.
 
-`P7` Pilot Readiness And Release Evidence remains the next committed tranche after completed `P6`. `R01` is now complete as the canonical pilot-entry artifact-set slice, `R02` is now complete as the canonical readiness-command authority slice, `R03` is now complete as the deterministic daily evidence capture slice, `R04` is now complete as the continue-or-rollback proof slice, `R05` is now complete as the pilot-ready tag-discipline slice, and `R06` through `R08` remain queued as the modern readiness cadence, observability evidence, and ranked operator flow required before live pilot operation is treated as governable.
+`P7` Pilot Readiness And Release Evidence remains the next committed tranche after completed `P6`. `R01` is now complete as the canonical pilot-entry artifact-set slice, `R02` is now complete as the canonical readiness-command authority slice, `R03` is now complete as the deterministic daily evidence capture slice, `R04` is now complete as the continue-or-rollback proof slice, `R05` is now complete as the pilot-ready tag-discipline slice, `R06` is now complete as the canonical 3-day repo-backed readiness cadence slice, and `R07` through `R08` remain queued as the observability evidence and ranked operator flow required before live pilot operation is treated as governable.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -104,7 +104,7 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 63. Keep `R03` complete as the canonical deterministic pilot-evidence slice so daily pilot operation records day/date, owner, status, report path, bundle path, incident count, severity, and decision in one copied per-pilot evidence index instead of relying on memory or ad hoc notes.
 64. Keep `R04` complete as the canonical continue-pause-hotfix-stop decision-proof slice so daily and weekly pilot decisions remain repo-backed artifacts that can reference rollback targets and re-validation requirements.
 65. Keep `R05` complete as the canonical pilot-ready tag-discipline slice so rollback targets and resume rules point to a real `pilot-ready-YYYYMMDD` tag with fresh re-validation evidence before pilot operations resume.
-66. Land `R06` as the canonical readiness-cadence slice so a source-backed green-run or green-day cadence replaces any need for historical A22-style inference in live governance.
+66. Keep `R06` complete as the canonical readiness-cadence slice so a source-backed 3-day qualifying green cadence replaces any need for historical A22-style inference in live governance.
 67. Land `R07` and `R08` as the canonical pilot observability-and-operator-flow slices so incident evidence, log sweeps, KPI conditions, and the ranked pilot-entry command path are inspectable and repeatable before a live pilot is declared governable.
 
 ## Status Command
@@ -150,7 +150,7 @@ pnpm plan:proof
 
 `P6` v1.0.0 RC Gate is now complete after completed `P4` and `P4G`. `G07` Validate commercial promise surfaces is now complete, `G08` Validate Free Start and group privacy boundaries is now complete, `G09` Validate matter and SLA enforcement is now complete, and `G10` Validate escalation agreement and collection fallback in staging is now complete, proving release-candidate validation now covers the published commercial contract surfaces, Free Start and aggregate-only privacy boundaries, matter-and-SLA enforcement, and accepted-case commercial enforcement.
 
-`P7` Pilot Readiness And Release Evidence remains the next committed tranche after completed `P6`. `R01` Canonicalize the pilot-ready artifact set, `R02` Unify readiness commands and outputs, `R03` Add deterministic pilot evidence capture, `R04` Add explicit continue-pause-hotfix-stop decision proof, and `R05` Make pilot-ready tag discipline repo-verifiable are now complete, and `R06` through `R08` remain queued behind them so readiness cadence, observability evidence, and operator decision custody remain canonical before any broader UX redesign is promoted.
+`P7` Pilot Readiness And Release Evidence remains the next committed tranche after completed `P6`. `R01` Canonicalize the pilot-ready artifact set, `R02` Unify readiness commands and outputs, `R03` Add deterministic pilot evidence capture, `R04` Add explicit continue-pause-hotfix-stop decision proof, `R05` Make pilot-ready tag discipline repo-verifiable, and `R06` Establish a modern readiness cadence are now complete, and `R07` through `R08` remain queued behind them so observability evidence and operator decision custody remain canonical before any broader UX redesign is promoted.
 
 ## Do Not Reopen The Convergence Boundary
 
