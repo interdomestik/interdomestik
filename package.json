@@ -107,6 +107,7 @@
     "release:gate:prod": "node scripts/run-with-dotenv.mjs pnpm -s release:gate:prod:raw",
     "release:gate:staging": "node scripts/run-with-dotenv.mjs pnpm -s release:gate:staging:raw",
     "pilot:check": "node scripts/run-with-dotenv.mjs bash scripts/pilot-verify.sh",
+    "pilot:evidence:record": "tsx scripts/pilot-daily-evidence.ts",
     "release:gate:raw": "tsx scripts/release-gate/run.ts",
     "release:gate:check-no-skip": "node scripts/release-gate/check-no-skip.mjs --manifest scripts/release-gate/v1-required-specs.json",
     "release:gate:write-rc-manifest": "node scripts/release-gate/write-rc-manifest.mjs",

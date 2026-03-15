@@ -28,7 +28,11 @@ const {
   sessionCacheKeyForAccount,
   shouldDisallowSkippedChecks,
 } = require('./run.ts');
-const { createPilotEntryArtifacts, parsePilotEvidenceIndex } = require('./pilot-artifacts.ts');
+const {
+  createPilotEntryArtifacts,
+  parsePilotEvidenceIndex,
+  recordPilotDailyEvidence,
+} = require('./pilot-artifacts.ts');
 const { writeReleaseGateReport } = require('./report.ts');
 const { checkPortalMarkers, resolveForwardedForIp } = require('./shared.ts');
 const { REQUIRED_ENV_BY_SUITE, ROLE_IPS, SELECTORS } = require('./config.ts');
@@ -991,6 +995,146 @@ test('createPilotEntryArtifacts rejects pointer rows outside the canonical pilot
           pilotEvidenceIndexCsvPath: nonCanonicalPointerPath,
         }),
       /pilot-entry pointer rows must be written to docs\/pilot-evidence\/index\.csv; received docs\/pilot-evidence\/pilot-entry\.csv/
+    );
+  });
+});
+
+test('recordPilotDailyEvidence updates the copied per-pilot evidence index with the required daily fields', () => {
+  withTempDir('pilot-daily-evidence-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: [
+        '# Pilot Evidence Index Template',
+        '',
+        '| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`defer`/`hotfix`/`stop`) |',
+        '| --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |',
+        '| 1 | | | | | | | | |',
+        '| 2 | | | | | | | | |',
+        '',
+      ].join('\n'),
+    });
+
+    createPilotEntryArtifacts({
+      rootDir: tempDir,
+      pilotId: 'pilot-ks-week-1',
+      envName: 'production',
+      suite: 'all',
+      generatedAt: new Date('2026-03-15T10:11:12.000Z'),
+      reportPath: fixture.reportPath,
+      releaseVerdict: 'GO',
+      releaseGateTemplatePath: fixture.templatePath,
+      pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+    });
+
+    const result = recordPilotDailyEvidence({
+      rootDir: tempDir,
+      pilotId: 'pilot-ks-week-1',
+      day: 1,
+      date: '2026-03-15',
+      owner: 'Admin KS',
+      status: 'green',
+      incidentCount: 0,
+      highestSeverity: 'none',
+      decision: 'continue',
+      bundlePath: 'n/a',
+      pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+    });
+
+    assert.equal(
+      path.relative(tempDir, result.evidenceIndexPath),
+      path.join('docs', 'pilot', 'PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md')
+    );
+    assert.equal(result.reportPath, 'docs/release-gates/2026-03-15_production_dpl_demo.md');
+
+    const copiedIndex = fs.readFileSync(fixture.copiedIndexPath, 'utf8');
+    assert.match(
+      copiedIndex,
+      /\| 1 \| 2026-03-15 \| Admin KS \| green \| docs\/release-gates\/2026-03-15_production_dpl_demo\.md \| n\/a \| 0 \| none \| continue \|/
+    );
+    assert.match(copiedIndex, /\| 2 \|  \|  \|  \|  \|  \|  \|  \|  \|/);
+  });
+});
+
+test('recordPilotDailyEvidence can override report and bundle paths while preserving the pointer index as a separate layer', () => {
+  withTempDir('pilot-daily-evidence-override-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: [
+        '# Pilot Evidence Index Template',
+        '',
+        '| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`defer`/`hotfix`/`stop`) |',
+        '| --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |',
+        '| 1 | | | | | | | | |',
+        '',
+      ].join('\n'),
+      pointerIndexContent: [
+        'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path,legacy_log_path',
+        'pilot-entry-20260314T101112Z-pilot-ks-week-1,pilot-ks-week-1,production,all,2026-03-14T10:11:12.000Z,NO-GO,docs/release-gates/2026-03-14_production_unknown.md,docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md,',
+        'pilot-entry-20260315T101112Z-pilot-ks-week-1,pilot-ks-week-1,production,all,2026-03-15T10:11:12.000Z,GO,docs/release-gates/2026-03-15_production_dpl_demo.md,docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md,',
+        '',
+      ].join('\n'),
+      copiedIndexContent: [
+        '# Pilot Evidence Index — pilot-ks-week-1',
+        '',
+        '| Day | Date (YYYY-MM-DD) | Owner | Status (`green`/`amber`/`red`) | Release Report Path | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`defer`/`hotfix`/`stop`) |',
+        '| --- | ----------------- | ----- | ------------------------------ | ------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |',
+        '| 1 | | | | | | | | |',
+        '',
+      ].join('\n'),
+    });
+
+    const result = recordPilotDailyEvidence({
+      rootDir: tempDir,
+      pilotId: 'pilot-ks-week-1',
+      day: 1,
+      date: '2026-03-16',
+      owner: 'Admin KS',
+      status: 'amber',
+      incidentCount: 2,
+      highestSeverity: 'sev2',
+      decision: 'hotfix',
+      reportPath: 'docs/release-gates/2026-03-16_production_dpl_hotfix.md',
+      bundlePath: 'tmp/pilot-evidence/phase-5.1/2026-03-16T08-00-00+0100/',
+      pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+    });
+
+    assert.equal(result.reportPath, 'docs/release-gates/2026-03-16_production_dpl_hotfix.md');
+
+    const copiedIndex = fs.readFileSync(fixture.copiedIndexPath, 'utf8');
+    assert.match(
+      copiedIndex,
+      /\| 1 \| 2026-03-16 \| Admin KS \| amber \| docs\/release-gates\/2026-03-16_production_dpl_hotfix\.md \| tmp\/pilot-evidence\/phase-5\.1\/2026-03-16T08-00-00\+0100\/ \| 2 \| sev2 \| hotfix \|/
+    );
+
+    const pointerIndex = fs.readFileSync(fixture.pointerIndexPath, 'utf8');
+    assert.doesNotMatch(pointerIndex, /2026-03-16_production_dpl_hotfix/);
+  });
+});
+
+test('recordPilotDailyEvidence rejects updates when the canonical pilot-entry artifact set does not exist yet', () => {
+  withTempDir('pilot-daily-evidence-missing-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      pointerIndexContent: [
+        'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path,legacy_log_path',
+        '',
+      ].join('\n'),
+      copiedIndexContent: false,
+    });
+
+    assert.throws(
+      () =>
+        recordPilotDailyEvidence({
+          rootDir: tempDir,
+          pilotId: 'pilot-ks-week-1',
+          day: 1,
+          date: '2026-03-15',
+          owner: 'Admin KS',
+          status: 'green',
+          incidentCount: 0,
+          highestSeverity: 'none',
+          decision: 'continue',
+          bundlePath: 'n/a',
+          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+        }),
+      /pilot-entry artifact set must exist before daily evidence can be recorded/
     );
   });
 });

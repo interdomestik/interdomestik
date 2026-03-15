@@ -6,6 +6,8 @@
   - a new `docs/release-gates/YYYY-MM-DD_production_<dpl>.md` report
   - the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md`
   - the canonical pointer row in `docs/pilot-evidence/index.csv`
+- Daily pilot evidence is recorded in the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file via `pnpm pilot:evidence:record -- --pilotId <pilot-id>`.
+- Add the remaining required flags (`--day`, `--date`, `--owner`, `--status`, `--incidentCount`, `--highestSeverity`, `--decision`, and `--bundlePath`) when recording the row.
 - Operational control-plane works: admin role assignment/removal succeeds in KS tenant and reflects in UI; cross-tenant admin access remains blocked (MK -> KS).
 - Member evidence is reliable: upload persists after refresh and relogin; uploaded file download/open works.
 - Staff workflow persistence is reliable: status update persists and note persists after refresh at `data-testid="staff-claim-detail-note"`.
@@ -27,6 +29,7 @@
 
 - Execute `pnpm pilot:check` successfully.
 - Execute `pnpm release:gate:prod -- --pilotId <pilot-id>` successfully.
+- Start the copied pilot evidence index and record day 1 through `pnpm pilot:evidence:record -- --pilotId <pilot-id> ...`.
 - Perform one end-to-end closed-loop claim walkthrough.
 - Confirm `agent-members-ready` visible in Agent My Members.
 - Confirm Staff queue policy behavior (`branch_manager` read-only).

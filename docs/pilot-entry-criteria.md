@@ -10,6 +10,7 @@ Pilot may begin when all conditions below are satisfied:
   - a new release-gate record in `docs/release-gates/`
   - a copied per-pilot evidence index in `docs/pilot/`
   - a canonical pointer row in `docs/pilot-evidence/index.csv`
+- Daily pilot operation records are written into that copied per-pilot evidence index, not a separate note stream.
 - Deployment ID documented
 
 2. RBAC & Tenant Isolation Verified
