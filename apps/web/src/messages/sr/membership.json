@@ -103,6 +103,19 @@
     "errors": {
       "action_failed": "Nismo mogli da završimo tu člansku radnju. Pokušajte ponovo."
     },
+    "sponsored": {
+      "activation": {
+        "title": "Sponzorisano mesto čeka aktivaciju",
+        "body": "Vaš sponzor je rezervisao ovaj plan za vas. Aktivirajte ga da bi počeo vaš period pokrića.",
+        "cta": "Aktiviraj sponzorisano pokriće",
+        "success": "Sponzorisano pokriće je aktivirano."
+      },
+      "upgrade": {
+        "title": "Porodična nadogradnja je dostupna",
+        "body": "Vaš sponzor pokriva individualni nivo. Nadogradite se na porodično pokriće ako želite pristup za domaćinstvo.",
+        "cta": "Nadogradi na porodični plan"
+      }
+    },
     "dunning": {
       "payment_failed_title": "Plaćanje neuspešno - {daysRemaining} dana preostalo",
       "payment_failed_message": "Vaše poslednje plaćanje nije uspelo. Ažurirajte način plaćanja da biste izbegli gubitak pogodnosti članstva.",

@@ -103,6 +103,19 @@
     "errors": {
       "action_failed": "Nuk mundëm ta përfundojmë atë veprim të anëtarësisë. Ju lutem provoni përsëri."
     },
+    "sponsored": {
+      "activation": {
+        "title": "Vendi i sponsorizuar pret aktivizimin",
+        "body": "Sponsori juaj e ka rezervuar këtë plan për ju. Aktivizojeni që të fillojë periudha juaj e mbulimit.",
+        "cta": "Aktivizo mbulimin e sponsorizuar",
+        "success": "Mbulimi i sponsorizuar u aktivizua."
+      },
+      "upgrade": {
+        "title": "Nadogradnja familjare është në dispozicion",
+        "body": "Sponsori juaj mbulon nivelin individual. Përmirësohuni në mbulim familjar nëse dëshironi qasje për familjen tuaj.",
+        "cta": "Kaloni në familjar"
+      }
+    },
     "dunning": {
       "payment_failed_title": "Pagesa Dështoi - {daysRemaining} ditë të mbetura",
       "payment_failed_message": "Pagesa juaj e fundit nuk u krye me sukses. Ju lutem përditësoni metodën e pagesës për të shmangur humbjen e qasjes në përfitimet e anëtarësisë.",

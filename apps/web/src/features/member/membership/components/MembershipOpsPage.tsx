@@ -13,6 +13,7 @@ import {
 import {
   DbDocument,
   getMembershipActions,
+  getSponsoredMembershipState,
   OpsActionConfig,
   toOpsDocuments,
   toOpsStatus,
@@ -24,7 +25,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
-import { cancelSubscription, getPaymentUpdateUrl } from '@/actions/subscription.core';
+import {
+  activateSponsoredMembership,
+  cancelSubscription,
+  getPaymentUpdateUrl,
+} from '@/actions/subscription.core';
 import { buildCancellationFeedbackMessage } from '@/features/member/membership/cancellation-feedback';
 import { toast } from 'sonner';
 
@@ -156,9 +161,21 @@ function DetailView({
 }) {
   const cancellationKeyRef = useRef<string | null>(null);
   const { primary, secondary } = getMembershipActions(subscription, t);
+  const sponsoredState = getSponsoredMembershipState(subscription);
 
   const handleAction = async (id: string) => {
     try {
+      if (id === 'activate_sponsored') {
+        const result = await activateSponsoredMembership(subscription.id);
+        if ('error' in result) {
+          toast.error(t('errors.action_failed'));
+          return;
+        }
+
+        toast.success(t('sponsored.activation.success'));
+        return;
+      }
+
       if (id === 'renew' || id === 'update_payment') {
         const result = await getPaymentUpdateUrl(subscription.id);
         if (result.error || !result.url) {
@@ -225,6 +242,37 @@ function DetailView({
             primary={primary ? mapAction(primary) : undefined}
             secondary={secondary.map(mapAction)}
           />
+
+          {sponsoredState === 'activation_required' ? (
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4">
+              <h4 className="text-sm font-semibold text-slate-900">
+                {t('sponsored.activation.title')}
+              </h4>
+              <p className="mt-1 text-sm text-slate-600">{t('sponsored.activation.body')}</p>
+              <button
+                type="button"
+                onClick={() => handleAction('activate_sponsored')}
+                className="mt-3 inline-flex rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              >
+                {t('sponsored.activation.cta')}
+              </button>
+            </div>
+          ) : null}
+
+          {sponsoredState === 'eligible_for_family_upgrade' ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+              <h4 className="text-sm font-semibold text-slate-900">
+                {t('sponsored.upgrade.title')}
+              </h4>
+              <p className="mt-1 text-sm text-slate-600">{t('sponsored.upgrade.body')}</p>
+              <a
+                href="/pricing?plan=family"
+                className="mt-3 inline-flex rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900"
+              >
+                {t('sponsored.upgrade.cta')}
+              </a>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

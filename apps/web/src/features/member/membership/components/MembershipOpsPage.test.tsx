@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const originalConfirm = globalThis.confirm;
 
 const actionMocks = vi.hoisted(() => ({
+  activateSponsoredMembership: vi.fn(),
   cancelSubscription: vi.fn(),
   getPaymentUpdateUrl: vi.fn(),
 }));
@@ -50,6 +51,23 @@ vi.mock('@/components/ops/adapters/membership', () => ({
       },
     ],
   }),
+  getSponsoredMembershipState: (subscription?: {
+    status?: string | null;
+    planId?: string | null;
+    provider?: string | null;
+    acquisitionSource?: string | null;
+  }) => {
+    const isSponsored =
+      subscription?.provider === 'group_sponsor' ||
+      subscription?.acquisitionSource === 'group_roster_import';
+
+    if (!isSponsored) return 'none';
+    if (subscription?.status === 'paused') return 'activation_required';
+    if (subscription?.status === 'active' && subscription?.planId === 'standard') {
+      return 'eligible_for_family_upgrade';
+    }
+    return 'none';
+  },
   toOpsDocuments: () => [],
   toOpsStatus: () => ({ label: 'active', variant: 'default' }),
   toOpsTimelineEvents: () => [],
@@ -67,6 +85,7 @@ vi.mock('@/hooks/use-media-query', () => ({
 }));
 
 vi.mock('@/actions/subscription.core', () => ({
+  activateSponsoredMembership: actionMocks.activateSponsoredMembership,
   cancelSubscription: actionMocks.cancelSubscription,
   getPaymentUpdateUrl: actionMocks.getPaymentUpdateUrl,
 }));
@@ -159,5 +178,59 @@ describe('MembershipOpsPage', () => {
 
   it('does not leak confirm stubs between tests', () => {
     expect(globalThis.confirm).toBe(originalConfirm);
+  });
+
+  it('activates paused sponsored memberships from the member ops view', async () => {
+    selectionMocks.selectedId = 'sub-1';
+    actionMocks.activateSponsoredMembership.mockResolvedValue({ success: true });
+
+    render(
+      <MembershipOpsPage
+        subscriptions={[
+          {
+            id: 'sub-1',
+            status: 'paused',
+            planId: 'standard',
+            provider: 'group_sponsor',
+            acquisitionSource: 'group_roster_import',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            currentPeriodEnd: null,
+            plan: { name: 'Standard' },
+          } as never,
+        ]}
+        documents={[]}
+      />
+    );
+
+    fireEvent.click(screen.getByText('sponsored.activation.cta'));
+
+    await waitFor(() => {
+      expect(actionMocks.activateSponsoredMembership).toHaveBeenCalledWith('sub-1');
+    });
+  });
+
+  it('shows a family self-upgrade CTA for active sponsored standard memberships', () => {
+    selectionMocks.selectedId = 'sub-1';
+
+    render(
+      <MembershipOpsPage
+        subscriptions={[
+          {
+            id: 'sub-1',
+            status: 'active',
+            planId: 'standard',
+            provider: 'group_sponsor',
+            acquisitionSource: 'group_roster_import',
+            createdAt: '2026-03-01T00:00:00.000Z',
+            currentPeriodEnd: '2027-03-01T00:00:00.000Z',
+            plan: { name: 'Standard' },
+          } as never,
+        ]}
+        documents={[]}
+      />
+    );
+
+    const link = screen.getByRole('link', { name: 'sponsored.upgrade.cta' });
+    expect(link).toHaveAttribute('href', '/pricing?plan=family');
   });
 });

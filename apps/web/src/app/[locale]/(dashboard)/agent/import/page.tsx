@@ -31,8 +31,7 @@ export default async function AgentImportPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-display font-bold tracking-tight">Sponsored Member Import</h1>
         <p className="text-muted-foreground">
-          Upload a CSV roster to create individual member accounts in bulk through the agent write
-          path.
+          Upload a CSV roster to create sponsored member seats in bulk through the agent write path.
         </p>
       </div>
 
@@ -56,7 +55,8 @@ export default async function AgentImportPage() {
         <div className="p-6 rounded-2xl bg-muted/30 border space-y-2">
           <h3 className="font-bold">Account Model</h3>
           <p className="text-sm text-muted-foreground">
-            Each imported row creates an individual member account with its own active membership.
+            Each imported row creates an individual member account with sponsored coverage pending
+            member activation.
           </p>
         </div>
       </div>

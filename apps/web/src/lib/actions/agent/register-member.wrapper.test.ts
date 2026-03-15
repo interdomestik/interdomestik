@@ -45,13 +45,18 @@ describe('registerMemberCore', () => {
   const mockAgent = { id: 'agent1', name: 'Agent Smith' };
   const mockTenantId = 'tenant-1';
   const mockBranchId = 'mk_branch_a';
+  const insertValues: unknown[] = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
+    insertValues.length = 0;
     mocks.withTransactionRetry.mockImplementation(async callback => {
       const tx = {
         insert: vi.fn().mockReturnThis(),
-        values: vi.fn().mockResolvedValue(true),
+        values: vi.fn().mockImplementation(async (value: unknown) => {
+          insertValues.push(value);
+          return true;
+        }),
       };
       return await callback(tx);
     });
@@ -75,6 +80,12 @@ describe('registerMemberCore', () => {
       expect.objectContaining({
         userId: 'new-id',
         joinedAt: expect.any(Date),
+      })
+    );
+    expect(insertValues).toContainEqual(
+      expect.objectContaining({
+        status: 'active',
+        planId: 'standard',
       })
     );
   });
@@ -111,5 +122,30 @@ describe('registerMemberCore', () => {
       ok: false,
       error: 'Failed to register member. Email might already exist.',
     });
+  });
+
+  it('creates paused sponsored subscriptions for sponsored imports', async () => {
+    const formData = new FormData();
+    formData.append('fullName', 'Sponsored User');
+    formData.append('email', 'sponsored@example.com');
+    formData.append('phone', '1234567890');
+    formData.append('password', 'Secret123!');
+    formData.append('planId', 'standard');
+
+    const result = await registerMemberCore(mockAgent, mockTenantId, mockBranchId, formData, {
+      membershipMode: 'sponsored',
+    });
+
+    expect(result).toEqual({ ok: true });
+    expect(insertValues).toContainEqual(
+      expect.objectContaining({
+        status: 'paused',
+        planId: 'standard',
+        provider: 'group_sponsor',
+        acquisitionSource: 'group_roster_import',
+        currentPeriodStart: null,
+        currentPeriodEnd: null,
+      })
+    );
   });
 });

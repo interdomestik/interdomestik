@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { getMembershipActions, toOpsStatus, toOpsTimelineEvents } from './membership';
+import {
+  getMembershipActions,
+  getSponsoredMembershipState,
+  toOpsStatus,
+  toOpsTimelineEvents,
+} from './membership';
 
 describe('Membership Adapter Policies', () => {
   describe('getMembershipActions', () => {
@@ -170,6 +175,50 @@ describe('Membership Adapter Policies', () => {
 
       const result = toOpsTimelineEvents(sub);
       expect(result.some(e => e.title === 'Canceled')).toBe(true);
+    });
+  });
+
+  describe('getSponsoredMembershipState', () => {
+    it('returns activation_required for paused sponsored subscriptions', () => {
+      expect(
+        getSponsoredMembershipState({
+          id: 'sub-1',
+          status: 'paused',
+          planId: 'standard',
+          provider: 'group_sponsor',
+          acquisitionSource: 'group_roster_import',
+          createdAt: new Date(),
+          currentPeriodEnd: null,
+        })
+      ).toBe('activation_required');
+    });
+
+    it('returns eligible_for_family_upgrade for active sponsored standard subscriptions', () => {
+      expect(
+        getSponsoredMembershipState({
+          id: 'sub-1',
+          status: 'active',
+          planId: 'standard',
+          provider: 'group_sponsor',
+          acquisitionSource: 'group_roster_import',
+          createdAt: new Date(),
+          currentPeriodEnd: null,
+        })
+      ).toBe('eligible_for_family_upgrade');
+    });
+
+    it('returns none for non-sponsored subscriptions', () => {
+      expect(
+        getSponsoredMembershipState({
+          id: 'sub-1',
+          status: 'active',
+          planId: 'standard',
+          provider: 'paddle',
+          acquisitionSource: 'checkout',
+          createdAt: new Date(),
+          currentPeriodEnd: null,
+        })
+      ).toBe('none');
     });
   });
 });
