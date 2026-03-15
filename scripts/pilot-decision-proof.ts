@@ -2,33 +2,27 @@
 
 const path = require('node:path');
 
-const { recordPilotDailyEvidence } = require('./release-gate/pilot-artifacts.ts');
+const { recordPilotDecisionProof } = require('./release-gate/pilot-artifacts.ts');
 
 const ARG_KEYS = {
-  '--pilotId': 'pilotId',
-  '--day': 'day',
+  '--reviewType': 'reviewType',
+  '--reference': 'reference',
   '--date': 'date',
   '--owner': 'owner',
-  '--status': 'status',
-  '--reportPath': 'reportPath',
-  '--bundlePath': 'bundlePath',
-  '--incidentCount': 'incidentCount',
-  '--highestSeverity': 'highestSeverity',
   '--decision': 'decision',
+  '--rollbackTag': 'rollbackTarget',
+  '--pilotId': 'pilotId',
 };
 
 function createEmptyArgs() {
   return {
     pilotId: '',
-    day: '',
+    reviewType: '',
+    reference: '',
     date: '',
     owner: '',
-    status: '',
-    reportPath: '',
-    bundlePath: '',
-    incidentCount: '',
-    highestSeverity: '',
     decision: '',
+    rollbackTarget: '',
   };
 }
 
@@ -43,6 +37,7 @@ function parseArgs(argv) {
       parsed.help = true;
       break;
     }
+
     const key = ARG_KEYS[token];
     if (key && next) {
       parsed[key] = next;
@@ -57,12 +52,12 @@ function printHelp() {
   console.log(
     [
       'Usage:',
-      '  pnpm pilot:evidence:record -- --pilotId <pilot-id> --day <n> --date <YYYY-MM-DD> --owner <name> --status <green|amber|red> --incidentCount <n> --highestSeverity <none|sev3|sev2|sev1> --decision <continue|pause|hotfix|stop> --bundlePath <path|n/a> [--reportPath <docs/release-gates/...>]',
+      '  pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType <daily|weekly> --reference <day-<n>|week-<n>> --date <YYYY-MM-DD> --owner <name> --decision <continue|pause|hotfix|stop> [--rollbackTag <pilot-ready-YYYYMMDD|n/a>]',
       '',
       'Notes:',
-      '  - Requires an existing canonical pilot-entry artifact set for the pilot id.',
-      '  - Updates docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md in place.',
-      '  - Reuses docs/pilot-evidence/index.csv only to locate the copied evidence index and the latest pilot-entry release report.',
+      '  - Writes the decision proof row into the copied docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md file.',
+      '  - Hotfix and stop decisions require --rollbackTag pilot-ready-YYYYMMDD.',
+      '  - Resume re-validation requirements are derived automatically from the decision matrix.',
     ].join('\n')
   );
 }
@@ -74,22 +69,23 @@ function main() {
     return;
   }
 
-  const result = recordPilotDailyEvidence({
+  const result = recordPilotDecisionProof({
     rootDir: path.resolve(__dirname, '..'),
     pilotId: args.pilotId,
-    day: args.day,
+    reviewType: args.reviewType,
+    reference: args.reference,
     date: args.date,
     owner: args.owner,
-    status: args.status,
-    reportPath: args.reportPath,
-    bundlePath: args.bundlePath,
-    incidentCount: args.incidentCount,
-    highestSeverity: args.highestSeverity,
     decision: args.decision,
+    rollbackTarget: args.rollbackTarget,
   });
 
   console.log(`Updated ${path.relative(process.cwd(), result.evidenceIndexPath)}`);
-  console.log(`Release report path: ${result.reportPath}`);
+  console.log(`Decision: ${result.decision}`);
+  console.log(`Rollback target: ${result.rollbackTarget}`);
+  console.log(
+    `Resume requirements: pilot:check=${result.requirements.requiresPilotCheck}, release:gate=${result.requirements.requiresReleaseGate}`
+  );
 }
 
 try {

@@ -11,6 +11,7 @@ Pilot may begin when all conditions below are satisfied:
   - a copied per-pilot evidence index in `docs/pilot/`
   - a canonical pointer row in `docs/pilot-evidence/index.csv`
 - Daily pilot operation records are written into that copied per-pilot evidence index, not a separate note stream.
+- Daily and weekly continue/pause/hotfix/stop decisions are recorded in that same copied evidence index via `pnpm pilot:decision:record -- --pilotId <pilot-id>`.
 - Deployment ID documented
 
 2. RBAC & Tenant Isolation Verified
