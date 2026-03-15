@@ -17,6 +17,7 @@
     "./agent-claims/assign": "./src/agent-claims/assign.ts",
     "./agent-claims/update-status": "./src/agent-claims/update-status.ts",
     "./staff-claims/assign": "./src/staff-claims/assign.ts",
+    "./staff-claims/commercial-handling-scope": "./src/staff-claims/commercial-handling-scope.ts",
     "./staff-claims/get-staff-claims-list": "./src/staff-claims/get-staff-claims-list.ts",
     "./staff-claims/get-staff-claim-detail": "./src/staff-claims/get-staff-claim-detail.ts",
     "./staff-claims/save-escalation-agreement": "./src/staff-claims/save-escalation-agreement.ts",

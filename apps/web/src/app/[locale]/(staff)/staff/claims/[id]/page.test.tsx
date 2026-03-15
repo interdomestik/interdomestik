@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
 
 const hoisted = vi.hoisted(() => ({
   headersMock: vi.fn(async () => new Headers()),
@@ -50,15 +51,9 @@ const hoisted = vi.hoisted(() => ({
       agreementReady: false,
       canMoveForward: false,
       collectionPathReady: false,
-      commercialScope: {
+      commercialScope: buildCommercialHandlingScopeSnapshot({
         claimCategory: 'vehicle',
-        decisionReason: 'launch_scope_supported',
-        enforcementError: null,
-        isEligible: true,
-        staffDescription:
-          'This claim matches the current launch recovery categories and can use staff-led recovery when the accepted-case prerequisites are ready.',
-        staffLabel: 'Launch recovery category',
-      },
+      }),
       isAcceptedRecoveryDecision: false,
     },
     commercialAgreement: null,

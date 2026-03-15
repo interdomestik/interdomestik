@@ -4,7 +4,7 @@ import { ensureTenantId } from '@interdomestik/shared-auth';
 import { z } from 'zod';
 
 import type { ClaimsDeps, ClaimsSession } from '../claims/types';
-import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scope';
+import { resolveCommercialHandlingScopeGate } from './commercial-handling-scope';
 import type {
   ActionResult,
   ClaimEscalationAgreementSnapshot,
@@ -104,16 +104,16 @@ export async function saveClaimEscalationAgreementCore(
         return { success: false, error: 'Claim not found' };
       }
 
-      const commercialScope = buildCommercialHandlingScopeSnapshot({
+      const { error: commercialScopeError } = resolveCommercialHandlingScopeGate({
         claimCategory: claim.category,
+        fallbackError:
+          'This matter cannot move into success-fee handling under the current launch scope.',
       });
 
-      if (!commercialScope.isEligible) {
+      if (commercialScopeError) {
         return {
           success: false,
-          error:
-            commercialScope.enforcementError ??
-            'This matter cannot move into success-fee handling under the current launch scope.',
+          error: commercialScopeError,
         };
       }
 

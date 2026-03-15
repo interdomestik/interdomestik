@@ -63,3 +63,20 @@ export function buildCommercialHandlingScopeSnapshot(params: {
     staffLabel,
   };
 }
+
+export function resolveCommercialHandlingScopeGate(params: {
+  claimCategory: string | null | undefined;
+  fallbackError: string;
+}): {
+  error: string | null;
+  scope: CommercialHandlingScopeSnapshot;
+} {
+  const scope = buildCommercialHandlingScopeSnapshot({
+    claimCategory: params.claimCategory,
+  });
+
+  return {
+    error: scope.isEligible ? null : (scope.enforcementError ?? params.fallbackError),
+    scope,
+  };
+}

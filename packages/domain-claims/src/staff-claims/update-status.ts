@@ -16,7 +16,7 @@ import {
   buildCommercialAgreementSnapshot,
   buildSuccessFeeCollectionSnapshot,
 } from './accepted-recovery-prerequisites';
-import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scope';
+import { resolveCommercialHandlingScopeGate } from './commercial-handling-scope';
 import { claimStatusSchema } from '../validators/claims';
 import {
   getMatterAllowanceContextForSubscription,
@@ -83,15 +83,16 @@ async function handleStaffLedRecoveryStatusChange(
     tenantId,
     trimmedAllowanceOverrideReason,
   } = params;
-  const commercialScope = buildCommercialHandlingScopeSnapshot({
-    claimCategory: currentClaim.category,
-  });
+  const { error: commercialScopeError, scope: commercialScope } =
+    resolveCommercialHandlingScopeGate({
+      claimCategory: currentClaim.category,
+      fallbackError: 'Staff-led recovery is not available for this claim.',
+    });
 
-  if (!commercialScope.isEligible) {
+  if (commercialScopeError) {
     return {
       success: false,
-      error:
-        commercialScope.enforcementError ?? 'Staff-led recovery is not available for this claim.',
+      error: commercialScopeError,
     };
   }
 

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scope';
+
 const mocks = vi.hoisted(() => {
   const claimChain = {
     from: vi.fn(),
@@ -173,15 +175,9 @@ describe('getStaffClaimDetail', () => {
       agreementReady: true,
       canMoveForward: true,
       collectionPathReady: true,
-      commercialScope: {
+      commercialScope: buildCommercialHandlingScopeSnapshot({
         claimCategory: 'vehicle',
-        decisionReason: 'launch_scope_supported',
-        enforcementError: null,
-        isEligible: true,
-        staffDescription:
-          'This claim matches the current launch recovery categories and can use staff-led recovery when the accepted-case prerequisites are ready.',
-        staffLabel: 'Launch recovery category',
-      },
+      }),
       isAcceptedRecoveryDecision: true,
     });
     expect(result?.commercialAgreement).toMatchObject({
@@ -255,15 +251,9 @@ describe('getStaffClaimDetail', () => {
       agreementReady: false,
       canMoveForward: false,
       collectionPathReady: false,
-      commercialScope: {
+      commercialScope: buildCommercialHandlingScopeSnapshot({
         claimCategory: 'vehicle',
-        decisionReason: 'launch_scope_supported',
-        enforcementError: null,
-        isEligible: true,
-        staffDescription:
-          'This claim matches the current launch recovery categories and can use staff-led recovery when the accepted-case prerequisites are ready.',
-        staffLabel: 'Launch recovery category',
-      },
+      }),
       isAcceptedRecoveryDecision: true,
     });
     expect((result as { recoveryDecision?: unknown } | null)?.recoveryDecision).toEqual(
@@ -323,16 +313,9 @@ describe('getStaffClaimDetail', () => {
       agreementReady: true,
       canMoveForward: false,
       collectionPathReady: true,
-      commercialScope: {
+      commercialScope: buildCommercialHandlingScopeSnapshot({
         claimCategory: 'travel',
-        decisionReason: 'outside_launch_scope',
-        enforcementError:
-          'This matter stays guidance-only or referral-only under the current launch scope and cannot move into staff-led recovery or success-fee handling.',
-        isEligible: false,
-        staffDescription:
-          'This matter stays guidance-only or referral-only under the current launch scope.',
-        staffLabel: 'Guidance-only or referral-only under current scope',
-      },
+      }),
       isAcceptedRecoveryDecision: true,
     });
   });

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
 import { ClaimActionPanel } from './claim-action-panel';
 
 const routerMocks = vi.hoisted(() => ({
@@ -97,15 +98,9 @@ describe('ClaimActionPanel', () => {
     memberLabel: 'Accepted for staff-led recovery',
     memberDescription: 'We accepted this matter for staff-led recovery.',
   };
-  const eligibleCommercialScope = {
+  const eligibleCommercialScope = buildCommercialHandlingScopeSnapshot({
     claimCategory: 'vehicle',
-    decisionReason: 'launch_scope_supported' as const,
-    enforcementError: null,
-    isEligible: true,
-    staffDescription:
-      'This claim matches the current launch recovery categories and can use staff-led recovery when the accepted-case prerequisites are ready.',
-    staffLabel: 'Launch recovery category',
-  };
+  });
   const pendingAcceptedRecoveryPrerequisites = {
     agreementReady: false,
     canMoveForward: false,
@@ -131,18 +126,28 @@ describe('ClaimActionPanel', () => {
     agreementReady: true,
     canMoveForward: false,
     collectionPathReady: false,
-    commercialScope: {
+    commercialScope: buildCommercialHandlingScopeSnapshot({
       claimCategory: 'travel',
-      decisionReason: 'outside_launch_scope' as const,
-      enforcementError:
-        'This matter stays guidance-only or referral-only under the current launch scope and cannot move into staff-led recovery or success-fee handling.',
-      isEligible: false,
-      staffDescription:
-        'This matter stays guidance-only or referral-only under the current launch scope.',
-      staffLabel: 'Guidance-only or referral-only under current scope',
-    },
+    }),
     isAcceptedRecoveryDecision: true,
   };
+
+  function renderPanel(overrides: Partial<React.ComponentProps<typeof ClaimActionPanel>> = {}) {
+    render(
+      <ClaimActionPanel
+        acceptedRecoveryPrerequisites={pendingAcceptedRecoveryPrerequisites}
+        assigneeId={null}
+        assignmentOptions={assignmentOptions}
+        claimId="claim-1"
+        commercialAgreement={null}
+        currentStatus="submitted"
+        recoveryDecision={pendingRecoveryDecision}
+        staffId="staff-me"
+        successFeeCollection={null}
+        {...overrides}
+      />
+    );
+  }
 
   it('submits a selected staff assignment manually', async () => {
     render(
@@ -332,19 +337,13 @@ describe('ClaimActionPanel', () => {
   });
 
   it('shows the launch-scope restriction and keeps commercial actions locked for guidance-only matters', () => {
-    render(
-      <ClaimActionPanel
-        acceptedRecoveryPrerequisites={blockedCommercialScopeAcceptedRecoveryPrerequisites}
-        assigneeId="staff-me"
-        assignmentOptions={assignmentOptions}
-        claimId="claim-1"
-        commercialAgreement={savedAgreement}
-        currentStatus="evaluation"
-        recoveryDecision={acceptedRecoveryDecision}
-        staffId="staff-me"
-        successFeeCollection={null}
-      />
-    );
+    renderPanel({
+      acceptedRecoveryPrerequisites: blockedCommercialScopeAcceptedRecoveryPrerequisites,
+      assigneeId: 'staff-me',
+      commercialAgreement: savedAgreement,
+      currentStatus: 'evaluation',
+      recoveryDecision: acceptedRecoveryDecision,
+    });
 
     expect(screen.getByTestId('staff-commercial-scope-restriction')).toBeInTheDocument();
     expect(screen.getAllByText('Guidance-only or referral-only under current scope')).toHaveLength(
