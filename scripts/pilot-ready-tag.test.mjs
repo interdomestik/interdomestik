@@ -7,7 +7,6 @@ import path from 'node:path';
 import test from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { createPilotEntryArtifacts } = require('./release-gate/pilot-artifacts.ts');
 const {
   createEmptyArgs,
   createPilotReadyTag,
@@ -16,13 +15,19 @@ const {
 } = require('./pilot-ready-tag.js');
 
 const PILOT_ID = 'pilot-ks-week-1';
+const FIXED_GIT_EXECUTABLE_PATHS = ['/usr/bin/git', '/opt/homebrew/bin/git', '/usr/local/bin/git'];
+const GIT_EXECUTABLE = FIXED_GIT_EXECUTABLE_PATHS.find(candidate => fs.existsSync(candidate));
+
+if (!GIT_EXECUTABLE) {
+  throw new Error(`git executable was not found in ${FIXED_GIT_EXECUTABLE_PATHS.join(', ')}`);
+}
 
 function withTempRepo(prefix, callback) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   try {
-    execFileSync('git', ['init', '-b', 'main'], { cwd: tempDir });
-    execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: tempDir });
-    execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: tempDir });
+    execFileSync(GIT_EXECUTABLE, ['init', '-b', 'main'], { cwd: tempDir });
+    execFileSync(GIT_EXECUTABLE, ['config', 'user.name', 'Test User'], { cwd: tempDir });
+    execFileSync(GIT_EXECUTABLE, ['config', 'user.email', 'test@example.com'], { cwd: tempDir });
     callback(tempDir);
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -36,33 +41,35 @@ function writeRepoFile(rootDir, relativePath, content) {
 }
 
 function commitAll(rootDir, message) {
-  execFileSync('git', ['add', '.'], { cwd: rootDir });
-  execFileSync('git', ['commit', '-m', message], { cwd: rootDir });
-  return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: rootDir, encoding: 'utf8' }).trim();
+  execFileSync(GIT_EXECUTABLE, ['add', '.'], { cwd: rootDir });
+  execFileSync(GIT_EXECUTABLE, ['commit', '-m', message], { cwd: rootDir });
+  return execFileSync(GIT_EXECUTABLE, ['rev-parse', 'HEAD'], { cwd: rootDir, encoding: 'utf8' }).trim();
 }
 
-function createPilotEntryFixture(rootDir, generatedAt = '2026-03-16T08:00:00.000Z') {
+function createPilotEntryFixture(rootDir, generatedAt = '2026-03-16T08:00:00.000Z', releaseVerdict = 'GO') {
+  const evidenceDate = generatedAt.slice(0, 10);
+  const reportPath = `docs/release-gates/${evidenceDate}_production_pilot.md`;
+  const evidenceIndexPath = `docs/pilot/PILOT_EVIDENCE_INDEX_${PILOT_ID}.md`;
+  const runId = `pilot-entry-${generatedAt.replace(/[-:]/g, '').replace('.000Z', 'Z')}-${PILOT_ID}`;
+
+  writeRepoFile(rootDir, reportPath, '# Release Gate\n');
+  writeRepoFile(rootDir, evidenceIndexPath, '# Pilot Evidence Index\n');
   writeRepoFile(
     rootDir,
-    'docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md',
-    '# Pilot Evidence Index Template\n\n| Day | Date |\n| --- | --- |\n| 1 | |\n'
+    'docs/pilot-evidence/index.csv',
+    [
+      'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path,legacy_log_path',
+      `${runId},${PILOT_ID},production,all,${generatedAt},${releaseVerdict},${reportPath},${evidenceIndexPath},`,
+      '',
+    ].join('\n')
   );
-  writeRepoFile(rootDir, 'docs/release-gates/2026-03-16_production_pilot.md', '# Release Gate\n');
 
-  const headSha = commitAll(rootDir, 'chore: seed pilot-ready fixture');
-  const artifacts = createPilotEntryArtifacts({
-    rootDir,
-    pilotId: PILOT_ID,
-    envName: 'production',
-    suite: 'all',
-    generatedAt,
-    releaseVerdict: 'GO',
-    reportPath: path.join(rootDir, 'docs/release-gates/2026-03-16_production_pilot.md'),
-  });
-
-  const artifactSha = commitAll(rootDir, 'chore: commit pilot-entry artifacts');
-
-  return { artifacts, headSha: artifactSha };
+  return {
+    headSha: commitAll(rootDir, 'chore: commit pilot-entry artifacts'),
+    reportPath,
+    evidenceIndexPath,
+    runId,
+  };
 }
 
 test('pilot-ready tag cli treats --help as a standalone flag regardless of position', () => {
@@ -74,7 +81,7 @@ test('pilot-ready tag cli treats --help as a standalone flag regardless of posit
 
 test('createPilotReadyTag creates an annotated canonical tag bound to pilot-entry evidence', () => {
   withTempRepo('pilot-ready-tag-', rootDir => {
-    const { headSha } = createPilotEntryFixture(rootDir);
+    const { headSha, reportPath, evidenceIndexPath } = createPilotEntryFixture(rootDir);
 
     const result = createPilotReadyTag({
       rootDir,
@@ -84,15 +91,24 @@ test('createPilotReadyTag creates an annotated canonical tag bound to pilot-entr
 
     assert.equal(result.tagName, 'pilot-ready-20260316');
     assert.equal(result.commitSha, headSha);
-    assert.equal(result.reportPath, 'docs/release-gates/2026-03-16_production_pilot.md');
+    assert.equal(result.reportPath, reportPath);
 
-    const tagMessage = execFileSync('git', ['tag', '-l', '--format=%(contents)', result.tagName], {
-      cwd: rootDir,
-      encoding: 'utf8',
-    });
+    const tagMessage = execFileSync(
+      GIT_EXECUTABLE,
+      ['tag', '-l', '--format=%(contents)', result.tagName],
+      {
+        cwd: rootDir,
+        encoding: 'utf8',
+      }
+    );
     assert.match(tagMessage, /pilot_id=pilot-ks-week-1/);
-    assert.match(tagMessage, /report_path=docs\/release-gates\/2026-03-16_production_pilot\.md/);
-    assert.match(tagMessage, /evidence_index_path=docs\/pilot\/PILOT_EVIDENCE_INDEX_pilot-ks-week-1\.md/);
+    assert.match(tagMessage, new RegExp(`report_path=${reportPath.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`));
+    assert.match(
+      tagMessage,
+      new RegExp(`evidence_index_path=${evidenceIndexPath.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`)
+    );
+    assert.match(tagMessage, /generated_at=2026-03-16T08:00:00\.000Z/);
+    assert.match(tagMessage, /release_verdict=GO/);
   });
 });
 
@@ -114,6 +130,51 @@ test('verifyPilotReadyTag rejects tags whose evidence date is stale for the requ
           expectedDate: '2026-03-16',
         }),
       /pilot-ready tag evidence must match expected date 2026-03-16/
+    );
+  });
+});
+
+test('verifyPilotReadyTag rejects tags whose metadata no longer matches the canonical pilot-entry proof', () => {
+  withTempRepo('pilot-ready-tag-metadata-', rootDir => {
+    const { runId } = createPilotEntryFixture(rootDir);
+    const result = createPilotReadyTag({
+      rootDir,
+      pilotId: PILOT_ID,
+      date: '2026-03-16',
+    });
+
+    execFileSync(GIT_EXECUTABLE, ['tag', '-d', result.tagName], { cwd: rootDir });
+    execFileSync(
+      GIT_EXECUTABLE,
+      [
+        'tag',
+        '-a',
+        result.tagName,
+        result.commitSha,
+        '-m',
+        [
+          'pilot-ready tag for 2026-03-16',
+          '',
+          `pilot_id=${PILOT_ID}`,
+          'date=2026-03-16',
+          `run_id=${runId}`,
+          'generated_at=2026-03-16T08:00:00.000Z',
+          'release_verdict=FAIL',
+          'report_path=docs/release-gates/2026-03-16_production_pilot.md',
+          `evidence_index_path=docs/pilot/PILOT_EVIDENCE_INDEX_${PILOT_ID}.md`,
+        ].join('\n'),
+      ],
+      { cwd: rootDir }
+    );
+
+    assert.throws(
+      () =>
+        verifyPilotReadyTag({
+          rootDir,
+          pilotId: PILOT_ID,
+          expectedDate: '2026-03-16',
+        }),
+      /metadata mismatch for release_verdict/
     );
   });
 });
