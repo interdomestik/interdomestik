@@ -12,13 +12,13 @@ Canonical ranked pilot-entry flow
    pnpm release:gate:prod -- --pilotId <pilot-id>
 
 3. Launch-day and daily operating row
-   pnpm pilot:evidence:record -- --pilotId <pilot-id> ...
+   pnpm pilot:evidence:record -- --pilotId <pilot-id> --day <n> --date <YYYY-MM-DD> --owner "<owner>" --status <green|amber|red> --incidentCount <n> --highestSeverity <none|sev3|sev2|sev1> --decision <continue|pause|hotfix|stop> --bundlePath <path|n/a>
 
 4. Launch-day and daily observability row
-   pnpm pilot:observability:record -- --pilotId <pilot-id> ...
+   pnpm pilot:observability:record -- --pilotId <pilot-id> --reference <day-<n>|week-<n>> --date <YYYY-MM-DD> --owner "<owner>" --logSweepResult <clear|expected-noise|action-required> --functionalErrorCount <n> --expectedAuthDenyCount <n> --kpiCondition <within-threshold|watch|breach> --incidentCount <n> --highestSeverity <none|sev3|sev2|sev1> --notes <text|n/a>
 
 5. Launch-day and daily decision row
-   pnpm pilot:decision:record -- --pilotId <pilot-id> ...
+   pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType <daily|weekly> --reference <day-<n>|week-<n>> --date <YYYY-MM-DD> --owner "<owner>" --decision <continue|pause|hotfix|stop> [--rollbackTag <pilot-ready-YYYYMMDD|n/a>] [--observabilityRef <day-<n>|week-<n>>]
 
 Conditional commands
 - Rollback tag discipline: pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>

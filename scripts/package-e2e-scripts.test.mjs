@@ -123,6 +123,18 @@ test('pilot readiness commands keep local verification and production proof dist
   assert.match(pilotVerifyScript, /For the ranked operator path use: pnpm pilot:flow/);
   assert.match(
     pilotVerifyScript,
+    /pnpm pilot:evidence:record -- --pilotId <pilot-id> --day <n> --date <YYYY-MM-DD> --owner "<owner>" --status <green\|amber\|red> --incidentCount <n> --highestSeverity <none\|sev3\|sev2\|sev1> --decision <continue\|pause\|hotfix\|stop> --bundlePath <path\|n\/a>/
+  );
+  assert.match(
+    pilotVerifyScript,
+    /pnpm pilot:observability:record -- --pilotId <pilot-id> --reference <day-<n>\|week-<n>> --date <YYYY-MM-DD> --owner "<owner>" --logSweepResult <clear\|expected-noise\|action-required> --functionalErrorCount <n> --expectedAuthDenyCount <n> --kpiCondition <within-threshold\|watch\|breach> --incidentCount <n> --highestSeverity <none\|sev3\|sev2\|sev1> --notes <text\|n\/a>/
+  );
+  assert.match(
+    pilotVerifyScript,
+    /pnpm pilot:decision:record -- --pilotId <pilot-id> --reviewType <daily\|weekly> --reference <day-<n>\|week-<n>> --date <YYYY-MM-DD> --owner "<owner>" --decision <continue\|pause\|hotfix\|stop> \[--rollbackTag <pilot-ready-YYYYMMDD\|n\/a>\] \[--observabilityRef <day-<n>\|week-<n>>\]/
+  );
+  assert.match(
+    pilotVerifyScript,
     /This command is local pre-launch verification only; it does not create release reports or pilot-entry artifacts\./
   );
   assert.match(pilotVerifyScript, /For production release proof use: pnpm release:gate:prod/);

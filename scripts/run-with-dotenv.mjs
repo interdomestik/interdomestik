@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import process from 'node:process';
 
 try {
@@ -14,7 +15,11 @@ try {
     typeof error.message === 'string' &&
     error.message.includes("'dotenv'")
   ) {
-    // Allow command wrappers to run in isolated worktrees without a local install.
+    if (existsSync('.env.local')) {
+      console.error(
+        '[WARN] dotenv is not installed; .env.local was not loaded by scripts/run-with-dotenv.mjs.'
+      );
+    }
   } else {
     throw error;
   }
