@@ -50,6 +50,15 @@ const hoisted = vi.hoisted(() => ({
       agreementReady: false,
       canMoveForward: false,
       collectionPathReady: false,
+      commercialScope: {
+        claimCategory: 'vehicle',
+        decisionReason: 'launch_scope_supported',
+        enforcementError: null,
+        isEligible: true,
+        staffDescription:
+          'This claim matches the current launch recovery categories and can use staff-led recovery when the accepted-case prerequisites are ready.',
+        staffLabel: 'Launch recovery category',
+      },
       isAcceptedRecoveryDecision: false,
     },
     commercialAgreement: null,

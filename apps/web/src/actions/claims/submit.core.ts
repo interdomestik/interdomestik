@@ -12,7 +12,10 @@ import {
   markClaimAiRunDispatchFailedService,
 } from '@/lib/ai/claim-workflows';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
-import { COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES } from '@/lib/commercial-claim-categories';
+import {
+  resolveCommercialLaunchScope,
+  type CommercialEscalationReason,
+} from '@/lib/commercial-claim-categories';
 import { notifyClaimSubmitted } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
@@ -20,7 +23,6 @@ import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { Session } from './context';
 
 type CommercialEscalationDecision = 'requested' | 'declined';
-type CommercialEscalationReason = 'launch_scope_supported' | 'outside_launch_scope';
 
 export type SubmitClaimCommercialFlow = {
   escalationRequest: {
@@ -42,14 +44,14 @@ export type SubmitClaimResult =
   | { success: false; error: string; code?: string };
 
 function resolveCommercialFlow(rawCategory: string): SubmitClaimCommercialFlow {
-  const claimCategory = rawCategory.trim().toLowerCase();
-  const escalationRequested = COMMERCIAL_ESCALATION_ELIGIBLE_CATEGORIES.has(claimCategory);
+  const launchScope = resolveCommercialLaunchScope(rawCategory);
+  const claimCategory = launchScope.claimCategory ?? rawCategory.trim().toLowerCase();
 
   return {
     escalationRequest: {
       claimCategory,
-      decision: escalationRequested ? 'requested' : 'declined',
-      decisionReason: escalationRequested ? 'launch_scope_supported' : 'outside_launch_scope',
+      decision: launchScope.escalationEligible ? 'requested' : 'declined',
+      decisionReason: launchScope.decisionReason,
     },
     freeStartCompletion: {
       claimCategory,

@@ -97,22 +97,50 @@ describe('ClaimActionPanel', () => {
     memberLabel: 'Accepted for staff-led recovery',
     memberDescription: 'We accepted this matter for staff-led recovery.',
   };
+  const eligibleCommercialScope = {
+    claimCategory: 'vehicle',
+    decisionReason: 'launch_scope_supported' as const,
+    enforcementError: null,
+    isEligible: true,
+    staffDescription:
+      'This claim matches the current launch recovery categories and can use staff-led recovery when the accepted-case prerequisites are ready.',
+    staffLabel: 'Launch recovery category',
+  };
   const pendingAcceptedRecoveryPrerequisites = {
     agreementReady: false,
     canMoveForward: false,
     collectionPathReady: false,
+    commercialScope: eligibleCommercialScope,
     isAcceptedRecoveryDecision: false,
   };
   const readyAcceptedRecoveryPrerequisites = {
     agreementReady: true,
     canMoveForward: true,
     collectionPathReady: true,
+    commercialScope: eligibleCommercialScope,
     isAcceptedRecoveryDecision: true,
   };
   const missingCollectionAcceptedRecoveryPrerequisites = {
     agreementReady: true,
     canMoveForward: false,
     collectionPathReady: false,
+    commercialScope: eligibleCommercialScope,
+    isAcceptedRecoveryDecision: true,
+  };
+  const blockedCommercialScopeAcceptedRecoveryPrerequisites = {
+    agreementReady: true,
+    canMoveForward: false,
+    collectionPathReady: false,
+    commercialScope: {
+      claimCategory: 'travel',
+      decisionReason: 'outside_launch_scope' as const,
+      enforcementError:
+        'This matter stays guidance-only or referral-only under the current launch scope and cannot move into staff-led recovery or success-fee handling.',
+      isEligible: false,
+      staffDescription:
+        'This matter stays guidance-only or referral-only under the current launch scope.',
+      staffLabel: 'Guidance-only or referral-only under current scope',
+    },
     isAcceptedRecoveryDecision: true,
   };
 
@@ -301,6 +329,36 @@ describe('ClaimActionPanel', () => {
         'Accepted recovery cannot move into negotiation or court until both prerequisites are ready.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('shows the launch-scope restriction and keeps commercial actions locked for guidance-only matters', () => {
+    render(
+      <ClaimActionPanel
+        acceptedRecoveryPrerequisites={blockedCommercialScopeAcceptedRecoveryPrerequisites}
+        assigneeId="staff-me"
+        assignmentOptions={assignmentOptions}
+        claimId="claim-1"
+        commercialAgreement={savedAgreement}
+        currentStatus="evaluation"
+        recoveryDecision={acceptedRecoveryDecision}
+        staffId="staff-me"
+        successFeeCollection={null}
+      />
+    );
+
+    expect(screen.getByTestId('staff-commercial-scope-restriction')).toBeInTheDocument();
+    expect(screen.getAllByText('Guidance-only or referral-only under current scope')).toHaveLength(
+      2
+    );
+    expect(
+      screen.getByText(
+        'This matter stays guidance-only or referral-only under the current launch scope.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save Escalation Agreement' })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Recovered amount'), { target: { value: '120.50' } });
+    expect(screen.getByRole('button', { name: 'Save Success-Fee Collection' })).toBeDisabled();
   });
 
   it('passes an internal allowance override reason when updating a recovery claim', async () => {

@@ -5,6 +5,7 @@ import {
   buildCommercialAgreementSnapshot,
   buildSuccessFeeCollectionSnapshot,
 } from './accepted-recovery-prerequisites';
+import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scope';
 import { getMatterAllowanceVisibilityForUser } from './matter-allowance';
 import { buildRecoveryDecisionSnapshot } from './recovery-decision';
 import type {
@@ -66,6 +67,7 @@ export async function getStaffClaimDetail(params: {
   const rows = await db
     .select({
       claimId: claims.id,
+      claimCategory: claims.category,
       claimNumber: claims.claimNumber,
       status: claims.status,
       staffId: claims.staffId,
@@ -154,8 +156,12 @@ export async function getStaffClaimDetail(params: {
     resolvedAt: row.agreementSuccessFeeResolvedAt,
     subscriptionId: row.agreementSuccessFeeSubscriptionId ?? null,
   });
+  const commercialScope = buildCommercialHandlingScopeSnapshot({
+    claimCategory: row.claimCategory,
+  });
   const acceptedRecoveryPrerequisites = buildAcceptedRecoveryPrerequisitesSnapshot({
     commercialAgreement,
+    commercialScope,
     recoveryDecisionStatus: recoveryDecision.status,
     successFeeCollection,
   });

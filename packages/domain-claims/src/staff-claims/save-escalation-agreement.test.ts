@@ -37,6 +37,7 @@ const mocks = vi.hoisted(() => {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
       branchId: 'claims.branch_id',
+      category: 'claims.category',
       staffId: 'claims.staff_id',
       userId: 'claims.user_id',
     },
@@ -161,7 +162,9 @@ describe('saveClaimEscalationAgreementCore', () => {
     mocks.txSelect
       .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', userId: 'member-1' }]);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', userId: 'member-1', category: 'vehicle' },
+    ]);
     mocks.agreementSelectChain.limit.mockResolvedValue([]);
 
     const result = await saveClaimEscalationAgreementCore({
@@ -211,7 +214,9 @@ describe('saveClaimEscalationAgreementCore', () => {
     mocks.txSelect
       .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', userId: 'member-1' }]);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', userId: 'member-1', category: 'vehicle' },
+    ]);
     mocks.agreementSelectChain.limit.mockResolvedValue([]);
 
     const result = await saveClaimEscalationAgreementCore(
@@ -258,7 +263,9 @@ describe('saveClaimEscalationAgreementCore', () => {
     mocks.txSelect
       .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', userId: 'member-1' }]);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', userId: 'member-1', category: 'vehicle' },
+    ]);
     mocks.agreementSelectChain.limit.mockResolvedValue([
       {
         acceptedAt: new Date('2026-03-11T09:00:00.000Z'),
@@ -320,7 +327,9 @@ describe('saveClaimEscalationAgreementCore', () => {
     mocks.txSelect
       .mockReturnValueOnce(mocks.claimSelectChain)
       .mockReturnValueOnce(mocks.agreementSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', userId: 'member-1' }]);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', userId: 'member-1', category: 'vehicle' },
+    ]);
     mocks.agreementSelectChain.limit.mockResolvedValue([
       {
         acceptedAt: new Date('2026-03-14T09:00:00.000Z'),
@@ -360,5 +369,35 @@ describe('saveClaimEscalationAgreementCore', () => {
       })
     );
     expect(result.data?.signedAt).toBeTruthy();
+  });
+
+  it('blocks escalation agreement saves for guidance-only matters', async () => {
+    mocks.txSelect
+      .mockReturnValueOnce(mocks.claimSelectChain)
+      .mockReturnValueOnce(mocks.agreementSelectChain);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', userId: 'member-1', category: 'travel' },
+    ]);
+    mocks.agreementSelectChain.limit.mockResolvedValue([]);
+
+    const result = await saveClaimEscalationAgreementCore({
+      claimId: 'claim-1',
+      decisionNextStatus: 'negotiation',
+      decisionReason: 'Attempted to move a guidance-only matter into success-fee handling.',
+      feePercentage: 15,
+      legalActionCapPercentage: 25,
+      minimumFee: 25,
+      paymentAuthorizationState: 'authorized',
+      session: createSession({ userId: 'staff-1', branchId: 'branch-1' }),
+      termsVersion: '2026-03-v1',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        'This matter stays guidance-only or referral-only under the current launch scope and cannot move into staff-led recovery or success-fee handling.',
+    });
+    expect(mocks.txInsert).not.toHaveBeenCalled();
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
 });

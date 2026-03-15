@@ -1,4 +1,5 @@
 import { statusEnum } from '@interdomestik/database/schema';
+import type { CommercialEscalationReason } from '../claims/commercial-launch-scope';
 
 export type ClaimStatus = (typeof statusEnum.enumValues)[number];
 export const PAYMENT_AUTHORIZATION_STATES = ['pending', 'authorized', 'revoked'] as const;
@@ -23,6 +24,15 @@ export const SUCCESS_FEE_COLLECTION_METHODS = [
   'invoice',
 ] as const;
 export type SuccessFeeCollectionMethod = (typeof SUCCESS_FEE_COLLECTION_METHODS)[number];
+
+export type CommercialHandlingScopeSnapshot = {
+  claimCategory: string | null;
+  decisionReason: CommercialEscalationReason;
+  enforcementError: string | null;
+  isEligible: boolean;
+  staffDescription: string;
+  staffLabel: string;
+};
 
 export type RecoveryDecisionSnapshot = {
   status: RecoveryDecisionStatus;
@@ -71,6 +81,7 @@ export type AcceptedRecoveryPrerequisitesSnapshot = {
   agreementReady: boolean;
   canMoveForward: boolean;
   collectionPathReady: boolean;
+  commercialScope: CommercialHandlingScopeSnapshot;
   isAcceptedRecoveryDecision: boolean;
 };
 

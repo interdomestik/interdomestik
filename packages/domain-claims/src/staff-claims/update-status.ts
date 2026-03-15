@@ -16,6 +16,7 @@ import {
   buildCommercialAgreementSnapshot,
   buildSuccessFeeCollectionSnapshot,
 } from './accepted-recovery-prerequisites';
+import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scope';
 import { claimStatusSchema } from '../validators/claims';
 import {
   getMatterAllowanceContextForSubscription,
@@ -50,6 +51,7 @@ type UpdateClaimStatusParams = {
   requestHeaders?: Headers;
 };
 type CurrentClaimRecord = {
+  category: string;
   status: ClaimStatus | null;
   userId: string;
 };
@@ -81,6 +83,18 @@ async function handleStaffLedRecoveryStatusChange(
     tenantId,
     trimmedAllowanceOverrideReason,
   } = params;
+  const commercialScope = buildCommercialHandlingScopeSnapshot({
+    claimCategory: currentClaim.category,
+  });
+
+  if (!commercialScope.isEligible) {
+    return {
+      success: false,
+      error:
+        commercialScope.enforcementError ?? 'Staff-led recovery is not available for this claim.',
+    };
+  }
+
   const [agreement] = await db
     .select({
       acceptedAt: claimEscalationAgreements.acceptedAt,
@@ -153,6 +167,7 @@ async function handleStaffLedRecoveryStatusChange(
   });
   const acceptedRecoveryPrerequisites = buildAcceptedRecoveryPrerequisitesSnapshot({
     commercialAgreement,
+    commercialScope,
     recoveryDecisionStatus: recoveryDecision.status,
     successFeeCollection,
   });
@@ -385,7 +400,7 @@ export async function updateClaimStatusCore(
 
   try {
     const [currentClaim] = await db
-      .select({ status: claims.status, userId: claims.userId })
+      .select({ category: claims.category, status: claims.status, userId: claims.userId })
       .from(claims)
       .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)))
       .limit(1);

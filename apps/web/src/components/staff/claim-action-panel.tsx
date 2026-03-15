@@ -420,13 +420,16 @@ export function ClaimActionPanel({
   const resolvedRecoveryDecision = savedRecoveryDecision;
   const resolvedAgreement = savedAgreement ?? commercialAgreement;
   const resolvedSuccessFeeCollection = savedSuccessFeeCollection ?? successFeeCollection;
+  const resolvedCommercialScope = acceptedRecoveryPrerequisites.commercialScope;
   const resolvedAcceptedRecoveryPrerequisites: AcceptedRecoveryPrerequisitesSnapshot = {
     agreementReady: resolvedAgreement !== null,
     canMoveForward:
+      resolvedCommercialScope.isEligible &&
       resolvedRecoveryDecision.status === 'accepted' &&
       resolvedAgreement !== null &&
       resolvedSuccessFeeCollection !== null,
     collectionPathReady: resolvedSuccessFeeCollection !== null,
+    commercialScope: resolvedCommercialScope,
     isAcceptedRecoveryDecision:
       acceptedRecoveryPrerequisites.isAcceptedRecoveryDecision ||
       resolvedRecoveryDecision.status === 'accepted',
@@ -436,13 +439,17 @@ export function ClaimActionPanel({
   const hasValidRecoveredAmount =
     Number.isFinite(parsedRecoveredAmount) && parsedRecoveredAmount > 0;
   const canSaveAgreement =
+    resolvedCommercialScope.isEligible &&
     decisionReason.trim().length > 0 &&
     feePercentage.trim().length > 0 &&
     minimumFee.trim().length > 0 &&
     legalActionCapPercentage.trim().length > 0 &&
     termsVersion.trim().length > 0;
-  const canSaveSuccessFeeCollection = hasCommercialAgreement && hasValidRecoveredAmount;
+  const canSaveSuccessFeeCollection =
+    resolvedCommercialScope.isEligible && hasCommercialAgreement && hasValidRecoveredAmount;
   const requiresMatterAllowanceGuard = RECOVERY_START_STATUSES.has(status);
+  const requiresCommercialScopeRestriction =
+    hasStatusChanged && RECOVERY_START_STATUSES.has(status) && !resolvedCommercialScope.isEligible;
   const requiresAcceptedRecoveryDecision =
     hasStatusChanged &&
     RECOVERY_START_STATUSES.has(status) &&
@@ -479,6 +486,19 @@ export function ClaimActionPanel({
       data-testid="staff-claim-action-panel"
     >
       <h3 className="font-semibold text-lg">Staff Actions</h3>
+
+      {!resolvedCommercialScope.isEligible ? (
+        <div
+          className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm"
+          data-testid="staff-commercial-scope-restriction"
+        >
+          <div className="space-y-1">
+            <h4 className="text-sm font-medium text-slate-900">Launch scope restriction</h4>
+            <p className="font-medium text-slate-900">{resolvedCommercialScope.staffLabel}</p>
+            <p className="text-xs text-slate-700">{resolvedCommercialScope.staffDescription}</p>
+          </div>
+        </div>
+      ) : null}
 
       {/* Assignment Section */}
       <div className="rounded-lg bg-muted/30 p-4">
@@ -1010,6 +1030,12 @@ export function ClaimActionPanel({
           </p>
         ) : null}
 
+        {requiresCommercialScopeRestriction ? (
+          <p className="text-xs text-muted-foreground">
+            {resolvedCommercialScope.enforcementError}
+          </p>
+        ) : null}
+
         {requiresAcceptedRecoveryAgreement ? (
           <p className="text-xs text-muted-foreground">
             Save the accepted escalation agreement before moving this case into negotiation or
@@ -1051,6 +1077,7 @@ export function ClaimActionPanel({
           disabled={
             isPending ||
             (!hasStatusChanged && !note.trim()) ||
+            requiresCommercialScopeRestriction ||
             requiresAcceptedRecoveryDecision ||
             requiresAcceptedRecoveryAgreement ||
             requiresAcceptedRecoveryCollectionPath

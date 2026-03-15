@@ -1,6 +1,7 @@
 import type {
   AcceptedRecoveryPrerequisitesSnapshot,
   ClaimEscalationAgreementSnapshot,
+  CommercialHandlingScopeSnapshot,
   PaymentAuthorizationState,
   RecoveryDecisionStatus,
   SuccessFeeCollectionMethod,
@@ -194,6 +195,7 @@ export function buildSuccessFeeCollectionSnapshot(
 
 export function buildAcceptedRecoveryPrerequisitesSnapshot(params: {
   commercialAgreement: ClaimEscalationAgreementSnapshot | null;
+  commercialScope: CommercialHandlingScopeSnapshot;
   recoveryDecisionStatus: RecoveryDecisionStatus;
   successFeeCollection: SuccessFeeCollectionSnapshot | null;
 }): AcceptedRecoveryPrerequisitesSnapshot {
@@ -203,8 +205,13 @@ export function buildAcceptedRecoveryPrerequisitesSnapshot(params: {
 
   return {
     agreementReady,
-    canMoveForward: isAcceptedRecoveryDecision && agreementReady && collectionPathReady,
+    canMoveForward:
+      params.commercialScope.isEligible &&
+      isAcceptedRecoveryDecision &&
+      agreementReady &&
+      collectionPathReady,
     collectionPathReady,
+    commercialScope: params.commercialScope,
     isAcceptedRecoveryDecision,
   };
 }

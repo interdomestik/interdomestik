@@ -4,6 +4,7 @@ import type { ClaimsSession } from '../claims/types';
 import { saveSuccessFeeCollectionCore } from './save-success-fee-collection';
 
 type MockClaimRecord = {
+  category: string;
   currency: string;
   id: string;
   userId: string;
@@ -74,6 +75,7 @@ const mocks = vi.hoisted(() => {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
       userId: 'claims.user_id',
+      category: 'claims.category',
       currency: 'claims.currency',
     },
     claimEscalationAgreements: {
@@ -171,7 +173,7 @@ function mockSaveSelects(options?: {
     .mockReturnValueOnce(mocks.agreementSelectChain)
     .mockReturnValueOnce(mocks.subscriptionSelectChain);
   mocks.claimSelectChain.limit.mockResolvedValue(
-    options?.claim ?? [{ currency: 'EUR', id: 'claim-1', userId: 'member-1' }]
+    options?.claim ?? [{ category: 'vehicle', currency: 'EUR', id: 'claim-1', userId: 'member-1' }]
   );
   mocks.agreementSelectChain.limit.mockResolvedValue(
     options?.agreement ?? [createAcceptedAgreement()]
@@ -388,5 +390,20 @@ describe('saveSuccessFeeCollectionCore', () => {
         }),
       })
     );
+  });
+
+  it('blocks guidance-only matters from saving success-fee collection', async () => {
+    mockSaveSelects({
+      claim: [{ category: 'travel', currency: 'EUR', id: 'claim-1', userId: 'member-1' }],
+    });
+
+    const result = await runSaveSuccessFeeCollection();
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        'This matter stays guidance-only or referral-only under the current launch scope and cannot move into staff-led recovery or success-fee handling.',
+    });
+    expect(mocks.txUpdate).not.toHaveBeenCalled();
   });
 });

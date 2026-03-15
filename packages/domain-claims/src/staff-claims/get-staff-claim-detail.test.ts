@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => {
     claims: {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
+      category: 'claims.category',
       claimNumber: 'claims.claim_number',
       status: 'claims.status',
       updatedAt: 'claims.updated_at',
@@ -100,6 +101,7 @@ describe('getStaffClaimDetail', () => {
     mocks.claimChain.limit.mockResolvedValue([
       {
         claimId: 'claim-1',
+        claimCategory: 'vehicle',
         claimNumber: 'KS-0001',
         status: 'submitted',
         updatedAt: new Date('2026-01-02T00:00:00Z'),
@@ -171,6 +173,15 @@ describe('getStaffClaimDetail', () => {
       agreementReady: true,
       canMoveForward: true,
       collectionPathReady: true,
+      commercialScope: {
+        claimCategory: 'vehicle',
+        decisionReason: 'launch_scope_supported',
+        enforcementError: null,
+        isEligible: true,
+        staffDescription:
+          'This claim matches the current launch recovery categories and can use staff-led recovery when the accepted-case prerequisites are ready.',
+        staffLabel: 'Launch recovery category',
+      },
       isAcceptedRecoveryDecision: true,
     });
     expect(result?.commercialAgreement).toMatchObject({
@@ -198,6 +209,7 @@ describe('getStaffClaimDetail', () => {
     mocks.claimChain.limit.mockResolvedValue([
       {
         claimId: 'claim-1',
+        claimCategory: 'vehicle',
         claimNumber: 'KS-0001',
         status: 'evaluation',
         updatedAt: new Date('2026-03-14T00:00:00Z'),
@@ -243,6 +255,15 @@ describe('getStaffClaimDetail', () => {
       agreementReady: false,
       canMoveForward: false,
       collectionPathReady: false,
+      commercialScope: {
+        claimCategory: 'vehicle',
+        decisionReason: 'launch_scope_supported',
+        enforcementError: null,
+        isEligible: true,
+        staffDescription:
+          'This claim matches the current launch recovery categories and can use staff-led recovery when the accepted-case prerequisites are ready.',
+        staffLabel: 'Launch recovery category',
+      },
       isAcceptedRecoveryDecision: true,
     });
     expect((result as { recoveryDecision?: unknown } | null)?.recoveryDecision).toEqual(
@@ -253,6 +274,67 @@ describe('getStaffClaimDetail', () => {
         staffLabel: 'Accepted for staff-led recovery',
       })
     );
+  });
+
+  it('surfaces the launch-scope restriction for guidance-only matters on staff detail reads', async () => {
+    mocks.claimChain.limit.mockResolvedValue([
+      {
+        claimId: 'claim-1',
+        claimCategory: 'travel',
+        claimNumber: 'KS-0001',
+        status: 'evaluation',
+        updatedAt: new Date('2026-03-14T00:00:00Z'),
+        createdAt: new Date('2026-03-10T00:00:00Z'),
+        memberId: 'member-1',
+        memberName: 'Member One',
+        memberNumber: 'MEM-001',
+        agentId: null,
+        agreementDecisionType: 'accepted',
+        agreementDeclineReasonCode: null,
+        agreementDecisionNextStatus: 'negotiation',
+        agreementDecisionReason: 'Legacy staff acceptance recorded before scope enforcement.',
+        agreementFeePercentage: 20,
+        agreementMinimumFee: '25.00',
+        agreementLegalActionCapPercentage: 35,
+        agreementPaymentAuthorizationState: 'authorized',
+        agreementSuccessFeeRecoveredAmount: '1000.00',
+        agreementSuccessFeeCurrencyCode: 'EUR',
+        agreementSuccessFeeAmount: '150.00',
+        agreementSuccessFeeCollectionMethod: 'payment_method_charge',
+        agreementSuccessFeeDeductionAllowed: false,
+        agreementSuccessFeeHasStoredPaymentMethod: true,
+        agreementSuccessFeeInvoiceDueAt: null,
+        agreementSuccessFeeResolvedAt: new Date('2026-03-14T12:00:00Z'),
+        agreementSuccessFeeSubscriptionId: 'sub-1',
+        agreementTermsVersion: '2026-03-v1',
+        agreementSignedAt: new Date('2026-03-14T09:00:00Z'),
+        agreementAcceptedAt: new Date('2026-03-14T09:00:00Z'),
+      },
+    ]);
+    mocks.agentChain.limit.mockResolvedValue([]);
+
+    const result = await getStaffClaimDetail({
+      staffId: 'staff-1',
+      tenantId: 'tenant-ks',
+      claimId: 'claim-1',
+    });
+
+    expect(result?.acceptedRecoveryPrerequisites).toEqual({
+      agreementReady: true,
+      canMoveForward: false,
+      collectionPathReady: true,
+      commercialScope: {
+        claimCategory: 'travel',
+        decisionReason: 'outside_launch_scope',
+        enforcementError:
+          'This matter stays guidance-only or referral-only under the current launch scope and cannot move into staff-led recovery or success-fee handling.',
+        isEligible: false,
+        staffDescription:
+          'This matter stays guidance-only or referral-only under the current launch scope.',
+        staffLabel: 'Guidance-only or referral-only under current scope',
+      },
+      isAcceptedRecoveryDecision: true,
+    });
   });
 
   it('returns null when claim is outside tenant scope', async () => {

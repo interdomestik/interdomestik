@@ -5,6 +5,7 @@ import {
   buildCommercialAgreementSnapshot,
   buildSuccessFeeCollectionSnapshot,
 } from './accepted-recovery-prerequisites';
+import { buildCommercialHandlingScopeSnapshot } from './commercial-handling-scope';
 
 describe('accepted recovery prerequisites', () => {
   it('treats an agreement as incomplete when the member signature timestamp is missing', () => {
@@ -44,6 +45,7 @@ describe('accepted recovery prerequisites', () => {
 
   it('marks an accepted recovery matter as blocked until agreement and collection prerequisites are both complete', () => {
     const result = buildAcceptedRecoveryPrerequisitesSnapshot({
+      commercialScope: buildCommercialHandlingScopeSnapshot({ claimCategory: 'vehicle' }),
       commercialAgreement: null,
       recoveryDecisionStatus: 'accepted',
       successFeeCollection: null,
@@ -53,12 +55,14 @@ describe('accepted recovery prerequisites', () => {
       agreementReady: false,
       canMoveForward: false,
       collectionPathReady: false,
+      commercialScope: buildCommercialHandlingScopeSnapshot({ claimCategory: 'vehicle' }),
       isAcceptedRecoveryDecision: true,
     });
   });
 
   it('allows forward progress when the accepted case has a valid invoice fallback collection path', () => {
     const result = buildAcceptedRecoveryPrerequisitesSnapshot({
+      commercialScope: buildCommercialHandlingScopeSnapshot({ claimCategory: 'vehicle' }),
       commercialAgreement: buildCommercialAgreementSnapshot({
         acceptedAt: '2026-03-14T09:00:00.000Z',
         claimId: 'claim-1',
@@ -91,6 +95,7 @@ describe('accepted recovery prerequisites', () => {
       agreementReady: true,
       canMoveForward: true,
       collectionPathReady: true,
+      commercialScope: buildCommercialHandlingScopeSnapshot({ claimCategory: 'vehicle' }),
       isAcceptedRecoveryDecision: true,
     });
   });

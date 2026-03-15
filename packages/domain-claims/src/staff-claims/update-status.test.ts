@@ -111,6 +111,7 @@ const mocks = vi.hoisted(() => {
       id: 'claims.id',
       tenantId: 'claims.tenant_id',
       branchId: 'claims.branch_id',
+      category: 'claims.category',
       staffId: 'claims.staff_id',
       status: 'claims.status',
       updatedAt: 'claims.updated_at',
@@ -255,7 +256,7 @@ function createSession(options: {
 
 function mockRecoverySelects(options?: {
   agreement?: Array<MockRecoveryAgreement>;
-  claim?: Array<{ id: string; status: string; userId: string }>;
+  claim?: Array<{ id: string; status: string; userId: string; category: string }>;
   existingClaimUsage?: Array<{ id: string }>;
   matterCount?: Array<{ count: number }>;
   plan?: Array<typeof STANDARD_PLAN>;
@@ -272,7 +273,9 @@ function mockRecoverySelects(options?: {
       .mockReturnValueOnce(mocks.serviceUsageCountSelectChain);
   }
   mocks.claimSelectChain.limit.mockResolvedValue(
-    options?.claim ?? [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }]
+    options?.claim ?? [
+      { id: 'claim-1', status: 'evaluation', userId: 'member-1', category: 'vehicle' },
+    ]
   );
   mocks.agreementSelectChain.limit.mockResolvedValue(
     options?.agreement ?? [READY_ACCEPTED_RECOVERY_RECORD]
@@ -370,7 +373,7 @@ describe('staff updateClaimStatusCore', () => {
           signedAt: null,
         },
       ],
-      claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1' }],
+      claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1', category: 'vehicle' }],
     });
 
     const result = await runNegotiationUpdate();
@@ -404,6 +407,19 @@ describe('staff updateClaimStatusCore', () => {
     expectBlockedStatusChange(
       result,
       'Save the success-fee collection path before staff-led recovery can begin.'
+    );
+  });
+
+  it('blocks negotiation for guidance-only matters before staff-led recovery can begin', async () => {
+    mockRecoverySelects({
+      claim: [{ id: 'claim-1', status: 'evaluation', userId: 'member-1', category: 'travel' }],
+    });
+
+    const result = await runNegotiationUpdate();
+
+    expectBlockedStatusChange(
+      result,
+      'This matter stays guidance-only or referral-only under the current launch scope and cannot move into staff-led recovery or success-fee handling.'
     );
   });
 
@@ -583,7 +599,7 @@ describe('staff updateClaimStatusCore', () => {
   it('requires an explicit reason when staff reject a recovery matter', async () => {
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
     mocks.claimSelectChain.limit.mockResolvedValue([
-      { id: 'claim-1', status: 'negotiation', userId: 'member-1' },
+      { id: 'claim-1', status: 'negotiation', userId: 'member-1', category: 'vehicle' },
     ]);
 
     const result = await updateClaimStatusCore({
@@ -604,7 +620,9 @@ describe('staff updateClaimStatusCore', () => {
     const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
 
     mocks.db.select.mockReturnValueOnce(mocks.claimSelectChain);
-    mocks.claimSelectChain.limit.mockResolvedValue([{ id: 'claim-1', status: 'negotiation' }]);
+    mocks.claimSelectChain.limit.mockResolvedValue([
+      { id: 'claim-1', status: 'negotiation', userId: 'member-1', category: 'vehicle' },
+    ]);
     mocks.txSelectChain.limit.mockResolvedValue([]);
 
     const result = await updateClaimStatusCore(
