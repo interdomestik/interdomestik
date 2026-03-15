@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
 
 const hoisted = vi.hoisted(() => ({
   headersMock: vi.fn(async () => new Headers()),
@@ -50,6 +51,9 @@ const hoisted = vi.hoisted(() => ({
       agreementReady: false,
       canMoveForward: false,
       collectionPathReady: false,
+      commercialScope: buildCommercialHandlingScopeSnapshot({
+        claimCategory: 'vehicle',
+      }),
       isAcceptedRecoveryDecision: false,
     },
     commercialAgreement: null,

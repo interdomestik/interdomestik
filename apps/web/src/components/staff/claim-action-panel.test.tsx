@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildCommercialHandlingScopeSnapshot } from '@interdomestik/domain-claims/staff-claims/commercial-handling-scope';
 import { ClaimActionPanel } from './claim-action-panel';
 
 const routerMocks = vi.hoisted(() => ({
@@ -97,24 +98,56 @@ describe('ClaimActionPanel', () => {
     memberLabel: 'Accepted for staff-led recovery',
     memberDescription: 'We accepted this matter for staff-led recovery.',
   };
+  const eligibleCommercialScope = buildCommercialHandlingScopeSnapshot({
+    claimCategory: 'vehicle',
+  });
   const pendingAcceptedRecoveryPrerequisites = {
     agreementReady: false,
     canMoveForward: false,
     collectionPathReady: false,
+    commercialScope: eligibleCommercialScope,
     isAcceptedRecoveryDecision: false,
   };
   const readyAcceptedRecoveryPrerequisites = {
     agreementReady: true,
     canMoveForward: true,
     collectionPathReady: true,
+    commercialScope: eligibleCommercialScope,
     isAcceptedRecoveryDecision: true,
   };
   const missingCollectionAcceptedRecoveryPrerequisites = {
     agreementReady: true,
     canMoveForward: false,
     collectionPathReady: false,
+    commercialScope: eligibleCommercialScope,
     isAcceptedRecoveryDecision: true,
   };
+  const blockedCommercialScopeAcceptedRecoveryPrerequisites = {
+    agreementReady: true,
+    canMoveForward: false,
+    collectionPathReady: false,
+    commercialScope: buildCommercialHandlingScopeSnapshot({
+      claimCategory: 'travel',
+    }),
+    isAcceptedRecoveryDecision: true,
+  };
+
+  function renderPanel(overrides: Partial<React.ComponentProps<typeof ClaimActionPanel>> = {}) {
+    render(
+      <ClaimActionPanel
+        acceptedRecoveryPrerequisites={pendingAcceptedRecoveryPrerequisites}
+        assigneeId={null}
+        assignmentOptions={assignmentOptions}
+        claimId="claim-1"
+        commercialAgreement={null}
+        currentStatus="submitted"
+        recoveryDecision={pendingRecoveryDecision}
+        staffId="staff-me"
+        successFeeCollection={null}
+        {...overrides}
+      />
+    );
+  }
 
   it('submits a selected staff assignment manually', async () => {
     render(
@@ -301,6 +334,30 @@ describe('ClaimActionPanel', () => {
         'Accepted recovery cannot move into negotiation or court until both prerequisites are ready.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('shows the launch-scope restriction and keeps commercial actions locked for guidance-only matters', () => {
+    renderPanel({
+      acceptedRecoveryPrerequisites: blockedCommercialScopeAcceptedRecoveryPrerequisites,
+      assigneeId: 'staff-me',
+      commercialAgreement: savedAgreement,
+      currentStatus: 'evaluation',
+      recoveryDecision: acceptedRecoveryDecision,
+    });
+
+    expect(screen.getByTestId('staff-commercial-scope-restriction')).toBeInTheDocument();
+    expect(screen.getAllByText('Guidance-only or referral-only under current scope')).toHaveLength(
+      2
+    );
+    expect(
+      screen.getByText(
+        'This matter stays guidance-only or referral-only under the current launch scope.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save Escalation Agreement' })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Recovered amount'), { target: { value: '120.50' } });
+    expect(screen.getByRole('button', { name: 'Save Success-Fee Collection' })).toBeDisabled();
   });
 
   it('passes an internal allowance override reason when updating a recovery claim', async () => {

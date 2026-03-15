@@ -22,6 +22,7 @@ import type {
   SuccessFeeCollectionSnapshot,
 } from './types';
 import { buildCommercialAgreementSnapshot } from './accepted-recovery-prerequisites';
+import { buildCommercialHandlingScopeFailure } from './commercial-handling-scope';
 
 const saveSuccessFeeCollectionSchema = z.object({
   claimId: z.string().trim().min(1, 'Claim ID is required'),
@@ -99,6 +100,7 @@ export async function saveSuccessFeeCollectionCore(
     const result = await db.transaction(async tx => {
       const [claim] = await tx
         .select({
+          category: claims.category,
           currency: claims.currency,
           id: claims.id,
           userId: claims.userId,
@@ -109,6 +111,16 @@ export async function saveSuccessFeeCollectionCore(
 
       if (!claim) {
         return { success: false, error: 'Claim not found' };
+      }
+
+      const commercialScopeFailure = buildCommercialHandlingScopeFailure({
+        claimCategory: claim.category,
+        fallbackError:
+          'This matter cannot move into success-fee handling under the current launch scope.',
+      });
+
+      if (commercialScopeFailure) {
+        return commercialScopeFailure;
       }
 
       const [agreement] = await tx
