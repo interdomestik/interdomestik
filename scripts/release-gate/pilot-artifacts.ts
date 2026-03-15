@@ -536,6 +536,37 @@ function resolvePilotEvidenceIndexPath(rootDir, evidenceIndexPath) {
   return path.resolve(rootDir, repoRelativePath);
 }
 
+function resolvePilotEvidenceArtifact(args, actionDescription) {
+  const rootDir = path.resolve(
+    args.rootDir || findRepoRootFromDocsPath(args.pilotEvidenceIndexCsvPath || process.cwd())
+  );
+  const pilotEvidenceIndexCsvPath = path.resolve(
+    args.pilotEvidenceIndexCsvPath || path.join(rootDir, 'docs', 'pilot-evidence', 'index.csv')
+  );
+  assertCanonicalRepoPath(
+    rootDir,
+    pilotEvidenceIndexCsvPath,
+    CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
+    'pilot-entry pointer rows'
+  );
+
+  const pointerRow = resolvePilotPointerRow({
+    pilotId: args.pilotId,
+    pilotEvidenceIndexCsvPath,
+  });
+  const evidenceIndexPath = resolvePilotEvidenceIndexPath(rootDir, pointerRow.evidence_index_path);
+  if (!fs.existsSync(evidenceIndexPath)) {
+    throw new Error(`pilot-entry artifact set must exist before ${actionDescription}`);
+  }
+
+  return {
+    evidenceIndexPath,
+    pilotEvidenceIndexCsvPath,
+    pointerRow,
+    rootDir,
+  };
+}
+
 function validateDailyDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) {
     throw new Error('date must use YYYY-MM-DD format');
@@ -775,27 +806,10 @@ function createPilotEntryArtifacts(args) {
 }
 
 function recordPilotDailyEvidence(args) {
-  const rootDir = path.resolve(
-    args.rootDir || findRepoRootFromDocsPath(args.pilotEvidenceIndexCsvPath || process.cwd())
+  const { evidenceIndexPath, pointerRow, rootDir } = resolvePilotEvidenceArtifact(
+    args,
+    'daily evidence can be recorded'
   );
-  const pilotEvidenceIndexCsvPath = path.resolve(
-    args.pilotEvidenceIndexCsvPath || path.join(rootDir, 'docs', 'pilot-evidence', 'index.csv')
-  );
-  assertCanonicalRepoPath(
-    rootDir,
-    pilotEvidenceIndexCsvPath,
-    CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
-    'pilot-entry pointer rows'
-  );
-
-  const pointerRow = resolvePilotPointerRow({
-    pilotId: args.pilotId,
-    pilotEvidenceIndexCsvPath,
-  });
-  const evidenceIndexPath = resolvePilotEvidenceIndexPath(rootDir, pointerRow.evidence_index_path);
-  if (!fs.existsSync(evidenceIndexPath)) {
-    throw new Error('pilot-entry artifact set must exist before daily evidence can be recorded');
-  }
 
   const day = Number.parseInt(String(args.day || ''), 10);
   if (!Number.isInteger(day) || day < 1) {
@@ -868,27 +882,10 @@ function recordPilotDailyEvidence(args) {
 }
 
 function recordPilotDecisionProof(args) {
-  const rootDir = path.resolve(
-    args.rootDir || findRepoRootFromDocsPath(args.pilotEvidenceIndexCsvPath || process.cwd())
+  const { evidenceIndexPath, pointerRow } = resolvePilotEvidenceArtifact(
+    args,
+    'decision proof can be recorded'
   );
-  const pilotEvidenceIndexCsvPath = path.resolve(
-    args.pilotEvidenceIndexCsvPath || path.join(rootDir, 'docs', 'pilot-evidence', 'index.csv')
-  );
-  assertCanonicalRepoPath(
-    rootDir,
-    pilotEvidenceIndexCsvPath,
-    CANONICAL_PILOT_EVIDENCE_POINTER_INDEX_PATH,
-    'pilot-entry pointer rows'
-  );
-
-  const pointerRow = resolvePilotPointerRow({
-    pilotId: args.pilotId,
-    pilotEvidenceIndexCsvPath,
-  });
-  const evidenceIndexPath = resolvePilotEvidenceIndexPath(rootDir, pointerRow.evidence_index_path);
-  if (!fs.existsSync(evidenceIndexPath)) {
-    throw new Error('pilot-entry artifact set must exist before decision proof can be recorded');
-  }
 
   const reviewType = validateDecisionProofReviewType(args.reviewType);
   const decision = normalizePilotDecision(args.decision);

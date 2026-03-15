@@ -140,23 +140,26 @@ function setupPilotArtifactFixture(tempDir, options = {}) {
 }
 
 function buildDailyEvidenceTemplate(dayCount = 1) {
-  return [
-    ...DAILY_EVIDENCE_TEMPLATE_LINES,
-    ...Array.from({ length: dayCount }, (_, index) => `| ${index + 1} | | | | | | | | |`),
-    '',
-    '## Decision Proof Log',
-    '',
-    `| ${CANONICAL_DECISION_PROOF_HEADERS.join(' | ')} |`,
-    DECISION_PROOF_SEPARATOR_LINE,
-    '',
-  ].join('\n');
+  return buildEvidenceIndexMarkdown({
+    headingLines: DAILY_EVIDENCE_TEMPLATE_LINES,
+    dayCount,
+  });
 }
 
 function buildCopiedDailyEvidenceIndex(dayCount = 1) {
+  return buildEvidenceIndexMarkdown({
+    headingLines: [
+      '# Pilot Evidence Index — pilot-ks-week-1',
+      '',
+      ...DAILY_EVIDENCE_TEMPLATE_LINES,
+    ],
+    dayCount,
+  });
+}
+
+function buildEvidenceIndexMarkdown({ headingLines, dayCount }) {
   return [
-    '# Pilot Evidence Index — pilot-ks-week-1',
-    '',
-    ...DAILY_EVIDENCE_TEMPLATE_LINES,
+    ...headingLines,
     ...Array.from({ length: dayCount }, (_, index) => `| ${index + 1} | | | | | | | | |`),
     '',
     '## Decision Proof Log',
@@ -199,6 +202,21 @@ function buildDailyEvidenceArgs(overrides = {}) {
     highestSeverity: 'none',
     decision: 'continue',
     bundlePath: 'n/a',
+    ...overrides,
+  };
+}
+
+function buildDecisionProofArgs(overrides = {}) {
+  return {
+    rootDir: '',
+    pilotId: PILOT_ID,
+    reviewType: 'daily',
+    reference: 'day-1',
+    date: '2026-03-15',
+    owner: 'Admin KS',
+    decision: 'continue',
+    rollbackTarget: 'n/a',
+    pilotEvidenceIndexCsvPath: '',
     ...overrides,
   };
 }
@@ -1249,26 +1267,22 @@ test('recordPilotDecisionProof records repo-backed daily and weekly decisions in
     const fixture = createPilotEntryFixture(tempDir, { dayCount: 2 });
 
     const dailyResult = recordPilotDecisionProof({
-      rootDir: tempDir,
-      pilotId: PILOT_ID,
-      reviewType: 'daily',
-      reference: 'day-1',
-      date: '2026-03-15',
-      owner: 'Admin KS',
-      decision: 'pause',
-      rollbackTarget: 'n/a',
-      pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      ...buildDecisionProofArgs({
+        rootDir: tempDir,
+        decision: 'pause',
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
     });
     const weeklyResult = recordPilotDecisionProof({
-      rootDir: tempDir,
-      pilotId: PILOT_ID,
-      reviewType: 'weekly',
-      reference: 'week-1',
-      date: '2026-03-21',
-      owner: 'Admin KS',
-      decision: 'stop',
-      rollbackTarget: 'pilot-ready-20260315',
-      pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      ...buildDecisionProofArgs({
+        rootDir: tempDir,
+        reviewType: 'weekly',
+        reference: 'week-1',
+        date: '2026-03-21',
+        decision: 'stop',
+        rollbackTarget: 'pilot-ready-20260315',
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
     });
 
     assert.equal(dailyResult.requirements.requiresPilotCheck, 'yes');
@@ -1296,15 +1310,15 @@ test('recordPilotDecisionProof requires rollback tags for hotfix and stop decisi
     assert.throws(
       () =>
         recordPilotDecisionProof({
-          rootDir: tempDir,
-          pilotId: PILOT_ID,
-          reviewType: 'weekly',
-          reference: 'week-1',
-          date: '2026-03-21',
-          owner: 'Admin KS',
-          decision: 'stop',
+          ...buildDecisionProofArgs({
+            rootDir: tempDir,
+            reviewType: 'weekly',
+            reference: 'week-1',
+            date: '2026-03-21',
+            decision: 'stop',
+            pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          }),
           rollbackTarget: 'n/a',
-          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
         }),
       /rollbackTarget must use pilot-ready-YYYYMMDD for hotfix or stop/
     );
@@ -1318,15 +1332,11 @@ test('recordPilotDecisionProof rejects malformed review references', () => {
     assert.throws(
       () =>
         recordPilotDecisionProof({
-          rootDir: tempDir,
-          pilotId: PILOT_ID,
-          reviewType: 'daily',
-          reference: 'week-1',
-          date: '2026-03-15',
-          owner: 'Admin KS',
-          decision: 'continue',
-          rollbackTarget: 'n/a',
-          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          ...buildDecisionProofArgs({
+            rootDir: tempDir,
+            reference: 'week-1',
+            pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          }),
         }),
       /daily decision references must use day-<n>/
     );
@@ -1352,15 +1362,10 @@ test('recordPilotDecisionProof upgrades copied evidence indexes that predate the
     });
 
     recordPilotDecisionProof({
-      rootDir: tempDir,
-      pilotId: PILOT_ID,
-      reviewType: 'daily',
-      reference: 'day-1',
-      date: '2026-03-15',
-      owner: 'Admin KS',
-      decision: 'continue',
-      rollbackTarget: 'n/a',
-      pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      ...buildDecisionProofArgs({
+        rootDir: tempDir,
+        pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+      }),
     });
 
     const copiedIndex = fs.readFileSync(fixture.copiedIndexPath, 'utf8');
@@ -1386,15 +1391,10 @@ test('recordPilotDecisionProof rejects pointer rows whose evidence index escapes
     assert.throws(
       () =>
         recordPilotDecisionProof({
-          rootDir: tempDir,
-          pilotId: PILOT_ID,
-          reviewType: 'daily',
-          reference: 'day-1',
-          date: '2026-03-15',
-          owner: 'Admin KS',
-          decision: 'continue',
-          rollbackTarget: 'n/a',
-          pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          ...buildDecisionProofArgs({
+            rootDir: tempDir,
+            pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+          }),
         }),
       /pilot evidence index path must stay under docs\/pilot\//
     );
