@@ -58,6 +58,7 @@ const LOGIN_DEPENDENT_CHECKS = new Set([
   'G07',
   'G08',
   'G09',
+  'G10',
 ]);
 const INFRA_NETWORK_ERROR_PATTERNS = [
   /ECONNREFUSED/i,
@@ -116,6 +117,49 @@ const MATTER_AND_SLA_SCENARIO_DEFINITIONS = [
     testIdPrefix: 'staff-claim-detail',
     slaCopy: 'Waiting for member information',
     requiresReadyMarker: true,
+  },
+];
+const ESCALATION_AGREEMENT_COLLECTION_FALLBACK_SCENARIO_DEFINITIONS = [
+  {
+    id: 'staff_unsigned_agreement',
+    account: 'staff',
+    title: 'Staff accepted case without a signed agreement stays blocked',
+    routePath: '/staff/claims/golden_ks_a_claim_14',
+    requiredPrerequisitePhrases: ['Agreement Missing', 'Collection path Missing'],
+    requiredPhrases: [
+      'Accepted recovery prerequisites',
+      'Save the accepted escalation agreement before moving this case into negotiation or court.',
+    ],
+  },
+  {
+    id: 'staff_signed_deduction',
+    account: 'staff',
+    title: 'Staff accepted case with a signed deduction path stays ready',
+    routePath: '/staff/claims/golden_ks_a_claim_15',
+    requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
+    requiredPhrases: [
+      'Payment authorization',
+      'authorized',
+      'Terms version',
+      '2026-03-v1',
+      'Deduct from payout',
+    ],
+  },
+  {
+    id: 'staff_payment_method_fallback',
+    account: 'staff',
+    title: 'Staff accepted case resolves fallback to stored payment method charge',
+    routePath: '/staff/claims/golden_ks_a_claim_17',
+    requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
+    requiredPhrases: ['Charge stored payment method', 'Stored payment method', 'Yes'],
+  },
+  {
+    id: 'staff_invoice_fallback',
+    account: 'staff',
+    title: 'Staff accepted case resolves fallback to invoice when no stored payment method exists',
+    routePath: '/staff/claims/golden_ks_a_claim_16',
+    requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
+    requiredPhrases: ['Invoice fallback', 'Stored payment method', 'No', 'Invoice due'],
   },
 ];
 
@@ -359,6 +403,23 @@ function buildMatterAllowanceTestIds(definition) {
   return readyMarker.concat(
     MATTER_ALLOWANCE_TEST_ID_SUFFIXES.map(suffix => `${definition.testIdPrefix}-${suffix}`)
   );
+}
+
+function buildEscalationAgreementCollectionFallbackScenarios(runCtx) {
+  return ESCALATION_AGREEMENT_COLLECTION_FALLBACK_SCENARIO_DEFINITIONS.map(definition => ({
+    id: definition.id,
+    account: definition.account,
+    title: definition.title,
+    url: buildRoute(runCtx.baseUrl, runCtx.locale, definition.routePath),
+    requiredTestIds: [
+      'staff-claim-detail-ready',
+      'staff-accepted-recovery-prerequisites',
+      'staff-escalation-agreement-summary',
+      'staff-success-fee-collection-summary',
+    ],
+    requiredPrerequisitePhrases: definition.requiredPrerequisitePhrases,
+    requiredPhrases: definition.requiredPhrases,
+  }));
 }
 
 function findMissingBoundaryPhrases(requiredPhrases, observedText) {
@@ -2147,6 +2208,82 @@ async function runG09(browser, runCtx) {
   return checkResult('G09', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
 }
 
+async function runG10(browser, runCtx) {
+  const evidence = [];
+  const signatures = [];
+  const scenarios = buildEscalationAgreementCollectionFallbackScenarios(runCtx);
+
+  for (const scenario of scenarios) {
+    try {
+      const {
+        missingPhrases,
+        missingPrerequisitePhrases,
+        missingTestIds,
+        observedPrerequisites,
+        observedSummary,
+      } = await visitReleaseGateScenario(browser, runCtx, scenario, async page => {
+        const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
+        const observedPrerequisites = normalizeBoundaryText(
+          await page
+            .getByTestId('staff-accepted-recovery-prerequisites')
+            .innerText({ timeout: TIMEOUTS.marker })
+            .catch(() => '')
+        );
+        const observedText = normalizeBoundaryText(
+          await page
+            .locator('body')
+            .innerText()
+            .catch(() => '')
+        );
+
+        return {
+          missingPrerequisitePhrases: findMissingBoundaryPhrases(
+            scenario.requiredPrerequisitePhrases,
+            observedPrerequisites
+          ),
+          missingPhrases: findMissingBoundaryPhrases(scenario.requiredPhrases, observedText),
+          missingTestIds: findMissingCommercialPromiseSections(
+            scenario.requiredTestIds,
+            observedByTestId
+          ),
+          observedPrerequisites,
+          observedSummary: scenario.requiredTestIds
+            .map(testId => `${testId}=${observedByTestId[testId] === true}`)
+            .join(','),
+        };
+      });
+
+      evidence.push(
+        `scenario=${scenario.id} account=${scenario.account} missing_testids=${
+          missingTestIds.join(',') || 'none'
+        } missing_prerequisites=${missingPrerequisitePhrases.join(',') || 'none'} missing_phrases=${
+          missingPhrases.join(',') || 'none'
+        } observed=${observedSummary} prerequisites="${observedPrerequisites || 'missing'}"`
+      );
+
+      if (missingTestIds.length > 0) {
+        signatures.push(
+          `G10_SURFACE_MISSING scenario=${scenario.id} missing=${missingTestIds.join(',')}`
+        );
+      }
+      if (missingPrerequisitePhrases.length > 0 || missingPhrases.length > 0) {
+        signatures.push(
+          `G10_COLLECTION_FALLBACK_COPY_MISSING scenario=${scenario.id} missing=${[
+            ...missingPrerequisitePhrases,
+            ...missingPhrases,
+          ].join(',')}`
+        );
+      }
+    } catch (error) {
+      signatures.push(
+        `G10_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
+      );
+    }
+  }
+
+  return checkResult('G10', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
+}
+
 function runVercelLogsSweep(runCtx) {
   const evidence = [];
   const signatures = [];
@@ -2467,6 +2604,7 @@ async function main() {
       if (selected.includes('G07')) checks.push(await runG07(browser, runCtx));
       if (selected.includes('G08')) checks.push(await runG08(browser, runCtx));
       if (selected.includes('G09')) checks.push(await runG09(browser, runCtx));
+      if (selected.includes('G10')) checks.push(await runG10(browser, runCtx));
       if (selected.includes('P1.5.1')) checks.push(runVercelLogsSweep(runCtx));
     } else if (selected.includes('P1.5.1')) {
       checks.push(runVercelLogsSweep(runCtx));
@@ -2520,6 +2658,7 @@ async function main() {
 
 module.exports = {
   buildCommercialPromiseScenarios,
+  buildEscalationAgreementCollectionFallbackScenarios,
   buildFreeStartGroupPrivacyScenarios,
   buildMatterAndSlaEnforcementScenarios,
   buildRouteAllowingLocalePath,

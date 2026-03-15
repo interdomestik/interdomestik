@@ -6,6 +6,7 @@ import test from 'node:test';
 
 const {
   buildCommercialPromiseScenarios,
+  buildEscalationAgreementCollectionFallbackScenarios,
   buildFreeStartGroupPrivacyScenarios,
   buildMatterAndSlaEnforcementScenarios,
   buildRouteAllowingLocalePath,
@@ -186,6 +187,7 @@ test('isLoginDependentCheck maps suites to auth-dependent checks', () => {
   assert.equal(isLoginDependentCheck('G07'), true);
   assert.equal(isLoginDependentCheck('G08'), true);
   assert.equal(isLoginDependentCheck('G09'), true);
+  assert.equal(isLoginDependentCheck('G10'), true);
   assert.equal(isLoginDependentCheck('P1.5.1'), false);
 });
 
@@ -198,7 +200,7 @@ test('office-agent release-gate traffic resolves to the agent source IP', () => 
   assert.equal(resolveForwardedForIp('office_agent'), ROLE_IPS.agent);
 });
 
-test('p6 suite requires member, office-agent, and staff credentials for G07 to G09', () => {
+test('p6 suite requires member, office-agent, and staff credentials for G07 to G10', () => {
   assert.deepEqual(REQUIRED_ENV_BY_SUITE.p6, [
     'RELEASE_GATE_MEMBER_EMAIL',
     'RELEASE_GATE_MEMBER_PASSWORD',
@@ -382,6 +384,71 @@ test('buildMatterAndSlaEnforcementScenarios covers the deterministic member and 
   }
 });
 
+test('buildEscalationAgreementCollectionFallbackScenarios covers deterministic accepted-case staff surfaces for G10', () => {
+  const scenarios = buildEscalationAgreementCollectionFallbackScenarios({
+    baseUrl: RELEASE_GATE_BASE_URL,
+    locale: RELEASE_GATE_LOCALE,
+  });
+
+  assert.deepEqual(
+    scenarios.map(({ id, account, url, requiredPhrases, requiredPrerequisitePhrases }) => ({
+      id,
+      account,
+      url,
+      requiredPrerequisitePhrases,
+      requiredPhrases,
+    })),
+    [
+      {
+        id: 'staff_unsigned_agreement',
+        account: 'staff',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_14`,
+        requiredPrerequisitePhrases: ['Agreement Missing', 'Collection path Missing'],
+        requiredPhrases: [
+          'Accepted recovery prerequisites',
+          'Save the accepted escalation agreement before moving this case into negotiation or court.',
+        ],
+      },
+      {
+        id: 'staff_signed_deduction',
+        account: 'staff',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_15`,
+        requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
+        requiredPhrases: [
+          'Payment authorization',
+          'authorized',
+          'Terms version',
+          '2026-03-v1',
+          'Deduct from payout',
+        ],
+      },
+      {
+        id: 'staff_payment_method_fallback',
+        account: 'staff',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_17`,
+        requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
+        requiredPhrases: ['Charge stored payment method', 'Stored payment method', 'Yes'],
+      },
+      {
+        id: 'staff_invoice_fallback',
+        account: 'staff',
+        url: `${RELEASE_GATE_BASE_URL}/${RELEASE_GATE_LOCALE}/staff/claims/golden_ks_a_claim_16`,
+        requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
+        requiredPhrases: ['Invoice fallback', 'Stored payment method', 'No', 'Invoice due'],
+      },
+    ]
+  );
+
+  for (const scenario of scenarios) {
+    assert.deepEqual(scenario.requiredTestIds, [
+      'staff-claim-detail-ready',
+      'staff-accepted-recovery-prerequisites',
+      'staff-escalation-agreement-summary',
+      'staff-success-fee-collection-summary',
+    ]);
+  }
+});
+
 test('findMismatchedMatterAllowanceValues reports only the mismatched counters', () => {
   const mismatches = findMismatchedMatterAllowanceValues(
     { used: '0', remaining: '2', total: '2' },
@@ -503,7 +570,7 @@ test('resolveTenantOverrideProbeUrl uses configured RELEASE_GATE_MK_USER_URL whe
   }
 });
 
-test('writeReleaseGateReport includes the G07 to G09 RC sections', () => {
+test('writeReleaseGateReport includes the G07 to G10 RC sections', () => {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'release-gate-report-'));
 
   try {
@@ -516,7 +583,7 @@ test('writeReleaseGateReport includes the G07 to G09 RC sections', () => {
       deploymentUrl: 'https://interdomestik-web-g07.vercel.app',
       deploymentSource: 'unit-test',
       generatedAt: new Date('2026-03-15T12:00:00.000Z'),
-      executedChecks: ['P0.1', 'G07', 'G08', 'G09'],
+      executedChecks: ['P0.1', 'G07', 'G08', 'G09', 'G10'],
       checks: [
         { id: 'P0.1', status: 'PASS', evidence: ['rbac ok'], signatures: [] },
         {
@@ -541,6 +608,14 @@ test('writeReleaseGateReport includes the G07 to G09 RC sections', () => {
             'G09_MATTER_ALLOWANCE_MISMATCH scenario=staff_running remaining expected=2 actual=1',
           ],
         },
+        {
+          id: 'G10',
+          status: 'FAIL',
+          evidence: ['invoice fallback summary missing'],
+          signatures: [
+            'G10_COLLECTION_FALLBACK_COPY_MISSING scenario=staff_invoice_fallback missing=Invoice fallback',
+          ],
+        },
       ],
       accounts: {
         member: 'member@example.com',
@@ -562,6 +637,7 @@ test('writeReleaseGateReport includes the G07 to G09 RC sections', () => {
     assert.match(report, /## G07 Commercial Promise Surfaces/);
     assert.match(report, /## G08 Free Start And Group Privacy Boundaries/);
     assert.match(report, /## G09 Matter And SLA Enforcement/);
+    assert.match(report, /## G10 Escalation Agreement And Collection Fallback/);
     assert.match(report, /\*\*Result:\*\* FAIL/);
     assert.match(report, /pricing missing=pricing-billing-terms/);
     assert.match(report, /G07_COMMERCIAL_PROMISE_SURFACE_MISSING/);
@@ -569,6 +645,8 @@ test('writeReleaseGateReport includes the G07 to G09 RC sections', () => {
     assert.match(report, /G08_PRIVACY_LEAK_DETECTED/);
     assert.match(report, /staff running allowance mismatch/);
     assert.match(report, /G09_MATTER_ALLOWANCE_MISMATCH/);
+    assert.match(report, /invoice fallback summary missing/);
+    assert.match(report, /G10_COLLECTION_FALLBACK_COPY_MISSING/);
   } finally {
     fs.rmSync(outDir, { recursive: true, force: true });
   }
