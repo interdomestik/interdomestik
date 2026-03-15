@@ -87,5 +87,9 @@ describe('AgentImportPage', () => {
     expect(screen.getByText('Sponsored Member Import')).toBeInTheDocument();
     expect(screen.getByText('Group summary 7 / 43')).toBeInTheDocument();
     expect(screen.getByText('Mock CSV Uploader')).toBeInTheDocument();
+    expect(hoisted.getGroupDashboardSummary).toHaveBeenCalledWith({
+      agentId: 'agent-1',
+      tenantId: 'tenant-1',
+    });
   });
 });

@@ -36,7 +36,12 @@ describe('GroupDashboardSummary', () => {
     expect(screen.getByText('SLA breaches')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'This view stays aggregate-only. No claim facts, notes, or documents are visible here.'
+        'This view stays aggregate-only. No claim facts, notes, or documents are visible here without explicit member consent.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Aggregate only. No member names or claim details are shown in this dashboard.'
       )
     ).toBeInTheDocument();
   });

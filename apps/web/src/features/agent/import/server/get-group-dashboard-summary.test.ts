@@ -53,6 +53,23 @@ describe('getGroupDashboardSummaryCore', () => {
         runningCount: 2,
       },
     });
+    expect(Object.keys(summary).sort()).toEqual([
+      'activatedMembersCount',
+      'membersUsingBenefitsCount',
+      'openClaimsCount',
+      'sla',
+      'usageRatePercent',
+    ]);
+    expect(Object.keys(summary.sla).sort()).toEqual([
+      'breachCount',
+      'incompleteCount',
+      'notApplicableCount',
+      'runningCount',
+    ]);
+    expect(summary).not.toHaveProperty('claims');
+    expect(summary).not.toHaveProperty('documents');
+    expect(summary).not.toHaveProperty('memberIds');
+    expect(summary).not.toHaveProperty('notes');
 
     expect(mockDb.from).toHaveBeenCalledWith(subscriptions);
     expect(mockDb.from).toHaveBeenCalledWith(serviceUsage);
@@ -80,6 +97,13 @@ describe('getGroupDashboardSummaryCore', () => {
         runningCount: 0,
       },
     });
+    expect(Object.keys(summary).sort()).toEqual([
+      'activatedMembersCount',
+      'membersUsingBenefitsCount',
+      'openClaimsCount',
+      'sla',
+      'usageRatePercent',
+    ]);
     expect(mockDb.where).toHaveBeenCalledTimes(1);
   });
 });
