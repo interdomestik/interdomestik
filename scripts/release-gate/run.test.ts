@@ -56,6 +56,64 @@ function restoreRequireRolePanelEnv() {
   }
 }
 
+function withTempDir(prefix, callback) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  try {
+    callback(tempDir);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+function setupPilotArtifactFixture(tempDir, options = {}) {
+  const docsDir = path.join(tempDir, 'docs');
+  const reportDir = path.join(docsDir, 'release-gates');
+  const pilotDir = path.join(docsDir, 'pilot');
+  const indexDir = path.join(docsDir, 'pilot-evidence');
+
+  fs.mkdirSync(reportDir, { recursive: true });
+  fs.mkdirSync(pilotDir, { recursive: true });
+  fs.mkdirSync(indexDir, { recursive: true });
+
+  const templatePath = path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_TEMPLATE.md');
+  const reportPath = path.join(reportDir, '2026-03-15_production_dpl_demo.md');
+  const pointerIndexPath = path.join(indexDir, 'index.csv');
+  const copiedIndexPath = path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md');
+
+  if (options.templateContent !== false) {
+    fs.writeFileSync(
+      templatePath,
+      options.templateContent ??
+        '# Pilot Evidence Index Template\n\n| Day | Date |\n| --- | --- |\n| 1 | |\n',
+      'utf8'
+    );
+  }
+
+  if (options.reportContent !== false) {
+    fs.writeFileSync(reportPath, options.reportContent ?? '# Release Gate\n', 'utf8');
+  }
+
+  if (options.pointerIndexContent !== false) {
+    fs.writeFileSync(
+      pointerIndexPath,
+      options.pointerIndexContent ??
+        'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path\n',
+      'utf8'
+    );
+  }
+
+  if (options.copiedIndexContent) {
+    fs.writeFileSync(copiedIndexPath, options.copiedIndexContent, 'utf8');
+  }
+
+  return {
+    copiedIndexPath,
+    pointerIndexPath,
+    reportPath,
+    templatePath,
+  };
+}
+
 test('parseRetryAfterSeconds parses integer seconds value', () => {
   assert.equal(parseRetryAfterSeconds('15', 0), 15);
 });
@@ -739,175 +797,127 @@ test('evaluateCredentialPreflightResults does not flag misconfiguration when any
 });
 
 test('createPilotEntryArtifacts copies the template, appends a canonical pointer row, and keeps stable doc references', () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pilot-entry-artifacts-'));
-  const reportDir = path.join(tempDir, 'docs', 'release-gates');
-  const pilotDir = path.join(tempDir, 'docs', 'pilot');
-  const indexDir = path.join(tempDir, 'docs', 'pilot-evidence');
+  withTempDir('pilot-entry-artifacts-', tempDir => {
+    const { pointerIndexPath, reportPath, templatePath } = setupPilotArtifactFixture(tempDir);
+    const artifacts = createPilotEntryArtifacts({
+      pilotId: 'pilot-ks-week-1',
+      envName: 'production',
+      suite: 'all',
+      generatedAt: new Date('2026-03-15T10:11:12.000Z'),
+      reportPath,
+      releaseVerdict: 'GO',
+      releaseGateTemplatePath: templatePath,
+      pilotEvidenceIndexCsvPath: pointerIndexPath,
+    });
 
-  fs.mkdirSync(reportDir, { recursive: true });
-  fs.mkdirSync(pilotDir, { recursive: true });
-  fs.mkdirSync(indexDir, { recursive: true });
+    assert.equal(
+      path.relative(tempDir, artifacts.evidenceIndexPath),
+      path.join('docs', 'pilot', 'PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md')
+    );
+    assert.ok(fs.existsSync(artifacts.evidenceIndexPath));
 
-  const templatePath = path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_TEMPLATE.md');
-  const reportPath = path.join(reportDir, '2026-03-15_production_dpl_demo.md');
-  const pointerIndexPath = path.join(indexDir, 'index.csv');
+    const copiedIndex = fs.readFileSync(artifacts.evidenceIndexPath, 'utf8');
+    assert.match(copiedIndex, /Copied from `docs\/pilot\/PILOT_EVIDENCE_INDEX_TEMPLATE\.md`/);
+    assert.match(copiedIndex, /Pilot ID: `pilot-ks-week-1`/);
+    assert.match(
+      copiedIndex,
+      /Release gate report: `docs\/release-gates\/2026-03-15_production_dpl_demo\.md`/
+    );
 
-  fs.writeFileSync(
-    templatePath,
-    '# Pilot Evidence Index Template\n\n| Day | Date |\n| --- | --- |\n| 1 | |\n',
-    'utf8'
-  );
-  fs.writeFileSync(reportPath, '# Release Gate\n', 'utf8');
-  fs.writeFileSync(
-    pointerIndexPath,
-    'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path\n',
-    'utf8'
-  );
-
-  const artifacts = createPilotEntryArtifacts({
-    pilotId: 'pilot-ks-week-1',
-    envName: 'production',
-    suite: 'all',
-    generatedAt: new Date('2026-03-15T10:11:12.000Z'),
-    reportPath,
-    releaseVerdict: 'GO',
-    releaseGateTemplatePath: templatePath,
-    pilotEvidenceIndexCsvPath: pointerIndexPath,
-  });
-
-  assert.equal(
-    path.relative(tempDir, artifacts.evidenceIndexPath),
-    path.join('docs', 'pilot', 'PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md')
-  );
-  assert.ok(fs.existsSync(artifacts.evidenceIndexPath));
-
-  const copiedIndex = fs.readFileSync(artifacts.evidenceIndexPath, 'utf8');
-  assert.match(copiedIndex, /Copied from `docs\/pilot\/PILOT_EVIDENCE_INDEX_TEMPLATE\.md`/);
-  assert.match(copiedIndex, /Pilot ID: `pilot-ks-week-1`/);
-  assert.match(
-    copiedIndex,
-    /Release gate report: `docs\/release-gates\/2026-03-15_production_dpl_demo\.md`/
-  );
-
-  const parsed = parsePilotEvidenceIndex(fs.readFileSync(pointerIndexPath, 'utf8'));
-  assert.equal(parsed.length, 1);
-  assert.deepEqual(parsed[0], {
-    run_id: 'pilot-entry-20260315T101112Z-pilot-ks-week-1',
-    pilot_id: 'pilot-ks-week-1',
-    env_name: 'production',
-    gate_suite: 'all',
-    generated_at: '2026-03-15T10:11:12.000Z',
-    release_verdict: 'GO',
-    report_path: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
-    evidence_index_path: 'docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md',
-    legacy_log_path: '',
+    const parsed = parsePilotEvidenceIndex(fs.readFileSync(pointerIndexPath, 'utf8'));
+    assert.equal(parsed.length, 1);
+    assert.deepEqual(parsed[0], {
+      run_id: 'pilot-entry-20260315T101112Z-pilot-ks-week-1',
+      pilot_id: 'pilot-ks-week-1',
+      env_name: 'production',
+      gate_suite: 'all',
+      generated_at: '2026-03-15T10:11:12.000Z',
+      release_verdict: 'GO',
+      report_path: 'docs/release-gates/2026-03-15_production_dpl_demo.md',
+      evidence_index_path: 'docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md',
+      legacy_log_path: '',
+    });
   });
 });
 
 test('createPilotEntryArtifacts preserves existing copied evidence index content on later pilot-entry runs', () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pilot-entry-artifacts-reuse-'));
-  const reportDir = path.join(tempDir, 'docs', 'release-gates');
-  const pilotDir = path.join(tempDir, 'docs', 'pilot');
-  const indexDir = path.join(tempDir, 'docs', 'pilot-evidence');
+  withTempDir('pilot-entry-artifacts-reuse-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      copiedIndexContent: '# Existing Index\n\n| Day | Date |\n| --- | --- |\n| 1 | 2026-03-15 |\n',
+      templateContent: '# Template\n',
+    });
 
-  fs.mkdirSync(reportDir, { recursive: true });
-  fs.mkdirSync(pilotDir, { recursive: true });
-  fs.mkdirSync(indexDir, { recursive: true });
+    createPilotEntryArtifacts({
+      pilotId: 'pilot-ks-week-1',
+      envName: 'production',
+      suite: 'all',
+      generatedAt: new Date('2026-03-16T08:00:00.000Z'),
+      reportPath: fixture.reportPath,
+      releaseVerdict: 'NO-GO',
+      releaseGateTemplatePath: fixture.templatePath,
+      pilotEvidenceIndexCsvPath: fixture.pointerIndexPath,
+    });
 
-  const templatePath = path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_TEMPLATE.md');
-  const reportPath = path.join(reportDir, '2026-03-15_production_dpl_demo.md');
-  const pointerIndexPath = path.join(indexDir, 'index.csv');
-  const copiedIndexPath = path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md');
-
-  fs.writeFileSync(templatePath, '# Template\n', 'utf8');
-  fs.writeFileSync(reportPath, '# Release Gate\n', 'utf8');
-  fs.writeFileSync(
-    copiedIndexPath,
-    '# Existing Index\n\n| Day | Date |\n| --- | --- |\n| 1 | 2026-03-15 |\n',
-    'utf8'
-  );
-  fs.writeFileSync(
-    pointerIndexPath,
-    'run_id,pilot_id,env_name,gate_suite,generated_at,release_verdict,report_path,evidence_index_path\n',
-    'utf8'
-  );
-
-  createPilotEntryArtifacts({
-    pilotId: 'pilot-ks-week-1',
-    envName: 'production',
-    suite: 'all',
-    generatedAt: new Date('2026-03-16T08:00:00.000Z'),
-    reportPath,
-    releaseVerdict: 'NO-GO',
-    releaseGateTemplatePath: templatePath,
-    pilotEvidenceIndexCsvPath: pointerIndexPath,
+    assert.equal(
+      fs.readFileSync(fixture.copiedIndexPath, 'utf8'),
+      '# Existing Index\n\n| Day | Date |\n| --- | --- |\n| 1 | 2026-03-15 |\n'
+    );
+    const parsed = parsePilotEvidenceIndex(fs.readFileSync(fixture.pointerIndexPath, 'utf8'));
+    assert.equal(parsed.length, 1);
+    assert.equal(parsed[0].release_verdict, 'NO-GO');
+    assert.equal(
+      parsed[0].evidence_index_path,
+      'docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md'
+    );
   });
-
-  assert.equal(
-    fs.readFileSync(copiedIndexPath, 'utf8'),
-    '# Existing Index\n\n| Day | Date |\n| --- | --- |\n| 1 | 2026-03-15 |\n'
-  );
-  const parsed = parsePilotEvidenceIndex(fs.readFileSync(pointerIndexPath, 'utf8'));
-  assert.equal(parsed.length, 1);
-  assert.equal(parsed[0].release_verdict, 'NO-GO');
-  assert.equal(parsed[0].evidence_index_path, 'docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-week-1.md');
 });
 
 test('createPilotEntryArtifacts normalizes run ids to whole-second timestamps', () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pilot-entry-artifacts-seconds-'));
-  const reportDir = path.join(tempDir, 'docs', 'release-gates');
-  const pilotDir = path.join(tempDir, 'docs', 'pilot');
-  const indexDir = path.join(tempDir, 'docs', 'pilot-evidence');
+  withTempDir('pilot-entry-artifacts-seconds-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      templateContent: '# Template\n',
+    });
 
-  fs.mkdirSync(reportDir, { recursive: true });
-  fs.mkdirSync(pilotDir, { recursive: true });
-  fs.mkdirSync(indexDir, { recursive: true });
+    const artifacts = createPilotEntryArtifacts({
+      rootDir: tempDir,
+      pilotId: 'pilot-ks-week-1',
+      envName: 'production',
+      suite: 'all',
+      generatedAt: new Date('2026-03-15T10:11:12.123Z'),
+      reportPath: fixture.reportPath,
+      releaseVerdict: 'GO',
+    });
 
-  fs.writeFileSync(path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_TEMPLATE.md'), '# Template\n', 'utf8');
-  fs.writeFileSync(
-    path.join(reportDir, '2026-03-15_production_dpl_demo.md'),
-    '# Release Gate\n',
-    'utf8'
-  );
-
-  const artifacts = createPilotEntryArtifacts({
-    rootDir: tempDir,
-    pilotId: 'pilot-ks-week-1',
-    envName: 'production',
-    suite: 'all',
-    generatedAt: new Date('2026-03-15T10:11:12.123Z'),
-    reportPath: path.join(reportDir, '2026-03-15_production_dpl_demo.md'),
-    releaseVerdict: 'GO',
+    assert.equal(artifacts.runId, 'pilot-entry-20260315T101112Z-pilot-ks-week-1');
   });
-
-  assert.equal(artifacts.runId, 'pilot-entry-20260315T101112Z-pilot-ks-week-1');
 });
 
 test('createPilotEntryArtifacts rejects artifact paths that escape the canonical docs contract', () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pilot-entry-artifacts-contract-'));
-  const reportDir = path.join(tempDir, 'tmp', 'release-gates');
-  const pilotDir = path.join(tempDir, 'docs', 'pilot');
+  withTempDir('pilot-entry-artifacts-contract-', tempDir => {
+    const fixture = setupPilotArtifactFixture(tempDir, {
+      pointerIndexContent: false,
+      reportContent: false,
+      templateContent: '# Template\n',
+    });
+    const escapedReportDir = path.join(tempDir, 'tmp', 'release-gates');
+    const escapedReportPath = path.join(escapedReportDir, '2026-03-15_production_dpl_demo.md');
 
-  fs.mkdirSync(reportDir, { recursive: true });
-  fs.mkdirSync(pilotDir, { recursive: true });
-  fs.writeFileSync(path.join(pilotDir, 'PILOT_EVIDENCE_INDEX_TEMPLATE.md'), '# Template\n', 'utf8');
-  fs.writeFileSync(
-    path.join(reportDir, '2026-03-15_production_dpl_demo.md'),
-    '# Release Gate\n',
-    'utf8'
-  );
+    fs.mkdirSync(escapedReportDir, { recursive: true });
+    fs.writeFileSync(escapedReportPath, '# Release Gate\n', 'utf8');
 
-  assert.throws(
-    () =>
-      createPilotEntryArtifacts({
-        rootDir: tempDir,
-        pilotId: 'pilot-ks-week-1',
-        envName: 'production',
-        suite: 'all',
-        generatedAt: new Date('2026-03-15T10:11:12.000Z'),
-        reportPath: path.join(reportDir, '2026-03-15_production_dpl_demo.md'),
-        releaseVerdict: 'GO',
-      }),
-    /must stay under docs\//
-  );
+    assert.throws(
+      () =>
+        createPilotEntryArtifacts({
+          rootDir: tempDir,
+          pilotId: 'pilot-ks-week-1',
+          envName: 'production',
+          suite: 'all',
+          generatedAt: new Date('2026-03-15T10:11:12.000Z'),
+          reportPath: escapedReportPath,
+          releaseVerdict: 'GO',
+          releaseGateTemplatePath: fixture.templatePath,
+        }),
+      /must stay under docs\//
+    );
+  });
 });
