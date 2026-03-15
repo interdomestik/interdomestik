@@ -21,8 +21,8 @@ import {
 } from '@/components/ops/adapters/membership';
 import { useOpsSelectionParam } from '@/components/ops/useOpsSelectionParam';
 import { useMediaQuery } from '@/hooks/use-media-query';
+import { Link } from '@/i18n/routing';
 import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
