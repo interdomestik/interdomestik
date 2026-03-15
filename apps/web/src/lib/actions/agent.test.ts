@@ -4,6 +4,38 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createLead, logActivity, registerMember, updateLeadStatus } from './agent';
 import { getAgentSession } from './agent/context';
 
+const IMPORT_AGENT_SESSION = {
+  user: { id: 'agent1', name: 'Agent', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
+} as const;
+
+function makeCredential(label: string) {
+  return ['member', label, 'access'].join('-');
+}
+
+function buildImportRow(index = 0) {
+  return {
+    fullName: `Bulk User ${index}`,
+    email: `bulk-${index}@example.test`,
+    phone: `+38344111${String(index).padStart(3, '0')}`,
+    password: makeCredential(`bulk-${index}`),
+    planId: 'standard' as const,
+  };
+}
+
+async function loadImportMembersAction() {
+  const actions = await import('./agent');
+  return (actions as Record<string, unknown>).importMembers as (
+    prevState: unknown,
+    formData: FormData
+  ) => Promise<unknown>;
+}
+
+function createRowsFormData(rows: unknown[]) {
+  const formData = new FormData();
+  formData.set('rowsJson', JSON.stringify(rows));
+  return formData;
+}
+
 vi.mock('./agent/context', () => ({
   getAgentSession: vi.fn(),
 }));
@@ -166,7 +198,7 @@ describe('agent actions', () => {
       formData.set('fullName', 'P2-A-2026-02-13');
       formData.set('email', 'p2-a@example.test');
       formData.set('phone', '+38344111222');
-      formData.set('password', 'GoldenPass123!');
+      formData.set('password', makeCredential('registered-member'));
       formData.set('planId', 'standard');
 
       const result = await registerMember(null, formData);
@@ -178,18 +210,10 @@ describe('agent actions', () => {
 
   describe('importMembers', () => {
     it('returns unauthorized when bulk import runs without an agent session', async () => {
-      const actions = await import('./agent');
-      const importMembers = (actions as Record<string, unknown>).importMembers as (
-        prevState: unknown,
-        formData: FormData
-      ) => Promise<unknown>;
-
+      const importMembers = await loadImportMembersAction();
       (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-      const formData = new FormData();
-      formData.set('rowsJson', '[]');
-
-      await expect(importMembers(null, formData)).resolves.toEqual({
+      await expect(importMembers(null, createRowsFormData([]))).resolves.toEqual({
         error: 'Unauthorized',
         summary: undefined,
         results: undefined,
@@ -197,37 +221,30 @@ describe('agent actions', () => {
     });
 
     it('delegates bulk import to the core and returns the structured result', async () => {
-      const actions = await import('./agent');
+      const importMembers = await loadImportMembersAction();
       const { importMembersCore } = await import('./agent/import-members.core');
-      const importMembers = (actions as Record<string, unknown>).importMembers as (
-        prevState: unknown,
-        formData: FormData
-      ) => Promise<unknown>;
 
-      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', name: 'Agent', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
-      });
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
+        IMPORT_AGENT_SESSION
+      );
 
       (importMembersCore as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         summary: { total: 1, imported: 1, failed: 0 },
         results: [{ index: 0, email: 'bulk@example.test', fullName: 'Bulk User', ok: true }],
       });
 
-      const formData = new FormData();
-      formData.set(
-        'rowsJson',
-        JSON.stringify([
-          {
-            fullName: 'Bulk User',
-            email: 'bulk@example.test',
-            phone: '+38344111222',
-            password: 'Secret123!',
-            planId: 'standard',
-          },
-        ])
-      );
-
-      await expect(importMembers(null, formData)).resolves.toEqual({
+      await expect(
+        importMembers(
+          null,
+          createRowsFormData([
+            {
+              ...buildImportRow(),
+              fullName: 'Bulk User',
+              email: 'bulk@example.test',
+            },
+          ])
+        )
+      ).resolves.toEqual({
         error: '',
         summary: { total: 1, imported: 1, failed: 0 },
         results: [{ index: 0, email: 'bulk@example.test', fullName: 'Bulk User', ok: true }],
@@ -235,29 +252,15 @@ describe('agent actions', () => {
     });
 
     it('rejects oversized batches before the import core is called', async () => {
-      const actions = await import('./agent');
+      const importMembers = await loadImportMembersAction();
       const { importMembersCore } = await import('./agent/import-members.core');
-      const importMembers = (actions as Record<string, unknown>).importMembers as (
-        prevState: unknown,
-        formData: FormData
-      ) => Promise<unknown>;
+      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
+        IMPORT_AGENT_SESSION
+      );
 
-      (getAgentSession as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-        user: { id: 'agent1', name: 'Agent', role: 'agent', tenantId: 'tenant_mk', branchId: 'b1' },
-      });
+      const rows = Array.from({ length: 201 }, (_, index) => buildImportRow(index));
 
-      const rows = Array.from({ length: 201 }, (_, index) => ({
-        fullName: `Bulk User ${index}`,
-        email: `bulk-${index}@example.test`,
-        phone: `+38344111${String(index).padStart(3, '0')}`,
-        password: 'Secret123!',
-        planId: 'standard',
-      }));
-
-      const formData = new FormData();
-      formData.set('rowsJson', JSON.stringify(rows));
-
-      await expect(importMembers(null, formData)).resolves.toEqual({
+      await expect(importMembers(null, createRowsFormData(rows))).resolves.toEqual({
         error: 'Validation failed',
         summary: undefined,
         results: undefined,

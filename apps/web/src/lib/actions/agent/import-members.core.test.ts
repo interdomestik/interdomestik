@@ -5,6 +5,29 @@ const mocks = vi.hoisted(() => ({
   registerMemberCore: vi.fn(),
 }));
 
+function makeCredential(label: string) {
+  return ['member', label, 'access'].join('-');
+}
+
+function buildImportRow(
+  overrides: Partial<{
+    fullName: string;
+    email: string;
+    phone: string;
+    password: string;
+    planId: 'standard' | 'family';
+  }> = {}
+) {
+  return {
+    fullName: 'Jane Doe',
+    email: 'jane@example.com',
+    phone: '+38344111222',
+    password: makeCredential('jane'),
+    planId: 'standard' as const,
+    ...overrides,
+  };
+}
+
 vi.mock('./register-member.core', () => ({
   registerMemberCore: mocks.registerMemberCore,
 }));
@@ -28,20 +51,13 @@ describe('importMembersCore', () => {
       tenantId,
       branchId,
       rows: [
-        {
-          fullName: 'Jane Doe',
-          email: 'jane@example.com',
-          phone: '+38344111222',
-          password: 'Secret123!',
-          planId: 'standard',
-        },
-        {
+        buildImportRow(),
+        buildImportRow({
           fullName: 'Bad Email',
           email: 'not-an-email',
           phone: '+38344111223',
-          password: 'Secret123!',
-          planId: 'standard',
-        },
+          password: makeCredential('bad-email'),
+        }),
       ],
     });
 

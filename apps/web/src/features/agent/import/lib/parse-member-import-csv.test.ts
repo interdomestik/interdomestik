@@ -2,11 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { MAX_MEMBER_IMPORT_ROWS } from '@/lib/actions/agent/schemas';
 import { parseMemberImportCsv } from './parse-member-import-csv';
 
+function makeCredential(label: string) {
+  return ['member', label, 'access'].join('-');
+}
+
 describe('parseMemberImportCsv', () => {
   it('parses required columns and defaults planId to standard', () => {
     const csv = [
       'fullName,email,phone,password,planId',
-      'Jane Doe,jane@example.com,+38344111222,Secret123!,',
+      `Jane Doe,jane@example.com,+38344111222,${makeCredential('jane')},`,
     ].join('\n');
 
     expect(parseMemberImportCsv(csv)).toEqual({
@@ -16,7 +20,7 @@ describe('parseMemberImportCsv', () => {
           fullName: 'Jane Doe',
           email: 'jane@example.com',
           phone: '+38344111222',
-          password: 'Secret123!',
+          password: makeCredential('jane'),
           planId: 'standard',
           isValid: true,
           error: undefined,
@@ -56,7 +60,7 @@ describe('parseMemberImportCsv', () => {
   it('keeps commas inside quoted CSV fields', () => {
     const csv = [
       'fullName,email,phone,password,planId',
-      '"Doe, Jane",jane@example.com,+38344111222,Secret123!,family',
+      `"Doe, Jane",jane@example.com,+38344111222,${makeCredential('doe')},family`,
     ].join('\n');
 
     expect(parseMemberImportCsv(csv)).toEqual({
@@ -66,7 +70,7 @@ describe('parseMemberImportCsv', () => {
           fullName: 'Doe, Jane',
           email: 'jane@example.com',
           phone: '+38344111222',
-          password: 'Secret123!',
+          password: makeCredential('doe'),
           planId: 'family',
           isValid: true,
           error: undefined,
@@ -76,10 +80,10 @@ describe('parseMemberImportCsv', () => {
   });
 
   it('rejects CSV files that exceed the maximum batch size', () => {
-    const row = 'Jane Doe,jane@example.com,+38344111222,Secret123!,standard';
+    const row = `Jane Doe,jane@example.com,+38344111222,${makeCredential('limit')},standard`;
     const csv = [
       'fullName,email,phone,password,planId',
-      ...Array(MAX_MEMBER_IMPORT_ROWS + 1).fill(row),
+      ...new Array(MAX_MEMBER_IMPORT_ROWS + 1).fill(row),
     ].join('\n');
 
     expect(parseMemberImportCsv(csv)).toEqual({
