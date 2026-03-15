@@ -55,6 +55,7 @@ const LOGIN_DEPENDENT_CHECKS = new Set([
   'P1.1',
   'P1.2',
   'P1.3',
+  'G07',
 ]);
 const INFRA_NETWORK_ERROR_PATTERNS = [
   /ECONNREFUSED/i,
@@ -198,6 +199,52 @@ async function resolveReachableBaseUrl(configuredBaseUrl, deployment) {
 
 function isLoginDependentCheck(checkId) {
   return LOGIN_DEPENDENT_CHECKS.has(checkId);
+}
+
+function buildCommercialPromiseScenarios(runCtx) {
+  return [
+    {
+      id: 'pricing',
+      account: null,
+      title: 'Pricing public contract',
+      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/pricing'),
+      requiredTestIds: [
+        'pricing-commercial-disclaimers',
+        'pricing-success-fee-calculator',
+        'pricing-billing-terms',
+        'pricing-coverage-matrix',
+      ],
+    },
+    {
+      id: 'register',
+      account: null,
+      title: 'Register checkout-adjacent commercial contract',
+      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/register'),
+      requiredTestIds: [
+        'register-success-fee-calculator',
+        'register-billing-terms',
+        'register-coverage-matrix',
+      ],
+    },
+    {
+      id: 'services',
+      account: null,
+      title: 'Services promise boundaries',
+      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/services'),
+      requiredTestIds: ['services-commercial-disclaimers', 'services-coverage-matrix'],
+    },
+    {
+      id: 'membership',
+      account: 'member',
+      title: 'Member commercial continuity',
+      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/member/membership'),
+      requiredTestIds: ['membership-commercial-disclaimers', 'membership-coverage-matrix'],
+    },
+  ];
+}
+
+function findMissingCommercialPromiseSections(requiredTestIds, observedByTestId) {
+  return requiredTestIds.filter(testId => observedByTestId[testId] !== true);
 }
 
 function resolveTenantOverrideProbeUrl(runCtx) {
@@ -1720,6 +1767,73 @@ async function runP13(browser, runCtx) {
   return checkResult('P1.3', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
 }
 
+async function runG07(browser, runCtx) {
+  const evidence = [];
+  const signatures = [];
+  const scenarios = buildCommercialPromiseScenarios(runCtx);
+
+  for (const scenario of scenarios) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    try {
+      await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
+
+      if (scenario.account) {
+        await loginAs(page, {
+          account: scenario.account,
+          credentials: runCtx.credentials[scenario.account],
+          baseUrl: runCtx.baseUrl,
+          locale: runCtx.locale,
+          authState: runCtx.authState,
+        });
+      }
+
+      await page.goto(scenario.url, {
+        waitUntil: 'domcontentloaded',
+        timeout: TIMEOUTS.nav,
+      });
+
+      const observedByTestId = {};
+      for (const testId of scenario.requiredTestIds) {
+        const visible = await page
+          .getByTestId(testId)
+          .isVisible({ timeout: TIMEOUTS.marker })
+          .catch(() => false);
+        observedByTestId[testId] = visible;
+      }
+
+      const missing = findMissingCommercialPromiseSections(
+        scenario.requiredTestIds,
+        observedByTestId
+      );
+      const observedSummary = scenario.requiredTestIds
+        .map(testId => `${testId}=${observedByTestId[testId] === true}`)
+        .join(',');
+
+      evidence.push(
+        `scenario=${scenario.id} account=${scenario.account || 'public'} missing=${
+          missing.join(',') || 'none'
+        } observed=${observedSummary}`
+      );
+
+      if (missing.length > 0) {
+        signatures.push(
+          `G07_COMMERCIAL_PROMISE_SURFACE_MISSING scenario=${scenario.id} missing=${missing.join(',')}`
+        );
+      }
+    } catch (error) {
+      signatures.push(
+        `G07_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
+      );
+    } finally {
+      await context.close();
+    }
+  }
+
+  return checkResult('G07', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
+}
+
 function runVercelLogsSweep(runCtx) {
   const evidence = [];
   const signatures = [];
@@ -2036,6 +2150,7 @@ async function main() {
         if (selected.includes('P1.2')) checks.push(memberChecks[1]);
       }
       if (selected.includes('P1.3')) checks.push(await runP13(browser, runCtx));
+      if (selected.includes('G07')) checks.push(await runG07(browser, runCtx));
       if (selected.includes('P1.5.1')) checks.push(runVercelLogsSweep(runCtx));
     } else if (selected.includes('P1.5.1')) {
       checks.push(runVercelLogsSweep(runCtx));
@@ -2087,11 +2202,13 @@ async function main() {
 }
 
 module.exports = {
+  buildCommercialPromiseScenarios,
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
   computeRetryDelayMs,
   evaluateCredentialPreflightResults,
   enforceNoSkipOnSelectedChecks,
+  findMissingCommercialPromiseSections,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,

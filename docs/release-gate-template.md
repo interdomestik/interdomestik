@@ -26,6 +26,7 @@ This release gate covers:
 - Cross-tenant isolation
 - Evidence upload signing + persistence
 - Staff claim update persistence
+- Commercial promise surfaces
 - Production error log sweep
 
 ## Test Accounts Used
@@ -114,6 +115,21 @@ Evidence markers:
 
 - status marker: <...>
 - note marker/testid: <staff-claim-detail-note> (or equivalent)
+
+---
+
+# P6 — RC Gate
+
+## G07 Commercial Promise Surfaces
+
+**Result:** <PASS/FAIL>
+
+Observed:
+
+- /pricing: disclaimers, success-fee calculator, billing terms, coverage matrix <present/missing>
+- /register: success-fee calculator, billing terms, coverage matrix <present/missing>
+- /services: disclaimers, coverage matrix <present/missing>
+- /member/membership: disclaimers, coverage matrix <present/missing>
 
 ---
 

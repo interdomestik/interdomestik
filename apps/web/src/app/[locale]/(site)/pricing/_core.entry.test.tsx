@@ -58,6 +58,7 @@ describe('PricingPage server shell', () => {
       rowKey: 'coverageMatrix.rows.vehicle.title',
       sectionTestId: 'pricing-coverage-matrix',
     });
+    expect(screen.getByTestId('pricing-commercial-disclaimers')).toBeInTheDocument();
     expectSuccessFeeCalculator({ sectionTestId: 'pricing-success-fee-calculator' });
     expectCommercialTerms({ sectionTestId: 'pricing-billing-terms' });
     expect(screen.getByText('pricing.disclaimers.freeStart.title')).toBeInTheDocument();

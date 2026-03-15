@@ -77,6 +77,7 @@ function writeReleaseGateReport(input) {
   const p12 = getCheck(input.checks, 'P1.2');
   const p13 = getCheck(input.checks, 'P1.3');
   const p151 = getCheck(input.checks, 'P1.5.1');
+  const g07 = getCheck(input.checks, 'G07');
 
   const failingSignatures = input.checks.flatMap(check => check.signatures || []);
   const verdict = failingSignatures.length > 0 ? 'NO-GO' : 'GO';
@@ -118,6 +119,7 @@ function writeReleaseGateReport(input) {
     '- Admin role add/remove',
     '- Evidence upload/download + persistence',
     '- Staff claim update persistence',
+    '- Commercial promise surfaces (coverage, fees, disclaimers, refund terms)',
     '- Production error log sweep',
     '',
     '## Test Accounts Used',
@@ -190,6 +192,17 @@ function writeReleaseGateReport(input) {
     '',
     'Observed:',
     ...asList(p13.evidence),
+    '',
+    '---',
+    '',
+    '# P6 — RC Gate',
+    '',
+    '## G07 Commercial Promise Surfaces',
+    '',
+    `**Result:** ${renderCheckResult(g07)}`,
+    '',
+    'Observed:',
+    ...asList(g07.evidence),
     '',
     '---',
     '',
