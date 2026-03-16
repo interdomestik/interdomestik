@@ -292,22 +292,61 @@ export async function cleanupByPrefixes(
         );
     }
 
-    // 7e. Delete Documents uploaded by these users
-    if (dbSchema.documents) {
-      const userDocIds = await db
-        .select({ id: dbSchema.documents.id })
-        .from(dbSchema.documents)
-        .where(inArray(dbSchema.documents.uploadedBy, allUserIds));
+    // 7e. Delete Documents uploaded by these users.
+    // AI provenance tables reference documents with ON DELETE NO ACTION, so they must be
+    // cleaned up before deleting the document rows themselves.
+    const docIds =
+      dbSchema.documents == null
+        ? []
+        : (
+            await db
+              .select({ id: dbSchema.documents.id })
+              .from(dbSchema.documents)
+              .where(inArray(dbSchema.documents.uploadedBy, allUserIds))
+          ).map(d => d.id);
 
-      const docIds = userDocIds.map(d => d.id);
-      if (docIds.length > 0) {
-        if (dbSchema.documentAccessLog) {
-          await db
-            .delete(dbSchema.documentAccessLog)
-            .where(inArray(dbSchema.documentAccessLog.documentId, docIds));
-        }
-        await db.delete(dbSchema.documents).where(inArray(dbSchema.documents.id, docIds));
+    const aiRunFilters = [];
+    if (docIds.length > 0 && dbSchema.aiRuns) {
+      aiRunFilters.push(inArray(dbSchema.aiRuns.documentId, docIds));
+    }
+    if (dbSchema.aiRuns) {
+      aiRunFilters.push(inArray(dbSchema.aiRuns.requestedBy, allUserIds));
+      aiRunFilters.push(inArray(dbSchema.aiRuns.reviewedBy, allUserIds));
+    }
+
+    const aiRunIds =
+      dbSchema.aiRuns == null || aiRunFilters.length === 0
+        ? []
+        : (
+            await db
+              .select({ id: dbSchema.aiRuns.id })
+              .from(dbSchema.aiRuns)
+              .where(or(...aiRunFilters))
+          ).map(run => run.id);
+
+    const extractionFilters = [];
+    if (docIds.length > 0 && dbSchema.documentExtractions) {
+      extractionFilters.push(inArray(dbSchema.documentExtractions.documentId, docIds));
+    }
+    if (aiRunIds.length > 0 && dbSchema.documentExtractions) {
+      extractionFilters.push(inArray(dbSchema.documentExtractions.sourceRunId, aiRunIds));
+    }
+
+    if (dbSchema.documentExtractions && extractionFilters.length > 0) {
+      await db.delete(dbSchema.documentExtractions).where(or(...extractionFilters));
+    }
+
+    if (dbSchema.aiRuns && aiRunIds.length > 0) {
+      await db.delete(dbSchema.aiRuns).where(inArray(dbSchema.aiRuns.id, aiRunIds));
+    }
+
+    if (dbSchema.documents && docIds.length > 0) {
+      if (dbSchema.documentAccessLog) {
+        await db
+          .delete(dbSchema.documentAccessLog)
+          .where(inArray(dbSchema.documentAccessLog.documentId, docIds));
       }
+      await db.delete(dbSchema.documents).where(inArray(dbSchema.documents.id, docIds));
     }
 
     // 7f. Delete Share Packs created by these users

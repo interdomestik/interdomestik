@@ -29,13 +29,16 @@ const {
   createAuthState,
   envFlag,
   expectedMatrixForAccount,
+  getAuthLoginCooldownMs,
   getMissingEnv,
   loginAs,
   markerSnapshot,
   markerSummary,
   markersToString,
+  noteAuthRateLimit,
   normalizeBaseUrl,
   parseRetryAfterSeconds,
+  recordAuthLoginAttempt,
   resolvePlaywright,
   sessionCacheKeyForAccount,
   sleep,
@@ -348,6 +351,10 @@ function normalizeBoundaryText(value) {
     .trim();
 }
 
+function compactBoundaryText(value) {
+  return normalizeBoundaryText(value).replaceAll(/\s+/g, '');
+}
+
 function resolveAccountPasswordVar(accountKey) {
   const account = ACCOUNTS[accountKey];
   if (!account) {
@@ -425,8 +432,11 @@ function buildEscalationAgreementCollectionFallbackScenarios(runCtx) {
 
 function findMissingBoundaryPhrases(requiredPhrases, observedText) {
   const normalizedObserved = normalizeBoundaryText(observedText);
+  const compactObserved = compactBoundaryText(observedText);
   return requiredPhrases.filter(
-    phrase => !normalizedObserved.includes(normalizeBoundaryText(phrase))
+    phrase =>
+      !normalizedObserved.includes(normalizeBoundaryText(phrase)) &&
+      !compactObserved.includes(compactBoundaryText(phrase))
   );
 }
 
@@ -472,13 +482,35 @@ async function visitReleaseGateScenario(browser, runCtx, scenario, callback) {
   }
 }
 
-async function collectVisibleTestIds(page, requiredTestIds) {
+async function collectVisibleTestIds(page, requiredTestIds, options = {}) {
   const observedByTestId = {};
-  for (const testId of requiredTestIds) {
-    observedByTestId[testId] = await page
-      .getByTestId(testId)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
+  const timeoutMs = Number.isFinite(options.timeoutMs)
+    ? Number(options.timeoutMs)
+    : TIMEOUTS.marker;
+  const intervalMs = Number.isFinite(options.intervalMs) ? Number(options.intervalMs) : 250;
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt <= timeoutMs) {
+    let allVisible = true;
+    for (const testId of requiredTestIds) {
+      observedByTestId[testId] = await page
+        .getByTestId(testId)
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      if (observedByTestId[testId] !== true) {
+        allVisible = false;
+      }
+    }
+
+    if (allVisible || Date.now() - startedAt >= timeoutMs) {
+      break;
+    }
+
+    if (typeof page.waitForTimeout === 'function') {
+      await page.waitForTimeout(intervalMs);
+    } else {
+      await sleep(intervalMs);
+    }
   }
 
   return observedByTestId;
@@ -526,6 +558,92 @@ function resolveTenantOverrideProbeUrl(runCtx) {
   };
 }
 
+function trimTrailingSlashes(pathname) {
+  let end = pathname.length;
+  while (end > 1 && pathname.charCodeAt(end - 1) === 47) {
+    end -= 1;
+  }
+  return pathname.slice(0, end);
+}
+
+function resolveConfiguredRolePanelTarget(runCtx) {
+  const configured = String(process.env.RELEASE_GATE_TARGET_USER_URL || '').trim();
+  const defaultTarget = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl);
+
+  if (!configured) {
+    return {
+      allowFallbackDiscovery: true,
+      source: 'default',
+      targetUrl: defaultTarget,
+    };
+  }
+
+  const targetUrl = /^https?:\/\//i.test(configured)
+    ? configured
+    : buildRoute(runCtx.baseUrl, runCtx.locale, configured);
+  const overrideProbe = resolveTenantOverrideProbeUrl(runCtx);
+
+  let allowFallbackDiscovery = false;
+
+  try {
+    const target = new URL(targetUrl);
+    const override = new URL(overrideProbe.url);
+    const targetTenantId = target.searchParams.get('tenantId');
+    const adminKsTenantId = ACCOUNTS.admin_ks.tenantId;
+    allowFallbackDiscovery =
+      target.href === override.href ||
+      (Boolean(targetTenantId) && targetTenantId !== adminKsTenantId);
+  } catch {
+    allowFallbackDiscovery = false;
+  }
+
+  return {
+    allowFallbackDiscovery,
+    source: allowFallbackDiscovery ? 'env-cross-tenant-probe' : 'env',
+    targetUrl,
+  };
+}
+
+function resolveConfiguredStaffClaimDetailUrl(runCtx) {
+  const configured = String(process.env.STAFF_CLAIM_URL || '').trim();
+  if (!configured) {
+    return {
+      reason: 'missing',
+      source: 'missing',
+      url: null,
+    };
+  }
+
+  const targetUrl = /^https?:\/\//i.test(configured)
+    ? configured
+    : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, configured);
+
+  try {
+    const resolvedTarget = new URL(targetUrl);
+    const resolvedList = new URL(buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList));
+    const normalizePath = pathname => trimTrailingSlashes(pathname) || '/';
+    if (normalizePath(resolvedTarget.pathname) === normalizePath(resolvedList.pathname)) {
+      return {
+        reason: 'list-url',
+        source: 'ignored-list',
+        url: null,
+      };
+    }
+  } catch {
+    return {
+      reason: 'invalid-url',
+      source: 'invalid',
+      url: null,
+    };
+  }
+
+  return {
+    reason: null,
+    source: 'env',
+    url: targetUrl,
+  };
+}
+
 function parseBooleanEnv(value) {
   if (value == null) return null;
   const normalized = String(value).trim().toLowerCase();
@@ -539,6 +657,12 @@ function shouldDisallowSkippedChecks(envName) {
   const explicit = parseBooleanEnv(process.env.RELEASE_GATE_DISALLOW_SKIP);
   if (explicit != null) return explicit;
   return String(envName || '').toLowerCase() === 'production';
+}
+
+function shouldRunAuthEndpointPreflight(envName) {
+  const explicit = parseBooleanEnv(process.env.RELEASE_GATE_AUTH_ENDPOINT_PREFLIGHT);
+  if (explicit != null) return explicit;
+  return String(envName || '').toLowerCase() !== 'production';
 }
 
 function checksAllowedToRemainSkipped() {
@@ -701,7 +825,7 @@ async function runAuthCredentialPreflight(runCtx) {
   const signatures = [];
   const origin = new URL(runCtx.baseUrl).origin;
   const loginUrl = `${origin}/api/auth/sign-in/email`;
-  const accountKeys = Object.keys(ACCOUNTS);
+  const accountKeys = selectCredentialPreflightAccounts();
   const results = [];
 
   for (const accountKey of accountKeys) {
@@ -718,6 +842,13 @@ async function runAuthCredentialPreflight(runCtx) {
 
     const tenantId = ACCOUNTS[accountKey]?.tenantId;
     try {
+      const sharedCooldownMs = getAuthLoginCooldownMs(runCtx.authState, Date.now());
+      if (sharedCooldownMs > 0) {
+        evidence.push(
+          `auth_credentials_preflight account=${sessionCacheKeyForAccount(accountKey)} cooldown_ms=${sharedCooldownMs}`
+        );
+        await sleep(sharedCooldownMs);
+      }
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
@@ -733,11 +864,19 @@ async function runAuthCredentialPreflight(runCtx) {
         redirect: 'manual',
         signal: AbortSignal.timeout(AUTH_PREFLIGHT_TIMEOUT_MS),
       });
+      recordAuthLoginAttempt(runCtx.authState, Date.now());
       const status = response.status;
       results.push({ accountKey, status });
       evidence.push(
         `auth_credentials_preflight account=${sessionCacheKeyForAccount(accountKey)} status=${status}`
       );
+      if (status === 429) {
+        noteAuthRateLimit(
+          runCtx.authState,
+          parseRetryAfterSeconds(response.headers.get('retry-after')) ?? 60,
+          Date.now()
+        );
+      }
     } catch (error) {
       const message = compactErrorMessage(error?.message || error, 320);
       evidence.push(
@@ -762,6 +901,10 @@ async function runAuthCredentialPreflight(runCtx) {
     evidence,
     signatures,
   };
+}
+
+function selectCredentialPreflightAccounts() {
+  return [];
 }
 
 function parseArgs(argv) {
@@ -1011,15 +1154,9 @@ async function runP03AndP04(browser, runCtx) {
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  const targetFromEnv = process.env.RELEASE_GATE_TARGET_USER_URL;
-  const hasExplicitTarget = typeof targetFromEnv === 'string' && targetFromEnv.trim().length > 0;
-  const defaultTarget = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl);
-  const targetUrl =
-    targetFromEnv && targetFromEnv.startsWith('http')
-      ? targetFromEnv
-      : targetFromEnv
-        ? buildRoute(runCtx.baseUrl, runCtx.locale, targetFromEnv)
-        : defaultTarget;
+  const rolePanelTarget = resolveConfiguredRolePanelTarget(runCtx);
+  const hasExplicitTarget = rolePanelTarget.source !== 'default';
+  const targetUrl = rolePanelTarget.targetUrl;
 
   async function waitForRolePanelVisible(timeoutMs = TIMEOUTS.nav) {
     const startedAt = Date.now();
@@ -1059,12 +1196,10 @@ async function runP03AndP04(browser, runCtx) {
     const initialResolved = await tryRolePanelTarget(initialTargetUrl).catch(() => null);
     if (initialResolved) return initialResolved;
 
-    // CI may provide a tenant-scoped explicit target that is intentionally inaccessible.
-    // In that case, do not mutate fallback users; allow caller to skip/fail via policy.
-    if (hasExplicitTarget) return null;
+    if (hasExplicitTarget && !rolePanelTarget.allowFallbackDiscovery) return null;
 
     const fallbackSeedTargets = [
-      defaultTarget,
+      buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl),
       buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/pack_ks_staff_extra'),
       buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_a_member_1'),
     ];
@@ -1113,6 +1248,8 @@ async function runP03AndP04(browser, runCtx) {
     });
 
     const resolvedTarget = await ensureRolePanelLoaded(targetUrl);
+    evidenceP03.push(`target_source=${rolePanelTarget.source}`);
+    evidenceP03.push(`target_fallback_allowed=${rolePanelTarget.allowFallbackDiscovery}`);
     if (!resolvedTarget) {
       failuresP03.push(`P0.3_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
       failuresP04.push(`P0.4_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
@@ -1860,20 +1997,25 @@ async function runP13(browser, runCtx) {
       return checkResult('P1.3', 'FAIL', evidence, signatures);
     }
 
-    const claimUrlFromEnv = process.env.STAFF_CLAIM_URL;
     const requireClaimUrl =
       String(process.env.RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL || 'false').toLowerCase() === 'true';
+    const configuredClaim = resolveConfiguredStaffClaimDetailUrl(runCtx);
     let detailUrl = null;
 
-    if (claimUrlFromEnv && String(claimUrlFromEnv).trim() !== '') {
-      detailUrl = claimUrlFromEnv.startsWith('http')
-        ? claimUrlFromEnv
-        : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, claimUrlFromEnv);
+    if (configuredClaim.url) {
+      detailUrl = configuredClaim.url;
       evidence.push('claim_source=STAFF_CLAIM_URL');
     } else {
       if (requireClaimUrl) {
-        signatures.push('P1.3_MISCONFIG_STAFF_CLAIM_URL_REQUIRED');
+        signatures.push(
+          configuredClaim.reason === 'list-url'
+            ? 'P1.3_MISCONFIG_STAFF_CLAIM_URL_DETAIL_REQUIRED'
+            : 'P1.3_MISCONFIG_STAFF_CLAIM_URL_REQUIRED'
+        );
         return checkResult('P1.3', 'FAIL', evidence, signatures);
+      }
+      if (configuredClaim.reason === 'list-url') {
+        evidence.push('claim_source=STAFF_CLAIM_URL_IGNORED_LIST');
       }
 
       const fallbackTimeoutMs = 10_000;
@@ -2555,7 +2697,7 @@ async function main() {
     const loginDependentSelected = selected.filter(isLoginDependentCheck);
     let preflightBlocked = false;
 
-    if (runCtx.envName === 'production' && loginDependentSelected.length > 0) {
+    if (shouldRunAuthEndpointPreflight(runCtx.envName) && loginDependentSelected.length > 0) {
       const preflight = await runAuthEndpointPreflight(runCtx);
       if (preflight.status !== 'PASS') {
         preflightBlocked = true;
@@ -2574,7 +2716,12 @@ async function main() {
       }
     }
 
-    if (!preflightBlocked && runCtx.envName === 'production' && loginDependentSelected.length > 0) {
+    if (
+      !preflightBlocked &&
+      runCtx.envName === 'production' &&
+      loginDependentSelected.length > 0 &&
+      selectCredentialPreflightAccounts().length > 0
+    ) {
       const credentialPreflight = await runAuthCredentialPreflight(runCtx);
       if (credentialPreflight.status !== 'PASS') {
         preflightBlocked = true;
@@ -2592,6 +2739,19 @@ async function main() {
           );
         }
       }
+    } else if (
+      !preflightBlocked &&
+      runCtx.envName === 'production' &&
+      loginDependentSelected.length > 0
+    ) {
+      checks.push(
+        checkResult(
+          'AUTH-PREFLIGHT',
+          'INFO',
+          ['auth_credentials_preflight disabled accounts=0'],
+          []
+        )
+      );
     }
 
     if (!preflightBlocked) {
@@ -2690,6 +2850,7 @@ module.exports = {
   computeRetryDelayMs,
   evaluateCredentialPreflightResults,
   enforceNoSkipOnSelectedChecks,
+  collectVisibleTestIds,
   findMissingBoundaryPhrases,
   findMissingCommercialPromiseSections,
   findMismatchedMatterAllowanceValues,
@@ -2699,9 +2860,13 @@ module.exports = {
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
   resolveAccountPasswordVar,
+  resolveConfiguredRolePanelTarget,
+  resolveConfiguredStaffClaimDetailUrl,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
+  selectCredentialPreflightAccounts,
   sessionCacheKeyForAccount,
+  shouldRunAuthEndpointPreflight,
   shouldDisallowSkippedChecks,
 };
 

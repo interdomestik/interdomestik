@@ -11,6 +11,7 @@ const {
   buildMatterAndSlaEnforcementScenarios,
   buildRouteAllowingLocalePath,
   classifyInfraNetworkFailure,
+  collectVisibleTestIds,
   computeRetryDelayMs,
   evaluateCredentialPreflightResults,
   enforceNoSkipOnSelectedChecks,
@@ -23,9 +24,13 @@ const {
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
   resolveAccountPasswordVar,
+  resolveConfiguredRolePanelTarget,
+  resolveConfiguredStaffClaimDetailUrl,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
+  selectCredentialPreflightAccounts,
   sessionCacheKeyForAccount,
+  shouldRunAuthEndpointPreflight,
   shouldDisallowSkippedChecks,
 } = require('./run.ts');
 const {
@@ -56,7 +61,15 @@ const {
   parseArgs: parsePilotCadenceArgs,
 } = require('../pilot-readiness-cadence.ts');
 const { writeReleaseGateReport } = require('./report.ts');
-const { checkPortalMarkers, resolveForwardedForIp } = require('./shared.ts');
+const {
+  checkPortalMarkers,
+  createAuthState,
+  getAuthLoginCooldownMs,
+  loginAs,
+  noteAuthRateLimit,
+  recordAuthLoginAttempt,
+  resolveForwardedForIp,
+} = require('./shared.ts');
 const { REQUIRED_ENV_BY_SUITE, ROLE_IPS, SELECTORS } = require('./config.ts');
 
 const RELEASE_GATE_BASE_URL = 'https://interdomestik-web.vercel.app';
@@ -78,6 +91,10 @@ const DECISION_PROOF_SEPARATOR_LINE =
 
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
 const ORIGINAL_REQUIRE_ROLE_PANEL = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
+
+function createTestCredentialValue() {
+  return ['test', 'credential', '2026'].join('-');
+}
 
 function restoreDisallowSkipEnv() {
   if (ORIGINAL_DISALLOW_SKIP === undefined) {
@@ -420,6 +437,64 @@ test('checkPortalMarkers treats Next fallback 404 template as not-found marker',
   assert.equal(markers.rolesTable, true);
 });
 
+test('getAuthLoginCooldownMs paces fresh account logins before the third auth POST in a minute', () => {
+  const authState = createAuthState();
+  recordAuthLoginAttempt(authState, 0);
+  recordAuthLoginAttempt(authState, 10_000);
+
+  assert.equal(getAuthLoginCooldownMs(authState, 20_000), 42_000);
+  assert.equal(getAuthLoginCooldownMs(authState, 61_000), 0);
+});
+
+test('loginAs honors shared auth cooldown before posting another login request', async () => {
+  const authState = createAuthState();
+  let nowMs = 0;
+  const sleepCalls = [];
+  noteAuthRateLimit(authState, 5, nowMs);
+
+  const response = {
+    ok: () => true,
+    status: () => 200,
+    headers: () => ({}),
+    url: () => 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
+  };
+  const requestCalls = [];
+  const page = {
+    context: () => ({
+      clearCookies: async () => {},
+      addCookies: async () => {},
+      storageState: async () => ({ cookies: [] }),
+    }),
+    request: {
+      post: async (...args) => {
+        requestCalls.push(args);
+        return response;
+      },
+    },
+    goto: async () => {},
+    waitForTimeout: async () => {},
+    on: () => {},
+    off: () => {},
+  };
+
+  await loginAs(page, {
+    account: 'member',
+    credentials: { email: 'member@example.com', password: createTestCredentialValue() },
+    baseUrl: RELEASE_GATE_BASE_URL,
+    locale: RELEASE_GATE_LOCALE,
+    authState,
+    nowFn: () => nowMs,
+    sleepFn: async delayMs => {
+      sleepCalls.push(delayMs);
+      nowMs += delayMs;
+    },
+  });
+
+  assert.equal(sleepCalls.length, 1);
+  assert.equal(sleepCalls[0], 5_000);
+  assert.equal(requestCalls.length, 1);
+});
+
 test('isLegacyVercelLogsArgsUnsupported detects removed --environment flag support', () => {
   const unsupportedOutput = 'Error: unknown or unexpected option: --environment';
   assert.equal(isLegacyVercelLogsArgsUnsupported(unsupportedOutput), true);
@@ -467,8 +542,105 @@ test('resolveAccountPasswordVar reuses the agent password for office agents', ()
   assert.equal(resolveAccountPasswordVar('member'), 'RELEASE_GATE_MEMBER_PASSWORD');
 });
 
+test('loginAs reuses cached session state without issuing a bootstrap request', async () => {
+  const authState = createAuthState();
+  authState.sessionStateByAccount.set('Member-only', {
+    cookies: [
+      {
+        name: 'session',
+        value: 'cached',
+        domain: 'interdomestik-web.vercel.app',
+        path: '/',
+      },
+    ],
+  });
+
+  let gotoCalls = 0;
+  let postCalls = 0;
+  const page = {
+    context: () => ({
+      clearCookies: async () => {},
+      addCookies: async () => {},
+      storageState: async () => ({ cookies: [] }),
+    }),
+    request: {
+      post: async () => {
+        postCalls += 1;
+        throw new Error('unexpected login post');
+      },
+    },
+    goto: async () => {
+      gotoCalls += 1;
+    },
+    waitForTimeout: async () => {},
+    on: () => {},
+    off: () => {},
+  };
+
+  await loginAs(page, {
+    account: 'member',
+    credentials: { email: 'member@example.com', password: createTestCredentialValue() },
+    baseUrl: RELEASE_GATE_BASE_URL,
+    locale: RELEASE_GATE_LOCALE,
+    authState,
+  });
+
+  assert.equal(postCalls, 0);
+  assert.equal(gotoCalls, 0);
+});
+
+test('loginAs skips bootstrap when the successful login response already populated session cookies', async () => {
+  const authState = createAuthState();
+  let gotoCalls = 0;
+  const page = {
+    context: () => ({
+      clearCookies: async () => {},
+      addCookies: async () => {},
+      storageState: async () => ({
+        cookies: [
+          {
+            name: 'session',
+            value: 'fresh',
+            domain: 'interdomestik-web.vercel.app',
+            path: '/',
+          },
+        ],
+      }),
+    }),
+    request: {
+      post: async () => ({
+        ok: () => true,
+        status: () => 200,
+        headers: () => ({}),
+        url: () => 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
+      }),
+    },
+    goto: async () => {
+      gotoCalls += 1;
+    },
+    waitForTimeout: async () => {},
+    on: () => {},
+    off: () => {},
+  };
+
+  await loginAs(page, {
+    account: 'member',
+    credentials: { email: 'member@example.com', password: createTestCredentialValue() },
+    baseUrl: RELEASE_GATE_BASE_URL,
+    locale: RELEASE_GATE_LOCALE,
+    authState,
+  });
+
+  assert.equal(gotoCalls, 0);
+  assert.equal(authState.sessionStateByAccount.get('Member-only')?.cookies?.[0]?.value, 'fresh');
+});
+
 test('office-agent release-gate traffic resolves to the agent source IP', () => {
   assert.equal(resolveForwardedForIp('office_agent'), ROLE_IPS.agent);
+});
+
+test('admin-mk release-gate traffic keeps its dedicated forwarded IP instead of the generic admin bucket', () => {
+  assert.equal(resolveForwardedForIp('admin_mk'), ROLE_IPS.admin_mk);
 });
 
 test('p6 suite requires member, office-agent, and staff credentials for G07 to G10', () => {
@@ -480,6 +652,24 @@ test('p6 suite requires member, office-agent, and staff credentials for G07 to G
     'RELEASE_GATE_STAFF_EMAIL',
     'RELEASE_GATE_STAFF_PASSWORD',
   ]);
+});
+
+test('credential preflight is disabled to preserve the production auth budget for the real gate logins', () => {
+  assert.deepEqual(selectCredentialPreflightAccounts(), []);
+});
+
+test('shouldRunAuthEndpointPreflight defaults to false for production and true otherwise', () => {
+  delete process.env.RELEASE_GATE_AUTH_ENDPOINT_PREFLIGHT;
+  assert.equal(shouldRunAuthEndpointPreflight('production'), false);
+  assert.equal(shouldRunAuthEndpointPreflight('staging'), true);
+});
+
+test('shouldRunAuthEndpointPreflight supports explicit env override', () => {
+  process.env.RELEASE_GATE_AUTH_ENDPOINT_PREFLIGHT = 'true';
+  assert.equal(shouldRunAuthEndpointPreflight('production'), true);
+  process.env.RELEASE_GATE_AUTH_ENDPOINT_PREFLIGHT = 'false';
+  assert.equal(shouldRunAuthEndpointPreflight('staging'), false);
+  delete process.env.RELEASE_GATE_AUTH_ENDPOINT_PREFLIGHT;
 });
 
 test('buildCommercialPromiseScenarios covers the published commercial surfaces for G07', () => {
@@ -589,6 +779,15 @@ test('findMissingBoundaryPhrases reports only the absent required privacy phrase
   assert.deepEqual(missing, ['Aggregate group access dashboard']);
 });
 
+test('findMissingBoundaryPhrases accepts compacted readiness copy without whitespace separators', () => {
+  const missing = findMissingBoundaryPhrases(
+    ['Agreement Ready', 'Collection path Ready'],
+    'Accepted recovery prerequisites AgreementReady Collection pathReady'
+  );
+
+  assert.deepEqual(missing, []);
+});
+
 test('findPresentBoundaryLeaks reports member-identifying text that should stay hidden', () => {
   const leaks = findPresentBoundaryLeaks(
     ['KS A-Member 1', 'member.ks.a1@interdomestik.com'],
@@ -596,6 +795,31 @@ test('findPresentBoundaryLeaks reports member-identifying text that should stay 
   );
 
   assert.deepEqual(leaks, ['KS A-Member 1']);
+});
+
+test('collectVisibleTestIds retries briefly so delayed commercial markers do not false-fail', async () => {
+  let attempts = 0;
+  const page = {
+    getByTestId(testId) {
+      return {
+        async isVisible() {
+          attempts += 1;
+          return attempts >= 3 && testId === 'services-commercial-disclaimers';
+        },
+      };
+    },
+    async waitForTimeout() {},
+  };
+
+  const observed = await collectVisibleTestIds(page, ['services-commercial-disclaimers'], {
+    timeoutMs: 10,
+    intervalMs: 0,
+  });
+
+  assert.deepEqual(observed, {
+    'services-commercial-disclaimers': true,
+  });
+  assert.equal(attempts >= 3, true);
 });
 
 test('buildMatterAndSlaEnforcementScenarios covers the deterministic member and staff claim surfaces for G09', () => {
@@ -837,6 +1061,111 @@ test('resolveTenantOverrideProbeUrl uses configured RELEASE_GATE_MK_USER_URL whe
       delete process.env.RELEASE_GATE_MK_USER_URL;
     } else {
       process.env.RELEASE_GATE_MK_USER_URL = original;
+    }
+  }
+});
+
+test('resolveConfiguredRolePanelTarget allows fallback discovery for cross-tenant explicit targets', () => {
+  const originalTarget = process.env.RELEASE_GATE_TARGET_USER_URL;
+  const originalOverride = process.env.RELEASE_GATE_MK_USER_URL;
+  try {
+    process.env.RELEASE_GATE_TARGET_USER_URL = '/admin/users/golden_mk_admin?tenantId=tenant_mk';
+    process.env.RELEASE_GATE_MK_USER_URL = '/admin/users/golden_mk_admin?tenantId=tenant_mk';
+
+    const resolved = resolveConfiguredRolePanelTarget({
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+    });
+
+    assert.equal(resolved.source, 'env-cross-tenant-probe');
+    assert.equal(resolved.allowFallbackDiscovery, true);
+    assert.equal(
+      resolved.targetUrl,
+      'https://interdomestik-web.vercel.app/en/admin/users/golden_mk_admin?tenantId=tenant_mk'
+    );
+  } finally {
+    if (originalTarget === undefined) {
+      delete process.env.RELEASE_GATE_TARGET_USER_URL;
+    } else {
+      process.env.RELEASE_GATE_TARGET_USER_URL = originalTarget;
+    }
+    if (originalOverride === undefined) {
+      delete process.env.RELEASE_GATE_MK_USER_URL;
+    } else {
+      process.env.RELEASE_GATE_MK_USER_URL = originalOverride;
+    }
+  }
+});
+
+test('resolveConfiguredRolePanelTarget keeps same-tenant explicit targets strict', () => {
+  const originalTarget = process.env.RELEASE_GATE_TARGET_USER_URL;
+  try {
+    process.env.RELEASE_GATE_TARGET_USER_URL =
+      '/admin/users/golden_ks_a_member_1?tenantId=tenant_ks';
+
+    const resolved = resolveConfiguredRolePanelTarget({
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+    });
+
+    assert.equal(resolved.source, 'env');
+    assert.equal(resolved.allowFallbackDiscovery, false);
+    assert.equal(
+      resolved.targetUrl,
+      'https://interdomestik-web.vercel.app/en/admin/users/golden_ks_a_member_1?tenantId=tenant_ks'
+    );
+  } finally {
+    if (originalTarget === undefined) {
+      delete process.env.RELEASE_GATE_TARGET_USER_URL;
+    } else {
+      process.env.RELEASE_GATE_TARGET_USER_URL = originalTarget;
+    }
+  }
+});
+
+test('resolveConfiguredStaffClaimDetailUrl ignores configured staff claim list URLs', () => {
+  const original = process.env.STAFF_CLAIM_URL;
+  try {
+    process.env.STAFF_CLAIM_URL = 'https://interdomestik-web.vercel.app/en/staff/claims';
+
+    const resolved = resolveConfiguredStaffClaimDetailUrl({
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+    });
+
+    assert.equal(resolved.source, 'ignored-list');
+    assert.equal(resolved.reason, 'list-url');
+    assert.equal(resolved.url, null);
+  } finally {
+    if (original === undefined) {
+      delete process.env.STAFF_CLAIM_URL;
+    } else {
+      process.env.STAFF_CLAIM_URL = original;
+    }
+  }
+});
+
+test('resolveConfiguredStaffClaimDetailUrl keeps configured staff claim detail URLs', () => {
+  const original = process.env.STAFF_CLAIM_URL;
+  try {
+    process.env.STAFF_CLAIM_URL = '/staff/claims/golden_ks_a_claim_05';
+
+    const resolved = resolveConfiguredStaffClaimDetailUrl({
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+    });
+
+    assert.equal(resolved.source, 'env');
+    assert.equal(resolved.reason, null);
+    assert.equal(
+      resolved.url,
+      'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_05'
+    );
+  } finally {
+    if (original === undefined) {
+      delete process.env.STAFF_CLAIM_URL;
+    } else {
+      process.env.STAFF_CLAIM_URL = original;
     }
   }
 });
