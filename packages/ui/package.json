@@ -48,7 +48,7 @@
     "@storybook/react-vite": "^8.6.15",
     "@storybook/test": "^8.6.15",
     "@types/node": "^22.19.2",
-    "@types/react": "^19.2.7",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.57.1",
@@ -85,9 +85,9 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.561.0",
-    "react-error-boundary": "^6.0.1",
-    "react-hook-form": "^7.68.0",
+    "lucide-react": "^0.577.0",
+    "react-error-boundary": "^6.1.1",
+    "react-hook-form": "^7.71.2",
     "tailwind-merge": "^3.5.0"
   }
 }

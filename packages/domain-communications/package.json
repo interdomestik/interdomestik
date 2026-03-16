@@ -37,7 +37,7 @@
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.1",
     "inngest": "^3.52.6",
-    "nanoid": "^5.1.6",
+    "nanoid": "^5.1.7",
     "nodemailer": "^7.0.12",
     "resend": "^4.4.0",
     "web-push": "^3.6.7",
