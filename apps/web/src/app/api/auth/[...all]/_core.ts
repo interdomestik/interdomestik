@@ -14,9 +14,7 @@ export function getAuthRateLimitConfig(method: AuthMethod): {
 } {
   switch (method) {
     case 'GET':
-      // Protected-route bootstrap can legitimately fan out several session reads
-      // across middleware, server components, and client hydration in under a minute.
-      return { name: 'api/auth', limit: 60, windowSeconds: 60 };
+      return { name: 'api/auth', limit: 10, windowSeconds: 60 };
     case 'POST':
       return { name: 'api/auth', limit: 5, windowSeconds: 60 };
   }

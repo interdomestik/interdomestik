@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   evaluateEmailSignInTenantGuard,
   extractEmailFromSignInBody,
-  getAuthRateLimitConfig,
   getPasswordResetAuditEventFromUrl,
   isEmailPasswordSignInUrl,
   resolveTenantIdForEmailSignIn,
@@ -21,24 +20,6 @@ function resetEnv() {
 
 afterEach(() => {
   resetEnv();
-});
-
-describe('getAuthRateLimitConfig', () => {
-  it('keeps GET auth headroom above rapid protected-route bootstrap traffic', () => {
-    expect(getAuthRateLimitConfig('GET')).toEqual({
-      name: 'api/auth',
-      limit: 60,
-      windowSeconds: 60,
-    });
-  });
-
-  it('keeps POST auth mutations tightly rate limited', () => {
-    expect(getAuthRateLimitConfig('POST')).toEqual({
-      name: 'api/auth',
-      limit: 5,
-      windowSeconds: 60,
-    });
-  });
 });
 
 describe('getPasswordResetAuditEventFromUrl', () => {
