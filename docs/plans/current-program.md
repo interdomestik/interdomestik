@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-03-15
+last_reviewed: 2026-03-16
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -34,6 +34,8 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 `P6` v1.0.0 RC Gate is now complete as the next committed tranche after the completed `P4` and `P4G` queue. `G07` is now complete as the first explicit release-gate slice, `G08` is now complete as the Free Start and aggregate-only privacy-boundary proof slice, `G09` is now complete as the matter-count and SLA-state enforcement slice, and `G10` is now complete as the escalation-agreement and collection-fallback enforcement slice.
 
 `P7` Pilot Readiness And Release Evidence is now complete after completed `P6`. `R01` is now complete as the canonical pilot-entry artifact-set slice, `R02` is now complete as the canonical readiness-command authority slice, `R03` is now complete as the deterministic daily evidence capture slice, `R04` is now complete as the continue-or-rollback proof slice, `R05` is now complete as the pilot-ready tag-discipline slice, `R06` is now complete as the canonical 3-day repo-backed readiness cadence slice, `R07` is now complete as the canonical observability-and-incident-evidence slice, and `R08` is now complete as the canonical ranked operator-flow slice required before live pilot operation is treated as governable across member and agent activity, branch-manager branch oversight, staff claim processing, and admin decision custody.
+
+`P8` Pilot Reset Gate And Seven-Day Rehearsal is now active after completed `P7`. `P8R` reset-gate hardening is now complete through `RG01` through `RG05`, using the new pilot id `pilot-ks-7d-rehearsal-2026-03-16` to prove a fresh `pilot:check`, fresh memory top-hit retrievals, a fresh GO release gate, and a fresh copied pilot evidence index without reusing the failed 14-day pilot. `P8P` seven-day pilot rehearsal is now active with `SP01` complete as the new `PD01` release-and-artifact baseline, and `SP02` rollback-and-resume baseline is now the next committed rehearsal slice.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -107,6 +109,18 @@ The March 3-5 advisory-governance tranche remains valuable background context, b
 66. Keep `R06` complete as the canonical readiness-cadence slice so a source-backed 3-day qualifying green cadence replaces any need for historical A22-style inference in live governance.
 67. Keep `R07` complete as the canonical pilot observability-and-incident-evidence slice so log sweeps, KPI conditions, incident severity, branch-local versus system-wide classification, and decision artifacts stay linked in one copied evidence index before a live pilot is declared governable.
 68. Keep `R08` complete as the canonical ranked pilot-entry operator-flow slice so the pilot-entry command path is inspectable and repeatable across pre-launch, gate proof, launch-day verification, branch-manager review or escalation, and admin-level daily logging before a live pilot is declared governable.
+69. Land `P8` as the canonical post-`P7` pilot redesign tranche so the repo preserves completed 14-day pilot-readiness history while superseding the old live-pilot shape with a reset-gated 7-day rehearsal model.
+70. Keep `P8R` complete as the canonical reset-gate hardening slice so new pilot runs begin only after fresh memory retrieval top hits, fresh pilot checks, fresh release-gate proof, and clear working-note versus canonical-evidence rules are inspectable.
+71. Keep `RG01` complete as the canonical rehearsal-environment check slice so `pnpm pilot:check` passes deterministically in the intended Node 20 pilot environment before a new rehearsal day is allowed to start.
+72. Keep `RG02` complete as the canonical operator-log-command alignment slice so pilot docs match installed `vercel logs` CLI behavior and no removed flags survive in ranked operator instructions.
+73. Keep `RG03` complete as the canonical observability-to-decision sequencing slice so a fresh observability row can be followed immediately by a fresh decision row when operators respect the documented command order.
+74. Keep `RG04` complete as the canonical daily-sheet versus copied-evidence boundary slice so operators can record working notes, memory advisories, and orchestration detail without confusing them for the canonical evidence rows that govern pilot decisions.
+75. Keep `RG05` complete as the canonical fresh-preflight slice so a new pilot id produces a GO release report, copied evidence index, pointer row, and reset-gate proof before `PD02+` rehearsal work begins.
+76. Land `P8P` as the canonical 7-day rehearsal tranche so pilot execution becomes one bounded week of distinct scenario families rather than a noisy 14-day simulation that mixes reset-gate and scenario-proof concerns.
+77. Keep `SP01` complete as the canonical `PD01` release-and-artifact baseline so the new pilot id already has a green day with release proof, copied evidence, observability row, decision row, and daily-sheet notes before rollback and role-flow scenarios widen coverage.
+78. Land `SP02` as the canonical `PD02` rollback-and-resume baseline so rollback tag discipline, resume inspection, and decision-proof continuity are proven next for the same pilot id.
+79. Land `SP03` through `SP06` as the canonical middle rehearsal slices so closed-loop role flow, SLA or matter pressure, privacy or RBAC stress, and communications or incident handling each get one explicit day instead of being blended into one vague pilot week.
+80. Land `SP07` as the canonical executive-review slice so the 7-day rehearsal ends with one fixed recommendation artifact that links KPI condition, incident evidence, branch-manager input, and admin decision custody.
 
 ## Status Command
 
@@ -153,6 +167,8 @@ pnpm plan:proof
 
 `P7` Pilot Readiness And Release Evidence is now complete after completed `P6`. `R01` Canonicalize the pilot-ready artifact set, `R02` Unify readiness commands and outputs, `R03` Add deterministic pilot evidence capture, `R04` Add explicit continue-pause-hotfix-stop decision proof, `R05` Make pilot-ready tag discipline repo-verifiable, `R06` Establish a modern readiness cadence, `R07` Tighten observability and incident evidence, and `R08` Publish one ranked operator flow for pilot entry are now complete, so pilot-entry command custody stays canonical across branch-manager oversight, staff processing, and admin decision flow before any broader UX redesign is promoted.
 
+`P8` Pilot Reset Gate And Seven-Day Rehearsal is now active after completed `P7`. `P8R` is complete through `RG01` through `RG05`, proving the reset gate against `pilot-ks-7d-rehearsal-2026-03-16`, and `P8P` is now active with `SP01` complete as the green Day 1 release/artifact baseline. `SP02` rollback and resume baseline is now the next committed priority.
+
 ## Do Not Reopen The Convergence Boundary
 
 - broad domain extraction campaigns
@@ -177,6 +193,8 @@ These documents can recommend or constrain work, but they do not define the live
 - `docs/plans/2026-03-09-blueprint-roadmap-diff-proposal.md`
 - `docs/plans/2026-03-15-pilot-readiness-blueprint-v1.md`
 - `docs/plans/2026-03-15-pilot-readiness-roadmap-diff-proposal.md`
+- `docs/plans/2026-03-16-p8-pilot-redesign-blueprint-v1.md`
+- `docs/plans/2026-03-16-p8-pilot-redesign-roadmap-diff-proposal.md`
 
 ## Promotion Note
 
@@ -267,6 +285,9 @@ These documents can recommend or constrain work, but they do not define the live
 - `R01` through `R08` have now been copied into the live program and tracker from `docs/plans/2026-03-15-pilot-readiness-blueprint-v1.md` and `docs/plans/2026-03-15-pilot-readiness-roadmap-diff-proposal.md` as the committed pilot-readiness and release-evidence queue.
 - `R01` is now complete as of 2026-03-15. The canonical release-gate runner accepts `--pilotId`, writes the release report plus copied per-pilot evidence index and canonical `docs/pilot-evidence/index.csv` pointer row together, preserves stable `docs/...` references for the pilot artifact set, and documents that contract in the pilot runbook.
 - `R02` is now complete as of 2026-03-15. `pnpm pilot:check` now resolves to the shell-backed local pre-launch verification pack, `pnpm release:gate:prod` remains the canonical production full-suite release proof command, `pnpm release:gate:prod -- --pilotId <pilot-id>` remains the canonical pilot-entry artifact command, and the pilot runbook plus go/no-go docs now rank those authorities without overlap.
+- `P8` has now been copied into the live program and tracker from `docs/plans/2026-03-16-p8-pilot-redesign-blueprint-v1.md` and `docs/plans/2026-03-16-p8-pilot-redesign-roadmap-diff-proposal.md` as the next committed tranche after completed `P7`.
+- `P8R` is now complete as of 2026-03-16. `RG01` through `RG05` now prove the reset gate against the new pilot id `pilot-ks-7d-rehearsal-2026-03-16`, including memory top-hit confirmation, fresh `pilot:check`, corrected Vercel log command guidance, deterministic observability-to-decision sequencing, and a fresh GO release report with copied evidence artifacts.
+- `P8P` is now active as of 2026-03-16. `SP01` is complete as the green `PD01` release-and-artifact baseline on `pilot-ks-7d-rehearsal-2026-03-16`, and `SP02` is now the next committed rehearsal slice.
 
 ## Historical Foundation, Not Current Sequencing
 
