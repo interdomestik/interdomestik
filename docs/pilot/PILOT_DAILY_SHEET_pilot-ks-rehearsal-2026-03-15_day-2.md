@@ -96,6 +96,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
   - `pnpm pilot:evidence:record -- --pilotId pilot-ks-rehearsal-2026-03-15 --day 2 --date 2026-03-16 --owner "Platform Pilot Operator" --status amber --incidentCount 1 --highestSeverity sev2 --decision continue --bundlePath n/a --reportPath docs/release-gates/2026-03-16_production_dpl_5R7nc92c58ufkUnQeBmXFUAgbhu1.md` -> exit `0`
   - `pnpm pilot:observability:record -- --pilotId pilot-ks-rehearsal-2026-03-15 --reference day-2 --date 2026-03-16 --owner "Admin KS" --logSweepResult expected-noise --functionalErrorCount 0 --expectedAuthDenyCount 0 --kpiCondition within-threshold --incidentCount 1 --highestSeverity sev2 --notes "PD02 resumed successfully on 2026-03-16: pnpm pilot:check passed on commit 47c9dea68dcdb9a04b13e98909e5a9e5e3931055 and fresh release:gate:prod returned PASS for P0/P1/G07-G10 on the canonical report; remaining follow-up is operator doc refresh for Vercel CLI 48.10.2 direct logs usage."` -> exit `0`
   - `pnpm pilot:decision:record -- --pilotId pilot-ks-rehearsal-2026-03-15 --reviewType daily --reference day-2 --date 2026-03-16 --owner "Admin KS" --decision continue --rollbackTag n/a --observabilityRef day-2` -> exit `0`
+  - `git tag -d pilot-ready-20260316 && pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; rebound `pilot-ready-20260316` to the recovered Day 2 docs commit
 
 ## Gate Scorecard
 
@@ -115,7 +116,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - Notes:
   - The canonical Day 1 green report was present in the worktree but excluded by `.git/info/exclude`, so `PD02` initially failed rollback-tag verification until the report was force-added and committed in `HEAD`.
   - The copied evidence index path stayed stable at `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-rehearsal-2026-03-15.md`.
-  - The rollback tag remains `pilot-ready-20260316` and will be refreshed against the final resumed Day 2 docs commit once the recovered evidence state is committed.
+  - The rollback tag `pilot-ready-20260316` now verifies against the final resumed Day 2 docs commit state.
 
 ## Security And Boundary Notes
 
@@ -204,7 +205,6 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - Deadline: `before Day 3`
 - Action:
   - align the operator observability command guidance with the installed Vercel CLI
-  - keep the recovered rollback tag bound to the final resumed Day 2 commit state
 
 ## Evidence References
 
@@ -217,6 +217,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
   - commit `1fdc8f315e38b47791077701a9d427639d393082` (`docs: add canonical pilot release report for PD02`)
   - commit `c90b60d69b3ff29d957a8c1e5d6d1e4204d63f20` (`docs: record PD02 day 2 pilot outcome`)
   - commit `544a03641aabfa804f139b594c4013f35998f517` (`docs: finalize PD02 day 2 working sheet`)
+  - commit `4db3cfe0aa822934a7beb7fff27d4d7f2ac73ae5` (`docs: recover PD02 day 2 final closeout`)
   - tag `pilot-ready-20260316`
 
 ## Summary Notes
@@ -235,4 +236,4 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - What needs follow-up tomorrow:
   - refresh the operator observability command guidance for the current Vercel CLI
 - Anything that could change go/no-go posture:
-  - Day 3 can proceed only after the final resumed Day 2 docs commit is tagged back to `pilot-ready-20260316`; the only remaining owner follow-up is the non-blocking operator log-command doc refresh
+  - Day 3 can proceed; the only remaining owner follow-up is the non-blocking operator log-command doc refresh
