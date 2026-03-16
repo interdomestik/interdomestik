@@ -22,6 +22,7 @@ Preferred flow:
 - record each daily or weekly continue/pause/hotfix/stop decision in that same copied file with `pnpm pilot:decision:record -- --pilotId <pilot-id> ...`
 - create or verify rollback tags with `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` before referencing `pilot-ready-YYYYMMDD` in a decision row
 - keep updating that copied file for the same pilot id across the 7-day rehearsal window
+- `PD02` for `pilot-ks-7d-rehearsal-2026-03-16` is an intentional same-date control replay on `2026-03-16`; the rollback tag stays keyed to the pilot-entry artifact date, while readiness cadence still evaluates consecutive qualifying day numbers rather than requiring unique calendar dates.
 
 - Keep one row per operating day.
 - Capture the release report path in every row. If the day uses the same pilot-entry report, reuse that `docs/release-gates/...` path.
@@ -34,7 +35,7 @@ Preferred flow:
 | Day | Date (YYYY-MM-DD) | Owner    | Status (`green`/`amber`/`red`) | Release Report Path                                                          | Evidence Bundle Path | Incidents (count) | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Decision (`continue`/`pause`/`hotfix`/`stop`) |
 | --- | ----------------- | -------- | ------------------------------ | ---------------------------------------------------------------------------- | -------------------- | ----------------- | ----------------------------------------- | --------------------------------------------- |
 | 1   | 2026-03-16        | platform | green                          | docs/release-gates/2026-03-16_production_dpl_5R7nc92c58ufkUnQeBmXFUAgbhu1.md | n/a                  | 0                 | none                                      | continue                                      |
-| 2   |                   |          |                                |                                                                              |                      |                   |                                           |                                               |
+| 2   | 2026-03-16        | platform | green                          | docs/release-gates/2026-03-16_production_dpl_5R7nc92c58ufkUnQeBmXFUAgbhu1.md | n/a                  | 0                 | none                                      | continue                                      |
 | 3   |                   |          |                                |                                                                              |                      |                   |                                           |                                               |
 | 4   |                   |          |                                |                                                                              |                      |                   |                                           |                                               |
 | 5   |                   |          |                                |                                                                              |                      |                   |                                           |                                               |
@@ -58,9 +59,10 @@ Record one structured observability row for each daily and weekly review window 
 - `KPI Condition` records whether the pilot KPI sheet remains within threshold, is on watch, or is in breach.
 - `Notes` can hold `n/a`, a ticket id, or a repo-relative evidence path.
 
-| Reference | Date (YYYY-MM-DD) | Owner    | Log Sweep (`clear`/`expected-noise`/`action-required`) | Functional Errors (count) | Expected Auth Denies (count) | KPI Condition (`within-threshold`/`watch`/`breach`) | Incident Count | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Notes |
-| --------- | ----------------- | -------- | ------------------------------------------------------ | ------------------------- | ---------------------------- | --------------------------------------------------- | -------------- | ----------------------------------------- | ----- |
-| day-1     | 2026-03-16        | platform | expected-noise                                         | 0                         | 0                            | within-threshold                                    | 0              | none                                      | n/a   |
+| Reference | Date (YYYY-MM-DD) | Owner    | Log Sweep (`clear`/`expected-noise`/`action-required`) | Functional Errors (count) | Expected Auth Denies (count) | KPI Condition (`within-threshold`/`watch`/`breach`) | Incident Count | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Notes                                                                              |
+| --------- | ----------------- | -------- | ------------------------------------------------------ | ------------------------- | ---------------------------- | --------------------------------------------------- | -------------- | ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| day-1     | 2026-03-16        | platform | expected-noise                                         | 0                         | 0                            | within-threshold                                    | 0              | none                                      | n/a                                                                                |
+| day-2     | 2026-03-16        | platform | expected-noise                                         | 0                         | 0                            | within-threshold                                    | 0              | none                                      | pilot:check passed; stale rollback tag corrected locally after merge advanced HEAD |
 
 ## Decision Proof Log
 
@@ -80,3 +82,4 @@ For `PD07`, keep the canonical daily decision row here and write the executive r
 | Review Type (`daily`/`weekly`) | Reference | Date (YYYY-MM-DD) | Owner    | Decision (`continue`/`pause`/`hotfix`/`stop`) | Rollback Target (`pilot-ready-YYYYMMDD`/`n/a`) | Observability Ref | Resume Requires `pnpm pilot:check` | Resume Requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>` |
 | ------------------------------ | --------- | ----------------- | -------- | --------------------------------------------- | ---------------------------------------------- | ----------------- | ---------------------------------- | ---------------------------------------------------------------------- |
 | daily                          | day-1     | 2026-03-16        | platform | continue                                      | n/a                                            | day-1             | no                                 | no                                                                     |
+| daily                          | day-2     | 2026-03-16        | platform | continue                                      | pilot-ready-20260316                           | day-2             | no                                 | no                                                                     |
