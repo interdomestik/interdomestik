@@ -65,7 +65,7 @@ describe('HeroV2', () => {
 
     const cta = screen.getByTestId('hero-v2-start-claim');
     expect(cta).toBeInTheDocument();
-    expect(cta).toHaveTextContent('Nis raportimin');
+    expect(cta).toHaveTextContent('Bëhu Anëtar për €20/vit');
     expect(cta).toHaveAttribute('href', '/register');
     expect(screen.getByTestId('hero-v2-invite-chip')).toHaveAttribute('href', '/register');
     expect(screen.getByTestId('hero-v2-digital-id-link')).toHaveAttribute('href', '/member');
@@ -88,7 +88,7 @@ describe('HeroV2', () => {
     renderHero('en', href);
 
     expect(screen.getAllByTestId('hero-v2-proof-chip')).toHaveLength(3);
-    expect(screen.getByText('Shqip / English support')).toBeInTheDocument();
+    expect(screen.getByTestId('hero-v2-trust-row')).toBeInTheDocument();
     expect(screen.getByTestId('hero-v2-help-call')).toHaveAttribute('href', 'tel:+38349900600');
     expect(screen.getByTestId('hero-v2-help-whatsapp')).toHaveAttribute(
       'href',
