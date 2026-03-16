@@ -9,7 +9,7 @@
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "22.19.2",
+    "@types/node": "25.5.0",
     "eslint": "9.39.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.49.0"

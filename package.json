@@ -178,7 +178,7 @@
     "@release-it/conventional-changelog": "^10.0.5",
     "@supabase/supabase-js": "^2.87.1",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^22.19.3",
+    "@types/node": "^25.5.0",
     "@upstash/context7-mcp": "^2.1.4",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
