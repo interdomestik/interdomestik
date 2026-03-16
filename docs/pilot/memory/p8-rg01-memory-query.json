@@ -1,0 +1,8 @@
+{
+  "trigger_signature": "pilot.reset_gate.check_failure",
+  "risk_class": "high",
+  "scope": {
+    "file_path": "packages/database/test/rls-engaged.test.ts"
+  },
+  "include_statuses": ["candidate", "validated", "canonical"]
+}

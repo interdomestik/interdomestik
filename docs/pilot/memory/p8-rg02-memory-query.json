@@ -1,0 +1,8 @@
+{
+  "trigger_signature": "pilot.operator.log_command_drift",
+  "risk_class": "high",
+  "scope": {
+    "file_path": "docs/pilot/PILOT_GO_NO_GO.md"
+  },
+  "include_statuses": ["candidate", "validated", "canonical"]
+}

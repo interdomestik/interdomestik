@@ -1,4 +1,4 @@
-# Pilot Evidence Index Template (14 Days, Mon–Sun)
+# Pilot Evidence Index Template (7 Days)
 
 For each pilot, copy this template to a per-pilot evidence index file (for example, `PILOT_EVIDENCE_INDEX.md`) and use that copied file as the single source of truth for daily pilot ops evidence.
 
@@ -10,7 +10,7 @@ Preferred flow:
 - record each daily or weekly observability checkpoint in that same copied file with `pnpm pilot:observability:record -- --pilotId <pilot-id> ...`
 - record each daily or weekly continue/pause/hotfix/stop decision in that same copied file with `pnpm pilot:decision:record -- --pilotId <pilot-id> ...`
 - create or verify rollback tags with `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` before referencing `pilot-ready-YYYYMMDD` in a decision row
-- keep updating that copied file for the same pilot id across the pilot window
+- keep updating that copied file for the same pilot id across the 7-day rehearsal window
 
 - Keep one row per operating day.
 - Capture the release report path in every row. If the day uses the same pilot-entry report, reuse that `docs/release-gates/...` path.
@@ -29,13 +29,6 @@ Preferred flow:
 | 5   |                   |       |                                |                     |                      |                   |                                           |                                               |
 | 6   |                   |       |                                |                     |                      |                   |                                           |                                               |
 | 7   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 8   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 9   |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 10  |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 11  |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 12  |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 13  |                   |       |                                |                     |                      |                   |                                           |                                               |
-| 14  |                   |       |                                |                     |                      |                   |                                           |                                               |
 
 ## Bundle Path Convention
 
@@ -55,7 +48,7 @@ Record one structured observability row for each daily and weekly review window 
 - `Notes` can hold `n/a`, a ticket id, or a repo-relative evidence path.
 
 | Reference | Date (YYYY-MM-DD) | Owner | Log Sweep (`clear`/`expected-noise`/`action-required`) | Functional Errors (count) | Expected Auth Denies (count) | KPI Condition (`within-threshold`/`watch`/`breach`) | Incident Count | Highest Sev (`none`/`sev3`/`sev2`/`sev1`) | Notes |
-| --------- | ----------------- | ----- | ---------------------------------------------------- | ------------------------- | ---------------------------- | ------------------------------------------------- | -------------- | ----------------------------------------- | ----- |
+| --------- | ----------------- | ----- | ------------------------------------------------------ | ------------------------- | ---------------------------- | --------------------------------------------------- | -------------- | ----------------------------------------- | ----- |
 
 ## Decision Proof Log
 
@@ -67,6 +60,10 @@ Record one explicit decision row for each daily end-of-day review and each weekl
 - `stop`: requires rollback tag plus fresh `pnpm pilot:check` and `pnpm release:gate:prod -- --pilotId <pilot-id>` before any resume decision.
 - `Observability Ref` must point to the matching row in the observability evidence log so the decision stays tied to log-sweep result, KPI condition, and incident severity.
 - `pilot-ready-YYYYMMDD` rollback tags must be created or verified with `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` so the tag metadata matches the canonical pilot-entry report and copied evidence index for that date.
+
+For `PD07`, keep the canonical daily decision row here and write the executive recommendation separately in:
+
+- `docs/pilot/PILOT_EXEC_REVIEW_<pilot-id>.md`
 
 | Review Type (`daily`/`weekly`) | Reference | Date (YYYY-MM-DD) | Owner | Decision (`continue`/`pause`/`hotfix`/`stop`) | Rollback Target (`pilot-ready-YYYYMMDD`/`n/a`) | Observability Ref | Resume Requires `pnpm pilot:check` | Resume Requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>` |
 | ------------------------------ | --------- | ----------------- | ----- | --------------------------------------------- | ---------------------------------------------- | ----------------- | ---------------------------------- | ---------------------------------------------------------------------- |

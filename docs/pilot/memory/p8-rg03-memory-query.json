@@ -1,0 +1,8 @@
+{
+  "trigger_signature": "pilot.decision.observability_gap",
+  "risk_class": "high",
+  "scope": {
+    "file_path": "docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md"
+  },
+  "include_statuses": ["candidate", "validated", "canonical"]
+}

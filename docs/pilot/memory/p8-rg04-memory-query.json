@@ -1,0 +1,8 @@
+{
+  "trigger_signature": "pilot.evidence.working_state_gap",
+  "risk_class": "high",
+  "scope": {
+    "file_path": "docs/pilot/PILOT_DAILY_SHEET_TEMPLATE.md"
+  },
+  "include_statuses": ["candidate", "validated", "canonical"]
+}
