@@ -558,6 +558,14 @@ function resolveTenantOverrideProbeUrl(runCtx) {
   };
 }
 
+function trimTrailingSlashes(pathname) {
+  let end = pathname.length;
+  while (end > 1 && pathname.charCodeAt(end - 1) === 47) {
+    end -= 1;
+  }
+  return pathname.slice(0, end);
+}
+
 function resolveConfiguredRolePanelTarget(runCtx) {
   const configured = String(process.env.RELEASE_GATE_TARGET_USER_URL || '').trim();
   const defaultTarget = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl);
@@ -613,7 +621,7 @@ function resolveConfiguredStaffClaimDetailUrl(runCtx) {
   try {
     const resolvedTarget = new URL(targetUrl);
     const resolvedList = new URL(buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList));
-    const normalizePath = pathname => pathname.replace(/\/+$/, '') || '/';
+    const normalizePath = pathname => trimTrailingSlashes(pathname) || '/';
     if (normalizePath(resolvedTarget.pathname) === normalizePath(resolvedList.pathname)) {
       return {
         reason: 'list-url',
