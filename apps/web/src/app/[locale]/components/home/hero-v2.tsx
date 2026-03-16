@@ -11,6 +11,93 @@ type HeroV2Props = {
   tenantId?: string | null;
 };
 
+type HeroV2Content = {
+  cardBullets: string[];
+  footerTrustCues: string[];
+  headline: string;
+  inviteLabel: string;
+  primaryCtaLabel: string;
+  primaryCtaMeta: string;
+  supportEyebrow: string;
+  supportLabel: string;
+  subtitle: string;
+  topStats: string[];
+  whatsappLabel: string;
+};
+
+function isPublicMembershipEntry(startClaimHref: string): boolean {
+  return startClaimHref === '#free-start-intake' || startClaimHref === '/register';
+}
+
+function getMembershipPriceChip(params: { ctaLabel: string; subtitle: string }): string {
+  const { ctaLabel, subtitle } = params;
+  const subtitleMatch = subtitle.match(/\((€20\/[^)]+)\)/u);
+
+  if (subtitleMatch) {
+    return subtitleMatch[1].replace('/', ' / ');
+  }
+
+  const ctaMatch = ctaLabel.match(/(€20\/\S+)/u);
+  return ctaMatch?.[1].replace('/', ' / ') ?? '€20';
+}
+
+function getHeroV2Content(params: {
+  isMembershipEntry: boolean;
+  proofChips: string[];
+  steps: string[];
+  t: ReturnType<typeof useTranslations>;
+  trustCues: string[];
+}): HeroV2Content {
+  const { isMembershipEntry, proofChips, steps, t, trustCues } = params;
+
+  if (isMembershipEntry) {
+    const ctaLabel = t('cta');
+    const subtitle = t('subtitle');
+
+    return {
+      cardBullets: [t('badge'), t('callNow'), t('whatsappCta')],
+      footerTrustCues: [t('trustedBy'), t('guarantee'), t('digitalCardSticky')],
+      headline: t('title'),
+      inviteLabel: t('digitalCardSticky'),
+      primaryCtaLabel: ctaLabel,
+      primaryCtaMeta: t('guarantee'),
+      subtitle,
+      supportEyebrow: t('badge'),
+      supportLabel: t('callNow'),
+      topStats: [t('badge'), getMembershipPriceChip({ ctaLabel, subtitle }), t('rating')].filter(
+        Boolean
+      ),
+      whatsappLabel: t('whatsappCta'),
+    };
+  }
+
+  return {
+    cardBullets: steps.slice(0, 3),
+    footerTrustCues: trustCues,
+    headline: t('v2.title'),
+    inviteLabel: t('v2.invite'),
+    primaryCtaLabel: t('v2.start'),
+    primaryCtaMeta: proofChips[1] ?? t('v2.helpMeta'),
+    subtitle: t('v2.subtitle'),
+    supportEyebrow: trustCues[0] ?? t('v2.helpMeta'),
+    supportLabel: t('v2.helpNow'),
+    topStats: [t('badge'), t('activeMembersValue'), t('rating')].filter(Boolean),
+    whatsappLabel: t('v2.helpNow'),
+  };
+}
+
+function getProofChipClassName(index: number): string {
+  if (index === 0) {
+    return 'text-emerald-300';
+  }
+
+  if (index === 2) {
+    return 'text-amber-200';
+  }
+
+  return 'text-white';
+}
+
 export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
   const t = useTranslations('hero');
   const common = useTranslations('common');
@@ -24,144 +111,191 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
     ? (t.raw('v2.proofChips') as string[])
     : [];
   const trustCues = Array.isArray(t.raw('v2.trustCues')) ? (t.raw('v2.trustCues') as string[]) : [];
+  const isMembershipEntry = isPublicMembershipEntry(startClaimHref);
+  const content = getHeroV2Content({ isMembershipEntry, proofChips, steps, t, trustCues });
 
   return (
-    <section className="relative overflow-hidden border-b border-slate-200/80 bg-gradient-to-b from-white via-slate-50 to-slate-100/80">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-65">
-        <div className="absolute -left-14 top-12 h-72 w-72 rounded-full bg-emerald-200/50 blur-[110px]" />
-        <div className="absolute -right-24 top-16 h-80 w-80 rounded-full bg-cyan-200/40 blur-[130px]" />
-        <div className="absolute -bottom-20 left-1/4 h-64 w-64 rounded-full bg-amber-200/35 blur-[120px]" />
+    <section className="relative overflow-hidden border-b border-slate-200/80 bg-[linear-gradient(180deg,#f4f8fb_0%,#ffffff_22%,#eef6f3_100%)]">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_28%),radial-gradient(circle_at_85%_18%,rgba(14,165,233,0.18),transparent_24%),radial-gradient(circle_at_50%_100%,rgba(245,158,11,0.10),transparent_26%)]" />
+        <div className="absolute left-[-10%] top-16 h-72 w-72 rounded-full bg-white/60 blur-3xl" />
+        <div className="absolute right-[-8%] top-20 h-80 w-80 rounded-full bg-cyan-100/50 blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/60 to-transparent" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl space-y-6 px-4 py-12 md:py-16">
-        <div className="space-y-5 rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-[0_28px_54px_-44px_rgba(15,23,42,0.85)] md:p-8 lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:gap-6">
-          <div className="space-y-5 rounded-2xl border border-slate-100 bg-white/80 p-3 sm:p-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+      <div className="relative mx-auto max-w-6xl px-4 py-12 md:py-16 lg:py-20">
+        <div className="relative overflow-hidden rounded-[2.4rem] border border-white/80 bg-white/62 px-5 py-8 shadow-[0_36px_120px_-56px_rgba(15,23,42,0.42)] backdrop-blur-2xl sm:px-8 lg:px-12 lg:py-12">
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.76),rgba(255,255,255,0.32))]" />
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute left-1/2 top-8 h-40 w-40 -translate-x-1/2 rounded-full bg-cyan-100/70 blur-3xl"
+          />
+
+          <div className="relative mx-auto flex max-w-4xl flex-col items-center text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/84 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-900 shadow-sm">
               <Sparkles className="h-3.5 w-3.5 text-emerald-700" />
               {common('appName')}
             </div>
-            <h1 className="text-3xl font-semibold leading-tight tracking-tight text-slate-900 max-[375px]:text-[2rem] md:text-5xl">
-              {t('v2.title')}
-            </h1>
-            <p className="max-w-2xl text-[1.01rem] leading-7 text-slate-600 md:text-lg">
-              {t('v2.subtitle')}
-            </p>
-            {proofChips.length > 0 ? (
-              <div data-testid="hero-v2-proof-chips" className="flex flex-wrap items-center gap-2">
-                {proofChips.map(chip => (
-                  <span
-                    key={chip}
-                    data-testid="hero-v2-proof-chip"
-                    className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
-                  >
-                    {chip}
-                  </span>
+
+            {content.topStats.length > 0 ? (
+              <div
+                data-testid="hero-v2-proof-chips"
+                className="mt-8 inline-flex flex-wrap items-center justify-center gap-3 rounded-full border border-slate-900/10 bg-[linear-gradient(180deg,rgba(20,29,49,0.98),rgba(17,24,39,0.92))] px-5 py-3 text-[0.8rem] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_24px_50px_-30px_rgba(15,23,42,0.85)]"
+              >
+                {content.topStats.map((chip, index) => (
+                  <div key={chip} className="flex items-center gap-3">
+                    <span data-testid="hero-v2-proof-chip" className={getProofChipClassName(index)}>
+                      {chip}
+                    </span>
+                    {index < content.topStats.length - 1 ? (
+                      <span className="h-4 w-px bg-white/20" />
+                    ) : null}
+                  </div>
                 ))}
               </div>
             ) : null}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
+
+            <div className="mt-10 space-y-5">
+              <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-[1.02] tracking-[-0.05em] text-slate-950 max-[375px]:text-[2.2rem] md:text-[4.6rem]">
+                {content.headline}
+              </h1>
+              <p className="text-sm font-semibold uppercase tracking-[0.34em] text-blue-700">
+                {content.supportLabel}
+              </p>
+              <p className="mx-auto max-w-3xl text-[1.05rem] leading-8 text-slate-600 md:text-[1.24rem]">
+                {content.subtitle}
+              </p>
+            </div>
+
+            <div className="mt-10 grid w-full gap-3 md:grid-cols-3">
+              <Link
+                data-testid="hero-v2-start-claim"
+                href={startClaimHref}
+                className="inline-flex min-h-20 items-center justify-between rounded-[1.4rem] bg-[linear-gradient(180deg,#0f6b96,#125c86)] px-6 py-5 text-left text-white shadow-[0_24px_54px_-30px_rgba(14,116,144,0.75)] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              >
+                <span>
+                  <span className="block text-lg font-semibold">{content.primaryCtaLabel}</span>
+                  <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-100/85">
+                    {content.primaryCtaMeta}
+                  </span>
+                </span>
+                <ArrowRight className="h-5 w-5 shrink-0" />
+              </Link>
+
               {telHref ? (
                 <a
                   data-testid="hero-v2-help-call"
                   href={telHref}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-[0_16px_30px_-20px_rgba(16,185,129,0.95)] transition hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:w-auto"
+                  className="inline-flex min-h-20 flex-col items-start justify-center rounded-[1.4rem] border border-white/90 bg-white/68 px-6 py-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition hover:bg-white/82 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                 >
-                  <PhoneCall className="h-4 w-4" />
-                  {t('v2.helpNow')}
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700">
+                    {content.supportEyebrow}
+                  </span>
+                  <span className="mt-1 inline-flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-950">
+                    <PhoneCall className="h-5 w-5 text-slate-700" />
+                    {content.supportLabel}
+                  </span>
                 </a>
               ) : null}
-              <Link
-                data-testid="hero-v2-start-claim"
-                href={startClaimHref}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-              >
-                {t('v2.start')}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-            <p className="text-sm font-medium text-slate-500">{t('v2.helpMeta')}</p>
 
-            <div className="flex flex-wrap items-center gap-2">
               {whatsappHref ? (
                 <a
                   data-testid="hero-v2-help-whatsapp"
                   href={whatsappHref}
-                  className="inline-flex min-h-9 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  className="inline-flex min-h-20 flex-col items-start justify-center rounded-[1.4rem] border border-emerald-100 bg-[linear-gradient(180deg,rgba(240,253,250,0.96),rgba(236,253,245,0.86))] px-6 py-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.94)] transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
                 >
-                  <MessageCircleMore className="h-3.5 w-3.5" />
-                  WhatsApp
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-700">
+                    WhatsApp
+                  </span>
+                  <span className="mt-1 inline-flex items-center gap-2 text-2xl font-semibold italic tracking-tight text-slate-950">
+                    <MessageCircleMore className="h-5 w-5 text-emerald-700" />
+                    {content.whatsappLabel}
+                  </span>
                 </a>
               ) : null}
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
                 data-testid="hero-v2-invite-chip"
                 href="/register"
-                className="inline-flex min-h-9 items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                className="inline-flex min-h-10 items-center rounded-full border border-emerald-200/90 bg-[linear-gradient(180deg,rgba(236,253,245,0.98),rgba(220,252,231,0.9))] px-5 py-2 text-sm font-semibold text-emerald-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
               >
-                {t('v2.invite')}
+                {content.inviteLabel}
               </Link>
             </div>
 
             <div
               data-testid="hero-v2-digital-id-preview"
-              className="max-w-sm rounded-2xl border border-slate-200 bg-slate-50/80 p-3"
+              className="relative mt-10 w-full max-w-[25rem] overflow-hidden rounded-[2rem] border border-slate-900/5 bg-[linear-gradient(180deg,rgba(20,29,49,0.98),rgba(19,26,44,0.94))] p-6 text-left text-white shadow-[0_36px_80px_-48px_rgba(15,23,42,0.88)]"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white">
-                    <ShieldCheck className="h-4 w-4 text-emerald-700" />
-                  </span>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-800">{t('v2.idTitle')}</p>
-                    <p className="text-[11px] text-slate-500">
-                      {t('v2.idMeta')}: ID-••••-24 • {t('v2.idPreview')}
-                    </p>
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.14),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.12),transparent_36%)]"
+              />
+              <div className="relative">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/14 bg-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+                      <ShieldCheck className="h-5 w-5 text-white" />
+                    </span>
+                    <div>
+                      <p className="text-3xl font-semibold italic tracking-tight text-white">
+                        {common('appName')}
+                      </p>
+                      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.34em] text-slate-400">
+                        {t('v2.idTitle')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex h-9 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,#f6e8a9,#d1b44a)] text-[10px] font-semibold text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
+                    ID
                   </div>
                 </div>
-                <Link
-                  data-testid="hero-v2-digital-id-link"
-                  href="/member"
-                  className="text-xs font-semibold text-slate-700 underline-offset-2 hover:text-slate-900 hover:underline"
-                >
-                  {t('v2.idLink')}
-                </Link>
-              </div>
-            </div>
-          </div>
 
-          <div className="space-y-3">
-            <div className="rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_20px_36px_-34px_rgba(15,23,42,0.8)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
-                {t('v2.journeyLabel')}
-              </p>
-              <div className="mt-3 space-y-2">
-                {steps.map((step, index) => (
-                  <div
-                    key={step}
-                    className="rounded-xl border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700"
-                  >
-                    <span className="mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white">
-                      {index + 1}
+                <div className="mt-8 flex flex-wrap items-center gap-3 text-[11px] font-medium uppercase tracking-[0.22em] text-slate-300">
+                  {content.cardBullets.map(item => (
+                    <span key={item} className="inline-flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      {item}
                     </span>
-                    {step}
+                  ))}
+                </div>
+
+                <div className="mt-6 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+                      {t('v2.idPreview')}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-200">{t('v2.idMeta')}: ID-••••-24</p>
                   </div>
-                ))}
+                  <Link
+                    data-testid="hero-v2-digital-id-link"
+                    href="/member"
+                    className="text-xs font-semibold text-emerald-200 underline-offset-2 hover:text-white hover:underline"
+                  >
+                    {t('v2.idLink')}
+                  </Link>
+                </div>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_20px_36px_-34px_rgba(15,23,42,0.8)]">
-              <div
-                data-testid="hero-v2-trust-row"
-                className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-600"
-              >
-                {trustCues.map(item => (
-                  <span
-                    key={item}
-                    className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium tracking-tight text-slate-600"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
+            <div
+              data-testid="hero-v2-trust-row"
+              className="mt-8 flex flex-wrap items-center justify-center gap-2 text-sm font-medium text-slate-600"
+            >
+              {content.footerTrustCues.map(item => (
+                <span
+                  key={item}
+                  className="inline-flex items-center rounded-full border border-white/90 bg-white/72 px-3 py-1.5 text-xs font-medium tracking-tight text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                >
+                  {item}
+                </span>
+              ))}
             </div>
           </div>
         </div>
