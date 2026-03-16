@@ -12,7 +12,7 @@
 - Change summary:
 - Deterministic scripted release gate run
 - Scope: ALL (P0.1, P0.2, P0.3, P0.4, P0.6, P1.1, P1.2, P1.3, P1.5.1, G07, G08, G09, G10)
-- Generated at: 2026-03-16T15:18:46.769Z
+- Generated at: 2026-03-16T20:41:46.095Z
 
 ## Preconditions
 
@@ -199,7 +199,7 @@ Observed:
 Observed:
 
 - download response 200 observed=true
-- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/2cabcedc-483e-411f-99e8-19f94e46ae52/download
+- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/b40f2ecc-2b84-43f7-bf7b-37f3981f70b3/download
 - inline/open action succeeded=true
 
 ## P1.3 Staff Claim Update Persistence (Status + Note)
@@ -211,7 +211,7 @@ Observed:
 - staff_claims_list_url=https://interdomestik-web.vercel.app/en/staff/claims
 - staff_page_ready_on_list=true
 - claim_source=STAFF_CLAIM_URL_IGNORED_LIST
-- fallback_search_elapsed_ms=14
+- fallback_search_elapsed_ms=12
 - fallback_link_count=20
 - claim_source=staff_claims_list
 - claim_url=https://interdomestik-web.vercel.app/en/staff/claims/pack_ks_claim_ks_a_sla_2
@@ -219,7 +219,7 @@ Observed:
 - staff_page_ready_on_detail=false
 - detail_ready=true action_panel_ready=true claim_section_ready=true
 - status_change=Submitted -> Draft
-- note persisted=true note="gate-note-1773674215085"
+- note persisted=true note="gate-note-1773693598541"
 - status persisted=true expected="Draft" actual="Draft"
 
 ---
