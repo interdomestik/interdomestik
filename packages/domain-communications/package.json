@@ -39,7 +39,7 @@
     "inngest": "^3.52.6",
     "nanoid": "^5.1.6",
     "nodemailer": "^7.0.12",
-    "resend": "^4.4.0",
+    "resend": "^6.9.4",
     "web-push": "^3.6.7",
     "zod": "4.2.1"
   },
