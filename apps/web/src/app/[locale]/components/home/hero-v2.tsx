@@ -11,6 +11,93 @@ type HeroV2Props = {
   tenantId?: string | null;
 };
 
+type HeroV2Content = {
+  cardBullets: string[];
+  footerTrustCues: string[];
+  headline: string;
+  inviteLabel: string;
+  primaryCtaLabel: string;
+  primaryCtaMeta: string;
+  supportEyebrow: string;
+  supportLabel: string;
+  subtitle: string;
+  topStats: string[];
+  whatsappLabel: string;
+};
+
+function isPublicMembershipEntry(startClaimHref: string): boolean {
+  return startClaimHref === '#free-start-intake' || startClaimHref === '/register';
+}
+
+function getMembershipPriceChip(params: { ctaLabel: string; subtitle: string }): string {
+  const { ctaLabel, subtitle } = params;
+  const subtitleMatch = subtitle.match(/\((€20\/[^)]+)\)/u);
+
+  if (subtitleMatch) {
+    return subtitleMatch[1].replace('/', ' / ');
+  }
+
+  const ctaMatch = ctaLabel.match(/(€20\/\S+)/u);
+  return ctaMatch?.[1].replace('/', ' / ') ?? '€20';
+}
+
+function getHeroV2Content(params: {
+  isMembershipEntry: boolean;
+  proofChips: string[];
+  steps: string[];
+  t: ReturnType<typeof useTranslations>;
+  trustCues: string[];
+}): HeroV2Content {
+  const { isMembershipEntry, proofChips, steps, t, trustCues } = params;
+
+  if (isMembershipEntry) {
+    const ctaLabel = t('cta');
+    const subtitle = t('subtitle');
+
+    return {
+      cardBullets: [t('badge'), t('callNow'), t('whatsappCta')],
+      footerTrustCues: [t('trustedBy'), t('guarantee'), t('digitalCardSticky')],
+      headline: t('title'),
+      inviteLabel: t('digitalCardSticky'),
+      primaryCtaLabel: ctaLabel,
+      primaryCtaMeta: t('guarantee'),
+      subtitle,
+      supportEyebrow: t('badge'),
+      supportLabel: t('callNow'),
+      topStats: [t('badge'), getMembershipPriceChip({ ctaLabel, subtitle }), t('rating')].filter(
+        Boolean
+      ),
+      whatsappLabel: t('whatsappCta'),
+    };
+  }
+
+  return {
+    cardBullets: steps.slice(0, 3),
+    footerTrustCues: trustCues,
+    headline: t('v2.title'),
+    inviteLabel: t('v2.invite'),
+    primaryCtaLabel: t('v2.start'),
+    primaryCtaMeta: proofChips[1] ?? t('v2.helpMeta'),
+    subtitle: t('v2.subtitle'),
+    supportEyebrow: trustCues[0] ?? t('v2.helpMeta'),
+    supportLabel: t('v2.helpNow'),
+    topStats: [t('badge'), t('activeMembersValue'), t('rating')].filter(Boolean),
+    whatsappLabel: t('v2.helpNow'),
+  };
+}
+
+function getProofChipClassName(index: number): string {
+  if (index === 0) {
+    return 'text-emerald-300';
+  }
+
+  if (index === 2) {
+    return 'text-amber-200';
+  }
+
+  return 'text-white';
+}
+
 export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
   const t = useTranslations('hero');
   const common = useTranslations('common');
@@ -24,18 +111,8 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
     ? (t.raw('v2.proofChips') as string[])
     : [];
   const trustCues = Array.isArray(t.raw('v2.trustCues')) ? (t.raw('v2.trustCues') as string[]) : [];
-  const isMembershipEntry = !startClaimHref.includes('/member/claims/new');
-  const primaryCtaLabel = isMembershipEntry ? t('cta') : t('v2.start');
-  const primaryCtaMeta = isMembershipEntry ? t('guarantee') : (proofChips[1] ?? t('v2.helpMeta'));
-  const topStats = isMembershipEntry
-    ? [t('badge'), '€20 / year', t('rating')].filter(Boolean)
-    : [t('badge'), t('activeMembersValue'), t('rating')].filter(Boolean);
-  const cardBullets = isMembershipEntry
-    ? [t('badge'), t('callNow'), t('whatsappCta')]
-    : steps.slice(0, 3);
-  const footerTrustCues = isMembershipEntry
-    ? [t('trustedBy'), t('guarantee'), t('digitalCardSticky')]
-    : trustCues;
+  const isMembershipEntry = isPublicMembershipEntry(startClaimHref);
+  const content = getHeroV2Content({ isMembershipEntry, proofChips, steps, t, trustCues });
 
   return (
     <section className="relative overflow-hidden border-b border-slate-200/80 bg-[linear-gradient(180deg,#f4f8fb_0%,#ffffff_22%,#eef6f3_100%)]">
@@ -64,26 +141,19 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
               {common('appName')}
             </div>
 
-            {topStats.length > 0 ? (
+            {content.topStats.length > 0 ? (
               <div
                 data-testid="hero-v2-proof-chips"
                 className="mt-8 inline-flex flex-wrap items-center justify-center gap-3 rounded-full border border-slate-900/10 bg-[linear-gradient(180deg,rgba(20,29,49,0.98),rgba(17,24,39,0.92))] px-5 py-3 text-[0.8rem] font-semibold uppercase tracking-[0.18em] text-white shadow-[0_24px_50px_-30px_rgba(15,23,42,0.85)]"
               >
-                {topStats.map((chip, index) => (
+                {content.topStats.map((chip, index) => (
                   <div key={chip} className="flex items-center gap-3">
-                    <span
-                      data-testid="hero-v2-proof-chip"
-                      className={
-                        index === 0
-                          ? 'text-emerald-300'
-                          : index === 2
-                            ? 'text-amber-200'
-                            : 'text-white'
-                      }
-                    >
+                    <span data-testid="hero-v2-proof-chip" className={getProofChipClassName(index)}>
                       {chip}
                     </span>
-                    {index < topStats.length - 1 ? <span className="h-4 w-px bg-white/20" /> : null}
+                    {index < content.topStats.length - 1 ? (
+                      <span className="h-4 w-px bg-white/20" />
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -91,13 +161,13 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
 
             <div className="mt-10 space-y-5">
               <h1 className="mx-auto max-w-3xl text-4xl font-semibold leading-[1.02] tracking-[-0.05em] text-slate-950 max-[375px]:text-[2.2rem] md:text-[4.6rem]">
-                {isMembershipEntry ? t('title') : t('v2.title')}
+                {content.headline}
               </h1>
               <p className="text-sm font-semibold uppercase tracking-[0.34em] text-blue-700">
-                {isMembershipEntry ? t('callNow') : t('v2.helpMeta')}
+                {content.supportLabel}
               </p>
               <p className="mx-auto max-w-3xl text-[1.05rem] leading-8 text-slate-600 md:text-[1.24rem]">
-                {isMembershipEntry ? t('subtitle') : t('v2.subtitle')}
+                {content.subtitle}
               </p>
             </div>
 
@@ -108,9 +178,9 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
                 className="inline-flex min-h-20 items-center justify-between rounded-[1.4rem] bg-[linear-gradient(180deg,#0f6b96,#125c86)] px-6 py-5 text-left text-white shadow-[0_24px_54px_-30px_rgba(14,116,144,0.75)] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
               >
                 <span>
-                  <span className="block text-lg font-semibold">{primaryCtaLabel}</span>
+                  <span className="block text-lg font-semibold">{content.primaryCtaLabel}</span>
                   <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-100/85">
-                    {primaryCtaMeta}
+                    {content.primaryCtaMeta}
                   </span>
                 </span>
                 <ArrowRight className="h-5 w-5 shrink-0" />
@@ -123,11 +193,11 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
                   className="inline-flex min-h-20 flex-col items-start justify-center rounded-[1.4rem] border border-white/90 bg-white/68 px-6 py-5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition hover:bg-white/82 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                 >
                   <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-700">
-                    {isMembershipEntry ? t('badge') : (trustCues[0] ?? t('v2.helpMeta'))}
+                    {content.supportEyebrow}
                   </span>
                   <span className="mt-1 inline-flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-950">
                     <PhoneCall className="h-5 w-5 text-slate-700" />
-                    {isMembershipEntry ? t('callNow') : t('v2.helpNow')}
+                    {content.supportLabel}
                   </span>
                 </a>
               ) : null}
@@ -143,7 +213,7 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
                   </span>
                   <span className="mt-1 inline-flex items-center gap-2 text-2xl font-semibold italic tracking-tight text-slate-950">
                     <MessageCircleMore className="h-5 w-5 text-emerald-700" />
-                    {isMembershipEntry ? t('whatsappCta') : t('v2.helpNow')}
+                    {content.whatsappLabel}
                   </span>
                 </a>
               ) : null}
@@ -155,7 +225,7 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
                 href="/register"
                 className="inline-flex min-h-10 items-center rounded-full border border-emerald-200/90 bg-[linear-gradient(180deg,rgba(236,253,245,0.98),rgba(220,252,231,0.9))] px-5 py-2 text-sm font-semibold text-emerald-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
               >
-                {isMembershipEntry ? t('digitalCardSticky') : t('v2.invite')}
+                {content.inviteLabel}
               </Link>
             </div>
 
@@ -188,7 +258,7 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
                 </div>
 
                 <div className="mt-8 flex flex-wrap items-center gap-3 text-[11px] font-medium uppercase tracking-[0.22em] text-slate-300">
-                  {cardBullets.map(item => (
+                  {content.cardBullets.map(item => (
                     <span key={item} className="inline-flex items-center gap-2">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                       {item}
@@ -218,7 +288,7 @@ export function HeroV2({ locale, startClaimHref, tenantId }: HeroV2Props) {
               data-testid="hero-v2-trust-row"
               className="mt-8 flex flex-wrap items-center justify-center gap-2 text-sm font-medium text-slate-600"
             >
-              {footerTrustCues.map(item => (
+              {content.footerTrustCues.map(item => (
                 <span
                   key={item}
                   className="inline-flex items-center rounded-full border border-white/90 bg-white/72 px-3 py-1.5 text-xs font-medium tracking-tight text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"

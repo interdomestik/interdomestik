@@ -58,15 +58,15 @@ function renderHero(locale: 'sq' | 'en', startClaimHref: string) {
 }
 
 describe('HeroV2', () => {
-  it('renders localized CTA when UI_V2 is enabled and user is signed out', () => {
-    const href = getStartClaimHrefForSession({ locale: 'sq', session: null });
+  it('renders membership-first public CTA when the landing page is in signed-out mode', () => {
+    const href = '#free-start-intake';
 
     renderHero('sq', href);
 
     const cta = screen.getByTestId('hero-v2-start-claim');
     expect(cta).toBeInTheDocument();
     expect(cta).toHaveTextContent('Bëhu Anëtar për €20/vit');
-    expect(cta).toHaveAttribute('href', '/register');
+    expect(cta).toHaveAttribute('href', '#free-start-intake');
     expect(screen.getByTestId('hero-v2-invite-chip')).toHaveAttribute('href', '/register');
     expect(screen.getByTestId('hero-v2-digital-id-link')).toHaveAttribute('href', '/member');
   });
@@ -82,13 +82,17 @@ describe('HeroV2', () => {
     expect(screen.getByTestId('hero-v2-start-claim')).toHaveAttribute('href', '/member/claims/new');
   });
 
-  it('shows proof chips and multilingual trust cues on the English claim-first hero', () => {
-    const href = getStartClaimHrefForSession({ locale: 'en', session: null });
+  it('shows membership trust cues on the English signed-out hero', () => {
+    const href = '#free-start-intake';
 
     renderHero('en', href);
 
     expect(screen.getAllByTestId('hero-v2-proof-chip')).toHaveLength(3);
-    expect(screen.getByTestId('hero-v2-trust-row')).toBeInTheDocument();
+    expect(screen.getByText('Trusted by 8,500+ active members')).toBeInTheDocument();
+    expect(
+      screen.getAllByText('Annual membership with a 30-day launch refund window')
+    ).toHaveLength(2);
+    expect(screen.getAllByText('Get your digital ID today')).toHaveLength(2);
     expect(screen.getByTestId('hero-v2-help-call')).toHaveAttribute('href', 'tel:+38349900600');
     expect(screen.getByTestId('hero-v2-help-whatsapp')).toHaveAttribute(
       'href',
