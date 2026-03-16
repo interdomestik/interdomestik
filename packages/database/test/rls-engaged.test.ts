@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { TestContext } from 'node:test';
 
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -12,8 +13,24 @@ const MK_TENANT_ID = 'tenant_mk';
 const TEST_DB_ROLE = 'interdomestik_rls_test';
 const TEST_DB_PASSWORD = 'interdomestik_rls_test_password';
 
+type RlsTestConnectionConfig = {
+  databaseUrlRls: string | null;
+  dbRlsRole: string | null;
+};
+
+type DbModule = typeof import('../src/db');
+type TenantModule = typeof import('../src/tenant');
+
 function uniqueId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function quoteIdentifier(identifier: string): string {
+  return `"${identifier.replaceAll('"', '""')}"`;
+}
+
+function isPoolerConnection(databaseUrl: string): boolean {
+  return /\.pooler\.supabase\.com$/iu.test(new URL(databaseUrl).hostname);
 }
 
 function buildRlsDatabaseUrl(databaseUrl: string): string {
@@ -23,20 +40,26 @@ function buildRlsDatabaseUrl(databaseUrl: string): string {
   return url.toString();
 }
 
-test('RLS is actively enforced across tenant context boundaries', async t => {
-  const requireIntegration = process.env.REQUIRE_RLS_INTEGRATION === '1';
-
-  if (!process.env.DATABASE_URL) {
-    if (requireIntegration) {
-      assert.fail('RLS test requires DATABASE_URL when REQUIRE_RLS_INTEGRATION=1.');
-    }
-    t.skip('DATABASE_URL is required for RLS integration test');
-    return;
+function resolveRlsTestConnectionConfig(databaseUrl: string): RlsTestConnectionConfig {
+  if (isPoolerConnection(databaseUrl)) {
+    return {
+      databaseUrlRls: null,
+      dbRlsRole: TEST_DB_ROLE,
+    };
   }
 
-  const adminSql = postgres(process.env.DATABASE_URL);
-  const adminDb = drizzle(adminSql);
+  return {
+    databaseUrlRls: buildRlsDatabaseUrl(databaseUrl),
+    dbRlsRole: null,
+  };
+}
 
+async function requireRlsPreconditions(
+  adminDb: ReturnType<typeof drizzle>,
+  adminSql: postgres.Sql,
+  requireIntegration: boolean,
+  t: TestContext
+): Promise<void> {
   const [rlsEnabled] = await adminDb.execute<{ enabled: boolean }>(
     sql`select relrowsecurity as enabled from pg_class where relname = 'claim'`
   );
@@ -62,6 +85,85 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
       );
     }
     t.skip('tenant_isolation_claim policy is not present in current database');
+  }
+}
+
+function applyRlsTestConnectionEnv(databaseUrl: string): {
+  restore(): void;
+} {
+  const previousDatabaseUrlRls = process.env.DATABASE_URL_RLS;
+  const previousDbRlsRole = process.env.DB_RLS_ROLE;
+  const connectionConfig = resolveRlsTestConnectionConfig(databaseUrl);
+
+  if (connectionConfig.databaseUrlRls) {
+    process.env.DATABASE_URL_RLS = connectionConfig.databaseUrlRls;
+  } else {
+    delete process.env.DATABASE_URL_RLS;
+  }
+
+  if (connectionConfig.dbRlsRole) {
+    process.env.DB_RLS_ROLE = connectionConfig.dbRlsRole;
+  } else {
+    delete process.env.DB_RLS_ROLE;
+  }
+
+  delete (globalThis as { queryClientAdmin?: unknown; queryClientRls?: unknown }).queryClientAdmin;
+  delete (globalThis as { queryClientAdmin?: unknown; queryClientRls?: unknown }).queryClientRls;
+
+  return {
+    restore() {
+      if (previousDatabaseUrlRls) {
+        process.env.DATABASE_URL_RLS = previousDatabaseUrlRls;
+      } else {
+        delete process.env.DATABASE_URL_RLS;
+      }
+
+      if (previousDbRlsRole) {
+        process.env.DB_RLS_ROLE = previousDbRlsRole;
+      } else {
+        delete process.env.DB_RLS_ROLE;
+      }
+    },
+  };
+}
+
+test('resolveRlsTestConnectionConfig keeps pooler URLs on the admin connection and uses SET ROLE', () => {
+  const config = resolveRlsTestConnectionConfig(
+    'postgresql://postgres.project-ref:secret@aws-1-eu-west-1.pooler.supabase.com:5432/postgres'
+  );
+
+  assert.equal(config.databaseUrlRls, null);
+  assert.equal(config.dbRlsRole, TEST_DB_ROLE);
+});
+
+test('resolveRlsTestConnectionConfig uses a dedicated low-privilege connection for direct Postgres URLs', () => {
+  const config = resolveRlsTestConnectionConfig(
+    'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+  );
+
+  assert.equal(
+    config.databaseUrlRls,
+    'postgresql://interdomestik_rls_test:interdomestik_rls_test_password@127.0.0.1:54322/postgres'
+  );
+  assert.equal(config.dbRlsRole, null);
+});
+
+test('RLS is actively enforced across tenant context boundaries', async t => {
+  const requireIntegration = process.env.REQUIRE_RLS_INTEGRATION === '1';
+
+  if (!process.env.DATABASE_URL) {
+    if (requireIntegration) {
+      assert.fail('RLS test requires DATABASE_URL when REQUIRE_RLS_INTEGRATION=1.');
+    }
+    t.skip('DATABASE_URL is required for RLS integration test');
+    return;
+  }
+
+  const adminSql = postgres(process.env.DATABASE_URL);
+  const adminDb = drizzle(adminSql);
+
+  await requireRlsPreconditions(adminDb, adminSql, requireIntegration, t);
+  if (t.signal.aborted) {
     return;
   }
 
@@ -80,21 +182,27 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
   );
   await adminDb.execute(sql.raw(`grant usage on schema public to "${TEST_DB_ROLE}"`));
   await adminDb.execute(sql.raw(`grant select on table "claim" to "${TEST_DB_ROLE}"`));
-
-  process.env.DATABASE_URL_RLS = buildRlsDatabaseUrl(process.env.DATABASE_URL);
-
-  const [{ dbAdmin }, { withTenantContext }] = await Promise.all([
-    import('../src/db'),
-    import('../src/tenant'),
-  ]);
-  console.log('RLS_INTEGRATION_RAN=1');
+  const [{ currentUser }] = await adminDb.execute<{ currentUser: string }>(
+    sql`select current_user as "currentUser"`
+  );
+  await adminDb.execute(sql.raw(`grant "${TEST_DB_ROLE}" to ${quoteIdentifier(currentUser)}`));
 
   const ksUserId = uniqueId('rls_user_ks');
   const mkUserId = uniqueId('rls_user_mk');
   const claimId = uniqueId('rls_claim_ks');
   const now = new Date();
+  let rlsTestEnv: ReturnType<typeof applyRlsTestConnectionEnv> | null = null;
+  let dbAdmin: DbModule['dbAdmin'] | null = null;
+  let withTenantContext: TenantModule['withTenantContext'] | null = null;
 
   try {
+    rlsTestEnv = applyRlsTestConnectionEnv(process.env.DATABASE_URL);
+    [{ dbAdmin }, { withTenantContext }] = await Promise.all([
+      import('../src/db'),
+      import('../src/tenant'),
+    ]);
+    console.log('RLS_INTEGRATION_RAN=1');
+
     await dbAdmin.insert(user).values([
       {
         id: ksUserId,
@@ -148,9 +256,12 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
 
     assert.equal(ksRows.length, 1, 'tenant_ks must see its own claim row');
   } finally {
-    await dbAdmin.delete(claims).where(eq(claims.id, claimId));
-    await dbAdmin.delete(user).where(eq(user.id, ksUserId));
-    await dbAdmin.delete(user).where(eq(user.id, mkUserId));
+    if (dbAdmin) {
+      await dbAdmin.delete(claims).where(eq(claims.id, claimId));
+      await dbAdmin.delete(user).where(eq(user.id, ksUserId));
+      await dbAdmin.delete(user).where(eq(user.id, mkUserId));
+    }
+    rlsTestEnv?.restore();
     await adminSql.end({ timeout: 5 });
   }
 });
