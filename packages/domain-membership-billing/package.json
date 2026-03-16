@@ -42,10 +42,10 @@
   "dependencies": {
     "@interdomestik/database": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
-    "@paddle/paddle-js": "^1.6.1",
-    "@paddle/paddle-node-sdk": "^3.5.0",
+    "@paddle/paddle-js": "^1.6.2",
+    "@paddle/paddle-node-sdk": "^3.6.0",
     "drizzle-orm": "^0.45.1",
-    "nanoid": "^5.1.6",
+    "nanoid": "^5.1.7",
     "zod": "^4.2.1"
   },
   "devDependencies": {

@@ -20,7 +20,7 @@
   "dependencies": {
     "@interdomestik/database": "workspace:*",
     "drizzle-orm": "^0.45.1",
-    "nanoid": "^5.1.6"
+    "nanoid": "^5.1.7"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.16",

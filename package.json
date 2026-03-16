@@ -176,12 +176,12 @@
     "@commitlint/config-conventional": "^20.4.3",
     "@playwright/mcp": "^0.0.54",
     "@release-it/conventional-changelog": "^10.0.5",
-    "@supabase/supabase-js": "^2.87.1",
+    "@supabase/supabase-js": "^2.99.2",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.19.3",
     "@upstash/context7-mcp": "^2.1.4",
     "bcryptjs": "^3.0.3",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.3.1",
     "glob": "^13.0.0",
     "gzip-size": "^7.0.0",
     "hono": "^4.12.7",
@@ -235,7 +235,7 @@
     }
   },
   "dependencies": {
-    "checkly": "^7.4.0",
+    "checkly": "^7.6.1",
     "drizzle-orm": "^0.45.1"
   }
 }
