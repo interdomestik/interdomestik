@@ -87,7 +87,9 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
   - `pnpm pilot:decision:record -- --pilotId pilot-ks-rehearsal-2026-03-15 --reviewType daily --reference day-2 --date 2026-03-16 --owner "Admin KS" --decision hotfix --rollbackTag pilot-ready-20260316 --observabilityRef day-2` -> exit `1`; `observability evidence must exist for reference day-2 before decision proof can be recorded`
   - `git add docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-rehearsal-2026-03-15.md docs/pilot/PILOT_DAILY_SHEET_pilot-ks-rehearsal-2026-03-15_day-2.md && git commit -m "docs: record PD02 day 2 pilot outcome"` -> exit `0`; commit `c90b60d69b3ff29d957a8c1e5d6d1e4204d63f20`
   - `git tag -d pilot-ready-20260316 && pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; re-tagged `pilot-ready-20260316` against commit `c90b60d69b3ff29d957a8c1e5d6d1e4204d63f20`
-  - fresh verification: `pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; verified `pilot-ready-20260316` against commit `c90b60d69b3ff29d957a8c1e5d6d1e4204d63f20`
+  - `git add docs/pilot/PILOT_DAILY_SHEET_pilot-ks-rehearsal-2026-03-15_day-2.md && git commit -m "docs: finalize PD02 day 2 working sheet"` -> exit `0`; commit `544a03641aabfa804f139b594c4013f35998f517`
+  - `git tag -d pilot-ready-20260316 && pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; re-tagged `pilot-ready-20260316` against commit `544a03641aabfa804f139b594c4013f35998f517`
+  - fresh verification: `pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; verified `pilot-ready-20260316` against commit `544a03641aabfa804f139b594c4013f35998f517`
 
 ## Gate Scorecard
 
@@ -107,7 +109,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - Notes:
   - The canonical Day 1 green report was present in the worktree but excluded by `.git/info/exclude`, so `PD02` initially failed rollback-tag verification until the report was force-added and committed in `HEAD`.
   - The copied evidence index path stayed stable at `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-rehearsal-2026-03-15.md`.
-  - The rollback tag now verifies against the final Day 2 evidence commit `c90b60d69b3ff29d957a8c1e5d6d1e4204d63f20`.
+  - The rollback tag now verifies against the final Day 2 documentation commit `544a03641aabfa804f139b594c4013f35998f517`.
 
 ## Security And Boundary Notes
 
@@ -209,6 +211,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
   - `docs/pilot/PILOT_DAILY_SHEET_pilot-ks-rehearsal-2026-03-15_day-2.md`
   - commit `1fdc8f315e38b47791077701a9d427639d393082` (`docs: add canonical pilot release report for PD02`)
   - commit `c90b60d69b3ff29d957a8c1e5d6d1e4204d63f20` (`docs: record PD02 day 2 pilot outcome`)
+  - commit `544a03641aabfa804f139b594c4013f35998f517` (`docs: finalize PD02 day 2 working sheet`)
   - tag `pilot-ready-20260316`
 
 ## Summary Notes
@@ -216,7 +219,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - What passed:
   - canonical Day 1 green release report preserved as the Day 2 rollback baseline
   - release report custody repaired into `HEAD`
-  - rollback tag `pilot-ready-20260316` created, rebound, and freshly verified against the final Day 2 evidence commit
+  - rollback tag `pilot-ready-20260316` created, rebound twice as `HEAD` advanced, and freshly verified against the final Day 2 documentation commit
   - canonical Day 2 evidence row and canonical Day 2 observability row recorded in the copied evidence index
 - What failed:
   - `pnpm pilot:check`
