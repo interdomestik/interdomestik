@@ -29,4 +29,13 @@ describe('i18n shell namespace coverage', () => {
     expect(staff).toContain("'dashboard'");
     expect(admin).toContain("'dashboard'");
   });
+
+  it('includes freeStart on the home shell loader', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, 'messages.ts'), 'utf8');
+    const allNamespaces = getArrayBlock(source, 'MESSAGE_NAMESPACES');
+    const home = getArrayBlock(source, 'HOME_NAMESPACES');
+
+    expect(allNamespaces).toContain("'freeStart'");
+    expect(home).toContain("'freeStart'");
+  });
 });

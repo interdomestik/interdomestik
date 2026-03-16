@@ -30,6 +30,7 @@ export const MESSAGE_NAMESPACES = [
   'faq',
   'features',
   'footer',
+  'freeStart',
   'help',
   'hero',
   'howItWorks',
@@ -62,6 +63,7 @@ export const BASE_NAMESPACES = ['common'] as const;
 export const HOME_NAMESPACES = [
   'nav',
   'hero',
+  'freeStart',
   'trust',
   'trustStats',
   'memberBenefits',
