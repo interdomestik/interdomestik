@@ -34,7 +34,7 @@ function getMissingEnv(requiredVars) {
 
 function resolveForwardedForIp(account) {
   const roleMarker = ACCOUNTS[account]?.roleMarker;
-  return ROLE_IPS[roleMarker] || ROLE_IPS[account] || ROLE_IPS.member;
+  return ROLE_IPS[account] || ROLE_IPS[roleMarker] || ROLE_IPS.member;
 }
 
 function checkResult(id, status, evidence, signatures) {
@@ -70,6 +70,9 @@ const LOGIN_JITTER_BOUNDS_MS = {
   min: 100,
   max: 350,
 };
+const AUTH_LOGIN_POST_WINDOW_MS = 60_000;
+const AUTH_LOGIN_POST_LIMIT = 2;
+const AUTH_LOGIN_POST_SAFETY_BUFFER_MS = 2_000;
 
 let loginMutex = Promise.resolve();
 
@@ -200,13 +203,54 @@ function queueLoginOperation(operation) {
 function createAuthState() {
   return {
     sessionStateByAccount: new Map(),
+    loginPostTimestampsMs: [],
+    cooldownUntilMs: 0,
   };
+}
+
+function trimAuthLoginAttempts(authState, nowMs) {
+  authState.loginPostTimestampsMs = (authState.loginPostTimestampsMs || []).filter(
+    timestampMs => nowMs - timestampMs < AUTH_LOGIN_POST_WINDOW_MS
+  );
+}
+
+function recordAuthLoginAttempt(authState, nowMs = Date.now()) {
+  trimAuthLoginAttempts(authState, nowMs);
+  authState.loginPostTimestampsMs.push(nowMs);
+}
+
+function noteAuthRateLimit(authState, retryAfterSeconds, nowMs = Date.now()) {
+  const retryAfterMs =
+    typeof retryAfterSeconds === 'number' && Number.isFinite(retryAfterSeconds)
+      ? Math.max(0, retryAfterSeconds) * 1000
+      : 0;
+  authState.cooldownUntilMs = Math.max(authState.cooldownUntilMs || 0, nowMs + retryAfterMs);
+}
+
+function getAuthLoginCooldownMs(authState, nowMs = Date.now()) {
+  trimAuthLoginAttempts(authState, nowMs);
+  const manualCooldownMs = Math.max(0, (authState.cooldownUntilMs || 0) - nowMs);
+
+  if ((authState.loginPostTimestampsMs || []).length < AUTH_LOGIN_POST_LIMIT) {
+    return manualCooldownMs;
+  }
+
+  const oldestTrackedAttemptMs = authState.loginPostTimestampsMs[0];
+  const rollingWindowCooldownMs = Math.max(
+    0,
+    AUTH_LOGIN_POST_WINDOW_MS - (nowMs - oldestTrackedAttemptMs)
+  );
+  const bufferedRollingWindowCooldownMs =
+    rollingWindowCooldownMs > 0 ? rollingWindowCooldownMs + AUTH_LOGIN_POST_SAFETY_BUFFER_MS : 0;
+  return Math.max(manualCooldownMs, bufferedRollingWindowCooldownMs);
 }
 
 async function loginAs(page, params) {
   return queueLoginOperation(async () => {
     const { account, credentials, baseUrl, locale } = params;
     const authState = params.authState || createAuthState();
+    const sleepFn = params.sleepFn || sleep;
+    const nowFn = params.nowFn || Date.now;
     const accountCacheKey = sessionCacheKeyForAccount(account);
     const cachedSessionState = authState.sessionStateByAccount.get(accountCacheKey);
 
@@ -215,13 +259,7 @@ async function loginAs(page, params) {
       if (cachedSessionState.cookies.length > 0) {
         await page.context().addCookies(cachedSessionState.cookies);
       }
-
-      const bootstrapFromCache = await bootstrapAccountLanding(page, { account, baseUrl, locale });
-      if (!bootstrapFromCache.sawAuthExpiry) {
-        return;
-      }
-
-      authState.sessionStateByAccount.delete(accountCacheKey);
+      return;
     }
 
     const origin = new URL(baseUrl).origin;
@@ -232,6 +270,11 @@ async function loginAs(page, params) {
 
     let response = null;
     for (let attempt = 1; attempt <= LOGIN_MAX_ATTEMPTS_PER_ACCOUNT; attempt += 1) {
+      const sharedCooldownMs = getAuthLoginCooldownMs(authState, nowFn());
+      if (sharedCooldownMs > 0) {
+        await sleepFn(sharedCooldownMs);
+      }
+
       try {
         response = await page.request.post(loginUrl, {
           data: {
@@ -245,6 +288,7 @@ async function loginAs(page, params) {
             ...(tenantId ? { 'x-tenant-id': tenantId } : {}),
           },
         });
+        recordAuthLoginAttempt(authState, nowFn());
       } catch (networkError) {
         logLoginAttempt({
           account,
@@ -260,13 +304,23 @@ async function loginAs(page, params) {
           );
         }
         const delay = computeRetryDelayMs({ attempt });
-        await sleep(delay.totalMs);
+        await sleepFn(delay.totalMs);
         continue;
       }
 
       const status = response.status();
       const retryAfterSeconds = parseRetryAfterSeconds(response.headers()['retry-after']);
       logLoginAttempt({ account, attempt, status, retryAfterSeconds });
+      if (status === 429) {
+        noteAuthRateLimit(
+          authState,
+          retryAfterSeconds ??
+            LOGIN_FALLBACK_RETRY_DELAYS_SECONDS[
+              Math.min(attempt - 1, LOGIN_FALLBACK_RETRY_DELAYS_SECONDS.length - 1)
+            ],
+          nowFn()
+        );
+      }
 
       if (response.ok()) break;
 
@@ -283,7 +337,7 @@ async function loginAs(page, params) {
       }
 
       const delay = computeRetryDelayMs({ attempt, retryAfterSeconds });
-      await sleep(delay.totalMs);
+      await sleepFn(delay.totalMs);
     }
 
     if (!response || !response.ok()) {
@@ -292,8 +346,11 @@ async function loginAs(page, params) {
       throw new Error(`AUTH_LOGIN_FAILED account=${account} status=${status} url=${url}`);
     }
 
-    await bootstrapAccountLanding(page, { account, baseUrl, locale });
-    const storageState = await page.context().storageState();
+    let storageState = await page.context().storageState();
+    if (!Array.isArray(storageState.cookies) || storageState.cookies.length === 0) {
+      await bootstrapAccountLanding(page, { account, baseUrl, locale });
+      storageState = await page.context().storageState();
+    }
     authState.sessionStateByAccount.set(accountCacheKey, storageState);
   });
 }
@@ -427,6 +484,7 @@ module.exports = {
   collectMarkersWithWait,
   computeRetryDelayMs,
   createAuthState,
+  getAuthLoginCooldownMs,
   envFlag,
   expectedMatrixForAccount,
   getMissingEnv,
@@ -438,6 +496,8 @@ module.exports = {
   parseRetryAfterSeconds,
   resolveForwardedForIp,
   resolvePlaywright,
+  noteAuthRateLimit,
+  recordAuthLoginAttempt,
   sessionCacheKeyForAccount,
   sleep,
   waitForReadyMarker,

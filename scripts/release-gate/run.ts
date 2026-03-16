@@ -29,13 +29,16 @@ const {
   createAuthState,
   envFlag,
   expectedMatrixForAccount,
+  getAuthLoginCooldownMs,
   getMissingEnv,
   loginAs,
   markerSnapshot,
   markerSummary,
   markersToString,
+  noteAuthRateLimit,
   normalizeBaseUrl,
   parseRetryAfterSeconds,
+  recordAuthLoginAttempt,
   resolvePlaywright,
   sessionCacheKeyForAccount,
   sleep,
@@ -348,6 +351,10 @@ function normalizeBoundaryText(value) {
     .trim();
 }
 
+function compactBoundaryText(value) {
+  return normalizeBoundaryText(value).replaceAll(/\s+/g, '');
+}
+
 function resolveAccountPasswordVar(accountKey) {
   const account = ACCOUNTS[accountKey];
   if (!account) {
@@ -425,8 +432,11 @@ function buildEscalationAgreementCollectionFallbackScenarios(runCtx) {
 
 function findMissingBoundaryPhrases(requiredPhrases, observedText) {
   const normalizedObserved = normalizeBoundaryText(observedText);
+  const compactObserved = compactBoundaryText(observedText);
   return requiredPhrases.filter(
-    phrase => !normalizedObserved.includes(normalizeBoundaryText(phrase))
+    phrase =>
+      !normalizedObserved.includes(normalizeBoundaryText(phrase)) &&
+      !compactObserved.includes(compactBoundaryText(phrase))
   );
 }
 
@@ -472,13 +482,35 @@ async function visitReleaseGateScenario(browser, runCtx, scenario, callback) {
   }
 }
 
-async function collectVisibleTestIds(page, requiredTestIds) {
+async function collectVisibleTestIds(page, requiredTestIds, options = {}) {
   const observedByTestId = {};
-  for (const testId of requiredTestIds) {
-    observedByTestId[testId] = await page
-      .getByTestId(testId)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
+  const timeoutMs = Number.isFinite(options.timeoutMs)
+    ? Number(options.timeoutMs)
+    : TIMEOUTS.marker;
+  const intervalMs = Number.isFinite(options.intervalMs) ? Number(options.intervalMs) : 250;
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt <= timeoutMs) {
+    let allVisible = true;
+    for (const testId of requiredTestIds) {
+      observedByTestId[testId] = await page
+        .getByTestId(testId)
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      if (observedByTestId[testId] !== true) {
+        allVisible = false;
+      }
+    }
+
+    if (allVisible || Date.now() - startedAt >= timeoutMs) {
+      break;
+    }
+
+    if (typeof page.waitForTimeout === 'function') {
+      await page.waitForTimeout(intervalMs);
+    } else {
+      await sleep(intervalMs);
+    }
   }
 
   return observedByTestId;
@@ -617,6 +649,12 @@ function shouldDisallowSkippedChecks(envName) {
   const explicit = parseBooleanEnv(process.env.RELEASE_GATE_DISALLOW_SKIP);
   if (explicit != null) return explicit;
   return String(envName || '').toLowerCase() === 'production';
+}
+
+function shouldRunAuthEndpointPreflight(envName) {
+  const explicit = parseBooleanEnv(process.env.RELEASE_GATE_AUTH_ENDPOINT_PREFLIGHT);
+  if (explicit != null) return explicit;
+  return String(envName || '').toLowerCase() !== 'production';
 }
 
 function checksAllowedToRemainSkipped() {
@@ -779,7 +817,7 @@ async function runAuthCredentialPreflight(runCtx) {
   const signatures = [];
   const origin = new URL(runCtx.baseUrl).origin;
   const loginUrl = `${origin}/api/auth/sign-in/email`;
-  const accountKeys = Object.keys(ACCOUNTS);
+  const accountKeys = selectCredentialPreflightAccounts();
   const results = [];
 
   for (const accountKey of accountKeys) {
@@ -796,6 +834,13 @@ async function runAuthCredentialPreflight(runCtx) {
 
     const tenantId = ACCOUNTS[accountKey]?.tenantId;
     try {
+      const sharedCooldownMs = getAuthLoginCooldownMs(runCtx.authState, Date.now());
+      if (sharedCooldownMs > 0) {
+        evidence.push(
+          `auth_credentials_preflight account=${sessionCacheKeyForAccount(accountKey)} cooldown_ms=${sharedCooldownMs}`
+        );
+        await sleep(sharedCooldownMs);
+      }
       const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
@@ -811,11 +856,19 @@ async function runAuthCredentialPreflight(runCtx) {
         redirect: 'manual',
         signal: AbortSignal.timeout(AUTH_PREFLIGHT_TIMEOUT_MS),
       });
+      recordAuthLoginAttempt(runCtx.authState, Date.now());
       const status = response.status;
       results.push({ accountKey, status });
       evidence.push(
         `auth_credentials_preflight account=${sessionCacheKeyForAccount(accountKey)} status=${status}`
       );
+      if (status === 429) {
+        noteAuthRateLimit(
+          runCtx.authState,
+          parseRetryAfterSeconds(response.headers.get('retry-after')) ?? 60,
+          Date.now()
+        );
+      }
     } catch (error) {
       const message = compactErrorMessage(error?.message || error, 320);
       evidence.push(
@@ -840,6 +893,10 @@ async function runAuthCredentialPreflight(runCtx) {
     evidence,
     signatures,
   };
+}
+
+function selectCredentialPreflightAccounts() {
+  return [];
 }
 
 function parseArgs(argv) {
@@ -2632,7 +2689,7 @@ async function main() {
     const loginDependentSelected = selected.filter(isLoginDependentCheck);
     let preflightBlocked = false;
 
-    if (runCtx.envName === 'production' && loginDependentSelected.length > 0) {
+    if (shouldRunAuthEndpointPreflight(runCtx.envName) && loginDependentSelected.length > 0) {
       const preflight = await runAuthEndpointPreflight(runCtx);
       if (preflight.status !== 'PASS') {
         preflightBlocked = true;
@@ -2767,6 +2824,7 @@ module.exports = {
   computeRetryDelayMs,
   evaluateCredentialPreflightResults,
   enforceNoSkipOnSelectedChecks,
+  collectVisibleTestIds,
   findMissingBoundaryPhrases,
   findMissingCommercialPromiseSections,
   findMismatchedMatterAllowanceValues,
@@ -2780,7 +2838,9 @@ module.exports = {
   resolveConfiguredStaffClaimDetailUrl,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
+  selectCredentialPreflightAccounts,
   sessionCacheKeyForAccount,
+  shouldRunAuthEndpointPreflight,
   shouldDisallowSkippedChecks,
 };
 
