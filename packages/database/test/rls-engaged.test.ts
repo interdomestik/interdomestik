@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { TestContext } from 'node:test';
 
 import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -57,7 +58,7 @@ async function requireRlsPreconditions(
   adminDb: ReturnType<typeof drizzle>,
   adminSql: postgres.Sql,
   requireIntegration: boolean,
-  t: Parameters<typeof test>[1] extends (t: infer T) => unknown ? T : never
+  t: TestContext
 ): Promise<void> {
   const [rlsEnabled] = await adminDb.execute<{ enabled: boolean }>(
     sql`select relrowsecurity as enabled from pg_class where relname = 'claim'`
