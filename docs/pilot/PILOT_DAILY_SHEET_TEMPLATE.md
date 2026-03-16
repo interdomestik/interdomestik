@@ -26,7 +26,7 @@ pnpm pilot:decision:record -- --pilotId <pilot-id> ...
 - `green`: all required gates pass, no `sev1` or `sev2`, canonical artifacts exist, decision is `continue`
 - `amber`: no critical breach, scenario mostly passes, workaround or owner follow-up exists, decision is usually `continue` or `pause`
 - `red`: privacy, tenancy, payment, agreement, rollback, or major workflow failure; decision is `hotfix` or `stop`
-- `blocked`: required evidence is missing, so no trustworthy color or decision can be assigned yet
+- `blocked`: working-sheet-only state meaning required evidence is missing, so no trustworthy canonical color or decision can be assigned yet
 
 ## Gate Rules
 
@@ -41,6 +41,8 @@ Score every day against these five gates:
 If any gate fails because of privacy, tenancy, RBAC, agreement, collection, or rollback-critical behavior, the day is `red`.
 
 If evidence custody is incomplete, the day is `blocked` until fixed.
+
+Do not write `blocked` into the canonical evidence index. Resolve or rerun the day until it can be recorded as `green`, `amber`, or `red`.
 
 ## Working Notes vs Canonical Evidence
 

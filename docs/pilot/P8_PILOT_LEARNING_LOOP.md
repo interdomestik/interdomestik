@@ -17,10 +17,10 @@ Prevent repeated pilot mistakes by turning known Day 2 failure classes into:
 
 The pilot learning loop uses:
 
-- memory registry: [2026-03-03-memory-registry.jsonl](/Users/arbenlila/development/interdomestik-crystal-home/docs/plans/2026-03-03-memory-registry.jsonl)
-- memory sources: [candidate-capture-sources.json](/Users/arbenlila/development/interdomestik-crystal-home/scripts/plan-conformance/candidate-capture-sources.json)
-- incident playbook: [INCIDENT_PLAYBOOK.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/INCIDENT_PLAYBOOK.md)
-- reset gate: [P8_RESET_GATE_CHECKLIST.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/P8_RESET_GATE_CHECKLIST.md)
+- memory registry: [2026-03-03-memory-registry.jsonl](../plans/2026-03-03-memory-registry.jsonl)
+- memory sources: [candidate-capture-sources.json](../../scripts/plan-conformance/candidate-capture-sources.json)
+- incident playbook: [INCIDENT_PLAYBOOK.md](../INCIDENT_PLAYBOOK.md)
+- reset gate: [P8_RESET_GATE_CHECKLIST.md](./P8_RESET_GATE_CHECKLIST.md)
 
 ## Current Pilot Failure Classes
 
@@ -90,10 +90,10 @@ This turns new pilot mistakes into candidate lessons before they can silently re
 
 ## Query Templates
 
-- [p8-rg01-memory-query.json](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/memory/p8-rg01-memory-query.json)
-- [p8-rg02-memory-query.json](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/memory/p8-rg02-memory-query.json)
-- [p8-rg03-memory-query.json](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/memory/p8-rg03-memory-query.json)
-- [p8-rg04-memory-query.json](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/memory/p8-rg04-memory-query.json)
+- [p8-rg01-memory-query.json](./memory/p8-rg01-memory-query.json)
+- [p8-rg02-memory-query.json](./memory/p8-rg02-memory-query.json)
+- [p8-rg03-memory-query.json](./memory/p8-rg03-memory-query.json)
+- [p8-rg04-memory-query.json](./memory/p8-rg04-memory-query.json)
 
 ## Promotion Rule
 

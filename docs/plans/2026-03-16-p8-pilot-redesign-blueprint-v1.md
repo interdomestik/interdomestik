@@ -62,6 +62,8 @@ This redesign keeps the `P7` artifact and decision machinery, but replaces the c
 - status: `green | amber | red`
 - decision: `continue | pause | hotfix | stop`
 
+`blocked` remains allowed only as a working-sheet state in the daily note template. It must not be written into the canonical evidence status field until the day is repaired or rerun into a valid `green`, `amber`, or `red` outcome.
+
 For `PD07`, any final `expand | repeat_with_fixes | pause | stop` outcome is an executive review recommendation layered on top of the canonical daily decision proof, not a schema rewrite.
 
 ## Repo Learning Integration

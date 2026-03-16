@@ -36,10 +36,10 @@ Default new pilot id:
 
 Before closing the reset gate, retrieve the checked-in lessons for:
 
-- `RG01`: [p8-rg01-memory-query.json](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/memory/p8-rg01-memory-query.json)
-- `RG02`: [p8-rg02-memory-query.json](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/memory/p8-rg02-memory-query.json)
-- `RG03`: [p8-rg03-memory-query.json](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/memory/p8-rg03-memory-query.json)
-- `RG04`: [p8-rg04-memory-query.json](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/memory/p8-rg04-memory-query.json)
+- `RG01`: [p8-rg01-memory-query.json](./memory/p8-rg01-memory-query.json)
+- `RG02`: [p8-rg02-memory-query.json](./memory/p8-rg02-memory-query.json)
+- `RG03`: [p8-rg03-memory-query.json](./memory/p8-rg03-memory-query.json)
+- `RG04`: [p8-rg04-memory-query.json](./memory/p8-rg04-memory-query.json)
 
 Record the retrieval output paths in the reset-gate notes or daily-sheet evidence references.
 

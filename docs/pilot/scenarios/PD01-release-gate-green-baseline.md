@@ -35,12 +35,12 @@ Complete these before running the scenario:
 
 ## Inputs
 
-- [PILOT_RUNBOOK.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/PILOT_RUNBOOK.md)
-- [pilot-entry-criteria.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot-entry-criteria.md)
-- [PILOT_DAILY_SHEET_TEMPLATE.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/PILOT_DAILY_SHEET_TEMPLATE.md)
-- [PILOT_EVIDENCE_INDEX_TEMPLATE.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md)
-- [PILOT_GO_NO_GO.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/PILOT_GO_NO_GO.md)
-- [2026-03-16-p8-pilot-redesign-blueprint-v1.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/plans/2026-03-16-p8-pilot-redesign-blueprint-v1.md)
+- [PILOT_RUNBOOK.md](../PILOT_RUNBOOK.md)
+- [pilot-entry-criteria.md](../../pilot-entry-criteria.md)
+- [PILOT_DAILY_SHEET_TEMPLATE.md](../PILOT_DAILY_SHEET_TEMPLATE.md)
+- [PILOT_EVIDENCE_INDEX_TEMPLATE.md](../PILOT_EVIDENCE_INDEX_TEMPLATE.md)
+- [PILOT_GO_NO_GO.md](../PILOT_GO_NO_GO.md)
+- [2026-03-16-p8-pilot-redesign-blueprint-v1.md](../../plans/2026-03-16-p8-pilot-redesign-blueprint-v1.md)
 
 ## Required Outputs
 
@@ -129,7 +129,7 @@ Expected decision in this state:
 - observability row or decision row was not recorded
 - the daily sheet was not filled enough to support a trustworthy canonical row
 
-`blocked` means rerun or repair before treating Day 1 as complete.
+`blocked` is a working-sheet-only state. Rerun or repair before writing a canonical row as `green`, `amber`, or `red`.
 
 ## Orchestration Traceability Requirement
 
