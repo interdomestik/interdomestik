@@ -174,7 +174,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.4.3",
     "@commitlint/config-conventional": "^20.4.3",
-    "@playwright/mcp": "^0.0.54",
+    "@playwright/mcp": "^0.0.68",
     "@release-it/conventional-changelog": "^10.0.5",
     "@supabase/supabase-js": "^2.87.1",
     "@types/jsonwebtoken": "^9.0.10",
