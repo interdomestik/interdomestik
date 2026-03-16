@@ -17,15 +17,15 @@ type RlsTestConnectionConfig = {
   dbRlsRole: string | null;
 };
 
+type DbModule = typeof import('../src/db');
+type TenantModule = typeof import('../src/tenant');
+
 function uniqueId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function assertRoleIdentifier(role: string): string {
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(role)) {
-    throw new Error(`Invalid role identifier: ${role}`);
-  }
-  return role;
+function quoteIdentifier(identifier: string): string {
+  return `"${identifier.replaceAll('"', '""')}"`;
 }
 
 function isPoolerConnection(databaseUrl: string): boolean {
@@ -50,6 +50,79 @@ function resolveRlsTestConnectionConfig(databaseUrl: string): RlsTestConnectionC
   return {
     databaseUrlRls: buildRlsDatabaseUrl(databaseUrl),
     dbRlsRole: null,
+  };
+}
+
+async function requireRlsPreconditions(
+  adminDb: ReturnType<typeof drizzle>,
+  adminSql: postgres.Sql,
+  requireIntegration: boolean,
+  t: Parameters<typeof test>[1] extends (t: infer T) => unknown ? T : never
+): Promise<void> {
+  const [rlsEnabled] = await adminDb.execute<{ enabled: boolean }>(
+    sql`select relrowsecurity as enabled from pg_class where relname = 'claim'`
+  );
+  if (!rlsEnabled?.enabled) {
+    await adminSql.end({ timeout: 5 });
+    if (requireIntegration) {
+      assert.fail(
+        'RLS test requires claim table RLS enabled when REQUIRE_RLS_INTEGRATION=1 (migrations must be applied).'
+      );
+    }
+    t.skip('claim table RLS is not enabled in current database');
+    return;
+  }
+
+  const policies = await adminDb.execute<{ policyname: string }>(
+    sql`select policyname from pg_policies where schemaname = 'public' and tablename = 'claim' and policyname = 'tenant_isolation_claim'`
+  );
+  if (policies.length === 0) {
+    await adminSql.end({ timeout: 5 });
+    if (requireIntegration) {
+      assert.fail(
+        'RLS test requires tenant_isolation_claim policy when REQUIRE_RLS_INTEGRATION=1.'
+      );
+    }
+    t.skip('tenant_isolation_claim policy is not present in current database');
+  }
+}
+
+function applyRlsTestConnectionEnv(databaseUrl: string): {
+  restore(): void;
+} {
+  const previousDatabaseUrlRls = process.env.DATABASE_URL_RLS;
+  const previousDbRlsRole = process.env.DB_RLS_ROLE;
+  const connectionConfig = resolveRlsTestConnectionConfig(databaseUrl);
+
+  if (connectionConfig.databaseUrlRls) {
+    process.env.DATABASE_URL_RLS = connectionConfig.databaseUrlRls;
+  } else {
+    delete process.env.DATABASE_URL_RLS;
+  }
+
+  if (connectionConfig.dbRlsRole) {
+    process.env.DB_RLS_ROLE = connectionConfig.dbRlsRole;
+  } else {
+    delete process.env.DB_RLS_ROLE;
+  }
+
+  delete (globalThis as { queryClientAdmin?: unknown; queryClientRls?: unknown }).queryClientAdmin;
+  delete (globalThis as { queryClientAdmin?: unknown; queryClientRls?: unknown }).queryClientRls;
+
+  return {
+    restore() {
+      if (previousDatabaseUrlRls) {
+        process.env.DATABASE_URL_RLS = previousDatabaseUrlRls;
+      } else {
+        delete process.env.DATABASE_URL_RLS;
+      }
+
+      if (previousDbRlsRole) {
+        process.env.DB_RLS_ROLE = previousDbRlsRole;
+      } else {
+        delete process.env.DB_RLS_ROLE;
+      }
+    },
   };
 }
 
@@ -88,31 +161,8 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
   const adminSql = postgres(process.env.DATABASE_URL);
   const adminDb = drizzle(adminSql);
 
-  const [rlsEnabled] = await adminDb.execute<{ enabled: boolean }>(
-    sql`select relrowsecurity as enabled from pg_class where relname = 'claim'`
-  );
-  if (!rlsEnabled?.enabled) {
-    await adminSql.end({ timeout: 5 });
-    if (requireIntegration) {
-      assert.fail(
-        'RLS test requires claim table RLS enabled when REQUIRE_RLS_INTEGRATION=1 (migrations must be applied).'
-      );
-    }
-    t.skip('claim table RLS is not enabled in current database');
-    return;
-  }
-
-  const policies = await adminDb.execute<{ policyname: string }>(
-    sql`select policyname from pg_policies where schemaname = 'public' and tablename = 'claim' and policyname = 'tenant_isolation_claim'`
-  );
-  if (policies.length === 0) {
-    await adminSql.end({ timeout: 5 });
-    if (requireIntegration) {
-      assert.fail(
-        'RLS test requires tenant_isolation_claim policy when REQUIRE_RLS_INTEGRATION=1.'
-      );
-    }
-    t.skip('tenant_isolation_claim policy is not present in current database');
+  await requireRlsPreconditions(adminDb, adminSql, requireIntegration, t);
+  if (t.signal.aborted) {
     return;
   }
 
@@ -134,39 +184,24 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
   const [{ currentUser }] = await adminDb.execute<{ currentUser: string }>(
     sql`select current_user as "currentUser"`
   );
-  await adminDb.execute(
-    sql.raw(`grant "${TEST_DB_ROLE}" to "${assertRoleIdentifier(currentUser)}"`)
-  );
-
-  const previousDatabaseUrlRls = process.env.DATABASE_URL_RLS;
-  const previousDbRlsRole = process.env.DB_RLS_ROLE;
-  const connectionConfig = resolveRlsTestConnectionConfig(process.env.DATABASE_URL);
-  if (connectionConfig.databaseUrlRls) {
-    process.env.DATABASE_URL_RLS = connectionConfig.databaseUrlRls;
-  } else {
-    delete process.env.DATABASE_URL_RLS;
-  }
-  if (connectionConfig.dbRlsRole) {
-    process.env.DB_RLS_ROLE = connectionConfig.dbRlsRole;
-  } else {
-    delete process.env.DB_RLS_ROLE;
-  }
-
-  delete (global as { queryClientAdmin?: unknown; queryClientRls?: unknown }).queryClientAdmin;
-  delete (global as { queryClientAdmin?: unknown; queryClientRls?: unknown }).queryClientRls;
-
-  const [{ dbAdmin }, { withTenantContext }] = await Promise.all([
-    import('../src/db'),
-    import('../src/tenant'),
-  ]);
-  console.log('RLS_INTEGRATION_RAN=1');
+  await adminDb.execute(sql.raw(`grant "${TEST_DB_ROLE}" to ${quoteIdentifier(currentUser)}`));
 
   const ksUserId = uniqueId('rls_user_ks');
   const mkUserId = uniqueId('rls_user_mk');
   const claimId = uniqueId('rls_claim_ks');
   const now = new Date();
+  let rlsTestEnv: ReturnType<typeof applyRlsTestConnectionEnv> | null = null;
+  let dbAdmin: DbModule['dbAdmin'] | null = null;
+  let withTenantContext: TenantModule['withTenantContext'] | null = null;
 
   try {
+    rlsTestEnv = applyRlsTestConnectionEnv(process.env.DATABASE_URL);
+    [{ dbAdmin }, { withTenantContext }] = await Promise.all([
+      import('../src/db'),
+      import('../src/tenant'),
+    ]);
+    console.log('RLS_INTEGRATION_RAN=1');
+
     await dbAdmin.insert(user).values([
       {
         id: ksUserId,
@@ -220,19 +255,12 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
 
     assert.equal(ksRows.length, 1, 'tenant_ks must see its own claim row');
   } finally {
-    await dbAdmin.delete(claims).where(eq(claims.id, claimId));
-    await dbAdmin.delete(user).where(eq(user.id, ksUserId));
-    await dbAdmin.delete(user).where(eq(user.id, mkUserId));
-    if (previousDatabaseUrlRls) {
-      process.env.DATABASE_URL_RLS = previousDatabaseUrlRls;
-    } else {
-      delete process.env.DATABASE_URL_RLS;
+    if (dbAdmin) {
+      await dbAdmin.delete(claims).where(eq(claims.id, claimId));
+      await dbAdmin.delete(user).where(eq(user.id, ksUserId));
+      await dbAdmin.delete(user).where(eq(user.id, mkUserId));
     }
-    if (previousDbRlsRole) {
-      process.env.DB_RLS_ROLE = previousDbRlsRole;
-    } else {
-      delete process.env.DB_RLS_ROLE;
-    }
+    rlsTestEnv?.restore();
     await adminSql.end({ timeout: 5 });
   }
 });
