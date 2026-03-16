@@ -89,7 +89,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
   - `git tag -d pilot-ready-20260316 && pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; re-tagged `pilot-ready-20260316` against commit `c90b60d69b3ff29d957a8c1e5d6d1e4204d63f20`
   - `git add docs/pilot/PILOT_DAILY_SHEET_pilot-ks-rehearsal-2026-03-15_day-2.md && git commit -m "docs: finalize PD02 day 2 working sheet"` -> exit `0`; commit `544a03641aabfa804f139b594c4013f35998f517`
   - `git tag -d pilot-ready-20260316 && pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; re-tagged `pilot-ready-20260316` against commit `544a03641aabfa804f139b594c4013f35998f517`
-  - fresh verification: `pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; verified `pilot-ready-20260316` against commit `544a03641aabfa804f139b594c4013f35998f517`
+  - fresh verification: `pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; verified `pilot-ready-20260316` against current `HEAD`
 
 ## Gate Scorecard
 
@@ -109,7 +109,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - Notes:
   - The canonical Day 1 green report was present in the worktree but excluded by `.git/info/exclude`, so `PD02` initially failed rollback-tag verification until the report was force-added and committed in `HEAD`.
   - The copied evidence index path stayed stable at `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-rehearsal-2026-03-15.md`.
-  - The rollback tag now verifies against the final Day 2 documentation commit `544a03641aabfa804f139b594c4013f35998f517`.
+  - The rollback tag now verifies against current `HEAD`, the final repo-backed Day 2 documentation state.
 
 ## Security And Boundary Notes
 
@@ -219,7 +219,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - What passed:
   - canonical Day 1 green release report preserved as the Day 2 rollback baseline
   - release report custody repaired into `HEAD`
-  - rollback tag `pilot-ready-20260316` created, rebound twice as `HEAD` advanced, and freshly verified against the final Day 2 documentation commit
+  - rollback tag `pilot-ready-20260316` created, rebound as `HEAD` advanced, and freshly verified against current `HEAD`
   - canonical Day 2 evidence row and canonical Day 2 observability row recorded in the copied evidence index
 - What failed:
   - `pnpm pilot:check`
