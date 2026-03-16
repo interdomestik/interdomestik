@@ -2708,7 +2708,12 @@ async function main() {
       }
     }
 
-    if (!preflightBlocked && runCtx.envName === 'production' && loginDependentSelected.length > 0) {
+    if (
+      !preflightBlocked &&
+      runCtx.envName === 'production' &&
+      loginDependentSelected.length > 0 &&
+      selectCredentialPreflightAccounts().length > 0
+    ) {
       const credentialPreflight = await runAuthCredentialPreflight(runCtx);
       if (credentialPreflight.status !== 'PASS') {
         preflightBlocked = true;
@@ -2726,6 +2731,19 @@ async function main() {
           );
         }
       }
+    } else if (
+      !preflightBlocked &&
+      runCtx.envName === 'production' &&
+      loginDependentSelected.length > 0
+    ) {
+      checks.push(
+        checkResult(
+          'AUTH-PREFLIGHT',
+          'INFO',
+          ['auth_credentials_preflight disabled accounts=0'],
+          []
+        )
+      );
     }
 
     if (!preflightBlocked) {

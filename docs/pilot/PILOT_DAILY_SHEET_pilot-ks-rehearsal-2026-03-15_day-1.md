@@ -25,6 +25,8 @@ pnpm pilot:decision:record -- --pilotId <pilot-id> ...
 - `red`: privacy, tenancy, payment, agreement, rollback, or major workflow failure; decision is `hotfix` or `stop`
 - `blocked`: required evidence is missing, so no trustworthy color or decision can be assigned yet
 
+`blocked` is a daily-sheet working state only. The canonical `pnpm pilot:evidence:record` command accepts `green`, `amber`, or `red` only, so repair the evidence gap first and then record the supported final status.
+
 ## Gate Rules
 
 Score every day against these five gates:
