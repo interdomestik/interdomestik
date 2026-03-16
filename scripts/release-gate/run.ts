@@ -526,6 +526,84 @@ function resolveTenantOverrideProbeUrl(runCtx) {
   };
 }
 
+function resolveConfiguredRolePanelTarget(runCtx) {
+  const configured = String(process.env.RELEASE_GATE_TARGET_USER_URL || '').trim();
+  const defaultTarget = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl);
+
+  if (!configured) {
+    return {
+      allowFallbackDiscovery: true,
+      source: 'default',
+      targetUrl: defaultTarget,
+    };
+  }
+
+  const targetUrl = /^https?:\/\//i.test(configured)
+    ? configured
+    : buildRoute(runCtx.baseUrl, runCtx.locale, configured);
+  const overrideProbe = resolveTenantOverrideProbeUrl(runCtx);
+
+  let allowFallbackDiscovery = false;
+
+  try {
+    const target = new URL(targetUrl);
+    const override = new URL(overrideProbe.url);
+    const targetTenantId = target.searchParams.get('tenantId');
+    const adminKsTenantId = ACCOUNTS.admin_ks.tenantId;
+    allowFallbackDiscovery =
+      target.href === override.href ||
+      (Boolean(targetTenantId) && targetTenantId !== adminKsTenantId);
+  } catch {
+    allowFallbackDiscovery = false;
+  }
+
+  return {
+    allowFallbackDiscovery,
+    source: allowFallbackDiscovery ? 'env-cross-tenant-probe' : 'env',
+    targetUrl,
+  };
+}
+
+function resolveConfiguredStaffClaimDetailUrl(runCtx) {
+  const configured = String(process.env.STAFF_CLAIM_URL || '').trim();
+  if (!configured) {
+    return {
+      reason: 'missing',
+      source: 'missing',
+      url: null,
+    };
+  }
+
+  const targetUrl = /^https?:\/\//i.test(configured)
+    ? configured
+    : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, configured);
+
+  try {
+    const resolvedTarget = new URL(targetUrl);
+    const resolvedList = new URL(buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList));
+    const normalizePath = pathname => pathname.replace(/\/+$/, '') || '/';
+    if (normalizePath(resolvedTarget.pathname) === normalizePath(resolvedList.pathname)) {
+      return {
+        reason: 'list-url',
+        source: 'ignored-list',
+        url: null,
+      };
+    }
+  } catch {
+    return {
+      reason: 'invalid-url',
+      source: 'invalid',
+      url: null,
+    };
+  }
+
+  return {
+    reason: null,
+    source: 'env',
+    url: targetUrl,
+  };
+}
+
 function parseBooleanEnv(value) {
   if (value == null) return null;
   const normalized = String(value).trim().toLowerCase();
@@ -1011,15 +1089,9 @@ async function runP03AndP04(browser, runCtx) {
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  const targetFromEnv = process.env.RELEASE_GATE_TARGET_USER_URL;
-  const hasExplicitTarget = typeof targetFromEnv === 'string' && targetFromEnv.trim().length > 0;
-  const defaultTarget = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl);
-  const targetUrl =
-    targetFromEnv && targetFromEnv.startsWith('http')
-      ? targetFromEnv
-      : targetFromEnv
-        ? buildRoute(runCtx.baseUrl, runCtx.locale, targetFromEnv)
-        : defaultTarget;
+  const rolePanelTarget = resolveConfiguredRolePanelTarget(runCtx);
+  const hasExplicitTarget = rolePanelTarget.source !== 'default';
+  const targetUrl = rolePanelTarget.targetUrl;
 
   async function waitForRolePanelVisible(timeoutMs = TIMEOUTS.nav) {
     const startedAt = Date.now();
@@ -1059,12 +1131,10 @@ async function runP03AndP04(browser, runCtx) {
     const initialResolved = await tryRolePanelTarget(initialTargetUrl).catch(() => null);
     if (initialResolved) return initialResolved;
 
-    // CI may provide a tenant-scoped explicit target that is intentionally inaccessible.
-    // In that case, do not mutate fallback users; allow caller to skip/fail via policy.
-    if (hasExplicitTarget) return null;
+    if (hasExplicitTarget && !rolePanelTarget.allowFallbackDiscovery) return null;
 
     const fallbackSeedTargets = [
-      defaultTarget,
+      buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl),
       buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/pack_ks_staff_extra'),
       buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_a_member_1'),
     ];
@@ -1113,6 +1183,8 @@ async function runP03AndP04(browser, runCtx) {
     });
 
     const resolvedTarget = await ensureRolePanelLoaded(targetUrl);
+    evidenceP03.push(`target_source=${rolePanelTarget.source}`);
+    evidenceP03.push(`target_fallback_allowed=${rolePanelTarget.allowFallbackDiscovery}`);
     if (!resolvedTarget) {
       failuresP03.push(`P0.3_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
       failuresP04.push(`P0.4_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
@@ -1860,20 +1932,25 @@ async function runP13(browser, runCtx) {
       return checkResult('P1.3', 'FAIL', evidence, signatures);
     }
 
-    const claimUrlFromEnv = process.env.STAFF_CLAIM_URL;
     const requireClaimUrl =
       String(process.env.RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL || 'false').toLowerCase() === 'true';
+    const configuredClaim = resolveConfiguredStaffClaimDetailUrl(runCtx);
     let detailUrl = null;
 
-    if (claimUrlFromEnv && String(claimUrlFromEnv).trim() !== '') {
-      detailUrl = claimUrlFromEnv.startsWith('http')
-        ? claimUrlFromEnv
-        : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, claimUrlFromEnv);
+    if (configuredClaim.url) {
+      detailUrl = configuredClaim.url;
       evidence.push('claim_source=STAFF_CLAIM_URL');
     } else {
       if (requireClaimUrl) {
-        signatures.push('P1.3_MISCONFIG_STAFF_CLAIM_URL_REQUIRED');
+        signatures.push(
+          configuredClaim.reason === 'list-url'
+            ? 'P1.3_MISCONFIG_STAFF_CLAIM_URL_DETAIL_REQUIRED'
+            : 'P1.3_MISCONFIG_STAFF_CLAIM_URL_REQUIRED'
+        );
         return checkResult('P1.3', 'FAIL', evidence, signatures);
+      }
+      if (configuredClaim.reason === 'list-url') {
+        evidence.push('claim_source=STAFF_CLAIM_URL_IGNORED_LIST');
       }
 
       const fallbackTimeoutMs = 10_000;
@@ -2699,6 +2776,8 @@ module.exports = {
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
   resolveAccountPasswordVar,
+  resolveConfiguredRolePanelTarget,
+  resolveConfiguredStaffClaimDetailUrl,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   sessionCacheKeyForAccount,

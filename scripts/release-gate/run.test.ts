@@ -23,6 +23,8 @@ const {
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
   resolveAccountPasswordVar,
+  resolveConfiguredRolePanelTarget,
+  resolveConfiguredStaffClaimDetailUrl,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   sessionCacheKeyForAccount,
@@ -837,6 +839,111 @@ test('resolveTenantOverrideProbeUrl uses configured RELEASE_GATE_MK_USER_URL whe
       delete process.env.RELEASE_GATE_MK_USER_URL;
     } else {
       process.env.RELEASE_GATE_MK_USER_URL = original;
+    }
+  }
+});
+
+test('resolveConfiguredRolePanelTarget allows fallback discovery for cross-tenant explicit targets', () => {
+  const originalTarget = process.env.RELEASE_GATE_TARGET_USER_URL;
+  const originalOverride = process.env.RELEASE_GATE_MK_USER_URL;
+  try {
+    process.env.RELEASE_GATE_TARGET_USER_URL = '/admin/users/golden_mk_admin?tenantId=tenant_mk';
+    process.env.RELEASE_GATE_MK_USER_URL = '/admin/users/golden_mk_admin?tenantId=tenant_mk';
+
+    const resolved = resolveConfiguredRolePanelTarget({
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+    });
+
+    assert.equal(resolved.source, 'env-cross-tenant-probe');
+    assert.equal(resolved.allowFallbackDiscovery, true);
+    assert.equal(
+      resolved.targetUrl,
+      'https://interdomestik-web.vercel.app/en/admin/users/golden_mk_admin?tenantId=tenant_mk'
+    );
+  } finally {
+    if (originalTarget === undefined) {
+      delete process.env.RELEASE_GATE_TARGET_USER_URL;
+    } else {
+      process.env.RELEASE_GATE_TARGET_USER_URL = originalTarget;
+    }
+    if (originalOverride === undefined) {
+      delete process.env.RELEASE_GATE_MK_USER_URL;
+    } else {
+      process.env.RELEASE_GATE_MK_USER_URL = originalOverride;
+    }
+  }
+});
+
+test('resolveConfiguredRolePanelTarget keeps same-tenant explicit targets strict', () => {
+  const originalTarget = process.env.RELEASE_GATE_TARGET_USER_URL;
+  try {
+    process.env.RELEASE_GATE_TARGET_USER_URL =
+      '/admin/users/golden_ks_a_member_1?tenantId=tenant_ks';
+
+    const resolved = resolveConfiguredRolePanelTarget({
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+    });
+
+    assert.equal(resolved.source, 'env');
+    assert.equal(resolved.allowFallbackDiscovery, false);
+    assert.equal(
+      resolved.targetUrl,
+      'https://interdomestik-web.vercel.app/en/admin/users/golden_ks_a_member_1?tenantId=tenant_ks'
+    );
+  } finally {
+    if (originalTarget === undefined) {
+      delete process.env.RELEASE_GATE_TARGET_USER_URL;
+    } else {
+      process.env.RELEASE_GATE_TARGET_USER_URL = originalTarget;
+    }
+  }
+});
+
+test('resolveConfiguredStaffClaimDetailUrl ignores configured staff claim list URLs', () => {
+  const original = process.env.STAFF_CLAIM_URL;
+  try {
+    process.env.STAFF_CLAIM_URL = 'https://interdomestik-web.vercel.app/en/staff/claims';
+
+    const resolved = resolveConfiguredStaffClaimDetailUrl({
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+    });
+
+    assert.equal(resolved.source, 'ignored-list');
+    assert.equal(resolved.reason, 'list-url');
+    assert.equal(resolved.url, null);
+  } finally {
+    if (original === undefined) {
+      delete process.env.STAFF_CLAIM_URL;
+    } else {
+      process.env.STAFF_CLAIM_URL = original;
+    }
+  }
+});
+
+test('resolveConfiguredStaffClaimDetailUrl keeps configured staff claim detail URLs', () => {
+  const original = process.env.STAFF_CLAIM_URL;
+  try {
+    process.env.STAFF_CLAIM_URL = '/staff/claims/golden_ks_a_claim_05';
+
+    const resolved = resolveConfiguredStaffClaimDetailUrl({
+      baseUrl: RELEASE_GATE_BASE_URL,
+      locale: RELEASE_GATE_LOCALE,
+    });
+
+    assert.equal(resolved.source, 'env');
+    assert.equal(resolved.reason, null);
+    assert.equal(
+      resolved.url,
+      'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_05'
+    );
+  } finally {
+    if (original === undefined) {
+      delete process.env.STAFF_CLAIM_URL;
+    } else {
+      process.env.STAFF_CLAIM_URL = original;
     }
   }
 });
