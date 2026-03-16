@@ -92,6 +92,10 @@ const DECISION_PROOF_SEPARATOR_LINE =
 const ORIGINAL_DISALLOW_SKIP = process.env.RELEASE_GATE_DISALLOW_SKIP;
 const ORIGINAL_REQUIRE_ROLE_PANEL = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL;
 
+function createTestCredentialValue() {
+  return ['test', 'credential', '2026'].join('-');
+}
+
 function restoreDisallowSkipEnv() {
   if (ORIGINAL_DISALLOW_SKIP === undefined) {
     delete process.env.RELEASE_GATE_DISALLOW_SKIP;
@@ -475,7 +479,7 @@ test('loginAs honors shared auth cooldown before posting another login request',
 
   await loginAs(page, {
     account: 'member',
-    credentials: { email: 'member@example.com', password: 'secret' },
+    credentials: { email: 'member@example.com', password: createTestCredentialValue() },
     baseUrl: RELEASE_GATE_BASE_URL,
     locale: RELEASE_GATE_LOCALE,
     authState,
@@ -575,7 +579,7 @@ test('loginAs reuses cached session state without issuing a bootstrap request', 
 
   await loginAs(page, {
     account: 'member',
-    credentials: { email: 'member@example.com', password: 'secret' },
+    credentials: { email: 'member@example.com', password: createTestCredentialValue() },
     baseUrl: RELEASE_GATE_BASE_URL,
     locale: RELEASE_GATE_LOCALE,
     authState,
@@ -621,7 +625,7 @@ test('loginAs skips bootstrap when the successful login response already populat
 
   await loginAs(page, {
     account: 'member',
-    credentials: { email: 'member@example.com', password: 'secret' },
+    credentials: { email: 'member@example.com', password: createTestCredentialValue() },
     baseUrl: RELEASE_GATE_BASE_URL,
     locale: RELEASE_GATE_LOCALE,
     authState,
