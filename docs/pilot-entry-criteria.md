@@ -15,6 +15,7 @@ Pilot may begin when all conditions below are satisfied:
 - Observability evidence records log-sweep result, KPI condition, incident count, and highest severity in that same copied evidence index via `pnpm pilot:observability:record -- --pilotId <pilot-id>`.
 - Daily and weekly continue/pause/hotfix/stop decisions are recorded in that same copied evidence index via `pnpm pilot:decision:record -- --pilotId <pilot-id>`.
 - Any rollback target used in a decision row is created or verified through `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>`.
+- Reset-gate learning retrievals are reviewed before the new run, and the intended pilot trigger is the top hit for each required query.
 - Deployment ID documented
 
 2. RBAC & Tenant Isolation Verified
@@ -37,3 +38,8 @@ Pilot may begin when all conditions below are satisfied:
 
 - No unexpected production errors in last 60 minutes
 - Only expected authorization-deny logs during negative tests
+
+6. Day-7 Rehearsal Contract Ready
+
+- The active pilot model is the 7-day rehearsal, not the superseded 14-day sequence.
+- `PD07` will produce `docs/pilot/PILOT_EXEC_REVIEW_<pilot-id>.md` as the canonical executive review artifact.

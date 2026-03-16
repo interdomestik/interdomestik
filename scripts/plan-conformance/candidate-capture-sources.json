@@ -53,6 +53,62 @@
         "file_path": "docs/plans/current-tracker.md"
       },
       "verification_commands": ["pnpm plan:audit", "pnpm plan:proof"]
+    },
+    {
+      "source_id": "pilot_reset_gate_check_failure",
+      "trigger_match": {
+        "event_type": "pilot.reset_gate.check_failure"
+      },
+      "store_type": "procedural",
+      "risk_class": "high",
+      "promotion_rule": "owner_approval",
+      "default_scope": {
+        "file_path": "packages/database/test/rls-engaged.test.ts"
+      },
+      "verification_commands": ["pnpm pilot:check", "pnpm db:rls:test:required"]
+    },
+    {
+      "source_id": "pilot_operator_log_command_drift",
+      "trigger_match": {
+        "event_type": "pilot.operator.log_command_drift"
+      },
+      "store_type": "procedural",
+      "risk_class": "high",
+      "promotion_rule": "owner_approval",
+      "default_scope": {
+        "file_path": "docs/pilot/PILOT_GO_NO_GO.md"
+      },
+      "verification_commands": ["vercel logs --help", "pnpm pilot:check"]
+    },
+    {
+      "source_id": "pilot_decision_observability_gap",
+      "trigger_match": {
+        "event_type": "pilot.decision.observability_gap"
+      },
+      "store_type": "procedural",
+      "risk_class": "high",
+      "promotion_rule": "owner_approval",
+      "default_scope": {
+        "file_path": "docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md"
+      },
+      "verification_commands": ["pnpm pilot:observability:record", "pnpm pilot:decision:record"]
+    },
+    {
+      "source_id": "pilot_evidence_working_state_gap",
+      "trigger_match": {
+        "event_type": "pilot.evidence.working_state_gap"
+      },
+      "store_type": "procedural",
+      "risk_class": "high",
+      "promotion_rule": "owner_approval",
+      "default_scope": {
+        "file_path": "docs/pilot/PILOT_DAILY_SHEET_TEMPLATE.md"
+      },
+      "verification_commands": [
+        "pnpm pilot:evidence:record",
+        "pnpm pilot:observability:record",
+        "pnpm pilot:decision:record"
+      ]
     }
   ]
 }

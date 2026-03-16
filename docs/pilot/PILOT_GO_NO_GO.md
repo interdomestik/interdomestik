@@ -44,17 +44,19 @@
 - Confirm Staff queue policy behavior (`branch_manager` read-only).
 - Confirm Admin overview KPIs and breakdowns load for pilot branch.
 - Start incident log and SLA tracking clock in `Europe/Pristina`.
+- Confirm reset-gate learning retrievals were reviewed and that the intended pilot triggers were the top hits.
 
-## Week-1 Checks
+## Day-7 Rehearsal Checks
 
 - Triage SLA (≤ 4 operating hours) on at least `90%` of claims.
 - Update SLA (≤ 24 operating hours post-triage) on at least `90%` of claims.
 - No unresolved Sev1/Sev2 older than one operating day.
 - `pnpm e2e:gate` pass rate `100%` (or immediate corrective action).
 - `pnpm security:guard` pass rate `100%`.
-- Weekly review records clear continue/pause decision with owners.
-- Weekly review records a repo-backed observability row that captures log-sweep result, KPI condition, and highest incident severity.
-- Weekly review records a repo-backed decision-proof row with the matching observability reference and rollback target when applicable.
+- Day 7 executive review records a clear final recommendation with owners.
+- Day 7 records a repo-backed observability row that captures log-sweep result, KPI condition, and highest incident severity.
+- Day 7 records a repo-backed decision-proof row with the matching observability reference and rollback target when applicable.
+- Day 7 creates `docs/pilot/PILOT_EXEC_REVIEW_<pilot-id>.md` from the canonical template.
 
 ## Go/No-Go Thresholds
 
@@ -63,7 +65,7 @@
   - `pnpm release:gate:prod -- --pilotId <pilot-id>` passes and produces the canonical artifact set.
   - Latest observability evidence is `clear` or `expected-noise`, KPI condition is `within-threshold`, and no Sev1 incidents are present.
   - No Sev1 incidents.
-  - SLA compliance meets thresholds for week 1.
+  - SLA compliance meets the 7-day rehearsal thresholds.
   - Closed-loop path operational end-to-end.
 - No-Go:
   - Latest observability evidence is `action-required`.

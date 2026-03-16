@@ -32,7 +32,7 @@ Validate one closed-loop workflow in real branch operations in Kosovo:
 - 1 staff operator.
 - 2 agents.
 - 20–50 members.
-- Pilot duration: 14 days (unchanged).
+- Pilot duration: 7 days for the `P8P` rehearsal model.
 
 ## SLA Targets
 
@@ -45,8 +45,8 @@ Validate one closed-loop workflow in real branch operations in Kosovo:
 
 - Daily ops huddle (15–20 min): Agent + Staff queue review, SLA risk, blockers.
 - Daily end-of-day review (10 min): Admin checks KPI drift, incidents, action owners.
-- Weekly review (45 min): Trend review, threshold check, go/no-go decision.
-- Mon–Sun operations are active for the full 14-day pilot window.
+- Day 7 executive review (45 min): cumulative evidence review, threshold check, final recommendation.
+- Operations are active for the full 7-day rehearsal window.
 
 ## Ranked Pilot-Entry Flow
 
@@ -171,7 +171,34 @@ pnpm pilot:evidence:record -- --pilotId <pilot-id> --day <n> --date <YYYY-MM-DD>
 
 - `--reportPath` is optional. When omitted, the command records the latest canonical pilot-entry `docs/release-gates/...` path already linked to that pilot id in `docs/pilot-evidence/index.csv`.
 - Use `n/a` for bundle path when no full gate bundle was generated that day.
-- Use the same copied evidence index file for the full 14-day pilot window.
+- Use the same copied evidence index file for the full 7-day rehearsal window.
+
+## Orchestration Traceability
+
+Every pilot day must record:
+
+- lead orchestrator
+- worker lanes used
+- each lane scope
+- what remained centralized
+- who merged evidence
+- who made the final daily judgment
+
+If no worker lanes are used, record `single-orchestrator run` and explain why in the daily sheet.
+
+## Pilot Learning Loop
+
+Before a new pilot run:
+
+- `pnpm memory:validate`
+- `pnpm memory:index`
+- retrieve and review the reset-gate lessons defined in `docs/pilot/P8_PILOT_LEARNING_LOOP.md`
+
+After each pilot day:
+
+- if the day exposed a new repeatable pilot failure class, capture a candidate lesson before the next day starts
+- use `pnpm memory:candidate:capture --event <event.json> --out <capture.json>` to draft that lesson
+- link the capture artifact in the daily sheet evidence references
 
 ## Observability Evidence Capture
 

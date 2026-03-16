@@ -4,11 +4,14 @@ Use this template as the human-readable daily scoring and note-taking sheet for 
 
 This template does not replace the copied `docs/pilot/PILOT_EVIDENCE_INDEX_<pilot-id>.md` file.
 
+It is the working-note layer. The copied evidence index remains the canonical pilot record.
+
 Use it to:
 
 - score the day as `green`, `amber`, `red`, or `blocked`
 - capture branch-level and admin-level notes
 - collect evidence references before writing canonical observability and decision rows
+- record the orchestration model explicitly for that day
 
 After completing the sheet, record the canonical rows in the copied pilot evidence index with:
 
@@ -23,7 +26,7 @@ pnpm pilot:decision:record -- --pilotId <pilot-id> ...
 - `green`: all required gates pass, no `sev1` or `sev2`, canonical artifacts exist, decision is `continue`
 - `amber`: no critical breach, scenario mostly passes, workaround or owner follow-up exists, decision is usually `continue` or `pause`
 - `red`: privacy, tenancy, payment, agreement, rollback, or major workflow failure; decision is `hotfix` or `stop`
-- `blocked`: required evidence is missing, so no trustworthy color or decision can be assigned yet
+- `blocked`: working-sheet-only state meaning required evidence is missing, so no trustworthy canonical color or decision can be assigned yet
 
 ## Gate Rules
 
@@ -39,6 +42,18 @@ If any gate fails because of privacy, tenancy, RBAC, agreement, collection, or r
 
 If evidence custody is incomplete, the day is `blocked` until fixed.
 
+Do not write `blocked` into the canonical evidence index. Resolve or rerun the day until it can be recorded as `green`, `amber`, or `red`.
+
+## Working Notes vs Canonical Evidence
+
+Use this sheet to capture human-readable notes, orchestration context, and evidence references before writing canonical rows.
+
+Then write the canonical state into the copied evidence index with:
+
+- `pnpm pilot:evidence:record`
+- `pnpm pilot:observability:record`
+- `pnpm pilot:decision:record`
+
 ---
 
 ## Pilot Day Header
@@ -46,7 +61,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - Pilot ID:
 - Day Number:
 - Date (`YYYY-MM-DD`):
-- Scenario ID (`PD01`-`PD14`):
+- Scenario ID (`PD01`-`PD07`):
 - Scenario Name:
 - Mode (`rehearsal`/`live`):
 - Tenant:
@@ -54,6 +69,17 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - Owner:
 - Branch Manager Reviewed (`yes`/`no`):
 - Admin Reviewer:
+
+## Orchestration Traceability
+
+- Lead orchestrator:
+- Worker lanes used:
+- Worker lane scopes:
+- What remained centralized:
+- Evidence merged by:
+- Final daily judgment made by:
+- `Single-orchestrator run` (`yes`/`no`):
+- If yes, why:
 
 ## Expected Outcome
 
@@ -147,6 +173,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 
 - Final color (`green`/`amber`/`red`/`blocked`):
 - Final decision (`continue`/`pause`/`hotfix`/`stop`):
+- Executive recommendation if this is `PD07` (`expand`/`repeat_with_fixes`/`pause`/`stop`/`n/a`):
 - Branch manager recommendation:
 - Admin decision:
 - Resume requires `pnpm pilot:check` (`yes`/`no`):
@@ -163,6 +190,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 
 - Release report:
 - Copied evidence index:
+- Memory advisory retrieval:
 - Observability reference (`day-<n>`/`week-<n>`):
 - Decision reference (`day-<n>`/`week-<n>`):
 - Other repo-backed evidence:

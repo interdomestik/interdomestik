@@ -23,6 +23,24 @@ const sourceMap = {
       default_scope: { file_path: 'docs/plans/current-tracker.md' },
       verification_commands: ['pnpm plan:audit', 'pnpm plan:proof'],
     },
+    {
+      source_id: 'pilot_reset_gate_check_failure',
+      trigger_match: { event_type: 'pilot.reset_gate.check_failure' },
+      store_type: 'procedural',
+      risk_class: 'high',
+      promotion_rule: 'owner_approval',
+      default_scope: { file_path: 'packages/database/test/rls-engaged.test.ts' },
+      verification_commands: ['pnpm pilot:check', 'pnpm db:rls:test:required'],
+    },
+    {
+      source_id: 'pilot_decision_observability_gap',
+      trigger_match: { event_type: 'pilot.decision.observability_gap' },
+      store_type: 'procedural',
+      risk_class: 'high',
+      promotion_rule: 'owner_approval',
+      default_scope: { file_path: 'docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md' },
+      verification_commands: ['pnpm pilot:observability:record', 'pnpm pilot:decision:record'],
+    },
   ],
 };
 
@@ -90,4 +108,41 @@ test('captures plan evidence custody gaps as procedural memory', () => {
   assert.equal(payload.record.risk_class, 'high');
   assert.equal(payload.record.scope.file_path, 'docs/plans/current-tracker.md');
   assert.deepEqual(payload.record.verification_commands, ['pnpm plan:audit', 'pnpm plan:proof']);
+});
+
+test('captures pilot reset-gate failures as procedural memory', () => {
+  const payload = captureCandidateFromEvent(
+    {
+      event_type: 'pilot.reset_gate.check_failure',
+      timestamp: '2026-03-16T10:00:00.000Z',
+      lesson_hint: 'Do not continue pilot execution when pilot:check is unstable.',
+    },
+    sourceMap
+  );
+
+  assert.equal(payload.source_id, 'pilot_reset_gate_check_failure');
+  assert.equal(payload.record.store_type, 'procedural');
+  assert.equal(payload.record.scope.file_path, 'packages/database/test/rls-engaged.test.ts');
+  assert.deepEqual(payload.record.verification_commands, [
+    'pnpm pilot:check',
+    'pnpm db:rls:test:required',
+  ]);
+});
+
+test('captures pilot observability-to-decision gaps with canonical file scope', () => {
+  const payload = captureCandidateFromEvent(
+    {
+      event_type: 'pilot.decision.observability_gap',
+      timestamp: '2026-03-16T10:05:00.000Z',
+      lesson_hint: 'Verify observability proof before decision proof.',
+    },
+    sourceMap
+  );
+
+  assert.equal(payload.source_id, 'pilot_decision_observability_gap');
+  assert.equal(payload.record.scope.file_path, 'docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md');
+  assert.deepEqual(payload.record.verification_commands, [
+    'pnpm pilot:observability:record',
+    'pnpm pilot:decision:record',
+  ]);
 });

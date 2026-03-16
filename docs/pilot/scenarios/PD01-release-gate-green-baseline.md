@@ -1,14 +1,14 @@
 # PD01 — Release Gate Green Baseline
 
-Use this scenario sheet for Day 1 of the pilot rehearsal.
+Use this scenario sheet for Day 1 of the `P8P` seven-day pilot rehearsal.
 
-This is the canonical execution guide for the `PD01` scenario referenced by the master pilot blueprint.
+This is the canonical execution guide for the redesigned `PD01` scenario. It supersedes the earlier 14-day scenario framing without rewriting completed `P7` history.
 
 ## Purpose
 
 Prove that the pilot-entry machinery is green and that the required repo-backed artifacts are produced correctly before any broader operational scenarios begin.
 
-`PD01` is not a feature test. It is the baseline release-and-evidence custody test for the pilot operating system.
+`PD01` is not a feature test. It is the baseline release-and-evidence custody test for the new seven-day pilot operating system.
 
 ## Scenario Summary
 
@@ -26,6 +26,7 @@ Prove that the pilot-entry machinery is green and that the required repo-backed 
 
 Complete these before running the scenario:
 
+- reset gate is green
 - `pnpm pilot:check` is expected to pass
 - pilot id is chosen and stable for the full pilot window
 - required envs are present
@@ -34,12 +35,12 @@ Complete these before running the scenario:
 
 ## Inputs
 
-- [PILOT_RUNBOOK.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/PILOT_RUNBOOK.md)
-- [pilot-entry-criteria.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot-entry-criteria.md)
-- [PILOT_DAILY_SHEET_TEMPLATE.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/PILOT_DAILY_SHEET_TEMPLATE.md)
-- [PILOT_EVIDENCE_INDEX_TEMPLATE.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/PILOT_EVIDENCE_INDEX_TEMPLATE.md)
-- [PILOT_GO_NO_GO.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/PILOT_GO_NO_GO.md)
-- [2026-03-15-master-pilot-testing-blueprint-v1.md](/Users/arbenlila/development/interdomestik-crystal-home/docs/plans/2026-03-15-master-pilot-testing-blueprint-v1.md)
+- [PILOT_RUNBOOK.md](../PILOT_RUNBOOK.md)
+- [pilot-entry-criteria.md](../../pilot-entry-criteria.md)
+- [PILOT_DAILY_SHEET_TEMPLATE.md](../PILOT_DAILY_SHEET_TEMPLATE.md)
+- [PILOT_EVIDENCE_INDEX_TEMPLATE.md](../PILOT_EVIDENCE_INDEX_TEMPLATE.md)
+- [PILOT_GO_NO_GO.md](../PILOT_GO_NO_GO.md)
+- [2026-03-16-p8-pilot-redesign-blueprint-v1.md](../../plans/2026-03-16-p8-pilot-redesign-blueprint-v1.md)
 
 ## Required Outputs
 
@@ -128,7 +129,25 @@ Expected decision in this state:
 - observability row or decision row was not recorded
 - the daily sheet was not filled enough to support a trustworthy canonical row
 
-`blocked` means rerun or repair before treating Day 1 as complete.
+`blocked` is a working-sheet-only state. Rerun or repair before writing a canonical row as `green`, `amber`, or `red`.
+
+## Orchestration Traceability Requirement
+
+Record:
+
+- lead orchestrator
+- worker lanes used
+- each lane scope
+- what stayed centralized
+- who merged evidence
+- who made the final daily judgment
+
+Suggested lanes:
+
+- release or artifact lane
+- observability lane
+
+If no worker lanes are used, record `single-orchestrator run` and explain why.
 
 ## Day 1 Note-Taking Guidance
 
@@ -173,4 +192,5 @@ Mapped tranche coverage:
 - `P1C`
 - `P1T`
 - `P6`
-- `P7/R01-R02-R03-R04`
+- `P7`
+- `P8R/RG01-RG05`
