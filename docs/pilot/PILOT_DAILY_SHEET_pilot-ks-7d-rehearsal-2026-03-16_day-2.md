@@ -12,6 +12,8 @@
 - Branch Manager Reviewed: `no`
 - Admin Reviewer: `platform`
 
+> Replay note: `PD02` is an intentional same-date control replay on `2026-03-16`, not a new calendar day. The rollback tag stays `pilot-ready-20260316` because it is bound to the pilot-entry artifact date already recorded for this pilot id.
+
 ## Orchestration Traceability
 
 - Lead orchestrator: `platform`
@@ -28,6 +30,7 @@
 - Expected color: `green`
 - Expected decision: `continue`
 - Rollback target if applicable: `pilot-ready-20260316`
+- Calendar-date note: `PD02` intentionally reuses the Day 1 calendar date so rollback and resume verification stays bound to the same pilot-entry artifacts created on `2026-03-16`.
 
 ## Scenario Setup Notes
 

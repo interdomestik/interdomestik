@@ -22,6 +22,7 @@ Preferred flow:
 - record each daily or weekly continue/pause/hotfix/stop decision in that same copied file with `pnpm pilot:decision:record -- --pilotId <pilot-id> ...`
 - create or verify rollback tags with `pnpm pilot:tag:ready -- --pilotId <pilot-id> --date <YYYY-MM-DD>` before referencing `pilot-ready-YYYYMMDD` in a decision row
 - keep updating that copied file for the same pilot id across the 7-day rehearsal window
+- `PD02` for `pilot-ks-7d-rehearsal-2026-03-16` is an intentional same-date control replay on `2026-03-16`; the rollback tag stays keyed to the pilot-entry artifact date, while readiness cadence still evaluates consecutive qualifying day numbers rather than requiring unique calendar dates.
 
 - Keep one row per operating day.
 - Capture the release report path in every row. If the day uses the same pilot-entry report, reuse that `docs/release-gates/...` path.
