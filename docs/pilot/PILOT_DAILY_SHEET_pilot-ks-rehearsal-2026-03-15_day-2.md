@@ -90,16 +90,22 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
   - `git add docs/pilot/PILOT_DAILY_SHEET_pilot-ks-rehearsal-2026-03-15_day-2.md && git commit -m "docs: finalize PD02 day 2 working sheet"` -> exit `0`; commit `544a03641aabfa804f139b594c4013f35998f517`
   - `git tag -d pilot-ready-20260316 && pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; re-tagged `pilot-ready-20260316` against commit `544a03641aabfa804f139b594c4013f35998f517`
   - fresh verification: `pnpm pilot:tag:ready -- --pilotId pilot-ks-rehearsal-2026-03-15 --date 2026-03-16` -> exit `0`; verified `pilot-ready-20260316` against current `HEAD`
+  - `pnpm pilot:decision:record -- --pilotId pilot-ks-rehearsal-2026-03-15 --reviewType daily --reference day-2 --date 2026-03-16 --owner "Admin KS" --decision hotfix --rollbackTag pilot-ready-20260316 --observabilityRef day-2` -> exit `0`; current canonical copied evidence index now accepts the `day-2` observability row
+  - fresh verification: `pnpm pilot:check` -> exit `0`; all pilot readiness checks succeeded on commit `47c9dea68dcdb9a04b13e98909e5a9e5e3931055`, including the repaired `db:rls:test` path
+  - fresh verification: `pnpm release:gate:prod -- --pilotId pilot-ks-rehearsal-2026-03-15` -> exit `0`; canonical report path remained `docs/release-gates/2026-03-16_production_dpl_5R7nc92c58ufkUnQeBmXFUAgbhu1.md` and `P0/P1/G07/G08/G09/G10` all passed
+  - `pnpm pilot:evidence:record -- --pilotId pilot-ks-rehearsal-2026-03-15 --day 2 --date 2026-03-16 --owner "Platform Pilot Operator" --status amber --incidentCount 1 --highestSeverity sev2 --decision continue --bundlePath n/a --reportPath docs/release-gates/2026-03-16_production_dpl_5R7nc92c58ufkUnQeBmXFUAgbhu1.md` -> exit `0`
+  - `pnpm pilot:observability:record -- --pilotId pilot-ks-rehearsal-2026-03-15 --reference day-2 --date 2026-03-16 --owner "Admin KS" --logSweepResult expected-noise --functionalErrorCount 0 --expectedAuthDenyCount 0 --kpiCondition within-threshold --incidentCount 1 --highestSeverity sev2 --notes "PD02 resumed successfully on 2026-03-16: pnpm pilot:check passed on commit 47c9dea68dcdb9a04b13e98909e5a9e5e3931055 and fresh release:gate:prod returned PASS for P0/P1/G07-G10 on the canonical report; remaining follow-up is operator doc refresh for Vercel CLI 48.10.2 direct logs usage."` -> exit `0`
+  - `pnpm pilot:decision:record -- --pilotId pilot-ks-rehearsal-2026-03-15 --reviewType daily --reference day-2 --date 2026-03-16 --owner "Admin KS" --decision continue --rollbackTag n/a --observabilityRef day-2` -> exit `0`
 
 ## Gate Scorecard
 
-| Gate                       | Result (`pass`/`fail`) | Highest severity (`none`/`sev3`/`sev2`/`sev1`) | Notes                                                                                                                                                                                                                                             |
-| -------------------------- | ---------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Release gate               | fail                   | sev2                                           | `pnpm pilot:check` did not complete the re-validation path required by the Day 2 rollback-baseline contract; failure occurred in `db:rls:test` inside `packages/database/test/rls-engaged.test.ts`.                                               |
-| Security and boundary      | pass                   | none                                           | Day 2 did not surface a new privacy, tenancy, branch, or RBAC leak; the Day 1 canonical green release report remains the latest boundary proof for `P0` and `G08`.                                                                                |
-| Operational behavior       | fail                   | sev2                                           | Rollback governance became operationally actionable because the rollback target was initially non-verifiable and the required resume command path failed on a canonical readiness test.                                                           |
-| Role workflow              | fail                   | sev2                                           | `PD02` stayed centralized under admin custody, but the canonical decision CLI rejected the newly written `day-2` observability row and required a direct canonical index patch to complete the daily record.                                      |
-| Observability and evidence | fail                   | sev2                                           | The release report was initially excluded from git custody, the direct operator `vercel logs` command in the docs no longer matches the installed CLI, and the decision-proof CLI did not accept the Day 2 observability row it had just written. |
+| Gate                       | Result (`pass`/`fail`) | Highest severity (`none`/`sev3`/`sev2`/`sev1`) | Notes                                                                                                                                                                                                                        |
+| -------------------------- | ---------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Release gate               | pass                   | sev2                                           | The Day 2 hotfix path is now fully green: `pnpm pilot:check` passed on commit `47c9dea68dcdb9a04b13e98909e5a9e5e3931055` and the fresh production release gate passed on the canonical March 16 report.                      |
+| Security and boundary      | pass                   | none                                           | Day 2 never surfaced a new privacy, tenancy, branch, or RBAC leak; the rerun production release gate kept `P0` and `G08` green.                                                                                              |
+| Operational behavior       | pass                   | sev2                                           | Rollback governance was validated after same-day remediation: the rollback baseline survived the RLS pooler fix, the required resume command path is now operational, and the published commercial contract remained intact. |
+| Role workflow              | pass                   | none                                           | The canonical decision CLI now records `day-2` successfully against the copied evidence index, so the admin-controlled Day 2 closeout path is operational again.                                                             |
+| Observability and evidence | pass                   | sev3                                           | Canonical report, pointer row, and copied evidence index are aligned again; the only remaining follow-up is refreshing direct operator log-review guidance for the installed Vercel CLI `48.10.2`.                           |
 
 ## Release Gate Notes
 
@@ -109,7 +115,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - Notes:
   - The canonical Day 1 green report was present in the worktree but excluded by `.git/info/exclude`, so `PD02` initially failed rollback-tag verification until the report was force-added and committed in `HEAD`.
   - The copied evidence index path stayed stable at `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-rehearsal-2026-03-15.md`.
-  - The rollback tag now verifies against current `HEAD`, the final repo-backed Day 2 documentation state.
+  - The rollback tag remains `pilot-ready-20260316` and will be refreshed against the final resumed Day 2 docs commit once the recovered evidence state is committed.
 
 ## Security And Boundary Notes
 
@@ -129,7 +135,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - Guidance-only enforcement: `not re-executed`; no Day 2 evidence contradicted the published business-model scope boundaries.
 - Other operational notes:
   - `PD02` is a governance scenario, so the primary operational proof is whether the team can verify a rollback target and pass the documented resume command path.
-  - The rollback target is now verified, but the resume command path is not usable until `pnpm pilot:check` is repaired.
+  - The rollback target is still verified, and the documented resume command path is now usable again because both `pnpm pilot:check` and the fresh production release gate passed.
 
 ## Role Workflow Notes
 
@@ -158,7 +164,7 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 
 - Notes:
   - `Admin KS` owned the final Day 2 judgment because `PD02` is an admin-governed rollback-baseline scenario.
-  - Admin-level decision had to shift from the expected `continue` posture to `hotfix` once the required re-validation path failed and the canonical decision CLI showed a Day 2 parser defect.
+  - Day 2 entered a same-day hotfix loop when the RLS verification path failed, but the final admin closeout returned to `continue` after the fixed RLS path, fresh production gate, and canonical decision recording all succeeded.
 
 ## Communications Notes
 
@@ -170,26 +176,26 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 
 ## Observability Notes
 
-- Log sweep result (`clear`/`expected-noise`/`action-required`): `action-required`
+- Log sweep result (`clear`/`expected-noise`/`action-required`): `expected-noise`
 - Functional errors count: `0`
 - Expected auth denies count: `0`
-- KPI condition (`within-threshold`/`watch`/`breach`): `watch`
+- KPI condition (`within-threshold`/`watch`/`breach`): `within-threshold`
 - Incident count: `1`
 - Highest severity: `sev2`
 - Incident refs: `day-2`
 - Notes:
-  - The canonical March 16 production release report remained green, including `P1.5.1` production log sweep handling.
-  - The operator-facing direct `vercel logs --environment production --since 60m --no-branch --level error` command in the docs no longer matches the installed Vercel CLI `48.10.2`, so direct manual log review needs a documentation/tooling refresh.
-  - The actionable Day 2 incident is the failed resume command path: `pnpm pilot:check` cannot currently clear `db:rls:test` because `packages/database/test/rls-engaged.test.ts` fails with `Tenant or user not found`.
+  - The fresh March 16 production release gate stayed green, including `P1.5.1` production log sweep handling.
+  - `pnpm pilot:check` now clears the repaired `db:rls:test` path on commit `47c9dea68dcdb9a04b13e98909e5a9e5e3931055`.
+  - The remaining follow-up is documentation/tooling alignment: the operator-facing direct `vercel logs` guidance still needs a refresh for installed Vercel CLI `48.10.2`.
 
 ## End-Of-Day Decision
 
-- Final color (`green`/`amber`/`red`/`blocked`): `red`
-- Final decision (`continue`/`pause`/`hotfix`/`stop`): `hotfix`
+- Final color (`green`/`amber`/`red`/`blocked`): `amber`
+- Final decision (`continue`/`pause`/`hotfix`/`stop`): `continue`
 - Branch manager recommendation: `n/a`
-- Admin decision: `hotfix`
-- Resume requires `pnpm pilot:check` (`yes`/`no`): `yes`
-- Resume requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>` (`yes`/`no`): `yes`
+- Admin decision: `continue`
+- Resume requires `pnpm pilot:check` (`yes`/`no`): `no`
+- Resume requires fresh `pnpm release:gate:prod -- --pilotId <pilot-id>` (`yes`/`no`): `no`
 - Rollback tag (`pilot-ready-YYYYMMDD`/`n/a`): `pilot-ready-20260316`
 
 ## Required Follow-Up
@@ -197,9 +203,8 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
 - Owner: `Platform Engineering`
 - Deadline: `before Day 3`
 - Action:
-  - restore `pnpm pilot:check` to green by resolving the `db:rls:test` failure in the RLS integration path
-  - repair `pnpm pilot:decision:record` so it accepts the freshly written `day-2` observability row
   - align the operator observability command guidance with the installed Vercel CLI
+  - keep the recovered rollback tag bound to the final resumed Day 2 commit state
 
 ## Evidence References
 
@@ -221,13 +226,13 @@ If evidence custody is incomplete, the day is `blocked` until fixed.
   - release report custody repaired into `HEAD`
   - rollback tag `pilot-ready-20260316` created, rebound as `HEAD` advanced, and freshly verified against current `HEAD`
   - canonical Day 2 evidence row and canonical Day 2 observability row recorded in the copied evidence index
+  - fresh `pnpm pilot:check` passed on commit `47c9dea68dcdb9a04b13e98909e5a9e5e3931055`
+  - fresh `pnpm release:gate:prod -- --pilotId pilot-ks-rehearsal-2026-03-15` passed and kept the canonical March 16 production report path stable
+  - canonical Day 2 decision row now records `continue`
 - What failed:
-  - `pnpm pilot:check`
+  - the first-pass Day 2 resume path failed in `db:rls:test` before same-day hotfix recovery
   - initial `pnpm pilot:tag:ready` verification before report custody repair
-  - `pnpm pilot:decision:record`, which rejected the newly written `day-2` observability row and required a direct canonical table patch
 - What needs follow-up tomorrow:
-  - fix the RLS integration failure blocking the documented resume path
-  - fix the decision-proof CLI parser or normalization defect
   - refresh the operator observability command guidance for the current Vercel CLI
 - Anything that could change go/no-go posture:
-  - Day 3 cannot proceed until the hotfix items above are complete and both `pnpm pilot:check` and `pnpm release:gate:prod -- --pilotId pilot-ks-rehearsal-2026-03-15` are rerun successfully under the recorded resume rules
+  - Day 3 can proceed only after the final resumed Day 2 docs commit is tagged back to `pilot-ready-20260316`; the only remaining owner follow-up is the non-blocking operator log-command doc refresh
