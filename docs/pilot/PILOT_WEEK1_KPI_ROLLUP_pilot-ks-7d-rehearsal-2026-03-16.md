@@ -68,7 +68,19 @@
 - The rollup closes evidence-custody ambiguity, but it does not convert the Day 7 result to `expand`.
 - The remaining blocker to wider rollout is now narrower and explicit: claim-timestamp- or read-model-backed weekly KPI/SLA percentages are still absent from the canonical evidence set.
 
+## Configured Database Snapshot Check
+
+- Command family used: `node scripts/run-with-dotenv.mjs node - <<'EOF' ... EOF`
+- Result from the configured `DATABASE_URL` on `2026-03-17`:
+  - `tenant_ks` had `1` claim created on or after `2026-03-15`
+  - that claim was still `draft`
+  - it had `0` `claim_stage_history` rows
+- Impact:
+  - the configured database snapshot cannot produce the week-1 triage or update SLA percentages for the KS pilot window
+  - the remaining evidence must therefore come from a canonical source-environment export or a checked-in read-model snapshot rather than the current developer database snapshot
+
 ## Required Next Evidence
 
-- Produce a checked-in numerator/denominator rollup for week-1 triage SLA and update SLA from canonical timestamps or read-model outputs.
+- Export or check in the canonical week-1 claim cohort timestamps or read-model snapshot for the KS pilot window.
+- Produce a checked-in numerator/denominator rollup for week-1 triage SLA and update SLA from that canonical data source.
 - Add the corresponding claim-volume and workflow-completeness metrics needed by `docs/pilot/PILOT_KPIS.md` if controlled live-pilot expansion is going to be reconsidered.
