@@ -157,6 +157,11 @@ describe('resolveTenantIdForEmailSignIn', () => {
     expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_ks');
   });
 
+  it('resolves the pilot tenant from host', () => {
+    const headers = new Headers({ host: 'pilot.localhost:3000' });
+    expect(resolveTenantIdForEmailSignIn(headers)).toBe('pilot-mk');
+  });
+
   it('falls back to cookie', () => {
     const headers = new Headers({ cookie: 'tenantId=tenant_mk' });
     expect(resolveTenantIdForEmailSignIn(headers)).toBe('tenant_mk');
@@ -248,6 +253,17 @@ describe('evaluateEmailSignInTenantGuard', () => {
       headers: new Headers({ host: 'ks.localhost:3000' }),
       body: { email: 'admin.ks@interdomestik.com' },
       lookupUserTenantByEmail: async () => 'tenant_ks',
+    });
+
+    expect(result).toEqual({ decision: 'allow' });
+  });
+
+  it('allows sign-in when pilot tenant matches the host', async () => {
+    const result = await evaluateEmailSignInTenantGuard({
+      url: 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
+      headers: new Headers({ host: 'pilot.localhost:3000' }),
+      body: { email: 'member.pilot.prishtina.01@interdomestik.com' },
+      lookupUserTenantByEmail: async () => 'pilot-mk',
     });
 
     expect(result).toEqual({ decision: 'allow' });

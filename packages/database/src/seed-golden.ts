@@ -710,6 +710,7 @@ export async function seedGolden(config: SeedConfig) {
   console.log('💳 Seeding Subscriptions...');
   const PLAN_MK = 'golden_mk_plan_basic';
   const PLAN_KS = 'golden_ks_plan_basic';
+  const PLAN_PILOT = 'golden_pilot_plan_basic';
 
   await db
     .insert(schema.membershipPlans)
@@ -729,6 +730,14 @@ export async function seedGolden(config: SeedConfig) {
         tier: 'standard',
         price: '120.00',
         features: ['towing', 'legal', 'roadside'],
+      },
+      {
+        id: PLAN_PILOT,
+        tenantId: TENANTS.PILOT,
+        name: 'Pilot Baseline Membership',
+        tier: 'standard',
+        price: '0.00',
+        features: ['claims', 'diaspora', 'roadside'],
       },
     ])
     .onConflictDoNothing();
@@ -763,6 +772,13 @@ export async function seedGolden(config: SeedConfig) {
       plan: PLAN_KS,
       agent: 'ks_b_agent_1',
     },
+    {
+      id: goldenId('sub_pilot_prishtina_1'),
+      user: 'pilot_prishtina_member_01',
+      tenant: TENANTS.PILOT,
+      plan: PLAN_PILOT,
+      agent: 'pilot_mk_agent',
+    },
   ];
 
   for (const s of subData) {
@@ -779,6 +795,9 @@ export async function seedGolden(config: SeedConfig) {
       })
       .onConflictDoUpdate({ target: schema.subscriptions.id, set: { status: 'active' } });
 
+    const cardTenantPrefix =
+      s.tenant === TENANTS.KS ? 'KS' : s.tenant === TENANTS.PILOT ? 'PILOT' : 'MK';
+
     await db
       .insert(schema.membershipCards)
       .values({
@@ -786,7 +805,7 @@ export async function seedGolden(config: SeedConfig) {
         tenantId: s.tenant,
         subscriptionId: s.id,
         userId: goldenId(s.user),
-        cardNumber: `ID-${s.tenant === TENANTS.KS ? 'KS' : 'MK'}-${Math.random().toString().slice(2, 10)}`,
+        cardNumber: `ID-${cardTenantPrefix}-${Math.random().toString().slice(2, 10)}`,
         qrCodeToken: `qr_${s.id}_${Math.random().toString(36).slice(2, 7)}`,
         status: 'active',
       })
