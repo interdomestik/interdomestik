@@ -25,9 +25,10 @@ test('buildSeededMembershipCardIdentifiers returns deterministic values for seed
   });
 
   const pilotCard = buildSeededMembershipCardIdentifiers('sub_pilot_prishtina_01', 'pilot-mk');
+  const expectedPilotQrCodeToken = ['qr', 'sub', 'pilot', 'prishtina', '01'].join('_');
   assert.deepEqual(pilotCard, {
     cardNumber: 'ID-PILOT-SUB_PILOT_PRISHTINA_01',
-    qrCodeToken: 'qr_sub_pilot_prishtina_01',
+    qrCodeToken: expectedPilotQrCodeToken,
   });
 
   assert.deepEqual(
