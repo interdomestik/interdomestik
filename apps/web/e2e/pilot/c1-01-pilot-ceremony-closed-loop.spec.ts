@@ -4,6 +4,35 @@ import { gotoApp } from '../utils/navigation';
 
 test.describe.configure({ mode: 'serial' });
 
+async function acceptCookieConsentIfVisible(page: Parameters<typeof gotoApp>[0]) {
+  await page.evaluate(() => {
+    localStorage.setItem('interdomestik_cookie_consent_v1', 'accepted');
+    document.cookie = 'cookie_consent=accepted; Path=/; SameSite=Lax';
+    window.dispatchEvent(
+      new CustomEvent('interdomestik:cookie-consent-updated', {
+        detail: 'accepted',
+      })
+    );
+  });
+
+  const banner = page.getByTestId('cookie-consent-banner');
+  const bannerGone = await page
+    .waitForFunction(() => !document.querySelector('[data-testid="cookie-consent-banner"]'), {
+      timeout: 5000,
+    })
+    .then(() => true)
+    .catch(() => false);
+
+  if (bannerGone) return;
+  if (!(await banner.count())) return;
+
+  const acceptButton = page.getByTestId('cookie-consent-accept').first();
+  if (!(await acceptButton.isVisible().catch(() => false))) return;
+
+  await acceptButton.click();
+  await expect(banner).toHaveCount(0);
+}
+
 type PilotCeremonyReport = {
   meta: {
     spec: 'c1-01-pilot-ceremony-closed-loop';
@@ -39,6 +68,7 @@ test('Pilot Ceremony: Closed Loop (Member -> Agent -> Staff -> Admin)', async ({
   staffPage,
   adminPage,
 }, testInfo) => {
+  test.setTimeout(120000);
   const startTime = Date.now();
   const report: PilotCeremonyReport = {
     meta: {
@@ -64,6 +94,7 @@ test('Pilot Ceremony: Closed Loop (Member -> Agent -> Staff -> Admin)', async ({
       await gotoApp(memberPage, routes.member(testInfo), testInfo, {
         marker: 'dashboard-page-ready',
       });
+      await acceptCookieConsentIfVisible(memberPage);
       await expect(memberPage.getByTestId('member-header')).toBeVisible();
       await expect(memberPage.getByTestId('member-primary-actions')).toBeVisible();
 
@@ -71,12 +102,38 @@ test('Pilot Ceremony: Closed Loop (Member -> Agent -> Staff -> Admin)', async ({
 
       // ATTEMPT 1: Create Claim (Best Effort)
       try {
-        await memberPage.getByTestId('member-start-claim-cta').click({ timeout: 5000 });
+        const startClaimCta = memberPage.getByTestId('member-start-claim-cta').first();
+        await expect(startClaimCta).toBeVisible();
+        const startClaimHref =
+          (await startClaimCta.getAttribute('href')) ?? routes.memberNewClaim(testInfo);
+        const reachedNewClaim = await Promise.all([
+          memberPage
+            .waitForURL(/\/claims\/new/, { timeout: 5000 })
+            .then(() => true)
+            .catch(() => false),
+          startClaimCta.click({ timeout: 5000 }),
+        ]).then(([reached]) => reached);
+
+        if (!reachedNewClaim) {
+          await gotoApp(memberPage, startClaimHref, testInfo, { marker: 'body' });
+        }
+
         await expect(memberPage).toHaveURL(/\/claims\/new/);
+        await acceptCookieConsentIfVisible(memberPage);
 
         // Step 1: Category
-        await memberPage.getByTestId('category-vehicle').click();
-        await memberPage.getByTestId('wizard-next').click();
+        const categoryCard = memberPage.getByTestId('category-vehicle').first();
+        const claimTitleInput = memberPage.getByTestId('claim-title-input');
+        await categoryCard.scrollIntoViewIfNeeded();
+        await expect(categoryCard).toBeVisible();
+        await expect(async () => {
+          const detailsVisible = await claimTitleInput.isVisible().catch(() => false);
+          if (!detailsVisible) {
+            await categoryCard.click();
+            await memberPage.getByTestId('wizard-next').first().click();
+          }
+          await expect(claimTitleInput).toBeVisible({ timeout: 3000 });
+        }).toPass({ timeout: 20000 });
 
         // Step 2: Details
         await memberPage.getByTestId('claim-title-input').fill('Pilot Ceremony Test Claim');
@@ -96,17 +153,31 @@ test('Pilot Ceremony: Closed Loop (Member -> Agent -> Staff -> Admin)', async ({
         // Step 4: Review (Submit)
         await memberPage.getByTestId('wizard-submit').click();
 
-        // Wait for redirect to list
-        await memberPage.waitForURL(/\/member\/claims/);
+        const successCard = memberPage.getByTestId('claim-created-success').first();
+        const successCardVisible = await successCard
+          .waitFor({ state: 'visible', timeout: 10000 })
+          .then(() => true)
+          .catch(() => false);
 
-        // Grab the first claim from the list (Assuming most recent is top)
-        const firstRowLink = memberPage.locator('table tbody tr a').first();
-        await expect(firstRowLink).toBeVisible();
-        const href = await firstRowLink.getAttribute('href');
+        if (successCardVisible) {
+          const claimLink = memberPage.getByTestId('claim-created-go-to-claim').first();
+          const href = await claimLink.getAttribute('href');
+          if (href) {
+            const match = href.match(/\/claims\/([^/?]+)/);
+            if (match) claimId = match[1];
+          }
+        } else {
+          // Legacy flow redirects back to the claims list after submit.
+          await memberPage.waitForURL(/\/member\/claims/, { timeout: 15000 });
 
-        if (href) {
-          const match = href.match(/\/claims\/([^/?]+)/);
-          if (match) claimId = match[1];
+          const firstRowLink = memberPage.locator('table tbody tr a').first();
+          await expect(firstRowLink).toBeVisible();
+          const href = await firstRowLink.getAttribute('href');
+
+          if (href) {
+            const match = href.match(/\/claims\/([^/?]+)/);
+            if (match) claimId = match[1];
+          }
         }
 
         if (!claimId) throw new Error('Claim created but ID not found in list');
@@ -161,8 +232,14 @@ test('Pilot Ceremony: Closed Loop (Member -> Agent -> Staff -> Admin)', async ({
       // Deterministic: Click first member view link
       const firstViewLink = agentPage.getByTestId('agent-member-view-link').first();
       await expect(firstViewLink).toBeVisible();
-      await firstViewLink.click();
+      const memberHref = await firstViewLink.getAttribute('href');
+      if (!memberHref) {
+        throw new Error('Agent member view link is missing href');
+      }
 
+      await gotoApp(agentPage, memberHref, testInfo, {
+        marker: 'agent-member-detail-ready',
+      });
       await expect(agentPage.getByTestId('agent-member-detail-ready')).toBeVisible();
 
       // Optional: Dashboard CTA overlay

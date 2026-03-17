@@ -77,6 +77,13 @@ export const E2E_USERS = {
     dbRole: 'staff',
     tenantId: 'pilot-mk',
   },
+  PILOT_MK_MEMBER: {
+    email: 'member.pilot.prishtina.01@interdomestik.com',
+    name: 'Arta Krasniqi',
+    dbRole: 'member',
+    tenantId: 'pilot-mk',
+    branchId: 'pilot_branch_prishtina_central',
+  },
 
   // KS USERS
   KS_ADMIN: {

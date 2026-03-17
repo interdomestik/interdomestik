@@ -14,6 +14,7 @@ describe('tenant-hosts', () => {
   const originalKsHost = process.env.KS_HOST;
   const originalMkHost = process.env.MK_HOST;
   const originalAlHost = process.env.AL_HOST;
+  const originalPilotHost = process.env.PILOT_HOST;
   const originalNodeEnv = process.env.NODE_ENV;
   const originalVercelEnv = process.env.VERCEL_ENV;
 
@@ -21,6 +22,7 @@ describe('tenant-hosts', () => {
     mutableEnv.KS_HOST = originalKsHost;
     mutableEnv.MK_HOST = originalMkHost;
     mutableEnv.AL_HOST = originalAlHost;
+    mutableEnv.PILOT_HOST = originalPilotHost;
     mutableEnv.NODE_ENV = originalNodeEnv;
     mutableEnv.VERCEL_ENV = originalVercelEnv;
   });
@@ -29,12 +31,14 @@ describe('tenant-hosts', () => {
     expect(resolveTenantFromHost('ks.localhost')).toBe('tenant_ks');
     expect(resolveTenantFromHost('mk.localhost')).toBe('tenant_mk');
     expect(resolveTenantFromHost('al.localhost')).toBe('tenant_al');
+    expect(resolveTenantFromHost('pilot.localhost')).toBe('pilot-mk');
   });
 
   it('handles ports, casing, and trailing dot', () => {
     expect(resolveTenantFromHost('KS.LOCALHOST:3000')).toBe('tenant_ks');
     expect(resolveTenantFromHost('mk.localhost:3000')).toBe('tenant_mk');
     expect(resolveTenantFromHost('al.localhost:3000')).toBe('tenant_al');
+    expect(resolveTenantFromHost('pilot.localhost:3000')).toBe('pilot-mk');
     expect(resolveTenantFromHost('mk.localhost.')).toBe('tenant_mk');
   });
 
@@ -52,6 +56,13 @@ describe('tenant-hosts', () => {
     expect(resolveTenantFromHost('al.dev.example:4321')).toBe('tenant_al');
   });
 
+  it('supports pilot env host overrides (with or without port)', () => {
+    mutableEnv.PILOT_HOST = 'pilot.dev.example:5678';
+
+    expect(resolveTenantFromHost('pilot.dev.example')).toBe('pilot-mk');
+    expect(resolveTenantFromHost('pilot.dev.example:5678')).toBe('pilot-mk');
+  });
+
   it('returns null for unknown hosts', () => {
     expect(resolveTenantFromHost('localhost')).toBeNull();
     expect(resolveTenantFromHost('example.com')).toBeNull();
@@ -61,10 +72,15 @@ describe('tenant-hosts', () => {
     expect(resolveTenantFromHost('al.127.0.0.1.nip.io')).toBe('tenant_al');
   });
 
+  it('supports nip.io-style host fallback for pilot', () => {
+    expect(resolveTenantFromHost('pilot.127.0.0.1.nip.io')).toBe('pilot-mk');
+  });
+
   it('coerces tenantId values safely', () => {
     expect(coerceTenantId('tenant_ks')).toBe('tenant_ks');
     expect(coerceTenantId('tenant_mk')).toBe('tenant_mk');
     expect(coerceTenantId('tenant_al')).toBe('tenant_al');
+    expect(coerceTenantId('pilot-mk')).toBe('pilot-mk');
     expect(coerceTenantId('tenant_nope')).toBeNull();
     expect(coerceTenantId(null)).toBeNull();
   });
@@ -74,6 +90,7 @@ describe('tenant-hosts', () => {
     expect(isTenantHost('ks.localhost')).toBe(true);
     expect(isTenantHost('mk.localhost')).toBe(true);
     expect(isTenantHost('al.localhost')).toBe(true);
+    expect(isTenantHost('pilot.localhost')).toBe(true);
     expect(isTenantHost('localhost')).toBe(false);
     expect(ks).toBe('tenant_ks');
   });

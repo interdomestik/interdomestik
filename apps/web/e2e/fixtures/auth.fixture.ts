@@ -179,10 +179,15 @@ function getUserForTenant(role: Role, tenant: Tenant) {
 
   if (tenant === 'pilot') {
     switch (role) {
+      case 'member':
+      case 'member_empty':
+        return E2E_USERS.PILOT_MK_MEMBER;
       case 'admin':
         return E2E_USERS.PILOT_MK_ADMIN;
       case 'agent':
         return E2E_USERS.PILOT_MK_AGENT;
+      case 'staff':
+        return E2E_USERS.PILOT_MK_STAFF;
       default:
         throw new Error(`Role ${role} not implemented for pilot tenant`);
     }

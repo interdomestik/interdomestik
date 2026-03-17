@@ -1,4 +1,4 @@
-export type TenantId = 'tenant_mk' | 'tenant_ks' | 'tenant_al';
+export type TenantId = 'tenant_mk' | 'tenant_ks' | 'tenant_al' | 'pilot-mk';
 
 export const TENANT_COOKIE_NAME = 'tenantId';
 export const TENANT_HEADER_NAME = 'x-tenant-id';
@@ -26,7 +26,9 @@ function normalizeHostWithPort(host: string): string {
 }
 
 function isTenantId(value: string | null | undefined): value is TenantId {
-  return value === 'tenant_mk' || value === 'tenant_ks' || value === 'tenant_al';
+  return (
+    value === 'tenant_mk' || value === 'tenant_ks' || value === 'tenant_al' || value === 'pilot-mk'
+  );
 }
 
 function hostsForTenant(tenantId: TenantId): string[] {
@@ -35,6 +37,7 @@ function hostsForTenant(tenantId: TenantId): string[] {
   if (tenantId === 'tenant_mk' && process.env.MK_HOST) envHosts.push(process.env.MK_HOST);
   if (tenantId === 'tenant_ks' && process.env.KS_HOST) envHosts.push(process.env.KS_HOST);
   if (tenantId === 'tenant_al' && process.env.AL_HOST) envHosts.push(process.env.AL_HOST);
+  if (tenantId === 'pilot-mk' && process.env.PILOT_HOST) envHosts.push(process.env.PILOT_HOST);
 
   // Canonical production hosts
   const canonical =
@@ -44,7 +47,7 @@ function hostsForTenant(tenantId: TenantId): string[] {
         ? ['ks.interdomestik.com']
         : tenantId === 'tenant_al'
           ? ['al.interdomestik.com']
-          : [];
+          : ['pilot.interdomestik.com'];
 
   // Local development convenience (documented in docs/tenant-domains.md)
   const local =
@@ -52,7 +55,9 @@ function hostsForTenant(tenantId: TenantId): string[] {
       ? ['mk.localhost']
       : tenantId === 'tenant_ks'
         ? ['ks.localhost']
-        : ['al.localhost'];
+        : tenantId === 'tenant_al'
+          ? ['al.localhost']
+          : ['pilot.localhost'];
 
   // Include both host-only and host:port variants from env.
   // We match against both because `Host` may include a port in dev.
@@ -63,7 +68,7 @@ export function resolveTenantFromHost(host: string): TenantId | null {
   const normalized = normalizeHost(host);
   const normalizedWithPort = normalizeHostWithPort(host);
 
-  for (const tenantId of ['tenant_mk', 'tenant_ks', 'tenant_al'] as const) {
+  for (const tenantId of ['tenant_mk', 'tenant_ks', 'tenant_al', 'pilot-mk'] as const) {
     for (const candidate of hostsForTenant(tenantId)) {
       const candidateNormalized = normalizeHost(candidate);
       const candidateWithPort = normalizeHostWithPort(candidate);
@@ -78,6 +83,7 @@ export function resolveTenantFromHost(host: string): TenantId | null {
   if (/^mk\./i.test(normalized)) return 'tenant_mk';
   if (/^ks\./i.test(normalized)) return 'tenant_ks';
   if (/^al\./i.test(normalized)) return 'tenant_al';
+  if (/^pilot\./i.test(normalized)) return 'pilot-mk';
 
   return null;
 }
