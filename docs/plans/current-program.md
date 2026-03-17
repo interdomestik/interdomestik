@@ -3,7 +3,7 @@ plan_role: canonical_plan
 status: active
 source_of_truth: true
 owner: platform
-last_reviewed: 2026-03-16
+last_reviewed: 2026-03-17
 tracker_path: docs/plans/current-tracker.md
 execution_log_path: docs/plans/2026-03-03-implementation-conformance-log.md
 status_command: pnpm plan:status
@@ -35,7 +35,7 @@ The release-convergence slice `V01` through `V05` is complete. The current progr
 
 `P7` Pilot Readiness And Release Evidence is now complete after completed `P6`. `R01` is now complete as the canonical pilot-entry artifact-set slice, `R02` is now complete as the canonical readiness-command authority slice, `R03` is now complete as the deterministic daily evidence capture slice, `R04` is now complete as the continue-or-rollback proof slice, `R05` is now complete as the pilot-ready tag-discipline slice, `R06` is now complete as the canonical 3-day repo-backed readiness cadence slice, `R07` is now complete as the canonical observability-and-incident-evidence slice, and `R08` is now complete as the canonical ranked operator-flow slice required before live pilot operation is treated as governable across member and agent activity, branch-manager branch oversight, staff claim processing, and admin decision custody.
 
-`P8` Pilot Reset Gate And Seven-Day Rehearsal is now active after completed `P7`. `P8R` reset-gate hardening is now complete through `RG01` through `RG05`, using the new pilot id `pilot-ks-7d-rehearsal-2026-03-16` to prove a fresh `pilot:check`, fresh memory top-hit retrievals, a fresh GO release gate, and a fresh copied pilot evidence index without reusing the failed 14-day pilot. `P8P` seven-day pilot rehearsal is now active with `SP01` complete as the new `PD01` release-and-artifact baseline and `SP02` complete as the green `PD02` rollback-and-resume baseline, so `SP03` closed-loop role flow is now the next committed rehearsal slice.
+`P8` Pilot Reset Gate And Seven-Day Rehearsal is now active after completed `P7`. `P8R` reset-gate hardening is now complete through `RG01` through `RG05`, using the new pilot id `pilot-ks-7d-rehearsal-2026-03-16` to prove a fresh `pilot:check`, fresh memory top-hit retrievals, a fresh GO release gate, and a fresh copied pilot evidence index without reusing the failed 14-day pilot. `P8P` seven-day pilot rehearsal is now active with `SP01` complete as the new `PD01` release-and-artifact baseline, `SP02` complete as the green `PD02` rollback-and-resume baseline, `SP03` complete as the green `PD03` closed-loop role-flow proof, and `SP04` complete as the bounded-amber `PD04` SLA, matter, and branch-pressure proof, so `SP05` privacy, RBAC, and multi-tenant stress is now the next committed rehearsal slice.
 
 The March 3-5 advisory-governance tranche remains valuable background context, but it is no longer the active sequencing mechanism for repository execution.
 
@@ -167,7 +167,7 @@ pnpm plan:proof
 
 `P7` Pilot Readiness And Release Evidence is now complete after completed `P6`. `R01` Canonicalize the pilot-ready artifact set, `R02` Unify readiness commands and outputs, `R03` Add deterministic pilot evidence capture, `R04` Add explicit continue-pause-hotfix-stop decision proof, `R05` Make pilot-ready tag discipline repo-verifiable, `R06` Establish a modern readiness cadence, `R07` Tighten observability and incident evidence, and `R08` Publish one ranked operator flow for pilot entry are now complete, so pilot-entry command custody stays canonical across branch-manager oversight, staff processing, and admin decision flow before any broader UX redesign is promoted.
 
-`P8` Pilot Reset Gate And Seven-Day Rehearsal is now active after completed `P7`. `P8R` is complete through `RG01` through `RG05`, proving the reset gate against `pilot-ks-7d-rehearsal-2026-03-16`, and `P8P` is now active with `SP01` complete as the green Day 1 release/artifact baseline and `SP02` complete as the green Day 2 rollback/resume baseline. `SP03` closed-loop role flow is now the next committed priority.
+`P8` Pilot Reset Gate And Seven-Day Rehearsal is now active after completed `P7`. `P8R` is complete through `RG01` through `RG05`, proving the reset gate against `pilot-ks-7d-rehearsal-2026-03-16`, and `P8P` is now active with `SP01` complete as the green Day 1 release/artifact baseline, `SP02` complete as the green Day 2 rollback/resume baseline, `SP03` complete as the green Day 3 closed-loop role-flow slice, and `SP04` complete as the bounded-amber Day 4 SLA, matter, and branch-pressure slice. `SP05` privacy, RBAC, and multi-tenant stress is now the next committed priority.
 
 ## Do Not Reopen The Convergence Boundary
 
@@ -287,7 +287,7 @@ These documents can recommend or constrain work, but they do not define the live
 - `R02` is now complete as of 2026-03-15. `pnpm pilot:check` now resolves to the shell-backed local pre-launch verification pack, `pnpm release:gate:prod` remains the canonical production full-suite release proof command, `pnpm release:gate:prod -- --pilotId <pilot-id>` remains the canonical pilot-entry artifact command, and the pilot runbook plus go/no-go docs now rank those authorities without overlap.
 - `P8` has now been copied into the live program and tracker from `docs/plans/2026-03-16-p8-pilot-redesign-blueprint-v1.md` and `docs/plans/2026-03-16-p8-pilot-redesign-roadmap-diff-proposal.md` as the next committed tranche after completed `P7`.
 - `P8R` is now complete as of 2026-03-16. `RG01` through `RG05` now prove the reset gate against the new pilot id `pilot-ks-7d-rehearsal-2026-03-16`, including memory top-hit confirmation, fresh `pilot:check`, corrected Vercel log command guidance, deterministic observability-to-decision sequencing, and a fresh GO release report with copied evidence artifacts.
-- `P8P` is now active as of 2026-03-16. `SP01` is complete as the green `PD01` release-and-artifact baseline on `pilot-ks-7d-rehearsal-2026-03-16`, `SP02` is complete as the green `PD02` rollback-and-resume baseline on the same pilot id, and `SP03` is now the next committed rehearsal slice.
+- `P8P` is now active as of 2026-03-17. `SP01` is complete as the green `PD01` release-and-artifact baseline on `pilot-ks-7d-rehearsal-2026-03-16`, `SP02` is complete as the green `PD02` rollback-and-resume baseline on the same pilot id, `SP03` is complete as the green `PD03` closed-loop role-flow slice, and `SP04` is complete as the bounded-amber `PD04` SLA, matter, and branch-pressure slice. `SP05` is now the next committed rehearsal slice.
 
 ## Historical Foundation, Not Current Sequencing
 
