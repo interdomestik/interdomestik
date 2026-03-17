@@ -14,6 +14,33 @@ type SeedGoldenSchema = typeof import('./schema');
 type SeedGoldenDb = (typeof import('./db'))['db'];
 type ClaimEscalationAgreementInsert = SeedGoldenSchema['claimEscalationAgreements']['$inferInsert'];
 
+function membershipCardTenantPrefix(tenantId: string): string {
+  switch (tenantId) {
+    case 'tenant_ks':
+      return 'KS';
+    case 'pilot-mk':
+      return 'PILOT';
+    default:
+      return 'MK';
+  }
+}
+
+export function buildSeededMembershipCardIdentifiers(
+  subscriptionId: string,
+  tenantId: string
+): {
+  cardNumber: string;
+  qrCodeToken: string;
+} {
+  const tenantPrefix = membershipCardTenantPrefix(tenantId);
+  const normalizedSubscriptionId = subscriptionId.toUpperCase();
+
+  return {
+    cardNumber: `ID-${tenantPrefix}-${normalizedSubscriptionId}`,
+    qrCodeToken: `qr_${subscriptionId}`,
+  };
+}
+
 function buildCommercialAgreementsToSeed(args: {
   at: SeedConfig['at'];
   tenantId: string;
@@ -795,8 +822,7 @@ export async function seedGolden(config: SeedConfig) {
       })
       .onConflictDoUpdate({ target: schema.subscriptions.id, set: { status: 'active' } });
 
-    const cardTenantPrefix =
-      s.tenant === TENANTS.KS ? 'KS' : s.tenant === TENANTS.PILOT ? 'PILOT' : 'MK';
+    const membershipCardIdentifiers = buildSeededMembershipCardIdentifiers(s.id, s.tenant);
 
     await db
       .insert(schema.membershipCards)
@@ -805,8 +831,8 @@ export async function seedGolden(config: SeedConfig) {
         tenantId: s.tenant,
         subscriptionId: s.id,
         userId: goldenId(s.user),
-        cardNumber: `ID-${cardTenantPrefix}-${Math.random().toString().slice(2, 10)}`,
-        qrCodeToken: `qr_${s.id}_${Math.random().toString(36).slice(2, 7)}`,
+        cardNumber: membershipCardIdentifiers.cardNumber,
+        qrCodeToken: membershipCardIdentifiers.qrCodeToken,
         status: 'active',
       })
       .onConflictDoNothing();
