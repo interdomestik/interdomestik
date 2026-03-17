@@ -1,17 +1,24 @@
 'use client';
 
 import { AlertTriangle, RefreshCcw } from 'lucide-react';
-import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
+import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from 'react-error-boundary';
 
 import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 
-interface ErrorFallbackProps {
-  error: Error;
-  resetErrorBoundary: () => void;
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error === 'string' && error.trim().length > 0) {
+    return error;
+  }
+
+  return 'Unknown error';
 }
 
-function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
+function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <Card className="border-destructive/50 bg-destructive/5 h-full">
       <CardHeader className="pb-2">
@@ -24,7 +31,7 @@ function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
         <p className="text-muted-foreground text-sm">
           Something went wrong in this section.
           <br />
-          <span className="font-mono text-xs opacity-70">{error.message || 'Unknown error'}</span>
+          <span className="font-mono text-xs opacity-70">{getErrorMessage(error)}</span>
         </p>
         <Button variant="outline" size="sm" onClick={resetErrorBoundary} className="gap-2">
           <RefreshCcw className="h-4 w-4" />
