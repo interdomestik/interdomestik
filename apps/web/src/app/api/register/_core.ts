@@ -4,6 +4,7 @@ export const registerSchema = z.object({
   email: z.string().email(),
   name: z.string().min(2),
   role: z.enum(['user', 'agent']),
+  planId: z.enum(['standard', 'family']).default('standard'),
   password: z.string().min(6),
   phone: z.string().optional(),
 });
@@ -57,6 +58,7 @@ export async function registerUserApiCore(
     formData.append('fullName', validated.data.name);
     formData.append('email', validated.data.email);
     formData.append('role', validated.data.role);
+    formData.append('planId', validated.data.planId);
     formData.append('password', validated.data.password);
     if (validated.data.phone) {
       formData.append('phone', validated.data.phone);

@@ -14,6 +14,7 @@ describe('registerUserApiCore', () => {
       email: 'test@example.com',
       name: 'John Doe',
       role: 'user',
+      planId: 'family',
       password: 'password123',
       phone: '123456789',
     };
@@ -32,6 +33,28 @@ describe('registerUserApiCore', () => {
     expect(actorArg).toEqual(mockActor);
     expect(tenantArg).toBe('t1');
     expect(formDataArg.get('fullName')).toBe('John Doe');
+    expect(formDataArg.get('planId')).toBe('family');
+  });
+
+  it('defaults planId to standard when omitted', async () => {
+    mockServices.registerMemberFn.mockResolvedValue({ success: true, id: 'member-2' });
+
+    const body = {
+      email: 'standard@example.com',
+      name: 'Jane Doe',
+      role: 'user',
+      password: 'password123',
+      phone: '123456789',
+    };
+
+    const result = await registerUserApiCore(
+      { body, actor: mockActor, tenantId: 't1' },
+      mockServices
+    );
+
+    expect(result.ok).toBe(true);
+    const [, , formDataArg] = mockServices.registerMemberFn.mock.calls[0];
+    expect(formDataArg.get('planId')).toBe('standard');
   });
 
   it('returns 400 on validation failure', async () => {
