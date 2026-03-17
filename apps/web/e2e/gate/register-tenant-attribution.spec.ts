@@ -3,17 +3,12 @@ import {
   E2E_USERS,
   account,
   agentClients,
-  and,
   db,
-  eq,
   inArray,
   subscriptions,
   user,
 } from '@interdomestik/database';
-import { expect, test, type BrowserContext, type TestInfo } from '@playwright/test';
-
-const KS_HOST = process.env.KS_HOST ?? 'ks.localhost:3000';
-const MK_HOST = process.env.MK_HOST ?? 'mk.localhost:3000';
+import { expect, test, type BrowserContext } from '@playwright/test';
 
 type TenantRegistrationTarget = {
   actorEmail: string;
@@ -28,19 +23,57 @@ type RegisteredExpectation = {
   expectedTenantId: string;
 };
 
+function requireProjectHost(): string {
+  const forwardedHost = test.info().project.use.extraHTTPHeaders?.['x-forwarded-host'];
+  if (typeof forwardedHost === 'string' && forwardedHost.trim().length > 0) {
+    return forwardedHost;
+  }
+
+  const baseURL = test.info().project.use.baseURL?.toString();
+  if (baseURL) {
+    return new URL(baseURL).host;
+  }
+
+  throw new Error('Expected project.use.baseURL or x-forwarded-host for tenant host resolution.');
+}
+
+function siblingTenantHost(host: string, targetLabel: 'ks' | 'mk'): string {
+  const normalized = host.toLowerCase();
+  if (targetLabel === 'ks') {
+    if (normalized.startsWith('mk.')) {
+      return `ks.${host.slice(3)}`;
+    }
+    if (normalized.startsWith('ks.')) {
+      return host;
+    }
+  }
+
+  if (targetLabel === 'mk') {
+    if (normalized.startsWith('ks.')) {
+      return `mk.${host.slice(3)}`;
+    }
+    if (normalized.startsWith('mk.')) {
+      return host;
+    }
+  }
+
+  throw new Error(`Unable to derive ${targetLabel} tenant host from project host: ${host}`);
+}
+
 function buildTenantTargets(): TenantRegistrationTarget[] {
+  const projectHost = requireProjectHost();
   return [
     {
       actorEmail: E2E_USERS.KS_AGENT.email,
       expectedTenantId: E2E_USERS.KS_AGENT.tenantId,
-      host: KS_HOST,
+      host: siblingTenantHost(projectHost, 'ks'),
       locale: 'sq',
       label: 'ks',
     },
     {
       actorEmail: E2E_USERS.MK_AGENT.email,
       expectedTenantId: E2E_USERS.MK_AGENT.tenantId,
-      host: MK_HOST,
+      host: siblingTenantHost(projectHost, 'mk'),
       locale: 'mk',
       label: 'mk',
     },
