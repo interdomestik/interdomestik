@@ -22,7 +22,7 @@
     "nanoid": "^5.1.6"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.0.16",
-    "vitest": "^4.0.16"
+    "@vitest/coverage-v8": "^4.1.0",
+    "vitest": "^4.1.0"
   }
 }

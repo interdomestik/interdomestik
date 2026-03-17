@@ -88,13 +88,13 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@axe-core/react": "^4.11.0",
+    "@axe-core/react": "^4.11.1",
     "@next/bundle-analyzer": "^16.1.6",
     "@next/eslint-plugin-next": "^16.1.6",
-    "@playwright/test": "^1.57.0",
+    "@playwright/test": "^1.58.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
+    "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/negotiator": "^0.6.4",
     "@types/node": "^22.19.2",
@@ -103,19 +103,19 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
-    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/coverage-v8": "^4.1.0",
     "autoprefixer": "^10.4.27",
     "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
-    "eslint-config-next": "^16.0.10",
+    "eslint-config-next": "^16.1.6",
     "eslint-plugin-boundaries": "^5.3.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "jsdom": "^28.1.0",
-    "postcss": "^8.5.0",
+    "postcss": "^8.5.8",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.0",
-    "typescript-eslint": "^8.25.0",
-    "vitest": "^4.0.16"
+    "typescript-eslint": "^8.57.1",
+    "vitest": "^4.1.0"
   }
 }
