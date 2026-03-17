@@ -1,8 +1,7 @@
 'use client';
 
 import { AlertTriangle, RefreshCcw } from 'lucide-react';
-import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
-import type { FallbackProps } from 'react-error-boundary';
+import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from 'react-error-boundary';
 
 import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
