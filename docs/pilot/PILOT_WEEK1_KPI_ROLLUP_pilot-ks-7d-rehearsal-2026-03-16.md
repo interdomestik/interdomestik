@@ -13,6 +13,7 @@
 - Day 4 daily sheet: `docs/pilot/PILOT_DAILY_SHEET_pilot-ks-7d-rehearsal-2026-03-16_day-4.md`
 - Day 7 daily sheet: `docs/pilot/PILOT_DAILY_SHEET_pilot-ks-7d-rehearsal-2026-03-16_day-7.md`
 - Canonical executive review: `docs/pilot/PILOT_EXEC_REVIEW_pilot-ks-7d-rehearsal-2026-03-16.md`
+- KS workflow-pack seed logic: `packages/database/src/seed-packs/ks-workflow-pack.ts`
 
 ## Executive Summary
 
@@ -75,9 +76,19 @@
   - `tenant_ks` had `1` claim created on or after `2026-03-15`
   - that claim was still `draft`
   - it had `0` `claim_stage_history` rows
+- Broader KS snapshot findings from the same configured database:
+  - `tenant_ks` contained `120` claims total: `83` `pack_*`, `35` `golden_*`, and `2` one-off claims
+  - only `41/83` `pack_*` claims had any `claim_stage_history`
+  - only `22/83` `pack_*` claims had a triage-like transition into `verification`, `evaluation`, `negotiation`, or `resolved`
+  - raw `pack_*` timing output was `0/22` within the `<= 4h` triage threshold and `22/22` within the `<= 24h` public-update-after-triage threshold
+- Why those `pack_*` percentages are not defensible as week-1 pilot proof:
+  - `seedKsWorkflowPack` seeds claim submission time with `randomDatePast(60)` when inserting `claim.createdAt`
+  - the same seed inserts `claim_stage_history.createdAt` through `at(i * 3600000)` during enrichment, anchoring history timestamps independently from the claim's random submission date
+  - the synthetic KS workflow pack therefore produces submission-to-triage gaps that reflect seed construction rather than real week-1 pilot latency
 - Impact:
   - the configured database snapshot cannot produce the week-1 triage or update SLA percentages for the KS pilot window
-  - the remaining evidence must therefore come from a canonical source-environment export or a checked-in read-model snapshot rather than the current developer database snapshot
+  - the broader seeded KS workflow pack can produce raw percentages, but those percentages are not valid operational SLA proof for the Day 7 pilot threshold
+  - the remaining evidence must therefore come from a canonical source-environment export or a checked-in read-model snapshot rather than the current developer database snapshot or the seeded workflow-pack chronology
 
 ## Required Next Evidence
 

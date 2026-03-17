@@ -35,7 +35,7 @@
 
 - Owner: `Platform + Admin KS`
 - Deadline: `before any controlled live-pilot scheduling decision`
-- Action: `Export or check in the canonical KS week-1 claim cohort timestamps or read-model snapshot, then derive the week-1 triage and update SLA numerator/denominator evidence from that source before revisiting the live-pilot recommendation.`
+- Action: `Export or check in the canonical KS week-1 claim cohort timestamps or read-model snapshot from the source environment, then derive the week-1 triage and update SLA numerator/denominator evidence from that source before revisiting the live-pilot recommendation.`
 
 ## Linked Evidence
 
