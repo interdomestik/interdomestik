@@ -15,7 +15,7 @@
 
 ## Cumulative Review
 
-- Release and artifact custody: `complete through Day 7. The copied evidence index now contains day-1 through day-7 operating rows, daily observability or decision rows, and the weekly week-1 observability or decision closeout.`
+- Release and artifact custody: `complete through Day 7. The copied evidence index now contains day-1 through day-7 operating rows, daily observability or decision rows, and the week-1 observability/decision closeout.`
 - Reset-gate status: `complete. P8R stayed intact, readiness cadence remains green, rollback-tag readiness was re-verified on current HEAD, and fresh Day 7 pilot:check passed.`
 - Role-chain status: `complete. Member, agent, staff, branch-manager, and admin behavior stayed repo-backed and governable across the seven-day rehearsal.`
 - SLA and matter status: `bounded but not fully closed for expansion proof. Day 4 pressure remained within the designed rehearsal bounds, but the repo does not yet contain a quantitative week-1 KPI or SLA rollup proving the Day 7 threshold lines.`
