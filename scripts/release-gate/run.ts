@@ -1,8 +1,5 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const {
@@ -20,21 +17,47 @@ const {
 const { writeReleaseGateReport } = require('./report.ts');
 const { createPilotEntryArtifacts } = require('./pilot-artifacts.ts');
 const {
-  assertUrlMarkers,
+  resolveConfiguredRolePanelTarget,
+  resolveTenantOverrideProbeUrl,
+  runP01,
+  runP02,
+  runP03AndP04,
+  runP06,
+} = require('./admin-checks.ts');
+const {
+  buildCommercialPromiseScenarios,
+  buildEscalationAgreementCollectionFallbackScenarios,
+  buildFreeStartGroupPrivacyScenarios,
+  buildMatterAndSlaEnforcementScenarios,
+  runG07,
+  runG08,
+  runG09,
+  runG10,
+} = require('./commercial-checks.ts');
+const {
+  classifyInfraNetworkFailure,
+  compactErrorMessage,
+  resolveConfiguredStaffClaimDetailUrl,
+  runP11AndP12,
+  runP13,
+  selectAlternativeActionableStatus,
+} = require('./product-checks.ts');
+const { collectVisibleTestIds, visitReleaseGateScenario } = require('./scenario-visits.ts');
+const { resolveG10Scenario } = require('./staff-claim-driver.ts');
+const {
+  gotoWithSessionRetry,
+  loginWithRunContext,
+  resolveReachableBaseUrl,
+} = require('./session-navigation.ts');
+const {
   buildRoute,
   buildRouteAllowingLocalePath,
   checkResult,
-  collectMarkersWithWait,
   computeRetryDelayMs,
   createAuthState,
-  envFlag,
-  expectedMatrixForAccount,
   getAuthLoginCooldownMs,
   getMissingEnv,
-  loginAs,
-  markerSnapshot,
   markerSummary,
-  markersToString,
   noteAuthRateLimit,
   normalizeBaseUrl,
   parseRetryAfterSeconds,
@@ -42,7 +65,6 @@ const {
   resolvePlaywright,
   sessionCacheKeyForAccount,
   sleep,
-  waitForReadyMarker,
 } = require('./shared.ts');
 
 const VERCEL_LOG_STREAM_TIMEOUT_MS = 12_000;
@@ -64,109 +86,6 @@ const LOGIN_DEPENDENT_CHECKS = new Set([
   'G09',
   'G10',
 ]);
-const INFRA_NETWORK_ERROR_PATTERNS = [
-  /ECONNREFUSED/i,
-  /ETIMEDOUT/i,
-  /Timeout \d+ms exceeded/i,
-  /ENOTFOUND/i,
-  /EAI_AGAIN/i,
-  /ECONNRESET/i,
-  /socket hang up/i,
-  /AUTH_LOGIN_NETWORK_ERROR/i,
-];
-const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
-const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
-const MATTER_ALLOWANCE_TEST_ID_SUFFIXES = [
-  'matter-allowance',
-  'matter-allowance-used',
-  'matter-allowance-remaining',
-  'matter-allowance-total',
-];
-const DEFAULT_MATTER_ALLOWANCE_VALUES = {
-  used: '0',
-  remaining: '2',
-  total: '2',
-};
-const MATTER_AND_SLA_SCENARIO_DEFINITIONS = [
-  {
-    id: 'member_running',
-    account: 'member',
-    title: 'Member submitted claim shows running SLA and allowance',
-    routePath: '/member/claims/golden_ks_a_claim_05',
-    testIdPrefix: 'member-claim',
-    slaCopy: 'Response timer is running.',
-  },
-  {
-    id: 'member_incomplete',
-    account: 'member',
-    title: 'Member verification claim shows waiting SLA and allowance',
-    routePath: '/member/claims/golden_ks_a_claim_13',
-    testIdPrefix: 'member-claim',
-    slaCopy: 'Waiting for your information before the SLA starts.',
-  },
-  {
-    id: 'staff_running',
-    account: 'staff',
-    title: 'Staff submitted claim shows running SLA and allowance',
-    routePath: '/staff/claims/golden_ks_a_claim_05',
-    testIdPrefix: 'staff-claim-detail',
-    slaCopy: 'Running',
-    requiresReadyMarker: true,
-  },
-  {
-    id: 'staff_incomplete',
-    account: 'staff',
-    title: 'Staff verification claim shows member-waiting SLA and allowance',
-    routePath: '/staff/claims/golden_ks_a_claim_13',
-    testIdPrefix: 'staff-claim-detail',
-    slaCopy: 'Waiting for member information',
-    requiresReadyMarker: true,
-  },
-];
-const ESCALATION_AGREEMENT_COLLECTION_FALLBACK_SCENARIO_DEFINITIONS = [
-  {
-    id: 'staff_unsigned_agreement',
-    account: 'staff',
-    title: 'Staff accepted case without a signed agreement stays blocked',
-    routePath: '/staff/claims/golden_ks_a_claim_14',
-    requiredPrerequisitePhrases: ['Agreement Missing', 'Collection path Missing'],
-    requiredPhrases: [
-      'Accepted recovery prerequisites',
-      'Save the accepted escalation agreement before moving this case into negotiation or court.',
-    ],
-  },
-  {
-    id: 'staff_signed_deduction',
-    account: 'staff',
-    title: 'Staff accepted case with a signed deduction path stays ready',
-    routePath: '/staff/claims/golden_ks_a_claim_15',
-    requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
-    requiredPhrases: [
-      'Payment authorization',
-      'authorized',
-      'Terms version',
-      '2026-03-v1',
-      'Deduct from payout',
-    ],
-  },
-  {
-    id: 'staff_payment_method_fallback',
-    account: 'staff',
-    title: 'Staff accepted case resolves fallback to stored payment method charge',
-    routePath: '/staff/claims/golden_ks_a_claim_17',
-    requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
-    requiredPhrases: ['Charge stored payment method', 'Stored payment method', 'Yes'],
-  },
-  {
-    id: 'staff_invoice_fallback',
-    account: 'staff',
-    title: 'Staff accepted case resolves fallback to invoice when no stored payment method exists',
-    routePath: '/staff/claims/golden_ks_a_claim_16',
-    requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
-    requiredPhrases: ['Invoice fallback', 'Stored payment method', 'No', 'Invoice due'],
-  },
-];
-
 function isLegacyVercelLogsArgsUnsupported(output) {
   return /unknown or unexpected option:\s*--environment/i.test(String(output || ''));
 }
@@ -203,141 +122,8 @@ function isErrorRuntimeLevel(level) {
   return level === 'error' || level === 'fatal';
 }
 
-function compactErrorMessage(raw, maxLength = 420) {
-  return String(raw || '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, maxLength);
-}
-
-function classifyInfraNetworkFailure(raw) {
-  const message = compactErrorMessage(raw, 650);
-  if (!message) return null;
-  const matched = INFRA_NETWORK_ERROR_PATTERNS.some(pattern => pattern.test(message));
-  return matched ? message : null;
-}
-
-async function seedCookieConsentState(args) {
-  const { context, page, baseUrl } = args;
-  const origin = new URL(baseUrl).origin;
-
-  await context
-    .addCookies([
-      {
-        name: COOKIE_CONSENT_COOKIE_NAME,
-        value: 'accepted',
-        url: origin,
-        path: '/',
-        sameSite: 'Lax',
-      },
-    ])
-    .catch(() => {});
-
-  await page.addInitScript(
-    ({ storageKey, cookieName }) => {
-      try {
-        window.localStorage.setItem(storageKey, 'accepted');
-      } catch {}
-      try {
-        document.cookie = `${cookieName}=accepted; Path=/; SameSite=Lax`;
-      } catch {}
-    },
-    {
-      storageKey: COOKIE_CONSENT_STORAGE_KEY,
-      cookieName: COOKIE_CONSENT_COOKIE_NAME,
-    }
-  );
-}
-
-async function probeBaseUrl(candidateBaseUrl) {
-  const origin = new URL(candidateBaseUrl).origin;
-  const response = await fetch(origin, {
-    method: 'GET',
-    redirect: 'manual',
-    signal: AbortSignal.timeout(TIMEOUTS.nav),
-  });
-  return response.status;
-}
-
-function normalizeDeploymentBaseUrl(deploymentUrl) {
-  if (!deploymentUrl || deploymentUrl === 'unknown') return null;
-  try {
-    return normalizeBaseUrl(deploymentUrl);
-  } catch {
-    return null;
-  }
-}
-
-async function resolveReachableBaseUrl(configuredBaseUrl, deployment) {
-  const deploymentBaseUrl = normalizeDeploymentBaseUrl(deployment?.deploymentUrl);
-  const candidates = Array.from(new Set([configuredBaseUrl, deploymentBaseUrl].filter(Boolean)));
-  const failures = [];
-
-  for (let index = 0; index < candidates.length; index += 1) {
-    const candidate = candidates[index];
-    try {
-      const status = await probeBaseUrl(candidate);
-      const source = index === 0 ? 'configured' : 'deployment_fallback';
-      return { baseUrl: candidate, source, probeStatus: status, failures };
-    } catch (error) {
-      failures.push(
-        `probe_failed candidate=${candidate} reason=${compactErrorMessage(error?.message || error)}`
-      );
-    }
-  }
-
-  return {
-    baseUrl: configuredBaseUrl,
-    source: 'configured_unreachable',
-    probeStatus: null,
-    failures,
-  };
-}
-
 function isLoginDependentCheck(checkId) {
   return LOGIN_DEPENDENT_CHECKS.has(checkId);
-}
-
-function buildCommercialPromiseScenarios(runCtx) {
-  return [
-    {
-      id: 'pricing',
-      account: null,
-      title: 'Pricing public contract',
-      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/pricing'),
-      requiredTestIds: [
-        'pricing-commercial-disclaimers',
-        'pricing-success-fee-calculator',
-        'pricing-billing-terms',
-        'pricing-coverage-matrix',
-      ],
-    },
-    {
-      id: 'register',
-      account: null,
-      title: 'Register checkout-adjacent commercial contract',
-      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/register'),
-      requiredTestIds: [
-        'register-success-fee-calculator',
-        'register-billing-terms',
-        'register-coverage-matrix',
-      ],
-    },
-    {
-      id: 'services',
-      account: null,
-      title: 'Services promise boundaries',
-      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/services'),
-      requiredTestIds: ['services-commercial-disclaimers', 'services-coverage-matrix'],
-    },
-    {
-      id: 'membership',
-      account: 'member',
-      title: 'Member commercial continuity',
-      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/member/membership'),
-      requiredTestIds: ['membership-commercial-disclaimers', 'membership-coverage-matrix'],
-    },
-  ];
 }
 
 function findMissingCommercialPromiseSections(requiredTestIds, observedByTestId) {
@@ -368,68 +154,6 @@ function resolveAccountPasswordVar(accountKey) {
   return account.passwordVar ?? null;
 }
 
-function buildFreeStartGroupPrivacyScenarios(runCtx) {
-  return [
-    {
-      id: 'free_start',
-      account: null,
-      title: 'Free Start informational-only boundary',
-      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/'),
-      requiredTestIds: ['free-start-triage-note'],
-      requiredPhrases: ['Free Start stays informational', 'hotline stays routing-only'],
-      forbiddenPhrases: [],
-    },
-    {
-      id: 'group_dashboard',
-      account: 'office_agent',
-      title: 'Group dashboard aggregate-only privacy boundary',
-      url: buildRoute(runCtx.baseUrl, runCtx.locale, '/agent/import'),
-      requiredTestIds: ['group-dashboard-summary'],
-      requiredPhrases: [
-        'Aggregate group access dashboard',
-        'This view stays aggregate-only. No claim facts, notes, or documents are visible here without explicit member consent.',
-      ],
-      forbiddenPhrases: ['KS A-Member 1', 'member.ks.a1@interdomestik.com'],
-    },
-  ];
-}
-
-function buildMatterAndSlaEnforcementScenarios(runCtx) {
-  return MATTER_AND_SLA_SCENARIO_DEFINITIONS.map(definition => ({
-    id: definition.id,
-    account: definition.account,
-    title: definition.title,
-    url: buildRoute(runCtx.baseUrl, runCtx.locale, definition.routePath),
-    requiredTestIds: buildMatterAllowanceTestIds(definition),
-    requiredPhrases: ['SLA Status', definition.slaCopy],
-    expectedMatterAllowance: DEFAULT_MATTER_ALLOWANCE_VALUES,
-  }));
-}
-
-function buildMatterAllowanceTestIds(definition) {
-  const readyMarker = definition.requiresReadyMarker ? [`${definition.testIdPrefix}-ready`] : [];
-  return readyMarker.concat(
-    MATTER_ALLOWANCE_TEST_ID_SUFFIXES.map(suffix => `${definition.testIdPrefix}-${suffix}`)
-  );
-}
-
-function buildEscalationAgreementCollectionFallbackScenarios(runCtx) {
-  return ESCALATION_AGREEMENT_COLLECTION_FALLBACK_SCENARIO_DEFINITIONS.map(definition => ({
-    id: definition.id,
-    account: definition.account,
-    title: definition.title,
-    url: buildRoute(runCtx.baseUrl, runCtx.locale, definition.routePath),
-    requiredTestIds: [
-      'staff-claim-detail-ready',
-      'staff-accepted-recovery-prerequisites',
-      'staff-escalation-agreement-summary',
-      'staff-success-fee-collection-summary',
-    ],
-    requiredPrerequisitePhrases: definition.requiredPrerequisitePhrases,
-    requiredPhrases: definition.requiredPhrases,
-  }));
-}
-
 function findMissingBoundaryPhrases(requiredPhrases, observedText) {
   const normalizedObserved = normalizeBoundaryText(observedText);
   const compactObserved = compactBoundaryText(observedText);
@@ -454,194 +178,25 @@ function findMismatchedMatterAllowanceValues(expectedValues, observedValues) {
   });
 }
 
-async function visitReleaseGateScenario(browser, runCtx, scenario, callback) {
-  const context = await browser.newContext();
-  const page = await context.newPage();
+function normalizeRoutePath(value) {
+  const trimTrailingSlashes = pathname => {
+    let end = pathname.length;
+    while (end > 1 && pathname.charCodeAt(end - 1) === 47) {
+      end -= 1;
+    }
+    return pathname.slice(0, end);
+  };
 
   try {
-    await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
-
-    if (scenario.account) {
-      await loginAs(page, {
-        account: scenario.account,
-        credentials: runCtx.credentials[scenario.account],
-        baseUrl: runCtx.baseUrl,
-        locale: runCtx.locale,
-        authState: runCtx.authState,
-      });
-    }
-
-    await page.goto(scenario.url, {
-      waitUntil: 'domcontentloaded',
-      timeout: TIMEOUTS.nav,
-    });
-
-    return await callback(page);
-  } finally {
-    await context.close();
-  }
-}
-
-async function collectVisibleTestIds(page, requiredTestIds, options = {}) {
-  const observedByTestId = {};
-  const timeoutMs = Number.isFinite(options.timeoutMs)
-    ? Number(options.timeoutMs)
-    : TIMEOUTS.marker;
-  const intervalMs = Number.isFinite(options.intervalMs) ? Number(options.intervalMs) : 250;
-  const startedAt = Date.now();
-
-  while (Date.now() - startedAt <= timeoutMs) {
-    let allVisible = true;
-    for (const testId of requiredTestIds) {
-      observedByTestId[testId] = await page
-        .getByTestId(testId)
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (observedByTestId[testId] !== true) {
-        allVisible = false;
-      }
-    }
-
-    if (allVisible || Date.now() - startedAt >= timeoutMs) {
-      break;
-    }
-
-    if (typeof page.waitForTimeout === 'function') {
-      await page.waitForTimeout(intervalMs);
-    } else {
-      await sleep(intervalMs);
-    }
-  }
-
-  return observedByTestId;
-}
-
-async function collectMatterAllowanceValues(page, requiredTestIds) {
-  const suffixByKey = {
-    used: 'matter-allowance-used',
-    remaining: 'matter-allowance-remaining',
-    total: 'matter-allowance-total',
-  };
-  const values = {};
-
-  for (const [key, suffix] of Object.entries(suffixByKey)) {
-    const testId = requiredTestIds.find(candidate => candidate.endsWith(suffix));
-    values[key] = testId
-      ? (
-          await page
-            .getByTestId(testId)
-            .innerText({ timeout: TIMEOUTS.marker })
-            .catch(() => '')
-        ).trim()
-      : '';
-  }
-
-  return values;
-}
-
-function resolveTenantOverrideProbeUrl(runCtx) {
-  const configured = String(process.env.RELEASE_GATE_MK_USER_URL || '').trim();
-  if (configured) {
-    return {
-      source: 'env',
-      url: /^https?:\/\//i.test(configured)
-        ? configured
-        : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, configured),
-    };
-  }
-
-  const fallbackPath =
-    ROUTES.tenantOverrideProbeFallback || '/admin/users/golden_mk_staff?tenantId=tenant_mk';
-  return {
-    source: 'fallback',
-    url: buildRoute(runCtx.baseUrl, runCtx.locale, fallbackPath),
-  };
-}
-
-function trimTrailingSlashes(pathname) {
-  let end = pathname.length;
-  while (end > 1 && pathname.charCodeAt(end - 1) === 47) {
-    end -= 1;
-  }
-  return pathname.slice(0, end);
-}
-
-function resolveConfiguredRolePanelTarget(runCtx) {
-  const configured = String(process.env.RELEASE_GATE_TARGET_USER_URL || '').trim();
-  const defaultTarget = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl);
-
-  if (!configured) {
-    return {
-      allowFallbackDiscovery: true,
-      source: 'default',
-      targetUrl: defaultTarget,
-    };
-  }
-
-  const targetUrl = /^https?:\/\//i.test(configured)
-    ? configured
-    : buildRoute(runCtx.baseUrl, runCtx.locale, configured);
-  const overrideProbe = resolveTenantOverrideProbeUrl(runCtx);
-
-  let allowFallbackDiscovery = false;
-
-  try {
-    const target = new URL(targetUrl);
-    const override = new URL(overrideProbe.url);
-    const targetTenantId = target.searchParams.get('tenantId');
-    const adminKsTenantId = ACCOUNTS.admin_ks.tenantId;
-    allowFallbackDiscovery =
-      target.href === override.href ||
-      (Boolean(targetTenantId) && targetTenantId !== adminKsTenantId);
+    const parsed = new URL(value);
+    return trimTrailingSlashes(parsed.pathname) || '/';
   } catch {
-    allowFallbackDiscovery = false;
+    return trimTrailingSlashes(String(value || '').trim()) || '/';
   }
-
-  return {
-    allowFallbackDiscovery,
-    source: allowFallbackDiscovery ? 'env-cross-tenant-probe' : 'env',
-    targetUrl,
-  };
 }
 
-function resolveConfiguredStaffClaimDetailUrl(runCtx) {
-  const configured = String(process.env.STAFF_CLAIM_URL || '').trim();
-  if (!configured) {
-    return {
-      reason: 'missing',
-      source: 'missing',
-      url: null,
-    };
-  }
-
-  const targetUrl = /^https?:\/\//i.test(configured)
-    ? configured
-    : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, configured);
-
-  try {
-    const resolvedTarget = new URL(targetUrl);
-    const resolvedList = new URL(buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList));
-    const normalizePath = pathname => trimTrailingSlashes(pathname) || '/';
-    if (normalizePath(resolvedTarget.pathname) === normalizePath(resolvedList.pathname)) {
-      return {
-        reason: 'list-url',
-        source: 'ignored-list',
-        url: null,
-      };
-    }
-  } catch {
-    return {
-      reason: 'invalid-url',
-      source: 'invalid',
-      url: null,
-    };
-  }
-
-  return {
-    reason: null,
-    source: 'env',
-    url: targetUrl,
-  };
+function routePathsMatch(expectedUrl, actualUrl) {
+  return normalizeRoutePath(expectedUrl) === normalizeRoutePath(actualUrl);
 }
 
 function parseBooleanEnv(value) {
@@ -678,6 +233,22 @@ function checksAllowedToRemainSkipped() {
   return allowed;
 }
 
+function skipAllowanceReasonForCheck(check) {
+  if (
+    check.id === 'P1.2' &&
+    (check.signatures || []).includes('P1.2_SKIPPED_VALID_MEMBER_EMPTY_STATE')
+  ) {
+    return 'valid_member_empty_state';
+  }
+  if (
+    (check.id === 'P0.3' || check.id === 'P0.4') &&
+    (check.signatures || []).includes(`${check.id}_ROLE_PANEL_DISABLED`)
+  ) {
+    return 'RELEASE_GATE_REQUIRE_ROLE_PANEL=false';
+  }
+  return null;
+}
+
 function enforceNoSkipOnSelectedChecks(checks, selected, envName) {
   if (!shouldDisallowSkippedChecks(envName)) {
     return checks;
@@ -703,12 +274,14 @@ function enforceNoSkipOnSelectedChecks(checks, selected, envName) {
     }
 
     if (check.status === 'SKIPPED') {
-      if (skipAllowedChecks.has(checkId)) {
+      const allowSkipped = skipAllowedChecks.has(checkId);
+      const allowanceReason = skipAllowanceReasonForCheck(check);
+      if (allowSkipped || allowanceReason) {
         byId.set(checkId, {
           ...check,
           evidence: [
             ...(check.evidence || []),
-            'skip_policy=allowed reason=RELEASE_GATE_REQUIRE_ROLE_PANEL=false',
+            `skip_policy=allowed reason=${allowanceReason || 'RELEASE_GATE_REQUIRE_ROLE_PANEL=false'}`,
           ],
         });
         continue;
@@ -979,1459 +552,6 @@ function printHelp() {
     '  --pilotId  (optional: create pilot-entry artifacts tied to this pilot id)',
   ];
   console.log(lines.join('\n'));
-}
-
-async function runP01(browser, runCtx) {
-  const accounts = ['member', 'agent', 'staff', 'admin_ks'];
-  const evidence = [];
-  const failures = [];
-  let memberDriftSignatureAdded = false;
-
-  for (const account of accounts) {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    try {
-      await loginAs(page, {
-        account,
-        credentials: runCtx.credentials[account],
-        baseUrl: runCtx.baseUrl,
-        locale: runCtx.locale,
-        authState: runCtx.authState,
-      });
-
-      const matrix = expectedMatrixForAccount(account);
-      for (const portal of ROUTES.rbacTargets) {
-        const route = `/${portal}`;
-        await page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, route), {
-          waitUntil: 'domcontentloaded',
-          timeout: TIMEOUTS.nav,
-        });
-        await page.waitForTimeout(450);
-
-        const current = await collectMarkersWithWait(page, matrix.canonical);
-        evidence.push(`${account} ${markerSummary(route, current)}`);
-
-        if (
-          account === 'member' &&
-          portal === 'member' &&
-          current.member === true &&
-          (current.agent === true || current.staff === true || current.admin === true) &&
-          !memberDriftSignatureAdded
-        ) {
-          memberDriftSignatureAdded = true;
-          failures.push(
-            `P0.1_MISCONFIG_MEMBER_ROLE_DRIFT account=member route=/${runCtx.locale}${route} visible=${JSON.stringify(current)}`
-          );
-        }
-
-        if (portal === matrix.canonical && current[matrix.canonical] !== true) {
-          failures.push(
-            `P0.1_RBAC_CANONICAL_MARKER_MISSING account=${account} route=/${runCtx.locale}${route} expected=${matrix.canonical} visible=${JSON.stringify(current)}`
-          );
-        }
-
-        const unexpectedVisible = matrix.absentOnAllRoutes.filter(key => current[key] === true);
-        if (unexpectedVisible.length > 0) {
-          failures.push(
-            `P0.1_RBAC_MARKER_MISMATCH account=${account} route=/${runCtx.locale}${route} must_absent=${unexpectedVisible.join(',')} visible=${JSON.stringify(current)}`
-          );
-        }
-      }
-    } catch (error) {
-      failures.push(`P0.1_EXCEPTION account=${account} message=${String(error.message || error)}`);
-    } finally {
-      await context.close();
-    }
-  }
-
-  return checkResult('P0.1', failures.length ? 'FAIL' : 'PASS', evidence, failures);
-}
-
-async function runP02(browser, runCtx) {
-  const evidence = [];
-  const failures = [];
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  try {
-    await loginAs(page, {
-      account: 'admin_mk',
-      credentials: runCtx.credentials.admin_mk,
-      baseUrl: runCtx.baseUrl,
-      locale: runCtx.locale,
-      authState: runCtx.authState,
-    });
-
-    const route = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.crossTenantProbe);
-    await page.goto(route, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-    await page.waitForTimeout(500);
-
-    const notFoundVisible = await page
-      .getByTestId(MARKERS.notFound)
-      .isVisible({ timeout: TIMEOUTS.quickMarker })
-      .catch(() => false);
-    const rolesTableVisible = await page
-      .locator(SELECTORS.userRolesTable)
-      .isVisible({ timeout: TIMEOUTS.quickMarker })
-      .catch(() => false);
-
-    evidence.push(
-      `route=${route} not-found-page=${notFoundVisible} user-roles-table=${rolesTableVisible}`
-    );
-
-    if (!notFoundVisible && rolesTableVisible) {
-      failures.push(
-        `P0.2_CROSS_TENANT_BREACH route=/${runCtx.locale}${ROUTES.crossTenantProbe} not_found=${notFoundVisible} roles_table=${rolesTableVisible}`
-      );
-    }
-  } catch (error) {
-    failures.push(`P0.2_EXCEPTION message=${String(error.message || error)}`);
-  } finally {
-    await context.close();
-  }
-  return checkResult('P0.2', failures.length ? 'FAIL' : 'PASS', evidence, failures);
-}
-
-async function removeRoleFromTable(page, roleName) {
-  const table = page.locator(SELECTORS.userRolesTable);
-  const rolePattern = new RegExp(`\\b${roleName}\\b`, 'i');
-  const matchingRows = table.locator('tr', { hasText: rolePattern });
-  const count = await matchingRows.count();
-  if (count === 0) return false;
-  const targetRow = matchingRows.first();
-  await targetRow.getByRole('button', { name: SELECTORS.removeRoleButtonName }).click();
-  await page.waitForTimeout(800);
-  return true;
-}
-
-async function addRole(page, roleName) {
-  const trigger = page.locator(SELECTORS.roleSelectTrigger);
-  await trigger.waitFor({ state: 'visible', timeout: TIMEOUTS.action });
-  await trigger.click();
-
-  const roleOption = page.locator(`[data-testid="role-option-${roleName}"]`);
-  const opened = await Promise.race([
-    page
-      .locator(SELECTORS.roleSelectContent)
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.action })
-      .then(() => true)
-      .catch(() => false),
-    roleOption
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.action })
-      .then(() => true)
-      .catch(() => false),
-  ]);
-
-  if (!opened) {
-    await trigger.click().catch(() => {});
-    await roleOption.waitFor({ state: 'visible', timeout: TIMEOUTS.action });
-  }
-
-  await page.locator(`[data-testid="role-option-${roleName}"]`).click();
-  await page.getByRole('button', { name: SELECTORS.grantRoleButtonName }).click();
-  await page.waitForTimeout(1200);
-}
-
-async function runP03AndP04(browser, runCtx) {
-  const roleToToggle = String(process.env.RELEASE_GATE_ROLE || 'promoter')
-    .trim()
-    .toLowerCase();
-  const requireRolePanel = process.env.RELEASE_GATE_REQUIRE_ROLE_PANEL !== 'false';
-  const evidenceP03 = [];
-  const evidenceP04 = [];
-  const failuresP03 = [];
-  const failuresP04 = [];
-
-  if (!requireRolePanel) {
-    const reason = 'role_panel_checks_disabled (RELEASE_GATE_REQUIRE_ROLE_PANEL=false)';
-    evidenceP03.push(reason);
-    evidenceP04.push(reason);
-    return [
-      checkResult('P0.3', 'SKIPPED', evidenceP03, []),
-      checkResult('P0.4', 'SKIPPED', evidenceP04, []),
-    ];
-  }
-
-  const context = await browser.newContext();
-  const page = await context.newPage();
-
-  const rolePanelTarget = resolveConfiguredRolePanelTarget(runCtx);
-  const hasExplicitTarget = rolePanelTarget.source !== 'default';
-  const targetUrl = rolePanelTarget.targetUrl;
-
-  async function waitForRolePanelVisible(timeoutMs = TIMEOUTS.nav) {
-    const startedAt = Date.now();
-
-    while (Date.now() - startedAt < timeoutMs) {
-      const triggerVisible = await page
-        .locator(SELECTORS.roleSelectTrigger)
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (triggerVisible) return true;
-
-      const tableVisible = await page
-        .locator(SELECTORS.userRolesTable)
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (tableVisible) {
-        const grantVisible = await page
-          .getByRole('button', { name: SELECTORS.grantRoleButtonName })
-          .isVisible({ timeout: TIMEOUTS.quickMarker })
-          .catch(() => false);
-        if (grantVisible) return true;
-      }
-
-      await sleep(300);
-    }
-
-    return false;
-  }
-
-  async function tryRolePanelTarget(targetUrl) {
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-    const visible = await waitForRolePanelVisible(TIMEOUTS.nav);
-    return visible ? page.url() : null;
-  }
-
-  async function ensureRolePanelLoaded(initialTargetUrl) {
-    const initialResolved = await tryRolePanelTarget(initialTargetUrl).catch(() => null);
-    if (initialResolved) return initialResolved;
-
-    if (hasExplicitTarget && !rolePanelTarget.allowFallbackDiscovery) return null;
-
-    const fallbackSeedTargets = [
-      buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.defaultAdminUserUrl),
-      buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/pack_ks_staff_extra'),
-      buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_a_member_1'),
-    ];
-    const uniqueTargets = [...new Set(fallbackSeedTargets.filter(Boolean))];
-
-    for (const target of uniqueTargets) {
-      const resolved = await tryRolePanelTarget(target).catch(() => null);
-      if (resolved) return resolved;
-    }
-
-    await page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users'), {
-      waitUntil: 'domcontentloaded',
-      timeout: TIMEOUTS.nav,
-    });
-    await page
-      .getByTestId('admin-users-page')
-      .first()
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.nav })
-      .catch(() => {});
-
-    const profileHrefs = await page
-      .$$eval('a[href*="/admin/users/"]', anchors =>
-        anchors
-          .map(anchor => anchor.getAttribute('href'))
-          .filter(Boolean)
-          .slice(0, 8)
-      )
-      .catch(() => []);
-
-    for (const href of profileHrefs) {
-      const candidateUrl = buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, href);
-      const resolved = await tryRolePanelTarget(candidateUrl).catch(() => null);
-      if (resolved) return resolved;
-    }
-
-    return null;
-  }
-
-  try {
-    await loginAs(page, {
-      account: 'admin_ks',
-      credentials: runCtx.credentials.admin_ks,
-      baseUrl: runCtx.baseUrl,
-      locale: runCtx.locale,
-      authState: runCtx.authState,
-    });
-
-    const resolvedTarget = await ensureRolePanelLoaded(targetUrl);
-    evidenceP03.push(`target_source=${rolePanelTarget.source}`);
-    evidenceP03.push(`target_fallback_allowed=${rolePanelTarget.allowFallbackDiscovery}`);
-    if (!resolvedTarget) {
-      failuresP03.push(`P0.3_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
-      failuresP04.push(`P0.4_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
-      return [
-        checkResult('P0.3', 'FAIL', evidenceP03, failuresP03),
-        checkResult('P0.4', 'FAIL', evidenceP04, failuresP04),
-      ];
-    }
-    await page
-      .locator(SELECTORS.roleSelectTrigger)
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.marker });
-
-    let cleanupCount = 0;
-    while (cleanupCount < 4) {
-      const removed = await removeRoleFromTable(page, roleToToggle);
-      if (!removed) break;
-      cleanupCount += 1;
-    }
-    evidenceP03.push(`target=${resolvedTarget}`);
-    evidenceP03.push(`pre-clean removed_existing_role_entries=${cleanupCount}`);
-
-    await addRole(page, roleToToggle);
-    const afterAddStart = Date.now();
-    let afterAdd = false;
-    while (Date.now() - afterAddStart < TIMEOUTS.marker) {
-      afterAdd = await page
-        .locator(SELECTORS.userRolesTable)
-        .getByText(new RegExp(`\\b${roleToToggle}\\b`, 'i'))
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (afterAdd) break;
-      await sleep(300);
-    }
-    evidenceP03.push(`added_role=${roleToToggle} visible_in_roles_table=${afterAdd}`);
-    if (!afterAdd) {
-      failuresP03.push(`P0.3_ROLE_ADD_FAILED role=${roleToToggle} target=${resolvedTarget}`);
-    }
-
-    const removedAddedRole = await removeRoleFromTable(page, roleToToggle);
-    if (!removedAddedRole) {
-      failuresP04.push(
-        `P0.4_ROLE_REMOVE_CLICK_FAILED role=${roleToToggle} target=${resolvedTarget}`
-      );
-    }
-
-    const removalStart = Date.now();
-    let stillVisible = true;
-    while (Date.now() - removalStart < TIMEOUTS.marker) {
-      stillVisible = await page
-        .locator(SELECTORS.userRolesTable)
-        .getByText(new RegExp(`\\b${roleToToggle}\\b`, 'i'))
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (!stillVisible) break;
-      await sleep(300);
-    }
-    evidenceP04.push(`removed_role=${roleToToggle} remaining_in_roles_table=${stillVisible}`);
-    if (stillVisible) {
-      failuresP04.push(`P0.4_ROLE_REMOVE_FAILED role=${roleToToggle} target=${resolvedTarget}`);
-    }
-  } catch (error) {
-    failuresP03.push(`P0.3_EXCEPTION message=${String(error.message || error)}`);
-    failuresP04.push(`P0.4_EXCEPTION message=${String(error.message || error)}`);
-  } finally {
-    await context.close();
-  }
-
-  return [
-    checkResult('P0.3', failuresP03.length ? 'FAIL' : 'PASS', evidenceP03, failuresP03),
-    checkResult('P0.4', failuresP04.length ? 'FAIL' : 'PASS', evidenceP04, failuresP04),
-  ];
-}
-
-async function runP06(browser, runCtx) {
-  const failures = [];
-  const evidence = [];
-  const scenarios = [];
-
-  async function withAccount(accountKey, fn) {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    try {
-      await loginAs(page, {
-        account: accountKey,
-        credentials: runCtx.credentials[accountKey],
-        baseUrl: runCtx.baseUrl,
-        locale: runCtx.locale,
-        authState: runCtx.authState,
-      });
-      return await fn(page);
-    } finally {
-      await context.close();
-    }
-  }
-
-  function recordScenario(scenario) {
-    scenarios.push(scenario);
-    evidence.push(
-      `${scenario.id} ${scenario.title} result=${scenario.result} account=${scenario.account}`
-    );
-    evidence.push(`  url=${scenario.urls.join(' | ')}`);
-    evidence.push(`  expected=${scenario.expectedSummary}`);
-    evidence.push(`  observed=${scenario.observedSummary}`);
-    if (scenario.failureSignature) {
-      evidence.push(`  signature=${scenario.failureSignature}`);
-    }
-  }
-
-  function mismatchSignatureFor(id, mismatch) {
-    return `P0.6_${id}_MARKER_MISMATCH ${mismatch}`;
-  }
-
-  async function runSimpleScenario(input) {
-    const { id, title, accountKey, route, expected } = input;
-    try {
-      const result = await withAccount(accountKey, async page =>
-        assertUrlMarkers(
-          page,
-          `${id} ${title}`,
-          buildRoute(runCtx.baseUrl, runCtx.locale, route),
-          expected
-        )
-      );
-      const mismatch = result.mismatches[0] || '';
-      const failureSignature = mismatch ? mismatchSignatureFor(id, mismatch) : '';
-      if (failureSignature) failures.push(failureSignature);
-      recordScenario({
-        id,
-        title,
-        account: accountKey,
-        urls: [result.url],
-        expectedSummary: markersToString({
-          ...{
-            member: '-',
-            agent: '-',
-            staff: '-',
-            admin: '-',
-            notFound: '-',
-            rolesTable: '-',
-          },
-          ...expected,
-        }),
-        observedSummary: markersToString(result.observed),
-        result: result.status,
-        failureSignature,
-      });
-    } catch (error) {
-      const failureSignature = `P0.6_${id}_EXCEPTION message=${String(error.message || error)}`;
-      failures.push(failureSignature);
-      recordScenario({
-        id,
-        title,
-        account: accountKey,
-        urls: [buildRoute(runCtx.baseUrl, runCtx.locale, route)],
-        expectedSummary: JSON.stringify(expected),
-        observedSummary: 'exception',
-        result: 'FAIL',
-        failureSignature,
-      });
-    }
-  }
-
-  await withAccount('agent', async page => {
-    const urls = ['/member', '/agent', '/staff', '/admin'].map(route =>
-      buildRoute(runCtx.baseUrl, runCtx.locale, route)
-    );
-    const checks = [
-      { url: urls[0], expected: { member: true } },
-      { url: urls[1], expected: { agent: true } },
-      { url: urls[2], expected: { staff: false } },
-      { url: urls[3], expected: { admin: false } },
-    ];
-    const observedRows = [];
-    const mismatches = [];
-    for (const check of checks) {
-      const result = await assertUrlMarkers(page, 'S1', check.url, check.expected);
-      observedRows.push(`${check.url} => ${markersToString(result.observed)}`);
-      for (const mismatch of result.mismatches) {
-        mismatches.push(mismatch);
-      }
-    }
-    const failureSignature = mismatches[0] ? mismatchSignatureFor('S1', mismatches[0]) : '';
-    if (failureSignature) failures.push(failureSignature);
-    recordScenario({
-      id: 'S1',
-      title: 'Mixed roles: member+agent',
-      account: 'agent',
-      urls,
-      expectedSummary:
-        '/member member=true; /agent agent=true; /staff staff=false; /admin admin=false',
-      observedSummary: observedRows.join(' || '),
-      result: failureSignature ? 'FAIL' : 'PASS',
-      failureSignature,
-    });
-  }).catch(error => {
-    const failureSignature = `P0.6_S1_EXCEPTION message=${String(error.message || error)}`;
-    failures.push(failureSignature);
-    recordScenario({
-      id: 'S1',
-      title: 'Mixed roles: member+agent',
-      account: 'agent',
-      urls: ['/member', '/agent', '/staff', '/admin'].map(route =>
-        buildRoute(runCtx.baseUrl, runCtx.locale, route)
-      ),
-      expectedSummary:
-        '/member member=true; /agent agent=true; /staff staff=false; /admin admin=false',
-      observedSummary: 'exception',
-      result: 'FAIL',
-      failureSignature,
-    });
-  });
-
-  await withAccount('staff', async page => {
-    const urls = ['/member', '/staff', '/agent', '/admin'].map(route =>
-      buildRoute(runCtx.baseUrl, runCtx.locale, route)
-    );
-    const checks = [
-      { url: urls[0], expected: { member: true } },
-      { url: urls[1], expected: { staff: true } },
-      { url: urls[2], expected: { agent: false } },
-      { url: urls[3], expected: { admin: false } },
-    ];
-    const observedRows = [];
-    const mismatches = [];
-    for (const check of checks) {
-      const result = await assertUrlMarkers(page, 'S2', check.url, check.expected);
-      observedRows.push(`${check.url} => ${markersToString(result.observed)}`);
-      for (const mismatch of result.mismatches) {
-        mismatches.push(mismatch);
-      }
-    }
-    const failureSignature = mismatches[0] ? mismatchSignatureFor('S2', mismatches[0]) : '';
-    if (failureSignature) failures.push(failureSignature);
-    recordScenario({
-      id: 'S2',
-      title: 'Mixed roles: member+staff',
-      account: 'staff',
-      urls,
-      expectedSummary:
-        '/member member=true; /staff staff=true; /agent agent=false; /admin admin=false',
-      observedSummary: observedRows.join(' || '),
-      result: failureSignature ? 'FAIL' : 'PASS',
-      failureSignature,
-    });
-  }).catch(error => {
-    const failureSignature = `P0.6_S2_EXCEPTION message=${String(error.message || error)}`;
-    failures.push(failureSignature);
-    recordScenario({
-      id: 'S2',
-      title: 'Mixed roles: member+staff',
-      account: 'staff',
-      urls: ['/member', '/staff', '/agent', '/admin'].map(route =>
-        buildRoute(runCtx.baseUrl, runCtx.locale, route)
-      ),
-      expectedSummary:
-        '/member member=true; /staff staff=true; /agent agent=false; /admin admin=false',
-      observedSummary: 'exception',
-      result: 'FAIL',
-      failureSignature,
-    });
-  });
-
-  try {
-    await withAccount('agent', async page => {
-      const url = buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_staff');
-      const result = await assertUrlMarkers(page, 'S3', url, { rolesTable: false });
-      const allowed = result.observed.notFound || !result.observed.admin;
-      const passes = allowed && result.observed.rolesTable === false;
-      const failureSignature = passes
-        ? ''
-        : `P0.6_S3_MARKER_MISMATCH expected (notFound=true OR admin=false) AND rolesTable=false got ${markersToString(result.observed)}`;
-      if (failureSignature) failures.push(failureSignature);
-      recordScenario({
-        id: 'S3',
-        title: 'Agent elevation attempt -> admin resource',
-        account: 'agent',
-        urls: [url],
-        expectedSummary: '(notFound=true OR admin=false) AND rolesTable=false',
-        observedSummary: markersToString(result.observed),
-        result: passes ? 'PASS' : 'FAIL',
-        failureSignature,
-      });
-    });
-  } catch (error) {
-    const failureSignature = `P0.6_S3_EXCEPTION message=${String(error.message || error)}`;
-    failures.push(failureSignature);
-    recordScenario({
-      id: 'S3',
-      title: 'Agent elevation attempt -> admin resource',
-      account: 'agent',
-      urls: [buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users/golden_ks_staff')],
-      expectedSummary: '(notFound=true OR admin=false) AND rolesTable=false',
-      observedSummary: 'exception',
-      result: 'FAIL',
-      failureSignature,
-    });
-  }
-
-  await runSimpleScenario({
-    id: 'S4',
-    title: 'Staff elevation attempt -> agent portal',
-    accountKey: 'staff',
-    route: '/agent',
-    expected: { agent: false },
-  });
-
-  {
-    const s5Probe = resolveTenantOverrideProbeUrl(runCtx);
-    try {
-      await withAccount('admin_ks', async page => {
-        const result = await assertUrlMarkers(page, 'S5', s5Probe.url, {});
-        const passes = result.observed.notFound || result.observed.rolesTable === false;
-        const failureSignature = passes
-          ? ''
-          : `P0.6_S5_MARKER_MISMATCH expected (notFound=true OR rolesTable=false) got ${markersToString(result.observed)}`;
-        if (failureSignature) failures.push(failureSignature);
-        recordScenario({
-          id: 'S5',
-          title: 'Tenant override injection',
-          account: 'admin_ks',
-          urls: [s5Probe.url],
-          expectedSummary: 'notFound=true OR rolesTable=false',
-          observedSummary: `source=${s5Probe.source} ${markersToString(result.observed)}`,
-          result: failureSignature ? 'FAIL' : 'PASS',
-          failureSignature,
-        });
-      });
-    } catch (error) {
-      const failureSignature = `P0.6_S5_EXCEPTION message=${String(error.message || error)}`;
-      failures.push(failureSignature);
-      recordScenario({
-        id: 'S5',
-        title: 'Tenant override injection',
-        account: 'admin_ks',
-        urls: [s5Probe.url],
-        expectedSummary: 'notFound=true OR rolesTable=false',
-        observedSummary: `source=${s5Probe.source} exception`,
-        result: 'FAIL',
-        failureSignature,
-      });
-    }
-  }
-
-  try {
-    await withAccount('agent', async page => {
-      const url = buildRoute(runCtx.baseUrl, runCtx.locale, '/agent');
-      await page.goto(url, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
-      await waitForReadyMarker(page, 10_000);
-      const candidateSelectors = [
-        '[data-testid="session-roles"]',
-        '[data-testid="session-role"]',
-        '[data-testid="user-roles"]',
-        '[data-testid="roles-indicator"]',
-      ];
-      let indicator = '';
-      for (const selector of candidateSelectors) {
-        const visible = await page
-          .locator(selector)
-          .first()
-          .isVisible({ timeout: TIMEOUTS.quickMarker })
-          .catch(() => false);
-        if (!visible) continue;
-        indicator = (
-          await page
-            .locator(selector)
-            .first()
-            .innerText()
-            .catch(() => '')
-        ).trim();
-        if (indicator) break;
-      }
-      recordScenario({
-        id: 'S6',
-        title: 'Roles payload sanity (INFO only)',
-        account: 'agent',
-        urls: [url],
-        expectedSummary: 'INFO capture if visible',
-        observedSummary: indicator || 'INFO: roles indicator not exposed',
-        result: 'INFO',
-      });
-    });
-  } catch (error) {
-    recordScenario({
-      id: 'S6',
-      title: 'Roles payload sanity (INFO only)',
-      account: 'agent',
-      urls: [buildRoute(runCtx.baseUrl, runCtx.locale, '/agent')],
-      expectedSummary: 'INFO capture if visible',
-      observedSummary: `INFO: capture failed (${String(error.message || error)})`,
-      result: 'INFO',
-    });
-  }
-
-  await runSimpleScenario({
-    id: 'S7',
-    title: 'Admin != Staff',
-    accountKey: 'admin_ks',
-    route: '/staff',
-    expected: { staff: false },
-  });
-
-  await runSimpleScenario({
-    id: 'S8',
-    title: 'Admin != Agent',
-    accountKey: 'admin_ks',
-    route: '/agent',
-    expected: { agent: false },
-  });
-
-  await runSimpleScenario({
-    id: 'S9',
-    title: 'Staff != Agent (explicit pairwise)',
-    accountKey: 'staff',
-    route: '/agent',
-    expected: { agent: false },
-  });
-
-  const result = checkResult('P0.6', failures.length > 0 ? 'FAIL' : 'PASS', evidence, failures);
-  result.scenarios = scenarios;
-  return result;
-}
-
-async function runP11AndP12(browser, runCtx) {
-  const evidenceP11 = [];
-  const signaturesP11 = [];
-  const evidenceP12 = [];
-  const signaturesP12 = [];
-
-  const now = Date.now();
-  const uploadName = `gate-upload-${now}.pdf`;
-  const uploadPath = path.join(os.tmpdir(), uploadName);
-  // Minimal valid PDF payload to satisfy strict bucket MIME policies.
-  const uploadPdf = `%PDF-1.4
-1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>
-endobj
-4 0 obj
-<< /Length 44 >>
-stream
-BT /F1 12 Tf 20 100 Td (release-gate) Tj ET
-endstream
-endobj
-trailer
-<< /Root 1 0 R >>
-%%EOF
-`;
-  fs.writeFileSync(uploadPath, uploadPdf, 'utf8');
-
-  const context = await browser.newContext({ acceptDownloads: true });
-  const page = await context.newPage();
-  await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
-  const clientSignals = [];
-  const pushClientSignal = signal => {
-    if (clientSignals.length < 10 && signal) {
-      clientSignals.push(String(signal).slice(0, 400));
-    }
-  };
-  let signedUploadStatuses = [];
-  let documentsDownloadStatuses = [];
-  let persistenceAfterRefresh = false;
-  let persistenceAfterRelogin = false;
-  const requireMemberUpload = envFlag('RELEASE_GATE_REQUIRE_MEMBER_UPLOAD', true);
-  const waitForUploadedFileVisible = async (targetPage, options = {}) => {
-    const timeoutMs = Number(options.timeoutMs ?? TIMEOUTS.upload);
-    const reloadBetweenAttempts = options.reloadBetweenAttempts === true;
-    const startedAt = Date.now();
-
-    while (Date.now() - startedAt < timeoutMs) {
-      const isVisible = await targetPage
-        .getByText(uploadName)
-        .first()
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (isVisible) {
-        return true;
-      }
-
-      if (reloadBetweenAttempts) {
-        await targetPage
-          .reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav })
-          .catch(() => {});
-      } else {
-        await targetPage.waitForTimeout(450);
-      }
-    }
-
-    return false;
-  };
-
-  page.on('response', response => {
-    const url = response.url();
-    if (url.includes('/storage/v1/object/upload/sign/')) {
-      signedUploadStatuses.push(`${response.status()}@${url}`);
-    }
-    if (url.includes('/api/documents/') && url.includes('/download')) {
-      documentsDownloadStatuses.push(`${response.status()}@${url}`);
-    }
-  });
-  page.on('console', msg => {
-    const text = msg.text();
-    const type = msg.type();
-    if (
-      type === 'error' ||
-      /upload flow error|storage upload unavailable|failed to generate upload url|mime type|supabase/i.test(
-        text
-      )
-    ) {
-      pushClientSignal(`console.${type}: ${text}`);
-    }
-  });
-  page.on('pageerror', error => {
-    pushClientSignal(`pageerror: ${String(error.message || error)}`);
-  });
-
-  try {
-    await loginAs(page, {
-      account: 'member',
-      credentials: runCtx.credentials.member,
-      baseUrl: runCtx.baseUrl,
-      locale: runCtx.locale,
-      authState: runCtx.authState,
-    });
-
-    const docsUrl = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.memberDocuments);
-    await page.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-    const uploadButtons = page.locator(SELECTORS.memberDocumentsUploadButtons);
-    const uploadButtonsCount = await uploadButtons.count();
-    evidenceP11.push(`member documents upload button count=${uploadButtonsCount}`);
-    if (uploadButtonsCount === 0) {
-      if (requireMemberUpload) {
-        signaturesP11.push(
-          'P1.1_MISCONFIG_MEMBER_UPLOAD_PRECONDITION_NOT_MET reason=no_upload_entry_buttons'
-        );
-        return [
-          checkResult('P1.1', 'FAIL', evidenceP11, signaturesP11),
-          checkResult('P1.2', 'SKIPPED', evidenceP12, [
-            'P1.2_SKIPPED_DEPENDENCY_P1.1_MEMBER_UPLOAD_PRECONDITION',
-          ]),
-        ];
-      }
-      return [
-        checkResult('P1.1', 'SKIPPED', evidenceP11, [
-          'P1.1_SKIPPED_MEMBER_UPLOAD_PRECONDITION_NOT_MET',
-        ]),
-        checkResult('P1.2', 'SKIPPED', evidenceP12, [
-          'P1.2_SKIPPED_DEPENDENCY_P1.1_MEMBER_UPLOAD_PRECONDITION',
-        ]),
-      ];
-    }
-
-    const uploadButton = uploadButtons.first();
-    let uploadDialogOpened = false;
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      await uploadButton.scrollIntoViewIfNeeded().catch(() => {});
-      await uploadButton.click({ timeout: TIMEOUTS.action }).catch(() => {});
-      uploadDialogOpened = await page
-        .locator(SELECTORS.fileInput)
-        .isVisible({ timeout: TIMEOUTS.action })
-        .catch(() => false);
-      if (uploadDialogOpened) break;
-      await sleep(400);
-    }
-    evidenceP11.push(`upload dialog opened=${uploadDialogOpened}`);
-    if (!uploadDialogOpened) {
-      throw new Error('UPLOAD_DIALOG_NOT_OPEN');
-    }
-    await page.setInputFiles(SELECTORS.fileInput, uploadPath);
-    await page.getByRole('button', { name: SELECTORS.uploadButtonName }).click();
-    await page.waitForTimeout(1200);
-    const listedAfterSubmit = await waitForUploadedFileVisible(page, {
-      timeoutMs: TIMEOUTS.upload,
-      reloadBetweenAttempts: false,
-    });
-    evidenceP11.push(`upload file listed after submit=${listedAfterSubmit}`);
-
-    persistenceAfterRefresh = await waitForUploadedFileVisible(page, {
-      timeoutMs: TIMEOUTS.upload,
-      reloadBetweenAttempts: true,
-    });
-    evidenceP11.push(`after hard refresh listed=${persistenceAfterRefresh}`);
-
-    await context.close();
-
-    const reloginContext = await browser.newContext({ acceptDownloads: true });
-    const reloginPage = await reloginContext.newPage();
-    await seedCookieConsentState({
-      context: reloginContext,
-      page: reloginPage,
-      baseUrl: runCtx.baseUrl,
-    });
-    reloginPage.on('response', response => {
-      const url = response.url();
-      if (url.includes('/api/documents/') && url.includes('/download')) {
-        documentsDownloadStatuses.push(`${response.status()}@${url}`);
-      }
-    });
-
-    await loginAs(reloginPage, {
-      account: 'member',
-      credentials: runCtx.credentials.member,
-      baseUrl: runCtx.baseUrl,
-      locale: runCtx.locale,
-      authState: runCtx.authState,
-    });
-    await reloginPage.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-    persistenceAfterRelogin = await waitForUploadedFileVisible(reloginPage, {
-      timeoutMs: TIMEOUTS.upload,
-      reloadBetweenAttempts: true,
-    });
-    evidenceP11.push(`after logout/login listed=${persistenceAfterRelogin}`);
-
-    const signed200 = signedUploadStatuses.some(entry => entry.startsWith('200@'));
-    evidenceP11.push(
-      `signed upload statuses: ${signedUploadStatuses.length ? signedUploadStatuses.join(' | ') : 'none captured'}`
-    );
-    if (clientSignals.length > 0) {
-      evidenceP11.push(`client signals: ${clientSignals.join(' || ')}`);
-    }
-    if (!persistenceAfterRefresh || !persistenceAfterRelogin) {
-      signaturesP11.push(
-        `P1.1_UPLOAD_PERSISTENCE_FAILED refresh=${persistenceAfterRefresh} relogin=${persistenceAfterRelogin} file=${uploadName}`
-      );
-    }
-    if (!signed200 && !(persistenceAfterRefresh && persistenceAfterRelogin)) {
-      signaturesP11.push(`P1.1_SIGNED_UPLOAD_NOT_CONFIRMED file=${uploadName}`);
-    }
-
-    try {
-      const fileLabel = reloginPage.getByText(uploadName).first();
-      await fileLabel.waitFor({ state: 'visible', timeout: TIMEOUTS.marker });
-      const fileRow = fileLabel
-        .locator('xpath=ancestor::div[contains(@class, "flex items-center justify-between")]')
-        .first();
-
-      await fileRow.getByRole('button', { name: SELECTORS.downloadButtonName }).first().click();
-      const has200DownloadResponse = await reloginPage
-        .waitForResponse(
-          response =>
-            response.url().includes('/api/documents/') &&
-            response.url().includes('/download') &&
-            response.status() === 200,
-          { timeout: TIMEOUTS.download }
-        )
-        .then(() => true)
-        .catch(() => false);
-      evidenceP12.push(`download response 200 observed=${has200DownloadResponse}`);
-      evidenceP12.push(
-        `download response statuses: ${documentsDownloadStatuses.length ? documentsDownloadStatuses.join(' | ') : 'none captured'}`
-      );
-
-      let inlineOpened = false;
-      const popupPromise = reloginPage
-        .waitForEvent('popup', { timeout: TIMEOUTS.download })
-        .then(async popup => {
-          await popup
-            .waitForLoadState('domcontentloaded', { timeout: TIMEOUTS.download })
-            .catch(() => {});
-          const notFound = await popup
-            .getByTestId(MARKERS.notFound)
-            .isVisible({ timeout: TIMEOUTS.quickMarker })
-            .catch(() => false);
-          inlineOpened = !notFound;
-          await popup.close().catch(() => {});
-        })
-        .catch(() => {});
-      await fileRow
-        .getByRole('button', { name: SELECTORS.inlineViewButtonName })
-        .first()
-        .click()
-        .catch(() => {});
-      await popupPromise;
-      evidenceP12.push(`inline/open action succeeded=${inlineOpened}`);
-
-      if (!has200DownloadResponse && !inlineOpened) {
-        signaturesP12.push(`P1.2_DOWNLOAD_FAILED file=${uploadName}`);
-      }
-    } catch (downloadError) {
-      signaturesP12.push(
-        `P1.2_EXCEPTION message=${String(downloadError.message || downloadError)}`
-      );
-    }
-
-    await reloginContext.close();
-  } catch (error) {
-    const rawMessage = String(error.message || error);
-    const infraMessage = classifyInfraNetworkFailure(rawMessage);
-    if (rawMessage.includes('NO_MEMBER_DOCUMENT_UPLOAD_BUTTONS')) {
-      signaturesP11.push(
-        'P1.1_MISCONFIG_MEMBER_UPLOAD_PRECONDITION_NOT_MET reason=no_upload_entry_buttons'
-      );
-      signaturesP12.push('P1.2_SKIPPED_DEPENDENCY_P1.1_MEMBER_UPLOAD_PRECONDITION');
-    } else if (infraMessage) {
-      signaturesP11.push(`P1.1_INFRA_NETWORK message=${infraMessage}`);
-      signaturesP12.push(`P1.2_INFRA_NETWORK_DEPENDENCY message=${infraMessage}`);
-    } else {
-      signaturesP11.push(`P1.1_EXCEPTION message=${compactErrorMessage(rawMessage, 650)}`);
-      signaturesP12.push('P1.2_DEPENDENCY_P1.1_EXCEPTION');
-    }
-    if (clientSignals.length > 0) {
-      evidenceP11.push(`client signals: ${clientSignals.join(' || ')}`);
-      signaturesP11.push(`P1.1_CLIENT_SIGNAL ${clientSignals[0]}`);
-    }
-    await context.close().catch(() => {});
-  } finally {
-    fs.rmSync(uploadPath, { force: true });
-  }
-
-  return [
-    checkResult('P1.1', signaturesP11.length ? 'FAIL' : 'PASS', evidenceP11, signaturesP11),
-    checkResult('P1.2', signaturesP12.length ? 'FAIL' : 'PASS', evidenceP12, signaturesP12),
-  ];
-}
-
-async function runP13(browser, runCtx) {
-  const evidence = [];
-  const signatures = [];
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
-  try {
-    await loginAs(page, {
-      account: 'staff',
-      credentials: runCtx.credentials.staff,
-      baseUrl: runCtx.baseUrl,
-      locale: runCtx.locale,
-      authState: runCtx.authState,
-    });
-
-    const claimsList = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList);
-    await page.goto(claimsList, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
-    const staffReadyOnList = await page
-      .getByTestId(MARKERS.staff)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
-    evidence.push(`staff_claims_list_url=${claimsList}`);
-    evidence.push(`staff_page_ready_on_list=${staffReadyOnList}`);
-    if (!staffReadyOnList) {
-      signatures.push('P1.3_STAFF_PORTAL_NOT_READY');
-      return checkResult('P1.3', 'FAIL', evidence, signatures);
-    }
-
-    const requireClaimUrl =
-      String(process.env.RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL || 'false').toLowerCase() === 'true';
-    const configuredClaim = resolveConfiguredStaffClaimDetailUrl(runCtx);
-    let detailUrl = null;
-
-    if (configuredClaim.url) {
-      detailUrl = configuredClaim.url;
-      evidence.push('claim_source=STAFF_CLAIM_URL');
-    } else {
-      if (requireClaimUrl) {
-        signatures.push(
-          configuredClaim.reason === 'list-url'
-            ? 'P1.3_MISCONFIG_STAFF_CLAIM_URL_DETAIL_REQUIRED'
-            : 'P1.3_MISCONFIG_STAFF_CLAIM_URL_REQUIRED'
-        );
-        return checkResult('P1.3', 'FAIL', evidence, signatures);
-      }
-      if (configuredClaim.reason === 'list-url') {
-        evidence.push('claim_source=STAFF_CLAIM_URL_IGNORED_LIST');
-      }
-
-      const fallbackTimeoutMs = 10_000;
-      const startedAt = Date.now();
-      let hrefs = [];
-
-      while (Date.now() - startedAt < fallbackTimeoutMs) {
-        hrefs = await page.$$eval('a[data-testid="staff-claims-view"]', anchors =>
-          anchors.map(node => node.getAttribute('href')).filter(Boolean)
-        );
-        if (hrefs.length > 0) {
-          break;
-        }
-        await page.waitForTimeout(500);
-      }
-
-      evidence.push(`fallback_search_elapsed_ms=${Date.now() - startedAt}`);
-      evidence.push(`fallback_link_count=${hrefs.length}`);
-      if (hrefs.length === 0) {
-        signatures.push('P1.3_NO_TEST_DATA_STAFF_CLAIMS');
-        return checkResult('P1.3', 'SKIPPED', evidence, signatures);
-      }
-      detailUrl = hrefs[0].startsWith('http')
-        ? hrefs[0]
-        : buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, hrefs[0]);
-      evidence.push('claim_source=staff_claims_list');
-    }
-
-    await page.goto(detailUrl, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
-
-    evidence.push(`claim_url=${detailUrl}`);
-    const notFoundOnDetail = await page
-      .getByTestId(MARKERS.notFound)
-      .isVisible({ timeout: TIMEOUTS.quickMarker })
-      .catch(() => false);
-    evidence.push(`detail_not_found=${notFoundOnDetail}`);
-    if (notFoundOnDetail) {
-      signatures.push('P1.3_MISCONFIG_STAFF_CLAIM_URL_UNREACHABLE');
-      return checkResult('P1.3', 'SKIPPED', evidence, signatures);
-    }
-
-    const staffReadyOnDetail = await page
-      .getByTestId(MARKERS.staff)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
-    evidence.push(`staff_page_ready_on_detail=${staffReadyOnDetail}`);
-    const detailReady = await page
-      .locator(SELECTORS.staffClaimDetailReady)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
-    const actionPanelReady = await page
-      .locator(SELECTORS.staffClaimActionPanel)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
-    const claimSectionReady = await page
-      .locator(SELECTORS.staffClaimSection)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
-
-    evidence.push(
-      `detail_ready=${detailReady} action_panel_ready=${actionPanelReady} claim_section_ready=${claimSectionReady}`
-    );
-    if (!detailReady && !actionPanelReady && !claimSectionReady) {
-      signatures.push('P1.3_DETAIL_READY_MARKER_MISSING');
-      return checkResult('P1.3', 'FAIL', evidence, signatures);
-    }
-
-    const statusTrigger = page.locator(SELECTORS.claimStatusSelectTrigger);
-    const currentStatusLabel = (await statusTrigger.innerText()).trim();
-    await statusTrigger.click();
-    await page
-      .locator(SELECTORS.claimStatusListbox)
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.action });
-    const options = page.locator(SELECTORS.claimStatusOption);
-    const optionCount = await options.count();
-    if (optionCount === 0) {
-      signatures.push('P1.3_STATUS_OPTIONS_MISSING');
-    } else {
-      let selectedLabel = null;
-      for (let i = 0; i < optionCount; i += 1) {
-        const candidate = (await options.nth(i).innerText()).trim();
-        if (candidate && candidate.toLowerCase() !== currentStatusLabel.toLowerCase()) {
-          selectedLabel = candidate;
-          await options.nth(i).click();
-          break;
-        }
-      }
-      if (!selectedLabel) {
-        signatures.push(`P1.3_NO_STATUS_TRANSITION_AVAILABLE current_status=${currentStatusLabel}`);
-      } else {
-        evidence.push(`status_change=${currentStatusLabel} -> ${selectedLabel}`);
-        const noteValue = `gate-note-${Date.now()}`;
-        await page.fill(SELECTORS.claimStatusNote, noteValue);
-        await page.getByRole('button', { name: SELECTORS.claimUpdateButtonName }).click();
-        await page.waitForTimeout(1600);
-        await page.reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-        await page.locator(SELECTORS.staffClaimDetailReady).waitFor({
-          state: 'visible',
-          timeout: TIMEOUTS.marker,
-        });
-
-        const noteVisible = await page
-          .locator(SELECTORS.staffClaimNote)
-          .getByText(noteValue)
-          .isVisible({ timeout: TIMEOUTS.marker })
-          .catch(() => false);
-        evidence.push(`note persisted=${noteVisible} note="${noteValue}"`);
-        if (!noteVisible) {
-          signatures.push(`P1.3_NOTE_NOT_PERSISTED note=${noteValue}`);
-        }
-
-        const persistedStatusLabel = (
-          await page.locator(SELECTORS.claimStatusSelectTrigger).innerText()
-        ).trim();
-        const statusPersisted = persistedStatusLabel
-          .toLowerCase()
-          .includes(selectedLabel.toLowerCase());
-        evidence.push(
-          `status persisted=${statusPersisted} expected="${selectedLabel}" actual="${persistedStatusLabel}"`
-        );
-        if (!statusPersisted) {
-          signatures.push(`P1.3_STATUS_NOT_PERSISTED expected="${selectedLabel}"`);
-        }
-      }
-    }
-  } catch (error) {
-    const markerState = await markerSnapshot(page).catch(() => ({
-      member: false,
-      agent: false,
-      staff: false,
-      admin: false,
-    }));
-    const screenshotPath = path.join(
-      os.tmpdir(),
-      `release-gate-p13-failure-${Date.now()}-${Math.random().toString(16).slice(2)}.png`
-    );
-    await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {});
-    evidence.push(`failure_url=${page.url()}`);
-    evidence.push(
-      `failure_markers member=${markerState.member} agent=${markerState.agent} staff=${markerState.staff} admin=${markerState.admin}`
-    );
-    evidence.push(`failure_screenshot=${screenshotPath}`);
-    const notFoundVisible = await page
-      .getByTestId(MARKERS.notFound)
-      .isVisible({ timeout: TIMEOUTS.quickMarker })
-      .catch(() => false);
-    evidence.push(`failure_not_found=${notFoundVisible}`);
-    const rawMessage = String(error.message || error);
-    const infraMessage = classifyInfraNetworkFailure(rawMessage);
-    if (infraMessage) {
-      signatures.push(`P1.3_INFRA_NETWORK message=${infraMessage}`);
-    } else {
-      signatures.push(`P1.3_EXCEPTION message=${compactErrorMessage(rawMessage, 650)}`);
-    }
-  } finally {
-    await context.close();
-  }
-  return checkResult('P1.3', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
-}
-
-async function runG07(browser, runCtx) {
-  const evidence = [];
-  const signatures = [];
-  const scenarios = buildCommercialPromiseScenarios(runCtx);
-
-  for (const scenario of scenarios) {
-    try {
-      const { missing, observedSummary } = await visitReleaseGateScenario(
-        browser,
-        runCtx,
-        scenario,
-        async page => {
-          const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
-          return {
-            missing: findMissingCommercialPromiseSections(
-              scenario.requiredTestIds,
-              observedByTestId
-            ),
-            observedSummary: scenario.requiredTestIds
-              .map(testId => `${testId}=${observedByTestId[testId] === true}`)
-              .join(','),
-          };
-        }
-      );
-
-      evidence.push(
-        `scenario=${scenario.id} account=${scenario.account || 'public'} missing=${
-          missing.join(',') || 'none'
-        } observed=${observedSummary}`
-      );
-
-      if (missing.length > 0) {
-        signatures.push(
-          `G07_COMMERCIAL_PROMISE_SURFACE_MISSING scenario=${scenario.id} missing=${missing.join(',')}`
-        );
-      }
-    } catch (error) {
-      signatures.push(
-        `G07_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
-      );
-    }
-  }
-
-  return checkResult('G07', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
-}
-
-async function runG08(browser, runCtx) {
-  const evidence = [];
-  const signatures = [];
-  const scenarios = buildFreeStartGroupPrivacyScenarios(runCtx);
-
-  for (const scenario of scenarios) {
-    try {
-      const { missingPhrases, missingTestIds, observedSummary, presentLeaks } =
-        await visitReleaseGateScenario(browser, runCtx, scenario, async page => {
-          const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
-          const observedText = normalizeBoundaryText(
-            await page
-              .locator('body')
-              .innerText()
-              .catch(() => '')
-          );
-
-          return {
-            missingPhrases: findMissingBoundaryPhrases(scenario.requiredPhrases, observedText),
-            missingTestIds: findMissingCommercialPromiseSections(
-              scenario.requiredTestIds,
-              observedByTestId
-            ),
-            observedSummary: scenario.requiredTestIds
-              .map(testId => `${testId}=${observedByTestId[testId] === true}`)
-              .join(','),
-            presentLeaks: findPresentBoundaryLeaks(scenario.forbiddenPhrases, observedText),
-          };
-        });
-
-      evidence.push(
-        `scenario=${scenario.id} account=${scenario.account || 'public'} missing_testids=${
-          missingTestIds.join(',') || 'none'
-        } missing_phrases=${missingPhrases.join(',') || 'none'} present_leaks=${
-          presentLeaks.join(',') || 'none'
-        } observed=${observedSummary}`
-      );
-
-      if (missingTestIds.length > 0) {
-        signatures.push(
-          `G08_BOUNDARY_SURFACE_MISSING scenario=${scenario.id} missing=${missingTestIds.join(',')}`
-        );
-      }
-      if (missingPhrases.length > 0) {
-        signatures.push(
-          `G08_BOUNDARY_COPY_MISSING scenario=${scenario.id} missing=${missingPhrases.join(',')}`
-        );
-      }
-      if (presentLeaks.length > 0) {
-        signatures.push(
-          `G08_PRIVACY_LEAK_DETECTED scenario=${scenario.id} leaks=${presentLeaks.join(',')}`
-        );
-      }
-    } catch (error) {
-      signatures.push(
-        `G08_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
-      );
-    }
-  }
-
-  return checkResult('G08', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
-}
-
-async function runG09(browser, runCtx) {
-  const evidence = [];
-  const signatures = [];
-  const scenarios = buildMatterAndSlaEnforcementScenarios(runCtx);
-
-  for (const scenario of scenarios) {
-    try {
-      const {
-        matterAllowanceMismatches,
-        missingPhrases,
-        missingTestIds,
-        observedSummary,
-        observedValues,
-      } = await visitReleaseGateScenario(browser, runCtx, scenario, async page => {
-        const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
-        const observedText = normalizeBoundaryText(
-          await page
-            .locator('body')
-            .innerText()
-            .catch(() => '')
-        );
-        const observedValues = await collectMatterAllowanceValues(page, scenario.requiredTestIds);
-
-        return {
-          matterAllowanceMismatches: findMismatchedMatterAllowanceValues(
-            scenario.expectedMatterAllowance,
-            observedValues
-          ),
-          missingPhrases: findMissingBoundaryPhrases(scenario.requiredPhrases, observedText),
-          missingTestIds: findMissingCommercialPromiseSections(
-            scenario.requiredTestIds,
-            observedByTestId
-          ),
-          observedSummary: scenario.requiredTestIds
-            .map(testId => `${testId}=${observedByTestId[testId] === true}`)
-            .join(','),
-          observedValues,
-        };
-      });
-
-      evidence.push(
-        `scenario=${scenario.id} account=${scenario.account} missing_testids=${
-          missingTestIds.join(',') || 'none'
-        } missing_phrases=${missingPhrases.join(',') || 'none'} mismatches=${
-          matterAllowanceMismatches.join(',') || 'none'
-        } values=used:${observedValues.used || 'missing'}|remaining:${observedValues.remaining || 'missing'}|total:${observedValues.total || 'missing'} observed=${observedSummary}`
-      );
-
-      if (missingTestIds.length > 0) {
-        signatures.push(
-          `G09_SURFACE_MISSING scenario=${scenario.id} missing=${missingTestIds.join(',')}`
-        );
-      }
-      if (missingPhrases.length > 0) {
-        signatures.push(
-          `G09_SLA_COPY_MISSING scenario=${scenario.id} missing=${missingPhrases.join(',')}`
-        );
-      }
-      if (matterAllowanceMismatches.length > 0) {
-        signatures.push(
-          `G09_MATTER_ALLOWANCE_MISMATCH scenario=${scenario.id} ${matterAllowanceMismatches.join(' ')}`
-        );
-      }
-    } catch (error) {
-      signatures.push(
-        `G09_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
-      );
-    }
-  }
-
-  return checkResult('G09', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
-}
-
-async function runG10(browser, runCtx) {
-  const evidence = [];
-  const signatures = [];
-  const scenarios = buildEscalationAgreementCollectionFallbackScenarios(runCtx);
-
-  for (const scenario of scenarios) {
-    try {
-      const {
-        missingPhrases,
-        missingPrerequisitePhrases,
-        missingTestIds,
-        observedPrerequisites,
-        observedSummary,
-      } = await visitReleaseGateScenario(browser, runCtx, scenario, async page => {
-        const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
-        const observedPrerequisites = normalizeBoundaryText(
-          await page
-            .getByTestId('staff-accepted-recovery-prerequisites')
-            .innerText({ timeout: TIMEOUTS.marker })
-            .catch(() => '')
-        );
-        const observedText = normalizeBoundaryText(
-          await page
-            .locator('body')
-            .innerText()
-            .catch(() => '')
-        );
-
-        return {
-          missingPrerequisitePhrases: findMissingBoundaryPhrases(
-            scenario.requiredPrerequisitePhrases,
-            observedPrerequisites
-          ),
-          missingPhrases: findMissingBoundaryPhrases(scenario.requiredPhrases, observedText),
-          missingTestIds: findMissingCommercialPromiseSections(
-            scenario.requiredTestIds,
-            observedByTestId
-          ),
-          observedPrerequisites,
-          observedSummary: scenario.requiredTestIds
-            .map(testId => `${testId}=${observedByTestId[testId] === true}`)
-            .join(','),
-        };
-      });
-
-      evidence.push(
-        `scenario=${scenario.id} account=${scenario.account} missing_testids=${
-          missingTestIds.join(',') || 'none'
-        } missing_prerequisites=${missingPrerequisitePhrases.join(',') || 'none'} missing_phrases=${
-          missingPhrases.join(',') || 'none'
-        } observed=${observedSummary} prerequisites="${observedPrerequisites || 'missing'}"`
-      );
-
-      if (missingTestIds.length > 0) {
-        signatures.push(
-          `G10_SURFACE_MISSING scenario=${scenario.id} missing=${missingTestIds.join(',')}`
-        );
-      }
-      if (missingPrerequisitePhrases.length > 0 || missingPhrases.length > 0) {
-        signatures.push(
-          `G10_COLLECTION_FALLBACK_COPY_MISSING scenario=${scenario.id} missing=${[
-            ...missingPrerequisitePhrases,
-            ...missingPhrases,
-          ].join(',')}`
-        );
-      }
-    } catch (error) {
-      signatures.push(
-        `G10_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
-      );
-    }
-  }
-
-  return checkResult('G10', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);
 }
 
 function runVercelLogsSweep(runCtx) {
@@ -2755,24 +875,73 @@ async function main() {
     }
 
     if (!preflightBlocked) {
-      if (selected.includes('P0.1')) checks.push(await runP01(browser, runCtx));
-      if (selected.includes('P0.2')) checks.push(await runP02(browser, runCtx));
+      if (selected.includes('P0.1')) {
+        checks.push(await runP01(browser, runCtx, { loginWithRunContext }));
+      }
+      if (selected.includes('P0.2')) {
+        checks.push(await runP02(browser, runCtx, { loginWithRunContext }));
+      }
       if (selected.includes('P0.3') || selected.includes('P0.4')) {
-        const roleChecks = await runP03AndP04(browser, runCtx);
+        const roleChecks = await runP03AndP04(browser, runCtx, { loginWithRunContext });
         if (selected.includes('P0.3')) checks.push(roleChecks[0]);
         if (selected.includes('P0.4')) checks.push(roleChecks[1]);
       }
-      if (selected.includes('P0.6')) checks.push(await runP06(browser, runCtx));
+      if (selected.includes('P0.6')) {
+        checks.push(await runP06(browser, runCtx, { loginWithRunContext }));
+      }
       if (selected.includes('P1.1') || selected.includes('P1.2')) {
-        const memberChecks = await runP11AndP12(browser, runCtx);
+        const memberChecks = await runP11AndP12(browser, runCtx, { checkResult });
         if (selected.includes('P1.1')) checks.push(memberChecks[0]);
         if (selected.includes('P1.2')) checks.push(memberChecks[1]);
       }
-      if (selected.includes('P1.3')) checks.push(await runP13(browser, runCtx));
-      if (selected.includes('G07')) checks.push(await runG07(browser, runCtx));
-      if (selected.includes('G08')) checks.push(await runG08(browser, runCtx));
-      if (selected.includes('G09')) checks.push(await runG09(browser, runCtx));
-      if (selected.includes('G10')) checks.push(await runG10(browser, runCtx));
+      if (selected.includes('P1.3')) {
+        checks.push(await runP13(browser, runCtx, { checkResult }));
+      }
+      if (selected.includes('G07')) {
+        checks.push(
+          await runG07(browser, runCtx, {
+            checkResult,
+            compactErrorMessage,
+            findMissingCommercialPromiseSections,
+          })
+        );
+      }
+      if (selected.includes('G08')) {
+        checks.push(
+          await runG08(browser, runCtx, {
+            checkResult,
+            compactErrorMessage,
+            findMissingBoundaryPhrases,
+            findMissingCommercialPromiseSections,
+            findPresentBoundaryLeaks,
+            normalizeBoundaryText,
+          })
+        );
+      }
+      if (selected.includes('G09')) {
+        checks.push(
+          await runG09(browser, runCtx, {
+            checkResult,
+            compactErrorMessage,
+            findMissingBoundaryPhrases,
+            findMissingCommercialPromiseSections,
+            findMismatchedMatterAllowanceValues,
+            normalizeBoundaryText,
+          })
+        );
+      }
+      if (selected.includes('G10')) {
+        checks.push(
+          await runG10(browser, runCtx, {
+            checkResult,
+            compactErrorMessage,
+            findMissingBoundaryPhrases,
+            findMissingCommercialPromiseSections,
+            normalizeBoundaryText,
+            routePathsMatch,
+          })
+        );
+      }
       if (selected.includes('P1.5.1')) checks.push(runVercelLogsSweep(runCtx));
     } else if (selected.includes('P1.5.1')) {
       checks.push(runVercelLogsSweep(runCtx));
@@ -2855,17 +1024,21 @@ module.exports = {
   findMissingCommercialPromiseSections,
   findMismatchedMatterAllowanceValues,
   findPresentBoundaryLeaks,
+  gotoWithSessionRetry,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
+  routePathsMatch,
   resolveAccountPasswordVar,
   resolveConfiguredRolePanelTarget,
   resolveConfiguredStaffClaimDetailUrl,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   selectCredentialPreflightAccounts,
+  selectAlternativeActionableStatus,
   sessionCacheKeyForAccount,
+  skipAllowanceReasonForCheck,
   shouldRunAuthEndpointPreflight,
   shouldDisallowSkippedChecks,
 };

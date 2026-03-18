@@ -105,7 +105,7 @@ Fill the daily sheet in this order:
 Before writing canonical evidence, confirm all of the following:
 
 - the export file exists in `docs/pilot/live-data/`
-- at least one real claim row exists for the day
+- at least one real claim row exists for the day, unless the day is the `PD07` closeout window and the daily sheet explicitly marks live traffic as optional
 - at least one `claim_stage_history` row exists for at least one claim
 - branch attribution is correct
 - tenant attribution is correct
@@ -116,7 +116,7 @@ Before writing canonical evidence, confirm all of the following:
 
 Pause the live pilot day if any of these are true:
 
-- `0` real claims exist in the daily export
+- `0` real claims exist in the daily export for a claim-intake day
 - claims exist but all timeline fields are empty
 - claim rows are present but belong to the wrong tenant or branch
 - timestamps are synthetic, copied, or otherwise non-canonical
@@ -124,6 +124,12 @@ Pause the live pilot day if any of these are true:
 - any privacy, RBAC, branch-isolation, or tenant-isolation leak is observed
 
 If a day hits one of these conditions, keep the working sheet at `blocked` and do not write canonical evidence until the issue is corrected.
+
+For `PD07`, treat `0` same-day claims as acceptable only when:
+
+- the daily sheet records Day 7 live traffic as optional
+- Days 1-6 exports remain usable
+- the closeout includes a checked-in week-1 KPI/SLA rollup and linked weekly observability or decision rows
 
 ## End-Of-Day Checklist
 
@@ -148,4 +154,4 @@ pnpm pilot:decision:record -- --pilotId pilot-ks-live-2026-03-18 ...
 
 Day 7 must not reconstruct the week from memory.
 
-The week-1 closeout must be computed from the seven daily exports plus the seven daily sheets. If any day is missing a usable export, the week-1 SLA proof is incomplete and the final recommendation must stay bounded.
+The week-1 closeout must be computed from the daily exports and daily sheets. If `PD07` is a closeout-only day with optional traffic, a header-only Day 7 export is acceptable only when Days 1-6 carry the claim-bearing cohort and the repo also contains the checked-in week-1 KPI/SLA rollup plus the linked Day 7 executive-review artifacts. Otherwise, the week-1 SLA proof is incomplete and the final recommendation must stay bounded.

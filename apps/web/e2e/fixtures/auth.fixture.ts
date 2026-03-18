@@ -10,7 +10,13 @@
  */
 
 import { E2E_PASSWORD, E2E_USERS } from '@interdomestik/database';
-import { test as base, expect, Page, type TestInfo } from '@playwright/test';
+import {
+  test as base,
+  expect,
+  request as playwrightRequest,
+  Page,
+  type TestInfo,
+} from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { routes } from '../routes';
@@ -145,7 +151,7 @@ function readyMarkersForRole(role: Exclude<Role, 'admin_mk'>): string[] {
       return ['member-dashboard-ready', 'dashboard-page-ready'];
     case 'agent':
     case 'branch_manager':
-      return ['dashboard-page-ready', 'agent-members-ready', 'action-campaign'];
+      return ['agent-page-ready', 'agent-members-ready', 'action-campaign'];
   }
 }
 
@@ -438,16 +444,23 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
   // Phase 3: Post-ensure validation (Contract guarantee)
   const sessionUrl = new URL('/api/auth/get-session', info.origin).toString();
   const projectHeaders = testInfo.project.use.extraHTTPHeaders || {};
-  const sessionRes = await page.request.get(sessionUrl, {
-    headers: {
+  const sessionProbe = await playwrightRequest.newContext({
+    baseURL: info.origin,
+    extraHTTPHeaders: {
       Origin: info.origin,
       ...projectHeaders,
     },
+    storageState: await page.context().storageState(),
   });
-  expect(
-    sessionRes.status(),
-    `Session should be valid (200 OK) after ensuring auth for ${role}`
-  ).toBe(200);
+  try {
+    const sessionRes = await sessionProbe.get(sessionUrl);
+    expect(
+      sessionRes.status(),
+      `Session should be valid (200 OK) after ensuring auth for ${role}`
+    ).toBe(200);
+  } finally {
+    await sessionProbe.dispose();
+  }
 
   const currentUrl = page.url();
   expect(

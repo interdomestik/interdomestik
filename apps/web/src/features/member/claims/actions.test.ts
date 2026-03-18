@@ -251,7 +251,7 @@ describe('member claim upload actions', () => {
     });
 
     expect(result).toEqual({ success: true });
-    expect(hoisted.transaction).toHaveBeenCalledOnce();
+    expect(hoisted.transaction).toHaveBeenCalledTimes(2);
     expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');
     expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -273,5 +273,26 @@ describe('member claim upload actions', () => {
         workflow: 'legal_doc_extract',
       })
     );
+  });
+
+  it('keeps the upload persisted when ai queueing fails after metadata is saved', async () => {
+    hoisted.queueClaimDocumentAiWorkflows.mockRejectedValueOnce(new Error('ai queue unavailable'));
+
+    const result = await confirmUpload({
+      claimId: 'claim-1',
+      storagePath: 'pii/tenants/tenant-1/claims/claim-1/uuid-1.pdf',
+      originalName: 'evidence.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 1024,
+      fileId: 'uuid-1',
+      uploadedBucket: 'claim-evidence',
+      category: 'evidence',
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');
+    expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledOnce();
+    expect(hoisted.emitClaimAiRunRequestedService).not.toHaveBeenCalled();
+    expect(hoisted.markClaimAiRunDispatchFailedService).not.toHaveBeenCalled();
   });
 });

@@ -279,6 +279,15 @@ export async function cleanupByPrefixes(
     // 7d. Delete Audit Logs (performed by these users)
     await db.delete(dbSchema.auditLog).where(inArray(dbSchema.auditLog.actorId, allUserIds));
 
+    // 7d1. Delete Email Campaign Logs for these users
+    // email_campaign_logs.user_id does not cascade; deterministic reseeds must remove
+    // these rows before deleting seeded users.
+    if (dbSchema.emailCampaignLogs) {
+      await db
+        .delete(dbSchema.emailCampaignLogs)
+        .where(inArray(dbSchema.emailCampaignLogs.userId, allUserIds));
+    }
+
     // 7d2. Delete Share Packs created/revoked by these users
     // share_packs.created_by_user_id does not cascade; without this, user deletion can fail.
     if (dbSchema.sharePacks) {

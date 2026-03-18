@@ -454,8 +454,12 @@ async function collectMarkersWithWait(page, preferredMarker) {
   const start = Date.now();
   let current = await markerSnapshot(page);
   while (Date.now() - start < TIMEOUTS.marker) {
-    if (preferredMarker && current[preferredMarker]) break;
-    if (Object.values(current).some(Boolean)) break;
+    if (current.notFound) break;
+    if (preferredMarker) {
+      if (current[preferredMarker]) break;
+    } else if (Object.values(current).some(Boolean)) {
+      break;
+    }
     await sleep(300);
     current = await markerSnapshot(page);
   }
