@@ -179,15 +179,19 @@ function findMismatchedMatterAllowanceValues(expectedValues, observedValues) {
 }
 
 function normalizeRoutePath(value) {
+  const trimTrailingSlashes = pathname => {
+    let end = pathname.length;
+    while (end > 1 && pathname.charCodeAt(end - 1) === 47) {
+      end -= 1;
+    }
+    return pathname.slice(0, end);
+  };
+
   try {
     const parsed = new URL(value);
-    return parsed.pathname.replace(/\/+$/, '') || '/';
+    return trimTrailingSlashes(parsed.pathname) || '/';
   } catch {
-    return (
-      String(value || '')
-        .trim()
-        .replace(/\/+$/, '') || '/'
-    );
+    return trimTrailingSlashes(String(value || '').trim()) || '/';
   }
 }
 

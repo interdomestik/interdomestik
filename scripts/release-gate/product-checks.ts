@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -611,7 +612,7 @@ async function runP13(browser, runCtx, deps) {
     }));
     const screenshotPath = path.join(
       os.tmpdir(),
-      `release-gate-p13-failure-${Date.now()}-${Math.random().toString(16).slice(2)}.png`
+      `release-gate-p13-failure-${Date.now()}-${crypto.randomUUID()}.png`
     );
     await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {});
     evidence.push(`failure_url=${page.url()}`);

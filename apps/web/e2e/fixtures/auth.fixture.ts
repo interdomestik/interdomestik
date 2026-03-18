@@ -452,12 +452,15 @@ async function ensureAuthenticated(page: Page, testInfo: TestInfo, role: Role, t
     },
     storageState: await page.context().storageState(),
   });
-  const sessionRes = await sessionProbe.get(sessionUrl);
-  expect(
-    sessionRes.status(),
-    `Session should be valid (200 OK) after ensuring auth for ${role}`
-  ).toBe(200);
-  await sessionProbe.dispose();
+  try {
+    const sessionRes = await sessionProbe.get(sessionUrl);
+    expect(
+      sessionRes.status(),
+      `Session should be valid (200 OK) after ensuring auth for ${role}`
+    ).toBe(200);
+  } finally {
+    await sessionProbe.dispose();
+  }
 
   const currentUrl = page.url();
   expect(

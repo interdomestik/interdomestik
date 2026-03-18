@@ -481,104 +481,77 @@ async function runP06(browser, runCtx, deps) {
     }
   }
 
-  await withAccount('agent', async page => {
-    const urls = ['/member', '/agent', '/staff', '/admin'].map(route =>
-      buildRoute(runCtx.baseUrl, runCtx.locale, route)
-    );
-    const checks = [
-      { url: urls[0], expected: { member: true } },
-      { url: urls[1], expected: { agent: true } },
-      { url: urls[2], expected: { staff: false } },
-      { url: urls[3], expected: { admin: false } },
-    ];
-    const observedRows = [];
-    const mismatches = [];
-    for (const check of checks) {
-      const result = await assertUrlMarkers(page, 'S1', check.url, check.expected);
-      observedRows.push(`${check.url} => ${markersToString(result.observed)}`);
-      for (const mismatch of result.mismatches) {
-        mismatches.push(mismatch);
-      }
+  async function runMultiRouteScenario(input) {
+    const { id, title, accountKey, checks, expectedSummary } = input;
+    const urls = checks.map(check => buildRoute(runCtx.baseUrl, runCtx.locale, check.route));
+
+    try {
+      await withAccount(accountKey, async page => {
+        const observedRows = [];
+        const mismatches = [];
+        for (const [index, check] of checks.entries()) {
+          const result = await assertUrlMarkers(page, id, urls[index], check.expected);
+          observedRows.push(`${urls[index]} => ${markersToString(result.observed)}`);
+          for (const mismatch of result.mismatches) {
+            mismatches.push(mismatch);
+          }
+        }
+
+        const failureSignature = mismatches[0] ? mismatchSignatureFor(id, mismatches[0]) : '';
+        if (failureSignature) failures.push(failureSignature);
+        recordScenario({
+          id,
+          title,
+          account: accountKey,
+          urls,
+          expectedSummary,
+          observedSummary: observedRows.join(' || '),
+          result: failureSignature ? 'FAIL' : 'PASS',
+          failureSignature,
+        });
+      });
+    } catch (error) {
+      const failureSignature = `P0.6_${id}_EXCEPTION message=${String(error.message || error)}`;
+      failures.push(failureSignature);
+      recordScenario({
+        id,
+        title,
+        account: accountKey,
+        urls,
+        expectedSummary,
+        observedSummary: 'exception',
+        result: 'FAIL',
+        failureSignature,
+      });
     }
-    const failureSignature = mismatches[0] ? mismatchSignatureFor('S1', mismatches[0]) : '';
-    if (failureSignature) failures.push(failureSignature);
-    recordScenario({
-      id: 'S1',
-      title: 'Mixed roles: member+agent',
-      account: 'agent',
-      urls,
-      expectedSummary:
-        '/member member=true; /agent agent=true; /staff staff=false; /admin admin=false',
-      observedSummary: observedRows.join(' || '),
-      result: failureSignature ? 'FAIL' : 'PASS',
-      failureSignature,
-    });
-  }).catch(error => {
-    const failureSignature = `P0.6_S1_EXCEPTION message=${String(error.message || error)}`;
-    failures.push(failureSignature);
-    recordScenario({
-      id: 'S1',
-      title: 'Mixed roles: member+agent',
-      account: 'agent',
-      urls: ['/member', '/agent', '/staff', '/admin'].map(route =>
-        buildRoute(runCtx.baseUrl, runCtx.locale, route)
-      ),
-      expectedSummary:
-        '/member member=true; /agent agent=true; /staff staff=false; /admin admin=false',
-      observedSummary: 'exception',
-      result: 'FAIL',
-      failureSignature,
-    });
+  }
+
+  await runMultiRouteScenario({
+    id: 'S1',
+    title: 'Mixed roles: member+agent',
+    accountKey: 'agent',
+    checks: [
+      { route: '/member', expected: { member: true } },
+      { route: '/agent', expected: { agent: true } },
+      { route: '/staff', expected: { staff: false } },
+      { route: '/admin', expected: { admin: false } },
+    ],
+    expectedSummary:
+      '/member member=true; /agent agent=true; /staff staff=false; /admin admin=false',
   });
 
-  await withAccount('staff', async page => {
-    const urls = ['/member', '/staff', '/agent', '/admin'].map(route =>
-      buildRoute(runCtx.baseUrl, runCtx.locale, route)
-    );
-    const checks = [
-      { url: urls[0], expected: { member: true } },
-      { url: urls[1], expected: { staff: true } },
-      { url: urls[2], expected: { agent: false } },
-      { url: urls[3], expected: { admin: false } },
-    ];
-    const observedRows = [];
-    const mismatches = [];
-    for (const check of checks) {
-      const result = await assertUrlMarkers(page, 'S2', check.url, check.expected);
-      observedRows.push(`${check.url} => ${markersToString(result.observed)}`);
-      for (const mismatch of result.mismatches) {
-        mismatches.push(mismatch);
-      }
-    }
-    const failureSignature = mismatches[0] ? mismatchSignatureFor('S2', mismatches[0]) : '';
-    if (failureSignature) failures.push(failureSignature);
-    recordScenario({
-      id: 'S2',
-      title: 'Mixed roles: member+staff',
-      account: 'staff',
-      urls,
-      expectedSummary:
-        '/member member=true; /staff staff=true; /agent agent=false; /admin admin=false',
-      observedSummary: observedRows.join(' || '),
-      result: failureSignature ? 'FAIL' : 'PASS',
-      failureSignature,
-    });
-  }).catch(error => {
-    const failureSignature = `P0.6_S2_EXCEPTION message=${String(error.message || error)}`;
-    failures.push(failureSignature);
-    recordScenario({
-      id: 'S2',
-      title: 'Mixed roles: member+staff',
-      account: 'staff',
-      urls: ['/member', '/staff', '/agent', '/admin'].map(route =>
-        buildRoute(runCtx.baseUrl, runCtx.locale, route)
-      ),
-      expectedSummary:
-        '/member member=true; /staff staff=true; /agent agent=false; /admin admin=false',
-      observedSummary: 'exception',
-      result: 'FAIL',
-      failureSignature,
-    });
+  await runMultiRouteScenario({
+    id: 'S2',
+    title: 'Mixed roles: member+staff',
+    accountKey: 'staff',
+    checks: [
+      { route: '/member', expected: { member: true } },
+      { route: '/staff', expected: { staff: true } },
+      { route: '/agent', expected: { agent: false } },
+      { route: '/admin', expected: { admin: false } },
+    ],
+    expectedSummary:
+      '/member member=true; /staff staff=true; /agent agent=false; /admin admin=false',
   });
 
   try {
