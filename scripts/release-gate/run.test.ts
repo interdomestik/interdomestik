@@ -19,17 +19,21 @@ const {
   findMissingCommercialPromiseSections,
   findMismatchedMatterAllowanceValues,
   findPresentBoundaryLeaks,
+  gotoWithSessionRetry,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
+  routePathsMatch,
   resolveAccountPasswordVar,
   resolveConfiguredRolePanelTarget,
   resolveConfiguredStaffClaimDetailUrl,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   selectCredentialPreflightAccounts,
+  selectAlternativeActionableStatus,
   sessionCacheKeyForAccount,
+  skipAllowanceReasonForCheck,
   shouldRunAuthEndpointPreflight,
   shouldDisallowSkippedChecks,
 } = require('./run.ts');
@@ -879,6 +883,39 @@ test('buildMatterAndSlaEnforcementScenarios covers the deterministic member and 
   }
 });
 
+test('gotoWithSessionRetry retries after a login redirect during navigation', async () => {
+  const navigations = [];
+  const page = {
+    currentUrl: 'https://interdomestik-web.vercel.app/en/login',
+    url() {
+      return this.currentUrl;
+    },
+  };
+  let retryCount = 0;
+
+  const finalUrl = await gotoWithSessionRetry({
+    page,
+    url: 'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_17',
+    navigate: async () => {
+      navigations.push(retryCount);
+      page.currentUrl =
+        retryCount === 0
+          ? 'https://interdomestik-web.vercel.app/en/login'
+          : 'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_17';
+    },
+    retryLogin: async () => {
+      retryCount += 1;
+    },
+  });
+
+  assert.equal(retryCount, 1);
+  assert.equal(navigations.length, 2);
+  assert.equal(
+    finalUrl,
+    'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_17'
+  );
+});
+
 test('buildEscalationAgreementCollectionFallbackScenarios covers deterministic accepted-case staff surfaces for G10', () => {
   const scenarios = buildEscalationAgreementCollectionFallbackScenarios({
     baseUrl: RELEASE_GATE_BASE_URL,
@@ -953,6 +990,46 @@ test('findMismatchedMatterAllowanceValues reports only the mismatched counters',
   assert.deepEqual(mismatches, ['remaining expected=2 actual=1']);
 });
 
+test('routePathsMatch compares only the normalized route path', () => {
+  assert.equal(
+    routePathsMatch(
+      'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_16',
+      'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_16?from=gate'
+    ),
+    true
+  );
+  assert.equal(
+    routePathsMatch(
+      'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_16',
+      'https://interdomestik-web.vercel.app/en/staff/claims'
+    ),
+    false
+  );
+});
+
+test('selectAlternativeActionableStatus ignores Draft and keeps actionable transitions', () => {
+  const selected = selectAlternativeActionableStatus('Submitted', [
+    'Draft',
+    'Submitted',
+    'Verification',
+    'Evaluation',
+  ]);
+
+  assert.equal(selected, 'Verification');
+});
+
+test('skipAllowanceReasonForCheck allows the valid member empty-state download skip', () => {
+  assert.equal(
+    skipAllowanceReasonForCheck({
+      id: 'P1.2',
+      status: 'SKIPPED',
+      evidence: [],
+      signatures: ['P1.2_SKIPPED_VALID_MEMBER_EMPTY_STATE'],
+    }),
+    'valid_member_empty_state'
+  );
+});
+
 test('shouldDisallowSkippedChecks defaults to true for production and false otherwise', () => {
   delete process.env.RELEASE_GATE_DISALLOW_SKIP;
   try {
@@ -1008,6 +1085,30 @@ test('enforceNoSkipOnSelectedChecks keeps skipped checks when skip policy is dis
     const normalized = enforceNoSkipOnSelectedChecks(checks, ['P1.3'], 'production');
 
     assert.equal(normalized[0].status, 'SKIPPED');
+  } finally {
+    restoreDisallowSkipEnv();
+  }
+});
+
+test('enforceNoSkipOnSelectedChecks allows P1.2 skip for valid member empty-state coverage', () => {
+  delete process.env.RELEASE_GATE_DISALLOW_SKIP;
+  try {
+    const checks = [
+      {
+        id: 'P1.2',
+        status: 'SKIPPED',
+        evidence: ['skip_reason=valid_member_empty_state_no_claim_cards'],
+        signatures: ['P1.2_SKIPPED_VALID_MEMBER_EMPTY_STATE'],
+      },
+    ];
+    const normalized = enforceNoSkipOnSelectedChecks(checks, ['P1.2'], 'production');
+
+    assert.equal(normalized[0].status, 'SKIPPED');
+    assert.equal(
+      normalized[0].evidence[normalized[0].evidence.length - 1],
+      'skip_policy=allowed reason=valid_member_empty_state'
+    );
+    assert.ok(!normalized[0].signatures.includes('P1.2_SKIPPED_NOT_ALLOWED'));
   } finally {
     restoreDisallowSkipEnv();
   }

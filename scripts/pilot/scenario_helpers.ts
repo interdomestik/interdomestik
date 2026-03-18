@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 
-import { eq } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 
 dotenv.config({ path: '.env.local' });
 
@@ -38,6 +38,19 @@ type ScenarioClaimInsertInput = {
   messages?: ScenarioMessageInput[];
 };
 
+type PilotUserRecord = {
+  id: string;
+  email: string | null;
+  tenantId: string | null;
+};
+
+const PILOT_TENANT_ID = 'tenant_ks';
+const PILOT_OPERATOR_EMAILS = {
+  agent: 'agent.ks.a1@interdomestik.com',
+  member: 'member.ks.a1@interdomestik.com',
+  staff: 'staff.ks.extra@interdomestik.com',
+} as const;
+
 function fatal(message: string): never {
   throw new Error(message);
 }
@@ -48,36 +61,52 @@ export function resolveTimeWindow(baseDate: string, hour: number, minute: number
   return base;
 }
 
+export function selectPilotOperators(
+  users: PilotUserRecord[],
+  tenantId: string = PILOT_TENANT_ID
+): {
+  agentId: string;
+  memberId: string;
+  staffId: string;
+} {
+  const byEmail = (email: string) =>
+    users.find(user => user.email === email && user.tenantId === tenantId);
+
+  const agent = byEmail(PILOT_OPERATOR_EMAILS.agent);
+  const member = byEmail(PILOT_OPERATOR_EMAILS.member);
+  const staff = byEmail(PILOT_OPERATOR_EMAILS.staff);
+
+  if (!agent || !member || !staff) {
+    fatal(`Could not find all operation handles for tenant ${tenantId} (agent, member, staff)`);
+  }
+
+  return {
+    agentId: agent.id,
+    memberId: member.id,
+    staffId: staff.id,
+  };
+}
+
 export async function loadPilotScenarioContext() {
   const { db } = await import('@interdomestik/database');
   const { claims, claimStageHistory, claimMessages } =
     await import('@interdomestik/database/schema/claims');
   const { user } = await import('@interdomestik/database/schema/auth');
 
-  const agent = await db.query.user.findFirst({
-    where: eq(user.email, 'agent.ks.a1@interdomestik.com'),
+  const pilotUsers = await db.query.user.findMany({
+    where: inArray(user.email, [
+      PILOT_OPERATOR_EMAILS.agent,
+      PILOT_OPERATOR_EMAILS.member,
+      PILOT_OPERATOR_EMAILS.staff,
+    ]),
   });
-  const member = await db.query.user.findFirst({
-    where: eq(user.email, 'member.ks.a1@interdomestik.com'),
-  });
-  const staff = await db.query.user.findFirst({
-    where: eq(user.email, 'staff.ks.extra@interdomestik.com'),
-  });
-
-  if (!agent || !member || !staff) {
-    fatal('Could not find all operation handles (agent, member, staff)');
-  }
 
   return {
     db,
     claims,
     claimMessages,
     claimStageHistory,
-    operatorIds: {
-      agentId: agent.id,
-      memberId: member.id,
-      staffId: staff.id,
-    },
+    operatorIds: selectPilotOperators(pilotUsers),
   };
 }
 
@@ -86,7 +115,7 @@ export async function insertScenarioClaim(
   input: ScenarioClaimInsertInput
 ): Promise<string> {
   const claimId = crypto.randomUUID();
-  const tenantId = input.tenantId ?? 'tenant_ks';
+  const tenantId = input.tenantId ?? PILOT_TENANT_ID;
 
   await context.db.insert(context.claims).values({
     id: claimId,

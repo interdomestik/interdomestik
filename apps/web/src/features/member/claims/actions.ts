@@ -229,7 +229,7 @@ export async function confirmUpload({
       };
     }
 
-    const queuedRuns = await db.transaction(async tx => {
+    await db.transaction(async tx => {
       await tx.insert(claimDocuments).values({
         id: fileId,
         tenantId: tenantId,
@@ -242,38 +242,48 @@ export async function confirmUpload({
         category,
         uploadedBy: session.user.id,
       });
-
-      return queueClaimDocumentAiWorkflows({
-        tx,
-        claimId,
-        tenantId,
-        userId: session.user.id,
-        files: [
-          {
-            documentId: fileId,
-            name: originalName,
-            path: storagePath,
-            type: mimeType,
-            size: fileSize,
-            bucket: resolvedBucket,
-            category,
-          },
-        ],
-      });
     });
+    try {
+      const queuedRuns = await db.transaction(async tx =>
+        queueClaimDocumentAiWorkflows({
+          tx,
+          claimId,
+          tenantId,
+          userId: session.user.id,
+          files: [
+            {
+              documentId: fileId,
+              name: originalName,
+              path: storagePath,
+              type: mimeType,
+              size: fileSize,
+              bucket: resolvedBucket,
+              category,
+            },
+          ],
+        })
+      );
 
-    for (const queuedRun of queuedRuns) {
-      try {
-        await emitClaimAiRunRequestedService(queuedRun);
-      } catch (error) {
-        await markClaimAiRunDispatchFailedService({
-          runId: queuedRun.runId,
-          message: error instanceof Error ? error.message : 'Failed to dispatch claim AI run.',
-        });
+      for (const queuedRun of queuedRuns) {
+        try {
+          await emitClaimAiRunRequestedService(queuedRun);
+        } catch (error) {
+          await markClaimAiRunDispatchFailedService({
+            runId: queuedRun.runId,
+            message: error instanceof Error ? error.message : 'Failed to dispatch claim AI run.',
+          });
+        }
       }
+    } catch (queueError) {
+      console.error('[member/claims] confirmUpload AI queue failed after metadata persisted', {
+        claimId,
+        fileId,
+        message: queueError instanceof Error ? queueError.message : String(queueError),
+      });
     }
 
     revalidatePath(`/[locale]/(app)/member/claims/${claimId}`);
+    revalidatePath('/[locale]/(app)/member/documents');
     return { success: true };
   } catch (err) {
     console.error('confirmUpload error:', err);

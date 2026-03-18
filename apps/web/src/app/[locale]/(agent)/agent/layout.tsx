@@ -35,17 +35,19 @@ export default async function AgentLayout({
   const messages = pickMessages(allMessages, AGENT_NAMESPACES);
 
   return (
-    <AuthenticatedShell locale={locale} messages={messages}>
-      <SidebarProvider defaultOpen={true}>
-        <DashboardSidebar agentTier={agentTier} />
-        <SidebarInset className="bg-mesh flex flex-col min-h-screen">
-          <DashboardHeader />
-          <div className="px-6 pt-4 md:px-8">
-            <LegacyBanner />
-          </div>
-          <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>
-        </SidebarInset>
-      </SidebarProvider>
-    </AuthenticatedShell>
+    <div className="min-h-screen" data-testid="agent-page-ready">
+      <AuthenticatedShell locale={locale} messages={messages}>
+        <SidebarProvider defaultOpen={true}>
+          <DashboardSidebar agentTier={agentTier} />
+          <SidebarInset className="bg-mesh flex flex-col min-h-screen">
+            <DashboardHeader />
+            <div className="px-6 pt-4 md:px-8">
+              <LegacyBanner />
+            </div>
+            <div className="flex-1 p-6 md:p-8 pt-6">{children}</div>
+          </SidebarInset>
+        </SidebarProvider>
+      </AuthenticatedShell>
+    </div>
   );
 }

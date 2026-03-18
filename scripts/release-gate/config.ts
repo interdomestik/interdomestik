@@ -40,7 +40,7 @@ const ROUTES = {
 
 const MARKERS = {
   member: 'dashboard-page-ready',
-  agent: 'action-campaign',
+  agent: 'agent-page-ready',
   staff: 'staff-page-ready',
   admin: 'admin-page-ready',
   notFound: 'not-found-page',

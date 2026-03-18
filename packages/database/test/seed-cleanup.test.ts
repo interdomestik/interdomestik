@@ -19,6 +19,10 @@ function tableName(table: unknown): string {
       return 'document_extractions';
     case schema.documents:
       return 'documents';
+    case schema.emailCampaignLogs:
+      return 'email_campaign_logs';
+    case schema.user:
+      return 'user';
     default:
       return 'other';
   }
@@ -87,4 +91,22 @@ test('cleanupByPrefixes deletes AI provenance rows before documents uploaded by 
     'expected document_extractions to be deleted before ai_runs'
   );
   assert.ok(aiRunsIndex < documentsIndex, 'expected ai_runs to be deleted before documents');
+});
+
+test('cleanupByPrefixes deletes email campaign logs before deleting seeded users', async () => {
+  const operations: Operation[] = [];
+  const db = createFakeDb(operations);
+
+  await cleanupByPrefixes(db as never, schema, ['golden_']);
+
+  const deleteOrder = operations.filter(op => op.kind === 'delete').map(op => op.table);
+  const emailCampaignLogsIndex = deleteOrder.indexOf('email_campaign_logs');
+  const usersIndex = deleteOrder.lastIndexOf('user');
+
+  assert.notEqual(emailCampaignLogsIndex, -1, 'expected email_campaign_logs cleanup');
+  assert.notEqual(usersIndex, -1, 'expected user cleanup');
+  assert.ok(
+    emailCampaignLogsIndex < usersIndex,
+    'expected email_campaign_logs to be deleted before users'
+  );
 });
