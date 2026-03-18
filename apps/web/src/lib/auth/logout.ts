@@ -15,7 +15,7 @@ function normalizeLocale(locale: string): AppLocale {
 
 export function redirectToLocalizedLogin(locale: string, replaceLocation?: ReplaceLocation): void {
   const safeLocale = normalizeLocale(locale);
-  const replace = replaceLocation ?? ((href: string) => window.location.replace(href));
+  const replace = replaceLocation ?? ((href: string) => globalThis.location.replace(href));
   replace(`/${safeLocale}/login`);
 }
 

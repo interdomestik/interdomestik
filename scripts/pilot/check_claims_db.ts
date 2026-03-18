@@ -12,7 +12,7 @@ async function main() {
   console.log(`[Script] Total Claims Found (Recent 100): ${allClaims.length}`);
 
   // Filter by title containing "Live Pilot"
-  const filtered = allClaims.filter(c => c.title && c.title.toLowerCase().includes('live pilot'));
+  const filtered = allClaims.filter(c => c.title?.toLowerCase().includes('live pilot'));
 
   console.log(`[Script] Found ${filtered.length} "Live Pilot" Claims.`);
 
@@ -30,7 +30,9 @@ async function main() {
   }
 }
 
-main().catch(err => {
+try {
+  await main();
+} catch (err) {
   console.error('[Script] Error:', err);
   process.exit(1);
-});
+}

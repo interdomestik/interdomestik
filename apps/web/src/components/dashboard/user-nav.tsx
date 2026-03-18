@@ -1,7 +1,7 @@
 'use client';
 
 import { canAccessAdmin } from '@/actions/admin-access';
-import { Link, useRouter } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
 import { isAdmin } from '@/lib/roles.core';
@@ -24,7 +24,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 export function UserNav() {
-  const router = useRouter();
   const locale = useLocale();
   const [mounted, setMounted] = useState(false);
   const [adminAccess, setAdminAccess] = useState(false);
@@ -78,12 +77,12 @@ export function UserNav() {
 
   const { user } = session;
   const role = (user as { role?: string }).role;
-  const settingsHref =
-    isAdmin(role) || adminAccess
-      ? '/admin/settings'
-      : role === 'agent'
-        ? '/agent/settings'
-        : '/member/settings';
+  let settingsHref = '/member/settings';
+  if (isAdmin(role) || adminAccess) {
+    settingsHref = '/admin/settings';
+  } else if (role === 'agent') {
+    settingsHref = '/agent/settings';
+  }
 
   return (
     <DropdownMenu>

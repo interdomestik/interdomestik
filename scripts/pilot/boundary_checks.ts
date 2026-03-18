@@ -49,7 +49,9 @@ async function main() {
   console.log('🎉 Boundary Verification Script Finished Successfully!');
 }
 
-main().catch(err => {
+try {
+  await main();
+} catch (err) {
   console.error('[Boundary] Error:', err);
   process.exit(1);
-});
+}
