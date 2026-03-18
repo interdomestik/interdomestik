@@ -1,0 +1,4 @@
+Claim ID,Category,Origin,Created At,First Triage At,First Public Update At,SLA Breach,Notes
+9e12fbfa-80f1-47cb-a4a8-2f3685cfbd88,vehicle,portal,2026-03-22T09:00:00Z,2026-03-22T10:00:00Z,2026-03-22T11:00:00Z,none,Audit Verified
+7296aa65-2dc8-4c91-b62f-9efdd0ec82f9,legal,agent,2026-03-22T09:30:00Z,2026-03-22T10:30:00Z,2026-03-22T12:00:00Z,none,Assisted Intake
+a91851ac-7003-4897-997d-1155dac6312f,health,portal,2026-03-22T10:00:00Z,2026-03-22T11:00:00Z,2026-03-22T13:00:00Z,none,Triage verification

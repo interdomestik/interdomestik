@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { StaffSidebar } from './staff-sidebar';
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
+import { SidebarUserMenu } from './sidebar-user-menu';
 
 const mockSignOutAndRedirectToLogin = vi.mocked(signOutAndRedirectToLogin);
 
@@ -11,22 +11,32 @@ vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
-  usePathname: () => '/staff/claims',
-}));
-
-vi.mock('@/lib/auth/logout', () => ({
-  signOutAndRedirectToLogin: vi.fn(),
+  usePathname: () => '/agent',
+  useRouter: () => ({
+    replace: vi.fn(),
+  }),
 }));
 
 vi.mock('@/lib/auth-client', () => ({
   authClient: {
     useSession: vi.fn().mockReturnValue({
-      data: { user: { name: 'Staff', email: 'staff@example.com' } },
+      data: {
+        user: {
+          name: 'Agent User',
+          email: 'agent.ks.a1@interdomestik.com',
+          role: 'agent',
+          image: null,
+        },
+      },
       isPending: false,
       error: null,
     }),
     signOut: vi.fn(),
   },
+}));
+
+vi.mock('@/lib/auth/logout', () => ({
+  signOutAndRedirectToLogin: vi.fn(),
 }));
 
 vi.mock('next-intl', () => ({
@@ -35,56 +45,50 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('@interdomestik/ui', () => ({
+  Avatar: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AvatarFallback: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  AvatarImage: () => <div />,
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuItem: ({
     children,
     onClick,
+    asChild,
   }: {
     children: React.ReactNode;
     onClick?: () => void;
-  }) => (
-    <button type="button" onClick={onClick}>
-      {children}
-    </button>
-  ),
+    asChild?: boolean;
+  }) =>
+    asChild ? (
+      <>{children}</>
+    ) : (
+      <button type="button" onClick={onClick}>
+        {children}
+      </button>
+    ),
+  DropdownMenuLabel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuPortal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuSeparator: () => <div />,
+  DropdownMenuSub: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuSubContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuSubTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Sidebar: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarGroupContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  SidebarHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarMenuButton: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   SidebarMenuItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('@interdomestik/ui/components/avatar', () => ({
-  Avatar: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  AvatarFallback: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  AvatarImage: () => <div />,
-}));
-
 vi.mock('lucide-react', () => ({
+  Check: () => <span />,
   ChevronUp: () => <span />,
-  FileText: () => <span />,
+  Globe: () => <span />,
+  Home: () => <span />,
   LogOut: () => <span />,
-  Shield: () => <span />,
 }));
 
-describe('StaffSidebar', () => {
-  it('does not render a redundant /staff overview link', () => {
-    render(<StaffSidebar />);
-
-    const hrefs = screen.getAllByRole('link').map(link => link.getAttribute('href'));
-    expect(hrefs).toContain('/staff/claims');
-    expect(hrefs).not.toContain('/staff');
-  });
-
-  it('signs out with a localized hard redirect', async () => {
-    render(<StaffSidebar />);
+describe('SidebarUserMenu', () => {
+  it('signs out with a localized hard redirect for agent users', async () => {
+    render(<SidebarUserMenu />);
 
     fireEvent.click(screen.getByRole('button', { name: /logout/i }));
 

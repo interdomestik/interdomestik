@@ -1,0 +1,6 @@
+id,tenant_id,branch_id,member_id,claim_created_at,submitted_at,current_status,claim_id_history,to_status,is_public,history_created_at
+f5d99b3f-5d61-4e23-8316-ed59d8d58ddb,tenant_ks,KS,golden_ks_a_member_1,2026-03-18T08:40:54.784Z,2026-03-18T08:40:54.784Z,verification,,,,
+6ec2a723-24fa-417d-a21b-7531d5724681,tenant_ks,KS,golden_ks_a_member_1,2026-03-18T08:40:55.067Z,2026-03-18T08:40:55.067Z,verification,,,,
+cbda34a2-37be-4687-b094-464550dff75c,tenant_ks,KS,golden_ks_a_member_1,2026-03-18T08:40:55.337Z,2026-03-18T08:40:55.337Z,submitted,,,,
+2f1a3298-c228-4bce-8b52-41f79a78b861,tenant_ks,KS,golden_ks_a_member_1,2026-03-18T08:40:55.603Z,2026-03-18T08:40:55.603Z,submitted,,,,
+a06d620d-2909-46c1-840e-18eb192794ed,tenant_ks,KS,golden_ks_a_member_1,2026-03-18T08:40:55.872Z,2026-03-18T08:40:55.872Z,submitted,,,,
