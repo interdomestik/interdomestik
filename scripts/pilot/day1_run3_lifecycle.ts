@@ -58,9 +58,8 @@ async function main() {
   console.log(`[Seeder Run3] Creating 3 claims per member (9 total) across categories...`);
 
   for (const mId of memberIds) {
-    for (let k = 0; k < categories.length; k++) {
+    for (const cat of categories) {
       const claimId = crypto.randomUUID();
-      const cat = categories[k];
 
       await db.insert(claims).values({
         id: claimId,
@@ -90,9 +89,10 @@ async function main() {
       claimId: c.id,
       fromStatus: 'submitted',
       toStatus: 'verification',
-      actorId: staff.id,
+      changedById: staff.id,
+      changedByRole: 'staff',
       isPublic: true,
-      reason: 'Standard verification checks',
+      note: 'Standard verification checks',
     });
 
     // 2. verification -> evaluation
@@ -102,9 +102,10 @@ async function main() {
       claimId: c.id,
       fromStatus: 'verification',
       toStatus: 'evaluation',
-      actorId: staff.id,
+      changedById: staff.id,
+      changedByRole: 'staff',
       isPublic: true,
-      reason: 'Commencing Evaluation phase',
+      note: 'Commencing Evaluation phase',
     });
 
     // 📩 Insert Document Evidence during Evaluation
@@ -153,9 +154,10 @@ async function main() {
       claimId: c.id,
       fromStatus: 'evaluation',
       toStatus: 'resolved',
-      actorId: staff.id,
+      changedById: staff.id,
+      changedByRole: 'staff',
       isPublic: true,
-      reason: 'Claim fully settled and resolved!',
+      note: 'Claim fully settled and resolved!',
     });
 
     // 📩 In-App Notification alert
@@ -185,7 +187,9 @@ async function main() {
   console.log('🎉 Full Lifecycle Multi-Member Seeder Run 3 Finished Successfully!');
 }
 
-main().catch(err => {
+try {
+  await main();
+} catch (err) {
   console.error('[Seeder Run3] Error:', err);
   process.exit(1);
-});
+}

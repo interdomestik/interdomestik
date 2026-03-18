@@ -48,9 +48,12 @@ select
   c.id,
   c.tenant_id,
   c.branch_id,
-  c.member_id,
+  c."userId" as member_id,
   c."createdAt" as claim_created_at,
-  c.submitted_at,
+  first_value(h.created_at) over (
+    partition by c.id
+    order by h.created_at
+  ) as submitted_at,
   c.status as current_status,
   h.claim_id,
   h.to_status,
@@ -66,7 +69,7 @@ where c.tenant_id = 'tenant_ks'
 order by c."createdAt", h.created_at;
 ```
 
-If `submitted_at` does not exist in the live schema, use the earliest timeline row that represents submission and record that choice explicitly in the daily sheet.
+The current repo schema does not store `submitted_at` on the claim row. Use the earliest timeline row for the claim as the exported `submitted_at` fallback and record that choice explicitly in the daily sheet.
 
 That fallback is an inference. It is acceptable only if the export still allows a defensible triage denominator.
 
@@ -79,7 +82,7 @@ The CSV or JSON export must include, at minimum:
 - `branch_id`
 - `member_id`
 - `claim_created_at`
-- `submitted_at` or a documented fallback
+- `submitted_at` derived from the earliest timeline row
 - `current_status`
 - `claim_id`
 - `to_status`

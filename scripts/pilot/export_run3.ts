@@ -1,6 +1,12 @@
-import { claims, db, eq, and, desc } from '@interdomestik/database';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
 import fs from 'node:fs';
 import path from 'node:path';
+
+const { db } = await import('@interdomestik/database');
+const { claims } = await import('@interdomestik/database/schema/claims');
+const { desc } = await import('drizzle-orm');
 
 async function main() {
   console.log('[Exporter] Fetching Run 3 Claims...');
@@ -13,7 +19,7 @@ async function main() {
   });
 
   // Filter for Run 3
-  const run3Claims = allClaims.filter(c => c.title && c.title.includes('Run 3'));
+  const run3Claims = allClaims.filter(c => c.title?.includes('Run 3'));
 
   console.log(`[Exporter] Found ${run3Claims.length} Claims for Run 3`);
 
@@ -25,7 +31,7 @@ async function main() {
 
   const outPath = path.join(
     process.cwd(),
-    'docs/pilot/live-data/pilot-ks-live-2026-03-18_day-1_run3_claim-timeline-export.csv'
+    'docs/pilot/live-data/pilot-ks-live-2026-03-18_day-1_run3-claim-rollup.csv'
   );
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
@@ -34,4 +40,9 @@ async function main() {
   console.log(`🎉 Exported to ${outPath}`);
 }
 
-main().catch(console.error);
+try {
+  await main();
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}

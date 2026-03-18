@@ -3,7 +3,13 @@ import { test } from '@playwright/test';
 import crypto from 'node:crypto';
 
 test('Simulate Multi-User Claim Messages (DB Direct)', async () => {
+  test.skip(
+    !process.env.PILOT_DB_MUTATION_TESTS,
+    'Skipping DB mutation gate; set PILOT_DB_MUTATION_TESTS=1 for explicit opt-in.'
+  );
+
   console.log('[Notify] Connecting to Database...');
+  const insertedMessageIds: string[] = [];
 
   // 1. Resolve User IDs
   const memberEmail = 'member.ks.a1@interdomestik.com';
@@ -38,8 +44,10 @@ test('Simulate Multi-User Claim Messages (DB Direct)', async () => {
   console.log('[Notify] Injecting messages...');
 
   // A. Agent to Member
+  const agentMessageId = crypto.randomUUID();
+  insertedMessageIds.push(agentMessageId);
   await db.insert(claimMessages).values({
-    id: crypto.randomUUID(),
+    id: agentMessageId,
     claimId: targetClaim.id,
     senderId: agent.id,
     content:
@@ -50,8 +58,10 @@ test('Simulate Multi-User Claim Messages (DB Direct)', async () => {
   console.log('✅ Agent -> Member Message Injected');
 
   // B. Staff to Agent (Internal)
+  const staffInternalMessageId = crypto.randomUUID();
+  insertedMessageIds.push(staffInternalMessageId);
   await db.insert(claimMessages).values({
-    id: crypto.randomUUID(),
+    id: staffInternalMessageId,
     claimId: targetClaim.id,
     senderId: staff.id,
     content:
@@ -62,8 +72,10 @@ test('Simulate Multi-User Claim Messages (DB Direct)', async () => {
   console.log('✅ Staff -> Agent (Internal) Message Injected');
 
   // C. Staff to Member (Public)
+  const staffPublicMessageId = crypto.randomUUID();
+  insertedMessageIds.push(staffPublicMessageId);
   await db.insert(claimMessages).values({
-    id: crypto.randomUUID(),
+    id: staffPublicMessageId,
     claimId: targetClaim.id,
     senderId: staff.id,
     content:
@@ -74,4 +86,8 @@ test('Simulate Multi-User Claim Messages (DB Direct)', async () => {
   console.log('✅ Staff -> Member Message Injected');
 
   console.log('🎉 DB Messaging Simulation Finished Successfully!');
+
+  for (const messageId of insertedMessageIds) {
+    await db.delete(claimMessages).where(eq(claimMessages.id, messageId));
+  }
 });

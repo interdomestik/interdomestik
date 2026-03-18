@@ -1,6 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { test } from '@playwright/test';
 
-test('Verify Production Claims on Staff Dashboard', async ({ page }) => {
+const STAFF_EMAIL = process.env.PILOT_STAFF_EMAIL || process.env.RELEASE_GATE_STAFF_EMAIL;
+const STAFF_PASSWORD = process.env.PILOT_STAFF_PASSWORD || process.env.RELEASE_GATE_STAFF_PASSWORD;
+
+test('Verify Production Claims on Staff Dashboard', async ({ page }, testInfo) => {
   test.setTimeout(60000);
 
   test.skip(
@@ -8,13 +11,15 @@ test('Verify Production Claims on Staff Dashboard', async ({ page }) => {
     'Skipping Live production check on local Gate; set PILOT_URL to run.'
   );
 
+  test.skip(!STAFF_EMAIL || !STAFF_PASSWORD, 'Missing staff credentials for live verification.');
+
   const BASE_URL = process.env.PILOT_URL || 'https://interdomestik-web.vercel.app';
   const URL = `${BASE_URL}/sq/staff/claims`;
   console.log('[Verify] Attempting API Login...');
 
   const loginUrl = `${BASE_URL}/api/auth/sign-in/email`;
   const loginRes = await page.request.post(loginUrl, {
-    data: { email: 'staff.ks.extra@interdomestik.com', password: 'GoldenPass123!' },
+    data: { email: STAFF_EMAIL, password: STAFF_PASSWORD },
     headers: {
       Origin: BASE_URL,
       Referer: `${BASE_URL}/en/login`,
@@ -34,16 +39,19 @@ test('Verify Production Claims on Staff Dashboard', async ({ page }) => {
 
   // 2. Wait for list and take screenshot
   await page.waitForTimeout(4000); // let list load
-  await page.screenshot({
-    path: '/Users/arbenlila/.gemini/antigravity/brain/594ad325-e11c-4758-bb69-94bc2f8c0e1c/dashboard_verify.png',
+  const screenshot = await page.screenshot({
     fullPage: true,
   });
-  console.log('✅ Screenshot saved to dashboard_verify.png');
+  await testInfo.attach('dashboard-verify', {
+    body: screenshot,
+    contentType: 'image/png',
+  });
+  console.log('✅ Screenshot attached to test output');
 
   // 3. Print list text for verification
   const rows = await page.locator('table tr, .claims-list-item, [role="row"]').allTextContents();
   console.log('[Verify] Rows Found:', rows.length);
   for (const row of rows.slice(0, 10)) {
-    console.log(` - ${row.replace(/\s+/g, ' ').trim()}`);
+    console.log(` - ${row.replaceAll(/\s+/g, ' ').trim()}`);
   }
 });

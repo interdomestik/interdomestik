@@ -100,7 +100,9 @@ async function main() {
       tenantId: 'tenant_ks',
       fromStatus: 'draft',
       toStatus: claimData.status,
-      actorId: member.id,
+      changedById: member.id,
+      changedByRole: 'member',
+      note: `Day 5 privacy audit recorded for ${claimData.title}.`,
       isPublic: true,
       createdAt: triageTime,
     });
@@ -139,9 +141,13 @@ async function main() {
 
   // Wait, I should assert that I can't read MK, or if any exist, they are safe.
   console.log(
-    `[Spot-Check] Found ${crossTenantClaims.length} records returned for non-primary 'tenant_mk' from local mock query.`
+    `[Spot-Check] Found ${crossTenantClaims.length} records returned for non-primary 'tenant_mk'.`
   );
-  console.log('✅ BOUNDARY PASS: Cross-tenant isolation condition satisfied.');
+  if (crossTenantClaims.length > 0) {
+    console.log('❌ BOUNDARY FAIL: Cross-tenant rows are visible and require investigation.');
+    process.exit(1);
+  }
+  console.log('✅ BOUNDARY PASS: No cross-tenant rows were visible in this spot-check.');
 
   // Check 2: Member cannot see Staff Notes
   const testClaimId = createdClaimIds[0];
@@ -169,4 +175,9 @@ async function main() {
   console.log(`\n🎉 Day 5 Privacy Ops Simulation Loaded.`);
 }
 
-main().catch(console.error);
+try {
+  await main();
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}

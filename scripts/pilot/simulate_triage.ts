@@ -1,5 +1,12 @@
-import { claims, claimStageHistory, db, eq, user, desc } from '@interdomestik/database';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
 import crypto from 'node:crypto';
+import { desc, eq } from 'drizzle-orm';
+
+const { db } = await import('@interdomestik/database');
+const { claims, claimStageHistory } = await import('@interdomestik/database/schema/claims');
+const { user } = await import('@interdomestik/database/schema/auth');
 
 async function main() {
   console.log('[Triage] Connecting to Database...');
@@ -53,9 +60,10 @@ async function main() {
     claimId: targetClaim.id,
     fromStatus: targetClaim.status,
     toStatus: 'verification',
-    actorId: staff.id,
+    changedById: staff.id,
+    changedByRole: 'staff',
     isPublic: true,
-    reason: 'Live Pilot Day 1 Automated Triage Simulation',
+    note: 'Live Pilot Day 1 Automated Triage Simulation',
     tenantId: targetClaim.tenantId,
   });
 
@@ -63,7 +71,9 @@ async function main() {
   console.log('🎉 DB Triage Simulation Finished Successfully!');
 }
 
-main().catch(err => {
+try {
+  await main();
+} catch (err) {
   console.error('[Triage] Error:', err);
   process.exit(1);
-});
+}

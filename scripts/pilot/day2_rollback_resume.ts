@@ -100,10 +100,18 @@ async function main() {
 
   for (const claimData of scenarioClaims) {
     const resumeClaimId = crypto.randomUUID();
+    const tenantId = 'tenant_ks';
+    const changedById = claimData.staffId || claimData.agentId || member.id;
+    let changedByRole: 'staff' | 'agent' | 'member' = 'member';
+    if (claimData.staffId) {
+      changedByRole = 'staff';
+    } else if (claimData.agentId) {
+      changedByRole = 'agent';
+    }
 
     await db.insert(claims).values({
       id: resumeClaimId,
-      tenantId: 'tenant_ks',
+      tenantId,
       title: claimData.title,
       companyName: 'SIGAL UNIQA Group Austria',
       userId: member.id,
@@ -120,10 +128,12 @@ async function main() {
     await db.insert(claimStageHistory).values({
       id: crypto.randomUUID(),
       claimId: resumeClaimId,
-      tenantId: 'tenant_mk',
+      tenantId,
       fromStatus: 'draft',
       toStatus: claimData.status,
-      actorId: claimData.staffId || claimData.agentId || member.id,
+      changedById,
+      changedByRole,
+      note: `Resume operational trace verified for ${claimData.title}.`,
       isPublic: true,
       createdAt: day2Timestamp,
     });
@@ -132,8 +142,8 @@ async function main() {
     await db.insert(claimMessages).values({
       id: crypto.randomUUID(),
       claimId: resumeClaimId,
-      tenantId: 'tenant_mk',
-      senderId: claimData.staffId || claimData.agentId || member.id,
+      tenantId,
+      senderId: changedById,
       content: `[SYSTEM] Resume operational trace verified for ${claimData.title}.`,
       createdAt: day2Timestamp,
     });
@@ -147,4 +157,9 @@ async function main() {
   );
 }
 
-main().catch(console.error);
+try {
+  await main();
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}

@@ -99,7 +99,9 @@ async function main() {
       tenantId: 'tenant_ks',
       fromStatus: 'draft',
       toStatus: claimData.status,
-      actorId: member.id,
+      changedById: member.id,
+      changedByRole: 'member',
+      note: `Day 6 fallback audit recorded for ${claimData.title}.`,
       isPublic: true,
       createdAt: triageTime,
     });
@@ -150,4 +152,9 @@ async function main() {
   console.log(`\n🎉 Day 6 Fallback Simulation Loaded.`);
 }
 
-main().catch(console.error);
+try {
+  await main();
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}

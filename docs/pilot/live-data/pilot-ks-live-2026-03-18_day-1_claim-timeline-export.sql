@@ -2,9 +2,12 @@ select
   c.id,
   c.tenant_id,
   c.branch_id,
-  c.member_id,
+  c."userId" as member_id,
   c."createdAt" as claim_created_at,
-  c.submitted_at,
+  first_value(h.created_at) over (
+    partition by c.id
+    order by h.created_at
+  ) as submitted_at,
   c.status as current_status,
   h.claim_id,
   h.to_status,

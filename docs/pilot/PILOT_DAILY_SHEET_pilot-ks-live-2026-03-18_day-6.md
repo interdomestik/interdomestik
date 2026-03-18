@@ -13,7 +13,7 @@
 - Admin Reviewer: `Admin KS`
 - Shift Window: `08:00-17:00 Europe/Pristina`
 - Canonical data source: `production claim + claim_stage_history rows for KS live pilot cohort`
-- Daily export path: `docs/pilot/live-data/pilot-ks-live-2026-03-18_day-6_claim-timeline-export.csv`
+- Daily export path: `docs/pilot/live-data/pilot-ks-live-2026-03-18_day-6-claim-rollup.csv`
 
 ## Day Objective
 
@@ -135,7 +135,7 @@
 
 - Release report: n/a
 - Copied evidence index: `docs/pilot/PILOT_EVIDENCE_INDEX_pilot-ks-live-2026-03-18.md`
-- Daily export or snapshot: `docs/pilot/live-data/pilot-ks-live-2026-03-18_day-6_claim-timeline-export.csv`
+- Daily export or snapshot: `docs/pilot/live-data/pilot-ks-live-2026-03-18_day-6-claim-rollup.csv`
 - Query or script used for daily export: `scripts/pilot/day6_fallback_ops.ts`
 - Observability reference (`day-6`): verified
 - Decision reference (`day-6`): continue

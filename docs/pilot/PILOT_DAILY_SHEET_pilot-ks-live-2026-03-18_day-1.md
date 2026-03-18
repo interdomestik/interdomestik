@@ -161,7 +161,7 @@ Target: first member-visible update within `24 operating hours` after triage.
 
 - **Total Claims**: 5 claims with watermark `Live Pilot Run 2`.
 - **Alerts**: In-App Notification triggers and Email logs injected.
-- **Evidence**: [Run 2 CSV](file:///Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/live-data/pilot-ks-live-2026-03-18_day-1_run2_claim-timeline-export.csv)
+- **Evidence**: `docs/pilot/live-data/pilot-ks-live-2026-03-18_day-1_run2_claim-timeline-export.csv`
 
 ### Run 3: Full-Lifecycle Load Simulation
 
@@ -169,4 +169,4 @@ Target: first member-visible update within `24 operating hours` after triage.
 - **Workflow**: `submitted` -> `verification` -> `evaluation` -> `resolved` for all 9 claims.
 - **Documents**: 9 Evidence Invoice row items uploaded.
 - **Settlement**: 9 Commercial Escalation Agreements recorded with payout calculation.
-- **Evidence**: [Run 3 CSV](file:///Users/arbenlila/development/interdomestik-crystal-home/docs/pilot/live-data/pilot-ks-live-2026-03-18_day-1_run3_claim-timeline-export.csv)
+- **Evidence**: `docs/pilot/live-data/pilot-ks-live-2026-03-18_day-1_run3-claim-rollup.csv`

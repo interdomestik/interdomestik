@@ -96,6 +96,13 @@ async function main() {
     const createdTime = formatTime(claimData.createdHours[0], claimData.createdHours[1]);
     const triageTime = formatTime(claimData.triageHours[0], claimData.triageHours[1]);
     const publicTime = formatTime(claimData.publicHours[0], claimData.publicHours[1]);
+    let changedByRole: 'staff' | 'agent' | 'member' = 'member';
+
+    if (claimData.staffId) {
+      changedByRole = 'staff';
+    } else if (claimData.agentId) {
+      changedByRole = 'agent';
+    }
 
     console.log(`[Debug] Inserting claim ${claimData.title}...`);
     // 1. Intake creation
@@ -122,7 +129,9 @@ async function main() {
       tenantId: 'tenant_ks',
       fromStatus: 'draft',
       toStatus: claimData.status,
-      actorId: claimData.staffId || claimData.agentId || member.id,
+      changedById: claimData.staffId || claimData.agentId || member.id,
+      changedByRole,
+      note: `Day 3 triage update recorded for ${claimData.title}.`,
       isPublic: true,
       createdAt: triageTime,
     });
@@ -148,4 +157,9 @@ async function main() {
   console.log(`🎉 Day 3 Closed-Loop Simulation Completed for ${scenarioClaims.length} Claims.`);
 }
 
-main().catch(console.error);
+try {
+  await main();
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}

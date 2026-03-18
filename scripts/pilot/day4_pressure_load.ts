@@ -4,6 +4,77 @@ dotenv.config({ path: '.env.local' });
 import * as crypto from 'node:crypto';
 import { eq } from 'drizzle-orm';
 
+type ScenarioClaim = {
+  title: string;
+  category: string;
+  origin: string;
+  status: 'submitted' | 'verification';
+  created?: [number, number];
+  triage?: [number, number];
+  public?: [number, number];
+  createdHours?: [number, number];
+  triageHours?: [number, number];
+  publicHours?: [number, number];
+};
+
+function formatTime(baseDate: string, hour: number, minute: number): Date {
+  return new Date(
+    `${baseDate}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00Z`
+  );
+}
+
+function resolveClaimTimes(
+  baseDate: string,
+  claimData: ScenarioClaim
+): {
+  createdTime: Date;
+  triageTime: Date;
+  publicTime: Date;
+} {
+  const createdWindow = claimData.createdHours ?? claimData.created;
+  const triageWindow = claimData.triageHours ?? claimData.triage;
+  const publicWindow = claimData.publicHours ?? claimData.public;
+
+  if (!createdWindow || !triageWindow || !publicWindow) {
+    throw new Error(`Scenario timing is incomplete for ${claimData.title}`);
+  }
+
+  const [createdHour, createdMinute] = createdWindow;
+  const [triageHour, triageMinute] = triageWindow;
+  const [publicHour, publicMinute] = publicWindow;
+  const createdTime = formatTime(baseDate, createdHour, createdMinute);
+  const triageTime = formatTime(baseDate, triageHour, triageMinute);
+
+  if (publicHour <= 23) {
+    return {
+      createdTime,
+      triageTime,
+      publicTime: formatTime(baseDate, publicHour, publicMinute),
+    };
+  }
+
+  return {
+    createdTime,
+    triageTime,
+    publicTime: new Date(
+      `2026-03-22T${(publicHour - 24).toString().padStart(2, '0')}:${publicMinute.toString().padStart(2, '0')}:00Z`
+    ),
+  };
+}
+
+function resolveAssignees(title: string, agentId: string, staffId: string, memberId: string) {
+  const isAssisted = title.includes('Assisted');
+  const isTriage = title.includes('Triage');
+
+  return {
+    agentId: isAssisted ? agentId : null,
+    staffId: isTriage ? staffId : null,
+    changedById: isTriage ? staffId : memberId,
+    changedByRole: isTriage ? 'staff' : 'member',
+    senderId: title.includes('Staff') ? staffId : memberId,
+  };
+}
+
 async function main() {
   console.log('--- Day 4: SLA Pressure And Queue Load Simulation ---');
 
@@ -30,13 +101,7 @@ async function main() {
 
   const baseDate = '2026-03-21';
 
-  const formatTime = (hour: number, minute: number) => {
-    return new Date(
-      `${baseDate}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00Z`
-    );
-  };
-
-  const scenarioClaims = [
+  const scenarioClaims: ScenarioClaim[] = [
     {
       title: 'D4 Standard Auto Intake 1',
       category: 'vehicle',
@@ -107,25 +172,8 @@ async function main() {
 
   for (const claimData of scenarioClaims) {
     const claimId = crypto.randomUUID();
-
-    // Resolve Hours with defaults if explicitly listed in Hours arrays.
-    const cH = claimData.createdHours ? claimData.createdHours[0] : (claimData as any).created[0];
-    const cM = claimData.createdHours ? claimData.createdHours[1] : (claimData as any).created[1];
-    const tH = claimData.triageHours ? claimData.triageHours[0] : (claimData as any).triage[0];
-    const tM = claimData.triageHours ? claimData.triageHours[1] : (claimData as any).triage[1];
-    const pH = claimData.publicHours ? claimData.publicHours[0] : (claimData as any).public[0];
-    const pM = claimData.publicHours ? claimData.publicHours[1] : (claimData as any).public[1];
-
-    const createdTime = formatTime(cH, cM);
-    const triageTime = formatTime(tH, tM);
-
-    // For Breach simulating >24h, offset date to 2026-03-22 if pH > 23
-    let publicTime = formatTime(pH > 23 ? pH - 24 : pH, pM);
-    if (pH > 23) {
-      publicTime = new Date(
-        `2026-03-22T${(pH - 24).toString().padStart(2, '0')}:${pM.toString().padStart(2, '0')}:00Z`
-      );
-    }
+    const { createdTime, triageTime, publicTime } = resolveClaimTimes(baseDate, claimData);
+    const assignees = resolveAssignees(claimData.title, agent.id, staff.id, member.id);
 
     // 1. Intake creation
     await db.insert(claims).values({
@@ -134,8 +182,8 @@ async function main() {
       title: claimData.title,
       companyName: 'SIGAL UNIQA Group Austria',
       userId: member.id,
-      agentId: claimData.title.includes('Assisted') ? agent.id : null,
-      staffId: claimData.title.includes('Triage') ? staff.id : null,
+      agentId: assignees.agentId,
+      staffId: assignees.staffId,
       category: claimData.category,
       status: claimData.status,
       origin: claimData.origin as any,
@@ -150,7 +198,9 @@ async function main() {
       tenantId: 'tenant_ks',
       fromStatus: 'draft',
       toStatus: claimData.status,
-      actorId: claimData.title.includes('Triage') ? staff.id : member.id,
+      changedById: assignees.changedById,
+      changedByRole: assignees.changedByRole,
+      note: `Day 4 pressure-load triage update recorded for ${claimData.title}.`,
       isPublic: true,
       createdAt: triageTime,
     });
@@ -160,7 +210,7 @@ async function main() {
       id: crypto.randomUUID(),
       claimId: claimId,
       tenantId: 'tenant_ks',
-      senderId: claimData.title.includes('Staff') ? staff.id : member.id,
+      senderId: assignees.senderId,
       content: `[SYSTEM] Day 4 Pressure Load audit verified for ${claimData.title}.`,
       createdAt: publicTime,
     });
@@ -171,4 +221,9 @@ async function main() {
   console.log(`\n🎉 Day 4 Pressure Load Simulation Loaded.`);
 }
 
-main().catch(console.error);
+try {
+  await main();
+} catch (error) {
+  console.error(error);
+  process.exit(1);
+}

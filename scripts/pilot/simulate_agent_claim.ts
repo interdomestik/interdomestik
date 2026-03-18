@@ -1,5 +1,12 @@
-import { claims, db, eq, user } from '@interdomestik/database';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
 import crypto from 'node:crypto';
+
+const { db } = await import('@interdomestik/database');
+const { claims } = await import('@interdomestik/database/schema/claims');
+const { user } = await import('@interdomestik/database/schema/auth');
+const { eq } = await import('drizzle-orm');
 
 async function main() {
   console.log('[AgentClaim] Connecting to Database...');
@@ -19,10 +26,15 @@ async function main() {
   console.log('[AgentClaim] Inserting Agent-assisted Claim...');
 
   const claimId = crypto.randomUUID();
+  const tenantId = member.tenantId;
+
+  if (!tenantId) {
+    throw new Error('Member is missing tenant attribution; cannot create tenant-safe claim');
+  }
 
   await db.insert(claims).values({
     id: claimId,
-    tenantId: 'tenant_ks', // Verify if this matches
+    tenantId,
     userId: member.id,
     agentId: agent.id, // Agent Assisted attribution
     title: `Live Pilot Agent Claim #1 - ${new Date().toLocaleTimeString('en-US', { hour12: false })}`,
@@ -38,7 +50,9 @@ async function main() {
   console.log('🎉 DB Agent Claim Simulation Finished Successfully!');
 }
 
-main().catch(err => {
+try {
+  await main();
+} catch (err) {
   console.error('[AgentClaim] Error:', err);
   process.exit(1);
-});
+}

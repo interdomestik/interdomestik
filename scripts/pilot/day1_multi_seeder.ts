@@ -6,9 +6,7 @@ import {
   emailCampaignLogs,
   db,
   eq,
-  and,
   user,
-  desc,
 } from '@interdomestik/database';
 import crypto from 'node:crypto';
 
@@ -90,9 +88,10 @@ async function main() {
       claimId: c.id,
       fromStatus: 'submitted',
       toStatus: 'verification',
-      actorId: staff.id,
+      changedById: staff.id,
+      changedByRole: 'staff',
       isPublic: true,
-      reason: 'Staff Triage (Run 2)',
+      note: 'Staff Triage (Run 2)',
       createdAt: new Date(),
     });
 
@@ -151,7 +150,9 @@ async function main() {
   console.log('🎉 DB Multi Seeder Simulation Finished Successfully!');
 }
 
-main().catch(err => {
+try {
+  await main();
+} catch (err) {
   console.error('[Seeder] Error:', err);
   process.exit(1);
-});
+}
