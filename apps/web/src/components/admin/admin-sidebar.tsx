@@ -2,6 +2,7 @@
 
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
+import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,8 +91,10 @@ export function AdminSidebar({ className, user }: AdminSidebarProps) {
   }
 
   const handleSignOut = async () => {
-    await authClient.signOut();
-    router.push('/login');
+    await signOutAndRedirectToLogin({
+      locale,
+      signOut: authClient.signOut,
+    });
   };
 
   const sidebarItems = [

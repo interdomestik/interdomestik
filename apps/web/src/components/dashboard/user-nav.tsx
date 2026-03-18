@@ -1,8 +1,9 @@
 'use client';
 
 import { canAccessAdmin } from '@/actions/admin-access';
-import { Link, useRouter } from '@/i18n/routing';
+import { Link } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
+import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
 import { isAdmin } from '@/lib/roles.core';
 import {
   Avatar,
@@ -19,11 +20,11 @@ import {
   DropdownMenuTrigger,
 } from '@interdomestik/ui';
 import { Briefcase, LayoutTemplate, LogOut, Settings, User } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 export function UserNav() {
-  const router = useRouter();
+  const locale = useLocale();
   const [mounted, setMounted] = useState(false);
   const [adminAccess, setAdminAccess] = useState(false);
   const { data: session } = authClient.useSession();
@@ -57,8 +58,10 @@ export function UserNav() {
   }, [session]);
 
   const handleSignOut = async () => {
-    await authClient.signOut();
-    router.push('/login');
+    await signOutAndRedirectToLogin({
+      locale,
+      signOut: authClient.signOut,
+    });
   };
 
   // Avoid SSR/CSR id mismatches from Radix by rendering menu only after mount.
@@ -74,12 +77,12 @@ export function UserNav() {
 
   const { user } = session;
   const role = (user as { role?: string }).role;
-  const settingsHref =
-    isAdmin(role) || adminAccess
-      ? '/admin/settings'
-      : role === 'agent'
-        ? '/agent/settings'
-        : '/member/settings';
+  let settingsHref = '/member/settings';
+  if (isAdmin(role) || adminAccess) {
+    settingsHref = '/admin/settings';
+  } else if (role === 'agent') {
+    settingsHref = '/agent/settings';
+  }
 
   return (
     <DropdownMenu>

@@ -1,0 +1,4 @@
+Claim ID,Category,Origin,Created At,First Triage At,First Public Update At,SLA Breach,Notes
+f9381819-3472-4efa-8b99-167a90946db8,vehicle,portal,2026-03-23T09:00:00Z,2026-03-23T10:00:00Z,2026-03-23T11:00:00Z,none,Audit Verified
+94daeff2-ae66-4bde-9fbd-caa72a67e549,legal,agent,2026-03-23T09:30:00Z,2026-03-23T10:30:00Z,2026-03-23T12:00:00Z,none,WhatsApp Forwarded
+b73d7c22-a2ce-4edf-90b5-20267ad23531,health,portal,2026-03-23T10:00:00Z,2026-03-23T11:00:00Z,2026-03-23T13:00:00Z,none,Hotline Escalated

@@ -2,6 +2,7 @@
 
 import { Link, usePathname } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
+import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,12 +21,11 @@ import {
 } from '@interdomestik/ui';
 import { Avatar, AvatarFallback, AvatarImage } from '@interdomestik/ui/components/avatar';
 import { ChevronUp, FileText, LogOut, Shield } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 
 export function StaffSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const locale = useLocale();
   const tNav = useTranslations('nav');
   const tClaims = useTranslations('agent-claims.claims');
   const { data: session } = authClient.useSession();
@@ -33,8 +33,10 @@ export function StaffSidebar() {
   const navItems = [{ title: tClaims('claims_queue'), href: '/staff/claims', icon: FileText }];
 
   const handleSignOut = async () => {
-    await authClient.signOut();
-    router.push('/login');
+    await signOutAndRedirectToLogin({
+      locale,
+      signOut: authClient.signOut,
+    });
   };
 
   return (

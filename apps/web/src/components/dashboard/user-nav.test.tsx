@@ -63,6 +63,8 @@ import { authClient } from '@/lib/auth-client';
 const mockUseSession = vi.mocked(authClient.useSession);
 import { canAccessAdmin } from '@/actions/admin-access';
 const mockCanAccessAdmin = vi.mocked(canAccessAdmin);
+import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
+const mockSignOutAndRedirectToLogin = vi.mocked(signOutAndRedirectToLogin);
 
 // Mock router
 vi.mock('@/i18n/routing', () => ({
@@ -72,8 +74,13 @@ vi.mock('@/i18n/routing', () => ({
   ),
 }));
 
+vi.mock('@/lib/auth/logout', () => ({
+  signOutAndRedirectToLogin: vi.fn(),
+}));
+
 // Mock next-intl
 vi.mock('next-intl', () => ({
+  useLocale: () => 'sq',
   useTranslations: () => (key: string) => {
     const translations: Record<string, string> = {
       profile: 'Profile',
@@ -98,6 +105,33 @@ describe('UserNav', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCanAccessAdmin.mockResolvedValue(false);
+  });
+
+  it('signs out with a localized hard redirect', async () => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 'staff-1',
+          name: 'Staff User',
+          email: 'staff@example.com',
+          image: null,
+          role: 'staff',
+        },
+      },
+      isPending: false,
+      error: null,
+    } as unknown as ReturnType<typeof authClient.useSession>);
+
+    render(<UserNav />);
+
+    fireEvent.click(await screen.findByText('Log out'));
+
+    await waitFor(() => {
+      expect(mockSignOutAndRedirectToLogin).toHaveBeenCalledWith({
+        locale: 'sq',
+        signOut: authClient.signOut,
+      });
+    });
   });
 
   it('renders disabled avatar when no session', () => {
