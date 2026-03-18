@@ -1,39 +1,18 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
-
-import * as crypto from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import {
+  insertScenarioClaim,
+  loadPilotScenarioContext,
+  resolveTimeWindow,
+} from './scenario_helpers';
 
 async function main() {
   console.log('--- Day 6: Communications, Fallbacks, And Incident Handling Simulation ---');
 
-  const { db } = await import('@interdomestik/database');
-  const { claims, claimStageHistory, claimMessages } =
-    await import('@interdomestik/database/schema/claims');
-  const { user } = await import('@interdomestik/database/schema/auth');
-
-  // Verify Operators
-  const agent = await db.query.user.findFirst({
-    where: eq(user.email, 'agent.ks.a1@interdomestik.com'),
-  });
-  const member = await db.query.user.findFirst({
-    where: eq(user.email, 'member.ks.a1@interdomestik.com'),
-  });
-  const staff = await db.query.user.findFirst({
-    where: eq(user.email, 'staff.ks.extra@interdomestik.com'),
-  });
-
-  if (!agent || !member || !staff) {
-    console.error('❌ Error: Could not find all operation handles (agent, member, staff)');
-    process.exit(1);
-  }
+  const context = await loadPilotScenarioContext();
+  const {
+    operatorIds: { agentId, memberId, staffId },
+  } = context;
 
   const baseDate = '2026-03-23';
-  const formatTime = (hour: number, minute: number) => {
-    return new Date(
-      `${baseDate}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00Z`
-    );
-  };
 
   const scenarioClaims = [
     {
@@ -70,79 +49,63 @@ async function main() {
   console.log(`\n--- [Creating ${scenarioClaims.length} Claims for Day 6] ---`);
 
   for (const claimData of scenarioClaims) {
-    const claimId = crypto.randomUUID();
+    const createdTime = resolveTimeWindow(baseDate, claimData.created[0], claimData.created[1]);
+    const triageTime = resolveTimeWindow(baseDate, claimData.triage[0], claimData.triage[1]);
+    const publicTime = resolveTimeWindow(baseDate, claimData.public[0], claimData.public[1]);
 
-    const createdTime = formatTime(claimData.created[0], claimData.created[1]);
-    const triageTime = formatTime(claimData.triage[0], claimData.triage[1]);
-    const publicTime = formatTime(claimData.public[0], claimData.public[1]);
+    const messages = [
+      {
+        senderId: memberId,
+        content: `[SYSTEM] Day 6 Fallback audit verified for ${claimData.title}.`,
+        createdAt: publicTime,
+      },
+    ];
 
-    // 1. Intake creation
-    await db.insert(claims).values({
-      id: claimId,
-      tenantId: 'tenant_ks',
-      title: claimData.title,
-      companyName: 'SIGAL UNIQA Group Austria',
-      userId: member.id,
-      agentId: claimData.title.includes('Assisted') ? agent.id : null,
-      staffId: claimData.title.includes('Triage') ? staff.id : null,
-      category: claimData.category,
-      status: claimData.status,
-      origin: claimData.origin as any,
-      createdAt: createdTime,
-      updatedAt: createdTime,
-    });
-
-    // 2. Triage Update
-    await db.insert(claimStageHistory).values({
-      id: crypto.randomUUID(),
-      claimId: claimId,
-      tenantId: 'tenant_ks',
-      fromStatus: 'draft',
-      toStatus: claimData.status,
-      changedById: member.id,
-      changedByRole: 'member',
-      note: `Day 6 fallback audit recorded for ${claimData.title}.`,
-      isPublic: true,
-      createdAt: triageTime,
-    });
-
-    // 3. Public Message (Normal)
-    await db.insert(claimMessages).values({
-      id: crypto.randomUUID(),
-      claimId: claimId,
-      tenantId: 'tenant_ks',
-      senderId: member.id,
-      content: `[SYSTEM] Day 6 Fallback audit verified for ${claimData.title}.`,
-      isInternal: false,
-      createdAt: publicTime,
-    });
-
-    // 4. Fallback Additions
     if (claimData.hasWhatsapp) {
-      await db.insert(claimMessages).values({
-        id: crypto.randomUUID(),
-        claimId: claimId,
-        tenantId: 'tenant_ks',
-        senderId: agent.id,
+      messages.push({
+        senderId: agentId,
         content:
           '[WhatsApp Fallback] Client sent evidence photo via WhatsApp, forwarded to Staff internal node.',
         isInternal: true,
         createdAt: publicTime,
       });
-      console.log(`✅ [Fallback Sample] WhatsApp Forwarder logged for ${claimId}`);
     }
 
     if (claimData.hasHotline) {
-      await db.insert(claimMessages).values({
-        id: crypto.randomUUID(),
-        claimId: claimId,
-        tenantId: 'tenant_ks',
-        senderId: staff.id,
+      messages.push({
+        senderId: staffId,
         content:
           '[Hotline Escalation] Member reported delay via Hotline, Staff expedited triage state.',
         isInternal: true,
         createdAt: publicTime,
       });
+    }
+
+    const claimId = await insertScenarioClaim(context, {
+      title: claimData.title,
+      category: claimData.category,
+      origin: claimData.origin,
+      status: claimData.status,
+      createdAt: createdTime,
+      userId: memberId,
+      agentId: claimData.title.includes('Assisted') ? agentId : null,
+      staffId: claimData.title.includes('Triage') ? staffId : null,
+      stage: {
+        fromStatus: 'draft',
+        toStatus: claimData.status,
+        changedById: memberId,
+        changedByRole: 'member',
+        note: `Day 6 fallback audit recorded for ${claimData.title}.`,
+        createdAt: triageTime,
+      },
+      messages,
+    });
+
+    if (claimData.hasWhatsapp) {
+      console.log(`✅ [Fallback Sample] WhatsApp Forwarder logged for ${claimId}`);
+    }
+
+    if (claimData.hasHotline) {
       console.log(`✅ [Fallback Sample] Hotline Escalation logged for ${claimId}`);
     }
 

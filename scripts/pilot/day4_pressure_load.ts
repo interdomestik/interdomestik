@@ -1,8 +1,8 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
-
-import * as crypto from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import {
+  insertScenarioClaim,
+  loadPilotScenarioContext,
+  resolveTimeWindow,
+} from './scenario_helpers';
 
 type ScenarioClaim = {
   title: string;
@@ -16,12 +16,6 @@ type ScenarioClaim = {
   triageHours?: [number, number];
   publicHours?: [number, number];
 };
-
-function formatTime(baseDate: string, hour: number, minute: number): Date {
-  return new Date(
-    `${baseDate}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00Z`
-  );
-}
 
 function resolveClaimTimes(
   baseDate: string,
@@ -42,23 +36,13 @@ function resolveClaimTimes(
   const [createdHour, createdMinute] = createdWindow;
   const [triageHour, triageMinute] = triageWindow;
   const [publicHour, publicMinute] = publicWindow;
-  const createdTime = formatTime(baseDate, createdHour, createdMinute);
-  const triageTime = formatTime(baseDate, triageHour, triageMinute);
-
-  if (publicHour <= 23) {
-    return {
-      createdTime,
-      triageTime,
-      publicTime: formatTime(baseDate, publicHour, publicMinute),
-    };
-  }
+  const createdTime = resolveTimeWindow(baseDate, createdHour, createdMinute);
+  const triageTime = resolveTimeWindow(baseDate, triageHour, triageMinute);
 
   return {
     createdTime,
     triageTime,
-    publicTime: new Date(
-      `2026-03-22T${(publicHour - 24).toString().padStart(2, '0')}:${publicMinute.toString().padStart(2, '0')}:00Z`
-    ),
+    publicTime: resolveTimeWindow(baseDate, publicHour, publicMinute),
   };
 }
 
@@ -78,26 +62,10 @@ function resolveAssignees(title: string, agentId: string, staffId: string, membe
 async function main() {
   console.log('--- Day 4: SLA Pressure And Queue Load Simulation ---');
 
-  const { db } = await import('@interdomestik/database');
-  const { claims, claimStageHistory, claimMessages } =
-    await import('@interdomestik/database/schema/claims');
-  const { user } = await import('@interdomestik/database/schema/auth');
-
-  // Verify Operators
-  const agent = await db.query.user.findFirst({
-    where: eq(user.email, 'agent.ks.a1@interdomestik.com'),
-  });
-  const member = await db.query.user.findFirst({
-    where: eq(user.email, 'member.ks.a1@interdomestik.com'),
-  });
-  const staff = await db.query.user.findFirst({
-    where: eq(user.email, 'staff.ks.extra@interdomestik.com'),
-  });
-
-  if (!agent || !member || !staff) {
-    console.error('❌ Error: Could not find all operation handles (agent, member, staff)');
-    process.exit(1);
-  }
+  const context = await loadPilotScenarioContext();
+  const {
+    operatorIds: { agentId, memberId, staffId },
+  } = context;
 
   const baseDate = '2026-03-21';
 
@@ -171,48 +139,33 @@ async function main() {
   console.log(`\n--- [Creating ${scenarioClaims.length} Claims under SLA Pressure] ---`);
 
   for (const claimData of scenarioClaims) {
-    const claimId = crypto.randomUUID();
     const { createdTime, triageTime, publicTime } = resolveClaimTimes(baseDate, claimData);
-    const assignees = resolveAssignees(claimData.title, agent.id, staff.id, member.id);
+    const assignees = resolveAssignees(claimData.title, agentId, staffId, memberId);
 
-    // 1. Intake creation
-    await db.insert(claims).values({
-      id: claimId,
-      tenantId: 'tenant_ks',
+    const claimId = await insertScenarioClaim(context, {
       title: claimData.title,
-      companyName: 'SIGAL UNIQA Group Austria',
-      userId: member.id,
+      category: claimData.category,
+      origin: claimData.origin,
+      status: claimData.status,
+      createdAt: createdTime,
+      userId: memberId,
       agentId: assignees.agentId,
       staffId: assignees.staffId,
-      category: claimData.category,
-      status: claimData.status,
-      origin: claimData.origin as any,
-      createdAt: createdTime,
-      updatedAt: createdTime,
-    });
-
-    // 2. Triage Update
-    await db.insert(claimStageHistory).values({
-      id: crypto.randomUUID(),
-      claimId: claimId,
-      tenantId: 'tenant_ks',
-      fromStatus: 'draft',
-      toStatus: claimData.status,
-      changedById: assignees.changedById,
-      changedByRole: assignees.changedByRole,
-      note: `Day 4 pressure-load triage update recorded for ${claimData.title}.`,
-      isPublic: true,
-      createdAt: triageTime,
-    });
-
-    // 3. Public Message
-    await db.insert(claimMessages).values({
-      id: crypto.randomUUID(),
-      claimId: claimId,
-      tenantId: 'tenant_ks',
-      senderId: assignees.senderId,
-      content: `[SYSTEM] Day 4 Pressure Load audit verified for ${claimData.title}.`,
-      createdAt: publicTime,
+      stage: {
+        fromStatus: 'draft',
+        toStatus: claimData.status,
+        changedById: assignees.changedById,
+        changedByRole: assignees.changedByRole,
+        note: `Day 4 pressure-load triage update recorded for ${claimData.title}.`,
+        createdAt: triageTime,
+      },
+      messages: [
+        {
+          senderId: assignees.senderId,
+          content: `[SYSTEM] Day 4 Pressure Load audit verified for ${claimData.title}.`,
+          createdAt: publicTime,
+        },
+      ],
     });
 
     console.log(`✅ [Created] ${claimData.title} (${claimId}) at ${createdTime.toISOString()}`);

@@ -1,36 +1,15 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
-
-import * as crypto from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { insertScenarioClaim, loadPilotScenarioContext } from './scenario_helpers';
 
 async function main() {
   console.log('--- Day 2: Rollback & Resume Simulation (Full Scenario) ---');
 
-  // Dynamically import database modules after dotenv loads environment variables
-  const { db } = await import('@interdomestik/database');
-  const { claims, claimStageHistory, claimMessages } =
-    await import('@interdomestik/database/schema/claims');
-  const { user } = await import('@interdomestik/database/schema/auth');
-
-  // 1. Verify Operators
-  const agent = await db.query.user.findFirst({
-    where: eq(user.email, 'agent.ks.a1@interdomestik.com'),
-  });
-  const member = await db.query.user.findFirst({
-    where: eq(user.email, 'member.ks.a1@interdomestik.com'),
-  });
-  const staff = await db.query.user.findFirst({
-    where: eq(user.email, 'staff.ks.extra@interdomestik.com'),
-  });
-
-  if (!agent || !member || !staff) {
-    console.error('❌ Error: Could not find all operation handles (agent, member, staff)');
-    process.exit(1);
-  }
+  const context = await loadPilotScenarioContext();
+  const {
+    operatorIds: { agentId, memberId, staffId },
+  } = context;
 
   console.log(
-    `✅ Operator Handles Resolved:\n - Member: ${member.id}\n - Agent: ${agent.id}\n - Staff: ${staff.id}`
+    `✅ Operator Handles Resolved:\n - Member: ${memberId}\n - Agent: ${agentId}\n - Staff: ${staffId}`
   );
 
   const day2Timestamp = new Date('2026-03-19T09:00:00Z');
@@ -66,7 +45,7 @@ async function main() {
       title: 'Day 2 Assisted Legal Claim',
       category: 'legal',
       origin: 'agent',
-      agentId: agent.id,
+      agentId,
       staffId: null,
       status: 'submitted',
     },
@@ -74,7 +53,7 @@ async function main() {
       title: 'Day 2 Assisted Travel Claim',
       category: 'travel',
       origin: 'agent',
-      agentId: agent.id,
+      agentId,
       staffId: null,
       status: 'submitted',
     },
@@ -83,7 +62,7 @@ async function main() {
       category: 'health',
       origin: 'portal',
       agentId: null,
-      staffId: staff.id,
+      staffId,
       status: 'verification',
     },
     {
@@ -91,7 +70,7 @@ async function main() {
       category: 'vehicle',
       origin: 'portal',
       agentId: null,
-      staffId: staff.id,
+      staffId,
       status: 'verification',
     },
   ];
@@ -99,9 +78,7 @@ async function main() {
   console.log(`\n--- [Creating ${scenarioClaims.length} Allocated Claims] ---`);
 
   for (const claimData of scenarioClaims) {
-    const resumeClaimId = crypto.randomUUID();
-    const tenantId = 'tenant_ks';
-    const changedById = claimData.staffId || claimData.agentId || member.id;
+    const changedById = claimData.staffId || claimData.agentId || memberId;
     let changedByRole: 'staff' | 'agent' | 'member' = 'member';
     if (claimData.staffId) {
       changedByRole = 'staff';
@@ -109,43 +86,30 @@ async function main() {
       changedByRole = 'agent';
     }
 
-    await db.insert(claims).values({
-      id: resumeClaimId,
-      tenantId,
+    const resumeClaimId = await insertScenarioClaim(context, {
       title: claimData.title,
-      companyName: 'SIGAL UNIQA Group Austria',
-      userId: member.id,
+      category: claimData.category,
+      origin: claimData.origin,
+      status: claimData.status,
+      createdAt: day2Timestamp,
+      userId: memberId,
       agentId: claimData.agentId,
       staffId: claimData.staffId,
-      category: claimData.category,
-      status: claimData.status,
-      origin: claimData.origin as any,
-      createdAt: day2Timestamp,
-      updatedAt: day2Timestamp,
-    });
-
-    // Record Stage History
-    await db.insert(claimStageHistory).values({
-      id: crypto.randomUUID(),
-      claimId: resumeClaimId,
-      tenantId,
-      fromStatus: 'draft',
-      toStatus: claimData.status,
-      changedById,
-      changedByRole,
-      note: `Resume operational trace verified for ${claimData.title}.`,
-      isPublic: true,
-      createdAt: day2Timestamp,
-    });
-
-    // Simulate Message
-    await db.insert(claimMessages).values({
-      id: crypto.randomUUID(),
-      claimId: resumeClaimId,
-      tenantId,
-      senderId: changedById,
-      content: `[SYSTEM] Resume operational trace verified for ${claimData.title}.`,
-      createdAt: day2Timestamp,
+      stage: {
+        fromStatus: 'draft',
+        toStatus: claimData.status,
+        changedById,
+        changedByRole,
+        note: `Resume operational trace verified for ${claimData.title}.`,
+        createdAt: day2Timestamp,
+      },
+      messages: [
+        {
+          senderId: changedById,
+          content: `[SYSTEM] Resume operational trace verified for ${claimData.title}.`,
+          createdAt: day2Timestamp,
+        },
+      ],
     });
 
     console.log(`✅ Created Claim: ${claimData.title} (${resumeClaimId})`);
