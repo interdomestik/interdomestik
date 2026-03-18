@@ -242,7 +242,7 @@ function skipAllowanceReasonForCheck(check) {
   }
   if (
     (check.id === 'P0.3' || check.id === 'P0.4') &&
-    (check.signatures || []).some(signature => signature === `${check.id}_ROLE_PANEL_DISABLED`)
+    (check.signatures || []).includes(`${check.id}_ROLE_PANEL_DISABLED`)
   ) {
     return 'RELEASE_GATE_REQUIRE_ROLE_PANEL=false';
   }

@@ -171,6 +171,107 @@ export type ConfirmUploadParams = {
   category?: 'evidence' | 'legal';
 };
 
+type ConfirmUploadContext =
+  | {
+      success: true;
+      session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
+      tenantId: string;
+      resolvedBucket: string;
+    }
+  | { success: false; error: string; status: 401 | 500 };
+
+async function resolveConfirmUploadContext(): Promise<ConfirmUploadContext> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    return { success: false, error: 'Unauthorized', status: 401 };
+  }
+
+  try {
+    return {
+      success: true,
+      session,
+      tenantId: ensureTenantId(session),
+      resolvedBucket: resolveEvidenceBucketName(),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Upload bucket configuration error';
+    console.error('[member/claims] Bucket configuration error', {
+      message,
+      nodeEnv: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV,
+    });
+    return { success: false, error: message, status: 500 };
+  }
+}
+
+async function enqueueDocumentAiWorkflowsBestEffort(input: {
+  claimId: string;
+  fileId: string;
+  originalName: string;
+  storagePath: string;
+  mimeType: string;
+  fileSize: number;
+  resolvedBucket: string;
+  category: 'evidence' | 'legal';
+  tenantId: string;
+  userId: string;
+}): Promise<void> {
+  const {
+    claimId,
+    fileId,
+    originalName,
+    storagePath,
+    mimeType,
+    fileSize,
+    resolvedBucket,
+    category,
+    tenantId,
+    userId,
+  } = input;
+
+  try {
+    const queuedRuns = await db.transaction(async tx =>
+      queueClaimDocumentAiWorkflows({
+        tx,
+        claimId,
+        tenantId,
+        userId,
+        files: [
+          {
+            documentId: fileId,
+            name: originalName,
+            path: storagePath,
+            type: mimeType,
+            size: fileSize,
+            bucket: resolvedBucket,
+            category,
+          },
+        ],
+      })
+    );
+
+    for (const queuedRun of queuedRuns) {
+      try {
+        await emitClaimAiRunRequestedService(queuedRun);
+      } catch (error) {
+        await markClaimAiRunDispatchFailedService({
+          runId: queuedRun.runId,
+          message: error instanceof Error ? error.message : 'Failed to dispatch claim AI run.',
+        });
+      }
+    }
+  } catch (queueError) {
+    console.error('[member/claims] confirmUpload AI queue failed after metadata persisted', {
+      claimId,
+      fileId,
+      message: queueError instanceof Error ? queueError.message : String(queueError),
+    });
+  }
+}
+
 export async function confirmUpload({
   claimId,
   storagePath,
@@ -181,27 +282,11 @@ export async function confirmUpload({
   uploadedBucket,
   category = 'evidence',
 }: ConfirmUploadParams): Promise<ConfirmUploadResult> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    return { success: false, error: 'Unauthorized', status: 401 };
+  const uploadContext = await resolveConfirmUploadContext();
+  if (!uploadContext.success) {
+    return uploadContext;
   }
-
-  const tenantId = ensureTenantId(session);
-  let resolvedBucket: string;
-  try {
-    resolvedBucket = resolveEvidenceBucketName();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Upload bucket configuration error';
-    console.error('[member/claims] Bucket configuration error', {
-      message,
-      nodeEnv: process.env.NODE_ENV,
-      vercelEnv: process.env.VERCEL_ENV,
-    });
-    return { success: false, error: message, status: 500 };
-  }
+  const { session, tenantId, resolvedBucket } = uploadContext;
 
   // Authorization: fail-closed to claims owned by the current member and tenant.
   const claim = await db.query.claims.findFirst({
@@ -243,44 +328,18 @@ export async function confirmUpload({
         uploadedBy: session.user.id,
       });
     });
-    try {
-      const queuedRuns = await db.transaction(async tx =>
-        queueClaimDocumentAiWorkflows({
-          tx,
-          claimId,
-          tenantId,
-          userId: session.user.id,
-          files: [
-            {
-              documentId: fileId,
-              name: originalName,
-              path: storagePath,
-              type: mimeType,
-              size: fileSize,
-              bucket: resolvedBucket,
-              category,
-            },
-          ],
-        })
-      );
-
-      for (const queuedRun of queuedRuns) {
-        try {
-          await emitClaimAiRunRequestedService(queuedRun);
-        } catch (error) {
-          await markClaimAiRunDispatchFailedService({
-            runId: queuedRun.runId,
-            message: error instanceof Error ? error.message : 'Failed to dispatch claim AI run.',
-          });
-        }
-      }
-    } catch (queueError) {
-      console.error('[member/claims] confirmUpload AI queue failed after metadata persisted', {
-        claimId,
-        fileId,
-        message: queueError instanceof Error ? queueError.message : String(queueError),
-      });
-    }
+    await enqueueDocumentAiWorkflowsBestEffort({
+      claimId,
+      fileId,
+      originalName,
+      storagePath,
+      mimeType,
+      fileSize,
+      resolvedBucket,
+      category,
+      tenantId,
+      userId: session.user.id,
+    });
 
     revalidatePath(`/[locale]/(app)/member/claims/${claimId}`);
     revalidatePath('/[locale]/(app)/member/documents');

@@ -3,7 +3,7 @@ const { loginAs, normalizeBaseUrl } = require('./shared.ts');
 
 function compactErrorMessage(raw, maxLength = 420) {
   return String(raw || '')
-    .replace(/\s+/g, ' ')
+    .replaceAll(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);
 }

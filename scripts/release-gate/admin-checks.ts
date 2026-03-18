@@ -13,6 +13,19 @@ const {
   waitForReadyMarker,
 } = require('./shared.ts');
 
+const DEFAULT_SCENARIO_EXPECTED_MARKERS = {
+  member: '-',
+  agent: '-',
+  staff: '-',
+  admin: '-',
+  notFound: '-',
+  rolesTable: '-',
+};
+
+function mismatchSignatureFor(id, mismatch) {
+  return `P0.6_${id}_MARKER_MISMATCH ${mismatch}`;
+}
+
 function resolveTenantOverrideProbeUrl(runCtx) {
   const configured = String(process.env.RELEASE_GATE_MK_USER_URL || '').trim();
   if (configured) {
@@ -95,31 +108,17 @@ async function runP01(browser, runCtx, deps) {
         const current = await collectMarkersWithWait(page, matrix.canonical);
         evidence.push(`${account} ${markerSummary(route, current)}`);
 
-        if (
-          account === 'member' &&
-          portal === 'member' &&
-          current.member === true &&
-          (current.agent === true || current.staff === true || current.admin === true) &&
-          !memberDriftSignatureAdded
-        ) {
-          memberDriftSignatureAdded = true;
-          failures.push(
-            `P0.1_MISCONFIG_MEMBER_ROLE_DRIFT account=member route=/${runCtx.locale}${route} visible=${JSON.stringify(current)}`
-          );
-        }
-
-        if (portal === matrix.canonical && current[matrix.canonical] !== true) {
-          failures.push(
-            `P0.1_RBAC_CANONICAL_MARKER_MISSING account=${account} route=/${runCtx.locale}${route} expected=${matrix.canonical} visible=${JSON.stringify(current)}`
-          );
-        }
-
-        const unexpectedVisible = matrix.absentOnAllRoutes.filter(key => current[key] === true);
-        if (unexpectedVisible.length > 0) {
-          failures.push(
-            `P0.1_RBAC_MARKER_MISMATCH account=${account} route=/${runCtx.locale}${route} must_absent=${unexpectedVisible.join(',')} visible=${JSON.stringify(current)}`
-          );
-        }
+        const rbacResult = collectRbacFailures({
+          account,
+          portal,
+          route,
+          matrix,
+          current,
+          runCtx,
+          memberDriftSignatureAdded,
+        });
+        memberDriftSignatureAdded = rbacResult.driftRecorded;
+        failures.push(...rbacResult.failures);
       }
     } catch (error) {
       failures.push(`P0.1_EXCEPTION account=${account} message=${String(error.message || error)}`);
@@ -172,7 +171,7 @@ async function runP02(browser, runCtx, deps) {
 
 async function removeRoleFromTable(page, roleName) {
   const table = page.locator(SELECTORS.userRolesTable);
-  const rolePattern = new RegExp(`\\b${roleName}\\b`, 'i');
+  const rolePattern = new RegExp(String.raw`\b${roleName}\b`, 'i');
   const matchingRows = table.locator('tr', { hasText: rolePattern });
   const count = await matchingRows.count();
   if (count === 0) return false;
@@ -208,6 +207,40 @@ async function addRole(page, roleName) {
   await page.locator(`[data-testid="role-option-${roleName}"]`).click();
   await page.getByRole('button', { name: SELECTORS.grantRoleButtonName }).click();
   await page.waitForTimeout(1200);
+}
+
+function collectRbacFailures(input) {
+  const { account, portal, route, matrix, current, runCtx, memberDriftSignatureAdded } = input;
+  const failures = [];
+  let driftRecorded = memberDriftSignatureAdded;
+
+  if (
+    account === 'member' &&
+    portal === 'member' &&
+    current.member === true &&
+    (current.agent === true || current.staff === true || current.admin === true) &&
+    !driftRecorded
+  ) {
+    driftRecorded = true;
+    failures.push(
+      `P0.1_MISCONFIG_MEMBER_ROLE_DRIFT account=member route=/${runCtx.locale}${route} visible=${JSON.stringify(current)}`
+    );
+  }
+
+  if (portal === matrix.canonical && current[matrix.canonical] !== true) {
+    failures.push(
+      `P0.1_RBAC_CANONICAL_MARKER_MISSING account=${account} route=/${runCtx.locale}${route} expected=${matrix.canonical} visible=${JSON.stringify(current)}`
+    );
+  }
+
+  const unexpectedVisible = matrix.absentOnAllRoutes.filter(key => current[key] === true);
+  if (unexpectedVisible.length > 0) {
+    failures.push(
+      `P0.1_RBAC_MARKER_MISMATCH account=${account} route=/${runCtx.locale}${route} must_absent=${unexpectedVisible.join(',')} visible=${JSON.stringify(current)}`
+    );
+  }
+
+  return { driftRecorded, failures };
 }
 
 async function runP03AndP04(browser, runCtx, deps) {
@@ -322,8 +355,10 @@ async function runP03AndP04(browser, runCtx, deps) {
     await loginWithRunContext(page, runCtx, 'admin_ks');
 
     const resolvedTarget = await ensureRolePanelLoaded(targetUrl);
-    evidenceP03.push(`target_source=${rolePanelTarget.source}`);
-    evidenceP03.push(`target_fallback_allowed=${rolePanelTarget.allowFallbackDiscovery}`);
+    evidenceP03.push(
+      `target_source=${rolePanelTarget.source}`,
+      `target_fallback_allowed=${rolePanelTarget.allowFallbackDiscovery}`
+    );
     if (!resolvedTarget) {
       failuresP03.push(`P0.3_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
       failuresP04.push(`P0.4_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
@@ -342,8 +377,10 @@ async function runP03AndP04(browser, runCtx, deps) {
       if (!removed) break;
       cleanupCount += 1;
     }
-    evidenceP03.push(`target=${resolvedTarget}`);
-    evidenceP03.push(`pre-clean removed_existing_role_entries=${cleanupCount}`);
+    evidenceP03.push(
+      `target=${resolvedTarget}`,
+      `pre-clean removed_existing_role_entries=${cleanupCount}`
+    );
 
     await addRole(page, roleToToggle);
     const afterAddStart = Date.now();
@@ -351,7 +388,7 @@ async function runP03AndP04(browser, runCtx, deps) {
     while (Date.now() - afterAddStart < TIMEOUTS.marker) {
       afterAdd = await page
         .locator(SELECTORS.userRolesTable)
-        .getByText(new RegExp(`\\b${roleToToggle}\\b`, 'i'))
+        .getByText(new RegExp(String.raw`\b${roleToToggle}\b`, 'i'))
         .isVisible({ timeout: TIMEOUTS.quickMarker })
         .catch(() => false);
       if (afterAdd) break;
@@ -374,7 +411,7 @@ async function runP03AndP04(browser, runCtx, deps) {
     while (Date.now() - removalStart < TIMEOUTS.marker) {
       stillVisible = await page
         .locator(SELECTORS.userRolesTable)
-        .getByText(new RegExp(`\\b${roleToToggle}\\b`, 'i'))
+        .getByText(new RegExp(String.raw`\b${roleToToggle}\b`, 'i'))
         .isVisible({ timeout: TIMEOUTS.quickMarker })
         .catch(() => false);
       if (!stillVisible) break;
@@ -417,18 +454,14 @@ async function runP06(browser, runCtx, deps) {
   function recordScenario(scenario) {
     scenarios.push(scenario);
     evidence.push(
-      `${scenario.id} ${scenario.title} result=${scenario.result} account=${scenario.account}`
+      `${scenario.id} ${scenario.title} result=${scenario.result} account=${scenario.account}`,
+      `  url=${scenario.urls.join(' | ')}`,
+      `  expected=${scenario.expectedSummary}`,
+      `  observed=${scenario.observedSummary}`
     );
-    evidence.push(`  url=${scenario.urls.join(' | ')}`);
-    evidence.push(`  expected=${scenario.expectedSummary}`);
-    evidence.push(`  observed=${scenario.observedSummary}`);
     if (scenario.failureSignature) {
       evidence.push(`  signature=${scenario.failureSignature}`);
     }
-  }
-
-  function mismatchSignatureFor(id, mismatch) {
-    return `P0.6_${id}_MARKER_MISMATCH ${mismatch}`;
   }
 
   async function runSimpleScenario(input) {
@@ -450,17 +483,9 @@ async function runP06(browser, runCtx, deps) {
         title,
         account: accountKey,
         urls: [result.url],
-        expectedSummary: markersToString({
-          ...{
-            member: '-',
-            agent: '-',
-            staff: '-',
-            admin: '-',
-            notFound: '-',
-            rolesTable: '-',
-          },
-          ...expected,
-        }),
+        expectedSummary: markersToString(
+          Object.assign({}, DEFAULT_SCENARIO_EXPECTED_MARKERS, expected)
+        ),
         observedSummary: markersToString(result.observed),
         result: result.status,
         failureSignature,

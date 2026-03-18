@@ -24,7 +24,7 @@ async function seedCookieConsentState(args) {
   await page.addInitScript(
     ({ storageKey, cookieName }) => {
       try {
-        window.localStorage.setItem(storageKey, 'accepted');
+        globalThis.localStorage.setItem(storageKey, 'accepted');
       } catch {}
       try {
         document.cookie = `${cookieName}=accepted; Path=/; SameSite=Lax`;

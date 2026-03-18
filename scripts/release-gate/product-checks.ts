@@ -38,7 +38,7 @@ const INFRA_NETWORK_ERROR_PATTERNS = [
 
 function compactErrorMessage(raw, maxLength = 420) {
   return String(raw || '')
-    .replace(/\s+/g, ' ')
+    .replaceAll(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);
 }
@@ -66,7 +66,7 @@ function selectAlternativeActionableStatus(currentLabel, optionLabels) {
 
 function trimTrailingSlashes(pathname) {
   let end = pathname.length;
-  while (end > 1 && pathname.charCodeAt(end - 1) === 47) {
+  while (end > 1 && pathname.codePointAt(end - 1) === 47) {
     end -= 1;
   }
   return pathname.slice(0, end);
@@ -348,8 +348,8 @@ trailer
         )
         .then(() => true)
         .catch(() => false);
-      evidenceP12.push(`download response 200 observed=${has200DownloadResponse}`);
       evidenceP12.push(
+        `download response 200 observed=${has200DownloadResponse}`,
         `download response statuses: ${documentsDownloadStatuses.length ? documentsDownloadStatuses.join(' | ') : 'none captured'}`
       );
 
@@ -432,8 +432,10 @@ async function runP13(browser, runCtx, deps) {
       .getByTestId(MARKERS.staff)
       .isVisible({ timeout: TIMEOUTS.marker })
       .catch(() => false);
-    evidence.push(`staff_claims_list_url=${claimsList}`);
-    evidence.push(`staff_page_ready_on_list=${staffReadyOnList}`);
+    evidence.push(
+      `staff_claims_list_url=${claimsList}`,
+      `staff_page_ready_on_list=${staffReadyOnList}`
+    );
     if (!staffReadyOnList) {
       signatures.push('P1.3_STAFF_PORTAL_NOT_READY');
       return checkResult('P1.3', 'FAIL', evidence, signatures);
@@ -489,8 +491,10 @@ async function runP13(browser, runCtx, deps) {
         );
 
         const fallback = await collectStaffClaimDetailUrls(page, runCtx);
-        evidence.push(`fallback_search_elapsed_ms=${fallback.elapsedMs}`);
-        evidence.push(`fallback_link_count=${fallback.urls.length}`);
+        evidence.push(
+          `fallback_search_elapsed_ms=${fallback.elapsedMs}`,
+          `fallback_link_count=${fallback.urls.length}`
+        );
         if (fallback.urls.length === 0) {
           signatures.push('P1.3_NO_TEST_DATA_STAFF_CLAIMS');
           return checkResult('P1.3', 'SKIPPED', evidence, signatures);
@@ -556,11 +560,7 @@ async function runP13(browser, runCtx, deps) {
         optionLabels.push((await options.nth(i).innerText()).trim());
       }
       const selectedLabel = selectAlternativeActionableStatus(currentStatusLabel, optionLabels);
-      if (!selectedLabel) {
-        signatures.push(
-          `P1.3_NO_ACTIONABLE_STATUS_TRANSITION current_status=${currentStatusLabel} options=${optionLabels.join('|')}`
-        );
-      } else {
+      if (selectedLabel) {
         for (let i = 0; i < optionCount; i += 1) {
           const candidate = optionLabels[i];
           if (candidate === selectedLabel) {
@@ -601,6 +601,10 @@ async function runP13(browser, runCtx, deps) {
         if (!statusPersisted) {
           signatures.push(`P1.3_STATUS_NOT_PERSISTED expected="${selectedLabel}"`);
         }
+      } else {
+        signatures.push(
+          `P1.3_NO_ACTIONABLE_STATUS_TRANSITION current_status=${currentStatusLabel} options=${optionLabels.join('|')}`
+        );
       }
     }
   } catch (error) {
@@ -615,11 +619,11 @@ async function runP13(browser, runCtx, deps) {
       `release-gate-p13-failure-${Date.now()}-${crypto.randomUUID()}.png`
     );
     await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {});
-    evidence.push(`failure_url=${page.url()}`);
     evidence.push(
-      `failure_markers member=${markerState.member} agent=${markerState.agent} staff=${markerState.staff} admin=${markerState.admin}`
+      `failure_url=${page.url()}`,
+      `failure_markers member=${markerState.member} agent=${markerState.agent} staff=${markerState.staff} admin=${markerState.admin}`,
+      `failure_screenshot=${screenshotPath}`
     );
-    evidence.push(`failure_screenshot=${screenshotPath}`);
     const notFoundVisible = await page
       .getByTestId(MARKERS.notFound)
       .isVisible({ timeout: TIMEOUTS.quickMarker })
