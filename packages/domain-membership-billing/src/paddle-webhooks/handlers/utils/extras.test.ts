@@ -1,7 +1,12 @@
 import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCommissionCore } from '../../../commissions/create';
-import { handleNewSubscriptionExtras, redactEmail } from './extras';
+import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
+import {
+  handleNewSubscriptionExtras,
+  handleRenewalSubscriptionExtras,
+  redactEmail,
+} from './extras';
 
 // Mock dependencies
 vi.mock('@interdomestik/database', () => ({
@@ -16,6 +21,10 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('../../../commissions/create', () => ({
   createCommissionCore: vi.fn(),
+}));
+
+vi.mock('../../../commissions/create-renewal', () => ({
+  createRenewalCommissionCore: vi.fn(),
 }));
 
 describe('extras', () => {
@@ -191,6 +200,135 @@ describe('extras', () => {
       });
       expect(spy).toHaveBeenCalled();
       spy.mockRestore();
+    });
+  });
+
+  describe('handleRenewalSubscriptionExtras', () => {
+    const mockDeps = {
+      logAuditEvent: vi.fn(),
+    };
+
+    const mockSub = {
+      id: 'sub_renewal',
+      items: [
+        { price: { id: 'price_renewal', unitPrice: { amount: '3000', currencyCode: 'EUR' } } },
+      ],
+      customData: { agentId: 'agent_current' },
+    };
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      (createRenewalCommissionCore as any).mockResolvedValue({
+        success: true,
+        data: { kind: 'created', id: 'renew_1' },
+      });
+    });
+
+    it('creates a renewal commission using canonical ownership metadata', async () => {
+      await handleRenewalSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: { agentId: 'agent_current' },
+        priceId: 'price_renewal',
+        userRecord: null,
+        ownership: {
+          subscriptionAgentId: 'agent_current',
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: ['agent_current'],
+          originalSellerAgentId: 'agent_original',
+        },
+        deps: mockDeps,
+      });
+
+      expect(createRenewalCommissionCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscriptionAgentId: 'agent_current',
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: ['agent_current'],
+          originalSellerAgentId: 'agent_original',
+          subscriptionId: 'sub_renewal',
+          tenantId: 'tenant_1',
+        })
+      );
+    });
+
+    it('does not create a commission for company-owned renewals', async () => {
+      await handleRenewalSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: undefined,
+        priceId: 'price_renewal',
+        userRecord: null,
+        ownership: {
+          subscriptionAgentId: null,
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: [],
+          originalSellerAgentId: null,
+        },
+        deps: mockDeps,
+      });
+
+      expect(createRenewalCommissionCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscriptionAgentId: null,
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: [],
+          originalSellerAgentId: null,
+        })
+      );
+    });
+
+    it('logs unresolved canonical ownership as an audit-visible skip instead of falling back to customData.agentId', async () => {
+      (createRenewalCommissionCore as any).mockResolvedValue({
+        success: true,
+        data: {
+          kind: 'no-op',
+          noCommissionReason: 'unresolved',
+          ownerType: 'unresolved',
+          ownershipDiagnostics: [
+            {
+              source: 'subscription.agentId',
+              expectedAgentId: null,
+              actualAgentId: null,
+            },
+          ],
+        },
+      });
+
+      await handleRenewalSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: { agentId: 'agent_current' },
+        priceId: 'price_renewal',
+        userRecord: null,
+        ownership: {
+          subscriptionAgentId: undefined,
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: ['agent_previous'],
+          originalSellerAgentId: 'agent_original',
+        },
+        deps: mockDeps,
+      });
+
+      expect(createRenewalCommissionCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscriptionAgentId: undefined,
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: ['agent_previous'],
+          originalSellerAgentId: 'agent_original',
+        })
+      );
+      expect(mockDeps.logAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'commission.unresolved',
+          metadata: expect.objectContaining({
+            noCommissionReason: 'unresolved',
+          }),
+        })
+      );
     });
   });
 });

@@ -1,5 +1,6 @@
 import { db } from '@interdomestik/database';
 import { createCommissionCore } from '../../../commissions/create';
+import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
 import { calculateCommission } from '../../../commissions/types';
 import type { PaddleWebhookAuditDeps, PaddleWebhookDeps } from '../../types';
 
@@ -70,6 +71,78 @@ async function processCommissions(args: {
   );
 }
 
+async function processRenewalCommissions(args: {
+  sub: any;
+  userId: string;
+  tenantId: string;
+  customData: { agentId?: string } | undefined;
+  priceId: string;
+  ownership?: {
+    subscriptionAgentId?: string | null;
+    userAgentId?: string | null;
+    agentClientAgentIds?: Array<string | null | undefined>;
+    originalSellerAgentId?: string | null;
+  };
+  deps: PaddleWebhookAuditDeps;
+}) {
+  const { sub, userId, tenantId, customData, priceId, ownership, deps } = args;
+  const transactionTotal = Number.parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
+  if (transactionTotal <= 0) return;
+
+  const subscriptionAgentId = ownership?.subscriptionAgentId;
+
+  const commissionResult = await createRenewalCommissionCore({
+    tenantId,
+    memberId: userId,
+    subscriptionId: sub.id,
+    priceId,
+    transactionTotal,
+    currency: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
+    subscriptionAgentId,
+    userAgentId: ownership?.userAgentId ?? null,
+    agentClientAgentIds: ownership?.agentClientAgentIds ?? [],
+    originalSellerAgentId: ownership?.originalSellerAgentId ?? null,
+  });
+
+  if (deps.logAuditEvent && commissionResult.success && commissionResult.data.kind === 'created') {
+    await deps.logAuditEvent({
+      actorRole: 'system',
+      action: 'commission.created',
+      entityType: 'commission',
+      entityId: commissionResult.data.id,
+      tenantId,
+      metadata: {
+        memberId: userId,
+        subscriptionId: sub.id,
+        source: 'paddle_webhook',
+        type: 'renewal',
+      },
+    });
+  }
+
+  if (
+    deps.logAuditEvent &&
+    commissionResult.success &&
+    commissionResult.data.kind === 'no-op' &&
+    commissionResult.data.noCommissionReason === 'unresolved'
+  ) {
+    await deps.logAuditEvent({
+      actorRole: 'system',
+      action: 'commission.unresolved',
+      entityType: 'commission',
+      entityId: null,
+      tenantId,
+      metadata: {
+        memberId: userId,
+        subscriptionId: sub.id,
+        source: 'paddle_webhook',
+        noCommissionReason: commissionResult.data.noCommissionReason,
+        ownershipDiagnostics: commissionResult.data.ownershipDiagnostics,
+      },
+    });
+  }
+}
+
 async function processThankYouLetter(args: {
   sub: any;
   userId: string;
@@ -116,4 +189,22 @@ export async function handleNewSubscriptionExtras(args: {
 }) {
   await processCommissions(args);
   await processThankYouLetter(args);
+}
+
+export async function handleRenewalSubscriptionExtras(args: {
+  sub: any;
+  userId: string;
+  tenantId: string;
+  customData: { agentId?: string } | undefined;
+  priceId: string;
+  userRecord: any;
+  ownership?: {
+    subscriptionAgentId?: string | null;
+    userAgentId?: string | null;
+    agentClientAgentIds?: Array<string | null | undefined>;
+    originalSellerAgentId?: string | null;
+  };
+  deps: PaddleWebhookAuditDeps;
+}) {
+  await processRenewalCommissions(args);
 }
