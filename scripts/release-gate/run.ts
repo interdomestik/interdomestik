@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 const { spawnSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const {
   DEFAULTS,
@@ -87,12 +89,64 @@ const LOGIN_DEPENDENT_CHECKS = new Set([
   'G10',
 ]);
 
+const TRUSTED_EXECUTABLE_DIRS = [
+  '/opt/homebrew/bin',
+  '/usr/local/bin',
+  '/usr/bin',
+  '/bin',
+  '/usr/sbin',
+  '/sbin',
+];
+
+function resolveVercelExecutable(env = process.env) {
+  const envCandidates = [env.VERCEL_BIN, env.PNPM_HOME && path.join(env.PNPM_HOME, 'vercel')]
+    .filter(Boolean)
+    .map(candidate => path.resolve(String(candidate)));
+  const trustedCandidates = TRUSTED_EXECUTABLE_DIRS.map(dir => path.join(dir, 'vercel'));
+
+  for (const candidate of [...envCandidates, ...trustedCandidates]) {
+    try {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    } catch {
+      // Ignore unusable candidates and continue searching.
+    }
+  }
+
+  return null;
+}
+
+function buildTrustedSpawnEnv(env = process.env) {
+  return {
+    ...env,
+    PATH: TRUSTED_EXECUTABLE_DIRS.join(path.delimiter),
+  };
+}
+
 function runVercelCommand(args, options = {}) {
-  return spawnSync('vercel', args, {
+  const { env: requestedEnv, ...spawnOptions } = options;
+  const childEnv = requestedEnv || process.env;
+  const command = resolveVercelExecutable(childEnv);
+  if (!command) {
+    const error = new Error('vercel executable not found');
+    error.code = 'VERCEL_CLI_NOT_FOUND';
+    return {
+      pid: 0,
+      output: ['', '', ''],
+      stdout: '',
+      stderr: '',
+      status: null,
+      signal: null,
+      error,
+    };
+  }
+
+  return spawnSync(command, args, {
     encoding: 'utf8',
-    env: process.env,
+    env: buildTrustedSpawnEnv(childEnv),
     killSignal: 'SIGKILL',
-    ...options,
+    ...spawnOptions,
   });
 }
 
@@ -1069,6 +1123,7 @@ module.exports = {
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
   routePathsMatch,
+  resolveVercelExecutable,
   resolveAccountPasswordVar,
   resolveConfiguredRolePanelTarget,
   resolveConfiguredStaffClaimDetailUrl,

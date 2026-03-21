@@ -30,6 +30,7 @@ const {
   resolveConfiguredStaffClaimDetailUrl,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
+  resolveVercelExecutable,
   selectCredentialPreflightAccounts,
   selectAlternativeActionableStatus,
   sessionCacheKeyForAccount,
@@ -520,6 +521,17 @@ test('parseVercelRuntimeJsonLines keeps valid JSON entries and ignores banner no
   assert.equal(entries[0].message, 'upload failed');
   assert.equal(entries[1].level, 'info');
   assert.equal(entries[1].message, 'ready');
+});
+
+test('resolveVercelExecutable prefers an explicit absolute env override and returns null when no candidate exists', () => {
+  assert.equal(resolveVercelExecutable({ VERCEL_BIN: process.execPath }), process.execPath);
+  assert.equal(
+    resolveVercelExecutable({
+      VERCEL_BIN: '/tmp/definitely-missing-vercel',
+      PNPM_HOME: '/tmp/also-missing-pnpm-home',
+    }),
+    null
+  );
 });
 
 test('classifyInfraNetworkFailure identifies transport-level outages', () => {
