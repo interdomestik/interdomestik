@@ -62,36 +62,45 @@ export function MessageThread({
     );
   }
 
+  const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'UTC',
+  });
+  const dateFormatter = new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'UTC',
+  });
+
   const formatTime = (date: Date) => {
-    if (isNaN(new Date(date).getTime())) return '';
-    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const parsed = new Date(date);
+    if (isNaN(parsed.getTime())) return '';
+    return timeFormatter.format(parsed);
   };
 
-  const formatDate = (date: Date) => {
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return '';
+  const formatDateKey = (dateKey: string) => {
+    const parsed = new Date(`${dateKey}T00:00:00.000Z`);
+    if (isNaN(parsed.getTime())) return '';
+    return `${dateFormatter.format(parsed)} UTC`;
+  };
 
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (d.toDateString() === today.toDateString()) {
-      return t('today');
-    } else if (d.toDateString() === yesterday.toDateString()) {
-      return t('yesterday');
-    } else {
-      return d.toLocaleDateString();
-    }
+  const toUtcDateKey = (date: Date) => {
+    const parsed = new Date(date);
+    if (isNaN(parsed.getTime())) return '';
+    return parsed.toISOString().slice(0, 10);
   };
 
   // Group messages by date
   const groupedMessages = messages.reduce(
     (groups, message) => {
-      const date = new Date(message.createdAt).toDateString();
-      if (!groups[date]) {
-        groups[date] = [];
+      const dateKey = toUtcDateKey(message.createdAt);
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
       }
-      groups[date].push(message);
+      groups[dateKey].push(message);
       return groups;
     },
     {} as Record<string, OptimisticMessage[]>
@@ -104,7 +113,7 @@ export function MessageThread({
           <div key={date}>
             <div className="flex items-center justify-center mb-4">
               <span className="text-xs text-muted-foreground bg-[hsl(var(--muted))] px-3 py-1 rounded-full">
-                {formatDate(new Date(date))}
+                {formatDateKey(date)}
               </span>
             </div>
 

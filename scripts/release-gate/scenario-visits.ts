@@ -1,6 +1,6 @@
 const { TIMEOUTS } = require('./config.ts');
 const { sleep } = require('./shared.ts');
-const { loginWithRunContext } = require('./session-navigation.ts');
+const { gotoWithSessionRetry, loginWithRunContext } = require('./session-navigation.ts');
 
 const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
 const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
@@ -48,14 +48,21 @@ async function visitReleaseGateScenario(browser, runCtx, scenario, callback) {
       await loginWithRunContext(page, runCtx, scenario.account);
     }
 
-    await page.goto(scenario.url, {
-      waitUntil: 'domcontentloaded',
-      timeout: TIMEOUTS.nav,
+    await gotoWithSessionRetry({
+      page,
+      navigate: () =>
+        page.goto(scenario.url, {
+          waitUntil: 'domcontentloaded',
+          timeout: TIMEOUTS.nav,
+        }),
+      retryLogin: scenario.account
+        ? () => loginWithRunContext(page, runCtx, scenario.account, { forceFresh: true })
+        : undefined,
     });
 
     return await callback(page);
   } finally {
-    await context.close();
+    await context.close().catch(() => {});
   }
 }
 

@@ -273,6 +273,14 @@ describe('member claim upload actions', () => {
         workflow: 'legal_doc_extract',
       })
     );
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/sq/member/claims/claim-1');
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/en/member/claims/claim-1');
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/sr/member/claims/claim-1');
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/member/claims/claim-1');
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/sq/member/documents');
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/en/member/documents');
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/sr/member/documents');
+    expect(hoisted.revalidatePath).toHaveBeenCalledWith('/mk/member/documents');
   });
 
   it('keeps the upload persisted when ai queueing fails after metadata is saved', async () => {

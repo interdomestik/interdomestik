@@ -1,6 +1,7 @@
 'use client';
 
 import { confirmUpload, generateUploadUrl } from '@/features/member/claims/actions';
+import { createClient } from '@interdomestik/database/client';
 import {
   Button,
   Dialog,
@@ -20,7 +21,7 @@ import {
 } from '@interdomestik/ui';
 import { Loader2, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 interface ClaimEvidenceUploadDialogProps {
@@ -34,6 +35,14 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
   const [category, setCategory] = useState<'evidence' | 'legal'>('evidence');
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
+  const supabase = useMemo(() => {
+    try {
+      return createClient();
+    } catch (error) {
+      console.error('Failed to init Supabase client', error);
+      return null;
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -58,33 +67,22 @@ export function ClaimEvidenceUploadDialog({ claimId, trigger }: ClaimEvidenceUpl
         throw new Error(genResult.error);
       }
 
-      // 2. Upload to Storage via signed upload URL.
-      const uploadResponse = await fetch(genResult.url, {
-        method: 'PUT',
-        headers: {
-          'content-type': file.type || 'application/octet-stream',
-          'x-upsert': 'true',
-        },
-        body: file,
-      });
+      if (!supabase) {
+        throw new Error('Storage client unavailable');
+      }
 
-      if (!uploadResponse.ok) {
-        const responseBody = await uploadResponse.text().catch(() => '');
-        const requestId =
-          uploadResponse.headers.get('x-request-id') ??
-          uploadResponse.headers.get('x-amz-request-id') ??
-          undefined;
-
-        console.error('Storage upload failed', {
-          status: uploadResponse.status,
-          requestId,
-          body: responseBody,
+      // 2. Upload to Storage using the same signed-upload flow as the claim wizard.
+      const { error: uploadError } = await supabase.storage
+        .from(genResult.bucket)
+        .uploadToSignedUrl(genResult.path, genResult.token, file, {
+          contentType: file.type || 'application/octet-stream',
+          upsert: true,
+          cacheControl: '3600',
         });
 
-        const baseMessage = `Storage upload failed (${uploadResponse.status})`;
-        const messageWithId = requestId ? `${baseMessage} - Request ID: ${requestId}` : baseMessage;
-
-        throw new Error(messageWithId);
+      if (uploadError) {
+        console.error('Storage upload failed', uploadError);
+        throw new Error(uploadError.message || 'Storage upload failed');
       }
 
       // 3. Confirm in DB

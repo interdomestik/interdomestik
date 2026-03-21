@@ -5,7 +5,11 @@ const { gotoWithSessionRetry, loginWithRunContext } = require('./session-navigat
 
 async function collectStaffClaimDetailUrls(page, runCtx) {
   const claimsList = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList);
-  await page.goto(claimsList, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
+  await gotoWithSessionRetry({
+    page,
+    navigate: () => page.goto(claimsList, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+    retryLogin: () => loginWithRunContext(page, runCtx, 'staff', { forceFresh: true }),
+  });
 
   const fallbackTimeoutMs = 10_000;
   const startedAt = Date.now();
@@ -31,6 +35,7 @@ async function collectStaffClaimDetailUrls(page, runCtx) {
 
 async function inspectStaffDetailScenario(page, scenario, deps) {
   const {
+    collectVisibleTestIds: collectVisibleTestIdsFn = collectVisibleTestIds,
     findMissingBoundaryPhrases,
     findMissingCommercialPromiseSections,
     normalizeBoundaryText,
@@ -46,7 +51,9 @@ async function inspectStaffDetailScenario(page, scenario, deps) {
     .getByTestId('staff-claim-detail-ready')
     .isVisible({ timeout: TIMEOUTS.marker })
     .catch(() => false);
-  const observedByTestId = await collectVisibleTestIds(page, scenario.requiredTestIds);
+  const observedByTestId = await collectVisibleTestIdsFn(page, scenario.requiredTestIds);
+  const resolvedDetailReady =
+    observedByTestId['staff-claim-detail-ready'] === true ? true : detailReady;
   const observedPrerequisites = normalizeBoundaryText(
     await page
       .getByTestId('staff-accepted-recovery-prerequisites')
@@ -83,7 +90,7 @@ async function inspectStaffDetailScenario(page, scenario, deps) {
     matched:
       routePathsMatch(scenario.url, finalUrl) &&
       !notFound &&
-      detailReady &&
+      resolvedDetailReady &&
       missingTestIds.length === 0 &&
       missingPrerequisitePhrases.length === 0 &&
       missingPhrases.length === 0,
@@ -101,7 +108,7 @@ async function resolveG10Scenario(page, runCtx, scenario, deps) {
           waitUntil: 'domcontentloaded',
           timeout: TIMEOUTS.nav,
         }),
-      retryLogin: () => loginWithRunContext(page, runCtx, scenario.account),
+      retryLogin: () => loginWithRunContext(page, runCtx, scenario.account, { forceFresh: true }),
     });
     const inspected = await inspectStaffDetailScenario(page, scenario, deps);
     return {
@@ -111,8 +118,17 @@ async function resolveG10Scenario(page, runCtx, scenario, deps) {
       attemptedUrls: [...attemptedUrls],
     };
   };
+  const visitWithFreshReloginRetry = async (targetUrl, source) => {
+    const initialVisit = await visit(targetUrl, source);
+    if (!/\/login(?:[/?#]|$)/.test(initialVisit.finalUrl)) {
+      return initialVisit;
+    }
 
-  const initial = await visit(scenario.url, 'configured');
+    await loginWithRunContext(page, runCtx, scenario.account, { forceFresh: true });
+    return visit(targetUrl, `${source}_fresh_relogin`);
+  };
+
+  const initial = await visitWithFreshReloginRetry(scenario.url, 'configured');
   if (initial.matched) {
     return initial;
   }
@@ -122,7 +138,7 @@ async function resolveG10Scenario(page, runCtx, scenario, deps) {
     url => !attemptedUrls.includes(`configured:${url}`)
   );
   for (const candidateUrl of dedupedFallbackUrls) {
-    const candidate = await visit(candidateUrl, 'fallback');
+    const candidate = await visitWithFreshReloginRetry(candidateUrl, 'fallback');
     if (candidate.matched) {
       return {
         ...candidate,

@@ -5,13 +5,13 @@ test.describe('Member Documents Upload Entry', () => {
   test('member documents page shows upload entry per claim card', async ({
     authenticatedPage: page,
   }, testInfo) => {
-    await gotoApp(page, '/member/documents', testInfo, { marker: 'body' });
+    await gotoApp(page, '/member/documents', testInfo, { marker: 'member-documents-page-ready' });
 
     const claimCards = page.locator('[data-testid^="member-documents-claim-"]');
     const cardCount = await claimCards.count();
 
     if (cardCount === 0) {
-      await expect(page.getByRole('link', { name: /create claim|krijo kërkesë/i })).toBeVisible();
+      await expect(page.getByTestId('member-documents-create-claim')).toBeVisible();
       return;
     }
 

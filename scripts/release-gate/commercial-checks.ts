@@ -492,7 +492,7 @@ async function runG10(browser, runCtx, deps) {
         `G10_EXCEPTION scenario=${scenario.id} message=${compactErrorMessage(error?.message || error, 650)}`
       );
     } finally {
-      await context.close();
+      await context.close().catch(() => {});
     }
   }
 

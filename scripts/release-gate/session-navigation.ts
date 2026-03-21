@@ -1,5 +1,8 @@
 const { TIMEOUTS } = require('./config.ts');
-const { loginAs, normalizeBaseUrl } = require('./shared.ts');
+const { gotoWithTransientRetry, loginAs, normalizeBaseUrl, sleep } = require('./shared.ts');
+
+const REACHABILITY_RETRY_ATTEMPTS = 3;
+const REACHABILITY_RETRY_DELAY_MS = 1_000;
 
 function compactErrorMessage(raw, maxLength = 420) {
   return String(raw || '')
@@ -18,6 +21,10 @@ async function probeBaseUrl(candidateBaseUrl) {
   return response.status;
 }
 
+function isUsableProbeStatus(status) {
+  return Number.isFinite(status) && status >= 200 && status < 400;
+}
+
 function normalizeDeploymentBaseUrl(deploymentUrl) {
   if (!deploymentUrl || deploymentUrl === 'unknown') return null;
   try {
@@ -27,21 +34,36 @@ function normalizeDeploymentBaseUrl(deploymentUrl) {
   }
 }
 
-async function resolveReachableBaseUrl(configuredBaseUrl, deployment) {
+async function resolveReachableBaseUrl(configuredBaseUrl, deployment, options = {}) {
   const deploymentBaseUrl = normalizeDeploymentBaseUrl(deployment?.deploymentUrl);
-  const candidates = Array.from(new Set([configuredBaseUrl, deploymentBaseUrl].filter(Boolean)));
+  const allowDeploymentFallback = options.allowDeploymentFallback !== false;
+  const candidates = Array.from(
+    new Set([configuredBaseUrl, allowDeploymentFallback ? deploymentBaseUrl : null].filter(Boolean))
+  );
   const failures = [];
 
   for (let index = 0; index < candidates.length; index += 1) {
     const candidate = candidates[index];
-    try {
-      const status = await probeBaseUrl(candidate);
-      const source = index === 0 ? 'configured' : 'deployment_fallback';
-      return { baseUrl: candidate, source, probeStatus: status, failures };
-    } catch (error) {
-      failures.push(
-        `probe_failed candidate=${candidate} reason=${compactErrorMessage(error?.message || error)}`
-      );
+    const source = index === 0 ? 'configured' : 'deployment_fallback';
+    const maxAttempts = index === 0 ? REACHABILITY_RETRY_ATTEMPTS : 1;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const status = await probeBaseUrl(candidate);
+        if (isUsableProbeStatus(status)) {
+          return { baseUrl: candidate, source, probeStatus: status, failures };
+        }
+        failures.push(`probe_unusable candidate=${candidate} status=${status}`);
+        break;
+      } catch (error) {
+        failures.push(
+          `probe_failed candidate=${candidate} reason=${compactErrorMessage(error?.message || error)}`
+        );
+        if (attempt < maxAttempts) {
+          await sleep(REACHABILITY_RETRY_DELAY_MS);
+          continue;
+        }
+      }
     }
   }
 
@@ -54,32 +76,42 @@ async function resolveReachableBaseUrl(configuredBaseUrl, deployment) {
 }
 
 async function gotoWithSessionRetry({ page, navigate, retryLogin }) {
-  try {
-    await navigate();
-  } catch (error) {
-    const message = String(error?.message || error);
-    if (!/ERR_ABORTED/i.test(message)) {
+  const doRetryLogin = typeof retryLogin === 'function' ? retryLogin : async () => {};
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await gotoWithTransientRetry({ navigate, maxAttempts: 4 });
+    } catch (error) {
+      const message = String(error?.message || error);
+      if (
+        (/ERR_ABORTED/i.test(message) || /ERR_CONNECTION_REFUSED/i.test(message)) &&
+        attempt < 3
+      ) {
+        await doRetryLogin();
+        continue;
+      }
       throw error;
     }
-    await retryLogin();
-    await navigate();
-  }
 
-  if (/\/login(?:[/?#]|$)/.test(page.url())) {
-    await retryLogin();
-    await navigate();
+    if (/\/login(?:[/?#]|$)/.test(page.url()) && attempt < 3) {
+      await doRetryLogin();
+      continue;
+    }
+
+    return page.url();
   }
 
   return page.url();
 }
 
-async function loginWithRunContext(page, runCtx, account) {
+async function loginWithRunContext(page, runCtx, account, options = {}) {
   return loginAs(page, {
     account,
     credentials: runCtx.credentials[account],
     baseUrl: runCtx.baseUrl,
     locale: runCtx.locale,
     authState: runCtx.authState,
+    forceFresh: options.forceFresh === true,
   });
 }
 

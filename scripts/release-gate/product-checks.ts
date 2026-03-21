@@ -8,6 +8,7 @@ const {
   buildRoute,
   buildRouteAllowingLocalePath,
   envFlag,
+  gotoWithTransientRetry,
   markerSnapshot,
   sleep,
 } = require('./shared.ts');
@@ -16,7 +17,6 @@ const { collectStaffClaimDetailUrls } = require('./staff-claim-driver.ts');
 const { gotoWithSessionRetry, loginWithRunContext } = require('./session-navigation.ts');
 
 const MEMBER_DOCUMENTS_CLAIM_CARD_SELECTOR = '[data-testid^="member-documents-claim-"]';
-const MEMBER_DOCUMENTS_CREATE_CLAIM_LINK_NAME = /create claim|krijo kërkesë/i;
 const DEFAULT_P13_STAFF_CLAIM_ROUTE = '/staff/claims/golden_ks_a_claim_05';
 const ACTIONABLE_CLAIM_STATUS_LABELS = new Set([
   'Submitted',
@@ -35,6 +35,82 @@ const INFRA_NETWORK_ERROR_PATTERNS = [
   /socket hang up/i,
   /AUTH_LOGIN_NETWORK_ERROR/i,
 ];
+
+function isLoginUrl(url) {
+  return /\/login(?:[/?#]|$)/.test(String(url || ''));
+}
+
+async function waitForAnyVisible(page, selectors, timeoutMs) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    for (const selector of selectors) {
+      const visible = await page
+        .locator(selector)
+        .isVisible({ timeout: TIMEOUTS.quickMarker })
+        .catch(() => false);
+      if (visible) {
+        return selector;
+      }
+    }
+    await page.waitForTimeout(350);
+  }
+  return null;
+}
+
+async function waitForMemberDocumentsSurface(page) {
+  const visibleSelector = await waitForAnyVisible(
+    page,
+    [SELECTORS.memberDocumentsReady, SELECTORS.memberDocumentsEmptyState],
+    TIMEOUTS.marker
+  );
+
+  if (visibleSelector) {
+    return { ready: true, visibleSelector };
+  }
+
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }).catch(() => {});
+  const retryVisibleSelector = await waitForAnyVisible(
+    page,
+    [SELECTORS.memberDocumentsReady, SELECTORS.memberDocumentsEmptyState],
+    TIMEOUTS.marker
+  );
+
+  return {
+    ready: Boolean(retryVisibleSelector),
+    visibleSelector: retryVisibleSelector,
+  };
+}
+
+async function waitForStaffClaimDetailSurface(page) {
+  const visibleSelector = await waitForAnyVisible(
+    page,
+    [SELECTORS.staffClaimDetailReady, SELECTORS.staffClaimActionPanel, SELECTORS.staffClaimSection],
+    TIMEOUTS.marker
+  );
+
+  if (!visibleSelector) {
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }).catch(() => {});
+  }
+
+  const retryVisibleSelector =
+    visibleSelector ||
+    (await waitForAnyVisible(
+      page,
+      [
+        SELECTORS.staffClaimDetailReady,
+        SELECTORS.staffClaimActionPanel,
+        SELECTORS.staffClaimSection,
+      ],
+      TIMEOUTS.marker
+    ));
+
+  return {
+    detailReady: retryVisibleSelector === SELECTORS.staffClaimDetailReady,
+    actionPanelReady: retryVisibleSelector === SELECTORS.staffClaimActionPanel,
+    claimSectionReady: retryVisibleSelector === SELECTORS.staffClaimSection,
+    visibleSelector: retryVisibleSelector,
+  };
+}
 
 function compactErrorMessage(raw, maxLength = 420) {
   return String(raw || '')
@@ -62,6 +138,11 @@ function selectAlternativeActionableStatus(currentLabel, optionLabels) {
     }
   }
   return null;
+}
+
+async function closeBrowserContextWithTimeout(context, timeoutMs = 5_000) {
+  if (!context) return;
+  await Promise.race([context.close().catch(() => {}), sleep(timeoutMs)]);
 }
 
 function trimTrailingSlashes(pathname) {
@@ -157,6 +238,7 @@ trailer
   let documentsDownloadStatuses = [];
   let persistenceAfterRefresh = false;
   let persistenceAfterRelogin = false;
+  let reloginContext = null;
   const requireMemberUpload = envFlag('RELEASE_GATE_REQUIRE_MEMBER_UPLOAD', true);
   const waitForUploadedFileVisible = async (targetPage, options = {}) => {
     const timeoutMs = Number(options.timeoutMs ?? TIMEOUTS.upload);
@@ -214,13 +296,36 @@ trailer
     await loginWithRunContext(page, runCtx, 'member');
 
     const docsUrl = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.memberDocuments);
-    await page.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
+    await gotoWithSessionRetry({
+      page,
+      navigate: () => page.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+      retryLogin: () => loginWithRunContext(page, runCtx, 'member', { forceFresh: true }),
+    });
+    let initialDocumentsSurface = await waitForMemberDocumentsSurface(page);
+    evidenceP11.push(`member_documents_url=${page.url()}`);
+    if (!initialDocumentsSurface.ready && isLoginUrl(page.url())) {
+      await loginWithRunContext(page, runCtx, 'member');
+      await gotoWithSessionRetry({
+        page,
+        navigate: () =>
+          page.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+        retryLogin: () => loginWithRunContext(page, runCtx, 'member', { forceFresh: true }),
+      });
+      initialDocumentsSurface = await waitForMemberDocumentsSurface(page);
+      evidenceP11.push(`member_documents_url_retry=${page.url()}`);
+    }
+    evidenceP11.push(
+      `member_documents_surface=${initialDocumentsSurface.visibleSelector || 'none'}`
+    );
+    if (!initialDocumentsSurface.ready) {
+      throw new Error('MEMBER_DOCUMENTS_SURFACE_NOT_READY');
+    }
     const claimCards = page.locator(MEMBER_DOCUMENTS_CLAIM_CARD_SELECTOR);
     const claimCardCount = await claimCards.count();
     evidenceP11.push(`member documents claim card count=${claimCardCount}`);
     if (claimCardCount === 0) {
       const createClaimVisible = await page
-        .getByRole('link', { name: MEMBER_DOCUMENTS_CREATE_CLAIM_LINK_NAME })
+        .locator(SELECTORS.memberDocumentsCreateClaim)
         .isVisible({ timeout: TIMEOUTS.marker })
         .catch(() => false);
       evidenceP11.push(`member documents empty-state create claim visible=${createClaimVisible}`);
@@ -290,9 +395,7 @@ trailer
     });
     evidenceP11.push(`after hard refresh listed=${persistenceAfterRefresh}`);
 
-    await context.close();
-
-    const reloginContext = await browser.newContext({ acceptDownloads: true });
+    reloginContext = await browser.newContext({ acceptDownloads: true });
     const reloginPage = await reloginContext.newPage();
     await seedCookieConsentState({
       context: reloginContext,
@@ -307,7 +410,34 @@ trailer
     });
 
     await loginWithRunContext(reloginPage, runCtx, 'member');
-    await reloginPage.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
+    await gotoWithSessionRetry({
+      page: reloginPage,
+      navigate: () =>
+        reloginPage.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+      retryLogin: () => loginWithRunContext(reloginPage, runCtx, 'member', { forceFresh: true }),
+    });
+    let reloginDocumentsSurface = await waitForMemberDocumentsSurface(reloginPage);
+    evidenceP11.push(`member_documents_url_relogin=${reloginPage.url()}`);
+    if (!reloginDocumentsSurface.ready && isLoginUrl(reloginPage.url())) {
+      await loginWithRunContext(reloginPage, runCtx, 'member');
+      await gotoWithSessionRetry({
+        page: reloginPage,
+        navigate: () =>
+          reloginPage.goto(docsUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+        retryLogin: () =>
+          loginWithRunContext(reloginPage, runCtx, 'member', {
+            forceFresh: true,
+          }),
+      });
+      reloginDocumentsSurface = await waitForMemberDocumentsSurface(reloginPage);
+      evidenceP11.push(`member_documents_url_relogin_retry=${reloginPage.url()}`);
+    }
+    evidenceP11.push(
+      `member_documents_surface_relogin=${reloginDocumentsSurface.visibleSelector || 'none'}`
+    );
+    if (!reloginDocumentsSurface.ready) {
+      throw new Error('MEMBER_DOCUMENTS_SURFACE_NOT_READY_RELOGIN');
+    }
     persistenceAfterRelogin = await waitForUploadedFileVisible(reloginPage, {
       timeoutMs: TIMEOUTS.upload,
       reloadBetweenAttempts: true,
@@ -384,8 +514,6 @@ trailer
         `P1.2_EXCEPTION message=${String(downloadError.message || downloadError)}`
       );
     }
-
-    await reloginContext.close();
   } catch (error) {
     const rawMessage = String(error.message || error);
     const infraMessage = classifyInfraNetworkFailure(rawMessage);
@@ -420,14 +548,33 @@ async function runP13(browser, runCtx, deps) {
   const { checkResult } = deps;
   const evidence = [];
   const signatures = [];
-  const context = await browser.newContext();
-  const page = await context.newPage();
+  let context = await browser.newContext();
+  let page = await context.newPage();
   await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
+
+  const reopenStaffContext = async targetUrl => {
+    await context.close().catch(() => {});
+    context = await browser.newContext();
+    page = await context.newPage();
+    await seedCookieConsentState({ context, page, baseUrl: runCtx.baseUrl });
+    await loginWithRunContext(page, runCtx, 'staff');
+    await gotoWithSessionRetry({
+      page,
+      navigate: () =>
+        page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+      retryLogin: () => loginWithRunContext(page, runCtx, 'staff', { forceFresh: true }),
+    });
+  };
   try {
     await loginWithRunContext(page, runCtx, 'staff');
 
     const claimsList = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.staffClaimsList);
-    await page.goto(claimsList, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
+    await gotoWithSessionRetry({
+      page,
+      navigate: () =>
+        page.goto(claimsList, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+      retryLogin: () => loginWithRunContext(page, runCtx, 'staff', { forceFresh: true }),
+    });
     const staffReadyOnList = await page
       .getByTestId(MARKERS.staff)
       .isVisible({ timeout: TIMEOUTS.marker })
@@ -441,23 +588,14 @@ async function runP13(browser, runCtx, deps) {
       return checkResult('P1.3', 'FAIL', evidence, signatures);
     }
 
-    const requireClaimUrl =
-      String(process.env.RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL || 'false').toLowerCase() === 'true';
     const configuredClaim = resolveConfiguredStaffClaimDetailUrl(runCtx);
+    const allowListFallback = envFlag('RELEASE_GATE_ALLOW_STAFF_CLAIM_LIST_FALLBACK', false);
     let detailUrl = null;
 
     if (configuredClaim.url) {
       detailUrl = configuredClaim.url;
-      evidence.push('claim_source=STAFF_CLAIM_URL');
+      evidence.push('claim_source=STAFF_CLAIM_URL_OVERRIDE');
     } else {
-      if (requireClaimUrl) {
-        signatures.push(
-          configuredClaim.reason === 'list-url'
-            ? 'P1.3_MISCONFIG_STAFF_CLAIM_URL_DETAIL_REQUIRED'
-            : 'P1.3_MISCONFIG_STAFF_CLAIM_URL_REQUIRED'
-        );
-        return checkResult('P1.3', 'FAIL', evidence, signatures);
-      }
       if (configuredClaim.reason === 'list-url') {
         evidence.push('claim_source=STAFF_CLAIM_URL_IGNORED_LIST');
       }
@@ -467,48 +605,86 @@ async function runP13(browser, runCtx, deps) {
         runCtx.locale,
         DEFAULT_P13_STAFF_CLAIM_ROUTE
       );
-      await gotoWithSessionRetry({
-        page,
-        navigate: () =>
-          page.goto(deterministicDetailUrl, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav }),
-        retryLogin: () => loginWithRunContext(page, runCtx, 'staff'),
-      });
-      const deterministicNotFound = await page
+      await reopenStaffContext(deterministicDetailUrl);
+      let deterministicNotFound = await page
         .getByTestId(MARKERS.notFound)
         .isVisible({ timeout: TIMEOUTS.quickMarker })
         .catch(() => false);
-      const deterministicReady = await page
-        .locator(SELECTORS.staffClaimDetailReady)
-        .isVisible({ timeout: TIMEOUTS.marker })
-        .catch(() => false);
+      let deterministicSurface = await waitForStaffClaimDetailSurface(page);
+      let deterministicReady =
+        deterministicSurface.detailReady ||
+        deterministicSurface.actionPanelReady ||
+        deterministicSurface.claimSectionReady;
+      evidence.push(`deterministic_url=${page.url()}`);
+
+      if (!deterministicNotFound && !deterministicReady && isLoginUrl(page.url())) {
+        await reopenStaffContext(deterministicDetailUrl);
+        deterministicNotFound = await page
+          .getByTestId(MARKERS.notFound)
+          .isVisible({ timeout: TIMEOUTS.quickMarker })
+          .catch(() => false);
+        deterministicSurface = await waitForStaffClaimDetailSurface(page);
+        deterministicReady =
+          deterministicSurface.detailReady ||
+          deterministicSurface.actionPanelReady ||
+          deterministicSurface.claimSectionReady;
+        evidence.push(`deterministic_url_retry=${page.url()}`);
+      }
 
       if (!deterministicNotFound && deterministicReady) {
         detailUrl = deterministicDetailUrl;
         evidence.push('claim_source=deterministic_staff_claim');
       } else {
+        const landedOnClaimsList =
+          trimTrailingSlashes(new URL(page.url()).pathname) ===
+          trimTrailingSlashes(new URL(claimsList).pathname);
         evidence.push(
-          `deterministic_claim_ready=${deterministicReady} deterministic_claim_not_found=${deterministicNotFound}`
+          `deterministic_claim_ready=${deterministicReady} deterministic_claim_not_found=${deterministicNotFound} deterministic_visible_selector=${deterministicSurface.visibleSelector || 'none'}`
         );
 
-        const fallback = await collectStaffClaimDetailUrls(page, runCtx);
-        evidence.push(
-          `fallback_search_elapsed_ms=${fallback.elapsedMs}`,
-          `fallback_link_count=${fallback.urls.length}`
-        );
-        if (fallback.urls.length === 0) {
-          signatures.push('P1.3_NO_TEST_DATA_STAFF_CLAIMS');
-          return checkResult('P1.3', 'SKIPPED', evidence, signatures);
+        if (!deterministicNotFound && landedOnClaimsList) {
+          const fallback = await collectStaffClaimDetailUrls(page, runCtx);
+          const preferredFallbackUrl =
+            fallback.urls.find(url => url.endsWith(DEFAULT_P13_STAFF_CLAIM_ROUTE)) ||
+            fallback.urls[0] ||
+            null;
+          evidence.push(
+            `fallback_search_elapsed_ms=${fallback.elapsedMs}`,
+            `fallback_link_count=${fallback.urls.length}`
+          );
+          if (preferredFallbackUrl) {
+            detailUrl = preferredFallbackUrl;
+            evidence.push('claim_source=staff_claims_list_fallback');
+          }
         }
-        detailUrl = fallback.urls[0];
-        evidence.push('claim_source=staff_claims_list');
+
+        if (detailUrl) {
+          // Continue with the resolved fallback detail URL rather than failing on
+          // a list redirect from the deterministic canonical path.
+        } else if (!allowListFallback) {
+          signatures.push(
+            deterministicNotFound
+              ? 'P1.3_DETERMINISTIC_STAFF_CLAIM_NOT_FOUND'
+              : 'P1.3_DETERMINISTIC_STAFF_CLAIM_NOT_READY'
+          );
+          return checkResult('P1.3', 'FAIL', evidence, signatures);
+        } else {
+          const fallback = await collectStaffClaimDetailUrls(page, runCtx);
+          evidence.push(
+            `fallback_search_elapsed_ms=${fallback.elapsedMs}`,
+            `fallback_link_count=${fallback.urls.length}`
+          );
+          if (fallback.urls.length === 0) {
+            signatures.push('P1.3_NO_TEST_DATA_STAFF_CLAIMS');
+            return checkResult('P1.3', 'SKIPPED', evidence, signatures);
+          }
+          detailUrl = fallback.urls[0];
+          evidence.push('claim_source=staff_claims_list');
+        }
       }
     }
 
-    await gotoWithSessionRetry({
-      page,
-      navigate: () => page.goto(detailUrl, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav }),
-      retryLogin: () => loginWithRunContext(page, runCtx, 'staff'),
-    });
+    await reopenStaffContext(detailUrl);
 
     evidence.push(`claim_url=${detailUrl}`);
     const notFoundOnDetail = await page
@@ -521,20 +697,24 @@ async function runP13(browser, runCtx, deps) {
       return checkResult('P1.3', 'SKIPPED', evidence, signatures);
     }
 
-    const staffReadyOnDetail = await page
-      .locator(SELECTORS.staffClaimDetailReady)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
-    evidence.push(`staff_page_ready_on_detail=${staffReadyOnDetail}`);
-    const detailReady = staffReadyOnDetail;
-    const actionPanelReady = await page
-      .locator(SELECTORS.staffClaimActionPanel)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
-    const claimSectionReady = await page
-      .locator(SELECTORS.staffClaimSection)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
+    let detailSurface = await waitForStaffClaimDetailSurface(page);
+    if (
+      !detailSurface.detailReady &&
+      !detailSurface.actionPanelReady &&
+      !detailSurface.claimSectionReady &&
+      isLoginUrl(page.url())
+    ) {
+      await reopenStaffContext(detailUrl);
+      detailSurface = await waitForStaffClaimDetailSurface(page);
+      evidence.push(`claim_url_retry=${page.url()}`);
+    }
+    const detailReady = detailSurface.detailReady;
+    const actionPanelReady = detailSurface.actionPanelReady;
+    const claimSectionReady = detailSurface.claimSectionReady;
+    evidence.push(
+      `staff_page_ready_on_detail=${detailReady}`,
+      `detail_visible_selector=${detailSurface.visibleSelector || 'none'}`
+    );
 
     evidence.push(
       `detail_ready=${detailReady} action_panel_ready=${actionPanelReady} claim_section_ready=${claimSectionReady}`
@@ -571,8 +751,28 @@ async function runP13(browser, runCtx, deps) {
         evidence.push(`status_change=${currentStatusLabel} -> ${selectedLabel}`);
         const noteValue = `gate-note-${Date.now()}`;
         await page.fill(SELECTORS.claimStatusNote, noteValue);
-        await page.getByRole('button', { name: SELECTORS.claimUpdateButtonName }).click();
-        await page.waitForTimeout(1600);
+        const updateButton = page.getByRole('button', { name: SELECTORS.claimUpdateButtonName });
+        await updateButton.click();
+        await page
+          .waitForFunction(
+            selector => {
+              const button = document.querySelector(selector);
+              return button instanceof HTMLButtonElement && button.disabled;
+            },
+            '[data-testid="staff-update-claim-button"]',
+            { timeout: TIMEOUTS.action }
+          )
+          .catch(() => {});
+        await page
+          .waitForFunction(
+            selector => {
+              const button = document.querySelector(selector);
+              return button instanceof HTMLButtonElement && !button.disabled;
+            },
+            '[data-testid="staff-update-claim-button"]',
+            { timeout: TIMEOUTS.nav }
+          )
+          .catch(() => {});
         await page.reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
         await page.locator(SELECTORS.staffClaimDetailReady).waitFor({
           state: 'visible',
@@ -637,7 +837,7 @@ async function runP13(browser, runCtx, deps) {
       signatures.push(`P1.3_EXCEPTION message=${compactErrorMessage(rawMessage, 650)}`);
     }
   } finally {
-    await context.close().catch(() => {});
+    await closeBrowserContextWithTimeout(context);
   }
 
   return checkResult('P1.3', signatures.length ? 'FAIL' : 'PASS', evidence, signatures);

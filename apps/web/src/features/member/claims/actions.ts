@@ -6,6 +6,7 @@ import {
 } from '@/lib/ai/claim-workflows';
 import { auth } from '@/lib/auth';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
+import { LOCALES } from '@/i18n/locales';
 import { claimDocuments, claims, db } from '@interdomestik/database';
 import { queueClaimDocumentAiWorkflows } from '@interdomestik/domain-claims/claims/ai-workflows';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -272,6 +273,12 @@ async function enqueueDocumentAiWorkflowsBestEffort(input: {
   }
 }
 
+function revalidatePathForAllLocales(path: string) {
+  for (const locale of LOCALES) {
+    revalidatePath(`/${locale}${path}`);
+  }
+}
+
 export async function confirmUpload({
   claimId,
   storagePath,
@@ -341,8 +348,8 @@ export async function confirmUpload({
       userId: session.user.id,
     });
 
-    revalidatePath(`/[locale]/(app)/member/claims/${claimId}`);
-    revalidatePath('/[locale]/(app)/member/documents');
+    revalidatePathForAllLocales(`/member/claims/${claimId}`);
+    revalidatePathForAllLocales('/member/documents');
     return { success: true };
   } catch (err) {
     console.error('confirmUpload error:', err);
