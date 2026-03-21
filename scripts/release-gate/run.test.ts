@@ -1157,7 +1157,7 @@ test('inspectStaffDetailScenario accepts a delayed staff detail marker when the 
     url: () => 'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_16',
     getByTestId(testId) {
       return {
-        isVisible: async () => testId !== 'staff-claim-detail-ready',
+        isVisible: async () => testId !== 'staff-claim-detail-ready' && testId !== 'not-found-page',
         innerText: async () => {
           if (testId === 'staff-accepted-recovery-prerequisites') {
             return 'Agreement Ready Collection path Ready';

@@ -533,8 +533,11 @@ trailer
       evidenceP11.push(`client signals: ${clientSignals.join(' || ')}`);
       signaturesP11.push(`P1.1_CLIENT_SIGNAL ${clientSignals[0]}`);
     }
-    await context.close().catch(() => {});
   } finally {
+    if (reloginContext && reloginContext !== context) {
+      await closeBrowserContextWithTimeout(reloginContext);
+    }
+    await closeBrowserContextWithTimeout(context);
     fs.rmSync(uploadPath, { force: true });
   }
 
@@ -837,9 +840,6 @@ async function runP13(browser, runCtx, deps) {
       signatures.push(`P1.3_EXCEPTION message=${compactErrorMessage(rawMessage, 650)}`);
     }
   } finally {
-    if (reloginContext && reloginContext !== context) {
-      await closeBrowserContextWithTimeout(reloginContext);
-    }
     await closeBrowserContextWithTimeout(context);
   }
 
