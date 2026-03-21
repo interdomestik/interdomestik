@@ -1,4 +1,5 @@
 const { ACCOUNTS, MARKERS, ROUTES, SELECTORS, TIMEOUTS } = require('./config.ts');
+const { gotoWithSessionRetry, loginWithRunContext } = require('./session-navigation.ts');
 const {
   assertUrlMarkers,
   buildRoute,
@@ -6,12 +7,23 @@ const {
   checkResult,
   collectMarkersWithWait,
   expectedMatrixForAccount,
-  loginAs,
   markerSummary,
   markersToString,
   sleep,
   waitForReadyMarker,
 } = require('./shared.ts');
+
+const INFRA_NAVIGATION_ERROR_PATTERNS = [
+  /ERR_CONNECTION_REFUSED/i,
+  /ERR_CONNECTION_TIMED_OUT/i,
+  /ECONNREFUSED/i,
+  /ETIMEDOUT/i,
+  /Timeout \d+ms exceeded/i,
+  /ENOTFOUND/i,
+  /EAI_AGAIN/i,
+  /ECONNRESET/i,
+  /socket hang up/i,
+];
 
 const DEFAULT_SCENARIO_EXPECTED_MARKERS = {
   member: '-',
@@ -24,6 +36,34 @@ const DEFAULT_SCENARIO_EXPECTED_MARKERS = {
 
 function mismatchSignatureFor(id, mismatch) {
   return `P0.6_${id}_MARKER_MISMATCH ${mismatch}`;
+}
+
+function isInfraNavigationFailure(raw) {
+  const message = String(raw || '')
+    .replaceAll(/\s+/g, ' ')
+    .trim();
+  if (!message) return false;
+  return INFRA_NAVIGATION_ERROR_PATTERNS.some(pattern => pattern.test(message));
+}
+
+async function runCheckWithInfraRetry(run, options = {}) {
+  const maxAttempts = options.maxAttempts || 2;
+  const retryDelayMs = options.retryDelayMs || 1_500;
+
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await run(attempt);
+    } catch (error) {
+      lastError = error;
+      if (!isInfraNavigationFailure(error?.message || error) || attempt >= maxAttempts) {
+        throw error;
+      }
+      await sleep(retryDelayMs * attempt);
+    }
+  }
+
+  throw lastError || new Error('unreachable infra retry state');
 }
 
 function resolveTenantOverrideProbeUrl(runCtx) {
@@ -99,9 +139,14 @@ async function runP01(browser, runCtx, deps) {
       const matrix = expectedMatrixForAccount(account);
       for (const portal of ROUTES.rbacTargets) {
         const route = `/${portal}`;
-        await page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, route), {
-          waitUntil: 'domcontentloaded',
-          timeout: TIMEOUTS.nav,
+        await gotoWithSessionRetry({
+          page,
+          navigate: () =>
+            page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, route), {
+              waitUntil: 'domcontentloaded',
+              timeout: TIMEOUTS.nav,
+            }),
+          retryLogin: () => loginWithRunContext(page, runCtx, account),
         });
         await page.waitForTimeout(450);
 
@@ -134,37 +179,46 @@ async function runP02(browser, runCtx, deps) {
   const { loginWithRunContext } = deps;
   const evidence = [];
   const failures = [];
-  const context = await browser.newContext();
-  const page = await context.newPage();
   try {
-    await loginWithRunContext(page, runCtx, 'admin_mk');
+    await runCheckWithInfraRetry(async attempt => {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      try {
+        await loginWithRunContext(page, runCtx, 'admin_mk');
 
-    const route = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.crossTenantProbe);
-    await page.goto(route, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-    await page.waitForTimeout(500);
+        const route = buildRoute(runCtx.baseUrl, runCtx.locale, ROUTES.crossTenantProbe);
+        await gotoWithSessionRetry({
+          page,
+          navigate: () =>
+            page.goto(route, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+          retryLogin: () => loginWithRunContext(page, runCtx, 'admin_mk', { forceFresh: true }),
+        });
+        await page.waitForTimeout(500);
 
-    const notFoundVisible = await page
-      .getByTestId(MARKERS.notFound)
-      .isVisible({ timeout: TIMEOUTS.quickMarker })
-      .catch(() => false);
-    const rolesTableVisible = await page
-      .locator(SELECTORS.userRolesTable)
-      .isVisible({ timeout: TIMEOUTS.quickMarker })
-      .catch(() => false);
+        const notFoundVisible = await page
+          .getByTestId(MARKERS.notFound)
+          .isVisible({ timeout: TIMEOUTS.quickMarker })
+          .catch(() => false);
+        const rolesTableVisible = await page
+          .locator(SELECTORS.userRolesTable)
+          .isVisible({ timeout: TIMEOUTS.quickMarker })
+          .catch(() => false);
 
-    evidence.push(
-      `route=${route} not-found-page=${notFoundVisible} user-roles-table=${rolesTableVisible}`
-    );
+        evidence.push(
+          `attempt=${attempt} route=${route} not-found-page=${notFoundVisible} user-roles-table=${rolesTableVisible}`
+        );
 
-    if (!notFoundVisible && rolesTableVisible) {
-      failures.push(
-        `P0.2_CROSS_TENANT_BREACH route=/${runCtx.locale}${ROUTES.crossTenantProbe} not_found=${notFoundVisible} roles_table=${rolesTableVisible}`
-      );
-    }
+        if (!notFoundVisible && rolesTableVisible) {
+          failures.push(
+            `P0.2_CROSS_TENANT_BREACH route=/${runCtx.locale}${ROUTES.crossTenantProbe} not_found=${notFoundVisible} roles_table=${rolesTableVisible}`
+          );
+        }
+      } finally {
+        await context.close();
+      }
+    });
   } catch (error) {
     failures.push(`P0.2_EXCEPTION message=${String(error.message || error)}`);
-  } finally {
-    await context.close();
   }
   return checkResult('P0.2', failures.length ? 'FAIL' : 'PASS', evidence, failures);
 }
@@ -264,14 +318,10 @@ async function runP03AndP04(browser, runCtx, deps) {
     ];
   }
 
-  const context = await browser.newContext();
-  const page = await context.newPage();
-
   const rolePanelTarget = resolveConfiguredRolePanelTarget(runCtx);
   const hasExplicitTarget = rolePanelTarget.source !== 'default';
   const targetUrl = rolePanelTarget.targetUrl;
-
-  async function waitForRolePanelVisible(timeoutMs = TIMEOUTS.nav) {
+  async function waitForRolePanelVisible(page, timeoutMs = TIMEOUTS.nav) {
     const startedAt = Date.now();
 
     while (Date.now() - startedAt < timeoutMs) {
@@ -299,14 +349,19 @@ async function runP03AndP04(browser, runCtx, deps) {
     return false;
   }
 
-  async function tryRolePanelTarget(targetUrl) {
-    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav });
-    const visible = await waitForRolePanelVisible(TIMEOUTS.nav);
+  async function tryRolePanelTarget(page, targetUrl) {
+    await gotoWithSessionRetry({
+      page,
+      navigate: () =>
+        page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+      retryLogin: () => loginWithRunContext(page, runCtx, 'admin_ks'),
+    });
+    const visible = await waitForRolePanelVisible(page, TIMEOUTS.nav);
     return visible ? page.url() : null;
   }
 
-  async function ensureRolePanelLoaded(initialTargetUrl) {
-    const initialResolved = await tryRolePanelTarget(initialTargetUrl).catch(() => null);
+  async function ensureRolePanelLoaded(page, initialTargetUrl) {
+    const initialResolved = await tryRolePanelTarget(page, initialTargetUrl).catch(() => null);
     if (initialResolved) return initialResolved;
 
     if (hasExplicitTarget && !rolePanelTarget.allowFallbackDiscovery) return null;
@@ -319,13 +374,18 @@ async function runP03AndP04(browser, runCtx, deps) {
     const uniqueTargets = [...new Set(fallbackSeedTargets.filter(Boolean))];
 
     for (const target of uniqueTargets) {
-      const resolved = await tryRolePanelTarget(target).catch(() => null);
+      const resolved = await tryRolePanelTarget(page, target).catch(() => null);
       if (resolved) return resolved;
     }
 
-    await page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users'), {
-      waitUntil: 'domcontentloaded',
-      timeout: TIMEOUTS.nav,
+    await gotoWithSessionRetry({
+      page,
+      navigate: () =>
+        page.goto(buildRoute(runCtx.baseUrl, runCtx.locale, '/admin/users'), {
+          waitUntil: 'domcontentloaded',
+          timeout: TIMEOUTS.nav,
+        }),
+      retryLogin: () => loginWithRunContext(page, runCtx, 'admin_ks'),
     });
     await page
       .getByTestId('admin-users-page')
@@ -344,7 +404,7 @@ async function runP03AndP04(browser, runCtx, deps) {
 
     for (const href of profileHrefs) {
       const candidateUrl = buildRouteAllowingLocalePath(runCtx.baseUrl, runCtx.locale, href);
-      const resolved = await tryRolePanelTarget(candidateUrl).catch(() => null);
+      const resolved = await tryRolePanelTarget(page, candidateUrl).catch(() => null);
       if (resolved) return resolved;
     }
 
@@ -352,80 +412,83 @@ async function runP03AndP04(browser, runCtx, deps) {
   }
 
   try {
-    await loginWithRunContext(page, runCtx, 'admin_ks');
+    await runCheckWithInfraRetry(async attempt => {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      try {
+        await loginWithRunContext(page, runCtx, 'admin_ks');
 
-    const resolvedTarget = await ensureRolePanelLoaded(targetUrl);
-    evidenceP03.push(
-      `target_source=${rolePanelTarget.source}`,
-      `target_fallback_allowed=${rolePanelTarget.allowFallbackDiscovery}`
-    );
-    if (!resolvedTarget) {
-      failuresP03.push(`P0.3_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
-      failuresP04.push(`P0.4_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
-      return [
-        checkResult('P0.3', 'FAIL', evidenceP03, failuresP03),
-        checkResult('P0.4', 'FAIL', evidenceP04, failuresP04),
-      ];
-    }
-    await page
-      .locator(SELECTORS.roleSelectTrigger)
-      .waitFor({ state: 'visible', timeout: TIMEOUTS.marker });
+        const resolvedTarget = await ensureRolePanelLoaded(page, targetUrl);
+        evidenceP03.push(
+          `attempt=${attempt} target_source=${rolePanelTarget.source}`,
+          `target_fallback_allowed=${rolePanelTarget.allowFallbackDiscovery}`
+        );
+        if (!resolvedTarget) {
+          failuresP03.push(`P0.3_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
+          failuresP04.push(`P0.4_ROLE_PANEL_UNAVAILABLE target=${targetUrl}`);
+          return;
+        }
+        await page
+          .locator(SELECTORS.roleSelectTrigger)
+          .waitFor({ state: 'visible', timeout: TIMEOUTS.marker });
 
-    let cleanupCount = 0;
-    while (cleanupCount < 4) {
-      const removed = await removeRoleFromTable(page, roleToToggle);
-      if (!removed) break;
-      cleanupCount += 1;
-    }
-    evidenceP03.push(
-      `target=${resolvedTarget}`,
-      `pre-clean removed_existing_role_entries=${cleanupCount}`
-    );
+        let cleanupCount = 0;
+        while (cleanupCount < 4) {
+          const removed = await removeRoleFromTable(page, roleToToggle);
+          if (!removed) break;
+          cleanupCount += 1;
+        }
+        evidenceP03.push(
+          `target=${resolvedTarget}`,
+          `pre-clean removed_existing_role_entries=${cleanupCount}`
+        );
 
-    await addRole(page, roleToToggle);
-    const afterAddStart = Date.now();
-    let afterAdd = false;
-    while (Date.now() - afterAddStart < TIMEOUTS.marker) {
-      afterAdd = await page
-        .locator(SELECTORS.userRolesTable)
-        .getByText(new RegExp(String.raw`\b${roleToToggle}\b`, 'i'))
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (afterAdd) break;
-      await sleep(300);
-    }
-    evidenceP03.push(`added_role=${roleToToggle} visible_in_roles_table=${afterAdd}`);
-    if (!afterAdd) {
-      failuresP03.push(`P0.3_ROLE_ADD_FAILED role=${roleToToggle} target=${resolvedTarget}`);
-    }
+        await addRole(page, roleToToggle);
+        const afterAddStart = Date.now();
+        let afterAdd = false;
+        while (Date.now() - afterAddStart < TIMEOUTS.marker) {
+          afterAdd = await page
+            .locator(SELECTORS.userRolesTable)
+            .getByText(new RegExp(String.raw`\b${roleToToggle}\b`, 'i'))
+            .isVisible({ timeout: TIMEOUTS.quickMarker })
+            .catch(() => false);
+          if (afterAdd) break;
+          await sleep(300);
+        }
+        evidenceP03.push(`added_role=${roleToToggle} visible_in_roles_table=${afterAdd}`);
+        if (!afterAdd) {
+          failuresP03.push(`P0.3_ROLE_ADD_FAILED role=${roleToToggle} target=${resolvedTarget}`);
+        }
 
-    const removedAddedRole = await removeRoleFromTable(page, roleToToggle);
-    if (!removedAddedRole) {
-      failuresP04.push(
-        `P0.4_ROLE_REMOVE_CLICK_FAILED role=${roleToToggle} target=${resolvedTarget}`
-      );
-    }
+        const removedAddedRole = await removeRoleFromTable(page, roleToToggle);
+        if (!removedAddedRole) {
+          failuresP04.push(
+            `P0.4_ROLE_REMOVE_CLICK_FAILED role=${roleToToggle} target=${resolvedTarget}`
+          );
+        }
 
-    const removalStart = Date.now();
-    let stillVisible = true;
-    while (Date.now() - removalStart < TIMEOUTS.marker) {
-      stillVisible = await page
-        .locator(SELECTORS.userRolesTable)
-        .getByText(new RegExp(String.raw`\b${roleToToggle}\b`, 'i'))
-        .isVisible({ timeout: TIMEOUTS.quickMarker })
-        .catch(() => false);
-      if (!stillVisible) break;
-      await sleep(300);
-    }
-    evidenceP04.push(`removed_role=${roleToToggle} remaining_in_roles_table=${stillVisible}`);
-    if (stillVisible) {
-      failuresP04.push(`P0.4_ROLE_REMOVE_FAILED role=${roleToToggle} target=${resolvedTarget}`);
-    }
+        const removalStart = Date.now();
+        let stillVisible = true;
+        while (Date.now() - removalStart < TIMEOUTS.marker) {
+          stillVisible = await page
+            .locator(SELECTORS.userRolesTable)
+            .getByText(new RegExp(String.raw`\b${roleToToggle}\b`, 'i'))
+            .isVisible({ timeout: TIMEOUTS.quickMarker })
+            .catch(() => false);
+          if (!stillVisible) break;
+          await sleep(300);
+        }
+        evidenceP04.push(`removed_role=${roleToToggle} remaining_in_roles_table=${stillVisible}`);
+        if (stillVisible) {
+          failuresP04.push(`P0.4_ROLE_REMOVE_FAILED role=${roleToToggle} target=${resolvedTarget}`);
+        }
+      } finally {
+        await context.close();
+      }
+    });
   } catch (error) {
     failuresP03.push(`P0.3_EXCEPTION message=${String(error.message || error)}`);
     failuresP04.push(`P0.4_EXCEPTION message=${String(error.message || error)}`);
-  } finally {
-    await context.close();
   }
 
   return [
@@ -663,7 +726,11 @@ async function runP06(browser, runCtx, deps) {
   try {
     await withAccount('agent', async page => {
       const url = buildRoute(runCtx.baseUrl, runCtx.locale, '/agent');
-      await page.goto(url, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
+      await gotoWithSessionRetry({
+        page,
+        navigate: () => page.goto(url, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav }),
+        retryLogin: () => loginWithRunContext(page, runCtx, 'agent'),
+      });
       await waitForReadyMarker(page, 10_000);
       const candidateSelectors = [
         '[data-testid="session-roles"]',
@@ -740,6 +807,8 @@ async function runP06(browser, runCtx, deps) {
 }
 
 module.exports = {
+  isInfraNavigationFailure,
+  runCheckWithInfraRetry,
   resolveConfiguredRolePanelTarget,
   resolveTenantOverrideProbeUrl,
   runP01,

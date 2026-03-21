@@ -12,7 +12,7 @@
 - Change summary:
 - Deterministic scripted release gate run
 - Scope: ALL (P0.1, P0.2, P0.3, P0.4, P0.6, P1.1, P1.2, P1.3, P1.5.1, G07, G08, G09, G10)
-- Generated at: 2026-03-21T10:30:44.360Z
+- Generated at: 2026-03-21T15:54:44.565Z
 
 ## Preconditions
 
@@ -77,7 +77,7 @@ Evidence:
 
 Observed:
 
-- route=https://interdomestik-web.vercel.app/en/admin/users/golden_ks_staff?tenantId=tenant_ks not-found-page=true user-roles-table=false
+- attempt=1 route=https://interdomestik-web.vercel.app/en/admin/users/golden_ks_staff?tenantId=tenant_ks not-found-page=true user-roles-table=false
 
 ## P0.3 Admin Role Assignment Works
 
@@ -85,7 +85,7 @@ Observed:
 
 Observed:
 
-- target_source=env-cross-tenant-probe
+- attempt=1 target_source=env-cross-tenant-probe
 - target_fallback_allowed=true
 - target=https://interdomestik-web.vercel.app/en/admin/users/golden_ks_a_member_1
 - pre-clean removed_existing_role_entries=0
@@ -196,7 +196,6 @@ Observed:
 - member_documents_surface_relogin=[data-testid="member-documents-page-ready"]
 - after logout/login listed=true
 - signed upload statuses: 200@[REDACTED_SIGNED_URL]
-- client signals: console.error: Failed to load resource: the server responded with a status of 429 ()
 
 ## P1.2 Member Evidence Download Works
 
@@ -205,7 +204,7 @@ Observed:
 Observed:
 
 - download response 200 observed=true
-- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/4fc6786b-dd49-4cec-9b0d-03a8789c0edd/download
+- download response statuses: 200@https://interdomestik-web.vercel.app/api/documents/ff95c24b-4b0b-459e-9014-94fb0e0f0ca0/download
 - inline/open action succeeded=true
 
 ## P1.3 Staff Claim Update Persistence (Status + Note)
@@ -216,6 +215,7 @@ Observed:
 
 - staff_claims_list_url=https://interdomestik-web.vercel.app/en/staff/claims
 - staff_page_ready_on_list=true
+- staff_list_visible_selector=[data-testid="staff-page-ready"]
 - claim_source=STAFF_CLAIM_URL_IGNORED_LIST
 - deterministic_url=https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_05
 - claim_source=deterministic_staff_claim
@@ -225,7 +225,7 @@ Observed:
 - detail_visible_selector=[data-testid="staff-claim-detail-ready"]
 - detail_ready=true action_panel_ready=false claim_section_ready=false
 - status_change= -> Submitted
-- note persisted=true note="gate-note-1774088904615"
+- note persisted=true note="gate-note-1774108352561"
 - status persisted=true expected="Submitted" actual="Submitted"
 
 ---
