@@ -524,11 +524,19 @@ test('parseVercelRuntimeJsonLines keeps valid JSON entries and ignores banner no
 });
 
 test('resolveVercelExecutable prefers an explicit absolute env override and returns null when no candidate exists', () => {
+  const missingWorkspaceBin = path.join(
+    process.cwd(),
+    '.test-fixtures',
+    'missing-vercel-bin',
+    'vercel'
+  );
+  const missingWorkspacePnpmHome = path.join(process.cwd(), '.test-fixtures', 'missing-pnpm-home');
+
   assert.equal(resolveVercelExecutable({ VERCEL_BIN: process.execPath }), process.execPath);
   assert.equal(
     resolveVercelExecutable({
-      VERCEL_BIN: '/tmp/definitely-missing-vercel',
-      PNPM_HOME: '/tmp/also-missing-pnpm-home',
+      VERCEL_BIN: missingWorkspaceBin,
+      PNPM_HOME: missingWorkspacePnpmHome,
     }),
     null
   );
