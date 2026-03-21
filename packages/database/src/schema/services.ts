@@ -94,6 +94,10 @@ export const memberReferralRewards = pgTable(
       sql`${table.rewardPercentBps} is null or ${table.rewardPercentBps} >= 0`
     ),
     check(
+      'member_referral_rewards_reward_percent_bps_max',
+      sql`${table.rewardPercentBps} is null or ${table.rewardPercentBps} <= 10000`
+    ),
+    check(
       'member_referral_rewards_reward_type_check',
       sql`${table.rewardType} in ('fixed', 'percent')`
     ),
@@ -132,14 +136,16 @@ export const memberReferralSettings = pgTable(
     rewardType: text('reward_type', { enum: memberReferralRewardTypeValues })
       .notNull()
       .default('fixed'),
-    fixedRewardCents: integer('fixed_reward_cents'),
+    fixedRewardCents: integer('fixed_reward_cents').notNull().default(0),
     percentRewardBps: integer('percent_reward_bps'),
     referredMemberRewardType: text('referred_member_reward_type', {
       enum: memberReferralRewardTypeValues,
     })
       .notNull()
       .default('fixed'),
-    referredMemberFixedRewardCents: integer('referred_member_fixed_reward_cents'),
+    referredMemberFixedRewardCents: integer('referred_member_fixed_reward_cents')
+      .notNull()
+      .default(0),
     referredMemberPercentRewardBps: integer('referred_member_percent_reward_bps'),
     settlementMode: text('settlement_mode', { enum: memberReferralSettlementModeValues })
       .notNull()
@@ -162,12 +168,20 @@ export const memberReferralSettings = pgTable(
       sql`${table.percentRewardBps} is null or ${table.percentRewardBps} >= 0`
     ),
     check(
+      'member_referral_settings_percent_reward_bps_max',
+      sql`${table.percentRewardBps} is null or ${table.percentRewardBps} <= 10000`
+    ),
+    check(
       'member_referral_settings_referred_fixed_reward_cents_non_negative',
       sql`${table.referredMemberFixedRewardCents} is null or ${table.referredMemberFixedRewardCents} >= 0`
     ),
     check(
       'member_referral_settings_referred_percent_reward_bps_non_negative',
       sql`${table.referredMemberPercentRewardBps} is null or ${table.referredMemberPercentRewardBps} >= 0`
+    ),
+    check(
+      'member_referral_settings_referred_percent_reward_bps_max',
+      sql`${table.referredMemberPercentRewardBps} is null or ${table.referredMemberPercentRewardBps} <= 10000`
     ),
     check(
       'member_referral_settings_payout_threshold_cents_non_negative',

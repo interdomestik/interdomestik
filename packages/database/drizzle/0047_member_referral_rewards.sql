@@ -27,10 +27,10 @@ CREATE TABLE "member_referral_settings" (
 	"tenant_id" text NOT NULL,
 	"enabled" boolean DEFAULT false NOT NULL,
 	"reward_type" text DEFAULT 'fixed' NOT NULL,
-	"fixed_reward_cents" integer,
+	"fixed_reward_cents" integer DEFAULT 0 NOT NULL,
 	"percent_reward_bps" integer,
 	"referred_member_reward_type" text DEFAULT 'fixed' NOT NULL,
-	"referred_member_fixed_reward_cents" integer,
+	"referred_member_fixed_reward_cents" integer DEFAULT 0 NOT NULL,
 	"referred_member_percent_reward_bps" integer,
 	"settlement_mode" text DEFAULT 'credit_only' NOT NULL,
 	"payout_threshold_cents" integer DEFAULT 0 NOT NULL,
@@ -51,14 +51,17 @@ ALTER TABLE "member_referral_rewards" ADD CONSTRAINT "member_referral_rewards_re
 ALTER TABLE "member_referral_rewards" ADD CONSTRAINT "member_referral_rewards_referred_tenant_id_referred_member_id_fk" FOREIGN KEY ("tenant_id","referred_member_id") REFERENCES "public"."user"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "member_referral_rewards" ADD CONSTRAINT "member_referral_rewards_reward_cents_non_negative" CHECK ("reward_cents" >= 0);--> statement-breakpoint
 ALTER TABLE "member_referral_rewards" ADD CONSTRAINT "member_referral_rewards_reward_percent_bps_non_negative" CHECK ("reward_percent_bps" IS NULL OR "reward_percent_bps" >= 0);--> statement-breakpoint
+ALTER TABLE "member_referral_rewards" ADD CONSTRAINT "member_referral_rewards_reward_percent_bps_max" CHECK ("reward_percent_bps" IS NULL OR "reward_percent_bps" <= 10000);--> statement-breakpoint
 ALTER TABLE "member_referral_rewards" ADD CONSTRAINT "member_referral_rewards_reward_type_check" CHECK ("reward_type" IN ('fixed', 'percent'));--> statement-breakpoint
 ALTER TABLE "member_referral_rewards" ADD CONSTRAINT "member_referral_rewards_reward_amount_check" CHECK ((("reward_type" = 'fixed' AND "reward_percent_bps" IS NULL AND "reward_cents" IS NOT NULL) OR ("reward_type" = 'percent' AND "reward_percent_bps" IS NOT NULL AND "reward_cents" IS NOT NULL)));--> statement-breakpoint
 ALTER TABLE "member_referral_rewards" ADD CONSTRAINT "member_referral_rewards_status_check" CHECK ("status" IN ('pending', 'approved', 'credited', 'paid', 'void'));--> statement-breakpoint
 ALTER TABLE "member_referral_settings" ADD CONSTRAINT "member_referral_settings_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "member_referral_settings" ADD CONSTRAINT "member_referral_settings_fixed_reward_cents_non_negative" CHECK ("fixed_reward_cents" IS NULL OR "fixed_reward_cents" >= 0);--> statement-breakpoint
 ALTER TABLE "member_referral_settings" ADD CONSTRAINT "member_referral_settings_percent_reward_bps_non_negative" CHECK ("percent_reward_bps" IS NULL OR "percent_reward_bps" >= 0);--> statement-breakpoint
+ALTER TABLE "member_referral_settings" ADD CONSTRAINT "member_referral_settings_percent_reward_bps_max" CHECK ("percent_reward_bps" IS NULL OR "percent_reward_bps" <= 10000);--> statement-breakpoint
 ALTER TABLE "member_referral_settings" ADD CONSTRAINT "member_referral_settings_referred_fixed_reward_cents_non_negative" CHECK ("referred_member_fixed_reward_cents" IS NULL OR "referred_member_fixed_reward_cents" >= 0);--> statement-breakpoint
 ALTER TABLE "member_referral_settings" ADD CONSTRAINT "member_referral_settings_referred_percent_reward_bps_non_negative" CHECK ("referred_member_percent_reward_bps" IS NULL OR "referred_member_percent_reward_bps" >= 0);--> statement-breakpoint
+ALTER TABLE "member_referral_settings" ADD CONSTRAINT "member_referral_settings_referred_percent_reward_bps_max" CHECK ("referred_member_percent_reward_bps" IS NULL OR "referred_member_percent_reward_bps" <= 10000);--> statement-breakpoint
 ALTER TABLE "member_referral_settings" ADD CONSTRAINT "member_referral_settings_payout_threshold_cents_non_negative" CHECK ("payout_threshold_cents" >= 0);--> statement-breakpoint
 ALTER TABLE "member_referral_settings" ADD CONSTRAINT "member_referral_settings_reward_type_check" CHECK ("reward_type" IN ('fixed', 'percent'));--> statement-breakpoint
 ALTER TABLE "member_referral_settings" ADD CONSTRAINT "member_referral_settings_reward_amount_check" CHECK ((("reward_type" = 'fixed' AND "fixed_reward_cents" IS NOT NULL AND "percent_reward_bps" IS NULL) OR ("reward_type" = 'percent' AND "percent_reward_bps" IS NOT NULL AND "fixed_reward_cents" IS NULL)));--> statement-breakpoint
