@@ -5,6 +5,43 @@ import { goldenId, packId } from '../seed-utils/seed-ids';
 import { inArray, sql } from 'drizzle-orm';
 import type { SeedConfig } from '../seed-types';
 
+const TRANSIENT_DB_WRITE_ERROR_CODES = new Set(['EADDRNOTAVAIL', 'ECONNRESET', 'ETIMEDOUT']);
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isTransientDbWriteError(error: unknown): boolean {
+  const err = error as { code?: string; cause?: { code?: string } };
+  return (
+    TRANSIENT_DB_WRITE_ERROR_CODES.has(String(err?.code || '')) ||
+    TRANSIENT_DB_WRITE_ERROR_CODES.has(String(err?.cause?.code || ''))
+  );
+}
+
+async function withTransientDbWriteRetry<T>(label: string, run: () => Promise<T>): Promise<T> {
+  const maxAttempts = 3;
+  let attempt = 0;
+
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    try {
+      return await run();
+    } catch (error) {
+      if (!isTransientDbWriteError(error) || attempt >= maxAttempts) {
+        throw error;
+      }
+      const delayMs = attempt * 200;
+      console.warn(
+        `[seed:ks-workflow] transient db write failure for ${label}; retrying attempt ${attempt + 1}/${maxAttempts} after ${delayMs}ms`
+      );
+      await sleep(delayMs);
+    }
+  }
+
+  throw new Error(`unreachable retry state for ${label}`);
+}
+
 export async function seedKsWorkflowPack(config: SeedConfig) {
   console.log('🇽🇰 Seeding Kosovo Workflow Pack (Overlay)...');
 
@@ -338,21 +375,23 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
     ];
     for (const d of docs) {
       if (Math.random() > 0.4) {
-        await db
-          .insert(schema.claimDocuments)
-          .values({
-            id: `${claimId}-doc-${d.name}`,
-            tenantId: TENANTS.KS,
-            claimId,
-            name: d.name,
-            filePath: `seeding/ks/${d.name}`,
-            fileType: d.type,
-            fileSize: 250000,
-            category: d.cat as any,
-            uploadedBy: mId,
-            createdAt: date,
-          })
-          .onConflictDoNothing();
+        await withTransientDbWriteRetry(`${claimId}:document:${d.name}`, () =>
+          db
+            .insert(schema.claimDocuments)
+            .values({
+              id: `${claimId}-doc-${d.name}`,
+              tenantId: TENANTS.KS,
+              claimId,
+              name: d.name,
+              filePath: `seeding/ks/${d.name}`,
+              fileType: d.type,
+              fileSize: 250000,
+              category: d.cat as any,
+              uploadedBy: mId,
+              createdAt: date,
+            })
+            .onConflictDoNothing()
+        );
       }
     }
 
@@ -364,18 +403,20 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
         { senderId: sId, content: 'SHËNIM: Kontrolloni dokumentet shtesë.', internal: true },
       ];
       for (const [idx, msg] of messages.entries()) {
-        await db
-          .insert(schema.claimMessages)
-          .values({
-            id: `${claimId}-msg-${idx}`,
-            tenantId: TENANTS.KS,
-            claimId,
-            senderId: msg.senderId,
-            content: msg.content,
-            isInternal: msg.internal,
-            createdAt: at(idx * 600000),
-          })
-          .onConflictDoNothing();
+        await withTransientDbWriteRetry(`${claimId}:message:${idx}`, () =>
+          db
+            .insert(schema.claimMessages)
+            .values({
+              id: `${claimId}-msg-${idx}`,
+              tenantId: TENANTS.KS,
+              claimId,
+              senderId: msg.senderId,
+              content: msg.content,
+              isInternal: msg.internal,
+              createdAt: at(idx * 600000),
+            })
+            .onConflictDoNothing()
+        );
       }
     }
 
@@ -384,19 +425,21 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
     const finalIdx = stages.indexOf(finalStatus);
     if (finalIdx !== -1) {
       for (let i = 0; i <= finalIdx; i++) {
-        await db
-          .insert(schema.claimStageHistory)
-          .values({
-            id: `${claimId}-hist-${stages[i]}`,
-            tenantId: TENANTS.KS,
-            claimId,
-            toStatus: stages[i] as any,
-            fromStatus: i > 0 ? (stages[i - 1] as any) : null,
-            changedById: sId || mId,
-            createdAt: at(i * 3600000),
-            note: `Tranzicion automatik në ${stages[i]}`,
-          })
-          .onConflictDoNothing();
+        await withTransientDbWriteRetry(`${claimId}:history:${stages[i]}`, () =>
+          db
+            .insert(schema.claimStageHistory)
+            .values({
+              id: `${claimId}-hist-${stages[i]}`,
+              tenantId: TENANTS.KS,
+              claimId,
+              toStatus: stages[i] as any,
+              fromStatus: i > 0 ? (stages[i - 1] as any) : null,
+              changedById: sId || mId,
+              createdAt: at(i * 3600000),
+              note: `Tranzicion automatik në ${stages[i]}`,
+            })
+            .onConflictDoNothing()
+        );
       }
     }
   };
@@ -442,36 +485,38 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
       }
 
       const claimId = packId('ks', 'claim', prefix, i);
-      await db
-        .insert(schema.claims)
-        .values({
-          id: claimId,
-          userId: memberId,
-          staffId: status !== 'submitted' ? staffId : null,
-          tenantId: TENANTS.KS,
-          branchId: branchId,
-          claimNumber: makeClaimNumber(globalClaimIdx),
-          status: status as any,
-          title: title,
-          description: description,
-          category: category,
-          companyName: 'Siguria Kosova',
-          claimAmount: randomAmount(),
-          currency: 'EUR',
-          createdAt: createdAt,
-          updatedAt: createdAt,
-          statusUpdatedAt: createdAt,
-        })
-        .onConflictDoUpdate({
-          target: schema.claims.id,
-          set: {
-            status: status as any,
-            description,
-            title,
+      await withTransientDbWriteRetry(`${claimId}:claim`, () =>
+        db
+          .insert(schema.claims)
+          .values({
+            id: claimId,
+            userId: memberId,
             staffId: status !== 'submitted' ? staffId : null,
+            tenantId: TENANTS.KS,
+            branchId: branchId,
+            claimNumber: makeClaimNumber(globalClaimIdx),
+            status: status as any,
+            title: title,
+            description: description,
+            category: category,
+            companyName: 'Siguria Kosova',
+            claimAmount: randomAmount(),
+            currency: 'EUR',
+            createdAt: createdAt,
             updatedAt: createdAt,
-          },
-        });
+            statusUpdatedAt: createdAt,
+          })
+          .onConflictDoUpdate({
+            target: schema.claims.id,
+            set: {
+              status: status as any,
+              description,
+              title,
+              staffId: status !== 'submitted' ? staffId : null,
+              updatedAt: createdAt,
+            },
+          })
+      );
 
       // Enrich 50% of claims for visual depth without slowing down seeding too much
       if (Math.random() > 0.5) {
@@ -492,26 +537,28 @@ export async function seedKsWorkflowPack(config: SeedConfig) {
     const days = 35 + i * 5;
     const date = at();
     date.setDate(date.getDate() - days);
-    await db
-      .insert(schema.claims)
-      .values({
-        id: packId('ks', 'claim', 'ks_a', 'sla', i),
-        userId: getPackMemberId(i),
-        tenantId: TENANTS.KS,
-        branchId: packId('ks', 'branch_a'),
-        claimNumber: makeClaimNumber(globalClaimIdx),
-        status: 'submitted',
-        title: `Vonesë Kritike SLA - ${days} ditë`,
-        category: 'vehicle',
-        companyName: 'Siguria Kosova',
-        claimAmount: '2500.00',
-        currency: 'EUR',
-        createdAt: date,
-      })
-      .onConflictDoUpdate({
-        target: schema.claims.id,
-        set: { status: 'submitted', createdAt: date },
-      });
+    await withTransientDbWriteRetry(`sla-claim:${i}`, () =>
+      db
+        .insert(schema.claims)
+        .values({
+          id: packId('ks', 'claim', 'ks_a', 'sla', i),
+          userId: getPackMemberId(i),
+          tenantId: TENANTS.KS,
+          branchId: packId('ks', 'branch_a'),
+          claimNumber: makeClaimNumber(globalClaimIdx),
+          status: 'submitted',
+          title: `Vonesë Kritike SLA - ${days} ditë`,
+          category: 'vehicle',
+          companyName: 'Siguria Kosova',
+          claimAmount: '2500.00',
+          currency: 'EUR',
+          createdAt: date,
+        })
+        .onConflictDoUpdate({
+          target: schema.claims.id,
+          set: { status: 'submitted', createdAt: date },
+        })
+    );
   }
 
   // 2. KS-B (Prizren) - Medium Volume
