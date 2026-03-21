@@ -145,12 +145,12 @@ function readyMarkersForRole(role: Exclude<Role, 'admin_mk'>): string[] {
     case 'staff':
       return ['staff-page-ready', 'dashboard-page-ready'];
     case 'admin':
+    case 'branch_manager':
       return ['admin-page-ready', 'dashboard-page-ready'];
     case 'member':
     case 'member_empty':
       return ['member-dashboard-ready', 'dashboard-page-ready'];
     case 'agent':
-    case 'branch_manager':
       return ['agent-page-ready', 'agent-members-ready', 'action-campaign'];
   }
 }

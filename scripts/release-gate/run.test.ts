@@ -20,6 +20,7 @@ const {
   findMismatchedMatterAllowanceValues,
   findPresentBoundaryLeaks,
   gotoWithSessionRetry,
+  isInfraNavigationFailure,
   isLoginDependentCheck,
   isLegacyVercelLogsArgsUnsupported,
   parseVercelRuntimeJsonLines,
@@ -31,12 +32,14 @@ const {
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
   resolveVercelExecutable,
+  runCheckWithInfraRetry,
   selectCredentialPreflightAccounts,
   selectAlternativeActionableStatus,
   sessionCacheKeyForAccount,
   skipAllowanceReasonForCheck,
   shouldRunAuthEndpointPreflight,
   shouldDisallowSkippedChecks,
+  waitForStaffClaimsListSurface,
 } = require('./run.ts');
 const {
   CANONICAL_DECISION_PROOF_HEADERS,
@@ -550,6 +553,50 @@ test('classifyInfraNetworkFailure identifies transport-level outages', () => {
   assert.ok(classifyInfraNetworkFailure(timeoutMessage));
   assert.ok(classifyInfraNetworkFailure(refusedMessage));
   assert.equal(classifyInfraNetworkFailure(logicError), null);
+});
+
+test('isInfraNavigationFailure identifies transport-level navigation errors only', () => {
+  assert.equal(
+    isInfraNavigationFailure('page.goto: net::ERR_CONNECTION_TIMED_OUT at https://example.com'),
+    true
+  );
+  assert.equal(isInfraNavigationFailure('page.goto: Timeout 30000ms exceeded.'), true);
+  assert.equal(
+    isInfraNavigationFailure('P0.3_ROLE_PANEL_UNAVAILABLE target=/admin/users/demo'),
+    false
+  );
+});
+
+test('runCheckWithInfraRetry retries once for transient navigation failures', async () => {
+  let attempts = 0;
+  const result = await runCheckWithInfraRetry(
+    async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error('page.goto: net::ERR_CONNECTION_TIMED_OUT at https://example.com');
+      }
+      return 'ok';
+    },
+    { maxAttempts: 2, retryDelayMs: 1 }
+  );
+
+  assert.equal(result, 'ok');
+  assert.equal(attempts, 2);
+});
+
+test('runCheckWithInfraRetry does not retry non-transport failures', async () => {
+  let attempts = 0;
+  await assert.rejects(
+    runCheckWithInfraRetry(
+      async () => {
+        attempts += 1;
+        throw new Error('P0.3_ROLE_PANEL_UNAVAILABLE target=/admin/users/demo');
+      },
+      { maxAttempts: 2, retryDelayMs: 1 }
+    ),
+    /ROLE_PANEL_UNAVAILABLE/
+  );
+  assert.equal(attempts, 1);
 });
 
 test('isLoginDependentCheck maps suites to auth-dependent checks', () => {
@@ -1460,6 +1507,37 @@ test('resolveConfiguredStaffClaimDetailUrl keeps configured staff claim detail U
       process.env.STAFF_CLAIM_URL = original;
     }
   }
+});
+
+test('waitForStaffClaimsListSurface accepts queue fallback when wrapper marker has zero box', async () => {
+  const visibleBySelector = new Map([
+    ['[data-testid="staff-page-ready"]', false],
+    ['[data-testid="staff-claims-queue"]', true],
+    ['[data-testid="staff-claims-list"]', false],
+    ['[data-testid="page-title"]', true],
+  ]);
+
+  const page = {
+    locator(selector) {
+      return {
+        isVisible: async () => visibleBySelector.get(selector) ?? false,
+      };
+    },
+    waitForTimeout: async () => {},
+    reload: async () => {
+      throw new Error('reload should not run when queue fallback is already visible');
+    },
+  };
+
+  const surface = await waitForStaffClaimsListSurface(page);
+
+  assert.deepEqual(surface, {
+    markerReady: false,
+    queueReady: true,
+    listReady: false,
+    titleReady: false,
+    visibleSelector: '[data-testid="staff-claims-queue"]',
+  });
 });
 
 test('writeReleaseGateReport includes the G07 to G10 RC sections', () => {

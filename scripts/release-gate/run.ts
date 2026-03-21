@@ -19,6 +19,8 @@ const {
 const { writeReleaseGateReport } = require('./report.ts');
 const { createPilotEntryArtifacts } = require('./pilot-artifacts.ts');
 const {
+  isInfraNavigationFailure,
+  runCheckWithInfraRetry,
   resolveConfiguredRolePanelTarget,
   resolveTenantOverrideProbeUrl,
   runP01,
@@ -43,6 +45,7 @@ const {
   runP11AndP12,
   runP13,
   selectAlternativeActionableStatus,
+  waitForStaffClaimsListSurface,
 } = require('./product-checks.ts');
 const { collectVisibleTestIds, visitReleaseGateScenario } = require('./scenario-visits.ts');
 const { resolveG10Scenario } = require('./staff-claim-driver.ts');
@@ -1125,6 +1128,8 @@ module.exports = {
   routePathsMatch,
   resolveVercelExecutable,
   resolveAccountPasswordVar,
+  isInfraNavigationFailure,
+  runCheckWithInfraRetry,
   resolveConfiguredRolePanelTarget,
   resolveConfiguredStaffClaimDetailUrl,
   resolveReachableBaseUrl,
@@ -1135,6 +1140,7 @@ module.exports = {
   skipAllowanceReasonForCheck,
   shouldRunAuthEndpointPreflight,
   shouldDisallowSkippedChecks,
+  waitForStaffClaimsListSurface,
 };
 
 if (require.main === module) {

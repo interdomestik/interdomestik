@@ -81,6 +81,44 @@ async function waitForMemberDocumentsSurface(page) {
   };
 }
 
+async function waitForStaffClaimsListSurface(page) {
+  const visibleSelector = await waitForAnyVisible(
+    page,
+    [
+      `[data-testid="${MARKERS.staff}"]`,
+      '[data-testid="staff-claims-queue"]',
+      '[data-testid="staff-claims-list"]',
+      '[data-testid="page-title"]',
+    ],
+    TIMEOUTS.marker
+  );
+
+  if (!visibleSelector) {
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }).catch(() => {});
+  }
+
+  const retryVisibleSelector =
+    visibleSelector ||
+    (await waitForAnyVisible(
+      page,
+      [
+        `[data-testid="${MARKERS.staff}"]`,
+        '[data-testid="staff-claims-queue"]',
+        '[data-testid="staff-claims-list"]',
+        '[data-testid="page-title"]',
+      ],
+      TIMEOUTS.marker
+    ));
+
+  return {
+    markerReady: retryVisibleSelector === `[data-testid="${MARKERS.staff}"]`,
+    queueReady: retryVisibleSelector === '[data-testid="staff-claims-queue"]',
+    listReady: retryVisibleSelector === '[data-testid="staff-claims-list"]',
+    titleReady: retryVisibleSelector === '[data-testid="page-title"]',
+    visibleSelector: retryVisibleSelector,
+  };
+}
+
 async function waitForStaffClaimDetailSurface(page) {
   const visibleSelector = await waitForAnyVisible(
     page,
@@ -578,13 +616,16 @@ async function runP13(browser, runCtx, deps) {
         page.goto(claimsList, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
       retryLogin: () => loginWithRunContext(page, runCtx, 'staff', { forceFresh: true }),
     });
-    const staffReadyOnList = await page
-      .getByTestId(MARKERS.staff)
-      .isVisible({ timeout: TIMEOUTS.marker })
-      .catch(() => false);
+    const staffListSurface = await waitForStaffClaimsListSurface(page);
+    const staffReadyOnList =
+      staffListSurface.markerReady ||
+      staffListSurface.queueReady ||
+      staffListSurface.listReady ||
+      staffListSurface.titleReady;
     evidence.push(
       `staff_claims_list_url=${claimsList}`,
-      `staff_page_ready_on_list=${staffReadyOnList}`
+      `staff_page_ready_on_list=${staffReadyOnList}`,
+      `staff_list_visible_selector=${staffListSurface.visibleSelector || 'none'}`
     );
     if (!staffReadyOnList) {
       signatures.push('P1.3_STAFF_PORTAL_NOT_READY');
@@ -853,4 +894,5 @@ module.exports = {
   runP11AndP12,
   runP13,
   selectAlternativeActionableStatus,
+  waitForStaffClaimsListSurface,
 };
