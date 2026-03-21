@@ -127,7 +127,12 @@ async function introspectSessionState(request: NextRequest): Promise<SessionIntr
       cache: 'no-store',
     });
 
-    if (!response.ok) return 'unknown';
+    if (!response.ok) {
+      if (response.status >= 400 && response.status < 500) {
+        return 'inactive';
+      }
+      return 'unknown';
+    }
 
     const payload = await response.json();
     return isActiveSessionPayload(payload) ? 'active' : 'inactive';

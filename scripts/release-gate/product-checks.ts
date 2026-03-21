@@ -837,6 +837,9 @@ async function runP13(browser, runCtx, deps) {
       signatures.push(`P1.3_EXCEPTION message=${compactErrorMessage(rawMessage, 650)}`);
     }
   } finally {
+    if (reloginContext && reloginContext !== context) {
+      await closeBrowserContextWithTimeout(reloginContext);
+    }
     await closeBrowserContextWithTimeout(context);
   }
 
