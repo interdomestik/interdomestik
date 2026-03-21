@@ -5,6 +5,7 @@ export * from './commissions/admin/summary';
 export * from './commissions/admin/update-status';
 export * from './commissions/create';
 export * from './commissions/get-my';
+export * from './commissions/ownership';
 export * from './commissions/summary';
 export * from './commissions/types';
 export * from './paddle';
