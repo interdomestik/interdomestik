@@ -1,5 +1,6 @@
-import { agentClients, db, eq, user } from '@interdomestik/database';
+import { agentClients, db, eq, subscriptions, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { and } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 import type { ActionResult, UserSession } from '../types';
@@ -22,6 +23,17 @@ export async function updateUserAgentCore(params: {
         .update(user)
         .set({ agentId })
         .where(withTenant(tenantId, user.tenantId, eq(user.id, userId)));
+
+      await tx
+        .update(subscriptions)
+        .set({ agentId })
+        .where(
+          withTenant(
+            tenantId,
+            subscriptions.tenantId,
+            and(eq(subscriptions.userId, userId), eq(subscriptions.status, 'active'))
+          )
+        );
 
       await tx
         .update(agentClients)
