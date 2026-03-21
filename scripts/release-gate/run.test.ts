@@ -30,6 +30,7 @@ const {
   resolveConfiguredStaffClaimDetailUrl,
   resolveReachableBaseUrl,
   resolveTenantOverrideProbeUrl,
+  resolveVercelExecutable,
   selectCredentialPreflightAccounts,
   selectAlternativeActionableStatus,
   sessionCacheKeyForAccount,
@@ -65,6 +66,7 @@ const {
   parseArgs: parsePilotCadenceArgs,
 } = require('../pilot-readiness-cadence.ts');
 const { writeReleaseGateReport } = require('./report.ts');
+const { inspectStaffDetailScenario } = require('./staff-claim-driver.ts');
 const {
   checkPortalMarkers,
   createAuthState,
@@ -521,6 +523,25 @@ test('parseVercelRuntimeJsonLines keeps valid JSON entries and ignores banner no
   assert.equal(entries[1].message, 'ready');
 });
 
+test('resolveVercelExecutable prefers an explicit absolute env override and returns null when no candidate exists', () => {
+  const missingWorkspaceBin = path.join(
+    process.cwd(),
+    '.test-fixtures',
+    'missing-vercel-bin',
+    'vercel'
+  );
+  const missingWorkspacePnpmHome = path.join(process.cwd(), '.test-fixtures', 'missing-pnpm-home');
+
+  assert.equal(resolveVercelExecutable({ VERCEL_BIN: process.execPath }), process.execPath);
+  assert.equal(
+    resolveVercelExecutable({
+      VERCEL_BIN: missingWorkspaceBin,
+      PNPM_HOME: missingWorkspacePnpmHome,
+    }),
+    null
+  );
+});
+
 test('classifyInfraNetworkFailure identifies transport-level outages', () => {
   const timeoutMessage = 'apiRequestContext.post: Timeout 30000ms exceeded.';
   const refusedMessage = 'connect ECONNREFUSED 64.29.17.195:443';
@@ -591,6 +612,65 @@ test('loginAs reuses cached session state without issuing a bootstrap request', 
 
   assert.equal(postCalls, 0);
   assert.equal(gotoCalls, 0);
+});
+
+test('loginAs forceFresh bypasses cached session state and performs a real login', async () => {
+  const authState = createAuthState();
+  authState.sessionStateByAccount.set('Member-only', {
+    cookies: [
+      {
+        name: 'session',
+        value: 'stale',
+        domain: 'interdomestik-web.vercel.app',
+        path: '/',
+      },
+    ],
+  });
+
+  let postCalls = 0;
+  const page = {
+    context: () => ({
+      clearCookies: async () => {},
+      addCookies: async () => {},
+      storageState: async () => ({
+        cookies: [
+          {
+            name: 'session',
+            value: 'fresh',
+            domain: 'interdomestik-web.vercel.app',
+            path: '/',
+          },
+        ],
+      }),
+    }),
+    request: {
+      post: async () => {
+        postCalls += 1;
+        return {
+          ok: () => true,
+          status: () => 200,
+          headers: () => ({}),
+          url: () => 'https://interdomestik-web.vercel.app/api/auth/sign-in/email',
+        };
+      },
+    },
+    goto: async () => {},
+    waitForTimeout: async () => {},
+    on: () => {},
+    off: () => {},
+  };
+
+  await loginAs(page, {
+    account: 'member',
+    credentials: { email: 'member@example.com', password: createTestCredentialValue() },
+    baseUrl: RELEASE_GATE_BASE_URL,
+    locale: RELEASE_GATE_LOCALE,
+    authState,
+    forceFresh: true,
+  });
+
+  assert.equal(postCalls, 1);
+  assert.equal(authState.sessionStateByAccount.get('Member-only')?.cookies?.[0]?.value, 'fresh');
 });
 
 test('loginAs skips bootstrap when the successful login response already populated session cookies', async () => {
@@ -916,6 +996,65 @@ test('gotoWithSessionRetry retries after a login redirect during navigation', as
   );
 });
 
+test('gotoWithSessionRetry retries once after transient connection failure without reauth', async () => {
+  const page = {
+    currentUrl: 'https://interdomestik-web.vercel.app/en/agent',
+    url() {
+      return this.currentUrl;
+    },
+  };
+  let attempt = 0;
+  let retryLoginCount = 0;
+
+  const finalUrl = await gotoWithSessionRetry({
+    page,
+    navigate: async () => {
+      attempt += 1;
+      if (attempt === 1) {
+        throw new Error(
+          'page.goto: net::ERR_CONNECTION_REFUSED at https://interdomestik-web.vercel.app/en/agent'
+        );
+      }
+      page.currentUrl = 'https://interdomestik-web.vercel.app/en/agent';
+    },
+    retryLogin: async () => {
+      retryLoginCount += 1;
+    },
+  });
+
+  assert.equal(attempt, 2);
+  assert.equal(retryLoginCount, 0);
+  assert.equal(finalUrl, 'https://interdomestik-web.vercel.app/en/agent');
+});
+
+test('gotoWithSessionRetry rethrows non-transient navigation errors immediately', async () => {
+  const page = {
+    currentUrl: 'https://interdomestik-web.vercel.app/en/agent',
+    url() {
+      return this.currentUrl;
+    },
+  };
+  let attempt = 0;
+  let retryLoginCount = 0;
+
+  await assert.rejects(
+    gotoWithSessionRetry({
+      page,
+      navigate: async () => {
+        attempt += 1;
+        throw new Error('P0.6_S1_MARKER_MISMATCH agent expected true got false');
+      },
+      retryLogin: async () => {
+        retryLoginCount += 1;
+      },
+    }),
+    /P0\.6_S1_MARKER_MISMATCH/
+  );
+
+  assert.equal(attempt, 1);
+  assert.equal(retryLoginCount, 0);
+});
+
 test('buildEscalationAgreementCollectionFallbackScenarios covers deterministic accepted-case staff surfaces for G10', () => {
   const scenarios = buildEscalationAgreementCollectionFallbackScenarios({
     baseUrl: RELEASE_GATE_BASE_URL,
@@ -1005,6 +1144,58 @@ test('routePathsMatch compares only the normalized route path', () => {
     ),
     false
   );
+});
+
+test('inspectStaffDetailScenario accepts a delayed staff detail marker when the collected test ids confirm readiness', async () => {
+  const visibleTestIds = {
+    'staff-claim-detail-ready': true,
+    'staff-accepted-recovery-prerequisites': true,
+    'staff-escalation-agreement-summary': true,
+    'staff-success-fee-collection-summary': true,
+  };
+  const page = {
+    url: () => 'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_16',
+    getByTestId(testId) {
+      return {
+        isVisible: async () => testId !== 'staff-claim-detail-ready' && testId !== 'not-found-page',
+        innerText: async () => {
+          if (testId === 'staff-accepted-recovery-prerequisites') {
+            return 'Agreement Ready Collection path Ready';
+          }
+          return '';
+        },
+      };
+    },
+    locator(selector) {
+      return {
+        innerText: async () => {
+          if (selector === 'body') {
+            return 'Invoice fallback Stored payment method No Invoice due';
+          }
+          return '';
+        },
+      };
+    },
+  };
+  const scenario = {
+    url: 'https://interdomestik-web.vercel.app/en/staff/claims/golden_ks_a_claim_16',
+    requiredTestIds: Object.keys(visibleTestIds),
+    requiredPrerequisitePhrases: ['Agreement Ready', 'Collection path Ready'],
+    requiredPhrases: ['Invoice fallback', 'Stored payment method', 'No', 'Invoice due'],
+  };
+  const inspected = await inspectStaffDetailScenario(page, scenario, {
+    collectVisibleTestIds: async () => visibleTestIds,
+    findMissingBoundaryPhrases,
+    findMissingCommercialPromiseSections,
+    normalizeBoundaryText: value => value.toLowerCase(),
+    routePathsMatch,
+  });
+
+  assert.equal(inspected.detailReady, false);
+  assert.equal(inspected.matched, true);
+  assert.deepEqual(inspected.missingTestIds, []);
+  assert.deepEqual(inspected.missingPhrases, []);
+  assert.deepEqual(inspected.missingPrerequisitePhrases, []);
 });
 
 test('selectAlternativeActionableStatus ignores Draft and keeps actionable transitions', () => {
@@ -1397,20 +1588,85 @@ test('resolveReachableBaseUrl falls back to deployment URL when configured base 
   let attempt = 0;
   globalThis.fetch = async () => {
     attempt += 1;
-    if (attempt === 1) {
+    if (attempt <= 3) {
       throw new Error('connect ECONNREFUSED primary.example.com:443');
     }
     return new Response('', { status: 200 });
   };
 
   try {
-    const resolved = await resolveReachableBaseUrl('https://primary.example.com', {
-      deploymentUrl: 'https://deploy.example.vercel.app',
-    });
+    const resolved = await resolveReachableBaseUrl(
+      'https://primary.example.com',
+      {
+        deploymentUrl: 'https://deploy.example.vercel.app',
+      },
+      { allowDeploymentFallback: true }
+    );
     assert.equal(resolved.baseUrl, 'https://deploy.example.vercel.app');
     assert.equal(resolved.source, 'deployment_fallback');
     assert.equal(resolved.probeStatus, 200);
     assert.ok(resolved.failures[0].includes('probe_failed candidate=https://primary.example.com'));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('resolveReachableBaseUrl retries the configured base before considering fallback', async () => {
+  const originalFetch = globalThis.fetch;
+  let attempt = 0;
+  globalThis.fetch = async input => {
+    const url = String(input);
+    attempt += 1;
+    if (url.includes('primary.example.com') && attempt < 3) {
+      throw new Error('fetch failed');
+    }
+    return new Response('', { status: 307 });
+  };
+
+  try {
+    const resolved = await resolveReachableBaseUrl('https://primary.example.com', {
+      deploymentUrl: 'https://deploy.example.vercel.app',
+    });
+    assert.equal(resolved.baseUrl, 'https://primary.example.com');
+    assert.equal(resolved.source, 'configured');
+    assert.equal(resolved.probeStatus, 307);
+    assert.equal(
+      resolved.failures.filter(failure =>
+        failure.includes('probe_failed candidate=https://primary.example.com')
+      ).length,
+      2
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('resolveReachableBaseUrl rejects protected deployment fallback candidates', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async input => {
+    const url = String(input);
+    if (url.includes('primary.example.com')) {
+      throw new Error('connect ECONNREFUSED primary.example.com:443');
+    }
+    return new Response('', { status: 401 });
+  };
+
+  try {
+    const resolved = await resolveReachableBaseUrl(
+      'https://primary.example.com',
+      {
+        deploymentUrl: 'https://deploy.example.vercel.app',
+      },
+      { allowDeploymentFallback: true }
+    );
+    assert.equal(resolved.baseUrl, 'https://primary.example.com');
+    assert.equal(resolved.source, 'configured_unreachable');
+    assert.equal(resolved.probeStatus, null);
+    assert.ok(
+      resolved.failures.includes(
+        'probe_unusable candidate=https://deploy.example.vercel.app status=401'
+      )
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }

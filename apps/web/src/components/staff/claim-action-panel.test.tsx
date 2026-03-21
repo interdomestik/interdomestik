@@ -187,6 +187,18 @@ describe('ClaimActionPanel', () => {
     });
   });
 
+  it('renders commercial timestamps in deterministic UTC text', () => {
+    renderPanel({
+      acceptedRecoveryPrerequisites: readyAcceptedRecoveryPrerequisites,
+      commercialAgreement: savedAgreement,
+      recoveryDecision: acceptedRecoveryDecision,
+      successFeeCollection: invoiceFallbackSuccessFeeCollection,
+    });
+
+    expect(screen.getByText('12/03/2026, 00:00 UTC')).toBeInTheDocument();
+    expect(screen.getByText('20/03/2026, 00:00 UTC')).toBeInTheDocument();
+  });
+
   it('keeps manual assignment save disabled when selection matches the current assignee', () => {
     render(
       <ClaimActionPanel

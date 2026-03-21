@@ -79,6 +79,69 @@ describe('proxy auth guard hardening', () => {
     expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
   });
 
+  it('keeps protected routes open when session introspection returns a transient non-ok response', async () => {
+    const signed = await signSessionToken(
+      'token-transient',
+      process.env.BETTER_AUTH_SECRET as string
+    );
+    const fetchSpy = mockSessionLookup({ error: 'temporary upstream failure' }, 503);
+    const request = makeRequest(
+      '/sq/staff/claims/golden_ks_a_claim_17',
+      `better-auth.session_token=${signed}`
+    );
+
+    const response = await proxy(request);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+  });
+
+  it('redirects protected routes when session introspection returns an auth client error', async () => {
+    const signed = await signSessionToken(
+      'token-auth-error',
+      process.env.BETTER_AUTH_SECRET as string
+    );
+    const fetchSpy = mockSessionLookup({ error: 'session expired' }, 401);
+    const request = makeRequest('/sq/member', `better-auth.session_token=${signed}`);
+
+    const response = await proxy(request);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+  });
+
+  it('redirects protected routes when session introspection returns a rate-limit client error', async () => {
+    const signed = await signSessionToken(
+      'token-rate-limit',
+      process.env.BETTER_AUTH_SECRET as string
+    );
+    const fetchSpy = mockSessionLookup({ error: 'too many requests' }, 429);
+    const request = makeRequest('/sq/member/documents', `better-auth.session_token=${signed}`);
+
+    const response = await proxy(request);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+  });
+
+  it('keeps protected routes open when session introspection throws a transient transport error', async () => {
+    const signed = await signSessionToken(
+      'token-network',
+      process.env.BETTER_AUTH_SECRET as string
+    );
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed'));
+    const request = makeRequest('/sq/member/documents', `better-auth.session_token=${signed}`);
+
+    const response = await proxy(request);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
+  });
+
   it('allows protected routes only when signed cookie and introspected session are valid', async () => {
     const signed = await signSessionToken('token-xyz', process.env.BETTER_AUTH_SECRET as string);
     const fetchSpy = mockSessionLookup({

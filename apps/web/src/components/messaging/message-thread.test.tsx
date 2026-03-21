@@ -2,14 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MessageThread } from './message-thread';
 
-// Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
     const translations: Record<string, string> = {
       'empty.title': 'No messages yet',
       'empty.description': 'Start a conversation to get help with your claim',
-      today: 'Today',
-      yesterday: 'Yesterday',
       agentBadge: 'Agent',
       internalNote: 'Internal Note',
     };
@@ -170,6 +167,17 @@ describe('MessageThread', () => {
     // Messages have time displayed
     const timeElements = screen.getAllByText(/\d{1,2}:\d{2}/);
     expect(timeElements.length).toBeGreaterThan(0);
+  });
+
+  it('renders deterministic UTC date headers', () => {
+    render(
+      <MessageThread
+        messages={mockMessages}
+        currentUser={{ id: 'user-1', name: 'User', image: null, role: 'user' }}
+      />
+    );
+
+    expect(screen.getByText('15/01/2024 UTC')).toBeInTheDocument();
   });
 
   it('shows read indicator for own read messages', () => {

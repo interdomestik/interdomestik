@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 const { spawnSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const {
   DEFAULTS,
@@ -86,6 +88,68 @@ const LOGIN_DEPENDENT_CHECKS = new Set([
   'G09',
   'G10',
 ]);
+
+const TRUSTED_EXECUTABLE_DIRS = [
+  '/opt/homebrew/bin',
+  '/usr/local/bin',
+  '/usr/bin',
+  '/bin',
+  '/usr/sbin',
+  '/sbin',
+];
+
+function resolveVercelExecutable(env = process.env) {
+  const envCandidates = [env.VERCEL_BIN, env.PNPM_HOME && path.join(env.PNPM_HOME, 'vercel')]
+    .filter(Boolean)
+    .map(candidate => path.resolve(String(candidate)));
+  const trustedCandidates = TRUSTED_EXECUTABLE_DIRS.map(dir => path.join(dir, 'vercel'));
+
+  for (const candidate of [...envCandidates, ...trustedCandidates]) {
+    try {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    } catch {
+      // Ignore unusable candidates and continue searching.
+    }
+  }
+
+  return null;
+}
+
+function buildTrustedSpawnEnv(env = process.env) {
+  return {
+    ...env,
+    PATH: TRUSTED_EXECUTABLE_DIRS.join(path.delimiter),
+  };
+}
+
+function runVercelCommand(args, options = {}) {
+  const { env: requestedEnv, ...spawnOptions } = options;
+  const childEnv = requestedEnv || process.env;
+  const command = resolveVercelExecutable(childEnv);
+  if (!command) {
+    const error = new Error('vercel executable not found');
+    error.code = 'VERCEL_CLI_NOT_FOUND';
+    return {
+      pid: 0,
+      output: ['', '', ''],
+      stdout: '',
+      stderr: '',
+      status: null,
+      signal: null,
+      error,
+    };
+  }
+
+  return spawnSync(command, args, {
+    encoding: 'utf8',
+    env: buildTrustedSpawnEnv(childEnv),
+    killSignal: 'SIGKILL',
+    ...spawnOptions,
+  });
+}
+
 function isLegacyVercelLogsArgsUnsupported(output) {
   return /unknown or unexpected option:\s*--environment/i.test(String(output || ''));
 }
@@ -247,6 +311,13 @@ function skipAllowanceReasonForCheck(check) {
     return 'RELEASE_GATE_REQUIRE_ROLE_PANEL=false';
   }
   return null;
+}
+
+async function executeCheck(checkId, runner) {
+  console.log(`[release-gate] check_start=${checkId}`);
+  const result = await runner();
+  console.log(`[release-gate] check_done=${checkId} status=${result.status}`);
+  return result;
 }
 
 function enforceNoSkipOnSelectedChecks(checks, selected, envName) {
@@ -558,7 +629,7 @@ function runVercelLogsSweep(runCtx) {
   const evidence = [];
   const signatures = [];
 
-  const versionCheck = spawnSync('vercel', ['--version'], { encoding: 'utf8' });
+  const versionCheck = runVercelCommand(['--version']);
   if (versionCheck.error) {
     evidence.push('vercel cli not available; skipped');
     return checkResult('P1.5.1', 'SKIPPED', evidence, signatures);
@@ -575,11 +646,7 @@ function runVercelLogsSweep(runCtx) {
     'error',
   ];
 
-  const logs = spawnSync('vercel', commandArgs, {
-    encoding: 'utf8',
-    env: process.env,
-    timeout: 120_000,
-  });
+  const logs = runVercelCommand(commandArgs, { timeout: 120_000 });
 
   const combined = `${logs.stdout || ''}\n${logs.stderr || ''}`;
   const lines = combined
@@ -624,9 +691,7 @@ function runVercelLogsSweep(runCtx) {
       ? runCtx.deployment.deploymentUrl
       : runCtx.baseUrl;
 
-  const streamingLogs = spawnSync('vercel', ['logs', deploymentRef, '--json'], {
-    encoding: 'utf8',
-    env: process.env,
+  const streamingLogs = runVercelCommand(['logs', deploymentRef, '--json'], {
     timeout: VERCEL_LOG_STREAM_TIMEOUT_MS,
   });
 
@@ -703,11 +768,7 @@ async function detectDeploymentMetadata(baseUrl, browser) {
       inspectArgs.push('--scope', process.env.VERCEL_ORG);
     }
 
-    const inspect = spawnSync('vercel', inspectArgs, {
-      encoding: 'utf8',
-      env: process.env,
-      timeout: 60_000,
-    });
+    const inspect = runVercelCommand(inspectArgs, { timeout: 60_000 });
     if (inspect.error || inspect.status !== 0) {
       return null;
     }
@@ -724,7 +785,7 @@ async function detectDeploymentMetadata(baseUrl, browser) {
     };
   };
 
-  const cliVersion = spawnSync('vercel', ['--version'], { encoding: 'utf8', timeout: 10_000 });
+  const cliVersion = runVercelCommand(['--version'], { timeout: 10_000 });
   if (!cliVersion.error) {
     const inspected = tryInspect();
     if (inspected) return inspected;
@@ -793,7 +854,13 @@ async function main() {
 
   try {
     const deployment = await detectDeploymentMetadata(configuredBaseUrl, browser);
-    const resolvedBase = await resolveReachableBaseUrl(configuredBaseUrl, deployment);
+    const resolvedBase = await resolveReachableBaseUrl(configuredBaseUrl, deployment, {
+      allowDeploymentFallback:
+        process.env.RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK === '1' ||
+        process.env.RELEASE_GATE_ALLOW_DEPLOYMENT_FALLBACK === 'true'
+          ? true
+          : args.envName !== 'production',
+    });
     const baseUrl = resolvedBase.baseUrl;
     const runCtx = {
       baseUrl,
@@ -876,75 +943,101 @@ async function main() {
 
     if (!preflightBlocked) {
       if (selected.includes('P0.1')) {
-        checks.push(await runP01(browser, runCtx, { loginWithRunContext }));
+        checks.push(
+          await executeCheck('P0.1', () => runP01(browser, runCtx, { loginWithRunContext }))
+        );
       }
       if (selected.includes('P0.2')) {
-        checks.push(await runP02(browser, runCtx, { loginWithRunContext }));
+        checks.push(
+          await executeCheck('P0.2', () => runP02(browser, runCtx, { loginWithRunContext }))
+        );
       }
       if (selected.includes('P0.3') || selected.includes('P0.4')) {
+        console.log('[release-gate] check_start=P0.3/P0.4');
         const roleChecks = await runP03AndP04(browser, runCtx, { loginWithRunContext });
+        console.log(
+          `[release-gate] check_done=P0.3 status=${roleChecks[0].status} check_done=P0.4 status=${roleChecks[1].status}`
+        );
         if (selected.includes('P0.3')) checks.push(roleChecks[0]);
         if (selected.includes('P0.4')) checks.push(roleChecks[1]);
       }
       if (selected.includes('P0.6')) {
-        checks.push(await runP06(browser, runCtx, { loginWithRunContext }));
+        checks.push(
+          await executeCheck('P0.6', () => runP06(browser, runCtx, { loginWithRunContext }))
+        );
       }
       if (selected.includes('P1.1') || selected.includes('P1.2')) {
+        console.log('[release-gate] check_start=P1.1/P1.2');
         const memberChecks = await runP11AndP12(browser, runCtx, { checkResult });
+        console.log(
+          `[release-gate] check_done=P1.1 status=${memberChecks[0].status} check_done=P1.2 status=${memberChecks[1].status}`
+        );
         if (selected.includes('P1.1')) checks.push(memberChecks[0]);
         if (selected.includes('P1.2')) checks.push(memberChecks[1]);
       }
       if (selected.includes('P1.3')) {
-        checks.push(await runP13(browser, runCtx, { checkResult }));
+        checks.push(await executeCheck('P1.3', () => runP13(browser, runCtx, { checkResult })));
       }
       if (selected.includes('G07')) {
         checks.push(
-          await runG07(browser, runCtx, {
-            checkResult,
-            compactErrorMessage,
-            findMissingCommercialPromiseSections,
-          })
+          await executeCheck('G07', () =>
+            runG07(browser, runCtx, {
+              checkResult,
+              compactErrorMessage,
+              findMissingCommercialPromiseSections,
+            })
+          )
         );
       }
       if (selected.includes('G08')) {
         checks.push(
-          await runG08(browser, runCtx, {
-            checkResult,
-            compactErrorMessage,
-            findMissingBoundaryPhrases,
-            findMissingCommercialPromiseSections,
-            findPresentBoundaryLeaks,
-            normalizeBoundaryText,
-          })
+          await executeCheck('G08', () =>
+            runG08(browser, runCtx, {
+              checkResult,
+              compactErrorMessage,
+              findMissingBoundaryPhrases,
+              findMissingCommercialPromiseSections,
+              findPresentBoundaryLeaks,
+              normalizeBoundaryText,
+            })
+          )
         );
       }
       if (selected.includes('G09')) {
         checks.push(
-          await runG09(browser, runCtx, {
-            checkResult,
-            compactErrorMessage,
-            findMissingBoundaryPhrases,
-            findMissingCommercialPromiseSections,
-            findMismatchedMatterAllowanceValues,
-            normalizeBoundaryText,
-          })
+          await executeCheck('G09', () =>
+            runG09(browser, runCtx, {
+              checkResult,
+              compactErrorMessage,
+              findMissingBoundaryPhrases,
+              findMissingCommercialPromiseSections,
+              findMismatchedMatterAllowanceValues,
+              normalizeBoundaryText,
+            })
+          )
         );
       }
       if (selected.includes('G10')) {
         checks.push(
-          await runG10(browser, runCtx, {
-            checkResult,
-            compactErrorMessage,
-            findMissingBoundaryPhrases,
-            findMissingCommercialPromiseSections,
-            normalizeBoundaryText,
-            routePathsMatch,
-          })
+          await executeCheck('G10', () =>
+            runG10(browser, runCtx, {
+              checkResult,
+              compactErrorMessage,
+              findMissingBoundaryPhrases,
+              findMissingCommercialPromiseSections,
+              normalizeBoundaryText,
+              routePathsMatch,
+            })
+          )
         );
       }
-      if (selected.includes('P1.5.1')) checks.push(runVercelLogsSweep(runCtx));
+      if (selected.includes('P1.5.1')) {
+        checks.push(
+          await executeCheck('P1.5.1', () => Promise.resolve(runVercelLogsSweep(runCtx)))
+        );
+      }
     } else if (selected.includes('P1.5.1')) {
-      checks.push(runVercelLogsSweep(runCtx));
+      checks.push(await executeCheck('P1.5.1', () => Promise.resolve(runVercelLogsSweep(runCtx))));
     }
 
     const normalizedChecks = enforceNoSkipOnSelectedChecks(checks, selected, runCtx.envName);
@@ -1030,6 +1123,7 @@ module.exports = {
   parseVercelRuntimeJsonLines,
   parseRetryAfterSeconds,
   routePathsMatch,
+  resolveVercelExecutable,
   resolveAccountPasswordVar,
   resolveConfiguredRolePanelTarget,
   resolveConfiguredStaffClaimDetailUrl,

@@ -108,14 +108,16 @@ function isActiveSessionPayload(payload: unknown): boolean {
   return expiresAtTimestamp > Date.now();
 }
 
-async function hasIntrospectedActiveSession(request: NextRequest): Promise<boolean> {
+type SessionIntrospectionResult = 'active' | 'inactive' | 'unknown';
+
+async function introspectSessionState(request: NextRequest): Promise<SessionIntrospectionResult> {
   try {
     const url = request.nextUrl.clone();
     url.pathname = '/api/auth/get-session';
     url.search = '?disableCookieCache=true&disableRefresh=true';
 
     const cookieHeader = request.headers.get('cookie');
-    if (!cookieHeader) return false;
+    if (!cookieHeader) return 'inactive';
 
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -125,12 +127,17 @@ async function hasIntrospectedActiveSession(request: NextRequest): Promise<boole
       cache: 'no-store',
     });
 
-    if (!response.ok) return false;
+    if (!response.ok) {
+      if (response.status >= 400 && response.status < 500) {
+        return 'inactive';
+      }
+      return 'unknown';
+    }
 
     const payload = await response.json();
-    return isActiveSessionPayload(payload);
+    return isActiveSessionPayload(payload) ? 'active' : 'inactive';
   } catch {
-    return false;
+    return 'unknown';
   }
 }
 
@@ -179,8 +186,8 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const isActiveSession = await hasIntrospectedActiveSession(request);
-    if (!isActiveSession) {
+    const introspectedSessionState = await introspectSessionState(request);
+    if (introspectedSessionState === 'inactive') {
       return redirectToLogin(request, isLocale, possibleLocale);
     }
   }

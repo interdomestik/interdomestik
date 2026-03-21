@@ -103,6 +103,23 @@ function formatCollectionMethodLabel(method: SuccessFeeCollectionSnapshot['colle
   }
 }
 
+const utcDateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: 'UTC',
+});
+
+function formatUtcDateTime(value: string | null | undefined) {
+  if (!value) return 'Pending';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Pending';
+  return `${utcDateTimeFormatter.format(parsed)} UTC`;
+}
+
 function hasAssignmentOption(
   assignmentOptions: ReadonlyArray<AssignmentOption>,
   assigneeId: string
@@ -732,9 +749,7 @@ export function ClaimActionPanel({
               <div>
                 <span className="text-muted-foreground">Signed</span>
                 <div className="font-medium text-slate-900">
-                  {resolvedAgreement.signedAt
-                    ? new Date(resolvedAgreement.signedAt).toLocaleString()
-                    : 'Pending'}
+                  {formatUtcDateTime(resolvedAgreement.signedAt)}
                 </div>
               </div>
             </div>
@@ -914,16 +929,14 @@ export function ClaimActionPanel({
                 <span className="text-muted-foreground">Invoice due</span>
                 <div className="font-medium text-slate-900">
                   {resolvedSuccessFeeCollection.invoiceDueAt
-                    ? new Date(resolvedSuccessFeeCollection.invoiceDueAt).toLocaleString()
+                    ? formatUtcDateTime(resolvedSuccessFeeCollection.invoiceDueAt)
                     : '-'}
                 </div>
               </div>
               <div>
                 <span className="text-muted-foreground">Resolved</span>
                 <div className="font-medium text-slate-900">
-                  {resolvedSuccessFeeCollection.resolvedAt
-                    ? new Date(resolvedSuccessFeeCollection.resolvedAt).toLocaleString()
-                    : 'Pending'}
+                  {formatUtcDateTime(resolvedSuccessFeeCollection.resolvedAt)}
                 </div>
               </div>
             </div>

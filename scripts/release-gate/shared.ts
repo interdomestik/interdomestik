@@ -2,6 +2,17 @@ const path = require('node:path');
 
 const { ROUTES, MARKERS, SELECTORS, TIMEOUTS, ROLE_IPS, ACCOUNTS } = require('./config.ts');
 
+const TRANSIENT_NAVIGATION_ERROR_PATTERNS = [
+  /ERR_CONNECTION_REFUSED/i,
+  /ECONNREFUSED/i,
+  /ETIMEDOUT/i,
+  /Timeout \d+ms exceeded/i,
+  /ECONNRESET/i,
+  /ENOTFOUND/i,
+  /EAI_AGAIN/i,
+  /socket hang up/i,
+];
+
 function normalizeBaseUrl(baseUrl) {
   return baseUrl.replace(/\/+$/, '');
 }
@@ -185,7 +196,9 @@ async function bootstrapAccountLanding(page, params) {
     // Keep login bootstrap tolerant: account data can drift, and strict role marker
     // assertions here create false exceptions before route-specific checks run.
     // Route checks (P0.1/P0.6/etc.) remain authoritative for marker semantics.
-    await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
+    await gotoWithTransientRetry({
+      navigate: () => page.goto(targetUrl, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav }),
+    });
     await page.waitForTimeout(300);
   } finally {
     page.off('response', onResponse);
@@ -251,10 +264,11 @@ async function loginAs(page, params) {
     const authState = params.authState || createAuthState();
     const sleepFn = params.sleepFn || sleep;
     const nowFn = params.nowFn || Date.now;
+    const forceFresh = params.forceFresh === true;
     const accountCacheKey = sessionCacheKeyForAccount(account);
     const cachedSessionState = authState.sessionStateByAccount.get(accountCacheKey);
 
-    if (cachedSessionState && Array.isArray(cachedSessionState.cookies)) {
+    if (!forceFresh && cachedSessionState && Array.isArray(cachedSessionState.cookies)) {
       await page.context().clearCookies();
       if (cachedSessionState.cookies.length > 0) {
         await page.context().addCookies(cachedSessionState.cookies);
@@ -356,13 +370,7 @@ async function loginAs(page, params) {
 }
 
 async function markerSnapshot(page) {
-  const snapshot = await checkPortalMarkers(page);
-  return {
-    member: snapshot.member,
-    agent: snapshot.agent,
-    staff: snapshot.staff,
-    admin: snapshot.admin,
-  };
+  return checkPortalMarkers(page);
 }
 
 function markerSummary(route, markerState) {
@@ -371,6 +379,29 @@ function markerSummary(route, markerState) {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isTransientNavigationError(raw) {
+  const message = String(raw || '')
+    .replaceAll(/\s+/g, ' ')
+    .trim();
+  if (!message) return false;
+  return TRANSIENT_NAVIGATION_ERROR_PATTERNS.some(pattern => pattern.test(message));
+}
+
+async function gotoWithTransientRetry({ navigate, maxAttempts = 4, delayMs = 1_000 }) {
+  let attempt = 0;
+  while (attempt < maxAttempts) {
+    attempt += 1;
+    try {
+      return await navigate();
+    } catch (error) {
+      if (!isTransientNavigationError(error?.message || error) || attempt >= maxAttempts) {
+        throw error;
+      }
+      await sleep(delayMs * attempt);
+    }
+  }
 }
 
 async function checkPortalMarkers(page) {
@@ -406,13 +437,17 @@ function markersToString(markers) {
   return `member=${markers.member}, agent=${markers.agent}, staff=${markers.staff}, admin=${markers.admin}, notFound=${markers.notFound}, rolesTable=${markers.rolesTable}`;
 }
 
-async function waitForReadyMarker(page, timeoutMs) {
+async function waitForReadyMarker(page, timeoutMs, preferredKeys = []) {
   const start = Date.now();
   let observed = await checkPortalMarkers(page);
   while (Date.now() - start < timeoutMs) {
+    const preferredSatisfied =
+      Array.isArray(preferredKeys) &&
+      preferredKeys.length > 0 &&
+      preferredKeys.some(key => observed[key] === true);
     const hasReadyMarker =
       observed.notFound || observed.member || observed.agent || observed.staff || observed.admin;
-    if (hasReadyMarker) break;
+    if (preferredSatisfied || (preferredKeys.length === 0 && hasReadyMarker)) break;
     await sleep(250);
     observed = await checkPortalMarkers(page);
   }
@@ -431,8 +466,13 @@ function compareExpectedMarkers(expected, observed) {
 }
 
 async function assertUrlMarkers(page, label, url, expected) {
-  await page.goto(url, { waitUntil: 'networkidle', timeout: TIMEOUTS.nav });
-  const observed = await waitForReadyMarker(page, 10_000);
+  await gotoWithTransientRetry({
+    navigate: () => page.goto(url, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.nav }),
+  });
+  const preferredKeys = Object.entries(expected)
+    .filter(([, value]) => value === true)
+    .map(([key]) => key);
+  const observed = await waitForReadyMarker(page, 10_000, preferredKeys);
   const hasReadyMarker =
     observed.notFound || observed.member || observed.agent || observed.staff || observed.admin;
   const mismatches = compareExpectedMarkers(expected, observed);
@@ -492,6 +532,8 @@ module.exports = {
   envFlag,
   expectedMatrixForAccount,
   getMissingEnv,
+  gotoWithTransientRetry,
+  isTransientNavigationError,
   loginAs,
   markerSnapshot,
   markerSummary,
