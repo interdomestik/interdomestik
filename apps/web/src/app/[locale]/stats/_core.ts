@@ -40,9 +40,9 @@ export async function getPublicStatsCore(): Promise<PublicStats> {
         })
         .from(claims);
 
-      const totalClaims = statsRow?.totalClaims || 0;
-      const resolvedClaims = statsRow?.resolvedClaims || 0;
-      const totalRecovered = Number(statsRow?.totalRecovered || 0);
+      const totalClaims = Number(statsRow?.totalClaims ?? 0);
+      const resolvedClaims = Number(statsRow?.resolvedClaims ?? 0);
+      const totalRecovered = Number(statsRow?.totalRecovered ?? 0);
 
       return {
         totalClaims,

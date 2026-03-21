@@ -38,7 +38,7 @@ This file is not the canonical pilot record. The canonical pilot record remains:
 - Expected color: `green`
 - Expected decision: `continue`
 - Rollback target if applicable: `pilot-ready-20260321`
-- Calendar-date note: `PD02` intentionally reuses the Day 1 calendar date so rollback and resume verification stays tied to the same pilot-entry artifacts.`
+- Calendar-date note: `PD02` intentionally reuses the Day 1 calendar date so rollback and resume verification stays tied to the same pilot-entry artifacts.
 
 ## Scenario Setup Notes
 

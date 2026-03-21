@@ -25,9 +25,21 @@ type FromResult<T> = {
   from: () => Promise<T[]>;
 };
 
+type RejectingFromResult = {
+  from: () => Promise<never>;
+};
+
 function makeFromResult<T>(rows: T[]): FromResult<T> {
   return {
     from: async () => rows,
+  };
+}
+
+function makeRejectingFromResult(error: unknown): RejectingFromResult {
+  return {
+    from: async () => {
+      throw error;
+    },
   };
 }
 
@@ -66,5 +78,44 @@ describe('getPublicStatsCore', () => {
     const stats = await getPublicStatsCore();
 
     expect(stats.successRate).toBe(67);
+  });
+
+  it('coerces aggregate stats values to numbers', async () => {
+    hoisted.dbSelect.mockReturnValueOnce(
+      makeFromResult([{ totalClaims: '10', resolvedClaims: '4', totalRecovered: '2000' }])
+    );
+
+    const stats = await getPublicStatsCore();
+
+    expect(stats).toEqual({
+      totalClaims: 10,
+      resolvedClaims: 4,
+      totalRecovered: 2000,
+      successRate: 40,
+      avgResponseTime: 24,
+    });
+  });
+
+  it('retries once after a transient stats error', async () => {
+    hoisted.dbSelect
+      .mockReturnValueOnce(
+        makeRejectingFromResult(Object.assign(new Error('reset'), { code: 'ECONNRESET' }))
+      )
+      .mockReturnValueOnce(
+        makeFromResult([{ totalClaims: 10, resolvedClaims: 4, totalRecovered: '2000' }])
+      );
+
+    const stats = await getPublicStatsCore();
+
+    expect(stats.successRate).toBe(40);
+    expect(hoisted.dbSelect).toHaveBeenCalledTimes(2);
+  });
+
+  it('rethrows non-transient stats errors without retrying', async () => {
+    const error = Object.assign(new Error('boom'), { code: 'EINVAL' });
+    hoisted.dbSelect.mockReturnValueOnce(makeRejectingFromResult(error));
+
+    await expect(getPublicStatsCore()).rejects.toThrow('boom');
+    expect(hoisted.dbSelect).toHaveBeenCalledTimes(1);
   });
 });

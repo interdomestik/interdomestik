@@ -1,5 +1,5 @@
 const { ACCOUNTS, MARKERS, ROUTES, SELECTORS, TIMEOUTS } = require('./config.ts');
-const { gotoWithSessionRetry, loginWithRunContext } = require('./session-navigation.ts');
+const { gotoWithSessionRetry } = require('./session-navigation.ts');
 const {
   assertUrlMarkers,
   buildRoute,
