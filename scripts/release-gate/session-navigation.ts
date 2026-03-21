@@ -34,11 +34,45 @@ function normalizeDeploymentBaseUrl(deploymentUrl) {
   }
 }
 
+function buildReachabilityCandidates(
+  configuredBaseUrl,
+  deploymentBaseUrl,
+  allowDeploymentFallback
+) {
+  return Array.from(
+    new Set([configuredBaseUrl, allowDeploymentFallback ? deploymentBaseUrl : null].filter(Boolean))
+  );
+}
+
+async function probeReachabilityCandidate(candidate, source, maxAttempts, failures) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const status = await probeBaseUrl(candidate);
+      if (isUsableProbeStatus(status)) {
+        return { baseUrl: candidate, source, probeStatus: status, failures };
+      }
+      failures.push(`probe_unusable candidate=${candidate} status=${status}`);
+      return null;
+    } catch (error) {
+      failures.push(
+        `probe_failed candidate=${candidate} reason=${compactErrorMessage(error?.message || error)}`
+      );
+      if (attempt < maxAttempts) {
+        await sleep(REACHABILITY_RETRY_DELAY_MS);
+      }
+    }
+  }
+
+  return null;
+}
+
 async function resolveReachableBaseUrl(configuredBaseUrl, deployment, options = {}) {
   const deploymentBaseUrl = normalizeDeploymentBaseUrl(deployment?.deploymentUrl);
   const allowDeploymentFallback = options.allowDeploymentFallback !== false;
-  const candidates = Array.from(
-    new Set([configuredBaseUrl, allowDeploymentFallback ? deploymentBaseUrl : null].filter(Boolean))
+  const candidates = buildReachabilityCandidates(
+    configuredBaseUrl,
+    deploymentBaseUrl,
+    allowDeploymentFallback
   );
   const failures = [];
 
@@ -47,23 +81,9 @@ async function resolveReachableBaseUrl(configuredBaseUrl, deployment, options = 
     const source = index === 0 ? 'configured' : 'deployment_fallback';
     const maxAttempts = index === 0 ? REACHABILITY_RETRY_ATTEMPTS : 1;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      try {
-        const status = await probeBaseUrl(candidate);
-        if (isUsableProbeStatus(status)) {
-          return { baseUrl: candidate, source, probeStatus: status, failures };
-        }
-        failures.push(`probe_unusable candidate=${candidate} status=${status}`);
-        break;
-      } catch (error) {
-        failures.push(
-          `probe_failed candidate=${candidate} reason=${compactErrorMessage(error?.message || error)}`
-        );
-        if (attempt < maxAttempts) {
-          await sleep(REACHABILITY_RETRY_DELAY_MS);
-          continue;
-        }
-      }
+    const resolved = await probeReachabilityCandidate(candidate, source, maxAttempts, failures);
+    if (resolved) {
+      return resolved;
     }
   }
 
