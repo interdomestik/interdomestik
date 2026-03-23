@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "rules": [
+    {
+      "id": "verification-contracts",
+      "match": {
+        "path_prefix": "package.json"
+      },
+      "query": {
+        "trigger_signature": "ci.static.failure"
+      }
+    },
+    {
+      "id": "verification-host-wrapper",
+      "match": {
+        "path_prefix": "scripts/pr-verify-hosts.sh"
+      },
+      "query": {
+        "trigger_signature": "ci.static.failure"
+      }
+    },
+    {
+      "id": "tenant-sensitive-database",
+      "match": {
+        "path_prefix": "packages/database/"
+      },
+      "query": {
+        "trigger_signature": "ci.e2e_gate.failure",
+        "scope": {
+          "file_path": "packages/database/src",
+          "tenant": "tenant_mk"
+        }
+      }
+    },
+    {
+      "id": "boundary-sensitive-proxy-logic",
+      "match": {
+        "path_prefix": "apps/web/src/lib/proxy-logic.ts"
+      },
+      "query": {
+        "trigger_signature": "ci.boundary.review_block"
+      }
+    }
+  ]
+}

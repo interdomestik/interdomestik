@@ -24,6 +24,24 @@ const sourceMap = {
       verification_commands: ['pnpm plan:audit', 'pnpm plan:proof'],
     },
     {
+      source_id: 'ci_static_failure',
+      trigger_match: { event_type: 'ci.static.failure' },
+      store_type: 'procedural',
+      risk_class: 'high',
+      promotion_rule: 'owner_approval',
+      default_scope: { file_path: 'package.json' },
+      verification_commands: ['pnpm memory:precheck -- --changed package.json', 'pnpm check:fast'],
+    },
+    {
+      source_id: 'ci_e2e_gate_failure',
+      trigger_match: { event_type: 'ci.e2e_gate.failure' },
+      store_type: 'procedural',
+      risk_class: 'critical',
+      promotion_rule: 'owner_approval',
+      default_scope: { file_path: 'packages/database/src', tenant: 'tenant_mk' },
+      verification_commands: ['pnpm db:rls:test:required', 'pnpm e2e:gate'],
+    },
+    {
       source_id: 'pilot_reset_gate_check_failure',
       trigger_match: { event_type: 'pilot.reset_gate.check_failure' },
       store_type: 'procedural',
@@ -108,6 +126,43 @@ test('captures plan evidence custody gaps as procedural memory', () => {
   assert.equal(payload.record.risk_class, 'high');
   assert.equal(payload.record.scope.file_path, 'docs/plans/current-tracker.md');
   assert.deepEqual(payload.record.verification_commands, ['pnpm plan:audit', 'pnpm plan:proof']);
+});
+
+test('captures CI static failures as procedural memory for verification contract changes', () => {
+  const payload = captureCandidateFromEvent(
+    {
+      event_type: 'ci.static.failure',
+      timestamp: '2026-03-23T12:00:00.000Z',
+      lesson_hint: 'Re-run local fast checks before trusting CI static failures.',
+    },
+    sourceMap
+  );
+
+  assert.equal(payload.source_id, 'ci_static_failure');
+  assert.equal(payload.record.scope.file_path, 'package.json');
+  assert.deepEqual(payload.record.verification_commands, [
+    'pnpm memory:precheck -- --changed package.json',
+    'pnpm check:fast',
+  ]);
+});
+
+test('captures CI e2e gate failures with tenant-aware database scope', () => {
+  const payload = captureCandidateFromEvent(
+    {
+      event_type: 'ci.e2e_gate.failure',
+      timestamp: '2026-03-23T12:05:00.000Z',
+      lesson_hint: 'Re-run RLS and gate flows after tenant-sensitive database changes.',
+    },
+    sourceMap
+  );
+
+  assert.equal(payload.source_id, 'ci_e2e_gate_failure');
+  assert.equal(payload.record.scope.file_path, 'packages/database/src');
+  assert.equal(payload.record.scope.tenant, 'tenant_mk');
+  assert.deepEqual(payload.record.verification_commands, [
+    'pnpm db:rls:test:required',
+    'pnpm e2e:gate',
+  ]);
 });
 
 test('captures pilot reset-gate failures as procedural memory', () => {
