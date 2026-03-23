@@ -6,6 +6,9 @@ WATCH=0
 INTERVAL=20
 REQUIRED_ONLY=1
 FAIL_FAST=0
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CI_MEMORY_CAPTURE_DIR="${CI_MEMORY_CAPTURE_DIR:-${ROOT_DIR}/tmp/plan-conformance/ci-monitor}"
+LAST_CAPTURE_SIGNATURE=""
 
 usage() {
   cat <<'USAGE'
@@ -44,6 +47,43 @@ print_context() {
     printf '[ci-monitor-agent] context-bundle=%s\n' "$MULTI_AGENT_CONTEXT_BUNDLE"
   else
     printf '[ci-monitor-agent] context-bundle=none\n'
+  fi
+}
+
+capture_failure_memory() {
+  local json="$1"
+  local capture_dir="$CI_MEMORY_CAPTURE_DIR"
+  local checks_json_path="${capture_dir}/checks.json"
+  local event_path="${capture_dir}/event.json"
+  local capture_path="${capture_dir}/capture.json"
+  local decision_path="${capture_dir}/register-decision.json"
+  local signature
+
+  mkdir -p "$capture_dir"
+  printf '%s\n' "$json" >"$checks_json_path"
+
+  if ! pnpm -C "$ROOT_DIR" memory:ci:capture -- --checks-json "$checks_json_path" --event-out "$event_path" --capture-out "$capture_path" >/dev/null 2>&1; then
+    printf '[ci-monitor-agent] memory capture unavailable for current failing checks\n'
+    return 0
+  fi
+
+  if [[ ! -f "$event_path" || ! -f "$capture_path" ]]; then
+    return 0
+  fi
+
+  pnpm -C "$ROOT_DIR" memory:register:capture -- --capture "$capture_path" --out "$decision_path" >/dev/null 2>&1 || true
+
+  signature="$(jq -r '.event_type // empty' "$event_path" 2>/dev/null || true)"
+  if [[ -z "$signature" || "$signature" == "$LAST_CAPTURE_SIGNATURE" ]]; then
+    return 0
+  fi
+
+  LAST_CAPTURE_SIGNATURE="$signature"
+  printf '[ci-monitor-agent] memory capture: %s\n' "$signature"
+  printf '[ci-monitor-agent] event-artifact=%s\n' "$event_path"
+  printf '[ci-monitor-agent] capture-artifact=%s\n' "$capture_path"
+  if [[ -f "$decision_path" ]]; then
+    printf '[ci-monitor-agent] register-decision=%s\n' "$decision_path"
   fi
 }
 
@@ -112,6 +152,7 @@ print_snapshot() {
 
   if [[ "$fail_count" -gt 0 ]]; then
     print_first_fail "$json"
+    capture_failure_memory "$json"
     return 1
   fi
 

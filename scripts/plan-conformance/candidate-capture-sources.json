@@ -42,6 +42,46 @@
       "verification_commands": ["pnpm security:guard", "pnpm e2e:gate:fast"]
     },
     {
+      "source_id": "ci_static_failure",
+      "trigger_match": {
+        "event_type": "ci.static.failure"
+      },
+      "store_type": "procedural",
+      "risk_class": "high",
+      "promotion_rule": "owner_approval",
+      "default_scope": {
+        "file_path": "package.json"
+      },
+      "verification_commands": ["pnpm memory:precheck -- --changed package.json", "pnpm check:fast"]
+    },
+    {
+      "source_id": "ci_e2e_gate_failure",
+      "trigger_match": {
+        "event_type": "ci.e2e_gate.failure"
+      },
+      "store_type": "procedural",
+      "risk_class": "critical",
+      "promotion_rule": "owner_approval",
+      "default_scope": {
+        "file_path": "packages/database/src",
+        "tenant": "tenant_mk"
+      },
+      "verification_commands": ["pnpm db:rls:test:required", "pnpm e2e:gate"]
+    },
+    {
+      "source_id": "ci_boundary_review_block",
+      "trigger_match": {
+        "event_type": "ci.boundary.review_block"
+      },
+      "store_type": "procedural",
+      "risk_class": "high",
+      "promotion_rule": "owner_approval",
+      "default_scope": {
+        "file_path": "apps/web/src/lib/proxy-logic.ts"
+      },
+      "verification_commands": ["pnpm security:guard", "pnpm e2e:gate:fast"]
+    },
+    {
       "source_id": "plan_evidence_custody_gap",
       "trigger_match": {
         "event_type": "plan.evidence.custody_gap"
