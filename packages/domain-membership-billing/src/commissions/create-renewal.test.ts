@@ -89,10 +89,12 @@ describe('createRenewalCommissionCore', () => {
         }),
       })
     );
-    expect(result.data).toEqual({
-      kind: 'created',
-      id: 'comm-renewal',
-    });
+    if (result.success) {
+      expect(result.data).toEqual({
+        kind: 'created',
+        id: 'comm-renewal',
+      });
+    }
   });
 
   it('skips renewal commissions for company-owned subscriptions', async () => {
@@ -119,12 +121,14 @@ describe('createRenewalCommissionCore', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.data).toEqual({
-      kind: 'no-op',
-      noCommissionReason: 'company_owned',
-      ownerType: 'company',
-      ownershipDiagnostics: [],
-    });
+    if (result.success) {
+      expect(result.data).toEqual({
+        kind: 'no-op',
+        noCommissionReason: 'company_owned',
+        ownerType: 'company',
+        ownershipDiagnostics: [],
+      });
+    }
     expect(createCommissionCore).not.toHaveBeenCalled();
   });
 
@@ -198,18 +202,20 @@ describe('createRenewalCommissionCore', () => {
       agentClientAgentIds: ['agent-current'],
     });
     expect(result.success).toBe(true);
-    expect(result.data).toEqual({
-      kind: 'no-op',
-      noCommissionReason: 'unresolved',
-      ownerType: 'unresolved',
-      ownershipDiagnostics: [
-        {
-          source: 'subscription.agentId',
-          expectedAgentId: null,
-          actualAgentId: null,
-        },
-      ],
-    });
+    if (result.success) {
+      expect(result.data).toEqual({
+        kind: 'no-op',
+        noCommissionReason: 'unresolved',
+        ownerType: 'unresolved',
+        ownershipDiagnostics: [
+          {
+            source: 'subscription.agentId',
+            expectedAgentId: null,
+            actualAgentId: null,
+          },
+        ],
+      });
+    }
     expect(createCommissionCore).not.toHaveBeenCalled();
   });
 });

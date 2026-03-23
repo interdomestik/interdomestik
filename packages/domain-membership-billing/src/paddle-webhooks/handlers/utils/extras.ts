@@ -1,4 +1,7 @@
 import { db } from '@interdomestik/database';
+import { referrals } from '@interdomestik/database/schema';
+import { and, eq } from 'drizzle-orm';
+import { createMemberReferralRewardCore } from '@interdomestik/domain-referrals';
 import { createCommissionCore } from '../../../commissions/create';
 import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
 import { calculateCommission } from '../../../commissions/types';
@@ -69,6 +72,55 @@ async function processCommissions(args: {
   console.log(
     `[Webhook] 💰 Commission created: €${commissionAmount} for agent ${agentId}${customRates ? ' (custom rates)' : ''}`
   );
+}
+
+async function processMemberReferralRewards(args: {
+  sub: any;
+  userId: string;
+  tenantId: string;
+  customData: { agentId?: string } | undefined;
+  deps: PaddleWebhookAuditDeps;
+}) {
+  const { sub, userId, tenantId, customData, deps } = args;
+
+  if (customData?.agentId) return;
+
+  const referralRow = await db.query.referrals.findFirst({
+    where: and(eq(referrals.tenantId, tenantId), eq(referrals.referredId, userId)),
+    columns: {
+      id: true,
+    },
+  });
+
+  const rewardResult = await createMemberReferralRewardCore({
+    tenantId,
+    referralId: referralRow?.id ?? null,
+    subscriptionId: sub.id,
+    qualifyingEventId: sub.id,
+    qualifyingEventType: 'first_paid_membership',
+    paymentAmountCents: Number.parseInt(sub.items?.[0]?.price?.unitPrice?.amount || '0', 10),
+    currencyCode: sub.items?.[0]?.price?.unitPrice?.currencyCode || 'EUR',
+    metadata: {
+      source: 'paddle_webhook',
+    },
+  });
+
+  if (deps.logAuditEvent && rewardResult.success && rewardResult.data.kind === 'created') {
+    await deps.logAuditEvent({
+      actorRole: 'system',
+      action: 'referral.reward.created',
+      entityType: 'referral_reward',
+      entityId: rewardResult.data.id,
+      tenantId,
+      metadata: {
+        memberId: userId,
+        subscriptionId: sub.id,
+        rewardCents: rewardResult.data.rewardCents,
+        currency: rewardResult.data.currencyCode,
+        source: 'paddle_webhook',
+      },
+    });
+  }
 }
 
 async function processRenewalCommissions(args: {
@@ -188,6 +240,7 @@ export async function handleNewSubscriptionExtras(args: {
   deps: Pick<PaddleWebhookDeps, 'sendThankYouLetter'> & PaddleWebhookAuditDeps;
 }) {
   await processCommissions(args);
+  await processMemberReferralRewards(args);
   await processThankYouLetter(args);
 }
 

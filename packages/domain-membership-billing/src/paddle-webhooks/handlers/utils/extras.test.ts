@@ -1,5 +1,6 @@
 import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createMemberReferralRewardCore } from '@interdomestik/domain-referrals';
 import { createCommissionCore } from '../../../commissions/create';
 import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
 import {
@@ -15,8 +16,15 @@ vi.mock('@interdomestik/database', () => ({
       agentSettings: {
         findFirst: vi.fn(),
       },
+      referrals: {
+        findFirst: vi.fn(),
+      },
     },
   },
+}));
+
+vi.mock('@interdomestik/domain-referrals', () => ({
+  createMemberReferralRewardCore: vi.fn(),
 }));
 
 vi.mock('../../../commissions/create', () => ({
@@ -73,6 +81,11 @@ describe('extras', () => {
       // Default success mocks
       (db.query.agentSettings.findFirst as any).mockResolvedValue(null);
       (createCommissionCore as any).mockResolvedValue({ success: true, data: { id: 'comm_1' } });
+      (db.query.referrals.findFirst as any).mockResolvedValue(null);
+      (createMemberReferralRewardCore as any).mockResolvedValue({
+        success: true,
+        data: { kind: 'no-op', created: false, reason: 'no_referral' },
+      });
     });
 
     it('should process commission if agentId is present', async () => {
@@ -138,6 +151,64 @@ describe('extras', () => {
       });
 
       expect(createCommissionCore).not.toHaveBeenCalled();
+    });
+
+    it('creates a member referral reward for a first paid subscription without an agent commission', async () => {
+      (db.query.referrals.findFirst as any).mockResolvedValue({ id: 'ref_1' });
+      (createMemberReferralRewardCore as any).mockResolvedValue({
+        success: true,
+        data: {
+          kind: 'created',
+          created: true,
+          id: 'reward_1',
+          rewardCents: 500,
+          status: 'pending',
+          rewardType: 'fixed',
+          currencyCode: 'EUR',
+        },
+      });
+
+      await handleNewSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: undefined,
+        priceId: 'price_1',
+        userRecord: mockUserRecord,
+        deps: mockDeps,
+      });
+
+      expect(createCommissionCore).not.toHaveBeenCalled();
+      expect(createMemberReferralRewardCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant_1',
+          referralId: 'ref_1',
+          subscriptionId: 'sub_123',
+          qualifyingEventType: 'first_paid_membership',
+          paymentAmountCents: 2000,
+        })
+      );
+      expect(mockDeps.logAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'referral.reward.created',
+          entityType: 'referral_reward',
+        })
+      );
+    });
+
+    it('does not stack a member referral reward on top of an agent commission', async () => {
+      await handleNewSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: { agentId: 'agent_1' },
+        priceId: 'price_1',
+        userRecord: mockUserRecord,
+        deps: mockDeps,
+      });
+
+      expect(createCommissionCore).toHaveBeenCalled();
+      expect(createMemberReferralRewardCore).not.toHaveBeenCalled();
     });
 
     it('should send thank you letter', async () => {
@@ -329,6 +400,26 @@ describe('extras', () => {
           }),
         })
       );
+    });
+
+    it('never creates a member referral reward on renewal flows', async () => {
+      await handleRenewalSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: undefined,
+        priceId: 'price_renewal',
+        userRecord: null,
+        ownership: {
+          subscriptionAgentId: null,
+          userAgentId: null,
+          agentClientAgentIds: [],
+          originalSellerAgentId: null,
+        },
+        deps: mockDeps,
+      });
+
+      expect(createMemberReferralRewardCore).not.toHaveBeenCalled();
     });
   });
 });

@@ -55,9 +55,10 @@ export async function createRenewalCommissionCore(data: {
       };
     }
 
+    const resolvedAgentId = ownership.agentId;
     const agentSettings = await db.query.agentSettings?.findFirst({
       where: (settings, { and, eq }) =>
-        and(eq(settings.agentId, ownership.agentId), eq(settings.tenantId, data.tenantId)),
+        and(eq(settings.agentId, resolvedAgentId), eq(settings.tenantId, data.tenantId)),
     });
     const customRates = agentSettings?.commissionRates as Record<string, number> | undefined;
     const amount = calculateCommission('renewal', data.transactionTotal, customRates);
@@ -69,7 +70,7 @@ export async function createRenewalCommissionCore(data: {
     ];
 
     const commissionResult = await createCommissionCore({
-      agentId: ownership.agentId,
+      agentId: resolvedAgentId,
       memberId: data.memberId,
       subscriptionId: data.subscriptionId,
       type: 'renewal',
@@ -83,7 +84,7 @@ export async function createRenewalCommissionCore(data: {
         source: 'paddle_webhook',
         customRates: !!customRates,
         saleOwnerType: ownership.ownerType,
-        saleOwnerId: ownership.agentId,
+        saleOwnerId: resolvedAgentId,
         originalSellerAgentId: data.originalSellerAgentId ?? data.subscriptionAgentId ?? null,
         ownershipResolvedFrom,
         ownershipDiagnostics: ownership.diagnostics,
