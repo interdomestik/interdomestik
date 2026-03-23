@@ -123,9 +123,11 @@ export default function AdminCommissionsPage() {
         enabled: referralSettings.enabled,
         rewardType: referralSettings.rewardType,
         fixedRewardCents:
-          referralSettings.rewardType === 'fixed' ? referralSettings.fixedRewardCents : 0,
+          referralSettings.rewardType === 'fixed' ? (referralSettings.fixedRewardCents ?? 0) : null,
         percentRewardBps:
-          referralSettings.rewardType === 'percent' ? referralSettings.percentRewardBps : null,
+          referralSettings.rewardType === 'percent'
+            ? (referralSettings.percentRewardBps ?? 0)
+            : null,
         settlementMode: referralSettings.settlementMode,
         payoutThresholdCents: referralSettings.payoutThresholdCents,
         fraudReviewEnabled: referralSettings.fraudReviewEnabled,
@@ -291,13 +293,13 @@ export default function AdminCommissionsPage() {
                   id="fixed-reward-cents"
                   type="number"
                   min={0}
-                  value={referralSettings.fixedRewardCents}
+                  value={referralSettings.fixedRewardCents ?? 0}
                   onChange={event =>
                     handleSettingsChange('fixedRewardCents', Number(event.target.value) || 0)
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  Current reward: {formatSettingsAmount(referralSettings.fixedRewardCents)}
+                  Current reward: {formatSettingsAmount(referralSettings.fixedRewardCents ?? 0)}
                 </p>
               </div>
             ) : (
@@ -361,7 +363,6 @@ export default function AdminCommissionsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="first_paid_membership">First paid membership</SelectItem>
-                  <SelectItem value="renewal">Renewal</SelectItem>
                 </SelectContent>
               </Select>
             </div>

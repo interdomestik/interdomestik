@@ -23,7 +23,7 @@ const settingsSchema = z
     payoutThresholdCents: z.number().int().min(0).optional(),
     fraudReviewEnabled: z.boolean().optional(),
     currencyCode: z.string().trim().min(3).max(3).optional(),
-    qualifyingEventType: z.enum(['first_paid_membership', 'renewal']).optional(),
+    qualifyingEventType: z.enum(['first_paid_membership']).optional(),
   })
   .strict();
 

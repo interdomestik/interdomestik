@@ -14,12 +14,12 @@ import type {
 
 function resolveRewardCents(args: {
   rewardType: MemberReferralRewardType;
-  fixedRewardCents: number;
+  fixedRewardCents: number | null;
   percentRewardBps: number | null;
   paymentAmountCents: number;
 }): number {
   if (args.rewardType === 'fixed') {
-    return args.fixedRewardCents;
+    return args.fixedRewardCents ?? 0;
   }
 
   if (args.percentRewardBps == null) {

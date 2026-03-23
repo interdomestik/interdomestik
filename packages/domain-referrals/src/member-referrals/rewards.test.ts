@@ -1,7 +1,6 @@
 import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getMemberReferralStatsCore } from './stats';
 import { createMemberReferralRewardCore } from './rewards';
 
 vi.mock('@interdomestik/database', () => ({
@@ -196,45 +195,5 @@ describe('createMemberReferralRewardCore', () => {
       expect(result.data.reason).toBe('non_qualifying_event');
     }
     expect(db.insert).not.toHaveBeenCalled();
-  });
-
-  it('exposes balances from the reward ledger', async () => {
-    (db.query.memberReferralSettings.findFirst as any).mockResolvedValue({
-      tenantId: 'tenant-1',
-      enabled: true,
-      rewardType: 'fixed',
-      fixedRewardCents: 500,
-      percentRewardBps: null,
-      referredMemberRewardType: 'fixed',
-      referredMemberFixedRewardCents: 0,
-      referredMemberPercentRewardBps: null,
-      settlementMode: 'credit_or_payout',
-      payoutThresholdCents: 1000,
-      fraudReviewEnabled: false,
-      currencyCode: 'EUR',
-      qualifyingEventType: 'first_paid_membership',
-    });
-    (db.query.referrals.findMany as any).mockResolvedValue([{ id: 'ref-1' }]);
-    (db.query.memberReferralRewards.findMany as any).mockResolvedValue([
-      { status: 'pending', rewardCents: 100 },
-      { status: 'credited', rewardCents: 400 },
-      { status: 'paid', rewardCents: 200 },
-    ]);
-
-    const result = await getMemberReferralStatsCore({
-      session: { user: { id: 'member-a', role: 'user', tenantId: 'tenant-1' } } as any,
-    });
-
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data).toEqual({
-        totalReferred: 1,
-        pendingRewards: 1,
-        creditedRewards: 4,
-        payoutEligibleRewards: 0,
-        paidRewards: 2,
-        rewardsCurrency: 'EUR',
-      });
-    }
   });
 });

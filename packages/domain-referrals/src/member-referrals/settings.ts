@@ -42,7 +42,7 @@ function normalizeSettingsRow(
     ...row,
     rewardType,
     fixedRewardCents:
-      rewardType === 'fixed' ? (row?.fixedRewardCents ?? DEFAULT_SETTINGS.fixedRewardCents) : 0,
+      rewardType === 'fixed' ? (row?.fixedRewardCents ?? DEFAULT_SETTINGS.fixedRewardCents) : null,
     percentRewardBps: rewardType === 'percent' ? (row?.percentRewardBps ?? 0) : null,
     payoutThresholdCents: row?.payoutThresholdCents ?? DEFAULT_SETTINGS.payoutThresholdCents,
     currencyCode: row?.currencyCode ?? DEFAULT_SETTINGS.currencyCode,
@@ -95,7 +95,7 @@ export async function upsertMemberReferralProgramSettingsCore(params: {
         tenantId,
         enabled: normalized.enabled,
         rewardType: normalized.rewardType,
-        fixedRewardCents: normalized.fixedRewardCents,
+        fixedRewardCents: normalized.rewardType === 'fixed' ? normalized.fixedRewardCents : null,
         percentRewardBps: normalized.percentRewardBps,
         referredMemberRewardType: 'fixed',
         referredMemberFixedRewardCents: 0,
@@ -112,7 +112,7 @@ export async function upsertMemberReferralProgramSettingsCore(params: {
         set: {
           enabled: normalized.enabled,
           rewardType: normalized.rewardType,
-          fixedRewardCents: normalized.fixedRewardCents,
+          fixedRewardCents: normalized.rewardType === 'fixed' ? normalized.fixedRewardCents : null,
           percentRewardBps: normalized.percentRewardBps,
           referredMemberRewardType: 'fixed',
           referredMemberFixedRewardCents: 0,

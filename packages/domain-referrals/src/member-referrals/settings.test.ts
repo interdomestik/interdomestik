@@ -6,6 +6,8 @@ import {
   upsertMemberReferralProgramSettingsCore,
 } from './settings';
 
+const insertValues = vi.fn();
+
 vi.mock('@interdomestik/database', () => ({
   db: {
     query: {
@@ -14,7 +16,7 @@ vi.mock('@interdomestik/database', () => ({
       },
     },
     insert: vi.fn(() => ({
-      values: vi.fn(() => ({
+      values: insertValues.mockImplementation(() => ({
         onConflictDoUpdate: vi.fn(() => ({
           returning: vi.fn(),
         })),
@@ -129,14 +131,14 @@ describe('member referral settings', () => {
   it('upserts configurable percent reward settings', async () => {
     (db.query.memberReferralSettings.findFirst as any).mockResolvedValue(null);
     (db.insert as any).mockReturnValue({
-      values: vi.fn(() => ({
+      values: insertValues.mockImplementation(() => ({
         onConflictDoUpdate: vi.fn(() => ({
           returning: vi.fn().mockResolvedValue([
             {
               tenantId: 'tenant-1',
               enabled: true,
               rewardType: 'percent',
-              fixedRewardCents: 0,
+              fixedRewardCents: null,
               percentRewardBps: 500,
               settlementMode: 'credit_only',
               payoutThresholdCents: 0,
@@ -164,9 +166,16 @@ describe('member referral settings', () => {
         tenantId: 'tenant-1',
         enabled: true,
         rewardType: 'percent',
-        fixedRewardCents: 0,
+        fixedRewardCents: null,
         percentRewardBps: 500,
       });
     }
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rewardType: 'percent',
+        fixedRewardCents: null,
+        percentRewardBps: 500,
+      })
+    );
   });
 });

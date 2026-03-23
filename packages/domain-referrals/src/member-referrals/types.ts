@@ -13,7 +13,7 @@ export interface MemberReferralProgramSettings {
   tenantId: string;
   enabled: boolean;
   rewardType: MemberReferralRewardType;
-  fixedRewardCents: number;
+  fixedRewardCents: number | null;
   percentRewardBps: number | null;
   settlementMode: MemberReferralSettlementMode;
   payoutThresholdCents: number;

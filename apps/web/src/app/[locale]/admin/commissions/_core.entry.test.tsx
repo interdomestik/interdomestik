@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import AdminCommissionsPage from './_core.entry';
@@ -166,6 +166,61 @@ describe('Admin commissions page', () => {
       expect(screen.getByDisplayValue('750')).toBeInTheDocument();
       expect(screen.getByText(/Reward reward-1/i)).toBeInTheDocument();
       expect(screen.getByText('All Commissions')).toBeInTheDocument();
+    });
+  });
+
+  it('submits percent referral settings with a null fixed reward payload and no renewal option', async () => {
+    const memberReferrals = await import('@/actions/member-referrals');
+    vi.mocked(memberReferrals.getMemberReferralProgramSettings).mockResolvedValueOnce({
+      success: true,
+      data: {
+        tenantId: 'tenant_ks',
+        enabled: true,
+        rewardType: 'percent',
+        fixedRewardCents: null,
+        percentRewardBps: 500,
+        settlementMode: 'credit_only',
+        payoutThresholdCents: 10000,
+        fraudReviewEnabled: false,
+        currencyCode: 'EUR',
+        qualifyingEventType: 'first_paid_membership',
+      },
+    });
+    vi.mocked(memberReferrals.updateMemberReferralProgramSettings).mockResolvedValue({
+      success: true,
+      data: {
+        tenantId: 'tenant_ks',
+        enabled: true,
+        rewardType: 'percent',
+        fixedRewardCents: 0,
+        percentRewardBps: 500,
+        settlementMode: 'credit_only',
+        payoutThresholdCents: 10000,
+        fraudReviewEnabled: false,
+        currencyCode: 'EUR',
+        qualifyingEventType: 'first_paid_membership',
+      },
+    });
+
+    render(<AdminCommissionsPage />);
+
+    expect(await screen.findByText('Commission Management')).toBeInTheDocument();
+    expect(screen.queryByText('Renewal')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save referral settings' }));
+
+    await waitFor(() => {
+      expect(memberReferrals.updateMemberReferralProgramSettings).toHaveBeenCalledWith({
+        enabled: true,
+        rewardType: 'percent',
+        fixedRewardCents: null,
+        percentRewardBps: 500,
+        settlementMode: 'credit_only',
+        payoutThresholdCents: 10000,
+        fraudReviewEnabled: false,
+        currencyCode: 'EUR',
+        qualifyingEventType: 'first_paid_membership',
+      });
     });
   });
 });

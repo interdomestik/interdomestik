@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  foreignKey,
   integer,
   index,
   jsonb,
@@ -25,24 +26,28 @@ const memberReferralRewardStatusValues = [
 const memberReferralRewardTypeValues = ['fixed', 'percent'] as const;
 const memberReferralSettlementModeValues = ['credit_only', 'credit_or_payout'] as const;
 
-export const referrals = pgTable('referrals', {
-  id: text('id').primaryKey(),
-  tenantId: text('tenant_id')
-    .notNull()
-    .references(() => tenants.id),
-  referrerId: text('referrer_id')
-    .notNull()
-    .references(() => user.id),
-  referredId: text('referred_id')
-    .notNull()
-    .references(() => user.id),
-  referralCode: text('referral_code').notNull(),
-  status: text('status').default('pending'),
-  referrerRewardCents: integer('referrer_reward_cents'),
-  referredRewardCents: integer('referred_reward_cents'),
-  rewardedAt: timestamp('rewarded_at'),
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const referrals = pgTable(
+  'referrals',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id),
+    referrerId: text('referrer_id')
+      .notNull()
+      .references(() => user.id),
+    referredId: text('referred_id')
+      .notNull()
+      .references(() => user.id),
+    referralCode: text('referral_code').notNull(),
+    status: text('status').default('pending'),
+    referrerRewardCents: integer('referrer_reward_cents'),
+    referredRewardCents: integer('referred_reward_cents'),
+    rewardedAt: timestamp('rewarded_at'),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  table => [uniqueIndex('referrals_tenant_id_id_uq').on(table.tenantId, table.id)]
+);
 
 export const memberReferralRewards = pgTable(
   'member_referral_rewards',
@@ -51,18 +56,10 @@ export const memberReferralRewards = pgTable(
     tenantId: text('tenant_id')
       .notNull()
       .references(() => tenants.id),
-    referralId: text('referral_id')
-      .notNull()
-      .references(() => referrals.id),
-    subscriptionId: text('subscription_id')
-      .notNull()
-      .references(() => subscriptions.id),
-    referrerMemberId: text('referrer_member_id')
-      .notNull()
-      .references(() => user.id),
-    referredMemberId: text('referred_member_id')
-      .notNull()
-      .references(() => user.id),
+    referralId: text('referral_id').notNull(),
+    subscriptionId: text('subscription_id').notNull(),
+    referrerMemberId: text('referrer_member_id').notNull(),
+    referredMemberId: text('referred_member_id').notNull(),
     qualifyingEventId: text('qualifying_event_id').notNull(),
     qualifyingEventType: text('qualifying_event_type').notNull(),
     rewardType: text('reward_type', { enum: memberReferralRewardTypeValues })
@@ -82,6 +79,26 @@ export const memberReferralRewards = pgTable(
     updatedAt: timestamp('updated_at'),
   },
   table => [
+    foreignKey({
+      name: 'member_referral_rewards_referral_tenant_id_referral_id_fk',
+      columns: [table.tenantId, table.referralId],
+      foreignColumns: [referrals.tenantId, referrals.id],
+    }),
+    foreignKey({
+      name: 'member_referral_rewards_subscription_tenant_id_subscription_id_fk',
+      columns: [table.tenantId, table.subscriptionId],
+      foreignColumns: [subscriptions.tenantId, subscriptions.id],
+    }),
+    foreignKey({
+      name: 'member_referral_rewards_referrer_tenant_id_referrer_member_id_fk',
+      columns: [table.tenantId, table.referrerMemberId],
+      foreignColumns: [user.tenantId, user.id],
+    }),
+    foreignKey({
+      name: 'member_referral_rewards_referred_tenant_id_referred_member_id_fk',
+      columns: [table.tenantId, table.referredMemberId],
+      foreignColumns: [user.tenantId, user.id],
+    }),
     uniqueIndex('member_referral_rewards_tenant_subscription_event_uq').on(
       table.tenantId,
       table.subscriptionId,
@@ -136,16 +153,14 @@ export const memberReferralSettings = pgTable(
     rewardType: text('reward_type', { enum: memberReferralRewardTypeValues })
       .notNull()
       .default('fixed'),
-    fixedRewardCents: integer('fixed_reward_cents').notNull().default(0),
+    fixedRewardCents: integer('fixed_reward_cents'),
     percentRewardBps: integer('percent_reward_bps'),
     referredMemberRewardType: text('referred_member_reward_type', {
       enum: memberReferralRewardTypeValues,
     })
       .notNull()
       .default('fixed'),
-    referredMemberFixedRewardCents: integer('referred_member_fixed_reward_cents')
-      .notNull()
-      .default(0),
+    referredMemberFixedRewardCents: integer('referred_member_fixed_reward_cents'),
     referredMemberPercentRewardBps: integer('referred_member_percent_reward_bps'),
     settlementMode: text('settlement_mode', { enum: memberReferralSettlementModeValues })
       .notNull()

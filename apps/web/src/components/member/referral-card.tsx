@@ -41,7 +41,7 @@ function getRewardSummary(
   const rewardValue =
     settings.rewardType === 'percent'
       ? `${((settings.percentRewardBps ?? 0) / 100).toFixed(2)}%`
-      : formatCurrency(settings.fixedRewardCents / 100, settings.currencyCode);
+      : formatCurrency((settings.fixedRewardCents ?? 0) / 100, settings.currencyCode);
 
   const threshold = formatCurrency(settings.payoutThresholdCents / 100, settings.currencyCode);
 
