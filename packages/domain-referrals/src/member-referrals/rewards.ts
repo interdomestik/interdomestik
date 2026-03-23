@@ -175,11 +175,16 @@ export async function createMemberReferralRewardCore(
       rewardCents,
       rewardPercentBps: settings.rewardType === 'percent' ? settings.percentRewardBps : null,
       currencyCode: params.currencyCode ?? settings.currencyCode,
-      metadata: {
-        ...(params.metadata ?? {}),
-        source: 'member_referral_program',
-        settingSnapshot: settings,
-      },
+      metadata: params.metadata
+        ? {
+            ...params.metadata,
+            source: 'member_referral_program',
+            settingSnapshot: settings,
+          }
+        : {
+            source: 'member_referral_program',
+            settingSnapshot: settings,
+          },
       updatedAt: new Date(),
     })
     .onConflictDoNothing({

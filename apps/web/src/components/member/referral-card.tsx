@@ -61,7 +61,9 @@ function getRewardSummary(
   });
 }
 
-export function ReferralCard({ isAgent: _isAgent }: ReferralCardProps) {
+const SKELETON_CARD_IDS = ['friends', 'pending', 'credited', 'paid'] as const;
+
+export function ReferralCard({ isAgent: _isAgent }: Readonly<ReferralCardProps>) {
   const t = useTranslations('dashboard.referral');
   const [data, setData] = useState<ReferralCardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -116,7 +118,7 @@ export function ReferralCard({ isAgent: _isAgent }: ReferralCardProps) {
       await navigator.clipboard.writeText(data.link);
       setIsCopied(true);
       toast.success(t('copied'));
-      window.setTimeout(() => setIsCopied(false), 2000);
+      globalThis.setTimeout(() => setIsCopied(false), 2000);
     } catch {
       toast.error(t('copyError'));
     }
@@ -124,7 +126,7 @@ export function ReferralCard({ isAgent: _isAgent }: ReferralCardProps) {
 
   const handleShare = () => {
     if (!data?.whatsappShareUrl) return;
-    window.open(data.whatsappShareUrl, '_blank', 'noopener,noreferrer');
+    globalThis.open(data.whatsappShareUrl, '_blank', 'noopener,noreferrer');
   };
 
   if (isLoading) {
@@ -136,8 +138,8 @@ export function ReferralCard({ isAgent: _isAgent }: ReferralCardProps) {
         <CardContent className="space-y-3">
           <Skeleton className="h-10 w-full" />
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-20 w-full" />
+            {SKELETON_CARD_IDS.map(id => (
+              <Skeleton key={id} className="h-20 w-full" />
             ))}
           </div>
         </CardContent>

@@ -4,10 +4,9 @@ import { z } from 'zod';
 
 import type {
   ActionResult,
-  MemberReferralAdminRewardRow,
+  MemberReferralLink,
   MemberReferralProgramSettings,
   MemberReferralRewardStatus,
-  MemberReferralLink,
   MemberReferralStats,
 } from './member-referrals/types';
 

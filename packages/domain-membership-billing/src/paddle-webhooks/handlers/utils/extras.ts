@@ -127,7 +127,6 @@ async function processRenewalCommissions(args: {
   sub: any;
   userId: string;
   tenantId: string;
-  customData: { agentId?: string } | undefined;
   priceId: string;
   ownership?: {
     subscriptionAgentId?: string | null;
@@ -137,7 +136,7 @@ async function processRenewalCommissions(args: {
   };
   deps: PaddleWebhookAuditDeps;
 }) {
-  const { sub, userId, tenantId, customData, priceId, ownership, deps } = args;
+  const { sub, userId, tenantId, priceId, ownership, deps } = args;
   const transactionTotal = Number.parseFloat(sub.items?.[0]?.price?.unitPrice?.amount || '0') / 100;
   if (transactionTotal <= 0) return;
 

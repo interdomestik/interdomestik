@@ -77,18 +77,30 @@ export async function createRenewalCommissionCore(data: {
       amount,
       currency: data.currency,
       tenantId: data.tenantId,
-      metadata: {
-        ...(data.metadata ?? {}),
-        planId: data.priceId,
-        transactionTotal: data.transactionTotal,
-        source: 'paddle_webhook',
-        customRates: !!customRates,
-        saleOwnerType: ownership.ownerType,
-        saleOwnerId: resolvedAgentId,
-        originalSellerAgentId: data.originalSellerAgentId ?? data.subscriptionAgentId ?? null,
-        ownershipResolvedFrom,
-        ownershipDiagnostics: ownership.diagnostics,
-      },
+      metadata: data.metadata
+        ? {
+            ...data.metadata,
+            planId: data.priceId,
+            transactionTotal: data.transactionTotal,
+            source: 'paddle_webhook',
+            customRates: !!customRates,
+            saleOwnerType: ownership.ownerType,
+            saleOwnerId: resolvedAgentId,
+            originalSellerAgentId: data.originalSellerAgentId ?? data.subscriptionAgentId ?? null,
+            ownershipResolvedFrom,
+            ownershipDiagnostics: ownership.diagnostics,
+          }
+        : {
+            planId: data.priceId,
+            transactionTotal: data.transactionTotal,
+            source: 'paddle_webhook',
+            customRates: !!customRates,
+            saleOwnerType: ownership.ownerType,
+            saleOwnerId: resolvedAgentId,
+            originalSellerAgentId: data.originalSellerAgentId ?? data.subscriptionAgentId ?? null,
+            ownershipResolvedFrom,
+            ownershipDiagnostics: ownership.diagnostics,
+          },
     });
     if (!commissionResult.success || !commissionResult.data?.id) {
       return {
