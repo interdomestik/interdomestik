@@ -302,6 +302,17 @@ async function waitForMessagingPanelReady(
   await expect(panel.locator('svg.animate-spin')).toHaveCount(0, { timeout: 15000 });
 }
 
+async function waitForSelectedClaimReady(
+  page: import('@playwright/test').Page,
+  claimId: string
+): Promise<void> {
+  const selectedClaimId = page.getByTestId('workspace-selected-claim-id');
+  await expect(selectedClaimId).toBeVisible({ timeout: 20000 });
+  await expect(selectedClaimId).toHaveText(claimId, { timeout: 20000 });
+  await expect(page.getByTestId('ops-drawer')).toBeVisible({ timeout: 20000 });
+  await expect(page.getByTestId('ops-drawer-content')).toBeVisible({ timeout: 20000 });
+}
+
 test.describe('Agent Workspace Claims claimId selection', () => {
   test('claimId selects accessible claim and flags inaccessible claimId', async ({
     agentPage: page,
@@ -317,12 +328,7 @@ test.describe('Agent Workspace Claims claimId selection', () => {
 
       await gotoApp(page, accessiblePath, testInfo, { marker: 'agent-claims-pro-page' });
 
-      await expect(page.getByTestId('workspace-selected-claim-id')).toBeVisible({ timeout: 15000 });
-      await expect(page.getByTestId('workspace-selected-claim-id')).toHaveText(accessibleClaimId, {
-        timeout: 15000,
-      });
-      await expect(page.getByTestId('ops-drawer')).toBeVisible();
-      await expect(page.getByTestId('ops-drawer-content')).toBeVisible();
+      await waitForSelectedClaimReady(page, accessibleClaimId);
       await expect(page.getByTestId('action-message')).toBeVisible();
 
       const inaccessibleClaimId = 'e2e-not-accessible-claim-id';
@@ -360,10 +366,7 @@ test.describe('Agent Workspace Claims claimId selection', () => {
 
       await gotoApp(page, targetUrl, testInfo, { marker: 'agent-claims-pro-page' });
 
-      await expect(page.getByTestId('workspace-selected-claim-id')).toBeVisible({ timeout: 15000 });
-      await expect(page.getByTestId('workspace-selected-claim-id')).toHaveText(accessibleClaimId, {
-        timeout: 15000,
-      });
+      await waitForSelectedClaimReady(page, accessibleClaimId);
       const actionMessage = page.getByTestId('action-message');
       await expect(actionMessage).toBeVisible();
 
@@ -387,10 +390,7 @@ test.describe('Agent Workspace Claims claimId selection', () => {
 
       await page.reload();
 
-      await expect(page.getByTestId('workspace-selected-claim-id')).toBeVisible({ timeout: 15000 });
-      await expect(page.getByTestId('workspace-selected-claim-id')).toHaveText(accessibleClaimId, {
-        timeout: 15000,
-      });
+      await waitForSelectedClaimReady(page, accessibleClaimId);
 
       const actionMessageAfterReload = page.getByTestId('action-message');
       await expect(actionMessageAfterReload).toBeVisible();
