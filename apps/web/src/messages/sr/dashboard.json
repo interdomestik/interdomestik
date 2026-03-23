@@ -31,16 +31,23 @@
     "noChange": "Bez promene",
     "referral": {
       "title": "Pozovite prijatelje i zaradite",
-      "description": "Podelite svoj link i zaradite €5 za svakog prijatelja koji se pridruži!",
+      "description": "Podelite svoj link i pratite kredit nagrade koji zarađujete od prvih plaćenih članstava.",
       "friends": "Pozvani prijatelji",
       "pending": "Na čekanju",
-      "earned": "Zarađeno",
+      "credited": "Dostupan kredit",
+      "paid": "Isplaćeno",
       "copied": "Link je kopiran!",
       "copyError": "Kopiranje nije uspelo",
+      "loadError": "Učitavanje detalja preporuke nije uspelo",
+      "copyAction": "Kopiraj link preporuke",
+      "shareAction": "Podeli link preporuke",
       "share": "Podeli",
       "shareTitle": "Pridružite se Asistenci",
       "shareText": "Zaštitite svoju porodicu uz članstvo u Asistenci!",
-      "rewardInfo": "Zarađujete €5 kada vaš prijatelj aktivira svoje članstvo"
+      "rewardInfoCreditOnly": "Članovi zarađuju {reward} kao kredit na nalogu nakon aktivacije prvog plaćenog članstva.",
+      "rewardInfoPayout": "Članovi zarađuju {reward} nakon aktivacije prvog plaćenog članstva. Isplate se otključavaju kada dostupan kredit dostigne {threshold}.",
+      "payoutEligible": "Saldo spreman za isplatu: {amount}",
+      "programDisabled": "Nagrade za preporuke članova su trenutno onemogućene za ovog tenant-a."
     },
     "diaspora_ribbon": {
       "text": "🇩🇪🇨🇭 Za Dijasporu: Pomoć dok ste u inostranstvu + uputstva za avio/putovanja + Zeleni Karton",

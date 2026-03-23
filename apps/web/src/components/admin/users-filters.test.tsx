@@ -27,7 +27,7 @@ vi.mock('next-intl', () => ({
       'roles.admin': 'Admins',
       'assignments.all': 'All',
       'assignments.assigned': 'Assigned',
-      'assignments.unassigned': 'Unassigned',
+      'assignments.unassigned': 'Company-owned',
       'labels.role': 'Role',
       'labels.assignment': 'Assignment',
     };
@@ -71,7 +71,7 @@ describe('UsersFilters', () => {
 
     expect(screen.getByText('All')).toBeInTheDocument();
     expect(screen.getByText('Assigned')).toBeInTheDocument();
-    expect(screen.getByText('Unassigned')).toBeInTheDocument();
+    expect(screen.getByText('Company-owned')).toBeInTheDocument();
   });
 
   it('renders filter labels', () => {

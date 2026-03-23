@@ -38,6 +38,15 @@ export async function getMemberReferralProgramSettingsCore(params: { session: Se
   return getMemberReferralProgramSettingsDomain({ tenantId });
 }
 
+export async function getMemberReferralProgramPreviewCore(params: { session: Session | null }) {
+  const tenantId = params.session?.user?.tenantId;
+  if (!tenantId) {
+    return { success: false as const, error: 'Missing tenant context' };
+  }
+
+  return getMemberReferralProgramSettingsDomain({ tenantId });
+}
+
 export async function updateMemberReferralProgramSettingsCore(params: {
   session: Session | null;
   requestHeaders?: Headers;

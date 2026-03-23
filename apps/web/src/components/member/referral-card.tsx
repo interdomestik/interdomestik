@@ -1,230 +1,252 @@
 'use client';
 
-import { getMemberReferralLink, getMemberReferralStats } from '@/actions/member-referrals';
-import { activateAgentProfile } from '@/features/agent/activation/actions';
-import { Button } from '@interdomestik/ui/components/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@interdomestik/ui/components/card';
+  getMemberReferralLink,
+  getMemberReferralProgramPreview,
+  getMemberReferralStats,
+  type MemberReferralProgramSettings,
+  type MemberReferralStats,
+} from '@/actions/member-referrals';
+import { Button } from '@interdomestik/ui/components/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui/components/card';
 import { Input } from '@interdomestik/ui/components/input';
 import { Skeleton } from '@interdomestik/ui/components/skeleton';
-import { Check, Copy, Gift, Loader2, MessageCircle, Share2, Sparkles, Users } from 'lucide-react';
+import { AlertCircle, Check, Copy, Gift, Share2, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-
-interface ReferralData {
-  code: string;
-  link: string;
-  whatsappShareUrl: string;
-}
-
-interface ReferralStats {
-  totalReferred: number;
-  pendingRewards: number;
-  paidRewards: number;
-  rewardsCurrency: string;
-}
 
 interface ReferralCardProps {
   isAgent?: boolean;
 }
 
-export function ReferralCard({ isAgent = false }: ReferralCardProps) {
+interface ReferralCardData {
+  link: string;
+  whatsappShareUrl: string;
+  stats: MemberReferralStats;
+  settings: MemberReferralProgramSettings;
+}
+
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat('de-DE', {
+    style: 'currency',
+    currency,
+  }).format(amount);
+}
+
+function getRewardSummary(
+  settings: MemberReferralProgramSettings,
+  t: ReturnType<typeof useTranslations>
+) {
+  const rewardValue =
+    settings.rewardType === 'percent'
+      ? `${((settings.percentRewardBps ?? 0) / 100).toFixed(2)}%`
+      : formatCurrency(settings.fixedRewardCents / 100, settings.currencyCode);
+
+  const threshold = formatCurrency(settings.payoutThresholdCents / 100, settings.currencyCode);
+
+  if (!settings.enabled) {
+    return t('programDisabled');
+  }
+
+  if (settings.settlementMode === 'credit_or_payout') {
+    return t('rewardInfoPayout', {
+      reward: rewardValue,
+      threshold,
+    });
+  }
+
+  return t('rewardInfoCreditOnly', {
+    reward: rewardValue,
+  });
+}
+
+export function ReferralCard({ isAgent: _isAgent }: ReferralCardProps) {
   const t = useTranslations('dashboard.referral');
-  const [data, setData] = useState<ReferralData | null>(null);
-  const [stats, setStats] = useState<ReferralStats | null>(null);
-  const [isLoading, setIsLoading] = useState(isAgent); // Only load if active
+  const [data, setData] = useState<ReferralCardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
-  const [active, setActive] = useState(isAgent);
-  const [isActivating, setIsActivating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!active) return;
-
-    async function load() {
+    async function loadData() {
       try {
-        const [linkResult, statsResult] = await Promise.all([
+        const [linkResult, statsResult, settingsResult] = await Promise.all([
           getMemberReferralLink(),
           getMemberReferralStats(),
+          getMemberReferralProgramPreview(),
         ]);
 
-        if (linkResult.success) setData(linkResult.data);
-        if (statsResult.success) setStats(statsResult.data);
-      } catch (error) {
-        console.error('Failed to load referral data:', error);
+        if (!linkResult.success) {
+          setError(linkResult.error);
+          return;
+        }
+
+        if (!statsResult.success) {
+          setError(statsResult.error);
+          return;
+        }
+
+        if (!settingsResult.success) {
+          setError(settingsResult.error);
+          return;
+        }
+
+        setData({
+          link: linkResult.data.link,
+          whatsappShareUrl: linkResult.data.whatsappShareUrl,
+          stats: statsResult.data,
+          settings: settingsResult.data,
+        });
+      } catch (loadError) {
+        console.error(loadError);
+        setError(t('loadError'));
       } finally {
         setIsLoading(false);
       }
     }
-    load();
-  }, [active]);
 
-  const handleActivate = async () => {
-    setIsActivating(true);
-    try {
-      const result = await activateAgentProfile();
-      if (result.success) {
-        toast.success('Agent Mode Activated! You can now earn commissions.');
-        setActive(true);
-        // Data will load via useEffect
-      } else {
-        toast.error(result.error || 'Activation failed');
-      }
-    } catch (e) {
-      toast.error('Something went wrong');
-    } finally {
-      setIsActivating(false);
-    }
-  };
+    loadData();
+  }, [t]);
 
   const handleCopy = async () => {
-    if (!data) return;
+    if (!data?.link) return;
+
     try {
       await navigator.clipboard.writeText(data.link);
       setIsCopied(true);
       toast.success(t('copied'));
-      setTimeout(() => setIsCopied(false), 2000);
+      window.setTimeout(() => setIsCopied(false), 2000);
     } catch {
       toast.error(t('copyError'));
     }
   };
 
-  const handleWhatsAppShare = () => {
-    if (!data) return;
-    window.open(data.whatsappShareUrl, '_blank');
+  const handleShare = () => {
+    if (!data?.whatsappShareUrl) return;
+    window.open(data.whatsappShareUrl, '_blank', 'noopener,noreferrer');
   };
-
-  const handleNativeShare = async () => {
-    if (!data) return;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: t('shareTitle'),
-          text: t('shareText'),
-          url: data.link,
-        });
-      } catch {
-        // User cancelled
-      }
-    } else {
-      handleCopy();
-    }
-  };
-
-  if (!active) {
-    return (
-      <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent relative overflow-hidden group hover:border-blue-500/40 transition-colors">
-        <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg text-blue-600 dark:text-blue-400">
-            <Sparkles className="h-5 w-5" />
-            Unlock 50% Commission
-          </CardTitle>
-          <CardDescription>
-            Become an Agent instantly. Refer friends and earn rewards for every signup.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={handleActivate}
-            disabled={isActivating}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all hover:scale-[1.02]"
-          >
-            {isActivating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isActivating ? 'Activating...' : 'Activate Agent Account'}
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-4 w-60 mt-2" />
+          <CardTitle className="text-sm font-medium">{t('title')}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <Skeleton className="h-10 w-full" />
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-20 w-full" />
+            ))}
+          </div>
         </CardContent>
       </Card>
     );
   }
 
-  if (!data) return null;
+  if (error || !data) {
+    return (
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm font-medium text-destructive">
+            <AlertCircle className="h-4 w-4" />
+            {t('loadError')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">{error ?? t('loadError')}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const rewardSummary = getRewardSummary(data.settings, t);
+  const currency = data.stats.rewardsCurrency || data.settings.currencyCode;
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Gift className="h-5 w-5 text-primary" />
+    <Card>
+      <CardHeader className="space-y-2">
+        <CardTitle className="flex items-center gap-2 text-base font-semibold">
+          <Gift className="h-4 w-4 text-primary" />
           {t('title')}
         </CardTitle>
-        <CardDescription>{t('description')}</CardDescription>
+        <p className="text-sm text-muted-foreground">{t('description')}</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Stats Row */}
-        {stats && (
-          <div className="grid grid-cols-3 gap-4 p-3 bg-muted/50 rounded-lg">
-            <div className="text-center">
-              <div className="flex items-center justify-center text-primary">
-                <Users className="h-4 w-4 mr-1" />
-                <span className="text-lg font-bold">{stats.totalReferred}</span>
-              </div>
-              <div className="text-xs text-muted-foreground">{t('friends')}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-amber-600">
-                €{stats.pendingRewards.toFixed(2)}
-              </div>
-              <div className="text-xs text-muted-foreground">{t('pending')}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-green-600">
-                €{stats.paidRewards.toFixed(2)}
-              </div>
-              <div className="text-xs text-muted-foreground">{t('earned')}</div>
-            </div>
-          </div>
-        )}
-
-        {/* Link Input */}
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={data.link}
             readOnly
-            className="font-mono text-sm bg-muted/50"
-            onClick={e => e.currentTarget.select()}
+            className="font-mono text-sm"
+            onClick={event => event.currentTarget.select()}
           />
-          <Button size="icon" variant="outline" onClick={handleCopy}>
-            {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleCopy}
+              aria-label={t('copyAction')}
+            >
+              {isCopied ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleShare}
+              aria-label={t('shareAction')}
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        {/* Share Buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant="default"
-            className="flex-1 bg-green-600 hover:bg-green-700"
-            onClick={handleWhatsAppShare}
-          >
-            <MessageCircle className="h-4 w-4 mr-2" />
-            WhatsApp
-          </Button>
-          <Button variant="outline" className="flex-1" onClick={handleNativeShare}>
-            <Share2 className="h-4 w-4 mr-2" />
-            {t('share')}
-          </Button>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('friends')}</p>
+            <p className="mt-2 text-2xl font-semibold">{data.stats.totalReferred}</p>
+          </div>
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('pending')}</p>
+            <p className="mt-2 text-2xl font-semibold">
+              {formatCurrency(data.stats.pendingRewards, currency)}
+            </p>
+          </div>
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('credited')}</p>
+            <p className="mt-2 text-2xl font-semibold">
+              {formatCurrency(data.stats.creditedRewards, currency)}
+            </p>
+          </div>
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{t('paid')}</p>
+            <p className="mt-2 text-2xl font-semibold">
+              {formatCurrency(data.stats.paidRewards, currency)}
+            </p>
+          </div>
         </div>
 
-        {/* Reward Info */}
-        <p className="text-xs text-muted-foreground text-center">{t('rewardInfo')}</p>
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+          <div className="flex items-start gap-2">
+            <Wallet className="mt-0.5 h-4 w-4 text-primary" />
+            <div className="space-y-1">
+              <p>{rewardSummary}</p>
+              {data.settings.settlementMode === 'credit_or_payout' ? (
+                <p>
+                  {t('payoutEligible', {
+                    amount: formatCurrency(data.stats.payoutEligibleRewards, currency),
+                  })}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

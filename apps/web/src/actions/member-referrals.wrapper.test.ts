@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   getMemberReferralLink,
+  getMemberReferralProgramPreview,
   getMemberReferralProgramSettings,
   getMemberReferralStats,
   listMemberReferralRewards,
@@ -39,6 +40,21 @@ vi.mock('./member-referrals/stats', () => ({
 
 vi.mock('./member-referrals/settings.core', () => ({
   getMemberReferralProgramSettingsCore: vi.fn(async () => ({
+    success: true,
+    data: {
+      tenantId: 'tenant_1',
+      enabled: true,
+      rewardType: 'fixed',
+      fixedRewardCents: 500,
+      percentRewardBps: null,
+      settlementMode: 'credit_only',
+      payoutThresholdCents: 10000,
+      fraudReviewEnabled: false,
+      currencyCode: 'EUR',
+      qualifyingEventType: 'first_paid_membership',
+    },
+  })),
+  getMemberReferralProgramPreviewCore: vi.fn(async () => ({
     success: true,
     data: {
       tenantId: 'tenant_1',
@@ -130,6 +146,20 @@ describe('member-referrals action wrapper', () => {
 
     expect(getActionContext).toHaveBeenCalledTimes(1);
     expect(getMemberReferralProgramSettingsCore).toHaveBeenCalledWith({
+      session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('delegates getMemberReferralProgramPreview to core', async () => {
+    const { getActionContext } = await import('./member-referrals/context');
+    const { getMemberReferralProgramPreviewCore } =
+      await import('./member-referrals/settings.core');
+
+    const result = await getMemberReferralProgramPreview();
+
+    expect(getActionContext).toHaveBeenCalledTimes(1);
+    expect(getMemberReferralProgramPreviewCore).toHaveBeenCalledWith({
       session: { user: { id: 'user-1', role: 'user', name: 'Jane Doe' } },
     });
     expect(result.success).toBe(true);

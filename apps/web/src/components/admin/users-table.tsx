@@ -58,6 +58,8 @@ interface UsersTableProps {
   readonly showContainer?: boolean;
 }
 
+const COMPANY_OWNED_VALUE = 'company-owned';
+
 export function UsersTable({
   users,
   agents,
@@ -113,17 +115,20 @@ export function UsersTable({
   useEffect(() => {
     const nextAssignments: Record<string, string> = {};
     for (const user of users) {
-      nextAssignments[user.id] = user.agentId || 'unassigned';
+      nextAssignments[user.id] = user.agentId || COMPANY_OWNED_VALUE;
     }
     setAssignedAgents(nextAssignments);
   }, [users]);
 
   const handleAgentChange = async (userId: string, agentId: string) => {
-    const previousValue = assignedAgents[userId] || 'unassigned';
+    const previousValue = assignedAgents[userId] || COMPANY_OWNED_VALUE;
     setAssignedAgents(current => ({ ...current, [userId]: agentId }));
     setLoadingId(userId);
     try {
-      const result = await updateUserAgent(userId, agentId === 'unassigned' ? null : agentId);
+      const result = await updateUserAgent(
+        userId,
+        agentId === COMPANY_OWNED_VALUE ? null : agentId
+      );
       if (!result.success) {
         setAssignedAgents(current => ({ ...current, [userId]: previousValue }));
         toast.error(result.error);
@@ -219,14 +224,14 @@ export function UsersTable({
               {isMember(user.role) ? (
                 <Select
                   disabled={loadingId === user.id}
-                  value={assignedAgents[user.id] || 'unassigned'}
+                  value={assignedAgents[user.id] || COMPANY_OWNED_VALUE}
                   onValueChange={val => handleAgentChange(user.id, val)}
                 >
                   <SelectTrigger className="w-[180px] bg-white/5 border-white/10 focus:ring-0 focus:ring-offset-0">
                     <SelectValue placeholder={t('select_agent')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="unassigned">{t('unassigned')}</SelectItem>
+                    <SelectItem value={COMPANY_OWNED_VALUE}>{t('unassigned')}</SelectItem>
                     {agents.map(agent => (
                       <SelectItem key={agent.id} value={agent.id}>
                         {agent.name}

@@ -30,7 +30,7 @@ vi.mock('next-intl', () => ({
       'headers.joined': 'Joined',
       view_profile: 'View Profile',
       select_agent: 'Select Agent',
-      unassigned: 'Unassigned',
+      unassigned: 'Company-owned',
       no_users: 'No users found',
       success_message: 'Agent updated successfully',
       message_alert: `${params?.count || 0} new message(s)`,
@@ -217,11 +217,11 @@ describe('UsersTable', () => {
     expect(screen.getByText('No users found')).toBeInTheDocument();
   });
 
-  it('renders agent select for user role', () => {
+  it('renders company-owned option for user role', () => {
     render(<UsersTable users={mockUsers} agents={mockAgents} />);
 
     // Agent select should be rendered for users with role 'user'
-    const unassignedElements = screen.getAllByText('Unassigned');
-    expect(unassignedElements.length).toBeGreaterThan(0);
+    const companyOwnedElements = screen.getAllByText('Company-owned');
+    expect(companyOwnedElements.length).toBeGreaterThan(0);
   });
 });

@@ -88,7 +88,7 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
 
   const members = users.filter(user => isMember(user.role));
   const assignedMembers = members.filter(member => member.agentId);
-  const unassignedMembers = members.filter(member => !member.agentId);
+  const companyOwnedMembers = members.filter(member => !member.agentId);
   const agentsOnly = users.filter(user => user.role === 'agent');
   const staffMembers = users.filter(user => isStaffOrAdmin(user.role));
 
@@ -104,10 +104,10 @@ export function UsersSections({ users, agents }: UsersSectionsProps) {
           />
         </Section>
       )}
-      {unassignedMembers.length > 0 && (
-        <Section title={t('sections.unassigned')} count={unassignedMembers.length}>
+      {companyOwnedMembers.length > 0 && (
+        <Section title={t('sections.unassigned')} count={companyOwnedMembers.length}>
           <UsersTable
-            users={unassignedMembers}
+            users={companyOwnedMembers}
             agents={agents}
             showEmptyState={false}
             showContainer={false}

@@ -14,7 +14,7 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
     const translations: Record<string, string> = {
       'sections.members': 'Assigned Members',
-      'sections.unassigned': 'Unassigned Members',
+      'sections.unassigned': 'Company-owned Members',
       'sections.agents': 'Agents',
       'sections.staff': 'Staff & Admins',
       no_users: 'No users found',
@@ -84,9 +84,9 @@ describe('UsersSections', () => {
     expect(screen.getByText('Assigned Members')).toBeInTheDocument();
   });
 
-  it('renders unassigned members section', () => {
+  it('renders company-owned members section', () => {
     render(<UsersSections users={mockUsers} agents={mockAgents} />);
-    expect(screen.getByText('Unassigned Members')).toBeInTheDocument();
+    expect(screen.getByText('Company-owned Members')).toBeInTheDocument();
   });
 
   it('renders agents section', () => {

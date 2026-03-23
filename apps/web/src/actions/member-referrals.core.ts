@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import type {
   ActionResult,
+  MemberReferralAdminRewardRow,
   MemberReferralProgramSettings,
   MemberReferralRewardStatus,
   MemberReferralLink,
@@ -12,6 +13,7 @@ import type {
 
 export type {
   ActionResult,
+  MemberReferralAdminRewardRow,
   MemberReferralProgramSettings,
   MemberReferralLink,
   MemberReferralStats,
@@ -24,6 +26,7 @@ import {
 } from './member-referrals/admin.core';
 import { getMemberReferralLinkCore } from './member-referrals/link';
 import {
+  getMemberReferralProgramPreviewCore,
   getMemberReferralProgramSettingsCore,
   updateMemberReferralProgramSettingsCore,
 } from './member-referrals/settings.core';
@@ -57,6 +60,13 @@ export async function getMemberReferralProgramSettings(): Promise<
 > {
   const { session } = await getActionContext();
   return getMemberReferralProgramSettingsCore({ session });
+}
+
+export async function getMemberReferralProgramPreview(): Promise<
+  ActionResult<MemberReferralProgramSettings>
+> {
+  const { session } = await getActionContext();
+  return getMemberReferralProgramPreviewCore({ session });
 }
 
 export async function updateMemberReferralProgramSettings(

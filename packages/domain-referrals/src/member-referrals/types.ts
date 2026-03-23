@@ -51,6 +51,15 @@ export interface MemberReferralRewardRecord {
   metadata: Record<string, unknown>;
 }
 
+export interface MemberReferralAdminRewardRow extends MemberReferralRewardRecord {
+  earnedAt?: Date | null;
+  approvedAt?: Date | null;
+  creditedAt?: Date | null;
+  paidAt?: Date | null;
+  voidedAt?: Date | null;
+  updatedAt?: Date | null;
+}
+
 export interface MemberReferralRewardInput {
   tenantId: string;
   referralId?: string | null;

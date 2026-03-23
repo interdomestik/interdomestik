@@ -1,5 +1,6 @@
 'use server';
 import {
+  getMemberReferralProgramPreview,
   getMemberReferralLink,
   getMemberReferralProgramSettings,
   getMemberReferralStats,
@@ -9,11 +10,13 @@ import {
 } from './member-referrals.core';
 export type {
   ActionResult,
+  MemberReferralAdminRewardRow,
   MemberReferralLink,
   MemberReferralProgramSettings,
   MemberReferralStats,
 } from './member-referrals.core';
 export {
+  getMemberReferralProgramPreview,
   getMemberReferralLink,
   getMemberReferralProgramSettings,
   getMemberReferralStats,

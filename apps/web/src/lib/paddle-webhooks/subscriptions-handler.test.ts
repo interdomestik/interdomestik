@@ -9,6 +9,13 @@ const mocks = vi.hoisted(() => ({
   findTenantSetting: vi.fn<() => Promise<Record<string, unknown> | null>>(() =>
     Promise.resolve(null)
   ),
+  findReferral: vi.fn<() => Promise<Record<string, unknown> | null>>(() => Promise.resolve(null)),
+  createMemberReferralReward: vi.fn(() =>
+    Promise.resolve({
+      success: true,
+      data: { kind: 'no-op', created: false, reason: 'no_referral' },
+    })
+  ),
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -24,6 +31,9 @@ vi.mock('@interdomestik/database', () => ({
       tenantSettings: {
         findFirst: () => mocks.findTenantSetting(),
       },
+      referrals: {
+        findFirst: () => mocks.findReferral(),
+      },
     },
     insert: () => ({
       values: (vals: unknown) => {
@@ -31,6 +41,10 @@ vi.mock('@interdomestik/database', () => ({
       },
     }),
   },
+}));
+
+vi.mock('@interdomestik/domain-referrals', () => ({
+  createMemberReferralRewardCore: (...args: unknown[]) => mocks.createMemberReferralReward(...args),
 }));
 
 import { handleSubscriptionChanged } from '@interdomestik/domain-membership-billing/paddle-webhooks/handlers/subscriptions';
@@ -41,6 +55,8 @@ describe('handleSubscriptionChanged tenant guardrail', () => {
     mocks.findSubscription.mockClear();
     mocks.findUser.mockClear();
     mocks.findTenantSetting.mockClear();
+    mocks.findReferral.mockClear();
+    mocks.createMemberReferralReward.mockClear();
   });
 
   it('does not write when tenant cannot be resolved (no defaults)', async () => {
