@@ -2,10 +2,15 @@
 
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import { captureCandidateFromEvent } from './memory-candidate-capture.mjs';
-import { readJson, resolveTrustedExecutable, writeJson } from './script-support.mjs';
+import {
+  isDirectExecution,
+  parseCliArgs,
+  readJson,
+  resolveTrustedExecutable,
+  writeJson,
+} from './script-support.mjs';
 
 const DEFAULT_SOURCE_MAP_PATH = path.join(
   'scripts',
@@ -192,21 +197,7 @@ function consumeFlag(args, token) {
 }
 
 export function parseArgs(argv) {
-  const args = createArgs();
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    const next = argv[index + 1];
-
-    if (consumeValue(args, token, next)) {
-      index += 1;
-      continue;
-    }
-
-    consumeFlag(args, token);
-  }
-
-  return args;
+  return parseCliArgs(argv, createArgs(), consumeValue, consumeFlag);
 }
 
 function main() {
@@ -243,11 +234,6 @@ function main() {
   }
 }
 
-function isDirectExecution() {
-  if (!process.argv[1]) return false;
-  return pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
-}
-
-if (isDirectExecution()) {
+if (isDirectExecution(import.meta.url, process.argv[1])) {
   main();
 }

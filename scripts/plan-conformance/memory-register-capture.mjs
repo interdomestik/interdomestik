@@ -2,9 +2,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
-import { readJson, writeJson } from './script-support.mjs';
+import { isDirectExecution, parseCliArgs, readJson, writeJson } from './script-support.mjs';
 import { validateMemoryRegistry } from './memory-validate.mjs';
 
 const DEFAULT_REGISTRY_PATH = path.join('docs', 'plans', '2026-03-03-memory-registry.jsonl');
@@ -110,47 +109,44 @@ function printUsage() {
 }
 
 function parseArgs(argv) {
-  const args = {
-    capturePath: '',
-    registryPath: DEFAULT_REGISTRY_PATH,
-    outPath: DEFAULT_OUT_PATH,
-    apply: false,
-    help: false,
-  };
+  return parseCliArgs(
+    argv,
+    {
+      capturePath: '',
+      registryPath: DEFAULT_REGISTRY_PATH,
+      outPath: DEFAULT_OUT_PATH,
+      apply: false,
+      help: false,
+    },
+    (args, token, next) => {
+      if (token === '--capture' && next) {
+        args.capturePath = next;
+        return true;
+      }
 
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    const next = argv[index + 1];
+      if (token === '--registry' && next) {
+        args.registryPath = next;
+        return true;
+      }
 
-    if (token === '--capture' && next) {
-      args.capturePath = next;
-      index += 1;
-      continue;
+      if (token === '--out' && next) {
+        args.outPath = next;
+        return true;
+      }
+
+      return false;
+    },
+    (args, token) => {
+      if (token === '--apply') {
+        args.apply = true;
+        return;
+      }
+
+      if (token === '-h' || token === '--help') {
+        args.help = true;
+      }
     }
-
-    if (token === '--registry' && next) {
-      args.registryPath = next;
-      index += 1;
-      continue;
-    }
-
-    if (token === '--out' && next) {
-      args.outPath = next;
-      index += 1;
-      continue;
-    }
-
-    if (token === '--apply') {
-      args.apply = true;
-      continue;
-    }
-
-    if (token === '-h' || token === '--help') {
-      args.help = true;
-    }
-  }
-
-  return args;
+  );
 }
 
 function main() {
@@ -175,12 +171,7 @@ function main() {
   process.stdout.write(`${JSON.stringify(decision, null, 2)}\n`);
 }
 
-function isDirectExecution() {
-  if (!process.argv[1]) return false;
-  return pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
-}
-
-if (isDirectExecution()) {
+if (isDirectExecution(import.meta.url, process.argv[1])) {
   try {
     main();
   } catch (error) {
