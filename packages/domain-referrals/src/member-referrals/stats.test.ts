@@ -37,11 +37,16 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
 }));
 
-vi.mock('drizzle-orm', () => ({
-  and: vi.fn((...args) => args),
-  count: vi.fn(() => 'count()'),
-  eq: vi.fn((left, right) => [left, right]),
-}));
+vi.mock('drizzle-orm', async importOriginal => {
+  const actual = await importOriginal<typeof import('drizzle-orm')>();
+
+  return {
+    ...actual,
+    and: vi.fn((...args) => args),
+    count: vi.fn(() => 'count()'),
+    eq: vi.fn((left, right) => [left, right]),
+  };
+});
 
 vi.mock('./settings', () => ({
   getMemberReferralProgramSettingsCore: vi.fn(),

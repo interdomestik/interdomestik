@@ -34,10 +34,15 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
 }));
 
-vi.mock('drizzle-orm', () => ({
-  eq: vi.fn((left, right) => [left, right]),
-  and: vi.fn((...args) => args),
-}));
+vi.mock('drizzle-orm', async importOriginal => {
+  const actual = await importOriginal<typeof import('drizzle-orm')>();
+
+  return {
+    ...actual,
+    eq: vi.fn((left, right) => [left, right]),
+    and: vi.fn((...args) => args),
+  };
+});
 
 describe('member referral admin', () => {
   beforeEach(() => {
