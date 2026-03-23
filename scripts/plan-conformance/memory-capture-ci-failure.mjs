@@ -22,6 +22,7 @@ const TRUSTED_PATH_SEGMENTS = [
   '/usr/sbin',
   '/sbin',
 ];
+const GH_EXECUTABLE_CANDIDATES = ['gh'];
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(path.resolve(filePath), 'utf8'));
@@ -37,12 +38,17 @@ function normalizeChecksPayload(payload) {
   return Array.isArray(payload) ? payload : [];
 }
 
-export function buildCommandEnv() {
-  const trustedPath = TRUSTED_PATH_SEGMENTS.filter(segment => fs.existsSync(segment)).join(':');
-  return {
-    ...process.env,
-    PATH: trustedPath,
-  };
+export function resolveTrustedExecutable(candidates) {
+  for (const segment of TRUSTED_PATH_SEGMENTS) {
+    for (const candidate of candidates) {
+      const candidatePath = path.join(segment, candidate);
+      if (fs.existsSync(candidatePath)) {
+        return candidatePath;
+      }
+    }
+  }
+
+  throw new Error(`trusted executable not found for candidates: ${candidates.join(', ')}`);
 }
 
 function fetchChecksJson(prRef = '', requiredOnly = true) {
@@ -55,9 +61,8 @@ function fetchChecksJson(prRef = '', requiredOnly = true) {
   }
   args.push('--json', 'bucket,completedAt,description,link,name,startedAt,state,workflow');
 
-  const output = execFileSync('gh', args, {
+  const output = execFileSync(resolveTrustedExecutable(GH_EXECUTABLE_CANDIDATES), args, {
     encoding: 'utf8',
-    env: buildCommandEnv(),
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 

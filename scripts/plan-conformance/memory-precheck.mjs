@@ -22,6 +22,7 @@ const TRUSTED_PATH_SEGMENTS = [
   '/usr/sbin',
   '/sbin',
 ];
+const GIT_EXECUTABLE_CANDIDATES = ['git'];
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(path.resolve(filePath), 'utf8'));
@@ -132,18 +133,22 @@ function printSummary(result) {
   }
 }
 
-export function buildCommandEnv() {
-  const trustedPath = TRUSTED_PATH_SEGMENTS.filter(segment => fs.existsSync(segment)).join(':');
-  return {
-    ...process.env,
-    PATH: trustedPath,
-  };
+export function resolveTrustedExecutable(candidates) {
+  for (const segment of TRUSTED_PATH_SEGMENTS) {
+    for (const candidate of candidates) {
+      const candidatePath = path.join(segment, candidate);
+      if (fs.existsSync(candidatePath)) {
+        return candidatePath;
+      }
+    }
+  }
+
+  throw new Error(`trusted executable not found for candidates: ${candidates.join(', ')}`);
 }
 
 function runGitDiffCommand(args) {
-  return execFileSync('git', args, {
+  return execFileSync(resolveTrustedExecutable(GIT_EXECUTABLE_CANDIDATES), args, {
     encoding: 'utf8',
-    env: buildCommandEnv(),
     stdio: ['ignore', 'pipe', 'ignore'],
   });
 }

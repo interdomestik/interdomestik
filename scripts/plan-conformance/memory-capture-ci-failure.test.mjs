@@ -6,9 +6,9 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
-  buildCommandEnv,
   captureCiFailureMemory,
   parseArgs,
+  resolveTrustedExecutable,
   selectFirstMappedFailure,
 } from './memory-capture-ci-failure.mjs';
 
@@ -172,12 +172,11 @@ test('parseArgs reads explicit capture inputs and all flag', () => {
   assert.equal(args.requiredOnly, false);
 });
 
-test('buildCommandEnv uses a fixed path list', () => {
-  const env = buildCommandEnv();
+test('resolveTrustedExecutable returns an absolute path from trusted locations', () => {
+  const executablePath = resolveTrustedExecutable(['gh']);
 
-  assert.equal(typeof env.PATH, 'string');
-  assert.match(env.PATH, /\/usr\/bin/);
-  assert.doesNotMatch(env.PATH, /tmp\/untrusted-bin/);
+  assert.equal(path.isAbsolute(executablePath), true);
+  assert.match(executablePath, /\/(usr|opt)\//);
 });
 
 test('prefers branch diff base when explicit base arg is supplied', async () => {

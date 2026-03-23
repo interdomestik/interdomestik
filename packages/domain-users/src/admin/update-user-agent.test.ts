@@ -126,6 +126,11 @@ describe('updateUserAgentCore', () => {
       agentId: 'agent-2',
     });
 
+    expect('success' in result).toBe(true);
+    if (!('success' in result)) {
+      throw new Error(`Expected success result, received error: ${result.error}`);
+    }
+
     expect(result.success).toBe(true);
     expect(mocks.tx.update).toHaveBeenCalledTimes(3);
     expect(mocks.tx.insert).toHaveBeenCalledTimes(1);
@@ -186,6 +191,11 @@ describe('updateUserAgentCore', () => {
       userId: 'member-1',
       agentId: null,
     });
+
+    expect('success' in result).toBe(true);
+    if (!('success' in result)) {
+      throw new Error(`Expected success result, received error: ${result.error}`);
+    }
 
     expect(result.success).toBe(true);
     expect(mocks.tx.insert).not.toHaveBeenCalled();

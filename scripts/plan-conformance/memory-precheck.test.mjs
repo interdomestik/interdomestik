@@ -7,8 +7,8 @@ import test from 'node:test';
 
 import { computeDeterministicMemoryId } from './memory-id.mjs';
 import {
-  buildCommandEnv,
   parseArgs,
+  resolveTrustedExecutable,
   runMemoryPrecheck,
   safeGitDiffNameOnly,
 } from './memory-precheck.mjs';
@@ -180,12 +180,11 @@ test('parseArgs collects repeated changed flags and explicit paths', () => {
   assert.equal(args.limit, 5);
 });
 
-test('buildCommandEnv uses a fixed path list', () => {
-  const env = buildCommandEnv();
+test('resolveTrustedExecutable returns an absolute path from trusted locations', () => {
+  const executablePath = resolveTrustedExecutable(['git']);
 
-  assert.equal(typeof env.PATH, 'string');
-  assert.match(env.PATH, /\/usr\/bin/);
-  assert.doesNotMatch(env.PATH, /tmp\/untrusted-bin/);
+  assert.equal(path.isAbsolute(executablePath), true);
+  assert.match(executablePath, /\/(usr|opt)\//);
 });
 
 test('parseArgs accepts an explicit base ref for diff-aware retrieval', () => {
