@@ -6,12 +6,8 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { computeDeterministicMemoryId } from './memory-id.mjs';
-import {
-  parseArgs,
-  resolveTrustedExecutable,
-  runMemoryPrecheck,
-  safeGitDiffNameOnly,
-} from './memory-precheck.mjs';
+import { parseArgs, runMemoryPrecheck, safeGitDiffNameOnly } from './memory-precheck.mjs';
+import { resolveTrustedExecutable } from './script-support.mjs';
 
 function makeRecord(overrides = {}) {
   const record = {

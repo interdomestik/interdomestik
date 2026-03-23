@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
-import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { captureCandidateFromEvent } from './memory-candidate-capture.mjs';
+import { readJson, resolveTrustedExecutable, writeJson } from './script-support.mjs';
 
 const DEFAULT_SOURCE_MAP_PATH = path.join(
   'scripts',
@@ -14,41 +14,10 @@ const DEFAULT_SOURCE_MAP_PATH = path.join(
 );
 const DEFAULT_EVENT_OUT = path.join('tmp', 'plan-conformance', 'ci-memory-event.json');
 const DEFAULT_CAPTURE_OUT = path.join('tmp', 'plan-conformance', 'ci-memory-capture.json');
-const TRUSTED_PATH_SEGMENTS = [
-  '/opt/homebrew/bin',
-  '/usr/local/bin',
-  '/usr/bin',
-  '/bin',
-  '/usr/sbin',
-  '/sbin',
-];
 const GH_EXECUTABLE_CANDIDATES = ['gh'];
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(path.resolve(filePath), 'utf8'));
-}
-
-function writeJson(filePath, payload) {
-  const absolutePath = path.resolve(filePath);
-  fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-  fs.writeFileSync(absolutePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
-}
 
 function normalizeChecksPayload(payload) {
   return Array.isArray(payload) ? payload : [];
-}
-
-export function resolveTrustedExecutable(candidates) {
-  for (const segment of TRUSTED_PATH_SEGMENTS) {
-    for (const candidate of candidates) {
-      const candidatePath = path.join(segment, candidate);
-      if (fs.existsSync(candidatePath)) {
-        return candidatePath;
-      }
-    }
-  }
-
-  throw new Error(`trusted executable not found for candidates: ${candidates.join(', ')}`);
 }
 
 function fetchChecksJson(prRef = '', requiredOnly = true) {

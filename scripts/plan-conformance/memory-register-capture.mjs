@@ -4,14 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { readJson, writeJson } from './script-support.mjs';
 import { validateMemoryRegistry } from './memory-validate.mjs';
 
 const DEFAULT_REGISTRY_PATH = path.join('docs', 'plans', '2026-03-03-memory-registry.jsonl');
 const DEFAULT_OUT_PATH = path.join('tmp', 'plan-conformance', 'memory-register-capture-decision.json');
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(path.resolve(filePath), 'utf8'));
-}
 
 function parseJsonl(filePath) {
   const absolutePath = path.resolve(filePath);
@@ -31,12 +28,6 @@ function parseJsonl(filePath) {
         throw new Error(`invalid JSON on line ${index + 1}: ${error.message}`);
       }
     });
-}
-
-function writeJson(filePath, payload) {
-  const absolutePath = path.resolve(filePath);
-  fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-  fs.writeFileSync(absolutePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
 }
 
 function appendJsonl(filePath, record) {

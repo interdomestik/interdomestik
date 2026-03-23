@@ -5,12 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import {
-  captureCiFailureMemory,
-  parseArgs,
-  resolveTrustedExecutable,
-  selectFirstMappedFailure,
-} from './memory-capture-ci-failure.mjs';
+import { captureCiFailureMemory, parseArgs, selectFirstMappedFailure } from './memory-capture-ci-failure.mjs';
+import { resolveTrustedExecutable } from './script-support.mjs';
 
 function makeChecksPayload(checks) {
   return checks.map(check => ({
