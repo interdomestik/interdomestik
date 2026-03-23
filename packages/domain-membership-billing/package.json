@@ -49,8 +49,8 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^4.1.1",
     "postcss": "^8.5.8",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.1"
   }
 }

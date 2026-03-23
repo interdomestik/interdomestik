@@ -187,7 +187,7 @@
     "dotenv": "^17.3.1",
     "glob": "^13.0.6",
     "gzip-size": "^7.0.0",
-    "hono": "^4.12.8",
+    "hono": "^4.12.9",
     "husky": "^8.0.0",
     "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.3",
@@ -198,7 +198,7 @@
     "react-devtools": "^7.0.1",
     "release-it": "^19.2.4",
     "tsx": "^4.21.0",
-    "turbo": "^2.8.17",
+    "turbo": "^2.8.20",
     "typescript": "^5.9.3"
   },
   "engines": {
