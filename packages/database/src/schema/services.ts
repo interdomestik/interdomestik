@@ -6,6 +6,7 @@ import {
   integer,
   index,
   jsonb,
+  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -16,15 +17,21 @@ import { user } from './auth';
 import { subscriptions } from './memberships';
 import { tenants } from './tenants';
 
-const memberReferralRewardStatusValues = [
+export const memberReferralRewardStatusEnum = pgEnum('member_referral_reward_status', [
   'pending',
   'approved',
   'credited',
   'paid',
   'void',
-] as const;
-const memberReferralRewardTypeValues = ['fixed', 'percent'] as const;
-const memberReferralSettlementModeValues = ['credit_only', 'credit_or_payout'] as const;
+]);
+export const memberReferralRewardTypeEnum = pgEnum('member_referral_reward_type', [
+  'fixed',
+  'percent',
+]);
+export const memberReferralSettlementModeEnum = pgEnum('member_referral_settlement_mode', [
+  'credit_only',
+  'credit_or_payout',
+]);
 
 export const referrals = pgTable(
   'referrals',
@@ -62,10 +69,8 @@ export const memberReferralRewards = pgTable(
     referredMemberId: text('referred_member_id').notNull(),
     qualifyingEventId: text('qualifying_event_id').notNull(),
     qualifyingEventType: text('qualifying_event_type').notNull(),
-    rewardType: text('reward_type', { enum: memberReferralRewardTypeValues })
-      .notNull()
-      .default('fixed'),
-    status: text('status', { enum: memberReferralRewardStatusValues }).notNull().default('pending'),
+    rewardType: memberReferralRewardTypeEnum('reward_type').notNull().default('fixed'),
+    status: memberReferralRewardStatusEnum('status').notNull().default('pending'),
     rewardCents: integer('reward_cents').notNull(),
     rewardPercentBps: integer('reward_percent_bps'),
     currencyCode: text('currency_code').notNull().default('EUR'),
@@ -115,16 +120,8 @@ export const memberReferralRewards = pgTable(
       sql`${table.rewardPercentBps} is null or ${table.rewardPercentBps} <= 10000`
     ),
     check(
-      'member_referral_rewards_reward_type_check',
-      sql`${table.rewardType} in ('fixed', 'percent')`
-    ),
-    check(
       'member_referral_rewards_reward_amount_check',
-      sql`((${table.rewardType} = 'fixed' and ${table.rewardPercentBps} is null and ${table.rewardCents} is not null) or (${table.rewardType} = 'percent' and ${table.rewardPercentBps} is not null and ${table.rewardCents} is not null))`
-    ),
-    check(
-      'member_referral_rewards_status_check',
-      sql`${table.status} in ('pending', 'approved', 'credited', 'paid', 'void')`
+      sql`(${table.rewardType} = 'percent') = (${table.rewardPercentBps} is not null)`
     ),
     index('member_referral_rewards_tenant_idx').on(table.tenantId),
     index('member_referral_rewards_tenant_subscription_idx').on(
@@ -150,19 +147,15 @@ export const memberReferralSettings = pgTable(
       .notNull()
       .references(() => tenants.id),
     enabled: boolean('enabled').default(false).notNull(),
-    rewardType: text('reward_type', { enum: memberReferralRewardTypeValues })
-      .notNull()
-      .default('fixed'),
+    rewardType: memberReferralRewardTypeEnum('reward_type').notNull().default('fixed'),
     fixedRewardCents: integer('fixed_reward_cents'),
     percentRewardBps: integer('percent_reward_bps'),
-    referredMemberRewardType: text('referred_member_reward_type', {
-      enum: memberReferralRewardTypeValues,
-    })
+    referredMemberRewardType: memberReferralRewardTypeEnum('referred_member_reward_type')
       .notNull()
       .default('fixed'),
     referredMemberFixedRewardCents: integer('referred_member_fixed_reward_cents'),
     referredMemberPercentRewardBps: integer('referred_member_percent_reward_bps'),
-    settlementMode: text('settlement_mode', { enum: memberReferralSettlementModeValues })
+    settlementMode: memberReferralSettlementModeEnum('settlement_mode')
       .notNull()
       .default('credit_only'),
     payoutThresholdCents: integer('payout_threshold_cents').default(0).notNull(),
@@ -203,24 +196,12 @@ export const memberReferralSettings = pgTable(
       sql`${table.payoutThresholdCents} >= 0`
     ),
     check(
-      'member_referral_settings_reward_type_check',
-      sql`${table.rewardType} in ('fixed', 'percent')`
-    ),
-    check(
       'member_referral_settings_reward_amount_check',
-      sql`((${table.rewardType} = 'fixed' and ${table.fixedRewardCents} is not null and ${table.percentRewardBps} is null) or (${table.rewardType} = 'percent' and ${table.percentRewardBps} is not null and ${table.fixedRewardCents} is null))`
-    ),
-    check(
-      'member_referral_settings_referred_reward_type_check',
-      sql`${table.referredMemberRewardType} in ('fixed', 'percent')`
+      sql`((${table.rewardType} = 'percent') = (${table.percentRewardBps} is not null)) and num_nonnulls(${table.fixedRewardCents}, ${table.percentRewardBps}) = 1`
     ),
     check(
       'member_referral_settings_referred_reward_amount_check',
-      sql`((${table.referredMemberRewardType} = 'fixed' and ${table.referredMemberFixedRewardCents} is not null and ${table.referredMemberPercentRewardBps} is null) or (${table.referredMemberRewardType} = 'percent' and ${table.referredMemberPercentRewardBps} is not null and ${table.referredMemberFixedRewardCents} is null))`
-    ),
-    check(
-      'member_referral_settings_settlement_mode_check',
-      sql`${table.settlementMode} in ('credit_only', 'credit_or_payout')`
+      sql`((${table.referredMemberRewardType} = 'percent') = (${table.referredMemberPercentRewardBps} is not null)) and num_nonnulls(${table.referredMemberFixedRewardCents}, ${table.referredMemberPercentRewardBps}) = 1`
     ),
     index('member_referral_settings_tenant_idx').on(table.tenantId),
     index('member_referral_settings_tenant_reward_idx').on(table.tenantId, table.rewardType),
