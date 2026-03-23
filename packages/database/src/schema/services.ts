@@ -69,7 +69,9 @@ export const memberReferralRewards = pgTable(
     referredMemberId: text('referred_member_id').notNull(),
     qualifyingEventId: text('qualifying_event_id').notNull(),
     qualifyingEventType: text('qualifying_event_type').notNull(),
-    rewardType: memberReferralRewardTypeEnum('reward_type').notNull().default('fixed'),
+    rewardType: memberReferralRewardTypeEnum('reward_type')
+      .notNull()
+      .default(sql`public.member_referral_reward_type_fixed()`),
     status: memberReferralRewardStatusEnum('status').notNull().default('pending'),
     rewardCents: integer('reward_cents').notNull(),
     rewardPercentBps: integer('reward_percent_bps'),
@@ -121,7 +123,7 @@ export const memberReferralRewards = pgTable(
     ),
     check(
       'member_referral_rewards_reward_amount_check',
-      sql`(${table.rewardType} = 'percent') = (${table.rewardPercentBps} is not null)`
+      sql`(${table.rewardType} = public.member_referral_reward_type_percent()) = (${table.rewardPercentBps} is not null)`
     ),
     index('member_referral_rewards_tenant_idx').on(table.tenantId),
     index('member_referral_rewards_tenant_subscription_idx').on(
@@ -147,12 +149,14 @@ export const memberReferralSettings = pgTable(
       .notNull()
       .references(() => tenants.id),
     enabled: boolean('enabled').default(false).notNull(),
-    rewardType: memberReferralRewardTypeEnum('reward_type').notNull().default('fixed'),
+    rewardType: memberReferralRewardTypeEnum('reward_type')
+      .notNull()
+      .default(sql`public.member_referral_reward_type_fixed()`),
     fixedRewardCents: integer('fixed_reward_cents'),
     percentRewardBps: integer('percent_reward_bps'),
     referredMemberRewardType: memberReferralRewardTypeEnum('referred_member_reward_type')
       .notNull()
-      .default('fixed'),
+      .default(sql`public.member_referral_reward_type_fixed()`),
     referredMemberFixedRewardCents: integer('referred_member_fixed_reward_cents'),
     referredMemberPercentRewardBps: integer('referred_member_percent_reward_bps'),
     settlementMode: memberReferralSettlementModeEnum('settlement_mode')
@@ -197,11 +201,11 @@ export const memberReferralSettings = pgTable(
     ),
     check(
       'member_referral_settings_reward_amount_check',
-      sql`((${table.rewardType} = 'percent') = (${table.percentRewardBps} is not null)) and num_nonnulls(${table.fixedRewardCents}, ${table.percentRewardBps}) = 1`
+      sql`((${table.rewardType} = public.member_referral_reward_type_percent()) = (${table.percentRewardBps} is not null)) and num_nonnulls(${table.fixedRewardCents}, ${table.percentRewardBps}) = 1`
     ),
     check(
       'member_referral_settings_referred_reward_amount_check',
-      sql`((${table.referredMemberRewardType} = 'percent') = (${table.referredMemberPercentRewardBps} is not null)) and num_nonnulls(${table.referredMemberFixedRewardCents}, ${table.referredMemberPercentRewardBps}) = 1`
+      sql`((${table.referredMemberRewardType} = public.member_referral_reward_type_percent()) = (${table.referredMemberPercentRewardBps} is not null)) and num_nonnulls(${table.referredMemberFixedRewardCents}, ${table.referredMemberPercentRewardBps}) = 1`
     ),
     index('member_referral_settings_tenant_idx').on(table.tenantId),
     index('member_referral_settings_tenant_reward_idx').on(table.tenantId, table.rewardType),
