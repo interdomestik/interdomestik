@@ -330,6 +330,20 @@
       "when": 1773512620710,
       "tag": "0046_s08_case_acceptance_gate",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1773517200000,
+      "tag": "0047_member_referral_rewards",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1773772200000,
+      "tag": "0048_enable_member_referral_rls",
+      "breakpoints": true
     }
   ]
 }

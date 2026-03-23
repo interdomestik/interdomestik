@@ -102,7 +102,7 @@
       "items": "artikuj",
       "recentCommissions": "Komisionet e Fundit",
       "noCommissions": "Ende nuk keni komisione",
-      "noCommissionsHint": "Filloni të referoni anëtarë për të fituar komisione.",
+      "noCommissionsHint": "Anëtarësimet e reja dhe rinovimet do të shfaqen këtu sapo të fitojnë komision.",
       "types": {
         "new_membership": "Anëtarësim i Ri",
         "renewal": "Rinovim",

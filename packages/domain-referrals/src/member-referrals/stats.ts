@@ -1,10 +1,39 @@
 import { db } from '@interdomestik/database';
-import { referrals } from '@interdomestik/database/schema';
+import { memberReferralRewards, referrals } from '@interdomestik/database/schema';
 import { and, count, eq } from 'drizzle-orm';
 
+import { getMemberReferralProgramSettingsCore } from './settings';
 import type { ActionResult, MemberReferralSession, MemberReferralStats } from './types';
 
-const MAX_REFERRALS_QUERY = 100; // Cap for pagination
+function sumRewards(
+  rows: Array<{
+    status: string;
+    rewardCents: number | null;
+  }>
+): {
+  pendingCents: number;
+  approvedCents: number;
+  creditedCents: number;
+  paidCents: number;
+} {
+  return rows.reduce(
+    (acc, row) => {
+      const amount = row.rewardCents ?? 0;
+      if (row.status === 'pending') {
+        acc.pendingCents += amount;
+      } else if (row.status === 'approved') {
+        acc.approvedCents += amount;
+      } else if (row.status === 'credited') {
+        acc.creditedCents += amount;
+      } else if (row.status === 'paid') {
+        acc.paidCents += amount;
+      }
+
+      return acc;
+    },
+    { pendingCents: 0, approvedCents: 0, creditedCents: 0, paidCents: 0 }
+  );
+}
 
 export async function getMemberReferralStatsCore(params: {
   session: MemberReferralSession | null;
@@ -15,48 +44,56 @@ export async function getMemberReferralStatsCore(params: {
     return { success: false, error: 'Unauthorized' };
   }
 
-  // SECURITY: Tenant scoping
   const tenantId = session.user.tenantId;
   if (!tenantId) {
     return { success: false, error: 'Missing tenant context' };
   }
 
   try {
-    // SECURITY: Query scoped to tenant + user
-    const [totalResult] = await db
-      .select({ count: count() })
-      .from(referrals)
-      .where(and(eq(referrals.referrerId, session.user.id), eq(referrals.tenantId, tenantId)));
+    const [settingsResult, referralCountRows, rewardRows] = await Promise.all([
+      getMemberReferralProgramSettingsCore({ tenantId }),
+      db
+        .select({ count: count() })
+        .from(referrals)
+        .where(and(eq(referrals.referrerId, session.user.id), eq(referrals.tenantId, tenantId))),
+      db.query.memberReferralRewards.findMany({
+        where: and(
+          eq(memberReferralRewards.referrerMemberId, session.user.id),
+          eq(memberReferralRewards.tenantId, tenantId)
+        ),
+        columns: {
+          status: true,
+          rewardCents: true,
+        },
+      }),
+    ]);
 
-    // SECURITY: Query scoped to tenant + user with pagination cap
-    const memberReferrals = await db.query.referrals.findMany({
-      where: and(eq(referrals.referrerId, session.user.id), eq(referrals.tenantId, tenantId)),
-      columns: {
-        status: true,
-        referrerRewardCents: true,
-      },
-      limit: MAX_REFERRALS_QUERY,
-    });
-
-    let pendingCents = 0;
-    let paidCents = 0;
-
-    for (const ref of memberReferrals) {
-      const amount = ref.referrerRewardCents || 0;
-      if (ref.status === 'pending') {
-        pendingCents += amount;
-      } else if (ref.status === 'rewarded') {
-        paidCents += amount;
-      }
+    if (!settingsResult.success) {
+      return { success: false, error: settingsResult.error };
     }
+
+    const { count: totalReferred = 0 } = referralCountRows[0] ?? {};
+    const { pendingCents, approvedCents, creditedCents, paidCents } = sumRewards(
+      rewardRows as Array<{ status: string; rewardCents: number | null }>
+    );
+    // Approved rewards are already reviewed but not yet settled, so they stay in the
+    // pending/available balance shown to members.
+    const availableCents = pendingCents + approvedCents;
+    const payoutEligibleCents =
+      settingsResult.data.settlementMode === 'credit_or_payout' &&
+      creditedCents >= settingsResult.data.payoutThresholdCents
+        ? creditedCents
+        : 0;
 
     return {
       success: true,
       data: {
-        totalReferred: totalResult?.count || 0,
-        pendingRewards: pendingCents / 100,
+        totalReferred,
+        pendingRewards: availableCents / 100,
+        creditedRewards: creditedCents / 100,
+        payoutEligibleRewards: payoutEligibleCents / 100,
         paidRewards: paidCents / 100,
-        rewardsCurrency: 'EUR',
+        rewardsCurrency: settingsResult.data.currencyCode,
       },
     };
   } catch (error) {

@@ -1,7 +1,13 @@
 import { db } from '@interdomestik/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createMemberReferralRewardCore } from '@interdomestik/domain-referrals';
 import { createCommissionCore } from '../../../commissions/create';
-import { handleNewSubscriptionExtras, redactEmail } from './extras';
+import { createRenewalCommissionCore } from '../../../commissions/create-renewal';
+import {
+  handleNewSubscriptionExtras,
+  handleRenewalSubscriptionExtras,
+  redactEmail,
+} from './extras';
 
 // Mock dependencies
 vi.mock('@interdomestik/database', () => ({
@@ -10,12 +16,23 @@ vi.mock('@interdomestik/database', () => ({
       agentSettings: {
         findFirst: vi.fn(),
       },
+      referrals: {
+        findFirst: vi.fn(),
+      },
     },
   },
 }));
 
+vi.mock('@interdomestik/domain-referrals', () => ({
+  createMemberReferralRewardCore: vi.fn(),
+}));
+
 vi.mock('../../../commissions/create', () => ({
   createCommissionCore: vi.fn(),
+}));
+
+vi.mock('../../../commissions/create-renewal', () => ({
+  createRenewalCommissionCore: vi.fn(),
 }));
 
 describe('extras', () => {
@@ -64,6 +81,11 @@ describe('extras', () => {
       // Default success mocks
       (db.query.agentSettings.findFirst as any).mockResolvedValue(null);
       (createCommissionCore as any).mockResolvedValue({ success: true, data: { id: 'comm_1' } });
+      (db.query.referrals.findFirst as any).mockResolvedValue(null);
+      (createMemberReferralRewardCore as any).mockResolvedValue({
+        success: true,
+        data: { kind: 'no-op', created: false, reason: 'no_referral' },
+      });
     });
 
     it('should process commission if agentId is present', async () => {
@@ -131,6 +153,64 @@ describe('extras', () => {
       expect(createCommissionCore).not.toHaveBeenCalled();
     });
 
+    it('creates a member referral reward for a first paid subscription without an agent commission', async () => {
+      (db.query.referrals.findFirst as any).mockResolvedValue({ id: 'ref_1' });
+      (createMemberReferralRewardCore as any).mockResolvedValue({
+        success: true,
+        data: {
+          kind: 'created',
+          created: true,
+          id: 'reward_1',
+          rewardCents: 500,
+          status: 'pending',
+          rewardType: 'fixed',
+          currencyCode: 'EUR',
+        },
+      });
+
+      await handleNewSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: undefined,
+        priceId: 'price_1',
+        userRecord: mockUserRecord,
+        deps: mockDeps,
+      });
+
+      expect(createCommissionCore).not.toHaveBeenCalled();
+      expect(createMemberReferralRewardCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: 'tenant_1',
+          referralId: 'ref_1',
+          subscriptionId: 'sub_123',
+          qualifyingEventType: 'first_paid_membership',
+          paymentAmountCents: 2000,
+        })
+      );
+      expect(mockDeps.logAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'referral.reward.created',
+          entityType: 'referral_reward',
+        })
+      );
+    });
+
+    it('does not stack a member referral reward on top of an agent commission', async () => {
+      await handleNewSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: { agentId: 'agent_1' },
+        priceId: 'price_1',
+        userRecord: mockUserRecord,
+        deps: mockDeps,
+      });
+
+      expect(createCommissionCore).toHaveBeenCalled();
+      expect(createMemberReferralRewardCore).not.toHaveBeenCalled();
+    });
+
     it('should send thank you letter', async () => {
       await handleNewSubscriptionExtras({
         sub: mockSub,
@@ -191,6 +271,155 @@ describe('extras', () => {
       });
       expect(spy).toHaveBeenCalled();
       spy.mockRestore();
+    });
+  });
+
+  describe('handleRenewalSubscriptionExtras', () => {
+    const mockDeps = {
+      logAuditEvent: vi.fn(),
+    };
+
+    const mockSub = {
+      id: 'sub_renewal',
+      items: [
+        { price: { id: 'price_renewal', unitPrice: { amount: '3000', currencyCode: 'EUR' } } },
+      ],
+      customData: { agentId: 'agent_current' },
+    };
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      (createRenewalCommissionCore as any).mockResolvedValue({
+        success: true,
+        data: { kind: 'created', id: 'renew_1' },
+      });
+    });
+
+    it('creates a renewal commission using canonical ownership metadata', async () => {
+      await handleRenewalSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: { agentId: 'agent_current' },
+        priceId: 'price_renewal',
+        userRecord: null,
+        ownership: {
+          subscriptionAgentId: 'agent_current',
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: ['agent_current'],
+          originalSellerAgentId: 'agent_original',
+        },
+        deps: mockDeps,
+      });
+
+      expect(createRenewalCommissionCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscriptionAgentId: 'agent_current',
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: ['agent_current'],
+          originalSellerAgentId: 'agent_original',
+          subscriptionId: 'sub_renewal',
+          tenantId: 'tenant_1',
+        })
+      );
+    });
+
+    it('does not create a commission for company-owned renewals', async () => {
+      await handleRenewalSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: undefined,
+        priceId: 'price_renewal',
+        userRecord: null,
+        ownership: {
+          subscriptionAgentId: null,
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: [],
+          originalSellerAgentId: null,
+        },
+        deps: mockDeps,
+      });
+
+      expect(createRenewalCommissionCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscriptionAgentId: null,
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: [],
+          originalSellerAgentId: null,
+        })
+      );
+    });
+
+    it('logs unresolved canonical ownership as an audit-visible skip instead of falling back to customData.agentId', async () => {
+      (createRenewalCommissionCore as any).mockResolvedValue({
+        success: true,
+        data: {
+          kind: 'no-op',
+          noCommissionReason: 'unresolved',
+          ownerType: 'unresolved',
+          ownershipDiagnostics: [
+            {
+              source: 'subscription.agentId',
+              expectedAgentId: null,
+              actualAgentId: null,
+            },
+          ],
+        },
+      });
+
+      await handleRenewalSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: { agentId: 'agent_current' },
+        priceId: 'price_renewal',
+        userRecord: null,
+        ownership: {
+          subscriptionAgentId: undefined,
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: ['agent_previous'],
+          originalSellerAgentId: 'agent_original',
+        },
+        deps: mockDeps,
+      });
+
+      expect(createRenewalCommissionCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscriptionAgentId: undefined,
+          userAgentId: 'agent_previous',
+          agentClientAgentIds: ['agent_previous'],
+          originalSellerAgentId: 'agent_original',
+        })
+      );
+      expect(mockDeps.logAuditEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'commission.unresolved',
+          metadata: expect.objectContaining({
+            noCommissionReason: 'unresolved',
+          }),
+        })
+      );
+    });
+
+    it('never creates a member referral reward on renewal flows', async () => {
+      await handleRenewalSubscriptionExtras({
+        sub: mockSub,
+        userId: 'user_1',
+        tenantId: 'tenant_1',
+        customData: undefined,
+        priceId: 'price_renewal',
+        userRecord: null,
+        ownership: {
+          subscriptionAgentId: null,
+          userAgentId: null,
+          agentClientAgentIds: [],
+          originalSellerAgentId: null,
+        },
+        deps: mockDeps,
+      });
+
+      expect(createMemberReferralRewardCore).not.toHaveBeenCalled();
     });
   });
 });

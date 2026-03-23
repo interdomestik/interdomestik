@@ -103,7 +103,7 @@
       "items": "items",
       "recentCommissions": "Recent Commissions",
       "noCommissions": "No commissions yet",
-      "noCommissionsHint": "Start referring members to earn commissions.",
+      "noCommissionsHint": "New memberships and renewals will appear here once they earn commission.",
       "types": {
         "new_membership": "New Membership",
         "renewal": "Renewal",

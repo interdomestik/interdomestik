@@ -130,7 +130,6 @@ describe('updateUserAgentCore', () => {
     if (!('success' in result)) {
       throw new Error(`Expected success result, received error: ${result.error}`);
     }
-
     expect(result.success).toBe(true);
     expect(mocks.tx.update).toHaveBeenCalledTimes(3);
     expect(mocks.tx.insert).toHaveBeenCalledTimes(1);
@@ -196,7 +195,6 @@ describe('updateUserAgentCore', () => {
     if (!('success' in result)) {
       throw new Error(`Expected success result, received error: ${result.error}`);
     }
-
     expect(result.success).toBe(true);
     expect(mocks.tx.insert).not.toHaveBeenCalled();
     expect(mocks.tx.update).toHaveBeenCalledTimes(3);

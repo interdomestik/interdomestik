@@ -29,16 +29,23 @@
     "quickActions": "Veprime të Shpejta",
     "referral": {
       "title": "Fto Miqtë & Fito",
-      "description": "Shpërndani linkun tuaj dhe fitoni €5 për çdo mik që regjistrohet!",
+      "description": "Shpërndani linkun tuaj dhe ndiqni kreditet e shpërblimit që fitoni nga anëtarësimet e para të paguara.",
       "friends": "Miq të Ftuar",
       "pending": "Në Pritje",
-      "earned": "Të Fituara",
+      "credited": "Kredit i disponueshëm",
+      "paid": "Të paguara",
       "copied": "Linku u kopjua!",
       "copyError": "Dështoi kopjimi",
+      "loadError": "Dështoi ngarkimi i detajeve të referimit",
+      "copyAction": "Kopjo linkun e referimit",
+      "shareAction": "Shpërndaj linkun e referimit",
       "share": "Shpërndaj",
       "shareTitle": "Bashkohu me Asistenca",
       "shareText": "Mbro familjen tënde me anëtarësimin Asistenca!",
-      "rewardInfo": "Fitoni €5 kur miku juaj aktivizon anëtarësimin"
+      "rewardInfoCreditOnly": "Anëtarët fitojnë {reward} në kredit llogarie pasi aktivizohet anëtarësimi i parë i paguar.",
+      "rewardInfoPayout": "Anëtarët fitojnë {reward} pasi aktivizohet anëtarësimi i parë i paguar. Pagesat zhbllokohen sapo krediti i disponueshëm të arrijë {threshold}.",
+      "payoutEligible": "Bilanci gati për pagesë: {amount}",
+      "programDisabled": "Shpërblimet e referimit për anëtarë janë aktualisht të çaktivizuara për këtë tenant."
     },
     "diaspora_ribbon": {
       "text": "🇩🇪🇨🇭 Për Diasporën: Ndihmë kur je jashtë vendit + udhëzime për avio/udhëtim + Green Card",

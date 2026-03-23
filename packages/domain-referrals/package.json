@@ -8,7 +8,10 @@
     ".": "./src/index.ts",
     "./referrals/get-agent-link": "./src/referrals/get-agent-link.ts",
     "./referrals/types": "./src/referrals/types.ts",
+    "./member-referrals/admin": "./src/member-referrals/admin.ts",
     "./member-referrals/link": "./src/member-referrals/link.ts",
+    "./member-referrals/rewards": "./src/member-referrals/rewards.ts",
+    "./member-referrals/settings": "./src/member-referrals/settings.ts",
     "./member-referrals/stats": "./src/member-referrals/stats.ts",
     "./member-referrals/types": "./src/member-referrals/types.ts"
   },

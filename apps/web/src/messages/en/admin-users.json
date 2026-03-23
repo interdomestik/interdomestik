@@ -34,7 +34,7 @@
       "assignments": {
         "all": "All assignments",
         "assigned": "Assigned",
-        "unassigned": "Unassigned"
+        "unassigned": "Company-owned"
       }
     },
     "users_table": {
@@ -42,7 +42,7 @@
         "members": "Members",
         "agents": "Agents",
         "staff": "Staff",
-        "unassigned": "Unassigned"
+        "unassigned": "Company-owned Members"
       },
       "headers": {
         "user": "User",
@@ -52,7 +52,7 @@
       },
       "message_alert": "New message ({count})",
       "select_agent": "Select Agent",
-      "unassigned": "Unassigned",
+      "unassigned": "Company-owned",
       "no_users": "No users found",
       "success_message": "User assigned successfully",
       "view_profile": "View profile"
