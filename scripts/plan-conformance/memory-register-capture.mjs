@@ -63,6 +63,7 @@ export function registerCapturedMemory({
 
   const registryRecords = parseJsonl(registryPath);
   const exists = registryRecords.some(entry => entry?.id === record.id);
+  const action = determineRegisterAction({ exists, apply });
 
   const decision = {
     ok: true,
@@ -70,7 +71,7 @@ export function registerCapturedMemory({
     record,
     exists,
     append_line: exists ? '' : JSON.stringify(record),
-    action: exists ? 'already_registered' : apply ? 'appended' : 'append_ready',
+    action,
   };
 
   if (!exists && apply) {
@@ -78,6 +79,18 @@ export function registerCapturedMemory({
   }
 
   return decision;
+}
+
+export function determineRegisterAction({ exists, apply }) {
+  if (exists) {
+    return 'already_registered';
+  }
+
+  if (apply) {
+    return 'appended';
+  }
+
+  return 'append_ready';
 }
 
 function printUsage() {

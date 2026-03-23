@@ -5,7 +5,12 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { captureCiFailureMemory } from './memory-capture-ci-failure.mjs';
+import {
+  buildCommandEnv,
+  captureCiFailureMemory,
+  parseArgs,
+  selectFirstMappedFailure,
+} from './memory-capture-ci-failure.mjs';
 
 function makeChecksPayload(checks) {
   return checks.map(check => ({
@@ -79,6 +84,28 @@ test('stays passive when no failing check maps to a capture source', () => {
   assert.match(payload.message, /no mapped failing check/i);
 });
 
+test('selectFirstMappedFailure returns the first mapped failing check', () => {
+  const mapped = selectFirstMappedFailure(
+    makeChecksPayload([
+      {
+        bucket: 'fail',
+        name: 'Security / gitleaks',
+        workflow: 'Security',
+        description: 'Secrets scan failed',
+      },
+      {
+        bucket: 'fail',
+        name: 'CI / e2e-gate',
+        workflow: 'CI',
+        description: 'Gate failed',
+      },
+    ])
+  );
+
+  assert.equal(mapped.event_type, 'ci.e2e_gate.failure');
+  assert.equal(mapped.check.name, 'CI / e2e-gate');
+});
+
 test('CLI writes event and capture artifacts from a checks json file', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'memory-capture-ci-'));
   const checksPath = path.join(tempDir, 'checks.json');
@@ -120,4 +147,35 @@ test('CLI writes event and capture artifacts from a checks json file', () => {
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
+});
+
+test('parseArgs reads explicit capture inputs and all flag', () => {
+  const args = parseArgs([
+    '--checks-json',
+    'checks.json',
+    '--pr',
+    '382',
+    '--source-map',
+    'sources.json',
+    '--event-out',
+    'event.json',
+    '--capture-out',
+    'capture.json',
+    '--all',
+  ]);
+
+  assert.equal(args.checksJsonPath, 'checks.json');
+  assert.equal(args.prRef, '382');
+  assert.equal(args.sourceMapPath, 'sources.json');
+  assert.equal(args.eventOut, 'event.json');
+  assert.equal(args.captureOut, 'capture.json');
+  assert.equal(args.requiredOnly, false);
+});
+
+test('buildCommandEnv uses a fixed path list', () => {
+  const env = buildCommandEnv();
+
+  assert.equal(typeof env.PATH, 'string');
+  assert.match(env.PATH, /\/usr\/bin/);
+  assert.doesNotMatch(env.PATH, /tmp\/untrusted-bin/);
 });

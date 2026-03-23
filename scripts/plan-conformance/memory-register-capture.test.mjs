@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { registerCapturedMemory } from './memory-register-capture.mjs';
+import { determineRegisterAction, registerCapturedMemory } from './memory-register-capture.mjs';
 
 function writeJson(filePath, payload) {
   fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
@@ -136,4 +136,10 @@ test('CLI writes a decision artifact and can append on demand', () => {
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
+});
+
+test('determineRegisterAction avoids nested ternary ambiguity', () => {
+  assert.equal(determineRegisterAction({ exists: true, apply: false }), 'already_registered');
+  assert.equal(determineRegisterAction({ exists: false, apply: true }), 'appended');
+  assert.equal(determineRegisterAction({ exists: false, apply: false }), 'append_ready');
 });

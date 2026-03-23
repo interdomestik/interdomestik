@@ -13,6 +13,14 @@ const DEFAULT_REGISTRY_PATH = path.join('docs', 'plans', '2026-03-03-memory-regi
 const DEFAULT_RULES_PATH = path.join('scripts', 'plan-conformance', 'memory-precheck-rules.json');
 const DEFAULT_OUT_PATH = path.join('tmp', 'plan-conformance', 'memory-precheck-report.json');
 const DEFAULT_LIMIT = 3;
+const TRUSTED_PATH_SEGMENTS = [
+  '/opt/homebrew/bin',
+  '/usr/local/bin',
+  '/usr/bin',
+  '/bin',
+  '/usr/sbin',
+  '/sbin',
+];
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(path.resolve(filePath), 'utf8'));
@@ -123,10 +131,19 @@ function printSummary(result) {
   }
 }
 
+export function buildCommandEnv() {
+  const trustedPath = TRUSTED_PATH_SEGMENTS.filter(segment => fs.existsSync(segment)).join(':');
+  return {
+    ...process.env,
+    PATH: trustedPath,
+  };
+}
+
 function safeGitDiffNameOnly() {
   try {
     const output = execFileSync('git', ['diff', '--name-only', 'HEAD'], {
       encoding: 'utf8',
+      env: buildCommandEnv(),
       stdio: ['ignore', 'pipe', 'ignore'],
     });
 
@@ -204,8 +221,8 @@ function printUsage() {
   );
 }
 
-function parseArgs(argv) {
-  const args = {
+function createArgs() {
+  return {
     changedFiles: [],
     registryPath: DEFAULT_REGISTRY_PATH,
     rulesPath: DEFAULT_RULES_PATH,
@@ -213,44 +230,56 @@ function parseArgs(argv) {
     limit: DEFAULT_LIMIT,
     help: false,
   };
+}
+
+function consumeValue(args, token, next) {
+  if (token === '--changed' && next) {
+    args.changedFiles.push(next);
+    return true;
+  }
+
+  if (token === '--registry' && next) {
+    args.registryPath = next;
+    return true;
+  }
+
+  if (token === '--rules' && next) {
+    args.rulesPath = next;
+    return true;
+  }
+
+  if (token === '--out' && next) {
+    args.outPath = next;
+    return true;
+  }
+
+  if (token === '--limit' && next) {
+    args.limit = Number.parseInt(next, 10);
+    return true;
+  }
+
+  return false;
+}
+
+function consumeFlag(args, token) {
+  if (token === '-h' || token === '--help') {
+    args.help = true;
+  }
+}
+
+export function parseArgs(argv) {
+  const args = createArgs();
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     const next = argv[index + 1];
 
-    if (token === '--changed' && next) {
-      args.changedFiles.push(next);
+    if (consumeValue(args, token, next)) {
       index += 1;
       continue;
     }
 
-    if (token === '--registry' && next) {
-      args.registryPath = next;
-      index += 1;
-      continue;
-    }
-
-    if (token === '--rules' && next) {
-      args.rulesPath = next;
-      index += 1;
-      continue;
-    }
-
-    if (token === '--out' && next) {
-      args.outPath = next;
-      index += 1;
-      continue;
-    }
-
-    if (token === '--limit' && next) {
-      args.limit = Number.parseInt(next, 10);
-      index += 1;
-      continue;
-    }
-
-    if (token === '-h' || token === '--help') {
-      args.help = true;
-    }
+    consumeFlag(args, token);
   }
 
   return args;

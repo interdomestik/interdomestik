@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { computeDeterministicMemoryId } from './memory-id.mjs';
-import { runMemoryPrecheck } from './memory-precheck.mjs';
+import { buildCommandEnv, parseArgs, runMemoryPrecheck } from './memory-precheck.mjs';
 
 function makeRecord(overrides = {}) {
   const record = {
@@ -147,4 +147,38 @@ test('CLI writes advisory output for explicit changed files', () => {
   } finally {
     fs.rmSync(fixture.tempDir, { recursive: true, force: true });
   }
+});
+
+test('parseArgs collects repeated changed flags and explicit paths', () => {
+  const args = parseArgs([
+    '--changed',
+    'package.json',
+    '--changed',
+    'scripts/plan-conformance/memory-precheck.mjs',
+    '--registry',
+    'custom-registry.jsonl',
+    '--rules',
+    'custom-rules.json',
+    '--out',
+    'custom-out.json',
+    '--limit',
+    '5',
+  ]);
+
+  assert.deepEqual(args.changedFiles, [
+    'package.json',
+    'scripts/plan-conformance/memory-precheck.mjs',
+  ]);
+  assert.equal(args.registryPath, 'custom-registry.jsonl');
+  assert.equal(args.rulesPath, 'custom-rules.json');
+  assert.equal(args.outPath, 'custom-out.json');
+  assert.equal(args.limit, 5);
+});
+
+test('buildCommandEnv uses a fixed path list', () => {
+  const env = buildCommandEnv();
+
+  assert.equal(typeof env.PATH, 'string');
+  assert.match(env.PATH, /\/usr\/bin/);
+  assert.doesNotMatch(env.PATH, /tmp\/untrusted-bin/);
 });
