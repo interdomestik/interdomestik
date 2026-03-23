@@ -258,7 +258,7 @@
       "items": "stavki",
       "recentCommissions": "Nedavne provizije",
       "noCommissions": "Još nema provizija",
-      "noCommissionsHint": "Počnite da preporučujete članove da biste zaradili provizije.",
+      "noCommissionsHint": "Nova članstva i obnove će se pojaviti ovde čim ostvare proviziju.",
       "types": {
         "new_membership": "Novo članstvo",
         "renewal": "Obnova",

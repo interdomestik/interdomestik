@@ -48,11 +48,16 @@ vi.mock('@interdomestik/database', () => ({
   }),
 }));
 
-vi.mock('drizzle-orm', () => ({
-  eq: vi.fn(),
-  and: vi.fn(),
-  relations: vi.fn(),
-}));
+vi.mock('drizzle-orm', async importOriginal => {
+  const actual = await importOriginal<typeof import('drizzle-orm')>();
+
+  return {
+    ...actual,
+    eq: vi.fn(),
+    and: vi.fn(),
+    relations: vi.fn(),
+  };
+});
 
 vi.mock('@sentry/nextjs', () => ({
   setTag: hoisted.setTag,

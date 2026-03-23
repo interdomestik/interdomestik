@@ -691,6 +691,9 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../database
+      '@interdomestik/domain-referrals':
+        specifier: workspace:*
+        version: link:../domain-referrals
       '@interdomestik/shared-auth':
         specifier: workspace:*
         version: link:../shared-auth

@@ -30,6 +30,7 @@ export const user = pgTable(
   },
   table => {
     return {
+      tenantIdIdIndex: uniqueIndex('user_tenant_id_id_uq').on(table.tenantId, table.id),
       memberNumberIndex: uniqueIndex('user_member_number_idx')
         .on(table.memberNumber)
         .where(sql`role = 'member'`),

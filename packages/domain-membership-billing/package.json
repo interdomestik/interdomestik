@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
+    "@interdomestik/domain-referrals": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",
     "@paddle/paddle-js": "^1.6.2",
     "@paddle/paddle-node-sdk": "^3.6.0",

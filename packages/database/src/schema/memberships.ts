@@ -80,6 +80,7 @@ export const subscriptions = pgTable(
     index('idx_memberships_branch').on(table.branchId),
     index('idx_memberships_agent').on(table.agentId),
     uniqueIndex('idx_subscriptions_user').on(table.userId),
+    uniqueIndex('subscriptions_tenant_id_id_uq').on(table.tenantId, table.id),
   ]
 );
 
