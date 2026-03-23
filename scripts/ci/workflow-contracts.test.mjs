@@ -288,6 +288,14 @@ test('Nightly E2E runs on GitHub-hosted Linux so it does not depend on self-host
   assert.equal(nightlyJob['runs-on'], 'ubuntu-latest');
 });
 
+test('Composite CI setup action uses Node 24-compatible hosted actions', () => {
+  const setupAction = readWorkflow('.github/actions/setup/action.yml');
+  const steps = setupAction.runs.steps;
+
+  assert.equal(findStep(steps, 'Setup Node').uses, 'actions/setup-node@v5');
+  assert.equal(findStep(steps, 'Playwright Browser Cache').uses, 'actions/cache@v5');
+});
+
 test('CD builds distinct staging and production artifacts with explicit Supabase environment separation', () => {
   const cdWorkflow = readWorkflow('.github/workflows/cd.yml');
   const buildStagingJob = cdWorkflow.jobs['build-staging'];
