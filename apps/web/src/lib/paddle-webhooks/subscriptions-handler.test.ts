@@ -44,7 +44,7 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/domain-referrals', () => ({
-  createMemberReferralRewardCore: (...args: unknown[]) => mocks.createMemberReferralReward(...args),
+  createMemberReferralRewardCore: mocks.createMemberReferralReward,
 }));
 
 import { handleSubscriptionChanged } from '@interdomestik/domain-membership-billing/paddle-webhooks/handlers/subscriptions';
