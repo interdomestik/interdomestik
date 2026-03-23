@@ -46,9 +46,9 @@
     "@types/node": "^22.19.2",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.3.1",
-    "drizzle-kit": "^0.31.9",
+    "drizzle-kit": "^0.31.10",
     "nanoid": "^5.1.7",
-    "supabase": "^2.79.0",
+    "supabase": "^2.83.0",
     "tsx": "^4.21.0",
     "typescript": "^5.8.0"
   }
