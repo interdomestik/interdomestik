@@ -179,3 +179,10 @@ test('buildCommandEnv uses a fixed path list', () => {
   assert.match(env.PATH, /\/usr\/bin/);
   assert.doesNotMatch(env.PATH, /tmp\/untrusted-bin/);
 });
+
+test('prefers branch diff base when explicit base arg is supplied', async () => {
+  const { parseArgs: parsePrecheckArgs } = await import('./memory-precheck.mjs');
+
+  const args = parsePrecheckArgs(['--base', 'origin/release']);
+  assert.equal(args.baseRef, 'origin/release');
+});

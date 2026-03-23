@@ -6,7 +6,12 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { computeDeterministicMemoryId } from './memory-id.mjs';
-import { buildCommandEnv, parseArgs, runMemoryPrecheck } from './memory-precheck.mjs';
+import {
+  buildCommandEnv,
+  parseArgs,
+  runMemoryPrecheck,
+  safeGitDiffNameOnly,
+} from './memory-precheck.mjs';
 
 function makeRecord(overrides = {}) {
   const record = {
@@ -181,4 +186,16 @@ test('buildCommandEnv uses a fixed path list', () => {
   assert.equal(typeof env.PATH, 'string');
   assert.match(env.PATH, /\/usr\/bin/);
   assert.doesNotMatch(env.PATH, /tmp\/untrusted-bin/);
+});
+
+test('parseArgs accepts an explicit base ref for diff-aware retrieval', () => {
+  const args = parseArgs(['--base', 'origin/release']);
+
+  assert.equal(args.baseRef, 'origin/release');
+});
+
+test('safeGitDiffNameOnly falls back safely when git diff cannot run', () => {
+  const files = safeGitDiffNameOnly('refs/does-not-exist');
+
+  assert.ok(Array.isArray(files));
 });

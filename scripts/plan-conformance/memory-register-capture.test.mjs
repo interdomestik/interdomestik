@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
+import { computeDeterministicMemoryId } from './memory-id.mjs';
 import { determineRegisterAction, registerCapturedMemory } from './memory-register-capture.mjs';
 
 function writeJson(filePath, payload) {
@@ -16,25 +17,28 @@ function writeJsonl(filePath, records) {
 }
 
 function makeCapture(recordOverrides = {}) {
+  const record = {
+    id: '',
+    status: 'candidate',
+    store_type: 'procedural',
+    trigger_signature: 'ci.static.failure',
+    risk_class: 'high',
+    scope: { file_path: 'package.json' },
+    lesson: 'Re-run local fast verification before trusting static CI failures.',
+    verification_commands: ['pnpm check:fast'],
+    promotion_rule: 'owner_approval',
+    supersedes: [],
+    conflicts_with: [],
+    created_at: '2026-03-23T12:00:00.000Z',
+    updated_at: '2026-03-23T12:00:00.000Z',
+    ...recordOverrides,
+  };
+  record.id = recordOverrides.id ?? computeDeterministicMemoryId(record);
+
   return {
     source_id: 'ci_static_failure',
     event_type: 'ci.static.failure',
-    record: {
-      id: 'mem_capture_one',
-      status: 'candidate',
-      store_type: 'procedural',
-      trigger_signature: 'ci.static.failure',
-      risk_class: 'high',
-      scope: { file_path: 'package.json' },
-      lesson: 'Re-run local fast verification before trusting static CI failures.',
-      verification_commands: ['pnpm check:fast'],
-      promotion_rule: 'owner_approval',
-      supersedes: [],
-      conflicts_with: [],
-      created_at: '2026-03-23T12:00:00.000Z',
-      updated_at: '2026-03-23T12:00:00.000Z',
-      ...recordOverrides,
-    },
+    record,
   };
 }
 
@@ -54,8 +58,8 @@ test('returns append-ready output for a new captured memory record', () => {
     assert.equal(result.ok, true);
     assert.equal(result.action, 'append_ready');
     assert.equal(result.exists, false);
-    assert.equal(result.record.id, 'mem_capture_one');
-    assert.match(result.append_line, /"mem_capture_one"/);
+    assert.equal(result.record.id, makeCapture().record.id);
+    assert.match(result.append_line, new RegExp(makeCapture().record.id));
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
@@ -99,7 +103,7 @@ test('apply mode appends the new record to the registry', () => {
     assert.equal(result.action, 'appended');
     const lines = fs.readFileSync(registryPath, 'utf8').trim().split('\n');
     assert.equal(lines.length, 1);
-    assert.equal(JSON.parse(lines[0]).id, 'mem_capture_one');
+    assert.equal(JSON.parse(lines[0]).id, makeCapture().record.id);
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
@@ -132,7 +136,7 @@ test('CLI writes a decision artifact and can append on demand', () => {
 
     const decision = JSON.parse(fs.readFileSync(outPath, 'utf8'));
     assert.equal(decision.action, 'appended');
-    assert.equal(decision.record.id, 'mem_capture_one');
+    assert.equal(decision.record.id, makeCapture().record.id);
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
@@ -142,4 +146,25 @@ test('determineRegisterAction avoids nested ternary ambiguity', () => {
   assert.equal(determineRegisterAction({ exists: true, apply: false }), 'already_registered');
   assert.equal(determineRegisterAction({ exists: false, apply: true }), 'appended');
   assert.equal(determineRegisterAction({ exists: false, apply: false }), 'append_ready');
+});
+
+test('invalid captures are rejected instead of being appended', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'memory-register-capture-'));
+  const registryPath = path.join(tempDir, 'registry.jsonl');
+  writeJsonl(registryPath, []);
+
+  try {
+    const result = registerCapturedMemory({
+      capturePayload: makeCapture({ id: 'not-deterministic' }),
+      registryPath,
+      apply: true,
+    });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.action, 'invalid_capture');
+    assert.ok(Array.isArray(result.validation_problems));
+    assert.equal(fs.readFileSync(registryPath, 'utf8').trim(), '');
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 });

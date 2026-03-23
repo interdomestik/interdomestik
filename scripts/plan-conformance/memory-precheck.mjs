@@ -13,6 +13,7 @@ const DEFAULT_REGISTRY_PATH = path.join('docs', 'plans', '2026-03-03-memory-regi
 const DEFAULT_RULES_PATH = path.join('scripts', 'plan-conformance', 'memory-precheck-rules.json');
 const DEFAULT_OUT_PATH = path.join('tmp', 'plan-conformance', 'memory-precheck-report.json');
 const DEFAULT_LIMIT = 3;
+const DEFAULT_BASE_REF = 'origin/main';
 const TRUSTED_PATH_SEGMENTS = [
   '/opt/homebrew/bin',
   '/usr/local/bin',
@@ -139,17 +140,26 @@ export function buildCommandEnv() {
   };
 }
 
-function safeGitDiffNameOnly() {
+function runGitDiffCommand(args) {
+  return execFileSync('git', args, {
+    encoding: 'utf8',
+    env: buildCommandEnv(),
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+}
+
+export function safeGitDiffNameOnly(baseRef = DEFAULT_BASE_REF) {
   try {
-    const output = execFileSync('git', ['diff', '--name-only', 'HEAD'], {
-      encoding: 'utf8',
-      env: buildCommandEnv(),
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
+    const output = runGitDiffCommand(['diff', '--name-only', `${baseRef}...HEAD`]);
 
     return normalizeChangedFiles(output.split('\n'));
   } catch {
-    return [];
+    try {
+      const fallbackOutput = runGitDiffCommand(['diff', '--name-only', 'HEAD']);
+      return normalizeChangedFiles(fallbackOutput.split('\n'));
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -159,11 +169,12 @@ export function runMemoryPrecheck({
   rulesPath = DEFAULT_RULES_PATH,
   outPath = DEFAULT_OUT_PATH,
   limit = DEFAULT_LIMIT,
+  baseRef = DEFAULT_BASE_REF,
 } = {}) {
   const normalizedChangedFiles =
     Array.isArray(changedFiles) && changedFiles.length > 0
       ? normalizeChangedFiles(changedFiles)
-      : safeGitDiffNameOnly();
+      : safeGitDiffNameOnly(baseRef);
   const rulesPayload = readJson(rulesPath);
   const rules = Array.isArray(rulesPayload?.rules) ? rulesPayload.rules : [];
   const records = parseRegistry(registryPath);
@@ -228,6 +239,7 @@ function createArgs() {
     rulesPath: DEFAULT_RULES_PATH,
     outPath: DEFAULT_OUT_PATH,
     limit: DEFAULT_LIMIT,
+    baseRef: DEFAULT_BASE_REF,
     help: false,
   };
 }
@@ -255,6 +267,11 @@ function consumeValue(args, token, next) {
 
   if (token === '--limit' && next) {
     args.limit = Number.parseInt(next, 10);
+    return true;
+  }
+
+  if (token === '--base' && next) {
+    args.baseRef = next;
     return true;
   }
 

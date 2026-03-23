@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { validateMemoryRegistry } from './memory-validate.mjs';
+
 const DEFAULT_REGISTRY_PATH = path.join('docs', 'plans', '2026-03-03-memory-registry.jsonl');
 const DEFAULT_OUT_PATH = path.join('tmp', 'plan-conformance', 'memory-register-capture-decision.json');
 
@@ -61,6 +63,19 @@ export function registerCapturedMemory({
     throw new Error('capture record must include a non-empty id');
   }
 
+  const validation = validateCapturedRecord(record);
+  if (!validation.ok) {
+    return {
+      ok: false,
+      registry: path.resolve(registryPath),
+      record,
+      exists: false,
+      append_line: '',
+      action: 'invalid_capture',
+      validation_problems: validation.problems,
+    };
+  }
+
   const registryRecords = parseJsonl(registryPath);
   const exists = registryRecords.some(entry => entry?.id === record.id);
   const action = determineRegisterAction({ exists, apply });
@@ -91,6 +106,10 @@ export function determineRegisterAction({ exists, apply }) {
   }
 
   return 'append_ready';
+}
+
+export function validateCapturedRecord(record) {
+  return validateMemoryRegistry([record]);
 }
 
 function printUsage() {
