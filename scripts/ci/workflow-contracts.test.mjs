@@ -256,6 +256,34 @@ test('Pilot gate heavy runner depends on preflight before Postgres, setup, build
   assert.equal(findStep(steps, 'Await SonarCloud Code Analysis check'), undefined);
 });
 
+test('Sonar main gate skips manual fallback for non-push SonarCloud runs while keeping push blocking intact', () => {
+  const workflow = readWorkflow('.github/workflows/sonar-main-gate.yml');
+  const job = workflow.jobs['sonar-gate'];
+
+  assert.ok(job);
+  const steps = job.steps;
+  const validateStep = findStep(steps, 'Validate Sonar configuration');
+  const strategyStep = findStep(steps, 'Decide Sonar main gate strategy');
+  const awaitStep = findStep(steps, 'Await SonarCloud Code Analysis check (blocking on push)');
+  const fallbackStep = findStep(steps, 'Run Sonar quality gate (manual fallback)');
+
+  assert.ok(validateStep);
+  assert.ok(strategyStep);
+  assert.equal(strategyStep.if, "env.SONAR_GATE_ENABLED == 'true'");
+  assert.match(strategyStep.run, /RUN_MANUAL_FALLBACK/);
+  assert.match(strategyStep.run, /sonarcloud\.io/);
+  assert.match(strategyStep.run, /SonarCloud Automatic Analysis owns mainline analysis/);
+
+  assert.ok(awaitStep);
+  assert.equal(awaitStep.if, "github.event_name == 'push' && env.SONAR_GATE_ENABLED == 'true'");
+
+  assert.ok(fallbackStep);
+  assert.equal(
+    fallbackStep.if,
+    "github.event_name != 'push' && env.SONAR_GATE_ENABLED == 'true' && env.RUN_MANUAL_FALLBACK == 'true'"
+  );
+});
+
 test('Required pilot gate wrapper fails or passes based on preflight and runner results without starting services itself', () => {
   const pilotGateWorkflow = readWorkflow('.github/workflows/pilot-gate.yml');
   const pilotGateJob = pilotGateWorkflow.jobs['pilot-gate'];
