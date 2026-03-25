@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type MockSession = { user: { id: string } } | null;
+
 const sharedHeaders = new Headers({
   cookie: 'better-auth.session_token=token',
   host: 'ks.localhost:3000',
 });
 
 const hoisted = vi.hoisted(() => ({
-  getSessionMock: vi.fn(async () => ({
+  getSessionMock: vi.fn<() => Promise<MockSession>>(async () => ({
     user: { id: 'staff-1' },
   })),
   headersMock: vi.fn(async () => sharedHeaders),
