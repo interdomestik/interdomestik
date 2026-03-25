@@ -208,7 +208,7 @@ test('pilot readiness commands keep local verification and production proof dist
   );
   assert.match(
     pilotGoNoGo,
-    /Readiness cadence proof is green: `pnpm pilot:cadence:check -- --pilotId <pilot-id>` exits `0`\./
+    /Readiness cadence proof is green when the active pilot id already has 3 consecutive qualifying green operating days recorded and `pnpm pilot:cadence:check -- --pilotId <pilot-id>` exits `0`\./
   );
   assert.match(
     pilotEntryCriteria,
@@ -216,7 +216,7 @@ test('pilot readiness commands keep local verification and production proof dist
   );
   assert.match(
     pilotEntryCriteria,
-    /Run `pnpm pilot:cadence:check -- --pilotId <pilot-id>` and require a 3-day qualifying green streak before pilot entry or resume\./
+    /Run `pnpm pilot:cadence:check -- --pilotId <pilot-id>` only after the active pilot id already has 3 consecutive qualifying green days recorded and you need to prove readiness cadence for continuation or expansion\./
   );
   assert.match(
     pilotEvidenceTemplate,

@@ -117,15 +117,15 @@ P2.5 Role grant/revoke access flip
   - Tenant context guard: opening profile without tenantId shows "Missing tenant context"; with tenantId works.
 
 Log Gate (after each P2 section)
-- vercel logs --environment production --since 30m --no-branch --level error
+- vercel logs "${APP_URL}" --json
 MANUAL
 note "Manual steps saved: ${OUT_DIR}/logs/manual_steps.txt"
 
 log "Safe Probes"
 run_and_capture "vercel_whoami" vercel whoami || true
 run_and_capture "vercel_inspect_prod_alias" vercel inspect "${APP_URL}" || true
-run_and_capture "vercel_logs_errors_30m" vercel logs --environment production --since 30m --no-branch --level error || true
-run_and_capture "vercel_logs_errors_30m_json" vercel logs --environment production --since 30m --no-branch --level error --json || true
+run_and_capture "vercel_logs_runtime" vercel logs "${APP_URL}" || true
+run_and_capture "vercel_logs_runtime_json" vercel logs "${APP_URL}" --json || true
 
 # Route contract probes (non-destructive)
 run_and_capture "http_member_documents" curl -sS -o /dev/null -w "%{http_code}\n" "${APP_URL}/en/member/documents" || true

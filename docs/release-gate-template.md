@@ -177,14 +177,15 @@ Observed:
 
 Command:
 
-- `vercel logs --environment production --since 60m --no-branch --level error`
+- `vercel logs <deployment-url-or-id> --json`
 
 Output summary:
 
-- <No logs found | list key errors>
+- <No runtime entries during sample window | summarize key JSON error entries>
 
 Notes:
 
+- Resolve `<deployment-url-or-id>` from the current production release report or `vercel inspect <production-alias>`.
 - Authorization-deny entries during negative testing are expected; functional errors are not.
 
 ---

@@ -311,10 +311,10 @@ EOF
 
   step "Fetch recent Vercel logs for webhook path"
   set +e
-  vercel logs "${APP_URL#https://}" --prod --no-branch --since 1h >"${OUT_DIR}/vercel-logs-last-1h.txt" 2>&1
+  vercel logs "${APP_URL}" --json >"${OUT_DIR}/vercel-logs-runtime.jsonl" 2>&1
   VERCEL_LOG_EXIT=$?
   set -e
-  note "Saved: ${OUT_DIR}/vercel-logs-last-1h.txt (exit=${VERCEL_LOG_EXIT})"
+  note "Saved: ${OUT_DIR}/vercel-logs-runtime.jsonl (exit=${VERCEL_LOG_EXIT})"
 
   step "Checklist complete"
   note "Fill and attach: ${OUT_DIR}/pilot-evidence-template.md"
