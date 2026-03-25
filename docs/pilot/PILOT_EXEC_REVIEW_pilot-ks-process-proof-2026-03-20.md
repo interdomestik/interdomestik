@@ -27,8 +27,8 @@
 ## Recommendation
 
 - Final recommendation (`expand`/`repeat_with_fixes`/`pause`/`stop`): `pause`
-- Current canonical operating decision (`continue`/`pause`/`hotfix`/`stop`): `continue`
-- Rationale: `The resumed March 23 to March 25 cohort achieved the missing readiness cadence proof on the same canonical pilot id: the repo-backed streak is now 3 qualifying green operating days and pnpm pilot:cadence:check exits 0. That means the original process-proof objective is satisfied. What the repo still does not justify is automatic expansion. Expansion would still overclaim because the remaining weekly and executive promotion standard has not been refreshed to explicitly authorize it. The correct post-cadence posture is therefore formal process-proof closeout. Bounded continuation is not the default path and must be separately approved with a new narrow objective.`
+- Current canonical operating decision (`continue`/`pause`/`hotfix`/`stop`): `pause`
+- Rationale: `The resumed March 23 to March 25 cohort achieved the missing readiness cadence proof on the same canonical pilot id: the repo-backed streak is now 3 qualifying green operating days and pnpm pilot:cadence:check exits 0. That means the original process-proof objective is satisfied. What the repo still does not justify is automatic expansion. Expansion would still overclaim because the remaining weekly and executive promotion standard has not been refreshed to explicitly authorize it. The correct post-cadence posture is therefore formal process-proof closeout, with the canonical operating decision set to pause. Any bounded continuation is not the default path and must be separately approved with a new narrow objective and end condition.`
 
 ## Required Follow-Up
 

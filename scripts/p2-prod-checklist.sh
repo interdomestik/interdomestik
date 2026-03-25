@@ -47,6 +47,35 @@ require_cmd() {
   }
 }
 
+capture_vercel_logs_json_sample() {
+  local url="$1"
+  local out_file="$2"
+  local timeout_s="${3:-20}"
+  python3 - "$url" "$out_file" "$timeout_s" <<'PY'
+import pathlib
+import subprocess
+import sys
+
+url, out_file, timeout_s = sys.argv[1], sys.argv[2], int(sys.argv[3])
+out_path = pathlib.Path(out_file)
+
+try:
+    completed = subprocess.run(
+        ["vercel", "logs", url, "--json"],
+        capture_output=True,
+        text=True,
+        timeout=timeout_s,
+    )
+    out_path.write_text((completed.stdout or "") + (completed.stderr or ""))
+    raise SystemExit(completed.returncode)
+except subprocess.TimeoutExpired as exc:
+    stdout = exc.stdout.decode() if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+    stderr = exc.stderr.decode() if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+    out_path.write_text(stdout + stderr)
+    raise SystemExit(124)
+PY
+}
+
 capture_headers() {
   local name="$1"; shift
   local url="$1"; shift
@@ -58,6 +87,7 @@ capture_headers() {
 # --- Preconditions ---
 require_cmd vercel
 require_cmd curl
+require_cmd python3
 
 # --- Snapshot ---
 {
@@ -117,15 +147,14 @@ P2.5 Role grant/revoke access flip
   - Tenant context guard: opening profile without tenantId shows "Missing tenant context"; with tenantId works.
 
 Log Gate (after each P2 section)
-- vercel logs "${APP_URL}" --json
+- vercel logs "${APP_URL}" --json  # review only a short live sample, about 20s
 MANUAL
 note "Manual steps saved: ${OUT_DIR}/logs/manual_steps.txt"
 
 log "Safe Probes"
 run_and_capture "vercel_whoami" vercel whoami || true
 run_and_capture "vercel_inspect_prod_alias" vercel inspect "${APP_URL}" || true
-run_and_capture "vercel_logs_runtime" vercel logs "${APP_URL}" || true
-run_and_capture "vercel_logs_runtime_json" vercel logs "${APP_URL}" --json || true
+run_and_capture "vercel_logs_runtime_json_sample" capture_vercel_logs_json_sample "${APP_URL}" "${OUT_DIR}/logs/vercel_logs_runtime_json_sample.log" 20 || true
 
 # Route contract probes (non-destructive)
 run_and_capture "http_member_documents" curl -sS -o /dev/null -w "%{http_code}\n" "${APP_URL}/en/member/documents" || true

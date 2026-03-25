@@ -171,17 +171,17 @@ Observed:
 
 # P1.5 — Observability
 
-## P1.5.1 Production Error Log Sweep (60m)
+## P1.5.1 Production Error Log Sweep (bounded live sample)
 
 **Result:** <PASS/FAIL>
 
 Command:
 
-- `vercel logs <deployment-url-or-id> --json`
+- `vercel logs <deployment-url-or-id> --json` and review only a short live sample window (for example, ~20s) because the CLI streams from now
 
 Output summary:
 
-- <No runtime entries during sample window | summarize key JSON error entries>
+- <No runtime entries during sampled window | summarize key JSON error entries>
 
 Notes:
 
