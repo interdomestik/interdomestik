@@ -1,6 +1,24 @@
 {
   "agent-claims": {
     "claims": {
+      "staff_queue": {
+        "subtitle": "Çfarë ka nevojë për veprim sot.",
+        "results_count": "{count, plural, one {# rast} other {# raste}}",
+        "search_placeholder": "Kërko rast, anëtar, kompani ose numër",
+        "search": "Kërko",
+        "clear_search": "Pastro",
+        "assignment_filter_label": "Filtri i caktimit",
+        "status_filter_label": "Filtri i statusit",
+        "all_actionable": "Të gjitha rastet vepruese",
+        "empty_filtered": "Asnjë rast nuk përputhet me filtrat aktualë",
+        "empty_default": "Nuk ka raste në radhë",
+        "assignment_state": {
+          "unassigned": "Pa përgjegjës",
+          "assigned_to_you": "Caktuar te ju",
+          "assigned": "I caktuar",
+          "assigned_to_named": "Caktuar te {name}"
+        }
+      },
       "queue": "Radha Operative e Kërkesave",
       "claims_queue": "Radha Operative e Kërkesave",
       "manage_triage": "Triage dhe verifiko kërkesat e dorëzuara përpara alokimit.",
@@ -21,7 +39,8 @@
         "approve": "Aprovo",
         "reject": "Refuzo",
         "requestInfo": "Kërko sqarim",
-        "review": "Rishiko Rastin"
+        "review": "Rishiko Rastin",
+        "open": "Hap"
       },
       "details": {
         "title": "Detajet Operative të Rastit",
@@ -53,7 +72,8 @@
         "messages": "Mesazhet",
         "documents": "Dokumentet",
         "no_documents": "Nuk ka dokumente të ngarkuara",
-        "unknown_date": "Datë e panjohur"
+        "unknown_date": "Datë e panjohur",
+        "branch_manager_readonly_notice": "Menaxherët e degës mund të rishikojnë statusin e rastit dhe kontekstin e anëtarit këtu, por caktimi, mesazhet dhe veprimet mbi rastin mbeten vetëm për stafin në pilot."
       },
       "triage": {
         "title": "Veprimet e Triage",

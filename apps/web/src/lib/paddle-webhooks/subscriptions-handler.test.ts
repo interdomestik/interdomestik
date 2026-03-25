@@ -43,7 +43,7 @@ vi.mock('@interdomestik/database', () => ({
   },
 }));
 
-vi.mock('@interdomestik/domain-referrals', () => ({
+vi.mock('@interdomestik/domain-referrals/member-referrals/rewards', () => ({
   createMemberReferralRewardCore: mocks.createMemberReferralReward,
 }));
 

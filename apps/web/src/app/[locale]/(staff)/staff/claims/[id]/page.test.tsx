@@ -92,6 +92,8 @@ vi.mock('next-intl/server', () => ({
       'details.sla_phase.running': 'Running',
       'details.sla_phase.incomplete': 'Waiting for member information',
       'details.sla_phase.not_applicable': 'Not active',
+      'details.branch_manager_readonly_notice':
+        'Branch managers can review claim status and member context here, but assignment, messaging, and claim actions remain staff-only in the pilot.',
     };
 
     return translations[key] || key;
@@ -177,5 +179,29 @@ describe('StaffClaimDetailsPage', () => {
         }),
       })
     );
+  });
+
+  it('shows a read-only operator notice for branch managers', async () => {
+    hoisted.getSessionMock.mockResolvedValueOnce({
+      user: {
+        id: 'manager-1',
+        tenantId: 'tenant-ks',
+        role: 'branch_manager',
+        branchId: 'branch-a',
+      },
+    });
+
+    const tree = await StaffClaimDetailsPage({
+      params: Promise.resolve({
+        locale: 'en',
+        id: 'claim-1',
+      }),
+    });
+
+    render(tree);
+
+    expect(screen.getByTestId('staff-claim-readonly-notice')).toBeInTheDocument();
+    expect(screen.queryByTestId('staff-claim-messaging-panel')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('staff-claim-action-panel')).not.toBeInTheDocument();
   });
 });

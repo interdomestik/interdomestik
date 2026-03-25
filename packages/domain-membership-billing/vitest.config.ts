@@ -1,6 +1,12 @@
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@interdomestik/domain-referrals': path.resolve(__dirname, '../domain-referrals/src'),
+    },
+  },
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
