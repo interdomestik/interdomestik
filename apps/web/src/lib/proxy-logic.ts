@@ -128,6 +128,10 @@ async function introspectSessionState(request: NextRequest): Promise<SessionIntr
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return 'unknown';
+      }
+
       if (response.status >= 400 && response.status < 500) {
         return 'inactive';
       }

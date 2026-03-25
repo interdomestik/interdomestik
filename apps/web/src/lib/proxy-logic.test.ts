@@ -112,7 +112,7 @@ describe('proxy auth guard hardening', () => {
     expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
   });
 
-  it('redirects protected routes when session introspection returns a rate-limit client error', async () => {
+  it('keeps protected routes open when session introspection returns a rate-limit client error', async () => {
     const signed = await signSessionToken(
       'token-rate-limit',
       process.env.BETTER_AUTH_SECRET as string
@@ -123,8 +123,8 @@ describe('proxy auth guard hardening', () => {
     const response = await proxy(request);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe('http://ks.localhost:3000/sq/login');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-e2e-tenant')).toBe('tenant_ks');
   });
 
   it('keeps protected routes open when session introspection throws a transient transport error', async () => {

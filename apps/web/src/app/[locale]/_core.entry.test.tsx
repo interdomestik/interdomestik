@@ -97,4 +97,55 @@ describe('RootLayout font wiring', () => {
     expect(body.props.className).toContain('antialiased');
     expect(hoisted.headersMock).not.toHaveBeenCalled();
   });
+
+  it('does not inject the devtools script by default', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+
+    try {
+      const tree = await RootLayout({
+        children: null,
+        params: Promise.resolve({ locale: 'en' }),
+      });
+
+      const body = tree.props.children;
+      const bodyChildren = Array.isArray(body.props.children)
+        ? body.props.children
+        : [body.props.children];
+
+      expect(
+        bodyChildren.some(
+          (child: { type?: unknown } | null | undefined) => child?.type === 'script'
+        )
+      ).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('hides the Next devtools badge in development by default', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+
+    try {
+      const tree = await RootLayout({
+        children: null,
+        params: Promise.resolve({ locale: 'en' }),
+      });
+
+      const body = tree.props.children;
+      const bodyChildren = Array.isArray(body.props.children)
+        ? body.props.children
+        : [body.props.children];
+
+      expect(
+        bodyChildren.some(
+          (child: { type?: unknown; props?: { children?: string } } | null | undefined) =>
+            child?.type === 'style' &&
+            typeof child?.props?.children === 'string' &&
+            child.props.children.includes('Open Next.js Dev Tools')
+        )
+      ).toBe(true);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 });

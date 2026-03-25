@@ -2,12 +2,11 @@ import { getStaffClaimDetail } from '@interdomestik/domain-claims';
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-import { auth } from '@/lib/auth';
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
+import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { getLatestPublicStatusNoteCore } from './_core';
 
@@ -27,8 +26,7 @@ export default async function StaffClaimDetailsPage({ params }: PageProps) {
   setRequestLocale(locale);
   const tClaims = await getTranslations('agent-claims.claims');
 
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return notFound();
+  const session = requireSessionOrRedirect(await getSessionSafe('StaffClaimDetailsPage'), locale);
   // Pilot policy: branch managers have read-only visibility; claim actions remain staff-only.
   if (session.user.role !== 'staff' && session.user.role !== 'branch_manager') {
     return notFound();
