@@ -70,6 +70,26 @@ vi.mock('drizzle-orm', () => ({
 
 import { getStaffClaimsList } from './get-staff-claims-list';
 
+function expectOwnOrUnassignedQueueScope(args: { staffId: string; tenantId: string }) {
+  expect(mocks.withTenant).toHaveBeenCalledWith(
+    args.tenantId,
+    mocks.claims.tenantId,
+    expect.objectContaining({
+      op: 'and',
+      conditions: expect.arrayContaining([
+        expect.objectContaining({ op: 'inArray' }),
+        expect.objectContaining({
+          op: 'or',
+          conditions: expect.arrayContaining([
+            expect.objectContaining({ op: 'eq', left: 'claims.staff_id', right: args.staffId }),
+            expect.objectContaining({ op: 'isNull', column: 'claims.staff_id' }),
+          ]),
+        }),
+      ]),
+    })
+  );
+}
+
 describe('getStaffClaimsList', () => {
   beforeEach(() => {
     mocks.and.mockClear();
@@ -139,23 +159,7 @@ describe('getStaffClaimsList', () => {
       viewerRole: 'branch_manager',
     });
 
-    expect(mocks.withTenant).toHaveBeenCalledWith(
-      'tenant-ks',
-      mocks.claims.tenantId,
-      expect.objectContaining({
-        op: 'and',
-        conditions: expect.arrayContaining([
-          expect.objectContaining({ op: 'inArray' }),
-          expect.objectContaining({
-            op: 'or',
-            conditions: expect.arrayContaining([
-              expect.objectContaining({ op: 'eq', left: 'claims.staff_id', right: 'staff-1' }),
-              expect.objectContaining({ op: 'isNull', column: 'claims.staff_id' }),
-            ]),
-          }),
-        ]),
-      })
-    );
+    expectOwnOrUnassignedQueueScope({ staffId: 'staff-1', tenantId: 'tenant-ks' });
   });
 
   it('maps assignee details for queue operator context', async () => {
@@ -241,23 +245,7 @@ describe('getStaffClaimsList', () => {
       limit: 10,
     });
 
-    expect(mocks.withTenant).toHaveBeenCalledWith(
-      'tenant-ks',
-      mocks.claims.tenantId,
-      expect.objectContaining({
-        op: 'and',
-        conditions: expect.arrayContaining([
-          expect.objectContaining({ op: 'inArray' }),
-          expect.objectContaining({
-            op: 'or',
-            conditions: expect.arrayContaining([
-              expect.objectContaining({ op: 'eq', left: 'claims.staff_id', right: 'staff-3' }),
-              expect.objectContaining({ op: 'isNull', column: 'claims.staff_id' }),
-            ]),
-          }),
-        ]),
-      })
-    );
+    expectOwnOrUnassignedQueueScope({ staffId: 'staff-3', tenantId: 'tenant-ks' });
   });
 
   it('applies assignment, status, and search filters within the actionable queue scope', async () => {
